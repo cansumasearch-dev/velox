@@ -50,7 +50,7 @@ class Velox_Admin {
 	}
 
 	public function menu() {
-		add_menu_page( 'Velox', 'Velox', 'manage_options', self::SLUG, array( $this, 'render' ), $this->menu_icon(), 80.7 );
+		add_menu_page( 'Velox', 'Velox', 'manage_options', self::SLUG, array( $this, 'render' ), $this->menu_icon(), 100.7 );
 
 		foreach ( $this->enabled_tabs() as $key => $tab ) {
 			add_submenu_page(
