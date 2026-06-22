@@ -122,8 +122,8 @@ class Velox_Ajax {
 			case 'clear_cache':
 				$which = sanitize_key( $_POST['which'] ?? 'all' );
 				$res   = Velox_Admin::clear_cache( $which );
-				if ( in_array( $which, array( 'all', 'minified' ), true ) ) {
-					Velox_CSS::clear_cache(); // also drop trimmed used-CSS
+				if ( empty( $res['ok'] ) ) {
+					wp_send_json_error( $res );
 				}
 				wp_send_json_success( $res );
 				break;

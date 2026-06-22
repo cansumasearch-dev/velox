@@ -98,6 +98,9 @@ class Velox_Updater {
 				'new_version' => $new_version,
 				'url'         => sprintf( 'https://github.com/%s/%s', $this->user, $this->repo ),
 				'package'     => $this->download_url( $release ),
+				'tested'      => '7.0',
+				'requires'    => '6.0',
+				'requires_php'=> '7.4',
 				'icons'       => array(
 					'1x'      => VELOX_URL . 'assets/icon-128x128.png',
 					'2x'      => VELOX_URL . 'assets/icon-256x256.png',
@@ -133,7 +136,7 @@ class Velox_Updater {
 			'homepage'      => sprintf( 'https://github.com/%s/%s', $this->user, $this->repo ),
 			'download_link' => $this->download_url( $release ),
 			'requires'      => '6.0',
-			'tested'        => '6.8',
+			'tested'        => '7.0',
 			'requires_php'  => '7.4',
 			'last_updated'  => isset( $release->published_at ) ? $release->published_at : '',
 			'banners'       => array(
@@ -155,33 +158,54 @@ class Velox_Updater {
 	}
 
 	private function section_description() {
-		return '<p><strong>Velox</strong> is an all-in-one performance, image and media toolkit built for the Oxygen + WP Fastest Cache + Cloudflare stack. It complements your cache and CDN rather than fighting them — no second page cache, no CSS/JS combine.</p>'
-			. '<h4>What it does</h4><ul>'
-			. '<li><strong>Performance:</strong> defer &amp; delay JavaScript, fetchpriority on the LCP image, YouTube facades, lazy-render, Speculation Rules, plus a one-switch <em>Risky mode</em> that hides anything that might break a site.</li>'
-			. '<li><strong>Strong CSS:</strong> non-render-blocking CSS delivery, critical CSS, and <em>Remove Unused CSS</em> with three engines — Auto-learn (zero-setup, learns from your visitors), Cloudflare Browser Run, or Local.</li>'
-			. '<li><strong>Fonts:</strong> host Google Fonts locally in one click.</li>'
+		return '<p>Hey — I\'m the developer behind Velox. I built it because every "all-in-one" speed plugin I tried either fought with WP Fastest Cache, broke Oxygen, or buried me in 200 settings I didn\'t understand. So I made the one I actually wanted: it sits <em>on top</em> of the stack we already run (Oxygen + WP Fastest Cache + Cloudflare) and only adds the things those tools don\'t already do.</p>'
+			. '<p>It never page-caches and never combines your CSS/JS — that\'s your cache plugin\'s job, and combining breaks Oxygen anyway. Everything risky is off until you flip a single "Risky mode" switch, so you can\'t accidentally nuke your own site.</p>'
+			. '<h4>What\'s inside</h4><ul>'
+			. '<li><strong>Speed:</strong> defer &amp; delay JavaScript, prioritise the hero image (LCP), YouTube facades, lazy-render, Speculation Rules, and a long list of WordPress bloat you can switch off.</li>'
+			. '<li><strong>Smart CSS:</strong> async (non-blocking) delivery, critical CSS, and "Remove Unused CSS" with three engines — <em>Auto-learn</em> (zero setup, learns from your real visitors), <em>Cloudflare</em> (accurate from day one), or <em>Local</em>.</li>'
+			. '<li><strong>Fonts:</strong> pull your Google Fonts local in one click.</li>'
 			. '<li><strong>Images:</strong> bulk WebP conversion with live before/after savings, EXIF stripping and max-width downscaling.</li>'
-			. '<li><strong>Media editor:</strong> bulk alt text, titles and safe file renames.</li>'
-			. '<li><strong>Database:</strong> cleanup and table optimization.</li>'
-			. '</ul>';
+			. '<li><strong>Media:</strong> edit alt text and titles in bulk, rename files safely.</li>'
+			. '<li><strong>Database:</strong> clear the junk, optimise the tables.</li>'
+			. '<li><strong>Per-page control:</strong> switch any optimisation off on a single page when something acts up.</li>'
+			. '</ul>'
+			. '<p>Not sure where to start? Hit <strong>Settings → Quick setup → Safe defaults</strong> and you\'re good.</p>';
 	}
 
 	private function section_installation() {
 		return '<ol>'
-			. '<li>Upload the plugin zip via <em>Plugins → Add New → Upload</em> (choose "Replace current with uploaded" when updating).</li>'
-			. '<li>Activate it. All modules are on by default.</li>'
-			. '<li>Open <em>Velox</em> in the admin menu and configure each module.</li>'
-			. '<li>Updates arrive automatically from GitHub — no wp.org listing needed.</li>'
+			. '<li>Upload the zip under <em>Plugins → Add New → Upload Plugin</em>. Updating? Choose "Replace current with uploaded" — your settings are kept.</li>'
+			. '<li>Activate it. Every module is on by default; nothing aggressive runs until you say so.</li>'
+			. '<li>Open <strong>Velox</strong> in the admin sidebar. Go to <em>Settings → Quick setup</em> and apply Safe defaults.</li>'
+			. '<li>Want more? Flip <em>Risky mode</em> in Performance, or apply the Aggressive preset, then test your site and exclude anything that misbehaves.</li>'
+			. '<li>Updates come straight from GitHub — no wp.org needed. When a new version drops you\'ll see the usual "update available" notice.</li>'
 			. '</ol>';
 	}
 
 	private function section_faq() {
-		return '<h4>Does it conflict with WP Fastest Cache?</h4>'
-			. '<p>No — Velox never does page caching or CSS/JS combine. It only adds the front-end optimizations WPFC doesn\'t.</p>'
-			. '<h4>What is Risky mode?</h4>'
-			. '<p>By default only 100%-safe settings show. Turn on Risky mode to reveal aggressive options (delay-JS, unused-CSS removal, etc.) that might need testing.</p>'
-			. '<h4>What is the Auto-learn CSS engine?</h4>'
-			. '<p>It learns which CSS your pages actually use from real visitors\' browsers — no setup, no API key — and trims the rest. It can only ever keep more CSS, never break a layout.</p>';
+		$faq = array(
+			'Will it clash with WP Fastest Cache?' =>
+				'No. Velox deliberately doesn\'t do page caching or CSS/JS combining — that\'s WPFC\'s job. They\'re built to run together.',
+			'Do I need Cloudflare or an API key?' =>
+				'Nope. The default CSS engine (Auto-learn) needs zero setup — no account, no token. Cloudflare is just an optional alternative engine if you want instant accuracy on a low-traffic site.',
+			'What is Risky mode?' =>
+				'A single switch in Performance. Off, you only see settings that can\'t break a site. On, it reveals the aggressive stuff (JS delay, unused-CSS removal, etc.) that\'s worth testing first.',
+			'How does the Auto-learn CSS engine work?' =>
+				'It watches which CSS your pages actually use — measured in your real visitors\' browsers, so it even catches classes added by JavaScript — and trims the rest. Important bit: it can only ever keep <em>more</em> CSS, never less, so it can\'t break your layout.',
+			'Something looks broken on one page. What now?' =>
+				'Open that page in the editor and use the Velox box in the sidebar to switch off JS, CSS or lazy-load just for that page. The rest of your site stays optimised.',
+			'Is it safe on Oxygen?' =>
+				'Yes — it was built on an Oxygen stack. It won\'t combine CSS/JS (which breaks Oxygen) and it leaves jQuery Migrate alone by default, since Oxygen leans on it.',
+			'Does it optimise images automatically?' =>
+				'It converts to WebP in bulk from the Images tab and keeps your originals. New uploads can auto-convert if you turn that on. You stay in control.',
+			'Where are my settings stored, and what happens if I delete the plugin?' =>
+				'Everything lives in one tidy option. Delete the plugin and Velox cleans up after itself — its settings, learned data and cache folders all go. Your media and WebP files stay exactly where they are.',
+		);
+		$out = '';
+		foreach ( $faq as $q => $a ) {
+			$out .= '<h4>' . esc_html( $q ) . '</h4><p>' . $a . '</p>';
+		}
+		return $out;
 	}
 
 	/** Render the GitHub release notes (lightweight Markdown) for the changelog tab. */

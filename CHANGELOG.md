@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 1.8.1
+- **Cache buttons now confirm what happened** — "All caches purged", "Cloudflare purged", or a clear "Error: …" telling you exactly what's missing (e.g. Cloudflare plugin not active).
+- **Tested up to WordPress 7.0** — clears the "hasn't been tested with your version" warning.
+- Rewrote the description, installation, FAQ and README to be clearer, friendlier and more useful, with more questions answered.
+
 ## 1.8.0
 - **Per-page overrides:** a "Velox" box in the post/page editor to switch off JS, CSS or lazy-load (or everything) on a single page.
 - **Quick-setup presets:** one-click "Safe defaults" and "Aggressive" buttons in Settings.

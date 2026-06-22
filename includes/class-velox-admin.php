@@ -28,6 +28,7 @@ class Velox_Admin {
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar' ), 80 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
 		add_action( 'admin_post_velox_cache', array( $this, 'handle_cache_action' ) );
+		add_action( 'admin_notices', array( $this, 'cache_notice' ) );
 		add_filter( 'plugin_action_links_' . VELOX_BASENAME, array( $this, 'action_links' ) );
 	}
 
@@ -133,11 +134,28 @@ class Velox_Admin {
 		$which = isset( $_GET['which'] ) ? sanitize_key( wp_unslash( $_GET['which'] ) ) : 'all';
 		check_admin_referer( 'velox_cache_' . $which );
 
-		self::clear_cache( $which );
+		$res = self::clear_cache( $which );
+		set_transient( 'velox_cache_notice_' . get_current_user_id(), $res, 60 );
 
 		$back = wp_get_referer();
 		wp_safe_redirect( $back ? $back : admin_url( 'admin.php?page=' . self::SLUG ) );
 		exit;
+	}
+
+	/** Show the result of an admin-bar cache purge as a dismissible notice. */
+	public function cache_notice() {
+		$key    = 'velox_cache_notice_' . get_current_user_id();
+		$notice = get_transient( $key );
+		if ( ! $notice ) {
+			return;
+		}
+		delete_transient( $key );
+		$class = empty( $notice['ok'] ) ? 'notice-error' : 'notice-success';
+		printf(
+			'<div class="notice %1$s is-dismissible"><p><strong>Velox:</strong> %2$s</p></div>',
+			esc_attr( $class ),
+			esc_html( $notice['message'] )
+		);
 	}
 
 	/**
@@ -145,53 +163,89 @@ class Velox_Admin {
 	 * rest. Shared by the admin bar (no-JS) and the AJAX endpoint.
 	 */
 	public static function clear_cache( $which ) {
-		$done = array();
+		$done    = array();
+		$missing = array();
 
-		$wpfc_all = function () use ( &$done ) {
+		$purge_wpfc = function () use ( &$done, &$missing ) {
 			if ( function_exists( 'wpfc_clear_all_cache' ) ) {
 				wpfc_clear_all_cache( true );
 				$done[] = 'WP Fastest Cache';
 			} elseif ( isset( $GLOBALS['wp_fastest_cache'] ) && method_exists( $GLOBALS['wp_fastest_cache'], 'deleteCache' ) ) {
 				$GLOBALS['wp_fastest_cache']->deleteCache( true );
 				$done[] = 'WP Fastest Cache';
+			} else {
+				$missing[] = 'WP Fastest Cache not active';
 			}
 		};
 
+		$label = 'Cache';
 		switch ( $which ) {
 			case 'all':
-				$wpfc_all();
+				$label = 'All caches';
+				$purge_wpfc();
 				if ( function_exists( 'wp_cache_flush' ) ) {
 					wp_cache_flush();
-					$done[] = 'Object cache';
+					$done[] = 'object cache';
 				}
+				if ( class_exists( 'Velox_CSS' ) ) {
+					Velox_CSS::clear_cache();
+					$done[] = 'Velox used-CSS';
+				}
+				delete_transient( 'velox_latest_release' );
 				break;
+
 			case 'minified':
-				$wpfc_all();
-				$done[] = 'Minified CSS/JS';
+				$label = 'Minified CSS/JS';
+				$purge_wpfc();
 				break;
+
 			case 'oxygen':
+				$label = 'Oxygen CSS';
 				if ( function_exists( 'oxygen_vsb_cache_universal_css_file' ) ) {
 					oxygen_vsb_cache_universal_css_file();
-					$done[] = 'Oxygen CSS cache';
-				} else {
+					$done[] = 'Oxygen CSS';
+				} elseif ( has_action( 'oxygen_vsb_cache_generate_css' ) ) {
 					do_action( 'oxygen_vsb_cache_generate_css' );
-					$done[] = 'Oxygen CSS cache (if active)';
+					$done[] = 'Oxygen CSS';
+				} else {
+					$missing[] = 'Oxygen not active';
 				}
 				break;
+
 			case 'cloudflare':
-				do_action( 'cloudflare_purge_everything' );
-				$done[] = 'Cloudflare (if connected)';
+				$label = 'Cloudflare';
+				if ( has_action( 'cloudflare_purge_everything' ) ) {
+					do_action( 'cloudflare_purge_everything' );
+					$done[] = 'Cloudflare';
+				} else {
+					$missing[] = 'Cloudflare plugin not active';
+				}
 				break;
+
 			case 'velox':
+				$label = 'Velox';
 				delete_transient( 'velox_latest_release' );
-				$done[] = 'Velox cache';
+				if ( class_exists( 'Velox_CSS' ) ) {
+					Velox_CSS::clear_cache();
+				}
+				$done[] = 'Velox';
 				break;
+
+			default:
+				return array( 'ok' => false, 'cleared' => array(), 'message' => 'Error: unknown cache target "' . $which . '"' );
 		}
 
-		$done = array_values( array_filter( $done ) );
+		if ( ! empty( $done ) ) {
+			return array(
+				'ok'      => true,
+				'cleared' => array_values( array_filter( $done ) ),
+				'message' => $label . ' purged' . ( $missing ? ' — skipped: ' . implode( '; ', $missing ) : '' ),
+			);
+		}
 		return array(
-			'cleared' => $done,
-			'message' => $done ? ( 'Cleared: ' . implode( ', ', $done ) ) : 'Nothing to clear (tool not detected).',
+			'ok'      => false,
+			'cleared' => array(),
+			'message' => 'Error: ' . ( $missing ? implode( '; ', $missing ) : 'nothing to purge — no matching cache tool detected' ),
 		);
 	}
 

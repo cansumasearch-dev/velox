@@ -808,10 +808,10 @@
 				cb.textContent = 'Clearing…';
 				api( 'clear_cache', { which: which } )
 					.then( function ( d ) {
-						toast( ( d && d.message ) || 'Cache cleared.' );
+						toast( ( d && d.message ) || 'Cache purged.' );
 					} )
 					.catch( function ( e ) {
-						toast( e.message );
+						toast( e.message || 'Error clearing cache.', 'error' );
 					} )
 					.then( function () {
 						cb.disabled = false;
