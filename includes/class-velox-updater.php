@@ -93,6 +93,11 @@ class Velox_Updater {
 				'new_version' => $new_version,
 				'url'         => sprintf( 'https://github.com/%s/%s', $this->user, $this->repo ),
 				'package'     => $this->download_url( $release ),
+				'icons'       => array(
+					'1x'      => VELOX_URL . 'assets/icon-128x128.png',
+					'2x'      => VELOX_URL . 'assets/icon-256x256.png',
+					'default' => VELOX_URL . 'assets/icon-256x256.png',
+				),
 			);
 		} else {
 			$transient->no_update[ $this->basename ] = (object) array(
@@ -126,6 +131,15 @@ class Velox_Updater {
 			'tested'        => '6.8',
 			'requires_php'  => '7.4',
 			'last_updated'  => isset( $release->published_at ) ? $release->published_at : '',
+			'banners'       => array(
+				'low'  => VELOX_URL . 'assets/banner-772x250.png',
+				'high' => VELOX_URL . 'assets/banner-1544x500.png',
+			),
+			'icons'         => array(
+				'1x'      => VELOX_URL . 'assets/icon-128x128.png',
+				'2x'      => VELOX_URL . 'assets/icon-256x256.png',
+				'default' => VELOX_URL . 'assets/icon-256x256.png',
+			),
 			'sections'      => array(
 				'description'  => $this->section_description(),
 				'installation' => $this->section_installation(),

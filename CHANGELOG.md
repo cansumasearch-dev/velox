@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 1.7.2
+- Added plugin icon and banner artwork to the "View details" popup and the update notice.
+
 ## 1.7.1
 - Richer "View details" popup: full description, installation steps, FAQ and a properly formatted changelog.
 - Changelog now reads from this `CHANGELOG.md` so it stays in sync everywhere.
