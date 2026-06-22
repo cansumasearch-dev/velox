@@ -169,11 +169,28 @@
 			return;
 		}
 
-		/* quality slider live label */
+		/* quality slider live label + persist on release */
 		var qVal = $( '#velox-q-val' );
 		if ( root && qVal ) {
 			root.addEventListener( 'input', function () {
 				qVal.textContent = root.value + '%';
+			} );
+			root.addEventListener( 'change', function () {
+				saveSettings( { webp_quality: root.value }, null );
+			} );
+		}
+
+		/* persist EXIF + max-width the moment they change */
+		var keepExif = $( '#velox-keep-exif' );
+		if ( keepExif ) {
+			keepExif.addEventListener( 'change', function () {
+				saveSettings( { image_keep_exif: keepExif.checked ? 1 : 0 }, 'Saved.' );
+			} );
+		}
+		var maxWidth = $( '#velox-max-width' );
+		if ( maxWidth ) {
+			maxWidth.addEventListener( 'change', function () {
+				saveSettings( { image_max_width: maxWidth.value }, 'Saved.' );
 			} );
 		}
 
@@ -746,6 +763,199 @@
 	 * ------------------------------------------------------------- */
 
 	function initPerformance() {
+		/* left-rail sub-navigation: show one panel at a time */
+		var nav = $( '#velox-perf-nav' );
+		if ( nav ) {
+			var items = $$( '.velox-perf-navitem', nav );
+			var panels = $$( '.velox-perf-panel' );
+			nav.addEventListener( 'click', function ( e ) {
+				var item = e.target.closest( '.velox-perf-navitem' );
+				if ( ! item ) {
+					return;
+				}
+				var section = item.getAttribute( 'data-section' );
+				items.forEach( function ( i ) {
+					i.classList.toggle( 'is-active', i === item );
+				} );
+				panels.forEach( function ( p ) {
+					p.classList.toggle( 'is-active', p.getAttribute( 'data-section' ) === section );
+				} );
+			} );
+		}
+
+		/* Risky mode: reveal/hide the "might break" settings */
+		var riskyToggle = $( '#velox-risky-toggle' );
+		function applyRisky() {
+			var on = riskyToggle && riskyToggle.checked;
+			$$( '[data-risky="1"]' ).forEach( function ( el ) {
+				el.style.display = on ? '' : 'none';
+			} );
+		}
+		if ( riskyToggle ) {
+			applyRisky();
+			riskyToggle.addEventListener( 'change', function () {
+				applyRisky();
+				saveSettings( { perf_risky_mode: riskyToggle.checked ? 1 : 0 }, null );
+			} );
+		}
+
+		/* Clear-cache buttons inside the General section */
+		$$( '.velox-cache-btn' ).forEach( function ( cb ) {
+			cb.addEventListener( 'click', function () {
+				var which = cb.getAttribute( 'data-which' ) || 'all';
+				var orig = cb.textContent;
+				cb.disabled = true;
+				cb.textContent = 'Clearing…';
+				api( 'clear_cache', { which: which } )
+					.then( function ( d ) {
+						toast( ( d && d.message ) || 'Cache cleared.' );
+					} )
+					.catch( function ( e ) {
+						toast( e.message );
+					} )
+					.then( function () {
+						cb.disabled = false;
+						cb.textContent = orig;
+					} );
+			} );
+		} );
+
+		/* Local fonts: scan & download / remove */
+		var fScan = $( '#velox-fonts-scan' );
+		var fClear = $( '#velox-fonts-clear' );
+		var fStatus = $( '#velox-fonts-status' );
+		if ( fScan ) {
+			fScan.addEventListener( 'click', function () {
+				fScan.disabled = true;
+				fScan.textContent = 'Scanning…';
+				if ( fStatus ) {
+					fStatus.innerHTML = '<span class="velox-hint">Loading your front page and downloading fonts…</span>';
+				}
+				api( 'localize_fonts', {} )
+					.then( function ( d ) {
+						toast( ( d && d.message ) || 'Fonts hosted locally.' );
+						if ( fStatus ) {
+							var fam = d && d.families && d.families.length ? ' — ' + d.families.join( ', ' ) : '';
+							fStatus.innerHTML = '<span class="velox-fonts-ok">✓ ' + ( ( d && d.files ) || 0 ) + ' font file(s) hosted locally' + escapeHtml( fam ) + '</span>';
+						}
+					} )
+					.catch( function ( e ) {
+						toast( e.message, 'error' );
+						if ( fStatus ) {
+							fStatus.innerHTML = '<span class="velox-hint">' + escapeHtml( e.message ) + '</span>';
+						}
+					} )
+					.then( function () {
+						fScan.disabled = false;
+						fScan.textContent = 'Scan & download fonts';
+					} );
+			} );
+		}
+		if ( fClear ) {
+			fClear.addEventListener( 'click', function () {
+				fClear.disabled = true;
+				api( 'clear_local_fonts', {} )
+					.then( function ( d ) {
+						toast( ( d && d.message ) || 'Local fonts removed.' );
+						if ( fStatus ) {
+							fStatus.innerHTML = '<span class="velox-hint">No fonts hosted locally yet. Enable the toggle, then scan.</span>';
+						}
+					} )
+					.catch( function ( e ) {
+						toast( e.message, 'error' );
+					} )
+					.then( function () {
+						fClear.disabled = false;
+					} );
+			} );
+		}
+
+		/* Remove-unused-CSS: scan & build (saves settings first, then renders each page) */
+		var rucssScan = $( '#velox-rucss-scan' );
+		var rucssStatus = $( '#velox-rucss-status' );
+		if ( rucssScan ) {
+			rucssScan.addEventListener( 'click', function () {
+				var urlsEl = $( '[data-setting="perf_rucss_urls"]' );
+				var paths = ( urlsEl ? urlsEl.value : '/' )
+					.split( /\n+/ )
+					.map( function ( s ) { return s.trim(); } )
+					.filter( Boolean );
+				if ( ! paths.length ) {
+					toast( 'Add at least one page path to scan.', 'error' );
+					return;
+				}
+				rucssScan.disabled = true;
+				rucssScan.textContent = 'Saving…';
+				// Persist current settings (engine, token, urls, safelist) before rendering.
+				saveSettings( collectSettings( document.querySelector( '.velox-main' ) || document ), null ).then( function () {
+					var done = 0, ok = 0, fail = 0, msgs = [];
+					function step() {
+						if ( done >= paths.length ) {
+							rucssScan.disabled = false;
+							rucssScan.textContent = 'Scan & build used-CSS';
+							toast( 'Scan complete: ' + ok + ' built, ' + fail + ' failed.' );
+							if ( rucssStatus ) {
+								rucssStatus.innerHTML = '<span class="' + ( fail ? 'velox-hint' : 'velox-fonts-ok' ) + '">' + ( fail ? '' : '✓ ' ) + escapeHtml( msgs.join( ' · ' ) ) + '</span>';
+							}
+							return;
+						}
+						var path = paths[ done ];
+						rucssScan.textContent = 'Scanning ' + ( done + 1 ) + '/' + paths.length + '…';
+						api( 'rucss_scan_one', { path: path } )
+							.then( function ( d ) {
+								ok++;
+								msgs.push( ( d && d.message ) || path );
+							} )
+							.catch( function ( e ) {
+								fail++;
+								msgs.push( path + ': ' + e.message );
+							} )
+							.then( function () {
+								done++;
+								setTimeout( step, 300 );
+							} );
+					}
+					step();
+				} );
+			} );
+		}
+
+		/* Reset auto-learn data */
+		var rsBtn = $( '#velox-rucss-reset' );
+		if ( rsBtn ) {
+			rsBtn.addEventListener( 'click', function () {
+				rsBtn.disabled = true;
+				api( 'rucss_reset_learn', {} )
+					.then( function ( d ) {
+						toast( ( d && d.message ) || 'Auto-learn reset.' );
+					} )
+					.catch( function ( e ) {
+						toast( e.message, 'error' );
+					} )
+					.then( function () {
+						rsBtn.disabled = false;
+					} );
+			} );
+		}
+
+		/* Clear used-CSS cache */
+		var ucBtn = $( '#velox-clear-usedcss' );
+		if ( ucBtn ) {
+			ucBtn.addEventListener( 'click', function () {
+				ucBtn.disabled = true;
+				api( 'clear_used_css', {} )
+					.then( function ( d ) {
+						toast( ( d && d.message ) || 'Used-CSS cache cleared.' );
+					} )
+					.catch( function ( e ) {
+						toast( e.message, 'error' );
+					} )
+					.then( function () {
+						ucBtn.disabled = false;
+					} );
+			} );
+		}
+
 		var btn = $( '#velox-perf-save' );
 		if ( ! btn ) {
 			return;
@@ -874,37 +1084,76 @@
 
 	function initSettings() {
 		var btn = $( '#velox-settings-save' );
-		var check = $( '#velox-check-updates' );
-		if ( ! btn && ! check ) {
+		if ( ! btn ) {
 			return;
 		}
+		btn.addEventListener( 'click', function () {
+			btn.disabled = true;
+			btn.textContent = 'Saving…';
+			saveSettings(
+				collectSettings( document.querySelector( '.velox-main' ) || document ),
+				'Settings saved.'
+			).then( function () {
+				btn.disabled = false;
+				btn.textContent = 'Save settings';
+			} );
+		} );
 
-		if ( btn ) {
-			btn.addEventListener( 'click', function () {
-				btn.disabled = true;
-				btn.textContent = 'Saving…';
-				saveSettings(
-					collectSettings( document.querySelector( '.velox-main' ) || document ),
-					'Settings saved.'
-				).then( function () {
-					btn.disabled = false;
-					btn.textContent = 'Save settings';
+		/* Import / Export */
+		var box = $( '#velox-import-box' );
+		var importActions = $( '#velox-import-actions' );
+		var exportBtn = $( '#velox-export' );
+		var importOpen = $( '#velox-import-open' );
+		if ( exportBtn && box ) {
+			exportBtn.addEventListener( 'click', function () {
+				api( 'export_settings', {} ).then( function ( d ) {
+					box.hidden = false;
+					if ( importActions ) {
+						importActions.hidden = true;
+					}
+					box.value = ( d && d.json ) || '';
+					box.select();
+					toast( 'Settings exported — copy the JSON.' );
+				} ).catch( function ( e ) {
+					toast( e.message, 'error' );
 				} );
 			} );
 		}
-
-		if ( check ) {
-			check.addEventListener( 'click', function () {
-				toast( 'Checking GitHub for the latest release…' );
-				// Save token first so the updater can authenticate, then bounce
-				// to the WordPress updates screen which forces a fresh check.
-				var token = $( '[data-setting="gh_token"]' );
-				saveSettings(
-					token ? { gh_token: token.value } : {},
-					'Saved — opening updates…'
-				).then( function () {
-					window.location.href = 'update-core.php?force-check=1';
-				} );
+		if ( importOpen && box ) {
+			importOpen.addEventListener( 'click', function () {
+				box.hidden = false;
+				box.value = '';
+				box.placeholder = 'Paste a Velox settings JSON here…';
+				box.focus();
+				if ( importActions ) {
+					importActions.hidden = false;
+				}
+			} );
+		}
+		var importApply = $( '#velox-import-apply' );
+		if ( importApply && box ) {
+			importApply.addEventListener( 'click', function () {
+				importApply.disabled = true;
+				api( 'import_settings', { json: box.value } )
+					.then( function ( d ) {
+						toast( ( d && d.message ) || 'Imported.' );
+						setTimeout( function () {
+							window.location.reload();
+						}, 700 );
+					} )
+					.catch( function ( e ) {
+						toast( e.message, 'error' );
+						importApply.disabled = false;
+					} );
+			} );
+		}
+		var importCancel = $( '#velox-import-cancel' );
+		if ( importCancel && box ) {
+			importCancel.addEventListener( 'click', function () {
+				box.hidden = true;
+				if ( importActions ) {
+					importActions.hidden = true;
+				}
 			} );
 		}
 	}
@@ -913,9 +1162,416 @@
 	 * Boot
 	 * ------------------------------------------------------------- */
 
+	/* ----------------------------------------------------------------
+	 * Image library (Images tab) — filter, browse, live + bulk rename,
+	 * browser-persisted draft names, lightbox preview.
+	 * ------------------------------------------------------------- */
+
+	var PENDING_KEY = 'veloxPendingNames';
+
+	function loadPending() {
+		try {
+			return JSON.parse( window.localStorage.getItem( PENDING_KEY ) || '{}' ) || {};
+		} catch ( e ) {
+			return {};
+		}
+	}
+	function savePending( map ) {
+		try {
+			window.localStorage.setItem( PENDING_KEY, JSON.stringify( map ) );
+		} catch ( e ) {}
+	}
+
+	function typeLabel( mime ) {
+		var m = {
+			'image/jpeg': 'JPG',
+			'image/png': 'PNG',
+			'image/webp': 'WEBP',
+			'image/gif': 'GIF',
+			'image/svg+xml': 'SVG',
+			'image/avif': 'AVIF',
+		};
+		if ( m[ mime ] ) {
+			return m[ mime ];
+		}
+		return ( mime || '' ).split( '/' ).pop().toUpperCase().slice( 0, 5 );
+	}
+	function splitName( filename ) {
+		var i = filename.lastIndexOf( '.' );
+		if ( i <= 0 ) {
+			return { base: filename, ext: '' };
+		}
+		return { base: filename.slice( 0, i ), ext: filename.slice( i ) };
+	}
+
+	function initLibrary() {
+		var grid = $( '#velox-lib-grid' );
+		if ( ! grid ) {
+			return;
+		}
+
+		var state = { page: 1, pages: 1, search: '', filter: 'all' };
+		var prev = $( '#velox-lib-prev' );
+		var next = $( '#velox-lib-next' );
+		var pageInfo = $( '#velox-lib-pageinfo' );
+		var searchEl = $( '#velox-lib-search' );
+		var chips = $( '#velox-lib-filters' );
+		var applyAll = $( '#velox-lib-apply-all' );
+		var bulkBtn = $( '#velox-lib-bulk' );
+
+		/* lightbox */
+		var lightbox = $( '#velox-lightbox' );
+		var lbImg = $( '#velox-lightbox-img' );
+		var lbMeta = $( '#velox-lightbox-meta' );
+		var lbClose = $( '#velox-lightbox-close' );
+		function openLightbox( src, meta ) {
+			if ( ! lightbox ) {
+				return;
+			}
+			lbImg.src = src;
+			lbMeta.textContent = meta || '';
+			lightbox.hidden = false;
+		}
+		function closeLightbox() {
+			if ( lightbox ) {
+				lightbox.hidden = true;
+				lbImg.src = '';
+			}
+		}
+		if ( lbClose ) {
+			lbClose.addEventListener( 'click', closeLightbox );
+		}
+		if ( lightbox ) {
+			lightbox.addEventListener( 'click', function ( e ) {
+				if ( e.target === lightbox ) {
+					closeLightbox();
+				}
+			} );
+		}
+		document.addEventListener( 'keydown', function ( e ) {
+			if ( e.key === 'Escape' ) {
+				closeLightbox();
+			}
+		} );
+
+		function refreshApplyAll() {
+			if ( ! applyAll ) {
+				return;
+			}
+			var n = Object.keys( loadPending() ).length;
+			applyAll.hidden = n === 0;
+			applyAll.textContent = 'Apply all names (' + n + ')';
+		}
+
+		function load() {
+			grid.innerHTML = '<div class="velox-loading">Loading images…</div>';
+			api( 'list_media', { page: state.page, search: state.search, type: state.filter } )
+				.then( function ( d ) {
+					state.pages = d.total_pages || 1;
+					render( d.items || [] );
+					if ( pageInfo ) {
+						pageInfo.textContent = 'Page ' + d.page + ' / ' + state.pages + ' · ' + d.total + ' images';
+					}
+					if ( prev ) {
+						prev.disabled = d.page <= 1;
+					}
+					if ( next ) {
+						next.disabled = d.page >= state.pages;
+					}
+					refreshApplyAll();
+				} )
+				.catch( function ( e ) {
+					grid.innerHTML = '<div class="velox-loading">' + escapeHtml( e.message ) + '</div>';
+				} );
+		}
+
+		function pctSaved( before, after ) {
+			if ( ! before || ! after ) {
+				return 0;
+			}
+			return Math.max( 0, Math.round( ( 1 - after / before ) * 100 ) );
+		}
+
+		function savingHtml( it ) {
+			if ( it.webp && it.webp_bytes > 0 && it.orig_bytes > 0 ) {
+				var p = pctSaved( it.orig_bytes, it.webp_bytes );
+				return (
+					'<div class="velox-lib-saving is-done">' +
+						'<span class="velox-lib-before">' + bytes( it.orig_bytes ) + '</span>' +
+						'<span class="velox-lib-arrow">→</span>' +
+						'<span class="velox-lib-after">' + bytes( it.webp_bytes ) + '</span>' +
+						'<span class="velox-lib-pct">−' + p + '%</span>' +
+					'</div>'
+				);
+			}
+			return '<div class="velox-lib-saving" data-estimate="' + it.id + '"><span class="velox-lib-est-wait">Estimating WebP…</span></div>';
+		}
+
+		function runEstimates() {
+			var slots = $$( '.velox-lib-saving[data-estimate]', grid );
+			var i = 0;
+			function nextOne() {
+				if ( i >= slots.length ) {
+					return;
+				}
+				var el = slots[ i++ ];
+				var id = el.getAttribute( 'data-estimate' );
+				api( 'estimate_webp', { id: id } )
+					.then( function ( d ) {
+						if ( d && d.webp > 0 ) {
+							var p = pctSaved( d.original, d.webp );
+							el.innerHTML =
+								'<span class="velox-lib-before">' + bytes( d.original ) + '</span>' +
+								'<span class="velox-lib-arrow">→</span>' +
+								'<span class="velox-lib-after">≈ ' + bytes( d.webp ) + '</span>' +
+								'<span class="velox-lib-pct">−' + p + '%</span>';
+							el.classList.add( 'is-est' );
+						} else {
+							el.innerHTML = '<span class="velox-lib-est-wait">—</span>';
+						}
+					} )
+					.catch( function () {
+						el.innerHTML = '<span class="velox-lib-est-wait">—</span>';
+					} )
+					.then( function () {
+						setTimeout( nextOne, 120 );
+					} );
+			}
+			nextOne();
+		}
+
+		function render( items ) {
+			if ( ! items.length ) {
+				grid.innerHTML = '<div class="velox-loading">No images match this filter.</div>';
+				return;
+			}
+			var pending = loadPending();
+			grid.innerHTML = items.map( function ( it ) {
+				var parts = splitName( it.filename || '' );
+				var draft = pending[ it.id ];
+				var value = ( draft !== undefined ) ? draft : parts.base;
+				var dirty = ( draft !== undefined && draft !== parts.base ) ? ' is-dirty' : '';
+				var dims = ( it.width && it.height ) ? ( it.width + ' × ' + it.height ) : '—';
+				return (
+					'<div class="velox-lib-card" data-id="' + it.id + '">' +
+					'<div class="velox-lib-thumb" data-full="' + escapeHtml( it.full || it.thumb ) + '" ' +
+						'data-meta="' + escapeHtml( ( it.filename || '' ) + '  ·  ' + dims + '  ·  ' + bytes( it.bytes ) ) + '">' +
+						'<img src="' + escapeHtml( it.thumb || it.full ) + '" loading="lazy" alt="">' +
+						'<div class="velox-lib-badges">' +
+							'<span class="velox-lib-badge">' + escapeHtml( typeLabel( it.mime ) ) + '</span>' +
+							( it.webp ? '<span class="velox-lib-badge velox-lib-badge--webp">WebP</span>' : '' ) +
+						'</div>' +
+					'</div>' +
+					'<div class="velox-lib-body">' +
+						'<div class="velox-lib-meta"><span>' + dims + '</span><span>' + bytes( it.bytes ) + '</span></div>' +
+						savingHtml( it ) +
+						'<div class="velox-lib-rename">' +
+							'<input type="text" data-id="' + it.id + '" data-orig="' + escapeHtml( parts.base ) + '" ' +
+								'value="' + escapeHtml( value ) + '" class="' + dirty.trim() + '" spellcheck="false">' +
+							'<span class="velox-lib-ext">' + escapeHtml( parts.ext ) + '</span>' +
+							'<button class="velox-btn velox-btn--primary velox-lib-apply">Apply</button>' +
+						'</div>' +
+					'</div>' +
+					'</div>'
+				);
+			} ).join( '' );
+			runEstimates();
+		}
+
+		/* open lightbox */
+		grid.addEventListener( 'click', function ( e ) {
+			var thumb = e.target.closest( '.velox-lib-thumb' );
+			if ( thumb ) {
+				openLightbox( thumb.getAttribute( 'data-full' ), thumb.getAttribute( 'data-meta' ) );
+				return;
+			}
+			var applyBtn = e.target.closest( '.velox-lib-apply' );
+			if ( applyBtn ) {
+				var card = applyBtn.closest( '.velox-lib-card' );
+				applySingle( card, applyBtn );
+			}
+		} );
+
+		/* persist typed names as the user types */
+		grid.addEventListener( 'input', function ( e ) {
+			var inp = e.target.closest( '.velox-lib-rename input' );
+			if ( ! inp ) {
+				return;
+			}
+			var id = inp.getAttribute( 'data-id' );
+			var orig = inp.getAttribute( 'data-orig' );
+			var pending = loadPending();
+			if ( inp.value.trim() === orig || ! inp.value.trim() ) {
+				delete pending[ id ];
+				inp.classList.remove( 'is-dirty' );
+			} else {
+				pending[ id ] = inp.value.trim();
+				inp.classList.add( 'is-dirty' );
+			}
+			savePending( pending );
+			refreshApplyAll();
+		} );
+
+		function applySingle( card, btn ) {
+			var input = $( '.velox-lib-rename input', card );
+			var id = card.getAttribute( 'data-id' );
+			var name = input.value.trim();
+			if ( ! name ) {
+				return;
+			}
+			btn.disabled = true;
+			btn.textContent = '…';
+			api( 'rename', { id: id, name: name } )
+				.then( function ( res ) {
+					var pending = loadPending();
+					delete pending[ id ];
+					savePending( pending );
+					var np = splitName( res.new_name );
+					input.value = np.base;
+					input.setAttribute( 'data-orig', np.base );
+					input.classList.remove( 'is-dirty' );
+					toast( '→ ' + res.new_name + ' · ' + res.refs_updated + ' refs fixed', 'success' );
+					refreshApplyAll();
+				} )
+				.catch( function ( err ) {
+					toast( err.message, 'error' );
+				} )
+				.then( function () {
+					btn.disabled = false;
+					btn.textContent = 'Apply';
+				} );
+		}
+
+		/* apply every pending draft name at once */
+		if ( applyAll ) {
+			applyAll.addEventListener( 'click', function () {
+				var pending = loadPending();
+				var ids = Object.keys( pending );
+				if ( ! ids.length ) {
+					return;
+				}
+				applyAll.disabled = true;
+				var done = 0,
+					failed = 0;
+				function step() {
+					if ( ! ids.length ) {
+						savePending( loadPending() );
+						applyAll.disabled = false;
+						toast( 'Renamed ' + done + ( failed ? ' · ' + failed + ' failed' : '' ), failed ? 'error' : 'success' );
+						load();
+						return;
+					}
+					var id = ids.shift();
+					api( 'rename', { id: id, name: pending[ id ] } )
+						.then( function () {
+							done++;
+							var p = loadPending();
+							delete p[ id ];
+							savePending( p );
+						} )
+						.catch( function () {
+							failed++;
+						} )
+						.then( function () {
+							applyAll.textContent = 'Applying… ' + done;
+							step();
+						} );
+				}
+				step();
+			} );
+		}
+
+		/* bulk find & replace across the loaded names (fills inputs, you review then Apply all) */
+		if ( bulkBtn ) {
+			bulkBtn.addEventListener( 'click', function () {
+				var existing = $( '#velox-bulk-bar' );
+				if ( existing ) {
+					existing.remove();
+					return;
+				}
+				var bar = document.createElement( 'div' );
+				bar.className = 'velox-bulk-bar';
+				bar.id = 'velox-bulk-bar';
+				bar.innerHTML =
+					'<span class="velox-bulk-label">Find &amp; replace in names:</span>' +
+					'<input type="text" id="velox-bulk-find" placeholder="find (e.g. IMG_)">' +
+					'<input type="text" id="velox-bulk-replace" placeholder="replace with">' +
+					'<button class="velox-btn velox-btn--ghost" id="velox-bulk-fill">Fill names</button>' +
+					'<span class="velox-hint">Fills the inputs below — review, then “Apply all names”.</span>';
+				grid.parentNode.insertBefore( bar, grid );
+				$( '#velox-bulk-fill', bar ).addEventListener( 'click', function () {
+					var find = $( '#velox-bulk-find' ).value;
+					var repl = $( '#velox-bulk-replace' ).value;
+					if ( ! find ) {
+						return;
+					}
+					var pending = loadPending();
+					$$( '.velox-lib-rename input', grid ).forEach( function ( inp ) {
+						var nv = inp.value.split( find ).join( repl );
+						if ( nv !== inp.value ) {
+							inp.value = nv;
+							var id = inp.getAttribute( 'data-id' );
+							var orig = inp.getAttribute( 'data-orig' );
+							if ( nv.trim() && nv.trim() !== orig ) {
+								pending[ id ] = nv.trim();
+								inp.classList.add( 'is-dirty' );
+							}
+						}
+					} );
+					savePending( pending );
+					refreshApplyAll();
+					toast( 'Names filled — review and Apply all.' );
+				} );
+			} );
+		}
+
+		/* filters */
+		if ( chips ) {
+			chips.addEventListener( 'click', function ( e ) {
+				var chip = e.target.closest( '.velox-chip' );
+				if ( ! chip ) {
+					return;
+				}
+				$$( '.velox-chip', chips ).forEach( function ( c ) {
+					c.classList.toggle( 'is-active', c === chip );
+				} );
+				state.filter = chip.getAttribute( 'data-filter' );
+				state.page = 1;
+				load();
+			} );
+		}
+
+		if ( searchEl ) {
+			searchEl.addEventListener( 'input', debounce( function () {
+				state.search = searchEl.value.trim();
+				state.page = 1;
+				load();
+			}, 350 ) );
+		}
+		if ( prev ) {
+			prev.addEventListener( 'click', function () {
+				if ( state.page > 1 ) {
+					state.page--;
+					load();
+				}
+			} );
+		}
+		if ( next ) {
+			next.addEventListener( 'click', function () {
+				if ( state.page < state.pages ) {
+					state.page++;
+					load();
+				}
+			} );
+		}
+
+		load();
+	}
+
 	document.addEventListener( 'DOMContentLoaded', function () {
 		initDashboard();
 		initImages();
+		initLibrary();
 		initMedia();
 		initPerformance();
 		initDatabase();

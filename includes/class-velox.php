@@ -33,6 +33,9 @@ final class Velox {
 	public function init() {
 		load_plugin_textdomain( 'velox', false, dirname( VELOX_BASENAME ) . '/languages' );
 
+		// Heal any settings corrupted by the pre-1.1.1 save bug (runs once).
+		Velox_Settings::migrate();
+
 		// Modules.
 		if ( Velox_Settings::get( 'module_images' ) ) {
 			$this->image_optimizer = new Velox_Image_Optimizer();
@@ -42,6 +45,8 @@ final class Velox {
 		}
 		if ( Velox_Settings::get( 'module_performance' ) ) {
 			$this->performance = new Velox_Performance();
+			new Velox_Fonts();
+			new Velox_CSS();
 		}
 		if ( Velox_Settings::get( 'module_database' ) ) {
 			$this->database = new Velox_Database();

@@ -38,6 +38,13 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Image_Optimizer::library_stats() );
 				break;
 
+			case 'estimate_webp':
+				$id  = (int) ( $_POST['id'] ?? 0 );
+				$q   = isset( $_POST['quality'] ) ? (int) $_POST['quality'] : null;
+				$opt = new Velox_Image_Optimizer();
+				$this->respond( $opt->estimate( $id, $q ) );
+				break;
+
 			case 'pending_ids':
 				$ids  = Velox_Image_Optimizer::get_convertible_ids();
 				$todo = array();
@@ -65,7 +72,8 @@ class Velox_Ajax {
 				$mm   = new Velox_Media_Manager();
 				$page = max( 1, (int) ( $_POST['page'] ?? 1 ) );
 				$s    = sanitize_text_field( $_POST['search'] ?? '' );
-				wp_send_json_success( $mm->list_media( $page, 40, $s ) );
+				$type = sanitize_key( $_POST['type'] ?? 'all' );
+				wp_send_json_success( $mm->list_media( $page, 40, $s, $type ) );
 				break;
 
 			case 'save_meta':
@@ -110,6 +118,68 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'cleaned' => $n, 'item' => $item ) );
 				break;
 
+			/* -------- Cache -------- */
+			case 'clear_cache':
+				$which = sanitize_key( $_POST['which'] ?? 'all' );
+				$res   = Velox_Admin::clear_cache( $which );
+				if ( in_array( $which, array( 'all', 'minified' ), true ) ) {
+					Velox_CSS::clear_cache(); // also drop trimmed used-CSS
+				}
+				wp_send_json_success( $res );
+				break;
+
+			case 'clear_used_css':
+				wp_send_json_success( Velox_CSS::clear_cache() );
+				break;
+
+			case 'rucss_scan_one':
+				$path = isset( $_POST['path'] ) ? wp_unslash( $_POST['path'] ) : '/';
+				$css  = new Velox_CSS();
+				$this->respond( $css->build_for_path( $path ) );
+				break;
+
+			case 'rucss_reset_learn':
+				wp_send_json_success( Velox_CSS::reset_learning() );
+				break;
+
+			case 'localize_fonts':
+				$fonts = new Velox_Fonts();
+				$this->respond( $fonts->localize() );
+				break;
+
+			case 'clear_local_fonts':
+				$fonts = new Velox_Fonts();
+				wp_send_json_success( $fonts->clear() );
+				break;
+
+			case 'export_settings':
+				wp_send_json_success( array( 'json' => wp_json_encode( Velox_Settings::all() ) ) );
+				break;
+
+			case 'import_settings':
+				$raw = isset( $_POST['json'] ) ? wp_unslash( $_POST['json'] ) : '';
+				$in  = json_decode( $raw, true );
+				if ( ! is_array( $in ) ) {
+					wp_send_json_error( array( 'message' => __( 'That doesn\'t look like valid Velox settings JSON.', 'velox' ) ), 400 );
+				}
+				$defaults = Velox_Settings::defaults();
+				$clean    = Velox_Settings::all();
+				foreach ( $defaults as $key => $default ) {
+					if ( ! array_key_exists( $key, $in ) ) {
+						continue;
+					}
+					if ( is_bool( $default ) ) {
+						$clean[ $key ] = (bool) $in[ $key ];
+					} elseif ( is_int( $default ) ) {
+						$clean[ $key ] = (int) $in[ $key ];
+					} else {
+						$clean[ $key ] = sanitize_textarea_field( (string) $in[ $key ] );
+					}
+				}
+				Velox_Settings::save( $clean );
+				wp_send_json_success( array( 'message' => __( 'Settings imported.', 'velox' ) ) );
+				break;
+
 			/* -------- Settings -------- */
 			case 'save_settings':
 				$this->save_settings();
@@ -139,22 +209,30 @@ class Velox_Ajax {
 	}
 
 	private function save_settings() {
-		$raw      = isset( $_POST['settings'] ) ? (array) $_POST['settings'] : array();
+		// The admin JS posts each setting as a flat top-level field (module_images=1,
+		// perf_defer_scripts=0, …) — not nested under settings[]. We update only the
+		// keys that were actually posted on this screen and leave the rest untouched,
+		// so saving one tab never wipes another tab's values.
+		$raw      = wp_unslash( $_POST );
 		$defaults = Velox_Settings::defaults();
-		$clean    = array();
+		$clean    = Velox_Settings::all(); // start from the current saved values
 
 		foreach ( $defaults as $key => $default ) {
+			if ( ! array_key_exists( $key, $raw ) ) {
+				continue; // not present on this screen → keep existing value
+			}
+			$val = $raw[ $key ];
 			if ( is_bool( $default ) ) {
-				$clean[ $key ] = ! empty( $raw[ $key ] ) && 'false' !== $raw[ $key ] && '0' !== $raw[ $key ];
+				$clean[ $key ] = ( '1' === (string) $val || 'true' === $val || 1 === $val || true === $val || 'on' === $val );
 			} elseif ( is_int( $default ) ) {
-				$clean[ $key ] = isset( $raw[ $key ] ) ? (int) $raw[ $key ] : $default;
+				$clean[ $key ] = (int) $val;
 			} else {
-				$clean[ $key ] = isset( $raw[ $key ] ) ? sanitize_textarea_field( wp_unslash( $raw[ $key ] ) ) : $default;
+				$clean[ $key ] = sanitize_textarea_field( $val );
 			}
 		}
 
-		// Clamp the quality slider.
-		$clean['webp_quality']    = max( 1, min( 100, (int) $clean['webp_quality'] ) );
+		// Clamp numeric fields to sane ranges.
+		$clean['webp_quality']        = max( 1, min( 100, (int) $clean['webp_quality'] ) );
 		$clean['perf_revisions_keep'] = max( 0, (int) $clean['perf_revisions_keep'] );
 
 		Velox_Settings::save( $clean );

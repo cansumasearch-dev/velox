@@ -260,11 +260,23 @@ class Velox_Media_Manager {
 	/* ----------------------------------------------------------------
 	 * Listing for the grid editor
 	 * ------------------------------------------------------------- */
-	public function list_media( $page = 1, $per_page = 40, $search = '' ) {
+	public function list_media( $page = 1, $per_page = 40, $search = '', $type = 'all' ) {
+		$mime = 'image';
+		$map  = array(
+			'jpg'  => array( 'image/jpeg' ),
+			'png'  => array( 'image/png' ),
+			'webp' => array( 'image/webp' ),
+			'gif'  => array( 'image/gif' ),
+			'svg'  => array( 'image/svg+xml' ),
+		);
+		if ( isset( $map[ $type ] ) ) {
+			$mime = $map[ $type ];
+		}
+
 		$args = array(
 			'post_type'      => 'attachment',
 			'post_status'    => 'inherit',
-			'post_mime_type' => 'image',
+			'post_mime_type' => $mime,
 			'posts_per_page' => $per_page,
 			'paged'          => $page,
 			'orderby'        => 'date',
@@ -277,6 +289,10 @@ class Velox_Media_Manager {
 		$items = array();
 		foreach ( $q->posts as $post ) {
 			$file = get_attached_file( $post->ID );
+			$meta = wp_get_attachment_metadata( $post->ID );
+			$bytes = ( $file && file_exists( $file ) ) ? filesize( $file ) : 0;
+			$ext   = $file ? strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ) : '';
+			$wstats = get_post_meta( $post->ID, Velox_Image_Optimizer::META_KEY, true );
 			$items[] = array(
 				'id'        => $post->ID,
 				'thumb'     => wp_get_attachment_image_url( $post->ID, 'thumbnail' ),
@@ -285,7 +301,14 @@ class Velox_Media_Manager {
 				'title'     => $post->post_title,
 				'alt'       => get_post_meta( $post->ID, '_wp_attachment_image_alt', true ),
 				'caption'   => $post->post_excerpt,
-				'webp'      => (bool) get_post_meta( $post->ID, Velox_Image_Optimizer::META_KEY, true ),
+				'webp'      => ! empty( $wstats ),
+				'webp_bytes'=> ! empty( $wstats['webp_bytes'] ) ? (int) $wstats['webp_bytes'] : 0,
+				'orig_bytes'=> ! empty( $wstats['original_bytes'] ) ? (int) $wstats['original_bytes'] : 0,
+				'width'     => isset( $meta['width'] ) ? (int) $meta['width'] : 0,
+				'height'    => isset( $meta['height'] ) ? (int) $meta['height'] : 0,
+				'bytes'     => (int) $bytes,
+				'ext'       => $ext,
+				'mime'      => $post->post_mime_type,
 			);
 		}
 		return array(

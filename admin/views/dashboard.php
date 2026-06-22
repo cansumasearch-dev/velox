@@ -27,36 +27,25 @@ $engine = Velox_Image_Optimizer::engine();
 </div>
 
 <h2 class="velox-section-title">Tools</h2>
+<?php
+$card_copy = array(
+	'images'      => 'Bulk-convert JPG &amp; PNG to WebP, browse your whole library with filters, and rename files safely.',
+	'media'       => 'Set alt text &amp; titles in a grid, or bulk-apply everything with the pipe format.',
+	'performance' => 'Oxygen-aware head cleanup, defer &amp; delay JS, font and preload tuning — no conflict with your cache plugin.',
+	'database'    => 'Clear revisions, transients and junk, then optimize tables to keep queries quick.',
+	'settings'    => 'Turn modules on or off, set image defaults, and manage the GitHub auto-updater.',
+);
+?>
 <div class="velox-cards">
-
-	<a class="velox-card" href="<?php echo esc_url( $admin->tab_url( 'images' ) ); ?>">
-		<span class="velox-card-ic"><?php echo Velox_Admin::icon( 'image', 24 ); ?></span>
-		<h3>Image Optimization</h3>
-		<p>Bulk-convert JPG &amp; PNG to WebP at a quality you choose, with a live before/after comparator.</p>
-		<span class="velox-card-go">Open →</span>
-	</a>
-
-	<a class="velox-card" href="<?php echo esc_url( $admin->tab_url( 'media' ) ); ?>">
-		<span class="velox-card-ic"><?php echo Velox_Admin::icon( 'tag', 24 ); ?></span>
-		<h3>Media Editor</h3>
-		<p>Rename files safely, set alt text &amp; titles in a grid, or bulk-apply with the pipe format.</p>
-		<span class="velox-card-go">Open →</span>
-	</a>
-
-	<a class="velox-card" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">
-		<span class="velox-card-ic"><?php echo Velox_Admin::icon( 'bolt', 24 ); ?></span>
-		<h3>Performance</h3>
-		<p>Safe, Oxygen-aware head cleanup, defer, DNS-prefetch and more — no conflict with your cache plugin.</p>
-		<span class="velox-card-go">Open →</span>
-	</a>
-
-	<a class="velox-card" href="<?php echo esc_url( $admin->tab_url( 'database' ) ); ?>">
-		<span class="velox-card-ic"><?php echo Velox_Admin::icon( 'db', 24 ); ?></span>
-		<h3>Database</h3>
-		<p>Clear revisions, transients and junk, then optimize tables to keep queries quick.</p>
-		<span class="velox-card-go">Open →</span>
-	</a>
-
+	<?php foreach ( $admin->enabled_tabs() as $key => $tab ) : ?>
+		<?php if ( 'dashboard' === $key ) { continue; } ?>
+		<a class="velox-card" href="<?php echo esc_url( $admin->tab_url( $key ) ); ?>">
+			<span class="velox-card-ic"><?php echo Velox_Admin::icon( $tab['icon'], 24 ); ?></span>
+			<h3><?php echo esc_html( $tab['label'] ); ?></h3>
+			<p><?php echo wp_kses_post( $card_copy[ $key ] ?? '' ); ?></p>
+			<span class="velox-card-go">Open →</span>
+		</a>
+	<?php endforeach; ?>
 </div>
 
 <div class="velox-note">

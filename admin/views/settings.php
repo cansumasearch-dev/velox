@@ -63,18 +63,35 @@ $s = Velox_Settings::all();
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="webp_serve_rewrite" <?php checked( ! empty( $s['webp_serve_rewrite'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Before/after comparator</span>
+			<span class="velox-toggle-desc">Shows the original-vs-WebP drag comparison panel on the Images tab.</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="image_comparison" <?php checked( ! empty( $s['image_comparison'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
 </div>
 
 <div class="velox-panel">
 	<h3 class="velox-panel-title">Updates</h3>
-	<p class="velox-hint">Velox updates from GitHub releases, so it never appears in the public plugin directory. Repo: <code><?php echo esc_html( VELOX_GH_USER . '/' . VELOX_GH_REPO ); ?></code> (edit in <code>velox.php</code>).</p>
-	<label class="velox-field">
-		<span class="velox-field-label">GitHub access token <small>(only for a private repo)</small></span>
-		<input type="password" class="velox-input" data-setting="gh_token" value="<?php echo esc_attr( $s['gh_token'] ); ?>" placeholder="github_pat_…" autocomplete="off">
-		<span class="velox-hint">Leave empty for a public repo. For private, use a fine-grained token with read-only Contents access to this repo.</span>
-	</label>
+	<p class="velox-hint">Velox updates straight from GitHub releases, so it never appears in the public plugin directory. When a new version is released it shows up like any other plugin update.</p>
 	<div class="velox-actions">
-		<button class="velox-btn velox-btn--ghost" id="velox-check-updates">Check for updates now</button>
+		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'update-core.php?force-check=1' ) ); ?>">Check for updates</a>
+		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'plugins.php' ) ); ?>">Open plugins page</a>
+	</div>
+</div>
+
+<div class="velox-panel">
+	<h3 class="velox-panel-title">Import / Export</h3>
+	<p class="velox-hint">Copy your whole Velox config to another site. Export gives you a JSON blob; paste one in and hit Import to apply it.</p>
+	<div class="velox-actions">
+		<button class="velox-btn velox-btn--ghost" id="velox-export">Export settings</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-import-open">Import settings</button>
+	</div>
+	<textarea id="velox-import-box" class="velox-textarea" rows="4" placeholder="Exported JSON appears here — or paste a config to import." hidden></textarea>
+	<div class="velox-actions" id="velox-import-actions" hidden>
+		<button class="velox-btn velox-btn--primary" id="velox-import-apply">Apply imported settings</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-import-cancel">Cancel</button>
 	</div>
 </div>
 

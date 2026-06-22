@@ -60,7 +60,7 @@
 .velox-ic { flex: none; }
 
 /* ---------- Layout ---------- */
-.velox-main { max-width: 1080px; margin: 0 auto; padding: 36px 32px 80px; }
+.velox-main { max-width: 1240px; margin: 0 auto; padding: 40px 40px 96px; }
 .velox-page-head { margin-bottom: 24px; }
 .velox-h1 { font-size: 38px; line-height: 1.1; font-weight: 800; letter-spacing: -.03em; margin: 0 0 12px; }
 .velox-h2 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 6px; }
@@ -94,21 +94,21 @@
 .velox-mini-stats small { color: var(--vx-ink-2); font-size: 11px; text-transform: uppercase; letter-spacing: .05em; }
 
 /* ---------- Cards ---------- */
-.velox-cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 16px; }
+.velox-cards { display: grid; grid-template-columns: repeat(2,1fr); gap: 18px; }
 .velox-card {
 	background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-radius);
-	padding: 26px; box-shadow: var(--vx-shadow); color: var(--vx-ink);
+	padding: 28px; box-shadow: var(--vx-shadow); color: var(--vx-ink);
 	transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s, border-color .18s;
-	position: relative;
+	position: relative; display: flex; flex-direction: column; min-height: 200px;
 }
 .velox-card:hover { transform: translateY(-3px); box-shadow: var(--vx-shadow-h); border-color: rgba(42,183,241,.4); }
 .velox-card-ic {
-	display: inline-flex; padding: 12px; border-radius: 13px; color: var(--vx-accent);
-	background: rgba(42,183,241,.10); margin-bottom: 14px;
+	display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px;
+	border-radius: 13px; color: var(--vx-accent); background: rgba(42,183,241,.10); margin-bottom: 16px;
 }
-.velox-card h3 { font-size: 18px; font-weight: 700; margin: 0 0 6px; letter-spacing: -.01em; }
-.velox-card p { color: var(--vx-ink-2); font-size: 14px; line-height: 1.5; margin: 0 0 14px; }
-.velox-card-go { font-weight: 700; font-size: 14px; color: var(--vx-accent-d); }
+.velox-card h3 { font-size: 18px; font-weight: 700; margin: 0 0 7px; letter-spacing: -.01em; }
+.velox-card p { color: var(--vx-ink-2); font-size: 14px; line-height: 1.55; margin: 0 0 18px; }
+.velox-card-go { font-weight: 700; font-size: 14px; color: var(--vx-accent-d); margin-top: auto; }
 
 .velox-note {
 	margin-top: 22px; padding: 16px 20px; border-radius: 13px;
@@ -260,3 +260,144 @@
 	.velox-hero { flex-direction: column; }
 	.velox-topbar { flex-direction: column; align-items: flex-start; gap: 14px; }
 }
+
+/* =========================================================================
+   v1.0.5 — performance sub-nav, image library, lightbox, modal fix
+   ========================================================================= */
+
+/* Modal/lightbox actually respect the hidden attribute now */
+.velox-modal[hidden], .velox-lightbox[hidden] { display: none !important; }
+
+/* ---------- Performance sub-nav (left rail) ---------- */
+.velox-perf { display: grid; grid-template-columns: 210px 1fr; gap: 24px; align-items: start; }
+.velox-perf-nav { display: flex; flex-direction: column; gap: 4px; position: sticky; top: 96px; }
+.velox-perf-navitem { text-align: left; background: transparent; border: 0; font: inherit; font-weight: 600; font-size: 14px; color: var(--vx-ink-2); padding: 11px 14px; border-radius: 11px; cursor: pointer; transition: background .15s, color .15s; }
+.velox-perf-navitem:hover { background: var(--vx-card); color: var(--vx-ink); }
+.velox-perf-navitem.is-active { background: var(--vx-ink); color: #fff; }
+.velox-perf-panel { display: none; }
+.velox-perf-panel.is-active { display: block; }
+
+/* ---------- Image library ---------- */
+.velox-lib-toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 18px; }
+.velox-lib-toolbar #velox-lib-search { max-width: 260px; }
+.velox-lib-toolbar-right { margin-left: auto; display: flex; gap: 10px; }
+.velox-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.velox-chip { background: var(--vx-bg); border: 1.5px solid var(--vx-line); color: var(--vx-ink-2); font: inherit; font-weight: 700; font-size: 12.5px; padding: 7px 13px; border-radius: 999px; cursor: pointer; transition: all .15s; }
+.velox-chip:hover { border-color: var(--vx-ink-2); color: var(--vx-ink); }
+.velox-chip.is-active { background: var(--vx-ink); color: #fff; border-color: var(--vx-ink); }
+
+.velox-bulk-bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--vx-bg); border: 1px solid var(--vx-line); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; }
+.velox-bulk-bar input { font-size: 13px; padding: 8px 11px; border: 1.5px solid var(--vx-line); border-radius: 9px; font-family: inherit; }
+.velox-bulk-bar input:focus { outline: none; border-color: var(--vx-accent); box-shadow: 0 0 0 3px rgba(42,183,241,.14); }
+.velox-bulk-bar .velox-bulk-label { font-weight: 700; font-size: 13px; }
+
+.velox-lib-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+.velox-lib-card { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-radius); overflow: hidden; box-shadow: var(--vx-shadow); display: flex; flex-direction: column; }
+.velox-lib-thumb { position: relative; aspect-ratio: 16 / 10; background: var(--vx-bg); cursor: zoom-in; overflow: hidden; }
+.velox-lib-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.velox-lib-badges { position: absolute; top: 8px; left: 8px; display: flex; gap: 5px; }
+.velox-lib-badge { font-size: 9px; font-weight: 800; letter-spacing: .04em; padding: 3px 7px; border-radius: 6px; background: rgba(10,10,11,.72); color: #fff; text-transform: uppercase; }
+.velox-lib-badge--webp { background: var(--vx-accent); }
+.velox-lib-body { padding: 13px 14px 15px; display: flex; flex-direction: column; gap: 10px; }
+.velox-lib-meta { display: flex; justify-content: space-between; gap: 8px; font-size: 11.5px; color: var(--vx-ink-2); font-weight: 600; }
+.velox-lib-rename { display: flex; gap: 7px; align-items: center; }
+.velox-lib-rename input { flex: 1; min-width: 0; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; padding: 8px 10px; border: 1.5px solid var(--vx-line); border-radius: 9px; background: #fff; }
+.velox-lib-rename input:focus { outline: none; border-color: var(--vx-accent); box-shadow: 0 0 0 3px rgba(42,183,241,.14); }
+.velox-lib-rename input.is-dirty { border-color: var(--vx-accent); background: rgba(42,183,241,.06); }
+.velox-lib-ext { color: var(--vx-ink-2); font-size: 11px; font-family: ui-monospace, Menlo, monospace; }
+.velox-lib-rename .velox-btn { padding: 8px 12px; font-size: 12px; }
+
+/* ---------- Lightbox ---------- */
+.velox-lightbox { position: fixed; inset: 0; z-index: 100002; background: rgba(10,10,11,.82); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 40px; }
+.velox-lightbox-inner { position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.velox-lightbox-inner img { max-width: 90vw; max-height: 78vh; border-radius: 12px; box-shadow: 0 24px 80px rgba(0,0,0,.5); object-fit: contain; background: #fff; }
+.velox-lightbox-meta { color: #fff; font-size: 13px; font-weight: 600; opacity: .92; text-align: center; }
+.velox-lightbox-close { position: absolute; top: -14px; right: -14px; width: 38px; height: 38px; border-radius: 50%; border: 0; background: #fff; color: var(--vx-ink); font-size: 22px; line-height: 1; cursor: pointer; box-shadow: 0 4px 14px rgba(0,0,0,.3); }
+
+@media (max-width: 960px) {
+	.velox-perf { grid-template-columns: 1fr; }
+	.velox-perf-nav { flex-direction: row; overflow-x: auto; position: static; }
+	.velox-lib-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* =========================================================================
+   v1.1.2 — Stage 1 UI/UX polish: media editor, perf nav, spacing
+   ========================================================================= */
+
+/* ---------- Media Editor card (was unstyled) ---------- */
+.velox-media-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.velox-media-card { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-radius); padding: 18px; box-shadow: var(--vx-shadow); display: flex; gap: 18px; align-items: flex-start; }
+.velox-media-thumb { flex: none; width: 104px; height: 104px; border-radius: 13px; overflow: hidden; background: var(--vx-bg); position: relative; }
+.velox-media-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.velox-media-badge { position: absolute; bottom: 6px; left: 6px; background: var(--vx-accent); color: #fff; font-size: 9px; font-weight: 800; letter-spacing: .04em; padding: 3px 7px; border-radius: 6px; text-transform: uppercase; }
+.velox-media-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 11px; }
+.velox-media-name { font-size: 11.5px; font-family: ui-monospace, Menlo, monospace; color: var(--vx-ink-2); background: var(--vx-bg); border: 1px solid var(--vx-line); border-radius: 8px; padding: 6px 9px; word-break: break-all; display: block; }
+
+/* fields: fixed-width label on the left, input fills the rest (all inputs same width, right-aligned) */
+.velox-media-field { display: flex; align-items: center; gap: 12px; }
+.velox-media-field > span { flex: none; width: 72px; font-size: 12.5px; font-weight: 600; color: var(--vx-ink-2); text-align: right; }
+.velox-media-field input { flex: 1; min-width: 0; height: 38px; font-family: inherit; font-size: 13px; color: var(--vx-ink); background: #fff; border: 1.5px solid var(--vx-line); border-radius: 10px; padding: 0 12px; transition: border-color .15s, box-shadow .15s; }
+.velox-media-field input:focus { outline: none; border-color: var(--vx-accent); box-shadow: 0 0 0 4px rgba(42,183,241,.14); }
+
+/* save + rename buttons: identical height, aligned with the inputs above them */
+.velox-media-actions { display: flex; gap: 10px; margin-top: 3px; padding-left: 84px; }
+.velox-media-actions .velox-btn { height: 38px; padding: 0 18px; font-size: 13px; display: inline-flex; align-items: center; }
+
+/* ---------- Performance left-rail: read as real navigation ---------- */
+.velox-perf { grid-template-columns: 230px 1fr; gap: 28px; }
+.velox-perf-nav { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-radius); padding: 10px; box-shadow: var(--vx-shadow); gap: 2px; }
+.velox-perf-nav::before { content: 'Sections'; display: block; font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--vx-ink-2); padding: 8px 12px 6px; }
+.velox-perf-navitem { position: relative; display: flex; align-items: center; padding: 11px 14px; border-radius: 10px; }
+.velox-perf-navitem.is-active { background: var(--vx-ink); color: #fff; }
+.velox-perf-navitem.is-active::before { content: ''; position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 3px; height: 18px; border-radius: 3px; background: var(--vx-accent); }
+
+/* ---------- General spacing consistency ---------- */
+.velox-page-head { margin-bottom: 28px; }
+.velox-panel { padding: 28px; margin-bottom: 20px; }
+.velox-panel-title { margin-bottom: 18px; }
+
+/* =========================================================================
+   v1.2.0 — Stage 2: Performance risky mode + clear-cache panel
+   ========================================================================= */
+.velox-page-head--row { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
+
+/* Risky-mode toggle in the page header */
+.velox-risky-switch { display: flex; align-items: center; gap: 14px; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: 14px; padding: 12px 16px; box-shadow: var(--vx-shadow); flex: none; }
+.velox-risky-switch-text { display: flex; flex-direction: column; line-height: 1.3; }
+.velox-risky-switch-label { font-weight: 700; font-size: 13.5px; color: var(--vx-ink); }
+.velox-risky-switch-sub { font-size: 12px; color: var(--vx-ink-2); }
+.velox-risky-switch-sub em { font-style: italic; color: #b7791f; }
+
+/* Amber "Risky" tag on individual settings */
+.velox-risky-tag { display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; padding: 2px 7px; border-radius: 999px; vertical-align: middle; }
+[data-risky="1"] { border-left: 2px solid #fde68a; padding-left: 12px; margin-left: -14px; }
+
+/* Clear-cache panel */
+.velox-cache-panel { border: 1px solid var(--vx-line); }
+.velox-cache-btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.velox-cache-btn { height: 40px; }
+
+@media (max-width: 760px) {
+	.velox-page-head--row { flex-direction: column; }
+	.velox-risky-switch { width: 100%; justify-content: space-between; }
+}
+
+/* =========================================================================
+   v1.3.0 — Stage 3: live before/after savings on library cards
+   ========================================================================= */
+.velox-lib-saving { display: flex; align-items: center; gap: 7px; font-size: 12px; font-weight: 600; padding: 6px 9px; border-radius: 9px; background: var(--vx-bg); border: 1px solid var(--vx-line); margin: 2px 0 4px; min-height: 30px; }
+.velox-lib-before { color: var(--vx-ink-2); text-decoration: line-through; text-decoration-color: rgba(0,0,0,.25); }
+.velox-lib-arrow { color: var(--vx-ink-2); }
+.velox-lib-after { color: var(--vx-ink); font-weight: 700; }
+.velox-lib-pct { margin-left: auto; font-size: 11px; font-weight: 800; letter-spacing: .02em; color: #047857; background: #d1fae5; border: 1px solid #a7f3d0; padding: 2px 7px; border-radius: 999px; }
+.velox-lib-saving.is-done { background: #ecfdf5; border-color: #a7f3d0; }
+.velox-lib-est-wait { color: var(--vx-ink-2); font-weight: 500; font-style: italic; }
+
+/* =========================================================================
+   v1.4.0 — Stage A: local fonts tool + import/export
+   ========================================================================= */
+.velox-fonts-tool { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--vx-line); }
+.velox-fonts-status { margin-bottom: 12px; font-size: 13px; }
+.velox-fonts-ok { color: #047857; font-weight: 700; background: #ecfdf5; border: 1px solid #a7f3d0; padding: 6px 11px; border-radius: 9px; display: inline-block; }
+.velox-fonts-btns { display: flex; flex-wrap: wrap; gap: 10px; }
+.velox-import-box { margin-top: 14px; font-family: ui-monospace, Menlo, monospace; font-size: 12px; }

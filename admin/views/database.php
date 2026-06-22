@@ -3,13 +3,17 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 $items = array(
-	'revisions'        => array( 'Post revisions', 'Old saved versions of posts and pages.' ),
-	'auto_drafts'      => array( 'Auto-drafts', 'Abandoned drafts WordPress created automatically.' ),
-	'trashed_posts'    => array( 'Trashed posts', 'Posts and pages still sitting in the trash.' ),
-	'spam_comments'    => array( 'Spam comments', 'Comments marked as spam.' ),
-	'trashed_comments' => array( 'Trashed comments', 'Comments in the trash.' ),
-	'expired_transients' => array( 'Expired transients', 'Cached values past their expiry.' ),
-	'orphan_postmeta'  => array( 'Orphaned metadata', 'Meta rows whose post no longer exists.' ),
+	'revisions'         => array( 'Post revisions', 'Old saved versions of posts and pages.' ),
+	'auto_drafts'       => array( 'Auto-drafts', 'Abandoned drafts WordPress created automatically.' ),
+	'trashed_posts'     => array( 'Trashed posts', 'Posts and pages still sitting in the trash.' ),
+	'spam_comments'     => array( 'Spam comments', 'Comments marked as spam.' ),
+	'trashed_comments'  => array( 'Trashed comments', 'Comments in the trash.' ),
+	'unapproved_comments' => array( 'Unapproved comments', 'Pending comments awaiting moderation.' ),
+	'pingbacks'         => array( 'Pingbacks & trackbacks', 'Link notifications from other sites — rarely useful.' ),
+	'expired_transients'=> array( 'Expired transients', 'Cached values past their expiry.' ),
+	'all_transients'    => array( 'All transients', 'Every cached transient (safe — they regenerate when needed).' ),
+	'orphan_postmeta'   => array( 'Orphaned post meta', 'Meta rows whose post no longer exists.' ),
+	'orphan_commentmeta'=> array( 'Orphaned comment meta', 'Meta rows whose comment no longer exists.' ),
 );
 ?>
 <div class="velox-page-head">

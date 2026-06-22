@@ -32,6 +32,14 @@ class Velox_Image_Optimizer {
 
 		// Clean up webp twins when an attachment is deleted.
 		add_action( 'delete_attachment', array( $this, 'on_delete' ) );
+
+		// Downscale oversized uploads to the configured max width (0 = off).
+		$max_w = (int) Velox_Settings::get( 'image_max_width', 2560 );
+		if ( $max_w > 0 ) {
+			add_filter( 'big_image_size_threshold', function () use ( $max_w ) {
+				return $max_w;
+			}, 99 );
+		}
 	}
 
 	/* ----------------------------------------------------------------
@@ -117,12 +125,24 @@ class Velox_Image_Optimizer {
 	 * Low-level encode. Tries Imagick first, falls back to GD.
 	 */
 	private function encode_webp( $source, $dest, $quality ) {
-		$engine = self::engine();
+		$keep_exif = (bool) Velox_Settings::get( 'image_keep_exif', false );
+		$max_w     = (int) Velox_Settings::get( 'image_max_width', 2560 );
+		$engine    = self::engine();
 		if ( 'imagick' === $engine ) {
 			try {
 				$img = new Imagick( $source );
 				if ( $img->getImageColorspace() === Imagick::COLORSPACE_CMYK ) {
 					$img->transformImageColorspace( Imagick::COLORSPACE_SRGB );
+				}
+				if ( $max_w > 0 && $img->getImageWidth() > $max_w ) {
+					$img->resizeImage( $max_w, 0, Imagick::FILTER_LANCZOS, 1 );
+				}
+				if ( ! $keep_exif ) {
+					$profiles = $img->getImageProfiles( 'icc', true );
+					$img->stripImage(); // removes EXIF/GPS/etc.
+					if ( ! empty( $profiles['icc'] ) ) {
+						$img->profileImage( 'icc', $profiles['icc'] ); // keep colour accuracy
+					}
 				}
 				$img->setImageFormat( 'webp' );
 				$img->setImageCompressionQuality( $quality );
@@ -159,12 +179,63 @@ class Velox_Image_Optimizer {
 			if ( ! $image ) {
 				return false;
 			}
+			// GD always drops metadata, so EXIF is stripped here regardless.
+			if ( $max_w > 0 && imagesx( $image ) > $max_w ) {
+				$scaled = imagescale( $image, $max_w );
+				if ( $scaled ) {
+					imagedestroy( $image );
+					$image = $scaled;
+				}
+			}
 			$result = imagewebp( $image, $dest, $quality );
 			imagedestroy( $image );
 			return $result;
 		}
 
 		return false;
+	}
+
+	/**
+	 * Estimate (or read) the before/after byte sizes for one attachment's full image.
+	 * Converted images report their real saved bytes; others are test-encoded once and cached.
+	 */
+	public function estimate( $attachment_id, $quality = null ) {
+		$quality = null === $quality ? (int) Velox_Settings::get( 'webp_quality', 80 ) : (int) $quality;
+		$quality = max( 1, min( 100, $quality ) );
+		$max_w   = (int) Velox_Settings::get( 'image_max_width', 2560 );
+
+		$file = get_attached_file( $attachment_id );
+		if ( ! $file || ! file_exists( $file ) ) {
+			return new WP_Error( 'no_file', __( 'Source file not found.', 'velox' ) );
+		}
+		$orig = (int) filesize( $file );
+
+		// Already converted → return the real numbers we stored.
+		$done = get_post_meta( $attachment_id, self::META_KEY, true );
+		if ( ! empty( $done ) && ! empty( $done['files'] ) ) {
+			return array( 'original' => (int) $done['original_bytes'], 'webp' => (int) $done['webp_bytes'], 'converted' => true );
+		}
+
+		if ( ! preg_match( '/\.(jpe?g|png)$/i', $file ) ) {
+			return array( 'original' => $orig, 'webp' => 0, 'converted' => false, 'unsupported' => true );
+		}
+
+		// Cached estimate still valid for this quality + max width?
+		$cache = get_post_meta( $attachment_id, '_velox_webp_estimate', true );
+		if ( is_array( $cache ) && (int) $cache['q'] === $quality && (int) $cache['w'] === $max_w && (int) $cache['orig'] === $orig ) {
+			return array( 'original' => $orig, 'webp' => (int) $cache['webp'], 'converted' => false );
+		}
+
+		$tmp = wp_tempnam( 'velox-est' ) . '.webp';
+		$ok  = $this->encode_webp( $file, $tmp, $quality );
+		$webp_bytes = ( $ok && file_exists( $tmp ) ) ? (int) filesize( $tmp ) : 0;
+		if ( file_exists( $tmp ) ) {
+			@unlink( $tmp );
+		}
+		if ( $webp_bytes > 0 ) {
+			update_post_meta( $attachment_id, '_velox_webp_estimate', array( 'q' => $quality, 'w' => $max_w, 'orig' => $orig, 'webp' => $webp_bytes ) );
+		}
+		return array( 'original' => $orig, 'webp' => $webp_bytes, 'converted' => false );
 	}
 
 	/* ----------------------------------------------------------------

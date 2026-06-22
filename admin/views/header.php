@@ -16,7 +16,7 @@ $current = $admin->current_tab();
 			<span class="velox-ver">v<?php echo esc_html( VELOX_VERSION ); ?></span>
 		</div>
 		<nav class="velox-nav">
-			<?php foreach ( $admin->tabs() as $key => $tab ) : ?>
+			<?php foreach ( $admin->enabled_tabs() as $key => $tab ) : ?>
 				<a href="<?php echo esc_url( $admin->tab_url( $key ) ); ?>"
 				   class="velox-nav-item<?php echo $current === $key ? ' is-active' : ''; ?>">
 					<?php echo Velox_Admin::icon( $tab['icon'], 18 ); ?>

@@ -4,8 +4,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Media Editor</h1>
-	<p class="velox-sub">Set alt text, titles and file names — file renames update every reference across your posts and builder data automatically.</p>
+	<h1 class="velox-h2">Media Editor — Alt text &amp; titles</h1>
+	<p class="velox-sub">Add alt text, titles and captions to every image for SEO and accessibility, and rename files safely. File renames update every reference across your posts and Oxygen builder data automatically.</p>
+</div>
+
+<div class="velox-alert velox-alert--info">
+	Edit the <strong>Title</strong>, <strong>Alt text</strong> and <strong>Caption</strong> on any image below, then hit <strong>Save</strong>. Use <strong>Rename file</strong> to change the actual filename without breaking links. For bulk work, use <strong>Export / Bulk import</strong> with the <code>Dateiname | Alt-Text | Titel</code> format.
 </div>
 
 <div class="velox-toolbar">

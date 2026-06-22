@@ -4,10 +4,9 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 /**
- * Admin shell: menu, admin-bar entry, asset loading, and the page router.
- * Each tab is registered as its own real submenu page with a clean slug
- * (velox, velox-images, …) so WordPress highlights the correct item and the
- * URL never relies on a fragile "&tab=" query string.
+ * Admin shell: menu, admin-bar entry, asset loading, cache actions, and the page
+ * router. Each tab is a real submenu page with a clean slug. Tabs whose module is
+ * switched off disappear from the menu, the in-page nav, and the admin bar.
  */
 class Velox_Admin {
 
@@ -17,37 +16,40 @@ class Velox_Admin {
 
 	public function __construct() {
 		$this->tabs = array(
-			'dashboard'   => array( 'label' => 'Dashboard',    'icon' => 'home' ),
-			'images'      => array( 'label' => 'Images',       'icon' => 'image' ),
-			'media'       => array( 'label' => 'Media Editor', 'icon' => 'tag' ),
-			'performance' => array( 'label' => 'Performance',  'icon' => 'bolt' ),
-			'database'    => array( 'label' => 'Database',     'icon' => 'db' ),
-			'settings'    => array( 'label' => 'Settings',     'icon' => 'gear' ),
+			'dashboard'   => array( 'label' => 'Dashboard',    'icon' => 'home', 'module' => null ),
+			'images'      => array( 'label' => 'Images',       'icon' => 'image', 'module' => 'module_images' ),
+			'media'       => array( 'label' => 'Media Editor', 'icon' => 'tag', 'module' => 'module_media' ),
+			'performance' => array( 'label' => 'Performance',  'icon' => 'bolt', 'module' => 'module_performance' ),
+			'database'    => array( 'label' => 'Database',     'icon' => 'db', 'module' => 'module_database' ),
+			'settings'    => array( 'label' => 'Settings',     'icon' => 'gear', 'module' => null ),
 		);
 
 		add_action( 'admin_menu', array( $this, 'menu' ) );
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar' ), 80 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
+		add_action( 'admin_post_velox_cache', array( $this, 'handle_cache_action' ) );
 		add_filter( 'plugin_action_links_' . VELOX_BASENAME, array( $this, 'action_links' ) );
 	}
 
-	/** Map a tab key to its admin page slug. */
+	/** Tabs whose module is enabled (dashboard + settings are always on). */
+	public function enabled_tabs() {
+		$out = array();
+		foreach ( $this->tabs as $key => $tab ) {
+			if ( null === $tab['module'] || Velox_Settings::get( $tab['module'] ) ) {
+				$out[ $key ] = $tab;
+			}
+		}
+		return $out;
+	}
+
 	public function page_slug( $key ) {
 		return 'dashboard' === $key ? self::SLUG : self::SLUG . '-' . $key;
 	}
 
 	public function menu() {
-		add_menu_page(
-			'Velox',
-			'Velox',
-			'manage_options',
-			self::SLUG,
-			array( $this, 'render' ),
-			$this->menu_icon(),
-			80.7 // Sit just below Settings, down in the utility area.
-		);
+		add_menu_page( 'Velox', 'Velox', 'manage_options', self::SLUG, array( $this, 'render' ), $this->menu_icon(), 80.7 );
 
-		foreach ( $this->tabs as $key => $tab ) {
+		foreach ( $this->enabled_tabs() as $key => $tab ) {
 			add_submenu_page(
 				self::SLUG,
 				'Velox — ' . $tab['label'],
@@ -59,14 +61,15 @@ class Velox_Admin {
 		}
 	}
 
-	/** Top admin-bar entry — reachable from the front end and wp-admin alike. */
+	/** Top admin-bar entry with a nested Performance + cache submenu. */
 	public function admin_bar( $bar ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
 		}
 
-		$icon = '<span style="display:inline-block;width:16px;height:16px;vertical-align:text-bottom;margin-right:6px;">'
-			. '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l0-8Z" fill="#2ab7f1"/></svg></span>';
+		$icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" '
+			. 'style="vertical-align:middle;margin:-2px 6px 0 0;">'
+			. '<path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l0-8Z" fill="#fff"/></svg>';
 
 		$bar->add_node( array(
 			'id'    => 'velox',
@@ -74,7 +77,7 @@ class Velox_Admin {
 			'href'  => menu_page_url( self::SLUG, false ),
 		) );
 
-		foreach ( $this->tabs as $key => $tab ) {
+		foreach ( $this->enabled_tabs() as $key => $tab ) {
 			$bar->add_node( array(
 				'id'     => 'velox-' . $key,
 				'parent' => 'velox',
@@ -82,6 +85,114 @@ class Velox_Admin {
 				'href'   => $this->tab_url( $key ),
 			) );
 		}
+
+		// Nested "Performance & Cache" group — only when the Performance module is on.
+		if ( ! Velox_Settings::get( 'module_performance' ) ) {
+			return;
+		}
+		$bar->add_node( array(
+			'id'     => 'velox-cache',
+			'parent' => 'velox',
+			'title'  => 'Performance & Cache',
+		) );
+		$bar->add_node( array(
+			'id'     => 'velox-cache-settings',
+			'parent' => 'velox-cache',
+			'title'  => 'Performance settings',
+			'href'   => $this->tab_url( 'performance' ),
+		) );
+		$actions = array(
+			'all'      => 'Clear all cache',
+			'minified' => 'Clear minified CSS / JS',
+			'oxygen'   => 'Regenerate Oxygen CSS',
+			'cloudflare' => 'Clear Cloudflare cache',
+			'velox'    => 'Clear Velox cache',
+		);
+		foreach ( $actions as $which => $label ) {
+			$bar->add_node( array(
+				'id'     => 'velox-cache-' . $which,
+				'parent' => 'velox-cache',
+				'title'  => $label,
+				'href'   => $this->cache_url( $which ),
+			) );
+		}
+	}
+
+	private function cache_url( $which ) {
+		return wp_nonce_url(
+			admin_url( 'admin-post.php?action=velox_cache&which=' . rawurlencode( $which ) ),
+			'velox_cache_' . $which
+		);
+	}
+
+	/** No-JS handler so admin-bar cache buttons work from the front end too. */
+	public function handle_cache_action() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Not allowed.', 'velox' ) );
+		}
+		$which = isset( $_GET['which'] ) ? sanitize_key( wp_unslash( $_GET['which'] ) ) : 'all';
+		check_admin_referer( 'velox_cache_' . $which );
+
+		self::clear_cache( $which );
+
+		$back = wp_get_referer();
+		wp_safe_redirect( $back ? $back : admin_url( 'admin.php?page=' . self::SLUG ) );
+		exit;
+	}
+
+	/**
+	 * Clear caches. Integrates with whatever is installed and silently skips the
+	 * rest. Shared by the admin bar (no-JS) and the AJAX endpoint.
+	 */
+	public static function clear_cache( $which ) {
+		$done = array();
+
+		$wpfc_all = function () use ( &$done ) {
+			if ( function_exists( 'wpfc_clear_all_cache' ) ) {
+				wpfc_clear_all_cache( true );
+				$done[] = 'WP Fastest Cache';
+			} elseif ( isset( $GLOBALS['wp_fastest_cache'] ) && method_exists( $GLOBALS['wp_fastest_cache'], 'deleteCache' ) ) {
+				$GLOBALS['wp_fastest_cache']->deleteCache( true );
+				$done[] = 'WP Fastest Cache';
+			}
+		};
+
+		switch ( $which ) {
+			case 'all':
+				$wpfc_all();
+				if ( function_exists( 'wp_cache_flush' ) ) {
+					wp_cache_flush();
+					$done[] = 'Object cache';
+				}
+				break;
+			case 'minified':
+				$wpfc_all();
+				$done[] = 'Minified CSS/JS';
+				break;
+			case 'oxygen':
+				if ( function_exists( 'oxygen_vsb_cache_universal_css_file' ) ) {
+					oxygen_vsb_cache_universal_css_file();
+					$done[] = 'Oxygen CSS cache';
+				} else {
+					do_action( 'oxygen_vsb_cache_generate_css' );
+					$done[] = 'Oxygen CSS cache (if active)';
+				}
+				break;
+			case 'cloudflare':
+				do_action( 'cloudflare_purge_everything' );
+				$done[] = 'Cloudflare (if connected)';
+				break;
+			case 'velox':
+				delete_transient( 'velox_latest_release' );
+				$done[] = 'Velox cache';
+				break;
+		}
+
+		$done = array_values( array_filter( $done ) );
+		return array(
+			'cleared' => $done,
+			'message' => $done ? ( 'Cleared: ' . implode( ', ', $done ) ) : 'Nothing to clear (tool not detected).',
+		);
 	}
 
 	private function menu_icon() {
@@ -103,37 +214,30 @@ class Velox_Admin {
 	}
 
 	public function action_links( $links ) {
-		$url = menu_page_url( self::SLUG, false );
-		array_unshift( $links, '<a href="' . esc_url( $url ) . '">' . __( 'Open', 'velox' ) . '</a>' );
+		$url = menu_page_url( self::SLUG . '-settings', false );
+		array_unshift( $links, '<a href="' . esc_url( $url ) . '">' . __( 'Settings', 'velox' ) . '</a>' );
 		return $links;
 	}
 
-	/** Which tab are we on? Derived from the page slug, with a legacy fallback. */
 	public function current_tab() {
-		// Legacy support first: ?page=velox&tab=settings (old bookmarks).
 		if ( isset( $_GET['tab'] ) ) {
 			$tab = sanitize_key( wp_unslash( $_GET['tab'] ) );
 			if ( isset( $this->tabs[ $tab ] ) ) {
 				return $tab;
 			}
 		}
-
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : self::SLUG;
-
 		foreach ( $this->tabs as $key => $tab ) {
 			if ( $this->page_slug( $key ) === $page ) {
 				return $key;
 			}
 		}
-
-		// Encoded-slug fallback, e.g. "velox-settings" buried in the page var.
 		if ( false !== strpos( $page, self::SLUG . '-' ) ) {
 			$guess = str_replace( self::SLUG . '-', '', $page );
 			if ( isset( $this->tabs[ $guess ] ) ) {
 				return $guess;
 			}
 		}
-
 		return 'dashboard';
 	}
 
@@ -146,15 +250,30 @@ class Velox_Admin {
 	}
 
 	public function render() {
-		$tab   = $this->current_tab();
 		$admin = $this; // available inside views
-		include VELOX_PATH . 'admin/views/header.php';
 
-		$view = VELOX_PATH . 'admin/views/' . $tab . '.php';
-		if ( file_exists( $view ) ) {
-			include $view;
+		$slug   = $this->current_tab();
+		$view   = VELOX_PATH . 'admin/views/' . $slug . '.php';
+		$header = VELOX_PATH . 'admin/views/header.php';
+
+		if ( is_readable( $header ) ) {
+			include $header;
+		} else {
+			echo '<div class="velox-wrap"><main class="velox-main">';
 		}
-		echo '</main></div>'; // .velox-main + .velox-wrap opened in header
+
+		if ( is_readable( $view ) ) {
+			include $view;
+		} else {
+			printf(
+				'<div class="velox-alert velox-alert--warn" style="margin:24px;">'
+				. 'Velox couldn\'t load the <strong>%s</strong> screen at <code>%s</code>. Reinstall from a fresh zip and clear OPcache.'
+				. '</div>',
+				esc_html( $slug ),
+				esc_html( $view )
+			);
+		}
+		echo '</main></div>';
 	}
 
 	/** Tiny inline icon set used by the nav + cards. */
