@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 1.9.2
+- Changed Velox position in the admin menu
+
 ## 1.9.1
 - Sized and centred the Velox icon: 20px in the admin toolbar, 25px in the left admin menu.
 
