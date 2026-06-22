@@ -225,6 +225,9 @@ class Velox_CSS {
 		if ( ! is_string( $html ) || strlen( $html ) < 200 || stripos( $html, '<html' ) === false || stripos( $html, '</html>' ) === false ) {
 			return $html;
 		}
+		if ( Velox_PageMeta::disabled( 'css' ) ) {
+			return $html;
+		}
 		try {
 			$dir = self::dir();
 			if ( ! wp_mkdir_p( $dir['path'] ) ) {

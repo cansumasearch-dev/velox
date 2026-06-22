@@ -58,6 +58,7 @@ final class Velox {
 
 		if ( is_admin() ) {
 			$this->admin = new Velox_Admin();
+			new Velox_PageMeta();
 		}
 	}
 }

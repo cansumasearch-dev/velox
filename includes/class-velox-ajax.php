@@ -142,6 +142,11 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_CSS::reset_learning() );
 				break;
 
+			case 'apply_preset':
+				$preset = isset( $_POST['preset'] ) && 'aggressive' === $_POST['preset'] ? 'aggressive' : 'safe';
+				wp_send_json_success( Velox_Settings::apply_preset( $preset ) );
+				break;
+
 			case 'localize_fonts':
 				$fonts = new Velox_Fonts();
 				$this->respond( $fonts->localize() );
@@ -234,6 +239,9 @@ class Velox_Ajax {
 		// Clamp numeric fields to sane ranges.
 		$clean['webp_quality']        = max( 1, min( 100, (int) $clean['webp_quality'] ) );
 		$clean['perf_revisions_keep'] = max( 0, (int) $clean['perf_revisions_keep'] );
+		if ( isset( $clean['perf_lazy_skip_count'] ) ) {
+			$clean['perf_lazy_skip_count'] = max( 0, min( 20, (int) $clean['perf_lazy_skip_count'] ) );
+		}
 
 		Velox_Settings::save( $clean );
 		wp_send_json_success( array( 'message' => __( 'Settings saved.', 'velox' ) ) );

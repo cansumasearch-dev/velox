@@ -1099,8 +1099,32 @@
 			} );
 		} );
 
+		/* Quick-setup presets */
+		[ 'safe', 'aggressive' ].forEach( function ( name ) {
+			var pb = $( '#velox-preset-' + name );
+			if ( ! pb ) {
+				return;
+			}
+			pb.addEventListener( 'click', function () {
+				if ( name === 'aggressive' && ! confirm( 'Apply the aggressive preset? This enables async CSS, unused-CSS removal, JS delay and bloat removal. Test your site afterwards.' ) ) {
+					return;
+				}
+				pb.disabled = true;
+				pb.textContent = 'Applying…';
+				api( 'apply_preset', { preset: name } )
+					.then( function ( d ) {
+						toast( ( d && d.message ) || 'Preset applied.' );
+						setTimeout( function () { location.reload(); }, 600 );
+					} )
+					.catch( function ( e ) {
+						toast( e.message, 'error' );
+						pb.disabled = false;
+						pb.textContent = name === 'safe' ? 'Apply safe defaults' : 'Apply aggressive preset';
+					} );
+			} );
+		} );
+
 		/* Import / Export */
-		var box = $( '#velox-import-box' );
 		var importActions = $( '#velox-import-actions' );
 		var exportBtn = $( '#velox-export' );
 		var importOpen = $( '#velox-import-open' );

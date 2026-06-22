@@ -4,6 +4,15 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 1.8.0
+- **Per-page overrides:** a "Velox" box in the post/page editor to switch off JS, CSS or lazy-load (or everything) on a single page.
+- **Quick-setup presets:** one-click "Safe defaults" and "Aggressive" buttons in Settings.
+- **Live dashboard:** real status for CSS pages optimized, fonts hosted, DB rows cleanable and WebP engine.
+- **Exclude first N images from lazy-load** so the hero/LCP image always loads eagerly.
+- **WordPress 6.9 compatibility:** hardened defer/delay so bundled inline translation scripts no longer break script handling.
+- **Smoother updates:** a single "Check again" now bypasses the release cache.
+- **Thorough uninstall:** removes all Velox options, auto-learn data, per-page meta and generated cache folders (your media and WebP files are left untouched).
+
 ## 1.7.2
 - Added plugin icon and banner artwork to the "View details" popup and the update notice.
 

@@ -41,9 +41,12 @@ class Velox_Updater {
 		return $args;
 	}
 
-	private function get_latest_release() {
+	private function get_latest_release( $force = false ) {
 		$cache_key = 'velox_latest_release';
-		$cached    = get_transient( $cache_key );
+		if ( $force ) {
+			delete_transient( $cache_key );
+		}
+		$cached = get_transient( $cache_key );
 		if ( false !== $cached ) {
 			return $cached;
 		}
@@ -78,7 +81,9 @@ class Velox_Updater {
 		if ( empty( $transient->checked ) ) {
 			return $transient;
 		}
-		$release = $this->get_latest_release();
+		// When the user clicks "Check again", honour it and skip our 6h cache.
+		$force   = ! empty( $_GET['force-check'] ) || ( defined( 'DOING_AJAX' ) && DOING_AJAX && isset( $_REQUEST['velox_force'] ) );
+		$release = $this->get_latest_release( $force );
 		if ( ! $release || empty( $release->tag_name ) ) {
 			return $transient;
 		}

@@ -97,6 +97,10 @@ class Velox_Performance {
 			add_filter( 'wp_lazy_loading_enabled', '__return_true' );
 			add_filter( 'the_content', array( $this, 'lazyload_iframes' ), 20 );
 		}
+		// Keep the first N images eager (above-the-fold) so lazy-load never delays the LCP.
+		if ( (int) $this->s['perf_lazy_skip_count'] > 0 ) {
+			add_filter( 'wp_omit_loading_attr_threshold', array( $this, 'lazy_skip_threshold' ) );
+		}
 		if ( $this->on( 'perf_youtube_facade' ) ) {
 			add_filter( 'the_content', array( $this, 'youtube_facade' ), 21 );
 			add_action( 'wp_footer', array( $this, 'youtube_facade_assets' ), 98 );
@@ -314,7 +318,7 @@ class Velox_Performance {
 	/* ---------------------------------------------------------------- JavaScript */
 
 	public function defer_scripts( $tag, $handle ) {
-		if ( is_admin() || false !== strpos( $tag, ' defer' ) || false !== strpos( $tag, ' async' ) ) {
+		if ( is_admin() || Velox_PageMeta::disabled( 'js' ) || false !== strpos( $tag, ' defer' ) || false !== strpos( $tag, ' async' ) ) {
 			return $tag;
 		}
 		foreach ( $this->lines( 'perf_defer_exclude' ) as $ex ) {
@@ -322,11 +326,20 @@ class Velox_Performance {
 				return $tag;
 			}
 		}
-		return str_replace( ' src=', ' defer src=', $tag );
+		// WP 6.9+ may bundle an inline translation <script> with the external one in a
+		// single $tag. Only add defer to the tag that actually has a src — never the inline part.
+		return preg_replace_callback(
+			'#<script\b([^>]*\bsrc=[^>]*)>#i',
+			function ( $m ) {
+				return '<script defer' . $m[1] . '>';
+			},
+			$tag,
+			1
+		);
 	}
 
 	public function delay_scripts( $tag, $handle, $src ) {
-		if ( is_admin() || empty( $src ) || false === strpos( $tag, 'src=' ) ) {
+		if ( is_admin() || Velox_PageMeta::disabled( 'js' ) || empty( $src ) || false === strpos( $tag, 'src=' ) ) {
 			return $tag;
 		}
 		foreach ( $this->lines( 'perf_delay_js_exclude' ) as $ex ) {
@@ -334,10 +347,16 @@ class Velox_Performance {
 				return $tag;
 			}
 		}
-		// Swap type to a placeholder; the loader below promotes them on first interaction.
-		$tag = preg_replace( '/<script /', '<script type="velox/lazy" data-velox-src="' . esc_url( $src ) . '" ', $tag, 1 );
-		$tag = preg_replace( '/ src=("|\')[^"\']*("|\')/', '', $tag, 1 );
-		return $tag;
+		// Only transform the external (src-bearing) <script>; leave any inline
+		// translation script that WP 6.9 bundled into the same tag untouched.
+		return preg_replace_callback(
+			'#<script\b([^>]*?)\bsrc=("|\')([^"\']*)\2([^>]*)>#i',
+			function ( $m ) {
+				return '<script type="velox/lazy" data-velox-src="' . esc_url( $m[3] ) . '"' . $m[1] . $m[4] . '>';
+			},
+			$tag,
+			1
+		);
 	}
 
 	public function delay_js_loader() {
@@ -380,7 +399,18 @@ evts.forEach(function(e){window.addEventListener(e,fire,{passive:true});});
 		return $attr;
 	}
 
+	public function lazy_skip_threshold( $threshold ) {
+		if ( Velox_PageMeta::disabled( 'lazy' ) ) {
+			return $threshold;
+		}
+		$n = (int) $this->s['perf_lazy_skip_count'];
+		return $n > 0 ? $n : $threshold;
+	}
+
 	public function lazyload_iframes( $content ) {
+		if ( Velox_PageMeta::disabled( 'lazy' ) ) {
+			return $content;
+		}
 		if ( is_admin() || empty( $content ) ) {
 			return $content;
 		}
@@ -441,6 +471,9 @@ evts.forEach(function(e){window.addEventListener(e,fire,{passive:true});});
 
 	/** Inject content-visibility:auto for offscreen sections (risky — needs intrinsic size). */
 	public function content_visibility_css() {
+		if ( Velox_PageMeta::disabled( 'css' ) ) {
+			return;
+		}
 		$sel = array_filter( array_map( 'trim', preg_split( '/[\r\n,]+/', (string) $this->s['perf_content_visibility_selector'] ) ) );
 		if ( empty( $sel ) ) {
 			return;

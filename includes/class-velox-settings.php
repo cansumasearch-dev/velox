@@ -81,6 +81,7 @@ class Velox_Settings {
 			// ---- Performance · Images (front-end) ----
 			'perf_add_image_dimensions'  => true,  // width/height to cut CLS
 			'perf_lazyload_iframes'      => true,
+			'perf_lazy_skip_count'       => 2,    // keep first N images eager (above-the-fold)
 			'perf_fetchpriority_lcp'     => true,  // fetchpriority=high on the hero/featured image
 			'perf_youtube_facade'        => true,  // replace YouTube iframes with a click-to-load thumbnail
 			'perf_preload_lcp'           => '',    // URL of the hero/LCP image
@@ -129,7 +130,7 @@ class Velox_Settings {
 			),
 			'images' => array(
 				'label' => 'Images',
-				'keys'  => array( 'perf_add_image_dimensions', 'perf_fetchpriority_lcp', 'perf_lazyload_iframes', 'perf_youtube_facade', 'perf_preload_lcp', 'perf_content_visibility', 'perf_content_visibility_selector' ),
+				'keys'  => array( 'perf_add_image_dimensions', 'perf_fetchpriority_lcp', 'perf_lazyload_iframes', 'perf_lazy_skip_count', 'perf_youtube_facade', 'perf_preload_lcp', 'perf_content_visibility', 'perf_content_visibility_selector' ),
 			),
 			'fonts' => array(
 				'label' => 'Fonts',
@@ -193,6 +194,32 @@ class Velox_Settings {
 			return false;
 		}
 		return (bool) self::get( $feature );
+	}
+
+	/**
+	 * Apply a one-click preset. "safe" is just our defaults (all-safe-on, risky-off).
+	 * "aggressive" layers on the high-value risky features that are reliable on the
+	 * Oxygen/WPFC/Cloudflare stack — deliberately NOT jQuery-migrate removal (Oxygen
+	 * needs it) or content-visibility (layout shift), which need per-site testing.
+	 */
+	public static function apply_preset( $name ) {
+		$s = self::defaults();
+		if ( 'aggressive' === $name ) {
+			$s['perf_risky_mode']            = true;
+			$s['perf_optimize_css_delivery'] = true;
+			$s['perf_remove_unused_css']     = true;   // engine stays 'auto' = safe + zero-setup
+			$s['perf_delay_scripts']         = true;
+			$s['perf_disable_block_css']     = true;
+			$s['perf_disable_global_styles'] = true;
+			$s['perf_dequeue_woo_fragments'] = true;
+		}
+		update_option( self::OPTION, $s );
+		self::$cache = $s;
+		return array(
+			'message' => 'safe' === $name
+				? 'Safe defaults applied — every aggressive option is off.'
+				: 'Aggressive preset applied — test your site, then exclude anything that breaks.',
+		);
 	}
 
 	public static function install_defaults() {

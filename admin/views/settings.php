@@ -10,6 +10,16 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
+	<h3 class="velox-panel-title">Quick setup</h3>
+	<p class="velox-hint">Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards.</p>
+	<div class="velox-fonts-btns">
+		<button class="velox-btn velox-btn--primary" id="velox-preset-safe">Apply safe defaults</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-preset-aggressive">Apply aggressive preset</button>
+	</div>
+	<p class="velox-hint"><strong>Safe</strong> turns on only the optimizations that can't break a site. <strong>Aggressive</strong> adds async CSS, unused-CSS removal (auto-learn), JS delay and bloat removal — then test and exclude anything that misbehaves. Neither touches jQuery Migrate or content-visibility (those need per-site testing).</p>
+</div>
+
+<div class="velox-panel">
 	<h3 class="velox-panel-title">Modules</h3>
 	<p class="velox-hint">Disabling a module hides its tab and stops all of its hooks from loading.</p>
 	<?php

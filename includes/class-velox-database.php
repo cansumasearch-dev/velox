@@ -28,7 +28,7 @@ class Velox_Database {
 	}
 
 	/** Live counts for every cleanup item. */
-	public function counts() {
+	public static function counts() {
 		global $wpdb;
 		return array(
 			'revisions'         => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_type = 'revision'" ),

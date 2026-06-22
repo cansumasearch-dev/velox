@@ -3,7 +3,7 @@
  * Plugin Name:       Velox
  * Plugin URI:        https://github.com/cansumasearch-dev/velox
  * Description:       All-in-one performance, WebP image optimization and media management toolkit. Built for the Oxygen + WP Fastest Cache + Cloudflare stack. Complements your cache plugin instead of fighting it.
- * Version:           1.7.2
+ * Version:           1.8.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Author:            Sumasearch
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /* -------------------------------------------------------------------------
  * Constants
  * ---------------------------------------------------------------------- */
-define( 'VELOX_VERSION', '1.7.2' );
+define( 'VELOX_VERSION', '1.8.0' );
 define( 'VELOX_FILE', __FILE__ );
 define( 'VELOX_BASENAME', plugin_basename( __FILE__ ) );
 define( 'VELOX_PATH', plugin_dir_path( __FILE__ ) );
@@ -44,6 +44,7 @@ require_once VELOX_PATH . 'includes/class-velox-css.php';
 require_once VELOX_PATH . 'includes/class-velox-database.php';
 require_once VELOX_PATH . 'includes/class-velox-ajax.php';
 require_once VELOX_PATH . 'includes/class-velox-admin.php';
+require_once VELOX_PATH . 'includes/class-velox-pagemeta.php';
 require_once VELOX_PATH . 'includes/class-velox-updater.php';
 require_once VELOX_PATH . 'includes/class-velox.php';
 
