@@ -4,8 +4,6 @@
 
 Velox is a performance, image and media plugin built for one specific setup — **Oxygen + WP Fastest Cache + Cloudflare** — and the whole idea is that it *complements* those tools instead of fighting them. No second page cache. No CSS/JS combining (which breaks Oxygen anyway). Just the optimizations your cache plugin and CDN don't already cover, with everything risky tucked behind a single switch so you can't blow up your own site by accident.
 
-White/black UI, one consistent look across every tab, and a `#2ab7f1` accent. iPhone-and-Nike clean. ⚡
-
 ---
 
 ## Why I built it
