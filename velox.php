@@ -1,17 +1,17 @@
 <?php
 /**
  * Plugin Name:       Velox
- * Plugin URI:        https://github.com/JustKyrix/velox
+ * Plugin URI:        https://github.com/cansumasearch-dev/velox
  * Description:       All-in-one performance, WebP image optimization and media management toolkit. Built for the Oxygen + WP Fastest Cache + Cloudflare stack. Complements your cache plugin instead of fighting it.
- * Version:           1.0.1
+ * Version:           1.0.2
  * Requires at least: 6.0
  * Requires PHP:      7.4
- * Author:            Kyrix
- * Author URI:        https://artline-studio.de
+ * Author:            Sumasearch
+ * Author URI:        https://sumasearch.de
  * Text Domain:       velox
  * License:           GPL-2.0-or-later
  *
- * GitHub Plugin URI: JustKyrix/velox
+ * GitHub Plugin URI: cansumasearch-dev/velox
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
@@ -21,7 +21,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 /* -------------------------------------------------------------------------
  * Constants
  * ---------------------------------------------------------------------- */
-define( 'VELOX_VERSION', '1.0.1' );
+define( 'VELOX_VERSION', '1.0.2' );
 define( 'VELOX_FILE', __FILE__ );
 define( 'VELOX_BASENAME', plugin_basename( __FILE__ ) );
 define( 'VELOX_PATH', plugin_dir_path( __FILE__ ) );
@@ -29,7 +29,7 @@ define( 'VELOX_URL', plugin_dir_url( __FILE__ ) );
 define( 'VELOX_ASSETS', VELOX_URL . 'admin/' );
 
 // Change these two lines to point the auto-updater at YOUR GitHub repo.
-define( 'VELOX_GH_USER', 'JustKyrix' );
+define( 'VELOX_GH_USER', 'cansumasearch-dev' );
 define( 'VELOX_GH_REPO', 'velox' );
 
 /* -------------------------------------------------------------------------
