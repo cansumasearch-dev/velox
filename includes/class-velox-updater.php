@@ -168,6 +168,7 @@ class Velox_Updater {
 			. '<li><strong>Media:</strong> edit alt text and titles in bulk, rename files safely.</li>'
 			. '<li><strong>Database:</strong> clear the junk, optimise the tables.</li>'
 			. '<li><strong>Per-page control:</strong> switch any optimisation off on a single page when something acts up.</li>'
+			. '<li><strong>Builder-aware setup:</strong> Velox detects your page builder (Oxygen, Bricks, Elementor, Divi, Beaver Builder, WPBakery, Gutenberg or none) and auto-configures the right exclusions and safelists so it speeds the site up without breaking the builder.</li>'
 			. '</ul>'
 			. '<p>Not sure where to start? Hit <strong>Settings → Quick setup → Safe defaults</strong> and you\'re good.</p>';
 	}
@@ -184,6 +185,8 @@ class Velox_Updater {
 
 	private function section_faq() {
 		$faq = array(
+			'Does it work with my page builder?' =>
+				'Yes — on first run a quick wizard detects your builder (Oxygen, Bricks, Elementor, Divi, Beaver Builder, WPBakery, Gutenberg, or none) and configures the right JS exclusions and unused-CSS safelist for it, so it speeds things up without breaking the builder. Switch builders later and it reconfigures itself. Using something exotic? There\'s a one-click "request my builder" button.',
 			'Will it clash with WP Fastest Cache?' =>
 				'No. Velox deliberately doesn\'t do page caching or CSS/JS combining — that\'s WPFC\'s job. They\'re built to run together.',
 			'Do I need Cloudflare or an API key?' =>

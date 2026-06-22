@@ -43,6 +43,9 @@ Clear revisions, auto-drafts, trash, spam, expired transients and orphaned meta 
 **Per-page control**
 A "Velox" box in the post/page editor lets you switch off JS, CSS or lazy-load — or all of Velox — on a single page when something acts up. The rest of your site stays optimised.
 
+**Builder-aware setup**
+This is the part I'm proudest of. Every page builder needs *different* speed settings — what makes Elementor fast can break Divi, and stripping unused CSS without knowing your builder's classes wrecks sliders and menus. So on first run Velox pops a quick wizard that **detects your builder** — Oxygen, Bricks, Elementor, Divi, Beaver Builder, WPBakery, Gutenberg/block themes, or no builder at all — and configures the right defer/delay exclusions, the right unused-CSS safelist, and the right guardrails automatically. For example it *won't* remove jQuery Migrate on Divi (that breaks Divi), *won't* replace YouTube embeds on Divi, and *won't* strip block CSS on a block theme. Switch builders later and it notices, wipes the old performance settings, and reconfigures for the new one. Using something it doesn't know yet? One click sends me a request to add it.
+
 ---
 
 ## Quick start
