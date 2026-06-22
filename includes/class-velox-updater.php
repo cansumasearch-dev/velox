@@ -118,14 +118,68 @@ class Velox_Updater {
 			'name'          => 'Velox',
 			'slug'          => $this->slug,
 			'version'       => $this->normalize_version( $release->tag_name ),
-			'author'        => 'Kyrix',
+			'author'        => '<a href="https://www.sumasearch.de/">Sumasearch</a>',
+			'author_profile'=> 'https://www.sumasearch.de/',
 			'homepage'      => sprintf( 'https://github.com/%s/%s', $this->user, $this->repo ),
 			'download_link' => $this->download_url( $release ),
+			'requires'      => '6.0',
+			'tested'        => '6.8',
+			'requires_php'  => '7.4',
+			'last_updated'  => isset( $release->published_at ) ? $release->published_at : '',
 			'sections'      => array(
-				'description' => 'All-in-one performance + WebP + media toolkit for the Oxygen / WP Fastest Cache / Cloudflare stack.',
-				'changelog'   => nl2br( esc_html( $release->body ?? 'See GitHub releases.' ) ),
+				'description'  => $this->section_description(),
+				'installation' => $this->section_installation(),
+				'changelog'    => $this->format_changelog( $release ),
+				'faq'          => $this->section_faq(),
 			),
 		);
+	}
+
+	private function section_description() {
+		return '<p><strong>Velox</strong> is an all-in-one performance, image and media toolkit built for the Oxygen + WP Fastest Cache + Cloudflare stack. It complements your cache and CDN rather than fighting them — no second page cache, no CSS/JS combine.</p>'
+			. '<h4>What it does</h4><ul>'
+			. '<li><strong>Performance:</strong> defer &amp; delay JavaScript, fetchpriority on the LCP image, YouTube facades, lazy-render, Speculation Rules, plus a one-switch <em>Risky mode</em> that hides anything that might break a site.</li>'
+			. '<li><strong>Strong CSS:</strong> non-render-blocking CSS delivery, critical CSS, and <em>Remove Unused CSS</em> with three engines — Auto-learn (zero-setup, learns from your visitors), Cloudflare Browser Run, or Local.</li>'
+			. '<li><strong>Fonts:</strong> host Google Fonts locally in one click.</li>'
+			. '<li><strong>Images:</strong> bulk WebP conversion with live before/after savings, EXIF stripping and max-width downscaling.</li>'
+			. '<li><strong>Media editor:</strong> bulk alt text, titles and safe file renames.</li>'
+			. '<li><strong>Database:</strong> cleanup and table optimization.</li>'
+			. '</ul>';
+	}
+
+	private function section_installation() {
+		return '<ol>'
+			. '<li>Upload the plugin zip via <em>Plugins → Add New → Upload</em> (choose "Replace current with uploaded" when updating).</li>'
+			. '<li>Activate it. All modules are on by default.</li>'
+			. '<li>Open <em>Velox</em> in the admin menu and configure each module.</li>'
+			. '<li>Updates arrive automatically from GitHub — no wp.org listing needed.</li>'
+			. '</ol>';
+	}
+
+	private function section_faq() {
+		return '<h4>Does it conflict with WP Fastest Cache?</h4>'
+			. '<p>No — Velox never does page caching or CSS/JS combine. It only adds the front-end optimizations WPFC doesn\'t.</p>'
+			. '<h4>What is Risky mode?</h4>'
+			. '<p>By default only 100%-safe settings show. Turn on Risky mode to reveal aggressive options (delay-JS, unused-CSS removal, etc.) that might need testing.</p>'
+			. '<h4>What is the Auto-learn CSS engine?</h4>'
+			. '<p>It learns which CSS your pages actually use from real visitors\' browsers — no setup, no API key — and trims the rest. It can only ever keep more CSS, never break a layout.</p>';
+	}
+
+	/** Render the GitHub release notes (lightweight Markdown) for the changelog tab. */
+	private function format_changelog( $release ) {
+		$body = isset( $release->body ) ? (string) $release->body : '';
+		if ( '' === trim( $body ) ) {
+			return '<p>See the <a href="' . esc_url( sprintf( 'https://github.com/%s/%s/releases', $this->user, $this->repo ) ) . '">GitHub releases page</a> for the full history.</p>';
+		}
+		$out = esc_html( $body );
+		$out = preg_replace( '/^#{1,6}\s*(.+)$/m', '<h4>$1</h4>', $out );          // headings
+		$out = preg_replace( '/\*\*(.+?)\*\*/', '<strong>$1</strong>', $out );      // bold
+		$out = preg_replace( '/`([^`]+)`/', '<code>$1</code>', $out );              // inline code
+		$out = preg_replace( '/^\s*[\*\-]\s+(.+)$/m', '<li>$1</li>', $out );        // bullets
+		$out = preg_replace( '#(?:<li>.*?</li>\s*)+#s', '<ul>$0</ul>', $out );      // wrap bullets
+		$out = preg_replace( '#\n{2,}#', '</p><p>', $out );                         // paragraphs
+		$out = preg_replace( '#(?<!>)\n(?!<)#', '<br>', $out );                     // soft breaks
+		return '<p>' . $out . '</p>';
 	}
 
 	/**
