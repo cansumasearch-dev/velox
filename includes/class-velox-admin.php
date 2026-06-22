@@ -30,6 +30,7 @@ class Velox_Admin {
 		add_action( 'admin_post_velox_cache', array( $this, 'handle_cache_action' ) );
 		add_action( 'admin_notices', array( $this, 'cache_notice' ) );
 		add_action( 'admin_notices', array( $this, 'builder_notice' ) );
+		add_action( 'admin_head', array( $this, 'menu_icon_css' ) );
 		add_filter( 'plugin_action_links_' . VELOX_BASENAME, array( $this, 'action_links' ) );
 	}
 
@@ -69,8 +70,8 @@ class Velox_Admin {
 			return;
 		}
 
-		$icon = '<img src="' . esc_url( VELOX_URL . 'assets/menu-icon.png' ) . '" alt="" width="16" height="16" '
-			. 'style="vertical-align:middle;margin:-3px 6px 0 0;display:inline-block;">';
+		$icon = '<img src="' . esc_url( VELOX_URL . 'assets/menu-icon.png' ) . '" alt="" '
+			. 'style="width:20px;height:20px;vertical-align:middle;margin:0 7px 0 0;display:inline-block;">';
 
 		$bar->add_node( array(
 			'id'    => 'velox',
@@ -270,6 +271,11 @@ class Velox_Admin {
 
 	private function menu_icon() {
 		return VELOX_URL . 'assets/menu-icon.png';
+	}
+
+	/** Size + centre the Velox icon in the left admin menu (loads on every admin page). */
+	public function menu_icon_css() {
+		echo '<style>#adminmenu #toplevel_page_' . esc_attr( self::SLUG ) . ' .wp-menu-image img{width:25px;height:25px;padding:5px 0 0;margin:0 auto;display:block;}</style>';
 	}
 
 	public function assets( $hook ) {
