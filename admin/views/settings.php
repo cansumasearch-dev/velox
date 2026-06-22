@@ -10,6 +10,17 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
+	<h3 class="velox-panel-title">Page builder</h3>
+	<?php $vx_b = Velox_Builders::current(); ?>
+	<p class="velox-hint">Velox tunes its performance settings to your builder. Currently configured for:
+		<strong><?php echo esc_html( $vx_b ? Velox_Builders::label( $vx_b ) : 'not set up yet' ); ?></strong>.</p>
+	<div class="velox-fonts-btns">
+		<button class="velox-btn velox-btn--primary" id="velox-open-wizard">Run setup wizard</button>
+	</div>
+	<p class="velox-hint">Switching builders? Run this again — Velox will wipe the old performance settings and reconfigure for the new one. Your image, font and database settings are kept.</p>
+</div>
+
+<div class="velox-panel">
 	<h3 class="velox-panel-title">Quick setup</h3>
 	<p class="velox-hint">Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards.</p>
 	<div class="velox-fonts-btns">

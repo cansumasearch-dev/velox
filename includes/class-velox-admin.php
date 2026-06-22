@@ -29,6 +29,7 @@ class Velox_Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
 		add_action( 'admin_post_velox_cache', array( $this, 'handle_cache_action' ) );
 		add_action( 'admin_notices', array( $this, 'cache_notice' ) );
+		add_action( 'admin_notices', array( $this, 'builder_notice' ) );
 		add_filter( 'plugin_action_links_' . VELOX_BASENAME, array( $this, 'action_links' ) );
 	}
 
@@ -68,9 +69,8 @@ class Velox_Admin {
 			return;
 		}
 
-		$icon = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" '
-			. 'style="vertical-align:middle;margin:-2px 6px 0 0;">'
-			. '<path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l0-8Z" fill="#fff"/></svg>';
+		$icon = '<img src="' . esc_url( VELOX_URL . 'assets/menu-icon.png' ) . '" alt="" width="16" height="16" '
+			. 'style="vertical-align:middle;margin:-3px 6px 0 0;display:inline-block;">';
 
 		$bar->add_node( array(
 			'id'    => 'velox',
@@ -155,6 +155,25 @@ class Velox_Admin {
 			'<div class="notice %1$s is-dismissible"><p><strong>Velox:</strong> %2$s</p></div>',
 			esc_attr( $class ),
 			esc_html( $notice['message'] )
+		);
+	}
+
+	/** Warn on every admin page when the active builder no longer matches our setup. */
+	public function builder_notice() {
+		$saved = Velox_Builders::current();
+		if ( '' === $saved ) {
+			return; // wizard hasn't run yet — the setup popup handles onboarding
+		}
+		$detected = Velox_Builders::detect();
+		if ( 'wordpress' === $detected || $detected === $saved ) {
+			return; // nothing detected, or it still matches
+		}
+		$url = admin_url( 'admin.php?page=' . self::SLUG . '&velox_wizard=1' );
+		printf(
+			'<div class="notice notice-warning"><p><strong>Velox:</strong> Builder change detected — you were set up for <strong>%1$s</strong>, but <strong>%2$s</strong> is active now. Re-run the setup wizard so your settings match. <a class="button button-small" href="%3$s">Run setup wizard</a></p></div>',
+			esc_html( Velox_Builders::label( $saved ) ),
+			esc_html( Velox_Builders::label( $detected ) ),
+			esc_url( $url )
 		);
 	}
 
@@ -250,8 +269,7 @@ class Velox_Admin {
 	}
 
 	private function menu_icon() {
-		$svg = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"><path d="M13 2 4.5 13.5H11l-1 8.5L19.5 10H13l0-8Z" fill="#a7aaad"/></svg>';
-		return 'data:image/svg+xml;base64,' . base64_encode( $svg );
+		return VELOX_URL . 'assets/menu-icon.png';
 	}
 
 	public function assets( $hook ) {

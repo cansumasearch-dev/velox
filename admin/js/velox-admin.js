@@ -1592,7 +1592,112 @@
 		load();
 	}
 
+	function initWizard() {
+		var overlay = $( '#velox-wizard' );
+		if ( ! overlay ) {
+			return;
+		}
+		var sel = $( '#velox-wizard-select' );
+
+		function show( step ) {
+			$$( '.velox-wizard-step', overlay ).forEach( function ( s ) {
+				s.hidden = s.getAttribute( 'data-step' ) !== step;
+			} );
+		}
+		function open( step ) {
+			overlay.hidden = false;
+			show( step || 'intro' );
+		}
+		function close() {
+			overlay.hidden = true;
+		}
+		function dismiss() {
+			api( 'wizard_dismiss', {} ).catch( function () {} );
+			close();
+		}
+		function syncNote() {
+			var note = $( '#velox-wizard-dnote' );
+			var opt = sel ? sel.options[ sel.selectedIndex ] : null;
+			if ( note && opt ) {
+				note.textContent = opt.getAttribute( 'data-note' ) || '';
+			}
+		}
+		function on( id, ev, fn ) {
+			var el = $( id );
+			if ( el ) {
+				el.addEventListener( ev, fn );
+			}
+		}
+
+		if ( '1' === overlay.getAttribute( 'data-autoopen' ) ) {
+			open( 'intro' );
+		}
+
+		on( '#velox-open-wizard', 'click', function ( e ) { e.preventDefault(); open( 'intro' ); } );
+		on( '#velox-wizard-close', 'click', dismiss );
+		on( '#velox-wizard-skip', 'click', dismiss );
+		on( '#velox-wizard-back', 'click', function () { show( 'intro' ); } );
+
+		on( '#velox-wizard-check', 'click', function () {
+			var btn = this;
+			btn.disabled = true;
+			btn.textContent = 'Checking…';
+			api( 'builder_detect', {} )
+				.then( function ( d ) {
+					var title = $( '#velox-wizard-dtitle' );
+					if ( title ) {
+						title.textContent = d.is_default ? 'No builder detected' : ( 'Detected ' + d.label + ' — correct?' );
+					}
+					if ( sel ) {
+						for ( var i = 0; i < sel.options.length; i++ ) {
+							if ( sel.options[ i ].value === d.builder ) { sel.selectedIndex = i; break; }
+						}
+						syncNote();
+					}
+					show( 'detected' );
+				} )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { btn.disabled = false; btn.textContent = 'Run builder check'; } );
+		} );
+
+		if ( sel ) {
+			sel.addEventListener( 'change', syncNote );
+		}
+
+		on( '#velox-wizard-apply', 'click', function () {
+			var btn = this;
+			btn.disabled = true;
+			btn.textContent = 'Configuring…';
+			api( 'builder_apply', { builder: sel ? sel.value : '' } )
+				.then( function ( d ) {
+					var msg = $( '#velox-wizard-donemsg' );
+					if ( msg ) { msg.textContent = d.message || 'Configured.'; }
+					show( 'done' );
+				} )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { btn.disabled = false; btn.textContent = 'Configure for this builder'; } );
+		} );
+
+		on( '#velox-wizard-finish', 'click', function () { close(); location.reload(); } );
+
+		on( '#velox-wizard-req-open', 'click', function ( e ) {
+			e.preventDefault();
+			var r = $( '#velox-wizard-req' );
+			if ( r ) { r.hidden = false; }
+		} );
+		on( '#velox-wizard-req-send', 'click', function () {
+			var input = $( '#velox-wizard-req-name' );
+			var btn = this;
+			btn.disabled = true;
+			api( 'builder_request', { name: input ? input.value : '' } )
+				.then( function ( d ) { toast( d.message || 'Sent.' ); if ( input ) { input.value = ''; } } )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { btn.disabled = false; } );
+		} );
+	}
+
 	document.addEventListener( 'DOMContentLoaded', function () {
+		initWizard();
 		initDashboard();
 		initImages();
 		initLibrary();

@@ -26,6 +26,10 @@ class Velox_Settings {
 			'module_performance' => true,
 			'module_database'    => true,
 
+			// ---- Builder-aware setup ----
+			'builder'            => '',     // chosen page builder id ('' = wizard not run)
+			'wizard_done'        => false,  // has the setup wizard been completed/dismissed
+
 			// ---- Image optimizer / WebP ----
 			'webp_quality'       => 80,
 			'webp_keep_original' => true,

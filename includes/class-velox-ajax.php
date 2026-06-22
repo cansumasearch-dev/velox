@@ -147,6 +147,29 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Settings::apply_preset( $preset ) );
 				break;
 
+			case 'builder_detect':
+				$id = Velox_Builders::detect();
+				wp_send_json_success( array(
+					'builder' => $id,
+					'label'   => Velox_Builders::label( $id ),
+					'is_default' => 'wordpress' === $id,
+				) );
+				break;
+
+			case 'builder_apply':
+				$id = isset( $_POST['builder'] ) ? sanitize_key( wp_unslash( $_POST['builder'] ) ) : '';
+				wp_send_json_success( Velox_Builders::apply( $id ) );
+				break;
+
+			case 'builder_request':
+				wp_send_json_success( Velox_Builders::request_builder( $_POST['name'] ?? '' ) );
+				break;
+
+			case 'wizard_dismiss':
+				Velox_Settings::set( 'wizard_done', true );
+				wp_send_json_success( array( 'ok' => true ) );
+				break;
+
 			case 'localize_fonts':
 				$fonts = new Velox_Fonts();
 				$this->respond( $fonts->localize() );
