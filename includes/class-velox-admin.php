@@ -69,8 +69,8 @@ class Velox_Admin {
 			return;
 		}
 
-		$icon = '<img src="' . esc_url( VELOX_URL . 'assets/menu-icon.png' ) . '" alt="" width="16" height="16" '
-			. 'style="vertical-align:middle;margin:-3px 6px 0 0;display:inline-block;">';
+		$icon = '<img src="' . esc_url( VELOX_URL . 'assets/menu-icon.png' ) . '" alt="" '
+			. 'style="width:20px;height:20px;vertical-align:middle;margin:0 7px 0 0;display:inline-block;">';
 
 		$bar->add_node( array(
 			'id'    => 'velox',
