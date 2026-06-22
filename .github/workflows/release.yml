@@ -1,0 +1,38 @@
+name: Build & Release
+
+# Fires whenever you push a tag that looks like a version, e.g. v1.0.1
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build clean plugin zip
+        run: |
+          # Copy everything into a top-level "velox/" folder so the zip
+          # installs to wp-content/plugins/velox/ exactly like it should.
+          mkdir -p build/velox
+          rsync -a --exclude='.git' \
+                   --exclude='.github' \
+                   --exclude='build' \
+                   ./ build/velox/
+          cd build
+          zip -r ../velox.zip velox >/dev/null
+          cd ..
+          echo "Built velox.zip:"
+          unzip -l velox.zip | head -n 20
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: velox.zip
+          generate_release_notes: true
