@@ -34,13 +34,20 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 		</div>
 		<p class="velox-hint">Served by WordPress at <code><?php echo esc_html( home_url( '/robots.txt' ) ); ?></code>. Edit freely — the Sitemap line should point at your sitemap.xml.</p>
 		<?php if ( $physical ) : ?>
-			<div class="velox-alert velox-alert--warn">A real <code>robots.txt</code> file exists in your site root. WordPress can't override a physical file, so that one wins — delete it to use the editor below.</div>
+			<div class="velox-alert velox-alert--info">A physical <code>robots.txt</code> exists in your site root and is being served directly. The editor keeps it in sync on save. This is the most reliable setup behind Nginx or a CDN — use "Back to virtual" to remove it.</div>
 		<?php endif; ?>
 		<textarea class="velox-textarea velox-mono" id="velox-seo-robots" rows="8"><?php echo esc_textarea( $robots ); ?></textarea>
 		<div class="velox-actions">
 			<button class="velox-btn velox-btn--primary" id="velox-seo-robots-save">Save robots.txt</button>
 			<button class="velox-btn velox-btn--ghost" id="velox-seo-robots-reset">Reset to recommended</button>
+			<?php if ( $physical ) : ?>
+				<button class="velox-btn velox-btn--ghost" id="velox-seo-robots-virtual">Back to virtual</button>
+			<?php else : ?>
+				<button class="velox-btn velox-btn--ghost" id="velox-seo-robots-physical">Write to physical file</button>
+			<?php endif; ?>
 		</div>
+		<div class="velox-alert velox-alert--warn velox-seo-cf-note">
+			<strong>Seeing AI "content signals" text instead of yours?</strong> That's <strong>Cloudflare</strong> serving its own robots.txt at the edge, which overrides this. Fix it in your Cloudflare dashboard: <em>your zone → AI Crawl Control / Bots → uncheck "Display Content Signals Policy" / managed robots.txt</em>. Writing a physical file here also helps, since Cloudflare only injects when your origin has no robots.txt.
 	</div>
 
 	<!-- ============ Sitemap ============ -->

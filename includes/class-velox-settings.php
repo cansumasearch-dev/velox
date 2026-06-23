@@ -42,11 +42,22 @@ class Velox_Settings {
 			'util_maintenance'         => false,
 			'util_maintenance_title'   => 'We\'ll be right back',
 			'util_maintenance_message' => 'The site is undergoing a little maintenance. Please check back shortly.',
+			'util_maintenance_logo'    => '',          // empty → bundled Velox mark
+			'util_maintenance_bg'      => '#0c0e17',
+			'util_maintenance_text'    => '#e9edf5',
+			'util_maintenance_accent'  => '#2ab7f1',
+			'util_maintenance_bgimage' => '',
+			'util_maintenance_btn_text'=> '',
+			'util_maintenance_btn_url' => '',
 			'util_login_slug'          => '',     // empty = default wp-login; set a slug to move it
 			'util_redirects_log_404'   => true,
 			'util_activity'            => false,
 			'util_scripts'             => false,
 			'util_mail'                => false,
+			'util_installer'           => false,
+			'util_redirects'           => false,
+			'util_unusedmedia'         => false,
+			'util_loginurl'            => false,
 
 			// ---- Page cache ----
 			'cache_enable'          => false,

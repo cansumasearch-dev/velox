@@ -292,6 +292,7 @@ class Velox_Admin {
 			return;
 		}
 		wp_enqueue_style( 'velox-admin', VELOX_ASSETS . 'css/velox-admin.css', array(), VELOX_VERSION );
+		wp_enqueue_media(); // lets tools (maintenance logo/background) open the media library
 		wp_enqueue_script( 'velox-admin', VELOX_ASSETS . 'js/velox-admin.js', array(), VELOX_VERSION, true );
 		wp_localize_script( 'velox-admin', 'VELOX', array(
 			'ajaxurl'     => admin_url( 'admin-ajax.php' ),

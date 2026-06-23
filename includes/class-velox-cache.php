@@ -45,6 +45,13 @@ class Velox_Cache {
 
 	public static function init() {
 		if ( self::enabled() ) {
+			// Serving: the advanced-cache.php drop-in serves before WordPress when it's
+			// installed. When it can't be (e.g. wp-config.php isn't writable on locked-down
+			// Plesk hosts), this fallback serves the cached page as early as a plugin can,
+			// so the cache still works everywhere — just a touch later than the drop-in.
+			if ( ! self::dropin_active() ) {
+				add_action( 'plugins_loaded', array( __CLASS__, 'maybe_serve' ), -PHP_INT_MAX );
+			}
 			add_action( 'template_redirect', array( __CLASS__, 'maybe_buffer' ), 0 );
 		}
 		// Auto-purge on content changes (registered regardless, cheap no-ops when empty).
@@ -56,6 +63,77 @@ class Velox_Cache {
 		add_action( 'switch_theme', array( __CLASS__, 'purge_all' ) );
 		add_action( 'customize_save_after', array( __CLASS__, 'purge_all' ) );
 		add_action( 'wp_update_nav_menu', array( __CLASS__, 'purge_all' ) );
+	}
+
+	/** Is the advanced-cache.php drop-in installed and wired (WP_CACHE on)? */
+	public static function dropin_active() {
+		$dropin = ( defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR : ABSPATH . 'wp-content' ) . '/advanced-cache.php';
+		return is_file( $dropin )
+			&& false !== strpos( (string) @file_get_contents( $dropin, false, null, 0, 200 ), 'Velox' )
+			&& defined( 'WP_CACHE' ) && WP_CACHE;
+	}
+
+	/** Fallback serve (no drop-in). Cookie-based checks only — WP isn't loaded yet. */
+	public static function maybe_serve() {
+		if ( ! self::enabled() ) {
+			return;
+		}
+		$method = isset( $_SERVER['REQUEST_METHOD'] ) ? strtoupper( $_SERVER['REQUEST_METHOD'] ) : 'GET';
+		if ( 'GET' !== $method ) {
+			return;
+		}
+		if ( ( defined( 'DOING_AJAX' ) && DOING_AJAX ) || ( defined( 'DOING_CRON' ) && DOING_CRON ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || is_admin() ) {
+			return;
+		}
+		if ( isset( $_GET['ct_builder'] ) || isset( $_GET['oxygen_iframe'] ) || isset( $_GET['ct_inner'] ) ) {
+			return;
+		}
+		if ( ! self::query_is_ignorable() ) {
+			return;
+		}
+		// Logged-in cookie check (can't use is_user_logged_in() this early).
+		if ( ! Velox_Settings::get( 'cache_logged_in', false ) ) {
+			foreach ( array_keys( $_COOKIE ) as $cn ) {
+				if ( false !== strpos( $cn, 'wordpress_logged_in_' ) ) {
+					return;
+				}
+			}
+		}
+		if ( self::has_excluded_cookie() ) {
+			return;
+		}
+		$uri = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '/';
+		if ( self::uri_excluded( $uri ) ) {
+			return;
+		}
+		$file = self::path_for( isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : 'localhost', $uri, self::is_mobile() );
+		if ( ! is_readable( $file ) ) {
+			return; // miss — let WordPress render + generate
+		}
+		$ttl = (int) Velox_Settings::get( 'cache_ttl', 36000 );
+		if ( $ttl > 0 && ( time() - filemtime( $file ) ) > $ttl ) {
+			return; // stale
+		}
+		// Content negotiation.
+		$accept = isset( $_SERVER['HTTP_ACCEPT_ENCODING'] ) ? $_SERVER['HTTP_ACCEPT_ENCODING'] : '';
+		$send   = $file;
+		$enc    = '';
+		if ( Velox_Settings::get( 'cache_gzip', true ) ) {
+			if ( false !== strpos( $accept, 'br' ) && is_readable( $file . '.br' ) ) {
+				$send = $file . '.br'; $enc = 'br';
+			} elseif ( false !== strpos( $accept, 'gzip' ) && is_readable( $file . '.gz' ) ) {
+				$send = $file . '.gz'; $enc = 'gzip';
+			}
+		}
+		header( 'Content-Type: text/html; charset=UTF-8' );
+		header( 'X-Velox-Cache: HIT (fallback)' );
+		if ( '' !== $enc ) {
+			header( 'Content-Encoding: ' . $enc );
+			header( 'Vary: Accept-Encoding' );
+		}
+		header( 'Content-Length: ' . filesize( $send ) );
+		readfile( $send );
+		exit;
 	}
 
 	/* -------------------------------------------------------- cacheability */
@@ -343,10 +421,7 @@ class Velox_Cache {
 				}
 			}
 		}
-		$dropin = ( defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR : ABSPATH . 'wp-content' ) . '/advanced-cache.php';
-		$active = is_file( $dropin ) && false !== strpos( (string) @file_get_contents( $dropin, false, null, 0, 200 ), 'Velox' )
-			&& defined( 'WP_CACHE' ) && WP_CACHE;
-		return array( 'pages' => $pages, 'bytes' => $bytes, 'dropin_active' => $active );
+		return array( 'pages' => $pages, 'bytes' => $bytes, 'dropin_active' => self::dropin_active(), 'serving' => self::enabled() );
 	}
 
 	/* ------------------------------------------------------------ preload */

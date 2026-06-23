@@ -14,9 +14,11 @@ $vx_groups = array(
 	'performance' => array( 'database' ),
 	'images'      => array(),
 	'seo'         => array(),
-	'utilities'   => array( 'media' ),
+	'utilities'   => array(), // children are the switched-on utilities, rendered dynamically below
 	'settings'    => array(),
 );
+
+$vx_cur_tool = isset( $_GET['tool'] ) ? sanitize_key( wp_unslash( $_GET['tool'] ) ) : '';
 
 $vx_builders  = Velox_Builders::choices();
 $vx_registry  = Velox_Builders::registry();
@@ -39,6 +41,31 @@ if ( ! function_exists( 'velox_side_item' ) ) {
 		);
 	}
 }
+
+if ( ! function_exists( 'velox_side_util_item' ) ) {
+	/** Render a switched-on utility as a Utilities sub-item, linking to its page. */
+	function velox_side_util_item( $admin, $id, $current, $cur_tool ) {
+		$cat = Velox_Utilities::catalog();
+		if ( ! isset( $cat[ $id ] ) ) {
+			return;
+		}
+		$t = $cat[ $id ];
+		if ( ! empty( $t['link'] ) ) { // e.g. Media Editor → its own top-level view
+			$url    = $admin->tab_url( $t['link'] );
+			$active = ( $current === $t['link'] );
+		} else {
+			$url    = admin_url( 'admin.php?page=velox-utilities&tool=' . $id );
+			$active = ( 'utilities' === $current && $cur_tool === $id );
+		}
+		printf(
+			'<a href="%s" class="velox-side-item velox-side-item--sub%s"><span class="velox-side-ic">%s</span><span class="velox-side-label">%s</span></a>',
+			esc_url( $url ),
+			$active ? ' is-active' : '',
+			Velox_Admin::icon( $t['icon'], 18 ),
+			esc_html( $t['label'] )
+		);
+	}
+}
 ?>
 <div class="velox-wrap" data-tab="<?php echo esc_attr( $current ); ?>">
 <div class="velox-app">
@@ -57,9 +84,16 @@ if ( ! function_exists( 'velox_side_item' ) ) {
 					continue;
 				}
 				velox_side_item( $admin, $enabled[ $key ], $key, $current );
-				foreach ( $children as $child ) {
-					if ( isset( $enabled[ $child ] ) ) {
-						velox_side_item( $admin, $enabled[ $child ], $child, $current, true );
+				if ( 'utilities' === $key ) {
+					// Switched-on utilities become sub-items (Media Editor included).
+					foreach ( Velox_Utilities::enabled_tools() as $tid ) {
+						velox_side_util_item( $admin, $tid, $current, $vx_cur_tool );
+					}
+				} else {
+					foreach ( $children as $child ) {
+						if ( isset( $enabled[ $child ] ) ) {
+							velox_side_item( $admin, $enabled[ $child ], $child, $current, true );
+						}
 					}
 				}
 			}

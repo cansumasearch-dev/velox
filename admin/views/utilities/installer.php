@@ -6,14 +6,20 @@ $blueprints = Velox_Utilities::blueprints();
 ?>
 <div class="velox-page-head">
 	<h1 class="velox-h2">Bulk installer</h1>
-	<p class="velox-sub">Paste WordPress.org plugin slugs (one per line) and install the whole stack in one click. Save the list as a blueprint to re-apply it on the next site.</p>
+	<p class="velox-sub">Install a whole stack at once — paste wordpress.org slugs or links, or upload plugin ZIPs straight from your computer. Save a list as a blueprint to re-apply on the next site.</p>
 </div>
 
 <div class="velox-panel velox-tool-form">
 	<div class="velox-field">
-		<span class="velox-field-label">Plugin slugs</span>
-		<textarea class="velox-textarea" id="velox-installer-slugs" rows="6" placeholder="wordfence&#10;wp-fastest-cache&#10;code-snippets"></textarea>
-		<span class="velox-hint">The slug is the last part of a plugin's wordpress.org URL — e.g. <code>wordpress.org/plugins/<strong>wp-fastest-cache</strong></code>.</span>
+		<span class="velox-field-label">Plugins — slugs or links</span>
+		<textarea class="velox-textarea" id="velox-installer-slugs" rows="6" placeholder="wp-fastest-cache&#10;https://wordpress.org/plugins/wordfence/&#10;https://example.com/my-plugin.zip"></textarea>
+		<span class="velox-hint">One per line. Accepts a plain slug (<code>wp-fastest-cache</code>), a wordpress.org link, or a direct <code>.zip</code> download URL.</span>
+	</div>
+
+	<div class="velox-field">
+		<span class="velox-field-label">Or upload plugin ZIPs</span>
+		<input type="file" class="velox-file" id="velox-installer-zip" accept=".zip,application/zip" multiple>
+		<span class="velox-hint">Pick one or more <code>.zip</code> plugin files from your computer and install them directly.</span>
 	</div>
 
 	<label class="velox-toggle-row" style="cursor:pointer;">
@@ -24,9 +30,11 @@ $blueprints = Velox_Utilities::blueprints();
 		<span class="velox-switch"><input type="checkbox" id="velox-installer-activate" checked><span class="velox-switch-track"></span></span>
 	</label>
 
-	<div class="velox-tool-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
-		<button class="velox-btn velox-btn--primary" id="velox-installer-run">Install all</button>
-		<input type="text" class="velox-input" id="velox-blueprint-name" placeholder="Blueprint name (e.g. Agency base)" style="max-width:260px;">
+	<div class="velox-tool-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+		<button class="velox-btn velox-btn--primary" id="velox-installer-run">Install from list</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-installer-upload">Upload &amp; install ZIPs</button>
+		<span style="flex:1;"></span>
+		<input type="text" class="velox-input" id="velox-blueprint-name" placeholder="Blueprint name (e.g. Agency base)" style="max-width:240px;">
 		<button class="velox-btn velox-btn--ghost" id="velox-blueprint-save">Save as blueprint</button>
 	</div>
 

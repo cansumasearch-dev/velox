@@ -24,39 +24,43 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 <?php elseif ( '' !== $edit ) :
 	$form = ( 'new' === $edit ) ? Velox_Forms::blank_form() : Velox_Forms::get_form( (int) $edit );
 	if ( ! $form ) { $form = Velox_Forms::blank_form(); }
+	$captcha_ready = Velox_Forms::captcha_ready();
 	?>
-	<a class="velox-back" href="<?php echo esc_url( $base ); ?>">&larr; All forms</a>
-	<div class="velox-mail-build">
-		<div class="velox-mail-build-main">
-			<div class="velox-panel">
-				<div class="velox-field">
-					<span class="velox-field-label">Form name</span>
-					<input type="text" class="velox-input" id="vmail-title" value="<?php echo esc_attr( $form['title'] ); ?>">
-				</div>
-				<h3 class="velox-panel-title" style="margin-top:14px;">Fields</h3>
-				<div id="vmail-fields" class="vmail-fields"></div>
-				<div class="vmail-addfield">
-					<select class="velox-select" id="vmail-newtype">
-						<option value="text">Text</option>
-						<option value="email">Email</option>
-						<option value="tel">Phone</option>
-						<option value="textarea">Text area</option>
-						<option value="select">Dropdown</option>
-						<option value="checkbox">Checkbox</option>
-						<option value="consent">Consent (Datenschutz)</option>
-					</select>
-					<button class="velox-btn velox-btn--ghost" id="vmail-addfield">+ Add field</button>
-				</div>
+	<div class="vmail-builder" id="vmail-builder">
+		<div class="vmail-bar">
+			<a class="vmail-back" href="<?php echo esc_url( $base ); ?>" title="All forms">&larr;</a>
+			<input type="text" class="vmail-title-input" id="vmail-title" value="<?php echo esc_attr( $form['title'] ); ?>" placeholder="Form name">
+			<div class="vmail-tabs">
+				<button type="button" class="vmail-tab is-active" data-tab="build">Build</button>
+				<button type="button" class="vmail-tab" data-tab="notify">Notifications</button>
+				<button type="button" class="vmail-tab" data-tab="settings">Settings</button>
 			</div>
+			<button class="velox-btn velox-btn--primary" id="vmail-save">Save form</button>
+		</div>
 
-			<div class="velox-panel">
-				<h3 class="velox-panel-title">Notification emails</h3>
-				<p class="velox-hint">Use <code>{field_key}</code> for one answer, <code>{all_fields}</code> for everything, plus <code>{site_name}</code> and <code>{date}</code>.</p>
-				<div id="vmail-emails"></div>
+		<div class="vmail-panel" data-panel="build">
+			<div class="vmail-build-grid">
+				<aside class="vmail-palette">
+					<span class="vmail-palette-title">Fields</span>
+					<div id="vmail-palette" class="vmail-palette-list"></div>
+					<p class="velox-hint" style="margin-top:14px;">Click to add, or drag a field on the canvas to reorder.</p>
+				</aside>
+
+				<div class="vmail-canvas-wrap">
+					<div class="vmail-canvas" id="vmail-canvas"></div>
+				</div>
+
+				<aside class="vmail-inspector" id="vmail-inspector"></aside>
 			</div>
+		</div>
 
+		<div class="vmail-panel" data-panel="notify" hidden>
+			<p class="velox-hint" style="margin-bottom:14px;">Notifications are sent when the form is submitted. Use the <strong>Insert field</strong> menu to drop in merge tags like <code>{inputs.email}</code>, or <code>{all_fields}</code> for the whole submission.</p>
+			<div id="vmail-emails"></div>
+		</div>
+
+		<div class="vmail-panel" data-panel="settings" hidden>
 			<div class="velox-panel">
-				<h3 class="velox-panel-title">Form settings</h3>
 				<div class="velox-field">
 					<span class="velox-field-label">Submit button label</span>
 					<input type="text" class="velox-input" id="vmail-submit" value="<?php echo esc_attr( $form['submit_label'] ); ?>">
@@ -72,28 +76,21 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<label class="velox-toggle-row" style="cursor:pointer;">
 					<div class="velox-toggle-meta">
 						<span class="velox-toggle-label">Require CAPTCHA</span>
-						<span class="velox-toggle-desc"><?php echo Velox_Forms::captcha_ready() ? 'Keys are set — the widget will appear on the form.' : 'No keys yet — add them under Mail settings first.'; ?></span>
+						<span class="velox-toggle-desc"><?php echo $captcha_ready ? 'Keys are set — the widget will appear on the form.' : 'No keys yet — add them under Mail settings first.'; ?></span>
 					</div>
 					<span class="velox-switch"><input type="checkbox" id="vmail-captcha" <?php checked( ! empty( $form['captcha'] ) ); ?>><span class="velox-switch-track"></span></span>
 				</label>
-			</div>
-
-			<div class="velox-tool-actions" style="display:flex;gap:10px;">
-				<button class="velox-btn velox-btn--primary" id="vmail-save">Save form</button>
 				<?php if ( 'new' !== $edit ) : ?>
-					<span class="velox-hint" style="align-self:center;">Shortcode: <code>[velox_form id="<?php echo (int) $form['id']; ?>"]</code></span>
+					<div class="velox-field" style="margin-top:8px;">
+						<span class="velox-field-label">Shortcode</span>
+						<code class="velox-mail-shortcode">[velox_form id="<?php echo (int) $form['id']; ?>"]</code>
+					</div>
 				<?php endif; ?>
-			</div>
-		</div>
-
-		<div class="velox-mail-build-side">
-			<div class="velox-panel velox-sticky">
-				<h3 class="velox-panel-title">Live preview</h3>
-				<div id="vmail-preview" class="vmail-preview"></div>
 			</div>
 		</div>
 	</div>
 	<script type="application/json" id="vmail-data"><?php echo wp_json_encode( $form ); ?></script>
+	<script type="application/json" id="vmail-meta"><?php echo wp_json_encode( array( 'captcha_ready' => $captcha_ready, 'admin_email' => get_option( 'admin_email' ), 'site_name' => get_bloginfo( 'name' ), 'base' => $base ) ); ?></script>
 
 <?php else :
 	$forms       = Velox_Forms::forms();

@@ -15,18 +15,41 @@ class Velox_Utilities {
 	/** Tools shown in the hub. 'ready' ones have working toggles; others are planned. */
 	public static function catalog() {
 		return array(
-			'svg'        => array( 'label' => 'SVG uploads',        'icon' => 'file',     'ready' => true,  'setting' => 'util_svg_upload', 'desc' => 'Allow SVG files in the media library, sanitised on upload so they can\'t carry scripts.' ),
-			'duplicate'  => array( 'label' => 'Duplicate post/page', 'icon' => 'copy',     'ready' => true,  'setting' => 'util_duplicate',  'desc' => 'Adds a one-click "Duplicate" link to every post and page so you can clone one as a draft.' ),
-			'media'      => array( 'label' => 'Media Editor',        'icon' => 'tag',      'ready' => true,  'setting' => 'module_media', 'link' => 'media', 'desc' => 'Bulk-edit alt text and titles in a grid, rename files safely, and browse your whole library.' ),
-			'installer'  => array( 'label' => 'Bulk installer',      'icon' => 'plug',     'ready' => true,  'page' => true, 'desc' => 'Install a saved stack of plugins on a fresh site in one go, all or one by one.' ),
-			'redirects'  => array( 'label' => 'Redirects & 404s',    'icon' => 'redirect', 'ready' => true,  'page' => true, 'desc' => 'Log 404s and turn any of them into a redirect; auto-redirect on permalink changes.' ),
-			'mail'       => array( 'label' => 'Mail & forms',        'icon' => 'mail',     'ready' => true,  'page' => true, 'desc' => 'Build and style forms, send through SMTP, with consent checkbox and CAPTCHA.' ),
-			'unusedmedia'=> array( 'label' => 'Unused media',        'icon' => 'broom',    'ready' => true,  'page' => true, 'desc' => 'Find media files nothing in your content references, and clean them out.' ),
-			'loginurl'   => array( 'label' => 'Custom login URL',    'icon' => 'lock',     'ready' => true,  'page' => true, 'desc' => 'Move wp-login to a custom path to cut brute-force bot traffic.' ),
-			'maintenance'=> array( 'label' => 'Maintenance mode',    'icon' => 'cone',     'ready' => true,  'page' => true, 'desc' => 'Show visitors a branded coming-soon page while you work, admins still get in.' ),
-			'activity'   => array( 'label' => 'Activity log',        'icon' => 'list',     'ready' => true,  'page' => true, 'desc' => 'A simple audit trail of who changed what across the site.' ),
-			'scripts'    => array( 'label' => 'Script Manager',      'icon' => 'code',     'ready' => true,  'page' => true, 'desc' => 'Stop specific CSS/JS from loading where it isn\'t needed — globally or per page.' ),
+			'svg'        => array( 'label' => 'SVG uploads',        'icon' => 'file',     'ready' => true,  'enable' => 'util_svg_upload', 'setting' => 'util_svg_upload', 'desc' => 'Allow SVG files in the media library, sanitised on upload so they can\'t carry scripts.' ),
+			'duplicate'  => array( 'label' => 'Duplicate post/page', 'icon' => 'copy',     'ready' => true,  'enable' => 'util_duplicate', 'setting' => 'util_duplicate',  'desc' => 'Adds a one-click "Duplicate" link to every post and page so you can clone one as a draft.' ),
+			'media'      => array( 'label' => 'Media Editor',        'icon' => 'tag',      'ready' => true,  'enable' => 'module_media', 'setting' => 'module_media', 'link' => 'media', 'desc' => 'Bulk-edit alt text and titles in a grid, rename files safely, and browse your whole library.' ),
+			'installer'  => array( 'label' => 'Bulk installer',      'icon' => 'plug',     'ready' => true,  'enable' => 'util_installer', 'page' => true, 'desc' => 'Install a saved stack of plugins on a fresh site in one go, all or one by one.' ),
+			'redirects'  => array( 'label' => 'Redirects & 404s',    'icon' => 'redirect', 'ready' => true,  'enable' => 'util_redirects', 'page' => true, 'desc' => 'Log 404s and turn any of them into a redirect; auto-redirect on permalink changes.' ),
+			'mail'       => array( 'label' => 'Mail & forms',        'icon' => 'mail',     'ready' => true,  'enable' => 'util_mail', 'page' => true, 'desc' => 'Build and style forms, send through SMTP, with consent checkbox and CAPTCHA.' ),
+			'unusedmedia'=> array( 'label' => 'Unused media',        'icon' => 'broom',    'ready' => true,  'enable' => 'util_unusedmedia', 'page' => true, 'desc' => 'Find media files nothing in your content references, and clean them out.' ),
+			'loginurl'   => array( 'label' => 'Custom login URL',    'icon' => 'lock',     'ready' => true,  'enable' => 'util_loginurl', 'page' => true, 'desc' => 'Move wp-login to a custom path to cut brute-force bot traffic.' ),
+			'maintenance'=> array( 'label' => 'Maintenance mode',    'icon' => 'cone',     'ready' => true,  'enable' => 'util_maintenance', 'page' => true, 'desc' => 'Show visitors a branded coming-soon page while you work, admins still get in.' ),
+			'activity'   => array( 'label' => 'Activity log',        'icon' => 'list',     'ready' => true,  'enable' => 'util_activity', 'page' => true, 'desc' => 'A simple audit trail of who changed what across the site.' ),
+			'scripts'    => array( 'label' => 'Script Manager',      'icon' => 'code',     'ready' => true,  'enable' => 'util_scripts', 'page' => true, 'desc' => 'Stop specific CSS/JS from loading where it isn\'t needed — globally or per page.' ),
 		);
+	}
+
+	/** The enable-setting key for a utility (or '' if none). */
+	public static function enable_key( $id ) {
+		$cat = self::catalog();
+		return isset( $cat[ $id ]['enable'] ) ? $cat[ $id ]['enable'] : '';
+	}
+
+	/** Is a utility switched on? */
+	public static function is_enabled( $id ) {
+		$key = self::enable_key( $id );
+		return '' !== $key && (bool) Velox_Settings::get( $key, false );
+	}
+
+	/** Ordered list of switched-on utility ids — drives the sidebar sub-menu. */
+	public static function enabled_tools() {
+		$out = array();
+		foreach ( array_keys( self::catalog() ) as $id ) {
+			if ( self::is_enabled( $id ) ) {
+				$out[] = $id;
+			}
+		}
+		return $out;
 	}
 
 	public static function init() {
@@ -241,34 +264,79 @@ class Velox_Utilities {
 		if ( current_user_can( 'manage_options' ) ) {
 			return; // admins always see the live site
 		}
-		$title = Velox_Settings::get( 'util_maintenance_title' );
-		$msg   = Velox_Settings::get( 'util_maintenance_message' );
-		$title = $title ? $title : 'We\'ll be right back';
-		$msg   = $msg ? $msg : 'The site is undergoing maintenance. Please check back soon.';
-
 		nocache_headers();
 		status_header( 503 );
 		header( 'Retry-After: 3600' );
 		header( 'Content-Type: text/html; charset=utf-8' );
-		echo self::maintenance_html( $title, $msg ); // phpcs:ignore
+		echo self::maintenance_html(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 		exit;
 	}
 
-	private static function maintenance_html( $title, $msg ) {
-		$t    = esc_html( $title );
-		$m    = nl2br( esc_html( $msg ) );
-		$name = esc_html( get_bloginfo( 'name' ) );
+	private static function hex_to_rgba( $hex, $alpha ) {
+		$hex = ltrim( (string) $hex, '#' );
+		if ( 3 === strlen( $hex ) ) {
+			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+		}
+		if ( 6 !== strlen( $hex ) || ! ctype_xdigit( $hex ) ) {
+			return 'rgba(0,0,0,' . $alpha . ')';
+		}
+		return 'rgba(' . hexdec( substr( $hex, 0, 2 ) ) . ',' . hexdec( substr( $hex, 2, 2 ) ) . ',' . hexdec( substr( $hex, 4, 2 ) ) . ',' . $alpha . ')';
+	}
+
+	/** Build the maintenance page from saved settings. */
+	private static function maintenance_html() {
+		$title  = Velox_Settings::get( 'util_maintenance_title' );
+		$msg    = Velox_Settings::get( 'util_maintenance_message' );
+		$logo   = Velox_Settings::get( 'util_maintenance_logo' );
+		$bg     = Velox_Settings::get( 'util_maintenance_bg' );
+		$text   = Velox_Settings::get( 'util_maintenance_text' );
+		$accent = Velox_Settings::get( 'util_maintenance_accent' );
+		$bgimg  = Velox_Settings::get( 'util_maintenance_bgimage' );
+		$btn_t  = Velox_Settings::get( 'util_maintenance_btn_text' );
+		$btn_u  = Velox_Settings::get( 'util_maintenance_btn_url' );
+
+		$title  = '' !== (string) $title ? $title : 'We\'ll be right back';
+		$msg    = '' !== (string) $msg ? $msg : 'The site is undergoing maintenance. Please check back soon.';
+		$bg     = $bg ? $bg : '#0c0e17';
+		$text   = $text ? $text : '#e9edf5';
+		$accent = $accent ? $accent : '#2ab7f1';
+		$logo   = $logo ? $logo : VELOX_URL . 'assets/logo.png';
+
+		$t     = esc_html( $title );
+		$m     = nl2br( esc_html( $msg ) );
+		$name  = esc_html( get_bloginfo( 'name' ) );
+		$muted = self::hex_to_rgba( $text, 0.62 );
+
+		if ( $bgimg ) {
+			$body_bg = 'background:linear-gradient(' . self::hex_to_rgba( $bg, 0.86 ) . ',' . self::hex_to_rgba( $bg, 0.94 ) . '),url(' . esc_url( $bgimg ) . ') center/cover no-repeat fixed;';
+		} else {
+			$body_bg = 'background:' . esc_attr( $bg ) . ';';
+		}
+
+		$button = '';
+		if ( '' !== (string) $btn_t && '' !== (string) $btn_u ) {
+			$button = '<a class="btn" href="' . esc_url( $btn_u ) . '">' . esc_html( $btn_t ) . '</a>';
+		}
+
 		return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
 			. '<meta name="viewport" content="width=device-width,initial-scale=1">'
 			. '<meta name="robots" content="noindex,nofollow">'
 			. '<title>' . $t . ' — ' . $name . '</title><style>'
 			. '*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;'
-			. 'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#0c0e17;color:#e9edf5;padding:24px}'
-			. '.box{max-width:540px;text-align:center}.dot{width:54px;height:54px;border-radius:50%;background:#2ab7f1;'
-			. 'margin:0 auto 26px;animation:p 1.6s ease-in-out infinite}@keyframes p{0%,100%{opacity:.35;transform:scale(.92)}50%{opacity:1;transform:scale(1)}}'
-			. 'h1{font-size:30px;margin:0 0 14px;letter-spacing:-.02em}p{font-size:16px;line-height:1.6;color:#aab2c5;margin:0}'
-			. '.brand{margin-top:30px;font-size:13px;color:#566}</style></head><body><div class="box">'
-			. '<div class="dot"></div><h1>' . $t . '</h1><p>' . $m . '</p>'
+			. 'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:' . esc_attr( $text ) . ';padding:24px;' . $body_bg . '}'
+			. '.box{max-width:560px;text-align:center}.logo{max-width:200px;max-height:64px;width:auto;height:auto;margin:0 auto 28px;display:block}'
+			. 'h1{font-size:32px;margin:0 0 14px;letter-spacing:-.02em;line-height:1.15}'
+			. 'p{font-size:16px;line-height:1.65;color:' . esc_attr( $muted ) . ';margin:0 auto;max-width:46ch}'
+			. '.bar{width:120px;height:4px;border-radius:4px;margin:30px auto 0;overflow:hidden;background:' . self::hex_to_rgba( $text, 0.14 ) . '}'
+			. '.bar i{display:block;width:40%;height:100%;border-radius:4px;background:' . esc_attr( $accent ) . ';animation:slide 1.4s ease-in-out infinite}'
+			. '@keyframes slide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}'
+			. '.btn{display:inline-block;margin-top:28px;padding:12px 26px;border-radius:10px;font-weight:700;font-size:15px;'
+			. 'background:' . esc_attr( $accent ) . ';color:#fff;text-decoration:none}'
+			. '.brand{margin-top:32px;font-size:13px;color:' . self::hex_to_rgba( $text, 0.4 ) . '}</style></head><body><div class="box">'
+			. '<img class="logo" src="' . esc_url( $logo ) . '" alt="' . $name . '">'
+			. '<h1>' . $t . '</h1><p>' . $m . '</p>'
+			. $button
+			. '<div class="bar"><i></i></div>'
 			. '<div class="brand">' . $name . '</div></div></body></html>';
 	}
 
@@ -499,6 +567,95 @@ class Velox_Utilities {
 			return array( 'ok' => true, 'slug' => $slug, 'status' => 'activated', 'message' => 'Installed & activated.' );
 		}
 		return array( 'ok' => true, 'slug' => $slug, 'status' => 'installed', 'message' => 'Installed.' );
+	}
+
+	/**
+	 * Install from any source: a wordpress.org slug, a wordpress.org plugin URL,
+	 * or a direct .zip download URL. Slugs go through the API; URLs install directly.
+	 */
+	public static function install_source( $source, $activate = true ) {
+		$source = trim( (string) $source );
+		if ( '' === $source ) {
+			return array( 'ok' => false, 'slug' => $source, 'message' => 'Empty line.' );
+		}
+		if ( preg_match( '#^https?://#i', $source ) ) {
+			// A wordpress.org plugin page → pull the slug and use the clean API path.
+			if ( preg_match( '#wordpress\.org/plugins/([a-z0-9\-]+)#i', $source, $m ) ) {
+				return self::install_plugin( $m[1], $activate );
+			}
+			// Otherwise treat it as a direct package URL.
+			return self::install_package( esc_url_raw( $source ), $activate, self::source_label( $source ) );
+		}
+		// Bare slug.
+		return self::install_plugin( $source, $activate );
+	}
+
+	private static function source_label( $url ) {
+		$base = basename( wp_parse_url( $url, PHP_URL_PATH ) );
+		return $base ? $base : $url;
+	}
+
+	/** Shared install-from-package routine (URL or local zip path). */
+	public static function install_package( $package, $activate, $label ) {
+		if ( ! current_user_can( 'install_plugins' ) ) {
+			return array( 'ok' => false, 'slug' => $label, 'message' => 'You can\'t install plugins.' );
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		require_once ABSPATH . 'wp-admin/includes/misc.php';
+		require_once ABSPATH . 'wp-admin/includes/plugin.php';
+		require_once ABSPATH . 'wp-admin/includes/class-wp-upgrader.php';
+		if ( ! class_exists( 'WP_Ajax_Upgrader_Skin' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/class-wp-ajax-upgrader-skin.php';
+		}
+		$skin     = new WP_Ajax_Upgrader_Skin();
+		$upgrader = new Plugin_Upgrader( $skin );
+		$result   = $upgrader->install( $package );
+
+		if ( is_wp_error( $result ) ) {
+			return array( 'ok' => false, 'slug' => $label, 'message' => $result->get_error_message() );
+		}
+		if ( ! $result ) {
+			$errs = $skin->get_errors();
+			$msg  = ( is_wp_error( $errs ) && $errs->get_error_message() ) ? $errs->get_error_message() : 'Install failed.';
+			return array( 'ok' => false, 'slug' => $label, 'message' => $msg );
+		}
+		$file = $upgrader->plugin_info();
+		if ( $activate && $file ) {
+			$act = activate_plugin( $file );
+			if ( is_wp_error( $act ) ) {
+				return array( 'ok' => true, 'slug' => $label, 'status' => 'installed', 'message' => 'Installed (activation failed).' );
+			}
+			return array( 'ok' => true, 'slug' => $label, 'status' => 'activated', 'message' => 'Installed & activated.' );
+		}
+		return array( 'ok' => true, 'slug' => $label, 'status' => 'installed', 'message' => 'Installed.' );
+	}
+
+	/** Install an uploaded plugin .zip from the user's computer. */
+	public static function install_zip( $file, $activate = true ) {
+		if ( ! current_user_can( 'install_plugins' ) ) {
+			return array( 'ok' => false, 'slug' => 'upload', 'message' => 'You can\'t install plugins.' );
+		}
+		if ( empty( $file['tmp_name'] ) || ! is_uploaded_file( $file['tmp_name'] ) ) {
+			return array( 'ok' => false, 'slug' => 'upload', 'message' => 'No file received.' );
+		}
+		$name = isset( $file['name'] ) ? sanitize_file_name( $file['name'] ) : 'plugin.zip';
+		if ( ! preg_match( '/\.zip$/i', $name ) ) {
+			return array( 'ok' => false, 'slug' => $name, 'message' => 'Only .zip plugin files are allowed.' );
+		}
+		require_once ABSPATH . 'wp-admin/includes/file.php';
+		$tmp = wp_tempnam( $name );
+		if ( ! $tmp || ! @move_uploaded_file( $file['tmp_name'], $tmp ) ) {
+			// Fallback for environments where move_uploaded_file is restricted.
+			if ( $tmp ) {
+				@copy( $file['tmp_name'], $tmp );
+			}
+		}
+		if ( ! $tmp || ! file_exists( $tmp ) ) {
+			return array( 'ok' => false, 'slug' => $name, 'message' => 'Could not stage the upload.' );
+		}
+		$res = self::install_package( $tmp, $activate, $name );
+		@unlink( $tmp );
+		return $res;
 	}
 
 	private static function find_installed( $slug ) {

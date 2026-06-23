@@ -173,7 +173,13 @@ class Velox_Ajax {
 			case 'util_toggle':
 				$key = isset( $_POST['key'] ) ? sanitize_key( wp_unslash( $_POST['key'] ) ) : '';
 				$on  = ! empty( $_POST['on'] ) && 'false' !== $_POST['on'];
-				$allowed = array( 'util_svg_upload', 'util_duplicate' );
+				// Allow any enable key declared in the utilities catalog.
+				$allowed = array();
+				foreach ( Velox_Utilities::catalog() as $tool ) {
+					if ( ! empty( $tool['enable'] ) ) {
+						$allowed[] = $tool['enable'];
+					}
+				}
 				if ( ! in_array( $key, $allowed, true ) ) {
 					wp_send_json_error( array( 'message' => 'Unknown tool.' ) );
 				}
@@ -191,9 +197,18 @@ class Velox_Ajax {
 				break;
 
 			case 'installer_install':
-				$slug     = isset( $_POST['slug'] ) ? sanitize_key( wp_unslash( $_POST['slug'] ) ) : '';
+				$source   = isset( $_POST['source'] ) ? trim( wp_unslash( $_POST['source'] ) )
+					: ( isset( $_POST['slug'] ) ? sanitize_key( wp_unslash( $_POST['slug'] ) ) : '' );
 				$activate = ! empty( $_POST['activate'] ) && 'false' !== $_POST['activate'];
-				wp_send_json_success( Velox_Utilities::install_plugin( $slug, $activate ) );
+				wp_send_json_success( Velox_Utilities::install_source( $source, $activate ) );
+				break;
+
+			case 'installer_upload':
+				$activate = ! empty( $_POST['activate'] ) && 'false' !== $_POST['activate'];
+				if ( empty( $_FILES['plugin_zip'] ) ) {
+					wp_send_json_error( array( 'message' => 'No file uploaded.' ) );
+				}
+				wp_send_json_success( Velox_Utilities::install_zip( $_FILES['plugin_zip'], $activate ) );
 				break;
 
 			case 'blueprint_save':
@@ -292,6 +307,18 @@ class Velox_Ajax {
 
 			case 'seo_robots_reset':
 				wp_send_json_success( Velox_Seo::save_robots( Velox_Seo::default_robots() ) + array( 'content' => Velox_Seo::default_robots() ) );
+				break;
+
+			case 'seo_robots_physical':
+				$content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
+				Velox_Seo::save_robots( $content );
+				$ok = Velox_Seo::write_physical( $content );
+				wp_send_json_success( array( 'ok' => $ok, 'physical' => Velox_Seo::physical_robots_exists() ) );
+				break;
+
+			case 'seo_robots_virtual':
+				$ok = Velox_Seo::delete_physical();
+				wp_send_json_success( array( 'ok' => $ok, 'physical' => Velox_Seo::physical_robots_exists() ) );
 				break;
 
 			case 'seo_sitemap_generate':

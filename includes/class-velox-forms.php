@@ -125,13 +125,16 @@ class Velox_Forms {
 			'fields'       => array(),
 			'emails'       => array(),
 		);
-		$types = array( 'text', 'email', 'tel', 'textarea', 'select', 'checkbox', 'consent' );
+		$types = array( 'text', 'email', 'tel', 'number', 'textarea', 'select', 'radio', 'checkbox', 'consent' );
 		foreach ( (array) ( $form['fields'] ?? array() ) as $f ) {
 			$label = sanitize_text_field( $f['label'] ?? '' );
 			$key   = sanitize_key( $f['key'] ?? '' );
 			if ( '' === $key ) {
-				$key = sanitize_key( $label ) ? sanitize_key( $label ) : 'field_' . wp_rand( 100, 999 );
+				$slug = sanitize_key( str_replace( array( ' ', '-' ), '_', $label ) );
+				$key  = $slug ? $slug : 'field_' . wp_rand( 100, 999 );
 			}
+			$w     = $f['width'] ?? 'full';
+			$width = in_array( $w, array( 'full', 'half' ), true ) ? $w : 'full';
 			$out['fields'][] = array(
 				'key'         => $key,
 				'type'        => in_array( $f['type'] ?? 'text', $types, true ) ? $f['type'] : 'text',
@@ -139,17 +142,25 @@ class Velox_Forms {
 				'required'    => ! empty( $f['required'] ),
 				'placeholder' => sanitize_text_field( $f['placeholder'] ?? '' ),
 				'options'     => sanitize_textarea_field( $f['options'] ?? '' ),
+				'default'     => sanitize_text_field( $f['default'] ?? '' ),
+				'help'        => sanitize_text_field( $f['help'] ?? '' ),
+				'width'       => $width,
+				'css'         => sanitize_html_class( $f['css'] ?? '' ),
 			);
 		}
 		foreach ( (array) ( $form['emails'] ?? array() ) as $e ) {
 			$out['emails'][] = array(
-				'type'     => ( 'customer' === ( $e['type'] ?? 'admin' ) ) ? 'customer' : 'admin',
-				'enabled'  => ! empty( $e['enabled'] ),
-				'to'       => sanitize_text_field( $e['to'] ?? '' ),
-				'to_field' => sanitize_key( $e['to_field'] ?? 'email' ),
-				'cc'       => sanitize_text_field( $e['cc'] ?? '' ),
-				'subject'  => sanitize_text_field( $e['subject'] ?? '' ),
-				'body'     => sanitize_textarea_field( $e['body'] ?? '' ),
+				'type'       => ( 'customer' === ( $e['type'] ?? 'admin' ) ) ? 'customer' : 'admin',
+				'enabled'    => ! empty( $e['enabled'] ),
+				'to'         => sanitize_text_field( $e['to'] ?? '' ),
+				'to_field'   => sanitize_key( $e['to_field'] ?? 'email' ),
+				'cc'         => sanitize_text_field( $e['cc'] ?? '' ),
+				'bcc'        => sanitize_text_field( $e['bcc'] ?? '' ),
+				'from_name'  => sanitize_text_field( $e['from_name'] ?? '' ),
+				'from_email' => sanitize_text_field( $e['from_email'] ?? '' ),
+				'reply_to'   => sanitize_text_field( $e['reply_to'] ?? '' ),
+				'subject'    => sanitize_text_field( $e['subject'] ?? '' ),
+				'body'       => sanitize_textarea_field( $e['body'] ?? '' ),
 			);
 		}
 		return $out;
@@ -175,9 +186,11 @@ class Velox_Forms {
 		?>
 		<form class="velox-form" data-form="<?php echo (int) $id; ?>" style="--vf-accent:<?php echo $accent; ?>">
 			<div class="velox-form-msg" hidden></div>
-			<?php foreach ( $form['fields'] as $f ) : ?>
-				<?php echo self::field_html( $f ); // phpcs:ignore ?>
-			<?php endforeach; ?>
+			<div class="velox-form-grid">
+				<?php foreach ( $form['fields'] as $f ) : ?>
+					<?php echo self::field_html( $f ); // phpcs:ignore ?>
+				<?php endforeach; ?>
+			</div>
 			<?php if ( ! empty( $form['captcha'] ) ) : echo self::captcha_widget(); endif; // phpcs:ignore ?>
 			<input type="text" name="velox_hp" class="velox-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 			<input type="hidden" name="velox_nonce" value="<?php echo esc_attr( $nonce ); ?>">
@@ -193,40 +206,54 @@ class Velox_Forms {
 		$req   = ! empty( $f['required'] );
 		$star  = $req ? ' <span class="velox-req">*</span>' : '';
 		$ph    = esc_attr( $f['placeholder'] );
+		$def   = isset( $f['default'] ) ? $f['default'] : '';
+		$help  = ! empty( $f['help'] ) ? '<span class="velox-form-help">' . esc_html( $f['help'] ) . '</span>' : '';
 		$rq    = $req ? ' required' : '';
 		$name  = 'vf[' . $key . ']';
+		$width = ( isset( $f['width'] ) && 'half' === $f['width'] ) ? ' velox-form-field--half' : '';
+		$css   = ! empty( $f['css'] ) ? ' ' . esc_attr( $f['css'] ) : '';
+		$opts  = array_filter( array_map( 'trim', explode( "\n", (string) ( $f['options'] ?? '' ) ) ) );
 
 		ob_start();
-		if ( 'consent' === $f['type'] ) {
+		if ( 'consent' === $f['type'] || 'checkbox' === $f['type'] ) {
 			?>
-			<label class="velox-form-consent">
-				<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" value="1"<?php echo $rq; ?>>
-				<span><?php echo $label . $star; ?></span>
-			</label>
+			<div class="velox-form-row velox-form-row--check<?php echo esc_attr( $width . $css ); ?>">
+				<label class="velox-form-consent">
+					<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" value="1"<?php echo $rq; ?>>
+					<span><?php echo $label . $star; ?></span>
+				</label>
+				<?php echo $help; // phpcs:ignore ?>
+			</div>
 			<?php
-		} elseif ( 'checkbox' === $f['type'] ) {
+		} elseif ( 'radio' === $f['type'] ) {
 			?>
-			<label class="velox-form-consent">
-				<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" value="1"<?php echo $rq; ?>>
-				<span><?php echo $label . $star; ?></span>
-			</label>
+			<div class="velox-form-row<?php echo esc_attr( $width . $css ); ?>">
+				<span class="velox-form-label"><?php echo $label . $star; ?></span>
+				<div class="velox-form-radios">
+					<?php foreach ( $opts as $opt ) : $checked = ( $def === $opt ) ? ' checked' : ''; ?>
+						<label class="velox-form-radio"><input type="radio" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $opt ); ?>"<?php echo $checked . $rq; ?>> <span><?php echo esc_html( $opt ); ?></span></label>
+					<?php endforeach; ?>
+				</div>
+				<?php echo $help; // phpcs:ignore ?>
+			</div>
 			<?php
 		} else {
 			?>
-			<label class="velox-form-field">
-				<span class="velox-form-label"><?php echo $label . $star; ?></span>
+			<label class="velox-form-field<?php echo esc_attr( $width . $css ); ?>">
+				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
 				<?php if ( 'textarea' === $f['type'] ) : ?>
-					<textarea name="<?php echo esc_attr( $name ); ?>" rows="5" placeholder="<?php echo $ph; ?>"<?php echo $rq; ?>></textarea>
+					<textarea name="<?php echo esc_attr( $name ); ?>" rows="5" placeholder="<?php echo $ph; ?>"<?php echo $rq; ?>><?php echo esc_textarea( $def ); ?></textarea>
 				<?php elseif ( 'select' === $f['type'] ) : ?>
 					<select name="<?php echo esc_attr( $name ); ?>"<?php echo $rq; ?>>
 						<option value="">—</option>
-						<?php foreach ( array_filter( array_map( 'trim', explode( "\n", $f['options'] ) ) ) as $opt ) : ?>
-							<option value="<?php echo esc_attr( $opt ); ?>"><?php echo esc_html( $opt ); ?></option>
+						<?php foreach ( $opts as $opt ) : ?>
+							<option value="<?php echo esc_attr( $opt ); ?>"<?php selected( $def, $opt ); ?>><?php echo esc_html( $opt ); ?></option>
 						<?php endforeach; ?>
 					</select>
 				<?php else : ?>
-					<input type="<?php echo esc_attr( $f['type'] ); ?>" name="<?php echo esc_attr( $name ); ?>" placeholder="<?php echo $ph; ?>"<?php echo $rq; ?>>
+					<input type="<?php echo esc_attr( $f['type'] ); ?>" name="<?php echo esc_attr( $name ); ?>" placeholder="<?php echo $ph; ?>" value="<?php echo esc_attr( $def ); ?>"<?php echo $rq; ?>>
 				<?php endif; ?>
+				<?php echo $help; // phpcs:ignore ?>
 			</label>
 			<?php
 		}
@@ -357,9 +384,25 @@ class Velox_Forms {
 				$to = $e['to'] ? $e['to'] : get_option( 'admin_email' );
 			}
 			$headers = array( 'Content-Type: text/html; charset=UTF-8' );
+			if ( ! empty( $e['from_email'] ) && is_email( $e['from_email'] ) ) {
+				$headers[] = ! empty( $e['from_name'] )
+					? 'From: ' . $e['from_name'] . ' <' . $e['from_email'] . '>'
+					: 'From: ' . $e['from_email'];
+			}
+			if ( ! empty( $e['reply_to'] ) ) {
+				$reply = self::replace( $e['reply_to'], $data, $form );
+				if ( is_email( $reply ) ) {
+					$headers[] = 'Reply-To: ' . $reply;
+				}
+			}
 			if ( ! empty( $e['cc'] ) ) {
 				foreach ( array_filter( array_map( 'trim', explode( ',', $e['cc'] ) ) ) as $cc ) {
 					$headers[] = 'Cc: ' . $cc;
+				}
+			}
+			if ( ! empty( $e['bcc'] ) ) {
+				foreach ( array_filter( array_map( 'trim', explode( ',', $e['bcc'] ) ) ) as $bcc ) {
+					$headers[] = 'Bcc: ' . $bcc;
 				}
 			}
 			$subject = self::replace( $e['subject'], $data, $form );
@@ -384,7 +427,8 @@ class Velox_Forms {
 		}
 		$text = str_replace( array( '{site_name}', '{date}' ), array( get_bloginfo( 'name' ), date_i18n( get_option( 'date_format' ) ) ), $text );
 		foreach ( $data as $k => $v ) {
-			$text = str_replace( '{' . $k . '}', $v, $text );
+			// Support both the short {key} and Fluent-style {inputs.key} tags.
+			$text = str_replace( array( '{' . $k . '}', '{inputs.' . $k . '}' ), $v, $text );
 		}
 		return $text;
 	}
@@ -423,7 +467,13 @@ class Velox_Forms {
 		?>
 <style>
 .velox-form{max-width:560px;display:flex;flex-direction:column;gap:16px;font-family:inherit}
-.velox-form-field{display:flex;flex-direction:column;gap:6px}
+.velox-form-grid{display:flex;flex-wrap:wrap;gap:16px}
+.velox-form-field,.velox-form-row{display:flex;flex-direction:column;gap:6px;width:100%}
+.velox-form-field--half{width:calc(50% - 8px)}
+.velox-form-radios{display:flex;flex-wrap:wrap;gap:14px}
+.velox-form-radio{display:inline-flex;align-items:center;gap:7px;font-size:14px;cursor:pointer}
+.velox-form-radio input{width:auto;margin:0}
+.velox-form-help{font-size:13px;color:#6b7280}
 .velox-form-label{font-size:14px;font-weight:600}
 .velox-form .velox-req{color:#e11d48}
 .velox-form input,.velox-form textarea,.velox-form select{width:100%;padding:11px 13px;border:1px solid #d4d8e0;border-radius:10px;font-size:15px;font-family:inherit;background:#fff;color:#1d1d1f}
@@ -463,7 +513,7 @@ class Velox_Forms {
             msg.className='velox-form-msg is-err';msg.textContent=d.message||'Something went wrong.';msg.hidden=false;
             (d.fields||[]).forEach(function(k){
               var inp=form.querySelector('[name="vf['+k+']"]');
-              if(inp){var wrap=inp.closest('.velox-form-field')||inp.closest('.velox-form-consent');if(wrap)wrap.classList.add('has-error');}
+              if(inp){var wrap=inp.closest('.velox-form-field')||inp.closest('.velox-form-row')||inp.closest('.velox-form-consent');if(wrap)wrap.classList.add('has-error');}
             });
           }
         })

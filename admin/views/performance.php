@@ -172,8 +172,8 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 				<?php if ( 'cache' === $id ) :
 					$cache_stats = class_exists( 'Velox_Cache' ) ? Velox_Cache::stats() : array( 'pages' => 0, 'bytes' => 0, 'dropin_active' => false );
 					$cache_on    = ! empty( $s['cache_enable'] );
-					$pill_cls    = $cache_on ? ( $cache_stats['dropin_active'] ? 'ok' : 'warn' ) : 'muted';
-					$pill_txt    = $cache_on ? ( $cache_stats['dropin_active'] ? 'Active · early serve' : 'On · finishing setup' ) : 'Off';
+					$pill_cls    = $cache_on ? 'ok' : 'muted';
+					$pill_txt    = $cache_on ? ( $cache_stats['dropin_active'] ? 'Active · early serve' : 'Active' ) : 'Off';
 					?>
 					<div class="velox-panel velox-cache-status">
 						<div class="velox-cache-status-row">

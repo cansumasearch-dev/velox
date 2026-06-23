@@ -19,8 +19,10 @@ class Velox_Seo {
 	const POST_TYPES = array( 'post', 'page', 'product' );
 
 	public static function init() {
-		// robots.txt (virtual — only when no physical file shadows it).
-		add_filter( 'robots_txt', array( __CLASS__, 'filter_robots' ), 20, 2 );
+		// robots.txt (virtual). Very high priority so Velox wins over other plugins
+		// that also hook robots_txt. Note: a physical file or an edge CDN (Cloudflare's
+		// managed robots.txt / Content Signals) still overrides this — see write_physical().
+		add_filter( 'robots_txt', array( __CLASS__, 'filter_robots' ), PHP_INT_MAX, 2 );
 
 		// <head> output.
 		add_filter( 'pre_get_document_title', array( __CLASS__, 'filter_title' ), 20 );
@@ -29,6 +31,28 @@ class Velox_Seo {
 		// Editor meta box + save.
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_box' ) );
 		add_action( 'save_post', array( __CLASS__, 'save_meta' ), 10, 1 );
+	}
+
+	/* ---------------------------------------------------- physical robots.txt */
+
+	/**
+	 * Write a real robots.txt to the web root. More reliable than the virtual
+	 * filter when a server (Nginx on Plesk) serves /robots.txt directly, or when
+	 * a CDN only respects an origin file. Returns true on success.
+	 */
+	public static function write_physical( $content ) {
+		$content = trim( (string) $content );
+		if ( '' === $content ) {
+			$content = self::robots_content();
+		}
+		return (bool) @file_put_contents( ABSPATH . 'robots.txt', $content . "\n" );
+	}
+
+	public static function delete_physical() {
+		if ( file_exists( ABSPATH . 'robots.txt' ) ) {
+			return (bool) @unlink( ABSPATH . 'robots.txt' );
+		}
+		return true;
 	}
 
 	/* ----------------------------------------------------------- robots.txt */
@@ -74,13 +98,16 @@ class Velox_Seo {
 		}
 		$id   = get_queried_object_id();
 		$desc = get_post_meta( $id, '_velox_seo_desc', true );
-		$noindex = get_post_meta( $id, '_velox_seo_noindex', true );
+		$noindex  = '1' === (string) get_post_meta( $id, '_velox_seo_noindex', true );
+		$nofollow = '1' === (string) get_post_meta( $id, '_velox_seo_nofollow', true );
 
 		if ( $desc ) {
 			echo '<meta name="description" content="' . esc_attr( wp_strip_all_tags( $desc ) ) . '">' . "\n";
 		}
-		if ( '1' === (string) $noindex ) {
-			echo '<meta name="robots" content="noindex,follow">' . "\n";
+		// Only emit a robots tag when it restricts something — index,follow is the default.
+		if ( $noindex || $nofollow ) {
+			$bits = array( $noindex ? 'noindex' : 'index', $nofollow ? 'nofollow' : 'follow' );
+			echo '<meta name="robots" content="' . esc_attr( implode( ',', $bits ) ) . '">' . "\n";
 		}
 	}
 
@@ -99,7 +126,8 @@ class Velox_Seo {
 		wp_nonce_field( 'velox_seo_save', 'velox_seo_nonce' );
 		$title   = get_post_meta( $post->ID, '_velox_seo_title', true );
 		$desc    = get_post_meta( $post->ID, '_velox_seo_desc', true );
-		$noindex = get_post_meta( $post->ID, '_velox_seo_noindex', true );
+		$noindex = '1' === (string) get_post_meta( $post->ID, '_velox_seo_noindex', true );
+		$nofollow = '1' === (string) get_post_meta( $post->ID, '_velox_seo_nofollow', true );
 		$exclude = get_post_meta( $post->ID, 'sitemap_exclude', true );
 		$url     = get_permalink( $post->ID );
 		$fallback_title = get_the_title( $post->ID );
@@ -120,10 +148,24 @@ class Velox_Seo {
 				<textarea id="velox-seo-desc" name="velox_seo_desc" rows="3" style="width:100%;" placeholder="A short, compelling summary for search results…"><?php echo esc_textarea( $desc ); ?></textarea>
 				<span class="velox-seo-count" id="velox-seo-desc-count"></span>
 			</p>
-			<p>
-				<label><input type="checkbox" name="velox_seo_noindex" value="1" <?php checked( '1', (string) $noindex ); ?>> Noindex this page <span style="color:#646970">(hide from search engines)</span></label><br>
-				<label><input type="checkbox" name="sitemap_exclude" value="1" <?php checked( '1', (string) $exclude ); ?>> Exclude from sitemap</label>
-			</p>
+			<div class="velox-seo-robots">
+				<div class="velox-seo-seg">
+					<span class="velox-seo-seg-label">Search engines</span>
+					<div class="velox-seo-seg-btns">
+						<label class="<?php echo $noindex ? '' : 'is-on'; ?>"><input type="radio" name="velox_seo_index" value="index" <?php checked( ! $noindex ); ?>> Index</label>
+						<label class="<?php echo $noindex ? 'is-on' : ''; ?>"><input type="radio" name="velox_seo_index" value="noindex" <?php checked( $noindex ); ?>> Noindex</label>
+					</div>
+				</div>
+				<div class="velox-seo-seg">
+					<span class="velox-seo-seg-label">Links</span>
+					<div class="velox-seo-seg-btns">
+						<label class="<?php echo $nofollow ? '' : 'is-on'; ?>"><input type="radio" name="velox_seo_follow" value="follow" <?php checked( ! $nofollow ); ?>> Follow</label>
+						<label class="<?php echo $nofollow ? 'is-on' : ''; ?>"><input type="radio" name="velox_seo_follow" value="nofollow" <?php checked( $nofollow ); ?>> Nofollow</label>
+					</div>
+				</div>
+				<label class="velox-seo-exclude"><input type="checkbox" name="sitemap_exclude" value="1" <?php checked( '1', (string) $exclude ); ?>> Exclude this page from the sitemap</label>
+				<p class="velox-seo-robots-out">Search engines will be told: <code id="velox-seo-robots-out">index, follow</code></p>
+			</div>
 		</div>
 		<style>
 			.velox-seo-preview{border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;margin-bottom:14px;background:#fff}
@@ -132,12 +174,24 @@ class Velox_Seo {
 			.velox-seo-preview-desc{color:#4d5156;font-size:13px;line-height:1.5;margin-top:2px}
 			.velox-seo-count{font-size:11px;color:#646970}
 			.velox-seo-box label{font-size:13px}
+			.velox-seo-robots{border-top:1px solid #e0e0e0;margin-top:6px;padding-top:12px}
+			.velox-seo-seg{display:flex;align-items:center;gap:12px;margin-bottom:10px}
+			.velox-seo-seg-label{font-weight:600;min-width:110px}
+			.velox-seo-seg-btns{display:inline-flex;border:1px solid #c3c4c7;border-radius:6px;overflow:hidden}
+			.velox-seo-seg-btns label{margin:0;padding:5px 14px;cursor:pointer;background:#fff;color:#50575e;border-right:1px solid #e0e0e0}
+			.velox-seo-seg-btns label:last-child{border-right:0}
+			.velox-seo-seg-btns label.is-on{background:#2271b1;color:#fff;font-weight:600}
+			.velox-seo-seg-btns input{display:none}
+			.velox-seo-exclude{display:block;margin-top:4px}
+			.velox-seo-robots-out{margin:10px 0 0;color:#646970;font-size:12px}
+			.velox-seo-robots-out code{background:#f0f0f1;padding:2px 6px;border-radius:4px}
 		</style>
 		<script>
 		(function(){
 			var t=document.getElementById('velox-seo-title'),d=document.getElementById('velox-seo-desc');
 			var pt=document.getElementById('velox-seo-pv-title'),pd=document.getElementById('velox-seo-pv-desc');
 			var ct=document.getElementById('velox-seo-title-count'),cd=document.getElementById('velox-seo-desc-count');
+			var out=document.getElementById('velox-seo-robots-out');
 			var fbT=<?php echo wp_json_encode( $fallback_title ); ?>;
 			function upd(){
 				if(pt)pt.textContent=t.value||fbT;
@@ -146,6 +200,17 @@ class Velox_Seo {
 				if(cd)cd.textContent=d.value.length+' chars'+(d.value.length>160?' — a bit long':'');
 			}
 			if(t&&d){t.addEventListener('input',upd);d.addEventListener('input',upd);upd();}
+			// Segmented toggles: visual state + live robots readout.
+			function seg(name){return document.querySelector('input[name="'+name+'"]:checked');}
+			function paint(){
+				document.querySelectorAll('.velox-seo-seg-btns label').forEach(function(l){
+					var r=l.querySelector('input'); l.classList.toggle('is-on', r&&r.checked);
+				});
+				var i=seg('velox_seo_index'),f=seg('velox_seo_follow');
+				if(out)out.textContent=((i?i.value:'index'))+', '+((f?f.value:'follow'));
+			}
+			document.querySelectorAll('.velox-seo-seg-btns input').forEach(function(r){r.addEventListener('change',paint);});
+			paint();
 		})();
 		</script>
 		<?php
@@ -165,7 +230,11 @@ class Velox_Seo {
 		}
 		update_post_meta( $post_id, '_velox_seo_title', sanitize_text_field( wp_unslash( $_POST['velox_seo_title'] ?? '' ) ) );
 		update_post_meta( $post_id, '_velox_seo_desc', sanitize_textarea_field( wp_unslash( $_POST['velox_seo_desc'] ?? '' ) ) );
-		update_post_meta( $post_id, '_velox_seo_noindex', isset( $_POST['velox_seo_noindex'] ) ? '1' : '0' );
+		// Segmented index/follow controls (fall back to the legacy checkbox if present).
+		$noindex  = isset( $_POST['velox_seo_index'] ) ? ( 'noindex' === $_POST['velox_seo_index'] ) : isset( $_POST['velox_seo_noindex'] );
+		$nofollow = isset( $_POST['velox_seo_follow'] ) && 'nofollow' === $_POST['velox_seo_follow'];
+		update_post_meta( $post_id, '_velox_seo_noindex', $noindex ? '1' : '0' );
+		update_post_meta( $post_id, '_velox_seo_nofollow', $nofollow ? '1' : '0' );
 		update_post_meta( $post_id, 'sitemap_exclude', isset( $_POST['sitemap_exclude'] ) ? '1' : '0' );
 
 		self::generate_sitemap();
@@ -264,6 +333,10 @@ class Velox_Seo {
 		$all = Velox_Settings::all();
 		$all['seo_robots_content'] = sanitize_textarea_field( $content );
 		Velox_Settings::save( $all );
+		// If a physical robots.txt is in play, keep it in sync with the editor.
+		if ( self::physical_robots_exists() ) {
+			self::write_physical( $all['seo_robots_content'] );
+		}
 		return array( 'ok' => true, 'physical' => self::physical_robots_exists() );
 	}
 }
