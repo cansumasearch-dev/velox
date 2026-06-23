@@ -9,14 +9,39 @@
 .velox-wrap * { box-sizing: border-box; }
 
 .velox-wrap {
-	--vx-accent: #2ab7f1;
+	/* ---- Brand ---- */
+	--vx-primary: #2ab7f1;
+	--vx-primary-h: #1aa3da;
+	--vx-primary-d: #1488bd;
+	--vx-primary-tint: #e8f6fd;
+	--vx-secondary: #5b6cff;
+	--vx-secondary-tint: #eceeff;
+	--vx-accent: #2ab7f1;        /* legacy alias — kept so existing rules still resolve */
 	--vx-accent-d: #1aa3da;
+	--vx-amber: #f59e0b;
+	--vx-amber-tint: #fef3e2;
+	/* ---- Semantic ---- */
+	--vx-success: #16a34a;
+	--vx-success-tint: #ecfdf3;
+	--vx-warning: #d97706;
+	--vx-warning-tint: #fff7ed;
+	--vx-danger: #dc2626;
+	--vx-danger-tint: #fef2f2;
+	/* ---- Neutrals ---- */
 	--vx-ink: #0a0a0b;
 	--vx-ink-2: #51565d;
+	--vx-ink-3: #8b9099;
 	--vx-line: #ececf1;
+	--vx-line-2: #e0e1e7;
 	--vx-bg: #f6f7f9;
 	--vx-card: #ffffff;
-	--vx-radius: 16px;
+	--vx-sidebar: #ffffff;
+	/* ---- Spacing (8px scale) ---- */
+	--vx-s1: 4px; --vx-s2: 8px; --vx-s3: 12px; --vx-s4: 16px;
+	--vx-s5: 24px; --vx-s6: 32px; --vx-s7: 48px; --vx-s8: 64px;
+	/* ---- Radius ---- */
+	--vx-r-sm: 6px; --vx-r-md: 10px; --vx-r-lg: 16px;
+	--vx-radius: 16px;           /* legacy alias */
 	--vx-shadow: 0 1px 2px rgba(10,10,11,.04), 0 8px 24px rgba(10,10,11,.06);
 	--vx-shadow-h: 0 2px 4px rgba(10,10,11,.06), 0 16px 40px rgba(10,10,11,.10);
 
@@ -68,8 +93,54 @@
 .velox-ic { flex: none; }
 
 /* ---------- Layout ---------- */
-.velox-main { padding-top: 40px; padding-bottom: 96px; }
+/* ---- App shell: sidebar + content (Option B) ---- */
+.velox-app { display: flex; align-items: stretch; min-height: 100vh; }
+
+.velox-sidebar {
+	flex: 0 0 248px; width: 248px;
+	background: var(--vx-sidebar);
+	border-right: 1px solid var(--vx-line);
+	display: flex; flex-direction: column;
+	position: sticky; top: 32px; align-self: flex-start;
+	height: calc(100vh - 32px);
+}
+.velox-side-brand { display: flex; align-items: center; gap: 9px; padding: 20px 20px 14px; }
+.velox-side-logo { border-radius: 6px; }
+.velox-side-name { font-weight: 800; font-size: 19px; letter-spacing: -.02em; }
+
+.velox-side-nav { display: flex; flex-direction: column; gap: 2px; padding: 8px 12px; flex: 1; overflow-y: auto; }
+.velox-side-item {
+	display: flex; align-items: center; gap: 10px;
+	padding: 9px 12px; border-radius: var(--vx-r-md);
+	color: var(--vx-ink-2); font-weight: 600; font-size: 14px;
+	transition: background .12s, color .12s;
+}
+.velox-side-item .velox-side-ic { display: inline-flex; color: var(--vx-ink-3); transition: color .12s; }
+.velox-side-item:hover { background: var(--vx-bg); color: var(--vx-ink); }
+.velox-side-item:hover .velox-side-ic { color: var(--vx-ink-2); }
+.velox-side-item.is-active { background: var(--vx-primary); color: #fff; }
+.velox-side-item.is-active .velox-side-ic { color: #fff; }
+.velox-side-item--sub { padding: 7px 12px 7px 34px; font-size: 13px; font-weight: 500; }
+.velox-side-item--sub .velox-side-ic .velox-ic { width: 15px; height: 15px; }
+.velox-side-item--sub.is-active { background: var(--vx-primary-tint); color: var(--vx-primary-d); }
+.velox-side-item--sub.is-active .velox-side-ic { color: var(--vx-primary-d); }
+
+.velox-side-foot { padding: 14px 20px; border-top: 1px solid var(--vx-line); }
+.velox-side-foot-link { font-size: 12px; color: var(--vx-ink-3); }
+.velox-side-foot-link:hover { color: var(--vx-ink-2); }
+
+.velox-content { flex: 1; min-width: 0; }
+.velox-main { padding: 34px 40px 96px; max-width: 1180px; }
 .velox-main > * { width: 100%; }
+
+@media (max-width: 960px) {
+	.velox-app { flex-direction: column; }
+	.velox-sidebar { position: static; width: 100%; flex-basis: auto; height: auto; border-right: 0; border-bottom: 1px solid var(--vx-line); }
+	.velox-side-nav { flex-direction: row; flex-wrap: wrap; }
+	.velox-side-item--sub { padding-left: 12px; }
+	.velox-side-foot { display: none; }
+	.velox-main { padding: 24px 20px 80px; }
+}
 .velox-page-head { margin-bottom: 24px; }
 .velox-h1 { font-size: 38px; line-height: 1.1; font-weight: 800; letter-spacing: -.03em; margin: 0 0 12px; }
 .velox-h2 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 6px; }
@@ -89,8 +160,10 @@
 	background: radial-gradient(circle, rgba(42,183,241,.18), transparent 70%); pointer-events: none;
 }
 .velox-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; padding: 7px 13px; border-radius: 999px; white-space: nowrap; }
-.velox-pill--ok { background: rgba(42,183,241,.12); color: var(--vx-accent-d); }
-.velox-pill--warn { background: #fff3cd; color: #8a6d00; }
+.velox-pill--ok { background: var(--vx-success-tint); color: var(--vx-success); }
+.velox-pill--warn { background: var(--vx-warning-tint); color: var(--vx-warning); }
+.velox-pill--primary { background: var(--vx-primary-tint); color: var(--vx-primary-d); }
+.velox-pill--bad { background: var(--vx-danger-tint); color: var(--vx-danger); }
 
 /* ---------- Stats strip ---------- */
 .velox-stats, .velox-mini-stats { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin: 24px 0 0; }
@@ -448,3 +521,193 @@
 .velox-switch input:checked + .velox-switch-track { background: var(--vx-accent); }
 .velox-switch input:checked + .velox-switch-track::after { transform: translateX(18px); }
 .velox-switch input:disabled + .velox-switch-track { opacity: .55; }
+
+/* ---- Utility tool pages ---- */
+.velox-back { display: inline-block; margin-bottom: 14px; color: var(--vx-ink-2); font-size: 14px; font-weight: 600; }
+.velox-back:hover { color: var(--vx-accent); }
+.velox-util-state { flex: none; font-size: 11px; font-weight: 700; color: var(--vx-ink-2); background: var(--vx-bg); border: 1px solid var(--vx-line); padding: 3px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: .03em; }
+.velox-util-state.is-on { color: #fff; background: var(--vx-accent); border-color: var(--vx-accent); }
+.velox-util-open { margin-top: 14px; }
+.velox-tool-form .velox-field, .velox-tool-form .velox-toggle-row { margin-bottom: 18px; }
+.velox-tool-actions { margin-top: 6px; }
+.velox-alert--warn { background: #fff7ed; border: 1px solid #fed7aa; color: #9a3412; padding: 14px 16px; border-radius: 12px; font-size: 13.5px; line-height: 1.55; margin: 4px 0 18px; }
+.velox-alert--warn code { background: rgba(154,52,18,.1); padding: 1px 5px; border-radius: 4px; }
+
+/* ---- Unused media ---- */
+.velox-btn--danger { background: #dc2626; color: #fff; }
+.velox-btn--danger:hover { background: #b91c1c; }
+.velox-media-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
+.velox-media-item { position: relative; display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--vx-line); border-radius: 12px; padding: 10px; cursor: pointer; background: var(--vx-card); }
+.velox-media-item:hover { box-shadow: var(--vx-shadow); }
+.velox-media-item img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; background: var(--vx-bg); }
+.velox-media-pick { position: absolute; top: 16px; left: 16px; width: 18px; height: 18px; z-index: 2; }
+.velox-media-name { font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.velox-media-size { font-size: 11px; color: var(--vx-ink-2); }
+
+/* ---- Bulk installer ---- */
+.velox-install-log { margin-top: 18px; border: 1px solid var(--vx-line); border-radius: 12px; overflow: hidden; }
+.velox-install-row { display: flex; justify-content: space-between; gap: 12px; padding: 10px 14px; font-size: 13px; border-bottom: 1px solid var(--vx-line); }
+.velox-install-row:last-child { border-bottom: 0; }
+.velox-install-slug { font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.velox-install-row.is-pending { color: var(--vx-ink-2); }
+.velox-install-row.is-ok { background: #f0fdf4; color: #166534; }
+.velox-install-row.is-fail { background: #fef2f2; color: #b91c1c; }
+.velox-bp-list { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+.velox-bp-item { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--vx-line); border-radius: 12px; padding: 12px 14px; }
+.velox-bp-meta { display: flex; flex-direction: column; gap: 2px; }
+.velox-bp-name { font-weight: 700; }
+.velox-bp-count { font-size: 12px; color: var(--vx-ink-2); }
+.velox-bp-actions { display: flex; gap: 8px; }
+
+/* ---- Redirects & 404s ---- */
+.velox-redir-add { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 8px; }
+.velox-redir-add .velox-input { flex: 1; min-width: 160px; }
+.velox-redir-arrow { color: var(--vx-ink-2); font-weight: 700; }
+.velox-count { font-size: 12px; color: var(--vx-ink-2); font-weight: 600; background: var(--vx-bg); border-radius: 999px; padding: 2px 9px; margin-left: 6px; }
+.velox-redir-list, .velox-log-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+.velox-redir-row, .velox-log-row { display: flex; align-items: center; gap: 10px; border: 1px solid var(--vx-line); border-radius: 10px; padding: 9px 12px; font-size: 13px; }
+.velox-redir-src, .velox-log-path { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-weight: 600; }
+.velox-redir-tgt { flex: 1; color: var(--vx-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.velox-log-path { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.velox-redir-type, .velox-redir-hits, .velox-log-hits { font-size: 11px; color: var(--vx-ink-2); background: var(--vx-bg); border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
+.velox-redir-row .velox-btn, .velox-log-row .velox-btn { padding: 4px 10px; font-size: 12px; }
+.velox-inline-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--vx-ink-2); }
+
+/* ---- Activity log ---- */
+.velox-activity-filters { display: flex; flex-wrap: wrap; gap: 6px; margin: 16px 0 4px; }
+.velox-chip { font-size: 12px; font-weight: 600; color: var(--vx-ink-2); background: var(--vx-bg); border: 1px solid var(--vx-line); border-radius: 999px; padding: 4px 11px; }
+.velox-chip:hover { color: var(--vx-ink); }
+.velox-chip.is-active { background: var(--vx-accent); color: #fff; border-color: var(--vx-accent); }
+.velox-activity-list { display: flex; flex-direction: column; margin-top: 12px; }
+.velox-activity-row { display: flex; align-items: center; gap: 12px; padding: 10px 4px; border-bottom: 1px solid var(--vx-line); font-size: 13px; }
+.velox-activity-row:last-child { border-bottom: 0; }
+.velox-activity-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--vx-ink-2); }
+.velox-activity-dot.is-ok { background: #16a34a; }
+.velox-activity-dot.is-bad { background: #dc2626; }
+.velox-activity-act { font-weight: 700; min-width: 130px; }
+.velox-activity-obj { flex: 1; color: var(--vx-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.velox-activity-who { color: var(--vx-ink); font-weight: 600; white-space: nowrap; }
+.velox-activity-when { color: var(--vx-ink-2); white-space: nowrap; min-width: 90px; text-align: right; }
+
+/* ---- Script Manager ---- */
+.velox-sm-list { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.velox-sm-row { display: flex; align-items: center; gap: 10px; border: 1px solid var(--vx-line); border-radius: 10px; padding: 9px 12px; flex-wrap: wrap; }
+.velox-sm-meta { flex: 1; min-width: 180px; display: flex; flex-direction: column; gap: 1px; }
+.velox-sm-handle { font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+.velox-sm-src { font-size: 11px; color: var(--vx-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.velox-sm-mode { min-width: 170px; }
+.velox-sm-ids { min-width: 200px; flex: 1; }
+
+/* ---- Mail & forms ---- */
+.velox-mail-formlist { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+.velox-mail-formrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--vx-line); border-radius: 10px; padding: 11px 14px; }
+.velox-mail-formmeta { display: flex; flex-direction: column; gap: 3px; }
+.velox-mail-formname { font-weight: 700; }
+.velox-mail-shortcode { font-size: 12px; color: var(--vx-ink-2); }
+.velox-mail-build { display: grid; grid-template-columns: 1fr 360px; gap: 18px; align-items: start; }
+@media (max-width: 1100px) { .velox-mail-build { grid-template-columns: 1fr; } }
+.velox-mail-build-main { display: flex; flex-direction: column; gap: 18px; }
+.velox-sticky { position: sticky; top: 20px; }
+.vmail-fields { display: flex; flex-direction: column; gap: 10px; margin-bottom: 12px; }
+.vmail-field { border: 1px solid var(--vx-line); border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 8px; }
+.vmail-field-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.vmail-field-top .vmail-f-label { flex: 1; min-width: 140px; }
+.vmail-f-req { font-size: 12px; color: var(--vx-ink-2); display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.vmail-addfield { display: flex; gap: 8px; }
+.vmail-email { border: 1px solid var(--vx-line); border-radius: 10px; padding: 12px; margin-top: 10px; }
+.vmail-email-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.vmail-preview { background: var(--vx-bg); border-radius: 10px; padding: 16px; }
+.vmail-preview .velox-form { gap: 12px; }
+.velox-mail-subs { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.velox-mail-sub { border: 1px solid var(--vx-line); border-radius: 10px; padding: 10px 12px; }
+.velox-mail-sub-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+.velox-mail-sub-when { font-size: 12px; color: var(--vx-ink-2); }
+.velox-mail-sub-body { font-size: 13px; display: flex; flex-direction: column; gap: 2px; }
+.velox-mail-log { display: flex; flex-direction: column; margin-top: 8px; }
+.velox-mail-logrow { display: flex; align-items: center; gap: 10px; padding: 8px 2px; border-bottom: 1px solid var(--vx-line); font-size: 13px; }
+.velox-mail-log-to { font-weight: 600; min-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.velox-mail-log-sub { flex: 1; color: var(--vx-ink-2); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.velox-mail-log-when { color: var(--vx-ink-2); white-space: nowrap; }
+
+/* ---- Dashboard (redesigned) ---- */
+.velox-dash-top { display: grid; grid-template-columns: minmax(260px, 340px) 1fr; gap: 16px; margin-bottom: 16px; }
+@media (max-width: 820px) { .velox-dash-top { grid-template-columns: 1fr; } }
+
+.velox-score { display: flex; align-items: center; gap: 20px; }
+.velox-score-ring {
+	flex: 0 0 108px; width: 108px; height: 108px; border-radius: 50%;
+	background: conic-gradient(var(--vx-primary) calc(var(--val) * 1%), var(--vx-line) 0);
+	display: grid; place-items: center; position: relative;
+}
+.velox-score-ring::before { content: ""; position: absolute; inset: 9px; background: var(--vx-card); border-radius: 50%; }
+.velox-score-num { position: relative; font-size: 34px; font-weight: 800; letter-spacing: -.03em; }
+.velox-score-meta { display: flex; flex-direction: column; gap: 6px; }
+.velox-score-line { margin: 2px 0 0; font-size: 14px; color: var(--vx-ink-2); }
+.velox-score-line strong { color: var(--vx-ink); }
+
+.velox-qa-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
+@media (max-width: 480px) { .velox-qa-grid { grid-template-columns: 1fr; } }
+.velox-qa-btn {
+	display: flex; align-items: center; gap: 10px;
+	padding: 13px 15px; border: 1px solid var(--vx-line); border-radius: var(--vx-r-md);
+	font-weight: 600; font-size: 14px; color: var(--vx-ink);
+	background: var(--vx-card); transition: border-color .12s, background .12s, transform .05s;
+}
+.velox-qa-btn:hover { border-color: var(--vx-primary); background: var(--vx-primary-tint); }
+.velox-qa-btn:active { transform: translateY(1px); }
+.velox-qa-ic { display: inline-flex; color: var(--vx-primary); }
+
+.velox-dash-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
+.velox-statcard {
+	background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-md);
+	padding: 16px 18px; display: flex; flex-direction: column; gap: 5px;
+}
+.velox-statcard-label { font-size: 13px; color: var(--vx-ink-2); font-weight: 600; }
+.velox-statcard-val { font-size: 30px; font-weight: 800; letter-spacing: -.03em; line-height: 1.05; }
+.velox-statcard-val--sm { font-size: 22px; }
+.velox-statcard-of { font-size: 15px; font-weight: 600; color: var(--vx-ink-3); margin-left: 4px; }
+.velox-statcard-foot { font-size: 12.5px; color: var(--vx-ink-3); margin-top: 2px; }
+.velox-statcard-foot a { color: var(--vx-primary); font-weight: 600; }
+.velox-statcard-warn { color: var(--vx-warning); font-weight: 600; }
+
+.velox-reco-list { display: flex; flex-direction: column; margin-top: 6px; }
+.velox-reco-row { display: flex; align-items: center; gap: 12px; padding: 12px 2px; border-bottom: 1px solid var(--vx-line); }
+.velox-reco-row:last-child { border-bottom: 0; }
+.velox-reco-dot { flex: 0 0 8px; width: 8px; height: 8px; border-radius: 50%; background: var(--vx-amber); }
+.velox-reco-label { flex: 1; font-size: 14px; }
+.velox-reco-go { font-size: 13px; font-weight: 600; color: var(--vx-primary); white-space: nowrap; }
+.velox-reco-empty { display: flex; align-items: center; gap: 10px; padding: 14px 2px; color: var(--vx-success); font-weight: 600; }
+.velox-reco-empty .velox-ic { color: var(--vx-success); }
+
+/* ---- Page cache status ---- */
+.velox-cache-status-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px; }
+.velox-cache-status .velox-cache-btns { margin-top: 14px; }
+.velox-cache-note { margin-top: 12px; }
+.velox-cache-note code { background: rgba(10,10,11,.06); padding: 1px 6px; border-radius: 5px; font-size: 12.5px; }
+.velox-pill--muted { background: var(--vx-bg); color: var(--vx-ink-3); }
+
+/* ---- Images: optimization center ---- */
+.velox-tag { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px; vertical-align: middle; letter-spacing: .01em; }
+.velox-tag--ok { background: var(--vx-success-tint); color: var(--vx-success); }
+.velox-tag--muted { background: var(--vx-bg); color: var(--vx-ink-3); }
+.velox-engine-compat { margin-top: 14px; border-top: 1px solid var(--vx-line); padding-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.velox-engine-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.velox-engine-name { font-weight: 600; font-size: 14px; }
+.velox-engine-badges { display: inline-flex; gap: 6px; }
+.velox-quality-row { display: flex; align-items: center; gap: 14px; }
+.velox-quality-row .velox-range { flex: 1; }
+.velox-quality-num { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); padding: 2px 8px 2px 4px; background: var(--vx-card); }
+.velox-quality-num:focus-within { border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-tint); }
+.velox-input--xs { width: 52px; border: 0 !important; box-shadow: none !important; padding: 4px 2px !important; text-align: right; font-weight: 700; -moz-appearance: textfield; }
+.velox-input--xs::-webkit-outer-spin-button, .velox-input--xs::-webkit-inner-spin-button { opacity: 1; }
+.velox-quality-pct { color: var(--vx-ink-3); font-weight: 700; font-size: 14px; }
+
+/* ---- SEO ---- */
+.velox-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.6; }
+.velox-seo-oneclick-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.velox-seo-oneclick .velox-panel-title { margin-top: 0; }
+.velox-seo-fauxbox { margin-top: 12px; }
+.velox-seo-preview { border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); padding: 12px 14px; background: #fff; max-width: 600px; }
+.velox-seo-preview-url { color: #202124; font-size: 12px; margin-bottom: 2px; }
+.velox-seo-preview-title { color: #1a0dab; font-size: 18px; line-height: 1.3; }
+.velox-seo-preview-desc { color: #4d5156; font-size: 13px; line-height: 1.5; margin-top: 2px; }

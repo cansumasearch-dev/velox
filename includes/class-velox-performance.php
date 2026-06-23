@@ -122,6 +122,18 @@ class Velox_Performance {
 		if ( ! empty( $this->s['perf_preload_fonts'] ) ) {
 			add_action( 'wp_head', array( $this, 'preload_fonts' ), 2 );
 		}
+		if ( $this->on( 'perf_system_fonts' ) ) {
+			add_action( 'wp_head', array( $this, 'system_fonts_css' ), 4 );
+		}
+
+		// ---- CDN ----
+		if ( $this->on( 'perf_cdn_enable' ) && ! empty( $this->s['perf_cdn_url'] ) ) {
+			add_filter( 'style_loader_src', array( $this, 'cdn_url' ), 20 );
+			add_filter( 'script_loader_src', array( $this, 'cdn_url' ), 20 );
+			add_filter( 'wp_get_attachment_url', array( $this, 'cdn_url' ), 20 );
+			add_filter( 'wp_calculate_image_srcset', array( $this, 'cdn_srcset' ), 20 );
+			add_filter( 'the_content', array( $this, 'cdn_content' ), 25 );
+		}
 
 		// ---- Preload / Network ----
 		add_action( 'wp_head', array( $this, 'resource_hints' ), 2 );
@@ -282,6 +294,83 @@ class Velox_Performance {
 	public function autosave_interval( $interval ) {
 		$v = (int) $this->s['perf_autosave_interval'];
 		return $v > 0 ? $v : $interval;
+	}
+
+	/* ---------------------------------------------------------------- Fonts / CDN */
+
+	/** Force the system font stack so no web fonts load. */
+	public function system_fonts_css() {
+		$stack = "-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Helvetica Neue',Arial,'Noto Sans',sans-serif,'Apple Color Emoji','Segoe UI Emoji'";
+		echo "\n<style id=\"velox-system-fonts\">body,button,input,select,textarea,h1,h2,h3,h4,h5,h6,p,a,span,div,li{font-family:" . $stack . " !important}</style>\n";
+	}
+
+	private function cdn_base() {
+		return untrailingslashit( esc_url_raw( (string) $this->s['perf_cdn_url'] ) );
+	}
+
+	private function cdn_excluded( $url ) {
+		$lines = array_filter( array_map( 'trim', explode( "\n", (string) $this->s['perf_cdn_exclude'] ) ) );
+		foreach ( $lines as $frag ) {
+			if ( '' !== $frag && false !== strpos( $url, $frag ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Rewrite a single origin asset URL to the CDN host. */
+	public function cdn_url( $url ) {
+		$cdn  = $this->cdn_base();
+		$home = untrailingslashit( home_url() );
+		if ( '' === $cdn || 0 !== strpos( (string) $url, $home ) || $this->cdn_excluded( $url ) ) {
+			return $url;
+		}
+		return $cdn . substr( $url, strlen( $home ) );
+	}
+
+	public function cdn_srcset( $sources ) {
+		if ( is_array( $sources ) ) {
+			foreach ( $sources as $k => $src ) {
+				if ( isset( $src['url'] ) ) {
+					$sources[ $k ]['url'] = $this->cdn_url( $src['url'] );
+				}
+			}
+		}
+		return $sources;
+	}
+
+	/** Rewrite static asset URLs inside post content (handles srcset lists). */
+	public function cdn_content( $html ) {
+		$cdn  = $this->cdn_base();
+		$home = untrailingslashit( home_url() );
+		if ( '' === $cdn ) {
+			return $html;
+		}
+		$self = $this;
+		return preg_replace_callback(
+			'#(src|href|srcset)=([\'"])([^\'"]+)\2#i',
+			function ( $m ) use ( $cdn, $home, $self ) {
+				$out = array();
+				foreach ( preg_split( '/\s*,\s*/', $m[3] ) as $part ) {
+					$seg  = preg_split( '/\s+/', trim( $part ), 2 );
+					$u    = $seg[0];
+					$rest = isset( $seg[1] ) ? ' ' . $seg[1] : '';
+					if ( 0 === strpos( $u, $home )
+						&& preg_match( '/\.(css|js|png|jpe?g|gif|webp|avif|svg|woff2?|ttf|otf|ico|mp4|webm)(\?|$)/i', $u )
+						&& ! $self->cdn_is_excluded( $u ) ) {
+						$u = $cdn . substr( $u, strlen( $home ) );
+					}
+					$out[] = $u . $rest;
+				}
+				return $m[1] . '=' . $m[2] . implode( ', ', $out ) . $m[2];
+			},
+			$html
+		);
+	}
+
+	/** Public wrapper so the content closure can reach the exclusion check. */
+	public function cdn_is_excluded( $url ) {
+		return $this->cdn_excluded( $url );
 	}
 
 	/* ---------------------------------------------------------------- CSS */

@@ -46,16 +46,65 @@ class Velox_Image_Optimizer {
 	 * Capability detection
 	 * ------------------------------------------------------------- */
 	public static function engine() {
-		if ( extension_loaded( 'imagick' ) && class_exists( 'Imagick' ) ) {
-			$formats = @Imagick::queryFormats( 'WEBP' );
-			if ( ! empty( $formats ) ) {
-				return 'imagick';
-			}
+		return self::resolve_engine( 'WEBP', 'imagewebp' );
+	}
+
+	/** AVIF support is rarer than WebP — Imagick needs an AVIF delegate, GD needs PHP 8.1+. */
+	public static function avif_engine() {
+		return self::resolve_engine( 'AVIF', 'imageavif' );
+	}
+
+	/** Resolve the encoder, honouring the user's engine preference when it can do the job. */
+	private static function resolve_engine( $imagick_format, $gd_func ) {
+		$pref    = Velox_Settings::get( 'image_engine', 'auto' );
+		$imagick = extension_loaded( 'imagick' ) && class_exists( 'Imagick' ) && ! empty( @Imagick::queryFormats( $imagick_format ) );
+		$gd      = function_exists( $gd_func );
+		if ( 'imagick' === $pref && $imagick ) {
+			return 'imagick';
 		}
-		if ( function_exists( 'imagewebp' ) ) {
+		if ( 'gd' === $pref && $gd ) {
+			return 'gd';
+		}
+		if ( $imagick ) {
+			return 'imagick';
+		}
+		if ( $gd ) {
 			return 'gd';
 		}
 		return false;
+	}
+
+	/** Per-engine availability + format support, for the compatibility panel. */
+	public static function capabilities() {
+		$im = extension_loaded( 'imagick' ) && class_exists( 'Imagick' );
+		return array(
+			'imagick' => array(
+				'label'     => 'Imagick',
+				'available' => $im,
+				'webp'      => $im && ! empty( @Imagick::queryFormats( 'WEBP' ) ),
+				'avif'      => $im && ! empty( @Imagick::queryFormats( 'AVIF' ) ),
+				'note'      => 'Best quality and format support. Recommended when available.',
+			),
+			'gd' => array(
+				'label'     => 'GD',
+				'available' => function_exists( 'imagecreatetruecolor' ),
+				'webp'      => function_exists( 'imagewebp' ),
+				'avif'      => function_exists( 'imageavif' ),
+				'note'      => 'Bundled with most PHP installs. Solid WebP; AVIF on PHP 8.1+.',
+			),
+			'vips' => array(
+				'label'     => 'libvips',
+				'available' => extension_loaded( 'vips' ),
+				'webp'      => extension_loaded( 'vips' ),
+				'avif'      => extension_loaded( 'vips' ),
+				'note'      => 'Fastest and lowest memory, but the PHP extension is rarely installed on shared hosts.',
+			),
+		);
+	}
+
+	/** Is AVIF generation switched on AND supported by this server? */
+	public static function avif_active() {
+		return Velox_Settings::get( 'image_avif' ) && false !== self::avif_engine();
 	}
 
 	/* ----------------------------------------------------------------
@@ -88,17 +137,34 @@ class Velox_Image_Optimizer {
 		$original_bytes = 0;
 		$webp_bytes     = 0;
 		$converted      = 0;
+		$avif_bytes     = 0;
+		$avif_files     = 0;
+		$do_webp        = (bool) Velox_Settings::get( 'image_webp', true );
+		$do_avif        = self::avif_active();
+
+		if ( ! $do_webp && ! $do_avif ) {
+			return new WP_Error( 'no_format', __( 'No output format selected — enable WebP and/or AVIF in Images settings.', 'velox' ) );
+		}
 
 		foreach ( $targets as $source ) {
 			if ( ! file_exists( $source ) ) {
 				continue;
 			}
-			$dest = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $source );
-			$ok   = $this->encode_webp( $source, $dest, $quality );
-			if ( $ok && file_exists( $dest ) ) {
-				$original_bytes += filesize( $source );
-				$webp_bytes     += filesize( $dest );
-				$converted++;
+			if ( $do_webp ) {
+				$dest = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $source );
+				$ok   = $this->encode_webp( $source, $dest, $quality );
+				if ( $ok && file_exists( $dest ) ) {
+					$original_bytes += filesize( $source );
+					$webp_bytes     += filesize( $dest );
+					$converted++;
+				}
+			}
+			if ( $do_avif ) {
+				$avif_dest = preg_replace( '/\.(jpe?g|png)$/i', '.avif', $source );
+				if ( $this->encode_avif( $source, $avif_dest, $quality ) && file_exists( $avif_dest ) ) {
+					$avif_bytes += filesize( $avif_dest );
+					$avif_files++;
+				}
 			}
 		}
 
@@ -114,11 +180,86 @@ class Velox_Image_Optimizer {
 			'saved_pct'      => $saved_pct,
 			'quality'        => $quality,
 			'files'          => $converted,
+			'avif_bytes'     => $avif_bytes,
+			'avif_files'     => $avif_files,
 			'time'           => time(),
 		);
 		update_post_meta( $attachment_id, self::META_KEY, $stats );
 
 		return $stats;
+	}
+
+	/**
+	 * Low-level AVIF encode — mirrors encode_webp. Tries Imagick, falls back to GD (PHP 8.1+).
+	 */
+	private function encode_avif( $source, $dest, $quality ) {
+		$keep_exif = (bool) Velox_Settings::get( 'image_keep_exif', false );
+		$max_w     = (int) Velox_Settings::get( 'image_max_width', 2560 );
+		$engine    = self::avif_engine();
+
+		if ( 'imagick' === $engine ) {
+			try {
+				$img = new Imagick( $source );
+				if ( $img->getImageColorspace() === Imagick::COLORSPACE_CMYK ) {
+					$img->transformImageColorspace( Imagick::COLORSPACE_SRGB );
+				}
+				if ( $max_w > 0 && $img->getImageWidth() > $max_w ) {
+					$img->resizeImage( $max_w, 0, Imagick::FILTER_LANCZOS, 1 );
+				}
+				if ( ! $keep_exif ) {
+					$profiles = $img->getImageProfiles( 'icc', true );
+					$img->stripImage();
+					if ( ! empty( $profiles['icc'] ) ) {
+						$img->profileImage( 'icc', $profiles['icc'] );
+					}
+				}
+				$img->setImageFormat( 'avif' );
+				$img->setImageCompressionQuality( $quality );
+				$result = $img->writeImage( $dest );
+				$img->clear();
+				$img->destroy();
+				return $result;
+			} catch ( Exception $e ) {
+				// fall through to GD
+			}
+		}
+
+		if ( function_exists( 'imageavif' ) ) {
+			$info = @getimagesize( $source );
+			if ( ! $info ) {
+				return false;
+			}
+			switch ( $info[2] ) {
+				case IMAGETYPE_JPEG:
+					$image = @imagecreatefromjpeg( $source );
+					break;
+				case IMAGETYPE_PNG:
+					$image = @imagecreatefrompng( $source );
+					if ( $image ) {
+						imagepalettetotruecolor( $image );
+						imagealphablending( $image, true );
+						imagesavealpha( $image, true );
+					}
+					break;
+				default:
+					return false;
+			}
+			if ( ! $image ) {
+				return false;
+			}
+			if ( $max_w > 0 && imagesx( $image ) > $max_w ) {
+				$scaled = imagescale( $image, $max_w );
+				if ( $scaled ) {
+					imagedestroy( $image );
+					$image = $scaled;
+				}
+			}
+			$result = imageavif( $image, $dest, $quality );
+			imagedestroy( $image );
+			return $result;
+		}
+
+		return false;
 	}
 
 	/**
@@ -147,6 +288,9 @@ class Velox_Image_Optimizer {
 				$img->setImageFormat( 'webp' );
 				$img->setImageCompressionQuality( $quality );
 				$img->setOption( 'webp:method', '6' );
+				if ( Velox_Settings::get( 'image_lossless', false ) ) {
+					$img->setOption( 'webp:lossless', 'true' );
+				}
 				$result = $img->writeImage( $dest );
 				$img->clear();
 				$img->destroy();
@@ -294,9 +438,11 @@ class Velox_Image_Optimizer {
 			}
 		}
 		foreach ( $targets as $t ) {
-			$webp = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $t );
-			if ( $webp !== $t && file_exists( $webp ) ) {
-				@unlink( $webp );
+			foreach ( array( '.webp', '.avif' ) as $ext ) {
+				$twin = preg_replace( '/\.(jpe?g|png)$/i', $ext, $t );
+				if ( $twin !== $t && file_exists( $twin ) ) {
+					@unlink( $twin );
+				}
 			}
 		}
 		delete_post_meta( $attachment_id, self::META_KEY );
@@ -309,33 +455,51 @@ class Velox_Image_Optimizer {
 		return isset( $_SERVER['HTTP_ACCEPT'] ) && false !== strpos( $_SERVER['HTTP_ACCEPT'], 'image/webp' );
 	}
 
-	private function webp_url_if_exists( $url ) {
+	private function browser_supports_avif() {
+		return isset( $_SERVER['HTTP_ACCEPT'] ) && false !== strpos( $_SERVER['HTTP_ACCEPT'], 'image/avif' );
+	}
+
+	/** Return the best available twin for this URL: AVIF, then WebP, else the original. */
+	private function best_url_if_exists( $url ) {
 		if ( ! preg_match( '/\.(jpe?g|png)$/i', $url ) ) {
 			return $url;
 		}
-		$webp_url  = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $url );
-		$uploads   = wp_upload_dir();
-		$webp_path = str_replace( $uploads['baseurl'], $uploads['basedir'], $webp_url );
-		return file_exists( $webp_path ) ? $webp_url : $url;
+		$uploads = wp_upload_dir();
+		// Prefer AVIF when the browser accepts it and a twin exists.
+		if ( $this->browser_supports_avif() ) {
+			$avif_url  = preg_replace( '/\.(jpe?g|png)$/i', '.avif', $url );
+			$avif_path = str_replace( $uploads['baseurl'], $uploads['basedir'], $avif_url );
+			if ( file_exists( $avif_path ) ) {
+				return $avif_url;
+			}
+		}
+		if ( $this->browser_supports_webp() ) {
+			$webp_url  = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $url );
+			$webp_path = str_replace( $uploads['baseurl'], $uploads['basedir'], $webp_url );
+			if ( file_exists( $webp_path ) ) {
+				return $webp_url;
+			}
+		}
+		return $url;
 	}
 
 	public function swap_attributes( $attr, $attachment, $size ) {
-		if ( ! $this->browser_supports_webp() ) {
+		if ( ! $this->browser_supports_webp() && ! $this->browser_supports_avif() ) {
 			return $attr;
 		}
 		if ( ! empty( $attr['src'] ) ) {
-			$attr['src'] = $this->webp_url_if_exists( $attr['src'] );
+			$attr['src'] = $this->best_url_if_exists( $attr['src'] );
 		}
 		return $attr;
 	}
 
 	public function swap_srcset( $sources, $size_array, $image_src, $image_meta, $attachment_id ) {
-		if ( ! $this->browser_supports_webp() || ! is_array( $sources ) ) {
+		if ( ( ! $this->browser_supports_webp() && ! $this->browser_supports_avif() ) || ! is_array( $sources ) ) {
 			return $sources;
 		}
 		foreach ( $sources as $w => $source ) {
 			if ( ! empty( $source['url'] ) ) {
-				$sources[ $w ]['url'] = $this->webp_url_if_exists( $source['url'] );
+				$sources[ $w ]['url'] = $this->best_url_if_exists( $source['url'] );
 			}
 		}
 		return $sources;

@@ -56,6 +56,21 @@ final class Velox {
 		$this->ajax    = new Velox_Ajax();
 		$this->updater = new Velox_Updater();
 		Velox_Utilities::init();
+		Velox_Redirects::maybe_install();
+		Velox_Redirects::init();
+		Velox_Activity::maybe_install();
+		Velox_Activity::init();
+		Velox_Scripts::init();
+		Velox_Cache::init();
+		if ( Velox_Settings::get( 'module_seo', true ) ) {
+			Velox_Seo::init();
+		}
+		if ( Velox_Settings::get( 'util_mail' ) ) {
+			Velox_Mail::maybe_install();
+			Velox_Mail::init();
+			Velox_Forms::maybe_install();
+			Velox_Forms::init();
+		}
 
 		if ( is_admin() ) {
 			$this->admin = new Velox_Admin();

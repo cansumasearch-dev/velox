@@ -9,6 +9,15 @@ $s = Velox_Settings::all();
  * note: small amber hint shown under the row (overlap / caution).
  */
 $fields = array(
+	// Cache
+	'cache_enable'          => array( 'switch', 'Enable page cache', 'Serve a static HTML copy of each page so visitors skip PHP and the database entirely. Velox\'s own cache — no WP Fastest Cache or WP Rocket needed.' ),
+	'cache_ttl'             => array( 'number', 'Cache lifetime (seconds)', 'How long a cached page stays fresh before it\'s rebuilt. 36000 = 10 hours. 0 = until purged.' ),
+	'cache_logged_in'       => array( 'switch', 'Cache for logged-in users', 'Off by default — logged-in visitors always see live pages. Only enable if your site looks identical when logged in.' ),
+	'cache_mobile_separate' => array( 'switch', 'Separate mobile cache', 'Store a separate cached copy for mobile devices. Enable only if your theme serves different markup to phones.' ),
+	'cache_gzip'            => array( 'switch', 'Pre-compress pages', 'Stores gzip (and Brotli where available) copies so the server sends compressed HTML without compressing on every request.' ),
+	'cache_exclude_urls'    => array( 'textarea', 'Never cache these URLs', 'One path per line. Use * as a wildcard, e.g. /cart, /checkout, /my-account/*.' ),
+	'cache_exclude_cookies' => array( 'textarea', 'Never cache with these cookies', 'One cookie name (or fragment) per line. Requests carrying a matching cookie always bypass the cache.' ),
+
 	// General
 	'perf_disable_emojis'        => array( 'switch', 'Disable emojis', 'Removes the emoji detection script and styles WordPress loads on every page.' ),
 	'perf_disable_embeds'        => array( 'switch', 'Disable oEmbed', 'Stops WordPress loading the wp-embed script and embed discovery links.' ),
@@ -60,6 +69,12 @@ $fields = array(
 	'perf_fonts_display_swap'    => array( 'switch', 'Force font-display: swap', 'Adds display=swap to Google Fonts so text shows while fonts load.' ),
 	'perf_local_fonts'           => array( 'switch', 'Host Google Fonts locally', 'Downloads your Google Fonts and serves them from your own server — kills the third-party request and speeds up first paint. Click "Scan & download" below after enabling.' ),
 	'perf_preload_fonts'         => array( 'textarea', 'Preload fonts', 'One font URL per line (.woff2 recommended). Preload only the 1–2 above-the-fold fonts.' ),
+	'perf_system_fonts'          => array( 'switch', 'Use system fonts', 'Skips web fonts and uses the visitor\'s own system stack — zero font requests. This overrides theme fonts, so check your design after turning it on.' ),
+
+	// CDN
+	'perf_cdn_enable'            => array( 'switch', 'Rewrite assets to a CDN', 'Serve CSS, JS, images and fonts from your CDN host instead of your domain.' ),
+	'perf_cdn_url'               => array( 'text', 'CDN URL', 'Your CDN base, e.g. https://cdn.yoursite.com. Matching asset URLs get rewritten to this host.' ),
+	'perf_cdn_exclude'           => array( 'textarea', 'CDN exclusions', 'URL fragments to leave on your own domain, one per line.' ),
 
 	// Preload / Network
 	'perf_dns_prefetch'          => array( 'textarea', 'DNS prefetch', 'One origin per line. Resolves DNS for third-party domains early.' ),
@@ -117,7 +132,7 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 <div class="velox-page-head velox-page-head--row">
 	<div>
 		<h1 class="velox-h2">Performance</h1>
-		<p class="velox-sub">Everything here complements WP Fastest Cache, Cloudflare and Oxygen — there's no second page cache and no CSS/JS combine. Flip one setting at a time and re-test PageSpeed.</p>
+		<p class="velox-sub">A complete performance toolkit — page cache, asset optimization, fonts, preloading and more. Velox works standalone, and plays nicely with Cloudflare and Oxygen. Flip one setting at a time and re-test PageSpeed.</p>
 	</div>
 	<label class="velox-risky-switch">
 		<span class="velox-risky-switch-text">
@@ -152,6 +167,33 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="oxygen">Regenerate Oxygen CSS</button>
 							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="cloudflare">Cloudflare</button>
 						</div>
+					</div>
+				<?php endif; ?>
+				<?php if ( 'cache' === $id ) :
+					$cache_stats = class_exists( 'Velox_Cache' ) ? Velox_Cache::stats() : array( 'pages' => 0, 'bytes' => 0, 'dropin_active' => false );
+					$cache_on    = ! empty( $s['cache_enable'] );
+					$pill_cls    = $cache_on ? ( $cache_stats['dropin_active'] ? 'ok' : 'warn' ) : 'muted';
+					$pill_txt    = $cache_on ? ( $cache_stats['dropin_active'] ? 'Active · early serve' : 'On · finishing setup' ) : 'Off';
+					?>
+					<div class="velox-panel velox-cache-status">
+						<div class="velox-cache-status-row">
+							<div>
+								<h3 class="velox-panel-title">Page cache status</h3>
+								<p class="velox-hint" id="velox-cache-summary">
+									<?php if ( $cache_on ) : ?>
+										<?php echo (int) $cache_stats['pages']; ?> pages cached · <?php echo esc_html( size_format( $cache_stats['bytes'] ) ); ?> on disk
+									<?php else : ?>
+										Turn on the page cache below to make Velox a complete, standalone performance solution — no third-party cache plugin required.
+									<?php endif; ?>
+								</p>
+							</div>
+							<span class="velox-pill velox-pill--<?php echo esc_attr( $pill_cls ); ?>" id="velox-cache-pill"><?php echo esc_html( $pill_txt ); ?></span>
+						</div>
+						<div class="velox-cache-btns">
+							<button class="velox-btn velox-btn--ghost" id="velox-cache-purge">Purge page cache</button>
+							<button class="velox-btn velox-btn--ghost" id="velox-cache-preload">Preload now</button>
+						</div>
+						<div class="velox-alert velox-alert--warn velox-cache-note" id="velox-cache-note" hidden></div>
 					</div>
 				<?php endif; ?>
 				<div class="velox-panel">

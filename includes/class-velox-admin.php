@@ -21,6 +21,7 @@ class Velox_Admin {
 			'media'       => array( 'label' => 'Media Editor', 'icon' => 'tag', 'module' => 'module_media' ),
 			'performance' => array( 'label' => 'Performance',  'icon' => 'bolt', 'module' => 'module_performance' ),
 			'database'    => array( 'label' => 'Database',     'icon' => 'db', 'module' => 'module_database' ),
+			'seo'         => array( 'label' => 'SEO',          'icon' => 'search', 'module' => 'module_seo' ),
 			'utilities'   => array( 'label' => 'Utilities',    'icon' => 'grid', 'module' => null ),
 			'settings'    => array( 'label' => 'Settings',     'icon' => 'gear', 'module' => null ),
 		);
@@ -204,6 +205,10 @@ class Velox_Admin {
 			case 'all':
 				$label = 'All caches';
 				$purge_wpfc();
+				if ( class_exists( 'Velox_Cache' ) ) {
+					Velox_Cache::purge_all();
+					$done[] = 'Velox page cache';
+				}
 				if ( function_exists( 'wp_cache_flush' ) ) {
 					wp_cache_flush();
 					$done[] = 'object cache';
@@ -248,6 +253,9 @@ class Velox_Admin {
 				delete_transient( 'velox_latest_release' );
 				if ( class_exists( 'Velox_CSS' ) ) {
 					Velox_CSS::clear_cache();
+				}
+				if ( class_exists( 'Velox_Cache' ) ) {
+					Velox_Cache::purge_all();
 				}
 				$done[] = 'Velox';
 				break;
@@ -338,7 +346,7 @@ class Velox_Admin {
 		if ( is_readable( $header ) ) {
 			include $header;
 		} else {
-			echo '<div class="velox-wrap"><main class="velox-main">';
+			echo '<div class="velox-wrap"><div class="velox-app"><div class="velox-content"><main class="velox-main">';
 		}
 
 		if ( is_readable( $view ) ) {
@@ -352,7 +360,7 @@ class Velox_Admin {
 				esc_html( $view )
 			);
 		}
-		echo '</main></div>';
+		echo '</main></div></div></div>';
 	}
 
 	/** Tiny inline icon set used by the nav + cards. */
@@ -363,7 +371,8 @@ class Velox_Admin {
 			'tag'   => '<path d="M3 7v5l9 9 7-7-9-9H3Z"/><circle cx="7" cy="11" r="1.2"/>',
 			'bolt'  => '<path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z"/>',
 			'db'    => '<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
-			'gear'  => '<circle cx="12" cy="12" r="3"/><path d="M12 2v3m0 14v3M2 12h3m14 0h3M5 5l2 2m10 10 2 2M5 19l2-2M17 7l2-2"/>',
+			'search' => '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+			'gear'  => '<path d="M10.3 2.3a2 2 0 0 1 3.4 0l.4.8a2 2 0 0 0 2.2 1l.9-.2a2 2 0 0 1 2.4 2.4l-.2.9a2 2 0 0 0 1 2.2l.8.4a2 2 0 0 1 0 3.4l-.8.4a2 2 0 0 0-1 2.2l.2.9a2 2 0 0 1-2.4 2.4l-.9-.2a2 2 0 0 0-2.2 1l-.4.8a2 2 0 0 1-3.4 0l-.4-.8a2 2 0 0 0-2.2-1l-.9.2a2 2 0 0 1-2.4-2.4l.2-.9a2 2 0 0 0-1-2.2l-.8-.4a2 2 0 0 1 0-3.4l.8-.4a2 2 0 0 0 1-2.2l-.2-.9a2 2 0 0 1 2.4-2.4l.9.2a2 2 0 0 0 2.2-1z"/><circle cx="12" cy="12" r="3"/>',
 			'check' => '<path d="m5 12 4 4 10-10"/>',
 			'grid'  => '<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
 			'file'  => '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8l-5-5Z"/><path d="M14 3v5h5"/>',
@@ -375,6 +384,7 @@ class Velox_Admin {
 			'lock'  => '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
 			'cone'  => '<path d="m9 3 6 18M5 21h14M7.5 9h9M6.2 15h11.6"/>',
 			'list'  => '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
+			'code'  => '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
 		);
 		$p = isset( $paths[ $name ] ) ? $paths[ $name ] : '';
 		return '<svg class="velox-ic" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' . $p . '</svg>';

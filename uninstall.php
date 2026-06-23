@@ -20,6 +20,16 @@ global $wpdb;
 delete_option( 'velox_settings' );
 delete_option( 'velox_settings_schema' );
 delete_option( 'velox_local_fonts' );
+delete_option( 'velox_blueprints' );
+delete_option( 'velox_redirects_map' );
+delete_option( 'velox_redirects_db' );
+delete_option( 'velox_activity_db' );
+delete_option( 'velox_assets_seen' );
+delete_option( 'velox_script_rules' );
+delete_option( 'velox_forms' );
+delete_option( 'velox_forms_db' );
+delete_option( 'velox_mail_db' );
+if ( class_exists( 'Velox_Cache' ) ) { Velox_Cache::remove_dropin(); }
 delete_transient( 'velox_latest_release' );
 
 // Per-page auto-learn data (one non-autoloaded option per URL).
@@ -27,6 +37,11 @@ $wpdb->query( "DELETE FROM {$wpdb->options} WHERE option_name LIKE 'velox_csslea
 
 // Per-page override meta (the page-level "disable feature here" box).
 $wpdb->query( "DELETE FROM {$wpdb->postmeta} WHERE meta_key = '_velox_overrides'" );
+$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}velox_redirects" );
+$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}velox_404s" );
+$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}velox_activity" );
+$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}velox_submissions" );
+$wpdb->query( "DROP TABLE IF EXISTS {$wpdb->prefix}velox_mail_log" );
 
 // Generated cache folders (trimmed CSS + locally hosted fonts).
 $uploads = wp_upload_dir();

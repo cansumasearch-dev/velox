@@ -130,32 +130,19 @@
 	 * ------------------------------------------------------------- */
 
 	function initDashboard() {
-		var wrap = $( '#velox-dash-stats' );
-		if ( ! wrap ) {
+		var fields = $$( '[data-dash]' );
+		if ( ! fields.length ) {
 			return;
 		}
 		api( 'image_stats' )
 			.then( function ( s ) {
-				wrap.innerHTML = [
-					stat( s.total, 'Images total' ),
-					stat( s.done, 'Optimized' ),
-					stat( s.pending, 'Pending' ),
-					stat( bytes( s.saved_bytes ), 'Saved' ),
-				].join( '' );
+				var map = { done: s.done, total: s.total, pending: s.pending, saved: bytes( s.saved_bytes ) };
+				fields.forEach( function ( el ) {
+					var k = el.getAttribute( 'data-dash' );
+					if ( map[ k ] !== undefined ) { el.textContent = map[ k ]; }
+				} );
 			} )
-			.catch( function () {
-				wrap.innerHTML = '';
-			} );
-
-		function stat( value, label ) {
-			return (
-				'<div class="velox-stat"><span class="velox-stat-num">' +
-				escapeHtml( value ) +
-				'</span><span class="velox-stat-label">' +
-				escapeHtml( label ) +
-				'</span></div>'
-			);
-		}
+			.catch( function () {} );
 	}
 
 	/* ----------------------------------------------------------------
@@ -169,15 +156,23 @@
 			return;
 		}
 
-		/* quality slider live label + persist on release */
+		/* quality: slider <-> editable numeric, live label, persist on release */
 		var qVal = $( '#velox-q-val' );
-		if ( root && qVal ) {
-			root.addEventListener( 'input', function () {
-				qVal.textContent = root.value + '%';
-			} );
-			root.addEventListener( 'change', function () {
-				saveSettings( { webp_quality: root.value }, null );
-			} );
+		var qNum = $( '#velox-quality-num' );
+		function setQuality( v, from ) {
+			v = Math.max( 1, Math.min( 100, parseInt( v, 10 ) || 80 ) );
+			if ( root && 'slider' !== from ) { root.value = v; }
+			if ( qNum && 'num' !== from ) { qNum.value = v; }
+			if ( qVal ) { qVal.textContent = v + '%'; }
+			return v;
+		}
+		if ( root ) {
+			root.addEventListener( 'input', function () { setQuality( root.value, 'slider' ); } );
+			root.addEventListener( 'change', function () { saveSettings( { webp_quality: setQuality( root.value, 'slider' ) }, null ); } );
+		}
+		if ( qNum ) {
+			qNum.addEventListener( 'input', function () { setQuality( qNum.value, 'num' ); } );
+			qNum.addEventListener( 'change', function () { saveSettings( { webp_quality: setQuality( qNum.value, 'num' ) }, 'Quality saved.' ); } );
 		}
 
 		/* persist EXIF + max-width the moment they change */
@@ -191,6 +186,12 @@
 		if ( maxWidth ) {
 			maxWidth.addEventListener( 'change', function () {
 				saveSettings( { image_max_width: maxWidth.value }, 'Saved.' );
+			} );
+		}
+		var avif = $( '#velox-avif' );
+		if ( avif ) {
+			avif.addEventListener( 'change', function () {
+				saveSettings( { image_avif: avif.checked ? 1 : 0 }, avif.checked ? 'AVIF on — reconvert images to build the twins.' : 'AVIF off.' );
 			} );
 		}
 
@@ -819,6 +820,63 @@
 					} );
 			} );
 		} );
+
+		/* Page cache: enable → install drop-in; purge; preload */
+		var cacheEnable = $( '[data-setting="cache_enable"]' );
+		var cachePill = $( '#velox-cache-pill' );
+		var cacheNote = $( '#velox-cache-note' );
+		function cachePillSet( on, r ) {
+			if ( ! cachePill ) { return; }
+			if ( ! on ) {
+				cachePill.textContent = 'Off';
+				cachePill.className = 'velox-pill velox-pill--muted';
+				if ( cacheNote ) { cacheNote.hidden = true; }
+				return;
+			}
+			if ( r && r.dropin && r.wp_cache ) {
+				cachePill.textContent = 'Active · early serve';
+				cachePill.className = 'velox-pill velox-pill--ok';
+				if ( cacheNote ) { cacheNote.hidden = true; }
+			} else {
+				cachePill.textContent = 'On · manual step needed';
+				cachePill.className = 'velox-pill velox-pill--warn';
+				if ( cacheNote && r && r.manual ) {
+					cacheNote.hidden = false;
+					cacheNote.innerHTML = 'Almost there — add this one line near the top of <code>wp-config.php</code> to enable early serving: <code>' + escapeHtml( r.manual ) + '</code>';
+				}
+			}
+		}
+		if ( cacheEnable ) {
+			cacheEnable.addEventListener( 'change', function () {
+				var on = cacheEnable.checked;
+				if ( cachePill ) { cachePill.textContent = '…'; }
+				saveSettings( { cache_enable: on ? 1 : 0 } )
+					.then( function () { return api( 'cache_setup' ); } )
+					.then( function ( r ) { cachePillSet( on, r ); toast( on ? 'Page cache on.' : 'Page cache off.' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+			} );
+		}
+		var cachePurge = $( '#velox-cache-purge' );
+		if ( cachePurge ) {
+			cachePurge.addEventListener( 'click', function () {
+				cachePurge.disabled = true;
+				api( 'cache_purge' )
+					.then( function () { toast( 'Page cache purged.' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { cachePurge.disabled = false; } );
+			} );
+		}
+		var cachePreload = $( '#velox-cache-preload' );
+		if ( cachePreload ) {
+			cachePreload.addEventListener( 'click', function () {
+				cachePreload.disabled = true;
+				cachePreload.textContent = 'Preloading…';
+				api( 'cache_preload' )
+					.then( function ( r ) { toast( 'Warmed ' + ( ( r && r.warmed ) || 0 ) + ' pages.' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { cachePreload.disabled = false; cachePreload.textContent = 'Preload now'; } );
+			} );
+		}
 
 		/* Local fonts: scan & download / remove */
 		var fScan = $( '#velox-fonts-scan' );
@@ -1708,6 +1766,617 @@
 					.then( function () { box.disabled = false; } );
 			} );
 		} );
+		// Tool sub-page Save buttons (Maintenance, Custom login URL, …)
+		$$( '.velox-util-save' ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				var scope = btn.closest( '.velox-tool-form' ) || document;
+				btn.disabled = true;
+				saveSettings( collectSettings( scope ), 'Saved.' )
+					.then( function () { setTimeout( function () { location.reload(); }, 500 ); } )
+					.catch( function () {} )
+					.then( function () { btn.disabled = false; } );
+			} );
+		} );
+		initUnusedMedia();
+		initInstaller();
+		initRedirects();
+		initActivity();
+		initScripts();
+		initMail();
+		initMailBuilder();
+	}
+
+	function initMail() {
+		var toggle = $( '#velox-mail-toggle' );
+		if ( toggle ) {
+			toggle.addEventListener( 'change', function () {
+				saveSettings( { util_mail: toggle.checked ? 1 : 0 }, toggle.checked ? 'Mail & forms on.' : 'Mail & forms off.' )
+					.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
+			} );
+		}
+		$$( '.velox-mail-formdel' ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				var row = btn.closest( '.velox-mail-formrow' );
+				if ( ! window.confirm( 'Delete this form? Its submissions stay in the log.' ) ) { return; }
+				api( 'form_delete', { id: row.getAttribute( 'data-id' ) } )
+					.then( function () { row.remove(); toast( 'Form deleted.' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+			} );
+		} );
+		$$( '.velox-mail-sub-del' ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				var sub = btn.closest( '.velox-mail-sub' );
+				api( 'submission_delete', { id: sub.getAttribute( 'data-id' ) } )
+					.then( function () { sub.remove(); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+			} );
+		} );
+		var testBtn = $( '#vmail-test' );
+		if ( testBtn ) {
+			testBtn.addEventListener( 'click', function () {
+				var to = $( '#vmail-test-to' ).value;
+				testBtn.disabled = true;
+				api( 'mail_test', { to: to } )
+					.then( function ( r ) { toast( r.message, r.ok ? 'success' : 'error' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { testBtn.disabled = false; } );
+			} );
+		}
+		var logClear = $( '#vmail-log-clear' );
+		if ( logClear ) {
+			logClear.addEventListener( 'click', function () {
+				api( 'mail_log_clear', {} ).then( function () { location.reload(); } );
+			} );
+		}
+	}
+
+	function initMailBuilder() {
+		var dataEl = $( '#vmail-data' );
+		if ( ! dataEl ) {
+			return;
+		}
+		var form;
+		try { form = JSON.parse( dataEl.textContent ); } catch ( e ) { return; }
+		form.fields = form.fields || [];
+		form.emails = form.emails || [];
+
+		var fieldsWrap = $( '#vmail-fields' );
+		var emailsWrap = $( '#vmail-emails' );
+		var preview    = $( '#vmail-preview' );
+		var TYPES = { text: 'Text', email: 'Email', tel: 'Phone', textarea: 'Text area', select: 'Dropdown', checkbox: 'Checkbox', consent: 'Consent (Datenschutz)' };
+
+		function typeOptions( sel ) {
+			return Object.keys( TYPES ).map( function ( v ) {
+				return '<option value="' + v + '"' + ( v === sel ? ' selected' : '' ) + '>' + TYPES[ v ] + '</option>';
+			} ).join( '' );
+		}
+
+		function renderFields() {
+			fieldsWrap.innerHTML = '';
+			form.fields.forEach( function ( f, i ) {
+				var row = document.createElement( 'div' );
+				row.className = 'vmail-field';
+				var hasOpts = f.type === 'select';
+				row.innerHTML =
+					'<div class="vmail-field-top">' +
+						'<input type="text" class="velox-input vmail-f-label" placeholder="Label" value="' + escapeHtml( f.label || '' ) + '">' +
+						'<select class="velox-select vmail-f-type">' + typeOptions( f.type ) + '</select>' +
+						'<label class="vmail-f-req"><input type="checkbox" class="vmail-f-required"' + ( f.required ? ' checked' : '' ) + '> required</label>' +
+						'<button type="button" class="velox-btn velox-btn--ghost vmail-f-up">↑</button>' +
+						'<button type="button" class="velox-btn velox-btn--ghost vmail-f-del">✕</button>' +
+					'</div>' +
+					'<input type="text" class="velox-input vmail-f-ph" placeholder="Placeholder (optional)" value="' + escapeHtml( f.placeholder || '' ) + '">' +
+					'<textarea class="velox-textarea vmail-f-opts" rows="3" placeholder="One option per line"' + ( hasOpts ? '' : ' hidden' ) + '>' + escapeHtml( f.options || '' ) + '</textarea>';
+				fieldsWrap.appendChild( row );
+
+				row.querySelector( '.vmail-f-type' ).addEventListener( 'change', function ( e ) {
+					row.querySelector( '.vmail-f-opts' ).hidden = e.target.value !== 'select';
+					sync(); renderPreview();
+				} );
+				row.querySelectorAll( 'input, textarea' ).forEach( function ( el ) {
+					el.addEventListener( 'input', function () { sync(); renderPreview(); } );
+				} );
+				row.querySelector( '.vmail-f-del' ).addEventListener( 'click', function () { form.fields.splice( i, 1 ); renderFields(); renderPreview(); } );
+				row.querySelector( '.vmail-f-up' ).addEventListener( 'click', function () {
+					if ( i > 0 ) { var t = form.fields[ i - 1 ]; form.fields[ i - 1 ] = form.fields[ i ]; form.fields[ i ] = t; renderFields(); renderPreview(); }
+				} );
+			} );
+		}
+
+		function renderEmails() {
+			emailsWrap.innerHTML = '';
+			[ 'admin', 'customer' ].forEach( function ( kind ) {
+				var e = form.emails.filter( function ( x ) { return x.type === kind; } )[ 0 ];
+				if ( ! e ) { e = { type: kind, enabled: false, to: '', to_field: 'email', cc: '', subject: '', body: '' }; form.emails.push( e ); }
+				var block = document.createElement( 'div' );
+				block.className = 'vmail-email';
+				block.setAttribute( 'data-type', kind );
+				var toRow = kind === 'admin'
+					? '<div class="velox-field"><span class="velox-field-label">Send to</span><input type="text" class="velox-input vm-to" value="' + escapeHtml( e.to || '' ) + '" placeholder="you@agency.com"></div>'
+					: '<div class="velox-field"><span class="velox-field-label">Send to the value of field</span><input type="text" class="velox-input vm-tofield" value="' + escapeHtml( e.to_field || 'email' ) + '" placeholder="email"></div>';
+				block.innerHTML =
+					'<label class="vmail-email-head"><input type="checkbox" class="vm-enabled"' + ( e.enabled ? ' checked' : '' ) + '> <strong>' + ( kind === 'admin' ? 'Admin notification (to you)' : 'Customer auto-reply' ) + '</strong></label>' +
+					toRow +
+					'<div class="velox-field"><span class="velox-field-label">CC</span><input type="text" class="velox-input vm-cc" value="' + escapeHtml( e.cc || '' ) + '" placeholder="comma,separated"></div>' +
+					'<div class="velox-field"><span class="velox-field-label">Subject</span><input type="text" class="velox-input vm-subject" value="' + escapeHtml( e.subject || '' ) + '"></div>' +
+					'<div class="velox-field"><span class="velox-field-label">Body</span><textarea class="velox-textarea vm-body" rows="5">' + escapeHtml( e.body || '' ) + '</textarea></div>';
+				emailsWrap.appendChild( block );
+				block.querySelectorAll( 'input, textarea' ).forEach( function ( el ) { el.addEventListener( 'input', sync ); } );
+			} );
+		}
+
+		function sync() {
+			// fields
+			var rows = $$( '.vmail-field', fieldsWrap );
+			form.fields = rows.map( function ( row ) {
+				return {
+					key: '',
+					label: row.querySelector( '.vmail-f-label' ).value,
+					type: row.querySelector( '.vmail-f-type' ).value,
+					required: row.querySelector( '.vmail-f-required' ).checked,
+					placeholder: row.querySelector( '.vmail-f-ph' ).value,
+					options: row.querySelector( '.vmail-f-opts' ).value,
+				};
+			} );
+			// derive keys from labels (stable, unique-ish)
+			var used = {};
+			form.fields.forEach( function ( f ) {
+				var base = ( f.label || 'field' ).toLowerCase().replace( /[^a-z0-9]+/g, '_' ).replace( /^_|_$/g, '' ) || 'field';
+				var k = base, n = 2;
+				while ( used[ k ] ) { k = base + '_' + ( n++ ); }
+				used[ k ] = 1; f.key = k;
+			} );
+			// emails
+			$$( '.vmail-email', emailsWrap ).forEach( function ( block ) {
+				var kind = block.getAttribute( 'data-type' );
+				var e = form.emails.filter( function ( x ) { return x.type === kind; } )[ 0 ];
+				e.enabled = block.querySelector( '.vm-enabled' ).checked;
+				if ( kind === 'admin' ) { e.to = block.querySelector( '.vm-to' ).value; }
+				else { e.to_field = block.querySelector( '.vm-tofield' ).value; }
+				e.cc = block.querySelector( '.vm-cc' ).value;
+				e.subject = block.querySelector( '.vm-subject' ).value;
+				e.body = block.querySelector( '.vm-body' ).value;
+			} );
+			// settings
+			form.title = $( '#vmail-title' ).value;
+			form.submit_label = $( '#vmail-submit' ).value;
+			form.success = $( '#vmail-success' ).value;
+			form.accent = $( '#vmail-accent' ).value;
+			form.captcha = $( '#vmail-captcha' ).checked;
+		}
+
+		function renderPreview() {
+			var html = '<form class="velox-form" style="--vf-accent:' + escapeHtml( form.accent || '#2ab7f1' ) + '" onsubmit="return false">';
+			form.fields.forEach( function ( f ) {
+				var star = f.required ? ' <span class="velox-req">*</span>' : '';
+				if ( f.type === 'consent' || f.type === 'checkbox' ) {
+					html += '<label class="velox-form-consent"><input type="checkbox"><span>' + escapeHtml( f.label ) + star + '</span></label>';
+				} else if ( f.type === 'textarea' ) {
+					html += '<label class="velox-form-field"><span class="velox-form-label">' + escapeHtml( f.label ) + star + '</span><textarea rows="4" placeholder="' + escapeHtml( f.placeholder || '' ) + '"></textarea></label>';
+				} else if ( f.type === 'select' ) {
+					var opts = ( f.options || '' ).split( '\n' ).filter( Boolean ).map( function ( o ) { return '<option>' + escapeHtml( o.trim() ) + '</option>'; } ).join( '' );
+					html += '<label class="velox-form-field"><span class="velox-form-label">' + escapeHtml( f.label ) + star + '</span><select><option>—</option>' + opts + '</select></label>';
+				} else {
+					html += '<label class="velox-form-field"><span class="velox-form-label">' + escapeHtml( f.label ) + star + '</span><input type="' + f.type + '" placeholder="' + escapeHtml( f.placeholder || '' ) + '"></label>';
+				}
+			} );
+			html += '<button type="button" class="velox-form-submit">' + escapeHtml( form.submit_label || 'Send' ) + '</button></form>';
+			preview.innerHTML = html;
+		}
+
+		// add field
+		$( '#vmail-addfield' ).addEventListener( 'click', function () {
+			var type = $( '#vmail-newtype' ).value;
+			form.fields.push( { key: '', type: type, label: TYPES[ type ], required: false, placeholder: '', options: '' } );
+			renderFields(); renderPreview();
+		} );
+		[ '#vmail-title', '#vmail-submit', '#vmail-success', '#vmail-accent', '#vmail-captcha' ].forEach( function ( sel ) {
+			var el = $( sel );
+			if ( el ) { el.addEventListener( 'input', function () { sync(); renderPreview(); } ); }
+		} );
+
+		$( '#vmail-save' ).addEventListener( 'click', function () {
+			sync();
+			var btn = $( '#vmail-save' );
+			btn.disabled = true;
+			api( 'form_save', { form: JSON.stringify( form ) } )
+				.then( function ( r ) {
+					toast( 'Form saved.' );
+					setTimeout( function () {
+						location.href = location.pathname + '?page=velox-utilities&tool=mail';
+					}, 500 );
+				} )
+				.catch( function ( e ) { toast( e.message, 'error' ); btn.disabled = false; } );
+		} );
+
+		renderFields();
+		renderEmails();
+		renderPreview();
+	}
+
+	function initScripts() {
+		var toggle = $( '#velox-sm-toggle' );
+		if ( toggle ) {
+			toggle.addEventListener( 'change', function () {
+				saveSettings( { util_scripts: toggle.checked ? 1 : 0 }, toggle.checked ? 'Script Manager on.' : 'Script Manager off.' )
+					.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
+			} );
+		}
+		var list = $( '.velox-sm-list' );
+		if ( ! list ) {
+			return;
+		}
+		// Show/hide the ids box when the mode needs targets.
+		$$( '.velox-sm-row' ).forEach( function ( row ) {
+			var mode = row.querySelector( '.velox-sm-mode' );
+			var ids  = row.querySelector( '.velox-sm-ids' );
+			mode.addEventListener( 'change', function () {
+				ids.hidden = ! ( mode.value === 'except' || mode.value === 'only' );
+			} );
+		} );
+
+		function collectRules() {
+			var rules = {};
+			$$( '.velox-sm-row' ).forEach( function ( row ) {
+				var mode = row.querySelector( '.velox-sm-mode' ).value;
+				if ( mode === 'off' ) { return; }
+				var handle = row.getAttribute( 'data-handle' );
+				var type   = row.getAttribute( 'data-type' );
+				rules[ type + ':' + handle ] = {
+					handle: handle,
+					type: type,
+					mode: mode,
+					ids: row.querySelector( '.velox-sm-ids' ).value,
+				};
+			} );
+			return rules;
+		}
+
+		function save( btn ) {
+			btn.disabled = true;
+			api( 'scripts_save', { rules: JSON.stringify( collectRules() ) } )
+				.then( function ( r ) { toast( 'Saved ' + ( r.count || 0 ) + ' rule(s).' ); } )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { btn.disabled = false; } );
+		}
+		[ '#velox-sm-save', '#velox-sm-save-2' ].forEach( function ( sel ) {
+			var b = $( sel );
+			if ( b ) { b.addEventListener( 'click', function () { save( b ); } ); }
+		} );
+
+		var scanBtn = $( '#velox-sm-scan' );
+		if ( scanBtn ) {
+			scanBtn.addEventListener( 'click', function () {
+				scanBtn.disabled = true;
+				scanBtn.textContent = 'Scanning…';
+				api( 'scripts_scan', {} )
+					.then( function ( r ) {
+						if ( ! r.ok ) { toast( r.message || 'Scan failed.', 'error' ); return; }
+						toast( 'Found ' + r.scripts + ' scripts, ' + r.styles + ' styles.' );
+						setTimeout( function () { location.reload(); }, 700 );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { scanBtn.disabled = false; scanBtn.textContent = 'Scan front page'; } );
+			} );
+		}
+
+		var clearBtn = $( '#velox-sm-clear' );
+		if ( clearBtn ) {
+			clearBtn.addEventListener( 'click', function () {
+				if ( ! window.confirm( 'Clear the discovered handle list? Your rules stay saved.' ) ) { return; }
+				api( 'scripts_clear', {} )
+					.then( function () { location.reload(); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+			} );
+		}
+	}
+
+	function initActivity() {
+		var toggle = $( '#velox-activity-toggle' );
+		if ( toggle ) {
+			toggle.addEventListener( 'change', function () {
+				saveSettings( { util_activity: toggle.checked ? 1 : 0 }, toggle.checked ? 'Recording activity.' : 'Stopped recording.' )
+					.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
+			} );
+		}
+		var clearBtn = $( '#velox-activity-clear' );
+		if ( clearBtn ) {
+			clearBtn.addEventListener( 'click', function () {
+				if ( ! window.confirm( 'Clear the entire activity log?' ) ) { return; }
+				api( 'activity_clear', {} )
+					.then( function () { location.reload(); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+			} );
+		}
+	}
+
+	function initUnusedMedia() {
+		var scanBtn = $( '#velox-media-scan' );
+		if ( ! scanBtn ) {
+			return;
+		}
+		var delBtn  = $( '#velox-media-delete' );
+		var results = $( '#velox-media-results' );
+		var summary = $( '#velox-media-summary' );
+
+		function fmtBytes( b ) {
+			if ( ! b ) { return '0 KB'; }
+			var u = [ 'B', 'KB', 'MB', 'GB' ], i = Math.floor( Math.log( b ) / Math.log( 1024 ) );
+			return ( b / Math.pow( 1024, i ) ).toFixed( 1 ) + ' ' + u[ i ];
+		}
+		function refreshSelection() {
+			var checked = $$( '.velox-media-pick:checked', results );
+			delBtn.hidden = checked.length === 0;
+			delBtn.textContent = 'Delete selected (' + checked.length + ')';
+		}
+
+		scanBtn.addEventListener( 'click', function () {
+			scanBtn.disabled = true;
+			scanBtn.textContent = 'Scanning…';
+			summary.textContent = '';
+			results.innerHTML = '';
+			api( 'media_scan', {} )
+				.then( function ( d ) {
+					var items = d.items || [];
+					if ( ! items.length ) {
+						results.innerHTML = '<p class="velox-hint">Nothing flagged — every image looks referenced. 🎉</p>';
+						summary.textContent = '';
+						return;
+					}
+					var total = 0;
+					items.forEach( function ( it ) {
+						total += it.bytes || 0;
+						var card = document.createElement( 'label' );
+						card.className = 'velox-media-item';
+						card.innerHTML =
+							'<input type="checkbox" class="velox-media-pick" value="' + it.id + '">' +
+							'<img src="' + it.thumb + '" alt="" loading="lazy">' +
+							'<span class="velox-media-name">' + ( it.title || ( '#' + it.id ) ) + '</span>' +
+							'<span class="velox-media-size">' + fmtBytes( it.bytes ) + '</span>';
+						results.appendChild( card );
+					} );
+					summary.textContent = items.length + ' possibly-unused image' + ( items.length === 1 ? '' : 's' ) + ' · ' + fmtBytes( total ) + ' reclaimable';
+					$$( '.velox-media-pick', results ).forEach( function ( c ) { c.addEventListener( 'change', refreshSelection ); } );
+				} )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { scanBtn.disabled = false; scanBtn.textContent = 'Scan media library'; } );
+		} );
+
+		delBtn.addEventListener( 'click', function () {
+			var ids = $$( '.velox-media-pick:checked', results ).map( function ( c ) { return c.value; } );
+			if ( ! ids.length || ! window.confirm( 'Permanently delete ' + ids.length + ' file(s)? This cannot be undone.' ) ) {
+				return;
+			}
+			delBtn.disabled = true;
+			api( 'media_delete', { ids: ids } )
+				.then( function ( r ) {
+					toast( 'Deleted ' + ( r.deleted || 0 ) + ' file(s), freed ' + fmtBytes( r.freed || 0 ) + '.' );
+					$$( '.velox-media-pick:checked', results ).forEach( function ( c ) { c.closest( '.velox-media-item' ).remove(); } );
+					refreshSelection();
+				} )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { delBtn.disabled = false; } );
+		} );
+	}
+
+	function initInstaller() {
+		var runBtn = $( '#velox-installer-run' );
+		if ( ! runBtn ) {
+			return;
+		}
+		var slugsEl  = $( '#velox-installer-slugs' );
+		var actEl    = $( '#velox-installer-activate' );
+		var log      = $( '#velox-installer-log' );
+		var saveBtn  = $( '#velox-blueprint-save' );
+		var nameEl   = $( '#velox-blueprint-name' );
+		var list     = $( '#velox-blueprint-list' );
+
+		function parseSlugs() {
+			return ( slugsEl.value || '' )
+				.split( /[\n,]+/ )
+				.map( function ( s ) { return s.trim().toLowerCase(); } )
+				.filter( Boolean );
+		}
+		function logLine( slug, state, msg ) {
+			var row = document.createElement( 'div' );
+			row.className = 'velox-install-row is-' + state;
+			row.innerHTML = '<span class="velox-install-slug">' + slug + '</span><span class="velox-install-msg">' + msg + '</span>';
+			log.appendChild( row );
+			return row;
+		}
+
+		runBtn.addEventListener( 'click', function () {
+			var slugs = parseSlugs();
+			if ( ! slugs.length ) {
+				toast( 'Add at least one plugin slug.', 'error' );
+				return;
+			}
+			var activate = actEl.checked;
+			log.hidden = false;
+			log.innerHTML = '';
+			runBtn.disabled = true;
+			runBtn.textContent = 'Installing…';
+
+			// Install one at a time so the user sees real progress and we avoid timeouts.
+			var i = 0;
+			function next() {
+				if ( i >= slugs.length ) {
+					runBtn.disabled = false;
+					runBtn.textContent = 'Install all';
+					toast( 'Done.' );
+					return;
+				}
+				var slug = slugs[ i++ ];
+				var row  = logLine( slug, 'pending', 'Installing…' );
+				api( 'installer_install', { slug: slug, activate: activate ? '1' : 'false' } )
+					.then( function ( r ) {
+						row.className = 'velox-install-row is-' + ( r.ok ? 'ok' : 'fail' );
+						row.querySelector( '.velox-install-msg' ).textContent = r.message || ( r.ok ? 'Done.' : 'Failed.' );
+					} )
+					.catch( function ( e ) {
+						row.className = 'velox-install-row is-fail';
+						row.querySelector( '.velox-install-msg' ).textContent = e.message || 'Failed.';
+					} )
+					.then( next );
+			}
+			next();
+		} );
+
+		saveBtn.addEventListener( 'click', function () {
+			var slugs = parseSlugs();
+			var name  = ( nameEl.value || '' ).trim();
+			if ( ! name ) { toast( 'Name the blueprint first.', 'error' ); return; }
+			if ( ! slugs.length ) { toast( 'Add some slugs to save.', 'error' ); return; }
+			saveBtn.disabled = true;
+			api( 'blueprint_save', { name: name, slugs: slugs } )
+				.then( function () { toast( 'Blueprint saved.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+				.catch( function ( e ) { toast( e.message, 'error' ); saveBtn.disabled = false; } );
+		} );
+
+		if ( list ) {
+			list.addEventListener( 'click', function ( e ) {
+				var item = e.target.closest( '.velox-bp-item' );
+				if ( ! item ) { return; }
+				if ( e.target.classList.contains( 'velox-bp-load' ) ) {
+					slugsEl.value = item.getAttribute( 'data-slugs' );
+					nameEl.value  = item.getAttribute( 'data-name' );
+					slugsEl.scrollIntoView( { behavior: 'smooth', block: 'center' } );
+					toast( 'Loaded into the installer.' );
+				} else if ( e.target.classList.contains( 'velox-bp-del' ) ) {
+					if ( ! window.confirm( 'Delete this blueprint?' ) ) { return; }
+					api( 'blueprint_delete', { name: item.getAttribute( 'data-name' ) } )
+						.then( function () { item.remove(); toast( 'Deleted.' ); } )
+						.catch( function ( e2 ) { toast( e2.message, 'error' ); } );
+				}
+			} );
+		}
+	}
+
+	function initRedirects() {
+		var addBtn = $( '#velox-redir-add' );
+		if ( ! addBtn ) {
+			return;
+		}
+		var srcEl  = $( '#velox-redir-source' );
+		var tgtEl  = $( '#velox-redir-target' );
+		var typeEl = $( '#velox-redir-type' );
+
+		addBtn.addEventListener( 'click', function () {
+			if ( ! srcEl.value.trim() ) { toast( 'Enter a source path.', 'error' ); return; }
+			addBtn.disabled = true;
+			api( 'redirect_add', { source: srcEl.value, target: tgtEl.value, type: typeEl.value } )
+				.then( function ( r ) {
+					if ( ! r.ok ) { toast( r.message || 'Could not add.', 'error' ); return; }
+					toast( 'Redirect added.' );
+					setTimeout( function () { location.reload(); }, 400 );
+				} )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { addBtn.disabled = false; } );
+		} );
+
+		var redirList = $( '#velox-redir-list' );
+		if ( redirList ) {
+			redirList.addEventListener( 'click', function ( e ) {
+				if ( ! e.target.classList.contains( 'velox-redir-del' ) ) { return; }
+				var row = e.target.closest( '.velox-redir-row' );
+				api( 'redirect_delete', { id: row.getAttribute( 'data-id' ) } )
+					.then( function () { row.remove(); toast( 'Deleted.' ); } )
+					.catch( function ( er ) { toast( er.message, 'error' ); } );
+			} );
+		}
+
+		var logToggle = $( '#velox-log-toggle' );
+		if ( logToggle ) {
+			logToggle.addEventListener( 'change', function () {
+				saveSettings( { util_redirects_log_404: logToggle.checked ? 1 : 0 }, logToggle.checked ? 'Logging 404s.' : 'Stopped logging.' );
+			} );
+		}
+
+		var clearBtn = $( '#velox-log-clear' );
+		if ( clearBtn ) {
+			clearBtn.addEventListener( 'click', function () {
+				if ( ! window.confirm( 'Clear the whole 404 log?' ) ) { return; }
+				api( 'log_clear', {} )
+					.then( function () { location.reload(); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+			} );
+		}
+
+		var logList = $( '#velox-log-list' );
+		if ( logList ) {
+			logList.addEventListener( 'click', function ( e ) {
+				var row = e.target.closest( '.velox-log-row' );
+				if ( ! row ) { return; }
+				if ( e.target.classList.contains( 'velox-log-fix' ) ) {
+					srcEl.value = row.getAttribute( 'data-path' );
+					tgtEl.focus();
+					srcEl.scrollIntoView( { behavior: 'smooth', block: 'center' } );
+				} else if ( e.target.classList.contains( 'velox-log-forget' ) ) {
+					api( 'log_forget', { id: row.getAttribute( 'data-id' ) } )
+						.then( function () { row.remove(); } )
+						.catch( function ( er ) { toast( er.message, 'error' ); } );
+				}
+			} );
+		}
+	}
+
+	function initSeo() {
+		var robots = $( '#velox-seo-robots' );
+		var applyBtn = $( '#velox-seo-apply' );
+		if ( ! robots && ! applyBtn ) {
+			return;
+		}
+		var saveBtn = $( '#velox-seo-robots-save' );
+		if ( saveBtn ) {
+			saveBtn.addEventListener( 'click', function () {
+				saveBtn.disabled = true;
+				api( 'seo_robots_save', { content: robots.value } )
+					.then( function ( r ) { toast( r && r.physical ? 'Saved — but a physical robots.txt still overrides this.' : 'robots.txt saved.', r && r.physical ? 'warn' : undefined ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { saveBtn.disabled = false; } );
+			} );
+		}
+		var resetBtn = $( '#velox-seo-robots-reset' );
+		if ( resetBtn ) {
+			resetBtn.addEventListener( 'click', function () {
+				resetBtn.disabled = true;
+				api( 'seo_robots_reset' )
+					.then( function ( r ) { if ( r && r.content && robots ) { robots.value = r.content; } toast( 'Reset to recommended.' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { resetBtn.disabled = false; } );
+			} );
+		}
+		var genBtn = $( '#velox-seo-smap-gen' );
+		if ( genBtn ) {
+			genBtn.addEventListener( 'click', function () {
+				genBtn.disabled = true;
+				genBtn.textContent = 'Generating…';
+				api( 'seo_sitemap_generate' )
+					.then( function ( r ) {
+						var c = $( '#velox-seo-smap-count' );
+						if ( c && r ) { c.textContent = r.urls; }
+						toast( 'Sitemap regenerated — ' + ( ( r && r.urls ) || 0 ) + ' URLs.' );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { genBtn.disabled = false; genBtn.textContent = 'Regenerate sitemap'; } );
+			} );
+		}
+		if ( applyBtn ) {
+			applyBtn.addEventListener( 'click', function () {
+				applyBtn.disabled = true;
+				applyBtn.textContent = 'Applying…';
+				api( 'seo_apply_recommended' )
+					.then( function ( r ) {
+						if ( r && r.content && robots ) { robots.value = r.content; }
+						var en = $( '#velox-seo-robots-enable' ), se = $( '#velox-seo-sitemap-enable' );
+						if ( en ) { en.checked = true; }
+						if ( se ) { se.checked = true; }
+						toast( ( r && r.physical_robots ) ? 'Applied — heads up: a physical robots.txt still overrides the virtual one.' : 'Recommended SEO setup applied.', ( r && r.physical_robots ) ? 'warn' : undefined );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { applyBtn.disabled = false; applyBtn.textContent = 'Apply recommended setup'; } );
+			} );
+		}
 	}
 
 	document.addEventListener( 'DOMContentLoaded', function () {
@@ -1719,6 +2388,7 @@
 		initMedia();
 		initPerformance();
 		initDatabase();
+		initSeo();
 		initSettings();
 	} );
 } )();

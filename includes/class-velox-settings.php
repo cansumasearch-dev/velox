@@ -25,6 +25,12 @@ class Velox_Settings {
 			'module_media'       => true,
 			'module_performance' => true,
 			'module_database'    => true,
+			'module_seo'         => true,
+
+			// ---- SEO ----
+			'seo_robots_enable'  => true,
+			'seo_robots_content' => '', // empty = use the recommended default template
+			'seo_sitemap_enable' => true,
 
 			// ---- Builder-aware setup ----
 			'builder'            => '',     // chosen page builder id ('' = wizard not run)
@@ -33,6 +39,37 @@ class Velox_Settings {
 			// ---- Utilities (each tool off by default) ----
 			'util_svg_upload'    => false,
 			'util_duplicate'     => false,
+			'util_maintenance'         => false,
+			'util_maintenance_title'   => 'We\'ll be right back',
+			'util_maintenance_message' => 'The site is undergoing a little maintenance. Please check back shortly.',
+			'util_login_slug'          => '',     // empty = default wp-login; set a slug to move it
+			'util_redirects_log_404'   => true,
+			'util_activity'            => false,
+			'util_scripts'             => false,
+			'util_mail'                => false,
+
+			// ---- Page cache ----
+			'cache_enable'          => false,
+			'cache_ttl'             => 36000,   // seconds (10h)
+			'cache_logged_in'       => false,
+			'cache_mobile_separate' => false,
+			'cache_gzip'            => true,
+			'cache_exclude_urls'    => '',
+			'cache_exclude_cookies' => '',
+
+			// ---- Mail & forms ----
+			'mail_smtp_enabled'   => false,
+			'mail_smtp_host'      => '',
+			'mail_smtp_port'      => 587,
+			'mail_smtp_secure'    => 'tls',  // tls | ssl | none
+			'mail_smtp_user'      => '',
+			'mail_smtp_pass'      => '',
+			'mail_smtp_from'      => '',
+			'mail_smtp_from_name' => '',
+			'mail_captcha_provider' => 'turnstile', // turnstile | recaptcha
+			'mail_captcha_site'   => '',
+			'mail_captcha_secret' => '',
+			'mail_log'            => true,
 
 			// ---- Image optimizer / WebP ----
 			'webp_quality'       => 80,
@@ -40,6 +77,10 @@ class Velox_Settings {
 			'webp_auto_convert'  => false,
 			'webp_convert_sizes' => true,
 			'webp_serve_rewrite' => false,
+			'image_engine'       => 'auto', // auto | imagick | gd
+			'image_webp'         => true,   // generate WebP output
+			'image_avif'         => false, // also generate AVIF twins + serve them to capable browsers
+			'image_lossless'     => false, // lossless WebP/AVIF (Imagick) — bigger files, perfect quality
 			'image_keep_exif'    => false, // strip camera/GPS metadata by default for smaller files
 			'image_max_width'    => 2560,  // downscale oversized uploads/conversions; 0 = off
 			'image_comparison'   => true,  // show the old/new comparator in the Images tab
@@ -101,12 +142,18 @@ class Velox_Settings {
 			'perf_fonts_display_swap'    => true,
 			'perf_local_fonts'           => false, // host Google Fonts locally (OMGF-style)
 			'perf_preload_fonts'         => '',    // one font URL per line
+			'perf_system_fonts'          => false, // skip web fonts, use the system stack
 
 			// ---- Performance · Preload / Network ----
 			'perf_dns_prefetch'          => "https://cdnjs.cloudflare.com\nhttps://fonts.gstatic.com",
 			'perf_preconnect'            => '',    // one origin per line
 			'perf_speculative_loading'   => 'off', // off | conservative | moderate
 			'perf_preload_assets'        => '',    // one URL per line (css/js/img)
+
+			// ---- Performance · CDN ----
+			'perf_cdn_enable'            => false, // rewrite static asset URLs to a CDN host
+			'perf_cdn_url'               => '',    // e.g. https://cdn.example.com
+			'perf_cdn_exclude'           => '',    // URL fragments to keep on the origin, one per line
 
 			// ---- Database ----
 			'db_schedule_cleanup'        => false,
@@ -119,6 +166,10 @@ class Velox_Settings {
 	/** Performance keys grouped by sub-section, used by the Performance view + hide logic. */
 	public static function perf_sections() {
 		return array(
+			'cache' => array(
+				'label' => 'Cache',
+				'keys'  => array( 'cache_enable', 'cache_ttl', 'cache_logged_in', 'cache_mobile_separate', 'cache_gzip', 'cache_exclude_urls', 'cache_exclude_cookies' ),
+			),
 			'general' => array(
 				'label' => 'General',
 				'keys'  => array(
@@ -142,11 +193,15 @@ class Velox_Settings {
 			),
 			'fonts' => array(
 				'label' => 'Fonts',
-				'keys'  => array( 'perf_fonts_preconnect', 'perf_fonts_display_swap', 'perf_local_fonts', 'perf_preload_fonts' ),
+				'keys'  => array( 'perf_fonts_preconnect', 'perf_fonts_display_swap', 'perf_local_fonts', 'perf_preload_fonts', 'perf_system_fonts' ),
 			),
 			'preload' => array(
 				'label' => 'Preload & Network',
 				'keys'  => array( 'perf_dns_prefetch', 'perf_preconnect', 'perf_speculative_loading', 'perf_preload_assets' ),
+			),
+			'cdn' => array(
+				'label' => 'CDN',
+				'keys'  => array( 'perf_cdn_enable', 'perf_cdn_url', 'perf_cdn_exclude' ),
 			),
 			'background' => array(
 				'label' => 'Background',
@@ -165,6 +220,7 @@ class Velox_Settings {
 			'perf_rucss_engine', 'cf_account_id', 'cf_api_token', 'perf_rucss_urls',
 			'perf_delay_js', 'perf_delay_js_exclude', 'perf_delay_js_timeout',
 			'perf_content_visibility', 'perf_content_visibility_selector',
+			'perf_system_fonts', 'perf_cdn_enable', 'perf_cdn_url', 'perf_cdn_exclude',
 		);
 	}
 

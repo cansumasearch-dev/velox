@@ -181,6 +181,128 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'ok' => true, 'key' => $key, 'on' => $on ) );
 				break;
 
+			case 'media_scan':
+				wp_send_json_success( array( 'items' => Velox_Utilities::find_unused() ) );
+				break;
+
+			case 'media_delete':
+				$ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['ids'] ) ) : array();
+				wp_send_json_success( Velox_Utilities::delete_media( $ids ) );
+				break;
+
+			case 'installer_install':
+				$slug     = isset( $_POST['slug'] ) ? sanitize_key( wp_unslash( $_POST['slug'] ) ) : '';
+				$activate = ! empty( $_POST['activate'] ) && 'false' !== $_POST['activate'];
+				wp_send_json_success( Velox_Utilities::install_plugin( $slug, $activate ) );
+				break;
+
+			case 'blueprint_save':
+				$name  = isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '';
+				$slugs = isset( $_POST['slugs'] ) ? (array) wp_unslash( $_POST['slugs'] ) : array();
+				wp_send_json_success( Velox_Utilities::save_blueprint( $name, $slugs ) );
+				break;
+
+			case 'blueprint_delete':
+				$name = isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '';
+				wp_send_json_success( Velox_Utilities::delete_blueprint( $name ) );
+				break;
+
+			case 'redirect_add':
+				$src  = isset( $_POST['source'] ) ? wp_unslash( $_POST['source'] ) : '';
+				$tgt  = isset( $_POST['target'] ) ? wp_unslash( $_POST['target'] ) : '';
+				$type = isset( $_POST['type'] ) ? (int) $_POST['type'] : 301;
+				wp_send_json_success( Velox_Redirects::add( $src, $tgt, $type ) );
+				break;
+
+			case 'redirect_delete':
+				wp_send_json_success( Velox_Redirects::delete( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'log_clear':
+				wp_send_json_success( Velox_Redirects::clear_404s() );
+				break;
+
+			case 'log_forget':
+				wp_send_json_success( Velox_Redirects::forget_404( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'activity_clear':
+				wp_send_json_success( Velox_Activity::clear() );
+				break;
+
+			case 'scripts_scan':
+				wp_send_json_success( Velox_Scripts::scan() );
+				break;
+
+			case 'scripts_save':
+				$rules = isset( $_POST['rules'] ) ? json_decode( wp_unslash( $_POST['rules'] ), true ) : array();
+				wp_send_json_success( Velox_Scripts::save_rules( is_array( $rules ) ? $rules : array() ) );
+				break;
+
+			case 'scripts_clear':
+				wp_send_json_success( Velox_Scripts::clear_seen() );
+				break;
+
+			case 'form_save':
+				$form = isset( $_POST['form'] ) ? json_decode( wp_unslash( $_POST['form'] ), true ) : null;
+				if ( ! is_array( $form ) ) {
+					wp_send_json_error( array( 'message' => 'Invalid form data.' ) );
+				}
+				wp_send_json_success( Velox_Forms::save_form( $form ) );
+				break;
+
+			case 'form_delete':
+				wp_send_json_success( Velox_Forms::delete_form( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'submission_delete':
+				wp_send_json_success( Velox_Forms::delete_submission( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'mail_test':
+				wp_send_json_success( Velox_Mail::send_test( isset( $_POST['to'] ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : '' ) );
+				break;
+
+			case 'mail_log_clear':
+				wp_send_json_success( Velox_Mail::clear_log() );
+				break;
+
+			case 'cache_setup':
+				if ( Velox_Settings::get( 'cache_enable', false ) ) {
+					$st = Velox_Cache::install_dropin();
+					wp_send_json_success( $st );
+				}
+				Velox_Cache::remove_dropin();
+				wp_send_json_success( array( 'dropin' => false, 'wp_cache' => false, 'manual' => '' ) );
+				break;
+
+			case 'cache_purge':
+				Velox_Cache::purge_all();
+				wp_send_json_success( array( 'ok' => true ) );
+				break;
+
+			case 'cache_preload':
+				wp_send_json_success( Velox_Cache::preload( 30 ) );
+				break;
+
+			case 'seo_robots_save':
+				$content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
+				wp_send_json_success( Velox_Seo::save_robots( $content ) );
+				break;
+
+			case 'seo_robots_reset':
+				wp_send_json_success( Velox_Seo::save_robots( Velox_Seo::default_robots() ) + array( 'content' => Velox_Seo::default_robots() ) );
+				break;
+
+			case 'seo_sitemap_generate':
+				$ok = Velox_Seo::generate_sitemap();
+				wp_send_json_success( Velox_Seo::sitemap_stats() + array( 'generated' => $ok ) );
+				break;
+
+			case 'seo_apply_recommended':
+				wp_send_json_success( Velox_Seo::apply_recommended() + array( 'content' => Velox_Seo::default_robots() ) );
+				break;
+
 			case 'localize_fonts':
 				$fonts = new Velox_Fonts();
 				$this->respond( $fonts->localize() );
@@ -276,8 +398,21 @@ class Velox_Ajax {
 		if ( isset( $clean['perf_lazy_skip_count'] ) ) {
 			$clean['perf_lazy_skip_count'] = max( 0, min( 20, (int) $clean['perf_lazy_skip_count'] ) );
 		}
+		if ( isset( $clean['cache_ttl'] ) ) {
+			$clean['cache_ttl'] = max( 0, (int) $clean['cache_ttl'] );
+		}
 
 		Velox_Settings::save( $clean );
+
+		// Keep the page-cache drop-in config in step whenever a cache_* key was touched.
+		if ( class_exists( 'Velox_Cache' ) ) {
+			foreach ( $defaults as $key => $d ) {
+				if ( 0 === strpos( $key, 'cache_' ) && array_key_exists( $key, $raw ) ) {
+					Velox_Cache::write_config();
+					break;
+				}
+			}
+		}
 		wp_send_json_success( array( 'message' => __( 'Settings saved.', 'velox' ) ) );
 	}
 }
