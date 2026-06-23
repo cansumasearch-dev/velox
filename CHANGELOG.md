@@ -4,8 +4,18 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 1.10.0
+- New **Utilities** section: a hub for site and admin tools, each off by default and only loaded when you switch it on.
+- **SVG uploads** — allow SVG in the media library, sanitised on upload so they can't carry scripts.
+- **Duplicate post/page** — one-click "Duplicate" link on every post and page, clones it as a draft.
+- Reworked the layout onto a Bootstrap-style container so content uses the full width cleanly.
+
+## 1.9.3
+- The setup wizard now stays closed once you skip or dismiss it; it only reopens when you open it yourself.
+- Rewrote the plugin description (README + readme) in a plainer, more human voice.
+
 ## 1.9.2
-- Changed Velox position in the admin menu
+- Moved the Velox admin menu down next to the other plugin menus, so WordPress's core/plugin divider no longer leaves a gap right under it.
 
 ## 1.9.1
 - Sized and centred the Velox icon: 20px in the admin toolbar, 25px in the left admin menu.

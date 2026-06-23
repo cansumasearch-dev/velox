@@ -30,6 +30,10 @@ class Velox_Settings {
 			'builder'            => '',     // chosen page builder id ('' = wizard not run)
 			'wizard_done'        => false,  // has the setup wizard been completed/dismissed
 
+			// ---- Utilities (each tool off by default) ----
+			'util_svg_upload'    => false,
+			'util_duplicate'     => false,
+
 			// ---- Image optimizer / WebP ----
 			'webp_quality'       => 80,
 			'webp_keep_original' => true,

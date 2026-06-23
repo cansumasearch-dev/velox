@@ -170,6 +170,17 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'ok' => true ) );
 				break;
 
+			case 'util_toggle':
+				$key = isset( $_POST['key'] ) ? sanitize_key( wp_unslash( $_POST['key'] ) ) : '';
+				$on  = ! empty( $_POST['on'] ) && 'false' !== $_POST['on'];
+				$allowed = array( 'util_svg_upload', 'util_duplicate' );
+				if ( ! in_array( $key, $allowed, true ) ) {
+					wp_send_json_error( array( 'message' => 'Unknown tool.' ) );
+				}
+				Velox_Settings::set( $key, $on );
+				wp_send_json_success( array( 'ok' => true, 'key' => $key, 'on' => $on ) );
+				break;
+
 			case 'localize_fonts':
 				$fonts = new Velox_Fonts();
 				$this->respond( $fonts->localize() );

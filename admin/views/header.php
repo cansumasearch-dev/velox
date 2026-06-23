@@ -12,11 +12,12 @@ $vx_detected  = Velox_Builders::detect();
 $vx_wizard    = (bool) Velox_Settings::get( 'wizard_done' );
 $vx_forceopen = isset( $_GET['velox_wizard'] );
 // Auto-open when: never set up, forced via link, or the active builder changed.
-$vx_autoopen  = $vx_forceopen || '' === $vx_current || ( 'wordpress' !== $vx_detected && $vx_detected !== $vx_current );
+$vx_autoopen  = $vx_forceopen || ( ! $vx_wizard && '' === $vx_current );
 ?>
 <div class="velox-wrap" data-tab="<?php echo esc_attr( $current ); ?>">
 
 	<header class="velox-topbar">
+		<div class="velox-bar-inner velox-container">
 		<div class="velox-brand">
 			<span class="velox-logo" aria-hidden="true">
 				<img src="<?php echo esc_url( VELOX_URL . 'assets/menu-icon.png' ); ?>" alt="" width="22" height="22">
@@ -33,6 +34,7 @@ $vx_autoopen  = $vx_forceopen || '' === $vx_current || ( 'wordpress' !== $vx_det
 				</a>
 			<?php endforeach; ?>
 		</nav>
+		</div>
 	</header>
 
 	<div class="velox-toast" id="velox-toast"></div>
@@ -86,4 +88,4 @@ $vx_autoopen  = $vx_forceopen || '' === $vx_current || ( 'wordpress' !== $vx_det
 		</div>
 	</div>
 
-	<main class="velox-main">
+	<main class="velox-main velox-container">

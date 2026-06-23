@@ -1696,8 +1696,23 @@
 		} );
 	}
 
+	function initUtilities() {
+		$$( '.velox-util-toggle' ).forEach( function ( box ) {
+			box.addEventListener( 'change', function () {
+				var key = box.getAttribute( 'data-key' );
+				var on  = box.checked;
+				box.disabled = true;
+				api( 'util_toggle', { key: key, on: on ? '1' : 'false' } )
+					.then( function () { toast( on ? 'Turned on.' : 'Turned off.' ); } )
+					.catch( function ( e ) { box.checked = ! on; toast( e.message, 'error' ); } )
+					.then( function () { box.disabled = false; } );
+			} );
+		} );
+	}
+
 	document.addEventListener( 'DOMContentLoaded', function () {
 		initWizard();
+		initUtilities();
 		initDashboard();
 		initImages();
 		initLibrary();

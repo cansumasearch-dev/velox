@@ -55,6 +55,7 @@ final class Velox {
 		// Always-on.
 		$this->ajax    = new Velox_Ajax();
 		$this->updater = new Velox_Updater();
+		Velox_Utilities::init();
 
 		if ( is_admin() ) {
 			$this->admin = new Velox_Admin();

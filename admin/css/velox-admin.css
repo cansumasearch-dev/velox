@@ -30,15 +30,23 @@
 }
 .velox-wrap a { text-decoration: none; }
 
+/* ---------- Bootstrap-style container ---------- */
+.velox-container { width: 100%; margin-right: auto; margin-left: auto; padding-right: 24px; padding-left: 24px; }
+@media (min-width: 576px)  { .velox-container { max-width: 540px; } }
+@media (min-width: 768px)  { .velox-container { max-width: 720px; } }
+@media (min-width: 992px)  { .velox-container { max-width: 960px; } }
+@media (min-width: 1200px) { .velox-container { max-width: 1140px; } }
+@media (min-width: 1400px) { .velox-container { max-width: 1320px; } }
+
 /* ---------- Top bar ---------- */
 .velox-topbar {
 	position: sticky; top: 32px; z-index: 20;
-	display: flex; align-items: center; gap: 28px;
-	padding: 14px 32px;
+	padding: 14px 0;
 	background: rgba(255,255,255,.82);
 	backdrop-filter: saturate(180%) blur(16px);
 	border-bottom: 1px solid var(--vx-line);
 }
+.velox-bar-inner { display: flex; align-items: center; gap: 28px; }
 .velox-brand { display: flex; align-items: center; gap: 9px; }
 .velox-logo { color: var(--vx-accent); display: inline-flex; }
 .velox-name { font-weight: 800; font-size: 19px; letter-spacing: -.02em; }
@@ -60,7 +68,8 @@
 .velox-ic { flex: none; }
 
 /* ---------- Layout ---------- */
-.velox-main { max-width: 1240px; margin: 0 auto; padding: 40px 40px 96px; }
+.velox-main { padding-top: 40px; padding-bottom: 96px; }
+.velox-main > * { width: 100%; }
 .velox-page-head { margin-bottom: 24px; }
 .velox-h1 { font-size: 38px; line-height: 1.1; font-weight: 800; letter-spacing: -.03em; margin: 0 0 12px; }
 .velox-h2 { font-size: 28px; font-weight: 800; letter-spacing: -.02em; margin: 0 0 6px; }
@@ -418,3 +427,24 @@
 .velox-wizard-actions{display:flex;gap:10px;justify-content:flex-end;margin-top:24px}
 #velox-wizard-req{margin-top:10px;text-align:left;display:flex;gap:8px;align-items:center}
 #velox-wizard-req .velox-input{margin-bottom:0}
+
+/* ---- Utilities hub ---- */
+.velox-util-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
+.velox-util-card { display: flex; gap: 16px; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-radius); padding: 22px; box-shadow: var(--vx-shadow); transition: box-shadow .15s, transform .15s; }
+.velox-util-card:hover { box-shadow: var(--vx-shadow-h); }
+.velox-util-card.is-planned { opacity: .62; }
+.velox-util-ic { flex: none; width: 44px; height: 44px; border-radius: 12px; background: var(--vx-bg); display: flex; align-items: center; justify-content: center; color: var(--vx-accent); }
+.velox-util-body { flex: 1; min-width: 0; }
+.velox-util-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.velox-util-name { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
+.velox-util-desc { color: var(--vx-ink-2); font-size: 13.5px; line-height: 1.5; margin: 0; }
+.velox-util-badge { flex: none; font-size: 11px; font-weight: 600; color: var(--vx-ink-2); background: var(--vx-bg); border: 1px solid var(--vx-line); padding: 3px 9px; border-radius: 999px; }
+
+/* ---- Switch ---- */
+.velox-switch { position: relative; display: inline-block; flex: none; cursor: pointer; }
+.velox-switch input { position: absolute; opacity: 0; width: 0; height: 0; }
+.velox-switch-track { display: block; width: 42px; height: 24px; border-radius: 999px; background: #cdd2d9; transition: background .18s; }
+.velox-switch-track::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.3); transition: transform .18s; }
+.velox-switch input:checked + .velox-switch-track { background: var(--vx-accent); }
+.velox-switch input:checked + .velox-switch-track::after { transform: translateX(18px); }
+.velox-switch input:disabled + .velox-switch-track { opacity: .55; }
