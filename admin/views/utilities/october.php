@@ -51,11 +51,13 @@ if ( ! function_exists( 'velox_oct_bytes' ) ) {
 			<span class="velox-field-label">Theme name <span class="velox-hint" style="display:inline;font-weight:400;">(optional — defaults to your domain)</span></span>
 			<input type="text" class="velox-input" id="oct-name" placeholder="my-project" style="max-width:340px;">
 		</div>
-		<div class="velox-tool-actions" style="display:flex;align-items:center;gap:12px;">
+		<div class="velox-tool-actions" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
 			<button class="velox-btn velox-btn--primary" id="oct-build">Scan &amp; build theme</button>
+			<button class="velox-btn velox-btn--ghost" id="oct-diag">Test connection</button>
 			<span class="velox-hint" id="oct-status" style="display:none;"></span>
 		</div>
-		<p class="velox-hint" style="margin-top:10px;">This crawls every published page over HTTP, so a large site can take a minute. You'll get a downloadable <code>.zip</code> when it's done.</p>
+		<div id="oct-diag-out" class="oct-diag" style="display:none;"></div>
+		<p class="velox-hint" style="margin-top:10px;">This crawls every published page over HTTP, so a large site can take a minute. If you're behind Cloudflare, run <strong>Test connection</strong> first — the builder falls back to your origin server automatically, but a strict WAF can still block it.</p>
 	</div>
 
 	<?php if ( empty( $projects ) ) : ?>

@@ -130,37 +130,65 @@ class Velox_October {
 		// 1) Enumerate published pages.
 		$pages = self::collect_pages();
 
-		// 2) Crawl + parse + lift chrome from the home page.
+		// 2) Crawl every page; lift chrome from the first reachable one.
 		$theme_files = array();
 		$page_files  = array();
 		$media_urls  = array();
-		$css_blob    = '';
+		$css_links   = array();   // unique absolute stylesheet URLs across ALL pages
+		$inline_css  = '';
 		$chrome      = null;
 		$page_slugs  = array();
+		$report      = array();
 
 		foreach ( $pages as $i => $pg ) {
-			$html = self::fetch( $pg['url'] );
+			$err  = '';
+			$html = self::fetch( $pg['url'], $err );
 			if ( '' === $html ) {
+				$report[] = array( 'url' => $pg['url'], 'ok' => false, 'why' => $err );
 				continue;
 			}
 			$parsed = self::parse_page( $html );
 			if ( null === $chrome ) {
-				$chrome   = $parsed['chrome'];           // head/nav/footer from the first reachable page
-				$css_blob = self::collect_css( $parsed['doc'], $pg['url'] );
+				$chrome = $parsed['chrome'];
 			}
-			$content = $parsed['content'];
+			// Stylesheet links + inline styles from EVERY page (so per-page CSS is captured).
+			foreach ( self::stylesheet_links( $parsed['doc'], $pg['url'] ) as $href ) {
+				$css_links[ $href ] = true;
+			}
+			$inline_css = $inline_css . self::inline_styles( $parsed['doc'] );
 			$media_urls = array_merge( $media_urls, $parsed['media'] );
-			$page_files[ $pg['slug'] ] = self::page_file( $pg, $content );
+			$page_files[ $pg['slug'] ] = self::page_file( $pg, $parsed['content'] );
 			$page_slugs[] = $pg['slug'];
+			$report[] = array( 'url' => $pg['url'], 'ok' => true, 'why' => '' );
 			if ( $i + 1 >= self::MAX_PAGES ) {
 				break;
 			}
 		}
 
+		// Nothing reachable → fail loudly, write no row and no zip.
+		if ( empty( $page_files ) ) {
+			return array(
+				'ok'      => false,
+				'pages'   => 0,
+				'media'   => 0,
+				'message' => self::fetch_failure_message( $report ),
+				'report'  => array_slice( $report, 0, 8 ),
+			);
+		}
+
 		if ( null === $chrome ) {
-			// Nothing reachable — bail gracefully.
 			$chrome = self::empty_chrome();
 		}
+
+		// Fetch each unique stylesheet once, then append inline CSS.
+		$css_blob = '';
+		foreach ( array_keys( $css_links ) as $href ) {
+			$body = self::fetch( $href );
+			if ( '' !== trim( (string) $body ) ) {
+				$css_blob .= "\n/* ---- " . basename( (string) wp_parse_url( $href, PHP_URL_PATH ) ) . " ---- */\n" . $body . "\n";
+			}
+		}
+		$css_blob .= $inline_css;
 
 		// 3) Media: keep only files referenced AND present in the library.
 		$media_urls = array_values( array_unique( array_filter( $media_urls ) ) );
@@ -272,24 +300,165 @@ class Velox_October {
 		return $out;
 	}
 
-	private static function fetch( $url ) {
-		$res = wp_remote_get(
-			$url,
-			array(
-				'timeout'     => 20,
-				'redirection' => 3,
-				'sslverify'   => false,
-				'user-agent'  => 'VeloxThemeBuilder/1.0',
-				'headers'     => array( 'X-Velox-Builder' => '1' ),
-			)
+	private static function fetch_args() {
+		return array(
+			'timeout'     => 25,
+			'redirection' => 5,
+			'sslverify'   => false,
+			'user-agent'  => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+			'headers'     => array( 'X-Velox-Builder' => '1', 'Accept' => 'text/html,*/*' ),
 		);
+	}
+
+	/** Fetch a URL robustly. Falls back to the origin (127.0.0.1 + Host) for Cloudflare-fronted / loopback-blocked sites. */
+	private static function fetch( $url, &$err = null ) {
+		$err  = '';
+		$args = self::fetch_args();
+		$res  = wp_remote_get( $url, $args );
+		$body = '';
+		$code = 0;
 		if ( is_wp_error( $res ) ) {
+			$err = $res->get_error_message();
+		} else {
+			$code = (int) wp_remote_retrieve_response_code( $res );
+			$body = (string) wp_remote_retrieve_body( $res );
+		}
+
+		$good = ( 200 === $code && '' !== trim( $body ) && ! self::is_challenge( $body ) );
+		if ( $good ) {
+			return $body;
+		}
+
+		// Public request failed or was challenged — try the origin directly.
+		$loop = self::fetch_origin( $url, $err );
+		if ( '' !== $loop ) {
+			return $loop;
+		}
+
+		if ( '' === $err ) {
+			$err = $code ? ( 'HTTP ' . $code . ( self::is_challenge( $body ) ? ' (Cloudflare challenge)' : '' ) ) : 'empty response';
+		}
+		return '';
+	}
+
+	/** Hit the site's own server directly (bypasses Cloudflare) using a Host header. */
+	private static function fetch_origin( $url, &$err = null ) {
+		$parts = wp_parse_url( $url );
+		if ( empty( $parts['host'] ) ) {
 			return '';
 		}
-		if ( 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
-			return '';
+		$host = $parts['host'];
+		$path = ( isset( $parts['path'] ) ? $parts['path'] : '/' ) . ( isset( $parts['query'] ) ? '?' . $parts['query'] : '' );
+		$schemes = array();
+		$schemes[] = isset( $parts['scheme'] ) ? $parts['scheme'] : 'https';
+		$schemes[] = ( 'https' === $schemes[0] ) ? 'http' : 'https';
+
+		foreach ( array( '127.0.0.1', 'localhost' ) as $origin ) {
+			foreach ( array_unique( $schemes ) as $scheme ) {
+				$args = self::fetch_args();
+				$args['headers']['Host'] = $host;
+				$res = wp_remote_get( $scheme . '://' . $origin . $path, $args );
+				if ( is_wp_error( $res ) ) {
+					$err = $res->get_error_message();
+					continue;
+				}
+				$code = (int) wp_remote_retrieve_response_code( $res );
+				$body = (string) wp_remote_retrieve_body( $res );
+				if ( 200 === $code && '' !== trim( $body ) && ! self::is_challenge( $body ) ) {
+					return $body;
+				}
+			}
 		}
-		return (string) wp_remote_retrieve_body( $res );
+		return '';
+	}
+
+	private static function is_challenge( $body ) {
+		if ( '' === $body ) {
+			return false;
+		}
+		foreach ( array( 'cf-browser-verification', 'Just a moment', 'Attention Required! | Cloudflare', '__cf_chl', 'cf-challenge', 'Checking your browser before', 'cf_chl_opt' ) as $n ) {
+			if ( false !== stripos( $body, $n ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static function fetch_failure_message( $report ) {
+		$why = '';
+		foreach ( $report as $r ) {
+			if ( empty( $r['ok'] ) && ! empty( $r['why'] ) ) {
+				$why = $r['why'];
+				break;
+			}
+		}
+		$msg = 'Could not fetch any pages from your site.';
+		if ( false !== stripos( $why, 'Cloudflare' ) || false !== stripos( $why, 'challenge' ) ) {
+			$msg .= ' Cloudflare is challenging the server. Try pausing Cloudflare (or adding a WAF rule that allows requests with the header X-Velox-Builder) and re-run.';
+		} elseif ( '' !== $why ) {
+			$msg .= ' First error: ' . $why . '. The server may be blocking requests to its own domain (loopback).';
+		}
+		return $msg;
+	}
+
+	/** Quick connection test surfaced in the UI. */
+	public static function diagnose() {
+		$url    = home_url( '/' );
+		$args   = self::fetch_args();
+		$res    = wp_remote_get( $url, $args );
+		if ( is_wp_error( $res ) ) {
+			$public = 'error: ' . $res->get_error_message();
+		} else {
+			$code   = (int) wp_remote_retrieve_response_code( $res );
+			$body   = (string) wp_remote_retrieve_body( $res );
+			$public = 'HTTP ' . $code . ( self::is_challenge( $body ) ? ' — Cloudflare challenge' : ( 200 === $code && '' !== trim( $body ) ? ' — OK (' . number_format_i18n( strlen( $body ) ) . ' bytes)' : ' — empty' ) );
+		}
+		$e2          = '';
+		$origin_body = self::fetch_origin( $url, $e2 );
+		$origin      = '' !== $origin_body ? 'OK (' . number_format_i18n( strlen( $origin_body ) ) . ' bytes)' : ( 'failed' . ( $e2 ? ': ' . $e2 : '' ) );
+
+		return array(
+			'home'  => $url,
+			'public'=> $public,
+			'origin'=> $origin,
+			'pages' => count( self::collect_pages() ),
+			'dom'   => class_exists( 'DOMDocument' ) ? 'available' : 'MISSING — ask your host to enable php-dom',
+			'zip'   => class_exists( 'ZipArchive' ) ? 'available' : 'MISSING — ask your host to enable php-zip',
+		);
+	}
+
+	/** Absolute, same-origin stylesheet URLs in a document. */
+	private static function stylesheet_links( DOMDocument $doc, $page_url ) {
+		$out  = array();
+		$host = wp_parse_url( $page_url, PHP_URL_HOST );
+		foreach ( $doc->getElementsByTagName( 'link' ) as $link ) {
+			if ( false === stripos( (string) $link->getAttribute( 'rel' ), 'stylesheet' ) ) {
+				continue;
+			}
+			$href = (string) $link->getAttribute( 'href' );
+			if ( '' === $href ) {
+				continue;
+			}
+			$abs = self::absolutise( $href, $page_url );
+			$lh  = wp_parse_url( $abs, PHP_URL_HOST );
+			if ( $lh && $lh !== $host ) {
+				continue; // skip third-party CSS (Google Fonts etc.)
+			}
+			$out[] = $abs;
+		}
+		return $out;
+	}
+
+	/** Concatenated inline <style> blocks in a document. */
+	private static function inline_styles( DOMDocument $doc ) {
+		$css = '';
+		foreach ( $doc->getElementsByTagName( 'style' ) as $st ) {
+			$txt = (string) $st->textContent;
+			if ( '' !== trim( $txt ) ) {
+				$css .= "\n/* ---- inline ---- */\n" . $txt . "\n";
+			}
+		}
+		return $css;
 	}
 
 	/* ------------------------------------------------------- parse & convert */

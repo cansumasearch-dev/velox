@@ -342,12 +342,25 @@ class Velox_Ajax {
 
 			case 'october_build':
 				Velox_October::maybe_install();
-				wp_send_json_success( Velox_October::build( isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '' ) );
+				$r = Velox_October::build( isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '' );
+				if ( empty( $r['ok'] ) ) {
+					wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Build failed.', 'report' => isset( $r['report'] ) ? $r['report'] : array() ) );
+				}
+				wp_send_json_success( $r );
 				break;
 
 			case 'october_rescan':
 				Velox_October::maybe_install();
-				wp_send_json_success( Velox_October::build( '', isset( $_POST['project'] ) ? sanitize_title( wp_unslash( $_POST['project'] ) ) : '' ) );
+				$r = Velox_October::build( '', isset( $_POST['project'] ) ? sanitize_title( wp_unslash( $_POST['project'] ) ) : '' );
+				if ( empty( $r['ok'] ) ) {
+					wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Re-scan failed.', 'report' => isset( $r['report'] ) ? $r['report'] : array() ) );
+				}
+				wp_send_json_success( $r );
+				break;
+
+			case 'october_diag':
+				Velox_October::maybe_install();
+				wp_send_json_success( Velox_October::diagnose() );
 				break;
 
 			case 'october_delete':

@@ -1841,6 +1841,29 @@
 				run( 'october_build', { name: name }, 'Scanning the site… this can take a minute.' );
 			} );
 		}
+		var diag = $( '#oct-diag' );
+		if ( diag ) {
+			diag.addEventListener( 'click', function () {
+				var out = $( '#oct-diag-out' );
+				diag.disabled = true; diag.textContent = 'Testing…';
+				api( 'october_diag', {} ).then( function ( d ) {
+					diag.disabled = false; diag.textContent = 'Test connection';
+					if ( out ) {
+						out.style.display = '';
+						out.innerHTML =
+							'<div><span>Home URL</span><b>' + escapeHtml( d.home ) + '</b></div>' +
+							'<div><span>Public request</span><b>' + escapeHtml( d.public ) + '</b></div>' +
+							'<div><span>Origin fallback</span><b>' + escapeHtml( d.origin ) + '</b></div>' +
+							'<div><span>Pages found</span><b>' + escapeHtml( String( d.pages ) ) + '</b></div>' +
+							'<div><span>PHP DOM</span><b>' + escapeHtml( d.dom ) + '</b></div>' +
+							'<div><span>PHP Zip</span><b>' + escapeHtml( d.zip ) + '</b></div>';
+					}
+				} ).catch( function ( e ) {
+					diag.disabled = false; diag.textContent = 'Test connection';
+					toast( e.message, 'error' );
+				} );
+			} );
+		}
 		$$( '.oct-rescan' ).forEach( function ( b ) {
 			b.addEventListener( 'click', function () {
 				run( 'october_rescan', { project: b.getAttribute( 'data-project' ) }, 'Re-scanning…' );

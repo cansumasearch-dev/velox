@@ -1076,3 +1076,9 @@
 .oct-actions { white-space: nowrap; text-align: right; }
 .oct-actions .velox-btn { margin-left: 6px; }
 .oct-rescan:disabled, #oct-build:disabled { opacity: .55; cursor: progress; }
+
+.oct-diag { margin-top: 14px; border: 1px solid var(--vx-line); border-radius: 12px; overflow: hidden; }
+.oct-diag div { display: flex; justify-content: space-between; gap: 16px; padding: 10px 16px; border-bottom: 1px solid var(--vx-line); font-size: 13px; }
+.oct-diag div:last-child { border-bottom: 0; }
+.oct-diag span { color: var(--vx-ink-3); }
+.oct-diag b { color: var(--vx-ink); font-weight: 600; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12.5px; text-align: right; }

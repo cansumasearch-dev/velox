@@ -269,6 +269,10 @@ class Velox_Utilities {
 		if ( current_user_can( 'manage_options' ) ) {
 			return; // admins always see the live site
 		}
+		// The Velox theme builder crawls the site over loopback; let it see real pages.
+		if ( ! empty( $_SERVER['HTTP_X_VELOX_BUILDER'] ) ) {
+			return;
+		}
 		nocache_headers();
 		status_header( 503 );
 		header( 'Retry-After: 3600' );
