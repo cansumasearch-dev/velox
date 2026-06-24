@@ -75,6 +75,9 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 			<img class="velox-side-logo" src="<?php echo esc_url( VELOX_URL . 'assets/menu-icon.png' ); ?>" alt="" width="24" height="24">
 			<span class="velox-side-name">Velox</span>
 			<span class="velox-ver">v<?php echo esc_html( VELOX_VERSION ); ?></span>
+			<button type="button" class="velox-side-collapse" id="velox-side-collapse" aria-label="Collapse menu" title="Collapse menu">
+				<svg class="velox-ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+			</button>
 		</div>
 
 		<nav class="velox-side-nav">

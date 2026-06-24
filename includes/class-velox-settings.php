@@ -25,7 +25,7 @@ class Velox_Settings {
 			'module_media'       => true,
 			'module_performance' => true,
 			'module_database'    => true,
-			'module_seo'         => true,
+			'module_seo'         => false,
 
 			// ---- SEO ----
 			'seo_robots_enable'  => true,

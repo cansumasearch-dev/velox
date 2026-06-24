@@ -408,7 +408,7 @@ class Velox_Snippets {
 		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 		$id     = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0;
 
-		echo '<div class="wrap velox-wrap velox-snippets-page">';
+		echo '<div class="velox-wrap velox-snippets-page"><div class="velox-main">';
 		if ( 'edit' === $action || 'new' === $action ) {
 			$snippet  = $id ? self::get( $id ) : null;
 			$new_type = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : 'php'; // phpcs:ignore WordPress.Security.NonceVerification
@@ -420,7 +420,7 @@ class Velox_Snippets {
 			include VELOX_PATH . 'admin/views/snippets-list.php';
 		}
 		echo '<div class="velox-toast" id="velox-toast"></div>';
-		echo '</div>';
+		echo '</div></div>';
 	}
 
 	public static function list_url( $filter = 'all' ) {

@@ -51,7 +51,11 @@ class Velox_Seo {
 		if ( ! Velox_Settings::get( 'module_seo', true ) ) {
 			return;
 		}
-		$keys = array( '_velox_seo_title', '_velox_seo_desc', '_velox_seo_noindex', '_velox_seo_nofollow', 'sitemap_exclude' );
+		$keys = array(
+			'_velox_seo_title', '_velox_seo_desc', '_velox_seo_noindex', '_velox_seo_nofollow', 'sitemap_exclude',
+			'_velox_seo_canonical', '_velox_seo_focus_kw',
+			'_velox_seo_og_title', '_velox_seo_og_desc', '_velox_seo_og_image',
+		);
 		foreach ( self::POST_TYPES as $pt ) {
 			foreach ( $keys as $key ) {
 				register_post_meta( $pt, $key, array(
@@ -165,6 +169,37 @@ class Velox_Seo {
 			$bits = array( $noindex ? 'noindex' : 'index', $nofollow ? 'nofollow' : 'follow' );
 			echo '<meta name="robots" content="' . esc_attr( implode( ',', $bits ) ) . '">' . "\n";
 		}
+
+		// Canonical — fall back to the post's own permalink when none is set.
+		$canonical = get_post_meta( $id, '_velox_seo_canonical', true );
+		$canonical = $canonical ? $canonical : get_permalink( $id );
+		if ( $canonical ) {
+			echo '<link rel="canonical" href="' . esc_url( $canonical ) . '">' . "\n";
+		}
+
+		// Open Graph — fall back to the SEO title/description, then the post's own.
+		$og_title = get_post_meta( $id, '_velox_seo_og_title', true );
+		$og_desc  = get_post_meta( $id, '_velox_seo_og_desc', true );
+		$og_image = get_post_meta( $id, '_velox_seo_og_image', true );
+		$og_title = $og_title ? $og_title : ( get_post_meta( $id, '_velox_seo_title', true ) ? get_post_meta( $id, '_velox_seo_title', true ) : get_the_title( $id ) );
+		$og_desc  = $og_desc ? $og_desc : $desc;
+		if ( ! $og_image && has_post_thumbnail( $id ) ) {
+			$og_image = get_the_post_thumbnail_url( $id, 'full' );
+		}
+		echo '<meta property="og:type" content="article">' . "\n";
+		echo '<meta property="og:title" content="' . esc_attr( wp_strip_all_tags( $og_title ) ) . '">' . "\n";
+		if ( $og_desc ) {
+			echo '<meta property="og:description" content="' . esc_attr( wp_strip_all_tags( $og_desc ) ) . '">' . "\n";
+		}
+		echo '<meta property="og:url" content="' . esc_url( $canonical ) . '">' . "\n";
+		if ( $og_image ) {
+			echo '<meta property="og:image" content="' . esc_url( $og_image ) . '">' . "\n";
+			echo '<meta name="twitter:card" content="summary_large_image">' . "\n";
+		}
+		echo '<meta name="twitter:title" content="' . esc_attr( wp_strip_all_tags( $og_title ) ) . '">' . "\n";
+		if ( $og_desc ) {
+			echo '<meta name="twitter:description" content="' . esc_attr( wp_strip_all_tags( $og_desc ) ) . '">' . "\n";
+		}
 	}
 
 	/* ------------------------------------------------------------- meta box */
@@ -227,6 +262,33 @@ class Velox_Seo {
 				<label class="velox-seo-exclude"><input type="checkbox" name="sitemap_exclude" value="1" <?php checked( '1', (string) $exclude ); ?>> Exclude this page from the sitemap</label>
 				<p class="velox-seo-robots-out">Search engines will be told: <code id="velox-seo-robots-out">index, follow</code></p>
 			</div>
+			<?php
+			$canonical = get_post_meta( $post->ID, '_velox_seo_canonical', true );
+			$focus_kw  = get_post_meta( $post->ID, '_velox_seo_focus_kw', true );
+			$og_title  = get_post_meta( $post->ID, '_velox_seo_og_title', true );
+			$og_desc   = get_post_meta( $post->ID, '_velox_seo_og_desc', true );
+			$og_image  = get_post_meta( $post->ID, '_velox_seo_og_image', true );
+			?>
+			<p style="margin-top:14px;">
+				<label for="velox-seo-focus"><strong>Focus keyword</strong></label><br>
+				<input type="text" id="velox-seo-focus" name="velox_seo_focus_kw" value="<?php echo esc_attr( $focus_kw ); ?>" style="width:100%;" placeholder="The main phrase you want to rank for">
+			</p>
+			<p>
+				<label for="velox-seo-canonical"><strong>Canonical URL</strong></label><br>
+				<input type="text" id="velox-seo-canonical" name="velox_seo_canonical" value="<?php echo esc_attr( $canonical ); ?>" style="width:100%;" placeholder="<?php echo esc_attr( $url ); ?>">
+			</p>
+			<p>
+				<label for="velox-seo-og-title"><strong>Social title</strong> <span style="font-weight:400;color:#777;">(Open Graph)</span></label><br>
+				<input type="text" id="velox-seo-og-title" name="velox_seo_og_title" value="<?php echo esc_attr( $og_title ); ?>" style="width:100%;" placeholder="Falls back to the SEO title">
+			</p>
+			<p>
+				<label for="velox-seo-og-desc"><strong>Social description</strong></label><br>
+				<textarea id="velox-seo-og-desc" name="velox_seo_og_desc" rows="2" style="width:100%;" placeholder="Falls back to the meta description"><?php echo esc_textarea( $og_desc ); ?></textarea>
+			</p>
+			<p>
+				<label for="velox-seo-og-image"><strong>Social image URL</strong></label><br>
+				<input type="text" id="velox-seo-og-image" name="velox_seo_og_image" value="<?php echo esc_attr( $og_image ); ?>" style="width:100%;" placeholder="Defaults to the featured image · 1200×630">
+			</p>
 		</div>
 		<style>
 			.velox-seo-preview{border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;margin-bottom:14px;background:#fff}
@@ -297,6 +359,11 @@ class Velox_Seo {
 		update_post_meta( $post_id, '_velox_seo_noindex', $noindex ? '1' : '0' );
 		update_post_meta( $post_id, '_velox_seo_nofollow', $nofollow ? '1' : '0' );
 		update_post_meta( $post_id, 'sitemap_exclude', isset( $_POST['sitemap_exclude'] ) ? '1' : '0' );
+		update_post_meta( $post_id, '_velox_seo_canonical', esc_url_raw( wp_unslash( $_POST['velox_seo_canonical'] ?? '' ) ) );
+		update_post_meta( $post_id, '_velox_seo_focus_kw', sanitize_text_field( wp_unslash( $_POST['velox_seo_focus_kw'] ?? '' ) ) );
+		update_post_meta( $post_id, '_velox_seo_og_title', sanitize_text_field( wp_unslash( $_POST['velox_seo_og_title'] ?? '' ) ) );
+		update_post_meta( $post_id, '_velox_seo_og_desc', sanitize_textarea_field( wp_unslash( $_POST['velox_seo_og_desc'] ?? '' ) ) );
+		update_post_meta( $post_id, '_velox_seo_og_image', esc_url_raw( wp_unslash( $_POST['velox_seo_og_image'] ?? '' ) ) );
 
 		self::generate_sitemap();
 	}

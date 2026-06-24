@@ -2717,10 +2717,12 @@
 		var viewBtn = $( '#velox-seo-robots-view' );
 		if ( viewBtn ) {
 			viewBtn.addEventListener( 'click', function () {
+				var url = viewBtn.getAttribute( 'data-url' );
+				window.open( url, '_blank', 'noopener' ); // open the real /robots.txt
 				var box = $( '#velox-seo-robots-live' ), out = $( '#velox-seo-live-out' ),
 					badge = $( '#velox-seo-live-badge' ), cf = $( '#velox-seo-live-cf' );
 				viewBtn.disabled = true; box.hidden = false; out.textContent = 'Fetching…'; badge.textContent = ''; cf.hidden = true;
-				fetch( viewBtn.getAttribute( 'data-url' ) + '?_=' + Date.now(), { credentials: 'omit', cache: 'no-store' } )
+				fetch( url + '?_=' + Date.now(), { credentials: 'omit', cache: 'no-store' } )
 					.then( function ( r ) { return r.text(); } )
 					.then( function ( txt ) {
 						out.textContent = txt || '(empty response)';
@@ -2767,7 +2769,23 @@
 		}
 	}
 
+	function initSidebar() {
+		var app = $( '.velox-app' );
+		var btn = $( '#velox-side-collapse' );
+		if ( ! app || ! btn ) { return; }
+		try {
+			if ( window.localStorage && localStorage.getItem( 'veloxSidebarCollapsed' ) === '1' ) {
+				app.classList.add( 'is-collapsed' );
+			}
+		} catch ( e ) {}
+		btn.addEventListener( 'click', function () {
+			var collapsed = app.classList.toggle( 'is-collapsed' );
+			try { if ( window.localStorage ) { localStorage.setItem( 'veloxSidebarCollapsed', collapsed ? '1' : '0' ); } } catch ( e ) {}
+		} );
+	}
+
 	document.addEventListener( 'DOMContentLoaded', function () {
+		initSidebar();
 		initWizard();
 		initUtilities();
 		initDashboard();

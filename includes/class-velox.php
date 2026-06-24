@@ -62,11 +62,9 @@ final class Velox {
 		}
 		Velox_Redirects::maybe_install();
 		Velox_Redirects::init();
-		Velox_Activity::maybe_install();
-		Velox_Activity::init();
 		Velox_Scripts::init();
 		Velox_Cache::init();
-		if ( Velox_Settings::get( 'module_seo', true ) ) {
+		if ( Velox_Settings::get( 'module_seo', false ) ) {
 			Velox_Seo::init();
 		}
 		if ( Velox_Settings::get( 'util_mail' ) ) {

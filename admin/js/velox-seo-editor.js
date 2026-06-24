@@ -77,6 +77,19 @@
 		var noindex  = meta._velox_seo_noindex === '1';
 		var nofollow = meta._velox_seo_nofollow === '1';
 		var exclude  = meta.sitemap_exclude === '1';
+		var canonical = meta._velox_seo_canonical || '';
+		var focusKw   = meta._velox_seo_focus_kw || '';
+		var ogTitle   = meta._velox_seo_og_title || '';
+		var ogDesc    = meta._velox_seo_og_desc || '';
+		var ogImage   = meta._velox_seo_og_image || '';
+
+		var kwHelp = 'The main phrase you want this page to rank for.';
+		if ( focusKw ) {
+			var kw = focusKw.toLowerCase();
+			var inTitle = ( seoTitle || postTitle ).toLowerCase().indexOf( kw ) !== -1;
+			var inDesc  = seoDesc.toLowerCase().indexOf( kw ) !== -1;
+			kwHelp = ( inTitle ? '\u2713 in title' : '\u2022 not in title' ) + '   \u00b7   ' + ( inDesc ? '\u2713 in description' : '\u2022 not in description' );
+		}
 
 		var preview = el( 'div', { className: 'velox-gseo-preview' },
 			el( 'div', { className: 'velox-gseo-url' }, link || '' ),
@@ -112,6 +125,15 @@
 				el( 'p', { className: 'velox-gseo-out' }, 'Search engines will be told: ',
 					el( 'code', {}, ( noindex ? 'noindex' : 'index' ) + ', ' + ( nofollow ? 'nofollow' : 'follow' ) )
 				)
+			),
+			el( c.PanelBody, { title: 'Social (Open Graph)', initialOpen: false },
+				el( c.TextControl, { label: 'Social title', value: ogTitle, help: 'Shown when shared on Facebook, LinkedIn, X. Falls back to the SEO title.', onChange: function ( v ) { setMeta( '_velox_seo_og_title', v ); } } ),
+				el( c.TextareaControl, { label: 'Social description', value: ogDesc, rows: 3, help: 'Falls back to the meta description.', onChange: function ( v ) { setMeta( '_velox_seo_og_desc', v ); } } ),
+				el( c.TextControl, { label: 'Social image URL', value: ogImage, help: 'Defaults to the featured image. Recommended 1200\u00d7630.', onChange: function ( v ) { setMeta( '_velox_seo_og_image', v ); } } )
+			),
+			el( c.PanelBody, { title: 'Advanced', initialOpen: false },
+				el( c.TextControl, { label: 'Canonical URL', value: canonical, help: 'Leave empty to use this page\u2019s own URL.', onChange: function ( v ) { setMeta( '_velox_seo_canonical', v ); } } ),
+				el( c.TextControl, { label: 'Focus keyword', value: focusKw, help: kwHelp, onChange: function ( v ) { setMeta( '_velox_seo_focus_kw', v ); } } )
 			)
 		);
 

@@ -24,8 +24,8 @@ class Velox_Utilities {
 			'unusedmedia'=> array( 'label' => 'Unused media',        'icon' => 'broom',    'ready' => true,  'enable' => 'util_unusedmedia', 'page' => true, 'desc' => 'Find media files nothing in your content references, and clean them out.' ),
 			'loginurl'   => array( 'label' => 'Custom login URL',    'icon' => 'lock',     'ready' => true,  'enable' => 'util_loginurl', 'page' => true, 'desc' => 'Move wp-login to a custom path to cut brute-force bot traffic.' ),
 			'maintenance'=> array( 'label' => 'Maintenance mode',    'icon' => 'cone',     'ready' => true,  'enable' => 'util_maintenance', 'page' => true, 'desc' => 'Show visitors a branded coming-soon page while you work, admins still get in.' ),
-			'activity'   => array( 'label' => 'Activity log',        'icon' => 'list',     'ready' => true,  'enable' => 'util_activity', 'page' => true, 'desc' => 'A simple audit trail of who changed what across the site.' ),
 			'scripts'    => array( 'label' => 'Script Manager',      'icon' => 'code',     'ready' => true,  'enable' => 'util_scripts', 'page' => true, 'desc' => 'Stop specific CSS/JS from loading where it isn\'t needed — globally or per page.' ),
+			'seo'        => array( 'label' => 'SEO',                'icon' => 'search',   'ready' => true,  'enable' => 'module_seo', 'setting' => 'module_seo', 'link' => 'seo', 'desc' => 'On-page SEO meta box, sitemap and robots.txt. Toggle off if another SEO plugin (Rank Math, Yoast) is handling this so they do not clash.' ),
 			'snippets'   => array( 'label' => 'Code Snippets',       'icon' => 'code',     'ready' => true,  'enable' => 'util_snippets', 'setting' => 'util_snippets', 'link' => 'snippets', 'desc' => 'Add PHP, CSS, JS or HTML snippets with run-location and priority. They get their own Snippets menu below Velox.' ),
 		);
 	}
@@ -470,12 +470,14 @@ class Velox_Utilities {
 	}
 
 	public static function filter_login_url( $url ) {
-		return is_string( $url ) ? str_replace( 'wp-login.php', self::login_slug(), $url ) : $url;
+		// Trailing slash matters: many Nginx/Plesk setups 404 a slashless,
+		// extension-less path (/canicani) but route /canicani/ to index.php.
+		return is_string( $url ) ? str_replace( 'wp-login.php', self::login_slug() . '/', $url ) : $url;
 	}
 
 	public static function filter_site_url( $url ) {
 		if ( is_string( $url ) && false !== strpos( $url, 'wp-login.php' ) ) {
-			$url = str_replace( 'wp-login.php', self::login_slug(), $url );
+			$url = str_replace( 'wp-login.php', self::login_slug() . '/', $url );
 		}
 		return $url;
 	}

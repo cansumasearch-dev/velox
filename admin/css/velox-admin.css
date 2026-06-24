@@ -133,7 +133,29 @@
 .velox-side-foot-link:hover { background: var(--vx-line); color: var(--vx-ink-2); }
 
 .velox-content { flex: 1; min-width: 0; }
-.velox-main { padding: 34px 40px 96px; max-width: 1180px; }
+.velox-main { padding: 36px 52px 96px; max-width: 1320px; }
+
+/* Collapse toggle + collapsed sidebar (icons only) */
+.velox-side-brand { position: relative; }
+.velox-side-collapse {
+	margin-left: auto; width: 30px; height: 30px; flex: 0 0 auto;
+	display: inline-flex; align-items: center; justify-content: center;
+	border: 1px solid var(--vx-line); border-radius: 8px; background: var(--vx-card);
+	color: var(--vx-ink-3); cursor: pointer; transition: background .12s, color .12s, transform .2s;
+}
+.velox-side-collapse:hover { background: var(--vx-bg); color: var(--vx-ink-2); }
+.velox-app.is-collapsed .velox-sidebar { flex-basis: 72px; width: 72px; }
+.velox-app.is-collapsed .velox-side-name,
+.velox-app.is-collapsed .velox-ver,
+.velox-app.is-collapsed .velox-side-label,
+.velox-app.is-collapsed .velox-side-foot-link { display: none; }
+.velox-app.is-collapsed .velox-side-brand { justify-content: center; padding: 22px 0 16px; }
+.velox-app.is-collapsed .velox-side-collapse { transform: rotate(180deg); margin-left: 0; }
+.velox-app.is-collapsed .velox-side-nav { padding: 10px 12px; }
+.velox-app.is-collapsed .velox-side-item { justify-content: center; padding: 11px 0; }
+.velox-app.is-collapsed .velox-side-item--sub { padding: 9px 0; margin-left: 0; }
+.velox-app.is-collapsed .velox-side-item--sub::before { display: none; }
+.velox-app.is-collapsed .velox-side-foot { padding: 14px 12px 18px; }
 .velox-main > * { width: 100%; }
 
 @media (max-width: 960px) {
@@ -606,11 +628,20 @@
 .velox-sm-ids { min-width: 200px; flex: 1; }
 
 /* ---- Mail & forms ---- */
-.velox-mail-formlist { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
-.velox-mail-formrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; border: 1px solid var(--vx-line); border-radius: 10px; padding: 11px 14px; }
-.velox-mail-formmeta { display: flex; flex-direction: column; gap: 3px; }
-.velox-mail-formname { font-weight: 700; }
-.velox-mail-shortcode { font-size: 12px; color: var(--vx-ink-2); }
+.velox-mail-formlist { display: flex; flex-direction: column; gap: 10px; margin-top: 16px; }
+.velox-mail-formrow {
+	display: flex; align-items: center; justify-content: space-between; gap: 16px;
+	background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: 14px;
+	padding: 16px 18px; transition: border-color .14s, box-shadow .14s, transform .14s;
+}
+.velox-mail-formrow:hover { border-color: var(--vx-line-2); box-shadow: var(--vx-shadow); transform: translateY(-1px); }
+.velox-mail-formmeta { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.velox-mail-formname { font-weight: 700; font-size: 15px; letter-spacing: -.01em; }
+.velox-mail-shortcode {
+	display: inline-block; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	font-size: 12px; color: var(--vx-ink-2); background: var(--vx-bg);
+	border: 1px solid var(--vx-line); border-radius: 7px; padding: 3px 9px; width: fit-content;
+}
 .velox-mail-build { display: grid; grid-template-columns: 1fr 360px; gap: 18px; align-items: start; }
 @media (max-width: 1100px) { .velox-mail-build { grid-template-columns: 1fr; } }
 .velox-mail-build-main { display: flex; flex-direction: column; gap: 18px; }
@@ -866,9 +897,10 @@
 /* ============================================================
  * Code Snippets
  * ============================================================ */
-.velox-snippets-page { max-width: 1080px; }
+.velox-snippets-page .velox-main { max-width: 1320px; }
 .velox-snippets-page .velox-label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
 .velox-snippets-page .velox-opt { font-weight: 500; color: var(--vx-ink-3); font-size: 12px; }
+.velox-snip-add .velox-btn--primary { white-space: nowrap; padding: 10px 18px; }
 
 .velox-snip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin: 6px 0 18px; }
 .velox-snip-title { font-size: 23px; font-weight: 800; letter-spacing: -.02em; margin: 0; }
