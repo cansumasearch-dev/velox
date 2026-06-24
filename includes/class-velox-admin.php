@@ -90,8 +90,8 @@ class Velox_Admin {
 			) );
 		}
 
-		// Active utilities → quick links under the Velox menu.
-		$bar->add_node( array( 'id' => 'velox-utils', 'parent' => 'velox', 'title' => 'Utilities' ) );
+		// Active utilities → shown directly in the Velox dropdown as their own group.
+		$bar->add_group( array( 'id' => 'velox-utils-group', 'parent' => 'velox' ) );
 		$any_util = false;
 		foreach ( Velox_Utilities::catalog() as $uid => $tool ) {
 			$enable = isset( $tool['enable'] ) ? $tool['enable'] : '';
@@ -102,10 +102,10 @@ class Velox_Admin {
 			$u = ! empty( $tool['link'] )
 				? admin_url( 'admin.php?page=velox-' . $tool['link'] )
 				: admin_url( 'admin.php?page=velox-utilities&tool=' . $uid );
-			$bar->add_node( array( 'id' => 'velox-util-' . $uid, 'parent' => 'velox-utils', 'title' => $tool['label'], 'href' => $u ) );
+			$bar->add_node( array( 'id' => 'velox-util-' . $uid, 'parent' => 'velox-utils-group', 'title' => $tool['label'], 'href' => $u ) );
 		}
 		if ( ! $any_util ) {
-			$bar->add_node( array( 'id' => 'velox-util-none', 'parent' => 'velox-utils', 'title' => 'No utilities active yet', 'href' => admin_url( 'admin.php?page=velox-utilities' ) ) );
+			$bar->add_node( array( 'id' => 'velox-util-none', 'parent' => 'velox-utils-group', 'title' => 'No utilities active yet', 'href' => admin_url( 'admin.php?page=velox-utilities' ) ) );
 		}
 
 		// Maintenance mode: its own always-present admin-bar item with a status dot

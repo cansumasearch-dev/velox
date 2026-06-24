@@ -284,7 +284,11 @@ class Velox_Utilities {
 			return;
 		}
 		Velox_Settings::set( 'util_maintenance', ! Velox_Settings::get( 'util_maintenance' ) );
-		wp_safe_redirect( remove_query_arg( array( 'velox_maint_toggle', '_wpnonce' ) ) );
+		// Go back to wherever the toggle was clicked from (the admin bar), not to the
+		// maintenance settings page.
+		$back = wp_get_referer();
+		$back = $back ? remove_query_arg( array( 'velox_maint_toggle', '_wpnonce' ), $back ) : admin_url();
+		wp_safe_redirect( $back );
 		exit;
 	}
 
@@ -463,6 +467,19 @@ class Velox_Utilities {
 		// nocache_headers() here is critical: without it a CDN/browser can cache the
 		// redirect and lock everyone out — which is exactly what bit us before.
 		if ( 'redirect' === $decision ) {
+			nocache_headers();
+			wp_safe_redirect( home_url( '/' ), 302 );
+			exit;
+		}
+
+		// Hide wp-admin from logged-out visitors entirely. WordPress would otherwise
+		// bounce them to the login URL (revealing the secret slug); instead we send
+		// them home, so the only way in is to know the custom login path. admin-ajax
+		// and admin-post stay open because public front-end features rely on them.
+		if ( ! is_user_logged_in()
+			&& false !== strpos( $uri, '/wp-admin' )
+			&& false === strpos( $uri, 'admin-ajax.php' )
+			&& false === strpos( $uri, 'admin-post.php' ) ) {
 			nocache_headers();
 			wp_safe_redirect( home_url( '/' ), 302 );
 			exit;
