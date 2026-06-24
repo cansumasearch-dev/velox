@@ -4,6 +4,18 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.13.7
+- **New: rename-map editor for converted themes.** On any build, click **Edit names** to see every class and ID the converter found (with usage counts), give them human names, and download a renamed version.
+- Renames are applied to the HTML pages **and** the CSS/SCSS in lockstep, so the design never breaks — `.oxy-foo` and `.oxy-foobar` are told apart (word-boundary matching), and `id` attributes plus `#anchor` references are kept in sync.
+- **Live preview** re-renders as you type, so you can see a rename land before committing.
+- Each rename export is saved as a new version (your original replica is preserved and still revertable).
+
+## 2.13.6
+- **Fixed: the v2.13.5 regression that wiped all styling.** The class/ID "cleanup" was stripping the auto-generated IDs and classes that Oxygen (and most builders) key their CSS to, leaving the page completely unstyled. That destructive pass is reverted — classes and IDs are kept so the design renders; only no-op page-builder data-* attributes are cleaned.
+- **Fixed: jQuery leaking as visible text.** Scripts are now stripped from the raw HTML *before* the DOM parser runs (DOMDocument mis-parses Oxygen inline scripts into stray text nodes, so removing script *nodes* did not catch them).
+- **Fixed: stylesheets not loading.** The head no longer depends on the `seoTags` component (a plugin that may be absent); if it errored, every `<link>` after it stopped rendering. The head is now self-contained (title + meta + Bootstrap + fonts + converted CSS).
+- **Better media capture:** real image URLs hidden in `<noscript>` lazy-load fallbacks are now collected too.
+
 ## 2.13.5
 - **Fixed: leaking JavaScript text in the export.** All `<script>` / `<noscript>` are now stripped during conversion (the Oxygen jQuery menu code was bleeding in as visible text). A static theme carries none of the original JS.
 - **Fixed: 0 media on lazy-loading sites.** Image collection now reads `data-src`, `data-lazy-src`, `data-srcset`, `data-original` and `data-bg*`, so lazy-loaded images (Oxygen / WP Fastest Cache) are captured.

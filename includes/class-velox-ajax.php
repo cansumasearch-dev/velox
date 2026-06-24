@@ -363,6 +363,23 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_October::diagnose() );
 				break;
 
+			case 'october_edit_payload':
+				$r = Velox_October::edit_payload( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 );
+				if ( empty( $r['ok'] ) ) {
+					wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Could not load build.' ) );
+				}
+				wp_send_json_success( $r );
+				break;
+
+			case 'october_apply_renames':
+				$map = isset( $_POST['map'] ) ? json_decode( wp_unslash( $_POST['map'] ), true ) : array();
+				$r   = Velox_October::apply_renames( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0, is_array( $map ) ? $map : array() );
+				if ( empty( $r['ok'] ) ) {
+					wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Rename failed.' ) );
+				}
+				wp_send_json_success( $r );
+				break;
+
 			case 'october_delete':
 				wp_send_json_success( Velox_October::delete( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
 				break;

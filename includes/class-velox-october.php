@@ -521,14 +521,22 @@ class Velox_October {
 
 	/** Parse one page: strip WP cruft, lift chrome, return main content + media. */
 	public static function parse_page( $html ) {
+		// Strip scripts/noscripts at the RAW level before the DOM parser sees them —
+		// DOMDocument mis-parses Oxygen's inline jQuery into stray text nodes otherwise,
+		// which is what was leaking JS as visible text on the page.
+		$raw_media = self::media_from_noscript( $html ); // lazy-load fallbacks live in <noscript>
+		$html      = preg_replace( '#<script\b[\s\S]*?</script>#i', '', $html );
+		$html      = preg_replace( '#<noscript\b[\s\S]*?</noscript>#i', '', $html );
+		$html      = preg_replace( '#<!--[\s\S]*?-->#', '', $html );
+
 		$doc = new DOMDocument();
 		libxml_use_internal_errors( true );
 		$doc->loadHTML( '<?xml encoding="utf-8" ?>' . $html, LIBXML_NOERROR | LIBXML_NOWARNING );
 		libxml_clear_errors();
 
-		self::strip_wp( $doc );
+		$media = array_merge( self::find_media( $doc ), $raw_media );
 
-		$media = self::find_media( $doc );
+		self::strip_wp( $doc );
 
 		// Chrome: head meta we care about, header/nav, footer.
 		$head_title = '';
@@ -646,61 +654,45 @@ class Velox_October {
 		self::normalise_classes( $doc );
 	}
 
+	/** Real image URLs hidden in <noscript> blocks (common lazy-load fallback). */
+	private static function media_from_noscript( $html ) {
+		$urls = array();
+		if ( preg_match_all( '#<noscript\b[\s\S]*?</noscript>#i', $html, $blocks ) ) {
+			foreach ( $blocks[0] as $block ) {
+				if ( preg_match_all( '#<(?:img|source)\b[^>]*\s(?:src|srcset)\s*=\s*["\']([^"\']+)["\']#i', $block, $m ) ) {
+					foreach ( $m[1] as $u ) {
+						$u = trim( explode( ' ', trim( $u ) )[0] ); // first srcset candidate
+						if ( '' !== $u && 0 !== stripos( $u, 'data:' ) ) {
+							$urls[] = $u;
+						}
+					}
+				}
+			}
+		}
+		return $urls;
+	}
+
 	/**
-	 * Remove WordPress / page-builder junk from class names, IDs and data-attributes
-	 * so the markup reads like hand-written HTML — WITHOUT stripping the structural
-	 * builder classes the converted CSS still relies on for layout.
+	 * Light, SAFE cleanup only: drop page-builder data-* attributes that have zero
+	 * visual effect. We deliberately KEEP all classes and IDs — on Oxygen (and most
+	 * builders) the CSS is keyed to those exact classes/auto-IDs, so removing them
+	 * strips the entire design. Cleaning class names requires renaming them in the
+	 * CSS too, which is a manual per-component job, not a safe automatic pass.
 	 */
 	private static function normalise_classes( DOMDocument $doc ) {
-		$xpath = new DOMXPath( $doc );
-
-		// Junk classes: pure WP/menu/state metadata that carry no real styling.
-		$junk = array(
-			'/^menu-item.*/', '/^current[-_]menu.*/', '/^current[-_]page.*/', '/^page-item.*/',
-			'/^page-id-\d+$/', '/^postid-\d+$/', '/^post-\d+$/', '/^attachment-.*/',
-			'/^wp-block-[a-z-]+$/', '/^has-.*-color$/', '/^has-.*-background-color$/',
-			'/^is-layout-.*/', '/^wp-elements-[a-f0-9]+$/', '/^wp-container-.*/',
-			'/^logged-in$/', '/^admin-bar$/', '/^customize-support$/', '/^no-customize-support$/',
-			'/^elementor-page.*/', '/^elementor-\d+$/', '/^e-\d+$/',
-			'/^screen-reader-text$/',
-		);
-		foreach ( $xpath->query( '//*[@class]' ) as $el ) {
-			$classes = preg_split( '/\s+/', trim( (string) $el->getAttribute( 'class' ) ) );
-			$keep    = array();
-			foreach ( $classes as $c ) {
-				if ( '' === $c ) { continue; }
-				$drop = false;
-				foreach ( $junk as $re ) {
-					if ( preg_match( $re, $c ) ) { $drop = true; break; }
-				}
-				if ( ! $drop ) { $keep[] = $c; }
-			}
-			if ( $keep ) {
-				$el->setAttribute( 'class', implode( ' ', $keep ) );
-			} else {
-				$el->removeAttribute( 'class' );
-			}
-		}
-
-		// Remove WP-generated, meaningless IDs (e.g. pro-menu-269-83, menu-item-123,
-		// block_abc123) — but keep short, human-looking IDs that may be anchor targets.
-		foreach ( $xpath->query( '//*[@id]' ) as $el ) {
-			$id = (string) $el->getAttribute( 'id' );
-			if ( preg_match( '/^(pro-menu-|menu-item-|menu-\d|block_|_|post-\d|wp-|ctf-|et-|elementor-|ast-| wpforms-)/i', $id )
-				|| preg_match( '/-\d+-\d+$/', $id )
-				|| preg_match( '/^[a-f0-9]{8,}$/i', $id ) ) {
-				$el->removeAttribute( 'id' );
-			}
-		}
-
-		// Strip builder/data attributes that are pure noise.
-		$drop_attr_prefixes = array( 'data-elementor', 'data-widget', 'data-id', 'data-element_type', 'data-settings', 'data-oxy', 'data-ct', 'data-shortcode' );
+		$xpath  = new DOMXPath( $doc );
+		$prefix = array( 'data-elementor', 'data-widget_type', 'data-element_type', 'data-settings', 'data-oxy-', 'data-ct-', 'data-shortcode' );
 		foreach ( $xpath->query( '//*' ) as $el ) {
-			if ( ! $el->hasAttributes() ) { continue; }
+			if ( ! $el->hasAttributes() ) {
+				continue;
+			}
 			$remove = array();
 			foreach ( $el->attributes as $attr ) {
-				foreach ( $drop_attr_prefixes as $p ) {
-					if ( 0 === stripos( $attr->nodeName, $p ) ) { $remove[] = $attr->nodeName; break; }
+				foreach ( $prefix as $p ) {
+					if ( 0 === stripos( $attr->nodeName, $p ) ) {
+						$remove[] = $attr->nodeName;
+						break;
+					}
 				}
 			}
 			foreach ( $remove as $an ) {
@@ -1024,9 +1016,16 @@ class Velox_October {
 		foreach ( (array) $ext_css as $href ) {
 			$ext .= '<link href="' . esc_url( $href ) . "\" rel=\"stylesheet\">\n";
 		}
-		return "[seoTags]\n==\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n<link rel=\"alternate\" href=\"{{ url('/') }}{{ weburl }}\" hreflang=\"de-DE\" />\n{% component 'seoTags' %}\n\n{# Bootstrap 5 #}\n<link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n"
+		return "==\n"
+			. "<meta charset=\"utf-8\">\n"
+			. "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n"
+			. "<title>{{ this.page.title }}</title>\n"
+			. "{% if this.page.meta_description %}<meta name=\"description\" content=\"{{ this.page.meta_description }}\">{% endif %}\n"
+			. "\n{# Bootstrap 5 #}\n"
+			. "<link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n"
 			. ( '' !== $ext ? "\n{# External stylesheets kept from the original site (fonts, etc.) #}\n" . $ext : '' )
-			. "\n{# Converted site styles (plain CSS — always loads; SCSS sources in assets/scss/) #}\n<link href=\"{{ 'assets/css/style.css'|theme }}\" rel=\"stylesheet\">\n";
+			. "\n{# Converted site styles #}\n"
+			. "<link href=\"{{ 'assets/css/style.css'|theme }}\" rel=\"stylesheet\">\n";
 	}
 
 	private static function script_partial() {
@@ -1170,6 +1169,237 @@ class Velox_October {
 		readfile( $tmp ); // phpcs:ignore WordPress.WP.AlternativeFunctions
 		wp_delete_file( $tmp );
 		exit;
+	}
+
+	/* ------------------------------------------------------ rename-map editor */
+
+	/** Read selected entries from a build's zip → [ name => contents ]. */
+	private static function read_zip( $zip_path, $prefixes ) {
+		$out = array();
+		if ( ! file_exists( $zip_path ) ) {
+			return $out;
+		}
+		$zip = new ZipArchive();
+		if ( true !== $zip->open( $zip_path ) ) {
+			return $out;
+		}
+		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
+			$name = $zip->getNameIndex( $i );
+			foreach ( (array) $prefixes as $p ) {
+				if ( 0 === strpos( $name, $p ) ) {
+					$out[ $name ] = (string) $zip->getFromIndex( $i );
+					break;
+				}
+			}
+		}
+		$zip->close();
+		return $out;
+	}
+
+	/** Distinct classes and IDs (with usage counts) across some HTML. */
+	public static function extract_tokens( $html ) {
+		$classes = array();
+		$ids     = array();
+		foreach ( array( '"', "'" ) as $q ) {
+			if ( preg_match_all( '/\sclass\s*=\s*' . $q . '([^' . $q . ']*)' . $q . '/i', $html, $m ) ) {
+				foreach ( $m[1] as $cl ) {
+					foreach ( preg_split( '/\s+/', trim( $cl ) ) as $c ) {
+						if ( '' !== $c && ! preg_match( '/[{}]/', $c ) ) {
+							$classes[ $c ] = ( isset( $classes[ $c ] ) ? $classes[ $c ] : 0 ) + 1;
+						}
+					}
+				}
+			}
+			if ( preg_match_all( '/\sid\s*=\s*' . $q . '([^' . $q . ']*)' . $q . '/i', $html, $m ) ) {
+				foreach ( $m[1] as $id ) {
+					$id = trim( $id );
+					if ( '' !== $id ) {
+						$ids[ $id ] = ( isset( $ids[ $id ] ) ? $ids[ $id ] : 0 ) + 1;
+					}
+				}
+			}
+		}
+		arsort( $classes );
+		arsort( $ids );
+		return array( 'classes' => $classes, 'ids' => $ids );
+	}
+
+	/** Apply a rename map to HTML (class attribute tokens, id attrs, #anchor refs). */
+	public static function rename_html( $html, $map ) {
+		$cmap = isset( $map['classes'] ) ? (array) $map['classes'] : array();
+		$imap = isset( $map['ids'] ) ? (array) $map['ids'] : array();
+
+		// Rewrite class attribute token lists.
+		if ( $cmap ) {
+			$html = preg_replace_callback(
+				'/(\sclass\s*=\s*)(["\'])(.*?)\2/i',
+				function ( $mt ) use ( $cmap ) {
+					$tokens = preg_split( '/\s+/', trim( $mt[3] ) );
+					foreach ( $tokens as &$t ) {
+						if ( '' !== $t && isset( $cmap[ $t ] ) && '' !== $cmap[ $t ] ) {
+							$t = $cmap[ $t ];
+						}
+					}
+					unset( $t );
+					return $mt[1] . $mt[2] . implode( ' ', array_filter( $tokens ) ) . $mt[2];
+				},
+				$html
+			);
+		}
+		// Rewrite id attribute values + #anchor references (href, aria-controls, data-bs-target, for).
+		foreach ( $imap as $old => $new ) {
+			if ( '' === $new || $old === $new ) {
+				continue;
+			}
+			$o = preg_quote( $old, '/' );
+			$html = preg_replace( '/(\sid\s*=\s*["\'])' . $o . '(["\'])/i', '${1}' . $new . '${2}', $html );
+			$html = preg_replace( '/(["\']|=)#' . $o . '(?![\w-])/', '${1}#' . $new, $html );
+			$html = preg_replace( '/(\s(?:aria-controls|aria-labelledby|for|data-bs-target|data-bs-parent)\s*=\s*["\']#?)' . $o . '(["\'])/i', '${1}' . $new . '${2}', $html );
+		}
+		return $html;
+	}
+
+	/** Apply a rename map to CSS selectors (.class / #id) with safe boundaries. */
+	public static function rename_css( $css, $map ) {
+		$cmap = isset( $map['classes'] ) ? (array) $map['classes'] : array();
+		$imap = isset( $map['ids'] ) ? (array) $map['ids'] : array();
+		// Longest first so a token isn't a prefix-collision of another.
+		$apply = function ( $css, $pairs, $sigil ) {
+			uksort( $pairs, function ( $a, $b ) { return strlen( $b ) - strlen( $a ); } );
+			foreach ( $pairs as $old => $new ) {
+				if ( '' === $new || $old === $new ) { continue; }
+				$o   = preg_quote( $old, '/' );
+				$css = preg_replace( '/' . preg_quote( $sigil, '/' ) . $o . '(?![\w-])/', $sigil . $new, $css );
+			}
+			return $css;
+		};
+		$css = $apply( $css, $cmap, '.' );
+		$css = $apply( $css, $imap, '#' );
+		return $css;
+	}
+
+	/** Payload for the rename editor: token list + a live-preview page + the CSS. */
+	public static function edit_payload( $build_id ) {
+		$row = self::get( $build_id );
+		if ( ! $row ) {
+			return array( 'ok' => false, 'message' => 'Build not found.' );
+		}
+		$zip_path = trailingslashit( self::dir() ) . basename( (string) $row['zip'] );
+		$files    = self::read_zip( $zip_path, array( 'pages/', 'assets/css/', 'partials/site/' ) );
+
+		$pages_html = '';
+		$preview    = '';
+		$nav        = '';
+		$footer     = '';
+		foreach ( $files as $name => $content ) {
+			if ( 0 === strpos( $name, 'pages/' ) ) {
+				$body = (string) substr( (string) strstr( $content, "==\n" ), 3 );
+				$pages_html .= "\n" . $body;
+				if ( '' === $preview || 'pages/startseite.htm' === $name ) {
+					$preview = $body;
+				}
+			} elseif ( 'partials/site/nav.htm' === $name ) {
+				$nav = $content;
+			} elseif ( 'partials/site/footer.htm' === $name ) {
+				$footer = $content;
+			}
+		}
+		$css = isset( $files['assets/css/style.css'] ) ? $files['assets/css/style.css'] : '';
+
+		$tokens = self::extract_tokens( $pages_html . ' ' . $nav . ' ' . $footer );
+
+		// Make preview self-contained: resolve {{ 'x'|theme }} refs to nothing visual
+		// is fine for class/layout preview; strip Twig tags so the iframe renders.
+		$strip_twig = function ( $s ) {
+			$s = preg_replace( '/\{\{.*?\}\}/s', '', $s );
+			$s = preg_replace( '/\{%.*?%\}/s', '', $s );
+			return $s;
+		};
+
+		return array(
+			'ok'      => true,
+			'project' => $row['project'],
+			'version' => (int) $row['version'],
+			'classes' => $tokens['classes'],
+			'ids'     => $tokens['ids'],
+			'css'     => $css,
+			'preview' => $strip_twig( $nav . $preview . $footer ),
+		);
+	}
+
+	/** Apply a rename map to every page + the CSS, write a new version, return it. */
+	public static function apply_renames( $build_id, $map ) {
+		$row = self::get( $build_id );
+		if ( ! $row ) {
+			return array( 'ok' => false, 'message' => 'Build not found.' );
+		}
+		// Normalise + sanitise the map (valid CSS identifier names only).
+		$clean = array( 'classes' => array(), 'ids' => array() );
+		foreach ( array( 'classes', 'ids' ) as $k ) {
+			if ( empty( $map[ $k ] ) || ! is_array( $map[ $k ] ) ) {
+				continue;
+			}
+			foreach ( $map[ $k ] as $old => $new ) {
+				$new = trim( (string) $new );
+				if ( '' === $new || $old === $new ) {
+					continue;
+				}
+				$new = preg_replace( '/[^A-Za-z0-9_-]/', '-', $new );
+				$new = ltrim( $new, '-0123456789' ) === '' ? 'r-' . $new : $new; // keep it a valid leading char
+				$clean[ $k ][ (string) $old ] = $new;
+			}
+		}
+
+		$zip_path = trailingslashit( self::dir() ) . basename( (string) $row['zip'] );
+		$all      = self::read_zip( $zip_path, array( '' ) ); // every entry
+		if ( empty( $all ) ) {
+			return array( 'ok' => false, 'message' => 'Could not read the build zip.' );
+		}
+
+		$project = $row['project'];
+		$version = self::next_version( $project );
+		$new_zip = $project . '-v' . $version . '.zip';
+		$new_path = trailingslashit( self::dir() ) . $new_zip;
+		if ( file_exists( $new_path ) ) {
+			wp_delete_file( $new_path );
+		}
+
+		$zip = new ZipArchive();
+		if ( true !== $zip->open( $new_path, ZipArchive::CREATE ) ) {
+			return array( 'ok' => false, 'message' => 'Could not create the new zip.' );
+		}
+		foreach ( $all as $name => $content ) {
+			if ( 0 === strpos( $name, 'pages/' ) || 0 === strpos( $name, 'partials/' ) || 0 === strpos( $name, 'layouts/' ) ) {
+				$content = self::rename_html( $content, $clean );
+			} elseif ( 0 === strpos( $name, 'assets/css/' ) || 0 === strpos( $name, 'assets/scss/' ) ) {
+				$content = self::rename_css( $content, $clean );
+			}
+			$zip->addFromString( $name, $content );
+		}
+		$zip->close();
+		$size = file_exists( $new_path ) ? (int) filesize( $new_path ) : 0;
+
+		global $wpdb;
+		$manifest = $row['manifest'];
+		$wpdb->insert(
+			self::table(),
+			array(
+				'project'     => $project,
+				'version'     => $version,
+				'status'      => 'done',
+				'started'     => current_time( 'mysql' ),
+				'finished'    => current_time( 'mysql' ),
+				'duration_ms' => 0,
+				'pages'       => (int) $row['pages'],
+				'media'       => (int) $row['media'],
+				'size'        => $size,
+				'zip'         => $new_zip,
+				'manifest'    => $manifest,
+				'note'        => 'Renamed (' . ( count( $clean['classes'] ) + count( $clean['ids'] ) ) . ' names)',
+			),
+			array( '%s', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s' )
+		);
+		return array( 'ok' => true, 'id' => (int) $wpdb->insert_id, 'version' => $version, 'renamed' => count( $clean['classes'] ) + count( $clean['ids'] ) );
 	}
 
 	/* -------------------------------------------------------------- helpers */

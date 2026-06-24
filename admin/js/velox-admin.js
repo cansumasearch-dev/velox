@@ -1796,6 +1796,132 @@
 		initMailBuilder();
 		initCookies();
 		initOctober();
+		initOctoberEditor();
+	}
+
+	function initOctoberEditor() {
+		var root = $( '#oct-editor' );
+		if ( ! root ) { return; }
+		var buildId = root.getAttribute( 'data-build' );
+		var dlNonce = root.getAttribute( 'data-dlnonce' );
+		var ajaxUrl = root.getAttribute( 'data-ajaxurl' );
+		var listEl  = $( '#oct-tok-list' );
+		var frame   = $( '#oct-preview' );
+		var statusEl= $( '#oct-edit-status' );
+		var filterEl= $( '#oct-tok-filter' );
+		var data    = null;
+		var tab     = 'classes';
+		var map     = { classes: {}, ids: {} };
+		var timer   = null;
+
+		function esc( s ) { return ( s == null ? '' : String( s ) ).replace( /[&<>"]/g, function ( c ) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ c ]; } ); }
+		function reEsc( s ) { return s.replace( /[.*+?^${}()|[\]\\]/g, '\\$&' ); }
+
+		function renameCss( css ) {
+			[ [ 'classes', '.' ], [ 'ids', '#' ] ].forEach( function ( pair ) {
+				var m = map[ pair[ 0 ] ], sig = pair[ 1 ];
+				Object.keys( m ).sort( function ( a, b ) { return b.length - a.length; } ).forEach( function ( oldN ) {
+					var newN = m[ oldN ];
+					if ( ! newN || newN === oldN ) { return; }
+					css = css.replace( new RegExp( reEsc( sig + oldN ) + '(?![\\w-])', 'g' ), sig + newN );
+				} );
+			} );
+			return css;
+		}
+		function renameHtml( html ) {
+			var cm = map.classes;
+			html = html.replace( /(\sclass\s*=\s*)("|')(.*?)\2/gi, function ( full, pre, q, val ) {
+				var toks = val.split( /\s+/ ).map( function ( t ) { return ( t && cm[ t ] ) ? cm[ t ] : t; } );
+				return pre + q + toks.filter( Boolean ).join( ' ' ) + q;
+			} );
+			Object.keys( map.ids ).forEach( function ( oldN ) {
+				var newN = map.ids[ oldN ];
+				if ( ! newN || newN === oldN ) { return; }
+				html = html.replace( new RegExp( '(\\sid\\s*=\\s*("|\'))' + reEsc( oldN ) + '(\\2)', 'gi' ), '$1' + newN + '$3' );
+				html = html.replace( new RegExp( '(["\']|=)#' + reEsc( oldN ) + '(?![\\w-])', 'g' ), '$1#' + newN );
+			} );
+			return html;
+		}
+		function renderPreview() {
+			if ( ! data ) { return; }
+			var html = '<!doctype html><html><head><meta charset="utf-8"><base target="_blank">' +
+				'<style>' + renameCss( data.css ) + '</style></head><body>' + renameHtml( data.preview ) + '</body></html>';
+			frame.srcdoc = html;
+		}
+		function schedulePreview() {
+			if ( timer ) { clearTimeout( timer ); }
+			timer = setTimeout( renderPreview, 350 );
+		}
+
+		function renderList() {
+			if ( ! data ) { return; }
+			var tokens = data[ tab ] || {};
+			var filter = ( filterEl.value || '' ).toLowerCase();
+			var names  = Object.keys( tokens ).filter( function ( n ) { return ! filter || n.toLowerCase().indexOf( filter ) > -1; } );
+			if ( ! names.length ) { listEl.innerHTML = '<p class="velox-hint" style="padding:18px;">No ' + tab + ' found.</p>'; return; }
+			var rows = names.map( function ( n ) {
+				var cur = map[ tab ][ n ] || '';
+				return '<div class="oct-tok-row"><code class="oct-tok-name" title="' + esc( n ) + '">' + esc( n ) + '</code>' +
+					'<span class="oct-tok-count">' + tokens[ n ] + '\u00d7</span>' +
+					'<span class="oct-tok-arrow">\u2192</span>' +
+					'<input class="velox-input velox-input--sm oct-tok-input" data-token="' + esc( n ) + '" value="' + esc( cur ) + '" placeholder="' + esc( n ) + '" spellcheck="false">' +
+					'</div>';
+			} ).join( '' );
+			listEl.innerHTML = rows;
+			$$( '.oct-tok-input', listEl ).forEach( function ( inp ) {
+				inp.addEventListener( 'input', function () {
+					var t = inp.getAttribute( 'data-token' );
+					var v = inp.value.trim();
+					if ( v ) { map[ tab ][ t ] = v; } else { delete map[ tab ][ t ]; }
+					updateCount();
+					schedulePreview();
+				} );
+			} );
+		}
+		function updateCount() {
+			var n = Object.keys( map.classes ).length + Object.keys( map.ids ).length;
+			statusEl.textContent = n ? ( n + ' rename' + ( n === 1 ? '' : 's' ) + ' pending' ) : '';
+		}
+
+		$$( '.oct-tok-tab', root ).forEach( function ( b ) {
+			b.addEventListener( 'click', function () {
+				$$( '.oct-tok-tab', root ).forEach( function ( x ) { x.classList.remove( 'is-active' ); } );
+				b.classList.add( 'is-active' );
+				tab = b.getAttribute( 'data-tab' );
+				renderList();
+			} );
+		} );
+		if ( filterEl ) { filterEl.addEventListener( 'input', renderList ); }
+
+		var applyBtn = $( '#oct-apply' );
+		if ( applyBtn ) {
+			applyBtn.addEventListener( 'click', function () {
+				if ( ! Object.keys( map.classes ).length && ! Object.keys( map.ids ).length ) {
+					toast( 'No renames yet — edit some names first.', 'error' ); return;
+				}
+				applyBtn.disabled = true; applyBtn.textContent = 'Building…';
+				api( 'october_apply_renames', { id: buildId, map: JSON.stringify( map ) } )
+					.then( function ( d ) {
+						toast( 'Renamed v' + d.version + ' (' + d.renamed + ' names). Downloading…', 'success' );
+						window.location = ajaxUrl + '?action=velox_october_download&id=' + d.id + '&_wpnonce=' + dlNonce;
+						setTimeout( function () { applyBtn.disabled = false; applyBtn.textContent = 'Download renamed'; }, 1500 );
+					} )
+					.catch( function ( e ) {
+						toast( e.message, 'error' ); applyBtn.disabled = false; applyBtn.textContent = 'Download renamed';
+					} );
+			} );
+		}
+
+		listEl.innerHTML = '<p class="velox-hint" style="padding:18px;">Loading…</p>';
+		api( 'october_edit_payload', { id: buildId } )
+			.then( function ( d ) {
+				data = d;
+				renderList();
+				renderPreview();
+			} )
+			.catch( function ( e ) {
+				listEl.innerHTML = '<p class="velox-hint" style="padding:18px;">Could not load: ' + esc( e.message ) + '</p>';
+			} );
 	}
 
 	function initCookies() {

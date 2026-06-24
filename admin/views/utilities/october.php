@@ -37,6 +37,40 @@ if ( ! function_exists( 'velox_oct_bytes' ) ) {
 	</div>
 <?php else :
 	Velox_October::maybe_install();
+	$edit_id = isset( $_GET['edit'] ) ? (int) $_GET['edit'] : 0; // phpcs:ignore WordPress.Security.NonceVerification
+	$hub_url = admin_url( 'admin.php?page=velox-utilities&tool=october' );
+
+	if ( $edit_id ) :
+		?>
+		<div class="velox-page-head velox-page-head--row">
+			<div>
+				<a class="vmail-back-link" href="<?php echo esc_url( $hub_url ); ?>">&larr; All builds</a>
+				<h1 class="velox-h2" style="margin-top:8px;">Rename classes &amp; IDs</h1>
+				<p class="velox-sub">Give the WordPress/Oxygen names something human. Every change is applied to the HTML <em>and</em> the CSS together, and the preview updates as you type. When you're done, download a renamed version.</p>
+			</div>
+		</div>
+		<div class="oct-editor" id="oct-editor" data-build="<?php echo (int) $edit_id; ?>" data-dlnonce="<?php echo esc_attr( wp_create_nonce( 'velox_october_dl' ) ); ?>" data-ajaxurl="<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>">
+			<div class="oct-editor-panel">
+				<div class="oct-editor-toolbar">
+					<input type="text" class="velox-input velox-input--sm" id="oct-tok-filter" placeholder="Filter names…" style="max-width:200px;">
+					<label class="oct-tok-tabs">
+						<button class="oct-tok-tab is-active" data-tab="classes">Classes</button>
+						<button class="oct-tok-tab" data-tab="ids">IDs</button>
+					</label>
+					<span class="velox-hint" id="oct-edit-status" style="margin-left:auto;"></span>
+					<button class="velox-btn velox-btn--primary velox-btn--sm" id="oct-apply">Download renamed</button>
+				</div>
+				<div class="oct-tok-list" id="oct-tok-list"><p class="velox-hint" style="padding:18px;">Loading…</p></div>
+			</div>
+			<div class="oct-editor-preview">
+				<span class="vxck-preview-label">Live preview</span>
+				<iframe id="oct-preview" class="oct-preview-frame" title="Preview"></iframe>
+			</div>
+		</div>
+		<?php
+		return;
+	endif;
+
 	$builds = Velox_October::builds();
 	// Group by project, newest version first.
 	$projects = array();
@@ -99,6 +133,7 @@ if ( ! function_exists( 'velox_oct_bytes' ) ) {
 								<td><?php echo esc_html( velox_oct_bytes( $b['size'] ) ); ?></td>
 								<td class="vmail-th-act oct-actions">
 									<a class="velox-btn velox-btn--primary velox-btn--sm" href="<?php echo esc_url( $dl ); ?>">Download</a>
+									<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( admin_url( 'admin.php?page=velox-utilities&tool=october&edit=' . (int) $b['id'] ) ); ?>">Edit names</a>
 									<button class="velox-btn velox-btn--ghost velox-btn--sm oct-del">Delete</button>
 								</td>
 							</tr>
