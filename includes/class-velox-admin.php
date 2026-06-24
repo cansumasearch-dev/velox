@@ -427,6 +427,8 @@ class Velox_Admin {
 			'cone'  => '<path d="m9 3 6 18M5 21h14M7.5 9h9M6.2 15h11.6"/>',
 			'list'  => '<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
 			'code'  => '<path d="m16 18 6-6-6-6M8 6l-6 6 6 6"/>',
+			'cookie' => '<path d="M12 3a9 9 0 1 0 9 9 3 3 0 0 1-3-3 3 3 0 0 1-3-3 3 3 0 0 1-3-3Z"/><circle cx="9" cy="11" r="1"/><circle cx="13" cy="15" r="1"/><circle cx="15.5" cy="9.5" r="1"/>',
+			'package' => '<path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5M12 13v8"/>',
 		);
 		$p = isset( $paths[ $name ] ) ? $paths[ $name ] : '';
 		return '<svg class="velox-ic" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' . $p . '</svg>';

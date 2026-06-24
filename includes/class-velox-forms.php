@@ -506,6 +506,38 @@ class Velox_Forms {
 		return array( 'ok' => true );
 	}
 
+	/** Total entries, optionally for one form. */
+	public static function submission_count( $form_id = 0 ) {
+		global $wpdb;
+		$t = self::table();
+		if ( $form_id ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE form_id = %d", $form_id ) ); // phpcs:ignore WordPress.DB
+		}
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t}" ); // phpcs:ignore WordPress.DB
+	}
+
+	/** Entries received within the last N days. */
+	public static function submission_count_recent( $days = 7 ) {
+		global $wpdb;
+		$t     = self::table();
+		$since = gmdate( 'Y-m-d H:i:s', (int) current_time( 'timestamp' ) - ( (int) $days * DAY_IN_SECONDS ) ); // phpcs:ignore WordPress.DateTime
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE created >= %s", $since ) ); // phpcs:ignore WordPress.DB
+	}
+
+	/** Map a form's field keys → human labels, for rendering entries. */
+	public static function field_labels( $form_id ) {
+		$form = self::get_form( (int) $form_id );
+		$map  = array();
+		if ( $form && ! empty( $form['fields'] ) ) {
+			foreach ( $form['fields'] as $f ) {
+				if ( ! empty( $f['key'] ) ) {
+					$map[ $f['key'] ] = ! empty( $f['label'] ) ? $f['label'] : $f['key'];
+				}
+			}
+		}
+		return $map;
+	}
+
 	/* --------------------------------------------------------------- front assets */
 
 	public static function print_assets() {

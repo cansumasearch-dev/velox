@@ -49,8 +49,8 @@
 	color: var(--vx-ink);
 	background: var(--vx-bg);
 	min-height: 100vh;
-	/* Sit clearly away from the WordPress admin menu instead of flush against it. */
-	margin: 12px 16px 12px 24px;
+	/* Full-bleed: sit flush in the WP admin content area. */
+	margin: 0;
 	padding: 0;
 	-webkit-font-smoothing: antialiased;
 }
@@ -133,8 +133,8 @@
 .velox-side-foot-link { display: block; padding: 10px 14px; border-radius: var(--vx-r-md); background: var(--vx-bg); font-size: 12px; font-weight: 600; color: var(--vx-ink-3); text-align: center; transition: background .12s, color .12s; }
 .velox-side-foot-link:hover { background: var(--vx-line); color: var(--vx-ink-2); }
 
-.velox-content { flex: 1; min-width: 0; }
-.velox-main { padding: 36px 52px 96px; max-width: 1320px; }
+.velox-content { flex: 1; min-width: 0; width: 100%; }
+.velox-main { padding: 36px 52px 96px; width: 100%; max-width: none; }
 
 /* Collapse toggle + collapsed sidebar (icons only) */
 .velox-side-brand { position: relative; }
@@ -959,3 +959,120 @@
 	.velox-field--narrow { width: 100%; }
 	.velox-snip-row { flex-wrap: wrap; }
 }
+
+/* ============================================================
+ * Mail & forms — dashboard, table, entries (Apple/Airbnb/Notion language)
+ * ============================================================ */
+.velox-panel--flush { padding: 0; overflow: hidden; }
+.velox-btn--sm { padding: 6px 12px; font-size: 12.5px; }
+
+.vmail-head-sub { font-weight: 500; color: var(--vx-ink-3); }
+.vmail-back-link { display: inline-block; font-size: 13px; font-weight: 600; color: var(--vx-ink-2); text-decoration: none; }
+.vmail-back-link:hover { color: var(--vx-primary); }
+
+/* Stat tiles */
+.vmail-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 18px; }
+.vmail-stat { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: 14px; padding: 18px 20px; }
+.vmail-stat-n { display: block; font-size: 30px; font-weight: 800; letter-spacing: -.03em; color: var(--vx-ink); line-height: 1.05; }
+.vmail-stat-l { display: block; margin-top: 4px; font-size: 13px; font-weight: 500; color: var(--vx-ink-3); }
+
+/* Forms table */
+.vmail-table { width: 100%; border-collapse: collapse; }
+.vmail-table thead th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--vx-ink-3); padding: 14px 22px; border-bottom: 1px solid var(--vx-line); }
+.vmail-table .vmail-th-num { text-align: center; width: 110px; }
+.vmail-table .vmail-th-act { width: 1%; }
+.vmail-table tbody td { padding: 16px 22px; border-bottom: 1px solid var(--vx-line); vertical-align: middle; }
+.vmail-table tbody tr:last-child td { border-bottom: 0; }
+.vmail-trow { transition: background .12s; }
+.vmail-trow:hover { background: var(--vx-bg); }
+.vmail-t-name { font-weight: 700; font-size: 15px; color: var(--vx-ink); text-decoration: none; letter-spacing: -.01em; }
+.vmail-t-name:hover { color: var(--vx-primary); }
+.vmail-t-count { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 26px; padding: 0 10px; border-radius: 999px; background: var(--vx-primary-tint); color: var(--vx-primary-d); font-weight: 700; font-size: 13px; text-decoration: none; }
+.vmail-t-count:hover { background: var(--vx-primary); color: #fff; }
+.vmail-th-num { text-align: center; }
+.vmail-t-act { white-space: nowrap; text-align: right; }
+.vmail-t-act .velox-btn { margin-left: 6px; }
+
+/* Entries browser */
+.vmail-entries { display: flex; flex-direction: column; }
+.vmail-entry { border-bottom: 1px solid var(--vx-line); }
+.vmail-entry:last-child { border-bottom: 0; }
+.vmail-entry-sum { display: flex; align-items: center; gap: 18px; padding: 16px 22px; cursor: pointer; list-style: none; transition: background .12s; }
+.vmail-entry-sum::-webkit-details-marker { display: none; }
+.vmail-entry-sum:hover { background: var(--vx-bg); }
+.vmail-entry-date { flex: 0 0 auto; font-size: 13px; font-weight: 600; color: var(--vx-ink-2); width: 150px; }
+.vmail-entry-preview { flex: 1 1 auto; min-width: 0; color: var(--vx-ink); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vmail-entry-chev { flex: 0 0 auto; color: var(--vx-ink-3); transition: transform .18s; }
+.vmail-entry[open] .vmail-entry-chev { transform: rotate(180deg); }
+.vmail-entry[open] .vmail-entry-sum { background: var(--vx-bg); }
+.vmail-entry-body { padding: 6px 22px 22px; background: var(--vx-bg); }
+.vmail-entry-dl { display: grid; grid-template-columns: 180px 1fr; gap: 1px; background: var(--vx-line); border: 1px solid var(--vx-line); border-radius: 10px; overflow: hidden; margin: 0; }
+.vmail-entry-dl dt { background: var(--vx-card); padding: 11px 14px; font-size: 12.5px; font-weight: 600; color: var(--vx-ink-2); }
+.vmail-entry-dl dd { background: var(--vx-card); padding: 11px 14px; margin: 0; font-size: 14px; color: var(--vx-ink); word-break: break-word; }
+.vmail-entry-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 14px; }
+.vmail-entry-meta { font-size: 12px; color: var(--vx-ink-3); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+.velox-mail-disable { display: flex; align-items: center; }
+
+@media (max-width: 782px) {
+	.vmail-stats { grid-template-columns: 1fr; }
+	.vmail-entry-dl { grid-template-columns: 1fr; }
+	.vmail-entry-date { width: auto; }
+	.vmail-t-act { white-space: normal; }
+}
+
+/* ---- Builder polish pass (cleaner, calmer, more Fluent-like) ---- */
+.vmail-bar { padding: 14px 18px; border-radius: 16px; }
+.vmail-pal-item { background: var(--vx-card); padding: 13px 6px; border-radius: 11px; }
+.vmail-pal-item:hover { box-shadow: 0 2px 8px rgba(15,18,30,.06); transform: translateY(-1px); }
+.vmail-pal-ic { background: var(--vx-bg); }
+.vmail-canvas-wrap { background: var(--vx-card); border: 1px solid var(--vx-line); }
+.vmail-canvas:empty + .vmail-empty, .vmail-canvas-wrap:has(.vmail-empty) { border-style: dashed; }
+.vmail-fcard { border-width: 1px; border-radius: 12px; }
+.vmail-fcard:hover { box-shadow: 0 2px 10px rgba(15,18,30,.05); }
+.vmail-inspector, .vmail-palette { border-radius: 16px; }
+.vmail-insp-head { padding: 15px 18px; font-size: 13.5px; }
+
+/* ============================================================
+ * Cookie banner editor
+ * ============================================================ */
+.vxck-admin { display: grid; grid-template-columns: minmax(0,1fr) 380px; gap: 22px; align-items: start; }
+.vxck-admin-controls { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+.vxck-admin-preview { position: sticky; top: 24px; }
+.vxck-preview-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--vx-ink-3); margin-bottom: 10px; }
+.vxck-stage { background: repeating-conic-gradient(#eef0f3 0% 25%, #f7f8fa 0% 50%) 50% / 22px 22px; border: 1px solid var(--vx-line); border-radius: 16px; padding: 22px; min-height: 320px; display: flex; align-items: flex-end; }
+.vxck-prev { width: 100%; padding: 20px 22px; font-size: 14px; line-height: 1.5; }
+.vxck-prev-logo { max-height: 32px; width: auto; margin-bottom: 10px; display: block; }
+.vxck-prev-h { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
+.vxck-prev-body { margin: 0 0 12px; font-size: 13.5px; opacity: .85; }
+.vxck-prev-links { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; font-size: 12px; }
+.vxck-prev-links a { text-decoration: none; }
+.vxck-prev-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.vxck-prev-btn { border: 0; cursor: default; font-size: 13px; font-weight: 600; padding: 9px 15px; border-radius: 9px; }
+.vxck-prev-small { margin: 12px 0 0; font-size: 11px; opacity: .6; }
+
+.vxck-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
+.vxck-color { display: flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 500; color: var(--vx-ink-2); }
+.vxck-color input[type=color] { width: 34px; height: 34px; padding: 2px; border: 1px solid var(--vx-line-2); border-radius: 8px; background: var(--vx-card); cursor: pointer; flex: 0 0 auto; }
+
+@media (max-width: 1100px) {
+	.vxck-admin { grid-template-columns: 1fr; }
+	.vxck-admin-preview { position: static; }
+}
+
+/* ============================================================
+ * OctoberCMS theme builder
+ * ============================================================ */
+.oct-project { margin-bottom: 18px; }
+.oct-project-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 22px; border-bottom: 1px solid var(--vx-line); }
+.oct-project-name { font-size: 15px; font-weight: 700; color: var(--vx-ink); letter-spacing: -.01em; }
+.oct-project-meta { margin-left: 10px; font-size: 12.5px; color: var(--vx-ink-3); }
+.oct-table thead th { padding: 12px 22px; }
+.oct-table tbody td { padding: 14px 22px; font-size: 13.5px; }
+.oct-ver { font-weight: 700; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+.oct-badge { display: inline-block; margin-left: 8px; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; background: var(--vx-bg); color: var(--vx-ink-3); border: 1px solid var(--vx-line); vertical-align: middle; }
+.oct-badge--latest { background: var(--vx-success-tint, #e8f8ef); color: var(--vx-success, #1a7f48); border-color: transparent; }
+.oct-when { color: var(--vx-ink-2); }
+.oct-actions { white-space: nowrap; text-align: right; }
+.oct-actions .velox-btn { margin-left: 6px; }
+.oct-rescan:disabled, #oct-build:disabled { opacity: .55; cursor: progress; }

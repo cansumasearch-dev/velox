@@ -61,6 +61,39 @@ class Velox_Settings {
 			'util_unusedmedia'         => false,
 			'util_loginurl'            => false,
 			'util_snippets'            => false,
+			'util_cookies'             => false,
+			'util_october'             => false,
+
+			// ---- Cookie banner ----
+			'cookie_layout'            => 'bar-bottom',   // bar-bottom | box-bl | box-br | modal-center
+			'cookie_cat_analytics'     => true,
+			'cookie_cat_marketing'     => true,
+			'cookie_consent_mode'      => true,           // Google Consent Mode v2
+			'cookie_ga_id'             => '',             // G-XXXX (GA4) or GTM-XXXX
+			'cookie_reconsent_days'    => 180,
+			'cookie_heading'           => 'We value your privacy',
+			'cookie_body'              => 'We use cookies to improve your experience, analyse traffic and for marketing. You can accept all, reject non-essential, or choose what to allow.',
+			'cookie_btn_accept'        => 'Accept all',
+			'cookie_btn_reject'        => 'Reject non-essential',
+			'cookie_btn_settings'      => 'Preferences',
+			'cookie_small_text'        => '',
+			'cookie_link1_label'       => 'Privacy Policy',
+			'cookie_link1_url'         => '/datenschutz/',
+			'cookie_link2_label'       => 'Imprint',
+			'cookie_link2_url'         => '/impressum/',
+			'cookie_logo'              => '',
+			'cookie_bg'                => '#ffffff',
+			'cookie_text'              => '#1d1d1f',
+			'cookie_accent'            => '#2ab7f1',
+			'cookie_accent_text'       => '#ffffff',
+			'cookie_btn2_bg'           => '#f1f2f5',
+			'cookie_btn2_text'         => '#1d1d1f',
+			'cookie_border_color'      => '#e6e7eb',
+			'cookie_border_width'      => 1,
+			'cookie_radius'            => 16,
+			'cookie_shadow'            => true,
+			'cookie_overlay'           => false,
+			'cookie_offset'            => 24,
 
 			// ---- Page cache ----
 			'cache_enable'          => false,

@@ -340,6 +340,20 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Mail::clear_log() );
 				break;
 
+			case 'october_build':
+				Velox_October::maybe_install();
+				wp_send_json_success( Velox_October::build( isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '' ) );
+				break;
+
+			case 'october_rescan':
+				Velox_October::maybe_install();
+				wp_send_json_success( Velox_October::build( '', isset( $_POST['project'] ) ? sanitize_title( wp_unslash( $_POST['project'] ) ) : '' ) );
+				break;
+
+			case 'october_delete':
+				wp_send_json_success( Velox_October::delete( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
 			case 'cache_setup':
 				if ( Velox_Settings::get( 'cache_enable', false ) ) {
 					$st = Velox_Cache::install_dropin();

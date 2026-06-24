@@ -57,6 +57,11 @@ final class Velox {
 		$this->updater = new Velox_Updater();
 		Velox_Utilities::init();
 		Velox_Snippets::init();
+		Velox_Cookies::init();
+		if ( Velox_Settings::get( 'util_october', false ) ) {
+			Velox_October::maybe_install();
+			Velox_October::init();
+		}
 		if ( is_admin() ) {
 			Velox_Conflicts::init();
 		}

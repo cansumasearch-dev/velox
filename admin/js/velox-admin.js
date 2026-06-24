@@ -1794,6 +1794,67 @@
 		initMaintenance();
 		initMail();
 		initMailBuilder();
+		initCookies();
+		initOctober();
+	}
+
+	function initCookies() {
+		var t = $( '#velox-cookies-toggle' );
+		if ( ! t ) { return; }
+		t.addEventListener( 'change', function () {
+			saveSettings( { util_cookies: t.checked ? 1 : 0 }, t.checked ? 'Cookie banner on.' : 'Cookie banner off.' )
+				.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
+		} );
+	}
+
+	function initOctober() {
+		var toggle = $( '#velox-october-toggle' );
+		if ( toggle ) {
+			toggle.addEventListener( 'change', function () {
+				saveSettings( { util_october: toggle.checked ? 1 : 0 }, toggle.checked ? 'Builder on.' : 'Builder off.' )
+					.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
+			} );
+		}
+		var build = $( '#oct-build' );
+		var status = $( '#oct-status' );
+		function run( action, data, label ) {
+			if ( build ) { build.disabled = true; }
+			if ( status ) { status.style.display = ''; status.textContent = label; }
+			document.querySelectorAll( '.oct-rescan' ).forEach( function ( b ) { b.disabled = true; } );
+			return api( action, data )
+				.then( function ( d ) {
+					var msg = 'Built v' + d.version + ' · ' + d.pages + ' pages · ' + d.media + ' media';
+					if ( d.is_rescan ) { msg = ( d.new_pages && d.new_pages.length ) ? ( d.new_pages.length + ' new page(s) added — v' + d.version ) : ( 'Re-scanned — v' + d.version + ' (no new pages)' ); }
+					toast( msg, 'success' );
+					setTimeout( function () { location.reload(); }, 700 );
+				} )
+				.catch( function ( e ) {
+					toast( e.message || 'Build failed.', 'error' );
+					if ( build ) { build.disabled = false; }
+					if ( status ) { status.style.display = 'none'; }
+					document.querySelectorAll( '.oct-rescan' ).forEach( function ( b ) { b.disabled = false; } );
+				} );
+		}
+		if ( build ) {
+			build.addEventListener( 'click', function () {
+				var name = ( $( '#oct-name' ) || {} ).value || '';
+				run( 'october_build', { name: name }, 'Scanning the site… this can take a minute.' );
+			} );
+		}
+		$$( '.oct-rescan' ).forEach( function ( b ) {
+			b.addEventListener( 'click', function () {
+				run( 'october_rescan', { project: b.getAttribute( 'data-project' ) }, 'Re-scanning…' );
+			} );
+		} );
+		$$( '.oct-del' ).forEach( function ( b ) {
+			b.addEventListener( 'click', function () {
+				var row = b.closest( '.oct-row' );
+				if ( ! row || ! window.confirm( 'Delete this build and its zip?' ) ) { return; }
+				api( 'october_delete', { id: row.getAttribute( 'data-id' ) } )
+					.then( function () { row.remove(); toast( 'Build deleted.' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+			} );
+		} );
 	}
 
 	function initMaintenance() {
@@ -1900,19 +1961,22 @@
 		}
 		$$( '.velox-mail-formdel' ).forEach( function ( btn ) {
 			btn.addEventListener( 'click', function () {
-				var row = btn.closest( '.velox-mail-formrow' );
-				if ( ! window.confirm( 'Delete this form? Its submissions stay in the log.' ) ) { return; }
+				var row = btn.closest( '.vmail-trow' ) || btn.closest( '.velox-mail-formrow' );
+				if ( ! row || ! window.confirm( 'Delete this form? Its entries stay stored.' ) ) { return; }
 				api( 'form_delete', { id: row.getAttribute( 'data-id' ) } )
 					.then( function () { row.remove(); toast( 'Form deleted.' ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 		} );
 		$$( '.velox-mail-sub-del' ).forEach( function ( btn ) {
-			btn.addEventListener( 'click', function () {
-				var sub = btn.closest( '.velox-mail-sub' );
-				api( 'submission_delete', { id: sub.getAttribute( 'data-id' ) } )
-					.then( function () { sub.remove(); toast( 'Removed.' ); } )
-					.catch( function ( e ) { toast( e.message, 'error' ); } );
+			btn.addEventListener( 'click', function ( e ) {
+				e.preventDefault();
+				var sub = btn.closest( '.vmail-entry' ) || btn.closest( '.velox-mail-sub' );
+				var id  = btn.getAttribute( 'data-id' ) || ( sub && sub.getAttribute( 'data-id' ) );
+				if ( ! window.confirm( 'Delete this entry permanently?' ) ) { return; }
+				api( 'submission_delete', { id: id } )
+					.then( function () { if ( sub ) { sub.remove(); } toast( 'Removed.' ); } )
+					.catch( function ( er ) { toast( er.message, 'error' ); } );
 			} );
 		} );
 		var testBtn = $( '#vmail-test' );
