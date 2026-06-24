@@ -1950,7 +1950,7 @@
 			return api( action, data )
 				.then( function ( d ) {
 					var css = d.css_bytes ? ( Math.round( d.css_bytes / 1024 ) + 'KB CSS' ) : 'no CSS found';
-					var msg = 'Built v' + d.version + ' · ' + d.pages + ' pages · ' + ( d.media_added != null ? d.media_added : d.media ) + ' media · ' + css;
+					var msg = 'Built v' + d.version + ' · ' + d.pages + ' pages · ' + ( d.images != null ? d.images : 0 ) + ' images · ' + css;
 					if ( d.is_rescan ) { msg = ( d.new_pages && d.new_pages.length ) ? ( d.new_pages.length + ' new page(s) — v' + d.version ) : ( 'Re-scanned — v' + d.version + ' (' + d.pages + ' pages, ' + css + ')' ); }
 					toast( msg, 'success' );
 					setTimeout( function () { location.reload(); }, 900 );
@@ -1984,6 +1984,8 @@
 							'<div><span>Origin fallback</span><b>' + escapeHtml( d.origin ) + '</b></div>' +
 							'<div><span>Pages found</span><b>' + escapeHtml( String( d.pages ) ) + '</b></div>' +
 							'<div><span>Published by type</span><b>' + escapeHtml( String( d.types || '' ) ) + '</b></div>' +
+							'<div><span>Images on homepage</span><b>' + escapeHtml( String( d.media || '—' ) ) + '</b></div>' +
+							'<div><span>Sample images</span><b>' + escapeHtml( String( d.samples || '—' ) ) + '</b></div>' +
 							'<div><span>PHP DOM</span><b>' + escapeHtml( d.dom ) + '</b></div>' +
 							'<div><span>PHP Zip</span><b>' + escapeHtml( d.zip ) + '</b></div>';
 					}

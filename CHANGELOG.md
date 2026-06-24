@@ -4,6 +4,19 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.14.0
+- **Images now target the OctoberCMS Media library, not the theme folder.** Captured images are delivered as a separate **Download media** zip you unzip straight into `storage/app/media/` — they appear in the backend *Medien* manager under a folder named after the project.
+- Pages reference them with the `|media` filter (`{{ '<project>/NAME'|media }}`) and CSS backgrounds resolve to `/storage/app/media/<project>/…`, matching how a hand-built October theme uses the Media library.
+- Each build now offers two downloads: **Download theme** (into `themes/`) and **Download media** (into `storage/app/media/`). Fonts still ship inside the theme at `assets/fonts/`.
+- BUILD-INFO and INSTALL updated to spell out the two-part install; deleting a build also removes its media zip.
+
+## 2.13.9
+- **Media diagnostic in Test connection.** It now scans your homepage and reports how many image/font URLs it finds vs. how many resolve to bundleable files, with sample filenames — so an image problem is immediately visible as either a capture issue or a resolution issue.
+
+## 2.13.8
+- **Much more reliable image capture.** Instead of parsing known lazy-load attributes one by one, the converter now scans the raw HTML for *every* same-origin image/font URL — in any attribute, inline `style` background, `srcset`, or a slider’s `<script>` JSON config (including JSON-escaped slashes). This is what was missing lazy-loaded product/slider images.
+- Root-relative (`/wp-content/...`) and protocol-relative (`//host/...`) asset URLs are now captured too.
+
 ## 2.13.7
 - **New: rename-map editor for converted themes.** On any build, click **Edit names** to see every class and ID the converter found (with usage counts), give them human names, and download a renamed version.
 - Renames are applied to the HTML pages **and** the CSS/SCSS in lockstep, so the design never breaks — `.oxy-foo` and `.oxy-foobar` are told apart (word-boundary matching), and `id` attributes plus `#anchor` references are kept in sync.

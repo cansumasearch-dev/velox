@@ -117,7 +117,10 @@ if ( ! function_exists( 'velox_oct_bytes' ) ) {
 					<thead><tr><th>Version</th><th>Built</th><th>Duration</th><th>Pages</th><th>Media</th><th>Size</th><th class="vmail-th-act"></th></tr></thead>
 					<tbody>
 						<?php foreach ( $versions as $idx => $b ) :
-							$dl = wp_nonce_url( admin_url( 'admin-ajax.php?action=velox_october_download&id=' . (int) $b['id'] ), 'velox_october_dl' );
+							$dl    = wp_nonce_url( admin_url( 'admin-ajax.php?action=velox_october_download&id=' . (int) $b['id'] ), 'velox_october_dl' );
+							$dlm   = wp_nonce_url( admin_url( 'admin-ajax.php?action=velox_october_download&media=1&id=' . (int) $b['id'] ), 'velox_october_dl' );
+							$man   = json_decode( (string) $b['manifest'], true );
+							$nimg  = ( is_array( $man ) && isset( $man['images'] ) ) ? (int) $man['images'] : 0;
 							?>
 							<tr class="oct-row" data-id="<?php echo (int) $b['id']; ?>">
 								<td>
@@ -129,10 +132,11 @@ if ( ! function_exists( 'velox_oct_bytes' ) ) {
 								</td>
 								<td><?php echo esc_html( velox_oct_dur( $b['duration_ms'] ) ); ?></td>
 								<td><?php echo (int) $b['pages']; ?></td>
-								<td><?php echo (int) $b['media']; ?></td>
+								<td><?php echo (int) $b['media']; ?><?php if ( $nimg ) : ?> <span class="velox-hint" style="display:inline;">(<?php echo (int) $nimg; ?> img)</span><?php endif; ?></td>
 								<td><?php echo esc_html( velox_oct_bytes( $b['size'] ) ); ?></td>
 								<td class="vmail-th-act oct-actions">
-									<a class="velox-btn velox-btn--primary velox-btn--sm" href="<?php echo esc_url( $dl ); ?>">Download</a>
+									<a class="velox-btn velox-btn--primary velox-btn--sm" href="<?php echo esc_url( $dl ); ?>">Download theme</a>
+									<?php if ( $nimg ) : ?><a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $dlm ); ?>" title="Unzip into storage/app/media/">Download media (<?php echo (int) $nimg; ?>)</a><?php endif; ?>
 									<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( admin_url( 'admin.php?page=velox-utilities&tool=october&edit=' . (int) $b['id'] ) ); ?>">Edit names</a>
 									<button class="velox-btn velox-btn--ghost velox-btn--sm oct-del">Delete</button>
 								</td>

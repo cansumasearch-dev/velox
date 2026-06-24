@@ -101,6 +101,13 @@ class Velox_October {
 			if ( $row['zip'] && file_exists( $file ) ) {
 				wp_delete_file( $file );
 			}
+			$man = json_decode( (string) $row['manifest'], true );
+			if ( is_array( $man ) && ! empty( $man['media_zip'] ) ) {
+				$mf = trailingslashit( self::dir() ) . basename( $man['media_zip'] );
+				if ( file_exists( $mf ) ) {
+					wp_delete_file( $mf );
+				}
+			}
 			global $wpdb;
 			$wpdb->delete( self::table(), array( 'id' => (int) $id ), array( '%d' ) );
 		}
@@ -200,12 +207,14 @@ class Velox_October {
 		$media_urls = array_values( array_unique( array_filter( $media_urls ) ) );
 		$media_map  = self::resolve_media( $media_urls );
 
-		// 4) Rewrite media references in chrome + pages.
-		$chrome = self::rewrite_media_in_chrome( $chrome, $media_map );
+		// 4) Rewrite media references in chrome + pages. Images point at the October
+		// Media library (storage/app/media/<project>/); fonts stay theme assets.
+		$media_folder = $project;
+		$chrome = self::rewrite_media_in_chrome( $chrome, $media_map, $media_folder );
 		foreach ( $page_files as $slug => $body ) {
-			$page_files[ $slug ] = self::rewrite_media_refs( $body, $media_map );
+			$page_files[ $slug ] = self::rewrite_media_refs( $body, $media_map, $media_folder );
 		}
-		$css_blob = self::rewrite_media_in_css( $css_blob, $media_map );
+		$css_blob = self::rewrite_media_in_css( $css_blob, $media_map, $media_folder );
 
 		// 5) CSS → SCSS structure (for editing) + a plain compiled CSS the theme links live.
 		$scss = self::css_to_scss( $css_blob );
@@ -225,14 +234,20 @@ class Velox_October {
 				$media_bytes += strlen( $info['data'] );
 			}
 		}
-		$theme_files['BUILD-INFO.txt'] = self::build_info( $project, $version, $page_files, $css_blob, $media_map, $media_bytes );
+		$theme_files['BUILD-INFO.txt'] = self::build_info( $project, $version, $page_files, $css_blob, $media_map, $media_bytes, $media_folder );
 		$theme_files['INSTALL.txt']    = self::install_text( $project );
 
-		// 7) Zip it (theme files + media binaries).
+		// 7) Zip the theme (pages/partials/css + fonts).
 		$zip_name = $project . '-v' . $version . '.zip';
 		$zip_path = trailingslashit( self::dir() ) . $zip_name;
 		$media_added = 0;
 		$size     = self::write_zip( $zip_path, $theme_files, $media_map, $media_added );
+
+		// 7b) Separate Media-library zip: images for storage/app/media/.
+		$media_zip_name = $project . '-v' . $version . '-media.zip';
+		$media_zip_path = trailingslashit( self::dir() ) . $media_zip_name;
+		$img_added      = 0;
+		self::write_media_zip( $media_zip_path, $media_map, $media_folder, $img_added );
 
 		$finished    = current_time( 'mysql' );
 		$duration_ms = (int) round( microtime( true ) * 1000 ) - $start_ms;
@@ -253,7 +268,7 @@ class Velox_October {
 				'media'       => count( $media_map ),
 				'size'        => $size,
 				'zip'         => $zip_name,
-				'manifest'    => wp_json_encode( array( 'pages' => $page_slugs, 'media' => array_keys( $media_map ) ) ),
+				'manifest'    => wp_json_encode( array( 'pages' => $page_slugs, 'media' => array_keys( $media_map ), 'media_zip' => $media_zip_name, 'media_folder' => $media_folder, 'images' => $img_added ) ),
 				'note'        => $rescan_project ? 'Re-scan' : 'Initial build',
 			),
 			array( '%s', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s' )
@@ -268,6 +283,7 @@ class Velox_October {
 			'pages'       => count( $page_files ),
 			'media'       => count( $media_map ),
 			'media_added' => $media_added,
+			'images'      => $img_added,
 			'css_bytes'   => strlen( $css_blob ),
 			'size'        => $size,
 			'duration'    => $duration_ms,
@@ -474,6 +490,27 @@ class Velox_October {
 			}
 		}
 
+		// Media probe: scan the homepage HTML for image URLs and see how many we can
+		// actually resolve to bundleable files. Pinpoints capture vs resolution issues.
+		$probe_html = '' !== $origin_body ? $origin_body : ( isset( $body ) ? $body : '' );
+		$media_line = 'no page body to scan';
+		$samples    = array();
+		if ( '' !== $probe_html ) {
+			$found = array_values( array_unique( array_merge( self::media_from_raw( $probe_html ), self::media_from_noscript( $probe_html ) ) ) );
+			$map   = self::resolve_media( $found );
+			$media_line = count( $found ) . ' image/font URLs found on homepage · ' . count( $map ) . ' resolved to files';
+			$i = 0;
+			foreach ( $map as $url => $info ) {
+				$samples[] = basename( (string) wp_parse_url( strtok( $url, '?#' ), PHP_URL_PATH ) ) . ( isset( $info['data'] ) ? ' (fetched)' : ' (local)' );
+				if ( ++$i >= 6 ) {
+					break;
+				}
+			}
+			if ( $found && ! $map ) {
+				$media_line .= ' — URLs found but none resolved (cross-origin, or files missing on disk)';
+			}
+		}
+
 		return array(
 			'version' => defined( 'VELOX_VERSION' ) ? VELOX_VERSION : '?',
 			'home'    => $url,
@@ -481,6 +518,8 @@ class Velox_October {
 			'origin'  => $origin,
 			'pages'   => count( self::collect_pages() ),
 			'types'   => $types ? implode( ' · ', $types ) : 'none',
+			'media'   => $media_line,
+			'samples' => $samples ? implode( ', ', $samples ) : '—',
 			'dom'     => class_exists( 'DOMDocument' ) ? 'available' : 'MISSING — ask your host to enable php-dom',
 			'zip'     => class_exists( 'ZipArchive' ) ? 'available' : 'MISSING — ask your host to enable php-zip',
 		);
@@ -521,13 +560,20 @@ class Velox_October {
 
 	/** Parse one page: strip WP cruft, lift chrome, return main content + media. */
 	public static function parse_page( $html ) {
+		// Capture EVERY same-origin image/font URL from the raw HTML first — in any
+		// attribute, inline style, srcset, or slider <script> config. This is far more
+		// reliable than parsing known lazy-load attributes one by one.
+		$raw_media = array_merge(
+			self::media_from_raw( $html ),
+			self::media_from_noscript( $html )
+		);
+
 		// Strip scripts/noscripts at the RAW level before the DOM parser sees them —
 		// DOMDocument mis-parses Oxygen's inline jQuery into stray text nodes otherwise,
 		// which is what was leaking JS as visible text on the page.
-		$raw_media = self::media_from_noscript( $html ); // lazy-load fallbacks live in <noscript>
-		$html      = preg_replace( '#<script\b[\s\S]*?</script>#i', '', $html );
-		$html      = preg_replace( '#<noscript\b[\s\S]*?</noscript>#i', '', $html );
-		$html      = preg_replace( '#<!--[\s\S]*?-->#', '', $html );
+		$html = preg_replace( '#<script\b[\s\S]*?</script>#i', '', $html );
+		$html = preg_replace( '#<noscript\b[\s\S]*?</noscript>#i', '', $html );
+		$html = preg_replace( '#<!--[\s\S]*?-->#', '', $html );
 
 		$doc = new DOMDocument();
 		libxml_use_internal_errors( true );
@@ -652,6 +698,32 @@ class Velox_October {
 		}
 
 		self::normalise_classes( $doc );
+	}
+
+	/**
+	 * Every image/font URL anywhere in the raw HTML — src, data-*, srcset, inline
+	 * style url(), or a slider's <script> JSON config. Catches lazy-loaded images
+	 * regardless of which attribute the theme/plugin uses to hold the real URL.
+	 */
+	private static function media_from_raw( $html ) {
+		$ext  = 'jpe?g|png|gif|webp|avif|svg|bmp|ico|woff2?|ttf|otf|eot';
+		$urls = array();
+		// Absolute or protocol-relative URLs.
+		if ( preg_match_all( '#(?:https?:)?//[^\s"\'<>()\\\\]+?\.(?:' . $ext . ')(?:\?[^\s"\'<>()\\\\]*)?#i', $html, $m ) ) {
+			$urls = array_merge( $urls, $m[0] );
+		}
+		// Root-relative WordPress asset paths (/wp-content/..., /wp-includes/...).
+		if ( preg_match_all( '#/wp-(?:content|includes)/[^\s"\'<>()\\\\]+?\.(?:' . $ext . ')(?:\?[^\s"\'<>()\\\\]*)?#i', $html, $m ) ) {
+			$urls = array_merge( $urls, $m[0] );
+		}
+		// JSON-escaped slashes (slider configs): \/wp-content\/...
+		if ( false !== strpos( $html, '\\/' ) ) {
+			$un = str_replace( '\\/', '/', $html );
+			if ( preg_match_all( '#(?:https?:)?//[^\s"\'<>()\\\\]+?\.(?:' . $ext . ')(?:\?[^\s"\'<>()\\\\]*)?#i', $un, $m ) ) {
+				$urls = array_merge( $urls, $m[0] );
+			}
+		}
+		return array_values( array_unique( $urls ) );
 	}
 
 	/** Real image URLs hidden in <noscript> blocks (common lazy-load fallback). */
@@ -874,7 +946,6 @@ class Velox_October {
 			if ( ! $is_font && ! $is_img ) {
 				continue;
 			}
-			$folder = $is_font ? 'assets/fonts/' : 'assets/images/';
 
 			// Prefer the local uploads file; otherwise fetch the asset over HTTP.
 			$path = '';
@@ -895,7 +966,10 @@ class Velox_October {
 
 			$name = self::safe_asset_name( basename( (string) wp_parse_url( $clean, PHP_URL_PATH ) ), $used );
 			$used[ $name ] = true;
-			$entry = array( 'rel' => $folder . $name );
+			$entry = array(
+				'kind' => $is_font ? 'font' : 'image',
+				'name' => $name,
+			);
 			if ( '' !== $path ) {
 				$entry['path'] = $path;
 			} else {
@@ -949,26 +1023,34 @@ class Velox_October {
 		return $name;
 	}
 
-	private static function rewrite_media_refs( $html, $media_map ) {
+	private static function rewrite_media_refs( $html, $media_map, $media_folder ) {
 		foreach ( $media_map as $url => $info ) {
-			// In Twig pages, point at the theme asset.
-			$twig = "{{ '" . $info['rel'] . "'|theme }}";
+			if ( 'font' === $info['kind'] ) {
+				$twig = "{{ 'assets/fonts/" . $info['name'] . "'|theme }}";
+			} else {
+				// Images live in the October Media library: storage/app/media/<folder>/NAME
+				$twig = "{{ '" . $media_folder . '/' . $info['name'] . "'|media }}";
+			}
 			$html = str_replace( array( $url, strtok( $url, '?' ) ), $twig, $html );
 		}
 		return $html;
 	}
 
-	private static function rewrite_media_in_chrome( $chrome, $media_map ) {
-		$chrome['nav']    = self::rewrite_media_refs( $chrome['nav'], $media_map );
-		$chrome['footer'] = self::rewrite_media_refs( $chrome['footer'], $media_map );
+	private static function rewrite_media_in_chrome( $chrome, $media_map, $media_folder ) {
+		$chrome['nav']    = self::rewrite_media_refs( $chrome['nav'], $media_map, $media_folder );
+		$chrome['footer'] = self::rewrite_media_refs( $chrome['footer'], $media_map, $media_folder );
 		return $chrome;
 	}
 
-	private static function rewrite_media_in_css( $css, $media_map ) {
+	private static function rewrite_media_in_css( $css, $media_map, $media_folder ) {
 		foreach ( $media_map as $url => $info ) {
-			// style.css lives in assets/css/, so ../images or ../fonts from there.
-			$target = '../' . preg_replace( '#^assets/#', '', $info['rel'] );
-			$css    = str_replace( array( $url, strtok( $url, '?' ) ), $target, $css );
+			if ( 'font' === $info['kind'] ) {
+				$target = '../fonts/' . $info['name']; // style.css is in assets/css/
+			} else {
+				// Server-absolute path into the Media library so plain CSS resolves it.
+				$target = '/storage/app/media/' . $media_folder . '/' . $info['name'];
+			}
+			$css = str_replace( array( $url, strtok( $url, '?' ) ), $target, $css );
 		}
 		return $css;
 	}
@@ -1053,22 +1135,56 @@ class Velox_October {
 		foreach ( $theme_files as $rel => $contents ) {
 			$zip->addFromString( $rel, $contents );
 		}
+		// Theme zip carries only fonts (referenced from CSS via ../fonts/). Images go
+		// into the Media-library zip instead.
 		foreach ( $media_map as $info ) {
+			if ( 'font' !== $info['kind'] ) {
+				continue;
+			}
+			$rel = 'assets/fonts/' . $info['name'];
 			if ( isset( $info['path'] ) && file_exists( $info['path'] ) ) {
-				if ( $zip->addFile( $info['path'], $info['rel'] ) ) {
-					$media_added++;
-				}
+				if ( $zip->addFile( $info['path'], $rel ) ) { $media_added++; }
 			} elseif ( isset( $info['data'] ) ) {
-				if ( $zip->addFromString( $info['rel'], $info['data'] ) ) {
-					$media_added++;
-				}
+				if ( $zip->addFromString( $rel, $info['data'] ) ) { $media_added++; }
 			}
 		}
 		$zip->close();
 		return file_exists( $zip_path ) ? (int) filesize( $zip_path ) : 0;
 	}
 
-	private static function build_info( $project, $version, $page_files, $css_blob, $media_map, $media_bytes ) {
+	/**
+	 * Write a separate Media-library zip: every image under <media_folder>/NAME, so
+	 * the user unzips it straight into storage/app/media/ and the files show up in
+	 * the October Media manager (referenced from pages via {{ '<folder>/NAME'|media }}).
+	 */
+	private static function write_media_zip( $zip_path, $media_map, $media_folder, &$added = 0 ) {
+		$added = 0;
+		if ( file_exists( $zip_path ) ) {
+			wp_delete_file( $zip_path );
+		}
+		$images = array_filter( $media_map, function ( $i ) { return 'font' !== $i['kind']; } );
+		if ( empty( $images ) ) {
+			return 0;
+		}
+		$zip = new ZipArchive();
+		if ( true !== $zip->open( $zip_path, ZipArchive::CREATE ) ) {
+			return 0;
+		}
+		foreach ( $images as $info ) {
+			$rel = $media_folder . '/' . $info['name'];
+			if ( isset( $info['path'] ) && file_exists( $info['path'] ) ) {
+				if ( $zip->addFile( $info['path'], $rel ) ) { $added++; }
+			} elseif ( isset( $info['data'] ) ) {
+				if ( $zip->addFromString( $rel, $info['data'] ) ) { $added++; }
+			}
+		}
+		$zip->close();
+		return file_exists( $zip_path ) ? (int) filesize( $zip_path ) : 0;
+	}
+
+	private static function build_info( $project, $version, $page_files, $css_blob, $media_map, $media_bytes, $media_folder ) {
+		$imgs  = array_filter( $media_map, function ( $i ) { return 'font' !== $i['kind']; } );
+		$fonts = array_filter( $media_map, function ( $i ) { return 'font' === $i['kind']; } );
 		$lines   = array();
 		$lines[] = 'Velox → OctoberCMS theme build';
 		$lines[] = 'Project: ' . $project . '   Version: v' . $version;
@@ -1083,14 +1199,19 @@ class Velox_October {
 		$lines[] = '';
 		$lines[] = 'CSS: ' . size_format( strlen( $css_blob ) ) . '  →  assets/css/style.css (linked live) + assets/scss/*';
 		$lines[] = '';
-		$lines[] = 'MEDIA (' . count( $media_map ) . ', ' . size_format( $media_bytes ) . ')';
+		$lines[] = 'IMAGES (' . count( $imgs ) . ', ' . size_format( $media_bytes ) . ') → Media library: storage/app/media/' . $media_folder . '/';
+		$lines[] = '  Get them there with the separate "Download media" button, then unzip into storage/app/media/';
 		$i = 0;
-		foreach ( $media_map as $info ) {
-			$lines[] = '  ' . $info['rel'];
+		foreach ( $imgs as $info ) {
+			$lines[] = '  ' . $media_folder . '/' . $info['name'];
 			if ( ++$i >= 40 ) {
-				$lines[] = '  … and ' . ( count( $media_map ) - 40 ) . ' more';
+				$lines[] = '  … and ' . ( count( $imgs ) - 40 ) . ' more';
 				break;
 			}
+		}
+		if ( $fonts ) {
+			$lines[] = '';
+			$lines[] = 'FONTS (' . count( $fonts ) . ') → theme assets/fonts/';
 		}
 		return implode( "\n", $lines ) . "\n";
 	}
@@ -1098,14 +1219,19 @@ class Velox_October {
 	private static function install_text( $project ) {
 		return "INSTALL — " . $project . "\n"
 			. str_repeat( '=', 40 ) . "\n\n"
-			. "Most reliable: copy this whole folder into your OctoberCMS site at\n"
-			. "    themes/" . $project . "/\n"
-			. "(so themes/" . $project . "/theme.yaml exists), then in the backend go to\n"
-			. "Settings → Frontend Theme and activate it.\n\n"
-			. "The backend \"Import\" button also works, but extracting straight into\n"
-			. "themes/ guarantees the assets (images + CSS) come across.\n\n"
+			. "1) THEME\n"
+			. "   Copy this folder into your OctoberCMS site at\n"
+			. "       themes/" . $project . "/\n"
+			. "   (so themes/" . $project . "/theme.yaml exists), then in the backend go to\n"
+			. "   Settings → Frontend Theme and activate it.\n\n"
+			. "2) IMAGES (Media library)\n"
+			. "   Use the separate \"Download media\" button for this build. Unzip it into\n"
+			. "       storage/app/media/\n"
+			. "   You'll get storage/app/media/" . $project . "/… and the images appear in\n"
+			. "   the backend Media manager. Pages reference them via {{ '" . $project . "/NAME'|media }}.\n\n"
 			. "Styles are linked from assets/css/style.css (plain CSS, always works).\n"
-			. "The assets/scss/ folder holds the same styles split for editing.\n";
+			. "The assets/scss/ folder holds the same styles split for editing.\n"
+			. "Fonts (if any) ship in the theme at assets/fonts/.\n";
 	}
 
 	/* ------------------------------------------------------------- download */
@@ -1128,6 +1254,23 @@ class Velox_October {
 		if ( ! $row || ! $row['zip'] ) {
 			wp_die( 'Build not found.', 404 );
 		}
+
+		// Media-library zip (images for storage/app/media/).
+		if ( ! empty( $_GET['media'] ) ) {
+			$man      = json_decode( (string) $row['manifest'], true );
+			$mzipname = ( is_array( $man ) && ! empty( $man['media_zip'] ) ) ? basename( $man['media_zip'] ) : '';
+			$mfile    = '' !== $mzipname ? trailingslashit( self::dir() ) . $mzipname : '';
+			if ( '' === $mfile || ! file_exists( $mfile ) ) {
+				wp_die( 'No media in this build.', 404 );
+			}
+			nocache_headers();
+			header( 'Content-Type: application/zip' );
+			header( 'Content-Disposition: attachment; filename="' . $mzipname . '"' );
+			header( 'Content-Length: ' . filesize( $mfile ) );
+			readfile( $mfile ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			exit;
+		}
+
 		$file = trailingslashit( self::dir() ) . basename( (string) $row['zip'] );
 		if ( ! file_exists( $file ) ) {
 			wp_die( 'File missing.', 404 );
