@@ -1823,10 +1823,11 @@
 			document.querySelectorAll( '.oct-rescan' ).forEach( function ( b ) { b.disabled = true; } );
 			return api( action, data )
 				.then( function ( d ) {
-					var msg = 'Built v' + d.version + ' · ' + d.pages + ' pages · ' + d.media + ' media';
-					if ( d.is_rescan ) { msg = ( d.new_pages && d.new_pages.length ) ? ( d.new_pages.length + ' new page(s) added — v' + d.version ) : ( 'Re-scanned — v' + d.version + ' (no new pages)' ); }
+					var css = d.css_bytes ? ( Math.round( d.css_bytes / 1024 ) + 'KB CSS' ) : 'no CSS found';
+					var msg = 'Built v' + d.version + ' · ' + d.pages + ' pages · ' + ( d.media_added != null ? d.media_added : d.media ) + ' media · ' + css;
+					if ( d.is_rescan ) { msg = ( d.new_pages && d.new_pages.length ) ? ( d.new_pages.length + ' new page(s) — v' + d.version ) : ( 'Re-scanned — v' + d.version + ' (' + d.pages + ' pages, ' + css + ')' ); }
 					toast( msg, 'success' );
-					setTimeout( function () { location.reload(); }, 700 );
+					setTimeout( function () { location.reload(); }, 900 );
 				} )
 				.catch( function ( e ) {
 					toast( e.message || 'Build failed.', 'error' );

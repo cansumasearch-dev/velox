@@ -201,16 +201,28 @@ class Velox_October {
 		}
 		$css_blob = self::rewrite_media_in_css( $css_blob, $media_map );
 
-		// 5) CSS → SCSS structure.
+		// 5) CSS → SCSS structure (for editing) + a plain compiled CSS the theme links live.
 		$scss = self::css_to_scss( $css_blob );
+		$plain_css = "/* Converted from the original WordPress site. Linked live by the theme.\n"
+			. "   The assets/scss/ versions are provided for editing. */\n" . $css_blob;
 
 		// 6) Assemble the theme file list.
 		$theme_files = self::assemble_theme( $project, $chrome, $page_files, $scss );
+		$theme_files['assets/css/style.css'] = $plain_css;
+
+		// Build manifest so the contents are verifiable without guessing.
+		$media_bytes = 0;
+		foreach ( $media_map as $info ) {
+			if ( file_exists( $info['path'] ) ) { $media_bytes += (int) filesize( $info['path'] ); }
+		}
+		$theme_files['BUILD-INFO.txt'] = self::build_info( $project, $version, $page_files, $css_blob, $media_map, $media_bytes );
+		$theme_files['INSTALL.txt']    = self::install_text( $project );
 
 		// 7) Zip it (theme files + media binaries).
 		$zip_name = $project . '-v' . $version . '.zip';
 		$zip_path = trailingslashit( self::dir() ) . $zip_name;
-		$size     = self::write_zip( $zip_path, $theme_files, $media_map );
+		$media_added = 0;
+		$size     = self::write_zip( $zip_path, $theme_files, $media_map, $media_added );
 
 		$finished    = current_time( 'mysql' );
 		$duration_ms = (int) round( microtime( true ) * 1000 ) - $start_ms;
@@ -239,16 +251,18 @@ class Velox_October {
 		$id = (int) $wpdb->insert_id;
 
 		return array(
-			'ok'         => true,
-			'id'         => $id,
-			'project'    => $project,
-			'version'    => $version,
-			'pages'      => count( $page_files ),
-			'media'      => count( $media_map ),
-			'size'       => $size,
-			'duration'   => $duration_ms,
-			'new_pages'  => $new_pages,
-			'is_rescan'  => (bool) $rescan_project,
+			'ok'          => true,
+			'id'          => $id,
+			'project'     => $project,
+			'version'     => $version,
+			'pages'       => count( $page_files ),
+			'media'       => count( $media_map ),
+			'media_added' => $media_added,
+			'css_bytes'   => strlen( $css_blob ),
+			'size'        => $size,
+			'duration'    => $duration_ms,
+			'new_pages'   => $new_pages,
+			'is_rescan'   => (bool) $rescan_project,
 		);
 	}
 
@@ -527,14 +541,25 @@ class Velox_October {
 		$footer_html = $footer ? self::inner_html( $footer ) : '';
 
 		// Main content: prefer <main>; else <body> minus header/footer/scripts.
+		$body = $doc->getElementsByTagName( 'body' )->item( 0 );
 		if ( $main ) {
 			$content = self::inner_html( $main );
 		} else {
-			$body = $doc->getElementsByTagName( 'body' )->item( 0 );
 			$content = $body ? self::body_minus_chrome( $body ) : '';
+		}
+		// Safety: if stripping chrome left almost nothing (common on page-builder
+		// sites with no semantic <main>), fall back to the full body so a page is
+		// never exported empty.
+		if ( $body && strlen( trim( $content ) ) < 200 ) {
+			$full = self::inner_html( $body );
+			if ( strlen( trim( $full ) ) > strlen( trim( $content ) ) ) {
+				$content = $full;
+			}
 		}
 
 		$content = self::relativise_links( $content );
+		// Never let a bare "==" line slip into markup — OctoberCMS treats it as a section break.
+		$content = preg_replace( '/^(\s*==+\s*)$/m', ' $1', $content );
 
 		return array(
 			'doc'     => $doc,
@@ -844,7 +869,7 @@ class Velox_October {
 	}
 
 	private static function head_partial() {
-		return "[seoTags]\n==\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n<link rel=\"alternate\" href=\"{{ url('/') }}{{ weburl }}\" hreflang=\"de-DE\" />\n{% component 'seoTags' %}\n\n{# Converted site styles #}\n<link href=\"{{ ['assets/scss/style.scss']|theme }}\" rel=\"stylesheet\">\n";
+		return "[seoTags]\n==\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n<link rel=\"alternate\" href=\"{{ url('/') }}{{ weburl }}\" hreflang=\"de-DE\" />\n{% component 'seoTags' %}\n\n{# Converted site styles (plain CSS — always loads; SCSS sources in assets/scss/) #}\n<link href=\"{{ 'assets/css/style.css'|theme }}\" rel=\"stylesheet\">\n";
 	}
 
 	private static function page_file( $pg, $content ) {
@@ -854,7 +879,8 @@ class Velox_October {
 		return $fm . $content . "\n";
 	}
 
-	private static function write_zip( $zip_path, $theme_files, $media_map ) {
+	private static function write_zip( $zip_path, $theme_files, $media_map, &$media_added = 0 ) {
+		$media_added = 0;
 		if ( file_exists( $zip_path ) ) {
 			wp_delete_file( $zip_path );
 		}
@@ -867,11 +893,53 @@ class Velox_October {
 		}
 		foreach ( $media_map as $info ) {
 			if ( file_exists( $info['path'] ) ) {
-				$zip->addFile( $info['path'], $info['rel'] );
+				if ( $zip->addFile( $info['path'], $info['rel'] ) ) {
+					$media_added++;
+				}
 			}
 		}
 		$zip->close();
 		return file_exists( $zip_path ) ? (int) filesize( $zip_path ) : 0;
+	}
+
+	private static function build_info( $project, $version, $page_files, $css_blob, $media_map, $media_bytes ) {
+		$lines   = array();
+		$lines[] = 'Velox → OctoberCMS theme build';
+		$lines[] = 'Project: ' . $project . '   Version: v' . $version;
+		$lines[] = 'Generated: ' . current_time( 'mysql' );
+		$lines[] = str_repeat( '=', 52 );
+		$lines[] = '';
+		$lines[] = 'PAGES (' . count( $page_files ) . ')';
+		foreach ( $page_files as $slug => $body ) {
+			$body_only = (string) substr( (string) strstr( $body, "==\n" ), 3 );
+			$lines[]   = sprintf( '  pages/%-28s %s of markup', $slug . '.htm', size_format( strlen( $body_only ) ) );
+		}
+		$lines[] = '';
+		$lines[] = 'CSS: ' . size_format( strlen( $css_blob ) ) . '  →  assets/css/style.css (linked live) + assets/scss/*';
+		$lines[] = '';
+		$lines[] = 'MEDIA (' . count( $media_map ) . ', ' . size_format( $media_bytes ) . ')';
+		$i = 0;
+		foreach ( $media_map as $info ) {
+			$lines[] = '  ' . $info['rel'];
+			if ( ++$i >= 40 ) {
+				$lines[] = '  … and ' . ( count( $media_map ) - 40 ) . ' more';
+				break;
+			}
+		}
+		return implode( "\n", $lines ) . "\n";
+	}
+
+	private static function install_text( $project ) {
+		return "INSTALL — " . $project . "\n"
+			. str_repeat( '=', 40 ) . "\n\n"
+			. "Most reliable: copy this whole folder into your OctoberCMS site at\n"
+			. "    themes/" . $project . "/\n"
+			. "(so themes/" . $project . "/theme.yaml exists), then in the backend go to\n"
+			. "Settings → Frontend Theme and activate it.\n\n"
+			. "The backend \"Import\" button also works, but extracting straight into\n"
+			. "themes/ guarantees the assets (images + CSS) come across.\n\n"
+			. "Styles are linked from assets/css/style.css (plain CSS, always works).\n"
+			. "The assets/scss/ folder holds the same styles split for editing.\n";
 	}
 
 	/* ------------------------------------------------------------- download */
