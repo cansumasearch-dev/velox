@@ -134,7 +134,8 @@ class Velox_October {
 		$theme_files = array();
 		$page_files  = array();
 		$media_urls  = array();
-		$css_links   = array();   // unique absolute stylesheet URLs across ALL pages
+		$css_links   = array();   // same-origin stylesheet URLs (fetched + inlined)
+		$ext_css     = array();   // cross-origin stylesheets (Google Fonts etc.) — kept as <link>
 		$inline_css  = '';
 		$chrome      = null;
 		$page_slugs  = array();
@@ -151,9 +152,13 @@ class Velox_October {
 			if ( null === $chrome ) {
 				$chrome = $parsed['chrome'];
 			}
-			// Stylesheet links + inline styles from EVERY page (so per-page CSS is captured).
-			foreach ( self::stylesheet_links( $parsed['doc'], $pg['url'] ) as $href ) {
-				$css_links[ $href ] = true;
+			// Stylesheets from EVERY page: same-origin get fetched, cross-origin kept as links.
+			foreach ( self::stylesheet_links( $parsed['doc'], $pg['url'] ) as $sheet ) {
+				if ( ! empty( $sheet['external'] ) ) {
+					$ext_css[ $sheet['url'] ] = true;
+				} else {
+					$css_links[ $sheet['url'] ] = true;
+				}
 			}
 			$inline_css = $inline_css . self::inline_styles( $parsed['doc'] );
 			$media_urls = array_merge( $media_urls, $parsed['media'] );
@@ -190,9 +195,10 @@ class Velox_October {
 		}
 		$css_blob .= $inline_css;
 
-		// 3) Media: keep only files referenced AND present in the library.
+		// 3) Media: collect from pages + from CSS url() refs (backgrounds, fonts).
+		$media_urls = array_merge( $media_urls, self::css_url_matches( $css_blob ) );
 		$media_urls = array_values( array_unique( array_filter( $media_urls ) ) );
-		$media_map  = self::resolve_media( $media_urls ); // url => [ 'rel' => assets/images/x, 'path' => /abs ]
+		$media_map  = self::resolve_media( $media_urls );
 
 		// 4) Rewrite media references in chrome + pages.
 		$chrome = self::rewrite_media_in_chrome( $chrome, $media_map );
@@ -207,13 +213,17 @@ class Velox_October {
 			. "   The assets/scss/ versions are provided for editing. */\n" . $css_blob;
 
 		// 6) Assemble the theme file list.
-		$theme_files = self::assemble_theme( $project, $chrome, $page_files, $scss );
+		$theme_files = self::assemble_theme( $project, $chrome, $page_files, $scss, array_keys( $ext_css ) );
 		$theme_files['assets/css/style.css'] = $plain_css;
 
 		// Build manifest so the contents are verifiable without guessing.
 		$media_bytes = 0;
 		foreach ( $media_map as $info ) {
-			if ( file_exists( $info['path'] ) ) { $media_bytes += (int) filesize( $info['path'] ); }
+			if ( isset( $info['path'] ) && file_exists( $info['path'] ) ) {
+				$media_bytes += (int) filesize( $info['path'] );
+			} elseif ( isset( $info['data'] ) ) {
+				$media_bytes += strlen( $info['data'] );
+			}
 		}
 		$theme_files['BUILD-INFO.txt'] = self::build_info( $project, $version, $page_files, $css_blob, $media_map, $media_bytes );
 		$theme_files['INSTALL.txt']    = self::install_text( $project );
@@ -476,7 +486,7 @@ class Velox_October {
 		);
 	}
 
-	/** Absolute, same-origin stylesheet URLs in a document. */
+	/** All stylesheet URLs in a document, flagged same-origin vs external. */
 	private static function stylesheet_links( DOMDocument $doc, $page_url ) {
 		$out  = array();
 		$host = wp_parse_url( $page_url, PHP_URL_HOST );
@@ -490,10 +500,7 @@ class Velox_October {
 			}
 			$abs = self::absolutise( $href, $page_url );
 			$lh  = wp_parse_url( $abs, PHP_URL_HOST );
-			if ( $lh && $lh !== $host ) {
-				continue; // skip third-party CSS (Google Fonts etc.)
-			}
-			$out[] = $abs;
+			$out[] = array( 'url' => $abs, 'external' => ( $lh && $lh !== $host ) );
 		}
 		return $out;
 	}
@@ -624,6 +631,82 @@ class Velox_October {
 				$node->parentNode->removeChild( $node );
 			}
 		}
+
+		// Remove ALL scripts + noscript — a static theme carries none of the site's JS
+		// (this is what was leaking Oxygen's jQuery menu code as visible text).
+		foreach ( array( 'script', 'noscript' ) as $tag ) {
+			$nodes = iterator_to_array( $doc->getElementsByTagName( $tag ) );
+			foreach ( $nodes as $n ) {
+				if ( $n->parentNode ) {
+					$n->parentNode->removeChild( $n );
+				}
+			}
+		}
+
+		self::normalise_classes( $doc );
+	}
+
+	/**
+	 * Remove WordPress / page-builder junk from class names, IDs and data-attributes
+	 * so the markup reads like hand-written HTML — WITHOUT stripping the structural
+	 * builder classes the converted CSS still relies on for layout.
+	 */
+	private static function normalise_classes( DOMDocument $doc ) {
+		$xpath = new DOMXPath( $doc );
+
+		// Junk classes: pure WP/menu/state metadata that carry no real styling.
+		$junk = array(
+			'/^menu-item.*/', '/^current[-_]menu.*/', '/^current[-_]page.*/', '/^page-item.*/',
+			'/^page-id-\d+$/', '/^postid-\d+$/', '/^post-\d+$/', '/^attachment-.*/',
+			'/^wp-block-[a-z-]+$/', '/^has-.*-color$/', '/^has-.*-background-color$/',
+			'/^is-layout-.*/', '/^wp-elements-[a-f0-9]+$/', '/^wp-container-.*/',
+			'/^logged-in$/', '/^admin-bar$/', '/^customize-support$/', '/^no-customize-support$/',
+			'/^elementor-page.*/', '/^elementor-\d+$/', '/^e-\d+$/',
+			'/^screen-reader-text$/',
+		);
+		foreach ( $xpath->query( '//*[@class]' ) as $el ) {
+			$classes = preg_split( '/\s+/', trim( (string) $el->getAttribute( 'class' ) ) );
+			$keep    = array();
+			foreach ( $classes as $c ) {
+				if ( '' === $c ) { continue; }
+				$drop = false;
+				foreach ( $junk as $re ) {
+					if ( preg_match( $re, $c ) ) { $drop = true; break; }
+				}
+				if ( ! $drop ) { $keep[] = $c; }
+			}
+			if ( $keep ) {
+				$el->setAttribute( 'class', implode( ' ', $keep ) );
+			} else {
+				$el->removeAttribute( 'class' );
+			}
+		}
+
+		// Remove WP-generated, meaningless IDs (e.g. pro-menu-269-83, menu-item-123,
+		// block_abc123) — but keep short, human-looking IDs that may be anchor targets.
+		foreach ( $xpath->query( '//*[@id]' ) as $el ) {
+			$id = (string) $el->getAttribute( 'id' );
+			if ( preg_match( '/^(pro-menu-|menu-item-|menu-\d|block_|_|post-\d|wp-|ctf-|et-|elementor-|ast-| wpforms-)/i', $id )
+				|| preg_match( '/-\d+-\d+$/', $id )
+				|| preg_match( '/^[a-f0-9]{8,}$/i', $id ) ) {
+				$el->removeAttribute( 'id' );
+			}
+		}
+
+		// Strip builder/data attributes that are pure noise.
+		$drop_attr_prefixes = array( 'data-elementor', 'data-widget', 'data-id', 'data-element_type', 'data-settings', 'data-oxy', 'data-ct', 'data-shortcode' );
+		foreach ( $xpath->query( '//*' ) as $el ) {
+			if ( ! $el->hasAttributes() ) { continue; }
+			$remove = array();
+			foreach ( $el->attributes as $attr ) {
+				foreach ( $drop_attr_prefixes as $p ) {
+					if ( 0 === stripos( $attr->nodeName, $p ) ) { $remove[] = $attr->nodeName; break; }
+				}
+			}
+			foreach ( $remove as $an ) {
+				$el->removeAttribute( $an );
+			}
+		}
 	}
 
 	/** Gather all same-origin stylesheets + inline <style> into one blob. */
@@ -705,25 +788,40 @@ class Velox_October {
 
 	/* ----------------------------------------------------------------- media */
 
-	/** Find every referenced image/source URL in the document. */
+	/** Find every referenced image/source URL, including lazy-loaded ones. */
 	private static function find_media( DOMDocument $doc ) {
-		$urls = array();
-		foreach ( $doc->getElementsByTagName( 'img' ) as $img ) {
-			$src = (string) $img->getAttribute( 'src' );
-			if ( '' !== $src ) { $urls[] = $src; }
-			$ss = (string) $img->getAttribute( 'srcset' );
-			if ( '' !== $ss ) { $urls = array_merge( $urls, self::srcset_urls( $ss ) ); }
+		$urls    = array();
+		$src_at  = array( 'src', 'data-src', 'data-lazy-src', 'data-original', 'data-bg', 'data-background', 'data-background-image' );
+		$set_at  = array( 'srcset', 'data-srcset', 'data-lazy-srcset' );
+
+		foreach ( array( 'img', 'source' ) as $tag ) {
+			foreach ( $doc->getElementsByTagName( $tag ) as $el ) {
+				foreach ( $src_at as $a ) {
+					$v = (string) $el->getAttribute( $a );
+					if ( '' !== $v && 0 !== stripos( $v, 'data:' ) ) {
+						$urls[] = $v;
+					}
+				}
+				foreach ( $set_at as $a ) {
+					$v = (string) $el->getAttribute( $a );
+					if ( '' !== $v ) {
+						$urls = array_merge( $urls, self::srcset_urls( $v ) );
+					}
+				}
+			}
 		}
-		foreach ( $doc->getElementsByTagName( 'source' ) as $s ) {
-			$src = (string) $s->getAttribute( 'src' );
-			if ( '' !== $src ) { $urls[] = $src; }
-			$ss = (string) $s->getAttribute( 'srcset' );
-			if ( '' !== $ss ) { $urls = array_merge( $urls, self::srcset_urls( $ss ) ); }
-		}
-		// inline style background images
+		// inline style + data-bg background images on any element.
 		$xpath = new DOMXPath( $doc );
 		foreach ( $xpath->query( '//*[@style]' ) as $el ) {
 			$urls = array_merge( $urls, self::css_url_matches( (string) $el->getAttribute( 'style' ) ) );
+		}
+		foreach ( $xpath->query( '//*[@data-bg or @data-background-image or @data-background]' ) as $el ) {
+			foreach ( array( 'data-bg', 'data-background', 'data-background-image' ) as $a ) {
+				$v = (string) $el->getAttribute( $a );
+				if ( '' !== $v && 0 !== stripos( $v, 'data:' ) ) {
+					$urls[] = trim( $v );
+				}
+			}
 		}
 		return $urls;
 	}
@@ -756,42 +854,94 @@ class Velox_October {
 		$up      = wp_upload_dir();
 		$baseurl = trailingslashit( $up['baseurl'] );
 		$basedir = trailingslashit( $up['basedir'] );
+		$home    = home_url();
+		$host    = wp_parse_url( $home, PHP_URL_HOST );
 		$map     = array();
 		$used    = array();
+		$fetched = 0;
 
-		foreach ( $urls as $url ) {
-			$abs = $url;
-			if ( 0 === strpos( $url, '//' ) ) {
-				$abs = ( is_ssl() ? 'https:' : 'http:' ) . $url;
+		$img_ext  = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif', 'bmp', 'ico' );
+		$font_ext = array( 'woff', 'woff2', 'ttf', 'otf', 'eot' );
+
+		foreach ( array_unique( array_filter( $urls ) ) as $url ) {
+			if ( 0 === stripos( $url, 'data:' ) ) {
+				continue;
 			}
-			// Normalise to compare against uploads base URL (strip query, scheme差).
-			$clean = strtok( $abs, '?' );
-			$rel   = '';
-			if ( false !== strpos( $clean, $baseurl ) ) {
-				$rel = ltrim( substr( $clean, strpos( $clean, $baseurl ) + strlen( $baseurl ) ), '/' );
-			} else {
-				// try scheme-agnostic match
-				$bu = preg_replace( '#^https?:#', '', $baseurl );
-				$cu = preg_replace( '#^https?:#', '', $clean );
-				if ( false !== strpos( $cu, $bu ) ) {
-					$rel = ltrim( substr( $cu, strpos( $cu, $bu ) + strlen( $bu ) ), '/' );
+			$abs = self::absolutise( $url, $home . '/' );
+			if ( ! $abs ) {
+				continue;
+			}
+			$h = wp_parse_url( $abs, PHP_URL_HOST );
+			if ( $h && $host && $h !== $host && ( 'www.' . $host ) !== $h && $host !== ( 'www.' . $h ) ) {
+				continue; // same-origin assets only
+			}
+			$clean = strtok( $abs, '?#' );
+			$ext   = strtolower( pathinfo( (string) wp_parse_url( $clean, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
+			$is_font = in_array( $ext, $font_ext, true );
+			$is_img  = in_array( $ext, $img_ext, true );
+			if ( ! $is_font && ! $is_img ) {
+				continue;
+			}
+			$folder = $is_font ? 'assets/fonts/' : 'assets/images/';
+
+			// Prefer the local uploads file; otherwise fetch the asset over HTTP.
+			$path = '';
+			$data = null;
+			$rel  = self::uploads_rel( $clean, $baseurl );
+			if ( '' !== $rel && file_exists( $basedir . $rel ) ) {
+				$path = $basedir . $rel;
+			} elseif ( $fetched < 400 ) {
+				$body = self::fetch_binary( $abs );
+				if ( '' === $body ) {
+					continue;
 				}
+				$data = $body;
+				$fetched++;
+			} else {
+				continue;
 			}
-			if ( '' === $rel ) {
-				continue; // not an uploads file → not "in the media library"
-			}
-			$file = $basedir . $rel;
-			if ( ! file_exists( $file ) ) {
-				continue; // referenced but not present → skip
-			}
-			$name = self::safe_asset_name( basename( $rel ), $used );
+
+			$name = self::safe_asset_name( basename( (string) wp_parse_url( $clean, PHP_URL_PATH ) ), $used );
 			$used[ $name ] = true;
-			$map[ $url ] = array(
-				'rel'  => 'assets/images/' . $name,
-				'path' => $file,
-			);
+			$entry = array( 'rel' => $folder . $name );
+			if ( '' !== $path ) {
+				$entry['path'] = $path;
+			} else {
+				$entry['data'] = $data;
+			}
+			$map[ $url ] = $entry;
 		}
 		return $map;
+	}
+
+	/** Path relative to the uploads base URL, scheme-agnostic; '' if not an uploads URL. */
+	private static function uploads_rel( $clean, $baseurl ) {
+		if ( false !== strpos( $clean, $baseurl ) ) {
+			return ltrim( substr( $clean, strpos( $clean, $baseurl ) + strlen( $baseurl ) ), '/' );
+		}
+		$bu = preg_replace( '#^https?:#', '', $baseurl );
+		$cu = preg_replace( '#^https?:#', '', $clean );
+		if ( false !== strpos( $cu, $bu ) ) {
+			return ltrim( substr( $cu, strpos( $cu, $bu ) + strlen( $bu ) ), '/' );
+		}
+		return '';
+	}
+
+	/** Fetch raw bytes for an asset (image/font). */
+	private static function fetch_binary( $url ) {
+		$res = wp_remote_get(
+			$url,
+			array(
+				'timeout'     => 25,
+				'redirection' => 3,
+				'sslverify'   => false,
+				'user-agent'  => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+			)
+		);
+		if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+			return '';
+		}
+		return (string) wp_remote_retrieve_body( $res );
 	}
 
 	private static function safe_asset_name( $name, $used ) {
@@ -824,15 +974,16 @@ class Velox_October {
 
 	private static function rewrite_media_in_css( $css, $media_map ) {
 		foreach ( $media_map as $url => $info ) {
-			$name = basename( $info['rel'] );
-			$css  = str_replace( array( $url, strtok( $url, '?' ) ), '../images/' . $name, $css );
+			// style.css lives in assets/css/, so ../images or ../fonts from there.
+			$target = '../' . preg_replace( '#^assets/#', '', $info['rel'] );
+			$css    = str_replace( array( $url, strtok( $url, '?' ) ), $target, $css );
 		}
 		return $css;
 	}
 
 	/* -------------------------------------------------------------- assembly */
 
-	private static function assemble_theme( $project, $chrome, $page_files, $scss ) {
+	private static function assemble_theme( $project, $chrome, $page_files, $scss, $ext_css = array() ) {
 		$files = array();
 
 		$files['theme.yaml'] = "name: '" . self::yaml( $project ) . "'\ndescription: 'Converted from WordPress by Velox'\nauthor: ''\nhomepage: ''\nauthorCode: ''\ncode: ''\nparent: ''\ndatabase: '0'\n";
@@ -840,10 +991,10 @@ class Velox_October {
 		$files['layouts/default.htm'] = self::layout();
 
 		// Partials.
-		$files['partials/site/head.htm']   = self::head_partial();
+		$files['partials/site/head.htm']   = self::head_partial( $ext_css );
 		$files['partials/site/nav.htm']    = '' !== trim( $chrome['nav'] ) ? $chrome['nav'] : "<nav class=\"navbar navbar-expand-lg\">\n    <div class=\"container\">{# nav #}</div>\n</nav>\n";
 		$files['partials/site/footer.htm'] = '' !== trim( $chrome['footer'] ) ? $chrome['footer'] : "<div class=\"container\">{# footer #}</div>\n";
-		$files['partials/site/script.htm'] = "<script src=\"{{ 'assets/js/script.js' | theme }}\"></script>\n";
+		$files['partials/site/script.htm'] = self::script_partial();
 
 		// Pages.
 		foreach ( $page_files as $slug => $body ) {
@@ -868,8 +1019,20 @@ class Velox_October {
 			. "<!DOCTYPE html>\n<html lang=\"de-DE\">\n    <head>\n        {% partial 'site/head' %}\n        {% framework extras %}\n    </head>\n    <body>\n        <header>\n            {% partial 'site/nav' %}\n        </header>\n        <main>\n            {% page %}\n        </main>\n        <footer>\n            {% partial 'site/footer' %}\n        </footer>\n        {% partial 'site/script' %}\n    </body>\n</html>\n";
 	}
 
-	private static function head_partial() {
-		return "[seoTags]\n==\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n<link rel=\"alternate\" href=\"{{ url('/') }}{{ weburl }}\" hreflang=\"de-DE\" />\n{% component 'seoTags' %}\n\n{# Converted site styles (plain CSS — always loads; SCSS sources in assets/scss/) #}\n<link href=\"{{ 'assets/css/style.css'|theme }}\" rel=\"stylesheet\">\n";
+	private static function head_partial( $ext_css = array() ) {
+		$ext = '';
+		foreach ( (array) $ext_css as $href ) {
+			$ext .= '<link href="' . esc_url( $href ) . "\" rel=\"stylesheet\">\n";
+		}
+		return "[seoTags]\n==\n<meta charset=\"utf-8\">\n<meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">\n<link rel=\"alternate\" href=\"{{ url('/') }}{{ weburl }}\" hreflang=\"de-DE\" />\n{% component 'seoTags' %}\n\n{# Bootstrap 5 #}\n<link href=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css\" rel=\"stylesheet\">\n"
+			. ( '' !== $ext ? "\n{# External stylesheets kept from the original site (fonts, etc.) #}\n" . $ext : '' )
+			. "\n{# Converted site styles (plain CSS — always loads; SCSS sources in assets/scss/) #}\n<link href=\"{{ 'assets/css/style.css'|theme }}\" rel=\"stylesheet\">\n";
+	}
+
+	private static function script_partial() {
+		return "{# Bootstrap 5 bundle (carousels, dropdowns, offcanvas, etc.) #}\n"
+			. "<script src=\"https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js\"></script>\n"
+			. "<script src=\"{{ 'assets/js/script.js' | theme }}\"></script>\n";
 	}
 
 	private static function page_file( $pg, $content ) {
@@ -892,8 +1055,12 @@ class Velox_October {
 			$zip->addFromString( $rel, $contents );
 		}
 		foreach ( $media_map as $info ) {
-			if ( file_exists( $info['path'] ) ) {
+			if ( isset( $info['path'] ) && file_exists( $info['path'] ) ) {
 				if ( $zip->addFile( $info['path'], $info['rel'] ) ) {
+					$media_added++;
+				}
+			} elseif ( isset( $info['data'] ) ) {
+				if ( $zip->addFromString( $info['rel'], $info['data'] ) ) {
 					$media_added++;
 				}
 			}

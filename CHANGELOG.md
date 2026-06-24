@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.13.5
+- **Fixed: leaking JavaScript text in the export.** All `<script>` / `<noscript>` are now stripped during conversion (the Oxygen jQuery menu code was bleeding in as visible text). A static theme carries none of the original JS.
+- **Fixed: 0 media on lazy-loading sites.** Image collection now reads `data-src`, `data-lazy-src`, `data-srcset`, `data-original` and `data-bg*`, so lazy-loaded images (Oxygen / WP Fastest Cache) are captured.
+- **Deeper asset capture:** background images referenced in CSS and same-origin **font files** are now downloaded into `assets/images` / `assets/fonts` (fetched over HTTP when not a local uploads file), and CSS url() refs are rewritten accordingly — fixing broken fonts/backgrounds.
+- External stylesheets (Google Fonts, etc.) are kept as `<link>`s in the head instead of being dropped.
+- **Bootstrap 5** (CSS + JS bundle) is now included in the theme head/scripts.
+- **Cleaner markup:** WordPress/page-builder junk classes (menu-item, current-menu, wp-block wrappers, page-id…), generated IDs (pro-menu-269-83 and similar) and builder data-attributes are stripped, while the structural classes the converted CSS relies on are kept so the design still renders.
+
 ## 2.13.4
 - **Fixed: imported OctoberCMS theme showed no styles.** The CSS was referenced as SCSS compiled on the fly, and any SCSS-incompatible syntax in the site's real CSS meant zero output. The theme now links a plain `assets/css/style.css` that always loads; the `assets/scss/` sources are still included for editing.
 - Each build now writes a **BUILD-INFO.txt** manifest (per-page markup size, CSS size, media count + total size) and an **INSTALL.txt** so the zip contents are verifiable and installation is unambiguous.
