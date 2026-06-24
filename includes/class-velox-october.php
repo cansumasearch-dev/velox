@@ -205,16 +205,18 @@ class Velox_October {
 		// 3) Media: collect from pages + from CSS url() refs (backgrounds, fonts).
 		$media_urls = array_merge( $media_urls, self::css_url_matches( $css_blob ) );
 		$media_urls = array_values( array_unique( array_filter( $media_urls ) ) );
-		$media_map  = self::resolve_media( $media_urls );
+		$resolved   = self::resolve_media( $media_urls );
+		$media_refs = $resolved['refs'];   // url => kind/name  (every variant URL)
+		$media_files = $resolved['files']; // name => kind/path|data  (one per image)
 
 		// 4) Rewrite media references in chrome + pages. Images point at the October
 		// Media library (storage/app/media/<project>/); fonts stay theme assets.
 		$media_folder = $project;
-		$chrome = self::rewrite_media_in_chrome( $chrome, $media_map, $media_folder );
+		$chrome = self::rewrite_media_in_chrome( $chrome, $media_refs, $media_folder );
 		foreach ( $page_files as $slug => $body ) {
-			$page_files[ $slug ] = self::rewrite_media_refs( $body, $media_map, $media_folder );
+			$page_files[ $slug ] = self::rewrite_media_refs( $body, $media_refs, $media_folder );
 		}
-		$css_blob = self::rewrite_media_in_css( $css_blob, $media_map, $media_folder );
+		$css_blob = self::rewrite_media_in_css( $css_blob, $media_refs, $media_folder );
 
 		// 5) CSS → SCSS structure (for editing) + a plain compiled CSS the theme links live.
 		$scss = self::css_to_scss( $css_blob );
@@ -227,27 +229,27 @@ class Velox_October {
 
 		// Build manifest so the contents are verifiable without guessing.
 		$media_bytes = 0;
-		foreach ( $media_map as $info ) {
+		foreach ( $media_files as $info ) {
 			if ( isset( $info['path'] ) && file_exists( $info['path'] ) ) {
 				$media_bytes += (int) filesize( $info['path'] );
 			} elseif ( isset( $info['data'] ) ) {
 				$media_bytes += strlen( $info['data'] );
 			}
 		}
-		$theme_files['BUILD-INFO.txt'] = self::build_info( $project, $version, $page_files, $css_blob, $media_map, $media_bytes, $media_folder );
+		$theme_files['BUILD-INFO.txt'] = self::build_info( $project, $version, $page_files, $css_blob, $media_files, $media_bytes, $media_folder );
 		$theme_files['INSTALL.txt']    = self::install_text( $project );
 
 		// 7) Zip the theme (pages/partials/css + fonts).
 		$zip_name = $project . '-v' . $version . '.zip';
 		$zip_path = trailingslashit( self::dir() ) . $zip_name;
 		$media_added = 0;
-		$size     = self::write_zip( $zip_path, $theme_files, $media_map, $media_added );
+		$size     = self::write_zip( $zip_path, $theme_files, $media_files, $media_added );
 
 		// 7b) Separate Media-library zip: images for storage/app/media/.
 		$media_zip_name = $project . '-v' . $version . '-media.zip';
 		$media_zip_path = trailingslashit( self::dir() ) . $media_zip_name;
 		$img_added      = 0;
-		self::write_media_zip( $media_zip_path, $media_map, $media_folder, $img_added );
+		self::write_media_zip( $media_zip_path, $media_files, $media_folder, $img_added );
 
 		$finished    = current_time( 'mysql' );
 		$duration_ms = (int) round( microtime( true ) * 1000 ) - $start_ms;
@@ -265,10 +267,10 @@ class Velox_October {
 				'finished'    => $finished,
 				'duration_ms' => $duration_ms,
 				'pages'       => count( $page_files ),
-				'media'       => count( $media_map ),
+				'media'       => count( $media_files ),
 				'size'        => $size,
 				'zip'         => $zip_name,
-				'manifest'    => wp_json_encode( array( 'pages' => $page_slugs, 'media' => array_keys( $media_map ), 'media_zip' => $media_zip_name, 'media_folder' => $media_folder, 'images' => $img_added ) ),
+				'manifest'    => wp_json_encode( array( 'pages' => $page_slugs, 'media' => array_keys( $media_files ), 'media_zip' => $media_zip_name, 'media_folder' => $media_folder, 'images' => $img_added ) ),
 				'note'        => $rescan_project ? 'Re-scan' : 'Initial build',
 			),
 			array( '%s', '%d', '%s', '%s', '%s', '%d', '%d', '%d', '%d', '%s', '%s', '%s' )
@@ -281,7 +283,7 @@ class Velox_October {
 			'project'     => $project,
 			'version'     => $version,
 			'pages'       => count( $page_files ),
-			'media'       => count( $media_map ),
+			'media'       => count( $media_files ),
 			'media_added' => $media_added,
 			'images'      => $img_added,
 			'css_bytes'   => strlen( $css_blob ),
@@ -496,17 +498,18 @@ class Velox_October {
 		$media_line = 'no page body to scan';
 		$samples    = array();
 		if ( '' !== $probe_html ) {
-			$found = array_values( array_unique( array_merge( self::media_from_raw( $probe_html ), self::media_from_noscript( $probe_html ) ) ) );
-			$map   = self::resolve_media( $found );
-			$media_line = count( $found ) . ' image/font URLs found on homepage · ' . count( $map ) . ' resolved to files';
+			$found    = array_values( array_unique( array_merge( self::media_from_raw( $probe_html ), self::media_from_noscript( $probe_html ) ) ) );
+			$resolved = self::resolve_media( $found );
+			$files    = $resolved['files'];
+			$media_line = count( $found ) . ' URLs on homepage · ' . count( $files ) . ' distinct images/fonts after collapsing size variants';
 			$i = 0;
-			foreach ( $map as $url => $info ) {
-				$samples[] = basename( (string) wp_parse_url( strtok( $url, '?#' ), PHP_URL_PATH ) ) . ( isset( $info['data'] ) ? ' (fetched)' : ' (local)' );
+			foreach ( $files as $name => $info ) {
+				$samples[] = $name . ( isset( $info['data'] ) ? ' (fetched)' : ' (local)' );
 				if ( ++$i >= 6 ) {
 					break;
 				}
 			}
-			if ( $found && ! $map ) {
+			if ( $found && ! $files ) {
 				$media_line .= ' — URLs found but none resolved (cross-origin, or files missing on disk)';
 			}
 		}
@@ -911,8 +914,12 @@ class Velox_October {
 	}
 
 	/**
-	 * For each used URL, if it lives under the uploads dir and the file exists,
-	 * include it. Returns url => [ 'rel' => assets/images/NAME, 'path' => abs ].
+	 * Resolve referenced URLs to bundleable files, collapsing WordPress responsive
+	 * size variants (hero-300x200.jpg, hero-768x512.jpg, hero-scaled.jpg …) down to
+	 * ONE file per logical image — while still remapping every variant URL to it so
+	 * nothing on the page breaks. Returns:
+	 *   [ 'refs'  => url  => [ 'kind', 'name' ],            // for rewriting markup/CSS
+	 *     'files' => name => [ 'kind', 'path'|'data' ] ]    // one entry per real file
 	 */
 	public static function resolve_media( $urls ) {
 		$up      = wp_upload_dir();
@@ -920,7 +927,9 @@ class Velox_October {
 		$basedir = trailingslashit( $up['basedir'] );
 		$home    = home_url();
 		$host    = wp_parse_url( $home, PHP_URL_HOST );
-		$map     = array();
+		$refs    = array();
+		$files   = array();
+		$bases   = array(); // basekey => name
 		$used    = array();
 		$fetched = 0;
 
@@ -940,19 +949,42 @@ class Velox_October {
 				continue; // same-origin assets only
 			}
 			$clean = strtok( $abs, '?#' );
-			$ext   = strtolower( pathinfo( (string) wp_parse_url( $clean, PHP_URL_PATH ), PATHINFO_EXTENSION ) );
+			$path_part = (string) wp_parse_url( $clean, PHP_URL_PATH );
+			$ext   = strtolower( pathinfo( $path_part, PATHINFO_EXTENSION ) );
 			$is_font = in_array( $ext, $font_ext, true );
 			$is_img  = in_array( $ext, $img_ext, true );
 			if ( ! $is_font && ! $is_img ) {
 				continue;
 			}
+			$kind = $is_font ? 'font' : 'image';
 
-			// Prefer the local uploads file; otherwise fetch the asset over HTTP.
+			// Strip WP size/edit suffixes to get the original base name.
+			$fname = basename( $path_part );                       // hero-768x512.jpg
+			$stem  = preg_replace( '/\.[^.]+$/', '', $fname );      // hero-768x512
+			$base  = $stem;
+			$base  = preg_replace( '/-e\d{8,}$/', '', $base );      // -e1612345678 (edited)
+			$base  = preg_replace( '/-\d+x\d+$/', '', $base );      // -768x512 (resize)
+			$base  = preg_replace( '/-(?:scaled|rotated)$/', '', $base );
+			$origfile = $base . '.' . $ext;                         // hero.jpg
+			$basekey  = strtolower( ( $is_font ? 'font:' : 'img:' ) . $origfile );
+
+			// Already have this logical image → just point the URL at it.
+			if ( isset( $bases[ $basekey ] ) ) {
+				$refs[ $url ] = array( 'kind' => $kind, 'name' => $bases[ $basekey ] );
+				continue;
+			}
+
+			// First time we see this image: get a real file — prefer the full-size
+			// original on disk, else the variant we're looking at, else fetch.
 			$path = '';
 			$data = null;
-			$rel  = self::uploads_rel( $clean, $baseurl );
-			if ( '' !== $rel && file_exists( $basedir . $rel ) ) {
-				$path = $basedir . $rel;
+			$dir  = substr( $clean, 0, strrpos( $clean, '/' ) + 1 );
+			$relO = self::uploads_rel( $dir . $origfile, $baseurl );
+			$relC = self::uploads_rel( $clean, $baseurl );
+			if ( '' !== $relO && file_exists( $basedir . $relO ) ) {
+				$path = $basedir . $relO;
+			} elseif ( '' !== $relC && file_exists( $basedir . $relC ) ) {
+				$path = $basedir . $relC;
 			} elseif ( $fetched < 400 ) {
 				$body = self::fetch_binary( $abs );
 				if ( '' === $body ) {
@@ -964,20 +996,18 @@ class Velox_October {
 				continue;
 			}
 
-			$name = self::safe_asset_name( basename( (string) wp_parse_url( $clean, PHP_URL_PATH ) ), $used );
-			$used[ $name ] = true;
-			$entry = array(
-				'kind' => $is_font ? 'font' : 'image',
-				'name' => $name,
-			);
+			$name = self::safe_asset_name( $origfile, $used );
+			$used[ $name ]    = true;
+			$bases[ $basekey ] = $name;
+			$files[ $name ]   = array( 'kind' => $kind );
 			if ( '' !== $path ) {
-				$entry['path'] = $path;
+				$files[ $name ]['path'] = $path;
 			} else {
-				$entry['data'] = $data;
+				$files[ $name ]['data'] = $data;
 			}
-			$map[ $url ] = $entry;
+			$refs[ $url ] = array( 'kind' => $kind, 'name' => $name );
 		}
-		return $map;
+		return array( 'refs' => $refs, 'files' => $files );
 	}
 
 	/** Path relative to the uploads base URL, scheme-agnostic; '' if not an uploads URL. */
@@ -1137,11 +1167,11 @@ class Velox_October {
 		}
 		// Theme zip carries only fonts (referenced from CSS via ../fonts/). Images go
 		// into the Media-library zip instead.
-		foreach ( $media_map as $info ) {
+		foreach ( $media_map as $name => $info ) {
 			if ( 'font' !== $info['kind'] ) {
 				continue;
 			}
-			$rel = 'assets/fonts/' . $info['name'];
+			$rel = 'assets/fonts/' . $name;
 			if ( isset( $info['path'] ) && file_exists( $info['path'] ) ) {
 				if ( $zip->addFile( $info['path'], $rel ) ) { $media_added++; }
 			} elseif ( isset( $info['data'] ) ) {
@@ -1170,8 +1200,8 @@ class Velox_October {
 		if ( true !== $zip->open( $zip_path, ZipArchive::CREATE ) ) {
 			return 0;
 		}
-		foreach ( $images as $info ) {
-			$rel = $media_folder . '/' . $info['name'];
+		foreach ( $images as $name => $info ) {
+			$rel = $media_folder . '/' . $name;
 			if ( isset( $info['path'] ) && file_exists( $info['path'] ) ) {
 				if ( $zip->addFile( $info['path'], $rel ) ) { $added++; }
 			} elseif ( isset( $info['data'] ) ) {
@@ -1202,8 +1232,8 @@ class Velox_October {
 		$lines[] = 'IMAGES (' . count( $imgs ) . ', ' . size_format( $media_bytes ) . ') → Media library: storage/app/media/' . $media_folder . '/';
 		$lines[] = '  Get them there with the separate "Download media" button, then unzip into storage/app/media/';
 		$i = 0;
-		foreach ( $imgs as $info ) {
-			$lines[] = '  ' . $media_folder . '/' . $info['name'];
+		foreach ( $imgs as $name => $info ) {
+			$lines[] = '  ' . $media_folder . '/' . $name;
 			if ( ++$i >= 40 ) {
 				$lines[] = '  … and ' . ( count( $imgs ) - 40 ) . ' more';
 				break;
