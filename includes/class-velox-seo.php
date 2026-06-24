@@ -31,6 +31,62 @@ class Velox_Seo {
 		// Editor meta box + save.
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_box' ) );
 		add_action( 'save_post', array( __CLASS__, 'save_meta' ), 10, 1 );
+
+		// Block editor: REST-exposed meta + the Velox SEO sidebar panel.
+		add_action( 'init', array( __CLASS__, 'register_meta' ) );
+		add_action( 'enqueue_block_editor_assets', array( __CLASS__, 'editor_assets' ) );
+		// The REST flow writes meta after save_post, so refresh the sitemap once the
+		// editor save has fully landed (otherwise sitemap_exclude/noindex lag a save).
+		foreach ( self::POST_TYPES as $pt ) {
+			add_action( 'rest_after_insert_' . $pt, array( __CLASS__, 'rest_synced' ) );
+		}
+	}
+
+	public static function rest_synced() {
+		self::generate_sitemap();
+	}
+
+	/** Expose the SEO meta to the REST API so the Gutenberg panel can read/write it. */
+	public static function register_meta() {
+		if ( ! Velox_Settings::get( 'module_seo', true ) ) {
+			return;
+		}
+		$keys = array( '_velox_seo_title', '_velox_seo_desc', '_velox_seo_noindex', '_velox_seo_nofollow', 'sitemap_exclude' );
+		foreach ( self::POST_TYPES as $pt ) {
+			foreach ( $keys as $key ) {
+				register_post_meta( $pt, $key, array(
+					'type'              => 'string',
+					'single'            => true,
+					'show_in_rest'      => true,
+					'sanitize_callback' => 'sanitize_text_field',
+					'auth_callback'     => function () {
+						return current_user_can( 'edit_posts' );
+					},
+				) );
+			}
+		}
+	}
+
+	/** Load the block-editor SEO panel on supported post-type screens. */
+	public static function editor_assets() {
+		if ( ! Velox_Settings::get( 'module_seo', true ) ) {
+			return;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( $screen && ! in_array( $screen->post_type, self::POST_TYPES, true ) ) {
+			return;
+		}
+		wp_enqueue_script(
+			'velox-seo-editor',
+			VELOX_URL . 'admin/js/velox-seo-editor.js',
+			array( 'wp-plugins', 'wp-edit-post', 'wp-editor', 'wp-element', 'wp-components', 'wp-data' ),
+			VELOX_VERSION,
+			true
+		);
+		wp_localize_script( 'velox-seo-editor', 'VeloxSeoData', array(
+			'icon'      => VELOX_URL . 'assets/menu-icon.png',
+			'postTypes' => array_values( self::POST_TYPES ),
+		) );
 	}
 
 	/* ---------------------------------------------------- physical robots.txt */
@@ -115,6 +171,11 @@ class Velox_Seo {
 
 	public static function add_meta_box() {
 		if ( ! Velox_Settings::get( 'module_seo', true ) ) {
+			return;
+		}
+		// In the block editor the Velox SEO sidebar panel replaces this meta box.
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( $screen && method_exists( $screen, 'is_block_editor' ) && $screen->is_block_editor() ) {
 			return;
 		}
 		foreach ( self::POST_TYPES as $pt ) {

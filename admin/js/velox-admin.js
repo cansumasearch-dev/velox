@@ -92,8 +92,12 @@
 		if ( ! el ) {
 			return;
 		}
-		el.textContent = message;
-		el.className = 'velox-toast is-visible' + ( type ? ' velox-toast--' + type : '' );
+		var t = type || 'success';
+		var icons = { success: '\u2713', error: '\u2715', warn: '!', info: '\u2139' };
+		el.innerHTML = '<span class="velox-toast-ic"></span><span class="velox-toast-msg"></span>';
+		el.querySelector( '.velox-toast-ic' ).textContent = icons[ t ] || icons.success;
+		el.querySelector( '.velox-toast-msg' ).textContent = message;
+		el.className = 'velox-toast is-visible velox-toast--' + t;
 		clearTimeout( toastTimer );
 		toastTimer = setTimeout( function () {
 			el.className = 'velox-toast';
@@ -1804,7 +1808,16 @@
 			elBgImg = g( 'util_maintenance_bgimage' ), elBtnT = g( 'util_maintenance_btn_text' ),
 			elBtnU = g( 'util_maintenance_btn_url' );
 		var pvLogo = $( '#vmp-logo' ), pvTitle = $( '#vmp-title' ), pvMsg = $( '#vmp-msg' ),
-			pvBtn = $( '#vmp-btn' ), pvBar = $( '.vmp-bar i', prev );
+			pvBtn = $( '#vmp-btn' ), pvAnim = $( '#vmp-anim' ), pvBrand = $( '#vmp-brand' );
+		var elBrand = g( 'util_maintenance_brand' ), elAnim = g( 'util_maintenance_anim' );
+
+		function animHtml( type, accent ) {
+			if ( type === 'none' ) { return ''; }
+			if ( type === 'pulse' ) { return '<div class="vmp-a-pulse" style="background:' + accent + '"></div>'; }
+			if ( type === 'dots' ) { return '<div class="vmp-a-dots"><i style="background:' + accent + '"></i><i style="background:' + accent + '"></i><i style="background:' + accent + '"></i></div>'; }
+			if ( type === 'spinner' ) { return '<div class="vmp-a-spin" style="border-top-color:' + accent + '"></div>'; }
+			return '<div class="vmp-a-bar"><i style="background:' + accent + '"></i></div>';
+		}
 
 		function hexa( hex, a ) {
 			hex = ( hex || '' ).replace( '#', '' );
@@ -1819,20 +1832,45 @@
 			prev.style.background = bgimg
 				? 'linear-gradient(' + hexa( bg, 0.86 ) + ',' + hexa( bg, 0.94 ) + '),url("' + bgimg + '") center/cover no-repeat'
 				: bg;
-			pvLogo.src = ( elLogo.value || '' ).trim() || defaultLogo;
+			var logoVal = ( elLogo.value || '' ).trim() || defaultLogo;
+			if ( /\.(json|lottie)(\?|$)/i.test( logoVal ) ) {
+				pvLogo.style.display = 'none';
+				if ( ! prev.querySelector( '.vmp-a-lottie-logo' ) ) {
+					var ph = document.createElement( 'div' ); ph.className = 'vmp-a-lottie vmp-a-lottie-logo'; ph.textContent = 'Lottie animation'; pvLogo.parentNode.insertBefore( ph, pvLogo );
+				}
+			} else {
+				var ex = prev.querySelector( '.vmp-a-lottie-logo' ); if ( ex ) { ex.remove(); }
+				pvLogo.style.display = 'block'; pvLogo.src = logoVal;
+			}
 			pvTitle.textContent = elTitle.value || "We'll be right back";
 			pvMsg.textContent = elMsg.value || 'The site is undergoing maintenance. Please check back soon.';
 			pvMsg.style.color = hexa( text, 0.62 );
-			if ( pvBar ) { pvBar.parentNode.style.background = hexa( text, 0.14 ); pvBar.style.background = accent; }
+			if ( pvAnim ) { pvAnim.innerHTML = animHtml( elAnim ? elAnim.value : 'bar', accent ); }
+			if ( pvBrand ) {
+				var bv = ( elBrand && elBrand.value || '' ).trim();
+				if ( bv ) { pvBrand.textContent = bv; pvBrand.style.display = 'block'; pvBrand.style.color = hexa( text, 0.45 ); }
+				else { pvBrand.style.display = 'none'; }
+			}
 			if ( ( elBtnT.value || '' ).trim() && ( elBtnU.value || '' ).trim() ) {
 				pvBtn.textContent = elBtnT.value; pvBtn.style.display = 'inline-block'; pvBtn.style.background = accent;
 			} else {
 				pvBtn.style.display = 'none';
 			}
 		}
-		[ elTitle, elMsg, elLogo, elBg, elText, elAccent, elBgImg, elBtnT, elBtnU ].forEach( function ( el ) {
+		[ elTitle, elMsg, elLogo, elBg, elText, elAccent, elBgImg, elBtnT, elBtnU, elBrand, elAnim ].forEach( function ( el ) {
 			if ( el ) { el.addEventListener( 'input', render ); el.addEventListener( 'change', render ); }
 		} );
+
+		var resetBtn = $( '#velox-maint-reset' );
+		if ( resetBtn ) {
+			resetBtn.addEventListener( 'click', function () {
+				if ( ! window.confirm( 'Reset the maintenance page to its default look? Your text and colours here will be cleared.' ) ) { return; }
+				resetBtn.disabled = true;
+				api( 'maint_reset' )
+					.then( function () { toast( 'Reset to default.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); resetBtn.disabled = false; } );
+			} );
+		}
 
 		$$( '.velox-media-pick', form ).forEach( function ( btn ) {
 			btn.addEventListener( 'click', function () {
@@ -1873,7 +1911,7 @@
 			btn.addEventListener( 'click', function () {
 				var sub = btn.closest( '.velox-mail-sub' );
 				api( 'submission_delete', { id: sub.getAttribute( 'data-id' ) } )
-					.then( function () { sub.remove(); } )
+					.then( function () { sub.remove(); toast( 'Removed.' ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 		} );
@@ -1906,16 +1944,24 @@
 		form.emails = form.emails || [];
 
 		var TYPES = {
-			text:     { label: 'Single line', icon: 'T', opts: false },
-			email:    { label: 'Email',       icon: '@', opts: false },
-			tel:      { label: 'Phone',       icon: '\u260E', opts: false },
-			number:   { label: 'Number',      icon: '#', opts: false },
-			textarea: { label: 'Paragraph',   icon: '\u00B6', opts: false },
-			select:   { label: 'Dropdown',    icon: '\u25BE', opts: true },
-			radio:    { label: 'Radio',       icon: '\u25C9', opts: true },
-			checkbox: { label: 'Checkbox',    icon: '\u2611', opts: false },
-			consent:  { label: 'Consent',     icon: '\u2713', opts: false }
+			text:        { label: 'Single line', icon: 'T', opts: false, cat: 'general' },
+			email:       { label: 'Email',       icon: '@', opts: false, cat: 'general' },
+			tel:         { label: 'Phone',       icon: '\u260E', opts: false, cat: 'general' },
+			number:      { label: 'Number',      icon: '#', opts: false, cat: 'general' },
+			textarea:    { label: 'Paragraph',   icon: '\u00B6', opts: false, cat: 'general' },
+			select:      { label: 'Dropdown',    icon: '\u25BE', opts: true,  cat: 'general' },
+			radio:       { label: 'Radio',       icon: '\u25C9', opts: true,  cat: 'general' },
+			checkbox:    { label: 'Checkbox',    icon: '\u2611', opts: false, cat: 'general' },
+			name:        { label: 'Name',        icon: 'Aa', opts: false, cat: 'advanced' },
+			multiselect: { label: 'Multi-select',icon: '\u2630', opts: true,  cat: 'advanced' },
+			country:     { label: 'Country',     icon: '\u25C8', opts: false, cat: 'advanced' },
+			url:         { label: 'Website URL', icon: '\u29C9', opts: false, cat: 'advanced' },
+			date:        { label: 'Date',        icon: '\u25A6', opts: false, cat: 'advanced' },
+			consent:     { label: 'Consent',     icon: '\u2713', opts: false, cat: 'advanced' },
+			captcha:     { label: 'CAPTCHA',     icon: '\u26E8', opts: false, cat: 'advanced' },
+			html:        { label: 'Custom HTML',  icon: '\u2039\u203A', opts: false, cat: 'layout' }
 		};
+		var CATS = { general: 'General fields', advanced: 'Advanced fields', layout: 'Layout' };
 
 		var canvas     = $( '#vmail-canvas' );
 		var palette    = $( '#vmail-palette' );
@@ -1938,7 +1984,9 @@
 			return {
 				key: f.key || '', type: f.type || 'text', label: f.label != null ? f.label : '',
 				required: !! f.required, placeholder: f.placeholder || '', options: f.options || '',
-				'default': f['default'] || '', help: f.help || '', width: f.width === 'half' ? 'half' : 'full', css: f.css || '',
+				'default': f['default'] || '', help: f.help || '',
+				width: ( f.width === 'half' || f.width === 'third' ) ? f.width : 'full',
+				css: f.css || '', content: f.content || '',
 				_lockKey: !! ( f.key && /^[a-z0-9_]+$/.test( f.key ) )
 			};
 		}
@@ -1948,20 +1996,43 @@
 		function optList( f ) { return ( f.options || '' ).split( '\n' ).map( function ( s ) { return s.trim(); } ).filter( Boolean ); }
 
 		/* ---------- palette ---------- */
-		function renderPalette() {
+		function renderPalette( filter ) {
+			filter = ( filter || '' ).toLowerCase();
 			palette.innerHTML = '';
-			Object.keys( TYPES ).forEach( function ( t ) {
-				var b = document.createElement( 'button' );
-				b.type = 'button'; b.className = 'vmail-pal-item';
-				b.innerHTML = '<span class="vmail-pal-ic">' + TYPES[ t ].icon + '</span><span>' + TYPES[ t ].label + '</span>';
-				b.addEventListener( 'click', function () { addField( t ); } );
-				palette.appendChild( b );
+			Object.keys( CATS ).forEach( function ( cat ) {
+				var keys = Object.keys( TYPES ).filter( function ( t ) {
+					return TYPES[ t ].cat === cat && ( ! filter || TYPES[ t ].label.toLowerCase().indexOf( filter ) !== -1 );
+				} );
+				if ( ! keys.length ) { return; }
+				var group = document.createElement( 'div' ); group.className = 'vmail-pal-group';
+				group.innerHTML = '<div class="vmail-pal-cat">' + CATS[ cat ] + '</div>';
+				var grid = document.createElement( 'div' ); grid.className = 'vmail-pal-grid';
+				keys.forEach( function ( t ) {
+					var b = document.createElement( 'button' );
+					b.type = 'button'; b.className = 'vmail-pal-item';
+					b.innerHTML = '<span class="vmail-pal-ic">' + TYPES[ t ].icon + '</span><span>' + TYPES[ t ].label + '</span>';
+					b.addEventListener( 'click', function () { addField( t ); } );
+					grid.appendChild( b );
+				} );
+				group.appendChild( grid );
+				palette.appendChild( group );
 			} );
+			if ( ! palette.children.length ) {
+				palette.innerHTML = '<p class="velox-hint" style="padding:6px 2px;">No fields match "' + escapeHtml( filter ) + '".</p>';
+			}
 		}
+		function hasType( t ) { return form.fields.some( function ( f ) { return f.type === t; } ); }
 		function addField( type ) {
+			// Consent and CAPTCHA are mutually exclusive — pick one spam/consent gate.
+			if ( type === 'captcha' && hasType( 'consent' ) ) { toast( 'Use either a consent box or CAPTCHA — not both. Remove the consent field first.', 'error' ); return; }
+			if ( type === 'consent' && hasType( 'captcha' ) ) { toast( 'Use either a consent box or CAPTCHA — not both. Remove the CAPTCHA field first.', 'error' ); return; }
+			if ( type === 'captcha' && hasType( 'captcha' ) ) { toast( 'There is already a CAPTCHA on this form.', 'error' ); return; }
 			var f = normalize( { type: type, label: TYPES[ type ].label, required: false } );
-			if ( type === 'select' || type === 'radio' ) { f.options = 'Option one\nOption two\nOption three'; }
+			if ( type === 'select' || type === 'radio' || type === 'multiselect' ) { f.options = 'Option one\nOption two\nOption three'; }
+			if ( type === 'name' ) { f.label = 'Name'; f.options = 'First name\nLast name'; f.width = 'full'; }
 			if ( type === 'consent' ) { f.label = 'I accept the privacy policy.'; f.required = true; }
+			if ( type === 'captcha' ) { f.label = ''; f.required = false; }
+			if ( type === 'html' ) { f.label = ''; f.content = '<p>Your custom HTML here.</p>'; }
 			form.fields.push( f );
 			reKey();
 			selected = form.fields.length - 1;
@@ -1973,17 +2044,24 @@
 			var star = f.required ? ' <span class="velox-req">*</span>' : '';
 			var lbl  = f.label ? '<span class="velox-form-label">' + escapeHtml( f.label ) + star + '</span>' : '';
 			var help = f.help ? '<span class="velox-form-help">' + escapeHtml( f.help ) + '</span>' : '';
+			if ( f.type === 'html' ) { return '<div class="vmail-html-prev">' + ( f.content || '<em>Custom HTML</em>' ) + '</div>'; }
+			if ( f.type === 'captcha' ) { return '<div class="vmail-cap-prev">\u26E8 CAPTCHA widget<small>shown to visitors in place of a consent box</small></div>'; }
 			if ( f.type === 'consent' || f.type === 'checkbox' ) {
 				return '<label class="velox-form-consent"><input type="checkbox" disabled><span>' + escapeHtml( f.label ) + star + '</span></label>' + help;
 			}
-			if ( f.type === 'radio' ) {
-				var rs = optList( f ).map( function ( o ) { return '<label class="velox-form-radio"><input type="radio" disabled> <span>' + escapeHtml( o ) + '</span></label>'; } ).join( '' );
+			if ( f.type === 'radio' || f.type === 'multiselect' ) {
+				var it = f.type === 'radio' ? 'radio' : 'checkbox';
+				var rs = optList( f ).map( function ( o ) { return '<label class="velox-form-radio"><input type="' + it + '" disabled> <span>' + escapeHtml( o ) + '</span></label>'; } ).join( '' );
 				return lbl + '<div class="velox-form-radios">' + rs + '</div>' + help;
 			}
+			if ( f.type === 'name' ) {
+				var ol = optList( f );
+				return lbl + '<div class="velox-form-name-row"><input disabled placeholder="' + escapeHtml( ol[0] || 'First name' ) + '"><input disabled placeholder="' + escapeHtml( ol[1] || 'Last name' ) + '"></div>' + help;
+			}
 			if ( f.type === 'textarea' ) { return lbl + '<textarea rows="3" disabled placeholder="' + escapeHtml( f.placeholder || '' ) + '">' + escapeHtml( f['default'] || '' ) + '</textarea>' + help; }
-			if ( f.type === 'select' ) {
-				var os = '<option>\u2014</option>' + optList( f ).map( function ( o ) { return '<option>' + escapeHtml( o ) + '</option>'; } ).join( '' );
-				return lbl + '<select disabled>' + os + '</select>' + help;
+			if ( f.type === 'select' || f.type === 'country' ) {
+				var inner = f.type === 'country' ? '<option>Germany</option><option>Switzerland</option><option>Austria</option><option>\u2026</option>' : optList( f ).map( function ( o ) { return '<option>' + escapeHtml( o ) + '</option>'; } ).join( '' );
+				return lbl + '<select disabled><option>\u2014</option>' + inner + '</select>' + help;
 			}
 			return lbl + '<input type="' + escapeHtml( f.type ) + '" disabled placeholder="' + escapeHtml( f.placeholder || '' ) + '" value="' + escapeHtml( f['default'] || '' ) + '">' + help;
 		}
@@ -1996,7 +2074,7 @@
 			}
 			form.fields.forEach( function ( f, i ) {
 				var card = document.createElement( 'div' );
-				card.className = 'vmail-fcard' + ( i === selected ? ' is-selected' : '' ) + ( f.width === 'half' ? ' is-half' : '' );
+				card.className = 'vmail-fcard' + ( i === selected ? ' is-selected' : '' ) + ( f.width === 'half' ? ' is-half' : ( f.width === 'third' ? ' is-third' : '' ) );
 				card.setAttribute( 'draggable', 'true' );
 				card.innerHTML =
 					'<div class="vmail-fcard-handle" title="Drag to reorder">\u22EE\u22EE</div>' +
@@ -2037,24 +2115,45 @@
 			return '<div class="velox-field"><span class="velox-field-label">' + label + '</span>' +
 				'<textarea class="velox-textarea" rows="4" data-k="' + k + '">' + escapeHtml( val || '' ) + '</textarea></div>';
 		}
+		function widthSelect( f ) {
+			return '<div class="velox-field"><span class="velox-field-label">Width</span><select class="velox-select" data-k="width">' +
+				'<option value="full"' + ( f.width === 'full' ? ' selected' : '' ) + '>Full width</option>' +
+				'<option value="half"' + ( f.width === 'half' ? ' selected' : '' ) + '>Half (1/2)</option>' +
+				'<option value="third"' + ( f.width === 'third' ? ' selected' : '' ) + '>Third (1/3)</option>' +
+				'</select></div>';
+		}
 		function renderInspector() {
 			if ( selected < 0 || ! form.fields[ selected ] ) {
 				inspector.innerHTML = '<div class="vmail-insp-empty">Select a field on the canvas to edit its settings.</div>';
 				return;
 			}
 			var f = form.fields[ selected ];
-			var hasOpts = TYPES[ f.type ] && TYPES[ f.type ].opts;
+			var t = f.type;
+			var hasOpts = TYPES[ t ] && TYPES[ t ].opts;
+			var noPlaceholder = [ 'consent', 'checkbox', 'radio', 'multiselect', 'name', 'country', 'select', 'date', 'captcha', 'html' ];
+			var noDefault     = [ 'consent', 'checkbox', 'name', 'captcha', 'html', 'multiselect' ];
 			var rows = '';
-			rows += inspText( 'Label', 'label', f.label );
-			rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
-			rows += '<label class="vmail-insp-check"><input type="checkbox" data-k="required"' + ( f.required ? ' checked' : '' ) + '> Required field</label>';
-			if ( f.type !== 'consent' && f.type !== 'checkbox' && f.type !== 'radio' ) { rows += inspText( 'Placeholder', 'placeholder', f.placeholder ); }
-			if ( hasOpts ) { rows += inspArea( 'Options (one per line)', 'options', f.options ); }
-			if ( f.type !== 'consent' && f.type !== 'checkbox' ) { rows += inspText( 'Default value', 'default', f['default'] ); }
-			rows += inspText( 'Help text', 'help', f.help );
-			rows += '<div class="velox-field"><span class="velox-field-label">Width</span><select class="velox-select" data-k="width"><option value="full"' + ( f.width === 'full' ? ' selected' : '' ) + '>Full width</option><option value="half"' + ( f.width === 'half' ? ' selected' : '' ) + '>Half width</option></select></div>';
-			rows += inspText( 'CSS class', 'css', f.css );
-			inspector.innerHTML = '<div class="vmail-insp-head">' + ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + ' field</div><div class="vmail-insp-body">' + rows + '</div>';
+
+			if ( t === 'html' ) {
+				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
+				rows += '<div class="velox-field"><span class="velox-field-label">HTML content</span><textarea class="velox-textarea velox-mono" rows="6" data-k="content">' + escapeHtml( f.content || '' ) + '</textarea><span class="velox-hint">Rendered as-is in the form. Basic HTML is allowed.</span></div>';
+				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
+			} else if ( t === 'captcha' ) {
+				rows += '<div class="vmail-insp-note">This drops your CAPTCHA widget into the form. Configure the provider and keys under <strong>Mail &amp; forms \u2192 CAPTCHA</strong>. A form uses either a consent box or CAPTCHA \u2014 not both.</div>';
+				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
+			} else {
+				rows += inspText( 'Label', 'label', f.label );
+				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
+				rows += '<label class="vmail-insp-check"><input type="checkbox" data-k="required"' + ( f.required ? ' checked' : '' ) + '> Required field</label>';
+				if ( noPlaceholder.indexOf( t ) === -1 ) { rows += inspText( 'Placeholder', 'placeholder', f.placeholder ); }
+				if ( t === 'name' ) { rows += inspArea( 'Sub-labels (first line = first name, second = last name)', 'options', f.options ); }
+				else if ( hasOpts ) { rows += inspArea( 'Options (one per line)', 'options', f.options ); }
+				if ( noDefault.indexOf( t ) === -1 ) { rows += inspText( 'Default value', 'default', f['default'] ); }
+				rows += inspText( 'Help text', 'help', f.help );
+				rows += widthSelect( f );
+				rows += inspText( 'CSS class', 'css', f.css );
+			}
+			inspector.innerHTML = '<div class="vmail-insp-head">' + ( TYPES[ t ] ? TYPES[ t ].label : t ) + ' field</div><div class="vmail-insp-body">' + rows + '</div>';
 
 			$$( '[data-k]', inspector ).forEach( function ( el ) {
 				var ev = ( el.type === 'checkbox' || el.tagName === 'SELECT' ) ? 'change' : 'input';
@@ -2075,7 +2174,8 @@
 
 		/* ---------- notifications ---------- */
 		function fieldTags() {
-			var tags = form.fields.filter( function ( f ) { return f.type !== 'consent'; } ).map( function ( f ) {
+			var skip = { consent: 1, html: 1, captcha: 1 };
+			var tags = form.fields.filter( function ( f ) { return ! skip[ f.type ]; } ).map( function ( f ) {
 				return { tag: '{inputs.' + f.key + '}', label: f.label || f.key };
 			} );
 			tags.push( { tag: '{all_fields}', label: 'All fields' } );
@@ -2178,6 +2278,9 @@
 				.catch( function ( err ) { toast( err.message, 'error' ); btn.disabled = false; } );
 		}
 		$( '#vmail-save' ).addEventListener( 'click', save );
+
+		var palSearch = $( '#vmail-palette-search' );
+		if ( palSearch ) { palSearch.addEventListener( 'input', function () { renderPalette( palSearch.value ); } ); }
 
 		renderPalette();
 		renderCanvas();
@@ -2472,17 +2575,40 @@
 		if ( ! addBtn ) {
 			return;
 		}
-		var srcEl  = $( '#velox-redir-source' );
-		var tgtEl  = $( '#velox-redir-target' );
-		var typeEl = $( '#velox-redir-type' );
+		var srcEl   = $( '#velox-redir-source' );
+		var tgtEl   = $( '#velox-redir-target' );
+		var typeEl  = $( '#velox-redir-type' );
+		var cancelBtn = $( '#velox-redir-cancel' );
+		var editingId = null;
+
+		function resetForm() {
+			editingId = null;
+			srcEl.value = ''; tgtEl.value = ''; typeEl.value = '301';
+			addBtn.textContent = 'Add';
+			if ( cancelBtn ) { cancelBtn.hidden = true; }
+		}
+		function startEdit( row ) {
+			editingId = row.getAttribute( 'data-id' );
+			srcEl.value = row.getAttribute( 'data-source' ) || '';
+			tgtEl.value = row.getAttribute( 'data-target' ) || '';
+			typeEl.value = row.getAttribute( 'data-type' ) || '301';
+			addBtn.textContent = 'Update';
+			if ( cancelBtn ) { cancelBtn.hidden = false; }
+			srcEl.focus();
+			addBtn.scrollIntoView( { behavior: 'smooth', block: 'center' } );
+		}
+		if ( cancelBtn ) { cancelBtn.addEventListener( 'click', resetForm ); }
 
 		addBtn.addEventListener( 'click', function () {
 			if ( ! srcEl.value.trim() ) { toast( 'Enter a source path.', 'error' ); return; }
 			addBtn.disabled = true;
-			api( 'redirect_add', { source: srcEl.value, target: tgtEl.value, type: typeEl.value } )
+			var action = editingId ? 'redirect_update' : 'redirect_add';
+			var data   = { source: srcEl.value, target: tgtEl.value, type: typeEl.value };
+			if ( editingId ) { data.id = editingId; }
+			api( action, data )
 				.then( function ( r ) {
-					if ( ! r.ok ) { toast( r.message || 'Could not add.', 'error' ); return; }
-					toast( 'Redirect added.' );
+					if ( ! r.ok ) { toast( r.message || 'Could not save.', 'error' ); return; }
+					toast( editingId ? 'Redirect updated.' : 'Redirect added.' );
 					setTimeout( function () { location.reload(); }, 400 );
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); } )
@@ -2492,11 +2618,18 @@
 		var redirList = $( '#velox-redir-list' );
 		if ( redirList ) {
 			redirList.addEventListener( 'click', function ( e ) {
-				if ( ! e.target.classList.contains( 'velox-redir-del' ) ) { return; }
 				var row = e.target.closest( '.velox-redir-row' );
-				api( 'redirect_delete', { id: row.getAttribute( 'data-id' ) } )
-					.then( function () { row.remove(); toast( 'Deleted.' ); } )
-					.catch( function ( er ) { toast( er.message, 'error' ); } );
+				if ( ! row ) { return; }
+				if ( e.target.classList.contains( 'velox-redir-del' ) ) {
+					api( 'redirect_delete', { id: row.getAttribute( 'data-id' ) } )
+						.then( function () { row.remove(); toast( 'Removed.' ); if ( editingId === row.getAttribute( 'data-id' ) ) { resetForm(); } } )
+						.catch( function ( er ) { toast( er.message, 'error' ); } );
+				} else if ( e.target.classList.contains( 'velox-redir-edit' ) ) {
+					startEdit( row );
+				} else if ( e.target.classList.contains( 'velox-redir-visit' ) ) {
+					var url = row.getAttribute( 'data-visit' );
+					if ( url ) { window.open( url, '_blank', 'noopener' ); }
+				}
 			} );
 		}
 
@@ -2528,7 +2661,7 @@
 					srcEl.scrollIntoView( { behavior: 'smooth', block: 'center' } );
 				} else if ( e.target.classList.contains( 'velox-log-forget' ) ) {
 					api( 'log_forget', { id: row.getAttribute( 'data-id' ) } )
-						.then( function () { row.remove(); } )
+						.then( function () { row.remove(); toast( 'Removed.' ); } )
 						.catch( function ( er ) { toast( er.message, 'error' ); } );
 				}
 			} );
@@ -2579,6 +2712,27 @@
 					.then( function () { toast( 'Physical file removed — back to the virtual robots.txt.' ); setTimeout( function () { location.reload(); }, 700 ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { virtBtn.disabled = false; } );
+			} );
+		}
+		var viewBtn = $( '#velox-seo-robots-view' );
+		if ( viewBtn ) {
+			viewBtn.addEventListener( 'click', function () {
+				var box = $( '#velox-seo-robots-live' ), out = $( '#velox-seo-live-out' ),
+					badge = $( '#velox-seo-live-badge' ), cf = $( '#velox-seo-live-cf' );
+				viewBtn.disabled = true; box.hidden = false; out.textContent = 'Fetching…'; badge.textContent = ''; cf.hidden = true;
+				fetch( viewBtn.getAttribute( 'data-url' ) + '?_=' + Date.now(), { credentials: 'omit', cache: 'no-store' } )
+					.then( function ( r ) { return r.text(); } )
+					.then( function ( txt ) {
+						out.textContent = txt || '(empty response)';
+						var isCf = /content[-\s]signal|ai-train|ai-input|DIRECTIVE 2019\/790/i.test( txt );
+						var hasVelox = /Disallow:\s*\/wp-admin\//i.test( txt );
+						cf.hidden = ! isCf;
+						badge.innerHTML = isCf
+							? '<span class="velox-pill velox-pill--warn">Cloudflare text detected</span>'
+							: ( hasVelox ? '<span class="velox-pill velox-pill--ok">Velox robots.txt is live</span>' : '' );
+					} )
+					.catch( function () { out.textContent = 'Could not fetch /robots.txt from the browser (it may be blocked by the CDN). Open it directly in a new tab instead.'; } )
+					.then( function () { viewBtn.disabled = false; } );
 			} );
 		}
 		if ( genBtn ) {

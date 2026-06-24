@@ -69,8 +69,10 @@ class Velox_Utilities {
 		if ( Velox_Settings::get( 'util_maintenance' ) ) {
 			add_action( 'template_redirect', array( __CLASS__, 'maybe_maintenance' ) );
 		}
+		// Admin-bar quick toggle (available to admins whether it's on or off).
+		add_action( 'admin_init', array( __CLASS__, 'maybe_toggle_maintenance' ) );
 		// Custom login URL
-		if ( '' !== self::login_slug() ) {
+		if ( Velox_Settings::get( 'util_loginurl' ) && '' !== self::login_slug() ) {
 			self::login_init();
 		}
 	}
@@ -272,6 +274,19 @@ class Velox_Utilities {
 		exit;
 	}
 
+	/** Admin-bar quick toggle for maintenance mode. */
+	public static function maybe_toggle_maintenance() {
+		if ( empty( $_GET['velox_maint_toggle'] ) || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'velox_maint_toggle' ) ) {
+			return;
+		}
+		Velox_Settings::set( 'util_maintenance', ! Velox_Settings::get( 'util_maintenance' ) );
+		wp_safe_redirect( remove_query_arg( array( 'velox_maint_toggle', '_wpnonce' ) ) );
+		exit;
+	}
+
 	private static function hex_to_rgba( $hex, $alpha ) {
 		$hex = ltrim( (string) $hex, '#' );
 		if ( 3 === strlen( $hex ) ) {
@@ -284,6 +299,37 @@ class Velox_Utilities {
 	}
 
 	/** Build the maintenance page from saved settings. */
+	/** Animation markup + CSS for the maintenance page, by type. */
+	private static function maintenance_anim( $type, $accent, $text ) {
+		$track = self::hex_to_rgba( $text, 0.14 );
+		switch ( $type ) {
+			case 'none':
+				return array( '', '' );
+			case 'pulse':
+				$css  = '.vx-pulse{width:46px;height:46px;border-radius:50%;margin:30px auto 0;background:' . esc_attr( $accent ) . ';animation:vxpulse 1.5s ease-in-out infinite}@keyframes vxpulse{0%,100%{opacity:.35;transform:scale(.86)}50%{opacity:1;transform:scale(1)}}';
+				return array( $css, '<div class="vx-pulse"></div>' );
+			case 'dots':
+				$css  = '.vx-dots{display:flex;gap:8px;justify-content:center;margin:32px auto 0}.vx-dots i{width:11px;height:11px;border-radius:50%;background:' . esc_attr( $accent ) . ';animation:vxbounce 1.3s ease-in-out infinite}.vx-dots i:nth-child(2){animation-delay:.18s}.vx-dots i:nth-child(3){animation-delay:.36s}@keyframes vxbounce{0%,100%{transform:translateY(0);opacity:.4}50%{transform:translateY(-9px);opacity:1}}';
+				return array( $css, '<div class="vx-dots"><i></i><i></i><i></i></div>' );
+			case 'spinner':
+				$css  = '.vx-spin{width:40px;height:40px;margin:30px auto 0;border-radius:50%;border:4px solid ' . $track . ';border-top-color:' . esc_attr( $accent ) . ';animation:vxspin .9s linear infinite}@keyframes vxspin{to{transform:rotate(360deg)}}';
+				return array( $css, '<div class="vx-spin"></div>' );
+			case 'bar':
+			default:
+				$css  = '.vx-bar{width:120px;height:4px;border-radius:4px;margin:30px auto 0;overflow:hidden;background:' . $track . '}.vx-bar i{display:block;width:40%;height:100%;border-radius:4px;background:' . esc_attr( $accent ) . ';animation:vxslide 1.4s ease-in-out infinite}@keyframes vxslide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}';
+				return array( $css, '<div class="vx-bar"><i></i></div>' );
+		}
+	}
+
+	/** Logo/media markup — supports images, GIFs and Lottie (.json / .lottie). */
+	private static function maintenance_media( $logo, $alt ) {
+		if ( preg_match( '/\.(json|lottie)(\?|$)/i', $logo ) ) {
+			return '<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>'
+				. '<lottie-player class="logo" src="' . esc_url( $logo ) . '" autoplay loop style="max-width:220px;max-height:160px;margin:0 auto 26px"></lottie-player>';
+		}
+		return '<img class="logo" src="' . esc_url( $logo ) . '" alt="' . esc_attr( $alt ) . '">';
+	}
+
 	private static function maintenance_html() {
 		$title  = Velox_Settings::get( 'util_maintenance_title' );
 		$msg    = Velox_Settings::get( 'util_maintenance_message' );
@@ -294,6 +340,8 @@ class Velox_Utilities {
 		$bgimg  = Velox_Settings::get( 'util_maintenance_bgimage' );
 		$btn_t  = Velox_Settings::get( 'util_maintenance_btn_text' );
 		$btn_u  = Velox_Settings::get( 'util_maintenance_btn_url' );
+		$brand  = Velox_Settings::get( 'util_maintenance_brand' );
+		$anim   = Velox_Settings::get( 'util_maintenance_anim' );
 
 		$title  = '' !== (string) $title ? $title : 'We\'ll be right back';
 		$msg    = '' !== (string) $msg ? $msg : 'The site is undergoing maintenance. Please check back soon.';
@@ -317,27 +365,29 @@ class Velox_Utilities {
 		if ( '' !== (string) $btn_t && '' !== (string) $btn_u ) {
 			$button = '<a class="btn" href="' . esc_url( $btn_u ) . '">' . esc_html( $btn_t ) . '</a>';
 		}
+		$footer = '' !== (string) $brand ? '<div class="brand">' . esc_html( $brand ) . '</div>' : '';
 
-		return '<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">'
+		list( $anim_css, $anim_html ) = self::maintenance_anim( $anim, $accent, $text );
+
+		return '<!DOCTYPE html><html lang="' . esc_attr( get_bloginfo( 'language' ) ) . '"><head><meta charset="utf-8">'
 			. '<meta name="viewport" content="width=device-width,initial-scale=1">'
 			. '<meta name="robots" content="noindex,nofollow">'
-			. '<title>' . $t . ' — ' . $name . '</title><style>'
+			. '<title>' . $t . '</title><style>'
 			. '*{box-sizing:border-box}body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;'
 			. 'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:' . esc_attr( $text ) . ';padding:24px;' . $body_bg . '}'
-			. '.box{max-width:560px;text-align:center}.logo{max-width:200px;max-height:64px;width:auto;height:auto;margin:0 auto 28px;display:block}'
+			. '.box{max-width:560px;text-align:center}.logo{max-width:220px;max-height:72px;width:auto;height:auto;margin:0 auto 26px;display:block}'
 			. 'h1{font-size:32px;margin:0 0 14px;letter-spacing:-.02em;line-height:1.15}'
 			. 'p{font-size:16px;line-height:1.65;color:' . esc_attr( $muted ) . ';margin:0 auto;max-width:46ch}'
-			. '.bar{width:120px;height:4px;border-radius:4px;margin:30px auto 0;overflow:hidden;background:' . self::hex_to_rgba( $text, 0.14 ) . '}'
-			. '.bar i{display:block;width:40%;height:100%;border-radius:4px;background:' . esc_attr( $accent ) . ';animation:slide 1.4s ease-in-out infinite}'
-			. '@keyframes slide{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}'
+			. $anim_css
 			. '.btn{display:inline-block;margin-top:28px;padding:12px 26px;border-radius:10px;font-weight:700;font-size:15px;'
 			. 'background:' . esc_attr( $accent ) . ';color:#fff;text-decoration:none}'
 			. '.brand{margin-top:32px;font-size:13px;color:' . self::hex_to_rgba( $text, 0.4 ) . '}</style></head><body><div class="box">'
-			. '<img class="logo" src="' . esc_url( $logo ) . '" alt="' . $name . '">'
+			. self::maintenance_media( $logo, $name )
 			. '<h1>' . $t . '</h1><p>' . $m . '</p>'
 			. $button
-			. '<div class="bar"><i></i></div>'
-			. '<div class="brand">' . $name . '</div></div></body></html>';
+			. $anim_html
+			. $footer
+			. '</div></body></html>';
 	}
 
 	/* ---------------------------------------------------------------------
@@ -349,7 +399,10 @@ class Velox_Utilities {
 	}
 
 	public static function login_init() {
-		add_action( 'plugins_loaded', array( __CLASS__, 'login_intercept' ), 1 );
+		// init@0 is the earliest hook still pending at this point (we're already
+		// inside plugins_loaded), runs before the main query (so no 404), and is
+		// late enough that is_user_logged_in() and the redirect helpers exist.
+		add_action( 'init', array( __CLASS__, 'login_intercept' ), 0 );
 		add_filter( 'login_url', array( __CLASS__, 'filter_login_url' ), 10, 1 );
 		add_filter( 'logout_url', array( __CLASS__, 'filter_login_url' ), 10, 1 );
 		add_filter( 'lostpassword_url', array( __CLASS__, 'filter_login_url' ), 10, 1 );
@@ -363,24 +416,53 @@ class Velox_Utilities {
 		return home_url( '/' . self::login_slug() . '/' );
 	}
 
+	/**
+	 * Pure decision for the login interceptor (kept separate so it can be tested):
+	 *   'serve'    → serve the real login at the pretty secret slug
+	 *   'redirect' → hide the default wp-login from a logged-out visitor
+	 *   'pass'     → do nothing (allow the request through)
+	 */
+	public static function login_decision( $uri, $slug, $has_key, $logged_in, $is_post ) {
+		if ( '' === $slug ) {
+			return 'pass';
+		}
+		$path        = trim( (string) wp_parse_url( $uri, PHP_URL_PATH ), '/' );
+		$on_wp_login = ( false !== strpos( $uri, 'wp-login.php' ) ) || ( false !== strpos( $uri, 'wp-register.php' ) );
+
+		if ( ! $on_wp_login && $path === $slug ) {
+			return 'serve';
+		}
+		if ( $on_wp_login ) {
+			if ( $has_key || $logged_in || $is_post ) {
+				return 'pass';
+			}
+			return 'redirect';
+		}
+		return 'pass';
+	}
+
 	public static function login_intercept() {
 		if ( ( function_exists( 'wp_doing_ajax' ) && wp_doing_ajax() ) || ( defined( 'DOING_CRON' ) && DOING_CRON ) ) {
 			return;
 		}
 		$slug = self::login_slug();
-		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
-		$path = trim( (string) wp_parse_url( $uri, PHP_URL_PATH ), '/' );
+		if ( '' === $slug ) {
+			return;
+		}
+		$uri      = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : '';
+		$decision = self::login_decision( $uri, $slug, isset( $_GET[ $slug ] ), is_user_logged_in(), ! empty( $_POST ) );
 
-		// Visiting the secret slug → serve the real login page.
-		if ( $path === $slug && '' !== $slug ) {
+		if ( 'serve' === $decision ) {
+			nocache_headers();
 			global $pagenow;
 			$pagenow = 'wp-login.php';
 			require_once ABSPATH . 'wp-login.php';
 			exit;
 		}
-		// Hide the default wp-login.php / wp-register.php from logged-out visitors.
-		if ( ! is_user_logged_in()
-			&& ( false !== strpos( $uri, 'wp-login.php' ) || false !== strpos( $uri, 'wp-register.php' ) ) ) {
+		// nocache_headers() here is critical: without it a CDN/browser can cache the
+		// redirect and lock everyone out — which is exactly what bit us before.
+		if ( 'redirect' === $decision ) {
+			nocache_headers();
 			wp_safe_redirect( home_url( '/' ), 302 );
 			exit;
 		}
@@ -509,6 +591,28 @@ class Velox_Utilities {
 	 * one site and re-apply on the next — perfect for spinning up agency builds.
 	 * ------------------------------------------------------------------- */
 
+	/**
+	 * Clear the bits of state that make back-to-back installs fail after the first
+	 * one: a leftover upgrader lock, a stale ".maintenance" flag, and a cached
+	 * plugin/update list. This is the usual reason a queue installs one plugin and
+	 * then errors on the rest.
+	 */
+	private static function prep_install() {
+		if ( ! function_exists( 'WP_Filesystem' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+		WP_Filesystem();
+		delete_option( 'plugin_upgrader.lock' );
+		delete_option( 'core_updater.lock' );
+		if ( file_exists( ABSPATH . '.maintenance' ) ) {
+			@unlink( ABSPATH . '.maintenance' ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		}
+		if ( function_exists( 'wp_clean_plugins_cache' ) ) {
+			wp_clean_plugins_cache( false );
+		}
+		delete_site_transient( 'update_plugins' );
+	}
+
 	public static function install_plugin( $slug, $activate = true ) {
 		if ( ! current_user_can( 'install_plugins' ) ) {
 			return array( 'ok' => false, 'slug' => $slug, 'message' => 'You can\'t install plugins.' );
@@ -545,9 +649,14 @@ class Velox_Utilities {
 			return array( 'ok' => false, 'slug' => $slug, 'message' => 'Not found on WordPress.org.' );
 		}
 
+		self::prep_install();
 		$skin     = new WP_Ajax_Upgrader_Skin();
 		$upgrader = new Plugin_Upgrader( $skin );
-		$result   = $upgrader->install( $info->download_link );
+		try {
+			$result = $upgrader->install( $info->download_link );
+		} catch ( \Throwable $e ) {
+			return array( 'ok' => false, 'slug' => $slug, 'message' => 'Install error: ' . $e->getMessage() );
+		}
 
 		if ( is_wp_error( $result ) ) {
 			return array( 'ok' => false, 'slug' => $slug, 'message' => $result->get_error_message() );
@@ -607,9 +716,14 @@ class Velox_Utilities {
 		if ( ! class_exists( 'WP_Ajax_Upgrader_Skin' ) ) {
 			require_once ABSPATH . 'wp-admin/includes/class-wp-ajax-upgrader-skin.php';
 		}
+		self::prep_install();
 		$skin     = new WP_Ajax_Upgrader_Skin();
 		$upgrader = new Plugin_Upgrader( $skin );
-		$result   = $upgrader->install( $package );
+		try {
+			$result = $upgrader->install( $package );
+		} catch ( \Throwable $e ) {
+			return array( 'ok' => false, 'slug' => $label, 'message' => 'Install error: ' . $e->getMessage() );
+		}
 
 		if ( is_wp_error( $result ) ) {
 			return array( 'ok' => false, 'slug' => $label, 'message' => $result->get_error_message() );

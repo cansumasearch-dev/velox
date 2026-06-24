@@ -42,6 +42,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			<div class="vmail-build-grid">
 				<aside class="vmail-palette">
 					<span class="vmail-palette-title">Fields</span>
+					<input type="text" id="vmail-palette-search" class="velox-input vmail-palette-search" placeholder="Search fields…">
 					<div id="vmail-palette" class="vmail-palette-list"></div>
 					<p class="velox-hint" style="margin-top:14px;">Click to add, or drag a field on the canvas to reorder.</p>
 				</aside>

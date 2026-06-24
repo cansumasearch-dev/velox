@@ -90,6 +90,26 @@ class Velox_Admin {
 			) );
 		}
 
+		// Maintenance mode: a toggle inside the Velox menu, plus a top-level green
+		// indicator that only appears while maintenance is live.
+		$maint_on  = (bool) Velox_Settings::get( 'util_maintenance' );
+		$maint_url = wp_nonce_url( admin_url( 'admin.php?page=velox-utilities&tool=maintenance&velox_maint_toggle=1' ), 'velox_maint_toggle' );
+		$maint_dot = '<span style="display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:middle;background:' . ( $maint_on ? '#22c55e' : '#9aa0a6' ) . ';"></span>';
+		$bar->add_node( array(
+			'id'     => 'velox-maint-toggle',
+			'parent' => 'velox',
+			'title'  => $maint_dot . 'Maintenance mode: ' . ( $maint_on ? 'On' : 'Off' ),
+			'href'   => $maint_url,
+		) );
+		if ( $maint_on ) {
+			$bar->add_node( array(
+				'id'    => 'velox-maint-live',
+				'title' => '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#22c55e;box-shadow:0 0 0 3px rgba(34,197,94,.3);margin:0 7px 0 2px;vertical-align:middle;"></span>Velox Maintenance',
+				'href'  => $maint_url,
+				'meta'  => array( 'title' => 'Maintenance mode is ON — click to turn it off' ),
+			) );
+		}
+
 		// Nested "Performance & Cache" group — only when the Performance module is on.
 		if ( ! Velox_Settings::get( 'module_performance' ) ) {
 			return;

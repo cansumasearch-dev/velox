@@ -56,6 +56,9 @@ final class Velox {
 		$this->ajax    = new Velox_Ajax();
 		$this->updater = new Velox_Updater();
 		Velox_Utilities::init();
+		if ( is_admin() ) {
+			Velox_Conflicts::init();
+		}
 		Velox_Redirects::maybe_install();
 		Velox_Redirects::init();
 		Velox_Activity::maybe_install();

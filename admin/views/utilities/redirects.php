@@ -24,6 +24,7 @@ $types     = array( 301 => '301 Permanent', 302 => '302 Temporary', 307 => '307 
 			<?php endforeach; ?>
 		</select>
 		<button class="velox-btn velox-btn--primary" id="velox-redir-add">Add</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-redir-cancel" hidden>Cancel</button>
 	</div>
 	<span class="velox-hint">Source is a path on this site. Target can be a path (<code>/new</code>) or a full URL. Choose <strong>410 Gone</strong> to tell search engines a page is permanently removed.</span>
 </div>
@@ -35,12 +36,14 @@ $types     = array( 301 => '301 Permanent', 302 => '302 Temporary', 307 => '307 
 			<p class="velox-hint" id="velox-redir-empty">No redirects yet.</p>
 		<?php else : ?>
 			<?php foreach ( $redirects as $r ) : ?>
-				<div class="velox-redir-row" data-id="<?php echo esc_attr( $r['id'] ); ?>">
+				<div class="velox-redir-row" data-id="<?php echo esc_attr( $r['id'] ); ?>" data-source="<?php echo esc_attr( $r['source'] ); ?>" data-target="<?php echo esc_attr( $r['target'] ); ?>" data-type="<?php echo esc_attr( $r['type'] ); ?>" data-visit="<?php echo esc_url( home_url( $r['source'] ) ); ?>">
 					<span class="velox-redir-src"><?php echo esc_html( $r['source'] ); ?></span>
 					<span class="velox-redir-arrow">&rarr;</span>
 					<span class="velox-redir-tgt"><?php echo 410 === (int) $r['type'] ? '<em>410 Gone</em>' : esc_html( $r['target'] ); ?></span>
 					<span class="velox-redir-type"><?php echo esc_html( $r['type'] ); ?></span>
 					<span class="velox-redir-hits"><?php echo (int) $r['hits']; ?> hits</span>
+					<button class="velox-btn velox-btn--ghost velox-redir-visit" title="Open the source URL in a new tab to test it">Visit</button>
+					<button class="velox-btn velox-btn--ghost velox-redir-edit">Edit</button>
 					<button class="velox-btn velox-btn--ghost velox-redir-del">Delete</button>
 				</div>
 			<?php endforeach; ?>

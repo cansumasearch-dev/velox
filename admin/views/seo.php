@@ -40,11 +40,17 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 		<div class="velox-actions">
 			<button class="velox-btn velox-btn--primary" id="velox-seo-robots-save">Save robots.txt</button>
 			<button class="velox-btn velox-btn--ghost" id="velox-seo-robots-reset">Reset to recommended</button>
+			<button class="velox-btn velox-btn--ghost" id="velox-seo-robots-view" data-url="<?php echo esc_url( home_url( '/robots.txt' ) ); ?>">View live robots.txt</button>
 			<?php if ( $physical ) : ?>
 				<button class="velox-btn velox-btn--ghost" id="velox-seo-robots-virtual">Back to virtual</button>
 			<?php else : ?>
 				<button class="velox-btn velox-btn--ghost" id="velox-seo-robots-physical">Write to physical file</button>
 			<?php endif; ?>
+		</div>
+		<div id="velox-seo-robots-live" class="velox-seo-live" hidden>
+			<div class="velox-seo-live-head"><span>Live at <code><?php echo esc_html( home_url( '/robots.txt' ) ); ?></code></span><span id="velox-seo-live-badge"></span></div>
+			<pre id="velox-seo-live-out" class="velox-seo-live-out"></pre>
+			<div id="velox-seo-live-cf" class="velox-alert velox-alert--warn" hidden><strong>That "content signals" block is coming from Cloudflare — not Velox.</strong> Velox is serving the clean robots.txt shown in the editor above. Cloudflare adds the signals block at the edge, so no WordPress plugin can remove it. To turn it off: open your Cloudflare dashboard → select this domain → <em>AI Crawl Control</em> (older accounts: <em>Bots</em>) → switch off <em>Content Signals Policy</em> / managed robots.txt, then come back and click <em>View live robots.txt</em> again.</div>
 		</div>
 		<div class="velox-alert velox-alert--warn velox-seo-cf-note">
 			<strong>Seeing AI "content signals" text instead of yours?</strong> That's <strong>Cloudflare</strong> serving its own robots.txt at the edge, which overrides this. Fix it in your Cloudflare dashboard: <em>your zone → AI Crawl Control / Bots → uncheck "Display Content Signals Policy" / managed robots.txt</em>. Writing a physical file here also helps, since Cloudflare only injects when your origin has no robots.txt.

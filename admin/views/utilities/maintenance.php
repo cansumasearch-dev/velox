@@ -32,13 +32,19 @@ $logo_default = VELOX_URL . 'assets/logo.png';
 		</div>
 
 		<div class="velox-field">
+			<span class="velox-field-label">Footer text <span style="color:var(--vx-ink-3);font-weight:500;">(optional)</span></span>
+			<input type="text" class="velox-input" data-setting="util_maintenance_brand" value="<?php echo esc_attr( $s['util_maintenance_brand'] ); ?>" placeholder="e.g. your brand name — leave empty to hide">
+			<span class="velox-hint">Small line at the very bottom. Empty = nothing shown (no site name forced in).</span>
+		</div>
+
+		<div class="velox-field">
 			<span class="velox-field-label">Logo</span>
 			<div class="velox-media-row">
 				<input type="text" class="velox-input" data-setting="util_maintenance_logo" value="<?php echo esc_attr( $s['util_maintenance_logo'] ); ?>" placeholder="<?php echo esc_attr( $logo_default ); ?>">
 				<button type="button" class="velox-btn velox-btn--ghost velox-media-pick" data-target="util_maintenance_logo">Choose</button>
 				<button type="button" class="velox-btn velox-btn--ghost velox-media-clear" data-target="util_maintenance_logo">Reset</button>
 			</div>
-			<span class="velox-hint">Leave empty to use the default Velox mark.</span>
+			<span class="velox-hint">Image, GIF, or Lottie (.json / .lottie) URL. Leave empty to use the default Velox mark.</span>
 		</div>
 
 		<div class="velox-field">
@@ -61,6 +67,18 @@ $logo_default = VELOX_URL . 'assets/logo.png';
 		</div>
 
 		<div class="velox-field">
+			<span class="velox-field-label">Loading animation</span>
+			<select class="velox-select" data-setting="util_maintenance_anim">
+				<?php
+				$anims = array( 'bar' => 'Sliding bar', 'pulse' => 'Pulsing dot', 'dots' => 'Bouncing dots', 'spinner' => 'Spinner', 'none' => 'None' );
+				foreach ( $anims as $av => $al ) :
+					?>
+					<option value="<?php echo esc_attr( $av ); ?>" <?php selected( $s['util_maintenance_anim'], $av ); ?>><?php echo esc_html( $al ); ?></option>
+				<?php endforeach; ?>
+			</select>
+		</div>
+
+		<div class="velox-field">
 			<span class="velox-field-label">Button <span style="color:var(--vx-ink-3);font-weight:500;">(optional)</span></span>
 			<div class="velox-media-row">
 				<input type="text" class="velox-input" data-setting="util_maintenance_btn_text" value="<?php echo esc_attr( $s['util_maintenance_btn_text'] ); ?>" placeholder="Button label (e.g. Contact us)">
@@ -69,8 +87,9 @@ $logo_default = VELOX_URL . 'assets/logo.png';
 			<span class="velox-hint">Shown only when both a label and a link are set.</span>
 		</div>
 
-		<div class="velox-tool-actions">
+		<div class="velox-tool-actions" style="display:flex;gap:10px;flex-wrap:wrap;">
 			<button class="velox-btn velox-btn--primary velox-util-save">Save</button>
+			<button type="button" class="velox-btn velox-btn--ghost" id="velox-maint-reset">Reset to default</button>
 		</div>
 	</div>
 
@@ -81,7 +100,8 @@ $logo_default = VELOX_URL . 'assets/logo.png';
 			<h3 class="vmp-title" id="vmp-title"></h3>
 			<p class="vmp-msg" id="vmp-msg"></p>
 			<a class="vmp-btn" id="vmp-btn" style="display:none"></a>
-			<div class="vmp-bar"><i></i></div>
+			<div class="vmp-anim" id="vmp-anim"></div>
+			<div class="vmp-brand" id="vmp-brand" style="display:none"></div>
 		</div>
 		<span class="velox-hint">Updates as you type. Admins still see the live site.</span>
 	</div>

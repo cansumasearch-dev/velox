@@ -49,6 +49,8 @@ class Velox_Settings {
 			'util_maintenance_bgimage' => '',
 			'util_maintenance_btn_text'=> '',
 			'util_maintenance_btn_url' => '',
+			'util_maintenance_brand'   => '',     // footer text; empty = no footer line
+			'util_maintenance_anim'    => 'bar',  // bar | pulse | dots | spinner | none
 			'util_login_slug'          => '',     // empty = default wp-login; set a slug to move it
 			'util_redirects_log_404'   => true,
 			'util_activity'            => false,

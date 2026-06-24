@@ -199,6 +199,42 @@ class Velox_Redirects {
 		return array( 'ok' => true );
 	}
 
+	public static function update( $id, $source, $target, $type = 301 ) {
+		$id     = (int) $id;
+		$source = self::normalize( $source );
+		$type   = in_array( (int) $type, array( 301, 302, 307, 410 ), true ) ? (int) $type : 301;
+		if ( ! $id ) {
+			return array( 'ok' => false, 'message' => 'Missing redirect id.' );
+		}
+		if ( '' === $source ) {
+			return array( 'ok' => false, 'message' => 'Enter a source path.' );
+		}
+		if ( 410 !== $type ) {
+			$target = trim( $target );
+			if ( '' === $target ) {
+				return array( 'ok' => false, 'message' => 'Enter where it should go.' );
+			}
+			if ( '/' !== $target[0] && ! preg_match( '#^https?://#i', $target ) ) {
+				$target = '/' . ltrim( $target, '/' );
+			}
+		} else {
+			$target = '';
+		}
+		if ( $source === self::normalize( $target ) ) {
+			return array( 'ok' => false, 'message' => 'Source and target are the same — that would loop.' );
+		}
+		global $wpdb;
+		$wpdb->update(
+			self::table_redirects(),
+			array( 'source' => $source, 'target' => $target, 'type' => $type ),
+			array( 'id' => $id ),
+			array( '%s', '%s', '%d' ),
+			array( '%d' )
+		);
+		self::rebuild_map();
+		return array( 'ok' => true );
+	}
+
 	public static function delete( $id ) {
 		global $wpdb;
 		$wpdb->delete( self::table_redirects(), array( 'id' => (int) $id ), array( '%d' ) );

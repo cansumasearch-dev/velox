@@ -74,12 +74,7 @@ class Velox_Forms {
 		return array(
 			'id'           => 0,
 			'title'        => 'New form',
-			'fields'       => array(
-				array( 'key' => 'name', 'type' => 'text', 'label' => 'Name', 'required' => true, 'placeholder' => '', 'options' => '' ),
-				array( 'key' => 'email', 'type' => 'email', 'label' => 'Email', 'required' => true, 'placeholder' => '', 'options' => '' ),
-				array( 'key' => 'message', 'type' => 'textarea', 'label' => 'Message', 'required' => true, 'placeholder' => '', 'options' => '' ),
-				array( 'key' => 'consent', 'type' => 'consent', 'label' => 'I accept the privacy policy.', 'required' => true, 'placeholder' => '', 'options' => '' ),
-			),
+			'fields'       => array(), // start empty — the user builds it from the palette
 			'submit_label' => 'Send',
 			'success'      => 'Thanks — we\'ll be in touch soon.',
 			'captcha'      => false,
@@ -125,7 +120,7 @@ class Velox_Forms {
 			'fields'       => array(),
 			'emails'       => array(),
 		);
-		$types = array( 'text', 'email', 'tel', 'number', 'textarea', 'select', 'radio', 'checkbox', 'consent' );
+		$types = array( 'text', 'email', 'tel', 'number', 'url', 'date', 'textarea', 'select', 'radio', 'checkbox', 'multiselect', 'country', 'name', 'consent', 'captcha', 'html' );
 		foreach ( (array) ( $form['fields'] ?? array() ) as $f ) {
 			$label = sanitize_text_field( $f['label'] ?? '' );
 			$key   = sanitize_key( $f['key'] ?? '' );
@@ -134,7 +129,7 @@ class Velox_Forms {
 				$key  = $slug ? $slug : 'field_' . wp_rand( 100, 999 );
 			}
 			$w     = $f['width'] ?? 'full';
-			$width = in_array( $w, array( 'full', 'half' ), true ) ? $w : 'full';
+			$width = in_array( $w, array( 'full', 'half', 'third' ), true ) ? $w : 'full';
 			$out['fields'][] = array(
 				'key'         => $key,
 				'type'        => in_array( $f['type'] ?? 'text', $types, true ) ? $f['type'] : 'text',
@@ -146,6 +141,7 @@ class Velox_Forms {
 				'help'        => sanitize_text_field( $f['help'] ?? '' ),
 				'width'       => $width,
 				'css'         => sanitize_html_class( $f['css'] ?? '' ),
+				'content'     => isset( $f['content'] ) ? wp_kses_post( $f['content'] ) : '',
 			);
 		}
 		foreach ( (array) ( $form['emails'] ?? array() ) as $e ) {
@@ -181,6 +177,10 @@ class Velox_Forms {
 		self::$rendered = true;
 		$accent = esc_attr( $form['accent'] );
 		$nonce  = wp_create_nonce( 'velox_form_' . $id );
+		$has_cap_field = false;
+		foreach ( $form['fields'] as $f ) {
+			if ( 'captcha' === $f['type'] ) { $has_cap_field = true; break; }
+		}
 
 		ob_start();
 		?>
@@ -191,13 +191,17 @@ class Velox_Forms {
 					<?php echo self::field_html( $f ); // phpcs:ignore ?>
 				<?php endforeach; ?>
 			</div>
-			<?php if ( ! empty( $form['captcha'] ) ) : echo self::captcha_widget(); endif; // phpcs:ignore ?>
+			<?php if ( ! empty( $form['captcha'] ) && ! $has_cap_field ) : echo self::captcha_widget(); endif; // phpcs:ignore ?>
 			<input type="text" name="velox_hp" class="velox-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
 			<input type="hidden" name="velox_nonce" value="<?php echo esc_attr( $nonce ); ?>">
 			<button type="submit" class="velox-form-submit"><?php echo esc_html( $form['submit_label'] ); ?></button>
 		</form>
 		<?php
 		return ob_get_clean();
+	}
+
+	private static function countries() {
+		return array( 'Afghanistan', 'Albania', 'Algeria', 'Andorra', 'Angola', 'Argentina', 'Armenia', 'Australia', 'Austria', 'Azerbaijan', 'Bahrain', 'Bangladesh', 'Belarus', 'Belgium', 'Bolivia', 'Bosnia and Herzegovina', 'Brazil', 'Bulgaria', 'Cambodia', 'Cameroon', 'Canada', 'Chile', 'China', 'Colombia', 'Costa Rica', 'Croatia', 'Cuba', 'Cyprus', 'Czechia', 'Denmark', 'Dominican Republic', 'Ecuador', 'Egypt', 'Estonia', 'Ethiopia', 'Finland', 'France', 'Georgia', 'Germany', 'Ghana', 'Greece', 'Guatemala', 'Honduras', 'Hong Kong', 'Hungary', 'Iceland', 'India', 'Indonesia', 'Iran', 'Iraq', 'Ireland', 'Israel', 'Italy', 'Japan', 'Jordan', 'Kazakhstan', 'Kenya', 'Kuwait', 'Latvia', 'Lebanon', 'Liechtenstein', 'Lithuania', 'Luxembourg', 'Malaysia', 'Malta', 'Mexico', 'Monaco', 'Morocco', 'Netherlands', 'New Zealand', 'Nigeria', 'North Macedonia', 'Norway', 'Oman', 'Pakistan', 'Panama', 'Paraguay', 'Peru', 'Philippines', 'Poland', 'Portugal', 'Qatar', 'Romania', 'Saudi Arabia', 'Serbia', 'Singapore', 'Slovakia', 'Slovenia', 'South Africa', 'South Korea', 'Spain', 'Sri Lanka', 'Sweden', 'Switzerland', 'Taiwan', 'Thailand', 'Tunisia', 'Turkey', 'Ukraine', 'United Arab Emirates', 'United Kingdom', 'United States', 'Uruguay', 'Venezuela', 'Vietnam' );
 	}
 
 	private static function field_html( $f ) {
@@ -210,12 +214,18 @@ class Velox_Forms {
 		$help  = ! empty( $f['help'] ) ? '<span class="velox-form-help">' . esc_html( $f['help'] ) . '</span>' : '';
 		$rq    = $req ? ' required' : '';
 		$name  = 'vf[' . $key . ']';
-		$width = ( isset( $f['width'] ) && 'half' === $f['width'] ) ? ' velox-form-field--half' : '';
+		$wkey  = isset( $f['width'] ) ? $f['width'] : 'full';
+		$width = 'half' === $wkey ? ' velox-form-field--half' : ( 'third' === $wkey ? ' velox-form-field--third' : '' );
 		$css   = ! empty( $f['css'] ) ? ' ' . esc_attr( $f['css'] ) : '';
 		$opts  = array_filter( array_map( 'trim', explode( "\n", (string) ( $f['options'] ?? '' ) ) ) );
+		$type  = $f['type'];
 
 		ob_start();
-		if ( 'consent' === $f['type'] || 'checkbox' === $f['type'] ) {
+		if ( 'html' === $type ) {
+			echo '<div class="velox-form-row velox-form-html' . esc_attr( $width . $css ) . '">' . ( isset( $f['content'] ) ? $f['content'] : '' ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
+		} elseif ( 'captcha' === $type ) {
+			echo '<div class="velox-form-row' . esc_attr( $width . $css ) . '">' . self::captcha_widget() . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
+		} elseif ( 'consent' === $type || 'checkbox' === $type ) {
 			?>
 			<div class="velox-form-row velox-form-row--check<?php echo esc_attr( $width . $css ); ?>">
 				<label class="velox-form-consent">
@@ -225,14 +235,29 @@ class Velox_Forms {
 				<?php echo $help; // phpcs:ignore ?>
 			</div>
 			<?php
-		} elseif ( 'radio' === $f['type'] ) {
+		} elseif ( 'radio' === $type || 'multiselect' === $type ) {
+			$itype = 'radio' === $type ? 'radio' : 'checkbox';
+			$iname = 'radio' === $type ? $name : $name . '[]';
 			?>
 			<div class="velox-form-row<?php echo esc_attr( $width . $css ); ?>">
 				<span class="velox-form-label"><?php echo $label . $star; ?></span>
 				<div class="velox-form-radios">
 					<?php foreach ( $opts as $opt ) : $checked = ( $def === $opt ) ? ' checked' : ''; ?>
-						<label class="velox-form-radio"><input type="radio" name="<?php echo esc_attr( $name ); ?>" value="<?php echo esc_attr( $opt ); ?>"<?php echo $checked . $rq; ?>> <span><?php echo esc_html( $opt ); ?></span></label>
+						<label class="velox-form-radio"><input type="<?php echo esc_attr( $itype ); ?>" name="<?php echo esc_attr( $iname ); ?>" value="<?php echo esc_attr( $opt ); ?>"<?php echo $checked . ( 'radio' === $type ? $rq : '' ); ?>> <span><?php echo esc_html( $opt ); ?></span></label>
 					<?php endforeach; ?>
+				</div>
+				<?php echo $help; // phpcs:ignore ?>
+			</div>
+			<?php
+		} elseif ( 'name' === $type ) {
+			$f_lbl = $opts[0] ?? 'First name';
+			$l_lbl = $opts[1] ?? 'Last name';
+			?>
+			<div class="velox-form-row velox-form-name<?php echo esc_attr( $width . $css ); ?>">
+				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
+				<div class="velox-form-name-row">
+					<input type="text" name="<?php echo esc_attr( $name ); ?>[first]" placeholder="<?php echo esc_attr( $f_lbl ); ?>"<?php echo $rq; ?>>
+					<input type="text" name="<?php echo esc_attr( $name ); ?>[last]" placeholder="<?php echo esc_attr( $l_lbl ); ?>"<?php echo $rq; ?>>
 				</div>
 				<?php echo $help; // phpcs:ignore ?>
 			</div>
@@ -241,17 +266,18 @@ class Velox_Forms {
 			?>
 			<label class="velox-form-field<?php echo esc_attr( $width . $css ); ?>">
 				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
-				<?php if ( 'textarea' === $f['type'] ) : ?>
+				<?php if ( 'textarea' === $type ) : ?>
 					<textarea name="<?php echo esc_attr( $name ); ?>" rows="5" placeholder="<?php echo $ph; ?>"<?php echo $rq; ?>><?php echo esc_textarea( $def ); ?></textarea>
-				<?php elseif ( 'select' === $f['type'] ) : ?>
+				<?php elseif ( 'select' === $type || 'country' === $type ) : ?>
+					<?php $list = 'country' === $type ? self::countries() : $opts; ?>
 					<select name="<?php echo esc_attr( $name ); ?>"<?php echo $rq; ?>>
-						<option value="">—</option>
-						<?php foreach ( $opts as $opt ) : ?>
+						<option value=""><?php echo 'country' === $type ? 'Select a country…' : '—'; ?></option>
+						<?php foreach ( $list as $opt ) : ?>
 							<option value="<?php echo esc_attr( $opt ); ?>"<?php selected( $def, $opt ); ?>><?php echo esc_html( $opt ); ?></option>
 						<?php endforeach; ?>
 					</select>
 				<?php else : ?>
-					<input type="<?php echo esc_attr( $f['type'] ); ?>" name="<?php echo esc_attr( $name ); ?>" placeholder="<?php echo $ph; ?>" value="<?php echo esc_attr( $def ); ?>"<?php echo $rq; ?>>
+					<input type="<?php echo esc_attr( $type ); ?>" name="<?php echo esc_attr( $name ); ?>" placeholder="<?php echo $ph; ?>" value="<?php echo esc_attr( $def ); ?>"<?php echo $rq; ?>>
 				<?php endif; ?>
 				<?php echo $help; // phpcs:ignore ?>
 			</label>
@@ -325,12 +351,23 @@ class Velox_Forms {
 		// Nonce is best-effort (public, cacheable form); the honeypot + CAPTCHA carry spam defence.
 		$raw   = isset( $_POST['vf'] ) ? (array) wp_unslash( $_POST['vf'] ) : array();
 
-		$data   = array();
-		$errors = array();
+		$data    = array();
+		$errors  = array();
+		$has_cap = ! empty( $form['captcha'] );
 		foreach ( $form['fields'] as $f ) {
-			$key = $f['key'];
-			$val = isset( $raw[ $key ] ) ? $raw[ $key ] : '';
-			if ( in_array( $f['type'], array( 'consent', 'checkbox' ), true ) ) {
+			$key  = $f['key'];
+			$type = $f['type'];
+			$val  = isset( $raw[ $key ] ) ? $raw[ $key ] : '';
+
+			// Presentational fields carry no data.
+			if ( 'html' === $type ) {
+				continue;
+			}
+			if ( 'captcha' === $type ) {
+				$has_cap = true;
+				continue;
+			}
+			if ( in_array( $type, array( 'consent', 'checkbox' ), true ) ) {
 				$checked = ! empty( $val );
 				if ( $f['required'] && ! $checked ) {
 					$errors[ $key ] = 'required';
@@ -338,11 +375,30 @@ class Velox_Forms {
 				$data[ $key ] = $checked ? 'yes' : 'no';
 				continue;
 			}
+			if ( 'name' === $type ) {
+				$first = isset( $val['first'] ) ? trim( wp_strip_all_tags( (string) $val['first'] ) ) : '';
+				$last  = isset( $val['last'] ) ? trim( wp_strip_all_tags( (string) $val['last'] ) ) : '';
+				$full  = trim( $first . ' ' . $last );
+				if ( $f['required'] && '' === $full ) {
+					$errors[ $key ] = 'required';
+				}
+				$data[ $key ] = $full;
+				continue;
+			}
+			if ( 'multiselect' === $type ) {
+				$picked = is_array( $val ) ? array_map( function ( $v ) { return trim( wp_strip_all_tags( (string) $v ) ); }, $val ) : array();
+				$picked = array_filter( $picked );
+				if ( $f['required'] && empty( $picked ) ) {
+					$errors[ $key ] = 'required';
+				}
+				$data[ $key ] = implode( ', ', $picked );
+				continue;
+			}
 			$val = is_array( $val ) ? '' : trim( wp_strip_all_tags( (string) $val ) );
 			if ( $f['required'] && '' === $val ) {
 				$errors[ $key ] = 'required';
 			}
-			if ( 'email' === $f['type'] && '' !== $val && ! is_email( $val ) ) {
+			if ( 'email' === $type && '' !== $val && ! is_email( $val ) ) {
 				$errors[ $key ] = 'invalid';
 			}
 			$data[ $key ] = $val;
@@ -351,7 +407,7 @@ class Velox_Forms {
 		if ( $errors ) {
 			wp_send_json_error( array( 'message' => 'Please check the highlighted fields.', 'fields' => array_keys( $errors ) ) );
 		}
-		if ( ! empty( $form['captcha'] ) && ! self::verify_captcha() ) {
+		if ( $has_cap && ! self::verify_captcha() ) {
 			wp_send_json_error( array( 'message' => 'CAPTCHA check failed — please try again.' ) );
 		}
 
@@ -417,7 +473,7 @@ class Velox_Forms {
 		if ( false !== strpos( $text, '{all_fields}' ) ) {
 			$lines = array();
 			foreach ( $form['fields'] as $f ) {
-				if ( 'consent' === $f['type'] ) {
+				if ( in_array( $f['type'], array( 'consent', 'html', 'captcha' ), true ) ) {
 					continue;
 				}
 				$val     = isset( $data[ $f['key'] ] ) ? $data[ $f['key'] ] : '';
@@ -470,6 +526,10 @@ class Velox_Forms {
 .velox-form-grid{display:flex;flex-wrap:wrap;gap:16px}
 .velox-form-field,.velox-form-row{display:flex;flex-direction:column;gap:6px;width:100%}
 .velox-form-field--half{width:calc(50% - 8px)}
+.velox-form-field--third{width:calc(33.333% - 11px)}
+.velox-form-name-row{display:flex;gap:12px}
+.velox-form-name-row input{flex:1;min-width:0}
+@media(max-width:520px){.velox-form-field--half,.velox-form-field--third{width:100%}}
 .velox-form-radios{display:flex;flex-wrap:wrap;gap:14px}
 .velox-form-radio{display:inline-flex;align-items:center;gap:7px;font-size:14px;cursor:pointer}
 .velox-form-radio input{width:auto;margin:0}

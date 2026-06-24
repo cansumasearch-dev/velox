@@ -170,6 +170,16 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'ok' => true ) );
 				break;
 
+			case 'maint_reset':
+				$defaults = Velox_Settings::defaults();
+				foreach ( array( 'util_maintenance_title', 'util_maintenance_message', 'util_maintenance_logo', 'util_maintenance_bg', 'util_maintenance_text', 'util_maintenance_accent', 'util_maintenance_bgimage', 'util_maintenance_btn_text', 'util_maintenance_btn_url', 'util_maintenance_brand', 'util_maintenance_anim' ) as $mk ) {
+					if ( isset( $defaults[ $mk ] ) ) {
+						Velox_Settings::set( $mk, $defaults[ $mk ] );
+					}
+				}
+				wp_send_json_success( array( 'ok' => true ) );
+				break;
+
 			case 'util_toggle':
 				$key = isset( $_POST['key'] ) ? sanitize_key( wp_unslash( $_POST['key'] ) ) : '';
 				$on  = ! empty( $_POST['on'] ) && 'false' !== $_POST['on'];
@@ -227,6 +237,14 @@ class Velox_Ajax {
 				$tgt  = isset( $_POST['target'] ) ? wp_unslash( $_POST['target'] ) : '';
 				$type = isset( $_POST['type'] ) ? (int) $_POST['type'] : 301;
 				wp_send_json_success( Velox_Redirects::add( $src, $tgt, $type ) );
+				break;
+
+			case 'redirect_update':
+				$rid  = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
+				$src  = isset( $_POST['source'] ) ? wp_unslash( $_POST['source'] ) : '';
+				$tgt  = isset( $_POST['target'] ) ? wp_unslash( $_POST['target'] ) : '';
+				$type = isset( $_POST['type'] ) ? (int) $_POST['type'] : 301;
+				wp_send_json_success( Velox_Redirects::update( $rid, $src, $tgt, $type ) );
 				break;
 
 			case 'redirect_delete':

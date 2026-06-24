@@ -52,6 +52,29 @@ $purge_url = wp_nonce_url( admin_url( 'admin-post.php?action=velox_cache&which=a
 	<p class="velox-sub">A quick read on your site's speed setup — and one-click actions to keep it fast.</p>
 </div>
 
+<?php
+$velox_clashes = class_exists( 'Velox_Conflicts' ) ? Velox_Conflicts::detect() : array();
+if ( ! empty( $velox_clashes ) ) :
+	?>
+	<div class="velox-panel velox-clash">
+		<div class="velox-clash-head">
+			<span class="velox-clash-ic">&#9889;</span>
+			<div>
+				<h3 class="velox-panel-title" style="margin:0;">Turf war detected</h3>
+				<p class="velox-hint" style="margin:2px 0 0;">These active plugins overlap features Velox is already handling. Two plugins doing the same job tend to fight over the same output — keep one. Velox has it covered.</p>
+			</div>
+		</div>
+		<div class="velox-clash-list">
+			<?php foreach ( $velox_clashes as $c ) : ?>
+				<div class="velox-clash-item">
+					<span class="velox-clash-name"><?php echo esc_html( $c['name'] ); ?></span>
+					<span class="velox-pill velox-pill--warn">overlaps <?php echo wp_kses_post( $c['label'] ); ?></span>
+				</div>
+			<?php endforeach; ?>
+		</div>
+	</div>
+<?php endif; ?>
+
 <div class="velox-dash-top">
 	<div class="velox-panel velox-score">
 		<div class="velox-score-ring" style="--val:<?php echo (int) $score; ?>">
