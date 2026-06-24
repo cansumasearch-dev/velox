@@ -1851,10 +1851,12 @@
 					if ( out ) {
 						out.style.display = '';
 						out.innerHTML =
+							'<div><span>Velox version</span><b>' + escapeHtml( String( d.version || '?' ) ) + '</b></div>' +
 							'<div><span>Home URL</span><b>' + escapeHtml( d.home ) + '</b></div>' +
 							'<div><span>Public request</span><b>' + escapeHtml( d.public ) + '</b></div>' +
 							'<div><span>Origin fallback</span><b>' + escapeHtml( d.origin ) + '</b></div>' +
 							'<div><span>Pages found</span><b>' + escapeHtml( String( d.pages ) ) + '</b></div>' +
+							'<div><span>Published by type</span><b>' + escapeHtml( String( d.types || '' ) ) + '</b></div>' +
 							'<div><span>PHP DOM</span><b>' + escapeHtml( d.dom ) + '</b></div>' +
 							'<div><span>PHP Zip</span><b>' + escapeHtml( d.zip ) + '</b></div>';
 					}

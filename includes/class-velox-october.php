@@ -436,13 +436,29 @@ class Velox_October {
 		$origin_body = self::fetch_origin( $url, $e2 );
 		$origin      = '' !== $origin_body ? 'OK (' . number_format_i18n( strlen( $origin_body ) ) . ' bytes)' : ( 'failed' . ( $e2 ? ': ' . $e2 : '' ) );
 
+		// Per-post-type published counts so we can see where content actually lives.
+		$skip  = array( 'attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request', 'wp_block', 'wp_template', 'wp_template_part', 'wp_global_styles', 'wp_navigation', 'acf-field', 'acf-field-group' );
+		$types = array();
+		foreach ( get_post_types( array(), 'objects' ) as $name => $obj ) {
+			if ( in_array( $name, $skip, true ) ) {
+				continue;
+			}
+			$counts = (array) wp_count_posts( $name );
+			$pub    = isset( $counts['publish'] ) ? (int) $counts['publish'] : 0;
+			if ( $pub > 0 || ! empty( $obj->public ) ) {
+				$types[] = $name . ': ' . $pub . ( empty( $obj->public ) ? ' (private type)' : '' );
+			}
+		}
+
 		return array(
-			'home'  => $url,
-			'public'=> $public,
-			'origin'=> $origin,
-			'pages' => count( self::collect_pages() ),
-			'dom'   => class_exists( 'DOMDocument' ) ? 'available' : 'MISSING — ask your host to enable php-dom',
-			'zip'   => class_exists( 'ZipArchive' ) ? 'available' : 'MISSING — ask your host to enable php-zip',
+			'version' => defined( 'VELOX_VERSION' ) ? VELOX_VERSION : '?',
+			'home'    => $url,
+			'public'  => $public,
+			'origin'  => $origin,
+			'pages'   => count( self::collect_pages() ),
+			'types'   => $types ? implode( ' · ', $types ) : 'none',
+			'dom'     => class_exists( 'DOMDocument' ) ? 'available' : 'MISSING — ask your host to enable php-dom',
+			'zip'     => class_exists( 'ZipArchive' ) ? 'available' : 'MISSING — ask your host to enable php-zip',
 		);
 	}
 
