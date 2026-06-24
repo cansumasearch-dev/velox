@@ -60,6 +60,7 @@ class Velox_Settings {
 			'util_redirects'           => false,
 			'util_unusedmedia'         => false,
 			'util_loginurl'            => false,
+			'util_snippets'            => false,
 
 			// ---- Page cache ----
 			'cache_enable'          => false,

@@ -239,6 +239,46 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Redirects::add( $src, $tgt, $type ) );
 				break;
 
+			case 'snippet_save':
+				$sdata = array(
+					'id'          => isset( $_POST['id'] ) ? (int) $_POST['id'] : 0,
+					'name'        => isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '',
+					'description' => isset( $_POST['description'] ) ? wp_unslash( $_POST['description'] ) : '',
+					'type'        => isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : 'php',
+					'code'        => isset( $_POST['code'] ) ? wp_unslash( $_POST['code'] ) : '',
+					'scope'       => isset( $_POST['scope'] ) ? sanitize_key( wp_unslash( $_POST['scope'] ) ) : 'everywhere',
+					'priority'    => isset( $_POST['priority'] ) ? (int) $_POST['priority'] : 10,
+				);
+				if ( isset( $_POST['active'] ) ) {
+					$sdata['active'] = ( '1' === (string) $_POST['active'] || 'true' === (string) $_POST['active'] ) ? 1 : 0;
+				}
+				wp_send_json_success( Velox_Snippets::save( $sdata ) );
+				break;
+
+			case 'snippet_activate':
+				wp_send_json_success( Velox_Snippets::set_active( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0, true ) );
+				break;
+
+			case 'snippet_deactivate':
+				wp_send_json_success( Velox_Snippets::set_active( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0, false ) );
+				break;
+
+			case 'snippet_duplicate':
+				wp_send_json_success( Velox_Snippets::duplicate( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'snippet_trash':
+				wp_send_json_success( Velox_Snippets::trash( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'snippet_restore':
+				wp_send_json_success( Velox_Snippets::restore( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'snippet_delete':
+				wp_send_json_success( Velox_Snippets::delete_permanent( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
 			case 'redirect_update':
 				$rid  = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
 				$src  = isset( $_POST['source'] ) ? wp_unslash( $_POST['source'] ) : '';

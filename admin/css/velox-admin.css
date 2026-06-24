@@ -862,3 +862,60 @@
 .velox-clash-list { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
 .velox-clash-item { display: inline-flex; align-items: center; gap: 10px; padding: 9px 13px; border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); background: var(--vx-bg); }
 .velox-clash-name { font-weight: 700; font-size: 13px; }
+
+/* ============================================================
+ * Code Snippets
+ * ============================================================ */
+.velox-snippets-page { max-width: 1080px; }
+.velox-snippets-page .velox-label { display: block; font-weight: 600; font-size: 14px; margin-bottom: 8px; }
+.velox-snippets-page .velox-opt { font-weight: 500; color: var(--vx-ink-3); font-size: 12px; }
+
+.velox-snip-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; margin: 6px 0 18px; }
+.velox-snip-title { font-size: 23px; font-weight: 800; letter-spacing: -.02em; margin: 0; }
+.velox-snip-sub { color: var(--vx-ink-2); margin: 4px 0 0; max-width: 640px; }
+.velox-snip-back { display: inline-block; color: var(--vx-ink-2); text-decoration: none; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
+.velox-snip-back:hover { color: var(--vx-primary); }
+
+.velox-snip-add { position: relative; }
+.velox-snip-add-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: 12px; box-shadow: 0 14px 34px rgba(0,0,0,.16); padding: 6px; min-width: 230px; }
+.velox-snip-add-menu a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--vx-ink); text-decoration: none; font-weight: 600; font-size: 13px; }
+.velox-snip-add-menu a:hover { background: var(--vx-primary-tint); }
+
+.velox-snip-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 20px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 800; letter-spacing: .03em; color: #fff; }
+.velox-snip-badge.is-php  { background: #7e57c2; }
+.velox-snip-badge.is-css  { background: #2aa9e0; }
+.velox-snip-badge.is-js   { background: #e0a82a; }
+.velox-snip-badge.is-html { background: #e0612a; }
+
+.velox-snip-tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--vx-line); }
+.velox-snip-tab { padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--vx-ink-2); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.velox-snip-tab:hover { color: var(--vx-ink); }
+.velox-snip-tab.is-active { color: var(--vx-primary); border-bottom-color: var(--vx-primary); }
+.velox-snip-count { display: inline-block; min-width: 18px; text-align: center; background: var(--vx-line); color: var(--vx-ink-2); border-radius: 9px; font-size: 11px; font-weight: 700; padding: 1px 6px; margin-left: 2px; }
+.velox-snip-tab.is-active .velox-snip-count { background: var(--vx-primary-tint); color: var(--vx-primary-d); }
+
+.velox-snip-list { padding: 0; }
+.velox-snip-row { display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--vx-line); }
+.velox-snip-row:last-child { border-bottom: 0; }
+.velox-snip-status { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; background: var(--vx-ink-3); opacity: .4; }
+.velox-snip-status.is-on { background: var(--vx-success); opacity: 1; box-shadow: 0 0 0 3px var(--vx-success-tint); }
+.velox-snip-name { flex: 1 1 auto; min-width: 0; color: var(--vx-ink); text-decoration: none; font-weight: 600; }
+.velox-snip-name:hover { color: var(--vx-primary); }
+.velox-snip-name small { display: block; font-weight: 500; color: var(--vx-ink-3); font-size: 12px; margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.velox-snip-scope { flex: 0 0 auto; font-size: 12px; color: var(--vx-ink-2); background: var(--vx-bg, #f6f7f9); border: 1px solid var(--vx-line); border-radius: 6px; padding: 2px 8px; }
+.velox-snip-prio { flex: 0 0 auto; width: 26px; text-align: center; font-size: 12px; font-weight: 700; color: var(--vx-ink-3); }
+.velox-snip-actions { flex: 0 0 auto; display: flex; gap: 6px; }
+.velox-snip-actions .velox-btn { padding: 5px 10px; font-size: 12px; }
+
+.velox-snip-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: 16px; }
+.velox-field--narrow { width: 120px; }
+.velox-snip-editor .velox-field { margin-bottom: 18px; }
+.velox-snip-code { width: 100%; min-height: 320px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; }
+.velox-snip-editor .CodeMirror { border: 1px solid var(--vx-line); border-radius: 10px; height: 380px; font-size: 13px; }
+.velox-snip-save { display: flex; gap: 10px; align-items: center; margin-top: 6px; }
+
+@media (max-width: 782px) {
+	.velox-snip-grid { grid-template-columns: 1fr; }
+	.velox-field--narrow { width: 100%; }
+	.velox-snip-row { flex-wrap: wrap; }
+}
