@@ -256,45 +256,64 @@ class Velox_October {
 
 	private static function collect_pages() {
 		$out  = array();
-		$seen = array();
+		$seen = array(); // path => true
+		$used = array(); // slug => true
 
-		// Home / front page first.
-		$home = home_url( '/' );
-		$out[] = array( 'title' => get_bloginfo( 'name' ), 'url' => $home, 'slug' => 'startseite', 'path' => '/' );
-		$seen['/'] = true;
-
-		// All published pages.
-		$pages = get_pages( array( 'sort_column' => 'menu_order,post_title', 'number' => self::MAX_PAGES ) );
-		foreach ( (array) $pages as $p ) {
-			$url  = get_permalink( $p->ID );
-			$path = self::url_path( $url );
-			if ( isset( $seen[ $path ] ) || '/' === $path ) {
-				continue;
+		$add = function ( $title, $url, $slug_seed ) use ( &$out, &$seen, &$used ) {
+			if ( ! $url ) {
+				return;
 			}
-			$seen[ $path ] = true;
-			$out[] = array(
-				'title' => $p->post_title,
-				'url'   => $url,
-				'slug'  => sanitize_title( $p->post_name ? $p->post_name : $p->post_title ),
-				'path'  => $path,
-			);
-		}
-
-		// Published posts (blog), capped.
-		$posts = get_posts( array( 'numberposts' => 80, 'post_status' => 'publish' ) );
-		foreach ( (array) $posts as $p ) {
-			$url  = get_permalink( $p->ID );
 			$path = self::url_path( $url );
 			if ( isset( $seen[ $path ] ) ) {
-				continue;
+				return;
 			}
 			$seen[ $path ] = true;
+			$slug = sanitize_title( $slug_seed );
+			if ( '' === $slug ) {
+				$slug = 'page';
+			}
+			$base = $slug;
+			$n    = 2;
+			while ( isset( $used[ $slug ] ) ) {
+				$slug = $base . '-' . $n;
+				$n++;
+			}
+			$used[ $slug ] = true;
 			$out[] = array(
-				'title' => $p->post_title,
+				'title' => $title ? $title : $slug,
 				'url'   => $url,
-				'slug'  => 'post-' . sanitize_title( $p->post_name ? $p->post_name : $p->ID ),
+				'slug'  => $slug,
 				'path'  => $path,
 			);
+		};
+
+		// Home / front page first.
+		$add( get_bloginfo( 'name' ), home_url( '/' ), 'startseite' );
+
+		// Every public post type: page, post, AND custom post types (landing pages,
+		// portfolio, products, page-builder types, …) — that's where the rest live.
+		$types = get_post_types( array( 'public' => true ), 'names' );
+		unset( $types['attachment'] );
+
+		foreach ( $types as $type ) {
+			$items = get_posts(
+				array(
+					'post_type'        => $type,
+					'post_status'      => 'publish',
+					'numberposts'      => self::MAX_PAGES,
+					'orderby'          => 'menu_order title',
+					'order'            => 'ASC',
+					'suppress_filters' => false,
+				)
+			);
+			foreach ( (array) $items as $p ) {
+				$url  = get_permalink( $p->ID );
+				$seed = $p->post_name ? $p->post_name : ( $p->post_title ? $p->post_title : $type . '-' . $p->ID );
+				$add( $p->post_title, $url, $seed );
+				if ( count( $out ) >= self::MAX_PAGES ) {
+					break 2;
+				}
+			}
 		}
 
 		return $out;
