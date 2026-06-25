@@ -27,6 +27,7 @@ class Velox_Admin {
 		);
 
 		add_action( 'admin_menu', array( $this, 'menu' ) );
+		add_action( 'admin_menu', array( $this, 'inject_active_utilities' ), 100 );
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar' ), 80 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
 		add_action( 'admin_post_velox_cache', array( $this, 'handle_cache_action' ) );
@@ -66,7 +67,121 @@ class Velox_Admin {
 		}
 	}
 
-	/** Top admin-bar entry with a nested Performance + cache submenu. */
+	/**
+	 * Add the active utilities as a hover "flyout" under the left-sidebar
+	 * Utilities item. Utilities is always present and clickable; when one or more
+	 * utilities are switched on, each appears as a child row (rendered as a flyout
+	 * by velox_sidebar_flyout_css) linking straight into that utility's settings.
+	 */
+	/**
+	 * Custom hover-flyout for the left-sidebar Velox item. Utilities is always a
+	 * reachable click; when one or more utilities are active, the Velox row gets an
+	 * arrow and a popover (on hover) listing each active utility, linking into its
+	 * settings. Rendered as our own markup in the footer so it works whether the
+	 * admin menu is expanded or folded, and never fights WordPress's own submenu.
+	 */
+	public function inject_active_utilities() {
+		if ( ! class_exists( 'Velox_Utilities' ) ) {
+			return;
+		}
+		// Only render the flyout when there's at least one active utility.
+		if ( empty( Velox_Utilities::enabled_tools() ) ) {
+			return;
+		}
+		add_action( 'admin_footer', array( $this, 'render_sidebar_flyout' ) );
+		add_action( 'admin_head',   array( $this, 'sidebar_flyout_css' ) );
+	}
+
+	/** The flyout markup + the JS that anchors it to the Velox menu row on hover. */
+	public function render_sidebar_flyout() {
+		$active = Velox_Utilities::enabled_tools();
+		if ( empty( $active ) ) {
+			return;
+		}
+		$cat = Velox_Utilities::catalog();
+		?>
+		<div id="velox-util-flyout" class="velox-util-flyout" role="menu" aria-label="Active Velox utilities">
+			<div class="velox-util-flyout-head">Utilities</div>
+			<?php foreach ( $active as $id ) :
+				if ( ! isset( $cat[ $id ] ) ) { continue; }
+				?>
+				<a class="velox-util-flyout-item" role="menuitem" href="<?php echo esc_url( Velox_Utilities::tool_url( $id ) ); ?>">
+					<span class="velox-util-dot" aria-hidden="true"></span>
+					<span class="velox-util-label"><?php echo esc_html( $cat[ $id ]['label'] ); ?></span>
+				</a>
+			<?php endforeach; ?>
+			<a class="velox-util-flyout-all" role="menuitem" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->page_slug( 'utilities' ) ) ); ?>">All utilities &rarr;</a>
+		</div>
+		<script>
+		( function () {
+			var menuItem = document.getElementById( 'toplevel_page_<?php echo esc_js( self::SLUG ); ?>' );
+			var flyout   = document.getElementById( 'velox-util-flyout' );
+			if ( ! menuItem || ! flyout ) { return; }
+			menuItem.classList.add( 'velox-has-flyout' );
+			var hideTimer;
+			function place() {
+				var r = menuItem.getBoundingClientRect();
+				flyout.style.top  = Math.max( 8, r.top ) + 'px';
+				flyout.style.left = r.right + 'px';
+			}
+			function show() { clearTimeout( hideTimer ); place(); flyout.classList.add( 'is-open' ); }
+			function hide() { hideTimer = setTimeout( function () { flyout.classList.remove( 'is-open' ); }, 180 ); }
+			menuItem.addEventListener( 'mouseenter', show );
+			menuItem.addEventListener( 'mouseleave', hide );
+			flyout.addEventListener( 'mouseenter', show );
+			flyout.addEventListener( 'mouseleave', hide );
+			window.addEventListener( 'scroll', function () { if ( flyout.classList.contains( 'is-open' ) ) { place(); } }, true );
+		} )();
+		</script>
+		<?php
+	}
+
+	/** Arrow on the Velox row + styling for the custom flyout popover. */
+	public function sidebar_flyout_css() {
+		?>
+		<style id="velox-sidebar-flyout">
+			/* Arrow affordance on the Velox top-level row when a flyout exists. */
+			#adminmenu #toplevel_page_<?php echo esc_attr( self::SLUG ); ?>.velox-has-flyout > a.wp-has-submenu::after,
+			#adminmenu #toplevel_page_<?php echo esc_attr( self::SLUG ); ?>.velox-has-flyout > a::after {
+				content: ""; position: absolute; right: 12px; top: 50%;
+				width: 6px; height: 6px; margin-top: -3px;
+				border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+				transform: rotate(-45deg); opacity: .5;
+			}
+			/* The popover itself — fixed-position so it escapes the menu's overflow. */
+			.velox-util-flyout {
+				position: fixed; z-index: 100000; min-width: 220px;
+				background: #1d1d1f; color: #fff;
+				border-radius: 11px; padding: 8px;
+				box-shadow: 0 12px 40px -8px rgba(0,0,0,.45);
+				opacity: 0; visibility: hidden; transform: translateX(-6px);
+				transition: opacity .15s ease, transform .15s ease, visibility .15s;
+				font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+			}
+			.velox-util-flyout.is-open { opacity: 1; visibility: visible; transform: translateX(0); }
+			.velox-util-flyout-head {
+				font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
+				color: #86868b; padding: 4px 10px 8px;
+			}
+			.velox-util-flyout-item {
+				display: flex; align-items: center; gap: 9px;
+				padding: 8px 10px; border-radius: 7px;
+				color: #f5f5f7 !important; text-decoration: none; font-size: 13px; font-weight: 500;
+			}
+			.velox-util-flyout-item:hover { background: rgba(255,255,255,.08); color: #fff !important; }
+			.velox-util-dot { width: 6px; height: 6px; border-radius: 50%; background: #2ab7f1; flex: none; }
+			.velox-util-flyout-all {
+				display: block; margin-top: 6px; padding: 8px 10px;
+				border-top: 1px solid rgba(255,255,255,.1);
+				color: #5fccff !important; text-decoration: none; font-size: 12px; font-weight: 600;
+			}
+			.velox-util-flyout-all:hover { color: #8ad9ff !important; }
+		</style>
+		<?php
+	}
+
+	/** Top admin-bar entry: full Velox menu + Performance & Cache submenu, with a
+	 *  sibling Maintenance node (settings + activate/deactivate). */
 	public function admin_bar( $bar ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -75,25 +190,86 @@ class Velox_Admin {
 		$icon = '<img src="' . esc_url( VELOX_URL . 'assets/menu-icon.png' ) . '" alt="" '
 			. 'style="width:20px;height:20px;vertical-align:middle;margin:0 7px 0 0;display:inline-block;">';
 
-		// Top admin bar stays intentionally minimal: a link into Velox, plus the
-		// maintenance quick-toggle (the one action genuinely useful from anywhere).
-		// All module navigation lives in the in-plugin LEFT sidebar — not here.
+		// --- Velox parent ---
 		$bar->add_node( array(
 			'id'    => 'velox',
 			'title' => $icon . 'Velox',
 			'href'  => menu_page_url( self::SLUG, false ),
 		) );
 
-		// Maintenance: status dot + activate/deactivate, flippable from any screen.
-		$maint_on  = (bool) Velox_Settings::get( 'util_maintenance' );
-		$maint_url = wp_nonce_url( admin_url( 'admin.php?page=velox-utilities&tool=maintenance&velox_maint_toggle=1' ), 'velox_maint_toggle' );
-		$maint_dot = '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 7px 0 2px;vertical-align:middle;background:' . ( $maint_on ? '#22c55e' : '#9aa0a6' ) . ( $maint_on ? ';box-shadow:0 0 0 3px rgba(34,197,94,.3)' : '' ) . ';"></span>';
+		// --- Velox dropdown: the core pages, in the requested order ---
+		// label => page slug key (resolved through page_slug()).
+		$pages = array(
+			'Dashboard'    => 'dashboard',
+			'Images'       => 'images',
+			'Media Editor' => 'media',
+			'Performance'  => 'performance',
+			'Database'     => 'database',
+			'SEO'          => 'seo',
+			'Utilities'    => 'utilities',
+			'Settings'     => 'settings',
+		);
+		$order = 10;
+		foreach ( $pages as $label => $key ) {
+			$bar->add_node( array(
+				'id'     => 'velox-go-' . $key,
+				'parent' => 'velox',
+				'title'  => $label,
+				'href'   => admin_url( 'admin.php?page=' . $this->page_slug( $key ) ),
+				'meta'   => array( 'class' => 'velox-bar-item' ),
+			) );
+			$order += 10;
+		}
+
+		// --- Performance & Cache submenu (nested under Velox) ---
 		$bar->add_node( array(
-			'id'     => 'velox-maintenance',
+			'id'     => 'velox-perfcache',
 			'parent' => 'velox',
-			'title'  => $maint_dot . ( $maint_on ? 'Maintenance: ON' : 'Maintenance: OFF' ),
-			'href'   => $maint_url,
-			'meta'   => array( 'title' => $maint_on ? 'Click to deactivate maintenance' : 'Click to activate maintenance' ),
+			'title'  => 'Performance &amp; Cache',
+			'href'   => admin_url( 'admin.php?page=' . $this->page_slug( 'performance' ) ),
+		) );
+		$cache_items = array(
+			'Performance settings' => admin_url( 'admin.php?page=' . $this->page_slug( 'performance' ) ),
+			'Clear all cache'        => $this->cache_url( 'all' ),
+			'Clear minified CSS / JS'=> $this->cache_url( 'minified' ),
+			'Regenerate Oxygen CSS'  => $this->cache_url( 'oxygen' ),
+			'Clear Cloudflare cache' => $this->cache_url( 'cloudflare' ),
+			'Clear Velox cache'      => $this->cache_url( 'velox' ),
+		);
+		foreach ( $cache_items as $label => $href ) {
+			$bar->add_node( array(
+				'id'     => 'velox-pc-' . sanitize_title( $label ),
+				'parent' => 'velox-perfcache',
+				'title'  => $label,
+				'href'   => $href,
+			) );
+		}
+
+		// --- Maintenance: sibling node with its own Settings + Activate/Deactivate ---
+		$maint_on  = (bool) Velox_Settings::get( 'util_maintenance' );
+		$maint_settings = admin_url( 'admin.php?page=velox-utilities&tool=maintenance' );
+		$maint_toggle   = wp_nonce_url( admin_url( 'admin.php?page=velox-utilities&tool=maintenance&velox_maint_toggle=1' ), 'velox_maint_toggle' );
+		$maint_dot = '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 7px 0 2px;vertical-align:middle;background:'
+			. ( $maint_on ? '#22c55e' : '#9aa0a6' )
+			. ( $maint_on ? ';box-shadow:0 0 0 3px rgba(34,197,94,.3)' : '' ) . ';"></span>';
+
+		$bar->add_node( array(
+			'id'    => 'velox-maintenance',
+			'title' => $maint_dot . 'Velox Maintenance',
+			'href'  => $maint_settings,
+			'meta'  => array( 'title' => $maint_on ? 'Maintenance is ON' : 'Maintenance is OFF' ),
+		) );
+		$bar->add_node( array(
+			'id'     => 'velox-maint-settings',
+			'parent' => 'velox-maintenance',
+			'title'  => 'Settings',
+			'href'   => $maint_settings,
+		) );
+		$bar->add_node( array(
+			'id'     => 'velox-maint-toggle',
+			'parent' => 'velox-maintenance',
+			'title'  => $maint_on ? 'Deactivate' : 'Activate',
+			'href'   => $maint_toggle,
 		) );
 	}
 

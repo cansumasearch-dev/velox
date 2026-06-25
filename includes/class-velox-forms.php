@@ -440,8 +440,16 @@ class Velox_Forms {
 		return in_array( $p, array( 'recaptcha', 'turnstile' ), true ) ? $p : 'turnstile';
 	}
 
+	/** Global gate. When off, no form may use CAPTCHA regardless of its own setting. */
+	public static function captcha_enabled() {
+		return (bool) Velox_Settings::get( 'mail_captcha_enabled', false );
+	}
+
+	/** A form can actually show CAPTCHA only when the global gate is on AND keys exist. */
 	public static function captcha_ready() {
-		return Velox_Settings::get( 'mail_captcha_site', '' ) && Velox_Settings::get( 'mail_captcha_secret', '' );
+		return self::captcha_enabled()
+			&& Velox_Settings::get( 'mail_captcha_site', '' )
+			&& Velox_Settings::get( 'mail_captcha_secret', '' );
 	}
 
 	public static function captcha_widget() {
@@ -604,7 +612,7 @@ class Velox_Forms {
 
 		$data    = array();
 		$errors  = array();
-		$has_cap = ! empty( $form['captcha'] );
+		$has_cap = ! empty( $form['captcha'] ) && self::captcha_ready();
 
 		// Build a key→submitted-value map first so conditional logic can read siblings.
 		$submitted = array();
@@ -810,6 +818,110 @@ class Velox_Forms {
 		global $wpdb;
 		$wpdb->delete( self::table(), array( 'id' => (int) $sid ), array( '%d' ) );
 		return array( 'ok' => true );
+	}
+
+	/**
+	 * Inbox feed: every submission across all forms, newest first, each decorated
+	 * with its form title and a best-guess "who" (name/email) + short preview, so
+	 * the inbox can show who wrote, when, and through which form at a glance.
+	 *
+	 * @return array list of { id, form_id, form_title, created, ip, who, email, preview, data }
+	 */
+	public static function inbox( $limit = 200, $offset = 0, $form_id = 0 ) {
+		global $wpdb;
+		$t = self::table();
+		if ( $form_id ) {
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE form_id = %d ORDER BY id DESC LIMIT %d OFFSET %d", $form_id, $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB
+		} else {
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} ORDER BY id DESC LIMIT %d OFFSET %d", $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB
+		}
+		$rows = $rows ?: array();
+
+		// Cache form titles so we don't re-load a form per row.
+		$titles = array();
+		foreach ( self::forms() as $f ) {
+			$titles[ (int) $f['id'] ] = $f['title'];
+		}
+
+		$out = array();
+		foreach ( $rows as $r ) {
+			$d = json_decode( $r['data'], true );
+			$d = is_array( $d ) ? $d : array();
+			$out[] = array(
+				'id'         => (int) $r['id'],
+				'form_id'    => (int) $r['form_id'],
+				'form_title' => isset( $titles[ (int) $r['form_id'] ] ) ? $titles[ (int) $r['form_id'] ] : 'Form #' . (int) $r['form_id'],
+				'created'    => $r['created'],
+				'ip'         => $r['ip'],
+				'who'        => self::derive_who( $d ),
+				'email'      => self::derive_email( $d ),
+				'preview'    => self::derive_preview( $d ),
+				'data'       => $d,
+			);
+		}
+		return $out;
+	}
+
+	/** Best-guess display name from a submission's fields. */
+	private static function derive_who( $d ) {
+		foreach ( array( 'name', 'your-name', 'full_name', 'fullname', 'first_name', 'vorname', 'firstname' ) as $k ) {
+			if ( ! empty( $d[ $k ] ) && is_scalar( $d[ $k ] ) ) {
+				return trim( (string) $d[ $k ] );
+			}
+		}
+		// fall back to email, else the first non-empty scalar
+		$email = self::derive_email( $d );
+		if ( $email ) {
+			return $email;
+		}
+		foreach ( $d as $v ) {
+			if ( is_scalar( $v ) && '' !== trim( (string) $v ) ) {
+				return trim( (string) $v );
+			}
+		}
+		return 'Anonymous';
+	}
+
+	private static function derive_email( $d ) {
+		foreach ( $d as $k => $v ) {
+			if ( is_scalar( $v ) && is_email( (string) $v ) ) {
+				return (string) $v;
+			}
+			if ( false !== stripos( (string) $k, 'email' ) && is_scalar( $v ) && '' !== trim( (string) $v ) ) {
+				return trim( (string) $v );
+			}
+		}
+		return '';
+	}
+
+	private static function derive_preview( $d ) {
+		$parts = array();
+		foreach ( $d as $v ) {
+			if ( is_array( $v ) ) { $v = implode( ', ', $v ); }
+			if ( is_scalar( $v ) && '' !== trim( (string) $v ) ) {
+				$parts[] = trim( (string) $v );
+			}
+			if ( count( $parts ) >= 3 ) { break; }
+		}
+		$s = implode( '  ·  ', $parts );
+		return mb_strlen( $s ) > 140 ? mb_substr( $s, 0, 140 ) . '…' : $s;
+	}
+
+	/** One submission with its form context, for the detail panel. */
+	public static function submission( $sid ) {
+		global $wpdb;
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM " . self::table() . " WHERE id = %d", (int) $sid ), ARRAY_A ); // phpcs:ignore WordPress.DB
+		if ( ! $row ) {
+			return null;
+		}
+		$d = json_decode( $row['data'], true );
+		$row['data']   = is_array( $d ) ? $d : array();
+		$row['labels'] = self::field_labels( (int) $row['form_id'] );
+		$form          = self::get_form( (int) $row['form_id'] );
+		$row['form_title'] = $form ? $form['title'] : 'Form #' . (int) $row['form_id'];
+		$row['who']    = self::derive_who( $row['data'] );
+		$row['email']  = self::derive_email( $row['data'] );
+		return $row;
 	}
 
 	/** Total entries, optionally for one form. */

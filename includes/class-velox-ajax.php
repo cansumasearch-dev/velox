@@ -310,9 +310,19 @@ class Velox_Ajax {
 			case 'backup_restore':
 				$id   = isset( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
 				$what = isset( $_POST['what'] ) ? sanitize_key( wp_unslash( $_POST['what'] ) ) : 'both';
-				$r = Velox_Backup::restore( $id, $what );
+				$safety = ! isset( $_POST['safety'] ) || '0' !== (string) $_POST['safety'];
+				$r = Velox_Backup::restore( $id, $what, $safety );
 				if ( empty( $r['ok'] ) ) {
 					wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Restore failed.' ) );
+				}
+				wp_send_json_success( $r );
+				break;
+
+			case 'backup_import':
+				$file = isset( $_FILES['file'] ) ? $_FILES['file'] : null; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+				$r = Velox_Backup::import( $file );
+				if ( empty( $r['ok'] ) ) {
+					wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Import failed.' ) );
 				}
 				wp_send_json_success( $r );
 				break;
@@ -388,6 +398,14 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Forms::delete_submission( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
 				break;
 
+			case 'submission_get':
+				$sub = Velox_Forms::submission( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 );
+				if ( ! $sub ) {
+					wp_send_json_error( array( 'message' => 'Submission not found.' ) );
+				}
+				wp_send_json_success( $sub );
+				break;
+
 			case 'mail_test':
 				wp_send_json_success( Velox_Mail::send_test(
 					isset( $_POST['to'] ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : '',
@@ -420,7 +438,7 @@ class Velox_Ajax {
 				$opts_raw = isset( $_POST['opts'] ) ? json_decode( wp_unslash( $_POST['opts'] ), true ) : array();
 				$opts_raw = is_array( $opts_raw ) ? $opts_raw : array();
 				// Coerce a few numerics/bools the JS sends as strings.
-				foreach ( array( 'cookie_border_width', 'cookie_radius', 'cookie_offset', 'cookie_width', 'cookie_font_size' ) as $nk ) {
+				foreach ( array( 'cookie_border_width', 'cookie_radius', 'cookie_offset', 'cookie_width', 'cookie_font_size', 'cookie_gap', 'cookie_grid_cols', 'cookie_pad_y', 'cookie_pad_x', 'cookie_margin' ) as $nk ) {
 					if ( isset( $opts_raw[ $nk ] ) ) { $opts_raw[ $nk ] = (int) $opts_raw[ $nk ]; }
 				}
 				foreach ( array( 'cookie_shadow', 'cookie_overlay', 'cookie_cat_analytics', 'cookie_cat_marketing', 'cookie_btn_full_mobile' ) as $bk ) {

@@ -131,11 +131,13 @@
 
 	function initList( list ) {
 		var addBtn = $( '#velox-snip-add-btn' );
+		var addBtn2 = $( '#velox-snip-add-btn-2' );
 		var modal  = $( '#velox-snip-modal' );
-		if ( addBtn && modal ) {
+		if ( modal ) {
 			function openModal() { modal.hidden = false; }
 			function closeModal() { modal.hidden = true; }
-			addBtn.addEventListener( 'click', openModal );
+			if ( addBtn )  { addBtn.addEventListener( 'click', openModal ); }
+			if ( addBtn2 ) { addBtn2.addEventListener( 'click', openModal ); }
 			modal.addEventListener( 'click', function ( e ) {
 				if ( e.target.closest( '[data-close]' ) ) { closeModal(); }
 			} );
@@ -143,6 +145,27 @@
 				if ( e.key === 'Escape' && ! modal.hidden ) { closeModal(); }
 			} );
 		}
+
+		// Row actions menu (⋯) — open one popover at a time, close on outside click.
+		list.addEventListener( 'click', function ( e ) {
+			var trigger = e.target.closest( '.velox-snip-menu-btn' );
+			// Close any open menus first.
+			var open = list.querySelector( '.velox-snip-menu-pop:not([hidden])' );
+			if ( open && ( ! trigger || open.previousElementSibling !== trigger ) ) {
+				open.hidden = true;
+			}
+			if ( trigger ) {
+				e.stopPropagation();
+				var pop = trigger.nextElementSibling;
+				if ( pop ) { pop.hidden = ! pop.hidden; }
+			}
+		} );
+		document.addEventListener( 'click', function ( e ) {
+			if ( ! e.target.closest( '.velox-snip-menu' ) ) {
+				var open = list.querySelector( '.velox-snip-menu-pop:not([hidden])' );
+				if ( open ) { open.hidden = true; }
+			}
+		} );
 
 		// Safe Mode rescue buttons (only present when Safe Mode is showing).
 		var clearPanic = $( '#velox-snip-clear-panic' );

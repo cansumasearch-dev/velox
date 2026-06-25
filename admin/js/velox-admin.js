@@ -108,8 +108,18 @@
 
 	function collectSettings( root ) {
 		var out = {};
+		var segDone = {};
 		$$( '[data-setting]', root ).forEach( function ( el ) {
 			var key = el.getAttribute( 'data-setting' );
+			// Segmented control: a group of buttons sharing one data-setting; the
+			// active one's data-value is the value. Record once per key.
+			if ( el.classList && el.classList.contains( 'vxck-seg-btn' ) ) {
+				if ( segDone[ key ] ) { return; }
+				var active = root.querySelector( '.vxck-seg-btn.is-active[data-setting="' + key + '"]' );
+				if ( active ) { out[ key ] = active.getAttribute( 'data-value' ); }
+				segDone[ key ] = true;
+				return;
+			}
 			if ( el.type === 'checkbox' ) {
 				out[ key ] = el.checked ? 1 : 0;
 			} else {
@@ -1982,23 +1992,130 @@
 			} );
 		}
 
+		// ---- progress modal with a running time estimate ----
+		var modal = $( '#vbk-modal' );
+		var fill  = $( '#vbk-modal-fill' );
+		var etaEl = $( '#vbk-modal-eta' );
+		var titleEl = $( '#vbk-modal-title' );
+		var msgEl = $( '#vbk-modal-msg' );
+		var progTimer = null, progStart = 0, progEstimate = 30;
+
+		function openProgress( title, msg, estimateSec ) {
+			if ( ! modal ) { return; }
+			progStart = Date.now();
+			progEstimate = estimateSec || 30;
+			if ( titleEl ) { titleEl.textContent = title; }
+			if ( msgEl ) { msgEl.textContent = msg; }
+			if ( fill ) { fill.style.width = '4%'; }
+			if ( etaEl ) { etaEl.textContent = 'Estimated ~' + progEstimate + 's. Keep this tab open.'; }
+			modal.hidden = false;
+			clearInterval( progTimer );
+			progTimer = setInterval( function () {
+				var elapsed = ( Date.now() - progStart ) / 1000;
+				// Asymptotic fill: approaches but never reaches 100% until done.
+				var pct = Math.min( 95, ( elapsed / progEstimate ) * 100 );
+				if ( fill ) { fill.style.width = pct.toFixed( 0 ) + '%'; }
+				var remain = Math.max( 0, progEstimate - elapsed );
+				if ( etaEl ) {
+					etaEl.textContent = elapsed < progEstimate
+						? 'About ' + Math.ceil( remain ) + 's left. Keep this tab open.'
+						: 'Almost done — finishing up…';
+				}
+			}, 300 );
+		}
+		function closeProgress( done ) {
+			clearInterval( progTimer );
+			if ( done && fill ) { fill.style.width = '100%'; }
+			setTimeout( function () { if ( modal ) { modal.hidden = true; } }, done ? 350 : 0 );
+		}
+
+		// ---- export type segment ----
+		var chosenWhat = 'both';
+		var seg = $( '#vbk-what-seg' );
+		if ( seg ) {
+			seg.addEventListener( 'click', function ( e ) {
+				var btn = e.target.closest( '.vbk-seg-btn' );
+				if ( ! btn || btn.disabled ) { return; }
+				seg.querySelectorAll( '.vbk-seg-btn' ).forEach( function ( b ) { b.classList.toggle( 'is-active', b === btn ); } );
+				chosenWhat = btn.getAttribute( 'data-what' );
+			} );
+		}
+
+		// ---- create ----
 		var createBtn = $( '#vbk-create' );
 		if ( createBtn ) {
 			createBtn.addEventListener( 'click', function () {
-				var what = ( $( '#vbk-what' ) || {} ).value || 'both';
-				var prog = $( '#vbk-progress' );
 				createBtn.disabled = true;
-				if ( prog ) { prog.hidden = false; prog.textContent = 'Backing up… keep this tab open.'; }
-				api( 'backup_create', { what: what } )
+				var est = chosenWhat === 'db' ? 12 : ( chosenWhat === 'files' ? 35 : 45 );
+				openProgress( 'Creating backup…', 'Packing up your ' + ( chosenWhat === 'both' ? 'database and files' : chosenWhat ) + '.', est );
+				api( 'backup_create', { what: chosenWhat } )
 					.then( function ( r ) {
+						closeProgress( true );
 						toast( r && r.message ? r.message : 'Backup created.', r && r.partial ? 'warn' : 'success' );
 						setTimeout( function () { location.reload(); }, 700 );
 					} )
 					.catch( function ( e ) {
+						closeProgress( false );
 						toast( e.message, 'error' );
 						createBtn.disabled = false;
-						if ( prog ) { prog.hidden = true; }
 					} );
+			} );
+		}
+
+		// ---- import from another site ----
+		var importBtn = $( '#vbk-import-btn' );
+		var importFile = $( '#vbk-import-file' );
+		if ( importBtn && importFile ) {
+			importBtn.addEventListener( 'click', function () {
+				if ( ! importFile.files || ! importFile.files.length ) { toast( 'Choose a .sql or .zip file first.', 'error' ); return; }
+				var fd = new FormData();
+				fd.append( 'action', 'velox' );
+				fd.append( 'do', 'backup_import' );
+				fd.append( 'nonce', VELOX.nonce );
+				fd.append( 'file', importFile.files[0] );
+				importBtn.disabled = true;
+				openProgress( 'Importing backup…', 'Uploading and registering the file.', 20 );
+				fetch( VELOX.ajaxurl, { method: 'POST', credentials: 'same-origin', body: fd } )
+					.then( function ( r ) { return r.json(); } )
+					.then( function ( j ) {
+						closeProgress( true );
+						if ( j && j.success ) {
+							toast( ( j.data && j.data.message ) || 'Backup imported.' );
+							setTimeout( function () { location.reload(); }, 800 );
+						} else {
+							toast( ( j && j.data && j.data.message ) || 'Import failed.', 'error' );
+							importBtn.disabled = false;
+						}
+					} )
+					.catch( function () { closeProgress( false ); toast( 'Import failed.', 'error' ); importBtn.disabled = false; } );
+			} );
+		}
+
+		// ---- restore (confirm modal → progress modal) ----
+		var restoreModal = $( '#vbk-restore-modal' );
+		var rmGo = $( '#vbk-rm-go' );
+		var rmSafety = $( '#vbk-rm-safety' );
+		var rmMsg = $( '#vbk-rm-msg' );
+		var pendingRow = null;
+
+		if ( restoreModal ) {
+			restoreModal.addEventListener( 'click', function ( e ) {
+				if ( e.target.closest( '[data-close]' ) ) { restoreModal.hidden = true; pendingRow = null; }
+			} );
+		}
+		if ( rmGo ) {
+			rmGo.addEventListener( 'click', function () {
+				if ( ! pendingRow ) { return; }
+				var id = pendingRow.getAttribute( 'data-id' );
+				restoreModal.hidden = true;
+				openProgress( 'Restoring…', 'Putting your site back to this backup.', 40 );
+				api( 'backup_restore', { id: id, what: 'both', safety: rmSafety && rmSafety.checked ? 1 : 0 } )
+					.then( function ( r ) {
+						closeProgress( true );
+						toast( ( r && r.message ? r.message : 'Restored.' ) + ( r && r.duration ? ' (' + r.duration + 's)' : '' ), 'success' );
+						setTimeout( function () { location.reload(); }, 1200 );
+					} )
+					.catch( function ( er ) { closeProgress( false ); toast( er.message, 'error' ); } );
 			} );
 		}
 
@@ -2012,7 +2129,7 @@
 				var id = row.getAttribute( 'data-id' );
 
 				if ( btn.classList.contains( 'vbk-delete' ) ) {
-					if ( ! window.confirm( 'Delete this backup permanently? The downloaded copies (if any) are not affected.' ) ) { return; }
+					if ( ! window.confirm( 'Delete this backup permanently? Downloaded copies (if any) are not affected.' ) ) { return; }
 					btn.disabled = true;
 					api( 'backup_delete', { id: id } )
 						.then( function () { row.remove(); toast( 'Backup deleted.' ); } )
@@ -2024,15 +2141,14 @@
 					var hasDb = row.getAttribute( 'data-hasdb' ) === '1';
 					var hasZip = row.getAttribute( 'data-haszip' ) === '1';
 					var parts = [];
-					if ( hasDb ) { parts.push( 'the database (overwriting current data)' ); }
-					if ( hasZip ) { parts.push( 'your files (overwriting wp-content)' ); }
-					if ( ! window.confirm( 'Restore ' + parts.join( ' and ' ) + '?\n\nThis replaces your current site with the contents of this backup. A safety snapshot of your database is taken automatically first. Continue?' ) ) { return; }
-					btn.disabled = true;
-					var prev = btn.textContent;
-					btn.textContent = 'Restoring…';
-					api( 'backup_restore', { id: id, what: 'both' } )
-						.then( function ( r ) { toast( r && r.message ? r.message : 'Restored.', 'success' ); setTimeout( function () { location.reload(); }, 1200 ); } )
-						.catch( function ( er ) { toast( er.message, 'error' ); btn.disabled = false; btn.textContent = prev; } );
+					if ( hasDb ) { parts.push( 'the database' ); }
+					if ( hasZip ) { parts.push( 'your files (wp-content)' ); }
+					if ( rmMsg ) { rmMsg.textContent = 'This replaces ' + parts.join( ' and ' ) + ' with the contents of this backup.'; }
+					// DB-less backups can't take a DB safety snapshot — hide the option.
+					var safetyRow = rmSafety ? rmSafety.closest( '.velox-toggle-row' ) : null;
+					if ( safetyRow ) { safetyRow.style.display = hasDb ? '' : 'none'; }
+					pendingRow = row;
+					if ( restoreModal ) { restoreModal.hidden = false; }
 					return;
 				}
 			} );
@@ -2254,6 +2370,8 @@
 			} );
 		} );
 		initMailSmtp();
+		initMailInbox();
+		initMailCaptchaGate();
 
 		var logClear = $( '#vmail-log-clear' );
 		if ( logClear ) {
@@ -2271,6 +2389,83 @@
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { btn.disabled = false; btn.textContent = prev; } );
 			} );
+		} );
+	}
+
+	/* ---- Submissions inbox: master list + detail panel ---- */
+	function initMailInbox() {
+		var list   = $( '#vmail-inbox-list' );
+		var detail = $( '#vmail-inbox-detail' );
+		if ( ! list || ! detail ) { return; }
+
+		function renderDetail( sub ) {
+			var rows = '';
+			var data = sub.data || {};
+			var labels = sub.labels || {};
+			Object.keys( data ).forEach( function ( k ) {
+				var v = data[ k ];
+				if ( v && typeof v === 'object' ) { v = Object.keys( v ).map( function ( i ) { return v[ i ]; } ).join( ', ' ); }
+				var label = labels[ k ] || k.replace( /[_-]/g, ' ' );
+				rows += '<div class="vmail-d-row"><dt>' + escapeHtml( label ) + '</dt><dd>' + escapeHtml( String( v == null ? '' : v ) ).replace( /\n/g, '<br>' ) + '</dd></div>';
+			} );
+			if ( ! rows ) { rows = '<p class="velox-hint">This submission has no stored fields.</p>'; }
+			var meta = [];
+			if ( sub.form_title ) { meta.push( escapeHtml( sub.form_title ) ); }
+			if ( sub.created ) { meta.push( escapeHtml( sub.created ) ); }
+			if ( sub.ip ) { meta.push( 'IP ' + escapeHtml( sub.ip ) ); }
+			detail.innerHTML =
+				'<div class="vmail-d-head">' +
+					'<div><div class="vmail-d-who">' + escapeHtml( sub.who || 'Submission' ) + '</div>' +
+					'<div class="vmail-d-meta">' + meta.join( '  ·  ' ) + '</div></div>' +
+					'<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm vmail-d-del" data-id="' + sub.id + '">Delete</button>' +
+				'</div>' +
+				'<dl class="vmail-d-dl">' + rows + '</dl>';
+
+			var del = detail.querySelector( '.vmail-d-del' );
+			if ( del ) {
+				del.addEventListener( 'click', function () {
+					if ( ! window.confirm( 'Delete this submission permanently?' ) ) { return; }
+					api( 'submission_delete', { id: del.getAttribute( 'data-id' ) } )
+						.then( function () {
+							var item = list.querySelector( '.vmail-inbox-item[data-id="' + del.getAttribute( 'data-id' ) + '"]' );
+							if ( item ) { item.remove(); }
+							detail.innerHTML = '<div class="vmail-inbox-empty-detail">Submission deleted.</div>';
+							toast( 'Submission deleted.' );
+						} )
+						.catch( function ( e ) { toast( e.message, 'error' ); } );
+				} );
+			}
+		}
+
+		function load( id, itemEl ) {
+			list.querySelectorAll( '.vmail-inbox-item' ).forEach( function ( el ) {
+				el.classList.toggle( 'is-active', el === itemEl );
+				el.setAttribute( 'aria-selected', el === itemEl ? 'true' : 'false' );
+			} );
+			detail.innerHTML = '<div class="vmail-inbox-empty-detail">Loading…</div>';
+			api( 'submission_get', { id: id } )
+				.then( renderDetail )
+				.catch( function ( e ) { detail.innerHTML = '<div class="vmail-inbox-empty-detail">' + escapeHtml( e.message ) + '</div>'; } );
+		}
+
+		list.addEventListener( 'click', function ( e ) {
+			var item = e.target.closest( '.vmail-inbox-item' );
+			if ( ! item ) { return; }
+			load( item.getAttribute( 'data-id' ), item );
+		} );
+
+		// Auto-open the first submission so the panel isn't empty on load.
+		var first = list.querySelector( '.vmail-inbox-item' );
+		if ( first ) { load( first.getAttribute( 'data-id' ), first ); }
+	}
+
+	/* ---- CAPTCHA master gate: lock the key fields when disabled ---- */
+	function initMailCaptchaGate() {
+		var toggle = $( '#vmail-captcha-enabled' );
+		var body   = $( '#vmail-captcha-body' );
+		if ( ! toggle || ! body ) { return; }
+		toggle.addEventListener( 'change', function () {
+			body.classList.toggle( 'is-locked', ! toggle.checked );
 		} );
 	}
 
@@ -2557,7 +2752,9 @@
 				keys.forEach( function ( t ) {
 					var b = document.createElement( 'button' );
 					b.type = 'button'; b.className = 'vmail-pal-item';
-					b.innerHTML = '<span class="vmail-pal-ic">' + TYPES[ t ].icon + '</span><span>' + TYPES[ t ].label + '</span>';
+					var locked = ( t === 'captcha' && ! meta.captcha_enabled );
+					if ( locked ) { b.className += ' is-locked'; b.title = 'CAPTCHA is switched off in Mail settings'; }
+					b.innerHTML = '<span class="vmail-pal-ic">' + TYPES[ t ].icon + '</span><span>' + TYPES[ t ].label + ( locked ? ' \uD83D\uDD12' : '' ) + '</span>';
 					b.addEventListener( 'click', function () { addField( t ); } );
 					grid.appendChild( b );
 				} );
@@ -2570,6 +2767,11 @@
 		}
 		function hasType( t ) { return form.fields.some( function ( f ) { return f.type === t; } ); }
 		function addField( type ) {
+			// CAPTCHA is gated by the global Mail-settings toggle.
+			if ( type === 'captcha' && ! meta.captcha_enabled ) {
+				toast( 'CAPTCHA is switched off. Enable it under Mail settings → CAPTCHA first.', 'error' );
+				return;
+			}
 			// Consent and CAPTCHA are mutually exclusive — pick one spam/consent gate.
 			if ( type === 'captcha' && hasType( 'consent' ) ) { toast( 'Use either a consent box or CAPTCHA — not both. Remove the consent field first.', 'error' ); return; }
 			if ( type === 'consent' && hasType( 'captcha' ) ) { toast( 'Use either a consent box or CAPTCHA — not both. Remove the CAPTCHA field first.', 'error' ); return; }

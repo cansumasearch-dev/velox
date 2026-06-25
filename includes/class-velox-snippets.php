@@ -586,24 +586,27 @@ class Velox_Snippets {
 	/* ------------------------------------------------------------------ */
 
 	public static function admin_menu() {
-		add_menu_page(
+		// Snippets is reached from the Utilities tab, not as its own top-level
+		// menu. Registering under a null parent keeps the page routable at
+		// admin.php?page=velox-snippets (so all existing links/edit/new URLs keep
+		// working) while removing the standalone item below Velox.
+		add_submenu_page(
+			null,
 			'Snippets',
 			'Snippets',
 			'manage_options',
 			self::MENU_SLUG,
-			array( __CLASS__, 'render' ),
-			VELOX_URL . 'assets/menu-icon.png',
-			100.71 // directly below Velox (100.7)
+			array( __CLASS__, 'render' )
 		);
 	}
 
-	/** Match Velox's centred icon styling for the Snippets menu item. */
-	public static function menu_icon_css() {
-		echo '<style>#adminmenu #toplevel_page_' . esc_attr( self::MENU_SLUG ) . ' .wp-menu-image img{width:25px;height:25px;padding:5px 0 0;margin:0 auto;display:block;}</style>';
-	}
+	/** Snippets no longer has its own top-level menu item, so no icon CSS needed. */
+	public static function menu_icon_css() {}
 
 	public static function assets( $hook ) {
-		if ( 'toplevel_page_' . self::MENU_SLUG !== $hook ) {
+		// As a hidden (null-parent) page the hook is 'admin_page_velox-snippets';
+		// accept both that and the older toplevel form so assets always load.
+		if ( 'admin_page_' . self::MENU_SLUG !== $hook && 'toplevel_page_' . self::MENU_SLUG !== $hook ) {
 			return;
 		}
 		// velox-admin.css/js + the VELOX nonce object are already enqueued by

@@ -28,6 +28,7 @@ class Velox_Backup {
 
 	const DIR_NAME   = 'velox-backups';
 	const MANIFEST   = 'velox-manifest.json';
+	const HISTORY    = 'velox-history.json';
 	const HOOK       = 'velox_backup_run';
 	const INSERT_ROWS = 200; // rows per INSERT statement in the dump
 
@@ -157,6 +158,44 @@ class Velox_Backup {
 		return null;
 	}
 
+	/**
+	 * A short, unique, human-friendly name for a backup, e.g. "brave-otter-7c2".
+	 * Memorable in the list and unique enough to tell snapshots apart at a glance.
+	 */
+	public static function friendly_name() {
+		$adj  = array( 'brave', 'calm', 'swift', 'bright', 'quiet', 'bold', 'keen', 'lucky', 'mellow', 'noble', 'proud', 'sleek', 'sunny', 'tidy', 'witty', 'amber', 'azure', 'coral', 'jade', 'ivory' );
+		$noun = array( 'otter', 'falcon', 'maple', 'comet', 'harbor', 'meadow', 'cedar', 'pebble', 'willow', 'badger', 'lynx', 'heron', 'cobra', 'panda', 'raven', 'tiger', 'walrus', 'gecko', 'moose', 'finch' );
+		return $adj[ array_rand( $adj ) ] . '-' . $noun[ array_rand( $noun ) ] . '-' . substr( md5( uniqid( '', true ) ), 0, 3 );
+	}
+
+	/* ----------------------------------------------------------------- *
+	 * Restore history
+	 * ----------------------------------------------------------------- */
+
+	public static function history() {
+		$file = self::dir() . '/' . self::HISTORY;
+		if ( ! is_readable( $file ) ) {
+			return array();
+		}
+		$data = json_decode( (string) file_get_contents( $file ), true );
+		if ( ! is_array( $data ) ) {
+			return array();
+		}
+		// newest first
+		usort( $data, function ( $a, $b ) {
+			return strcmp( $b['when'] ?? '', $a['when'] ?? '' );
+		} );
+		return $data;
+	}
+
+	private static function record_history( $row ) {
+		$file = self::dir() . '/' . self::HISTORY;
+		$list = self::history();
+		array_unshift( $list, $row );
+		$list = array_slice( $list, 0, 50 ); // keep the last 50 restores
+		file_put_contents( $file, wp_json_encode( array_values( $list ) ) );
+	}
+
 	/* ----------------------------------------------------------------- *
 	 * Create
 	 * ----------------------------------------------------------------- */
@@ -175,6 +214,7 @@ class Velox_Backup {
 
 		$entry = array(
 			'id'      => $id,
+			'name'    => self::friendly_name(),
 			'created' => $created,
 			'note'    => sanitize_text_field( $note ),
 			'what'    => $what,
@@ -225,6 +265,85 @@ class Velox_Backup {
 		$list   = self::manifest();
 		$list[] = $entry;
 		self::write_manifest( $list );
+	}
+
+	/**
+	 * Import a backup file produced on another site. Accepts a .sql (database) or
+	 * a .zip (wp-content files) and registers it as a normal backup that can be
+	 * downloaded or restored here. $file is a $_FILES entry.
+	 *
+	 * @return array { ok, id?, message }
+	 */
+	public static function import( $file ) {
+		if ( empty( $file ) || ! isset( $file['tmp_name'] ) || ! is_uploaded_file( $file['tmp_name'] ) ) {
+			return array( 'ok' => false, 'message' => 'No file was uploaded.' );
+		}
+		if ( ! empty( $file['error'] ) ) {
+			return array( 'ok' => false, 'message' => 'Upload failed (error code ' . (int) $file['error'] . '). The file may be larger than the server allows.' );
+		}
+		$name = isset( $file['name'] ) ? (string) $file['name'] : '';
+		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
+		if ( ! in_array( $ext, array( 'sql', 'zip' ), true ) ) {
+			return array( 'ok' => false, 'message' => 'Please upload a .sql database dump or a .zip file archive.' );
+		}
+
+		$dir     = self::dir();
+		$id      = gmdate( 'Ymd-His' ) . '-' . substr( md5( uniqid( '', true ) ), 0, 6 );
+		$created = current_time( 'mysql' );
+		$entry   = array(
+			'id' => $id, 'name' => self::friendly_name(), 'created' => $created,
+			'note' => 'Imported' . ( $name ? ' — ' . sanitize_text_field( $name ) : '' ),
+			'what' => '', 'db_file' => '', 'zip_file' => '', 'db_size' => 0, 'zip_size' => 0,
+			'tables' => 0, 'files' => 0, 'imported' => true,
+			'wp_version' => get_bloginfo( 'version' ), 'site_url' => home_url(),
+		);
+
+		if ( 'sql' === $ext ) {
+			$dest = $dir . '/velox-db-' . $id . '.sql';
+			if ( ! @move_uploaded_file( $file['tmp_name'], $dest ) ) {
+				return array( 'ok' => false, 'message' => 'Could not save the uploaded dump (folder permissions?).' );
+			}
+			$entry['what']    = 'db';
+			$entry['db_file'] = basename( $dest );
+			$entry['db_size'] = (int) filesize( $dest );
+			// best-effort table count from CREATE TABLE statements
+			$entry['tables']  = self::count_sql_tables( $dest );
+		} else {
+			// validate it's a real zip before accepting
+			if ( class_exists( 'ZipArchive' ) ) {
+				$probe = new ZipArchive();
+				if ( true !== $probe->open( $file['tmp_name'] ) ) {
+					return array( 'ok' => false, 'message' => 'That .zip could not be opened — it may be corrupt.' );
+				}
+				$entry['files'] = $probe->numFiles;
+				$probe->close();
+			}
+			$dest = $dir . '/velox-files-' . $id . '.zip';
+			if ( ! @move_uploaded_file( $file['tmp_name'], $dest ) ) {
+				return array( 'ok' => false, 'message' => 'Could not save the uploaded archive (folder permissions?).' );
+			}
+			$entry['what']     = 'files';
+			$entry['zip_file'] = basename( $dest );
+			$entry['zip_size'] = (int) filesize( $dest );
+		}
+
+		self::record( $entry );
+		return array( 'ok' => true, 'id' => $id, 'entry' => $entry, 'message' => 'Backup imported. You can restore or download it like any other.' );
+	}
+
+	private static function count_sql_tables( $sql_file ) {
+		$count = 0;
+		$fh = @fopen( $sql_file, 'r' );
+		if ( ! $fh ) {
+			return 0;
+		}
+		while ( false !== ( $line = fgets( $fh ) ) ) {
+			if ( false !== stripos( $line, 'CREATE TABLE' ) ) {
+				$count++;
+			}
+		}
+		fclose( $fh );
+		return $count;
 	}
 
 	/* ----------------------------------------------------------------- *
@@ -437,21 +556,34 @@ class Velox_Backup {
 	 * @param string $id
 	 * @param string $what db | files | both
 	 */
-	public static function restore( $id, $what = 'both' ) {
+	public static function restore( $id, $what = 'both', $safety = true ) {
 		@set_time_limit( 0 );
+		$start = microtime( true );
 		$b = self::get( $id );
 		if ( ! $b ) {
 			return array( 'ok' => false, 'message' => 'Backup not found.' );
 		}
 		$what = in_array( $what, array( 'db', 'files', 'both' ), true ) ? $what : 'both';
 		$done = array();
+		$safety_id = '';
 
 		if ( ( 'db' === $what || 'both' === $what ) && ! empty( $b['db_file'] ) ) {
-			// Safety net: snapshot the current DB before overwriting it.
-			$safety = self::create( 'db', 'Safety snapshot before restore' );
-			$res    = self::restore_database( self::dir() . '/' . basename( $b['db_file'] ) );
+			// Optional safety net: snapshot the current DB before overwriting it, so a
+			// bad restore is reversible. Clearly labelled so it's obvious in the list.
+			if ( $safety ) {
+				$snap = self::create( 'db', 'Auto safety snapshot (before restoring ' . ( $b['name'] ?? $id ) . ')' );
+				if ( ! empty( $snap['ok'] ) ) {
+					$safety_id = $snap['id'];
+				}
+			}
+			$res = self::restore_database( self::dir() . '/' . basename( $b['db_file'] ) );
 			if ( empty( $res['ok'] ) ) {
-				return array( 'ok' => false, 'message' => 'Database restore failed: ' . $res['message'] . ( ! empty( $safety['ok'] ) ? ' A safety snapshot was taken first.' : '' ) );
+				self::record_history( array(
+					'when' => current_time( 'mysql' ), 'backup_id' => $id, 'backup_name' => $b['name'] ?? $id,
+					'what' => $what, 'ok' => false, 'duration' => round( microtime( true ) - $start, 1 ),
+					'detail' => 'Database restore failed: ' . $res['message'], 'safety_id' => $safety_id,
+				) );
+				return array( 'ok' => false, 'message' => 'Database restore failed: ' . $res['message'] . ( $safety_id ? ' A safety snapshot was taken first.' : '' ) );
 			}
 			$done[] = $res['statements'] . ' SQL statements';
 		}
@@ -462,6 +594,11 @@ class Velox_Backup {
 			}
 			$res = self::restore_files( self::dir() . '/' . basename( $b['zip_file'] ) );
 			if ( empty( $res['ok'] ) ) {
+				self::record_history( array(
+					'when' => current_time( 'mysql' ), 'backup_id' => $id, 'backup_name' => $b['name'] ?? $id,
+					'what' => $what, 'ok' => false, 'duration' => round( microtime( true ) - $start, 1 ),
+					'detail' => 'File restore failed: ' . $res['message'], 'safety_id' => $safety_id,
+				) );
 				return array( 'ok' => false, 'message' => 'File restore failed: ' . $res['message'] );
 			}
 			$done[] = $res['count'] . ' files';
@@ -470,7 +607,14 @@ class Velox_Backup {
 		if ( empty( $done ) ) {
 			return array( 'ok' => false, 'message' => 'Nothing in this backup matched the requested restore type.' );
 		}
-		return array( 'ok' => true, 'message' => 'Restored ' . implode( ' and ', $done ) . '.', 'restored' => $done );
+
+		$duration = round( microtime( true ) - $start, 1 );
+		self::record_history( array(
+			'when' => current_time( 'mysql' ), 'backup_id' => $id, 'backup_name' => $b['name'] ?? $id,
+			'what' => $what, 'ok' => true, 'duration' => $duration,
+			'detail' => 'Restored ' . implode( ' and ', $done ) . '.', 'safety_id' => $safety_id,
+		) );
+		return array( 'ok' => true, 'message' => 'Restored ' . implode( ' and ', $done ) . '.', 'restored' => $done, 'duration' => $duration, 'safety_id' => $safety_id );
 	}
 
 	private static function restore_database( $sql_file ) {
@@ -569,6 +713,7 @@ class Velox_Backup {
 			'newest'     => $all ? ( $all[0]['created'] ?? '' ) : '',
 			'zip_ready'  => class_exists( 'ZipArchive' ),
 			'next_run'   => wp_next_scheduled( self::HOOK ),
+			'restores'   => count( self::history() ),
 		);
 	}
 }

@@ -4,6 +4,77 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.24.0 – 2.29.0 — The big redesign (summary)
+
+Velox was rebuilt from the inside out across six releases. Every screen now shares
+one design language, the navigation was rethought, and the four heaviest tools —
+Snippets, Mail & forms, the Cookie banner and Backup — were reworked with the
+features that were missing. Highlights:
+
+- **One consistent look, everywhere.** The whole plugin moved onto a single Apple-inspired
+  design system: parchment surfaces, near-black ink, a tuned Inter type scale, one
+  radius ladder, calm spacing, near-flat elevation and a single accent (#2ab7f1).
+  Screens that used to look like separate tools now read as one product.
+- **Rethought navigation.** The top admin bar gained a full Velox menu (Dashboard,
+  Images, Media Editor, Performance, Database, SEO, Utilities, Settings) with a
+  Performance & Cache submenu, plus a separate Velox Maintenance item (Settings +
+  Activate/Deactivate). The left sidebar gained a hover-flyout listing your active
+  utilities, each linking straight to its settings. Snippets is no longer a
+  top-level menu — it lives under Utilities like the other tools.
+- **Snippets, cleaner.** Name-led rows with quiet metadata, an inline on/off switch,
+  and a single “⋯” menu instead of five competing buttons. Editor and Safe-Mode
+  banner adopt the shared styling.
+- **Mail & forms, with a real inbox.** A single inbox of every submission across all
+  forms — who, when, which form — and a detail view of everything they filled out.
+  CAPTCHA is now a master toggle that locks the per-form option (and the builder
+  field) when it’s off, enforced on the server too.
+- **Cookie banner, real layout control.** A Preset/Custom switch unlocks page-builder-style
+  controls — display (flex/grid/block), direction, align, justify, gap, grid columns,
+  padding and margin — all driving the real banner CSS, live-previewed identically to
+  the front end.
+- **Backup, rebuilt.** Clear export controls, progress modals with a time estimate,
+  import a backup from another site, a full restore history, unique friendly names,
+  a demystified (and optional) safety snapshot, and a fix for the download button that
+  used to vanish after a restore.
+
+Per-release detail for each stage follows below.
+
+## 2.29.0 — Redesign stage 7 (Backup & restore: rebuilt)
+- **Clear export controls.** Export all / Export DB / Export files as a segmented control, plus Restore and Delete on every row.
+- **Progress modals with a time estimate** for both creating and restoring — a real progress bar and a running “about Ns left”, instead of a tiny text line.
+- **Import a backup from another site.** Upload a .sql or .zip made elsewhere; it is validated and added to the list, ready to restore or download.
+- **Restore history.** Every restore is logged with when it ran, which backup, what was restored, how long it took, and whether it succeeded.
+- **Unique, friendly backup names** (e.g. brave-otter-7c2) so snapshots are easy to tell apart.
+- **Safety snapshot, demystified.** It is now clearly tagged “safety” in the list, explained in the restore dialog (it saves your current DB so you can undo), and optional via a toggle — no more confusing small unlabelled DB-only entry.
+- **Fixed the disappearing download button.** Backups keep their SQL/ZIP buttons after a restore; the backups folder and its manifest are always excluded from archives, so a restore can never clobber them.
+
+## 2.28.0 — Redesign stage 6 (Cookie banner: real layout control)
+- **Oxygen-style layout controls.** The cookie banner now has a Layout panel with a Preset/Custom switch. In Custom mode you control the box like in a page builder: display (flex / grid / block), flex direction (row / column), align-items, justify-content, gap, grid columns, vertical & horizontal padding, and outer margin — all driving the real banner CSS, live-previewed and identical on the front end.
+- Preset mode is unchanged, so existing banners keep their exact look until you opt into Custom.
+- The new structural settings persist correctly and feed both the admin preview and the live banner through the same render path.
+
+## 2.27.0 — Redesign stage 5 (Mail & forms: inbox + CAPTCHA gate)
+- **Submissions inbox.** Mail & forms now opens with a single inbox of every submission across all forms — who sent it, when, and through which form — in a master list. Click any entry to read the full submission (every field they filled out) in a detail panel, and delete it from there.
+- **CAPTCHA is now a real toggle.** A master CAPTCHA switch under Mail settings gates the whole feature: when it is off, the per-form “Require CAPTCHA” switch is locked and the CAPTCHA field in the builder palette is disabled (with a lock icon). When on (plus keys), forms can use it. The gate is enforced on the server too — a form can never demand a CAPTCHA that isn’t enabled.
+- Inbox derives a sensible “who” from common name/email fields (including German vorname/name), with graceful fallbacks.
+
+## 2.26.0 — Redesign stage 4 (Snippets rework)
+- **Snippets list redesigned.** Now uses the shared page header so it matches the rest of the plugin. Each row leads with the snippet name and a quiet metadata line (location · priority · description); the type is a clean badge.
+- **Cleaner row actions.** Activate/Deactivate is now an inline switch toggle; Edit, Duplicate, Export-as-plugin and Trash are tucked into a single "⋯" menu instead of five competing buttons.
+- **Editor redesigned** with the shared header + back link, grouped into panels, with a sticky Save bar. The type-picker modal and Safe Mode banner adopt the unified Apple styling.
+- A proper empty state instead of a bare line of text.
+
+## 2.25.0 — Redesign stage 3 (one design system across every screen)
+- **Whole-plugin visual system unified onto the Apple language.** Every shared component — page headers, cards, panels, buttons, inputs, selects, ranges, toggles, alerts, sidebar nav, toasts — now resolves through one token set: parchment surfaces, near-black ink, the 5/8/11/18 radius ladder, Apple spacing, weight-600 display type with tight tracking, and a near-flat elevation model. Single accent #2ab7f1.
+- Removed the decorative radial-gradient glow from the dashboard hero (Apple uses no decorative gradients — depth comes from surface and type).
+- Normalised every screen: ~15 different hard-coded corner radii collapsed onto the ladder, all 800-weights brought to 600, duplicate/!=token toggle colours unified — so pages stop looking like separate designs and read as one product.
+
+## 2.24.0 — Redesign stage 1–2 (foundation + admin bar)
+- **Design foundation re-based onto the Apple design language** (per DESIGN-apple.md): parchment canvas, near-black ink, Inter tuned to approximate SF Pro with negative display tracking, the 5/8/11/18 radius ladder, Apple spacing (4/8/12/17/24/32/48/80), and a near-flat elevation system (hierarchy from surface + hairlines, one soft shadow for overlays). Single accent kept at #2ab7f1. All existing token names preserved so every screen inherits the new system.
+- **Top admin bar rebuilt.** Velox now opens a dropdown: Dashboard, Images, Media Editor, Performance, Database, SEO, Utilities, Settings, plus a Performance & Cache submenu (Performance settings, Clear all cache, Clear minified CSS/JS, Regenerate Oxygen CSS, Clear Cloudflare cache, Clear Velox cache). A separate Velox Maintenance item sits beside it with Settings + Activate/Deactivate.
+- **Left-sidebar Utilities hover-flyout.** The Velox menu item shows an arrow and a hover popover listing every active utility (each links into its settings) when one or more are on; when none are active there is no arrow, and Utilities stays a normal clickable link.
+- **Snippets is no longer a standalone top-level menu** — it is reached from the Utilities tab like the other tools; its page stays routable so all existing links keep working.
+
 ## 2.23.0
 - **Backup & restore (new utility).** Back up your database, your files, or both. The database is dumped in pure PHP (no mysqldump needed) with each table's CREATE plus batched INSERTs; files are archived with ZipArchive, excluding the backups folder itself, caches and VCS/node_modules junk. Download any backup as .sql or .zip, delete old ones, and restore the database and/or files in one click.
 - **Safety on restore.** Before overwriting the database, Velox automatically takes a fresh safety snapshot first, so a bad restore can itself be undone. File restores guard against path-traversal in the archive.

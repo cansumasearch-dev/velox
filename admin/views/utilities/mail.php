@@ -75,12 +75,18 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					<span class="velox-field-label">Accent colour</span>
 					<input type="color" id="vmail-accent" value="<?php echo esc_attr( $form['accent'] ); ?>" style="width:54px;height:36px;padding:2px;">
 				</div>
-				<label class="velox-toggle-row" style="cursor:pointer;">
+				<?php
+				$captcha_gate = Velox_Forms::captcha_enabled();
+				$captcha_desc = ! $captcha_gate
+					? 'Locked — switch CAPTCHA on under Mail settings first.'
+					: ( $captcha_ready ? 'Keys are set — the widget will appear on the form.' : 'Enabled, but add your keys under Mail settings to make it work.' );
+				?>
+				<label class="velox-toggle-row<?php echo $captcha_gate ? '' : ' is-locked'; ?>" style="cursor:<?php echo $captcha_gate ? 'pointer' : 'not-allowed'; ?>;" title="<?php echo $captcha_gate ? '' : esc_attr( 'Enable CAPTCHA globally under Mail settings to use this.' ); ?>">
 					<div class="velox-toggle-meta">
-						<span class="velox-toggle-label">Require CAPTCHA</span>
-						<span class="velox-toggle-desc"><?php echo $captcha_ready ? 'Keys are set — the widget will appear on the form.' : 'No keys yet — add them under Mail settings first.'; ?></span>
+						<span class="velox-toggle-label">Require CAPTCHA <?php if ( ! $captcha_gate ) : ?><span class="vmail-lock-ic" aria-hidden="true">🔒</span><?php endif; ?></span>
+						<span class="velox-toggle-desc"><?php echo esc_html( $captcha_desc ); ?></span>
 					</div>
-					<span class="velox-switch"><input type="checkbox" id="vmail-captcha" <?php checked( ! empty( $form['captcha'] ) ); ?>><span class="velox-switch-track"></span></span>
+					<span class="velox-switch"><input type="checkbox" id="vmail-captcha" <?php checked( ! empty( $form['captcha'] ) && $captcha_gate ); ?> <?php disabled( ! $captcha_gate ); ?>><span class="velox-switch-track"></span></span>
 				</label>
 				<?php if ( 'new' !== $edit ) : ?>
 					<div class="velox-field" style="margin-top:8px;">
@@ -92,7 +98,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		</div>
 	</div>
 	<script type="application/json" id="vmail-data"><?php echo wp_json_encode( $form ); ?></script>
-	<script type="application/json" id="vmail-meta"><?php echo wp_json_encode( array( 'captcha_ready' => $captcha_ready, 'admin_email' => get_option( 'admin_email' ), 'site_name' => get_bloginfo( 'name' ), 'base' => $base ) ); ?></script>
+	<script type="application/json" id="vmail-meta"><?php echo wp_json_encode( array( 'captcha_ready' => $captcha_ready, 'captcha_enabled' => Velox_Forms::captcha_enabled(), 'admin_email' => get_option( 'admin_email' ), 'site_name' => get_bloginfo( 'name' ), 'base' => $base ) ); ?></script>
 
 <?php else :
 	$forms       = Velox_Forms::forms();
@@ -182,6 +188,36 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			<div class="vmail-stat"><span class="vmail-stat-n"><?php echo (int) $recent; ?></span><span class="vmail-stat-l">Last 7 days</span></div>
 		</div>
 
+		<?php
+		// ===================== GLOBAL SUBMISSIONS INBOX =====================
+		$inbox = Velox_Forms::inbox( 200 );
+		?>
+		<div class="velox-section-title">Inbox</div>
+		<div class="velox-panel velox-panel--flush vmail-inbox" id="vmail-inbox">
+			<?php if ( empty( $inbox ) ) : ?>
+				<p class="velox-hint" style="padding:26px;">No submissions yet. Every message sent through any of your forms lands here — who wrote, when, through which form, and everything they filled out.</p>
+			<?php else : ?>
+				<div class="vmail-inbox-split">
+					<div class="vmail-inbox-list" id="vmail-inbox-list" role="listbox" aria-label="Submissions">
+						<?php foreach ( $inbox as $i => $row ) : ?>
+							<button type="button" class="vmail-inbox-item<?php echo 0 === $i ? ' is-active' : ''; ?>" data-id="<?php echo (int) $row['id']; ?>" role="option" aria-selected="<?php echo 0 === $i ? 'true' : 'false'; ?>">
+								<span class="vmail-inbox-who"><?php echo esc_html( $row['who'] ); ?></span>
+								<span class="vmail-inbox-meta">
+									<span class="vmail-inbox-form"><?php echo esc_html( $row['form_title'] ); ?></span>
+									<span class="vmail-inbox-when"><?php echo esc_html( date_i18n( 'M j · H:i', strtotime( $row['created'] ) ) ); ?></span>
+								</span>
+								<span class="vmail-inbox-prev"><?php echo esc_html( $row['preview'] ); ?></span>
+							</button>
+						<?php endforeach; ?>
+					</div>
+					<div class="vmail-inbox-detail" id="vmail-inbox-detail" aria-live="polite">
+						<div class="vmail-inbox-empty-detail">Select a submission to read it.</div>
+					</div>
+				</div>
+			<?php endif; ?>
+		</div>
+
+		<div class="velox-section-title">Forms</div>
 		<div class="velox-panel velox-panel--flush">
 			<?php if ( empty( $forms ) ) : ?>
 				<p class="velox-hint" style="padding:26px;">No forms yet. Hit <strong>New form</strong> to create one — you'll get a <code>[velox_form]</code> shortcode to embed anywhere, including an Oxygen Shortcode element.</p>
@@ -269,18 +305,29 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		) ); ?></script>
 
 		<div class="velox-panel velox-tool-form">
-			<h3 class="velox-panel-title">CAPTCHA</h3>
+			<div class="vmail-captcha-head">
+				<div>
+					<h3 class="velox-panel-title" style="margin:0;">CAPTCHA</h3>
+					<p class="velox-hint" style="margin:4px 0 0;">When this is off, the “Require CAPTCHA” switch is locked on every form. Turn it on and add your keys to allow forms to use it.</p>
+				</div>
+				<label class="velox-switch velox-switch--inline" title="Allow forms to use CAPTCHA">
+					<input type="checkbox" data-setting="mail_captcha_enabled" id="vmail-captcha-enabled" <?php checked( ! empty( $s['mail_captcha_enabled'] ) ); ?>>
+					<span class="velox-switch-track"></span>
+				</label>
+			</div>
+			<div class="vmail-captcha-body<?php echo empty( $s['mail_captcha_enabled'] ) ? ' is-locked' : ''; ?>" id="vmail-captcha-body">
 			<div class="velox-field">
 				<span class="velox-field-label">Provider</span>
 				<select class="velox-select" data-setting="mail_captcha_provider">
 					<option value="turnstile" <?php selected( $s['mail_captcha_provider'], 'turnstile' ); ?>>Cloudflare Turnstile (free)</option>
 					<option value="recaptcha" <?php selected( $s['mail_captcha_provider'], 'recaptcha' ); ?>>Google reCAPTCHA</option>
 				</select>
-				<span class="velox-hint">Get keys from your provider, paste them below, then switch on "Require CAPTCHA" per form. No keys = the option stays unusable.</span>
+				<span class="velox-hint">Get keys from your provider, paste them below, then switch on “Require CAPTCHA” per form. No keys = the option stays unusable.</span>
 			</div>
 			<div class="velox-grid-2">
 				<div class="velox-field"><span class="velox-field-label">Site key</span><input type="text" class="velox-input" data-setting="mail_captcha_site" value="<?php echo esc_attr( $s['mail_captcha_site'] ); ?>"></div>
 				<div class="velox-field"><span class="velox-field-label">Secret key</span><input type="text" class="velox-input" data-setting="mail_captcha_secret" value="<?php echo esc_attr( $s['mail_captcha_secret'] ); ?>"></div>
+			</div>
 			</div>
 			<div class="velox-tool-actions"><button class="velox-btn velox-btn--primary velox-util-save">Save settings</button></div>
 		</div>

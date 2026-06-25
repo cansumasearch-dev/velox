@@ -104,6 +104,10 @@ gtag('consent','update',{
 			// new responsive controls
 			'cookie_layout_mobile' => 'inherit', 'cookie_width' => 460, 'cookie_font_size' => 14,
 			'cookie_btn_full_mobile' => true,
+			// Oxygen-style structural layout controls
+			'cookie_layout_mode' => 'preset', 'cookie_display' => 'flex', 'cookie_direction' => 'row',
+			'cookie_align' => 'center', 'cookie_justify' => 'space-between', 'cookie_gap' => 24,
+			'cookie_grid_cols' => 2, 'cookie_pad_y' => 22, 'cookie_pad_x' => 24, 'cookie_margin' => 0,
 		);
 		$out = array();
 		foreach ( $keys as $k => $d ) {
@@ -141,6 +145,38 @@ gtag('consent','update',{
 		$mob_layout = ( 'inherit' === $mobile ) ? $layout : $mobile;
 		$pos_m = self::position_css( $mob_layout, min( $offset, 12 ), $width );
 
+		// --- Oxygen-style structural layout ---
+		// In 'custom' mode the inner box layout is driven by explicit controls
+		// instead of the preset's box rule. Positioning (where the box sits on
+		// screen) always comes from the preset's 'root'.
+		$custom_layout = ( isset( $o['cookie_layout_mode'] ) && 'custom' === $o['cookie_layout_mode'] );
+		if ( $custom_layout ) {
+			$disp  = in_array( $o['cookie_display'], array( 'flex', 'grid', 'block' ), true ) ? $o['cookie_display'] : 'flex';
+			$gap   = max( 0, (int) $o['cookie_gap'] );
+			$pad_y = max( 0, (int) $o['cookie_pad_y'] );
+			$pad_x = max( 0, (int) $o['cookie_pad_x'] );
+			$mgn   = max( 0, (int) $o['cookie_margin'] );
+			$box_css = 'width:100%;';
+			if ( 'flex' === $disp ) {
+				$dir   = ( 'column' === $o['cookie_direction'] ) ? 'column' : 'row';
+				$ai    = in_array( $o['cookie_align'], array( 'flex-start', 'center', 'flex-end', 'stretch' ), true ) ? $o['cookie_align'] : 'center';
+				$ji    = in_array( $o['cookie_justify'], array( 'flex-start', 'center', 'flex-end', 'space-between', 'space-around' ), true ) ? $o['cookie_justify'] : 'space-between';
+				$box_css .= 'display:flex;flex-wrap:wrap;flex-direction:' . $dir . ';align-items:' . $ai . ';justify-content:' . $ji . ';gap:' . $gap . 'px;';
+			} elseif ( 'grid' === $disp ) {
+				$cols  = max( 1, min( 4, (int) $o['cookie_grid_cols'] ) );
+				$box_css .= 'display:grid;grid-template-columns:repeat(' . $cols . ',minmax(0,1fr));gap:' . $gap . 'px;align-items:center;';
+			} else {
+				$box_css .= 'display:block;';
+			}
+			if ( $mgn > 0 ) { $box_css .= 'margin:' . $mgn . 'px;'; }
+			$pad_css = $pad_y . 'px ' . $pad_x . 'px';
+			// Replace the preset box rule with our structural one.
+			$pos['box'] = $box_css;
+			$pad_decl = $pad_css;
+		} else {
+			$pad_decl = '22px 24px';
+		}
+
 		// p = prefix selector (scoped or global)
 		$p = $scope ? $scope . ' ' : '';
 
@@ -148,7 +184,7 @@ gtag('consent','update',{
 		?>
 <?php echo $p; ?>.vxck-root{position:<?php echo $scope ? 'absolute' : 'fixed'; ?>;z-index:2147483600;<?php echo $pos['root']; // phpcs:ignore ?>}
 <?php echo $p; ?>.vxck-overlay{position:<?php echo $scope ? 'absolute' : 'fixed'; ?>;inset:0;background:rgba(8,10,18,.5);z-index:2147483500;}
-<?php echo $p; ?>.vxck{box-sizing:border-box;<?php echo $pos['box']; // phpcs:ignore ?>;background:<?php echo $bg; ?>;color:<?php echo $text; ?>;border:<?php echo $bw; ?>px solid <?php echo $bcol; ?>;border-radius:<?php echo $rad; ?>px;box-shadow:<?php echo $shadow; ?>;padding:22px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;font-size:<?php echo $fs; ?>px;}
+<?php echo $p; ?>.vxck{box-sizing:border-box;<?php echo $pos['box']; // phpcs:ignore ?>;background:<?php echo $bg; ?>;color:<?php echo $text; ?>;border:<?php echo $bw; ?>px solid <?php echo $bcol; ?>;border-radius:<?php echo $rad; ?>px;box-shadow:<?php echo $shadow; ?>;padding:<?php echo $pad_decl; ?>;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;font-size:<?php echo $fs; ?>px;}
 <?php echo $p; ?>.vxck *{box-sizing:border-box;}
 <?php echo $p; ?>.vxck-main{flex:1 1 360px;min-width:0;}
 <?php echo $p; ?>.vxck-logo{max-height:34px;width:auto;margin-bottom:12px;display:block;}

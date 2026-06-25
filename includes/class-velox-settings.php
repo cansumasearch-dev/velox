@@ -102,6 +102,17 @@ class Velox_Settings {
 			'cookie_width'             => 460,        // px, floating box / modal width
 			'cookie_font_size'         => 14,         // px base
 			'cookie_btn_full_mobile'   => true,       // stack buttons full-width on mobile
+			// --- Oxygen-style structural layout controls (override preset defaults) ---
+			'cookie_layout_mode'       => 'preset',   // preset | custom — custom unlocks the controls below
+			'cookie_display'           => 'flex',     // flex | grid | block
+			'cookie_direction'         => 'row',      // row | column  (flex only)
+			'cookie_align'             => 'center',   // align-items: flex-start | center | flex-end | stretch
+			'cookie_justify'           => 'space-between', // justify-content
+			'cookie_gap'               => 24,         // px gap between content + actions
+			'cookie_grid_cols'         => 2,          // grid template columns (grid only)
+			'cookie_pad_y'             => 22,         // px vertical padding
+			'cookie_pad_x'             => 24,         // px horizontal padding
+			'cookie_margin'            => 0,          // px outer margin around the box
 
 			// ---- Page cache ----
 			'cache_enable'          => false,
@@ -126,6 +137,7 @@ class Velox_Settings {
 			'mail_primary'        => '',     // connection id
 			'mail_fallback'       => '',     // connection id ('' = none)
 			'mail_migrated_v2'    => false,  // legacy single-connection → connections[] migration flag
+			'mail_captcha_enabled'  => false, // global gate: when off, forms cannot use CAPTCHA
 			'mail_captcha_provider' => 'turnstile', // turnstile | recaptcha
 			'mail_captcha_site'   => '',
 			'mail_captcha_secret' => '',

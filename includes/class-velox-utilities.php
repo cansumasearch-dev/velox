@@ -56,6 +56,24 @@ class Velox_Utilities {
 		return $out;
 	}
 
+	/** Settings URL for a utility, honouring its catalog routing. */
+	public static function tool_url( $id ) {
+		$cat = self::catalog();
+		if ( ! isset( $cat[ $id ] ) ) {
+			return admin_url( 'admin.php?page=velox-utilities' );
+		}
+		$entry = $cat[ $id ];
+		if ( ! empty( $entry['link'] ) ) {
+			// e.g. snippets → velox-snippets, seo → velox-seo, media → velox-media
+			return admin_url( 'admin.php?page=velox-' . $entry['link'] );
+		}
+		if ( ! empty( $entry['page'] ) ) {
+			return admin_url( 'admin.php?page=velox-utilities&tool=' . $id );
+		}
+		// settings-only utilities (svg, duplicate) live on the Utilities hub
+		return admin_url( 'admin.php?page=velox-utilities' );
+	}
+
 	public static function init() {
 		// SVG uploads
 		if ( Velox_Settings::get( 'util_svg_upload' ) ) {
