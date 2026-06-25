@@ -130,14 +130,39 @@
 	/* ---------------- List ---------------- */
 
 	function initList( list ) {
-		var addBtn  = $( '#velox-snip-add-btn' );
-		var addMenu = $( '#velox-snip-add-menu' );
-		if ( addBtn && addMenu ) {
-			addBtn.addEventListener( 'click', function ( e ) {
-				e.stopPropagation();
-				addMenu.hidden = ! addMenu.hidden;
+		var addBtn = $( '#velox-snip-add-btn' );
+		var modal  = $( '#velox-snip-modal' );
+		if ( addBtn && modal ) {
+			function openModal() { modal.hidden = false; }
+			function closeModal() { modal.hidden = true; }
+			addBtn.addEventListener( 'click', openModal );
+			modal.addEventListener( 'click', function ( e ) {
+				if ( e.target.closest( '[data-close]' ) ) { closeModal(); }
 			} );
-			document.addEventListener( 'click', function () { addMenu.hidden = true; } );
+			document.addEventListener( 'keydown', function ( e ) {
+				if ( e.key === 'Escape' && ! modal.hidden ) { closeModal(); }
+			} );
+		}
+
+		// Safe Mode rescue buttons (only present when Safe Mode is showing).
+		var clearPanic = $( '#velox-snip-clear-panic' );
+		if ( clearPanic ) {
+			clearPanic.addEventListener( 'click', function () {
+				clearPanic.disabled = true;
+				api( 'snippet_clear_panic', {} )
+					.then( function () { toast( 'Safe Mode cleared.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); clearPanic.disabled = false; } );
+			} );
+		}
+		var disableAll = $( '#velox-snip-disable-all' );
+		if ( disableAll ) {
+			disableAll.addEventListener( 'click', function () {
+				if ( ! window.confirm( 'Switch off every PHP snippet? Your CSS/JS/HTML snippets stay as they are.' ) ) { return; }
+				disableAll.disabled = true;
+				api( 'snippet_disable_all', {} )
+					.then( function () { toast( 'All PHP snippets switched off.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); disableAll.disabled = false; } );
+			} );
 		}
 
 		function reload() { setTimeout( function () { location.reload(); }, 400 ); }

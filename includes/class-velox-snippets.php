@@ -26,6 +26,29 @@ class Velox_Snippets {
 	/** Id of the PHP snippet currently being eval'd — read by the shutdown guard. */
 	private static $executing = 0;
 
+	const SAFE_OPTION  = 'velox_snippets_safe';   // breadcrumb: id we're about to run
+	const PANIC_OPTION = 'velox_snippets_panic';   // how many consecutive crashes seen
+
+	/**
+	 * Safe Mode is ON (no PHP snippets run) when any of these is true:
+	 *  - the URL carries ?velox-safe-mode=1 (admin escape hatch)
+	 *  - the constant VELOX_SNIPPETS_SAFE_MODE is defined truthy (wp-config rescue)
+	 *  - the panic counter tripped (too many back-to-back crashes)
+	 */
+	public static function safe_mode() {
+		if ( defined( 'VELOX_SNIPPETS_SAFE_MODE' ) && VELOX_SNIPPETS_SAFE_MODE ) {
+			return true;
+		}
+		// phpcs:ignore WordPress.Security.NonceVerification
+		if ( isset( $_GET['velox-safe-mode'] ) && '1' === $_GET['velox-safe-mode'] ) {
+			return true;
+		}
+		if ( (int) get_option( self::PANIC_OPTION, 0 ) >= 2 ) {
+			return true;
+		}
+		return false;
+	}
+
 	/* ------------------------------------------------------------------ */
 	/* Bootstrap                                                          */
 	/* ------------------------------------------------------------------ */
@@ -54,7 +77,15 @@ class Velox_Snippets {
 			add_action( 'admin_menu', array( __CLASS__, 'admin_menu' ) );
 			add_action( 'admin_head', array( __CLASS__, 'menu_icon_css' ) );
 			add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
+			add_action( 'admin_post_velox_snippet_export', array( __CLASS__, 'handle_export' ) );
 		}
+	}
+
+	/** Verify nonce + cap, then stream the exported-plugin zip. */
+	public static function handle_export() {
+		$id = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0;
+		check_admin_referer( 'velox_snippet_export_' . $id );
+		self::export_plugin_zip( $id );
 	}
 
 	public static function table() {
@@ -283,11 +314,32 @@ class Velox_Snippets {
 	}
 
 	public static function run_php() {
+		// Safe Mode: skip every PHP snippet so a fatal one can't lock you out.
+		if ( self::safe_mode() ) {
+			return;
+		}
+
+		// Recovery: if a breadcrumb survived from last request, that snippet hard-
+		// crashed the whole process (our shutdown guard never got to run). Disable
+		// it now and bump the panic counter so repeated crashes trip Safe Mode.
+		$crashed = (int) get_option( self::SAFE_OPTION, 0 );
+		if ( $crashed ) {
+			delete_option( self::SAFE_OPTION );
+			self::set_active( $crashed, false, 'Auto-disabled after it crashed the site on the previous load.' );
+			update_option( self::PANIC_OPTION, (int) get_option( self::PANIC_OPTION, 0 ) + 1, false );
+			return; // don't run anything else this load — let the site recover first
+		}
+
 		foreach ( self::all( 'active' ) as $snippet ) {
 			if ( 'php' !== $snippet['type'] || ! self::scope_matches( $snippet['scope'] ) ) {
 				continue;
 			}
 			self::execute_php( $snippet );
+		}
+
+		// A clean full pass with no crash → reset the panic counter.
+		if ( (int) get_option( self::PANIC_OPTION, 0 ) > 0 ) {
+			update_option( self::PANIC_OPTION, 0, false );
 		}
 	}
 
@@ -297,11 +349,16 @@ class Velox_Snippets {
 			return;
 		}
 		self::$executing = (int) $snippet['id'];
+		// Breadcrumb BEFORE eval: if the process dies entirely (white screen,
+		// memory/timeout, the shutdown guard never firing), the next load reads
+		// this and disables the culprit. Cleared the moment eval returns OK.
+		update_option( self::SAFE_OPTION, (int) $snippet['id'], false );
 		try {
 			eval( $code ); // phpcs:ignore Squiz.PHP.Eval
 		} catch ( \Throwable $e ) {
 			self::set_active( $snippet['id'], false, 'Disabled after an error: ' . $e->getMessage() );
 		}
+		delete_option( self::SAFE_OPTION );
 		self::$executing = 0;
 
 		// "Run once" → switch off after a successful run.
@@ -319,7 +376,24 @@ class Velox_Snippets {
 		$fatal = array( E_ERROR, E_PARSE, E_COMPILE, E_CORE_ERROR, E_USER_ERROR );
 		if ( $err && in_array( $err['type'], $fatal, true ) ) {
 			self::set_active( self::$executing, false, 'Auto-disabled after a fatal error: ' . $err['message'] );
+			delete_option( self::SAFE_OPTION ); // handled here → no need for next-load recovery
+			update_option( self::PANIC_OPTION, (int) get_option( self::PANIC_OPTION, 0 ) + 1, false );
 		}
+	}
+
+	/** Manual reset of Safe Mode's panic counter + breadcrumb (from the admin). */
+	public static function clear_panic() {
+		delete_option( self::SAFE_OPTION );
+		update_option( self::PANIC_OPTION, 0, false );
+		return array( 'ok' => true );
+	}
+
+	/** Turn every PHP snippet off in one shot (admin "disable all" rescue). */
+	public static function disable_all_php() {
+		global $wpdb;
+		$wpdb->query( "UPDATE " . self::table() . " SET active = 0 WHERE type = 'php' AND active = 1" ); // phpcs:ignore WordPress.DB
+		self::clear_panic();
+		return array( 'ok' => true );
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -364,6 +438,147 @@ class Velox_Snippets {
 			return '';
 		}
 		return $s['code'];
+	}
+
+	/* ------------------------------------------------------------------ */
+	/* Export as a standalone plugin                                      */
+	/* ------------------------------------------------------------------ */
+
+	/**
+	 * Turn a snippet into a self-contained WordPress plugin: a folder with a
+	 * single PHP file that does exactly what the snippet did, with no dependency
+	 * on Velox. Returns the generated plugin's main-file source + a slug.
+	 *
+	 * @return array { ok, slug?, file?, php?, message? }
+	 */
+	public static function export_plugin_source( $id ) {
+		$s = self::get( $id );
+		if ( ! $s ) {
+			return array( 'ok' => false, 'message' => 'Snippet not found.' );
+		}
+		$name = trim( $s['name'] ) !== '' ? $s['name'] : 'Velox snippet ' . (int) $id;
+		$slug = sanitize_title( $name );
+		if ( '' === $slug ) {
+			$slug = 'velox-snippet-' . (int) $id;
+		}
+		$slug = 'velox-' . $slug;
+		$desc = trim( (string) $s['description'] );
+		if ( '' === $desc ) {
+			$desc = 'Exported from a Velox code snippet.';
+		}
+		$type  = $s['type'];
+		$scope = $s['scope'];
+		$code  = (string) $s['code'];
+
+		$header = "<?php\n"
+			. "/**\n"
+			. ' * Plugin Name: ' . self::comment_safe( $name ) . "\n"
+			. ' * Description: ' . self::comment_safe( $desc ) . "\n"
+			. " * Version: 1.0.0\n"
+			. " * Requires at least: 5.5\n"
+			. " * Requires PHP: 7.4\n"
+			. ' * Author: Exported by Velox' . "\n"
+			. " */\n\n"
+			. "if ( ! defined( 'ABSPATH' ) ) { exit; }\n\n";
+
+		$body = self::plugin_body( $type, $scope, $code, $slug );
+
+		return array(
+			'ok'   => true,
+			'slug' => $slug,
+			'file' => $slug . '.php',
+			'php'  => $header . $body,
+		);
+	}
+
+	/** Build the executable part of the exported plugin for each snippet type. */
+	private static function plugin_body( $type, $scope, $code, $slug ) {
+		$fn = 'velox_x_' . str_replace( '-', '_', $slug );
+
+		if ( 'php' === $type ) {
+			$inner = self::strip_php_open( $code );
+			// front/admin scope → guard; everywhere/once → run on init.
+			$guard = '';
+			if ( 'admin' === $scope ) {
+				$guard = "\tif ( ! is_admin() ) { return; }\n";
+			} elseif ( 'front' === $scope ) {
+				$guard = "\tif ( is_admin() ) { return; }\n";
+			}
+			return "function {$fn}() {\n" . $guard . $inner . "\n}\nadd_action( 'init', '{$fn}', 5 );\n";
+		}
+
+		if ( 'css' === $type ) {
+			$hook  = ( 'admin' === $scope ) ? 'admin_head' : 'wp_head';
+			$css   = self::heredoc( $code, 'VELOXCSS' );
+			return "function {$fn}() {\n\techo \"\\n<style id=\\\"{$slug}\\\">\\n\" . {$css} . \"\\n</style>\\n\";\n}\nadd_action( '{$hook}', '{$fn}', 20 );\n";
+		}
+
+		if ( 'js' === $type ) {
+			$hook  = ( 'admin' === $scope ) ? 'admin_footer' : 'wp_footer';
+			$js    = self::heredoc( $code, 'VELOXJS' );
+			return "function {$fn}() {\n\techo \"\\n<script id=\\\"{$slug}\\\">\\n\" . {$js} . \"\\n</script>\\n\";\n}\nadd_action( '{$hook}', '{$fn}', 20 );\n";
+		}
+
+		// html
+		$hook = ( 'admin' === $scope ) ? 'admin_footer' : 'wp_footer';
+		$html = self::heredoc( $code, 'VELOXHTML' );
+		return "function {$fn}() {\n\techo \"\\n\" . {$html} . \"\\n\";\n}\nadd_action( '{$hook}', '{$fn}', 20 );\n";
+	}
+
+	/** Wrap arbitrary text in a Nowdoc so it's emitted verbatim, never executed. */
+	private static function heredoc( $text, $tag ) {
+		// Ensure the closing tag never appears inside the body.
+		$t = $tag;
+		while ( false !== strpos( $text, $t ) ) {
+			$t = $tag . wp_rand( 10, 99 );
+		}
+		return "<<<'{$t}'\n" . $text . "\n{$t}";
+	}
+
+	private static function comment_safe( $s ) {
+		// Keep plugin-header values on one line and out of the comment terminator.
+		return trim( str_replace( array( "\n", "\r", '*/' ), array( ' ', ' ', '* /' ), (string) $s ) );
+	}
+
+	/** Stream the exported plugin as a .zip download (nonce-checked upstream). */
+	public static function export_plugin_zip( $id ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Not allowed.', 'velox' ) );
+		}
+		$gen = self::export_plugin_source( $id );
+		if ( empty( $gen['ok'] ) ) {
+			wp_die( esc_html( $gen['message'] ) );
+		}
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			wp_die( esc_html__( 'PHP-zip is not available on this server, so the plugin zip cannot be built. Ask your host to enable the php-zip extension.', 'velox' ) );
+		}
+
+		$slug = $gen['slug'];
+		$tmp  = wp_tempnam( $slug . '.zip' );
+		$zip  = new ZipArchive();
+		if ( true !== $zip->open( $tmp, ZipArchive::OVERWRITE ) ) {
+			wp_die( esc_html__( 'Could not create the zip file.', 'velox' ) );
+		}
+		$zip->addFromString( $slug . '/' . $gen['file'], $gen['php'] );
+		$zip->addFromString( $slug . '/readme.txt', self::export_readme( $slug ) );
+		$zip->close();
+
+		$data = file_get_contents( $tmp );
+		wp_delete_file( $tmp );
+
+		nocache_headers();
+		header( 'Content-Type: application/zip' );
+		header( 'Content-Disposition: attachment; filename="' . $slug . '.zip"' );
+		header( 'Content-Length: ' . strlen( $data ) );
+		echo $data; // phpcs:ignore WordPress.Security.EscapeOutput
+		exit;
+	}
+
+	private static function export_readme( $slug ) {
+		return "=== {$slug} ===\n\n"
+			. "This plugin was exported from a Velox code snippet. It is fully standalone —\n"
+			. "it does not require Velox to be installed.\n\n"
+			. "Install: upload the zip under Plugins → Add New → Upload Plugin, then activate.\n";
 	}
 
 	/* ------------------------------------------------------------------ */
@@ -433,5 +648,12 @@ class Velox_Snippets {
 
 	public static function new_url( $type = 'php' ) {
 		return admin_url( 'admin.php?page=' . self::MENU_SLUG . '&action=new&type=' . $type );
+	}
+
+	public static function export_url( $id ) {
+		return wp_nonce_url(
+			admin_url( 'admin-post.php?action=velox_snippet_export&id=' . (int) $id ),
+			'velox_snippet_export_' . (int) $id
+		);
 	}
 }

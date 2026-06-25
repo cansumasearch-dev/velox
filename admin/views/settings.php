@@ -103,6 +103,31 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
+	<h3 class="velox-panel-title">Migrate from another plugin</h3>
+	<p class="velox-hint">Switching to Velox? Pull your existing configuration straight from these plugins. Velox only reads them — nothing in the other plugin is changed, and your current Velox values aren't overwritten where one already exists.</p>
+	<div class="velox-import-sources">
+		<?php foreach ( Velox_Import::sources() as $key => $src ) : ?>
+			<div class="velox-import-src" data-source="<?php echo esc_attr( $key ); ?>">
+				<div class="velox-import-src-main">
+					<div class="velox-import-src-head">
+						<strong><?php echo esc_html( $src['label'] ); ?></strong>
+						<?php if ( $src['detected'] ) : ?>
+							<span class="velox-pill velox-pill--ok">Detected</span>
+						<?php else : ?>
+							<span class="velox-pill">Not found</span>
+						<?php endif; ?>
+						<span class="velox-import-into">→ <?php echo esc_html( $src['into'] ); ?></span>
+					</div>
+					<p class="velox-hint" style="margin:4px 0 0;"><?php echo esc_html( $src['desc'] ); ?></p>
+					<div class="velox-import-result" hidden></div>
+				</div>
+				<button class="velox-btn velox-btn--ghost velox-import-run" type="button" <?php echo $src['detected'] ? '' : 'disabled'; ?>>Import</button>
+			</div>
+		<?php endforeach; ?>
+	</div>
+</div>
+
+<div class="velox-panel">
 	<h3 class="velox-panel-title">Import / Export</h3>
 	<p class="velox-hint">Copy your whole Velox config to another site. Export gives you a JSON blob; paste one in and hit Import to apply it.</p>
 	<div class="velox-actions">

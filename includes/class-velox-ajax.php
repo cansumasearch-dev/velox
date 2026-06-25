@@ -279,6 +279,62 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Snippets::delete_permanent( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
 				break;
 
+			case 'snippet_clear_panic':
+				wp_send_json_success( Velox_Snippets::clear_panic() );
+				break;
+
+			case 'snippet_disable_all':
+				wp_send_json_success( Velox_Snippets::disable_all_php() );
+				break;
+
+			case 'velox_import':
+				$source = isset( $_POST['source'] ) ? sanitize_key( wp_unslash( $_POST['source'] ) ) : '';
+				wp_send_json_success( Velox_Import::run( $source ) );
+				break;
+
+			case 'backup_create':
+				$what = isset( $_POST['what'] ) ? sanitize_key( wp_unslash( $_POST['what'] ) ) : 'both';
+				$r = Velox_Backup::create( $what, 'Manual' );
+				Velox_Backup::enforce_retention();
+				if ( empty( $r['ok'] ) ) {
+					wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Backup failed.' ) );
+				}
+				wp_send_json_success( $r );
+				break;
+
+			case 'backup_delete':
+				$id = isset( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
+				wp_send_json_success( Velox_Backup::delete( $id ) );
+				break;
+
+			case 'backup_restore':
+				$id   = isset( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
+				$what = isset( $_POST['what'] ) ? sanitize_key( wp_unslash( $_POST['what'] ) ) : 'both';
+				$r = Velox_Backup::restore( $id, $what );
+				if ( empty( $r['ok'] ) ) {
+					wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Restore failed.' ) );
+				}
+				wp_send_json_success( $r );
+				break;
+
+			case 'backup_schedule':
+				$all = Velox_Settings::all();
+				if ( isset( $_POST['backup_schedule'] ) ) {
+					$f = sanitize_key( wp_unslash( $_POST['backup_schedule'] ) );
+					$all['backup_schedule'] = in_array( $f, array( 'off', 'daily', 'weekly', 'monthly' ), true ) ? $f : 'off';
+				}
+				if ( isset( $_POST['backup_schedule_what'] ) ) {
+					$w = sanitize_key( wp_unslash( $_POST['backup_schedule_what'] ) );
+					$all['backup_schedule_what'] = in_array( $w, array( 'db', 'files', 'both' ), true ) ? $w : 'both';
+				}
+				if ( isset( $_POST['backup_keep'] ) ) {
+					$all['backup_keep'] = max( 1, min( 50, (int) $_POST['backup_keep'] ) );
+				}
+				Velox_Settings::save( $all );
+				Velox_Backup::sync_schedule();
+				wp_send_json_success( array( 'message' => 'Schedule saved.', 'next_run' => wp_next_scheduled( Velox_Backup::HOOK ) ) );
+				break;
+
 			case 'redirect_update':
 				$rid  = isset( $_POST['id'] ) ? (int) $_POST['id'] : 0;
 				$src  = isset( $_POST['source'] ) ? wp_unslash( $_POST['source'] ) : '';
@@ -333,11 +389,48 @@ class Velox_Ajax {
 				break;
 
 			case 'mail_test':
-				wp_send_json_success( Velox_Mail::send_test( isset( $_POST['to'] ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : '' ) );
+				wp_send_json_success( Velox_Mail::send_test(
+					isset( $_POST['to'] ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : '',
+					isset( $_POST['conn'] ) ? sanitize_key( wp_unslash( $_POST['conn'] ) ) : ''
+				) );
+				break;
+
+			case 'mail_resend':
+				wp_send_json_success( Velox_Mail::resend( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'mail_save_routing':
+				$conns    = isset( $_POST['connections'] ) ? json_decode( wp_unslash( $_POST['connections'] ), true ) : array();
+				$routes   = isset( $_POST['routes'] ) ? json_decode( wp_unslash( $_POST['routes'] ), true ) : array();
+				$primary  = isset( $_POST['primary'] ) ? sanitize_key( wp_unslash( $_POST['primary'] ) ) : '';
+				$fallback = isset( $_POST['fallback'] ) ? sanitize_key( wp_unslash( $_POST['fallback'] ) ) : '';
+				wp_send_json_success( Velox_Mail::save_routing(
+					is_array( $conns ) ? $conns : array(),
+					is_array( $routes ) ? $routes : array(),
+					$primary,
+					$fallback
+				) );
 				break;
 
 			case 'mail_log_clear':
 				wp_send_json_success( Velox_Mail::clear_log() );
+				break;
+
+			case 'cookie_preview':
+				$opts_raw = isset( $_POST['opts'] ) ? json_decode( wp_unslash( $_POST['opts'] ), true ) : array();
+				$opts_raw = is_array( $opts_raw ) ? $opts_raw : array();
+				// Coerce a few numerics/bools the JS sends as strings.
+				foreach ( array( 'cookie_border_width', 'cookie_radius', 'cookie_offset', 'cookie_width', 'cookie_font_size' ) as $nk ) {
+					if ( isset( $opts_raw[ $nk ] ) ) { $opts_raw[ $nk ] = (int) $opts_raw[ $nk ]; }
+				}
+				foreach ( array( 'cookie_shadow', 'cookie_overlay', 'cookie_cat_analytics', 'cookie_cat_marketing', 'cookie_btn_full_mobile' ) as $bk ) {
+					if ( isset( $opts_raw[ $bk ] ) ) { $opts_raw[ $bk ] = ( '1' === (string) $opts_raw[ $bk ] || 1 === $opts_raw[ $bk ] || true === $opts_raw[ $bk ] ); }
+				}
+				$opts = Velox_Cookies::options( $opts_raw );
+				wp_send_json_success( array(
+					'css'  => Velox_Cookies::style_block( $opts, '#vxck-stage' ),
+					'html' => Velox_Cookies::markup( $opts, true ),
+				) );
 				break;
 
 			case 'october_build':

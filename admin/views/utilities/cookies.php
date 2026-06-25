@@ -26,13 +26,16 @@ $s  = Velox_Settings::all();
 			<div class="velox-panel velox-tool-form">
 				<h3 class="velox-panel-title">Behaviour &amp; API</h3>
 				<div class="velox-field">
-					<span class="velox-field-label">Placement</span>
-					<select class="velox-select" data-setting="cookie_layout" id="ck-layout">
+					<span class="velox-field-label">Placement (desktop)</span>
+					<select class="velox-select vxck-live" data-setting="cookie_layout" id="ck-layout">
 						<?php
 						$layouts = array(
 							'bar-bottom'   => 'Bottom bar (full width)',
+							'bar-top'      => 'Top bar (full width)',
 							'box-bl'       => 'Floating box — bottom left',
 							'box-br'       => 'Floating box — bottom right',
+							'box-tl'       => 'Floating box — top left',
+							'box-tr'       => 'Floating box — top right',
 							'modal-center' => 'Centred modal',
 						);
 						foreach ( $layouts as $v => $l ) {
@@ -40,6 +43,18 @@ $s  = Velox_Settings::all();
 						}
 						?>
 					</select>
+				</div>
+				<div class="velox-field">
+					<span class="velox-field-label">Placement (mobile)</span>
+					<select class="velox-select vxck-live" data-setting="cookie_layout_mobile" id="ck-layout-mobile">
+						<?php
+						$layouts_m = array( 'inherit' => 'Same as desktop' ) + $layouts;
+						foreach ( $layouts_m as $v => $l ) {
+							printf( '<option value="%s"%s>%s</option>', esc_attr( $v ), selected( $s['cookie_layout_mobile'], $v, false ), esc_html( $l ) );
+						}
+						?>
+					</select>
+					<span class="velox-hint">Phones often work best as a bottom or top bar even when desktop is a floating box.</span>
 				</div>
 				<label class="velox-toggle-row">
 					<div class="velox-toggle-meta">
@@ -111,7 +126,9 @@ $s  = Velox_Settings::all();
 				<div class="velox-grid-2" style="margin-top:14px;">
 					<div class="velox-field"><span class="velox-field-label">Border width (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_border_width" value="<?php echo esc_attr( (int) $s['cookie_border_width'] ); ?>"></div>
 					<div class="velox-field"><span class="velox-field-label">Corner radius (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_radius" value="<?php echo esc_attr( (int) $s['cookie_radius'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Edge offset (px)</span><input type="number" class="velox-input velox-input--sm" data-setting="cookie_offset" value="<?php echo esc_attr( (int) $s['cookie_offset'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label">Edge offset (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_offset" value="<?php echo esc_attr( (int) $s['cookie_offset'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label">Box / modal width (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_width" value="<?php echo esc_attr( (int) $s['cookie_width'] ); ?>"><span class="velox-hint">Floating boxes &amp; modal only — bars are full width.</span></div>
+					<div class="velox-field"><span class="velox-field-label">Base font size (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_font_size" value="<?php echo esc_attr( (int) $s['cookie_font_size'] ); ?>"></div>
 				</div>
 				<div class="velox-grid-2">
 					<label class="velox-toggle-row">
@@ -120,7 +137,11 @@ $s  = Velox_Settings::all();
 					</label>
 					<label class="velox-toggle-row">
 						<div class="velox-toggle-meta"><span class="velox-toggle-label">Dim background (modal)</span></div>
-						<span class="velox-switch"><input type="checkbox" data-setting="cookie_overlay" <?php checked( ! empty( $s['cookie_overlay'] ) ); ?>><span class="velox-switch-track"></span></span>
+						<span class="velox-switch"><input type="checkbox" class="vxck-live" data-setting="cookie_overlay" <?php checked( ! empty( $s['cookie_overlay'] ) ); ?>><span class="velox-switch-track"></span></span>
+					</label>
+					<label class="velox-toggle-row">
+						<div class="velox-toggle-meta"><span class="velox-toggle-label">Full-width buttons on mobile</span></div>
+						<span class="velox-switch"><input type="checkbox" class="vxck-live" data-setting="cookie_btn_full_mobile" <?php checked( ! empty( $s['cookie_btn_full_mobile'] ) ); ?>><span class="velox-switch-track"></span></span>
 					</label>
 				</div>
 			</div>
@@ -138,21 +159,30 @@ $s  = Velox_Settings::all();
 		</div>
 
 		<aside class="vxck-admin-preview">
-			<span class="vxck-preview-label">Live preview</span>
-			<div class="vxck-stage" id="vxck-stage">
-				<div class="vxck-prev" id="vxck-prev">
-					<img class="vxck-prev-logo" id="ck-logo" alt="" hidden>
-					<p class="vxck-prev-h" id="ck-h"></p>
-					<p class="vxck-prev-body" id="ck-body"></p>
-					<div class="vxck-prev-links" id="ck-links"></div>
-					<div class="vxck-prev-actions">
-						<button class="vxck-prev-btn" id="ck-accept"></button>
-						<button class="vxck-prev-btn vxck-prev-btn2" id="ck-reject"></button>
-						<button class="vxck-prev-btn vxck-prev-btn2" id="ck-prefs"></button>
-					</div>
-					<p class="vxck-prev-small" id="ck-small"></p>
+			<div class="vxck-preview-bar">
+				<span class="vxck-preview-label">Live preview</span>
+				<div class="vxck-device-tabs">
+					<button type="button" class="vxck-device is-active" data-device="desktop">Desktop</button>
+					<button type="button" class="vxck-device" data-device="mobile">Mobile</button>
 				</div>
 			</div>
+			<?php
+			$preview_opts = Velox_Cookies::options();
+			$preview_css  = Velox_Cookies::style_block( $preview_opts, '#vxck-stage' );
+			$preview_html = Velox_Cookies::markup( $preview_opts, true );
+			?>
+			<style id="vxck-prev-style"><?php echo $preview_css; // phpcs:ignore WordPress.Security.EscapeOutput ?></style>
+			<div class="vxck-stage" id="vxck-stage" data-device="desktop">
+				<div class="vxck-stage-page">
+					<span class="vxck-stage-faux-h"></span>
+					<span class="vxck-stage-faux-l"></span>
+					<span class="vxck-stage-faux-l short"></span>
+				</div>
+				<div class="vxck-root" id="vxck-prev-root">
+					<?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput ?>
+				</div>
+			</div>
+			<p class="velox-hint" style="margin-top:10px;">This is the real banner — same markup and CSS your visitors get. Switch the device tabs to check both layouts.</p>
 		</aside>
 	</div>
 
@@ -160,35 +190,59 @@ $s  = Velox_Settings::all();
 	( function () {
 		var root = document.querySelector( '.vxck-admin' );
 		if ( ! root ) { return; }
-		function val( key ) { var el = root.querySelector( '[data-setting="' + key + '"]' ); if ( ! el ) { return ''; } return el.type === 'checkbox' ? el.checked : el.value; }
-		function px( k, d ) { var n = parseInt( val( k ), 10 ); return isNaN( n ) ? d : n; }
-		var prev = document.getElementById( 'vxck-prev' );
-		function render() {
-			var bg = val('cookie_bg'), tx = val('cookie_text'), ac = val('cookie_accent'), act = val('cookie_accent_text'),
-				b2 = val('cookie_btn2_bg'), b2t = val('cookie_btn2_text'), bc = val('cookie_border_color'),
-				bw = px('cookie_border_width',1), rad = px('cookie_radius',16);
-			prev.style.background = bg; prev.style.color = tx;
-			prev.style.border = bw + 'px solid ' + bc;
-			prev.style.borderRadius = rad + 'px';
-			prev.style.boxShadow = val('cookie_shadow') ? '0 18px 50px rgba(15,18,30,.18)' : 'none';
-			var logo = document.getElementById('ck-logo'), lu = val('cookie_logo');
-			if ( lu ) { logo.src = lu; logo.hidden = false; } else { logo.hidden = true; }
-			document.getElementById('ck-h').textContent = val('cookie_heading');
-			document.getElementById('ck-h').style.display = val('cookie_heading') ? '' : 'none';
-			document.getElementById('ck-body').textContent = val('cookie_body');
-			var links = document.getElementById('ck-links'); links.innerHTML = '';
-			[['cookie_link1_label'],['cookie_link2_label']].forEach( function ( p ) {
-				var t = val(p[0]); if ( t ) { var a = document.createElement('a'); a.textContent = t; a.href='#'; a.style.color = ac; links.appendChild(a); }
-			} );
-			var accept = document.getElementById('ck-accept'); accept.textContent = val('cookie_btn_accept'); accept.style.background = ac; accept.style.color = act;
-			var rej = document.getElementById('ck-reject'); rej.textContent = val('cookie_btn_reject'); rej.style.background = b2; rej.style.color = b2t;
-			var pf = document.getElementById('ck-prefs'); pf.textContent = val('cookie_btn_settings'); pf.style.background = b2; pf.style.color = b2t;
-			var sm = document.getElementById('ck-small'); sm.textContent = val('cookie_small_text'); sm.style.display = val('cookie_small_text') ? '' : 'none';
-			prev.querySelectorAll('.vxck-prev-btn').forEach(function(b){ b.style.borderRadius = Math.max(6, Math.round(rad*0.6)) + 'px'; });
+		var stage   = document.getElementById( 'vxck-stage' );
+		var styleEl = document.getElementById( 'vxck-prev-style' );
+		var rootBox = document.getElementById( 'vxck-prev-root' );
+		if ( ! stage || ! styleEl || ! rootBox ) { return; }
+
+		function val( key ) {
+			var el = root.querySelector( '[data-setting="' + key + '"]' );
+			if ( ! el ) { return ''; }
+			return el.type === 'checkbox' ? ( el.checked ? 1 : 0 ) : el.value;
 		}
-		root.addEventListener( 'input', render );
-		root.addEventListener( 'change', render );
-		render();
+
+		// Keys the banner renderer understands (mirror of Velox_Cookies::options()).
+		var KEYS = [ 'cookie_layout','cookie_layout_mobile','cookie_heading','cookie_body',
+			'cookie_btn_accept','cookie_btn_reject','cookie_btn_settings','cookie_small_text','cookie_logo',
+			'cookie_link1_label','cookie_link1_url','cookie_link2_label','cookie_link2_url',
+			'cookie_cat_analytics','cookie_cat_marketing','cookie_bg','cookie_text','cookie_accent',
+			'cookie_accent_text','cookie_btn2_bg','cookie_btn2_text','cookie_border_color','cookie_border_width',
+			'cookie_radius','cookie_shadow','cookie_overlay','cookie_offset','cookie_width','cookie_font_size',
+			'cookie_btn_full_mobile' ];
+
+		var rerenderTimer = null;
+		function payload() {
+			var o = {};
+			KEYS.forEach( function ( k ) { o[ k ] = val( k ); } );
+			return o;
+		}
+
+		// Ask the server to re-render the banner CSS+HTML with the live values, so
+		// the preview is byte-identical to the front end. Debounced.
+		function rerender() {
+			clearTimeout( rerenderTimer );
+			rerenderTimer = setTimeout( function () {
+				api( 'cookie_preview', { opts: JSON.stringify( payload() ) } )
+					.then( function ( r ) {
+						if ( r && r.css != null ) { styleEl.textContent = r.css; }
+						if ( r && r.html != null ) { rootBox.innerHTML = r.html; }
+					} )
+					.catch( function () {} );
+			}, 200 );
+		}
+
+		root.addEventListener( 'input', rerender );
+		root.addEventListener( 'change', rerender );
+
+		// Device tabs — toggle a class the scoped CSS keys its mobile rules off.
+		document.querySelectorAll( '.vxck-device' ).forEach( function ( tab ) {
+			tab.addEventListener( 'click', function () {
+				document.querySelectorAll( '.vxck-device' ).forEach( function ( t ) { t.classList.toggle( 'is-active', t === tab ); } );
+				var d = tab.getAttribute( 'data-device' );
+				stage.setAttribute( 'data-device', d );
+				stage.classList.toggle( 'is-mobile', d === 'mobile' );
+			} );
+		} );
 	} )();
 	</script>
 <?php endif; ?>

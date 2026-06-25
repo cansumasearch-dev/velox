@@ -4,6 +4,53 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.23.0
+- **Backup & restore (new utility).** Back up your database, your files, or both. The database is dumped in pure PHP (no mysqldump needed) with each table's CREATE plus batched INSERTs; files are archived with ZipArchive, excluding the backups folder itself, caches and VCS/node_modules junk. Download any backup as .sql or .zip, delete old ones, and restore the database and/or files in one click.
+- **Safety on restore.** Before overwriting the database, Velox automatically takes a fresh safety snapshot first, so a bad restore can itself be undone. File restores guard against path-traversal in the archive.
+- **Scheduled backups.** Off / daily / weekly / monthly via WP-Cron, choosing DB, files or both, with a keep-newest-N retention that prunes older backups automatically.
+- Backups live in a password-protected folder under wp-content (Deny-from-all + index.php), with unguessable filenames. Everything is removed on uninstall.
+
+## 2.22.0
+- **Export a snippet as a standalone plugin.** Every snippet now has an "Export" action that downloads it as a self-contained WordPress plugin (.zip) — install it on any site, no Velox required. Works for all four types: PHP runs on init with the right admin/front guard, while CSS/JS/HTML are emitted verbatim on the matching hook. The snippet body is wrapped so it is output exactly as written and can never break out of the generated file.
+
+## 2.21.0
+- **Migrate from another plugin.** A new panel in Settings imports your existing configuration from WP Rocket (cache lifespan, exclusions, defer/delay JS, lazy-load, font preloads, DNS-prefetch), Yoast SEO (sitemap on/off plus per-page SEO titles, descriptions and noindex), and WP Mail SMTP (host/port/encryption/auth/From, brought in as a Velox mail connection). Velox only reads the other plugin, never changes it, and won't overwrite Velox values you already set. Caching and SMTP are left switched off so you can review the imported exclusions first.
+- **Script Manager — target whole post types.** Rules can now match by post type and archive, not just page ID/slug: use tokens like type:product, type:post, type:product:archive, plus blog, archive and shop. So "disable Contact Form 7 except on type:page" or "only on type:product" now works without listing every page.
+- Cleaned up Safe Mode options on uninstall.
+
+## 2.20.0
+- **Snippets — Safe Mode.** A bad PHP snippet can no longer lock you out. Velox now drops a breadcrumb right before running each PHP snippet, so even a hard crash that takes the whole process down is traced on the next load and that snippet is switched off automatically. If snippets crash twice in a row, Safe Mode kicks in and skips all PHP snippets (CSS/JS/HTML keep working) until you clear it. You can also force Safe Mode with ?velox-safe-mode=1 in the URL or by defining VELOX_SNIPPETS_SAFE_MODE in wp-config.php.
+- **Snippets — Safe Mode rescue bar** on the list screen with one-click "switch off all PHP snippets" and "clear Safe Mode" buttons.
+- **Snippets — new "Add snippet" type picker.** The old dropdown is now a proper modal with a card per type (PHP / CSS / JS / HTML), each with a short description of what it does and where it runs.
+- Cleaner snippet list rows (hover state, tighter alignment).
+
+## 2.19.0
+- **Cookie banner — the live preview now IS the banner.** Previously the preview was a separate hand-built mock-up that drifted from the real banner. The banner's CSS and HTML now come from one shared renderer that both the front end and the preview use, so what you see in the editor is byte-identical to what visitors get — including placement, offset, width, shadow and the dimmed-overlay modal.
+- **Cookie banner — responsive controls + device preview.** New desktop/mobile preview tabs, a separate mobile placement (e.g. floating box on desktop, bottom bar on phones), and controls for box/modal width, base font size, and full-width buttons on mobile. Two more placements added: top bar and top-left/top-right floating boxes.
+- **Fixed: SEO robots.txt + sitemap enable toggles did not persist** (no save handler — they snapped back on reload) and a missing variable that left the Apply / Regenerate buttons unbound. Both fixed.
+
+## 2.18.0
+- **Multi-step forms.** Add a "Page break" field to split a form into steps. Visitors get Next / Back buttons and a numbered progress bar; each step is validated before they can advance. Step titles show in the progress bar.
+- **Calculation fields.** A read-only field that computes a live result from other fields using a simple formula — e.g. `{quantity} * {price}` — with optional prefix/suffix (€, /mo, etc.). Updates as the visitor types and is recomputed safely on the server (pure arithmetic, never executes code).
+- **Entries CSV export.** Each form's entries can be downloaded as a CSV (UTF-8 with BOM so Excel reads Umlauts correctly), columns in form order plus submitted-at and IP.
+- This completes the core Mail & Forms rework: SMTP routing + builder with conditional logic, validation, multi-step, calculations, notifications, entries and export.
+
+## 2.17.0
+- **Form builder — conditional logic.** Any field can now show or hide itself based on the answers to other fields. Per field you can choose show/hide, match all or any rules, and stack multiple rules with operators (is, is not, contains, greater/less than, is empty, is not empty). Hidden fields are skipped on submit, so a hidden required field never blocks the form. Logic is enforced on the server too, not just in the browser.
+- **Form builder — field validation rules.** Text/phone/URL fields gain min/max length and an optional regex pattern (with a custom error message); number and date fields gain min/max value. Enforced both in the browser (native attributes) and server-side.
+- These build on the existing 3-pane builder (palette, canvas, inspector), 16 field types, drag-to-reorder, merge tags, and admin + auto-reply notifications.
+
+## 2.16.0
+- **Mail rework — multi-connection SMTP with routing + fallback.** You can now add multiple SMTP connections and route mail to them by the From address or name (e.g. send billing@ through a transactional provider and newsletters through another). If a send fails, Velox automatically retries through a designated fallback connection. Existing single-SMTP setups migrate into one connection automatically — nothing to redo.
+- **Send log upgraded.** Each logged message now shows which connection sent it, records the From address and any error, and can be re-sent with one click.
+- **Fixed the duplicate "Mail & forms" heading** on the mail dashboard.
+- Rebuilt the cramped single-column SMTP form into a clean connections editor (named connections, grouped fields, primary/fallback selectors, per-connection test send).
+
+## 2.15.0
+- **Rework foundation (Stage 0).** Formalised the Velox design system as one set of tokens: a full neutral grayscale ramp, 4/8 spacing scale, 6/10/16 radii, a proper shadow ramp (+ shadow-as-border), and motion tokens (150/200ms). #2ab7f1 is now strictly an accent (fills, active nav, focus) with a separate accessible token for accent text/links — it is never used as body text on white.
+- **Top admin bar slimmed to just Velox + a Maintenance toggle.** All module and utility navigation now lives exclusively in the in-plugin left sidebar (no more duplicated nav and cache submenu cluttering the WordPress top bar). Cache clearing remains on the Performance page.
+- Removed a decorative card hover (lift + colour shift) in favour of calm elevation, per the project UI rules.
+
 ## 2.14.2
 - **Export the whole WordPress media library, not just images found on pages.** Scraping page HTML only ever finds images those pages actually place, missing library items used elsewhere or nowhere. The media export now reads every attachment straight from the WordPress media library (the originals), so your October Media library mirrors your WordPress one.
 - Page/CSS references (including resized variants) are still mapped onto the corresponding library file; any image referenced but outside the library (theme/CDN) is resolved and added on top.

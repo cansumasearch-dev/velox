@@ -56,6 +56,14 @@ class Velox_Forms {
 		add_action( 'wp_ajax_velox_form', array( __CLASS__, 'handle_submit' ) );
 		add_action( 'wp_ajax_nopriv_velox_form', array( __CLASS__, 'handle_submit' ) );
 		add_action( 'wp_footer', array( __CLASS__, 'print_assets' ), 5 );
+		add_action( 'admin_post_velox_form_export', array( __CLASS__, 'handle_export' ) );
+	}
+
+	/** Verify nonce + capability, then stream the CSV. */
+	public static function handle_export() {
+		$id = isset( $_GET['form'] ) ? (int) $_GET['form'] : 0;
+		check_admin_referer( 'velox_form_export_' . $id );
+		self::export_csv( $id );
 	}
 
 	/* ------------------------------------------------------------------- CRUD */
@@ -120,7 +128,7 @@ class Velox_Forms {
 			'fields'       => array(),
 			'emails'       => array(),
 		);
-		$types = array( 'text', 'email', 'tel', 'number', 'url', 'date', 'textarea', 'select', 'radio', 'checkbox', 'multiselect', 'country', 'name', 'consent', 'captcha', 'html' );
+		$types = array( 'text', 'email', 'tel', 'number', 'url', 'date', 'textarea', 'select', 'radio', 'checkbox', 'multiselect', 'country', 'name', 'consent', 'captcha', 'html', 'step', 'calc' );
 		foreach ( (array) ( $form['fields'] ?? array() ) as $f ) {
 			$label = sanitize_text_field( $f['label'] ?? '' );
 			$key   = sanitize_key( $f['key'] ?? '' );
@@ -130,6 +138,30 @@ class Velox_Forms {
 			}
 			$w     = $f['width'] ?? 'full';
 			$width = in_array( $w, array( 'full', 'half', 'third' ), true ) ? $w : 'full';
+
+			// Conditional logic: show/hide this field based on another field's value.
+			$cond = array();
+			if ( ! empty( $f['cond'] ) && is_array( $f['cond'] ) ) {
+				$action = ( isset( $f['cond']['action'] ) && 'hide' === $f['cond']['action'] ) ? 'hide' : 'show';
+				$logic  = ( isset( $f['cond']['logic'] ) && 'any' === $f['cond']['logic'] ) ? 'any' : 'all';
+				$rules  = array();
+				foreach ( (array) ( $f['cond']['rules'] ?? array() ) as $r ) {
+					$rfield = sanitize_key( $r['field'] ?? '' );
+					if ( '' === $rfield ) {
+						continue;
+					}
+					$op = in_array( $r['op'] ?? 'is', array( 'is', 'is_not', 'contains', 'gt', 'lt', 'empty', 'not_empty' ), true ) ? $r['op'] : 'is';
+					$rules[] = array(
+						'field' => $rfield,
+						'op'    => $op,
+						'value' => sanitize_text_field( $r['value'] ?? '' ),
+					);
+				}
+				if ( $rules ) {
+					$cond = array( 'action' => $action, 'logic' => $logic, 'rules' => $rules );
+				}
+			}
+
 			$out['fields'][] = array(
 				'key'         => $key,
 				'type'        => in_array( $f['type'] ?? 'text', $types, true ) ? $f['type'] : 'text',
@@ -142,6 +174,14 @@ class Velox_Forms {
 				'width'       => $width,
 				'css'         => sanitize_html_class( $f['css'] ?? '' ),
 				'content'     => isset( $f['content'] ) ? wp_kses_post( $f['content'] ) : '',
+				'min'         => isset( $f['min'] ) && '' !== $f['min'] ? sanitize_text_field( $f['min'] ) : '',
+				'max'         => isset( $f['max'] ) && '' !== $f['max'] ? sanitize_text_field( $f['max'] ) : '',
+				'pattern'     => isset( $f['pattern'] ) ? sanitize_text_field( $f['pattern'] ) : '',
+				'pattern_msg' => isset( $f['pattern_msg'] ) ? sanitize_text_field( $f['pattern_msg'] ) : '',
+				'calc'        => isset( $f['calc'] ) ? self::sanitize_formula( $f['calc'] ) : '',
+				'calc_prefix' => isset( $f['calc_prefix'] ) ? sanitize_text_field( $f['calc_prefix'] ) : '',
+				'calc_suffix' => isset( $f['calc_suffix'] ) ? sanitize_text_field( $f['calc_suffix'] ) : '',
+				'cond'        => $cond,
 			);
 		}
 		foreach ( (array) ( $form['emails'] ?? array() ) as $e ) {
@@ -183,20 +223,85 @@ class Velox_Forms {
 		}
 
 		ob_start();
-		?>
-		<form class="velox-form" data-form="<?php echo (int) $id; ?>" style="--vf-accent:<?php echo $accent; ?>">
-			<div class="velox-form-msg" hidden></div>
-			<div class="velox-form-grid">
-				<?php foreach ( $form['fields'] as $f ) : ?>
-					<?php echo self::field_html( $f ); // phpcs:ignore ?>
+
+		// Detect multi-step: any 'step' field acts as a page break. The label of a
+		// step field becomes the title of the step that FOLLOWS it; the first step's
+		// title can be set on a leading step field (or defaults).
+		$has_steps = false;
+		foreach ( $form['fields'] as $f ) {
+			if ( 'step' === $f['type'] ) { $has_steps = true; break; }
+		}
+
+		if ( $has_steps ) {
+			// Group fields into steps. A leading 'step' field titles step 1; otherwise
+			// step 1 is untitled and starts immediately.
+			$steps = array();
+			$cur   = array( 'title' => '', 'fields' => array() );
+			$first = true;
+			foreach ( $form['fields'] as $f ) {
+				if ( 'step' === $f['type'] ) {
+					if ( $first && empty( $cur['fields'] ) ) {
+						// leading step → titles the first step
+						$cur['title'] = $f['label'];
+						$first = false;
+						continue;
+					}
+					$steps[] = $cur;
+					$cur   = array( 'title' => $f['label'], 'fields' => array() );
+					$first = false;
+					continue;
+				}
+				$cur['fields'][] = $f;
+				$first = false;
+			}
+			$steps[] = $cur;
+			$total   = count( $steps );
+			?>
+			<form class="velox-form velox-form--steps" data-form="<?php echo (int) $id; ?>" data-steps="<?php echo (int) $total; ?>" style="--vf-accent:<?php echo $accent; ?>">
+				<div class="velox-form-msg" hidden></div>
+				<div class="velox-form-progress" aria-hidden="true">
+					<?php for ( $i = 0; $i < $total; $i++ ) : ?>
+						<div class="velox-form-pstep<?php echo 0 === $i ? ' is-active' : ''; ?>" data-step="<?php echo (int) $i; ?>">
+							<span class="velox-form-pdot"><?php echo (int) ( $i + 1 ); ?></span>
+							<?php if ( ! empty( $steps[ $i ]['title'] ) ) : ?><span class="velox-form-plabel"><?php echo esc_html( $steps[ $i ]['title'] ); ?></span><?php endif; ?>
+						</div>
+					<?php endfor; ?>
+				</div>
+				<?php foreach ( $steps as $si => $step ) : ?>
+					<div class="velox-form-step<?php echo 0 === $si ? ' is-active' : ''; ?>" data-step="<?php echo (int) $si; ?>">
+						<div class="velox-form-grid">
+							<?php foreach ( $step['fields'] as $f ) : ?>
+								<?php echo self::field_html( $f ); // phpcs:ignore ?>
+							<?php endforeach; ?>
+						</div>
+					</div>
 				<?php endforeach; ?>
-			</div>
-			<?php if ( ! empty( $form['captcha'] ) && ! $has_cap_field ) : echo self::captcha_widget(); endif; // phpcs:ignore ?>
-			<input type="text" name="velox_hp" class="velox-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
-			<input type="hidden" name="velox_nonce" value="<?php echo esc_attr( $nonce ); ?>">
-			<button type="submit" class="velox-form-submit"><?php echo esc_html( $form['submit_label'] ); ?></button>
-		</form>
-		<?php
+				<?php if ( ! empty( $form['captcha'] ) && ! $has_cap_field ) : echo self::captcha_widget(); endif; // phpcs:ignore ?>
+				<input type="text" name="velox_hp" class="velox-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+				<input type="hidden" name="velox_nonce" value="<?php echo esc_attr( $nonce ); ?>">
+				<div class="velox-form-nav">
+					<button type="button" class="velox-form-prev" hidden>Back</button>
+					<button type="button" class="velox-form-next">Next</button>
+					<button type="submit" class="velox-form-submit" hidden><?php echo esc_html( $form['submit_label'] ); ?></button>
+				</div>
+			</form>
+			<?php
+		} else {
+			?>
+			<form class="velox-form" data-form="<?php echo (int) $id; ?>" style="--vf-accent:<?php echo $accent; ?>">
+				<div class="velox-form-msg" hidden></div>
+				<div class="velox-form-grid">
+					<?php foreach ( $form['fields'] as $f ) : ?>
+						<?php echo self::field_html( $f ); // phpcs:ignore ?>
+					<?php endforeach; ?>
+				</div>
+				<?php if ( ! empty( $form['captcha'] ) && ! $has_cap_field ) : echo self::captcha_widget(); endif; // phpcs:ignore ?>
+				<input type="text" name="velox_hp" class="velox-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+				<input type="hidden" name="velox_nonce" value="<?php echo esc_attr( $nonce ); ?>">
+				<button type="submit" class="velox-form-submit"><?php echo esc_html( $form['submit_label'] ); ?></button>
+			</form>
+			<?php
+		}
 		return ob_get_clean();
 	}
 
@@ -220,14 +325,56 @@ class Velox_Forms {
 		$opts  = array_filter( array_map( 'trim', explode( "\n", (string) ( $f['options'] ?? '' ) ) ) );
 		$type  = $f['type'];
 
+		// Conditional logic → a data attribute the front-end evaluator reads.
+		$cond_attr = '';
+		if ( ! empty( $f['cond'] ) && ! empty( $f['cond']['rules'] ) ) {
+			$cond_attr = " data-vf-cond='" . esc_attr( wp_json_encode( $f['cond'] ) ) . "'";
+		}
+		// Validation attributes (min / max / pattern) for applicable input types.
+		$vattr = '';
+		if ( in_array( $type, array( 'number', 'date' ), true ) ) {
+			if ( isset( $f['min'] ) && '' !== $f['min'] ) { $vattr .= ' min="' . esc_attr( $f['min'] ) . '"'; }
+			if ( isset( $f['max'] ) && '' !== $f['max'] ) { $vattr .= ' max="' . esc_attr( $f['max'] ) . '"'; }
+		}
+		if ( in_array( $type, array( 'text', 'tel', 'url', 'email' ), true ) ) {
+			if ( isset( $f['min'] ) && '' !== $f['min'] ) { $vattr .= ' minlength="' . esc_attr( (int) $f['min'] ) . '"'; }
+			if ( isset( $f['max'] ) && '' !== $f['max'] ) { $vattr .= ' maxlength="' . esc_attr( (int) $f['max'] ) . '"'; }
+			if ( ! empty( $f['pattern'] ) ) {
+				$vattr .= ' pattern="' . esc_attr( $f['pattern'] ) . '"';
+				if ( ! empty( $f['pattern_msg'] ) ) { $vattr .= ' title="' . esc_attr( $f['pattern_msg'] ) . '"'; }
+			}
+		}
+
 		ob_start();
-		if ( 'html' === $type ) {
-			echo '<div class="velox-form-row velox-form-html' . esc_attr( $width . $css ) . '">' . ( isset( $f['content'] ) ? $f['content'] : '' ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
+		if ( 'step' === $type ) {
+			// Structural only — consumed by render(); never output inline.
+			return '';
+		} elseif ( 'calc' === $type ) {
+			// A read-only computed field. The formula lives in data-vf-calc; the
+			// front-end fills the value. Submitted as a normal input for storage.
+			$formula = isset( $f['calc'] ) ? $f['calc'] : '';
+			$prefix  = isset( $f['calc_prefix'] ) ? $f['calc_prefix'] : '';
+			$suffix  = isset( $f['calc_suffix'] ) ? $f['calc_suffix'] : '';
+			?>
+			<label class="velox-form-field velox-form-calc<?php echo esc_attr( $width . $css ); ?>"<?php echo $cond_attr; // phpcs:ignore ?>>
+				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
+				<div class="velox-form-calc-wrap">
+					<?php if ( '' !== $prefix ) : ?><span class="velox-form-calc-fix"><?php echo esc_html( $prefix ); ?></span><?php endif; ?>
+					<input type="text" name="<?php echo esc_attr( $name ); ?>" class="velox-form-calc-input" readonly
+						data-vf-calc="<?php echo esc_attr( $formula ); ?>"
+						data-vf-prefix="<?php echo esc_attr( $prefix ); ?>" data-vf-suffix="<?php echo esc_attr( $suffix ); ?>" value="">
+					<?php if ( '' !== $suffix ) : ?><span class="velox-form-calc-fix"><?php echo esc_html( $suffix ); ?></span><?php endif; ?>
+				</div>
+				<?php echo $help; // phpcs:ignore ?>
+			</label>
+			<?php
+		} elseif ( 'html' === $type ) {
+			echo '<div class="velox-form-row velox-form-html' . esc_attr( $width . $css ) . '"' . $cond_attr . '>' . ( isset( $f['content'] ) ? $f['content'] : '' ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput // phpcs:ignore WordPress.Security.EscapeOutput
 		} elseif ( 'captcha' === $type ) {
-			echo '<div class="velox-form-row' . esc_attr( $width . $css ) . '">' . self::captcha_widget() . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
+			echo '<div class="velox-form-row' . esc_attr( $width . $css ) . '"' . $cond_attr . '>' . self::captcha_widget() . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput // phpcs:ignore WordPress.Security.EscapeOutput
 		} elseif ( 'consent' === $type || 'checkbox' === $type ) {
 			?>
-			<div class="velox-form-row velox-form-row--check<?php echo esc_attr( $width . $css ); ?>">
+			<div class="velox-form-row velox-form-row--check<?php echo esc_attr( $width . $css ); ?>"<?php echo $cond_attr; // phpcs:ignore ?>>
 				<label class="velox-form-consent">
 					<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" value="1"<?php echo $rq; ?>>
 					<span><?php echo $label . $star; ?></span>
@@ -239,7 +386,7 @@ class Velox_Forms {
 			$itype = 'radio' === $type ? 'radio' : 'checkbox';
 			$iname = 'radio' === $type ? $name : $name . '[]';
 			?>
-			<div class="velox-form-row<?php echo esc_attr( $width . $css ); ?>">
+			<div class="velox-form-row<?php echo esc_attr( $width . $css ); ?>"<?php echo $cond_attr; // phpcs:ignore ?>>
 				<span class="velox-form-label"><?php echo $label . $star; ?></span>
 				<div class="velox-form-radios">
 					<?php foreach ( $opts as $opt ) : $checked = ( $def === $opt ) ? ' checked' : ''; ?>
@@ -253,7 +400,7 @@ class Velox_Forms {
 			$f_lbl = $opts[0] ?? 'First name';
 			$l_lbl = $opts[1] ?? 'Last name';
 			?>
-			<div class="velox-form-row velox-form-name<?php echo esc_attr( $width . $css ); ?>">
+			<div class="velox-form-row velox-form-name<?php echo esc_attr( $width . $css ); ?>"<?php echo $cond_attr; // phpcs:ignore ?>>
 				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
 				<div class="velox-form-name-row">
 					<input type="text" name="<?php echo esc_attr( $name ); ?>[first]" placeholder="<?php echo esc_attr( $f_lbl ); ?>"<?php echo $rq; ?>>
@@ -264,7 +411,7 @@ class Velox_Forms {
 			<?php
 		} else {
 			?>
-			<label class="velox-form-field<?php echo esc_attr( $width . $css ); ?>">
+			<label class="velox-form-field<?php echo esc_attr( $width . $css ); ?>"<?php echo $cond_attr; // phpcs:ignore ?>>
 				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
 				<?php if ( 'textarea' === $type ) : ?>
 					<textarea name="<?php echo esc_attr( $name ); ?>" rows="5" placeholder="<?php echo $ph; ?>"<?php echo $rq; ?>><?php echo esc_textarea( $def ); ?></textarea>
@@ -277,7 +424,7 @@ class Velox_Forms {
 						<?php endforeach; ?>
 					</select>
 				<?php else : ?>
-					<input type="<?php echo esc_attr( $type ); ?>" name="<?php echo esc_attr( $name ); ?>" placeholder="<?php echo $ph; ?>" value="<?php echo esc_attr( $def ); ?>"<?php echo $rq; ?>>
+					<input type="<?php echo esc_attr( $type ); ?>" name="<?php echo esc_attr( $name ); ?>" placeholder="<?php echo $ph; ?>" value="<?php echo esc_attr( $def ); ?>"<?php echo $rq . $vattr; // phpcs:ignore ?>>
 				<?php endif; ?>
 				<?php echo $help; // phpcs:ignore ?>
 			</label>
@@ -335,7 +482,111 @@ class Velox_Forms {
 		return ! empty( $data['success'] );
 	}
 
+	/**
+	 * Calculation formulas are intentionally restricted to a tiny, safe grammar:
+	 * {field_key} references, numbers, + - * / ( ) and spaces. Anything else is
+	 * stripped so a formula can never execute arbitrary code.
+	 */
+	public static function sanitize_formula( $raw ) {
+		$raw = (string) $raw;
+		// keep {keys}, digits, dot, operators, parens, spaces
+		return trim( preg_replace( '/[^0-9a-zA-Z_{}\.\+\-\*\/\(\)\s]/', '', $raw ) );
+	}
+
+	/**
+	 * Evaluate a sanitized formula against submitted values. Pure arithmetic via
+	 * the shunting-yard algorithm — no eval(), no code execution. Returns float.
+	 */
+	public static function eval_formula( $formula, $values ) {
+		// Replace {key} with its numeric value (non-numeric → 0).
+		$expr = preg_replace_callback( '/\{([a-z0-9_]+)\}/i', function ( $m ) use ( $values ) {
+			$v = isset( $values[ $m[1] ] ) ? $values[ $m[1] ] : 0;
+			if ( is_array( $v ) ) { $v = count( $v ); }
+			// pull the first number out of the value (e.g. "12 left" → 12)
+			return preg_match( '/-?\d+(\.\d+)?/', (string) $v, $mm ) ? $mm[0] : '0';
+		}, (string) $formula );
+
+		// Tokenize.
+		if ( ! preg_match_all( '/\d+\.?\d*|[\+\-\*\/\(\)]/', $expr, $tok ) ) {
+			return 0.0;
+		}
+		$tokens = $tok[0];
+		$prec   = array( '+' => 1, '-' => 1, '*' => 2, '/' => 2 );
+		$output = array();
+		$ops    = array();
+		foreach ( $tokens as $t ) {
+			if ( is_numeric( $t ) ) {
+				$output[] = (float) $t;
+			} elseif ( isset( $prec[ $t ] ) ) {
+				while ( $ops && end( $ops ) !== '(' && isset( $prec[ end( $ops ) ] ) && $prec[ end( $ops ) ] >= $prec[ $t ] ) {
+					$output[] = array_pop( $ops );
+				}
+				$ops[] = $t;
+			} elseif ( '(' === $t ) {
+				$ops[] = $t;
+			} elseif ( ')' === $t ) {
+				while ( $ops && end( $ops ) !== '(' ) {
+					$output[] = array_pop( $ops );
+				}
+				array_pop( $ops ); // discard '('
+			}
+		}
+		while ( $ops ) {
+			$output[] = array_pop( $ops );
+		}
+		// Evaluate RPN.
+		$stack = array();
+		foreach ( $output as $t ) {
+			if ( is_float( $t ) || is_int( $t ) ) {
+				$stack[] = $t;
+			} else {
+				$b = array_pop( $stack );
+				$a = array_pop( $stack );
+				if ( null === $a || null === $b ) { return 0.0; }
+				switch ( $t ) {
+					case '+': $stack[] = $a + $b; break;
+					case '-': $stack[] = $a - $b; break;
+					case '*': $stack[] = $a * $b; break;
+					case '/': $stack[] = 0.0 == $b ? 0.0 : $a / $b; break;
+				}
+			}
+		}
+		return $stack ? (float) end( $stack ) : 0.0;
+	}
+
 	/* -------------------------------------------------------------- submission */
+
+	/**
+	 * Server-side mirror of the front-end conditional-logic evaluator.
+	 * Returns true if a field with this $cond should be active (visible) given
+	 * the submitted values keyed by field key.
+	 */
+	public static function cond_active( $cond, $values ) {
+		if ( empty( $cond ) || empty( $cond['rules'] ) ) {
+			return true;
+		}
+		$results = array();
+		foreach ( $cond['rules'] as $r ) {
+			$fv  = isset( $values[ $r['field'] ] ) ? $values[ $r['field'] ] : '';
+			$arr = is_array( $fv ) ? array_map( 'strval', $fv ) : array( (string) $fv );
+			$cmp = (string) ( $r['value'] ?? '' );
+			$met = true;
+			switch ( $r['op'] ) {
+				case 'is':        $met = in_array( $cmp, $arr, true ); break;
+				case 'is_not':    $met = ! in_array( $cmp, $arr, true ); break;
+				case 'contains':  $met = (bool) array_filter( $arr, function ( $x ) use ( $cmp ) { return '' !== $cmp && stripos( $x, $cmp ) !== false; } ); break;
+				case 'gt':        $met = (float) ( $arr[0] ?? 0 ) > (float) $cmp; break;
+				case 'lt':        $met = (float) ( $arr[0] ?? 0 ) < (float) $cmp; break;
+				case 'empty':     $met = ( '' === implode( '', $arr ) ); break;
+				case 'not_empty': $met = ( '' !== implode( '', $arr ) ); break;
+			}
+			$results[] = $met;
+		}
+		$logic = ( isset( $cond['logic'] ) && 'any' === $cond['logic'] ) ? 'any' : 'all';
+		$pass  = 'any' === $logic ? in_array( true, $results, true ) : ! in_array( false, $results, true );
+		$action = ( isset( $cond['action'] ) && 'hide' === $cond['action'] ) ? 'hide' : 'show';
+		return 'hide' === $action ? ! $pass : $pass;
+	}
 
 	public static function handle_submit() {
 		$id   = isset( $_POST['form_id'] ) ? (int) $_POST['form_id'] : 0;
@@ -354,13 +605,42 @@ class Velox_Forms {
 		$data    = array();
 		$errors  = array();
 		$has_cap = ! empty( $form['captcha'] );
+
+		// Build a key→submitted-value map first so conditional logic can read siblings.
+		$submitted = array();
+		foreach ( $form['fields'] as $f ) {
+			$k = $f['key'];
+			$v = isset( $raw[ $k ] ) ? $raw[ $k ] : '';
+			if ( is_array( $v ) ) {
+				$submitted[ $k ] = isset( $v['first'] ) || isset( $v['last'] )
+					? trim( ( $v['first'] ?? '' ) . ' ' . ( $v['last'] ?? '' ) )
+					: array_map( 'strval', $v );
+			} else {
+				$submitted[ $k ] = (string) $v;
+			}
+		}
+
 		foreach ( $form['fields'] as $f ) {
 			$key  = $f['key'];
 			$type = $f['type'];
 			$val  = isset( $raw[ $key ] ) ? $raw[ $key ] : '';
 
-			// Presentational fields carry no data.
-			if ( 'html' === $type ) {
+			// Conditionally-hidden fields are skipped entirely (no data, no required check).
+			if ( ! empty( $f['cond'] ) && ! self::cond_active( $f['cond'], $submitted ) ) {
+				continue;
+			}
+
+			// Presentational / structural fields carry no user data.
+			if ( 'html' === $type || 'step' === $type ) {
+				continue;
+			}
+			if ( 'calc' === $type ) {
+				// Recompute server-side from the other submitted values (ignore the
+				// posted value entirely, so it can't be tampered with).
+				$result = self::eval_formula( isset( $f['calc'] ) ? $f['calc'] : '', $submitted );
+				// tidy: drop trailing .0
+				$num = ( floor( $result ) == $result ) ? (string) (int) $result : rtrim( rtrim( number_format( $result, 4, '.', '' ), '0' ), '.' );
+				$data[ $key ] = ( isset( $f['calc_prefix'] ) ? $f['calc_prefix'] : '' ) . $num . ( isset( $f['calc_suffix'] ) ? $f['calc_suffix'] : '' );
 				continue;
 			}
 			if ( 'captcha' === $type ) {
@@ -400,6 +680,32 @@ class Velox_Forms {
 			}
 			if ( 'email' === $type && '' !== $val && ! is_email( $val ) ) {
 				$errors[ $key ] = 'invalid';
+			}
+			// Length / range / pattern validation (only when a value is present).
+			if ( '' !== $val && ! isset( $errors[ $key ] ) ) {
+				if ( in_array( $type, array( 'number', 'date' ), true ) ) {
+					if ( 'number' === $type ) {
+						$num = (float) $val;
+						if ( '' !== (string) $f['min'] && $num < (float) $f['min'] ) { $errors[ $key ] = 'min'; }
+						if ( '' !== (string) $f['max'] && $num > (float) $f['max'] ) { $errors[ $key ] = 'max'; }
+					} else { // date — lexical compare works for YYYY-MM-DD
+						if ( '' !== (string) $f['min'] && $val < $f['min'] ) { $errors[ $key ] = 'min'; }
+						if ( '' !== (string) $f['max'] && $val > $f['max'] ) { $errors[ $key ] = 'max'; }
+					}
+				} elseif ( in_array( $type, array( 'text', 'tel', 'url' ), true ) ) {
+					$len = function_exists( 'mb_strlen' ) ? mb_strlen( $val ) : strlen( $val );
+					if ( '' !== (string) $f['min'] && $len < (int) $f['min'] ) { $errors[ $key ] = 'min'; }
+					if ( '' !== (string) $f['max'] && $len > (int) $f['max'] ) { $errors[ $key ] = 'max'; }
+					if ( ! empty( $f['pattern'] ) ) {
+						$delim = '#';
+						$pat   = $delim . str_replace( $delim, '\\' . $delim, $f['pattern'] ) . $delim . 'u';
+						// Anchor like the HTML pattern attribute (whole-string match).
+						$anchored = $delim . '^(?:' . str_replace( $delim, '\\' . $delim, $f['pattern'] ) . ')$' . $delim . 'u';
+						if ( false === @preg_match( $anchored, $val, $m ) || ! $m ) {
+							$errors[ $key ] = 'pattern';
+						}
+					}
+				}
 			}
 			$data[ $key ] = $val;
 		}
@@ -538,6 +844,78 @@ class Velox_Forms {
 		return $map;
 	}
 
+	/**
+	 * Stream every submission for a form as a CSV download.
+	 * Columns: a stable union of the form's field keys (in form order) plus any
+	 * extra keys found in the data, followed by Submitted-at and IP.
+	 */
+	public static function export_csv( $form_id ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'Not allowed.', 'velox' ) );
+		}
+		$form_id = (int) $form_id;
+		$form    = self::get_form( $form_id );
+		$labels  = self::field_labels( $form_id );
+		$subs    = self::submissions( $form_id, 100000 );
+
+		// Column order: form fields first (skip presentational), then any stray keys.
+		$cols = array();
+		if ( $form && ! empty( $form['fields'] ) ) {
+			foreach ( $form['fields'] as $f ) {
+				if ( in_array( $f['type'], array( 'html', 'captcha' ), true ) ) {
+					continue;
+				}
+				if ( ! empty( $f['key'] ) && ! in_array( $f['key'], $cols, true ) ) {
+					$cols[] = $f['key'];
+				}
+			}
+		}
+		foreach ( $subs as $s ) {
+			$d = json_decode( $s['data'], true );
+			if ( is_array( $d ) ) {
+				foreach ( array_keys( $d ) as $k ) {
+					if ( ! in_array( $k, $cols, true ) ) {
+						$cols[] = $k;
+					}
+				}
+			}
+		}
+
+		$slug  = $form ? sanitize_title( $form['title'] ) : 'form-' . $form_id;
+		$fname = 'velox-' . ( $slug ? $slug : 'form' ) . '-entries-' . gmdate( 'Y-m-d' ) . '.csv';
+
+		nocache_headers();
+		header( 'Content-Type: text/csv; charset=utf-8' );
+		header( 'Content-Disposition: attachment; filename="' . $fname . '"' );
+
+		$out = fopen( 'php://output', 'w' );
+		// UTF-8 BOM so Excel reads accents/Umlauts correctly.
+		fwrite( $out, "\xEF\xBB\xBF" );
+
+		$header = array();
+		foreach ( $cols as $k ) {
+			$header[] = isset( $labels[ $k ] ) ? $labels[ $k ] : ucwords( str_replace( array( '_', '-' ), ' ', $k ) );
+		}
+		$header[] = 'Submitted';
+		$header[] = 'IP';
+		fputcsv( $out, $header );
+
+		foreach ( $subs as $s ) {
+			$d   = json_decode( $s['data'], true );
+			$d   = is_array( $d ) ? $d : array();
+			$row = array();
+			foreach ( $cols as $k ) {
+				$v = isset( $d[ $k ] ) ? $d[ $k ] : '';
+				$row[] = is_array( $v ) ? implode( ', ', $v ) : (string) $v;
+			}
+			$row[] = $s['created'];
+			$row[] = isset( $s['ip'] ) ? $s['ip'] : '';
+			fputcsv( $out, $row );
+		}
+		fclose( $out );
+		exit;
+	}
+
 	/* --------------------------------------------------------------- front assets */
 
 	public static function print_assets() {
@@ -581,10 +959,135 @@ class Velox_Forms {
 .velox-form-msg.is-err{background:#fef2f2;color:#b91c1c;border:1px solid #fecaca}
 .velox-form .has-error input,.velox-form .has-error textarea,.velox-form .has-error select{border-color:#e11d48}
 .velox-form-note{font-size:13px;color:#b45309}
+.velox-form-steps .velox-form-step{display:none}
+.velox-form-steps .velox-form-step.is-active{display:block}
+.velox-form-progress{display:flex;align-items:center;gap:8px;margin-bottom:4px;flex-wrap:wrap}
+.velox-form-pstep{display:inline-flex;align-items:center;gap:7px;opacity:.5;transition:opacity .2s}
+.velox-form-pstep.is-active{opacity:1}
+.velox-form-pdot{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:50%;background:#e6e8ec;color:#51565d;font-size:13px;font-weight:600;flex:none}
+.velox-form-pstep.is-active .velox-form-pdot{background:var(--vf-accent);color:#fff}
+.velox-form-plabel{font-size:13px;font-weight:600;color:#1d1d1f}
+.velox-form-nav{display:flex;gap:10px;align-items:center}
+.velox-form-prev,.velox-form-next{border:1px solid #d4d8e0;background:#fff;color:#1d1d1f;border-radius:10px;padding:11px 22px;font-size:15px;font-weight:600;cursor:pointer;transition:border-color .15s}
+.velox-form-next{background:var(--vf-accent);color:#fff;border-color:transparent}
+.velox-form-prev:hover{border-color:#9aa0a9}
+.velox-form-next:hover{filter:brightness(.93)}
+.velox-form-calc-wrap{display:flex;align-items:center;gap:6px}
+.velox-form-calc-fix{font-size:15px;color:#6b7280;font-weight:600}
+.velox-form-calc-input{background:#f6f7f9!important;font-weight:600}
 </style>
 <script>
 (function(){
   document.querySelectorAll('.velox-form').forEach(function(form){
+    /* ---- conditional logic: show/hide fields based on other answers ---- */
+    function fieldValue(key){
+      var els=form.querySelectorAll('[name="vf['+key+']"],[name="vf['+key+'][]"]');
+      if(!els.length){return '';}
+      var first=els[0];
+      if(first.type==='checkbox'||first.type==='radio'){
+        var picked=[];
+        els.forEach(function(el){if(el.checked){picked.push(el.value==='1'&&el.type==='checkbox'?'1':el.value);}});
+        return picked;
+      }
+      return first.value;
+    }
+    function ruleMet(r){
+      var v=fieldValue(r.field);
+      var arr=Array.isArray(v)?v:[String(v)];
+      var val=String(r.value);
+      switch(r.op){
+        case 'is': return arr.indexOf(val)!==-1;
+        case 'is_not': return arr.indexOf(val)===-1;
+        case 'contains': return arr.some(function(x){return String(x).toLowerCase().indexOf(val.toLowerCase())!==-1;});
+        case 'gt': return parseFloat(arr[0])>parseFloat(val);
+        case 'lt': return parseFloat(arr[0])<parseFloat(val);
+        case 'empty': return !arr.length||arr.join('')==='';
+        case 'not_empty': return arr.join('')!=='';
+      }
+      return true;
+    }
+    var condEls=[].slice.call(form.querySelectorAll('[data-vf-cond]'));
+    function applyCond(){
+      condEls.forEach(function(el){
+        var cfg;try{cfg=JSON.parse(el.getAttribute('data-vf-cond'));}catch(e){return;}
+        if(!cfg||!cfg.rules||!cfg.rules.length){return;}
+        var results=cfg.rules.map(ruleMet);
+        var pass=cfg.logic==='any'?results.some(Boolean):results.every(Boolean);
+        var visible=cfg.action==='hide'?!pass:pass;
+        el.style.display=visible?'':'none';
+        /* disable inputs in hidden fields so they don't submit or block on required */
+        el.querySelectorAll('input,select,textarea').forEach(function(inp){inp.disabled=!visible;});
+      });
+    }
+    if(condEls.length){
+      form.addEventListener('input',applyCond);
+      form.addEventListener('change',applyCond);
+      applyCond();
+    }
+
+    /* ---- live calculations ---- */
+    var calcEls=[].slice.call(form.querySelectorAll('[data-vf-calc]'));
+    function numFrom(key){
+      var els=form.querySelectorAll('[name="vf['+key+']"],[name="vf['+key+'][]"]');
+      if(!els.length){return 0;}
+      var first=els[0];
+      if(first.type==='checkbox'||first.type==='radio'){
+        var n=0;els.forEach(function(el){if(el.checked){var m=String(el.value).match(/-?\d+(\.\d+)?/);n+=m?parseFloat(m[0]):0;}});return n;
+      }
+      var m=String(first.value).match(/-?\d+(\.\d+)?/);return m?parseFloat(m[0]):0;
+    }
+    function evalFormula(expr){
+      expr=expr.replace(/\{([a-z0-9_]+)\}/gi,function(_,k){return '('+numFrom(k)+')';});
+      if(!/^[0-9+\-*/(). ]*$/.test(expr)){return 0;}
+      try{ /* eslint-disable no-new-func */ var r=Function('"use strict";return ('+(expr||'0')+')')(); return (typeof r==='number'&&isFinite(r))?r:0; }catch(e){return 0;}
+    }
+    function applyCalc(){
+      calcEls.forEach(function(el){
+        var v=evalFormula(el.getAttribute('data-vf-calc')||'');
+        var out=(Math.round(v*10000)/10000);
+        el.value=(el.getAttribute('data-vf-prefix')||'')+out+(el.getAttribute('data-vf-suffix')||'');
+      });
+    }
+    if(calcEls.length){
+      form.addEventListener('input',applyCalc);
+      form.addEventListener('change',applyCalc);
+      applyCalc();
+    }
+
+    /* ---- multi-step navigation ---- */
+    var steps=[].slice.call(form.querySelectorAll('.velox-form-step'));
+    if(steps.length>1){
+      var cur=0;
+      var prevBtn=form.querySelector('.velox-form-prev');
+      var nextBtn=form.querySelector('.velox-form-next');
+      var subBtn=form.querySelector('.velox-form-submit');
+      var pSteps=[].slice.call(form.querySelectorAll('.velox-form-pstep'));
+      function showStep(n){
+        cur=Math.max(0,Math.min(steps.length-1,n));
+        steps.forEach(function(s,i){s.classList.toggle('is-active',i===cur);});
+        pSteps.forEach(function(p,i){p.classList.toggle('is-active',i<=cur);p.classList.toggle('is-current',i===cur);});
+        if(prevBtn){prevBtn.hidden=cur===0;}
+        var last=cur===steps.length-1;
+        if(nextBtn){nextBtn.hidden=last;}
+        if(subBtn){subBtn.hidden=!last;}
+        var top=form.getBoundingClientRect().top+window.pageYOffset-20;
+        if(window.pageYOffset>top){window.scrollTo({top:top,behavior:'smooth'});}
+      }
+      function stepValid(){
+        var ok=true;
+        var visible=steps[cur].querySelectorAll('input,select,textarea');
+        for(var i=0;i<visible.length;i++){
+          var el=visible[i];
+          if(el.disabled||el.closest('[style*="display: none"]')){continue;}
+          if(typeof el.reportValidity==='function'&&!el.checkValidity()){el.reportValidity();ok=false;break;}
+        }
+        return ok;
+      }
+      if(nextBtn){nextBtn.addEventListener('click',function(){if(stepValid()){showStep(cur+1);}});}
+      if(prevBtn){prevBtn.addEventListener('click',function(){showStep(cur-1);});}
+      showStep(0);
+    }
+
     form.addEventListener('submit',function(e){
       e.preventDefault();
       var msg=form.querySelector('.velox-form-msg');
@@ -599,6 +1102,7 @@ class Velox_Forms {
         .then(function(j){
           if(j&&j.success){
             form.reset();
+            if(condEls.length){applyCond();}
             msg.className='velox-form-msg is-ok';msg.textContent=j.data.message;msg.hidden=false;
           }else{
             var d=(j&&j.data)||{};

@@ -29,6 +29,18 @@ delete_option( 'velox_script_rules' );
 delete_option( 'velox_forms' );
 delete_option( 'velox_forms_db' );
 delete_option( 'velox_mail_db' );
+delete_option( 'velox_snippets_db' );
+delete_option( 'velox_snippets_safe' );
+delete_option( 'velox_snippets_panic' );
+// Unschedule the backup cron and remove the backups folder.
+$ts = wp_next_scheduled( 'velox_backup_run' );
+if ( $ts ) { wp_unschedule_event( $ts, 'velox_backup_run' ); }
+$velox_bk = WP_CONTENT_DIR . '/velox-backups';
+if ( is_dir( $velox_bk ) ) {
+	$it = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $velox_bk, FilesystemIterator::SKIP_DOTS ), RecursiveIteratorIterator::CHILD_FIRST );
+	foreach ( $it as $f ) { $f->isDir() ? @rmdir( $f->getPathname() ) : @unlink( $f->getPathname() ); }
+	@rmdir( $velox_bk );
+}
 if ( class_exists( 'Velox_Cache' ) ) { Velox_Cache::remove_dropin(); }
 delete_transient( 'velox_latest_release' );
 

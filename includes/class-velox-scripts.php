@@ -118,6 +118,16 @@ class Velox_Scripts {
 			$ids = array();
 			if ( ! empty( $rule['ids'] ) ) {
 				foreach ( preg_split( '/[\s,]+/', (string) $rule['ids'] ) as $tok ) {
+					$tok = trim( $tok );
+					if ( '' === $tok ) {
+						continue;
+					}
+					// Special targeting tokens stay intact: front, blog, archive, shop,
+					// and post-type tokens like "type:product" / "type:product:archive".
+					if ( in_array( $tok, array( 'front', 'blog', 'archive', 'shop' ), true ) || 0 === strpos( $tok, 'type:' ) ) {
+						$ids[] = preg_replace( '/[^a-z0-9:_\-]/i', '', $tok );
+						continue;
+					}
 					$tok = sanitize_title( $tok );
 					if ( '' !== $tok ) {
 						$ids[] = $tok;
@@ -170,6 +180,31 @@ class Velox_Scripts {
 		$t = array();
 		if ( is_front_page() ) {
 			$t[] = 'front';
+		}
+		if ( is_home() ) {
+			$t[] = 'blog';
+		}
+		// Post-type tokens: a singular view matches its type ("product"), and an
+		// archive matches "type:archive" so rules can target whole post types.
+		if ( is_singular() ) {
+			$pt = get_post_type();
+			if ( $pt ) {
+				$t[] = 'type:' . $pt;
+			}
+		}
+		if ( is_post_type_archive() ) {
+			$pt = get_query_var( 'post_type' );
+			$pt = is_array( $pt ) ? reset( $pt ) : $pt;
+			if ( $pt ) {
+				$t[] = 'type:' . $pt . ':archive';
+				$t[] = 'archive';
+			}
+		}
+		if ( is_archive() ) {
+			$t[] = 'archive';
+		}
+		if ( function_exists( 'is_shop' ) && is_shop() ) {
+			$t[] = 'shop';
 		}
 		$id = get_queried_object_id();
 		if ( $id ) {

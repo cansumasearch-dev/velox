@@ -63,6 +63,10 @@ class Velox_Settings {
 			'util_snippets'            => false,
 			'util_cookies'             => false,
 			'util_october'             => false,
+			'util_backup'              => false,
+			'backup_schedule'          => 'off',    // off | daily | weekly | monthly
+			'backup_schedule_what'     => 'both',   // db | files | both
+			'backup_keep'              => 5,        // retention: keep newest N
 
 			// ---- Cookie banner ----
 			'cookie_layout'            => 'bar-bottom',   // bar-bottom | box-bl | box-br | modal-center
@@ -94,6 +98,10 @@ class Velox_Settings {
 			'cookie_shadow'            => true,
 			'cookie_overlay'           => false,
 			'cookie_offset'            => 24,
+			'cookie_layout_mobile'     => 'inherit',  // inherit | bar-bottom | bar-top | box-bl | box-br | modal-center
+			'cookie_width'             => 460,        // px, floating box / modal width
+			'cookie_font_size'         => 14,         // px base
+			'cookie_btn_full_mobile'   => true,       // stack buttons full-width on mobile
 
 			// ---- Page cache ----
 			'cache_enable'          => false,
@@ -113,6 +121,11 @@ class Velox_Settings {
 			'mail_smtp_pass'      => '',
 			'mail_smtp_from'      => '',
 			'mail_smtp_from_name' => '',
+			'mail_connections'    => '',     // JSON: [ {id,label,host,port,secure,user,pass,from,from_name} ]
+			'mail_routes'         => '',     // JSON: [ {match,value,conn} ]
+			'mail_primary'        => '',     // connection id
+			'mail_fallback'       => '',     // connection id ('' = none)
+			'mail_migrated_v2'    => false,  // legacy single-connection → connections[] migration flag
 			'mail_captcha_provider' => 'turnstile', // turnstile | recaptcha
 			'mail_captcha_site'   => '',
 			'mail_captcha_secret' => '',

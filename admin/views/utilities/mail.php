@@ -7,12 +7,13 @@ $s    = Velox_Settings::all();
 $edit = isset( $_GET['form'] ) ? sanitize_text_field( wp_unslash( $_GET['form'] ) ) : '';
 $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 ?>
-<div class="velox-page-head">
-	<h1 class="velox-h2">Mail &amp; forms</h1>
-	<p class="velox-sub">Build forms, route submissions to styled notification emails (to you and to the customer), and send everything reliably over SMTP.</p>
-</div>
 
 <?php if ( ! $on ) : ?>
+	<div class="velox-page-head">
+		<h1 class="velox-h2">Mail &amp; forms</h1>
+		<p class="velox-sub">Build forms, route submissions to styled notification emails (to you and to the customer), and send everything reliably over SMTP.</p>
+	</div>
+
 	<div class="velox-panel">
 		<label class="velox-inline-toggle">
 			<span><strong>Enable Mail &amp; forms</strong></span>
@@ -111,7 +112,14 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<h1 class="velox-h2" style="margin-top:8px;"><?php echo esc_html( $ititle ); ?> <span class="vmail-head-sub">— entries</span></h1>
 				<p class="velox-sub"><?php echo count( $subs ); ?> submission<?php echo 1 === count( $subs ) ? '' : 's'; ?> received through this form.</p>
 			</div>
-			<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $base . '&form=' . $entries_for ); ?>">Edit form</a>
+			<div class="vmail-entries-actions">
+				<?php if ( ! empty( $subs ) ) :
+					$export_url = wp_nonce_url( admin_url( 'admin-post.php?action=velox_form_export&form=' . $entries_for ), 'velox_form_export_' . $entries_for );
+					?>
+					<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $export_url ); ?>">Export CSV</a>
+				<?php endif; ?>
+				<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $base . '&form=' . $entries_for ); ?>">Edit form</a>
+			</div>
 		</div>
 
 		<div class="velox-panel velox-panel--flush">
@@ -200,36 +208,65 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			<?php endif; ?>
 		</div>
 
-		<div class="velox-panel velox-tool-form">
-			<h3 class="velox-panel-title">SMTP</h3>
-			<label class="velox-toggle-row">
-				<div class="velox-toggle-meta">
-					<span class="velox-toggle-label">Send through SMTP</span>
-					<span class="velox-toggle-desc">Far more reliable than PHP mail. Fill in your provider's details below.</span>
+		<?php
+		$vx_conns    = Velox_Mail::connections();
+		$vx_routes   = Velox_Mail::routes();
+		$vx_primary  = Velox_Mail::primary_id();
+		$vx_fallback = Velox_Mail::fallback_id();
+		?>
+		<div class="velox-panel velox-tool-form" id="vmail-smtp" data-base="<?php echo esc_attr( $base ); ?>">
+			<div class="vmail-smtp-head">
+				<div>
+					<h3 class="velox-panel-title" style="margin:0;">SMTP connections</h3>
+					<p class="velox-hint" style="margin:4px 0 0;">Add one or more sending connections, then route mail to them by the From address. If a send fails, Velox retries through your fallback.</p>
 				</div>
-				<span class="velox-switch"><input type="checkbox" data-setting="mail_smtp_enabled" <?php checked( ! empty( $s['mail_smtp_enabled'] ) ); ?>><span class="velox-switch-track"></span></span>
-			</label>
-			<div class="velox-grid-2">
-				<div class="velox-field"><span class="velox-field-label">Host</span><input type="text" class="velox-input" data-setting="mail_smtp_host" value="<?php echo esc_attr( $s['mail_smtp_host'] ); ?>" placeholder="smtp.example.com"></div>
-				<div class="velox-field"><span class="velox-field-label">Port</span><input type="number" class="velox-input velox-input--sm" data-setting="mail_smtp_port" value="<?php echo esc_attr( (int) $s['mail_smtp_port'] ); ?>"></div>
-				<div class="velox-field"><span class="velox-field-label">Encryption</span>
-					<select class="velox-select" data-setting="mail_smtp_secure">
-						<?php foreach ( array( 'tls' => 'TLS', 'ssl' => 'SSL', 'none' => 'None' ) as $v => $l ) : ?>
-							<option value="<?php echo esc_attr( $v ); ?>" <?php selected( $s['mail_smtp_secure'], $v ); ?>><?php echo esc_html( $l ); ?></option>
-						<?php endforeach; ?>
-					</select>
-				</div>
-				<div class="velox-field"><span class="velox-field-label">Username</span><input type="text" class="velox-input" data-setting="mail_smtp_user" value="<?php echo esc_attr( $s['mail_smtp_user'] ); ?>"></div>
-				<div class="velox-field"><span class="velox-field-label">Password</span><input type="password" class="velox-input" data-setting="mail_smtp_pass" value="<?php echo esc_attr( $s['mail_smtp_pass'] ); ?>"></div>
-				<div class="velox-field"><span class="velox-field-label">From address</span><input type="email" class="velox-input" data-setting="mail_smtp_from" value="<?php echo esc_attr( $s['mail_smtp_from'] ); ?>"></div>
-				<div class="velox-field"><span class="velox-field-label">From name</span><input type="text" class="velox-input" data-setting="mail_smtp_from_name" value="<?php echo esc_attr( $s['mail_smtp_from_name'] ); ?>"></div>
+				<label class="velox-switch velox-switch--inline" title="Send through SMTP">
+					<input type="checkbox" data-setting="mail_smtp_enabled" id="vmail-smtp-enabled" <?php checked( ! empty( $s['mail_smtp_enabled'] ) ); ?>>
+					<span class="velox-switch-track"></span>
+				</label>
 			</div>
-			<div class="velox-tool-actions" style="display:flex;gap:8px;align-items:center;">
-				<button class="velox-btn velox-btn--primary velox-util-save">Save settings</button>
-				<input type="email" class="velox-input" id="vmail-test-to" placeholder="you@example.com" style="max-width:220px;">
-				<button class="velox-btn velox-btn--ghost" id="vmail-test">Send test</button>
+
+			<div id="vmail-conn-list" class="vmail-conn-list"></div>
+			<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-conn-add">+ Add connection</button>
+
+			<div class="vmail-routing" id="vmail-routing" hidden>
+				<div class="vmail-routing-grid">
+					<div class="velox-field">
+						<span class="velox-field-label">Primary connection</span>
+						<select class="velox-select" id="vmail-primary"></select>
+						<span class="velox-hint">Used for any mail that doesn't match a route below.</span>
+					</div>
+					<div class="velox-field">
+						<span class="velox-field-label">Fallback connection</span>
+						<select class="velox-select" id="vmail-fallback"></select>
+						<span class="velox-hint">Tried automatically if the primary send fails. Optional.</span>
+					</div>
+				</div>
+
+				<div class="vmail-routes-head">
+					<span class="velox-field-label" style="margin:0;">Routing rules</span>
+					<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-route-add">+ Add rule</button>
+				</div>
+				<p class="velox-hint" style="margin:0 0 8px;">Send mail from a specific address or name through a chosen connection — e.g. route <code>billing@…</code> through a transactional provider and newsletters through another.</p>
+				<div id="vmail-route-list" class="vmail-route-list"></div>
+			</div>
+
+			<div class="vmail-smtp-actions">
+				<button class="velox-btn velox-btn--primary" id="vmail-smtp-save">Save connections</button>
+				<span class="vmail-smtp-test">
+					<select class="velox-select velox-select--sm" id="vmail-test-conn" title="Send the test through this connection"></select>
+					<input type="email" class="velox-input" id="vmail-test-to" placeholder="you@example.com">
+					<button class="velox-btn velox-btn--ghost" id="vmail-test">Send test</button>
+				</span>
 			</div>
 		</div>
+
+		<script type="application/json" id="vmail-smtp-data"><?php echo wp_json_encode( array(
+			'connections' => $vx_conns,
+			'routes'      => $vx_routes,
+			'primary'     => $vx_primary,
+			'fallback'    => $vx_fallback,
+		) ); ?></script>
 
 		<div class="velox-panel velox-tool-form">
 			<h3 class="velox-panel-title">CAPTCHA</h3>
@@ -257,12 +294,17 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<?php if ( empty( $log ) ) : ?>
 					<p class="velox-hint" style="margin-top:10px;">Nothing sent yet.</p>
 				<?php else : ?>
-					<?php foreach ( $log as $l ) : ?>
-						<div class="velox-mail-logrow">
-							<span class="velox-activity-dot is-<?php echo 'sent' === $l['status'] ? 'ok' : 'bad'; ?>"></span>
+					<?php foreach ( $log as $l ) :
+						$is_sent = ( 'sent' === $l['status'] );
+						$conn    = isset( $l['connection'] ) ? $l['connection'] : '';
+						?>
+						<div class="velox-mail-logrow" data-id="<?php echo (int) $l['id']; ?>">
+							<span class="velox-activity-dot is-<?php echo $is_sent ? 'ok' : 'bad'; ?>" title="<?php echo esc_attr( $is_sent ? 'Sent' : ( ! empty( $l['error'] ) ? $l['error'] : 'Failed' ) ); ?>"></span>
 							<span class="velox-mail-log-to"><?php echo esc_html( $l['recipient'] ); ?></span>
 							<span class="velox-mail-log-sub"><?php echo esc_html( $l['subject'] ); ?></span>
+							<?php if ( '' !== $conn ) : ?><span class="velox-mail-log-conn"><?php echo esc_html( $conn ); ?></span><?php endif; ?>
 							<span class="velox-mail-log-when"><?php echo esc_html( $l['created'] ); ?></span>
+							<button class="velox-btn velox-btn--ghost velox-btn--sm velox-mail-resend" data-id="<?php echo (int) $l['id']; ?>" title="Send this message again">Resend</button>
 						</div>
 					<?php endforeach; ?>
 				<?php endif; ?>

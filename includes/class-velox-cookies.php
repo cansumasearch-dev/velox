@@ -3,8 +3,9 @@
  * Velox — Cookie consent banner.
  *
  * Renders a fully styleable consent banner on the front end and wires it to
- * Google Consent Mode v2. Everything is printed inline so it works on any theme
- * and is never broken by page caching of the plugin's admin assets.
+ * Google Consent Mode v2. The banner's CSS and HTML are produced by
+ * style_block() and markup() so the admin live-preview can render the EXACT
+ * same banner — no more drift between preview and the real thing.
  *
  * @package Velox
  */
@@ -24,7 +25,6 @@ class Velox_Cookies {
 		if ( ! Velox_Settings::get( 'util_cookies', false ) ) {
 			return;
 		}
-		// Consent defaults + (optional) gtag must run as early as possible.
 		add_action( 'wp_head', array( __CLASS__, 'head' ), 0 );
 		add_action( 'wp_footer', array( __CLASS__, 'footer' ), 20 );
 	}
@@ -32,7 +32,7 @@ class Velox_Cookies {
 	/** Categories the visitor has already granted (server-side read of the cookie). */
 	private static function granted() {
 		if ( empty( $_COOKIE[ self::COOKIE ] ) ) {
-			return null; // no decision yet
+			return null;
 		}
 		$raw = sanitize_text_field( wp_unslash( $_COOKIE[ self::COOKIE ] ) );
 		if ( 'deny' === $raw ) {
@@ -47,7 +47,7 @@ class Velox_Cookies {
 		if ( ! $consent_mode ) {
 			return;
 		}
-		$granted = self::granted();
+		$granted   = self::granted();
 		$analytics = ( is_array( $granted ) && in_array( 'analytics', $granted, true ) ) ? 'granted' : 'denied';
 		$marketing = ( is_array( $granted ) && in_array( 'marketing', $granted, true ) ) ? 'granted' : 'denied';
 		?>
@@ -85,111 +85,186 @@ gtag('consent','update',{
 		}
 	}
 
-	public static function footer() {
-		// A decision already made → no banner, but keep a re-open hook available.
-		$decided = ( null !== self::granted() );
+	/**
+	 * Collect every styling/content option (from settings, or overridden by
+	 * $override for the live preview). One place defines the option set.
+	 */
+	public static function options( $override = array() ) {
+		$keys = array(
+			'cookie_layout' => 'bar-bottom', 'cookie_heading' => '', 'cookie_body' => '',
+			'cookie_btn_accept' => 'Accept all', 'cookie_btn_reject' => 'Reject non-essential',
+			'cookie_btn_settings' => 'Preferences', 'cookie_small_text' => '', 'cookie_logo' => '',
+			'cookie_link1_label' => '', 'cookie_link1_url' => '', 'cookie_link2_label' => '', 'cookie_link2_url' => '',
+			'cookie_cat_analytics' => true, 'cookie_cat_marketing' => true,
+			'cookie_bg' => '#ffffff', 'cookie_text' => '#1d1d1f', 'cookie_accent' => '#2ab7f1',
+			'cookie_accent_text' => '#ffffff', 'cookie_btn2_bg' => '#f1f2f5', 'cookie_btn2_text' => '#1d1d1f',
+			'cookie_border_color' => '#e6e7eb', 'cookie_border_width' => 1, 'cookie_radius' => 16,
+			'cookie_shadow' => true, 'cookie_overlay' => false, 'cookie_offset' => 24,
+			'cookie_reconsent_days' => 180,
+			// new responsive controls
+			'cookie_layout_mobile' => 'inherit', 'cookie_width' => 460, 'cookie_font_size' => 14,
+			'cookie_btn_full_mobile' => true,
+		);
+		$out = array();
+		foreach ( $keys as $k => $d ) {
+			$out[ $k ] = array_key_exists( $k, $override ) ? $override[ $k ] : Velox_Settings::get( $k, $d );
+		}
+		return $out;
+	}
 
-		$g = function ( $k, $d = '' ) { return Velox_Settings::get( $k, $d ); };
+	/**
+	 * The banner's full CSS. $scope lets the admin preview namespace every rule
+	 * under a container so it can't leak into the WP admin. For the front end,
+	 * $scope is '' (global).
+	 */
+	public static function style_block( $o, $scope = '' ) {
+		$bg       = self::hex( $o['cookie_bg'] );
+		$text     = self::hex( $o['cookie_text'] );
+		$accent   = self::hex( $o['cookie_accent'] );
+		$accentTx = self::hex( $o['cookie_accent_text'] );
+		$b2bg     = self::hex( $o['cookie_btn2_bg'] );
+		$b2tx     = self::hex( $o['cookie_btn2_text'] );
+		$bcol     = self::hex( $o['cookie_border_color'] );
+		$bw       = (int) $o['cookie_border_width'];
+		$rad      = (int) $o['cookie_radius'];
+		$fs       = max( 11, min( 20, (int) $o['cookie_font_size'] ) );
+		$btnrad   = max( 6, (int) round( $rad * 0.6 ) );
+		$shadow   = ! empty( $o['cookie_shadow'] ) ? '0 18px 50px rgba(15,18,30,.22)' : 'none';
+		$width    = max( 280, min( 720, (int) $o['cookie_width'] ) );
+		$offset   = (int) $o['cookie_offset'];
+		$layout   = (string) $o['cookie_layout'];
+		$mobile   = (string) $o['cookie_layout_mobile'];
+		$btn_full = ! empty( $o['cookie_btn_full_mobile'] );
 
-		$layout   = (string) $g( 'cookie_layout', 'bar-bottom' );
-		$bg       = self::hex( $g( 'cookie_bg', '#ffffff' ) );
-		$text     = self::hex( $g( 'cookie_text', '#1d1d1f' ) );
-		$accent   = self::hex( $g( 'cookie_accent', '#2ab7f1' ) );
-		$accentTx = self::hex( $g( 'cookie_accent_text', '#ffffff' ) );
-		$b2bg     = self::hex( $g( 'cookie_btn2_bg', '#f1f2f5' ) );
-		$b2tx     = self::hex( $g( 'cookie_btn2_text', '#1d1d1f' ) );
-		$bcol     = self::hex( $g( 'cookie_border_color', '#e6e7eb' ) );
-		$bw       = (int) $g( 'cookie_border_width', 1 );
-		$rad      = (int) $g( 'cookie_radius', 16 );
-		$shadow   = $g( 'cookie_shadow', true ) ? '0 18px 50px rgba(15,18,30,.22)' : 'none';
-		$overlay  = (bool) $g( 'cookie_overlay', false );
-		$offset   = (int) $g( 'cookie_offset', 24 );
+		$pos = self::position_css( $layout, $offset, $width );
+		// Mobile layout: 'inherit' keeps desktop placement; otherwise switch.
+		$mob_layout = ( 'inherit' === $mobile ) ? $layout : $mobile;
+		$pos_m = self::position_css( $mob_layout, min( $offset, 12 ), $width );
 
-		$show_analytics = (bool) $g( 'cookie_cat_analytics', true );
-		$show_marketing = (bool) $g( 'cookie_cat_marketing', true );
+		// p = prefix selector (scoped or global)
+		$p = $scope ? $scope . ' ' : '';
 
-		$pos_css = self::position_css( $layout, $offset );
-
-		// Build the markup.
 		ob_start();
 		?>
-<style>
-.vxck-root{position:fixed;z-index:2147483600;<?php echo $pos_css['root']; // phpcs:ignore ?>}
-.vxck-overlay{position:fixed;inset:0;background:rgba(8,10,18,.5);z-index:2147483500;backdrop-filter:saturate(120%) blur(1px);}
-.vxck{box-sizing:border-box;<?php echo $pos_css['box']; // phpcs:ignore ?>;background:<?php echo $bg; ?>;color:<?php echo $text; ?>;border:<?php echo $bw; ?>px solid <?php echo $bcol; ?>;border-radius:<?php echo $rad; ?>px;box-shadow:<?php echo $shadow; ?>;padding:22px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;}
-.vxck *{box-sizing:border-box;}
-.vxck-logo{max-height:34px;width:auto;margin-bottom:12px;display:block;}
-.vxck-h{margin:0 0 8px;font-size:17px;font-weight:700;letter-spacing:-.01em;color:<?php echo $text; ?>;}
-.vxck-body{margin:0 0 14px;font-size:14px;opacity:.85;}
-.vxck-links{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 16px;font-size:12.5px;}
-.vxck-links a{color:<?php echo $accent; ?>;text-decoration:none;}
-.vxck-links a:hover{text-decoration:underline;}
-.vxck-actions{display:flex;flex-wrap:wrap;gap:10px;}
-.vxck-btn{appearance:none;border:0;cursor:pointer;font-size:14px;font-weight:600;padding:11px 18px;border-radius:<?php echo max( 6, (int) round( $rad * 0.6 ) ); ?>px;transition:transform .08s,filter .15s;}
-.vxck-btn:active{transform:translateY(1px);}
-.vxck-accept{background:<?php echo $accent; ?>;color:<?php echo $accentTx; ?>;}
-.vxck-accept:hover{filter:brightness(1.05);}
-.vxck-btn2{background:<?php echo $b2bg; ?>;color:<?php echo $b2tx; ?>;}
-.vxck-btn2:hover{filter:brightness(.97);}
-.vxck-small{margin:14px 0 0;font-size:11.5px;opacity:.6;}
-.vxck-prefs{margin:6px 0 16px;display:none;flex-direction:column;gap:10px;}
-.vxck-prefs.is-open{display:flex;}
-.vxck-cat{display:flex;align-items:flex-start;gap:10px;font-size:13px;padding:10px 12px;border:1px solid <?php echo $bcol; ?>;border-radius:10px;}
-.vxck-cat input{margin-top:2px;}
-.vxck-cat strong{display:block;font-size:13px;}
-.vxck-cat span{display:block;font-size:12px;opacity:.65;}
-@media(max-width:560px){.vxck{<?php echo $pos_css['box_mobile']; // phpcs:ignore ?>}.vxck-actions{flex-direction:column;}.vxck-btn{width:100%;}}
-</style>
-<div class="vxck-root" id="vxck-root" data-decided="<?php echo $decided ? '1' : '0'; ?>" data-reconsent="<?php echo (int) $g( 'cookie_reconsent_days', 180 ); ?>" hidden>
-	<?php if ( $overlay && 'modal-center' === $layout ) : ?><div class="vxck-overlay"></div><?php endif; ?>
-	<div class="vxck" role="dialog" aria-label="Cookie consent" aria-live="polite">
-		<?php if ( $g( 'cookie_logo' ) ) : ?>
-			<img class="vxck-logo" src="<?php echo esc_url( $g( 'cookie_logo' ) ); ?>" alt="">
-		<?php endif; ?>
-		<?php if ( $g( 'cookie_heading' ) ) : ?>
-			<p class="vxck-h"><?php echo esc_html( $g( 'cookie_heading' ) ); ?></p>
-		<?php endif; ?>
-		<p class="vxck-body"><?php echo esc_html( $g( 'cookie_body' ) ); ?></p>
+<?php echo $p; ?>.vxck-root{position:<?php echo $scope ? 'absolute' : 'fixed'; ?>;z-index:2147483600;<?php echo $pos['root']; // phpcs:ignore ?>}
+<?php echo $p; ?>.vxck-overlay{position:<?php echo $scope ? 'absolute' : 'fixed'; ?>;inset:0;background:rgba(8,10,18,.5);z-index:2147483500;}
+<?php echo $p; ?>.vxck{box-sizing:border-box;<?php echo $pos['box']; // phpcs:ignore ?>;background:<?php echo $bg; ?>;color:<?php echo $text; ?>;border:<?php echo $bw; ?>px solid <?php echo $bcol; ?>;border-radius:<?php echo $rad; ?>px;box-shadow:<?php echo $shadow; ?>;padding:22px 24px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;font-size:<?php echo $fs; ?>px;}
+<?php echo $p; ?>.vxck *{box-sizing:border-box;}
+<?php echo $p; ?>.vxck-main{flex:1 1 360px;min-width:0;}
+<?php echo $p; ?>.vxck-logo{max-height:34px;width:auto;margin-bottom:12px;display:block;}
+<?php echo $p; ?>.vxck-h{margin:0 0 8px;font-size:<?php echo $fs + 3; ?>px;font-weight:700;letter-spacing:-.01em;color:<?php echo $text; ?>;}
+<?php echo $p; ?>.vxck-body{margin:0 0 14px;font-size:<?php echo $fs; ?>px;opacity:.85;}
+<?php echo $p; ?>.vxck-links{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 16px;font-size:<?php echo $fs - 1.5; ?>px;}
+<?php echo $p; ?>.vxck-links a{color:<?php echo $accent; ?>;text-decoration:none;}
+<?php echo $p; ?>.vxck-links a:hover{text-decoration:underline;}
+<?php echo $p; ?>.vxck-actions{display:flex;flex-wrap:wrap;gap:10px;<?php echo 'bar-bottom' === $layout ? 'flex:0 0 auto;align-items:center;' : ''; ?>}
+<?php echo $p; ?>.vxck-btn{appearance:none;border:0;cursor:pointer;font-size:<?php echo $fs; ?>px;font-weight:600;padding:11px 18px;border-radius:<?php echo $btnrad; ?>px;transition:transform .08s,filter .15s;}
+<?php echo $p; ?>.vxck-btn:active{transform:translateY(1px);}
+<?php echo $p; ?>.vxck-accept{background:<?php echo $accent; ?>;color:<?php echo $accentTx; ?>;}
+<?php echo $p; ?>.vxck-accept:hover{filter:brightness(1.05);}
+<?php echo $p; ?>.vxck-btn2{background:<?php echo $b2bg; ?>;color:<?php echo $b2tx; ?>;}
+<?php echo $p; ?>.vxck-btn2:hover{filter:brightness(.97);}
+<?php echo $p; ?>.vxck-small{margin:14px 0 0;font-size:<?php echo $fs - 2.5; ?>px;opacity:.6;width:100%;}
+<?php echo $p; ?>.vxck-prefs{margin:6px 0 16px;display:none;flex-direction:column;gap:10px;width:100%;}
+<?php echo $p; ?>.vxck-prefs.is-open{display:flex;}
+<?php echo $p; ?>.vxck-cat{display:flex;align-items:flex-start;gap:10px;font-size:<?php echo $fs - 1; ?>px;padding:10px 12px;border:1px solid <?php echo $bcol; ?>;border-radius:10px;}
+<?php echo $p; ?>.vxck-cat input{margin-top:2px;}
+<?php echo $p; ?>.vxck-cat strong{display:block;}
+<?php echo $p; ?>.vxck-cat span{display:block;font-size:<?php echo $fs - 2; ?>px;opacity:.65;}
+<?php
+		// Responsive rules. In the preview we emulate via a body class instead of a
+		// real media query (so the device tabs work), so only emit @media on front end.
+		if ( $scope ) {
+			?>
+<?php echo $scope; ?>.is-mobile .vxck{<?php echo $pos_m['box_mobile']; // phpcs:ignore ?>}
+<?php echo $scope; ?>.is-mobile .vxck-root{<?php echo $pos_m['root']; // phpcs:ignore ?>}
+<?php if ( $btn_full ) : ?><?php echo $scope; ?>.is-mobile .vxck-actions{flex-direction:column;}<?php echo $scope; ?>.is-mobile .vxck-btn{width:100%;}<?php endif; ?>
+<?php
+		} else {
+			?>
+@media(max-width:600px){.vxck{<?php echo $pos_m['box_mobile']; // phpcs:ignore ?>}.vxck-root{<?php echo $pos_m['root']; // phpcs:ignore ?>}<?php if ( $btn_full ) : ?>.vxck-actions{flex-direction:column;}.vxck-btn{width:100%;}<?php endif; ?>}
+<?php
+		}
+		return ob_get_clean();
+	}
 
-		<div class="vxck-prefs" id="vxck-prefs">
-			<label class="vxck-cat">
-				<input type="checkbox" checked disabled>
-				<span><strong>Necessary</strong><span>Required for the site to work. Always on.</span></span>
-			</label>
-			<?php if ( $show_analytics ) : ?>
-			<label class="vxck-cat">
-				<input type="checkbox" id="vxck-analytics">
-				<span><strong>Analytics</strong><span>Helps us understand how the site is used.</span></span>
-			</label>
-			<?php endif; ?>
-			<?php if ( $show_marketing ) : ?>
-			<label class="vxck-cat">
-				<input type="checkbox" id="vxck-marketing">
-				<span><strong>Marketing</strong><span>Used to personalise ads and measure campaigns.</span></span>
-			</label>
-			<?php endif; ?>
-		</div>
+	/**
+	 * The banner markup. $preview=true makes buttons inert (type=button, no IDs
+	 * that the front-end script binds to) so it's safe inside the admin.
+	 */
+	public static function markup( $o, $preview = false ) {
+		$layout         = (string) $o['cookie_layout'];
+		$overlay        = ! empty( $o['cookie_overlay'] );
+		$show_analytics = ! empty( $o['cookie_cat_analytics'] );
+		$show_marketing = ! empty( $o['cookie_cat_marketing'] );
+		$id = function ( $x ) use ( $preview ) { return $preview ? '' : ' id="' . $x . '"'; };
 
-		<?php if ( $g( 'cookie_link1_label' ) || $g( 'cookie_link2_label' ) ) : ?>
+		ob_start();
+		?>
+<?php if ( $overlay && 'modal-center' === $layout ) : ?><div class="vxck-overlay"></div><?php endif; ?>
+<div class="vxck" role="dialog" aria-label="Cookie consent" aria-live="polite">
+	<div class="vxck-main">
+		<?php if ( ! empty( $o['cookie_logo'] ) ) : ?>
+			<img class="vxck-logo" src="<?php echo esc_url( $o['cookie_logo'] ); ?>" alt="">
+		<?php endif; ?>
+		<?php if ( ! empty( $o['cookie_heading'] ) ) : ?>
+			<p class="vxck-h"><?php echo esc_html( $o['cookie_heading'] ); ?></p>
+		<?php endif; ?>
+		<p class="vxck-body"><?php echo esc_html( $o['cookie_body'] ); ?></p>
+
+		<?php if ( ! empty( $o['cookie_link1_label'] ) || ! empty( $o['cookie_link2_label'] ) ) : ?>
 		<div class="vxck-links">
-			<?php if ( $g( 'cookie_link1_label' ) ) : ?><a href="<?php echo esc_url( $g( 'cookie_link1_url' ) ); ?>"><?php echo esc_html( $g( 'cookie_link1_label' ) ); ?></a><?php endif; ?>
-			<?php if ( $g( 'cookie_link2_label' ) ) : ?><a href="<?php echo esc_url( $g( 'cookie_link2_url' ) ); ?>"><?php echo esc_html( $g( 'cookie_link2_label' ) ); ?></a><?php endif; ?>
+			<?php if ( ! empty( $o['cookie_link1_label'] ) ) : ?><a href="<?php echo esc_url( $o['cookie_link1_url'] ); ?>"><?php echo esc_html( $o['cookie_link1_label'] ); ?></a><?php endif; ?>
+			<?php if ( ! empty( $o['cookie_link2_label'] ) ) : ?><a href="<?php echo esc_url( $o['cookie_link2_url'] ); ?>"><?php echo esc_html( $o['cookie_link2_label'] ); ?></a><?php endif; ?>
 		</div>
-		<?php endif; ?>
-
-		<div class="vxck-actions">
-			<button type="button" class="vxck-btn vxck-accept" id="vxck-accept"><?php echo esc_html( $g( 'cookie_btn_accept', 'Accept all' ) ); ?></button>
-			<button type="button" class="vxck-btn vxck-btn2" id="vxck-reject"><?php echo esc_html( $g( 'cookie_btn_reject', 'Reject non-essential' ) ); ?></button>
-			<?php if ( $show_analytics || $show_marketing ) : ?>
-			<button type="button" class="vxck-btn vxck-btn2" id="vxck-prefs-toggle"><?php echo esc_html( $g( 'cookie_btn_settings', 'Preferences' ) ); ?></button>
-			<button type="button" class="vxck-btn vxck-accept" id="vxck-save" style="display:none;">Save choices</button>
-			<?php endif; ?>
-		</div>
-
-		<?php if ( $g( 'cookie_small_text' ) ) : ?>
-			<p class="vxck-small"><?php echo esc_html( $g( 'cookie_small_text' ) ); ?></p>
 		<?php endif; ?>
 	</div>
+
+	<div class="vxck-prefs"<?php echo $id( 'vxck-prefs' ); // phpcs:ignore ?>>
+		<label class="vxck-cat">
+			<input type="checkbox" checked disabled>
+			<span><strong>Necessary</strong><span>Required for the site to work. Always on.</span></span>
+		</label>
+		<?php if ( $show_analytics ) : ?>
+		<label class="vxck-cat">
+			<input type="checkbox"<?php echo $id( 'vxck-analytics' ); // phpcs:ignore ?>>
+			<span><strong>Analytics</strong><span>Helps us understand how the site is used.</span></span>
+		</label>
+		<?php endif; ?>
+		<?php if ( $show_marketing ) : ?>
+		<label class="vxck-cat">
+			<input type="checkbox"<?php echo $id( 'vxck-marketing' ); // phpcs:ignore ?>>
+			<span><strong>Marketing</strong><span>Used to personalise ads and measure campaigns.</span></span>
+		</label>
+		<?php endif; ?>
+	</div>
+
+	<div class="vxck-actions">
+		<button type="button" class="vxck-btn vxck-accept"<?php echo $id( 'vxck-accept' ); // phpcs:ignore ?>><?php echo esc_html( $o['cookie_btn_accept'] ); ?></button>
+		<button type="button" class="vxck-btn vxck-btn2"<?php echo $id( 'vxck-reject' ); // phpcs:ignore ?>><?php echo esc_html( $o['cookie_btn_reject'] ); ?></button>
+		<?php if ( $show_analytics || $show_marketing ) : ?>
+		<button type="button" class="vxck-btn vxck-btn2"<?php echo $id( 'vxck-prefs-toggle' ); // phpcs:ignore ?>><?php echo esc_html( $o['cookie_btn_settings'] ); ?></button>
+		<button type="button" class="vxck-btn vxck-accept"<?php echo $id( 'vxck-save' ); // phpcs:ignore ?> style="display:none;">Save choices</button>
+		<?php endif; ?>
+	</div>
+
+	<?php if ( ! empty( $o['cookie_small_text'] ) ) : ?>
+		<p class="vxck-small"><?php echo esc_html( $o['cookie_small_text'] ); ?></p>
+	<?php endif; ?>
+</div>
+		<?php
+		return ob_get_clean();
+	}
+
+	public static function footer() {
+		$decided = ( null !== self::granted() );
+		$o       = self::options();
+		$css     = self::style_block( $o, '' );
+		$markup  = self::markup( $o, false );
+		?>
+<style><?php echo $css; // phpcs:ignore ?></style>
+<div class="vxck-root" id="vxck-root" data-decided="<?php echo $decided ? '1' : '0'; ?>" data-reconsent="<?php echo (int) $o['cookie_reconsent_days']; ?>" hidden>
+<?php echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_* helpers ?>
 </div>
 <script>
 (function(){
@@ -222,7 +297,6 @@ gtag('consent','update',{
 	if(pToggle) pToggle.addEventListener('click',function(){prefs.classList.toggle('is-open');if(save) save.style.display=prefs.classList.contains('is-open')?'':'none';});
 	if(save) save.addEventListener('click',function(){var g=[];if(ca&&ca.checked)g.push('analytics');if(cm&&cm.checked)g.push('marketing');decide(g);});
 
-	// Re-open from anywhere: <a href="#cookie-settings"> or [data-cookie-settings]
 	document.addEventListener('click',function(e){
 		var t=e.target.closest('[data-cookie-settings],a[href="#cookie-settings"]');
 		if(t){e.preventDefault();open();if(prefs){prefs.classList.add('is-open');if(save)save.style.display='';}}
@@ -232,7 +306,6 @@ gtag('consent','update',{
 })();
 </script>
 		<?php
-		echo ob_get_clean(); // phpcs:ignore WordPress.Security.EscapeOutput -- built above with esc_* helpers.
 	}
 
 	/* ---- helpers ---- */
@@ -242,33 +315,52 @@ gtag('consent','update',{
 		return preg_match( '/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $v ) ? $v : '#000000';
 	}
 
-	private static function position_css( $layout, $offset ) {
+	private static function position_css( $layout, $offset, $width = 460 ) {
 		$o = (int) $offset;
+		$w = (int) $width;
 		switch ( $layout ) {
 			case 'box-bl':
 				return array(
-					'root'        => "left:{$o}px;bottom:{$o}px;",
-					'box'         => 'width:380px;max-width:calc(100vw - ' . ( $o * 2 ) . 'px)',
-					'box_mobile'  => 'width:100%;',
+					'root'       => "left:{$o}px;bottom:{$o}px;",
+					'box'        => "width:{$w}px;max-width:calc(100vw - " . ( $o * 2 ) . 'px)',
+					'box_mobile' => 'width:auto;',
 				);
 			case 'box-br':
 				return array(
-					'root'        => "right:{$o}px;bottom:{$o}px;",
-					'box'         => 'width:380px;max-width:calc(100vw - ' . ( $o * 2 ) . 'px)',
-					'box_mobile'  => 'width:100%;',
+					'root'       => "right:{$o}px;bottom:{$o}px;",
+					'box'        => "width:{$w}px;max-width:calc(100vw - " . ( $o * 2 ) . 'px)',
+					'box_mobile' => 'width:auto;',
+				);
+			case 'box-tl':
+				return array(
+					'root'       => "left:{$o}px;top:{$o}px;",
+					'box'        => "width:{$w}px;max-width:calc(100vw - " . ( $o * 2 ) . 'px)',
+					'box_mobile' => 'width:auto;',
+				);
+			case 'box-tr':
+				return array(
+					'root'       => "right:{$o}px;top:{$o}px;",
+					'box'        => "width:{$w}px;max-width:calc(100vw - " . ( $o * 2 ) . 'px)',
+					'box_mobile' => 'width:auto;',
 				);
 			case 'modal-center':
 				return array(
-					'root'        => 'inset:0;display:flex;align-items:center;justify-content:center;padding:' . $o . 'px;',
-					'box'         => 'position:relative;width:480px;max-width:100%;z-index:2147483600',
-					'box_mobile'  => 'width:100%;',
+					'root'       => 'inset:0;display:flex;align-items:center;justify-content:center;padding:' . $o . 'px;',
+					'box'        => "position:relative;width:{$w}px;max-width:100%;z-index:2147483600",
+					'box_mobile' => 'width:100%;',
+				);
+			case 'bar-top':
+				return array(
+					'root'       => "left:{$o}px;right:{$o}px;top:{$o}px;",
+					'box'        => 'width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px',
+					'box_mobile' => 'display:block;',
 				);
 			case 'bar-bottom':
 			default:
 				return array(
-					'root'        => "left:{$o}px;right:{$o}px;bottom:{$o}px;",
-					'box'         => 'width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px',
-					'box_mobile'  => 'display:block;',
+					'root'       => "left:{$o}px;right:{$o}px;bottom:{$o}px;",
+					'box'        => 'width:100%;display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px',
+					'box_mobile' => 'display:block;',
 				);
 		}
 	}

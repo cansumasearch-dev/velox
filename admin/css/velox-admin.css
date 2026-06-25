@@ -9,41 +9,68 @@
 .velox-wrap * { box-sizing: border-box; }
 
 .velox-wrap {
-	/* ---- Brand ---- */
-	--vx-primary: #2ab7f1;
-	--vx-primary-h: #1aa3da;
-	--vx-primary-d: #1488bd;
-	--vx-primary-tint: #e8f6fd;
-	--vx-secondary: #5b6cff;
-	--vx-secondary-tint: #eceeff;
-	--vx-accent: #2ab7f1;        /* legacy alias — kept so existing rules still resolve */
+	/* ===== Velox design tokens — grayscale-first, one accent =====
+	   Rule: #2ab7f1 is an ACCENT only (active nav, primary fills, focus rings).
+	   It is ~2.3:1 on white, so it is NEVER used for body text or thin icons.
+	   For text/links on light surfaces use --vx-primary-ink. */
+
+	/* ---- Accent ---- */
+	--vx-primary: #2ab7f1;       /* fills, active nav, focus ring */
+	--vx-primary-h: #1aa3da;     /* hover on a primary fill */
+	--vx-primary-d: #1488bd;     /* pressed */
+	--vx-primary-ink: #0e7fb3;   /* accessible accent for TEXT/links on white (~4.5:1) */
+	--vx-primary-tint: #e8f6fd;  /* faint accent wash for active rows/badges */
+	--vx-primary-ring: rgba(42,183,241,.40);
+	--vx-accent: #2ab7f1;        /* legacy alias — existing rules still resolve */
 	--vx-accent-d: #1aa3da;
 	--vx-amber: #f59e0b;
 	--vx-amber-tint: #fef3e2;
-	/* ---- Semantic ---- */
-	--vx-success: #16a34a;
-	--vx-success-tint: #ecfdf3;
-	--vx-warning: #d97706;
-	--vx-warning-tint: #fff7ed;
-	--vx-danger: #dc2626;
-	--vx-danger-tint: #fef2f2;
-	/* ---- Neutrals ---- */
-	--vx-ink: #0a0a0b;
-	--vx-ink-2: #51565d;
-	--vx-ink-3: #8b9099;
-	--vx-line: #ececf1;
-	--vx-line-2: #e0e1e7;
-	--vx-bg: #f6f7f9;
-	--vx-card: #ffffff;
-	--vx-sidebar: #ffffff;
-	/* ---- Spacing (8px scale) ---- */
+	--vx-secondary: #5b6cff;     /* legacy alias */
+	--vx-secondary-tint: #eceeff;
+	/* ---- Semantic (meaning only) ---- */
+	--vx-success: #16a34a;  --vx-success-tint: #ecfdf3;
+	--vx-warning: #d97706;  --vx-warning-tint: #fff7ed;
+	--vx-danger:  #dc2626;  --vx-danger-tint:  #fef2f2;
+	/* ---- Neutral ramp (grayscale foundation) ---- */
+	--vx-n0:  #ffffff;
+	--vx-n25: #fbfbfc;
+	--vx-n50: #f6f7f9;
+	--vx-n100:#eef0f3;
+	--vx-n150:#e6e8ec;
+	--vx-n200:#d9dbe1;
+	--vx-n300:#c2c5cd;
+	--vx-n400:#9aa0a9;
+	--vx-n500:#6b7178;
+	--vx-n600:#51565d;
+	--vx-n700:#3a3e44;
+	--vx-n800:#222529;
+	--vx-n900:#0a0a0b;
+	/* ---- Semantic neutral aliases ---- */
+	--vx-ink:   var(--vx-n900);  /* primary text (never pure #000) */
+	--vx-ink-2: var(--vx-n600);  /* secondary text */
+	--vx-ink-3: var(--vx-n400);  /* tertiary / muted labels */
+	--vx-line:  var(--vx-n100);  /* hairline divider */
+	--vx-line-2:var(--vx-n200);  /* stronger border */
+	--vx-bg:    var(--vx-n50);   /* app background */
+	--vx-card:  var(--vx-n0);    /* card / panel surface */
+	--vx-sidebar: var(--vx-n0);
+	/* ---- Spacing (4px sub-grid · 8px scale) ---- */
 	--vx-s1: 4px; --vx-s2: 8px; --vx-s3: 12px; --vx-s4: 16px;
-	--vx-s5: 24px; --vx-s6: 32px; --vx-s7: 48px; --vx-s8: 64px;
-	/* ---- Radius ---- */
-	--vx-r-sm: 6px; --vx-r-md: 10px; --vx-r-lg: 16px;
+	--vx-s5: 24px; --vx-s6: 32px; --vx-s7: 48px; --vx-s8: 64px; --vx-s9: 96px;
+	/* ---- Radius (6 / 10 / 16) ---- */
+	--vx-r-sm: 6px; --vx-r-md: 10px; --vx-r-lg: 16px; --vx-r-pill: 9999px;
 	--vx-radius: 16px;           /* legacy alias */
-	--vx-shadow: 0 1px 2px rgba(10,10,11,.04), 0 8px 24px rgba(10,10,11,.06);
-	--vx-shadow-h: 0 2px 4px rgba(10,10,11,.06), 0 16px 40px rgba(10,10,11,.10);
+	/* ---- Elevation: shadow ramp + shadow-as-border ---- */
+	--vx-shadow-border: 0 0 0 1px rgba(10,10,11,.08);
+	--vx-shadow-sm: 0 1px 2px rgba(10,10,11,.05);
+	--vx-shadow:    0 1px 3px rgba(10,10,11,.08), 0 1px 2px -1px rgba(10,10,11,.08);
+	--vx-shadow-md: 0 4px 6px -1px rgba(10,10,11,.08), 0 2px 4px -2px rgba(10,10,11,.06);
+	--vx-shadow-h:  0 10px 15px -3px rgba(10,10,11,.10), 0 4px 6px -4px rgba(10,10,11,.08);
+	/* ---- Motion ---- */
+	--vx-ease: cubic-bezier(.4,0,.2,1);
+	--vx-ease-out: cubic-bezier(0,0,.2,1);
+	--vx-dur-1: 150ms;  /* state changes */
+	--vx-dur-2: 200ms;  /* entrances */
 
 	font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 	color: var(--vx-ink);
@@ -209,7 +236,7 @@
 	transition: transform .18s cubic-bezier(.2,.8,.2,1), box-shadow .18s, border-color .18s;
 	position: relative; display: flex; flex-direction: column; min-height: 200px;
 }
-.velox-card:hover { transform: translateY(-3px); box-shadow: var(--vx-shadow-h); border-color: rgba(42,183,241,.4); }
+.velox-card:hover { box-shadow: var(--vx-shadow-md); border-color: var(--vx-line-2); }
 .velox-card-ic {
 	display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px;
 	border-radius: 13px; color: var(--vx-accent); background: rgba(42,183,241,.10); margin-bottom: 16px;
@@ -917,15 +944,34 @@
 .velox-snip-back:hover { color: var(--vx-primary); }
 
 .velox-snip-add { position: relative; }
-.velox-snip-add-menu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: 12px; box-shadow: 0 14px 34px rgba(0,0,0,.16); padding: 6px; min-width: 230px; }
-.velox-snip-add-menu a { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; color: var(--vx-ink); text-decoration: none; font-weight: 600; font-size: 13px; }
-.velox-snip-add-menu a:hover { background: var(--vx-primary-tint); }
-
 .velox-snip-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 38px; height: 20px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 800; letter-spacing: .03em; color: #fff; }
 .velox-snip-badge.is-php  { background: #7e57c2; }
 .velox-snip-badge.is-css  { background: #2aa9e0; }
 .velox-snip-badge.is-js   { background: #e0a82a; }
 .velox-snip-badge.is-html { background: #e0612a; }
+
+/* Type-picker modal */
+.velox-snip-modal { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.velox-snip-modal[hidden] { display: none; }
+.velox-snip-modal-backdrop { position: absolute; inset: 0; background: rgba(15,18,30,.45); }
+.velox-snip-modal-card { position: relative; background: var(--vx-card); border-radius: var(--vx-r-lg); box-shadow: var(--vx-shadow-h); width: 560px; max-width: 100%; padding: var(--vx-s5); }
+.velox-snip-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--vx-s4); }
+.velox-snip-modal-head h2 { margin: 0; font-size: 18px; font-weight: 700; color: var(--vx-ink); }
+.velox-snip-modal-x { border: 0; background: transparent; font-size: 26px; line-height: 1; color: var(--vx-ink-3); cursor: pointer; border-radius: var(--vx-r-sm); width: 34px; height: 34px; }
+.velox-snip-modal-x:hover { background: var(--vx-n50); color: var(--vx-ink); }
+.velox-snip-types { display: grid; grid-template-columns: 1fr 1fr; gap: var(--vx-s3); }
+.velox-snip-type { display: grid; grid-template-columns: auto 1fr; grid-template-rows: auto auto; column-gap: 10px; row-gap: 2px; align-content: start; padding: var(--vx-s3) var(--vx-s4); border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); text-decoration: none; transition: border-color var(--vx-dur-1) var(--vx-ease), background var(--vx-dur-1) var(--vx-ease); }
+.velox-snip-type:hover { border-color: var(--vx-primary); background: var(--vx-primary-tint); }
+.velox-snip-type .velox-snip-badge { grid-row: 1 / span 2; align-self: start; margin-top: 2px; }
+.velox-snip-type-t { font-weight: 700; font-size: 14px; color: var(--vx-ink); }
+.velox-snip-type-d { font-size: 12px; color: var(--vx-ink-2); line-height: 1.45; }
+
+/* Safe Mode banner */
+.velox-snip-safe { display: flex; gap: var(--vx-s4); align-items: flex-start; border: 1px solid #f3c98b; background: #fff8ec; border-radius: var(--vx-r-md); padding: var(--vx-s4) var(--vx-s5); margin-bottom: var(--vx-s4); }
+.velox-snip-safe-ic { font-size: 22px; color: #b7791f; line-height: 1; flex: none; }
+.velox-snip-safe-body strong { display: block; font-size: 14px; color: #92580a; margin-bottom: 4px; }
+.velox-snip-safe-body p { margin: 0 0 12px; font-size: 13px; color: #7a5a1e; line-height: 1.5; }
+.velox-snip-safe-actions { display: flex; gap: var(--vx-s2); flex-wrap: wrap; }
 
 .velox-snip-tabs { display: flex; gap: 4px; margin-bottom: 14px; border-bottom: 1px solid var(--vx-line); }
 .velox-snip-tab { padding: 9px 14px; font-size: 13px; font-weight: 600; color: var(--vx-ink-2); text-decoration: none; border-bottom: 2px solid transparent; margin-bottom: -1px; }
@@ -935,7 +981,8 @@
 .velox-snip-tab.is-active .velox-snip-count { background: var(--vx-primary-tint); color: var(--vx-primary-d); }
 
 .velox-snip-list { padding: 0; }
-.velox-snip-row { display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--vx-line); }
+.velox-snip-row { display: flex; align-items: center; gap: 12px; padding: 13px 18px; border-bottom: 1px solid var(--vx-line); transition: background var(--vx-dur-1) var(--vx-ease); }
+.velox-snip-row:hover { background: var(--vx-n25); }
 .velox-snip-row:last-child { border-bottom: 0; }
 .velox-snip-status { flex: 0 0 auto; width: 9px; height: 9px; border-radius: 50%; background: var(--vx-ink-3); opacity: .4; }
 .velox-snip-status.is-on { background: var(--vx-success); opacity: 1; box-shadow: 0 0 0 3px var(--vx-success-tint); }
@@ -1039,17 +1086,19 @@
 .vxck-admin { display: grid; grid-template-columns: minmax(0,1fr) 380px; gap: 22px; align-items: start; }
 .vxck-admin-controls { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
 .vxck-admin-preview { position: sticky; top: 24px; }
-.vxck-preview-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--vx-ink-3); margin-bottom: 10px; }
-.vxck-stage { background: repeating-conic-gradient(#eef0f3 0% 25%, #f7f8fa 0% 50%) 50% / 22px 22px; border: 1px solid var(--vx-line); border-radius: 16px; padding: 22px; min-height: 320px; display: flex; align-items: flex-end; }
-.vxck-prev { width: 100%; padding: 20px 22px; font-size: 14px; line-height: 1.5; }
-.vxck-prev-logo { max-height: 32px; width: auto; margin-bottom: 10px; display: block; }
-.vxck-prev-h { margin: 0 0 8px; font-size: 16px; font-weight: 700; }
-.vxck-prev-body { margin: 0 0 12px; font-size: 13.5px; opacity: .85; }
-.vxck-prev-links { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 14px; font-size: 12px; }
-.vxck-prev-links a { text-decoration: none; }
-.vxck-prev-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.vxck-prev-btn { border: 0; cursor: default; font-size: 13px; font-weight: 600; padding: 9px 15px; border-radius: 9px; }
-.vxck-prev-small { margin: 12px 0 0; font-size: 11px; opacity: .6; }
+.vxck-preview-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.vxck-preview-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--vx-ink-3); }
+.vxck-device-tabs { display: inline-flex; background: var(--vx-n50); border: 1px solid var(--vx-line); border-radius: var(--vx-r-pill); padding: 2px; gap: 2px; }
+.vxck-device { border: 0; background: transparent; font-size: 12px; font-weight: 600; color: var(--vx-ink-2); padding: 5px 14px; border-radius: var(--vx-r-pill); cursor: pointer; }
+.vxck-device.is-active { background: var(--vx-card); color: var(--vx-ink); box-shadow: var(--vx-shadow-sm); }
+/* The stage is a faux mini-viewport; the REAL banner renders inside it. */
+.vxck-stage { position: relative; overflow: hidden; background: #f3f4f7; border: 1px solid var(--vx-line); border-radius: 16px; min-height: 360px; transition: max-width var(--vx-dur-2) var(--vx-ease); margin: 0 auto; }
+.vxck-stage[data-device="mobile"] { max-width: 380px; min-height: 460px; }
+.vxck-stage-page { position: absolute; inset: 0; padding: 22px; display: flex; flex-direction: column; gap: 10px; opacity: .5; }
+.vxck-stage-faux-h { height: 16px; width: 45%; background: #d7dae1; border-radius: 5px; }
+.vxck-stage-faux-l { height: 9px; width: 90%; background: #e2e5ea; border-radius: 4px; }
+.vxck-stage-faux-l.short { width: 60%; }
+/* the scoped banner CSS positions .vxck-root absolutely within the stage */
 
 .vxck-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
 .vxck-color { display: flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 500; color: var(--vx-ink-2); }
@@ -1100,3 +1149,148 @@
 .oct-tok-input { width: 100%; }
 .oct-editor-preview { position: sticky; top: 16px; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); padding: 10px; }
 .oct-preview-frame { width: 100%; height: 600px; border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); background: #fff; display: block; }
+
+/* ========================================================================
+   Mail — SMTP connections + routing (v2.16 rework)
+   ======================================================================== */
+.vmail-smtp-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--vx-s4); margin-bottom: var(--vx-s4); }
+.velox-switch--inline { flex: none; margin-top: 2px; }
+
+.vmail-conn-list { display: flex; flex-direction: column; gap: var(--vx-s3); margin-bottom: var(--vx-s3); }
+
+/* A connection is one panel; fields inside it are NOT cards (no nested cards). */
+.vmail-conn { border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); padding: var(--vx-s4); background: var(--vx-n25); }
+.vmail-conn-top { display: flex; align-items: center; gap: var(--vx-s2); margin-bottom: var(--vx-s3); }
+.vmail-c-label { font-weight: 600; }
+.vmail-conn-del {
+	flex: none; width: 30px; height: 30px; border: 0; border-radius: var(--vx-r-sm);
+	background: transparent; color: var(--vx-ink-3); font-size: 22px; line-height: 1; cursor: pointer;
+	transition: background var(--vx-dur-1) var(--vx-ease), color var(--vx-dur-1) var(--vx-ease);
+}
+.vmail-conn-del:hover { background: var(--vx-danger-tint); color: var(--vx-danger); }
+
+.vmail-conn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--vx-s3); }
+.vmail-cf { display: flex; flex-direction: column; gap: 6px; }
+.vmail-cf > span { font-size: 12px; font-weight: 500; color: var(--vx-ink-2); }
+/* host spans full width; port + encryption share the second row neatly */
+.vmail-cf--host { grid-column: 1 / -1; }
+.vmail-cf--port { max-width: 140px; }
+
+.vmail-routing { margin-top: var(--vx-s4); padding-top: var(--vx-s4); border-top: 1px solid var(--vx-line); }
+.vmail-routing-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--vx-s4); margin-bottom: var(--vx-s4); }
+.vmail-routes-head { display: flex; align-items: center; justify-content: space-between; gap: var(--vx-s3); margin-bottom: 4px; }
+
+.vmail-route-list { display: flex; flex-direction: column; gap: var(--vx-s2); }
+.vmail-route { display: flex; align-items: center; gap: var(--vx-s2); }
+.vmail-route .vmail-r-value { flex: 1; min-width: 0; }
+.vmail-r-arrow { color: var(--vx-ink-3); flex: none; }
+.vmail-route-del {
+	flex: none; width: 28px; height: 28px; border: 0; border-radius: var(--vx-r-sm);
+	background: transparent; color: var(--vx-ink-3); font-size: 20px; line-height: 1; cursor: pointer;
+}
+.vmail-route-del:hover { background: var(--vx-danger-tint); color: var(--vx-danger); }
+.velox-select--sm { width: auto; min-width: 130px; }
+
+.vmail-smtp-actions { display: flex; align-items: center; justify-content: space-between; gap: var(--vx-s3); margin-top: var(--vx-s4); flex-wrap: wrap; }
+.vmail-smtp-test { display: inline-flex; align-items: center; gap: var(--vx-s2); }
+.vmail-smtp-test .velox-input { max-width: 220px; }
+
+/* log: connection chip + resend */
+.velox-mail-log-conn {
+	flex: none; font-size: 11px; font-weight: 600; color: var(--vx-primary-ink);
+	background: var(--vx-primary-tint); padding: 2px 8px; border-radius: var(--vx-r-pill); white-space: nowrap;
+}
+.velox-mail-resend { flex: none; }
+
+@media (max-width: 782px) {
+	.vmail-conn-grid, .vmail-routing-grid { grid-template-columns: 1fr; }
+	.vmail-cf--port { max-width: none; }
+	.vmail-smtp-actions { flex-direction: column; align-items: stretch; }
+	.vmail-smtp-test { flex-wrap: wrap; }
+}
+
+/* ========================================================================
+   Form builder — validation + conditional logic inspector (v2.17)
+   ======================================================================== */
+.vmail-insp-sub {
+	font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em;
+	color: var(--vx-ink-3); margin: var(--vx-s4) 0 var(--vx-s2); padding-top: var(--vx-s3);
+	border-top: 1px solid var(--vx-line);
+}
+.vmail-minmax { display: flex; gap: var(--vx-s2); }
+.vmail-minmax .velox-input { width: 50%; }
+
+.vmail-cond { margin-top: var(--vx-s2); }
+.vmail-cond-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--vx-s2); margin-bottom: var(--vx-s3); }
+.vmail-cond-when { font-size: 13px; color: var(--vx-ink-2); }
+.vmail-cond-rules { display: flex; flex-direction: column; gap: var(--vx-s2); margin-bottom: var(--vx-s2); }
+.vmail-cond-rule { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 6px; align-items: center; }
+.vmail-cond-rule .velox-select, .vmail-cond-rule .velox-input { min-width: 0; width: 100%; }
+.vmail-cond-del {
+	flex: none; width: 26px; height: 26px; border: 0; border-radius: var(--vx-r-sm);
+	background: transparent; color: var(--vx-ink-3); font-size: 18px; line-height: 1; cursor: pointer;
+}
+.vmail-cond-del:hover { background: var(--vx-danger-tint); color: var(--vx-danger); }
+
+/* ========================================================================
+   Form builder — step + calc previews, entries actions (v2.18)
+   ======================================================================== */
+.vmail-step-prev {
+	display: flex; align-items: center; justify-content: space-between; gap: var(--vx-s3);
+	padding: var(--vx-s3) var(--vx-s4); border: 1px dashed var(--vx-line-2); border-radius: var(--vx-r-md);
+	background: var(--vx-n25); color: var(--vx-ink-2);
+}
+.vmail-step-prev span { font-weight: 600; font-size: 13px; }
+.vmail-step-prev small { color: var(--vx-ink-3); }
+.vmail-calc-prev { padding: var(--vx-s2) var(--vx-s3); background: var(--vx-n50); border-radius: var(--vx-r-sm); }
+.vmail-calc-prev code { font-size: 13px; color: var(--vx-ink-2); }
+.vmail-entries-actions { display: inline-flex; gap: var(--vx-s2); }
+
+@media (max-width: 560px) {
+	.velox-snip-types { grid-template-columns: 1fr; }
+	.velox-snip-safe { flex-direction: column; }
+}
+
+/* ========================================================================
+   Settings — migrate from another plugin (v2.21)
+   ======================================================================== */
+.velox-import-sources { display: flex; flex-direction: column; gap: var(--vx-s3); margin-top: var(--vx-s3); }
+.velox-import-src { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--vx-s4); border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); padding: var(--vx-s4); }
+.velox-import-src-main { min-width: 0; flex: 1; }
+.velox-import-src-head { display: flex; align-items: center; gap: var(--vx-s2); flex-wrap: wrap; }
+.velox-import-src-head strong { font-size: 14px; color: var(--vx-ink); }
+.velox-import-into { font-size: 12px; color: var(--vx-ink-3); }
+.velox-import-run { flex: none; }
+.velox-import-result { margin-top: var(--vx-s3); font-size: 13px; border-radius: var(--vx-r-sm); padding: var(--vx-s3); line-height: 1.5; }
+.velox-import-result.is-ok { background: var(--vx-success-tint); color: #14663b; }
+.velox-import-result.is-err { background: #fef2f2; color: #b91c1c; }
+.velox-import-result ul { margin: 6px 0 0; padding-left: 18px; }
+.velox-import-result li { margin: 2px 0; }
+.velox-import-result em { display: block; margin-top: 8px; opacity: .8; font-size: 12px; }
+.velox-pill { display: inline-flex; align-items: center; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: var(--vx-r-pill); background: var(--vx-n100); color: var(--vx-ink-2); }
+.velox-pill--ok { background: var(--vx-success-tint); color: #14663b; }
+
+/* ========================================================================
+   Backup & restore (v2.23)
+   ======================================================================== */
+.vbk-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 18px; }
+.vbk-stat { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: 14px; padding: 16px 18px; }
+.vbk-stat-n { display: block; font-size: 26px; font-weight: 800; letter-spacing: -.03em; color: var(--vx-ink); line-height: 1.1; }
+.vbk-stat-l { display: block; font-size: 12px; color: var(--vx-ink-3); margin-top: 4px; }
+.vbk-create { display: flex; align-items: center; gap: var(--vx-s3); flex-wrap: wrap; }
+.vbk-create .velox-select { width: auto; min-width: 200px; }
+.vbk-progress { font-size: 13px; color: var(--vx-primary-ink); }
+.vbk-list-head { padding: var(--vx-s4) var(--vx-s5) 0; }
+.vbk-table { width: 100%; border-collapse: collapse; }
+.vbk-table th { text-align: left; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--vx-ink-3); padding: 12px var(--vx-s4); border-bottom: 1px solid var(--vx-line); }
+.vbk-table td { padding: 13px var(--vx-s4); border-bottom: 1px solid var(--vx-line); font-size: 13.5px; color: var(--vx-ink); vertical-align: middle; }
+.vbk-table tr:last-child td { border-bottom: 0; }
+.vbk-row:hover { background: var(--vx-n25); }
+.vbk-note { color: var(--vx-ink-2); }
+.vbk-th-act, .vbk-act { text-align: right; white-space: nowrap; }
+.vbk-act { display: flex; gap: 6px; justify-content: flex-end; }
+
+@media (max-width: 782px) {
+	.vbk-stats { grid-template-columns: 1fr 1fr; }
+	.vbk-act { flex-wrap: wrap; }
+}

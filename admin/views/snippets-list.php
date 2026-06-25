@@ -22,19 +22,62 @@ $tabs = array(
 	'inactive' => 'Inactive',
 	'trash'    => 'Trash',
 );
+$safe_mode = Velox_Snippets::safe_mode();
 ?>
+
+<?php if ( $safe_mode ) : ?>
+	<div class="velox-panel velox-snip-safe">
+		<div class="velox-snip-safe-ic" aria-hidden="true">&#9888;</div>
+		<div class="velox-snip-safe-body">
+			<strong>Safe Mode is active — PHP snippets are not running.</strong>
+			<p>Velox skipped your PHP snippets because one crashed the site, or you asked for Safe Mode. Your CSS, JS and HTML snippets are unaffected. Fix or switch off the offending snippet, then clear Safe Mode.</p>
+			<div class="velox-snip-safe-actions">
+				<button class="velox-btn velox-btn--ghost" id="velox-snip-disable-all" type="button">Switch off all PHP snippets</button>
+				<button class="velox-btn velox-btn--primary" id="velox-snip-clear-panic" type="button">Clear Safe Mode</button>
+			</div>
+		</div>
+	</div>
+<?php endif; ?>
+
 <div class="velox-snip-head">
 	<div>
 		<h1 class="velox-snip-title">Snippets</h1>
-		<p class="velox-snip-sub">Add PHP, CSS, JS or HTML that runs by location and priority. PHP snippets that error get switched off automatically.</p>
+		<p class="velox-snip-sub">Add PHP, CSS, JS or HTML that runs by location and priority. PHP snippets that error get switched off automatically — and Safe Mode keeps a crash from ever locking you out.</p>
 	</div>
 	<div class="velox-snip-add">
 		<button class="velox-btn velox-btn--primary" id="velox-snip-add-btn" type="button">+ Add snippet</button>
-		<div class="velox-snip-add-menu" id="velox-snip-add-menu" hidden>
-			<a href="<?php echo esc_url( Velox_Snippets::new_url( 'php' ) ); ?>"><span class="velox-snip-badge is-php">PHP</span> Functions / hooks</a>
-			<a href="<?php echo esc_url( Velox_Snippets::new_url( 'css' ) ); ?>"><span class="velox-snip-badge is-css">CSS</span> Styles</a>
-			<a href="<?php echo esc_url( Velox_Snippets::new_url( 'js' ) ); ?>"><span class="velox-snip-badge is-js">JS</span> Scripts</a>
-			<a href="<?php echo esc_url( Velox_Snippets::new_url( 'html' ) ); ?>"><span class="velox-snip-badge is-html">HTML</span> Markup</a>
+	</div>
+</div>
+
+<!-- Type picker modal -->
+<div class="velox-snip-modal" id="velox-snip-modal" hidden>
+	<div class="velox-snip-modal-backdrop" data-close></div>
+	<div class="velox-snip-modal-card" role="dialog" aria-modal="true" aria-label="Choose snippet type">
+		<div class="velox-snip-modal-head">
+			<h2>What kind of snippet?</h2>
+			<button class="velox-snip-modal-x" type="button" data-close aria-label="Close">&times;</button>
+		</div>
+		<div class="velox-snip-types">
+			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'php' ) ); ?>">
+				<span class="velox-snip-badge is-php">PHP</span>
+				<span class="velox-snip-type-t">Functions &amp; hooks</span>
+				<span class="velox-snip-type-d">Run PHP early — add_action, add_filter, custom logic. Lint-checked and crash-guarded.</span>
+			</a>
+			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'css' ) ); ?>">
+				<span class="velox-snip-badge is-css">CSS</span>
+				<span class="velox-snip-type-t">Styles</span>
+				<span class="velox-snip-type-d">Inject CSS into the page head, on the front-end, admin, or both.</span>
+			</a>
+			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'js' ) ); ?>">
+				<span class="velox-snip-badge is-js">JS</span>
+				<span class="velox-snip-type-t">Scripts</span>
+				<span class="velox-snip-type-d">Print JavaScript before &lt;/body&gt; for the chosen location.</span>
+			</a>
+			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'html' ) ); ?>">
+				<span class="velox-snip-badge is-html">HTML</span>
+				<span class="velox-snip-type-t">Markup</span>
+				<span class="velox-snip-type-d">Footer HTML, also embeddable anywhere with [velox_snippet id="…"].</span>
+			</a>
 		</div>
 	</div>
 </div>
@@ -74,6 +117,7 @@ $tabs = array(
 						<button class="velox-btn velox-btn--ghost velox-snip-toggle" type="button"><?php echo $active ? 'Deactivate' : 'Activate'; ?></button>
 						<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( Velox_Snippets::edit_url( $s['id'] ) ); ?>">Edit</a>
 						<button class="velox-btn velox-btn--ghost velox-snip-clone" type="button">Clone</button>
+						<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( Velox_Snippets::export_url( $s['id'] ) ); ?>" title="Download this snippet as a standalone WordPress plugin">Export</a>
 						<button class="velox-btn velox-btn--ghost velox-snip-trash" type="button">Trash</button>
 					<?php endif; ?>
 				</span>

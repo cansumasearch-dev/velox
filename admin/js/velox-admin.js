@@ -1151,6 +1151,45 @@
 		if ( ! btn ) {
 			return;
 		}
+
+		/* Migrate-from-another-plugin importers */
+		$$( '.velox-import-run' ).forEach( function ( runBtn ) {
+			runBtn.addEventListener( 'click', function () {
+				var card = runBtn.closest( '.velox-import-src' );
+				if ( ! card ) { return; }
+				var source = card.getAttribute( 'data-source' );
+				var out = card.querySelector( '.velox-import-result' );
+				runBtn.disabled = true;
+				var label = runBtn.textContent;
+				runBtn.textContent = 'Importing…';
+				api( 'velox_import', { source: source } )
+					.then( function ( r ) {
+						out.hidden = false;
+						if ( ! r || ! r.ok ) {
+							out.className = 'velox-import-result is-err';
+							out.textContent = ( r && r.message ) || 'Nothing to import.';
+							runBtn.disabled = false; runBtn.textContent = label;
+							return;
+						}
+						var html = '<strong>' + escapeHtml( r.message ) + '</strong>';
+						if ( r.imported && r.imported.length ) {
+							html += '<ul>' + r.imported.map( function ( i ) { return '<li>' + escapeHtml( i ) + '</li>'; } ).join( '' ) + '</ul>';
+						}
+						if ( r.note ) { html += '<em>' + escapeHtml( r.note ) + '</em>'; }
+						out.className = 'velox-import-result is-ok';
+						out.innerHTML = html;
+						runBtn.textContent = 'Imported';
+						toast( 'Imported from ' + source + '.', 'success' );
+					} )
+					.catch( function ( e ) {
+						out.hidden = false;
+						out.className = 'velox-import-result is-err';
+						out.textContent = e.message;
+						runBtn.disabled = false; runBtn.textContent = label;
+					} );
+			} );
+		} );
+
 		btn.addEventListener( 'click', function () {
 			btn.disabled = true;
 			btn.textContent = 'Saving…';
@@ -1796,6 +1835,7 @@
 		initMailBuilder();
 		initCookies();
 		initOctober();
+		initBackup();
 		initOctoberEditor();
 	}
 
@@ -1931,6 +1971,86 @@
 			saveSettings( { util_cookies: t.checked ? 1 : 0 }, t.checked ? 'Cookie banner on.' : 'Cookie banner off.' )
 				.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
 		} );
+	}
+
+	function initBackup() {
+		var toggle = $( '#velox-backup-toggle' );
+		if ( toggle ) {
+			toggle.addEventListener( 'change', function () {
+				saveSettings( { util_backup: toggle.checked ? 1 : 0 }, toggle.checked ? 'Backup on.' : 'Backup off.' )
+					.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
+			} );
+		}
+
+		var createBtn = $( '#vbk-create' );
+		if ( createBtn ) {
+			createBtn.addEventListener( 'click', function () {
+				var what = ( $( '#vbk-what' ) || {} ).value || 'both';
+				var prog = $( '#vbk-progress' );
+				createBtn.disabled = true;
+				if ( prog ) { prog.hidden = false; prog.textContent = 'Backing up… keep this tab open.'; }
+				api( 'backup_create', { what: what } )
+					.then( function ( r ) {
+						toast( r && r.message ? r.message : 'Backup created.', r && r.partial ? 'warn' : 'success' );
+						setTimeout( function () { location.reload(); }, 700 );
+					} )
+					.catch( function ( e ) {
+						toast( e.message, 'error' );
+						createBtn.disabled = false;
+						if ( prog ) { prog.hidden = true; }
+					} );
+			} );
+		}
+
+		var list = $( '#vbk-list' );
+		if ( list ) {
+			list.addEventListener( 'click', function ( e ) {
+				var btn = e.target.closest( 'button' );
+				if ( ! btn ) { return; }
+				var row = e.target.closest( '.vbk-row' );
+				if ( ! row ) { return; }
+				var id = row.getAttribute( 'data-id' );
+
+				if ( btn.classList.contains( 'vbk-delete' ) ) {
+					if ( ! window.confirm( 'Delete this backup permanently? The downloaded copies (if any) are not affected.' ) ) { return; }
+					btn.disabled = true;
+					api( 'backup_delete', { id: id } )
+						.then( function () { row.remove(); toast( 'Backup deleted.' ); } )
+						.catch( function ( er ) { toast( er.message, 'error' ); btn.disabled = false; } );
+					return;
+				}
+
+				if ( btn.classList.contains( 'vbk-restore' ) ) {
+					var hasDb = row.getAttribute( 'data-hasdb' ) === '1';
+					var hasZip = row.getAttribute( 'data-haszip' ) === '1';
+					var parts = [];
+					if ( hasDb ) { parts.push( 'the database (overwriting current data)' ); }
+					if ( hasZip ) { parts.push( 'your files (overwriting wp-content)' ); }
+					if ( ! window.confirm( 'Restore ' + parts.join( ' and ' ) + '?\n\nThis replaces your current site with the contents of this backup. A safety snapshot of your database is taken automatically first. Continue?' ) ) { return; }
+					btn.disabled = true;
+					var prev = btn.textContent;
+					btn.textContent = 'Restoring…';
+					api( 'backup_restore', { id: id, what: 'both' } )
+						.then( function ( r ) { toast( r && r.message ? r.message : 'Restored.', 'success' ); setTimeout( function () { location.reload(); }, 1200 ); } )
+						.catch( function ( er ) { toast( er.message, 'error' ); btn.disabled = false; btn.textContent = prev; } );
+					return;
+				}
+			} );
+		}
+
+		var schedSave = $( '#vbk-sched-save' );
+		if ( schedSave ) {
+			schedSave.addEventListener( 'click', function () {
+				schedSave.disabled = true;
+				api( 'backup_schedule', {
+					backup_schedule: ( $( '#vbk-sched-freq' ) || {} ).value || 'off',
+					backup_schedule_what: ( $( '#vbk-sched-what' ) || {} ).value || 'both',
+					backup_keep: ( $( '#vbk-keep' ) || {} ).value || 5
+				} )
+					.then( function () { toast( 'Schedule saved.' ); setTimeout( function () { location.reload(); }, 600 ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); schedSave.disabled = false; } );
+			} );
+		}
 	}
 
 	function initOctober() {
@@ -2133,23 +2253,226 @@
 					.catch( function ( er ) { toast( er.message, 'error' ); } );
 			} );
 		} );
-		var testBtn = $( '#vmail-test' );
-		if ( testBtn ) {
-			testBtn.addEventListener( 'click', function () {
-				var to = $( '#vmail-test-to' ).value;
-				testBtn.disabled = true;
-				api( 'mail_test', { to: to } )
-					.then( function ( r ) { toast( r.message, r.ok ? 'success' : 'error' ); } )
-					.catch( function ( e ) { toast( e.message, 'error' ); } )
-					.then( function () { testBtn.disabled = false; } );
-			} );
-		}
+		initMailSmtp();
+
 		var logClear = $( '#vmail-log-clear' );
 		if ( logClear ) {
 			logClear.addEventListener( 'click', function () {
 				api( 'mail_log_clear', {} ).then( function () { location.reload(); } );
 			} );
 		}
+		$$( '.velox-mail-resend' ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				btn.disabled = true;
+				var prev = btn.textContent;
+				btn.textContent = 'Sending…';
+				api( 'mail_resend', { id: btn.getAttribute( 'data-id' ) } )
+					.then( function ( r ) { toast( r.message, r.ok ? 'success' : 'error' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { btn.disabled = false; btn.textContent = prev; } );
+			} );
+		} );
+	}
+
+	/* ---- SMTP: multiple connections + From-based routing + fallback ---- */
+	function initMailSmtp() {
+		var root = $( '#vmail-smtp' );
+		if ( ! root ) { return; }
+
+		var data = { connections: [], routes: [], primary: '', fallback: '' };
+		try { data = JSON.parse( ( $( '#vmail-smtp-data' ) || {} ).textContent || '{}' ); } catch ( e ) {}
+		var conns  = Array.isArray( data.connections ) ? data.connections : [];
+		var routes = Array.isArray( data.routes ) ? data.routes : [];
+		var primary = data.primary || '';
+		var fallback = data.fallback || '';
+
+		var listEl   = $( '#vmail-conn-list' );
+		var routingEl = $( '#vmail-routing' );
+		var routeList = $( '#vmail-route-list' );
+		var primarySel = $( '#vmail-primary' );
+		var fallbackSel = $( '#vmail-fallback' );
+		var testConn = $( '#vmail-test-conn' );
+
+		function uid() { return 'conn_' + Math.random().toString( 36 ).slice( 2, 10 ); }
+
+		var SECURE = { tls: 'TLS', ssl: 'SSL', none: 'None' };
+
+		function connCard( c, idx ) {
+			var card = document.createElement( 'div' );
+			card.className = 'vmail-conn';
+			card.setAttribute( 'data-id', c.id );
+			var secOpts = Object.keys( SECURE ).map( function ( v ) {
+				return '<option value="' + v + '"' + ( c.secure === v ? ' selected' : '' ) + '>' + SECURE[ v ] + '</option>';
+			} ).join( '' );
+			card.innerHTML =
+				'<div class="vmail-conn-top">' +
+					'<input type="text" class="velox-input vmail-c-label" value="' + escapeHtml( c.label || '' ) + '" placeholder="Connection name (e.g. Transactional)">' +
+					'<button type="button" class="vmail-conn-del" title="Remove connection" aria-label="Remove connection">&times;</button>' +
+				'</div>' +
+				'<div class="vmail-conn-grid">' +
+					'<label class="vmail-cf vmail-cf--host"><span>Host</span><input type="text" class="velox-input vmail-c-host" value="' + escapeHtml( c.host || '' ) + '" placeholder="smtp.example.com"></label>' +
+					'<label class="vmail-cf vmail-cf--port"><span>Port</span><input type="number" class="velox-input vmail-c-port" value="' + escapeHtml( String( c.port || 587 ) ) + '"></label>' +
+					'<label class="vmail-cf vmail-cf--sec"><span>Encryption</span><select class="velox-select vmail-c-secure">' + secOpts + '</select></label>' +
+					'<label class="vmail-cf"><span>Username</span><input type="text" class="velox-input vmail-c-user" value="' + escapeHtml( c.user || '' ) + '" autocomplete="off"></label>' +
+					'<label class="vmail-cf"><span>Password</span><input type="password" class="velox-input vmail-c-pass" value="' + escapeHtml( c.pass || '' ) + '" autocomplete="new-password"></label>' +
+					'<label class="vmail-cf"><span>From address</span><input type="email" class="velox-input vmail-c-from" value="' + escapeHtml( c.from || '' ) + '" placeholder="hello@example.com"></label>' +
+					'<label class="vmail-cf"><span>From name</span><input type="text" class="velox-input vmail-c-fromname" value="' + escapeHtml( c.from_name || '' ) + '"></label>' +
+				'</div>';
+			card.querySelector( '.vmail-conn-del' ).addEventListener( 'click', function () {
+				collect();
+				conns = conns.filter( function ( x ) { return x.id !== c.id; } );
+				render();
+			} );
+			// keep label in sync into the routing/select dropdowns live
+			card.querySelector( '.vmail-c-label' ).addEventListener( 'input', function () { collect(); syncSelects(); } );
+			card.querySelector( '.vmail-c-host' ).addEventListener( 'input', function () { collect(); syncSelects(); } );
+			return card;
+		}
+
+		function routeRow( r ) {
+			var row = document.createElement( 'div' );
+			row.className = 'vmail-route';
+			var matchOpts = [ [ 'from_email', 'From address is' ], [ 'from_name', 'From name is' ], [ 'all', 'All other mail' ] ]
+				.map( function ( m ) { return '<option value="' + m[0] + '"' + ( r.match === m[0] ? ' selected' : '' ) + '>' + m[1] + '</option>'; } ).join( '' );
+			row.innerHTML =
+				'<select class="velox-select velox-select--sm vmail-r-match">' + matchOpts + '</select>' +
+				'<input type="text" class="velox-input vmail-r-value" value="' + escapeHtml( r.value || '' ) + '" placeholder="value">' +
+				'<span class="vmail-r-arrow">→</span>' +
+				'<select class="velox-select velox-select--sm vmail-r-conn"></select>' +
+				'<button type="button" class="vmail-route-del" title="Remove rule" aria-label="Remove rule">&times;</button>';
+			fillConnSelect( row.querySelector( '.vmail-r-conn' ), r.conn );
+			var matchSel = row.querySelector( '.vmail-r-match' );
+			var valInput = row.querySelector( '.vmail-r-value' );
+			function toggleVal() { valInput.style.visibility = ( matchSel.value === 'all' ) ? 'hidden' : 'visible'; }
+			matchSel.addEventListener( 'change', toggleVal );
+			toggleVal();
+			row.querySelector( '.vmail-route-del' ).addEventListener( 'click', function () {
+				collectRoutes();
+				var i = Array.prototype.indexOf.call( routeList.children, row );
+				if ( i > -1 ) { routes.splice( i, 1 ); }
+				row.remove();
+			} );
+			return row;
+		}
+
+		function fillConnSelect( sel, selected ) {
+			sel.innerHTML = conns.map( function ( c ) {
+				var name = c.label || c.host || c.id;
+				return '<option value="' + c.id + '"' + ( c.id === selected ? ' selected' : '' ) + '>' + escapeHtml( name ) + '</option>';
+			} ).join( '' );
+		}
+
+		function syncSelects() {
+			fillConnSelect( primarySel, primary );
+			var fOpts = '<option value="">None</option>' + conns.map( function ( c ) {
+				var name = c.label || c.host || c.id;
+				return '<option value="' + c.id + '"' + ( c.id === fallback ? ' selected' : '' ) + '>' + escapeHtml( name ) + '</option>';
+			} ).join( '' );
+			fallbackSel.innerHTML = fOpts;
+			if ( testConn ) { fillConnSelect( testConn, primary ); }
+			// refresh each route's connection dropdown, preserving selection
+			$$( '.vmail-r-conn', routeList ).forEach( function ( sel, i ) {
+				var cur = routes[ i ] ? routes[ i ].conn : '';
+				fillConnSelect( sel, cur );
+			} );
+		}
+
+		function collect() {
+			var out = [];
+			$$( '.vmail-conn', listEl ).forEach( function ( card ) {
+				out.push( {
+					id:        card.getAttribute( 'data-id' ),
+					label:     card.querySelector( '.vmail-c-label' ).value,
+					host:      card.querySelector( '.vmail-c-host' ).value,
+					port:      card.querySelector( '.vmail-c-port' ).value,
+					secure:    card.querySelector( '.vmail-c-secure' ).value,
+					user:      card.querySelector( '.vmail-c-user' ).value,
+					pass:      card.querySelector( '.vmail-c-pass' ).value,
+					from:      card.querySelector( '.vmail-c-from' ).value,
+					from_name: card.querySelector( '.vmail-c-fromname' ).value
+				} );
+			} );
+			conns = out;
+		}
+
+		function collectRoutes() {
+			var out = [];
+			$$( '.vmail-route', routeList ).forEach( function ( row ) {
+				out.push( {
+					match: row.querySelector( '.vmail-r-match' ).value,
+					value: row.querySelector( '.vmail-r-value' ).value,
+					conn:  row.querySelector( '.vmail-r-conn' ).value
+				} );
+			} );
+			routes = out;
+		}
+
+		function render() {
+			listEl.innerHTML = '';
+			conns.forEach( function ( c, i ) { listEl.appendChild( connCard( c, i ) ); } );
+			routingEl.hidden = conns.length < 1;
+			routeList.innerHTML = '';
+			routes.forEach( function ( r ) { routeList.appendChild( routeRow( r ) ); } );
+			syncSelects();
+		}
+
+		$( '#vmail-conn-add' ).addEventListener( 'click', function () {
+			collect();
+			conns.push( { id: uid(), label: '', host: '', port: 587, secure: 'tls', user: '', pass: '', from: '', from_name: '' } );
+			render();
+		} );
+
+		var routeAdd = $( '#vmail-route-add' );
+		if ( routeAdd ) {
+			routeAdd.addEventListener( 'click', function () {
+				collectRoutes();
+				if ( ! conns.length ) { toast( 'Add a connection first.', 'error' ); return; }
+				var row = routeRow( { match: 'from_email', value: '', conn: conns[0].id } );
+				routeList.appendChild( row );
+			} );
+		}
+
+		primarySel.addEventListener( 'change', function () { primary = primarySel.value; } );
+		fallbackSel.addEventListener( 'change', function () { fallback = fallbackSel.value; } );
+
+		var saveBtn = $( '#vmail-smtp-save' );
+		saveBtn.addEventListener( 'click', function () {
+			collect();
+			collectRoutes();
+			primary = primarySel.value;
+			fallback = fallbackSel.value;
+			saveBtn.disabled = true;
+			api( 'mail_save_routing', {
+				connections: JSON.stringify( conns ),
+				routes:      JSON.stringify( routes ),
+				primary:     primary,
+				fallback:    fallback
+			} )
+				.then( function ( r ) {
+					toast( r.message || 'Saved.', 'success' );
+					if ( r.connections ) { conns = r.connections; }
+					if ( r.routes ) { routes = r.routes; }
+					primary = r.primary || ''; fallback = r.fallback || '';
+					render();
+				} )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { saveBtn.disabled = false; } );
+		} );
+
+		var testBtn = $( '#vmail-test' );
+		if ( testBtn ) {
+			testBtn.addEventListener( 'click', function () {
+				var to = $( '#vmail-test-to' ).value;
+				var conn = testConn ? testConn.value : '';
+				testBtn.disabled = true;
+				api( 'mail_test', { to: to, conn: conn } )
+					.then( function ( r ) { toast( r.message, r.ok ? 'success' : 'error' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { testBtn.disabled = false; } );
+			} );
+		}
+
+		render();
 	}
 
 	function initMailBuilder() {
@@ -2177,6 +2500,8 @@
 			date:        { label: 'Date',        icon: '\u25A6', opts: false, cat: 'advanced' },
 			consent:     { label: 'Consent',     icon: '\u2713', opts: false, cat: 'advanced' },
 			captcha:     { label: 'CAPTCHA',     icon: '\u26E8', opts: false, cat: 'advanced' },
+			calc:        { label: 'Calculation', icon: '\u2211', opts: false, cat: 'advanced' },
+			step:        { label: 'Page break',  icon: '\u2398', opts: false, cat: 'layout' },
 			html:        { label: 'Custom HTML',  icon: '\u2039\u203A', opts: false, cat: 'layout' }
 		};
 		var CATS = { general: 'General fields', advanced: 'Advanced fields', layout: 'Layout' };
@@ -2205,6 +2530,10 @@
 				'default': f['default'] || '', help: f.help || '',
 				width: ( f.width === 'half' || f.width === 'third' ) ? f.width : 'full',
 				css: f.css || '', content: f.content || '',
+				min: f.min != null ? f.min : '', max: f.max != null ? f.max : '',
+				pattern: f.pattern || '', pattern_msg: f.pattern_msg || '',
+				calc: f.calc || '', calc_prefix: f.calc_prefix || '', calc_suffix: f.calc_suffix || '',
+				cond: ( f.cond && f.cond.rules && f.cond.rules.length ) ? f.cond : null,
 				_lockKey: !! ( f.key && /^[a-z0-9_]+$/.test( f.key ) )
 			};
 		}
@@ -2251,6 +2580,8 @@
 			if ( type === 'consent' ) { f.label = 'I accept the privacy policy.'; f.required = true; }
 			if ( type === 'captcha' ) { f.label = ''; f.required = false; }
 			if ( type === 'html' ) { f.label = ''; f.content = '<p>Your custom HTML here.</p>'; }
+			if ( type === 'step' ) { f.label = 'Step ' + ( form.fields.filter( function ( x ) { return x.type === 'step'; } ).length + 1 ); f.width = 'full'; }
+			if ( type === 'calc' ) { f.label = 'Total'; f.calc = ''; f.width = 'full'; }
 			form.fields.push( f );
 			reKey();
 			selected = form.fields.length - 1;
@@ -2263,6 +2594,10 @@
 			var lbl  = f.label ? '<span class="velox-form-label">' + escapeHtml( f.label ) + star + '</span>' : '';
 			var help = f.help ? '<span class="velox-form-help">' + escapeHtml( f.help ) + '</span>' : '';
 			if ( f.type === 'html' ) { return '<div class="vmail-html-prev">' + ( f.content || '<em>Custom HTML</em>' ) + '</div>'; }
+			if ( f.type === 'step' ) { return '<div class="vmail-step-prev"><span>\u2398 Page break</span><small>' + escapeHtml( f.label || '' ) + '</small></div>'; }
+			if ( f.type === 'calc' ) {
+				return lbl + '<div class="vmail-calc-prev"><code>' + escapeHtml( f.calc || 'formula…' ) + '</code></div>' + help;
+			}
 			if ( f.type === 'captcha' ) { return '<div class="vmail-cap-prev">\u26E8 CAPTCHA widget<small>shown to visitors in place of a consent box</small></div>'; }
 			if ( f.type === 'consent' || f.type === 'checkbox' ) {
 				return '<label class="velox-form-consent"><input type="checkbox" disabled><span>' + escapeHtml( f.label ) + star + '</span></label>' + help;
@@ -2340,6 +2675,122 @@
 				'<option value="third"' + ( f.width === 'third' ? ' selected' : '' ) + '>Third (1/3)</option>' +
 				'</select></div>';
 		}
+		/* ---- validation + conditional logic UI ---- */
+		function validationRows( f, t ) {
+			var rows = '';
+			var isNum = ( t === 'number' || t === 'date' );
+			var isLen = ( t === 'text' || t === 'tel' || t === 'url' );
+			if ( ! isNum && ! isLen ) { return ''; }
+			var minMaxLabel = isNum ? ( t === 'date' ? 'Earliest / latest date' : 'Min / max value' ) : 'Min / max length';
+			rows += '<div class="vmail-insp-sub">Validation</div>';
+			rows += '<div class="velox-field"><span class="velox-field-label">' + minMaxLabel + '</span>' +
+				'<div class="vmail-minmax">' +
+					'<input type="' + ( t === 'date' ? 'date' : 'number' ) + '" class="velox-input" data-k="min" value="' + escapeHtml( f.min || '' ) + '" placeholder="min">' +
+					'<input type="' + ( t === 'date' ? 'date' : 'number' ) + '" class="velox-input" data-k="max" value="' + escapeHtml( f.max || '' ) + '" placeholder="max">' +
+				'</div></div>';
+			if ( isLen ) {
+				rows += '<div class="velox-field"><span class="velox-field-label">Pattern (regex)</span>' +
+					'<input type="text" class="velox-input velox-mono" data-k="pattern" value="' + escapeHtml( f.pattern || '' ) + '" placeholder="e.g. [0-9]{5}">' +
+					'<span class="velox-hint">Whole value must match. Leave blank for none.</span></div>';
+				rows += inspText( 'Pattern error message', 'pattern_msg', f.pattern_msg, 'Shown when the pattern doesn\'t match.' );
+			}
+			return rows;
+		}
+
+		function condFieldOptions( exceptKey, sel ) {
+			return form.fields.filter( function ( x ) {
+				return x.key !== exceptKey && [ 'html', 'captcha', 'step', 'calc' ].indexOf( x.type ) === -1;
+			} ).map( function ( x ) {
+				return '<option value="' + escapeHtml( x.key ) + '"' + ( x.key === sel ? ' selected' : '' ) + '>' + escapeHtml( x.label || x.key ) + '</option>';
+			} ).join( '' );
+		}
+		var COND_OPS = [ [ 'is', 'is' ], [ 'is_not', 'is not' ], [ 'contains', 'contains' ], [ 'gt', 'greater than' ], [ 'lt', 'less than' ], [ 'empty', 'is empty' ], [ 'not_empty', 'is not empty' ] ];
+		function conditionalRows( f ) {
+			var others = form.fields.filter( function ( x ) { return x.key !== f.key && [ 'html', 'captcha', 'step', 'calc' ].indexOf( x.type ) === -1; } );
+			var rows = '<div class="vmail-insp-sub">Conditional logic</div>';
+			if ( ! others.length ) {
+				return rows + '<p class="velox-hint" style="margin:0;">Add another field first to show or hide this one based on its answer.</p>';
+			}
+			var on = !! ( f.cond && f.cond.rules && f.cond.rules.length );
+			rows += '<label class="vmail-insp-check"><input type="checkbox" data-cond="enable"' + ( on ? ' checked' : '' ) + '> Show/hide this field based on other answers</label>';
+			if ( ! on ) { return rows; }
+			var c = f.cond;
+			rows += '<div class="vmail-cond">';
+			rows += '<div class="vmail-cond-head">' +
+				'<select class="velox-select velox-select--sm" data-cond="action">' +
+					'<option value="show"' + ( c.action !== 'hide' ? ' selected' : '' ) + '>Show this field</option>' +
+					'<option value="hide"' + ( c.action === 'hide' ? ' selected' : '' ) + '>Hide this field</option>' +
+				'</select>' +
+				'<span class="vmail-cond-when">when</span>' +
+				'<select class="velox-select velox-select--sm" data-cond="logic">' +
+					'<option value="all"' + ( c.logic !== 'any' ? ' selected' : '' ) + '>all rules match</option>' +
+					'<option value="any"' + ( c.logic === 'any' ? ' selected' : '' ) + '>any rule matches</option>' +
+				'</select>' +
+			'</div>';
+			rows += '<div class="vmail-cond-rules">';
+			c.rules.forEach( function ( r, i ) {
+				var needsVal = [ 'empty', 'not_empty' ].indexOf( r.op ) === -1;
+				rows += '<div class="vmail-cond-rule" data-i="' + i + '">' +
+					'<select class="velox-select velox-select--sm" data-cr="field">' + condFieldOptions( f.key, r.field ) + '</select>' +
+					'<select class="velox-select velox-select--sm" data-cr="op">' + COND_OPS.map( function ( o ) { return '<option value="' + o[0] + '"' + ( r.op === o[0] ? ' selected' : '' ) + '>' + o[1] + '</option>'; } ).join( '' ) + '</select>' +
+					'<input type="text" class="velox-input vmail-cond-val" data-cr="value" value="' + escapeHtml( r.value || '' ) + '" placeholder="value"' + ( needsVal ? '' : ' style="visibility:hidden"' ) + '>' +
+					'<button type="button" class="vmail-cond-del" data-i="' + i + '" title="Remove rule" aria-label="Remove rule">&times;</button>' +
+				'</div>';
+			} );
+			rows += '</div>';
+			rows += '<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-cond="add">+ Add rule</button>';
+			rows += '</div>';
+			return rows;
+		}
+
+		function bindConditional( f ) {
+			var enable = $( '[data-cond="enable"]', inspector );
+			if ( enable ) {
+				enable.addEventListener( 'change', function () {
+					if ( enable.checked ) {
+						var first = form.fields.filter( function ( x ) { return x.key !== f.key && [ 'html', 'captcha', 'step', 'calc' ].indexOf( x.type ) === -1; } )[0];
+						f.cond = { action: 'show', logic: 'all', rules: [ { field: first ? first.key : '', op: 'is', value: '' } ] };
+					} else {
+						f.cond = null;
+					}
+					renderInspector();
+				} );
+			}
+			[ 'action', 'logic' ].forEach( function ( k ) {
+				var el = $( '[data-cond="' + k + '"]', inspector );
+				if ( el ) { el.addEventListener( 'change', function () { if ( f.cond ) { f.cond[ k ] = el.value; } } ); }
+			} );
+			var add = $( '[data-cond="add"]', inspector );
+			if ( add ) {
+				add.addEventListener( 'click', function () {
+					if ( ! f.cond ) { return; }
+					var first = form.fields.filter( function ( x ) { return x.key !== f.key && [ 'html', 'captcha', 'step', 'calc' ].indexOf( x.type ) === -1; } )[0];
+					f.cond.rules.push( { field: first ? first.key : '', op: 'is', value: '' } );
+					renderInspector();
+				} );
+			}
+			$$( '.vmail-cond-rule', inspector ).forEach( function ( row ) {
+				var i = parseInt( row.getAttribute( 'data-i' ), 10 );
+				$$( '[data-cr]', row ).forEach( function ( el ) {
+					var ev = el.tagName === 'SELECT' ? 'change' : 'input';
+					el.addEventListener( ev, function () {
+						if ( ! f.cond || ! f.cond.rules[ i ] ) { return; }
+						f.cond.rules[ i ][ el.getAttribute( 'data-cr' ) ] = el.value;
+						if ( el.getAttribute( 'data-cr' ) === 'op' ) { renderInspector(); }
+					} );
+				} );
+				var del = row.querySelector( '.vmail-cond-del' );
+				if ( del ) {
+					del.addEventListener( 'click', function () {
+						if ( ! f.cond ) { return; }
+						f.cond.rules.splice( i, 1 );
+						if ( ! f.cond.rules.length ) { f.cond = null; }
+						renderInspector();
+					} );
+				}
+			} );
+		}
+
 		function renderInspector() {
 			if ( selected < 0 || ! form.fields[ selected ] ) {
 				inspector.innerHTML = '<div class="vmail-insp-empty">Select a field on the canvas to edit its settings.</div>';
@@ -2352,13 +2803,30 @@
 			var noDefault     = [ 'consent', 'checkbox', 'name', 'captcha', 'html', 'multiselect' ];
 			var rows = '';
 
-			if ( t === 'html' ) {
+			if ( t === 'step' ) {
+				rows += inspText( 'Step title', 'label', f.label, 'Shown in the progress bar. The first page break titles step 1.' );
+				rows += '<div class="vmail-insp-note">A page break splits the form into steps. Visitors get Next / Back buttons and a progress bar. Add more page breaks for more steps.</div>';
+			} else if ( t === 'calc' ) {
+				rows += inspText( 'Label', 'label', f.label );
+				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
+				rows += '<div class="velox-field"><span class="velox-field-label">Formula</span>' +
+					'<textarea class="velox-textarea velox-mono" rows="2" data-k="calc" placeholder="{quantity} * {price}">' + escapeHtml( f.calc || '' ) + '</textarea>' +
+					'<span class="velox-hint">Reference fields with <code>{field_key}</code>. Use + - * / and ( ). Example: <code>{quantity} * {price}</code></span></div>';
+				rows += '<div class="velox-field"><span class="velox-field-label">Prefix / suffix</span><div class="vmail-minmax">' +
+					'<input type="text" class="velox-input" data-k="calc_prefix" value="' + escapeHtml( f.calc_prefix || '' ) + '" placeholder="e.g. €">' +
+					'<input type="text" class="velox-input" data-k="calc_suffix" value="' + escapeHtml( f.calc_suffix || '' ) + '" placeholder="e.g. /mo">' +
+				'</div></div>';
+				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
+				rows += conditionalRows( f );
+			} else if ( t === 'html' ) {
 				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
 				rows += '<div class="velox-field"><span class="velox-field-label">HTML content</span><textarea class="velox-textarea velox-mono" rows="6" data-k="content">' + escapeHtml( f.content || '' ) + '</textarea><span class="velox-hint">Rendered as-is in the form. Basic HTML is allowed.</span></div>';
 				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
+				rows += conditionalRows( f );
 			} else if ( t === 'captcha' ) {
 				rows += '<div class="vmail-insp-note">This drops your CAPTCHA widget into the form. Configure the provider and keys under <strong>Mail &amp; forms \u2192 CAPTCHA</strong>. A form uses either a consent box or CAPTCHA \u2014 not both.</div>';
 				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
+				rows += conditionalRows( f );
 			} else {
 				rows += inspText( 'Label', 'label', f.label );
 				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
@@ -2368,9 +2836,11 @@
 				else if ( hasOpts ) { rows += inspArea( 'Options (one per line)', 'options', f.options ); }
 				if ( noDefault.indexOf( t ) === -1 ) { rows += inspText( 'Default value', 'default', f['default'] ); }
 				rows += inspText( 'Help text', 'help', f.help );
+				rows += validationRows( f, t );
 				rows += widthSelect( f );
 				rows += inspText( 'CSS class', 'css', f.css );
 			}
+			rows += conditionalRows( f );
 			inspector.innerHTML = '<div class="vmail-insp-head">' + ( TYPES[ t ] ? TYPES[ t ].label : t ) + ' field</div><div class="vmail-insp-body">' + rows + '</div>';
 
 			$$( '[data-k]', inspector ).forEach( function ( el ) {
@@ -2388,11 +2858,13 @@
 					renderCanvas();
 				} );
 			} );
+
+			bindConditional( f );
 		}
 
 		/* ---------- notifications ---------- */
 		function fieldTags() {
-			var skip = { consent: 1, html: 1, captcha: 1 };
+			var skip = { consent: 1, html: 1, captcha: 1, step: 1 };
 			var tags = form.fields.filter( function ( f ) { return ! skip[ f.type ]; } ).map( function ( f ) {
 				return { tag: '{inputs.' + f.key + '}', label: f.label || f.key };
 			} );
@@ -2892,6 +3364,24 @@
 		if ( ! robots && ! applyBtn ) {
 			return;
 		}
+		var genBtn = $( '#velox-seo-smap-gen' );
+
+		// Persist the robots.txt + sitemap enable toggles the moment they change.
+		// (Previously these had data-setting but no handler, so they never saved
+		// and snapped back on reload.)
+		var robotsEnable = $( '#velox-seo-robots-enable' );
+		if ( robotsEnable ) {
+			robotsEnable.addEventListener( 'change', function () {
+				saveSettings( { seo_robots_enable: robotsEnable.checked ? 1 : 0 }, robotsEnable.checked ? 'robots.txt enabled.' : 'robots.txt disabled.' );
+			} );
+		}
+		var sitemapEnable = $( '#velox-seo-sitemap-enable' );
+		if ( sitemapEnable ) {
+			sitemapEnable.addEventListener( 'change', function () {
+				saveSettings( { seo_sitemap_enable: sitemapEnable.checked ? 1 : 0 }, sitemapEnable.checked ? 'Sitemap enabled.' : 'Sitemap disabled.' );
+			} );
+		}
+
 		var saveBtn = $( '#velox-seo-robots-save' );
 		if ( saveBtn ) {
 			saveBtn.addEventListener( 'click', function () {

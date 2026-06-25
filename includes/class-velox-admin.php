@@ -75,92 +75,26 @@ class Velox_Admin {
 		$icon = '<img src="' . esc_url( VELOX_URL . 'assets/menu-icon.png' ) . '" alt="" '
 			. 'style="width:20px;height:20px;vertical-align:middle;margin:0 7px 0 0;display:inline-block;">';
 
+		// Top admin bar stays intentionally minimal: a link into Velox, plus the
+		// maintenance quick-toggle (the one action genuinely useful from anywhere).
+		// All module navigation lives in the in-plugin LEFT sidebar — not here.
 		$bar->add_node( array(
 			'id'    => 'velox',
 			'title' => $icon . 'Velox',
 			'href'  => menu_page_url( self::SLUG, false ),
 		) );
 
-		foreach ( $this->enabled_tabs() as $key => $tab ) {
-			$bar->add_node( array(
-				'id'     => 'velox-' . $key,
-				'parent' => 'velox',
-				'title'  => $tab['label'],
-				'href'   => $this->tab_url( $key ),
-			) );
-		}
-
-		// Active utilities → shown directly in the Velox dropdown as their own group.
-		$bar->add_group( array( 'id' => 'velox-utils-group', 'parent' => 'velox' ) );
-		$any_util = false;
-		foreach ( Velox_Utilities::catalog() as $uid => $tool ) {
-			$enable = isset( $tool['enable'] ) ? $tool['enable'] : '';
-			if ( '' === $enable || ! Velox_Settings::get( $enable ) ) {
-				continue;
-			}
-			$any_util = true;
-			$u = ! empty( $tool['link'] )
-				? admin_url( 'admin.php?page=velox-' . $tool['link'] )
-				: admin_url( 'admin.php?page=velox-utilities&tool=' . $uid );
-			$bar->add_node( array( 'id' => 'velox-util-' . $uid, 'parent' => 'velox-utils-group', 'title' => $tool['label'], 'href' => $u ) );
-		}
-		if ( ! $any_util ) {
-			$bar->add_node( array( 'id' => 'velox-util-none', 'parent' => 'velox-utils-group', 'title' => 'No utilities active yet', 'href' => admin_url( 'admin.php?page=velox-utilities' ) ) );
-		}
-
-		// Maintenance mode: its own always-present admin-bar item with a status dot
-		// plus Settings and Activate/Deactivate, so it can be flipped from anywhere.
+		// Maintenance: status dot + activate/deactivate, flippable from any screen.
 		$maint_on  = (bool) Velox_Settings::get( 'util_maintenance' );
 		$maint_url = wp_nonce_url( admin_url( 'admin.php?page=velox-utilities&tool=maintenance&velox_maint_toggle=1' ), 'velox_maint_toggle' );
 		$maint_dot = '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 7px 0 2px;vertical-align:middle;background:' . ( $maint_on ? '#22c55e' : '#9aa0a6' ) . ( $maint_on ? ';box-shadow:0 0 0 3px rgba(34,197,94,.3)' : '' ) . ';"></span>';
 		$bar->add_node( array(
-			'id'    => 'velox-maintenance',
-			'title' => $maint_dot . 'Velox Maintenance',
-			'meta'  => array( 'title' => $maint_on ? 'Maintenance is ON' : 'Maintenance is OFF' ),
-		) );
-		$bar->add_node( array(
-			'id'     => 'velox-maint-settings',
-			'parent' => 'velox-maintenance',
-			'title'  => 'Settings',
-			'href'   => admin_url( 'admin.php?page=velox-utilities&tool=maintenance' ),
-		) );
-		$bar->add_node( array(
-			'id'     => 'velox-maint-do',
-			'parent' => 'velox-maintenance',
-			'title'  => $maint_on ? 'Deactivate' : 'Activate',
-			'href'   => $maint_url,
-		) );
-
-		// Nested "Performance & Cache" group — only when the Performance module is on.
-		if ( ! Velox_Settings::get( 'module_performance' ) ) {
-			return;
-		}
-		$bar->add_node( array(
-			'id'     => 'velox-cache',
+			'id'     => 'velox-maintenance',
 			'parent' => 'velox',
-			'title'  => 'Performance & Cache',
+			'title'  => $maint_dot . ( $maint_on ? 'Maintenance: ON' : 'Maintenance: OFF' ),
+			'href'   => $maint_url,
+			'meta'   => array( 'title' => $maint_on ? 'Click to deactivate maintenance' : 'Click to activate maintenance' ),
 		) );
-		$bar->add_node( array(
-			'id'     => 'velox-cache-settings',
-			'parent' => 'velox-cache',
-			'title'  => 'Performance settings',
-			'href'   => $this->tab_url( 'performance' ),
-		) );
-		$actions = array(
-			'all'      => 'Clear all cache',
-			'minified' => 'Clear minified CSS / JS',
-			'oxygen'   => 'Regenerate Oxygen CSS',
-			'cloudflare' => 'Clear Cloudflare cache',
-			'velox'    => 'Clear Velox cache',
-		);
-		foreach ( $actions as $which => $label ) {
-			$bar->add_node( array(
-				'id'     => 'velox-cache-' . $which,
-				'parent' => 'velox-cache',
-				'title'  => $label,
-				'href'   => $this->cache_url( $which ),
-			) );
-		}
 	}
 
 	private function cache_url( $which ) {

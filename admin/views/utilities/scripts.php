@@ -29,14 +29,14 @@ function velox_script_row( $type, $handle, $src, $rules ) {
 				<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $mode, $val ); ?>><?php echo esc_html( $label ); ?></option>
 			<?php endforeach; ?>
 		</select>
-		<input type="text" class="velox-input velox-sm-ids" value="<?php echo esc_attr( $ids ); ?>" placeholder="ids or slugs, e.g. kontakt, front"<?php echo ( 'except' === $mode || 'only' === $mode ) ? '' : ' hidden'; ?>>
+		<input type="text" class="velox-input velox-sm-ids" value="<?php echo esc_attr( $ids ); ?>" placeholder="e.g. kontakt, front, type:product"<?php echo ( 'except' === $mode || 'only' === $mode ) ? '' : ' hidden'; ?>>
 	</div>
 	<?php
 }
 ?>
 <div class="velox-page-head">
 	<h1 class="velox-h2">Script Manager</h1>
-	<p class="velox-sub">Stop plugins from loading CSS/JS where it isn't needed — the classic example is keeping Contact Form 7 off every page except your contact page. Pages are matched by ID, slug, or <code>front</code> for the homepage.</p>
+	<p class="velox-sub">Stop plugins from loading CSS/JS where it isn't needed — the classic example is keeping Contact Form 7 off every page except your contact page. Pages are matched by ID, slug, <code>front</code> (homepage), <code>blog</code>, <code>archive</code>, <code>shop</code>, or a whole post type with <code>type:product</code>, <code>type:post</code>, etc.</p>
 </div>
 
 <div class="velox-panel">
