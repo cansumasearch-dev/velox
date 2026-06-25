@@ -94,64 +94,56 @@ class Velox_Admin {
 	public function render_sidebar_flyout() {
 		$active = Velox_Utilities::enabled_tools();
 		$cat    = Velox_Utilities::catalog();
-
-		// The full set of pages, mirroring the top admin-bar Velox dropdown.
-		$pages = array(
-			'Dashboard'    => 'dashboard',
-			'Images'       => 'images',
-			'Media Editor' => 'media',
-			'Performance'  => 'performance',
-			'Database'     => 'database',
-			'SEO'          => 'seo',
-			'Utilities'    => 'utilities',
-			'Settings'     => 'settings',
-		);
+		// Nothing to show until at least one utility is switched on.
+		if ( empty( $active ) ) {
+			return;
+		}
 		?>
-		<div id="velox-velox-flyout" class="velox-side-flyout" role="menu" aria-label="Velox menu">
-			<?php foreach ( $pages as $label => $key ) :
-				$is_utils = ( 'utilities' === $key );
-				$has_sub  = ( $is_utils && ! empty( $active ) );
+		<div id="velox-utilities-flyout" class="velox-side-subfly velox-util-pop" role="menu" aria-label="Active utilities">
+			<div class="velox-side-subfly-head">Active utilities</div>
+			<?php foreach ( $active as $id ) :
+				if ( ! isset( $cat[ $id ] ) ) { continue; }
 				?>
-				<div class="velox-side-fly-row<?php echo $has_sub ? ' has-sub' : ''; ?>">
-					<a class="velox-side-fly-item" role="menuitem" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->page_slug( $key ) ) ); ?>">
-						<span><?php echo esc_html( $label ); ?></span>
-						<?php if ( $has_sub ) : ?><span class="velox-side-fly-arrow" aria-hidden="true">›</span><?php endif; ?>
-					</a>
-					<?php if ( $has_sub ) : ?>
-						<div class="velox-side-subfly" role="menu" aria-label="Active utilities">
-							<div class="velox-side-subfly-head">Active utilities</div>
-							<?php foreach ( $active as $id ) :
-								if ( ! isset( $cat[ $id ] ) ) { continue; }
-								?>
-								<a class="velox-side-subfly-item" role="menuitem" href="<?php echo esc_url( Velox_Utilities::tool_url( $id ) ); ?>">
-									<span class="velox-util-dot" aria-hidden="true"></span>
-									<span><?php echo esc_html( $cat[ $id ]['label'] ); ?></span>
-								</a>
-							<?php endforeach; ?>
-						</div>
-					<?php endif; ?>
-				</div>
+				<a class="velox-side-subfly-item" role="menuitem" href="<?php echo esc_url( Velox_Utilities::tool_url( $id ) ); ?>">
+					<span class="velox-util-dot" aria-hidden="true"></span>
+					<span><?php echo esc_html( $cat[ $id ]['label'] ); ?></span>
+				</a>
 			<?php endforeach; ?>
 		</div>
 		<script>
 		( function () {
-			var menuItem = document.getElementById( 'toplevel_page_<?php echo esc_js( self::SLUG ); ?>' );
-			var flyout   = document.getElementById( 'velox-velox-flyout' );
-			if ( ! menuItem || ! flyout ) { return; }
-			menuItem.classList.add( 'velox-has-flyout' );
+			var pop = document.getElementById( 'velox-utilities-flyout' );
+			if ( ! pop ) { return; }
+			// Anchor to the real "Utilities" submenu link in the Velox menu.
+			var utilSlug = '<?php echo esc_js( $this->page_slug( 'utilities' ) ); ?>';
+			var link = document.querySelector( '#toplevel_page_<?php echo esc_js( self::SLUG ); ?> a[href*="page=' + utilSlug + '"]' );
+			if ( ! link ) { return; }
+			var row = link.parentNode; // the <li>
+			row.classList.add( 'velox-util-haspop' );
 			var hideTimer;
+
 			function place() {
-				var r = menuItem.getBoundingClientRect();
-				flyout.style.top  = Math.max( 8, r.top ) + 'px';
-				flyout.style.left = r.right + 'px';
+				var r  = link.getBoundingClientRect();
+				var vw = window.innerWidth, vh = window.innerHeight;
+				pop.style.maxHeight = ( vh - 16 ) + 'px';
+				var ph = pop.offsetHeight, pw = pop.offsetWidth;
+				// vertical: align to the item, flip up if it would overflow the bottom
+				var top = r.top - 7;
+				if ( top + ph > vh - 8 ) { top = Math.max( 8, vh - 8 - ph ); }
+				pop.style.top = top + 'px';
+				// horizontal: open to the right of the sidebar, flip left if no room
+				if ( r.right + 6 + pw > vw - 8 ) { pop.style.left = Math.max( 8, r.left - 6 - pw ) + 'px'; }
+				else { pop.style.left = ( r.right + 6 ) + 'px'; }
 			}
-			function show() { clearTimeout( hideTimer ); place(); flyout.classList.add( 'is-open' ); }
-			function hide() { hideTimer = setTimeout( function () { flyout.classList.remove( 'is-open' ); }, 220 ); }
-			menuItem.addEventListener( 'mouseenter', show );
-			menuItem.addEventListener( 'mouseleave', hide );
-			flyout.addEventListener( 'mouseenter', show );
-			flyout.addEventListener( 'mouseleave', hide );
-			window.addEventListener( 'scroll', function () { if ( flyout.classList.contains( 'is-open' ) ) { place(); } }, true );
+			function show() { clearTimeout( hideTimer ); place(); pop.classList.add( 'is-open' ); }
+			function hide() { hideTimer = setTimeout( function () { pop.classList.remove( 'is-open' ); }, 200 ); }
+
+			link.addEventListener( 'mouseenter', show );
+			row.addEventListener( 'mouseleave', hide );
+			pop.addEventListener( 'mouseenter', show );
+			pop.addEventListener( 'mouseleave', hide );
+			window.addEventListener( 'scroll', function () { if ( pop.classList.contains( 'is-open' ) ) { place(); } }, true );
+			window.addEventListener( 'resize', function () { if ( pop.classList.contains( 'is-open' ) ) { place(); } } );
 		} )();
 		</script>
 		<?php
@@ -161,42 +153,19 @@ class Velox_Admin {
 	public function sidebar_flyout_css() {
 		?>
 		<style id="velox-sidebar-flyout">
-			/* Arrow affordance on the Velox top-level row. */
-			#adminmenu #toplevel_page_<?php echo esc_attr( self::SLUG ); ?>.velox-has-flyout > a.wp-has-submenu::after,
-			#adminmenu #toplevel_page_<?php echo esc_attr( self::SLUG ); ?>.velox-has-flyout > a::after {
-				content: ""; position: absolute; right: 12px; top: 50%;
-				width: 6px; height: 6px; margin-top: -3px;
-				border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
-				transform: rotate(-45deg); opacity: .5;
-			}
-			/* The main flyout — mirrors the top-bar Velox menu. Fixed so it escapes overflow. */
-			.velox-side-flyout {
+			/* Active-utilities popover, anchored to the Utilities submenu item.
+			   JS sets top/left; this is a fixed, escape-the-overflow popover. */
+			.velox-util-pop {
 				position: fixed; z-index: 100000; min-width: 210px;
+				max-height: calc(100vh - 16px); overflow-y: auto; overscroll-behavior: contain;
 				background: #1d1d1f; color: #fff;
 				border-radius: 11px; padding: 7px;
 				box-shadow: 0 12px 40px -8px rgba(0,0,0,.45);
 				opacity: 0; visibility: hidden; transform: translateX(-6px);
-				transition: opacity .15s ease, transform .15s ease, visibility .15s;
+				transition: opacity .14s ease, transform .14s ease, visibility .14s;
 				font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 			}
-			.velox-side-flyout.is-open { opacity: 1; visibility: visible; transform: translateX(0); }
-			.velox-side-fly-row { position: relative; }
-			.velox-side-fly-item {
-				display: flex; align-items: center; justify-content: space-between; gap: 9px;
-				padding: 8px 11px; border-radius: 7px;
-				color: #f5f5f7 !important; text-decoration: none; font-size: 13px; font-weight: 500;
-			}
-			.velox-side-fly-item:hover { background: rgba(255,255,255,.08); color: #fff !important; }
-			.velox-side-fly-arrow { font-size: 15px; line-height: 1; opacity: .6; }
-			/* Nested sub-flyout for the Utilities row — opens to the right on hover. */
-			.velox-side-subfly {
-				position: absolute; left: calc(100% + 6px); top: -7px; min-width: 200px;
-				background: #1d1d1f; border-radius: 11px; padding: 7px;
-				box-shadow: 0 12px 40px -8px rgba(0,0,0,.45);
-				opacity: 0; visibility: hidden; transform: translateX(-6px);
-				transition: opacity .14s ease, transform .14s ease, visibility .14s;
-			}
-			.velox-side-fly-row.has-sub:hover .velox-side-subfly { opacity: 1; visibility: visible; transform: translateX(0); }
+			.velox-util-pop.is-open { opacity: 1; visibility: visible; transform: translateX(0); }
 			.velox-side-subfly-head {
 				font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
 				color: #86868b; padding: 4px 10px 8px;
@@ -208,6 +177,10 @@ class Velox_Admin {
 			}
 			.velox-side-subfly-item:hover { background: rgba(255,255,255,.08); color: #fff !important; }
 			.velox-util-dot { width: 6px; height: 6px; border-radius: 50%; background: #2ab7f1; flex: none; }
+			/* Small arrow hint on the Utilities submenu row when it has a popover. */
+			#adminmenu .velox-util-haspop > a::after {
+				content: "\203A"; margin-left: auto; padding-left: 8px; opacity: .55; font-size: 14px; line-height: 1;
+			}
 		</style>
 		<?php
 	}

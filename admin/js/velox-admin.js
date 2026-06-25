@@ -3167,18 +3167,51 @@
 					? field2( 'Send to', '<input type="text" class="velox-input" data-e="to" value="' + escapeHtml( e.to ) + '" placeholder="you@agency.com, team@agency.com">' )
 					: field2( 'Send to the value of', '<select class="velox-select" data-e="to_field">' + emailFieldOptions( e.to_field ) + '</select>' );
 				block.innerHTML =
-					'<div class="vmail-email-head"><label class="vmail-email-toggle"><input type="checkbox" data-e="enabled"' + ( e.enabled ? ' checked' : '' ) + '><span><strong>' + cfg.title + '</strong><em>' + cfg.desc + '</em></span></label></div>' +
-					'<div class="vmail-email-grid">' +
-						toRow +
-						field2( 'From name', '<input type="text" class="velox-input" data-e="from_name" value="' + escapeHtml( e.from_name ) + '" placeholder="' + escapeHtml( meta.site_name || '' ) + '">' ) +
-						field2( 'From email', '<input type="text" class="velox-input" data-e="from_email" value="' + escapeHtml( e.from_email ) + '" placeholder="blank = site default">' ) +
-						field2( 'Reply-To', '<input type="text" class="velox-input" data-e="reply_to" value="' + escapeHtml( e.reply_to ) + '" placeholder="e.g. {inputs.email}">' ) +
-						field2( 'CC', '<input type="text" class="velox-input" data-e="cc" value="' + escapeHtml( e.cc ) + '" placeholder="comma,separated">' ) +
-						field2( 'BCC', '<input type="text" class="velox-input" data-e="bcc" value="' + escapeHtml( e.bcc ) + '" placeholder="comma,separated">' ) +
+					'<div class="vmail-email-bar">' +
+						'<div class="vmail-email-titlewrap"><span class="vmail-email-title">' + cfg.title + '</span><span class="vmail-email-sub">' + cfg.desc + '</span></div>' +
+						'<label class="vmail-email-switch"><span class="vmail-email-state">' + ( e.enabled ? 'Enabled' : 'Off' ) + '</span>' +
+						'<span class="velox-switch"><input type="checkbox" data-e="enabled"' + ( e.enabled ? ' checked' : '' ) + '><span class="velox-switch-track"></span></span></label>' +
 					'</div>' +
-					field2( 'Subject', '<div class="vmail-mergewrap"><input type="text" class="velox-input" data-e="subject" value="' + escapeHtml( e.subject ) + '">' + mergeBtn() + '</div>' ) +
-					field2( 'Email body', '<div class="vmail-mergewrap"><textarea class="velox-textarea" rows="6" data-e="body">' + escapeHtml( e.body ) + '</textarea>' + mergeBtn() + '</div>' );
+					'<div class="vmail-email-body">' +
+						toRow +
+						field2( 'Subject', '<div class="vmail-mergewrap"><input type="text" class="velox-input" data-e="subject" value="' + escapeHtml( e.subject ) + '">' + mergeBtn() + '</div>' ) +
+						field2( 'Email body', '<div class="vmail-mergewrap"><textarea class="velox-textarea" rows="6" data-e="body">' + escapeHtml( e.body ) + '</textarea>' + mergeBtn() + '</div>' ) +
+						'<div class="vmail-email-adv">' +
+							'<button type="button" class="vmail-email-adv-toggle" aria-expanded="false">' +
+								'<svg class="vmail-email-adv-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>' +
+								'<span>Advanced — sender, reply-to, CC &amp; BCC</span>' +
+							'</button>' +
+							'<div class="vmail-email-adv-body" hidden>' +
+								'<div class="vmail-email-grid">' +
+									field2( 'From name', '<input type="text" class="velox-input" data-e="from_name" value="' + escapeHtml( e.from_name ) + '" placeholder="' + escapeHtml( meta.site_name || '' ) + '">' ) +
+									field2( 'From email', '<input type="text" class="velox-input" data-e="from_email" value="' + escapeHtml( e.from_email ) + '" placeholder="blank = site default">' ) +
+									field2( 'Reply-To', '<input type="text" class="velox-input" data-e="reply_to" value="' + escapeHtml( e.reply_to ) + '" placeholder="e.g. {inputs.email}">' ) +
+									field2( 'CC', '<input type="text" class="velox-input" data-e="cc" value="' + escapeHtml( e.cc ) + '" placeholder="comma,separated">' ) +
+									field2( 'BCC', '<input type="text" class="velox-input" data-e="bcc" value="' + escapeHtml( e.bcc ) + '" placeholder="comma,separated">' ) +
+								'</div>' +
+							'</div>' +
+						'</div>' +
+					'</div>';
 				emailsWrap.appendChild( block );
+				// Advanced collapsible
+				var advT = block.querySelector( '.vmail-email-adv-toggle' );
+				var advB = block.querySelector( '.vmail-email-adv-body' );
+				if ( advT && advB ) {
+					advT.addEventListener( 'click', function () {
+						var open = advB.hidden;
+						advB.hidden = ! open;
+						advT.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+						advT.classList.toggle( 'is-open', open );
+					} );
+				}
+				// Live "Enabled/Off" label + dim when off
+				var sw = block.querySelector( '[data-e="enabled"]' );
+				var stateEl = block.querySelector( '.vmail-email-state' );
+				function syncState() {
+					if ( stateEl ) { stateEl.textContent = sw.checked ? 'Enabled' : 'Off'; }
+					block.classList.toggle( 'is-off', ! sw.checked );
+				}
+				if ( sw ) { sw.addEventListener( 'change', syncState ); syncState(); }
 				$$( '[data-e]', block ).forEach( function ( el ) {
 					var ev = el.type === 'checkbox' ? 'change' : 'input';
 					el.addEventListener( ev, function () { var k = el.getAttribute( 'data-e' ); e[ k ] = el.type === 'checkbox' ? el.checked : el.value; } );

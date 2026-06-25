@@ -294,6 +294,36 @@
 .velox-input--sm { width: 110px; }
 .velox-textarea { resize: vertical; line-height: 1.5; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; }
 
+/* Unified input safety-net: any bare text-like input / select / textarea inside a
+   Velox page picks up the same styling, so inputs look identical everywhere even
+   if a view forgot the .velox-input class. Scoped to .velox-main; excludes toggles,
+   checkboxes, radios, buttons, colour and range which have their own treatment. */
+.velox-main input[type="text"]:not([class*="velox-"]):not(.vbk-file),
+.velox-main input[type="email"]:not([class*="velox-"]),
+.velox-main input[type="url"]:not([class*="velox-"]),
+.velox-main input[type="search"]:not([class*="velox-"]),
+.velox-main input[type="tel"]:not([class*="velox-"]),
+.velox-main input[type="number"]:not([class*="velox-"]):not([class*="vmail-"]),
+.velox-main input[type="password"]:not([class*="velox-"]),
+.velox-main select:not([class*="velox-"]):not([class*="vmail-"]):not([class*="vbk-"]):not([class*="vck-"]),
+.velox-main textarea:not([class*="velox-"]):not([class*="vmail-"]) {
+	width: 100%; font-family: inherit; font-size: 14px; line-height: 1.4; color: var(--vx-ink);
+	background: #fff; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm);
+	padding: 10px 13px; transition: border-color var(--vx-dur-1) var(--vx-ease), box-shadow var(--vx-dur-1) var(--vx-ease);
+	-webkit-appearance: none; appearance: none;
+}
+.velox-main input[type="text"]:not([class*="velox-"]):not(.vbk-file):focus,
+.velox-main input[type="email"]:not([class*="velox-"]):focus,
+.velox-main input[type="url"]:not([class*="velox-"]):focus,
+.velox-main input[type="search"]:not([class*="velox-"]):focus,
+.velox-main input[type="tel"]:not([class*="velox-"]):focus,
+.velox-main input[type="number"]:not([class*="velox-"]):not([class*="vmail-"]):focus,
+.velox-main input[type="password"]:not([class*="velox-"]):focus,
+.velox-main select:not([class*="velox-"]):not([class*="vmail-"]):not([class*="vbk-"]):not([class*="vck-"]):focus,
+.velox-main textarea:not([class*="velox-"]):not([class*="vmail-"]):focus {
+	outline: none; border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring);
+}
+
 /* ---------- Range ---------- */
 .velox-range { width: 100%; -webkit-appearance: none; height: 6px; border-radius: 999px; background: var(--vx-line-2); margin: 10px 0 4px; }
 .velox-range::-webkit-slider-thumb { -webkit-appearance: none; width: 20px; height: 20px; border-radius: 50%; background: var(--vx-primary); border: 3px solid #fff; box-shadow: 0 0 0 1px var(--vx-line-2); cursor: pointer; }
@@ -917,14 +947,22 @@
 .vmail-seg button { flex: 1; border: 0; background: transparent; padding: 6px 8px; border-radius: var(--vx-r-xs); font-size: 12px; font-weight: 500; color: var(--vx-ink-2); cursor: pointer; }
 .vmail-seg button.is-active { background: var(--vx-primary); color: #fff; font-weight: 600; }
 
-/* notifications */
-.vmail-email { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); padding: 18px; margin-bottom: 16px; }
-.vmail-email-head { margin-bottom: 14px; }
-.vmail-email-toggle { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
-.vmail-email-toggle input { margin-top: 3px; }
-.vmail-email-toggle strong { display: block; font-size: 14px; font-weight: 600; }
-.vmail-email-toggle em { display: block; font-style: normal; font-size: 12px; color: var(--vx-ink-3); margin-top: 2px; }
-.vmail-email-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+/* notifications — stronger, FluentForms-style cards */
+.vmail-email { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); margin-bottom: 16px; overflow: hidden; transition: opacity var(--vx-dur-1) var(--vx-ease); }
+.vmail-email.is-off { opacity: .72; }
+.vmail-email-bar { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 16px 20px; background: var(--vx-n25); border-bottom: 1px solid var(--vx-line); }
+.vmail-email-titlewrap { display: flex; flex-direction: column; gap: 2px; }
+.vmail-email-title { font-size: 15px; font-weight: 600; color: var(--vx-ink); letter-spacing: -0.01em; }
+.vmail-email-sub { font-size: 12.5px; color: var(--vx-ink-3); }
+.vmail-email-switch { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+.vmail-email-state { font-size: 12px; font-weight: 600; color: var(--vx-ink-2); min-width: 52px; text-align: right; }
+.vmail-email-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.vmail-email-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.vmail-email-adv { border-top: 1px solid var(--vx-line); padding-top: 4px; margin-top: 2px; }
+.vmail-email-adv-toggle { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: transparent; padding: 10px 2px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--vx-primary-ink); }
+.vmail-email-adv-chev { transition: transform var(--vx-dur-2) var(--vx-ease); }
+.vmail-email-adv-toggle.is-open .vmail-email-adv-chev { transform: rotate(180deg); }
+.vmail-email-adv-body { padding-top: 10px; }
 .vmail-mergewrap { position: relative; }
 .vmail-mergewrap .velox-input, .vmail-mergewrap .velox-textarea { width: 100%; }
 .vmail-merge { position: absolute; top: 4px; right: 4px; }
@@ -993,8 +1031,8 @@
 /* Filter + search toolbar */
 .velox-snip-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: var(--vx-s4); }
 .velox-snip-filter { position: relative; display: inline-flex; align-items: center; }
-.velox-snip-filter-ic { position: absolute; left: 11px; color: var(--vx-ink-3); pointer-events: none; }
-.velox-snip-type-filter { appearance: none; -webkit-appearance: none; padding: 9px 32px 9px 32px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); font-size: 13px; font-weight: 500; color: var(--vx-ink); cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
+.velox-snip-filter-ic { position: absolute; left: 12px; color: var(--vx-ink-3); pointer-events: none; }
+.velox-snip-type-filter { appearance: none; -webkit-appearance: none; padding: 9px 34px 9px 36px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); font-size: 13px; font-weight: 500; color: var(--vx-ink); cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
 .velox-snip-type-filter:hover { border-color: var(--vx-n300); }
 .velox-snip-search { position: relative; flex: 1; max-width: 340px; }
 .velox-snip-search-ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--vx-ink-3); pointer-events: none; }
@@ -1189,9 +1227,10 @@
 .vxck-stage-faux-l.short { width: 60%; }
 /* the scoped banner CSS positions .vxck-root absolutely within the stage */
 
-.vxck-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 12px; }
-.vxck-color { display: flex; align-items: center; gap: 9px; font-size: 12.5px; font-weight: 500; color: var(--vx-ink-2); }
-.vxck-color input[type=color] { width: 34px; height: 34px; padding: 2px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); cursor: pointer; flex: 0 0 auto; }
+.vxck-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.vxck-color { display: flex; align-items: center; gap: 11px; font-size: 12.5px; font-weight: 500; color: var(--vx-ink); padding: 8px 10px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); cursor: pointer; transition: border-color var(--vx-dur-1) var(--vx-ease); }
+.vxck-color:hover { border-color: var(--vx-n300); }
+.vxck-color input[type=color] { width: 30px; height: 30px; padding: 2px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-xs); background: var(--vx-card); cursor: pointer; flex: 0 0 auto; }
 
 @media (max-width: 1100px) {
 	.vxck-admin { grid-template-columns: 1fr; }

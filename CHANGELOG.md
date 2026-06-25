@@ -4,6 +4,20 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.31.0 — Sidebar hover, unified inputs, stronger notifications
+**Sidebar.**
+- The Velox item now shows WordPress’s normal submenu; the active-utilities popover appears only when you hover the **Utilities** row specifically (no more whole-Velox flyout). The popover is viewport-aware — it escapes the sidebar overflow, clamps on screen, and flips to the left if there isn’t room on the right.
+
+**Inputs — unified everywhere.**
+- Added a safety-net so every text field, select and textarea on any Velox page picks up the same styling and focus ring, so inputs look identical across all screens even where a view omitted the class.
+- Cookie banner colour pickers are now bordered swatch tiles (swatch + label) instead of bare squares.
+
+**Mail & forms — notifications reworked.**
+- Each notification is now a stronger card: a header bar with the title, description and a live Enabled/Off status toggle, the primary fields (Send to, Subject, Email body) up front, and From / Reply-To / CC / BCC tucked into a collapsible “Advanced” section. Disabled notifications dim. Mirrors the FluentForms notification layout.
+
+**Code Snippets.**
+- Fixed the filter dropdown so its icon and the “All types” text no longer overlap.
+
 ## 2.30.0 — FluentForms-grade Mail, WPCode-grade Snippets, backup fixes
 **Mail & forms — rebuilt to FluentForms quality.**
 - Form builder is now a true three-pane editor: a live form canvas on the left with per-field hover toolbar (move, up, down, edit, duplicate, delete), and a right rail with a collapsing field-category palette (General / Advanced / Layout) plus a full field inspector (label, placeholder, label-placement segmented control, required, width).
