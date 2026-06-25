@@ -41,18 +41,17 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 
 		<div class="vmail-panel" data-panel="build">
 			<div class="vmail-build-grid">
-				<aside class="vmail-palette">
-					<span class="vmail-palette-title">Fields</span>
-					<input type="text" id="vmail-palette-search" class="velox-input vmail-palette-search" placeholder="Search fields…">
-					<div id="vmail-palette" class="vmail-palette-list"></div>
-					<p class="velox-hint" style="margin-top:14px;">Click to add, or drag a field on the canvas to reorder.</p>
-				</aside>
-
 				<div class="vmail-canvas-wrap">
 					<div class="vmail-canvas" id="vmail-canvas"></div>
 				</div>
 
-				<aside class="vmail-inspector" id="vmail-inspector"></aside>
+				<div class="vmail-build-rail">
+					<aside class="vmail-palette">
+						<input type="text" id="vmail-palette-search" class="velox-input vmail-palette-search" placeholder="Search fields…">
+						<div id="vmail-palette" class="vmail-palette-list"></div>
+					</aside>
+					<aside class="vmail-inspector" id="vmail-inspector"></aside>
+				</div>
 			</div>
 		</div>
 
@@ -200,14 +199,19 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<div class="vmail-inbox-split">
 					<div class="vmail-inbox-list" id="vmail-inbox-list" role="listbox" aria-label="Submissions">
 						<?php foreach ( $inbox as $i => $row ) : ?>
-							<button type="button" class="vmail-inbox-item<?php echo 0 === $i ? ' is-active' : ''; ?>" data-id="<?php echo (int) $row['id']; ?>" role="option" aria-selected="<?php echo 0 === $i ? 'true' : 'false'; ?>">
-								<span class="vmail-inbox-who"><?php echo esc_html( $row['who'] ); ?></span>
-								<span class="vmail-inbox-meta">
-									<span class="vmail-inbox-form"><?php echo esc_html( $row['form_title'] ); ?></span>
-									<span class="vmail-inbox-when"><?php echo esc_html( date_i18n( 'M j · H:i', strtotime( $row['created'] ) ) ); ?></span>
-								</span>
-								<span class="vmail-inbox-prev"><?php echo esc_html( $row['preview'] ); ?></span>
-							</button>
+							<div class="vmail-inbox-item<?php echo 0 === $i ? ' is-active' : ''; ?>" data-id="<?php echo (int) $row['id']; ?>" role="option" aria-selected="<?php echo 0 === $i ? 'true' : 'false'; ?>">
+								<button type="button" class="vmail-inbox-open" aria-label="Open submission">
+									<span class="vmail-inbox-who"><?php echo esc_html( $row['who'] ); ?></span>
+									<span class="vmail-inbox-meta">
+										<span class="vmail-inbox-form"><?php echo esc_html( $row['form_title'] ); ?></span>
+										<span class="vmail-inbox-when"><?php echo esc_html( date_i18n( 'M j · H:i', strtotime( $row['created'] ) ) ); ?></span>
+									</span>
+									<span class="vmail-inbox-prev"><?php echo esc_html( $row['preview'] ); ?></span>
+								</button>
+								<button type="button" class="vmail-inbox-del" data-id="<?php echo (int) $row['id']; ?>" title="Delete this submission" aria-label="Delete this submission">
+									<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+								</button>
+							</div>
 						<?php endforeach; ?>
 					</div>
 					<div class="vmail-inbox-detail" id="vmail-inbox-detail" aria-live="polite">

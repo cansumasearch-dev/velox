@@ -4,6 +4,25 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.30.0 — FluentForms-grade Mail, WPCode-grade Snippets, backup fixes
+**Mail & forms — rebuilt to FluentForms quality.**
+- Form builder is now a true three-pane editor: a live form canvas on the left with per-field hover toolbar (move, up, down, edit, duplicate, delete), and a right rail with a collapsing field-category palette (General / Advanced / Layout) plus a full field inspector (label, placeholder, label-placement segmented control, required, width).
+- Dashboard keeps the submissions inbox, forms table, SMTP, CAPTCHA gate and send log, all on the unified design system.
+- Inbox now has a fixed 400px height and scrolls internally; each submission row has its own trash icon that appears on hover, so you can delete a specific entry straight from the list.
+
+**Code Snippets — reworked toward WPCode.**
+- Denser, stronger snippet rows: status dot, bold type badge, name with tag chips, description line, and scope/priority/type pills.
+- New filter-by-type dropdown and a live search box above the list.
+- Editor rebuilt into a two-zone layout: the code editor as the main area with a sticky top bar (back, type badge, Save actions) and a configuration sidebar (name, description, type, location, priority).
+
+**Backup & restore — clearer downloads and two real fixes.**
+- One download button per backup, labelled by contents: “Download” (database + files as a single bundle), “DB download”, or “Files download”. Restore and Delete sit beside it.
+- Fixed: a downloaded “both” backup now bundles the database and files together, so importing it on another site restores everything (previously the split SQL/ZIP downloads meant an import only brought back half).
+- Fixed: restoring an older database no longer rolls Velox backwards. The plugin’s own settings, version markers and active state are preserved across a restore, so Velox always stays at the currently installed version and active.
+
+**Navigation.**
+- The left-sidebar Velox flyout now mirrors the full top-bar menu (Dashboard, Images, Media Editor, Performance, Database, SEO, Utilities, Settings), with Utilities opening a nested sub-flyout of your active utilities — matching how Performance & Cache nests in the top bar.
+
 ## 2.24.0 – 2.29.0 — The big redesign (summary)
 
 Velox was rebuilt from the inside out across six releases. Every screen now shares

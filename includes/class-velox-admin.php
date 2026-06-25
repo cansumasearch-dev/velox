@@ -84,10 +84,8 @@ class Velox_Admin {
 		if ( ! class_exists( 'Velox_Utilities' ) ) {
 			return;
 		}
-		// Only render the flyout when there's at least one active utility.
-		if ( empty( Velox_Utilities::enabled_tools() ) ) {
-			return;
-		}
+		// The flyout mirrors the full Velox menu, so it always renders. The
+		// Utilities row inside it gains a sub-flyout only when ≥1 utility is active.
 		add_action( 'admin_footer', array( $this, 'render_sidebar_flyout' ) );
 		add_action( 'admin_head',   array( $this, 'sidebar_flyout_css' ) );
 	}
@@ -95,27 +93,50 @@ class Velox_Admin {
 	/** The flyout markup + the JS that anchors it to the Velox menu row on hover. */
 	public function render_sidebar_flyout() {
 		$active = Velox_Utilities::enabled_tools();
-		if ( empty( $active ) ) {
-			return;
-		}
-		$cat = Velox_Utilities::catalog();
+		$cat    = Velox_Utilities::catalog();
+
+		// The full set of pages, mirroring the top admin-bar Velox dropdown.
+		$pages = array(
+			'Dashboard'    => 'dashboard',
+			'Images'       => 'images',
+			'Media Editor' => 'media',
+			'Performance'  => 'performance',
+			'Database'     => 'database',
+			'SEO'          => 'seo',
+			'Utilities'    => 'utilities',
+			'Settings'     => 'settings',
+		);
 		?>
-		<div id="velox-util-flyout" class="velox-util-flyout" role="menu" aria-label="Active Velox utilities">
-			<div class="velox-util-flyout-head">Utilities</div>
-			<?php foreach ( $active as $id ) :
-				if ( ! isset( $cat[ $id ] ) ) { continue; }
+		<div id="velox-velox-flyout" class="velox-side-flyout" role="menu" aria-label="Velox menu">
+			<?php foreach ( $pages as $label => $key ) :
+				$is_utils = ( 'utilities' === $key );
+				$has_sub  = ( $is_utils && ! empty( $active ) );
 				?>
-				<a class="velox-util-flyout-item" role="menuitem" href="<?php echo esc_url( Velox_Utilities::tool_url( $id ) ); ?>">
-					<span class="velox-util-dot" aria-hidden="true"></span>
-					<span class="velox-util-label"><?php echo esc_html( $cat[ $id ]['label'] ); ?></span>
-				</a>
+				<div class="velox-side-fly-row<?php echo $has_sub ? ' has-sub' : ''; ?>">
+					<a class="velox-side-fly-item" role="menuitem" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->page_slug( $key ) ) ); ?>">
+						<span><?php echo esc_html( $label ); ?></span>
+						<?php if ( $has_sub ) : ?><span class="velox-side-fly-arrow" aria-hidden="true">›</span><?php endif; ?>
+					</a>
+					<?php if ( $has_sub ) : ?>
+						<div class="velox-side-subfly" role="menu" aria-label="Active utilities">
+							<div class="velox-side-subfly-head">Active utilities</div>
+							<?php foreach ( $active as $id ) :
+								if ( ! isset( $cat[ $id ] ) ) { continue; }
+								?>
+								<a class="velox-side-subfly-item" role="menuitem" href="<?php echo esc_url( Velox_Utilities::tool_url( $id ) ); ?>">
+									<span class="velox-util-dot" aria-hidden="true"></span>
+									<span><?php echo esc_html( $cat[ $id ]['label'] ); ?></span>
+								</a>
+							<?php endforeach; ?>
+						</div>
+					<?php endif; ?>
+				</div>
 			<?php endforeach; ?>
-			<a class="velox-util-flyout-all" role="menuitem" href="<?php echo esc_url( admin_url( 'admin.php?page=' . $this->page_slug( 'utilities' ) ) ); ?>">All utilities &rarr;</a>
 		</div>
 		<script>
 		( function () {
 			var menuItem = document.getElementById( 'toplevel_page_<?php echo esc_js( self::SLUG ); ?>' );
-			var flyout   = document.getElementById( 'velox-util-flyout' );
+			var flyout   = document.getElementById( 'velox-velox-flyout' );
 			if ( ! menuItem || ! flyout ) { return; }
 			menuItem.classList.add( 'velox-has-flyout' );
 			var hideTimer;
@@ -125,7 +146,7 @@ class Velox_Admin {
 				flyout.style.left = r.right + 'px';
 			}
 			function show() { clearTimeout( hideTimer ); place(); flyout.classList.add( 'is-open' ); }
-			function hide() { hideTimer = setTimeout( function () { flyout.classList.remove( 'is-open' ); }, 180 ); }
+			function hide() { hideTimer = setTimeout( function () { flyout.classList.remove( 'is-open' ); }, 220 ); }
 			menuItem.addEventListener( 'mouseenter', show );
 			menuItem.addEventListener( 'mouseleave', hide );
 			flyout.addEventListener( 'mouseenter', show );
@@ -140,7 +161,7 @@ class Velox_Admin {
 	public function sidebar_flyout_css() {
 		?>
 		<style id="velox-sidebar-flyout">
-			/* Arrow affordance on the Velox top-level row when a flyout exists. */
+			/* Arrow affordance on the Velox top-level row. */
 			#adminmenu #toplevel_page_<?php echo esc_attr( self::SLUG ); ?>.velox-has-flyout > a.wp-has-submenu::after,
 			#adminmenu #toplevel_page_<?php echo esc_attr( self::SLUG ); ?>.velox-has-flyout > a::after {
 				content: ""; position: absolute; right: 12px; top: 50%;
@@ -148,34 +169,45 @@ class Velox_Admin {
 				border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
 				transform: rotate(-45deg); opacity: .5;
 			}
-			/* The popover itself — fixed-position so it escapes the menu's overflow. */
-			.velox-util-flyout {
-				position: fixed; z-index: 100000; min-width: 220px;
+			/* The main flyout — mirrors the top-bar Velox menu. Fixed so it escapes overflow. */
+			.velox-side-flyout {
+				position: fixed; z-index: 100000; min-width: 210px;
 				background: #1d1d1f; color: #fff;
-				border-radius: 11px; padding: 8px;
+				border-radius: 11px; padding: 7px;
 				box-shadow: 0 12px 40px -8px rgba(0,0,0,.45);
 				opacity: 0; visibility: hidden; transform: translateX(-6px);
 				transition: opacity .15s ease, transform .15s ease, visibility .15s;
 				font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 			}
-			.velox-util-flyout.is-open { opacity: 1; visibility: visible; transform: translateX(0); }
-			.velox-util-flyout-head {
+			.velox-side-flyout.is-open { opacity: 1; visibility: visible; transform: translateX(0); }
+			.velox-side-fly-row { position: relative; }
+			.velox-side-fly-item {
+				display: flex; align-items: center; justify-content: space-between; gap: 9px;
+				padding: 8px 11px; border-radius: 7px;
+				color: #f5f5f7 !important; text-decoration: none; font-size: 13px; font-weight: 500;
+			}
+			.velox-side-fly-item:hover { background: rgba(255,255,255,.08); color: #fff !important; }
+			.velox-side-fly-arrow { font-size: 15px; line-height: 1; opacity: .6; }
+			/* Nested sub-flyout for the Utilities row — opens to the right on hover. */
+			.velox-side-subfly {
+				position: absolute; left: calc(100% + 6px); top: -7px; min-width: 200px;
+				background: #1d1d1f; border-radius: 11px; padding: 7px;
+				box-shadow: 0 12px 40px -8px rgba(0,0,0,.45);
+				opacity: 0; visibility: hidden; transform: translateX(-6px);
+				transition: opacity .14s ease, transform .14s ease, visibility .14s;
+			}
+			.velox-side-fly-row.has-sub:hover .velox-side-subfly { opacity: 1; visibility: visible; transform: translateX(0); }
+			.velox-side-subfly-head {
 				font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
 				color: #86868b; padding: 4px 10px 8px;
 			}
-			.velox-util-flyout-item {
+			.velox-side-subfly-item {
 				display: flex; align-items: center; gap: 9px;
 				padding: 8px 10px; border-radius: 7px;
 				color: #f5f5f7 !important; text-decoration: none; font-size: 13px; font-weight: 500;
 			}
-			.velox-util-flyout-item:hover { background: rgba(255,255,255,.08); color: #fff !important; }
+			.velox-side-subfly-item:hover { background: rgba(255,255,255,.08); color: #fff !important; }
 			.velox-util-dot { width: 6px; height: 6px; border-radius: 50%; background: #2ab7f1; flex: none; }
-			.velox-util-flyout-all {
-				display: block; margin-top: 6px; padding: 8px 10px;
-				border-top: 1px solid rgba(255,255,255,.1);
-				color: #5fccff !important; text-decoration: none; font-size: 12px; font-weight: 600;
-			}
-			.velox-util-flyout-all:hover { color: #8ad9ff !important; }
 		</style>
 		<?php
 	}

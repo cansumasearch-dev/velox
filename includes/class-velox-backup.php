@@ -54,6 +54,28 @@ class Velox_Backup {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			wp_die( esc_html__( 'Not allowed.', 'velox' ) );
 		}
+
+		// "all" = a single bundle holding both the DB dump and the files archive,
+		// so a downloaded "both" backup can be re-imported and restored in full.
+		if ( 'all' === $kind ) {
+			$bundle = self::build_bundle( $id );
+			if ( '' === $bundle ) {
+				wp_die( esc_html__( 'That backup file is no longer available.', 'velox' ) );
+			}
+			nocache_headers();
+			header( 'Content-Type: application/zip' );
+			header( 'Content-Disposition: attachment; filename="' . basename( $bundle ) . '"' );
+			header( 'Content-Length: ' . filesize( $bundle ) );
+			$fh = fopen( $bundle, 'rb' );
+			while ( ! feof( $fh ) ) {
+				echo fread( $fh, 1024 * 256 ); // phpcs:ignore WordPress.Security.EscapeOutput
+				flush();
+			}
+			fclose( $fh );
+			@unlink( $bundle ); // temp bundle, not part of the manifest
+			exit;
+		}
+
 		$path = self::file_path( $id, $kind );
 		if ( '' === $path ) {
 			wp_die( esc_html__( 'That backup file is no longer available.', 'velox' ) );
@@ -70,6 +92,45 @@ class Velox_Backup {
 		}
 		fclose( $fh );
 		exit;
+	}
+
+	/**
+	 * Build a single bundle .zip containing this backup's DB dump and/or files
+	 * archive, plus a small velox-bundle.json so import() can split it back.
+	 * Returns a temp file path (caller deletes it) or '' on failure.
+	 */
+	private static function build_bundle( $id ) {
+		$b = self::get( $id );
+		if ( ! $b || ! class_exists( 'ZipArchive' ) ) {
+			return '';
+		}
+		$dir   = self::dir();
+		$parts = array();
+		$bundle_path = $dir . '/velox-bundle-' . $id . '-' . substr( md5( uniqid( '', true ) ), 0, 6 ) . '.zip';
+		$zip = new ZipArchive();
+		if ( true !== $zip->open( $bundle_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
+			return '';
+		}
+		if ( ! empty( $b['db_file'] ) ) {
+			$p = $dir . '/' . basename( $b['db_file'] );
+			if ( is_file( $p ) ) { $zip->addFile( $p, basename( $b['db_file'] ) ); $parts['db'] = basename( $b['db_file'] ); }
+		}
+		if ( ! empty( $b['zip_file'] ) ) {
+			$p = $dir . '/' . basename( $b['zip_file'] );
+			if ( is_file( $p ) ) { $zip->addFile( $p, basename( $b['zip_file'] ) ); $parts['files'] = basename( $b['zip_file'] ); }
+		}
+		if ( empty( $parts ) ) { $zip->close(); @unlink( $bundle_path ); return ''; }
+		$zip->addFromString( 'velox-bundle.json', wp_json_encode( array(
+			'velox_bundle' => 1,
+			'name'    => $b['name'] ?? $id,
+			'what'    => $b['what'] ?? '',
+			'parts'   => $parts,
+			'tables'  => (int) ( $b['tables'] ?? 0 ),
+			'files'   => (int) ( $b['files'] ?? 0 ),
+			'created' => $b['created'] ?? '',
+		) ) );
+		$zip->close();
+		return is_file( $bundle_path ) ? $bundle_path : '';
 	}
 
 	public static function download_url( $id, $kind ) {
@@ -310,14 +371,58 @@ class Velox_Backup {
 			$entry['tables']  = self::count_sql_tables( $dest );
 		} else {
 			// validate it's a real zip before accepting
-			if ( class_exists( 'ZipArchive' ) ) {
-				$probe = new ZipArchive();
-				if ( true !== $probe->open( $file['tmp_name'] ) ) {
-					return array( 'ok' => false, 'message' => 'That .zip could not be opened — it may be corrupt.' );
-				}
-				$entry['files'] = $probe->numFiles;
-				$probe->close();
+			if ( ! class_exists( 'ZipArchive' ) ) {
+				return array( 'ok' => false, 'message' => 'PHP-zip is unavailable on this server, so .zip backups cannot be imported.' );
 			}
+			$probe = new ZipArchive();
+			if ( true !== $probe->open( $file['tmp_name'] ) ) {
+				return array( 'ok' => false, 'message' => 'That .zip could not be opened — it may be corrupt.' );
+			}
+
+			// Is this a Velox bundle (DB + files together)? If so, split it back out.
+			$manifest = $probe->getFromName( 'velox-bundle.json' );
+			if ( false !== $manifest ) {
+				$meta = json_decode( (string) $manifest, true );
+				$parts = ( is_array( $meta ) && ! empty( $meta['parts'] ) ) ? $meta['parts'] : array();
+				$have_db = false; $have_files = false;
+				// Extract the DB dump part.
+				if ( ! empty( $parts['db'] ) && false !== $probe->locateName( $parts['db'] ) ) {
+					$sql = $probe->getFromName( $parts['db'] );
+					if ( false !== $sql ) {
+						$dest = $dir . '/velox-db-' . $id . '.sql';
+						if ( false !== file_put_contents( $dest, $sql ) ) {
+							$entry['db_file'] = basename( $dest );
+							$entry['db_size'] = (int) filesize( $dest );
+							$entry['tables']  = isset( $meta['tables'] ) ? (int) $meta['tables'] : self::count_sql_tables( $dest );
+							$have_db = true;
+						}
+					}
+				}
+				// Extract the files archive part.
+				if ( ! empty( $parts['files'] ) && false !== $probe->locateName( $parts['files'] ) ) {
+					$zbytes = $probe->getFromName( $parts['files'] );
+					if ( false !== $zbytes ) {
+						$dest = $dir . '/velox-files-' . $id . '.zip';
+						if ( false !== file_put_contents( $dest, $zbytes ) ) {
+							$entry['zip_file'] = basename( $dest );
+							$entry['zip_size'] = (int) filesize( $dest );
+							$entry['files']    = isset( $meta['files'] ) ? (int) $meta['files'] : 0;
+							$have_files = true;
+						}
+					}
+				}
+				$probe->close();
+				if ( ! $have_db && ! $have_files ) {
+					return array( 'ok' => false, 'message' => 'The bundle did not contain any restorable parts.' );
+				}
+				$entry['what'] = ( $have_db && $have_files ) ? 'both' : ( $have_db ? 'db' : 'files' );
+				self::record( $entry );
+				return array( 'ok' => true, 'id' => $id, 'entry' => $entry, 'message' => 'Backup imported (database + files). You can restore or download it like any other.' );
+			}
+
+			// Plain files-only archive.
+			$entry['files'] = $probe->numFiles;
+			$probe->close();
 			$dest = $dir . '/velox-files-' . $id . '.zip';
 			if ( ! @move_uploaded_file( $file['tmp_name'], $dest ) ) {
 				return array( 'ok' => false, 'message' => 'Could not save the uploaded archive (folder permissions?).' );
@@ -576,7 +681,11 @@ class Velox_Backup {
 					$safety_id = $snap['id'];
 				}
 			}
+			// Pin Velox's own state: a restored (older) DB must not roll the plugin's
+			// version, settings, or active state backwards. Capture before, re-apply after.
+			$preserved = self::preserve_velox_state();
 			$res = self::restore_database( self::dir() . '/' . basename( $b['db_file'] ) );
+			self::restore_velox_state( $preserved );
 			if ( empty( $res['ok'] ) ) {
 				self::record_history( array(
 					'when' => current_time( 'mysql' ), 'backup_id' => $id, 'backup_name' => $b['name'] ?? $id,
@@ -615,6 +724,53 @@ class Velox_Backup {
 			'detail' => 'Restored ' . implode( ' and ', $done ) . '.', 'safety_id' => $safety_id,
 		) );
 		return array( 'ok' => true, 'message' => 'Restored ' . implode( ' and ', $done ) . '.', 'restored' => $done, 'duration' => $duration, 'safety_id' => $safety_id );
+	}
+
+	/**
+	 * Capture Velox's own option state (settings, per-module DB-version markers,
+	 * snippets/forms/redirects data) plus the active-plugins list, so a database
+	 * restore can't roll the plugin backwards or deactivate it.
+	 */
+	private static function preserve_velox_state() {
+		global $wpdb;
+		$state = array();
+		// Every option Velox owns.
+		$names = $wpdb->get_col( "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE 'velox\\_%'" );
+		if ( is_array( $names ) ) {
+			foreach ( $names as $name ) {
+				$state[ $name ] = get_option( $name );
+			}
+		}
+		// Keep Velox active after the restore even if the old DB didn't have it.
+		$state['__active_plugins'] = get_option( 'active_plugins', array() );
+		return $state;
+	}
+
+	/**
+	 * Re-apply the state captured by preserve_velox_state() after the DB has been
+	 * overwritten, so the running plugin stays at the current installed version.
+	 */
+	private static function restore_velox_state( $state ) {
+		if ( ! is_array( $state ) ) {
+			return;
+		}
+		$active = isset( $state['__active_plugins'] ) ? $state['__active_plugins'] : null;
+		unset( $state['__active_plugins'] );
+
+		foreach ( $state as $name => $value ) {
+			update_option( $name, $value );
+		}
+
+		// Make sure Velox is still in the active-plugins list (merge, don't clobber
+		// other plugins the restored DB legitimately had).
+		if ( is_array( $active ) && defined( 'VELOX_BASENAME' ) ) {
+			$current = get_option( 'active_plugins', array() );
+			if ( ! is_array( $current ) ) { $current = array(); }
+			if ( ! in_array( VELOX_BASENAME, $current, true ) ) {
+				$current[] = VELOX_BASENAME;
+				update_option( 'active_plugins', $current );
+			}
+		}
 	}
 
 	private static function restore_database( $sql_file ) {

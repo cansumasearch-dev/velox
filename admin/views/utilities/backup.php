@@ -106,11 +106,18 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 								<td><?php echo esc_html( velox_backup_size( $size ) ); ?></td>
 								<td><?php echo esc_html( date_i18n( 'M j, Y · H:i', strtotime( $b['created'] ) ) ); ?></td>
 								<td class="vbk-act">
-									<?php if ( $has_db ) : ?>
-										<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( Velox_Backup::download_url( $b['id'], 'db' ) ); ?>">SQL</a>
-									<?php endif; ?>
-									<?php if ( $has_zip ) : ?>
-										<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( Velox_Backup::download_url( $b['id'], 'zip' ) ); ?>">ZIP</a>
+									<?php
+									// One download button, label matches what the backup holds.
+									if ( $has_db && $has_zip ) {
+										$dl_kind = 'all'; $dl_label = 'Download';
+									} elseif ( $has_db ) {
+										$dl_kind = 'db'; $dl_label = 'DB download';
+									} else {
+										$dl_kind = 'zip'; $dl_label = 'Files download';
+									}
+									if ( $has_db || $has_zip ) :
+										?>
+										<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( Velox_Backup::download_url( $b['id'], $dl_kind ) ); ?>"><?php echo esc_html( $dl_label ); ?></a>
 									<?php endif; ?>
 									<button class="velox-btn velox-btn--ghost velox-btn--sm vbk-restore">Restore</button>
 									<button class="velox-btn velox-btn--ghost velox-btn--sm vbk-delete">Delete</button>

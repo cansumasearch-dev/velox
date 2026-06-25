@@ -99,6 +99,23 @@ $safe_mode = Velox_Snippets::safe_mode();
 	<?php endforeach; ?>
 </div>
 
+<div class="velox-snip-toolbar">
+	<div class="velox-snip-filter">
+		<svg class="velox-snip-filter-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+		<select class="velox-snip-type-filter" id="velox-snip-type-filter" aria-label="Filter by code type">
+			<option value="">All types</option>
+			<option value="php">PHP — Functions &amp; hooks</option>
+			<option value="css">CSS — Styles</option>
+			<option value="js">JS — Scripts</option>
+			<option value="html">HTML — Markup</option>
+		</select>
+	</div>
+	<div class="velox-snip-search">
+		<svg class="velox-snip-search-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+		<input type="text" class="velox-snip-search-input" id="velox-snip-search" placeholder="Search snippets…" aria-label="Search snippets">
+	</div>
+</div>
+
 <div class="velox-panel velox-panel--flush velox-snip-list" id="velox-snip-list">
 	<?php if ( empty( $snippets ) ) : ?>
 		<div class="velox-snip-empty">
@@ -110,17 +127,31 @@ $safe_mode = Velox_Snippets::safe_mode();
 			$is_trash = (int) $s['trashed'] === 1;
 			$active   = (int) $s['active'] === 1;
 			$tmeta    = $type_meta[ $s['type'] ] ?? array( strtoupper( $s['type'] ), '' );
+			$tags     = array();
+			if ( ! empty( $s['tags'] ) ) {
+				$tags = is_array( $s['tags'] ) ? $s['tags'] : array_filter( array_map( 'trim', explode( ',', (string) $s['tags'] ) ) );
+			}
 			?>
-			<div class="velox-snip-row" data-id="<?php echo esc_attr( $s['id'] ); ?>" data-active="<?php echo $active ? '1' : '0'; ?>">
+			<div class="velox-snip-row" data-id="<?php echo esc_attr( $s['id'] ); ?>" data-active="<?php echo $active ? '1' : '0'; ?>" data-type="<?php echo esc_attr( $s['type'] ); ?>" data-name="<?php echo esc_attr( strtolower( $s['name'] . ' ' . ( $s['description'] ?? '' ) ) ); ?>">
 				<span class="velox-snip-status<?php echo $active ? ' is-on' : ''; ?>" title="<?php echo $active ? 'Active' : 'Inactive'; ?>"></span>
 				<span class="velox-snip-badge is-<?php echo esc_attr( $s['type'] ); ?>"><?php echo esc_html( strtoupper( $s['type'] ) ); ?></span>
 				<a class="velox-snip-name" href="<?php echo esc_url( Velox_Snippets::edit_url( $s['id'] ) ); ?>">
-					<span class="velox-snip-name-t"><?php echo esc_html( $s['name'] ); ?></span>
+					<span class="velox-snip-name-row">
+						<span class="velox-snip-name-t"><?php echo esc_html( $s['name'] ); ?></span>
+						<?php foreach ( $tags as $tag ) : ?>
+							<span class="velox-snip-tag"><?php echo esc_html( $tag ); ?></span>
+						<?php endforeach; ?>
+					</span>
+					<?php if ( ! empty( $s['description'] ) ) : ?>
+						<span class="velox-snip-desc"><?php echo esc_html( wp_trim_words( $s['description'], 14 ) ); ?></span>
+					<?php endif; ?>
 					<span class="velox-snip-meta">
-						<?php echo esc_html( $scope_labels[ $s['scope'] ] ?? $s['scope'] ); ?>
-						<span class="velox-snip-dot">·</span> priority <?php echo (int) $s['priority']; ?>
-						<?php if ( ! empty( $s['description'] ) ) : ?>
-							<span class="velox-snip-dot">·</span> <?php echo esc_html( wp_trim_words( $s['description'], 10 ) ); ?>
+						<span class="velox-snip-pill velox-snip-pill--scope"><?php echo esc_html( $scope_labels[ $s['scope'] ] ?? $s['scope'] ); ?></span>
+						<span class="velox-snip-pill">priority <?php echo (int) $s['priority']; ?></span>
+						<?php if ( ! empty( $s['type_label'] ) ) : ?>
+							<span class="velox-snip-pill"><?php echo esc_html( $s['type_label'] ); ?></span>
+						<?php else : ?>
+							<span class="velox-snip-pill"><?php echo esc_html( $tmeta[0] ); ?></span>
 						<?php endif; ?>
 					</span>
 				</a>
@@ -145,5 +176,8 @@ $safe_mode = Velox_Snippets::safe_mode();
 				</span>
 			</div>
 		<?php endforeach; ?>
+		<div class="velox-snip-empty" id="velox-snip-none" hidden>
+			<p>No snippets match your filter.</p>
+		</div>
 	<?php endif; ?>
 </div>

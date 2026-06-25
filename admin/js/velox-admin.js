@@ -2398,6 +2398,24 @@
 		var detail = $( '#vmail-inbox-detail' );
 		if ( ! list || ! detail ) { return; }
 
+		function deleteSubmission( id, itemEl ) {
+			if ( ! window.confirm( 'Delete this submission permanently?' ) ) { return; }
+			api( 'submission_delete', { id: id } )
+				.then( function () {
+					var item = itemEl || list.querySelector( '.vmail-inbox-item[data-id="' + id + '"]' );
+					var wasActive = item && item.classList.contains( 'is-active' );
+					if ( item ) { item.remove(); }
+					// If we deleted the open one, fall back to the first remaining row.
+					if ( wasActive ) {
+						var next = list.querySelector( '.vmail-inbox-item' );
+						if ( next ) { load( next.getAttribute( 'data-id' ), next ); }
+						else { detail.innerHTML = '<div class="vmail-inbox-empty-detail">No submissions left.</div>'; }
+					}
+					toast( 'Submission deleted.' );
+				} )
+				.catch( function ( e ) { toast( e.message, 'error' ); } );
+		}
+
 		function renderDetail( sub ) {
 			var rows = '';
 			var data = sub.data || {};
@@ -2417,24 +2435,8 @@
 				'<div class="vmail-d-head">' +
 					'<div><div class="vmail-d-who">' + escapeHtml( sub.who || 'Submission' ) + '</div>' +
 					'<div class="vmail-d-meta">' + meta.join( '  ·  ' ) + '</div></div>' +
-					'<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm vmail-d-del" data-id="' + sub.id + '">Delete</button>' +
 				'</div>' +
 				'<dl class="vmail-d-dl">' + rows + '</dl>';
-
-			var del = detail.querySelector( '.vmail-d-del' );
-			if ( del ) {
-				del.addEventListener( 'click', function () {
-					if ( ! window.confirm( 'Delete this submission permanently?' ) ) { return; }
-					api( 'submission_delete', { id: del.getAttribute( 'data-id' ) } )
-						.then( function () {
-							var item = list.querySelector( '.vmail-inbox-item[data-id="' + del.getAttribute( 'data-id' ) + '"]' );
-							if ( item ) { item.remove(); }
-							detail.innerHTML = '<div class="vmail-inbox-empty-detail">Submission deleted.</div>';
-							toast( 'Submission deleted.' );
-						} )
-						.catch( function ( e ) { toast( e.message, 'error' ); } );
-				} );
-			}
 		}
 
 		function load( id, itemEl ) {
@@ -2451,6 +2453,12 @@
 		list.addEventListener( 'click', function ( e ) {
 			var item = e.target.closest( '.vmail-inbox-item' );
 			if ( ! item ) { return; }
+			// Per-row trash takes priority over opening.
+			if ( e.target.closest( '.vmail-inbox-del' ) ) {
+				e.stopPropagation();
+				deleteSubmission( item.getAttribute( 'data-id' ), item );
+				return;
+			}
 			load( item.getAttribute( 'data-id' ), item );
 		} );
 
@@ -2738,6 +2746,7 @@
 		function optList( f ) { return ( f.options || '' ).split( '\n' ).map( function ( s ) { return s.trim(); } ).filter( Boolean ); }
 
 		/* ---------- palette ---------- */
+		var palOpen = { general: true, advanced: false, layout: false };
 		function renderPalette( filter ) {
 			filter = ( filter || '' ).toLowerCase();
 			palette.innerHTML = '';
@@ -2746,19 +2755,34 @@
 					return TYPES[ t ].cat === cat && ( ! filter || TYPES[ t ].label.toLowerCase().indexOf( filter ) !== -1 );
 				} );
 				if ( ! keys.length ) { return; }
-				var group = document.createElement( 'div' ); group.className = 'vmail-pal-group';
-				group.innerHTML = '<div class="vmail-pal-cat">' + CATS[ cat ] + '</div>';
+				// When searching, force-open every group that has matches.
+				var open = filter ? true : palOpen[ cat ];
+				var group = document.createElement( 'div' );
+				group.className = 'vmail-pal-group' + ( open ? ' is-open' : '' );
+
+				var head = document.createElement( 'button' );
+				head.type = 'button'; head.className = 'vmail-pal-cat';
+				head.innerHTML = '<span>' + CATS[ cat ] + '</span><span class="vmail-pal-chev" aria-hidden="true">' +
+					'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg></span>';
+				head.addEventListener( 'click', function () {
+					palOpen[ cat ] = ! palOpen[ cat ];
+					group.classList.toggle( 'is-open', palOpen[ cat ] );
+				} );
+				group.appendChild( head );
+
+				var body = document.createElement( 'div' ); body.className = 'vmail-pal-body';
 				var grid = document.createElement( 'div' ); grid.className = 'vmail-pal-grid';
 				keys.forEach( function ( t ) {
 					var b = document.createElement( 'button' );
 					b.type = 'button'; b.className = 'vmail-pal-item';
 					var locked = ( t === 'captcha' && ! meta.captcha_enabled );
 					if ( locked ) { b.className += ' is-locked'; b.title = 'CAPTCHA is switched off in Mail settings'; }
-					b.innerHTML = '<span class="vmail-pal-ic">' + TYPES[ t ].icon + '</span><span>' + TYPES[ t ].label + ( locked ? ' \uD83D\uDD12' : '' ) + '</span>';
+					b.innerHTML = '<span class="vmail-pal-ic">' + TYPES[ t ].icon + '</span><span class="vmail-pal-lbl">' + TYPES[ t ].label + ( locked ? ' \uD83D\uDD12' : '' ) + '</span>';
 					b.addEventListener( 'click', function () { addField( t ); } );
 					grid.appendChild( b );
 				} );
-				group.appendChild( grid );
+				body.appendChild( grid );
+				group.appendChild( body );
 				palette.appendChild( group );
 			} );
 			if ( ! palette.children.length ) {
@@ -2831,18 +2855,40 @@
 				var card = document.createElement( 'div' );
 				card.className = 'vmail-fcard' + ( i === selected ? ' is-selected' : '' ) + ( f.width === 'half' ? ' is-half' : ( f.width === 'third' ? ' is-third' : '' ) );
 				card.setAttribute( 'draggable', 'true' );
+				var ico = function ( p ) { return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
 				card.innerHTML =
-					'<div class="vmail-fcard-handle" title="Drag to reorder">\u22EE\u22EE</div>' +
 					'<div class="vmail-fcard-body">' + fieldPreview( f ) + '</div>' +
-					'<div class="vmail-fcard-tools"><span class="vmail-fcard-type">' + ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + '</span><button type="button" class="vmail-fcard-del" title="Remove">\u2715</button></div>';
+					'<div class="vmail-fcard-toolbar">' +
+						'<button type="button" class="vmail-ft" data-act="move" title="Drag to reorder">' + ico('<polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="up" title="Move up">' + ico('<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="down" title="Move down">' + ico('<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="edit" title="Edit">' + ico('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="dup" title="Duplicate">' + ico('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>') + '</button>' +
+						'<button type="button" class="vmail-ft vmail-ft-del" data-act="del" title="Remove">' + ico('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>') + '</button>' +
+					'</div>' +
+					'<span class="vmail-fcard-type">' + ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + '</span>';
 				card.addEventListener( 'click', function ( e ) {
-					if ( e.target.closest( '.vmail-fcard-del' ) ) { return; }
+					if ( e.target.closest( '.vmail-ft' ) ) { return; }
 					selected = i; renderCanvas(); renderInspector();
 				} );
-				card.querySelector( '.vmail-fcard-del' ).addEventListener( 'click', function () {
-					form.fields.splice( i, 1 );
-					if ( selected >= form.fields.length ) { selected = form.fields.length - 1; }
-					renderCanvas(); renderInspector();
+				card.querySelectorAll( '.vmail-ft' ).forEach( function ( tb ) {
+					tb.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						var act = tb.getAttribute( 'data-act' );
+						if ( act === 'del' ) {
+							form.fields.splice( i, 1 );
+							if ( selected >= form.fields.length ) { selected = form.fields.length - 1; }
+						} else if ( act === 'up' && i > 0 ) {
+							var m = form.fields.splice( i, 1 )[0]; form.fields.splice( i - 1, 0, m ); selected = i - 1;
+						} else if ( act === 'down' && i < form.fields.length - 1 ) {
+							var m2 = form.fields.splice( i, 1 )[0]; form.fields.splice( i + 1, 0, m2 ); selected = i + 1;
+						} else if ( act === 'dup' ) {
+							var copy = JSON.parse( JSON.stringify( f ) ); form.fields.splice( i + 1, 0, copy ); reKey(); selected = i + 1;
+						} else if ( act === 'edit' ) {
+							selected = i;
+						}
+						renderCanvas(); renderInspector();
+					} );
 				} );
 				card.addEventListener( 'dragstart', function () { dragFrom = i; card.classList.add( 'is-drag' ); } );
 				card.addEventListener( 'dragend', function () { card.classList.remove( 'is-drag' ); } );

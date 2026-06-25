@@ -837,61 +837,92 @@
 
 /* ============================================================ Mail builder (Fluent-style) */
 .vmail-builder { display: flex; flex-direction: column; gap: 0; }
-.vmail-bar { display: flex; align-items: center; gap: 14px; padding: 12px 16px; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); margin-bottom: 16px; }
-.vmail-back { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--vx-r-md); color: var(--vx-ink-2); font-size: 18px; background: var(--vx-bg); }
+.vmail-bar { display: flex; align-items: center; gap: 14px; padding: 10px 14px; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); margin-bottom: 14px; }
+.vmail-back { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 34px; border-radius: var(--vx-r-sm); color: var(--vx-ink-2); font-size: 18px; background: var(--vx-n50); }
 .vmail-back:hover { background: var(--vx-line); color: var(--vx-ink); }
-.vmail-title-input { flex: 0 1 280px; font-size: 15px; font-weight: 700; padding: 8px 12px; border: 1px solid transparent; border-radius: var(--vx-r-md); background: transparent; color: var(--vx-ink); }
-.vmail-title-input:hover { background: var(--vx-bg); }
-.vmail-title-input:focus { background: var(--vx-bg); border-color: var(--vx-line-2); outline: none; }
-.vmail-tabs { display: inline-flex; gap: 2px; margin: 0 auto; background: var(--vx-bg); padding: 4px; border-radius: var(--vx-r-md); }
-.vmail-tab { border: 0; background: transparent; padding: 7px 16px; border-radius: var(--vx-r-sm); font-weight: 600; font-size: 13px; color: var(--vx-ink-2); cursor: pointer; }
+.vmail-title-input { flex: 0 1 280px; font-size: 15px; font-weight: 600; padding: 8px 12px; border: 1px solid transparent; border-radius: var(--vx-r-sm); background: transparent; color: var(--vx-ink); letter-spacing: -0.01em; }
+.vmail-title-input:hover { background: var(--vx-n50); }
+.vmail-title-input:focus { background: var(--vx-n50); border-color: var(--vx-line-2); outline: none; }
+.vmail-tabs { display: inline-flex; gap: 2px; margin: 0 auto; background: var(--vx-n50); padding: 4px; border-radius: var(--vx-r-sm); }
+.vmail-tab { border: 0; background: transparent; padding: 7px 16px; border-radius: var(--vx-r-xs); font-weight: 500; font-size: 13px; color: var(--vx-ink-2); cursor: pointer; transition: background var(--vx-dur-1) var(--vx-ease), color var(--vx-dur-1) var(--vx-ease); }
 .vmail-tab:hover { color: var(--vx-ink); }
-.vmail-tab.is-active { background: var(--vx-card); color: var(--vx-ink); box-shadow: var(--vx-shadow); }
+.vmail-tab.is-active { background: var(--vx-card); color: var(--vx-ink); font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,.08); }
 
-/* build grid */
-.vmail-build-grid { display: grid; grid-template-columns: 200px minmax(0,1fr) 300px; gap: 16px; align-items: start; }
-.vmail-palette { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); padding: 16px; position: sticky; top: 52px; }
-.vmail-palette-title { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--vx-ink-3); }
-.vmail-palette-list { display: block; margin-top: 4px; }
-.vmail-pal-item { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 6px; border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); background: var(--vx-bg); cursor: pointer; font-size: 12px; font-weight: 600; color: var(--vx-ink-2); transition: border-color .12s, background .12s, color .12s; }
-.vmail-pal-item:hover { border-color: var(--vx-primary); background: var(--vx-primary-tint); color: var(--vx-primary-d); }
-.vmail-pal-ic { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: var(--vx-r-sm); background: var(--vx-card); border: 1px solid var(--vx-line); font-size: 14px; font-weight: 700; }
+/* build grid — canvas left (main), right rail with palette + inspector */
+.vmail-build-grid { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 16px; align-items: start; }
+.vmail-build-rail { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 52px; }
 
-/* canvas */
-.vmail-canvas-wrap { background: var(--vx-bg); border: 1px dashed var(--vx-line-2); border-radius: var(--vx-r-lg); padding: 20px; min-height: 320px; }
-.vmail-canvas { display: flex; flex-wrap: wrap; gap: 14px; --vf-accent: #2ab7f1; }
-.vmail-empty { width: 100%; text-align: center; padding: 60px 20px; color: var(--vx-ink-3); display: flex; flex-direction: column; gap: 6px; }
-.vmail-empty strong { font-size: 15px; color: var(--vx-ink-2); }
-.vmail-fcard { position: relative; width: 100%; background: var(--vx-card); border: 1.5px solid var(--vx-line); border-radius: var(--vx-r-md); padding: 14px 14px 14px 30px; cursor: pointer; transition: border-color .12s, box-shadow .12s; }
+/* canvas (left/main) */
+.vmail-canvas-wrap { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); padding: 22px; min-height: 360px; }
+.vmail-canvas { display: flex; flex-wrap: wrap; gap: 16px 14px; --vf-accent: #2ab7f1; }
+.vmail-empty { width: 100%; text-align: center; padding: 70px 20px; color: var(--vx-ink-3); display: flex; flex-direction: column; gap: 6px; border: 1px dashed var(--vx-line-2); border-radius: var(--vx-r-md); }
+.vmail-empty strong { font-size: 15px; color: var(--vx-ink-2); font-weight: 600; }
+
+.vmail-fcard { position: relative; width: 100%; background: var(--vx-card); border: 1px solid transparent; border-radius: var(--vx-r-sm); padding: 6px 8px; cursor: pointer; transition: border-color var(--vx-dur-1) var(--vx-ease), background var(--vx-dur-1) var(--vx-ease); }
 .vmail-fcard.is-half { width: calc(50% - 7px); }
-.vmail-fcard:hover { border-color: var(--vx-line-2); }
-.vmail-fcard.is-selected { border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-tint); }
-.vmail-fcard.is-drag { opacity: .5; }
+.vmail-fcard.is-third { width: calc(33.333% - 10px); }
+.vmail-fcard:hover { border-color: var(--vx-line-2); background: var(--vx-n25); }
+.vmail-fcard.is-selected { border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring); background: var(--vx-card); }
+.vmail-fcard.is-drag { opacity: .45; }
 .vmail-fcard.is-over { border-color: var(--vx-primary); border-style: dashed; }
-.vmail-fcard-handle { position: absolute; left: 8px; top: 50%; transform: translateY(-50%); color: var(--vx-ink-3); cursor: grab; font-size: 12px; letter-spacing: -2px; line-height: 1; }
-.vmail-fcard-body .velox-form-label { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--vx-ink); }
-.vmail-fcard-body input:not([type=checkbox]):not([type=radio]), .vmail-fcard-body textarea, .vmail-fcard-body select { width: 100%; padding: 8px 10px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-bg); font-size: 13px; color: var(--vx-ink-2); pointer-events: none; }
+.vmail-fcard-body .velox-form-label { display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px; color: var(--vx-ink); }
+.vmail-fcard-body input:not([type=checkbox]):not([type=radio]), .vmail-fcard-body textarea, .vmail-fcard-body select { width: 100%; padding: 9px 12px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); font-size: 13px; color: var(--vx-ink-3); pointer-events: none; }
 .vmail-fcard-body .velox-form-help { display: block; font-size: 12px; color: var(--vx-ink-3); margin-top: 5px; }
 .vmail-fcard-body .velox-form-consent, .vmail-fcard-body .velox-form-radio { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--vx-ink-2); }
 .vmail-fcard-body .velox-form-radios { display: flex; flex-wrap: wrap; gap: 14px; }
-.vmail-fcard-tools { display: flex; align-items: center; justify-content: space-between; margin-top: 10px; }
-.vmail-fcard-type { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; color: var(--vx-ink-3); }
-.vmail-fcard-del { border: 0; background: transparent; color: var(--vx-ink-3); cursor: pointer; font-size: 13px; padding: 2px 6px; border-radius: var(--vx-r-xs); }
-.vmail-fcard-del:hover { background: var(--vx-danger-tint); color: var(--vx-danger); }
+.vmail-fcard-body .velox-form-name-row { display: flex; gap: 10px; }
+.vmail-fcard-body .velox-form-name-row input { width: 100%; }
+/* hover toolbar — dark pill, top-right, like FluentForms */
+.vmail-fcard-toolbar { position: absolute; top: -13px; right: 8px; display: none; align-items: center; gap: 1px; background: #2a2a2c; border-radius: var(--vx-r-sm); padding: 3px; box-shadow: 0 4px 14px -4px rgba(0,0,0,.4); z-index: 5; }
+.vmail-fcard:hover .vmail-fcard-toolbar, .vmail-fcard.is-selected .vmail-fcard-toolbar { display: flex; }
+.vmail-ft { display: inline-flex; align-items: center; justify-content: center; width: 26px; height: 26px; border: 0; background: transparent; color: #d2d2d7; cursor: pointer; border-radius: var(--vx-r-xs); transition: background var(--vx-dur-1) var(--vx-ease), color var(--vx-dur-1) var(--vx-ease); }
+.vmail-ft:hover { background: rgba(255,255,255,.14); color: #fff; }
+.vmail-ft[data-act="move"] { cursor: grab; }
+.vmail-ft-del:hover { background: var(--vx-danger); color: #fff; }
+.vmail-fcard-type { position: absolute; top: -9px; left: 10px; display: none; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--vx-primary-ink); background: var(--vx-card); padding: 0 6px; }
+.vmail-fcard:hover .vmail-fcard-type, .vmail-fcard.is-selected .vmail-fcard-type { display: inline-block; }
+
+/* right rail: palette + inspector as white accordion cards */
+.vmail-palette, .vmail-inspector { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); }
+.vmail-palette { padding: 14px; }
+.vmail-palette-title { display: none; }
+.vmail-palette-search { width: 100%; margin: 0 0 12px; font-size: 13px; }
+.vmail-palette-list { display: flex; flex-direction: column; gap: 10px; }
+
+/* accordion group */
+.vmail-pal-group { border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); overflow: hidden; }
+.vmail-pal-cat { display: flex; align-items: center; justify-content: space-between; width: 100%; border: 0; background: var(--vx-card); padding: 12px 14px; font-size: 13px; font-weight: 600; color: var(--vx-primary-ink); cursor: pointer; letter-spacing: -0.01em; }
+.vmail-pal-cat:hover { background: var(--vx-n25); }
+.vmail-pal-chev { display: inline-flex; color: var(--vx-ink-3); transition: transform var(--vx-dur-2) var(--vx-ease); }
+.vmail-pal-group.is-open .vmail-pal-chev { transform: rotate(180deg); }
+.vmail-pal-body { display: none; padding: 10px; border-top: 1px solid var(--vx-line); }
+.vmail-pal-group.is-open .vmail-pal-body { display: block; }
+.vmail-pal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* horizontal icon-left tile, like FluentForms */
+.vmail-pal-item { display: flex; flex-direction: row; align-items: center; gap: 9px; padding: 10px 11px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); cursor: pointer; font-size: 12.5px; font-weight: 500; color: var(--vx-ink); text-align: left; transition: border-color var(--vx-dur-1) var(--vx-ease), background var(--vx-dur-1) var(--vx-ease); }
+.vmail-pal-item:hover { border-color: var(--vx-primary); background: var(--vx-primary-tint); }
+.vmail-pal-lbl { line-height: 1.2; }
+.vmail-pal-ic { display: inline-flex; align-items: center; justify-content: center; width: 24px; height: 24px; border-radius: var(--vx-r-xs); background: var(--vx-n50); color: var(--vx-ink-2); font-size: 13px; font-weight: 700; flex: none; }
+.vmail-pal-item.is-locked { opacity: .5; }
+.vmail-pal-item.is-locked:hover { border-color: var(--vx-line-2); cursor: not-allowed; background: var(--vx-card); }
 
 /* inspector */
-.vmail-inspector { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); position: sticky; top: 52px; overflow: hidden; }
-.vmail-insp-empty { padding: 28px 20px; color: var(--vx-ink-3); font-size: 13px; text-align: center; }
-.vmail-insp-head { padding: 13px 16px; border-bottom: 1px solid var(--vx-line); font-weight: 700; font-size: 13px; }
-.vmail-insp-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; max-height: 70vh; overflow-y: auto; }
-.vmail-insp-check { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; color: var(--vx-ink-2); cursor: pointer; }
+.vmail-insp-empty { padding: 40px 22px; color: var(--vx-ink-3); font-size: 13px; text-align: center; line-height: 1.5; }
+.vmail-insp-head { padding: 14px 16px; border-bottom: 1px solid var(--vx-line); font-weight: 600; font-size: 13px; color: var(--vx-primary-ink); letter-spacing: -0.01em; }
+.vmail-insp-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; max-height: 72vh; overflow-y: auto; }
+.vmail-insp-body .velox-field-label { font-size: 12.5px; font-weight: 600; color: var(--vx-ink-2); margin-bottom: 6px; display: block; }
+.vmail-insp-check { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--vx-ink-2); cursor: pointer; }
+/* segmented control inside inspector (Label Placement etc.) */
+.vmail-seg { display: flex; gap: 2px; background: var(--vx-n50); border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); padding: 3px; }
+.vmail-seg button { flex: 1; border: 0; background: transparent; padding: 6px 8px; border-radius: var(--vx-r-xs); font-size: 12px; font-weight: 500; color: var(--vx-ink-2); cursor: pointer; }
+.vmail-seg button.is-active { background: var(--vx-primary); color: #fff; font-weight: 600; }
 
 /* notifications */
 .vmail-email { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); padding: 18px; margin-bottom: 16px; }
 .vmail-email-head { margin-bottom: 14px; }
 .vmail-email-toggle { display: flex; align-items: flex-start; gap: 10px; cursor: pointer; }
 .vmail-email-toggle input { margin-top: 3px; }
-.vmail-email-toggle strong { display: block; font-size: 14px; }
+.vmail-email-toggle strong { display: block; font-size: 14px; font-weight: 600; }
 .vmail-email-toggle em { display: block; font-style: normal; font-size: 12px; color: var(--vx-ink-3); margin-top: 2px; }
 .vmail-email-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
 .vmail-mergewrap { position: relative; }
@@ -902,7 +933,8 @@
 .vmail-merge-menu button { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; border: 0; background: transparent; padding: 7px 9px; border-radius: var(--vx-r-sm); cursor: pointer; font-size: 13px; color: var(--vx-ink); text-align: left; }
 .vmail-merge-menu button:hover { background: var(--vx-bg); }
 .vmail-merge-menu button code { font-size: 11px; color: var(--vx-ink-3); }
-@media (max-width: 1100px) { .vmail-build-grid { grid-template-columns: 1fr; } .vmail-palette, .vmail-inspector { position: static; } .vmail-pal-grid { grid-template-columns: repeat(4,1fr); } .vmail-email-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .vmail-build-grid { grid-template-columns: 1fr; } .vmail-build-rail { position: static; } .vmail-email-grid { grid-template-columns: 1fr; } }
+
 
 /* ---- robots.txt live viewer ---- */
 .velox-seo-live { margin-top: 14px; border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); overflow: hidden; }
@@ -927,12 +959,6 @@
 
 /* ---- form builder: palette categories + search, new previews ---- */
 .vmail-palette-search { width: 100%; margin: 12px 0 6px; font-size: 13px; }
-.vmail-pal-group { margin-top: 12px; }
-.vmail-pal-cat { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--vx-ink-3); margin: 0 0 8px 2px; }
-.vmail-pal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-.vmail-fcard.is-third { width: calc(33.333% - 10px); }
-.vmail-fcard-body .velox-form-name-row { display: flex; gap: 10px; }
-.vmail-fcard-body .velox-form-name-row input { width: 100%; }
 .vmail-html-prev { font-size: 13px; color: var(--vx-ink-2); border: 1px dashed var(--vx-line-2); border-radius: var(--vx-r-sm); padding: 10px 12px; background: var(--vx-bg); overflow: hidden; }
 .vmail-cap-prev { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; font-size: 13px; font-weight: 600; color: var(--vx-ink-2); border: 1px dashed var(--vx-line-2); border-radius: var(--vx-r-sm); padding: 14px 16px; background: var(--vx-bg); }
 .vmail-cap-prev small { font-weight: 400; color: var(--vx-ink-3); }
@@ -958,11 +984,23 @@
 .velox-snip-back { display: inline-flex; align-items: center; gap: 5px; color: var(--vx-ink-2); text-decoration: none; font-size: 13px; font-weight: 500; margin-bottom: 8px; }
 .velox-snip-back:hover { color: var(--vx-primary-ink); }
 
-.velox-snip-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 40px; height: 21px; padding: 0 8px; border-radius: var(--vx-r-xs); font-size: 11px; font-weight: 700; letter-spacing: .02em; color: #fff; }
+.velox-snip-badge { display: inline-flex; align-items: center; justify-content: center; min-width: 42px; height: 22px; padding: 0 9px; border-radius: var(--vx-r-xs); font-size: 11px; font-weight: 700; letter-spacing: .03em; color: #fff; }
 .velox-snip-badge.is-php  { background: #7e57c2; }
 .velox-snip-badge.is-css  { background: #2aa9e0; }
 .velox-snip-badge.is-js   { background: #d99a1c; }
 .velox-snip-badge.is-html { background: #e0612a; }
+
+/* Filter + search toolbar */
+.velox-snip-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: var(--vx-s4); }
+.velox-snip-filter { position: relative; display: inline-flex; align-items: center; }
+.velox-snip-filter-ic { position: absolute; left: 11px; color: var(--vx-ink-3); pointer-events: none; }
+.velox-snip-type-filter { appearance: none; -webkit-appearance: none; padding: 9px 32px 9px 32px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); font-size: 13px; font-weight: 500; color: var(--vx-ink); cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 11px center; }
+.velox-snip-type-filter:hover { border-color: var(--vx-n300); }
+.velox-snip-search { position: relative; flex: 1; max-width: 340px; }
+.velox-snip-search-ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--vx-ink-3); pointer-events: none; }
+.velox-snip-search-input { width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); font-size: 13px; color: var(--vx-ink); }
+.velox-snip-search-input:focus { outline: none; border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring); }
+.velox-snip-row.is-hidden { display: none; }
 
 /* Type-picker modal */
 .velox-snip-modal { position: fixed; inset: 0; z-index: 100000; display: flex; align-items: center; justify-content: center; padding: 20px; }
@@ -999,16 +1037,20 @@
 .velox-snip-list { padding: 0; }
 .velox-snip-empty { padding: 48px 24px; text-align: center; }
 .velox-snip-empty p { color: var(--vx-ink-3); margin: 0 0 16px; font-size: 14px; }
-.velox-snip-row { display: flex; align-items: center; gap: 13px; padding: 14px 20px; border-bottom: 1px solid var(--vx-line); transition: background var(--vx-dur-1) var(--vx-ease); }
+.velox-snip-row { display: flex; align-items: center; gap: 14px; padding: 15px 20px; border-bottom: 1px solid var(--vx-line); transition: background var(--vx-dur-1) var(--vx-ease); }
 .velox-snip-row:hover { background: var(--vx-n25); }
 .velox-snip-row:last-child { border-bottom: 0; }
 .velox-snip-status { flex: 0 0 auto; width: 8px; height: 8px; border-radius: 50%; background: var(--vx-n300); }
 .velox-snip-status.is-on { background: var(--vx-success); box-shadow: 0 0 0 3px var(--vx-success-tint); }
-.velox-snip-name { flex: 1 1 auto; min-width: 0; color: var(--vx-ink); text-decoration: none; display: flex; flex-direction: column; gap: 2px; }
+.velox-snip-name { flex: 1 1 auto; min-width: 0; color: var(--vx-ink); text-decoration: none; display: flex; flex-direction: column; gap: 4px; }
+.velox-snip-name-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 .velox-snip-name-t { font-weight: 600; font-size: 14px; letter-spacing: -0.01em; }
 .velox-snip-name:hover .velox-snip-name-t { color: var(--vx-primary-ink); }
-.velox-snip-meta { font-size: 12px; color: var(--vx-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.velox-snip-dot { opacity: .5; margin: 0 2px; }
+.velox-snip-tag { display: inline-flex; align-items: center; height: 18px; padding: 0 8px; border-radius: var(--vx-r-pill); background: var(--vx-n100); color: var(--vx-ink-2); font-size: 11px; font-weight: 600; }
+.velox-snip-desc { font-size: 12.5px; color: var(--vx-ink-2); line-height: 1.4; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 560px; }
+.velox-snip-meta { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.velox-snip-pill { display: inline-flex; align-items: center; height: 20px; padding: 0 9px; border-radius: var(--vx-r-pill); background: var(--vx-n50); border: 1px solid var(--vx-line); color: var(--vx-ink-3); font-size: 11px; font-weight: 600; }
+.velox-snip-pill--scope { background: var(--vx-primary-tint); border-color: transparent; color: var(--vx-primary-ink); }
 .velox-snip-actions { flex: 0 0 auto; display: flex; gap: 8px; align-items: center; }
 .velox-snip-actions .velox-btn--sm { padding: 5px 11px; font-size: 12px; }
 
@@ -1030,19 +1072,26 @@
 .velox-snip-menu-danger:hover { background: var(--vx-danger-tint) !important; }
 
 /* Editor */
-.velox-snip-grid { display: grid; grid-template-columns: 1fr 1fr auto; gap: var(--vx-s4); }
-.velox-field--narrow { width: 120px; }
-.velox-snip-editor .velox-field { margin-bottom: var(--vx-s4); }
-.velox-snip-editor .velox-field:last-child { margin-bottom: 0; }
+.velox-snip-edbar { display: flex; align-items: center; gap: 16px; padding: 12px 16px; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); margin-bottom: 16px; position: sticky; top: 32px; z-index: 20; }
+.velox-snip-edbar .velox-snip-back { margin: 0; }
+.velox-snip-edbar-title { display: inline-flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 600; color: var(--vx-ink); letter-spacing: -0.015em; }
+.velox-snip-edbar-actions { margin-left: auto; display: flex; gap: 10px; }
+.velox-snip-edgrid { display: grid; grid-template-columns: minmax(0,1fr) 320px; gap: 16px; align-items: start; }
+.velox-snip-edside { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 92px; }
+.velox-snip-edside .velox-field { margin-bottom: var(--vx-s4); }
+.velox-snip-edside .velox-field:last-child { margin-bottom: 0; }
+.velox-snip-edside .velox-field--narrow { width: 140px; }
 .velox-snip-code-panel { padding: 0; overflow: hidden; }
 .velox-snip-code-panel .velox-field { padding: var(--vx-s5); }
 .velox-snip-code-panel .velox-label { padding: 0; }
-.velox-snip-code { width: 100%; min-height: 340px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; border-radius: var(--vx-r-sm); }
-.velox-snip-editor .CodeMirror { border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); height: 400px; font-size: 13px; }
-.velox-snip-save { display: flex; gap: 10px; align-items: center; }
+.velox-snip-code { width: 100%; min-height: 420px; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; border-radius: var(--vx-r-sm); }
+.velox-snip-editor .CodeMirror { border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); height: 460px; font-size: 13px; }
 
+@media (max-width: 960px) {
+	.velox-snip-edgrid { grid-template-columns: 1fr; }
+	.velox-snip-edside { position: static; }
+}
 @media (max-width: 782px) {
-	.velox-snip-grid { grid-template-columns: 1fr; }
 	.velox-field--narrow { width: 100%; }
 	.velox-snip-row { flex-wrap: wrap; }
 	.velox-snip-types { grid-template-columns: 1fr; }
@@ -1111,8 +1160,7 @@
 
 /* ---- Builder polish pass (cleaner, calmer, more Fluent-like) ---- */
 .vmail-bar { padding: 14px 18px; border-radius: var(--vx-r-md); }
-.vmail-pal-item { background: var(--vx-card); padding: 13px 6px; border-radius: var(--vx-r-md); }
-.vmail-pal-item:hover { box-shadow: 0 2px 8px rgba(15,18,30,.06); transform: translateY(-1px); }
+
 .vmail-pal-ic { background: var(--vx-bg); }
 .vmail-canvas-wrap { background: var(--vx-card); border: 1px solid var(--vx-line); }
 .vmail-canvas:empty + .vmail-empty, .vmail-canvas-wrap:has(.vmail-empty) { border-style: dashed; }
@@ -1335,17 +1383,21 @@
    Mail & forms — submissions inbox + CAPTCHA gate (stage 5)
    ======================================================================== */
 .vmail-inbox { padding: 0; overflow: hidden; }
-.vmail-inbox-split { display: grid; grid-template-columns: 320px 1fr; min-height: 380px; }
-.vmail-inbox-list { border-right: 1px solid var(--vx-line); max-height: 560px; overflow-y: auto; }
-.vmail-inbox-item { display: block; width: 100%; text-align: left; border: 0; background: transparent; cursor: pointer; padding: 13px 18px; border-bottom: 1px solid var(--vx-line); transition: background var(--vx-dur-1) var(--vx-ease); }
+.vmail-inbox-split { display: grid; grid-template-columns: 320px 1fr; max-height: 400px; }
+.vmail-inbox-list { border-right: 1px solid var(--vx-line); overflow-y: auto; }
+.vmail-inbox-item { position: relative; display: flex; align-items: stretch; border-bottom: 1px solid var(--vx-line); transition: background var(--vx-dur-1) var(--vx-ease); }
 .vmail-inbox-item:hover { background: var(--vx-n25); }
 .vmail-inbox-item.is-active { background: var(--vx-primary-tint); box-shadow: inset 3px 0 0 var(--vx-primary); }
+.vmail-inbox-open { flex: 1 1 auto; min-width: 0; text-align: left; border: 0; background: transparent; cursor: pointer; padding: 13px 14px 13px 18px; }
+.vmail-inbox-del { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 38px; border: 0; background: transparent; color: var(--vx-ink-3); cursor: pointer; opacity: 0; transition: opacity var(--vx-dur-1) var(--vx-ease), color var(--vx-dur-1) var(--vx-ease), background var(--vx-dur-1) var(--vx-ease); border-radius: var(--vx-r-sm); margin: 6px 6px 6px 0; }
+.vmail-inbox-item:hover .vmail-inbox-del { opacity: 1; }
+.vmail-inbox-del:hover { background: var(--vx-danger-tint); color: var(--vx-danger); }
 .vmail-inbox-who { display: block; font-weight: 600; font-size: 14px; color: var(--vx-ink); letter-spacing: -0.01em; }
 .vmail-inbox-meta { display: flex; justify-content: space-between; gap: 8px; margin: 3px 0; }
 .vmail-inbox-form { font-size: 12px; color: var(--vx-primary-ink); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vmail-inbox-when { font-size: 12px; color: var(--vx-ink-3); flex: none; }
 .vmail-inbox-prev { display: block; font-size: 12px; color: var(--vx-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vmail-inbox-detail { padding: 24px 28px; }
+.vmail-inbox-detail { padding: 24px 28px; overflow-y: auto; }
 .vmail-inbox-empty-detail { color: var(--vx-ink-3); font-size: 14px; padding: 40px 0; text-align: center; }
 .vmail-d-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--vx-line); }
 .vmail-d-who { font-size: 18px; font-weight: 600; color: var(--vx-ink); letter-spacing: -0.015em; }
@@ -1364,8 +1416,8 @@
 .vmail-lock-ic { font-size: 11px; margin-left: 4px; }
 
 @media (max-width: 860px) {
-	.vmail-inbox-split { grid-template-columns: 1fr; }
-	.vmail-inbox-list { border-right: 0; border-bottom: 1px solid var(--vx-line); max-height: 300px; }
+	.vmail-inbox-split { grid-template-columns: 1fr; max-height: none; }
+	.vmail-inbox-list { border-right: 0; border-bottom: 1px solid var(--vx-line); max-height: 320px; }
 }
 .vmail-pal-item.is-locked { opacity: .5; }
 .vmail-pal-item.is-locked:hover { border-color: var(--vx-line-2); cursor: not-allowed; }

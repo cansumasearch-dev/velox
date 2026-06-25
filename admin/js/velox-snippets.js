@@ -80,6 +80,11 @@
 		typeEl.addEventListener( 'change', function () {
 			if ( cm ) { cm.setOption( 'mode', modeFor( typeEl.value ) ); }
 			if ( hintEl ) { hintEl.textContent = hintFor( typeEl.value ); }
+			var badge = $( '#velox-snip-edbadge' );
+			if ( badge ) {
+				badge.className = 'velox-snip-badge is-' + typeEl.value;
+				badge.textContent = typeEl.value.toUpperCase();
+			}
 		} );
 
 		function relabel() {
@@ -145,6 +150,27 @@
 				if ( e.key === 'Escape' && ! modal.hidden ) { closeModal(); }
 			} );
 		}
+
+		// Type filter + search — hide non-matching rows live.
+		var typeFilter = $( '#velox-snip-type-filter' );
+		var searchBox  = $( '#velox-snip-search' );
+		function applyFilters() {
+			var t = typeFilter ? typeFilter.value : '';
+			var q = searchBox ? searchBox.value.trim().toLowerCase() : '';
+			var rows = list.querySelectorAll( '.velox-snip-row' );
+			var shown = 0;
+			rows.forEach( function ( row ) {
+				var okType = ! t || row.getAttribute( 'data-type' ) === t;
+				var okText = ! q || ( row.getAttribute( 'data-name' ) || '' ).indexOf( q ) !== -1;
+				var show = okType && okText;
+				row.classList.toggle( 'is-hidden', ! show );
+				if ( show ) { shown++; }
+			} );
+			var none = $( '#velox-snip-none' );
+			if ( none ) { none.hidden = shown !== 0; }
+		}
+		if ( typeFilter ) { typeFilter.addEventListener( 'change', applyFilters ); }
+		if ( searchBox ) { searchBox.addEventListener( 'input', applyFilters ); }
 
 		// Row actions menu (⋯) — open one popover at a time, close on outside click.
 		list.addEventListener( 'click', function ( e ) {
