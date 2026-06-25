@@ -202,12 +202,21 @@ class Velox_October {
 		}
 		$css_blob .= $inline_css;
 
-		// 3) Media: collect from pages + from CSS url() refs (backgrounds, fonts).
+		// 3) Media. Start from the FULL WordPress media library (so the export mirrors
+		// the user's Media library, not just images that appear on a page), then map
+		// every referenced URL onto it; anything referenced but outside the library
+		// (e.g. a theme/CDN image) is resolved separately and added.
 		$media_urls = array_merge( $media_urls, self::css_url_matches( $css_blob ) );
 		$media_urls = array_values( array_unique( array_filter( $media_urls ) ) );
-		$resolved   = self::resolve_media( $media_urls );
-		$media_refs = $resolved['refs'];   // url => kind/name  (every variant URL)
-		$media_files = $resolved['files']; // name => kind/path|data  (one per image)
+		$library     = self::all_attachments();
+		$media_files = $library['files'];                 // name => kind/path  (all 49)
+		$resolved    = self::resolve_media( $media_urls, $library['index'] );
+		$media_refs  = $resolved['refs'];                 // url => kind/name
+		foreach ( $resolved['files'] as $nm => $info ) {  // extras not in the library
+			if ( ! isset( $media_files[ $nm ] ) ) {
+				$media_files[ $nm ] = $info;
+			}
+		}
 
 		// 4) Rewrite media references in chrome + pages. Images point at the October
 		// Media library (storage/app/media/<project>/); fonts stay theme assets.
@@ -499,18 +508,19 @@ class Velox_October {
 		$samples    = array();
 		if ( '' !== $probe_html ) {
 			$found    = array_values( array_unique( array_merge( self::media_from_raw( $probe_html ), self::media_from_noscript( $probe_html ) ) ) );
-			$resolved = self::resolve_media( $found );
-			$files    = $resolved['files'];
-			$media_line = count( $found ) . ' URLs on homepage · ' . count( $files ) . ' distinct images/fonts after collapsing size variants';
+			$library  = self::all_attachments();
+			$resolved = self::resolve_media( $found, $library['index'] );
+			$libcount = count( $library['files'] );
+			$extra    = count( $resolved['files'] );
+			$onpage   = count( array_unique( array_map( function ( $r ) { return $r['name']; }, $resolved['refs'] ) ) );
+			$media_line = $libcount . ' in the WordPress media library (all exported) · ' . $onpage . ' referenced on homepage'
+				. ( $extra ? ' · ' . $extra . ' extra non-library image(s)' : '' );
 			$i = 0;
-			foreach ( $files as $name => $info ) {
-				$samples[] = $name . ( isset( $info['data'] ) ? ' (fetched)' : ' (local)' );
+			foreach ( $library['files'] as $name => $info ) {
+				$samples[] = $name;
 				if ( ++$i >= 6 ) {
 					break;
 				}
-			}
-			if ( $found && ! $files ) {
-				$media_line .= ' — URLs found but none resolved (cross-origin, or files missing on disk)';
 			}
 		}
 
@@ -913,15 +923,58 @@ class Velox_October {
 		return $out;
 	}
 
+	/** Canonical key that folds WP size/edit variants of a file onto one identity. */
+	private static function media_basekey( $path_or_name, $is_font ) {
+		$fname = basename( (string) $path_or_name );
+		$ext   = strtolower( pathinfo( $fname, PATHINFO_EXTENSION ) );
+		$base  = preg_replace( '/\.[^.]+$/', '', $fname );
+		$base  = preg_replace( '/-e\d{8,}$/', '', $base );
+		$base  = preg_replace( '/-\d+x\d+$/', '', $base );
+		$base  = preg_replace( '/-(?:scaled|rotated)$/', '', $base );
+		return strtolower( ( $is_font ? 'font:' : 'img:' ) . $base . '.' . $ext );
+	}
+
 	/**
-	 * Resolve referenced URLs to bundleable files, collapsing WordPress responsive
-	 * size variants (hero-300x200.jpg, hero-768x512.jpg, hero-scaled.jpg …) down to
-	 * ONE file per logical image — while still remapping every variant URL to it so
-	 * nothing on the page breaks. Returns:
-	 *   [ 'refs'  => url  => [ 'kind', 'name' ],            // for rewriting markup/CSS
-	 *     'files' => name => [ 'kind', 'path'|'data' ] ]    // one entry per real file
+	 * The ENTIRE WordPress media library (original files), so the export mirrors the
+	 * user's Media library rather than only images that happen to appear on a page.
+	 * Returns [ 'files' => name => ['kind','path'], 'index' => basekey => name ].
 	 */
-	public static function resolve_media( $urls ) {
+	public static function all_attachments() {
+		$files = array();
+		$index = array();
+		$used  = array();
+		$img_ext  = array( 'jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif', 'bmp', 'ico' );
+		$font_ext = array( 'woff', 'woff2', 'ttf', 'otf', 'eot' );
+
+		$ids = get_posts(
+			array(
+				'post_type'      => 'attachment',
+				'post_status'    => 'inherit',
+				'posts_per_page' => -1,
+				'fields'         => 'ids',
+				'no_found_rows'  => true,
+			)
+		);
+		foreach ( (array) $ids as $id ) {
+			$file = get_attached_file( $id );
+			if ( ! $file || ! file_exists( $file ) ) {
+				continue;
+			}
+			$ext     = strtolower( pathinfo( $file, PATHINFO_EXTENSION ) );
+			$is_font = in_array( $ext, $font_ext, true );
+			$is_img  = in_array( $ext, $img_ext, true );
+			if ( ! $is_font && ! $is_img ) {
+				continue;
+			}
+			$name = self::safe_asset_name( basename( $file ), $used );
+			$used[ $name ] = true;
+			$files[ $name ] = array( 'kind' => $is_font ? 'font' : 'image', 'path' => $file );
+			$index[ self::media_basekey( $file, $is_font ) ] = $name;
+		}
+		return array( 'files' => $files, 'index' => $index );
+	}
+
+	public static function resolve_media( $urls, $lib_index = array() ) {
 		$up      = wp_upload_dir();
 		$baseurl = trailingslashit( $up['baseurl'] );
 		$basedir = trailingslashit( $up['basedir'] );
@@ -929,7 +982,7 @@ class Velox_October {
 		$host    = wp_parse_url( $home, PHP_URL_HOST );
 		$refs    = array();
 		$files   = array();
-		$bases   = array(); // basekey => name
+		$bases   = array(); // basekey => name (for non-library extras)
 		$used    = array();
 		$fetched = 0;
 
@@ -956,26 +1009,25 @@ class Velox_October {
 			if ( ! $is_font && ! $is_img ) {
 				continue;
 			}
-			$kind = $is_font ? 'font' : 'image';
+			$kind    = $is_font ? 'font' : 'image';
+			$basekey = self::media_basekey( $path_part, $is_font );
 
-			// Strip WP size/edit suffixes to get the original base name.
-			$fname = basename( $path_part );                       // hero-768x512.jpg
-			$stem  = preg_replace( '/\.[^.]+$/', '', $fname );      // hero-768x512
-			$base  = $stem;
-			$base  = preg_replace( '/-e\d{8,}$/', '', $base );      // -e1612345678 (edited)
-			$base  = preg_replace( '/-\d+x\d+$/', '', $base );      // -768x512 (resize)
-			$base  = preg_replace( '/-(?:scaled|rotated)$/', '', $base );
-			$origfile = $base . '.' . $ext;                         // hero.jpg
-			$basekey  = strtolower( ( $is_font ? 'font:' : 'img:' ) . $origfile );
-
-			// Already have this logical image → just point the URL at it.
+			// 1) Already in the WordPress media library → point the URL at that file.
+			if ( isset( $lib_index[ $basekey ] ) ) {
+				$refs[ $url ] = array( 'kind' => $kind, 'name' => $lib_index[ $basekey ] );
+				continue;
+			}
+			// 2) An extra we've already resolved this build.
 			if ( isset( $bases[ $basekey ] ) ) {
 				$refs[ $url ] = array( 'kind' => $kind, 'name' => $bases[ $basekey ] );
 				continue;
 			}
 
-			// First time we see this image: get a real file — prefer the full-size
-			// original on disk, else the variant we're looking at, else fetch.
+			// 3) Not in the library — resolve a real file (prefer full-size original).
+			$fname    = basename( $path_part );
+			$stem     = preg_replace( '/\.[^.]+$/', '', $fname );
+			$base     = preg_replace( '/-(?:scaled|rotated)$/', '', preg_replace( '/-\d+x\d+$/', '', preg_replace( '/-e\d{8,}$/', '', $stem ) ) );
+			$origfile = $base . '.' . $ext;
 			$path = '';
 			$data = null;
 			$dir  = substr( $clean, 0, strrpos( $clean, '/' ) + 1 );
@@ -997,9 +1049,9 @@ class Velox_October {
 			}
 
 			$name = self::safe_asset_name( $origfile, $used );
-			$used[ $name ]    = true;
+			$used[ $name ]     = true;
 			$bases[ $basekey ] = $name;
-			$files[ $name ]   = array( 'kind' => $kind );
+			$files[ $name ]    = array( 'kind' => $kind );
 			if ( '' !== $path ) {
 				$files[ $name ]['path'] = $path;
 			} else {

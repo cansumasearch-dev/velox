@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.14.2
+- **Export the whole WordPress media library, not just images found on pages.** Scraping page HTML only ever finds images those pages actually place, missing library items used elsewhere or nowhere. The media export now reads every attachment straight from the WordPress media library (the originals), so your October Media library mirrors your WordPress one.
+- Page/CSS references (including resized variants) are still mapped onto the corresponding library file; any image referenced but outside the library (theme/CDN) is resolved and added on top.
+- Test connection now reports the full library count and how many are referenced on the homepage.
+
 ## 2.14.1
 - **Collapse WordPress responsive-image variants.** The raw URL scan was grabbing every size WordPress generates (`-300x200`, `-768x512`, `-scaled`, …), inflating the media count many times over. The converter now folds all size variants of an image down to a single full-size file, while still remapping every variant URL on the page to it — so the count reflects real images, not thumbnails, and nothing breaks.
 - Duplicate URL forms (absolute vs. root-relative of the same file) are de-duplicated too.
