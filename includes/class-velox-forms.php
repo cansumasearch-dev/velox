@@ -120,14 +120,18 @@ class Velox_Forms {
 
 	private static function sanitize_style( $style ) {
 		if ( ! is_array( $style ) ) { return array(); }
-		$targets = array( 'form', 'header', 'labels', 'inputs', 'submit' );
+		$fixed   = array( 'form', 'header', 'labels', 'inputs', 'submit' );
 		$allowed = array( 'bg', 'color', 'hoverBg', 'borderColor', 'fs', 'fw', 'radius', 'border', 'shadow', 'align', 'text',
+			'labelColor', 'labelFs', 'labelFw',
 			'pt', 'pr', 'pb', 'pl', 'ptb', 'plr', 'mt', 'mr', 'mb', 'ml', 'mtb', 'mlr', '_pfour', '_mfour' );
 		$out = array();
-		foreach ( $targets as $t ) {
-			if ( empty( $style[ $t ] ) || ! is_array( $style[ $t ] ) ) { continue; }
+		foreach ( $style as $t => $vals ) {
+			if ( ! is_array( $vals ) ) { continue; }
+			$is_field = ( 0 === strpos( (string) $t, 'field:' ) );
+			if ( ! $is_field && ! in_array( $t, $fixed, true ) ) { continue; }
+			if ( $is_field && ! preg_match( '/^[a-z0-9_]+$/', substr( (string) $t, 6 ) ) ) { continue; }
 			$clean = array();
-			foreach ( $style[ $t ] as $k => $v ) {
+			foreach ( $vals as $k => $v ) {
 				if ( ! in_array( $k, $allowed, true ) ) { continue; }
 				if ( is_bool( $v ) ) { $clean[ $k ] = $v; continue; }
 				$clean[ $k ] = sanitize_text_field( (string) $v );
@@ -290,6 +294,15 @@ class Velox_Forms {
 		}
 		$css .= $rule( $scope . ' .velox-form-submit', array( 'bg' => $sub['bg'] ?? '', 'color' => $sub['color'] ?? '', 'fs' => $sub['fs'] ?? '', 'fw' => $sub['fw'] ?? '', 'radius' => $sub['radius'] ?? '', 'shadow' => $sub['shadow'] ?? '', 'border' => $sub['border'] ?? '', 'borderColor' => $sub['borderColor'] ?? '', 'pt' => $sub['pt'] ?? null, 'pr' => $sub['pr'] ?? null, 'pb' => $sub['pb'] ?? null, 'pl' => $sub['pl'] ?? null, 'mt' => $sub['mt'] ?? null, 'mr' => $sub['mr'] ?? null, 'mb' => $sub['mb'] ?? null, 'ml' => $sub['ml'] ?? null ) );
 		if ( ! empty( $sub['hoverBg'] ) && $col( $sub['hoverBg'] ) ) { $css .= $scope . ' .velox-form-submit:hover{background:' . $col( $sub['hoverBg'] ) . ';}'; }
+		// Per-field overrides (set in the Style editor → Individual fields).
+		foreach ( $s as $t => $o ) {
+			if ( 0 !== strpos( (string) $t, 'field:' ) || ! is_array( $o ) ) { continue; }
+			$k = substr( (string) $t, 6 );
+			if ( ! preg_match( '/^[a-z0-9_]+$/', $k ) ) { continue; }
+			$fsel = $scope . ' [data-vf-key="' . $k . '"]';
+			$css .= $rule( $fsel . ' .velox-form-label', array( 'color' => $o['labelColor'] ?? '', 'fs' => $o['labelFs'] ?? '', 'fw' => $o['labelFw'] ?? '' ) );
+			$css .= $rule( $fsel . ' input, ' . $fsel . ' textarea, ' . $fsel . ' select', array( 'bg' => $o['bg'] ?? '', 'color' => $o['color'] ?? '', 'fs' => $o['fs'] ?? '', 'radius' => $o['radius'] ?? '', 'border' => $o['border'] ?? '', 'borderColor' => $o['borderColor'] ?? '' ) );
+		}
 		return $css;
 	}
 
@@ -410,6 +423,7 @@ class Velox_Forms {
 		$css   = ! empty( $f['css'] ) ? ' ' . esc_attr( $f['css'] ) : '';
 		$opts  = array_filter( array_map( 'trim', explode( "\n", (string) ( $f['options'] ?? '' ) ) ) );
 		$type  = $f['type'];
+		$fkey_attr = ' data-vf-key="' . $key . '"';
 
 		// Conditional logic → a data attribute the front-end evaluator reads.
 		$cond_attr = '';
@@ -442,7 +456,7 @@ class Velox_Forms {
 			$prefix  = isset( $f['calc_prefix'] ) ? $f['calc_prefix'] : '';
 			$suffix  = isset( $f['calc_suffix'] ) ? $f['calc_suffix'] : '';
 			?>
-			<label class="velox-form-field velox-form-calc<?php echo esc_attr( $width . $css ); ?>"<?php echo $cond_attr; // phpcs:ignore ?>>
+			<label class="velox-form-field velox-form-calc<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
 				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
 				<div class="velox-form-calc-wrap">
 					<?php if ( '' !== $prefix ) : ?><span class="velox-form-calc-fix"><?php echo esc_html( $prefix ); ?></span><?php endif; ?>
@@ -455,12 +469,12 @@ class Velox_Forms {
 			</label>
 			<?php
 		} elseif ( 'html' === $type ) {
-			echo '<div class="velox-form-row velox-form-html' . esc_attr( $width . $css ) . '"' . $cond_attr . '>' . ( isset( $f['content'] ) ? $f['content'] : '' ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput // phpcs:ignore WordPress.Security.EscapeOutput
+			echo '<div class="velox-form-row velox-form-html' . esc_attr( $width . $css ) . '"' . $fkey_attr . $cond_attr . '>' . ( isset( $f['content'] ) ? $f['content'] : '' ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput // phpcs:ignore WordPress.Security.EscapeOutput
 		} elseif ( 'captcha' === $type ) {
-			echo '<div class="velox-form-row' . esc_attr( $width . $css ) . '"' . $cond_attr . '>' . self::captcha_widget() . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput // phpcs:ignore WordPress.Security.EscapeOutput
+			echo '<div class="velox-form-row' . esc_attr( $width . $css ) . '"' . $fkey_attr . $cond_attr . '>' . self::captcha_widget() . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput // phpcs:ignore WordPress.Security.EscapeOutput
 		} elseif ( 'consent' === $type || 'checkbox' === $type ) {
 			?>
-			<div class="velox-form-row velox-form-row--check<?php echo esc_attr( $width . $css ); ?>"<?php echo $cond_attr; // phpcs:ignore ?>>
+			<div class="velox-form-row velox-form-row--check<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
 				<label class="velox-form-consent">
 					<input type="checkbox" name="<?php echo esc_attr( $name ); ?>" value="1"<?php echo $rq; ?>>
 					<span><?php echo $label . $star; ?></span>
@@ -472,7 +486,7 @@ class Velox_Forms {
 			$itype = 'radio' === $type ? 'radio' : 'checkbox';
 			$iname = 'radio' === $type ? $name : $name . '[]';
 			?>
-			<div class="velox-form-row<?php echo esc_attr( $width . $css ); ?>"<?php echo $cond_attr; // phpcs:ignore ?>>
+			<div class="velox-form-row<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
 				<span class="velox-form-label"><?php echo $label . $star; ?></span>
 				<div class="velox-form-radios">
 					<?php foreach ( $opts as $opt ) : $checked = ( $def === $opt ) ? ' checked' : ''; ?>
@@ -486,7 +500,7 @@ class Velox_Forms {
 			$f_lbl = $opts[0] ?? 'First name';
 			$l_lbl = $opts[1] ?? 'Last name';
 			?>
-			<div class="velox-form-row velox-form-name<?php echo esc_attr( $width . $css ); ?>"<?php echo $cond_attr; // phpcs:ignore ?>>
+			<div class="velox-form-row velox-form-name<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
 				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
 				<div class="velox-form-name-row">
 					<input type="text" name="<?php echo esc_attr( $name ); ?>[first]" placeholder="<?php echo esc_attr( $f_lbl ); ?>"<?php echo $rq; ?>>
@@ -497,7 +511,7 @@ class Velox_Forms {
 			<?php
 		} else {
 			?>
-			<label class="velox-form-field<?php echo esc_attr( $width . $css ); ?>"<?php echo $cond_attr; // phpcs:ignore ?>>
+			<label class="velox-form-field<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
 				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
 				<?php if ( 'textarea' === $type ) : ?>
 					<textarea name="<?php echo esc_attr( $name ); ?>" rows="5" placeholder="<?php echo $ph; ?>"<?php echo $rq; ?>><?php echo esc_textarea( $def ); ?></textarea>

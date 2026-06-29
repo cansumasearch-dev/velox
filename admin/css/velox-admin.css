@@ -1893,3 +1893,94 @@
 @media (max-width: 860px) {
 	.vbk-action-grid { grid-template-columns: 1fr; }
 }
+
+/* ============================================================
+   Forms builder — drag & drop, editable name, live preview
+   ============================================================ */
+
+/* Palette tiles are draggable into the canvas */
+.vmail-sb .vmail-pal-item[draggable="true"] { cursor: grab; }
+.vmail-sb .vmail-pal-item.is-dragging { opacity: .5; box-shadow: 0 0 0 1.5px var(--sb-accent); }
+
+/* Canvas drop target + insertion line */
+.vmail-canvas.is-drop-active { outline: 2px dashed var(--sb-accent); outline-offset: 10px; border-radius: 12px; }
+.vmail-canvas.is-drop-end { position: relative; }
+.vmail-canvas.is-drop-end::after { content: ""; flex: 0 0 100%; height: 2px; background: var(--sb-accent); border-radius: 2px; box-shadow: 0 0 0 3px rgba(42,183,241,.15); }
+.vmail-fcard.is-drop-before::before { content: ""; position: absolute; left: 0; right: 0; top: -9px; height: 2px; background: var(--sb-accent); border-radius: 2px; box-shadow: 0 0 0 3px rgba(42,183,241,.15); }
+
+/* Form-name field — reads as an editable input like everything else */
+.vmail-sb-title { border: 1px solid transparent; transition: background .12s, border-color .12s, box-shadow .12s; }
+.vmail-sb-title:hover { background: var(--sb-bg); border-color: var(--sb-ring); }
+.vmail-sb-title:focus { background: #fff; border-color: var(--sb-accent); box-shadow: 0 0 0 3px rgba(42,183,241,.18); }
+
+/* Live preview — extra field types, all interactive */
+.vse-pf-input:focus { outline: none; border-color: #2ab7f1; box-shadow: 0 0 0 3px rgba(42,183,241,.18); }
+.vse-pf-help { display: block; margin-top: 7px; font-size: 12.5px; color: #8a8a90; }
+.vse-pf-choices { display: flex; flex-direction: column; gap: 9px; }
+.vse-pf-choice { display: flex; align-items: center; gap: 9px; font-size: 14px; color: #2a2a2f; cursor: pointer; }
+.vse-pf-choice input { width: 17px; height: 17px; accent-color: #2ab7f1; flex: none; }
+.vse-pf-name { display: flex; gap: 12px; }
+.vse-pf-name > input { flex: 1; }
+.vse-pf-consent .vse-pf-check { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: #2a2a2f; cursor: pointer; }
+.vse-pf-consent .vse-pf-check input { width: 18px; height: 18px; margin-top: 1px; accent-color: #2ab7f1; flex: none; }
+.vse-pf-empty { padding: 30px; text-align: center; color: #9a9aa0; font-size: 13.5px; }
+
+/* Preview button overlay — the real form, full-screen */
+.vmp { position: fixed; inset: 0; z-index: 100000; background: #eceef1; display: flex; flex-direction: column; }
+.vmp[hidden] { display: none; }
+.vmp-top { display: flex; align-items: center; gap: 14px; padding: 12px 20px; background: #fff; border-bottom: 1px solid #e7e8ec; }
+.vmp-ttl { display: inline-flex; align-items: center; gap: 8px; font-weight: 650; font-size: 14px; color: #1d1d1f; }
+.vmp-dot { width: 8px; height: 8px; border-radius: 50%; background: #2ab7f1; box-shadow: 0 0 0 4px rgba(42,183,241,.18); }
+.vmp-note { font-size: 12.5px; color: #8a8a90; }
+.vmp-sp { flex: 1; }
+.vmp-dev { display: inline-flex; background: #f1f2f4; border-radius: 9px; padding: 3px; gap: 2px; }
+.vmp-dev button { border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 500; color: #6b6b70; padding: 6px 13px; border-radius: 7px; cursor: pointer; }
+.vmp-dev button.is-on { background: #fff; color: #1d1d1f; box-shadow: 0 1px 2px rgba(16,24,40,.08); }
+.vmp-stage { flex: 1; overflow: auto; display: flex; justify-content: center; align-items: flex-start; padding: 44px 24px; }
+.vmp-frame { width: 100%; max-width: 640px; transition: max-width .2s ease; }
+.vmp-frame.is-mobile { max-width: 390px; }
+#vmp-form { background: #fff; border-radius: 16px; padding: 36px 34px; box-shadow: 0 10px 40px -12px rgba(16,24,40,.2); }
+#vmp-form .vse-pf-header h3 { margin: 0 0 22px; font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+
+/* ============================================================
+   Cookie editor — modern, tidy controls (scoped to .vxck-admin)
+   ============================================================ */
+
+/* Toggles become self-contained cards so the switch sits at the card edge
+   instead of floating into empty space miles from its label. */
+.vxck-admin .velox-toggle-row {
+	align-items: center;
+	gap: 14px;
+	padding: 13px 15px;
+	border: 1px solid var(--vx-line-2);
+	border-radius: var(--vx-r-md);
+	background: var(--vx-card);
+	margin-bottom: 0;
+	transition: border-color var(--vx-dur-1) var(--vx-ease), box-shadow var(--vx-dur-1) var(--vx-ease);
+}
+.vxck-admin .velox-toggle-row:hover { border-color: var(--vx-n300); }
+.vxck-admin .velox-toggle-row:last-child { border-bottom-width: 1px; }
+.vxck-admin .velox-toggle-label { font-size: 13.5px; }
+.vxck-admin .velox-toggle-desc { font-size: 12.5px; }
+
+/* Toggle groups pack tightly instead of leaving a dead half-row. */
+.vxck-admin .velox-grid-2:has(> .velox-toggle-row) {
+	grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+/* Small/number inputs fill their field cell — no stranded 110px boxes. */
+.vxck-admin .velox-field .velox-input--sm { width: 100%; }
+
+/* Consistent vertical rhythm; kill the ragged bottom margins. */
+.vxck-admin .velox-tool-form .velox-field,
+.vxck-admin .velox-tool-form .velox-toggle-row { margin-bottom: 14px; }
+.vxck-admin .velox-tool-form .velox-grid-2 { gap: 14px; margin-bottom: 14px; }
+.vxck-admin .velox-tool-form .velox-grid-2:last-child,
+.vxck-admin .velox-tool-form .velox-field:last-child,
+.vxck-admin .velox-tool-form > p:last-child { margin-bottom: 0; }
+
+/* Modern colour swatches — bigger chip, rounded, accent hover. */
+.vxck-colors { gap: 12px; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); }
+.vxck-color { gap: 12px; padding: 9px 12px; border-radius: var(--vx-r-md); font-size: 12.5px; }
+.vxck-color:hover { border-color: var(--vx-primary); background: var(--vx-primary-tint); }
+.vxck-color input[type=color] { width: 32px; height: 32px; border-radius: 9px; flex: 0 0 auto; }

@@ -2976,6 +2976,7 @@
 		var emailsWrap = $( '#vmail-emails' );
 		var selected   = -1;
 		var dragFrom   = -1;
+		var palDrag    = null;   // field type currently dragged from the palette
 		var clipboard  = null;
 		var inspZone   = inspector ? inspector.closest( '.vmail-sb-zone--insp' ) : null;
 		if ( inspZone ) { inspZone.classList.add( 'is-collapsed' ); }
@@ -3011,6 +3012,105 @@
 
 		function optList( f ) { return ( f.options || '' ).split( '\n' ).map( function ( s ) { return s.trim(); } ).filter( Boolean ); }
 
+		/* =========================================================
+		   Shared live preview — the real, typeable form. Used by BOTH
+		   the Style editor stage and the Preview button so they always
+		   match each other and the front-end output.
+		   ========================================================= */
+		function pfTypeAttr( t ) { return [ 'email', 'tel', 'number', 'url', 'date' ].indexOf( t ) >= 0 ? t : 'text'; }
+		function previewFieldHtml( f ) {
+			var key  = escapeHtml( f.key );
+			var star = f.required ? ' <span class="rq">*</span>' : '';
+			var ph   = escapeHtml( f.placeholder || '' );
+			var lbl  = f.label ? '<label class="vse-pf-label">' + escapeHtml( f.label ) + star + '</label>' : '';
+			var help = f.help ? '<span class="vse-pf-help">' + escapeHtml( f.help ) + '</span>' : '';
+			if ( f.type === 'consent' || f.type === 'checkbox' ) {
+				return '<div class="vse-pf-field vse-pf-consent" data-fkey="' + key + '"><label class="vse-pf-check"><input type="checkbox"> <span>' + escapeHtml( f.label || '' ) + star + '</span></label>' + help + '</div>';
+			}
+			var inner;
+			if ( f.type === 'textarea' ) {
+				inner = '<textarea class="vse-pf-input ta" data-fkey="' + key + '" placeholder="' + ph + '"></textarea>';
+			} else if ( f.type === 'select' || f.type === 'country' ) {
+				var os = f.type === 'country' ? [ 'Germany', 'Switzerland', 'Austria' ] : optList( f );
+				inner = '<select class="vse-pf-input" data-fkey="' + key + '"><option value="">' + ( f.type === 'country' ? 'Select a country\u2026' : '\u2014' ) + '</option>' +
+					os.map( function ( o ) { return '<option>' + escapeHtml( o ) + '</option>'; } ).join( '' ) + '</select>';
+			} else if ( f.type === 'radio' || f.type === 'multiselect' ) {
+				var it = f.type === 'radio' ? 'radio' : 'checkbox';
+				var nm = 'vmp_' + key;
+				inner = '<div class="vse-pf-choices" data-fkey="' + key + '">' + optList( f ).map( function ( o ) {
+					return '<label class="vse-pf-choice"><input type="' + it + '" name="' + nm + '"> <span>' + escapeHtml( o ) + '</span></label>';
+				} ).join( '' ) + '</div>';
+			} else if ( f.type === 'name' ) {
+				var ol = optList( f );
+				inner = '<div class="vse-pf-name" data-fkey="' + key + '"><input class="vse-pf-input" placeholder="' + escapeHtml( ol[0] || 'First name' ) + '"><input class="vse-pf-input" placeholder="' + escapeHtml( ol[1] || 'Last name' ) + '"></div>';
+			} else {
+				inner = '<input class="vse-pf-input" type="' + pfTypeAttr( f.type ) + '" data-fkey="' + key + '" placeholder="' + ph + '" value="' + escapeHtml( f['default'] || '' ) + '">';
+			}
+			return '<div class="vse-pf-field" data-fkey="' + key + '">' + lbl + inner + help + '</div>';
+		}
+		function buildFormPreviewHtml() {
+			var rows = '';
+			form.fields.forEach( function ( f ) {
+				if ( f.type === 'step' || f.type === 'html' || f.type === 'captcha' ) { return; }
+				rows += previewFieldHtml( f );
+			} );
+			if ( ! rows ) { rows = '<div class="vse-pf-empty">Add a field to see it here.</div>'; }
+			return '<div class="vse-pf-header"><h3>' + escapeHtml( form.title || 'Form' ) + '</h3></div>' +
+				rows +
+				'<div class="vse-pf-submit-wrap"><button type="button" class="vse-pf-submit">' + escapeHtml( form.submit_label || 'Submit' ) + '</button></div>';
+		}
+
+		/* ---- CSS generation (front-end-accurate, incl. per-field overrides) ---- */
+		function pfPx( v ) { return ( v === '' || v == null ) ? '' : ( /[a-z%]/i.test( String( v ) ) ? v : v + 'px' ); }
+		function pfShadow( k ) {
+			return { none: 'none', soft: '0 1px 3px rgba(16,24,40,.10)', medium: '0 8px 20px -6px rgba(16,24,40,.22)', strong: '0 16px 40px -8px rgba(16,24,40,.32)' }[ k ] || '';
+		}
+		function pfRule( sel, o ) {
+			var d = '';
+			if ( o.bg ) { d += 'background:' + o.bg + ';'; }
+			if ( o.color ) { d += 'color:' + o.color + ';'; }
+			if ( o.fs ) { d += 'font-size:' + pfPx( o.fs ) + ';'; }
+			if ( o.fw ) { d += 'font-weight:' + o.fw + ';'; }
+			if ( o.radius ) { d += 'border-radius:' + pfPx( o.radius ) + ';'; }
+			if ( o.border ) { d += 'border-width:' + pfPx( o.border ) + ';border-style:solid;'; }
+			if ( o.borderColor ) { d += 'border-color:' + o.borderColor + ';'; }
+			if ( o.shadow ) { d += 'box-shadow:' + pfShadow( o.shadow ) + ';'; }
+			if ( o.pt != null || o.pr != null || o.pb != null || o.pl != null ) {
+				d += 'padding:' + pfPx( o.pt || 0 ) + ' ' + pfPx( o.pr || 0 ) + ' ' + pfPx( o.pb || 0 ) + ' ' + pfPx( o.pl || 0 ) + ';';
+			}
+			if ( o.mt != null || o.mr != null || o.mb != null || o.ml != null ) {
+				d += 'margin:' + pfPx( o.mt || 0 ) + ' ' + pfPx( o.mr || 0 ) + ' ' + pfPx( o.mb || 0 ) + ' ' + pfPx( o.ml || 0 ) + ';';
+			}
+			return d ? ( sel + '{' + d + '}' ) : '';
+		}
+		function formPreviewCss( scope ) {
+			var S = form.style || {};
+			var css = '';
+			var f = S.form || {}, h = S.header || {}, l = S.labels || {}, inp = S.inputs || {}, sub = S.submit || {};
+			css += pfRule( scope, { bg: f.bg, radius: f.radius, shadow: f.shadow, pt: f.pt, pr: f.pr, pb: f.pb, pl: f.pl, border: f.border, borderColor: f.borderColor } );
+			css += pfRule( scope + ' h3', { color: h.color, fs: h.fs, fw: h.fw } );
+			css += pfRule( scope + ' .vse-pf-label', { color: l.color, fs: l.fs, fw: l.fw } );
+			css += pfRule( scope + ' .vse-pf-input', { bg: inp.bg, color: inp.color, fs: inp.fs, radius: inp.radius, border: inp.border, borderColor: inp.borderColor } );
+			var wrapJust = { left: 'flex-start', center: 'center', right: 'flex-end', full: 'stretch' }[ sub.align || 'center' ];
+			css += scope + ' .vse-pf-submit-wrap{justify-content:' + wrapJust + ';}';
+			if ( sub.align === 'full' ) { css += scope + ' .vse-pf-submit{width:100%;}'; }
+			css += pfRule( scope + ' .vse-pf-submit', {
+				bg: sub.bg, color: sub.color, fs: sub.fs, fw: sub.fw, radius: sub.radius, shadow: sub.shadow,
+				pt: sub.pt, pr: sub.pr, pb: sub.pb, pl: sub.pl, mt: sub.mt, mb: sub.mb,
+				border: sub.border, borderColor: sub.borderColor
+			} );
+			if ( sub.hoverBg ) { css += scope + ' .vse-pf-submit:hover{background:' + sub.hoverBg + ';}'; }
+			// per-field overrides
+			Object.keys( S ).forEach( function ( t ) {
+				if ( t.indexOf( 'field:' ) !== 0 ) { return; }
+				var key = t.slice( 6 ), o = S[ t ] || {};
+				var fs = scope + ' .vse-pf-field[data-fkey="' + key + '"]';
+				css += pfRule( fs + ' .vse-pf-label', { color: o.labelColor, fs: o.labelFs, fw: o.labelFw } );
+				css += pfRule( fs + ' .vse-pf-input', { bg: o.bg, color: o.color, fs: o.fs, radius: o.radius, border: o.border, borderColor: o.borderColor } );
+			} );
+			return css;
+		}
+
 		/* ---------- palette ---------- */
 		var palOpen = { general: true, advanced: false, layout: false };
 		function renderPalette( filter ) {
@@ -3045,6 +3145,15 @@
 					if ( locked ) { b.className += ' is-locked'; b.title = 'CAPTCHA is switched off in Mail settings'; }
 					b.innerHTML = '<span class="vmail-pal-ic">' + TYPES[ t ].icon + '</span><span class="vmail-pal-lbl">' + ( TYPES[ t ].short || TYPES[ t ].label ) + ( locked ? ' \uD83D\uDD12' : '' ) + '</span>';
 					b.addEventListener( 'click', function () { addField( t ); } );
+					if ( ! locked ) {
+						b.setAttribute( 'draggable', 'true' );
+						b.addEventListener( 'dragstart', function ( e ) {
+							palDrag = t; dragFrom = -1; b.classList.add( 'is-dragging' );
+							e.dataTransfer.effectAllowed = 'copy';
+							try { e.dataTransfer.setData( 'text/plain', t ); } catch ( err ) {}
+						} );
+						b.addEventListener( 'dragend', function () { palDrag = null; b.classList.remove( 'is-dragging' ); clearDropMarks(); } );
+					}
 					grid.appendChild( b );
 				} );
 				body.appendChild( grid );
@@ -3056,7 +3165,7 @@
 			}
 		}
 		function hasType( t ) { return form.fields.some( function ( f ) { return f.type === t; } ); }
-		function addField( type ) {
+		function addField( type, atIndex ) {
 			// CAPTCHA is gated by the global Mail-settings toggle.
 			if ( type === 'captcha' && ! meta.captcha_enabled ) {
 				toast( 'CAPTCHA is switched off. Enable it under Mail settings → CAPTCHA first.', 'error' );
@@ -3074,14 +3183,65 @@
 			if ( type === 'html' ) { f.label = ''; f.content = '<p>Your custom HTML here.</p>'; }
 			if ( type === 'step' ) { f.label = 'Step ' + ( form.fields.filter( function ( x ) { return x.type === 'step'; } ).length + 1 ); f.width = 'full'; }
 			if ( type === 'calc' ) { f.label = 'Total'; f.calc = ''; f.width = 'full'; }
-			form.fields.push( f );
+			if ( atIndex == null || atIndex < 0 || atIndex > form.fields.length ) { atIndex = form.fields.length; }
+			form.fields.splice( atIndex, 0, f );
 			reKey();
-			selected = form.fields.length - 1;
+			selected = atIndex;
 			openInspector();
 			renderCanvas(); renderInspector();
 		}
 
 		/* ---------- canvas ---------- */
+		function clearDropMarks() {
+			if ( ! canvas ) { return; }
+			$$( '.vmail-fcard', canvas ).forEach( function ( c ) { c.classList.remove( 'is-drop-before' ); } );
+			canvas.classList.remove( 'is-drop-end', 'is-drop-active' );
+		}
+		function dropIndexFromY( y ) {
+			var cards = $$( '.vmail-fcard', canvas );
+			for ( var i = 0; i < cards.length; i++ ) {
+				var r = cards[ i ].getBoundingClientRect();
+				if ( y < r.top + r.height / 2 ) { return i; }
+			}
+			return cards.length;
+		}
+		function markDrop( idx ) {
+			clearDropMarks();
+			canvas.classList.add( 'is-drop-active' );
+			var cards = $$( '.vmail-fcard', canvas );
+			if ( idx >= cards.length ) { canvas.classList.add( 'is-drop-end' ); }
+			else { cards[ idx ].classList.add( 'is-drop-before' ); }
+		}
+		function bindCanvasDnD() {
+			canvas.addEventListener( 'dragover', function ( e ) {
+				if ( palDrag == null && dragFrom < 0 ) { return; }
+				e.preventDefault();
+				try { e.dataTransfer.dropEffect = palDrag != null ? 'copy' : 'move'; } catch ( err ) {}
+				markDrop( dropIndexFromY( e.clientY ) );
+			} );
+			canvas.addEventListener( 'dragleave', function ( e ) {
+				if ( ! canvas.contains( e.relatedTarget ) ) { clearDropMarks(); }
+			} );
+			canvas.addEventListener( 'drop', function ( e ) {
+				if ( palDrag == null && dragFrom < 0 ) { return; }
+				e.preventDefault();
+				var idx = dropIndexFromY( e.clientY );
+				clearDropMarks();
+				if ( palDrag != null ) {
+					var t = palDrag; palDrag = null;
+					addField( t, idx );
+				} else if ( dragFrom >= 0 ) {
+					var from = dragFrom; dragFrom = -1;
+					if ( idx > from ) { idx--; }
+					if ( idx === from ) { renderCanvas(); return; }
+					var moved = form.fields.splice( from, 1 )[ 0 ];
+					form.fields.splice( idx, 0, moved );
+					selected = idx;
+					renderCanvas(); renderInspector();
+				}
+			} );
+		}
+
 		function fieldPreview( f ) {
 			var star = f.required ? ' <span class="velox-req">*</span>' : '';
 			var lbl  = f.label ? '<span class="velox-form-label">' + escapeHtml( f.label ) + star + '</span>' : '';
@@ -3161,18 +3321,8 @@
 						renderCanvas(); renderInspector();
 					} );
 				} );
-				card.addEventListener( 'dragstart', function () { dragFrom = i; card.classList.add( 'is-drag' ); } );
-				card.addEventListener( 'dragend', function () { card.classList.remove( 'is-drag' ); } );
-				card.addEventListener( 'dragover', function ( e ) { e.preventDefault(); card.classList.add( 'is-over' ); } );
-				card.addEventListener( 'dragleave', function () { card.classList.remove( 'is-over' ); } );
-				card.addEventListener( 'drop', function ( e ) {
-					e.preventDefault(); card.classList.remove( 'is-over' );
-					if ( dragFrom < 0 || dragFrom === i ) { return; }
-					var moved = form.fields.splice( dragFrom, 1 )[ 0 ];
-					form.fields.splice( i, 0, moved );
-					selected = i; dragFrom = -1;
-					renderCanvas(); renderInspector();
-				} );
+				card.addEventListener( 'dragstart', function ( e ) { dragFrom = i; palDrag = null; card.classList.add( 'is-drag' ); try { e.dataTransfer.effectAllowed = 'move'; } catch ( err ) {} } );
+				card.addEventListener( 'dragend', function () { card.classList.remove( 'is-drag' ); clearDropMarks(); } );
 				canvas.appendChild( card );
 			} );
 			// Submit button as a real, selectable element (only shows when fields exist).
@@ -3545,6 +3695,50 @@
 		renderCanvas();
 		renderInspector();
 		bindSettings();
+		bindCanvasDnD();
+		initPreview();
+
+		/* =========================================================
+		   Preview button — the real, interactive form in an overlay
+		   ========================================================= */
+		function initPreview() {
+			var btn = $( '#vmail-preview-btn' );
+			if ( ! btn ) { return; }
+			var overlay = null;
+			function ensure() {
+				if ( overlay ) { return; }
+				overlay = document.createElement( 'div' );
+				overlay.className = 'vmp'; overlay.hidden = true;
+				overlay.innerHTML =
+					'<div class="vmp-top">' +
+						'<span class="vmp-ttl"><span class="vmp-dot"></span> Live preview</span>' +
+						'<span class="vmp-note">Exactly what visitors see \u2014 type in it, nothing is submitted.</span>' +
+						'<span class="vmp-sp"></span>' +
+						'<div class="vmp-dev" id="vmp-dev"><button class="is-on" type="button" data-d="desktop">Desktop</button><button type="button" data-d="mobile">Mobile</button></div>' +
+						'<button class="velox-btn velox-btn--ghost" id="vmp-close" type="button">Close</button>' +
+					'</div>' +
+					'<div class="vmp-stage"><div class="vmp-frame" id="vmp-frame"><div class="vse-pf" id="vmp-form"></div></div></div>' +
+					'<style id="vmp-css"></style>';
+				document.body.appendChild( overlay );
+				$( '#vmp-close', overlay ).addEventListener( 'click', close );
+				$( '#vmp-form', overlay ).addEventListener( 'submit', function ( e ) { e.preventDefault(); } );
+				$$( '#vmp-dev button', overlay ).forEach( function ( d ) {
+					d.addEventListener( 'click', function () {
+						$$( '#vmp-dev button', overlay ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === d ); } );
+						$( '#vmp-frame', overlay ).className = 'vmp-frame' + ( d.getAttribute( 'data-d' ) === 'mobile' ? ' is-mobile' : '' );
+					} );
+				} );
+				document.addEventListener( 'keydown', function ( e ) { if ( overlay && ! overlay.hidden && e.key === 'Escape' ) { close(); } } );
+			}
+			function open() {
+				ensure();
+				$( '#vmp-form', overlay ).innerHTML = buildFormPreviewHtml();
+				$( '#vmp-css', overlay ).textContent = formPreviewCss( '#vmp-form' );
+				overlay.hidden = false; document.body.style.overflow = 'hidden';
+			}
+			function close() { if ( overlay ) { overlay.hidden = true; document.body.style.overflow = ''; } }
+			btn.addEventListener( 'click', open );
+		}
 
 		/* =========================================================
 		   Full-screen style editor
@@ -3574,21 +3768,7 @@
 			// ---- live preview ----
 			var pf = $( '#vse-form' );
 			function buildPreview() {
-				var rows = '';
-				var visible = form.fields.filter( function ( f ) { return [ 'step', 'html', 'captcha', 'consent' ].indexOf( f.type ) === -1; } );
-				visible.forEach( function ( f ) {
-					var star = f.required ? ' <span class="rq">*</span>' : '';
-					var input = ( f.type === 'textarea' )
-						? '<textarea class="vse-pf-input ta" data-fkey="' + escapeHtml( f.key ) + '" disabled></textarea>'
-						: '<input class="vse-pf-input" data-fkey="' + escapeHtml( f.key ) + '" disabled>';
-					rows += '<div class="vse-pf-field" data-fkey="' + escapeHtml( f.key ) + '">' +
-						'<label class="vse-pf-label">' + escapeHtml( f.label || f.key ) + star + '</label>' + input + '</div>';
-				} );
-				pf.innerHTML =
-					'<div class="vse-pf-header"><h3>' + escapeHtml( form.title || 'Form' ) + '</h3>' +
-					'<p class="vse-form-sub">' + escapeHtml( form.success ? '' : '' ) + 'Wir freuen uns auf Ihre Nachricht.</p></div>' +
-					rows +
-					'<div class="vse-pf-submit-wrap"><button type="button" class="vse-pf-submit">' + escapeHtml( form.submit_label || 'Submit' ) + '</button></div>';
+				pf.innerHTML = buildFormPreviewHtml();
 				markTarget();
 			}
 			function markTarget() {
@@ -3598,6 +3778,7 @@
 				if ( current === 'submit' ) { el = $( '.vse-pf-submit-wrap', pf ); if ( el ) { el.classList.add( 'is-target' ); } return; }
 				if ( current === 'header' ) { el = $( '.vse-pf-header', pf ); }
 				else if ( current === 'form' ) { el = pf; }
+				else if ( current.indexOf( 'field:' ) === 0 ) { el = $( '.vse-pf-field[data-fkey="' + current.slice( 6 ) + '"]', pf ); }
 				if ( el ) { el.classList.add( 'vse-pf-target' ); }
 			}
 
@@ -3625,25 +3806,7 @@
 				return d ? ( sel + '{' + d + '}' ) : '';
 			}
 			var SCOPE = '#vse-form';
-			function liveCss() {
-				var css = '';
-				var f = S.form || {}, h = S.header || {}, l = S.labels || {}, inp = S.inputs || {}, sub = S.submit || {};
-				css += rule( SCOPE, { bg: f.bg, radius: f.radius, shadow: f.shadow, pt: f.pt, pr: f.pr, pb: f.pb, pl: f.pl, border: f.border, borderColor: f.borderColor } );
-				css += rule( SCOPE + ' h3', { color: h.color, fs: h.fs, fw: h.fw } );
-				css += rule( SCOPE + ' .vse-pf-label', { color: l.color, fs: l.fs, fw: l.fw } );
-				css += rule( SCOPE + ' .vse-pf-input', { bg: inp.bg, color: inp.color, fs: inp.fs, radius: inp.radius, border: inp.border, borderColor: inp.borderColor } );
-				// submit alignment
-				var wrapJust = { left: 'flex-start', center: 'center', right: 'flex-end', full: 'stretch' }[ sub.align || 'center' ];
-				css += SCOPE + ' .vse-pf-submit-wrap{justify-content:' + wrapJust + ';}';
-				if ( sub.align === 'full' ) { css += SCOPE + ' .vse-pf-submit{width:100%;}'; }
-				css += rule( SCOPE + ' .vse-pf-submit', {
-					bg: sub.bg, color: sub.color, fs: sub.fs, fw: sub.fw, radius: sub.radius, shadow: sub.shadow,
-					pt: sub.pt, pr: sub.pr, pb: sub.pb, pl: sub.pl, mt: sub.mt, mb: sub.mb,
-					border: sub.border, borderColor: sub.borderColor
-				} );
-				if ( sub.hoverBg ) { css += SCOPE + ' .vse-pf-submit:hover{background:' + sub.hoverBg + ';}'; }
-				return css;
-			}
+			function liveCss() { return formPreviewCss( SCOPE ); }
 			function applyLive() {
 				var styleTag = $( '#vse-live-css' ); if ( styleTag ) { styleTag.textContent = liveCss(); }
 			}
@@ -3729,6 +3892,12 @@
 					body += '<div class="vse-sec"><div class="vse-sec-t">Colors</div>' + ctrlColor( 'Background', 'inputs', 'bg', o.bg ) + ctrlColor( 'Text', 'inputs', 'color', o.color ) + ctrlColor( 'Border color', 'inputs', 'borderColor', o.borderColor ) + '</div>';
 					body += '<div class="vse-sec"><div class="vse-sec-t">Shape</div><div class="vse-two">' +
 						ctrlUnit( 'Font size', 'inputs', 'fs', o.fs ) + ctrlUnit( 'Radius', 'inputs', 'radius', o.radius ) + '</div>' + ctrlUnit( 'Border width', 'inputs', 'border', o.border ) + '</div>';
+				} else if ( current.indexOf( 'field:' ) === 0 ) {
+					body += '<div class="vse-sec"><div class="vse-sec-t">This field\u2019s label</div>' + ctrlColor( 'Color', current, 'labelColor', o.labelColor ) +
+						'<div class="vse-two">' + ctrlUnit( 'Font size', current, 'labelFs', o.labelFs ) + ctrlText( 'Font weight', current, 'labelFw', o.labelFw ) + '</div></div>';
+					body += '<div class="vse-sec"><div class="vse-sec-t">This field\u2019s input</div>' + ctrlColor( 'Background', current, 'bg', o.bg ) + ctrlColor( 'Text', current, 'color', o.color ) + ctrlColor( 'Border color', current, 'borderColor', o.borderColor ) + '</div>';
+					body += '<div class="vse-sec"><div class="vse-sec-t">Shape</div><div class="vse-two">' +
+						ctrlUnit( 'Font size', current, 'fs', o.fs ) + ctrlUnit( 'Radius', current, 'radius', o.radius ) + '</div>' + ctrlUnit( 'Border width', current, 'border', o.border ) + '</div>';
 				}
 				$( '#vse-controls' ).innerHTML = head + body;
 				bindControls();
@@ -3795,6 +3964,13 @@
 				html += node( 'labels', 'All labels', '', ICONS.labels );
 				html += node( 'inputs', 'All inputs', '', ICONS.inputs );
 				html += node( 'submit', 'Submit button', '', ICONS.submit );
+				var styleable = form.fields.filter( function ( f ) { return [ 'step', 'html', 'captcha' ].indexOf( f.type ) === -1; } );
+				if ( styleable.length ) {
+					html += '<div class="vse-tree-glabel">Individual fields</div>';
+					styleable.forEach( function ( f ) {
+						html += node( 'field:' + f.key, f.label || f.key, ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ), ICONS.inputs );
+					} );
+				}
 				tree.innerHTML = html;
 				$$( '.vse-node', tree ).forEach( function ( n ) {
 					n.addEventListener( 'click', function () {
@@ -4190,7 +4366,8 @@
 		var logToggle = $( '#velox-log-toggle' );
 		if ( logToggle ) {
 			logToggle.addEventListener( 'change', function () {
-				saveSettings( { util_redirects_log_404: logToggle.checked ? 1 : 0 }, logToggle.checked ? 'Logging 404s.' : 'Stopped logging.' );
+				saveSettings( { util_redirects_log_404: logToggle.checked ? 1 : 0 }, logToggle.checked ? 'Logging 404s.' : 'Stopped logging.' )
+					.then( function () { setTimeout( function () { location.reload(); }, 350 ); } );
 			} );
 		}
 

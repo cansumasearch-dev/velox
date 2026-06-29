@@ -3,8 +3,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 $redirects = Velox_Redirects::list_redirects();
-$logs      = Velox_Redirects::list_404s();
 $log_on    = Velox_Settings::get( 'util_redirects_log_404', true );
+$logs      = $log_on ? Velox_Redirects::list_404s() : array();
 $types     = array( 301 => '301 Permanent', 302 => '302 Temporary', 307 => '307 Temporary', 410 => '410 Gone' );
 ?>
 <div class="velox-page-head">
@@ -64,7 +64,7 @@ $types     = array( 301 => '301 Permanent', 302 => '302 Temporary', 307 => '307 
 	</div>
 	<div id="velox-log-list" class="velox-log-list">
 		<?php if ( empty( $logs ) ) : ?>
-			<p class="velox-hint" id="velox-log-empty">No 404s logged yet — that's a good thing.</p>
+			<p class="velox-hint" id="velox-log-empty"><?php echo $log_on ? 'No 404s logged yet — that\'s a good thing.' : 'Logging is off, so the 404 log is hidden. Turn it back on to collect and show missing URLs again.'; ?></p>
 		<?php else : ?>
 			<?php foreach ( $logs as $l ) : ?>
 				<div class="velox-log-row" data-id="<?php echo esc_attr( $l['id'] ); ?>" data-path="<?php echo esc_attr( $l['path'] ); ?>">
