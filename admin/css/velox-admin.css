@@ -1993,3 +1993,61 @@
 .vse-tabs button:hover { color: #1d1d1f; }
 .vse-tabs button.is-on { background: #fff; color: #1d1d1f; box-shadow: 0 1px 2px rgba(16,24,40,.08); }
 .vse-tree-empty { padding: 18px 4px; font-size: 12.5px; color: #9a9aa0; text-align: center; }
+
+/* ============================================================
+   Custom Fields — tabs, Post Type / Taxonomy lists + editors
+   ============================================================ */
+.vfx-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--vx-line); margin: 0 0 20px; }
+.vfx-tab { display: inline-flex; align-items: center; gap: 7px; padding: 10px 4px; margin-bottom: -1px; font-size: 13.5px; font-weight: 600; color: var(--vx-ink-3); text-decoration: none; border-bottom: 2px solid transparent; transition: color var(--vx-dur-1) var(--vx-ease), border-color var(--vx-dur-1) var(--vx-ease); }
+.vfx-tab + .vfx-tab { margin-left: 18px; }
+.vfx-tab:hover { color: var(--vx-ink); }
+.vfx-tab.is-on { color: var(--vx-ink); border-bottom-color: var(--vx-primary); }
+.vfx-tab-n { display: inline-flex; align-items: center; justify-content: center; min-width: 19px; height: 19px; padding: 0 6px; border-radius: var(--vx-r-pill); background: var(--vx-n100); color: var(--vx-ink-2); font-size: 11px; font-weight: 700; }
+.vfx-tab.is-on .vfx-tab-n { background: var(--vx-primary-tint); color: var(--vx-primary-ink); }
+
+.vfx-head-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin: 0 0 14px; flex-wrap: wrap; }
+
+.vfx-list { display: flex; flex-direction: column; }
+.vfx-row { display: flex; align-items: center; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--vx-line); }
+.vfx-row:last-child { border-bottom: 0; }
+.vfx-row-main { flex: 1 1 auto; min-width: 0; display: flex; flex-direction: column; gap: 2px; text-align: left; background: transparent; border: 0; cursor: pointer; padding: 0; font: inherit; }
+.vfx-row-title { font-size: 14px; font-weight: 600; color: var(--vx-ink); letter-spacing: -0.01em; }
+.vfx-row-main:hover .vfx-row-title { color: var(--vx-primary-ink); }
+.vfx-row-meta { font-size: 12px; color: var(--vx-ink-3); }
+.vfx-row-meta code { background: var(--vx-n50); padding: 1px 6px; border-radius: var(--vx-r-xs); font-size: 11.5px; color: var(--vx-ink-2); }
+.vfx-row-status { flex: none; font-size: 11.5px; font-weight: 600; color: var(--vx-ink-3); padding: 3px 10px; border-radius: var(--vx-r-pill); background: var(--vx-n100); }
+.vfx-row-status.is-active { color: #0f7b3f; background: rgba(34,197,94,.13); }
+.vfx-row-del { flex: none; width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 1px solid transparent; border-radius: var(--vx-r-sm); background: transparent; color: var(--vx-ink-3); cursor: pointer; transition: background var(--vx-dur-1) var(--vx-ease), color var(--vx-dur-1) var(--vx-ease); }
+.vfx-row-del:hover { background: var(--vx-danger-tint); color: var(--vx-danger); }
+
+.vfx-editor { margin-top: 16px; }
+.vfx-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 8px 14px; }
+.vfx-check { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--vx-ink); cursor: pointer; padding: 7px 10px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); transition: border-color var(--vx-dur-1) var(--vx-ease); }
+.vfx-check:hover { border-color: var(--vx-n300); }
+.vfx-check input { flex: none; }
+.vfx-toggles { margin-top: 6px; }
+.vfx-toggles .velox-toggle-row { align-items: center; padding: 12px 14px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); background: var(--vx-card); }
+.vfx-toggles .velox-toggle-label { font-size: 13.5px; }
+.vfx-editor-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--vx-line); }
+
+/* Field-group builder — repeater sub-fields editor */
+.vfg-subfields { margin-top: 14px; padding-top: 14px; border-top: 1px dashed var(--vx-line); }
+.vfg-sub-h { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--vx-ink-3); margin: 0 0 10px; }
+.vfg-sub-row { display: grid; grid-template-columns: 1fr 1fr 150px 34px; gap: 8px; margin-bottom: 8px; align-items: center; }
+.vfg-sub-del { width: 34px; height: 34px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); color: var(--vx-ink-3); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.vfg-sub-del:hover { border-color: var(--vx-danger); color: var(--vx-danger); background: var(--vx-danger-tint); }
+.vfg-sub-empty { font-size: 12.5px; color: var(--vx-ink-3); padding: 4px 0 10px; }
+.vfg-sub-add { border: 1px dashed var(--vx-line-2); background: transparent; color: var(--vx-ink-2); font-weight: 600; font-size: 12.5px; padding: 7px 12px; border-radius: var(--vx-r-sm); cursor: pointer; }
+.vfg-sub-add:hover { border-color: var(--vx-primary); color: var(--vx-primary-ink); }
+
+/* Builder — flexible content layouts */
+.vfg-layout { border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); padding: 12px; margin-bottom: 10px; background: var(--vx-n25); }
+.vfg-layout-head { display: grid; grid-template-columns: 1fr 1fr 34px; gap: 8px; margin-bottom: 10px; align-items: center; }
+.vfg-layout-del { width: 34px; height: 34px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); color: var(--vx-ink-3); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; }
+.vfg-layout-del:hover { border-color: var(--vx-danger); color: var(--vx-danger); background: var(--vx-danger-tint); }
+.vfg-layout-subs { padding-left: 12px; border-left: 2px solid var(--vx-line); }
+
+/* Builder — conditional logic */
+.vfg-cond-enable-row { margin-bottom: 10px; }
+.vfg-cond-row { display: grid; grid-template-columns: 1fr 150px 1fr 34px; gap: 8px; margin-bottom: 8px; align-items: center; }
+.vfg-cond-rules { padding-left: 12px; border-left: 2px solid var(--vx-line); }

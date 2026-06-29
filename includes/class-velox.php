@@ -82,6 +82,7 @@ final class Velox {
 
 		if ( Velox_Settings::get( 'util_fields', false ) ) {
 			Velox_Fields::init();
+			Velox_Post_Types::init();
 		}
 
 		if ( is_admin() ) {

@@ -16,6 +16,8 @@ if ( ! defined( 'ABSPATH' ) ) { exit; }
 class Velox_Fields {
 
 	const OPTION = 'velox_field_groups';
+	const OPT_PAGES = 'velox_options_pages';   // registered options pages
+	const OPT_STORE = 'velox_field_options';   // option-page field values (name => value)
 
 	/** Supported field types and their metadata (label, icon hint, has-options). */
 	public static function types() {
@@ -28,14 +30,23 @@ class Velox_Fields {
 			'select'       => array( 'label' => 'Select',          'opts' => true ),
 			'checkbox'     => array( 'label' => 'Checkbox',        'opts' => true ),
 			'radio'        => array( 'label' => 'Radio',           'opts' => true ),
+			'button_group' => array( 'label' => 'Button group',    'opts' => true ),
 			'truefalse'    => array( 'label' => 'True / False',    'opts' => false ),
+			'range'        => array( 'label' => 'Range slider',    'opts' => true ),
+			'link'         => array( 'label' => 'Link',            'opts' => false ),
+			'oembed'       => array( 'label' => 'oEmbed',          'opts' => false ),
+			'post_object'  => array( 'label' => 'Post object',     'opts' => true ),
+			'relationship' => array( 'label' => 'Relationship',    'opts' => true ),
+			'taxonomy'     => array( 'label' => 'Taxonomy term',   'opts' => true ),
+			'user'         => array( 'label' => 'User',            'opts' => false ),
 			'image'        => array( 'label' => 'Image',           'opts' => false ),
+			'gallery'      => array( 'label' => 'Gallery',         'opts' => false ),
 			'file'         => array( 'label' => 'File',            'opts' => false ),
 			'wysiwyg'      => array( 'label' => 'WYSIWYG editor',  'opts' => false ),
 			'date'         => array( 'label' => 'Date picker',     'opts' => false ),
 			'color'        => array( 'label' => 'Color picker',    'opts' => false ),
-			'relationship' => array( 'label' => 'Relationship',    'opts' => false ),
 			'repeater'     => array( 'label' => 'Repeater',        'opts' => false ),
+			'flexible'     => array( 'label' => 'Flexible Content', 'opts' => false ),
 			'group'        => array( 'label' => 'Group',           'opts' => false ),
 		);
 	}
@@ -48,12 +59,162 @@ class Velox_Fields {
 			'page_template' => 'Page template',
 			'taxonomy'    => 'Taxonomy',
 			'user_role'   => 'User role',
+			'options_page' => 'Options page',
 		);
 	}
 
 	public static function init() {
 		add_action( 'add_meta_boxes', array( __CLASS__, 'register_meta_boxes' ) );
 		add_action( 'save_post', array( __CLASS__, 'save_post_meta' ), 10, 2 );
+		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_edit_assets' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'register_option_pages' ) );
+		add_action( 'admin_post_velox_save_options', array( __CLASS__, 'handle_save_options' ) );
+	}
+
+	/* ------------------------------------------------------------------ *
+	 * Options pages
+	 * ------------------------------------------------------------------ */
+
+	public static function all_option_pages() {
+		$v = get_option( self::OPT_PAGES, array() );
+		return is_array( $v ) ? $v : array();
+	}
+	public static function get_option_page( $slug ) {
+		$all = self::all_option_pages();
+		return isset( $all[ $slug ] ) ? $all[ $slug ] : null;
+	}
+	public static function blank_option_page() {
+		return array(
+			'slug'       => '',
+			'title'      => '',
+			'menu_title' => '',
+			'icon'       => 'dashicons-admin-generic',
+			'position'   => 80,
+			'parent'     => '',           // '' = top-level; or a parent menu slug
+			'capability' => 'manage_options',
+		);
+	}
+	public static function save_option_page( $p ) {
+		$p = self::sanitize_option_page( $p );
+		if ( '' === $p['slug'] ) { return array( 'ok' => false, 'message' => 'A slug is required.' ); }
+		$all = self::all_option_pages();
+		if ( ! empty( $p['_old_slug'] ) && $p['_old_slug'] !== $p['slug'] ) { unset( $all[ $p['_old_slug'] ] ); }
+		unset( $p['_old_slug'] );
+		$all[ $p['slug'] ] = $p;
+		update_option( self::OPT_PAGES, $all );
+		return array( 'ok' => true, 'slug' => $p['slug'], 'page' => $p );
+	}
+	public static function delete_option_page( $slug ) {
+		$all = self::all_option_pages();
+		if ( isset( $all[ $slug ] ) ) { unset( $all[ $slug ] ); update_option( self::OPT_PAGES, $all ); return true; }
+		return false;
+	}
+	private static function sanitize_option_page( $p ) {
+		$p    = is_array( $p ) ? $p : array();
+		$slug = sanitize_key( $p['slug'] ?? '' );
+		$icon = sanitize_text_field( $p['icon'] ?? 'dashicons-admin-generic' );
+		if ( '' !== $icon && 0 !== strpos( $icon, 'dashicons-' ) && ! preg_match( '#^https?://#', $icon ) ) { $icon = 'dashicons-admin-generic'; }
+		$parents = array( '', 'options-general.php', 'themes.php', 'tools.php', 'edit.php', 'upload.php', 'velox' );
+		$out = array(
+			'slug'       => $slug,
+			'title'      => sanitize_text_field( $p['title'] ?? '' ),
+			'menu_title' => sanitize_text_field( $p['menu_title'] ?? '' ),
+			'icon'       => $icon,
+			'position'   => isset( $p['position'] ) && '' !== $p['position'] ? (int) $p['position'] : 80,
+			'parent'     => in_array( ( $p['parent'] ?? '' ), $parents, true ) ? $p['parent'] : '',
+			'capability' => 'manage_options',
+		);
+		if ( '' === $out['title'] ) { $out['title'] = ucwords( str_replace( array( '-', '_' ), ' ', $slug ) ); }
+		if ( '' === $out['menu_title'] ) { $out['menu_title'] = $out['title']; }
+		if ( isset( $p['_old_slug'] ) ) { $out['_old_slug'] = sanitize_key( $p['_old_slug'] ); }
+		return $out;
+	}
+
+	public static function register_option_pages() {
+		foreach ( self::all_option_pages() as $p ) {
+			if ( empty( $p['slug'] ) ) { continue; }
+			$menu_slug = 'velox-opt-' . $p['slug'];
+			$cb        = function () use ( $p ) { Velox_Fields::render_option_page( $p ); };
+			if ( '' === $p['parent'] ) {
+				add_menu_page( $p['title'], $p['menu_title'], $p['capability'], $menu_slug, $cb, $p['icon'], (int) $p['position'] );
+			} else {
+				add_submenu_page( $p['parent'], $p['title'], $p['menu_title'], $p['capability'], $menu_slug, $cb );
+			}
+		}
+	}
+
+	/** Field groups whose location targets a given options page. */
+	public static function groups_for_options_page( $slug ) {
+		$out = array();
+		foreach ( self::all() as $group ) {
+			if ( empty( $group['active'] ) ) { continue; }
+			foreach ( (array) ( $group['location'] ?? array() ) as $rule_group ) {
+				foreach ( (array) $rule_group as $rule ) {
+					if ( 'options_page' === ( $rule['param'] ?? '' ) && 'is' === ( $rule['operator'] ?? 'is' ) && $slug === $rule['value'] ) {
+						$out[] = $group;
+						break 2;
+					}
+				}
+			}
+		}
+		return $out;
+	}
+
+	public static function render_option_page( $p ) {
+		if ( ! current_user_can( 'manage_options' ) ) { return; }
+		$store  = get_option( self::OPT_STORE, array() );
+		$store  = is_array( $store ) ? $store : array();
+		$groups = self::groups_for_options_page( $p['slug'] );
+		echo '<div class="wrap velox-optpage"><h1>' . esc_html( $p['title'] ) . '</h1>';
+		if ( isset( $_GET['updated'] ) ) { echo '<div class="notice notice-success is-dismissible"><p>Options saved.</p></div>'; }
+		if ( ! $groups ) {
+			echo '<p>No field groups target this options page yet. In <strong>Custom fields → a field group</strong>, set a location rule of <em>Options page is ' . esc_html( $p['slug'] ) . '</em>.</p></div>';
+			return;
+		}
+		echo '<form method="post" action="' . esc_url( admin_url( 'admin-post.php' ) ) . '">';
+		echo '<input type="hidden" name="action" value="velox_save_options">';
+		echo '<input type="hidden" name="velox_opt_slug" value="' . esc_attr( $p['slug'] ) . '">';
+		wp_nonce_field( 'velox_save_options_' . $p['slug'], 'velox_opt_nonce' );
+		foreach ( $groups as $group ) {
+			echo '<div class="velox-optpage-group"><h2>' . esc_html( $group['title'] ) . '</h2><div class="velox-fields-meta">';
+			foreach ( $group['fields'] as $f ) {
+				$value = isset( $store[ $f['name'] ] ) ? $store[ $f['name'] ] : '';
+				if ( '' === $value && '' !== ( $f['default'] ?? '' ) ) { $value = $f['default']; }
+				self::render_field_row( $f, $value );
+			}
+			echo '</div></div>';
+		}
+		submit_button( 'Save options' );
+		echo '</form></div>';
+	}
+
+	public static function handle_save_options() {
+		$slug = isset( $_POST['velox_opt_slug'] ) ? sanitize_key( wp_unslash( $_POST['velox_opt_slug'] ) ) : '';
+		if ( ! current_user_can( 'manage_options' ) || '' === $slug ) { wp_die( 'Not allowed.' ); }
+		if ( empty( $_POST['velox_opt_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['velox_opt_nonce'] ) ), 'velox_save_options_' . $slug ) ) {
+			wp_die( 'Security check failed.' );
+		}
+		$submitted = isset( $_POST['velox_field'] ) ? (array) wp_unslash( $_POST['velox_field'] ) : array();
+		$store     = get_option( self::OPT_STORE, array() );
+		$store     = is_array( $store ) ? $store : array();
+		foreach ( self::groups_for_options_page( $slug ) as $group ) {
+			foreach ( $group['fields'] as $f ) {
+				$store[ $f['name'] ] = self::field_value_from_submitted( $f, $submitted );
+			}
+		}
+		update_option( self::OPT_STORE, $store );
+		wp_safe_redirect( add_query_arg( array( 'page' => 'velox-opt-' . $slug, 'updated' => '1' ), admin_url( 'admin.php' ) ) );
+		exit;
+	}
+
+	/** Media library + field-editor assets on the post add/edit screens. */
+	public static function enqueue_edit_assets( $hook ) {
+		$is_post = in_array( $hook, array( 'post.php', 'post-new.php' ), true );
+		$is_opt  = false !== strpos( (string) $hook, 'velox-opt-' );
+		if ( ! $is_post && ! $is_opt ) { return; }
+		wp_enqueue_media();
+		wp_enqueue_style( 'velox-fields-edit', VELOX_ASSETS . 'css/velox-fields-edit.css', array(), VELOX_VERSION );
+		wp_enqueue_script( 'velox-fields-edit', VELOX_ASSETS . 'js/velox-fields-edit.js', array( 'jquery' ), VELOX_VERSION, true );
 	}
 
 	/* ------------------------------------------------------------------ *
@@ -160,7 +321,7 @@ class Velox_Fields {
 			$base = $name ? $name : 'field'; $n = 2;
 			while ( isset( $used_names[ $name ] ) ) { $name = $base . '_' . ( $n++ ); }
 			$used_names[ $name ] = 1;
-			$out['fields'][] = array(
+			$field = array(
 				'key'          => sanitize_key( $f['key'] ?? ( 'field_' . $name ) ),
 				'label'        => $label,
 				'name'         => $name,
@@ -171,6 +332,14 @@ class Velox_Fields {
 				'options'      => sanitize_textarea_field( $f['options'] ?? '' ),
 				'placeholder'  => sanitize_text_field( $f['placeholder'] ?? '' ),
 			);
+			if ( in_array( $type, array( 'repeater', 'group' ), true ) ) {
+				$field['sub_fields'] = self::sanitize_sub_fields( $f['sub_fields'] ?? array() );
+			}
+			if ( 'flexible' === $type ) {
+				$field['layouts'] = self::sanitize_layouts( $f['layouts'] ?? array() );
+			}
+			$field['conditional'] = self::sanitize_conditional( $f['conditional'] ?? array() );
+			$out['fields'][] = $field;
 		}
 		foreach ( (array) ( $group['location'] ?? array() ) as $rule_group ) {
 			$rg = array();
@@ -187,6 +356,73 @@ class Velox_Fields {
 		if ( empty( $out['location'] ) ) {
 			$out['location'] = array( array( array( 'param' => 'post_type', 'operator' => 'is', 'value' => 'post' ) ) );
 		}
+		return $out;
+	}
+
+	/** Sub-fields for a repeater (simple types only; no nesting in v1). */
+	private static function sanitize_sub_fields( $subs ) {
+		$allowed = array( 'text', 'textarea', 'number', 'email', 'url', 'select', 'image', 'file', 'truefalse', 'color', 'date' );
+		$out = array();
+		$used = array();
+		foreach ( (array) $subs as $s ) {
+			$type  = in_array( ( $s['type'] ?? 'text' ), $allowed, true ) ? $s['type'] : 'text';
+			$label = sanitize_text_field( $s['label'] ?? '' );
+			$name  = sanitize_key( $s['name'] ?? '' );
+			if ( '' === $name ) { $name = self::slugify( $label ); }
+			$base = $name ? $name : 'sub';
+			$n = 2;
+			while ( isset( $used[ $name ] ) ) { $name = $base . '_' . ( $n++ ); }
+			$used[ $name ] = 1;
+			$out[] = array(
+				'label'   => $label,
+				'name'    => $name,
+				'type'    => $type,
+				'options' => sanitize_textarea_field( $s['options'] ?? '' ),
+			);
+		}
+		return $out;
+	}
+
+	/** Flexible-content layouts: each is a named bundle of sub-fields. */
+	private static function sanitize_layouts( $layouts ) {
+		$out  = array();
+		$used = array();
+		foreach ( (array) $layouts as $l ) {
+			$label = sanitize_text_field( $l['label'] ?? '' );
+			$name  = sanitize_key( $l['name'] ?? '' );
+			if ( '' === $name ) { $name = self::slugify( $label ); }
+			$base = $name ? $name : 'layout';
+			$n = 2;
+			while ( isset( $used[ $name ] ) ) { $name = $base . '_' . ( $n++ ); }
+			$used[ $name ] = 1;
+			$out[] = array(
+				'name'       => $name,
+				'label'      => $label ? $label : $name,
+				'sub_fields' => self::sanitize_sub_fields( $l['sub_fields'] ?? array() ),
+			);
+		}
+		return $out;
+	}
+
+	/** Conditional logic: show a field when rules match. groups = OR of AND-rule arrays. */
+	private static function sanitize_conditional( $c ) {
+		$c   = is_array( $c ) ? $c : array();
+		$ops = array( '==', '!=', 'empty', '!empty' );
+		$out = array( 'enabled' => ! empty( $c['enabled'] ), 'groups' => array() );
+		foreach ( (array) ( $c['groups'] ?? array() ) as $group ) {
+			$g = array();
+			foreach ( (array) $group as $rule ) {
+				$field = sanitize_key( $rule['field'] ?? '' );
+				if ( '' === $field ) { continue; }
+				$g[] = array(
+					'field'    => $field,
+					'operator' => in_array( ( $rule['operator'] ?? '==' ), $ops, true ) ? $rule['operator'] : '==',
+					'value'    => sanitize_text_field( $rule['value'] ?? '' ),
+				);
+			}
+			if ( $g ) { $out['groups'][] = $g; }
+		}
+		if ( empty( $out['groups'] ) ) { $out['enabled'] = false; }
 		return $out;
 	}
 
@@ -232,6 +468,8 @@ class Velox_Fields {
 			case 'taxonomy':
 				$match = has_term( '', $val, $post );
 				return $is ? (bool) $match : ! $match;
+			case 'options_page':
+				return ! $is; // matched only on the options page render, never on a post
 		}
 		$match = ( $actual === $val );
 		return $is ? $match : ! $match;
@@ -278,18 +516,26 @@ class Velox_Fields {
 		foreach ( $group['fields'] as $f ) {
 			$value = get_post_meta( $post->ID, $f['name'], true );
 			if ( '' === $value && '' !== ( $f['default'] ?? '' ) ) { $value = $f['default']; }
-			echo '<div class="velox-fields-row">';
-			echo '<label class="velox-fields-label" for="velox_field_' . esc_attr( $f['name'] ) . '">' . esc_html( $f['label'] );
-			if ( ! empty( $f['required'] ) ) { echo ' <span class="velox-fields-req">*</span>'; }
-			echo '</label>';
-			echo '<div class="velox-fields-control">';
-			self::render_field_input( $f, $value );
-			if ( ! empty( $f['instructions'] ) ) {
-				echo '<p class="velox-fields-instructions">' . esc_html( $f['instructions'] ) . '</p>';
-			}
-			echo '</div></div>';
+			self::render_field_row( $f, $value );
 		}
 		echo '</div>';
+	}
+
+	/** Render one field row (label + control + instructions). Shared by meta box + options pages. */
+	private static function render_field_row( $f, $value ) {
+		$cond = isset( $f['conditional'] ) && ! empty( $f['conditional']['enabled'] ) && ! empty( $f['conditional']['groups'] ) ? $f['conditional'] : null;
+		$attrs = ' data-vfx-field="' . esc_attr( $f['name'] ) . '"';
+		if ( $cond ) { $attrs .= ' data-vfx-cond="' . esc_attr( wp_json_encode( $cond ) ) . '"'; }
+		echo '<div class="velox-fields-row"' . $attrs . '>'; // phpcs:ignore WordPress.Security.EscapeOutput
+		echo '<label class="velox-fields-label" for="velox_field_' . esc_attr( $f['name'] ) . '">' . esc_html( $f['label'] );
+		if ( ! empty( $f['required'] ) ) { echo ' <span class="velox-fields-req">*</span>'; }
+		echo '</label>';
+		echo '<div class="velox-fields-control">';
+		self::render_field_input( $f, $value );
+		if ( ! empty( $f['instructions'] ) ) {
+			echo '<p class="velox-fields-instructions">' . esc_html( $f['instructions'] ) . '</p>';
+		}
+		echo '</div></div>';
 	}
 
 	private static function render_field_input( $f, $value ) {
@@ -299,8 +545,96 @@ class Velox_Fields {
 		$opts = array_filter( array_map( 'trim', explode( "\n", (string) ( $f['options'] ?? '' ) ) ) );
 		switch ( $f['type'] ) {
 			case 'textarea':
-			case 'wysiwyg':
 				echo '<textarea id="' . $id . '" name="' . $name . '" rows="5" class="widefat" placeholder="' . $ph . '">' . esc_textarea( $value ) . '</textarea>';
+				break;
+			case 'wysiwyg':
+				wp_editor(
+					(string) $value,
+					$id,
+					array(
+						'textarea_name' => 'velox_field[' . $f['name'] . ']',
+						'textarea_rows' => 8,
+						'media_buttons' => true,
+						'teeny'         => false,
+					)
+				);
+				break;
+			case 'image':
+				$img_id = (int) $value;
+				$thumb  = $img_id ? wp_get_attachment_image( $img_id, 'medium', false, array( 'class' => 'velox-fld-media-img' ) ) : '';
+				echo '<div class="velox-fld-media" data-mode="single">';
+				echo '<input type="hidden" id="' . $id . '" name="' . $name . '" value="' . esc_attr( $img_id ? $img_id : '' ) . '" class="velox-fld-media-input">';
+				echo '<div class="velox-fld-media-preview">' . $thumb . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
+				echo '<div class="velox-fld-media-btns"><button type="button" class="button velox-fld-media-pick" data-title="Select image" data-multiple="0">' . esc_html__( 'Select image' ) . '</button> ';
+				echo '<button type="button" class="button-link velox-fld-media-clear"' . ( $img_id ? '' : ' style="display:none"' ) . '>' . esc_html__( 'Remove' ) . '</button></div>';
+				echo '</div>';
+				break;
+			case 'gallery':
+				$ids = array_filter( array_map( 'intval', explode( ',', (string) $value ) ) );
+				echo '<div class="velox-fld-gallery">';
+				echo '<input type="hidden" id="' . $id . '" name="' . $name . '" value="' . esc_attr( implode( ',', $ids ) ) . '" class="velox-fld-gallery-input">';
+				echo '<ul class="velox-fld-gallery-list">';
+				foreach ( $ids as $gid ) {
+					echo '<li class="velox-fld-gallery-item" data-id="' . esc_attr( $gid ) . '">' . wp_get_attachment_image( $gid, 'thumbnail' ) . '<button type="button" class="velox-fld-gallery-rm" aria-label="Remove">&times;</button></li>'; // phpcs:ignore WordPress.Security.EscapeOutput
+				}
+				echo '</ul>';
+				echo '<button type="button" class="button velox-fld-gallery-add">' . esc_html__( 'Add images' ) . '</button>';
+				echo '</div>';
+				break;
+			case 'repeater':
+				$subs = isset( $f['sub_fields'] ) && is_array( $f['sub_fields'] ) ? $f['sub_fields'] : array();
+				$rows = is_array( $value ) ? $value : array();
+				echo '<div class="velox-rep" data-name="' . esc_attr( $f['name'] ) . '">';
+				echo '<div class="velox-rep-rows">';
+				$ri = 0;
+				foreach ( $rows as $row ) {
+					self::render_rep_row( $f['name'], $subs, $ri, is_array( $row ) ? $row : array() );
+					$ri++;
+				}
+				echo '</div>';
+				echo '<script type="text/html" class="velox-rep-tpl">';
+				self::render_rep_row( $f['name'], $subs, '__i__', array() );
+				echo '</script>';
+				echo '<button type="button" class="button velox-rep-add">' . esc_html__( 'Add row' ) . '</button>';
+				echo '</div>';
+				break;
+			case 'flexible':
+				$layouts = isset( $f['layouts'] ) && is_array( $f['layouts'] ) ? $f['layouts'] : array();
+				$rows    = is_array( $value ) ? $value : array();
+				$lmap    = array();
+				foreach ( $layouts as $l ) { $lmap[ $l['name'] ] = $l; }
+				echo '<div class="velox-flex" data-name="' . esc_attr( $f['name'] ) . '">';
+				echo '<div class="velox-flex-rows">';
+				$ri = 0;
+				foreach ( $rows as $row ) {
+					$lname = is_array( $row ) && isset( $row['_layout'] ) ? $row['_layout'] : '';
+					if ( isset( $lmap[ $lname ] ) ) {
+						self::render_flex_row( $f['name'], $lmap[ $lname ], $ri, $row );
+						$ri++;
+					}
+				}
+				echo '</div>';
+				foreach ( $layouts as $l ) {
+					echo '<script type="text/html" class="velox-flex-tpl" data-layout="' . esc_attr( $l['name'] ) . '">';
+					self::render_flex_row( $f['name'], $l, '__i__', array() );
+					echo '</script>';
+				}
+				echo '<div class="velox-flex-add"><button type="button" class="button velox-flex-toggle">' . esc_html__( 'Add row' ) . ' &#9662;</button><div class="velox-flex-menu" hidden>';
+				foreach ( $layouts as $l ) {
+					echo '<button type="button" class="velox-flex-pick" data-layout="' . esc_attr( $l['name'] ) . '">' . esc_html( $l['label'] ) . '</button>';
+				}
+				echo '</div></div>';
+				echo '</div>';
+				break;
+			case 'file':
+				$file_id  = (int) $value;
+				$file_url = $file_id ? wp_get_attachment_url( $file_id ) : '';
+				echo '<div class="velox-fld-media" data-mode="file">';
+				echo '<input type="hidden" id="' . $id . '" name="' . $name . '" value="' . esc_attr( $file_id ? $file_id : '' ) . '" class="velox-fld-media-input">';
+				echo '<div class="velox-fld-media-file"' . ( $file_id ? '' : ' style="display:none"' ) . '>' . esc_html( $file_url ? basename( $file_url ) : '' ) . '</div>';
+				echo '<div class="velox-fld-media-btns"><button type="button" class="button velox-fld-media-pick" data-title="Select file" data-multiple="0" data-file="1">' . esc_html__( 'Select file' ) . '</button> ';
+				echo '<button type="button" class="button-link velox-fld-media-clear"' . ( $file_id ? '' : ' style="display:none"' ) . '>' . esc_html__( 'Remove' ) . '</button></div>';
+				echo '</div>';
 				break;
 			case 'select':
 				echo '<select id="' . $id . '" name="' . $name . '" class="widefat">';
@@ -339,13 +673,168 @@ class Velox_Fields {
 			case 'color':
 				echo '<input type="color" id="' . $id . '" name="' . $name . '" value="' . esc_attr( $value ? $value : '#000000' ) . '">';
 				break;
-			case 'image':
-			case 'file':
-				echo '<input type="text" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . esc_attr__( 'Attachment ID or URL' ) . '">';
+			case 'button_group':
+				echo '<div class="velox-fld-btngroup">';
+				foreach ( $opts as $o ) {
+					echo '<label class="velox-fld-btn' . ( (string) $value === (string) $o ? ' is-on' : '' ) . '"><input type="radio" name="' . $name . '" value="' . esc_attr( $o ) . '"' . checked( $value, $o, false ) . '> ' . esc_html( $o ) . '</label>';
+				}
+				echo '</div>';
+				break;
+			case 'range':
+				$min = isset( $opts[0] ) && is_numeric( $opts[0] ) ? $opts[0] : 0;
+				$max = isset( $opts[1] ) && is_numeric( $opts[1] ) ? $opts[1] : 100;
+				$step = isset( $opts[2] ) && is_numeric( $opts[2] ) ? $opts[2] : 1;
+				$cur = ( '' === $value ) ? $min : $value;
+				echo '<div class="velox-fld-range"><input type="range" id="' . $id . '" name="' . $name . '" min="' . esc_attr( $min ) . '" max="' . esc_attr( $max ) . '" step="' . esc_attr( $step ) . '" value="' . esc_attr( $cur ) . '"><output class="velox-fld-range-val">' . esc_html( $cur ) . '</output></div>';
+				break;
+			case 'oembed':
+				echo '<input type="url" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="https://youtube.com/watch?v=…">';
+				if ( $value && function_exists( 'wp_oembed_get' ) ) {
+					$html = wp_oembed_get( $value );
+					if ( $html ) { echo '<div class="velox-fld-oembed">' . $html . '</div>'; } // phpcs:ignore WordPress.Security.EscapeOutput
+				}
+				break;
+			case 'link':
+				$lv  = is_array( $value ) ? $value : array();
+				$url = isset( $lv['url'] ) ? $lv['url'] : '';
+				$txt = isset( $lv['title'] ) ? $lv['title'] : '';
+				$tgt = isset( $lv['target'] ) ? $lv['target'] : '';
+				echo '<div class="velox-fld-link">';
+				echo '<input type="url" name="' . $name . '[url]" class="widefat" value="' . esc_attr( $url ) . '" placeholder="https://…">';
+				echo '<input type="text" name="' . $name . '[title]" class="widefat" value="' . esc_attr( $txt ) . '" placeholder="Link text">';
+				echo '<label class="velox-fields-choice"><input type="checkbox" name="' . $name . '[target]" value="_blank"' . checked( $tgt, '_blank', false ) . '> Open in new tab</label>';
+				echo '</div>';
+				break;
+			case 'post_object':
+			case 'relationship':
+				$multiple = 'relationship' === $f['type'];
+				$ptypes   = $opts ? $opts : array( 'post', 'page' );
+				$posts    = get_posts( array( 'post_type' => $ptypes, 'numberposts' => 100, 'orderby' => 'title', 'order' => 'ASC', 'suppress_filters' => false ) );
+				$sel      = $multiple ? array_filter( array_map( 'intval', is_array( $value ) ? $value : explode( ',', (string) $value ) ) ) : array( (int) $value );
+				echo '<select id="' . $id . '" name="' . $name . ( $multiple ? '[]' : '' ) . '" class="widefat"' . ( $multiple ? ' multiple size="6"' : '' ) . '>';
+				if ( ! $multiple ) { echo '<option value="">— Select —</option>'; }
+				foreach ( $posts as $pp ) {
+					echo '<option value="' . esc_attr( $pp->ID ) . '"' . ( in_array( (int) $pp->ID, $sel, true ) ? ' selected' : '' ) . '>' . esc_html( $pp->post_title ? $pp->post_title : ( '#' . $pp->ID ) ) . '</option>';
+				}
+				echo '</select>';
+				break;
+			case 'taxonomy':
+				$tax   = isset( $opts[0] ) ? $opts[0] : 'category';
+				$terms = get_terms( array( 'taxonomy' => $tax, 'hide_empty' => false ) );
+				echo '<select id="' . $id . '" name="' . $name . '" class="widefat"><option value="">— Select —</option>';
+				if ( ! is_wp_error( $terms ) ) {
+					foreach ( $terms as $t ) {
+						echo '<option value="' . esc_attr( $t->term_id ) . '"' . selected( (int) $value, (int) $t->term_id, false ) . '>' . esc_html( $t->name ) . '</option>';
+					}
+				}
+				echo '</select>';
+				break;
+			case 'user':
+				$users = get_users( array( 'fields' => array( 'ID', 'display_name' ), 'number' => 200 ) );
+				echo '<select id="' . $id . '" name="' . $name . '" class="widefat"><option value="">— Select —</option>';
+				foreach ( $users as $u ) {
+					echo '<option value="' . esc_attr( $u->ID ) . '"' . selected( (int) $value, (int) $u->ID, false ) . '>' . esc_html( $u->display_name ) . '</option>';
+				}
+				echo '</select>';
+				break;
+			case 'group':
+				$subs = isset( $f['sub_fields'] ) && is_array( $f['sub_fields'] ) ? $f['sub_fields'] : array();
+				$gval = is_array( $value ) ? $value : array();
+				echo '<div class="velox-fld-group">';
+				foreach ( $subs as $s ) {
+					$sv    = isset( $gval[ $s['name'] ] ) ? $gval[ $s['name'] ] : '';
+					$iname = 'velox_field[' . $f['name'] . '][' . $s['name'] . ']';
+					$iid   = 'velox_' . $f['name'] . '_' . $s['name'];
+					echo '<div class="velox-fld-group-field"><label class="velox-rep-flabel">' . esc_html( $s['label'] ? $s['label'] : $s['name'] ) . '</label>';
+					self::render_sub_input( $s, $iname, $iid, $sv );
+					echo '</div>';
+				}
+				echo '</div>';
 				break;
 			default: // text, and any not-yet-specialised type
 				echo '<input type="text" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '">';
 		}
+	}
+
+	/** One repeater row: each sub-field named velox_field[rep][i][sub]. */
+	private static function render_rep_row( $rep_name, $subs, $index, $row ) {
+		echo '<div class="velox-rep-row" data-i="' . esc_attr( $index ) . '">';
+		echo '<span class="velox-rep-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></span>';
+		echo '<div class="velox-rep-fields">';
+		foreach ( $subs as $s ) {
+			$val   = isset( $row[ $s['name'] ] ) ? $row[ $s['name'] ] : '';
+			$iname = 'velox_field[' . $rep_name . '][' . $index . '][' . $s['name'] . ']';
+			$iid   = 'velox_' . $rep_name . '_' . $index . '_' . $s['name'];
+			echo '<div class="velox-rep-field">';
+			echo '<label class="velox-rep-flabel">' . esc_html( $s['label'] ? $s['label'] : $s['name'] ) . '</label>';
+			self::render_sub_input( $s, $iname, $iid, $val );
+			echo '</div>';
+		}
+		echo '</div>';
+		echo '<button type="button" class="velox-rep-rm" aria-label="Remove row">&times;</button>';
+		echo '</div>';
+	}
+
+	/** A single sub-field input inside a repeater row. */
+	private static function render_sub_input( $s, $name, $id, $value ) {
+		$opts = array_filter( array_map( 'trim', explode( "\n", (string) ( $s['options'] ?? '' ) ) ) );
+		switch ( $s['type'] ) {
+			case 'textarea':
+				echo '<textarea name="' . esc_attr( $name ) . '" rows="3" class="widefat">' . esc_textarea( $value ) . '</textarea>';
+				break;
+			case 'select':
+				echo '<select name="' . esc_attr( $name ) . '" class="widefat"><option value="">— Select —</option>';
+				foreach ( $opts as $o ) { echo '<option value="' . esc_attr( $o ) . '"' . selected( $value, $o, false ) . '>' . esc_html( $o ) . '</option>'; }
+				echo '</select>';
+				break;
+			case 'truefalse':
+				echo '<label class="velox-fields-choice"><input type="checkbox" name="' . esc_attr( $name ) . '" value="1"' . checked( $value, '1', false ) . '> ' . esc_html__( 'Yes' ) . '</label>';
+				break;
+			case 'number': case 'email': case 'url': case 'date':
+				echo '<input type="' . esc_attr( $s['type'] ) . '" name="' . esc_attr( $name ) . '" class="widefat" value="' . esc_attr( $value ) . '">';
+				break;
+			case 'color':
+				echo '<input type="color" name="' . esc_attr( $name ) . '" value="' . esc_attr( $value ? $value : '#000000' ) . '">';
+				break;
+			case 'image': case 'file':
+				$aid   = (int) $value;
+				$isimg = 'image' === $s['type'];
+				$thumb = ( $isimg && $aid ) ? wp_get_attachment_image( $aid, 'thumbnail', false, array( 'class' => 'velox-fld-media-img' ) ) : '';
+				$fname = ( ! $isimg && $aid ) ? basename( (string) wp_get_attachment_url( $aid ) ) : '';
+				echo '<div class="velox-fld-media" data-mode="' . ( $isimg ? 'single' : 'file' ) . '">';
+				echo '<input type="hidden" name="' . esc_attr( $name ) . '" value="' . esc_attr( $aid ? $aid : '' ) . '" class="velox-fld-media-input">';
+				if ( $isimg ) {
+					echo '<div class="velox-fld-media-preview">' . $thumb . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
+				} else {
+					echo '<div class="velox-fld-media-file"' . ( $aid ? '' : ' style="display:none"' ) . '>' . esc_html( $fname ) . '</div>';
+				}
+				echo '<div class="velox-fld-media-btns"><button type="button" class="button velox-fld-media-pick" data-title="' . ( $isimg ? 'Select image' : 'Select file' ) . '"' . ( $isimg ? '' : ' data-file="1"' ) . '>' . ( $isimg ? esc_html__( 'Select image' ) : esc_html__( 'Select file' ) ) . '</button> ';
+				echo '<button type="button" class="button-link velox-fld-media-clear"' . ( $aid ? '' : ' style="display:none"' ) . '>' . esc_html__( 'Remove' ) . '</button></div>';
+				echo '</div>';
+				break;
+			default:
+				echo '<input type="text" name="' . esc_attr( $name ) . '" class="widefat" value="' . esc_attr( $value ) . '">';
+		}
+	}
+
+	/** One flexible-content row: tagged with its layout + that layout's sub-fields. */
+	private static function render_flex_row( $field_name, $layout, $index, $row ) {
+		$subs = isset( $layout['sub_fields'] ) && is_array( $layout['sub_fields'] ) ? $layout['sub_fields'] : array();
+		echo '<div class="velox-rep-row velox-flex-row" data-i="' . esc_attr( $index ) . '" data-layout="' . esc_attr( $layout['name'] ) . '">';
+		echo '<span class="velox-rep-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></span>';
+		echo '<input type="hidden" name="velox_field[' . esc_attr( $field_name ) . '][' . esc_attr( $index ) . '][_layout]" value="' . esc_attr( $layout['name'] ) . '">';
+		echo '<div class="velox-rep-fields"><div class="velox-flex-lname">' . esc_html( $layout['label'] ) . '</div>';
+		foreach ( $subs as $s ) {
+			$val   = isset( $row[ $s['name'] ] ) ? $row[ $s['name'] ] : '';
+			$iname = 'velox_field[' . $field_name . '][' . $index . '][' . $s['name'] . ']';
+			$iid   = 'velox_' . $field_name . '_' . $index . '_' . $s['name'];
+			echo '<div class="velox-rep-field"><label class="velox-rep-flabel">' . esc_html( $s['label'] ? $s['label'] : $s['name'] ) . '</label>';
+			self::render_sub_input( $s, $iname, $iid, $val );
+			echo '</div>';
+		}
+		echo '</div>';
+		echo '<button type="button" class="velox-rep-rm" aria-label="Remove row">&times;</button>';
+		echo '</div>';
 	}
 
 	public static function save_post_meta( $post_id, $post ) {
@@ -358,27 +847,145 @@ class Velox_Fields {
 			}
 			$submitted = isset( $_POST['velox_field'] ) ? (array) wp_unslash( $_POST['velox_field'] ) : array();
 			foreach ( $group['fields'] as $f ) {
-				$name = $f['name'];
-				if ( 'checkbox' === $f['type'] ) {
-					$val = isset( $submitted[ $name ] ) ? array_map( 'sanitize_text_field', (array) $submitted[ $name ] ) : array();
-				} elseif ( in_array( $f['type'], array( 'textarea', 'wysiwyg' ), true ) ) {
-					$val = isset( $submitted[ $name ] ) ? sanitize_textarea_field( $submitted[ $name ] ) : '';
-				} else {
-					$val = isset( $submitted[ $name ] ) ? sanitize_text_field( $submitted[ $name ] ) : '';
-				}
-				update_post_meta( $post_id, $name, $val );
+				update_post_meta( $post_id, $f['name'], self::field_value_from_submitted( $f, $submitted ) );
 			}
 		}
+	}
+
+	/** Sanitize one field's submitted value by type (shared by post meta + options pages). */
+	public static function field_value_from_submitted( $f, $submitted ) {
+		$name = $f['name'];
+		if ( 'checkbox' === $f['type'] ) {
+			return isset( $submitted[ $name ] ) ? array_map( 'sanitize_text_field', (array) $submitted[ $name ] ) : array();
+		}
+		if ( 'wysiwyg' === $f['type'] ) {
+			return isset( $submitted[ $name ] ) ? wp_kses_post( $submitted[ $name ] ) : '';
+		}
+		if ( 'textarea' === $f['type'] ) {
+			return isset( $submitted[ $name ] ) ? sanitize_textarea_field( $submitted[ $name ] ) : '';
+		}
+		if ( in_array( $f['type'], array( 'image', 'file', 'post_object', 'taxonomy', 'user' ), true ) ) {
+			return isset( $submitted[ $name ] ) ? (int) $submitted[ $name ] : 0;
+		}
+		if ( 'relationship' === $f['type'] ) {
+			$ids = isset( $submitted[ $name ] ) ? array_filter( array_map( 'intval', (array) $submitted[ $name ] ) ) : array();
+			return array_values( $ids );
+		}
+		if ( 'oembed' === $f['type'] ) {
+			return isset( $submitted[ $name ] ) ? esc_url_raw( $submitted[ $name ] ) : '';
+		}
+		if ( 'link' === $f['type'] ) {
+			$l = isset( $submitted[ $name ] ) && is_array( $submitted[ $name ] ) ? $submitted[ $name ] : array();
+			return array(
+				'url'    => isset( $l['url'] ) ? esc_url_raw( $l['url'] ) : '',
+				'title'  => isset( $l['title'] ) ? sanitize_text_field( $l['title'] ) : '',
+				'target' => ( isset( $l['target'] ) && '_blank' === $l['target'] ) ? '_blank' : '',
+			);
+		}
+		if ( 'gallery' === $f['type'] ) {
+			$ids = isset( $submitted[ $name ] ) ? array_filter( array_map( 'intval', explode( ',', (string) $submitted[ $name ] ) ) ) : array();
+			return implode( ',', $ids );
+		}
+		if ( 'group' === $f['type'] ) {
+			$subs = isset( $f['sub_fields'] ) && is_array( $f['sub_fields'] ) ? $f['sub_fields'] : array();
+			$row  = ( isset( $submitted[ $name ] ) && is_array( $submitted[ $name ] ) ) ? $submitted[ $name ] : array();
+			return self::clean_row( $subs, $row );
+		}
+		if ( 'repeater' === $f['type'] ) {
+			$subs    = isset( $f['sub_fields'] ) && is_array( $f['sub_fields'] ) ? $f['sub_fields'] : array();
+			$rows_in = ( isset( $submitted[ $name ] ) && is_array( $submitted[ $name ] ) ) ? $submitted[ $name ] : array();
+			$clean   = array();
+			foreach ( $rows_in as $row ) {
+				if ( ! is_array( $row ) ) { continue; }
+				$clean[] = self::clean_row( $subs, $row );
+			}
+			return array_values( $clean );
+		}
+		if ( 'flexible' === $f['type'] ) {
+			$layouts = isset( $f['layouts'] ) && is_array( $f['layouts'] ) ? $f['layouts'] : array();
+			$lmap    = array();
+			foreach ( $layouts as $l ) { $lmap[ $l['name'] ] = $l; }
+			$rows_in = ( isset( $submitted[ $name ] ) && is_array( $submitted[ $name ] ) ) ? $submitted[ $name ] : array();
+			$clean   = array();
+			foreach ( $rows_in as $row ) {
+				if ( ! is_array( $row ) ) { continue; }
+				$lname = isset( $row['_layout'] ) ? sanitize_key( $row['_layout'] ) : '';
+				if ( ! isset( $lmap[ $lname ] ) ) { continue; }
+				$r = self::clean_row( $lmap[ $lname ]['sub_fields'], $row );
+				$r = array( '_layout' => $lname ) + $r;
+				$clean[] = $r;
+			}
+			return array_values( $clean );
+		}
+		return isset( $submitted[ $name ] ) ? sanitize_text_field( $submitted[ $name ] ) : '';
+	}
+
+	/** Sanitize one repeater/flexible row against its sub-field defs. */
+	private static function clean_row( $subs, $row ) {
+		$r = array();
+		foreach ( (array) $subs as $s ) {
+			$sv = isset( $row[ $s['name'] ] ) ? $row[ $s['name'] ] : '';
+			if ( in_array( $s['type'], array( 'image', 'file' ), true ) ) {
+				$r[ $s['name'] ] = (int) $sv;
+			} elseif ( 'textarea' === $s['type'] ) {
+				$r[ $s['name'] ] = sanitize_textarea_field( is_array( $sv ) ? '' : $sv );
+			} else {
+				$r[ $s['name'] ] = sanitize_text_field( is_array( $sv ) ? '' : $sv );
+			}
+		}
+		return $r;
 	}
 
 	/* ------------------------------------------------------------------ *
 	 * Front-end API
 	 * ------------------------------------------------------------------ */
 
-	/** get_field()-style retrieval. */
+	/** get_field()-style retrieval. Pass 'option' as $post_id for options-page values. */
 	public static function get_field( $name, $post_id = null ) {
+		if ( 'option' === $post_id || 'options' === $post_id ) {
+			$store = get_option( self::OPT_STORE, array() );
+			return ( is_array( $store ) && isset( $store[ $name ] ) ) ? $store[ $name ] : '';
+		}
 		if ( null === $post_id ) { $post_id = get_the_ID(); }
 		return get_post_meta( $post_id, $name, true );
+	}
+
+	/* ---- Repeater loop API (single-level), mirrors ACF have_rows()/the_row()/get_sub_field() ---- */
+	private static $loops = array();
+	private static $current_row = null;
+
+	/** Begin/advance a repeater loop. Returns true while rows remain. */
+	public static function have_rows( $name, $post_id = null ) {
+		if ( null === $post_id ) { $post_id = get_the_ID(); }
+		$key = $post_id . '|' . $name;
+		if ( ! isset( self::$loops[ $key ] ) ) {
+			$rows = self::get_field( $name, $post_id );
+			self::$loops[ $key ] = array( 'rows' => is_array( $rows ) ? array_values( $rows ) : array(), 'i' => -1 );
+		}
+		$loop = &self::$loops[ $key ];
+		if ( $loop['i'] + 1 < count( $loop['rows'] ) ) {
+			$loop['i']++;
+			self::$current_row = $loop['rows'][ $loop['i'] ];
+			return true;
+		}
+		unset( self::$loops[ $key ] );
+		self::$current_row = null;
+		return false;
+	}
+
+	/** The current row (assoc array of sub-field name => value). */
+	public static function the_row() {
+		return self::$current_row;
+	}
+
+	/** Value of a sub-field in the current repeater/flexible row. */
+	public static function get_sub_field( $name ) {
+		return ( is_array( self::$current_row ) && isset( self::$current_row[ $name ] ) ) ? self::$current_row[ $name ] : '';
+	}
+
+	/** Layout name of the current flexible-content row (empty for repeaters). */
+	public static function get_row_layout() {
+		return ( is_array( self::$current_row ) && isset( self::$current_row['_layout'] ) ) ? self::$current_row['_layout'] : '';
 	}
 
 	/** Replace {field:name} merge tags in a string for a given post. */

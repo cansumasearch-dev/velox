@@ -258,6 +258,8 @@ class Velox_Ajax {
 					'type'        => isset( $_POST['type'] ) ? sanitize_key( wp_unslash( $_POST['type'] ) ) : 'php',
 					'code'        => isset( $_POST['code'] ) ? wp_unslash( $_POST['code'] ) : '',
 					'scope'       => isset( $_POST['scope'] ) ? sanitize_key( wp_unslash( $_POST['scope'] ) ) : 'everywhere',
+					'location'    => isset( $_POST['location'] ) ? sanitize_key( wp_unslash( $_POST['location'] ) ) : '',
+					'location_num'=> isset( $_POST['location_num'] ) ? (int) $_POST['location_num'] : 1,
 					'priority'    => isset( $_POST['priority'] ) ? (int) $_POST['priority'] : 10,
 				);
 				if ( isset( $_POST['active'] ) ) {
@@ -426,6 +428,42 @@ class Velox_Ajax {
 
 			case 'fields_delete':
 				wp_send_json_success( Velox_Fields::delete( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'posttype_save':
+				$pt = isset( $_POST['post_type'] ) ? json_decode( wp_unslash( $_POST['post_type'] ), true ) : null;
+				if ( ! is_array( $pt ) ) { wp_send_json_error( array( 'message' => 'Invalid post type data.' ) ); }
+				$r = Velox_Post_Types::save_post_type( $pt );
+				if ( empty( $r['ok'] ) ) { wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Could not save.' ) ); }
+				wp_send_json_success( $r );
+				break;
+
+			case 'posttype_delete':
+				wp_send_json_success( Velox_Post_Types::delete_post_type( isset( $_POST['slug'] ) ? Velox_Post_Types::clean_slug( wp_unslash( $_POST['slug'] ), 20 ) : '' ) );
+				break;
+
+			case 'taxonomy_save':
+				$tx = isset( $_POST['taxonomy'] ) ? json_decode( wp_unslash( $_POST['taxonomy'] ), true ) : null;
+				if ( ! is_array( $tx ) ) { wp_send_json_error( array( 'message' => 'Invalid taxonomy data.' ) ); }
+				$r = Velox_Post_Types::save_taxonomy( $tx );
+				if ( empty( $r['ok'] ) ) { wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Could not save.' ) ); }
+				wp_send_json_success( $r );
+				break;
+
+			case 'taxonomy_delete':
+				wp_send_json_success( Velox_Post_Types::delete_taxonomy( isset( $_POST['slug'] ) ? Velox_Post_Types::clean_slug( wp_unslash( $_POST['slug'] ), 32 ) : '' ) );
+				break;
+
+			case 'optionspage_save':
+				$op = isset( $_POST['option_page'] ) ? json_decode( wp_unslash( $_POST['option_page'] ), true ) : null;
+				if ( ! is_array( $op ) ) { wp_send_json_error( array( 'message' => 'Invalid options page data.' ) ); }
+				$r = Velox_Fields::save_option_page( $op );
+				if ( empty( $r['ok'] ) ) { wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Could not save.' ) ); }
+				wp_send_json_success( $r );
+				break;
+
+			case 'optionspage_delete':
+				wp_send_json_success( Velox_Fields::delete_option_page( isset( $_POST['slug'] ) ? sanitize_key( wp_unslash( $_POST['slug'] ) ) : '' ) );
 				break;
 
 			case 'submission_delete':

@@ -2092,7 +2092,7 @@
 						minifull( 'Placeholder', '<input class="velox-input" data-fk="placeholder" value="' + escapeHtml( f.placeholder || '' ) + '">' ) +
 						minifull( 'Instructions', '<input class="velox-input" data-fk="instructions" value="' + escapeHtml( f.instructions || '' ) + '" placeholder="Shown to editors below the field">' ) +
 						'<label class="vfg-check"><input type="checkbox" data-fk="required"' + ( f.required ? ' checked' : '' ) + '> Required field</label>' +
-					'</div></div>';
+					'</div>' + ( ( f.type === 'repeater' || f.type === 'group' ) ? subFieldsUi( f ) : ( f.type === 'flexible' ? flexibleUi( f ) : '' ) ) + conditionalUi( f, i ) + '</div>';
 				}
 				card.innerHTML = head + body;
 				// row click toggles (except buttons + handle)
@@ -2122,6 +2122,116 @@
 						else { updateSub(); }
 					} );
 				} );
+				// repeater sub-fields
+				f.sub_fields = f.sub_fields || [];
+				card.querySelectorAll( '.vfg-sub-in' ).forEach( function ( el ) {
+					var ev = el.tagName === 'SELECT' ? 'change' : 'input';
+					el.addEventListener( ev, function () {
+						var si = parseInt( el.getAttribute( 'data-si' ), 10 );
+						var sk = el.getAttribute( 'data-sk' );
+						if ( ! f.sub_fields[ si ] ) { return; }
+						f.sub_fields[ si ][ sk ] = el.value;
+					} );
+				} );
+				card.querySelectorAll( '.vfg-sub-del' ).forEach( function ( b ) {
+					b.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						f.sub_fields.splice( parseInt( b.getAttribute( 'data-si' ), 10 ), 1 );
+						renderFields();
+					} );
+				} );
+				var subAdd = card.querySelector( '.vfg-sub-add' );
+				if ( subAdd ) {
+					subAdd.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						f.sub_fields.push( { label: 'Sub field', name: '', type: 'text', options: '' } );
+						renderFields();
+					} );
+				}
+				// flexible content layouts
+				f.layouts = f.layouts || [];
+				card.querySelectorAll( '.vfg-flex-lin' ).forEach( function ( el ) {
+					el.addEventListener( 'input', function () {
+						var li = parseInt( el.getAttribute( 'data-li' ), 10 );
+						if ( f.layouts[ li ] ) { f.layouts[ li ][ el.getAttribute( 'data-lk' ) ] = el.value; }
+					} );
+				} );
+				card.querySelectorAll( '.vfg-flex-in' ).forEach( function ( el ) {
+					var ev = el.tagName === 'SELECT' ? 'change' : 'input';
+					el.addEventListener( ev, function () {
+						var li = parseInt( el.getAttribute( 'data-li' ), 10 );
+						var si = parseInt( el.getAttribute( 'data-si' ), 10 );
+						if ( f.layouts[ li ] && f.layouts[ li ].sub_fields[ si ] ) { f.layouts[ li ].sub_fields[ si ][ el.getAttribute( 'data-sk' ) ] = el.value; }
+					} );
+				} );
+				card.querySelectorAll( '.vfg-flex-subadd' ).forEach( function ( b ) {
+					b.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						var li = parseInt( b.getAttribute( 'data-li' ), 10 );
+						f.layouts[ li ].sub_fields = f.layouts[ li ].sub_fields || [];
+						f.layouts[ li ].sub_fields.push( { label: 'Sub field', name: '', type: 'text', options: '' } );
+						renderFields();
+					} );
+				} );
+				card.querySelectorAll( '.vfg-flex-subdel' ).forEach( function ( b ) {
+					b.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						var li = parseInt( b.getAttribute( 'data-li' ), 10 );
+						var si = parseInt( b.getAttribute( 'data-si' ), 10 );
+						f.layouts[ li ].sub_fields.splice( si, 1 );
+						renderFields();
+					} );
+				} );
+				card.querySelectorAll( '.vfg-layout-del' ).forEach( function ( b ) {
+					b.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						f.layouts.splice( parseInt( b.getAttribute( 'data-li' ), 10 ), 1 );
+						renderFields();
+					} );
+				} );
+				var layAdd = card.querySelector( '.vfg-layout-add' );
+				if ( layAdd ) {
+					layAdd.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						f.layouts.push( { name: '', label: 'New layout', sub_fields: [] } );
+						renderFields();
+					} );
+				}
+				// conditional logic
+				f.conditional = f.conditional || { enabled: false, groups: [] };
+				var condEnable = card.querySelector( '.vfg-cond-enable' );
+				if ( condEnable ) {
+					condEnable.addEventListener( 'change', function () {
+						f.conditional.enabled = condEnable.checked;
+						if ( condEnable.checked && ( ! f.conditional.groups[0] || ! f.conditional.groups[0].length ) ) {
+							f.conditional.groups = [ [ { field: '', operator: '==', value: '' } ] ];
+						}
+						renderFields();
+					} );
+				}
+				card.querySelectorAll( '.vfg-cond-in' ).forEach( function ( el ) {
+					var ev = el.tagName === 'SELECT' ? 'change' : 'input';
+					el.addEventListener( ev, function () {
+						var ri = parseInt( el.getAttribute( 'data-ri' ), 10 );
+						if ( f.conditional.groups[0] && f.conditional.groups[0][ ri ] ) { f.conditional.groups[0][ ri ][ el.getAttribute( 'data-ck' ) ] = el.value; }
+					} );
+				} );
+				card.querySelectorAll( '.vfg-cond-del' ).forEach( function ( b ) {
+					b.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						f.conditional.groups[0].splice( parseInt( b.getAttribute( 'data-ri' ), 10 ), 1 );
+						renderFields();
+					} );
+				} );
+				var condAdd = card.querySelector( '.vfg-cond-add' );
+				if ( condAdd ) {
+					condAdd.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						f.conditional.groups[0] = f.conditional.groups[0] || [];
+						f.conditional.groups[0].push( { field: '', operator: '==', value: '' } );
+						renderFields();
+					} );
+				}
 				// drag to reorder
 				card.setAttribute( 'draggable', 'true' );
 				card.addEventListener( 'dragstart', function () { card._from = i; window.__vfgDrag = i; card.classList.add( 'is-drag' ); } );
@@ -2141,6 +2251,70 @@
 		}
 		function mini( label, inner ) { return '<div class="vfg-mini"><span class="vfg-mini-label">' + label + '</span>' + inner + '</div>'; }
 		function minifull( label, inner ) { return '<div class="vfg-mini vfg-mini--full"><span class="vfg-mini-label">' + label + '</span>' + inner + '</div>'; }
+		function subFieldsUi( f ) {
+			var subTypes = { text: 'Text', textarea: 'Text area', number: 'Number', email: 'Email', url: 'URL', image: 'Image', file: 'File', truefalse: 'True / False', color: 'Color', date: 'Date' };
+			var subs = f.sub_fields || [];
+			var rows = subs.map( function ( s, si ) {
+				var topts = Object.keys( subTypes ).map( function ( t ) { return '<option value="' + t + '"' + ( t === s.type ? ' selected' : '' ) + '>' + subTypes[ t ] + '</option>'; } ).join( '' );
+				return '<div class="vfg-sub-row">' +
+					'<input class="velox-input vfg-sub-in" data-si="' + si + '" data-sk="label" value="' + escapeHtml( s.label || '' ) + '" placeholder="Label">' +
+					'<input class="velox-input vfg-sub-in vfg-mono" data-si="' + si + '" data-sk="name" value="' + escapeHtml( s.name || '' ) + '" placeholder="name (auto)">' +
+					'<select class="velox-select vfg-sub-in" data-si="' + si + '" data-sk="type">' + topts + '</select>' +
+					'<button type="button" class="vfg-sub-del" data-si="' + si + '" title="Remove sub-field"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+				'</div>';
+			} ).join( '' );
+			return '<div class="vfg-subfields"><div class="vfg-sub-h">Sub-fields</div>' +
+				( rows || '<div class="vfg-sub-empty">No sub-fields yet.</div>' ) +
+				'<button type="button" class="vfg-sub-add">+ Add sub-field</button></div>';
+		}
+		function flexibleUi( f ) {
+			var subTypes = { text: 'Text', textarea: 'Text area', number: 'Number', email: 'Email', url: 'URL', image: 'Image', file: 'File', truefalse: 'True / False', color: 'Color', date: 'Date' };
+			f.layouts = f.layouts || [];
+			var layoutsHtml = f.layouts.map( function ( L, li ) {
+				L.sub_fields = L.sub_fields || [];
+				var subRows = L.sub_fields.map( function ( s, si ) {
+					var topts = Object.keys( subTypes ).map( function ( t ) { return '<option value="' + t + '"' + ( t === s.type ? ' selected' : '' ) + '>' + subTypes[ t ] + '</option>'; } ).join( '' );
+					return '<div class="vfg-sub-row">' +
+						'<input class="velox-input vfg-flex-in" data-li="' + li + '" data-si="' + si + '" data-sk="label" value="' + escapeHtml( s.label || '' ) + '" placeholder="Label">' +
+						'<input class="velox-input vfg-flex-in vfg-mono" data-li="' + li + '" data-si="' + si + '" data-sk="name" value="' + escapeHtml( s.name || '' ) + '" placeholder="name (auto)">' +
+						'<select class="velox-select vfg-flex-in" data-li="' + li + '" data-si="' + si + '" data-sk="type">' + topts + '</select>' +
+						'<button type="button" class="vfg-sub-del vfg-flex-subdel" data-li="' + li + '" data-si="' + si + '" title="Remove sub-field"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+					'</div>';
+				} ).join( '' );
+				return '<div class="vfg-layout">' +
+					'<div class="vfg-layout-head">' +
+						'<input class="velox-input vfg-flex-lin" data-li="' + li + '" data-lk="label" value="' + escapeHtml( L.label || '' ) + '" placeholder="Layout label">' +
+						'<input class="velox-input vfg-mono vfg-flex-lin" data-li="' + li + '" data-lk="name" value="' + escapeHtml( L.name || '' ) + '" placeholder="name (auto)">' +
+						'<button type="button" class="vfg-layout-del" data-li="' + li + '" title="Remove layout"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+					'</div>' +
+					'<div class="vfg-layout-subs">' + ( subRows || '<div class="vfg-sub-empty">No sub-fields.</div>' ) + '<button type="button" class="vfg-sub-add vfg-flex-subadd" data-li="' + li + '">+ Add sub-field</button></div>' +
+				'</div>';
+			} ).join( '' );
+			return '<div class="vfg-subfields"><div class="vfg-sub-h">Layouts</div>' +
+				( layoutsHtml || '<div class="vfg-sub-empty">No layouts yet.</div>' ) +
+				'<button type="button" class="vfg-layout-add vfg-sub-add">+ Add layout</button></div>';
+		}
+		function conditionalUi( f, idx ) {
+			f.conditional = f.conditional || { enabled: false, groups: [] };
+			var on = !! f.conditional.enabled;
+			var choices = group.fields.filter( function ( x, xi ) { return xi !== idx && ( x.name || x.label ); } );
+			var head = '<div class="vfg-subfields"><label class="vfg-check vfg-cond-enable-row"><input type="checkbox" class="vfg-cond-enable"' + ( on ? ' checked' : '' ) + '> Conditional logic — only show this field when\u2026</label>';
+			if ( ! on ) { return head + '</div>'; }
+			var rules = ( f.conditional.groups[0] || [] );
+			var ops = { '==': 'is equal to', '!=': 'is not equal to', 'empty': 'has no value', '!empty': 'has any value' };
+			var rows = rules.map( function ( r, ri ) {
+				var fopts = choices.map( function ( c ) { return '<option value="' + escapeHtml( c.name ) + '"' + ( c.name === r.field ? ' selected' : '' ) + '>' + escapeHtml( c.label || c.name ) + '</option>'; } ).join( '' );
+				var oopts = Object.keys( ops ).map( function ( o ) { return '<option value="' + o + '"' + ( o === r.operator ? ' selected' : '' ) + '>' + ops[ o ] + '</option>'; } ).join( '' );
+				return '<div class="vfg-cond-row">' +
+					'<select class="velox-select vfg-cond-in" data-ri="' + ri + '" data-ck="field"><option value="">— field —</option>' + fopts + '</select>' +
+					'<select class="velox-select vfg-cond-in" data-ri="' + ri + '" data-ck="operator">' + oopts + '</select>' +
+					'<input class="velox-input vfg-cond-in" data-ri="' + ri + '" data-ck="value" value="' + escapeHtml( r.value || '' ) + '" placeholder="value">' +
+					'<button type="button" class="vfg-sub-del vfg-cond-del" data-ri="' + ri + '" title="Remove rule"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+				'</div>';
+			} ).join( '' );
+			return head + '<div class="vfg-cond-rules">' + ( rows || '<div class="vfg-sub-empty">No rules yet.</div>' ) +
+				'<button type="button" class="vfg-cond-add vfg-sub-add">+ Add rule</button></div></div>';
+		}
 
 		// ---- location rules ----
 		function renderLocation() {
@@ -2232,6 +2406,176 @@
 					.catch( function ( err ) { toast( err.message, 'error' ); } );
 			} );
 		} );
+		initFieldsTypes();
+	}
+
+	/* Post types + taxonomies (Custom Fields → tabs) */
+	function initFieldsTypes() {
+		var checks = function ( sel, root ) { return $$( sel + ' input:checked', root || document ).map( function ( c ) { return c.value; } ); };
+		function setChecks( containerId, values ) {
+			values = values || [];
+			$$( '#' + containerId + ' input' ).forEach( function ( c ) { c.checked = values.indexOf( c.value ) !== -1; } );
+		}
+		function v( id ) { var el = $( '#' + id ); return el ? el.value : ''; }
+		function chk( id ) { var el = $( '#' + id ); return el ? el.checked : false; }
+		function set( id, val ) { var el = $( '#' + id ); if ( el ) { el.value = val == null ? '' : val; } }
+		function setOn( id, on ) { var el = $( '#' + id ); if ( el ) { el.checked = !! on; } }
+
+		/* ---- Post types ---- */
+		var ptEditor = $( '#vpt-editor' );
+		if ( ptEditor ) {
+			var ptOldSlug = '';
+			function ptShow( pt ) {
+				ptOldSlug = pt ? ( pt.slug || '' ) : '';
+				$( '#vpt-editor-title' ).textContent = pt ? 'Edit post type' : 'Add post type';
+				set( 'vpt-singular', pt ? pt.singular : '' );
+				set( 'vpt-plural', pt ? pt.plural : '' );
+				set( 'vpt-slug', pt ? pt.slug : '' );
+				set( 'vpt-icon', pt ? pt.menu_icon : 'dashicons-admin-post' );
+				set( 'vpt-menupos', pt && pt.menu_position != null ? pt.menu_position : 25 );
+				setChecks( 'vpt-supports', pt ? pt.supports : [ 'title', 'editor', 'thumbnail', 'custom-fields' ] );
+				setChecks( 'vpt-taxonomies', pt ? pt.taxonomies : [] );
+				setOn( 'vpt-active', pt ? pt.active : true );
+				setOn( 'vpt-public', pt ? pt.public : true );
+				setOn( 'vpt-menu', pt ? pt.show_in_menu : true );
+				setOn( 'vpt-rest', pt ? pt.show_in_rest : true );
+				setOn( 'vpt-archive', pt ? pt.has_archive : true );
+				setOn( 'vpt-hier', pt ? pt.hierarchical : false );
+				ptEditor.hidden = false;
+				ptEditor.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+			}
+			var ptAdd = $( '#vpt-add' ); if ( ptAdd ) { ptAdd.addEventListener( 'click', function () { ptShow( null ); } ); }
+			$$( '.vpt-edit' ).forEach( function ( b ) {
+				b.addEventListener( 'click', function () {
+					var row = b.closest( '.vfx-row' ); var pt = {};
+					try { pt = JSON.parse( row.getAttribute( 'data-json' ) ); } catch ( e ) {}
+					ptShow( pt );
+				} );
+			} );
+			var ptCancel = $( '#vpt-cancel' ); if ( ptCancel ) { ptCancel.addEventListener( 'click', function () { ptEditor.hidden = true; } ); }
+			$$( '.vpt-del' ).forEach( function ( b ) {
+				b.addEventListener( 'click', function () {
+					if ( ! window.confirm( 'Delete this post type? Its content stays in the database but will no longer be registered.' ) ) { return; }
+					api( 'posttype_delete', { slug: b.getAttribute( 'data-slug' ) } ).then( function () { location.reload(); } ).catch( function ( e ) { toast( e.message, 'error' ); } );
+				} );
+			} );
+			var ptSave = $( '#vpt-save' );
+			if ( ptSave ) {
+				ptSave.addEventListener( 'click', function () {
+					var pt = {
+						_old_slug: ptOldSlug, slug: v( 'vpt-slug' ), singular: v( 'vpt-singular' ), plural: v( 'vpt-plural' ),
+						menu_icon: v( 'vpt-icon' ), menu_position: v( 'vpt-menupos' ),
+						supports: checks( '#vpt-supports' ), taxonomies: checks( '#vpt-taxonomies' ),
+						active: chk( 'vpt-active' ), 'public': chk( 'vpt-public' ), show_in_menu: chk( 'vpt-menu' ),
+						show_in_rest: chk( 'vpt-rest' ), has_archive: chk( 'vpt-archive' ), hierarchical: chk( 'vpt-hier' )
+					};
+					if ( ! pt.slug && ! pt.singular ) { toast( 'Give it at least a singular label.', 'error' ); return; }
+					ptSave.disabled = true;
+					api( 'posttype_save', { post_type: JSON.stringify( pt ) } )
+						.then( function () { toast( 'Post type saved.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+						.catch( function ( e ) { toast( e.message, 'error' ); ptSave.disabled = false; } );
+				} );
+			}
+		}
+
+		/* ---- Taxonomies ---- */
+		var txEditor = $( '#vtx-editor' );
+		if ( txEditor ) {
+			var txOldSlug = '';
+			function txShow( tx ) {
+				txOldSlug = tx ? ( tx.slug || '' ) : '';
+				$( '#vtx-editor-title' ).textContent = tx ? 'Edit taxonomy' : 'Add taxonomy';
+				set( 'vtx-singular', tx ? tx.singular : '' );
+				set( 'vtx-plural', tx ? tx.plural : '' );
+				set( 'vtx-slug', tx ? tx.slug : '' );
+				setChecks( 'vtx-objects', tx ? tx.object_types : [ 'post' ] );
+				setOn( 'vtx-active', tx ? tx.active : true );
+				setOn( 'vtx-public', tx ? tx.public : true );
+				setOn( 'vtx-hier', tx ? tx.hierarchical : true );
+				setOn( 'vtx-rest', tx ? tx.show_in_rest : true );
+				setOn( 'vtx-col', tx ? tx.show_admin_column : true );
+				txEditor.hidden = false;
+				txEditor.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+			}
+			var txAdd = $( '#vtx-add' ); if ( txAdd ) { txAdd.addEventListener( 'click', function () { txShow( null ); } ); }
+			$$( '.vtx-edit' ).forEach( function ( b ) {
+				b.addEventListener( 'click', function () {
+					var row = b.closest( '.vfx-row' ); var tx = {};
+					try { tx = JSON.parse( row.getAttribute( 'data-json' ) ); } catch ( e ) {}
+					txShow( tx );
+				} );
+			} );
+			var txCancel = $( '#vtx-cancel' ); if ( txCancel ) { txCancel.addEventListener( 'click', function () { txEditor.hidden = true; } ); }
+			$$( '.vtx-del' ).forEach( function ( b ) {
+				b.addEventListener( 'click', function () {
+					if ( ! window.confirm( 'Delete this taxonomy? Its terms stay in the database but will no longer be registered.' ) ) { return; }
+					api( 'taxonomy_delete', { slug: b.getAttribute( 'data-slug' ) } ).then( function () { location.reload(); } ).catch( function ( e ) { toast( e.message, 'error' ); } );
+				} );
+			} );
+			var txSave = $( '#vtx-save' );
+			if ( txSave ) {
+				txSave.addEventListener( 'click', function () {
+					var tx = {
+						_old_slug: txOldSlug, slug: v( 'vtx-slug' ), singular: v( 'vtx-singular' ), plural: v( 'vtx-plural' ),
+						object_types: checks( '#vtx-objects' ),
+						active: chk( 'vtx-active' ), 'public': chk( 'vtx-public' ), hierarchical: chk( 'vtx-hier' ),
+						show_in_rest: chk( 'vtx-rest' ), show_admin_column: chk( 'vtx-col' )
+					};
+					if ( ! tx.slug && ! tx.singular ) { toast( 'Give it at least a singular label.', 'error' ); return; }
+					txSave.disabled = true;
+					api( 'taxonomy_save', { taxonomy: JSON.stringify( tx ) } )
+						.then( function () { toast( 'Taxonomy saved.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+						.catch( function ( e ) { toast( e.message, 'error' ); txSave.disabled = false; } );
+				} );
+			}
+		}
+
+		/* ---- Options pages ---- */
+		var opEditor = $( '#vop-editor' );
+		if ( opEditor ) {
+			var opOldSlug = '';
+			function opShow( op ) {
+				opOldSlug = op ? ( op.slug || '' ) : '';
+				$( '#vop-editor-title' ).textContent = op ? 'Edit options page' : 'Add options page';
+				set( 'vop-title', op ? op.title : '' );
+				set( 'vop-menu', op ? op.menu_title : '' );
+				set( 'vop-slug', op ? op.slug : '' );
+				set( 'vop-parent', op ? ( op.parent || '' ) : '' );
+				set( 'vop-icon', op ? op.icon : 'dashicons-admin-generic' );
+				set( 'vop-position', op && op.position != null ? op.position : 80 );
+				opEditor.hidden = false;
+				opEditor.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+			}
+			var opAdd = $( '#vop-add' ); if ( opAdd ) { opAdd.addEventListener( 'click', function () { opShow( null ); } ); }
+			$$( '.vop-edit' ).forEach( function ( b ) {
+				b.addEventListener( 'click', function () {
+					var row = b.closest( '.vfx-row' ); var op = {};
+					try { op = JSON.parse( row.getAttribute( 'data-json' ) ); } catch ( e ) {}
+					opShow( op );
+				} );
+			} );
+			var opCancel = $( '#vop-cancel' ); if ( opCancel ) { opCancel.addEventListener( 'click', function () { opEditor.hidden = true; } ); }
+			$$( '.vop-del' ).forEach( function ( b ) {
+				b.addEventListener( 'click', function () {
+					if ( ! window.confirm( 'Delete this options page? Saved option values stay in the database.' ) ) { return; }
+					api( 'optionspage_delete', { slug: b.getAttribute( 'data-slug' ) } ).then( function () { location.reload(); } ).catch( function ( e ) { toast( e.message, 'error' ); } );
+				} );
+			} );
+			var opSave = $( '#vop-save' );
+			if ( opSave ) {
+				opSave.addEventListener( 'click', function () {
+					var op = {
+						_old_slug: opOldSlug, slug: v( 'vop-slug' ), title: v( 'vop-title' ), menu_title: v( 'vop-menu' ),
+						parent: v( 'vop-parent' ), icon: v( 'vop-icon' ), position: v( 'vop-position' )
+					};
+					if ( ! op.slug && ! op.title ) { toast( 'Give it at least a title.', 'error' ); return; }
+					opSave.disabled = true;
+					api( 'optionspage_save', { option_page: JSON.stringify( op ) } )
+						.then( function () { toast( 'Options page saved.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+						.catch( function ( e ) { toast( e.message, 'error' ); opSave.disabled = false; } );
+				} );
+			}
+		}
 	}
 
 	function initCookies() {

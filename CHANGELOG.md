@@ -4,6 +4,98 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.42.0 — Custom fields: Group field now works
+The **Group** field type was listed but rendered as a plain text box. It now works properly: define sub-fields (same editor as the repeater), they render as one bundled block on the editor, and save as a nested array. Read with `$g = Velox_Fields::get_field('address'); echo $g['street'];`.
+
+## 2.41.0 — Custom fields: more field types
+Added the remaining ACF-style field types: **Post object** & **Relationship** (pick posts/pages), **Taxonomy term**, **User**, **Link** (url + text + new-tab), **Button group**, **Range slider**, and **oEmbed** (paste a URL, get an embed). For post object / relationship / taxonomy, put the post type(s) or taxonomy slug in the field’s Choices box; range takes min / max / step (one per line).
+
+## 2.40.0 — Custom fields: conditional logic
+**Fields can now show or hide based on another field’s value** — the same conditional logic ACF offers:
+
+- In the field group editor, expand any field and tick “Conditional logic”, then add rules: show this field when <other field> <is / is not / has any / has no value> <value>. Multiple rules are ANDed.
+- On the post editor (and on options pages), fields appear and disappear live as you change the controlling field — no reload.
+- Also: the post-edit and options-page field rows now share one render path, so both behave identically.
+
+Next (chunk 4b): more field types — post object, relationship, taxonomy, user, link, button group, range, oembed.
+
+## 2.39.0 — Custom fields: Options pages
+**Create admin settings pages whose fields save to options instead of post meta** (ACF-style options pages):
+
+- New “Options pages” tab under Custom fields: give it a title, slug, parent menu (top-level, or under Settings / Appearance / Tools / Velox…), icon and position.
+- Point a field group at it with a location rule “Options page is <slug>” — those fields then render on the admin page (all field types work, including repeater/flexible/media).
+- Read the values anywhere with the ‘option’ target:
+
+```php
+echo Velox_Fields::get_field( 'footer_text', 'option' );
+while ( Velox_Fields::have_rows( 'social_links', 'option' ) ) { Velox_Fields::the_row(); echo Velox_Fields::get_sub_field( 'url' ); }
+```
+
+Next: more field types (post object, relationship, taxonomy, user, link, range…) + conditional logic.
+
+## 2.38.0 — Custom fields: Flexible Content
+**New Flexible Content field** — define several named layouts, each with its own sub-fields, then build a page by stacking rows of whichever layout you need (e.g. Hero, Quote, Gallery):
+
+- Define layouts in the field group editor, each with its own set of sub-fields.
+- On the post editor: an “Add row” menu lets you pick which layout to add; rows can be removed and dragged to reorder.
+- Read it on the front end, branching per layout:
+
+```php
+while ( Velox_Fields::have_rows( 'blocks' ) ) {
+    Velox_Fields::the_row();
+    if ( 'hero' === Velox_Fields::get_row_layout() ) {
+        echo Velox_Fields::get_sub_field( 'heading' );
+    }
+}
+```
+
+Next: options pages, then more field types + conditional logic.
+
+## 2.37.0 — Custom fields: working Repeater field
+**The Repeater field now actually works** — define a set of sub-fields once, then add as many rows as you like on the post editor:
+
+- Build sub-fields right inside the field group editor (label + name + type: text, text area, number, email, URL, image, file, true/false, colour, date).
+- On the post editor: Add row, remove row, and drag rows to reorder. Image/file sub-fields use the media library like any other.
+- Read it on the front end with an ACF-style loop:
+
+```php
+if ( Velox_Fields::have_rows( 'items' ) ) {
+    while ( Velox_Fields::have_rows( 'items' ) ) {
+        Velox_Fields::the_row();
+        echo Velox_Fields::get_sub_field( 'heading' );
+    }
+}
+```
+
+Or just `Velox_Fields::get_field('items')` to get the array of rows. Next: Flexible Content, then options pages.
+
+## 2.36.0 — Custom fields: real media, WYSIWYG & gallery inputs
+**The Image, File and WYSIWYG field types now actually work, and there is a new Gallery field** (part of the ongoing ACF-grade build):
+
+- **Image / File** — open the WordPress media library, pick an item, see a live preview (or filename), and clear it. Stores the attachment ID.
+- **Gallery** — new field type: add multiple images from the media library, thumbnails with one-click remove, no duplicates. Stores a list of attachment IDs.
+- **WYSIWYG** — a proper visual editor (TinyMCE) with media buttons, instead of a plain text box.
+
+Next chunks: the Repeater + Flexible Content engine, then options pages.
+
+## 2.35.0 — Snippets: choose where each one runs (WPCode-style locations)
+**Snippets now have a proper Location picker that changes with the snippet type**, instead of only ever loading in the footer:
+
+- **PHP:** Run everywhere · Frontend only · Admin only · Run once.
+- **CSS:** Site &lt;head&gt; · Site footer.
+- **JS / HTML:** Site header · After &lt;body&gt; open · Site footer · Before post content · After post content · Before paragraph N · After paragraph N · Shortcode only.
+
+Pick “Before/After paragraph” and a paragraph-number field appears; pick “Shortcode only” and you get a [velox_snippet id=…] to drop anywhere. Existing snippets keep working exactly as before (CSS in the head, JS/HTML in the footer) until you change their location.
+
+## 2.34.0 — Custom fields: create post types & taxonomies (ACF-style)
+**Custom fields can now create custom post types and taxonomies, not just field groups.** The Custom Fields screen is split into three tabs: Field groups, Post types, and Taxonomies.
+
+- **Post types** — create a post type (e.g. Movies, Projects) and it appears in the admin sidebar next to Posts and Pages right away. Control the slug, labels, menu icon and position, what it supports (title, editor, featured image, custom fields…), public/REST(Gutenberg)/archive/hierarchical, and which taxonomies attach to it.
+- **Taxonomies** — create category-like (hierarchical) or tag-like (flat) taxonomies, choose which post types they attach to, and toggle public/REST/admin-column.
+- Everything registers on every load, so your post types and taxonomies survive and behave like native ones — and your Velox field groups can target them.
+
+This is the foundation of the bigger custom-fields work; the field-group editor redesign, repeater/flexible-content fields and options pages come next.
+
 ## 2.33.11 — Backup import now restores in one step
 **Importing a backup now restores it immediately.** Upload a .sql or .zip backup and Velox applies it to the current site right away — no separate Restore click afterwards. A safety backup of the current site is taken first, so the import can itself be rolled back from the backup list if anything looks wrong.
 

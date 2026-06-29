@@ -104,13 +104,190 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 	<script type="application/json" id="vfg-params"><?php echo wp_json_encode( $params ); ?></script>
 
 <?php else :
-	$groups = Velox_Fields::all();
+	$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'groups'; // phpcs:ignore WordPress.Security.NonceVerification
+	if ( ! in_array( $tab, array( 'groups', 'post-types', 'taxonomies', 'options' ), true ) ) { $tab = 'groups'; }
+	$groups   = Velox_Fields::all();
+	$cpts     = Velox_Post_Types::all_post_types();
+	$taxes    = Velox_Post_Types::all_taxonomies();
+	$optpages = Velox_Fields::all_option_pages();
+	$supports = Velox_Post_Types::supports_options();
+	$sel_pts  = Velox_Post_Types::selectable_post_types();
 	?>
-	<div class="velox-section-head" style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;">
-		<div>
-			<h1 class="velox-h2">Custom fields</h1>
-			<p class="velox-sub">Field groups attach custom fields to your content based on location rules.</p>
+	<div class="velox-section-head">
+		<h1 class="velox-h2">Custom fields</h1>
+		<p class="velox-sub">Create custom post types and taxonomies, then attach field groups to them — all without code.</p>
+	</div>
+
+	<div class="vfx-tabs">
+		<a class="vfx-tab<?php echo 'groups' === $tab ? ' is-on' : ''; ?>" href="<?php echo esc_url( $base . '&tab=groups' ); ?>">Field groups <span class="vfx-tab-n"><?php echo count( $groups ); ?></span></a>
+		<a class="vfx-tab<?php echo 'post-types' === $tab ? ' is-on' : ''; ?>" href="<?php echo esc_url( $base . '&tab=post-types' ); ?>">Post types <span class="vfx-tab-n"><?php echo count( $cpts ); ?></span></a>
+		<a class="vfx-tab<?php echo 'taxonomies' === $tab ? ' is-on' : ''; ?>" href="<?php echo esc_url( $base . '&tab=taxonomies' ); ?>">Taxonomies <span class="vfx-tab-n"><?php echo count( $taxes ); ?></span></a>
+		<a class="vfx-tab<?php echo 'options' === $tab ? ' is-on' : ''; ?>" href="<?php echo esc_url( $base . '&tab=options' ); ?>">Options pages <span class="vfx-tab-n"><?php echo count( $optpages ); ?></span></a>
+	</div>
+
+	<?php if ( 'post-types' === $tab ) : ?>
+		<div class="vfx-head-row">
+			<p class="velox-hint" style="margin:0;">Custom post types appear in the admin sidebar next to Posts and Pages.</p>
+			<button class="velox-btn velox-btn--primary" id="vpt-add"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:6px;"><path d="M12 5v14M5 12h14"/></svg> Add post type</button>
 		</div>
+		<div class="velox-panel velox-panel--flush vfx-list" id="vpt-list">
+			<?php if ( empty( $cpts ) ) : ?>
+				<p class="velox-hint" style="padding:26px;">No custom post types yet. Add one and it shows up in the sidebar straight away.</p>
+			<?php else : foreach ( $cpts as $pt ) : ?>
+				<div class="vfx-row" data-slug="<?php echo esc_attr( $pt['slug'] ); ?>" data-json="<?php echo esc_attr( wp_json_encode( $pt ) ); ?>">
+					<button type="button" class="vfx-row-main vpt-edit">
+						<span class="vfx-row-title"><?php echo esc_html( $pt['plural'] ?: $pt['slug'] ); ?></span>
+						<span class="vfx-row-meta"><code><?php echo esc_html( $pt['slug'] ); ?></code> · <?php echo ! empty( $pt['hierarchical'] ) ? 'hierarchical' : 'flat'; ?><?php echo ! empty( $pt['has_archive'] ) ? ' · archive' : ''; ?></span>
+					</button>
+					<span class="vfx-row-status <?php echo ! empty( $pt['active'] ) ? 'is-active' : ''; ?>"><?php echo ! empty( $pt['active'] ) ? 'Active' : 'Inactive'; ?></span>
+					<button class="vfx-row-del vpt-del" data-slug="<?php echo esc_attr( $pt['slug'] ); ?>" title="Delete"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
+				</div>
+			<?php endforeach; endif; ?>
+		</div>
+
+		<div class="velox-panel vfx-editor" id="vpt-editor" hidden>
+			<h3 class="velox-panel-title" id="vpt-editor-title">Add post type</h3>
+			<div class="velox-grid-2">
+				<div class="velox-field"><span class="velox-field-label">Singular label</span><input type="text" class="velox-input" id="vpt-singular" placeholder="Movie"></div>
+				<div class="velox-field"><span class="velox-field-label">Plural label</span><input type="text" class="velox-input" id="vpt-plural" placeholder="Movies"></div>
+			</div>
+			<div class="velox-field"><span class="velox-field-label">Slug <em>(lowercase, max 20 chars — this is the post type key)</em></span><input type="text" class="velox-input" id="vpt-slug" placeholder="movie" maxlength="20"></div>
+			<div class="velox-grid-2">
+				<div class="velox-field"><span class="velox-field-label">Menu icon <em>(dashicons-… or image URL)</em></span><input type="text" class="velox-input" id="vpt-icon" placeholder="dashicons-video-alt2"></div>
+				<div class="velox-field"><span class="velox-field-label">Menu position</span><input type="number" class="velox-input velox-input--sm" id="vpt-menupos" value="25"></div>
+			</div>
+			<div class="velox-field">
+				<span class="velox-field-label">Supports</span>
+				<div class="vfx-checks" id="vpt-supports">
+					<?php foreach ( $supports as $sk => $sl ) : ?>
+						<label class="vfx-check"><input type="checkbox" value="<?php echo esc_attr( $sk ); ?>"<?php echo in_array( $sk, array( 'title', 'editor', 'thumbnail', 'custom-fields' ), true ) ? ' checked' : ''; ?>> <span><?php echo esc_html( $sl ); ?></span></label>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<?php if ( ! empty( $taxes ) ) : ?>
+			<div class="velox-field">
+				<span class="velox-field-label">Attach taxonomies</span>
+				<div class="vfx-checks" id="vpt-taxonomies">
+					<?php foreach ( $taxes as $tx ) : ?>
+						<label class="vfx-check"><input type="checkbox" value="<?php echo esc_attr( $tx['slug'] ); ?>"> <span><?php echo esc_html( $tx['plural'] ?: $tx['slug'] ); ?></span></label>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<?php endif; ?>
+			<div class="velox-grid-2 vfx-toggles">
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Active</span></div><span class="velox-switch"><input type="checkbox" id="vpt-active" checked><span class="velox-switch-track"></span></span></label>
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Public</span></div><span class="velox-switch"><input type="checkbox" id="vpt-public" checked><span class="velox-switch-track"></span></span></label>
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Show in sidebar menu</span></div><span class="velox-switch"><input type="checkbox" id="vpt-menu" checked><span class="velox-switch-track"></span></span></label>
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Show in REST (Gutenberg)</span></div><span class="velox-switch"><input type="checkbox" id="vpt-rest" checked><span class="velox-switch-track"></span></span></label>
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Has archive page</span></div><span class="velox-switch"><input type="checkbox" id="vpt-archive" checked><span class="velox-switch-track"></span></span></label>
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Hierarchical (page-like)</span></div><span class="velox-switch"><input type="checkbox" id="vpt-hier"><span class="velox-switch-track"></span></span></label>
+			</div>
+			<div class="vfx-editor-actions">
+				<button class="velox-btn velox-btn--ghost" id="vpt-cancel" type="button">Cancel</button>
+				<button class="velox-btn velox-btn--primary" id="vpt-save" type="button">Save post type</button>
+			</div>
+		</div>
+
+	<?php elseif ( 'taxonomies' === $tab ) : ?>
+		<div class="vfx-head-row">
+			<p class="velox-hint" style="margin:0;">Taxonomies group your content — like Categories (hierarchical) or Tags (flat).</p>
+			<button class="velox-btn velox-btn--primary" id="vtx-add"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:6px;"><path d="M12 5v14M5 12h14"/></svg> Add taxonomy</button>
+		</div>
+		<div class="velox-panel velox-panel--flush vfx-list" id="vtx-list">
+			<?php if ( empty( $taxes ) ) : ?>
+				<p class="velox-hint" style="padding:26px;">No custom taxonomies yet.</p>
+			<?php else : foreach ( $taxes as $tx ) : ?>
+				<div class="vfx-row" data-slug="<?php echo esc_attr( $tx['slug'] ); ?>" data-json="<?php echo esc_attr( wp_json_encode( $tx ) ); ?>">
+					<button type="button" class="vfx-row-main vtx-edit">
+						<span class="vfx-row-title"><?php echo esc_html( $tx['plural'] ?: $tx['slug'] ); ?></span>
+						<span class="vfx-row-meta"><code><?php echo esc_html( $tx['slug'] ); ?></code> · <?php echo ! empty( $tx['hierarchical'] ) ? 'category-like' : 'tag-like'; ?> · <?php echo esc_html( implode( ', ', $tx['object_types'] ) ); ?></span>
+					</button>
+					<span class="vfx-row-status <?php echo ! empty( $tx['active'] ) ? 'is-active' : ''; ?>"><?php echo ! empty( $tx['active'] ) ? 'Active' : 'Inactive'; ?></span>
+					<button class="vfx-row-del vtx-del" data-slug="<?php echo esc_attr( $tx['slug'] ); ?>" title="Delete"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
+				</div>
+			<?php endforeach; endif; ?>
+		</div>
+
+		<div class="velox-panel vfx-editor" id="vtx-editor" hidden>
+			<h3 class="velox-panel-title" id="vtx-editor-title">Add taxonomy</h3>
+			<div class="velox-grid-2">
+				<div class="velox-field"><span class="velox-field-label">Singular label</span><input type="text" class="velox-input" id="vtx-singular" placeholder="Genre"></div>
+				<div class="velox-field"><span class="velox-field-label">Plural label</span><input type="text" class="velox-input" id="vtx-plural" placeholder="Genres"></div>
+			</div>
+			<div class="velox-field"><span class="velox-field-label">Slug <em>(lowercase, max 32 chars)</em></span><input type="text" class="velox-input" id="vtx-slug" placeholder="genre" maxlength="32"></div>
+			<div class="velox-field">
+				<span class="velox-field-label">Attach to post types</span>
+				<div class="vfx-checks" id="vtx-objects">
+					<?php foreach ( $sel_pts as $ptslug => $ptlabel ) : ?>
+						<label class="vfx-check"><input type="checkbox" value="<?php echo esc_attr( $ptslug ); ?>"<?php echo 'post' === $ptslug ? ' checked' : ''; ?>> <span><?php echo esc_html( $ptlabel ); ?></span></label>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<div class="velox-grid-2 vfx-toggles">
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Active</span></div><span class="velox-switch"><input type="checkbox" id="vtx-active" checked><span class="velox-switch-track"></span></span></label>
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Public</span></div><span class="velox-switch"><input type="checkbox" id="vtx-public" checked><span class="velox-switch-track"></span></span></label>
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Hierarchical (category-like)</span></div><span class="velox-switch"><input type="checkbox" id="vtx-hier" checked><span class="velox-switch-track"></span></span></label>
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Show in REST (Gutenberg)</span></div><span class="velox-switch"><input type="checkbox" id="vtx-rest" checked><span class="velox-switch-track"></span></span></label>
+				<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Show admin column</span></div><span class="velox-switch"><input type="checkbox" id="vtx-col" checked><span class="velox-switch-track"></span></span></label>
+			</div>
+			<div class="vfx-editor-actions">
+				<button class="velox-btn velox-btn--ghost" id="vtx-cancel" type="button">Cancel</button>
+				<button class="velox-btn velox-btn--primary" id="vtx-save" type="button">Save taxonomy</button>
+			</div>
+		</div>
+
+	<?php elseif ( 'options' === $tab ) : ?>
+		<div class="vfx-head-row">
+			<p class="velox-hint" style="margin:0;">Options pages are admin screens for global settings (read with <code>Velox_Fields::get_field('name','option')</code>). Target one from a field group's location rule.</p>
+			<button class="velox-btn velox-btn--primary" id="vop-add"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:6px;"><path d="M12 5v14M5 12h14"/></svg> Add options page</button>
+		</div>
+		<div class="velox-panel velox-panel--flush vfx-list" id="vop-list">
+			<?php if ( empty( $optpages ) ) : ?>
+				<p class="velox-hint" style="padding:26px;">No options pages yet.</p>
+			<?php else : foreach ( $optpages as $op ) : ?>
+				<div class="vfx-row" data-slug="<?php echo esc_attr( $op['slug'] ); ?>" data-json="<?php echo esc_attr( wp_json_encode( $op ) ); ?>">
+					<button type="button" class="vfx-row-main vop-edit">
+						<span class="vfx-row-title"><?php echo esc_html( $op['menu_title'] ?: $op['title'] ); ?></span>
+						<span class="vfx-row-meta"><code><?php echo esc_html( $op['slug'] ); ?></code> · <?php echo '' === $op['parent'] ? 'top-level menu' : esc_html( 'under ' . $op['parent'] ); ?></span>
+					</button>
+					<button class="vfx-row-del vop-del" data-slug="<?php echo esc_attr( $op['slug'] ); ?>" title="Delete"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
+				</div>
+			<?php endforeach; endif; ?>
+		</div>
+
+		<div class="velox-panel vfx-editor" id="vop-editor" hidden>
+			<h3 class="velox-panel-title" id="vop-editor-title">Add options page</h3>
+			<div class="velox-grid-2">
+				<div class="velox-field"><span class="velox-field-label">Page title</span><input type="text" class="velox-input" id="vop-title" placeholder="Theme Settings"></div>
+				<div class="velox-field"><span class="velox-field-label">Menu title <em>(optional)</em></span><input type="text" class="velox-input" id="vop-menu" placeholder="Settings"></div>
+			</div>
+			<div class="velox-grid-2">
+				<div class="velox-field"><span class="velox-field-label">Slug <em>(lowercase, max 32)</em></span><input type="text" class="velox-input" id="vop-slug" placeholder="theme-settings" maxlength="32"></div>
+				<div class="velox-field"><span class="velox-field-label">Parent menu</span>
+					<select class="velox-select" id="vop-parent">
+						<option value="">Top-level menu</option>
+						<option value="velox">Under Velox</option>
+						<option value="options-general.php">Under Settings</option>
+						<option value="themes.php">Under Appearance</option>
+						<option value="tools.php">Under Tools</option>
+						<option value="edit.php">Under Posts</option>
+						<option value="upload.php">Under Media</option>
+					</select>
+				</div>
+			</div>
+			<div class="velox-grid-2">
+				<div class="velox-field"><span class="velox-field-label">Dashicon <em>(top-level only)</em></span><input type="text" class="velox-input" id="vop-icon" placeholder="dashicons-admin-generic"></div>
+				<div class="velox-field"><span class="velox-field-label">Menu position</span><input type="number" class="velox-input" id="vop-position" value="80"></div>
+			</div>
+			<div class="vfx-editor-actions">
+				<button class="velox-btn velox-btn--ghost" id="vop-cancel" type="button">Cancel</button>
+				<button class="velox-btn velox-btn--primary" id="vop-save" type="button">Save options page</button>
+			</div>
+		</div>
+
+	<?php else : ?>
+	<div class="vfx-head-row">
+		<p class="velox-hint" style="margin:0;">Field groups attach custom fields to your content based on location rules.</p>
 		<a class="velox-btn velox-btn--primary" href="<?php echo esc_url( $base . '&group=new' ); ?>">
 			<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:6px;"><path d="M12 5v14M5 12h14"/></svg> New field group
 		</a>
@@ -145,6 +322,7 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 			<?php endforeach; ?>
 		</div>
 	<?php endif; ?>
+	<?php endif; // tab switch ?>
 
 	<div class="velox-panel velox-mail-disable" style="margin-top:16px;">
 		<label class="velox-inline-toggle">

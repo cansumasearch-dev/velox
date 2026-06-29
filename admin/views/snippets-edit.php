@@ -17,6 +17,21 @@ $priority = $snippet ? (int) $snippet['priority'] : 10;
 $name     = $snippet ? $snippet['name'] : '';
 $desc     = $snippet ? $snippet['description'] : '';
 $code     = $snippet ? $snippet['code'] : '';
+$location = $snippet && isset( $snippet['location'] ) ? $snippet['location'] : '';
+$loc_num  = $snippet && isset( $snippet['location_num'] ) ? (int) $snippet['location_num'] : 1;
+// Effective dropdown value: PHP uses scope; output types use location (legacy fallback).
+if ( 'php' === $type ) {
+	$cur_loc = $scope;
+} else {
+	$cur_loc = '' !== $location ? $location : ( 'css' === $type ? 'head' : 'site_footer' );
+}
+$loc_opts = Velox_Snippets::locations_for( $type );
+$loc_map  = array(
+	'php'  => Velox_Snippets::locations_for( 'php' ),
+	'css'  => Velox_Snippets::locations_for( 'css' ),
+	'js'   => Velox_Snippets::locations_for( 'js' ),
+	'html' => Velox_Snippets::locations_for( 'html' ),
+);
 
 $type_opts = array(
 	'php'  => 'PHP — functions & hooks',
@@ -80,11 +95,17 @@ $scope_opts = array(
 				<div class="velox-field">
 					<label class="velox-label" for="velox-snip-scope">Location</label>
 					<select class="velox-select" id="velox-snip-scope">
-						<?php foreach ( $scope_opts as $val => $label ) : ?>
-							<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $scope, $val ); ?>><?php echo esc_html( $label ); ?></option>
+						<?php foreach ( $loc_opts as $val => $label ) : ?>
+							<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $cur_loc, $val ); ?>><?php echo esc_html( $label ); ?></option>
 						<?php endforeach; ?>
 					</select>
+					<span class="velox-hint" id="velox-snip-loc-hint" style="margin-top:6px;"></span>
 				</div>
+				<div class="velox-field velox-field--narrow" id="velox-snip-locnum-wrap"<?php echo Velox_Snippets::location_needs_num( $cur_loc ) ? '' : ' hidden'; ?>>
+					<label class="velox-label" for="velox-snip-locnum">Paragraph number</label>
+					<input type="number" class="velox-input" id="velox-snip-locnum" value="<?php echo esc_attr( $loc_num ); ?>" min="1" max="999">
+				</div>
+				<script type="application/json" id="velox-snip-locmap"><?php echo wp_json_encode( $loc_map ); ?></script>
 				<div class="velox-field velox-field--narrow">
 					<label class="velox-label" for="velox-snip-prio">Priority</label>
 					<input type="number" class="velox-input" id="velox-snip-prio" value="<?php echo esc_attr( $priority ); ?>" min="1" max="999">

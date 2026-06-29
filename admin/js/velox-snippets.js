@@ -65,6 +65,36 @@
 		var hintEl  = $( '#velox-snip-codehint' );
 		var saveAct = $( '#velox-snip-save-activate' );
 		var saveOnly = $( '#velox-snip-save-only' );
+		var locNumWrap = $( '#velox-snip-locnum-wrap' );
+		var locNumEl   = $( '#velox-snip-locnum' );
+		var locHint    = $( '#velox-snip-loc-hint' );
+		var locMap = {};
+		var locMapEl = $( '#velox-snip-locmap' );
+		if ( locMapEl ) { try { locMap = JSON.parse( locMapEl.textContent ); } catch ( e ) { locMap = {}; } }
+
+		function needsNum( v ) { return v === 'before_paragraph' || v === 'after_paragraph'; }
+		function syncLocNum() {
+			if ( locNumWrap ) { locNumWrap.hidden = ! needsNum( scopeEl.value ); }
+			if ( locHint ) {
+				locHint.textContent = scopeEl.value === 'shortcode'
+					? 'Use [velox_snippet id=' + ( editor.getAttribute( 'data-id' ) || 'ID' ) + '] anywhere to output it.'
+					: '';
+			}
+		}
+		function rebuildLocations( keep ) {
+			var opts = locMap[ typeEl.value ] || {};
+			var prev = scopeEl.value;
+			scopeEl.innerHTML = '';
+			Object.keys( opts ).forEach( function ( val ) {
+				var o = document.createElement( 'option' );
+				o.value = val; o.textContent = opts[ val ];
+				scopeEl.appendChild( o );
+			} );
+			if ( keep && opts[ prev ] ) { scopeEl.value = prev; }
+			syncLocNum();
+		}
+		scopeEl.addEventListener( 'change', syncLocNum );
+		syncLocNum();
 
 		var cm = null;
 		if ( window.wp && wp.codeEditor && wp.codeEditor.initialize ) {
@@ -85,6 +115,7 @@
 				badge.className = 'velox-snip-badge is-' + typeEl.value;
 				badge.textContent = typeEl.value.toUpperCase();
 			}
+			rebuildLocations( false );
 		} );
 
 		function relabel() {
@@ -99,6 +130,8 @@
 				type:        typeEl.value,
 				code:        getCode(),
 				scope:       scopeEl.value,
+				location:    scopeEl.value,
+				location_num: locNumEl ? ( locNumEl.value || 1 ) : 1,
 				priority:    prioEl.value || 10,
 				active:      activeVal
 			};

@@ -16,7 +16,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 class Velox_Snippets {
 
-	const DB_VERSION = '1';
+	const DB_VERSION = '2';
 	const DB_OPTION  = 'velox_snippets_db';
 	const MENU_SLUG  = 'velox-snippets';
 
@@ -53,6 +53,50 @@ class Velox_Snippets {
 	/* Bootstrap                                                          */
 	/* ------------------------------------------------------------------ */
 
+	/**
+	 * Locations available for a snippet type. PHP uses run-contexts (stored in
+	 * `scope`); css/js/html use output placements (stored in `location`).
+	 */
+	public static function locations_for( $type ) {
+		if ( 'php' === $type ) {
+			return array(
+				'everywhere' => 'Run everywhere',
+				'front'      => 'Frontend only',
+				'admin'      => 'Admin only',
+				'once'       => 'Run once, then switch off',
+			);
+		}
+		if ( 'css' === $type ) {
+			return array(
+				'head'        => 'Site <head>',
+				'site_footer' => 'Site footer',
+			);
+		}
+		// js / html
+		return array(
+			'site_header'      => 'Site header (before </head>)',
+			'site_body'        => 'After <body> open',
+			'site_footer'      => 'Site footer (before </body>)',
+			'before_content'   => 'Before post content',
+			'after_content'    => 'After post content',
+			'before_paragraph' => 'Before paragraph N',
+			'after_paragraph'  => 'After paragraph N',
+			'shortcode'        => 'Shortcode only',
+		);
+	}
+
+	/** Output placements that need a paragraph number. */
+	public static function location_needs_num( $location ) {
+		return in_array( $location, array( 'before_paragraph', 'after_paragraph' ), true );
+	}
+
+	/** Effective output location for a snippet, with legacy fallback by type. */
+	private static function loc( $s ) {
+		$l = isset( $s['location'] ) ? (string) $s['location'] : '';
+		if ( '' !== $l ) { return $l; }
+		return ( 'css' === $s['type'] ) ? 'head' : 'site_footer'; // pre-2.x snippets
+	}
+
 	public static function init() {
 		self::maybe_install();
 
@@ -66,11 +110,13 @@ class Velox_Snippets {
 		// PHP snippets run now, early enough to hook into WordPress.
 		self::run_php();
 
-		// Output snippets (css/js/html) hook into head/footer.
-		add_action( 'wp_head',      array( __CLASS__, 'output_css' ), 20 );
-		add_action( 'admin_head',   array( __CLASS__, 'output_css' ), 20 );
-		add_action( 'wp_footer',    array( __CLASS__, 'output_js_html' ), 20 );
-		add_action( 'admin_footer', array( __CLASS__, 'output_js_html' ), 20 );
+		// Output snippets (css/js/html) route to the chosen placement.
+		add_action( 'wp_head',      array( __CLASS__, 'output_head' ), 20 );
+		add_action( 'admin_head',   array( __CLASS__, 'output_head' ), 20 );
+		add_action( 'wp_body_open', array( __CLASS__, 'output_body' ), 20 );
+		add_action( 'wp_footer',    array( __CLASS__, 'output_footer' ), 20 );
+		add_action( 'admin_footer', array( __CLASS__, 'output_footer' ), 20 );
+		add_filter( 'the_content',  array( __CLASS__, 'filter_content' ), 20 );
 		add_shortcode( 'velox_snippet', array( __CLASS__, 'shortcode' ) );
 
 		if ( is_admin() ) {
@@ -109,6 +155,8 @@ class Velox_Snippets {
 				type VARCHAR(20) NOT NULL DEFAULT 'php',
 				code LONGTEXT NULL,
 				scope VARCHAR(20) NOT NULL DEFAULT 'everywhere',
+				location VARCHAR(32) NOT NULL DEFAULT '',
+				location_num INT NOT NULL DEFAULT 1,
 				priority INT NOT NULL DEFAULT 10,
 				active TINYINT(1) NOT NULL DEFAULT 0,
 				trashed TINYINT(1) NOT NULL DEFAULT 0,
@@ -184,6 +232,12 @@ class Velox_Snippets {
 		$priority = isset( $data['priority'] ) ? (int) $data['priority'] : 10;
 		$active   = ! empty( $data['active'] ) ? 1 : 0;
 
+		// Output placement (css/js/html). PHP ignores this and uses scope.
+		$loc_in   = isset( $data['location'] ) ? sanitize_key( $data['location'] ) : '';
+		$valid    = array_keys( self::locations_for( $type ) );
+		$location = ( 'php' === $type ) ? '' : ( in_array( $loc_in, $valid, true ) ? $loc_in : '' );
+		$loc_num  = isset( $data['location_num'] ) ? max( 1, (int) $data['location_num'] ) : 1;
+
 		// Never let a PHP snippet with a syntax error get saved as active.
 		if ( 'php' === $type && $active ) {
 			$lint = self::lint_php( $code );
@@ -198,11 +252,13 @@ class Velox_Snippets {
 			'type'        => $type,
 			'code'        => $code,
 			'scope'       => $scope,
+			'location'    => $location,
+			'location_num'=> $loc_num,
 			'priority'    => $priority,
 			'active'      => $active,
 			'modified'    => current_time( 'mysql' ),
 		);
-		$fmt = array( '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%s' );
+		$fmt = array( '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%d', '%d', '%s' );
 
 		if ( $id ) {
 			$wpdb->update( self::table(), $row, array( 'id' => $id ), $fmt, array( '%d' ) );
@@ -400,29 +456,84 @@ class Velox_Snippets {
 	/* CSS / JS / HTML output                                             */
 	/* ------------------------------------------------------------------ */
 
-	public static function output_css() {
+	/** Wrap a snippet's code by type. */
+	private static function emit( $s ) {
+		$code = (string) $s['code'];
+		if ( '' === trim( $code ) ) { return ''; }
+		$id = (int) $s['id'];
+		if ( 'css' === $s['type'] ) { return "\n<style id=\"velox-snippet-{$id}\">\n{$code}\n</style>\n"; }
+		if ( 'js' === $s['type'] )  { return "\n<script id=\"velox-snippet-{$id}\">\n{$code}\n</script>\n"; }
+		return "\n<!-- velox-snippet {$id} -->\n{$code}\n"; // html
+	}
+
+	/** css(head) + js/html(site_header). */
+	public static function output_head() {
 		foreach ( self::all( 'active' ) as $s ) {
-			if ( 'css' !== $s['type'] || ! self::scope_matches( $s['scope'] ) || '' === trim( (string) $s['code'] ) ) {
-				continue;
-			}
-			echo "\n<style id=\"velox-snippet-" . (int) $s['id'] . "\">\n" . $s['code'] . "\n</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput
+			if ( 'php' === $s['type'] || ! self::scope_matches( $s['scope'] ) ) { continue; }
+			$loc = self::loc( $s );
+			$ok  = ( 'css' === $s['type'] && 'head' === $loc ) || ( in_array( $s['type'], array( 'js', 'html' ), true ) && 'site_header' === $loc );
+			if ( ! $ok ) { continue; }
+			echo self::emit( $s ); // phpcs:ignore WordPress.Security.EscapeOutput
 			self::maybe_run_once( $s );
 		}
 	}
 
-	public static function output_js_html() {
+	/** js/html(site_body) — front-end only hook. */
+	public static function output_body() {
 		foreach ( self::all( 'active' ) as $s ) {
-			if ( ! self::scope_matches( $s['scope'] ) || '' === trim( (string) $s['code'] ) ) {
-				continue;
-			}
-			if ( 'js' === $s['type'] ) {
-				echo "\n<script id=\"velox-snippet-" . (int) $s['id'] . "\">\n" . $s['code'] . "\n</script>\n"; // phpcs:ignore WordPress.Security.EscapeOutput
-				self::maybe_run_once( $s );
-			} elseif ( 'html' === $s['type'] ) {
-				echo "\n<!-- velox-snippet " . (int) $s['id'] . " -->\n" . $s['code'] . "\n"; // phpcs:ignore WordPress.Security.EscapeOutput
-				self::maybe_run_once( $s );
-			}
+			if ( ! in_array( $s['type'], array( 'js', 'html' ), true ) || ! self::scope_matches( $s['scope'] ) ) { continue; }
+			if ( 'site_body' !== self::loc( $s ) ) { continue; }
+			echo self::emit( $s ); // phpcs:ignore WordPress.Security.EscapeOutput
+			self::maybe_run_once( $s );
 		}
+	}
+
+	/** css(site_footer) + js/html(site_footer, incl. legacy default). */
+	public static function output_footer() {
+		foreach ( self::all( 'active' ) as $s ) {
+			if ( 'php' === $s['type'] || ! self::scope_matches( $s['scope'] ) ) { continue; }
+			if ( 'site_footer' !== self::loc( $s ) ) { continue; }
+			echo self::emit( $s ); // phpcs:ignore WordPress.Security.EscapeOutput
+			self::maybe_run_once( $s );
+		}
+	}
+
+	/** Insert js/html snippets into post content (before/after content or paragraph N). */
+	public static function filter_content( $content ) {
+		if ( is_admin() || ! is_singular() || ! in_the_loop() || ! is_main_query() ) {
+			return $content;
+		}
+		$pre = '';
+		$post = '';
+		foreach ( self::all( 'active' ) as $s ) {
+			if ( ! in_array( $s['type'], array( 'js', 'html' ), true ) || ! self::scope_matches( $s['scope'] ) ) { continue; }
+			$loc  = self::loc( $s );
+			$html = self::emit( $s );
+			if ( '' === $html ) { continue; }
+			$num = max( 1, (int) ( $s['location_num'] ?? 1 ) );
+			if ( 'before_content' === $loc )      { $pre  .= $html; self::maybe_run_once( $s ); }
+			elseif ( 'after_content' === $loc )   { $post .= $html; self::maybe_run_once( $s ); }
+			elseif ( 'before_paragraph' === $loc ) { $content = self::insert_at_paragraph( $content, $html, $num, false ); self::maybe_run_once( $s ); }
+			elseif ( 'after_paragraph' === $loc )  { $content = self::insert_at_paragraph( $content, $html, $num, true ); self::maybe_run_once( $s ); }
+		}
+		return $pre . $content . $post;
+	}
+
+	/** Insert markup before/after the Nth paragraph (splitting on </p>). */
+	private static function insert_at_paragraph( $content, $insert, $n, $after ) {
+		$parts = explode( '</p>', $content );
+		$count = count( $parts ) - 1; // number of closing </p> tags
+		if ( $count < 1 ) { return $after ? $content . $insert : $insert . $content; }
+		$n   = max( 1, min( $n, $count ) );
+		$out = '';
+		$last = count( $parts ) - 1;
+		foreach ( $parts as $i => $para ) {
+			if ( $i < $last ) { $para .= '</p>'; }
+			if ( ! $after && $i === $n - 1 ) { $out .= $insert; }
+			$out .= $para;
+			if ( $after && $i === $n - 1 ) { $out .= $insert; }
+		}
+		return $out;
 	}
 
 	private static function maybe_run_once( $s ) {
@@ -434,10 +545,10 @@ class Velox_Snippets {
 	public static function shortcode( $atts ) {
 		$atts = shortcode_atts( array( 'id' => 0 ), $atts, 'velox_snippet' );
 		$s    = self::get( (int) $atts['id'] );
-		if ( ! $s || 'html' !== $s['type'] || ! $s['active'] ) {
+		if ( ! $s || ! in_array( $s['type'], array( 'html', 'js' ), true ) || ! $s['active'] ) {
 			return '';
 		}
-		return $s['code'];
+		return 'js' === $s['type'] ? self::emit( $s ) : $s['code'];
 	}
 
 	/* ------------------------------------------------------------------ */
