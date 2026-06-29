@@ -132,6 +132,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<button data-dev="tablet" title="Tablet"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="2" width="14" height="20" rx="2.5"/></svg></button>
 				<button data-dev="mobile" title="Mobile"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="2" width="10" height="20" rx="2.5"/></svg></button>
 			</div>
+			<button class="velox-btn velox-btn--ghost" id="vse-to-preview" type="button">Preview</button>
 			<button class="velox-btn velox-btn--ghost" id="vse-reset" type="button">Reset</button>
 			<button class="velox-btn velox-btn--primary" id="vse-save" type="button">Save &amp; close</button>
 		</div>
@@ -143,6 +144,12 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			</div>
 			<div class="vse-right">
 				<div class="vse-right-head"><div class="tt">Elements</div><div class="ts">Select anything to style it</div></div>
+				<div class="vse-tabs" id="vse-tabs">
+					<button type="button" class="is-on" data-tab="all">All</button>
+					<button type="button" data-tab="inputs">Inputs</button>
+					<button type="button" data-tab="text">Text</button>
+					<button type="button" data-tab="buttons">Button</button>
+				</div>
 				<div class="vse-tree" id="vse-tree"></div>
 			</div>
 		</div>

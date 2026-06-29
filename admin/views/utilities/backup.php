@@ -66,11 +66,11 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 		</div>
 
 		<div class="velox-panel velox-tool-form">
-			<h3 class="velox-panel-title">Import a backup</h3>
-			<p class="velox-hint">Upload a <code>.sql</code> dump or a <code>.zip</code> file archive made on another site. It joins the list below, ready to restore.</p>
+			<h3 class="velox-panel-title">Import &amp; restore a backup</h3>
+			<p class="velox-hint">Upload a <code>.sql</code> dump or a <code>.zip</code> archive made on another site and it's <strong>restored straight away</strong>. A safety backup of the current site is taken first, so you can roll the restore back from the list below.</p>
 			<div class="vbk-import-row">
 				<input type="file" id="vbk-import-file" accept=".sql,.zip" class="vbk-file">
-				<button class="velox-btn velox-btn--ghost" id="vbk-import-btn">Import</button>
+				<button class="velox-btn velox-btn--primary" id="vbk-import-btn">Import &amp; restore</button>
 			</div>
 		</div>
 	</div>

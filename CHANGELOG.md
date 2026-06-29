@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.33.11 — Backup import now restores in one step
+**Importing a backup now restores it immediately.** Upload a .sql or .zip backup and Velox applies it to the current site right away — no separate Restore click afterwards. A safety backup of the current site is taken first, so the import can itself be rolled back from the backup list if anything looks wrong.
+
+## 2.33.10 — Forms style editor: tabs + jump between Preview and Edit
+**The style editor’s structure panel is now tabbed** — All / Inputs / Text / Button — so you can jump straight to the group you want instead of scrolling one long list. The individual-field list lives under Inputs. You can now also hop straight between the two modes: the Style editor has a **Preview** button in its top bar, and the full-screen Preview has an **Edit styles** button — no more closing one to open the other.
+
 ## 2.33.9 — Cookie banner editor redesign + 404 log fix
 **The cookie banner editor got a proper UX pass.** Every on/off toggle (Consent Mode, the Analytics/Marketing categories, drop shadow, dim background, full-width mobile buttons) is now a clean, self-contained card, so the switch sits neatly at the edge instead of floating far away from its label. Toggle groups pack together tightly instead of leaving an awkward empty half-row, every number field now fills its space instead of stranding a tiny box with dead space beside it, the colour swatches look more modern, and the spacing throughout is consistent and easier to scan. All the existing power — placement, Consent Mode v2, per-button styling, layout controls, typography and custom CSS — is unchanged, just much nicer to use.
 

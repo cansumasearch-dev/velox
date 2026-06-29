@@ -335,6 +335,17 @@ class Velox_Ajax {
 				if ( empty( $r['ok'] ) ) {
 					wp_send_json_error( array( 'message' => isset( $r['message'] ) ? $r['message'] : 'Import failed.' ) );
 				}
+				// The user expects upload = restore. Immediately restore the freshly
+				// imported backup (whatever it contained), keeping a safety backup so
+				// the restore itself can be rolled back.
+				$imp_what = ( ! empty( $r['entry']['what'] ) ) ? $r['entry']['what'] : 'both';
+				$restore  = Velox_Backup::restore( $r['id'], $imp_what, true );
+				if ( empty( $restore['ok'] ) ) {
+					wp_send_json_error( array( 'message' => 'The backup uploaded, but restoring it failed: ' . ( isset( $restore['message'] ) ? $restore['message'] : 'unknown error' ) . ' It is saved in your backup list — you can retry Restore there.' ) );
+				}
+				$r['restored'] = true;
+				$r['restore']  = $restore;
+				$r['message']  = 'Backup imported and restored.';
 				wp_send_json_success( $r );
 				break;
 

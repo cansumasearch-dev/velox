@@ -2334,7 +2334,7 @@
 				fd.append( 'nonce', VELOX.nonce );
 				fd.append( 'file', importFile.files[0] );
 				importBtn.disabled = true;
-				openProgress( 'Importing backup…', 'Uploading and registering the file.', 20 );
+				openProgress( 'Importing & restoring backup…', 'Uploading the file, then restoring it onto this site.', 20 );
 				fetch( VELOX.ajaxurl, { method: 'POST', credentials: 'same-origin', body: fd } )
 					.then( function ( r ) { return r.json(); } )
 					.then( function ( j ) {
@@ -2978,6 +2978,9 @@
 		var dragFrom   = -1;
 		var palDrag    = null;   // field type currently dragged from the palette
 		var clipboard  = null;
+		var openPreviewOverlay = null;   // set by initPreview, called from the style editor
+		var openStyleEditor    = null;   // set by initStyleEditor, called from the preview
+		var treeTab    = 'all';  // style-editor structure panel filter
 		var inspZone   = inspector ? inspector.closest( '.vmail-sb-zone--insp' ) : null;
 		if ( inspZone ) { inspZone.classList.add( 'is-collapsed' ); }
 		function openInspector() { if ( inspZone ) { inspZone.classList.remove( 'is-collapsed' ); } }
@@ -3715,12 +3718,14 @@
 						'<span class="vmp-note">Exactly what visitors see \u2014 type in it, nothing is submitted.</span>' +
 						'<span class="vmp-sp"></span>' +
 						'<div class="vmp-dev" id="vmp-dev"><button class="is-on" type="button" data-d="desktop">Desktop</button><button type="button" data-d="mobile">Mobile</button></div>' +
+						'<button class="velox-btn velox-btn--ghost" id="vmp-to-style" type="button"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit styles</button>' +
 						'<button class="velox-btn velox-btn--ghost" id="vmp-close" type="button">Close</button>' +
 					'</div>' +
 					'<div class="vmp-stage"><div class="vmp-frame" id="vmp-frame"><div class="vse-pf" id="vmp-form"></div></div></div>' +
 					'<style id="vmp-css"></style>';
 				document.body.appendChild( overlay );
 				$( '#vmp-close', overlay ).addEventListener( 'click', close );
+				$( '#vmp-to-style', overlay ).addEventListener( 'click', function () { close(); if ( openStyleEditor ) { openStyleEditor(); } } );
 				$( '#vmp-form', overlay ).addEventListener( 'submit', function ( e ) { e.preventDefault(); } );
 				$$( '#vmp-dev button', overlay ).forEach( function ( d ) {
 					d.addEventListener( 'click', function () {
@@ -3737,6 +3742,7 @@
 				overlay.hidden = false; document.body.style.overflow = 'hidden';
 			}
 			function close() { if ( overlay ) { overlay.hidden = true; document.body.style.overflow = ''; } }
+			openPreviewOverlay = open;
 			btn.addEventListener( 'click', open );
 		}
 
@@ -3954,23 +3960,28 @@
 				} );
 			}
 
-			// ---- selector tree ----
+			// ---- selector tree (filtered by the tab bar) ----
 			function renderTree() {
 				var tree = $( '#vse-tree' );
-				var html = '<div class="vse-tree-glabel">Form</div>';
-				html += node( 'form', 'Whole form', '', ICONS.form );
-				html += node( 'header', 'Header', '', ICONS.header );
-				html += '<div class="vse-tree-glabel">Shared</div>';
-				html += node( 'labels', 'All labels', '', ICONS.labels );
-				html += node( 'inputs', 'All inputs', '', ICONS.inputs );
-				html += node( 'submit', 'Submit button', '', ICONS.submit );
+				var tab = treeTab;
+				var html = '';
 				var styleable = form.fields.filter( function ( f ) { return [ 'step', 'html', 'captcha' ].indexOf( f.type ) === -1; } );
-				if ( styleable.length ) {
-					html += '<div class="vse-tree-glabel">Individual fields</div>';
+				if ( tab === 'all' ) {
+					html += '<div class="vse-tree-glabel">Form</div>' + node( 'form', 'Whole form', '', ICONS.form );
+				}
+				if ( tab === 'all' || tab === 'text' ) {
+					html += '<div class="vse-tree-glabel">Text</div>' + node( 'header', 'Header', '', ICONS.header ) + node( 'labels', 'All labels', '', ICONS.labels );
+				}
+				if ( tab === 'all' || tab === 'inputs' ) {
+					html += '<div class="vse-tree-glabel">Inputs</div>' + node( 'inputs', 'All inputs', '', ICONS.inputs );
 					styleable.forEach( function ( f ) {
 						html += node( 'field:' + f.key, f.label || f.key, ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ), ICONS.inputs );
 					} );
 				}
+				if ( tab === 'all' || tab === 'buttons' ) {
+					html += '<div class="vse-tree-glabel">Button</div>' + node( 'submit', 'Submit button', '', ICONS.submit );
+				}
+				if ( ! html ) { html = '<div class="vse-tree-empty">Nothing to style in this tab yet.</div>'; }
 				tree.innerHTML = html;
 				$$( '.vse-node', tree ).forEach( function ( n ) {
 					n.addEventListener( 'click', function () {
@@ -3978,6 +3989,15 @@
 						$$( '.vse-node', tree ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === n ); } );
 						$( '#vse-target-name' ).textContent = n.querySelector( '.nm' ).textContent;
 						renderControls(); markTarget();
+					} );
+				} );
+			}
+			function bindTreeTabs() {
+				$$( '#vse-tabs button' ).forEach( function ( t ) {
+					t.addEventListener( 'click', function () {
+						treeTab = t.getAttribute( 'data-tab' );
+						$$( '#vse-tabs button' ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === t ); } );
+						renderTree();
 					} );
 				} );
 			}
@@ -3993,7 +4013,11 @@
 				root.hidden = false; document.body.style.overflow = 'hidden';
 			}
 			function close() { root.hidden = true; document.body.style.overflow = ''; }
+			openStyleEditor = open;
+			bindTreeTabs();
 			$( '#vmail-style-btn' ).addEventListener( 'click', open );
+			var toPrev = $( '#vse-to-preview' );
+			if ( toPrev ) { toPrev.addEventListener( 'click', function () { close(); if ( openPreviewOverlay ) { openPreviewOverlay(); } } ); }
 			$( '#vse-save' ).addEventListener( 'click', function () { close(); renderCanvas(); toast( 'Styles applied. Remember to Save the form.' ); } );
 			$( '#vse-reset' ).addEventListener( 'click', function () {
 				form.style = {}; S = form.style; current = 'submit'; buildPreview(); renderTree(); renderControls(); applyLive();
