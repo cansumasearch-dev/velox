@@ -108,11 +108,70 @@ gtag('consent','update',{
 			'cookie_layout_mode' => 'preset', 'cookie_display' => 'flex', 'cookie_direction' => 'row',
 			'cookie_align' => 'center', 'cookie_justify' => 'space-between', 'cookie_gap' => 24,
 			'cookie_grid_cols' => 2, 'cookie_pad_y' => 22, 'cookie_pad_x' => 24, 'cookie_margin' => 0,
+			// NEW: dynamic buttons (JSON array of button objects), advanced custom CSS,
+			// and expanded banner-wide styling controls.
+			'cookie_buttons' => self::default_buttons_json(),
+			'cookie_custom_css' => '',
+			'cookie_heading_size' => 0, 'cookie_heading_weight' => 0, 'cookie_heading_color' => '',
+			'cookie_body_size' => 0, 'cookie_body_color' => '',
+			'cookie_link_color' => '', 'cookie_link_underline' => true,
+			'cookie_btn_gap' => 10, 'cookie_btn_font_size' => 14, 'cookie_btn_font_weight' => 600,
+			'cookie_backdrop_blur' => 0, 'cookie_overlay_color' => 'rgba(10,12,20,.45)',
+			'cookie_max_height' => 0, 'cookie_z_index' => 0,
 		);
 		$out = array();
 		foreach ( $keys as $k => $d ) {
 			$out[ $k ] = array_key_exists( $k, $override ) ? $override[ $k ] : Velox_Settings::get( $k, $d );
 		}
+		// Decode the buttons list into an array for rendering.
+		$out['cookie_buttons_list'] = self::parse_buttons( $out['cookie_buttons'] );
+		return $out;
+	}
+
+	/** Default button set as JSON (matches the old three-button behaviour). */
+	public static function default_buttons_json() {
+		return wp_json_encode( array(
+			array( 'id' => 'b1', 'label' => 'Accept all',            'action' => 'accept',      'element' => 'button', 'url' => '', 'variant' => 'primary' ),
+			array( 'id' => 'b2', 'label' => 'Reject non-essential',  'action' => 'reject',      'element' => 'button', 'url' => '', 'variant' => 'secondary' ),
+			array( 'id' => 'b3', 'label' => 'Preferences',           'action' => 'preferences', 'element' => 'button', 'url' => '', 'variant' => 'secondary' ),
+		) );
+	}
+
+	/** Decode + sanitise the stored buttons JSON into a clean array of button objects. */
+	public static function parse_buttons( $json ) {
+		$list = is_array( $json ) ? $json : json_decode( (string) $json, true );
+		if ( ! is_array( $list ) ) { $list = json_decode( (string) self::default_buttons_json(), true ); }
+		$actions  = array( 'accept', 'reject', 'preferences', 'save', 'link' );
+		$elements = array( 'button', 'link' );
+		$variants = array( 'primary', 'secondary', 'ghost', 'custom' );
+		$style_keys = array( 'bg', 'color', 'border_color', 'border_width', 'radius', 'pad_y', 'pad_x', 'font_size', 'font_weight', 'hover_bg', 'hover_color', 'underline' );
+		$out = array();
+		$i = 0;
+		foreach ( (array) $list as $b ) {
+			if ( ! is_array( $b ) ) { continue; }
+			$i++;
+			$action  = in_array( ( $b['action'] ?? 'accept' ), $actions, true ) ? $b['action'] : 'accept';
+			$element = in_array( ( $b['element'] ?? 'button' ), $elements, true ) ? $b['element'] : 'button';
+			$variant = in_array( ( $b['variant'] ?? 'secondary' ), $variants, true ) ? $b['variant'] : 'secondary';
+			$style = array();
+			if ( ! empty( $b['style'] ) && is_array( $b['style'] ) ) {
+				foreach ( $style_keys as $sk ) {
+					if ( isset( $b['style'][ $sk ] ) && '' !== $b['style'][ $sk ] ) {
+						$style[ $sk ] = sanitize_text_field( (string) $b['style'][ $sk ] );
+					}
+				}
+			}
+			$out[] = array(
+				'id'      => preg_replace( '/[^a-z0-9_-]/i', '', (string) ( $b['id'] ?? ( 'b' . $i ) ) ) ?: ( 'b' . $i ),
+				'label'   => sanitize_text_field( (string) ( $b['label'] ?? 'Button' ) ),
+				'action'  => $action,
+				'element' => $element,
+				'url'     => esc_url_raw( (string) ( $b['url'] ?? '' ) ),
+				'variant' => $variant,
+				'style'   => $style,
+			);
+		}
+		if ( empty( $out ) ) { $out = json_decode( (string) self::default_buttons_json(), true ); }
 		return $out;
 	}
 
@@ -193,13 +252,46 @@ gtag('consent','update',{
 <?php echo $p; ?>.vxck-links{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 16px;font-size:<?php echo $fs - 1.5; ?>px;}
 <?php echo $p; ?>.vxck-links a{color:<?php echo $accent; ?>;text-decoration:none;}
 <?php echo $p; ?>.vxck-links a:hover{text-decoration:underline;}
-<?php echo $p; ?>.vxck-actions{display:flex;flex-wrap:wrap;gap:10px;<?php echo 'bar-bottom' === $layout ? 'flex:0 0 auto;align-items:center;' : ''; ?>}
-<?php echo $p; ?>.vxck-btn{appearance:none;border:0;cursor:pointer;font-size:<?php echo $fs; ?>px;font-weight:600;padding:11px 18px;border-radius:<?php echo $btnrad; ?>px;transition:transform .08s,filter .15s;}
+<?php echo $p; ?>.vxck-actions{display:flex;flex-wrap:wrap;gap:<?php echo max( 0, (int) $o['cookie_btn_gap'] ); ?>px;<?php echo 'bar-bottom' === $layout ? 'flex:0 0 auto;align-items:center;' : ''; ?>}
+<?php $btnfs = max( 10, (int) $o['cookie_btn_font_size'] ); $btnfw = (int) $o['cookie_btn_font_weight']; ?>
+<?php echo $p; ?>.vxck-btn{appearance:none;border:0;cursor:pointer;font-size:<?php echo $btnfs; ?>px;font-weight:<?php echo $btnfw ? $btnfw : 600; ?>;padding:11px 18px;border-radius:<?php echo $btnrad; ?>px;transition:transform .08s,filter .15s;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;line-height:1.2;}
 <?php echo $p; ?>.vxck-btn:active{transform:translateY(1px);}
-<?php echo $p; ?>.vxck-accept{background:<?php echo $accent; ?>;color:<?php echo $accentTx; ?>;}
-<?php echo $p; ?>.vxck-accept:hover{filter:brightness(1.05);}
-<?php echo $p; ?>.vxck-btn2{background:<?php echo $b2bg; ?>;color:<?php echo $b2tx; ?>;}
-<?php echo $p; ?>.vxck-btn2:hover{filter:brightness(.97);}
+<?php echo $p; ?>.vxck-btn--primary{background:<?php echo $accent; ?>;color:<?php echo $accentTx; ?>;}
+<?php echo $p; ?>.vxck-btn--primary:hover{filter:brightness(1.05);}
+<?php echo $p; ?>.vxck-btn--secondary{background:<?php echo $b2bg; ?>;color:<?php echo $b2tx; ?>;}
+<?php echo $p; ?>.vxck-btn--secondary:hover{filter:brightness(.97);}
+<?php echo $p; ?>.vxck-btn--ghost{background:transparent;color:<?php echo $text; ?>;text-decoration:underline;padding-left:6px;padding-right:6px;}
+<?php echo $p; ?>.vxck-btn--ghost:hover{opacity:.7;}
+<?php
+		// Per-button custom styling: each button with style overrides gets its own rule.
+		foreach ( $o['cookie_buttons_list'] as $btn ) {
+			$s = $btn['style'];
+			if ( empty( $s ) ) { continue; }
+			$sel = $p . '.vxck-b-' . $btn['id'];
+			$decl = '';
+			if ( ! empty( $s['bg'] ) ) { $decl .= 'background:' . self::hex( $s['bg'] ) . ';'; }
+			if ( ! empty( $s['color'] ) ) { $decl .= 'color:' . self::hex( $s['color'] ) . ';'; }
+			if ( ! empty( $s['border_color'] ) || isset( $s['border_width'] ) ) {
+				$bwid = isset( $s['border_width'] ) ? (int) $s['border_width'] : 1;
+				$bc   = ! empty( $s['border_color'] ) ? self::hex( $s['border_color'] ) : 'currentColor';
+				$decl .= 'border:' . $bwid . 'px solid ' . $bc . ';';
+			}
+			if ( isset( $s['radius'] ) && '' !== $s['radius'] ) { $decl .= 'border-radius:' . (int) $s['radius'] . 'px;'; }
+			if ( ( isset( $s['pad_y'] ) && '' !== $s['pad_y'] ) || ( isset( $s['pad_x'] ) && '' !== $s['pad_x'] ) ) {
+				$decl .= 'padding:' . (int) ( $s['pad_y'] ?? 11 ) . 'px ' . (int) ( $s['pad_x'] ?? 18 ) . 'px;';
+			}
+			if ( ! empty( $s['font_size'] ) ) { $decl .= 'font-size:' . (int) $s['font_size'] . 'px;'; }
+			if ( ! empty( $s['font_weight'] ) ) { $decl .= 'font-weight:' . (int) $s['font_weight'] . ';'; }
+			if ( ! empty( $s['underline'] ) ) { $decl .= 'text-decoration:underline;'; }
+			if ( '' !== $decl ) { echo $p . '.vxck-b-' . esc_attr( $btn['id'] ) . '{' . $decl . '}' . "\n"; } // phpcs:ignore
+			if ( ! empty( $s['hover_bg'] ) || ! empty( $s['hover_color'] ) ) {
+				$h = '';
+				if ( ! empty( $s['hover_bg'] ) ) { $h .= 'background:' . self::hex( $s['hover_bg'] ) . ';'; }
+				if ( ! empty( $s['hover_color'] ) ) { $h .= 'color:' . self::hex( $s['hover_color'] ) . ';'; }
+				echo $p . '.vxck-b-' . esc_attr( $btn['id'] ) . ':hover{' . $h . 'filter:none;}' . "\n"; // phpcs:ignore
+			}
+		}
+?>
 <?php echo $p; ?>.vxck-small{margin:14px 0 0;font-size:<?php echo $fs - 2.5; ?>px;opacity:.6;width:100%;}
 <?php echo $p; ?>.vxck-prefs{margin:6px 0 16px;display:none;flex-direction:column;gap:10px;width:100%;}
 <?php echo $p; ?>.vxck-prefs.is-open{display:flex;}
@@ -221,7 +313,37 @@ gtag('consent','update',{
 @media(max-width:600px){.vxck{<?php echo $pos_m['box_mobile']; // phpcs:ignore ?>}.vxck-root{<?php echo $pos_m['root']; // phpcs:ignore ?>}<?php if ( $btn_full ) : ?>.vxck-actions{flex-direction:column;}.vxck-btn{width:100%;}<?php endif; ?>}
 <?php
 		}
+
+		// --- Expanded typography / overlay / sizing controls ---
+		$extra = '';
+		if ( (int) $o['cookie_heading_size'] > 0 ) { $extra .= $p . '.vxck-h{font-size:' . (int) $o['cookie_heading_size'] . 'px;}'; }
+		if ( (int) $o['cookie_heading_weight'] > 0 ) { $extra .= $p . '.vxck-h{font-weight:' . (int) $o['cookie_heading_weight'] . ';}'; }
+		if ( ! empty( $o['cookie_heading_color'] ) ) { $extra .= $p . '.vxck-h{color:' . self::hex( $o['cookie_heading_color'] ) . ';}'; }
+		if ( (int) $o['cookie_body_size'] > 0 ) { $extra .= $p . '.vxck-body{font-size:' . (int) $o['cookie_body_size'] . 'px;}'; }
+		if ( ! empty( $o['cookie_body_color'] ) ) { $extra .= $p . '.vxck-body{color:' . self::hex( $o['cookie_body_color'] ) . ';opacity:1;}'; }
+		if ( ! empty( $o['cookie_link_color'] ) ) { $extra .= $p . '.vxck-links a{color:' . self::hex( $o['cookie_link_color'] ) . ';}'; }
+		if ( empty( $o['cookie_link_underline'] ) ) { $extra .= $p . '.vxck-links a{text-decoration:none;}'; }
+		if ( (int) $o['cookie_backdrop_blur'] > 0 ) { $extra .= $p . '.vxck-overlay{backdrop-filter:blur(' . (int) $o['cookie_backdrop_blur'] . 'px);}'; }
+		if ( ! empty( $o['cookie_overlay_color'] ) ) { $extra .= $p . '.vxck-overlay{background:' . self::safe_color( $o['cookie_overlay_color'] ) . ';}'; }
+		if ( (int) $o['cookie_max_height'] > 0 ) { $extra .= $p . '.vxck{max-height:' . (int) $o['cookie_max_height'] . 'px;overflow:auto;}'; }
+		if ( (int) $o['cookie_z_index'] > 0 ) { $extra .= $p . '.vxck-root{z-index:' . (int) $o['cookie_z_index'] . ';}'; }
+		echo $extra; // phpcs:ignore
+
+		// --- Advanced custom CSS (raw, scoped where possible) ---
+		$custom = trim( (string) $o['cookie_custom_css'] );
+		if ( '' !== $custom ) {
+			// strip anything that could break out of a <style> block
+			$custom = str_replace( array( '</style', '<script' ), '', $custom );
+			echo "\n/* custom */\n" . $custom; // phpcs:ignore
+		}
 		return ob_get_clean();
+	}
+
+	/** Allow hex or rgba()/named colours for overlay etc. */
+	private static function safe_color( $v ) {
+		$v = trim( (string) $v );
+		if ( preg_match( '/^(#[0-9a-f]{3,8}|rgba?\([\d.,\s%]+\)|[a-z]+)$/i', $v ) ) { return $v; }
+		return 'rgba(10,12,20,.45)';
 	}
 
 	/**
@@ -276,12 +398,21 @@ gtag('consent','update',{
 	</div>
 
 	<div class="vxck-actions">
-		<button type="button" class="vxck-btn vxck-accept"<?php echo $id( 'vxck-accept' ); // phpcs:ignore ?>><?php echo esc_html( $o['cookie_btn_accept'] ); ?></button>
-		<button type="button" class="vxck-btn vxck-btn2"<?php echo $id( 'vxck-reject' ); // phpcs:ignore ?>><?php echo esc_html( $o['cookie_btn_reject'] ); ?></button>
-		<?php if ( $show_analytics || $show_marketing ) : ?>
-		<button type="button" class="vxck-btn vxck-btn2"<?php echo $id( 'vxck-prefs-toggle' ); // phpcs:ignore ?>><?php echo esc_html( $o['cookie_btn_settings'] ); ?></button>
-		<button type="button" class="vxck-btn vxck-accept"<?php echo $id( 'vxck-save' ); // phpcs:ignore ?> style="display:none;">Save choices</button>
-		<?php endif; ?>
+		<?php
+		foreach ( $o['cookie_buttons_list'] as $btn ) :
+			$cls = 'vxck-btn vxck-btn--' . $btn['variant'] . ' vxck-b-' . $btn['id'];
+			// the "save choices" button only shows once preferences are open
+			$extra = ( 'save' === $btn['action'] ) ? ' style="display:none;"' : '';
+			$attrs = ' class="' . esc_attr( $cls ) . '" data-cookie-action="' . esc_attr( $btn['action'] ) . '"' . $extra;
+			if ( 'link' === $btn['element'] ) :
+				$href = ( 'link' === $btn['action'] && $btn['url'] ) ? $btn['url'] : '#';
+				?>
+				<a href="<?php echo esc_url( $href ); ?>"<?php echo $attrs; // phpcs:ignore ?>><?php echo esc_html( $btn['label'] ); ?></a>
+			<?php else : ?>
+				<button type="button"<?php echo $attrs; // phpcs:ignore ?>><?php echo esc_html( $btn['label'] ); ?></button>
+			<?php endif;
+		endforeach;
+		?>
 	</div>
 
 	<?php if ( ! empty( $o['cookie_small_text'] ) ) : ?>
@@ -320,22 +451,29 @@ gtag('consent','update',{
 	function open(){root.removeAttribute('hidden');}
 	function decide(granted){setCookie(granted.length?granted.join(','):'deny');update(granted);close();}
 
-	var accept=document.getElementById('vxck-accept'),
-		reject=document.getElementById('vxck-reject'),
-		pToggle=document.getElementById('vxck-prefs-toggle'),
-		save=document.getElementById('vxck-save'),
-		prefs=document.getElementById('vxck-prefs'),
+	var prefs=document.getElementById('vxck-prefs'),
 		ca=document.getElementById('vxck-analytics'),
 		cm=document.getElementById('vxck-marketing');
+	var saveBtns=root.querySelectorAll('[data-cookie-action="save"]');
 
-	if(accept) accept.addEventListener('click',function(){decide(['analytics','marketing']);});
-	if(reject) reject.addEventListener('click',function(){decide([]);});
-	if(pToggle) pToggle.addEventListener('click',function(){prefs.classList.toggle('is-open');if(save) save.style.display=prefs.classList.contains('is-open')?'':'none';});
-	if(save) save.addEventListener('click',function(){var g=[];if(ca&&ca.checked)g.push('analytics');if(cm&&cm.checked)g.push('marketing');decide(g);});
+	function showSave(on){for(var i=0;i<saveBtns.length;i++){saveBtns[i].style.display=on?'':'none';}}
+	function openPrefs(){if(prefs){prefs.classList.add('is-open');}showSave(true);}
+	function togglePrefs(){if(prefs){prefs.classList.toggle('is-open');showSave(prefs.classList.contains('is-open'));}}
+
+	root.addEventListener('click',function(e){
+		var t=e.target.closest('[data-cookie-action]');
+		if(!t) return;
+		var act=t.getAttribute('data-cookie-action');
+		if(act==='accept'){e.preventDefault();decide(['analytics','marketing']);}
+		else if(act==='reject'){e.preventDefault();decide([]);}
+		else if(act==='preferences'){e.preventDefault();togglePrefs();}
+		else if(act==='save'){e.preventDefault();var g=[];if(ca&&ca.checked)g.push('analytics');if(cm&&cm.checked)g.push('marketing');decide(g);}
+		// 'link' buttons: let the anchor navigate normally (no preventDefault)
+	});
 
 	document.addEventListener('click',function(e){
 		var t=e.target.closest('[data-cookie-settings],a[href="#cookie-settings"]');
-		if(t){e.preventDefault();open();if(prefs){prefs.classList.add('is-open');if(save)save.style.display='';}}
+		if(t){e.preventDefault();open();openPrefs();}
 	});
 
 	if(root.getAttribute('data-decided')==='0'){open();}

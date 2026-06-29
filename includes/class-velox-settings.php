@@ -114,6 +114,24 @@ class Velox_Settings {
 			'cookie_pad_x'             => 24,         // px horizontal padding
 			'cookie_margin'            => 0,          // px outer margin around the box
 
+			// ---- Cookie banner: dynamic buttons + advanced styling ----
+			'cookie_buttons'           => '[{"id":"b1","label":"Accept all","action":"accept","element":"button","url":"","variant":"primary"},{"id":"b2","label":"Reject non-essential","action":"reject","element":"button","url":"","variant":"secondary"},{"id":"b3","label":"Preferences","action":"preferences","element":"button","url":"","variant":"secondary"}]',
+			'cookie_custom_css'        => '',
+			'cookie_heading_size'      => 0,          // 0 = inherit
+			'cookie_heading_weight'    => 0,
+			'cookie_heading_color'     => '',
+			'cookie_body_size'         => 0,
+			'cookie_body_color'        => '',
+			'cookie_link_color'        => '',
+			'cookie_link_underline'    => true,
+			'cookie_btn_gap'           => 10,
+			'cookie_btn_font_size'     => 14,
+			'cookie_btn_font_weight'   => 600,
+			'cookie_backdrop_blur'     => 0,
+			'cookie_overlay_color'     => 'rgba(10,12,20,.45)',
+			'cookie_max_height'        => 0,
+			'cookie_z_index'           => 0,
+
 			// ---- Page cache ----
 			'cache_enable'          => false,
 			'cache_ttl'             => 36000,   // seconds (10h)

@@ -118,39 +118,79 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 			data-detected="<?php echo esc_attr( $vx_detected ); ?>" hidden>
 			<div class="velox-wizard" role="dialog" aria-modal="true" aria-label="Velox setup">
 				<button class="velox-wizard-x" id="velox-wizard-close" aria-label="Close">&times;</button>
-				<img class="velox-wizard-logo" src="<?php echo esc_url( VELOX_URL . 'assets/menu-icon.png' ); ?>" alt="Velox" width="44" height="44">
 
-				<div class="velox-wizard-step" data-step="intro">
-					<h2 class="velox-wizard-h">Let's tune Velox to your stack</h2>
-					<p class="velox-wizard-p">Every page builder needs different speed settings. Run a quick check and Velox will configure the safe, fast defaults for your exact setup — you can fine-tune everything afterwards.</p>
+				<!-- progress dots -->
+				<div class="velox-wiz-steps" aria-hidden="true">
+					<span class="velox-wiz-dot is-on" data-dot="builder"></span>
+					<span class="velox-wiz-dot" data-dot="path"></span>
+					<span class="velox-wiz-dot" data-dot="review"></span>
+					<span class="velox-wiz-dot" data-dot="done"></span>
+				</div>
+
+				<!-- STEP 1: pick builder -->
+				<div class="velox-wizard-step" data-step="builder">
+					<img class="velox-wizard-logo" src="<?php echo esc_url( VELOX_URL . 'assets/menu-icon.png' ); ?>" alt="Velox" width="40" height="40">
+					<h2 class="velox-wizard-h">Which page builder do you use?</h2>
+					<p class="velox-wizard-p">Pick yours below — every builder needs different speed settings. Not sure? <a href="#" id="velox-wiz-detect">Detect it for me →</a></p>
+					<div class="velox-wiz-grid" id="velox-wiz-grid">
+						<?php foreach ( $vx_builders as $bid => $blabel ) : ?>
+							<button type="button" class="velox-wiz-builder<?php echo $bid === $vx_detected && 'wordpress' !== $bid ? ' is-detected' : ''; ?>" data-builder="<?php echo esc_attr( $bid ); ?>">
+								<span class="velox-wiz-builder-name"><?php echo esc_html( $blabel ); ?></span>
+								<?php if ( $bid === $vx_detected && 'wordpress' !== $bid ) : ?><span class="velox-wiz-detected-tag">Detected</span><?php endif; ?>
+							</button>
+						<?php endforeach; ?>
+					</div>
+					<p class="velox-hint" style="margin-top:14px;">Builder not listed? <a href="#" id="velox-wizard-req-open">Request it →</a></p>
+					<div id="velox-wizard-req" hidden>
+						<div style="display:flex;gap:8px;margin-top:6px;">
+							<input type="text" class="velox-input" id="velox-wizard-req-name" placeholder="e.g. Breakdance, Cwicly, Zion…">
+							<button class="velox-btn velox-btn--ghost" id="velox-wizard-req-send">Send</button>
+						</div>
+					</div>
 					<div class="velox-wizard-actions">
 						<button class="velox-btn velox-btn--ghost" id="velox-wizard-skip">Skip for now</button>
-						<button class="velox-btn velox-btn--primary" id="velox-wizard-check">Run builder check</button>
+						<button class="velox-btn velox-btn--primary" id="velox-wiz-to-path" disabled>Next</button>
 					</div>
 				</div>
 
-				<div class="velox-wizard-step" data-step="detected" hidden>
-					<h2 class="velox-wizard-h" id="velox-wizard-dtitle">Detected your builder</h2>
-					<p class="velox-wizard-p" id="velox-wizard-dnote"></p>
-					<label class="velox-wizard-label" for="velox-wizard-select">This is what you're using:</label>
-					<select class="velox-input" id="velox-wizard-select">
-						<?php foreach ( $vx_builders as $bid => $blabel ) : ?>
-							<option value="<?php echo esc_attr( $bid ); ?>" data-note="<?php echo esc_attr( $vx_registry[ $bid ]['note'] ); ?>"><?php echo esc_html( $blabel ); ?></option>
-						<?php endforeach; ?>
-					</select>
-					<p class="velox-hint">Builder not listed? <a href="#" id="velox-wizard-req-open">Request it →</a></p>
-					<div id="velox-wizard-req" hidden>
-						<input type="text" class="velox-input" id="velox-wizard-req-name" placeholder="e.g. Breakdance, Cwicly, Zion…">
-						<button class="velox-btn velox-btn--ghost" id="velox-wizard-req-send">Send request</button>
+				<!-- STEP 2: choose path -->
+				<div class="velox-wizard-step" data-step="path" hidden>
+					<h2 class="velox-wizard-h">How do you want to set up <span id="velox-wiz-blabel">Velox</span>?</h2>
+					<p class="velox-wizard-p">Pick the recommended path and Velox scans your plugins and tunes everything for you — or configure it yourself.</p>
+					<div class="velox-wiz-paths">
+						<button type="button" class="velox-wiz-path is-selected" data-path="auto">
+							<span class="velox-wiz-path-badge">Recommended</span>
+							<span class="velox-wiz-path-t">Detect &amp; recommend</span>
+							<span class="velox-wiz-path-d">Velox scans your builder and installed plugins, then shows tuned settings you can review and tweak before applying.</span>
+						</button>
+						<button type="button" class="velox-wiz-path" data-path="manual">
+							<span class="velox-wiz-path-t">I'll configure it myself</span>
+							<span class="velox-wiz-path-d">Skip the automatic tuning and head straight to Settings → Performance to set everything by hand.</span>
+						</button>
 					</div>
 					<div class="velox-wizard-actions">
-						<button class="velox-btn velox-btn--ghost" id="velox-wizard-back">Back</button>
-						<button class="velox-btn velox-btn--primary" id="velox-wizard-apply">Configure for this builder</button>
+						<button class="velox-btn velox-btn--ghost" id="velox-wiz-back-builder">Back</button>
+						<button class="velox-btn velox-btn--primary" id="velox-wiz-path-next">Next</button>
 					</div>
 				</div>
 
+				<!-- STEP 3: review -->
+				<div class="velox-wizard-step" data-step="review" hidden>
+					<h2 class="velox-wizard-h">Recommended for <span id="velox-wiz-rlabel">your builder</span></h2>
+					<p class="velox-wizard-p" id="velox-wiz-rnote"></p>
+					<div id="velox-wiz-advisories"></div>
+					<div id="velox-wiz-plugins" class="velox-wiz-plugins"></div>
+					<div class="velox-wiz-review" id="velox-wiz-review"><p class="velox-hint" style="padding:14px;">Scanning…</p></div>
+					<div class="velox-wizard-actions">
+						<button class="velox-btn velox-btn--ghost" id="velox-wiz-back-path">Back</button>
+						<button class="velox-btn velox-btn--primary" id="velox-wizard-apply">Apply selected</button>
+					</div>
+				</div>
+
+				<!-- STEP 4: done -->
 				<div class="velox-wizard-step" data-step="done" hidden>
-					<h2 class="velox-wizard-h">You're all set ⚡</h2>
+					<div class="velox-wiz-done-mark">⚡</div>
+					<h2 class="velox-wizard-h">You're all set</h2>
 					<p class="velox-wizard-p" id="velox-wizard-donemsg"></p>
 					<div class="velox-wizard-actions">
 						<a class="velox-btn velox-btn--ghost" id="velox-wizard-toperf" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">Open Performance</a>

@@ -224,9 +224,19 @@ class Velox_Backup {
 	 * Memorable in the list and unique enough to tell snapshots apart at a glance.
 	 */
 	public static function friendly_name() {
-		$adj  = array( 'brave', 'calm', 'swift', 'bright', 'quiet', 'bold', 'keen', 'lucky', 'mellow', 'noble', 'proud', 'sleek', 'sunny', 'tidy', 'witty', 'amber', 'azure', 'coral', 'jade', 'ivory' );
-		$noun = array( 'otter', 'falcon', 'maple', 'comet', 'harbor', 'meadow', 'cedar', 'pebble', 'willow', 'badger', 'lynx', 'heron', 'cobra', 'panda', 'raven', 'tiger', 'walrus', 'gecko', 'moose', 'finch' );
-		return $adj[ array_rand( $adj ) ] . '-' . $noun[ array_rand( $noun ) ] . '-' . substr( md5( uniqid( '', true ) ), 0, 3 );
+		// <site>-<date>-<time>, e.g. "mysite-2026-06-29-1432"
+		$site = get_bloginfo( 'name' );
+		if ( '' === trim( (string) $site ) ) {
+			// fall back to the domain if the site has no name set
+			$host = wp_parse_url( home_url(), PHP_URL_HOST );
+			$site = $host ? preg_replace( '/^www\./', '', $host ) : 'site';
+		}
+		$slug = sanitize_title( $site );
+		if ( '' === $slug ) { $slug = 'site'; }
+		// keep it reasonably short so filenames/labels stay tidy
+		if ( strlen( $slug ) > 32 ) { $slug = substr( $slug, 0, 32 ); }
+		$stamp = current_time( 'Y-m-d-Hi' );
+		return $slug . '-' . $stamp;
 	}
 
 	/* ----------------------------------------------------------------- *

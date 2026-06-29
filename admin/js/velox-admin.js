@@ -1707,101 +1707,141 @@
 
 	function initWizard() {
 		var overlay = $( '#velox-wizard' );
-		if ( ! overlay ) {
-			return;
-		}
-		var sel = $( '#velox-wizard-select' );
+		if ( ! overlay ) { return; }
+
+		var picked = '';           // chosen builder id
+		var pickedLabel = '';
+		var path = 'auto';         // auto | manual
+		var plan = null;           // server plan for review step
+		var STEPS = [ 'builder', 'path', 'review', 'done' ];
 
 		function show( step ) {
 			$$( '.velox-wizard-step', overlay ).forEach( function ( s ) {
 				s.hidden = s.getAttribute( 'data-step' ) !== step;
 			} );
+			$$( '.velox-wiz-dot', overlay ).forEach( function ( d ) {
+				var di = STEPS.indexOf( d.getAttribute( 'data-dot' ) );
+				var ci = STEPS.indexOf( step );
+				d.classList.toggle( 'is-on', di <= ci );
+			} );
 		}
-		function open( step ) {
-			overlay.hidden = false;
-			show( step || 'intro' );
-		}
-		function close() {
-			overlay.hidden = true;
-		}
-		function dismiss() {
-			api( 'wizard_dismiss', {} ).catch( function () {} );
-			close();
-		}
-		function syncNote() {
-			var note = $( '#velox-wizard-dnote' );
-			var opt = sel ? sel.options[ sel.selectedIndex ] : null;
-			if ( note && opt ) {
-				note.textContent = opt.getAttribute( 'data-note' ) || '';
-			}
-		}
-		function on( id, ev, fn ) {
-			var el = $( id );
-			if ( el ) {
-				el.addEventListener( ev, fn );
-			}
-		}
+		function open( step ) { overlay.hidden = false; show( step || 'builder' ); }
+		function close() { overlay.hidden = true; }
+		function dismiss() { api( 'wizard_dismiss', {} ).catch( function () {} ); close(); }
+		function on( id, ev, fn ) { var el = $( id ); if ( el ) { el.addEventListener( ev, fn ); } }
+		function esc( s ) { return ( s == null ? '' : String( s ) ).replace( /[&<>"]/g, function ( c ) { return { '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;' }[ c ]; } ); }
 
-		if ( '1' === overlay.getAttribute( 'data-autoopen' ) ) {
-			open( 'intro' );
-		}
-
-		on( '#velox-open-wizard', 'click', function ( e ) { e.preventDefault(); open( 'intro' ); } );
+		if ( '1' === overlay.getAttribute( 'data-autoopen' ) ) { open( 'builder' ); }
+		on( '#velox-open-wizard', 'click', function ( e ) { e.preventDefault(); open( 'builder' ); } );
 		on( '#velox-wizard-close', 'click', dismiss );
 		on( '#velox-wizard-skip', 'click', dismiss );
-		on( '#velox-wizard-back', 'click', function () { show( 'intro' ); } );
 
-		on( '#velox-wizard-check', 'click', function () {
-			var btn = this;
-			btn.disabled = true;
-			btn.textContent = 'Checking…';
+		/* ---- Step 1: builder grid ---- */
+		function selectBuilder( btn ) {
+			$$( '.velox-wiz-builder', overlay ).forEach( function ( b ) { b.classList.toggle( 'is-selected', b === btn ); } );
+			picked = btn.getAttribute( 'data-builder' );
+			pickedLabel = ( btn.querySelector( '.velox-wiz-builder-name' ) || {} ).textContent || picked;
+			var next = $( '#velox-wiz-to-path' ); if ( next ) { next.disabled = false; }
+		}
+		$$( '.velox-wiz-builder', overlay ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () { selectBuilder( btn ); } );
+		} );
+		on( '#velox-wiz-detect', 'click', function ( e ) {
+			e.preventDefault();
+			var link = this; link.textContent = 'Detecting…';
 			api( 'builder_detect', {} )
 				.then( function ( d ) {
-					var title = $( '#velox-wizard-dtitle' );
-					if ( title ) {
-						title.textContent = d.is_default ? 'No builder detected' : ( 'Detected ' + d.label + ' — correct?' );
-					}
-					if ( sel ) {
-						for ( var i = 0; i < sel.options.length; i++ ) {
-							if ( sel.options[ i ].value === d.builder ) { sel.selectedIndex = i; break; }
-						}
-						syncNote();
-					}
-					show( 'detected' );
+					var btn = overlay.querySelector( '.velox-wiz-builder[data-builder="' + d.builder + '"]' );
+					if ( btn ) { selectBuilder( btn ); btn.scrollIntoView( { block: 'nearest' } ); }
+					toast( d.is_default ? 'No builder detected — picked the safe default.' : ( 'Detected ' + d.label + '.' ) );
 				} )
-				.catch( function ( e ) { toast( e.message, 'error' ); } )
-				.then( function () { btn.disabled = false; btn.textContent = 'Run builder check'; } );
+				.catch( function ( e2 ) { toast( e2.message, 'error' ); } )
+				.then( function () { link.textContent = 'Detect it for me →'; } );
+		} );
+		on( '#velox-wiz-to-path', 'click', function () {
+			if ( ! picked ) { return; }
+			var bl = $( '#velox-wiz-blabel' ); if ( bl ) { bl.textContent = pickedLabel; }
+			show( 'path' );
 		} );
 
-		if ( sel ) {
-			sel.addEventListener( 'change', syncNote );
-		}
+		/* ---- Step 2: path ---- */
+		$$( '.velox-wiz-path', overlay ).forEach( function ( p ) {
+			p.addEventListener( 'click', function () {
+				$$( '.velox-wiz-path', overlay ).forEach( function ( x ) { x.classList.toggle( 'is-selected', x === p ); } );
+				path = p.getAttribute( 'data-path' );
+			} );
+		} );
+		on( '#velox-wiz-back-builder', 'click', function () { show( 'builder' ); } );
+		on( '#velox-wiz-path-next', 'click', function () {
+			if ( path === 'manual' ) {
+				// configure-it-yourself: just record the builder and head to Performance.
+				api( 'builder_apply', { builder: picked, keep: JSON.stringify( [] ) } )
+					.then( function () { window.location = ( $( '#velox-wizard-toperf' ) || {} ).href || location.href; } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+				return;
+			}
+			loadReview();
+			show( 'review' );
+		} );
 
-		on( '#velox-wizard-apply', 'click', function () {
-			var btn = this;
-			btn.disabled = true;
-			btn.textContent = 'Configuring…';
-			api( 'builder_apply', { builder: sel ? sel.value : '' } )
+		/* ---- Step 3: review ---- */
+		function loadReview() {
+			var box = $( '#velox-wiz-review' );
+			if ( box ) { box.innerHTML = '<p class="velox-hint" style="padding:14px;">Scanning your builder and plugins…</p>'; }
+			api( 'builder_plan', { builder: picked } )
 				.then( function ( d ) {
-					var msg = $( '#velox-wizard-donemsg' );
-					if ( msg ) { msg.textContent = d.message || 'Configured.'; }
+					plan = d;
+					var rl = $( '#velox-wiz-rlabel' ); if ( rl ) { rl.textContent = d.label; }
+					var rn = $( '#velox-wiz-rnote' ); if ( rn ) { rn.textContent = d.note || ''; }
+					// advisories
+					var adv = $( '#velox-wiz-advisories' );
+					if ( adv ) {
+						adv.innerHTML = ( d.advisories || [] ).map( function ( a ) {
+							return '<div class="velox-wiz-adv velox-wiz-adv--' + esc( a.type ) + '">' + esc( a.text ) + '</div>';
+						} ).join( '' );
+					}
+					// detected plugins
+					var pl = $( '#velox-wiz-plugins' );
+					if ( pl ) {
+						pl.innerHTML = ( d.plugins && d.plugins.length )
+							? '<span class="velox-wiz-plugins-l">Detected:</span> ' + d.plugins.map( function ( p ) { return '<span class="velox-wiz-chip">' + esc( p.label ) + '</span>'; } ).join( '' )
+							: '';
+					}
+					// toggleable recommendations
+					box.innerHTML = ( d.items || [] ).map( function ( it ) {
+						var val = it.is_bool ? ( it.on ? 'On' : 'Off' ) : esc( String( it.value ).replace( /\n/g, ', ' ) );
+						return '<label class="velox-wiz-rec">' +
+							'<span class="velox-switch"><input type="checkbox" data-key="' + esc( it.key ) + '" checked><span class="velox-switch-track"></span></span>' +
+							'<span class="velox-wiz-rec-body"><span class="velox-wiz-rec-t">' + esc( it.label ) + '</span>' +
+							'<span class="velox-wiz-rec-d">' + esc( it.note ) + '</span>' +
+							'<span class="velox-wiz-rec-v">' + val + '</span></span></label>';
+					} ).join( '' );
+				} )
+				.catch( function ( e ) { if ( box ) { box.innerHTML = '<p class="velox-hint" style="padding:14px;">Couldn\'t scan: ' + esc( e.message ) + '</p>'; } } );
+		}
+		on( '#velox-wiz-back-path', 'click', function () { show( 'path' ); } );
+		on( '#velox-wizard-apply', 'click', function () {
+			var btn = this; btn.disabled = true; btn.textContent = 'Applying…';
+			var keep = [];
+			$$( '#velox-wiz-review input[type="checkbox"]', overlay ).forEach( function ( c ) {
+				if ( c.checked ) { keep.push( c.getAttribute( 'data-key' ) ); }
+			} );
+			api( 'builder_apply', { builder: picked, keep: JSON.stringify( keep ) } )
+				.then( function ( d ) {
+					var msg = $( '#velox-wizard-donemsg' ); if ( msg ) { msg.textContent = d.message || 'Configured.'; }
 					show( 'done' );
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); } )
-				.then( function () { btn.disabled = false; btn.textContent = 'Configure for this builder'; } );
+				.then( function () { btn.disabled = false; btn.textContent = 'Apply selected'; } );
 		} );
 
+		/* ---- Step 4: done ---- */
 		on( '#velox-wizard-finish', 'click', function () { close(); location.reload(); } );
 
-		on( '#velox-wizard-req-open', 'click', function ( e ) {
-			e.preventDefault();
-			var r = $( '#velox-wizard-req' );
-			if ( r ) { r.hidden = false; }
-		} );
+		/* ---- request a builder ---- */
+		on( '#velox-wizard-req-open', 'click', function ( e ) { e.preventDefault(); var r = $( '#velox-wizard-req' ); if ( r ) { r.hidden = false; } } );
 		on( '#velox-wizard-req-send', 'click', function () {
-			var input = $( '#velox-wizard-req-name' );
-			var btn = this;
-			btn.disabled = true;
+			var input = $( '#velox-wizard-req-name' ); var btn = this; btn.disabled = true;
 			api( 'builder_request', { name: input ? input.value : '' } )
 				.then( function ( d ) { toast( d.message || 'Sent.' ); if ( input ) { input.value = ''; } } )
 				.catch( function ( e ) { toast( e.message, 'error' ); } )
@@ -3845,15 +3885,26 @@
 		if ( scanBtn ) {
 			scanBtn.addEventListener( 'click', function () {
 				scanBtn.disabled = true;
-				scanBtn.textContent = 'Scanning…';
+				scanBtn.innerHTML = '<span class="velox-btn-spin"></span>Scanning…';
 				api( 'scripts_scan', {} )
 					.then( function ( r ) {
-						if ( ! r.ok ) { toast( r.message || 'Scan failed.', 'error' ); return; }
-						toast( 'Found ' + r.scripts + ' scripts, ' + r.styles + ' styles.' );
-						setTimeout( function () { location.reload(); }, 700 );
+						if ( ! r.ok ) {
+							toast( r.message || 'Scan failed.', 'error' );
+							scanBtn.disabled = false;
+							scanBtn.textContent = 'Scan site';
+							return;
+						}
+						var pages = r.pages ? ( r.pages + ' page' + ( r.pages === 1 ? '' : 's' ) + ' · ' ) : '';
+						scanBtn.innerHTML = '<span class="velox-btn-spin"></span>Loading results…';
+						toast( 'Scanned ' + pages + r.scripts + ' scripts, ' + r.styles + ' styles.' );
+						// Reload so the freshly discovered handles appear immediately.
+						setTimeout( function () { location.reload(); }, 600 );
 					} )
-					.catch( function ( e ) { toast( e.message, 'error' ); } )
-					.then( function () { scanBtn.disabled = false; scanBtn.textContent = 'Scan front page'; } );
+					.catch( function ( e ) {
+						toast( e.message, 'error' );
+						scanBtn.disabled = false;
+						scanBtn.textContent = 'Scan site';
+					} );
 			} );
 		}
 
@@ -4305,7 +4356,7 @@
 		} );
 	}
 
-	document.addEventListener( 'DOMContentLoaded', function () {
+	function veloxInit() {
 		initSidebar();
 		initWizard();
 		initUtilities();
@@ -4317,5 +4368,10 @@
 		initDatabase();
 		initSeo();
 		initSettings();
-	} );
+	}
+	if ( document.readyState === 'loading' ) {
+		document.addEventListener( 'DOMContentLoaded', veloxInit );
+	} else {
+		veloxInit();
+	}
 } )();

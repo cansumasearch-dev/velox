@@ -4,6 +4,36 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.33.7 — Reworked setup wizard
+**The setup wizard is now a guided 4-step flow with a much cleaner UI.** Step 1: pick your page builder yourself from a grid (with a one-click "Detect it for me" and the option to request an unlisted builder). Step 2: choose how to set up — let Velox detect and recommend everything, or configure it yourself. Step 3 (recommended path): Velox scans your builder and installed plugins (caches, SEO, form and shop plugins), warns about conflicts, and shows every tuned setting with a plain-English explanation — each one a toggle you can switch off before applying. Step 4: done.
+- You stay in control: nothing is changed until you hit Apply, and you choose exactly which recommendations to keep.
+- The wizard now also initialises reliably even if its script loads late.
+
+## 2.33.6 — SEO no longer duplicated
+- SEO appeared twice in the menu (top-level and again inside Utilities). It now shows only once as a top-level item. Its on/off switch has moved to Settings → Modules, alongside the other top-level modules (Images, Media, Performance, Database).
+
+## 2.33.5 — Cookie banner: full button + CSS control
+**Buttons are now fully editable.** Add as many as you like, delete or reorder them, rename them, and for each one choose whether it’s a button or a link, what it does (accept all, reject, open preferences, save choices, or go to a URL), and its preset style (primary, secondary, ghost). Each button also has its own optional styling — background, text, hover colours, border, radius, padding, font size and weight.
+- **Expanded banner styling**: heading and body size/weight/colour, legal-link colour and underline, button gap and typography, overlay colour and blur, max height and z-index.
+- **Advanced custom CSS box**: write any CSS to target the banner (`.vxck`) or any individual button (`.vxck-b-<id>`), applied on top of every other setting.
+- Everything updates live in the preview as you edit.
+
+## 2.33.4 — Unused media: far fewer false positives
+- The unused-media scan no longer flags images that are actually in use. It now also checks resized image variants (e.g. -1024x768, -scaled), theme/customizer/widget options, and media referenced by attachment ID in galleries and blocks.
+- On top of the database checks, the scan now fetches your live pages and reads the rendered HTML, so images used by page builders, sliders or CSS backgrounds (which the database scan can't see) are correctly recognised as in-use.
+- An image is only listed as unused when it appears nowhere in your content, settings, or on any scanned page.
+
+## 2.33.3 — Script Manager scan improvements
+- Scanning now crawls several representative pages (home, a recent post and a page) so it discovers all the scripts and styles your site actually loads, not just the ones on the homepage.
+- Admin-only handles (admin bar, dashicons, heartbeat, etc.) are filtered out so the list only shows real front-end assets you can manage.
+- The Scan button now shows a loading spinner while it works and refreshes the list automatically when it finishes — no more wondering if anything happened.
+
+## 2.33.2 — Clearer backup names
+- Backups are now named after your site and the time they were made — e.g. `mysite-2026-06-29-1432` — instead of random words. Much easier to tell backups apart at a glance.
+
+## 2.33.1 — Consistent inputs everywhere
+- Unified every text input, search box, hex field and spacing cell across all screens (settings, utilities, the forms builder and the full-screen style editor) to one consistent design — same border, radius, padding, size and focus ring. The plugin now reads as one continuous design instead of each screen styling its own inputs.
+
 ## 2.33.0 — Custom fields (ACF-style)
 **A brand-new Custom fields module** — add custom fields to posts, pages and any post type, the ACF way.
 - Build **field groups** with a clean editor: expandable field cards (drag to reorder, duplicate, delete), 17 field types (text, textarea, number, email, URL, select, checkbox, radio, true/false, image, file, WYSIWYG, date, color, relationship, repeater, group), with label, name, default, choices, placeholder, instructions and required per field. Field names auto-generate from the label and stay unique.

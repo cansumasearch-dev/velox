@@ -38,6 +38,7 @@ class Velox_Scripts {
 
 		if ( $wp_scripts && ! empty( $wp_scripts->done ) ) {
 			foreach ( $wp_scripts->done as $h ) {
+				if ( self::is_admin_handle( $h ) ) { continue; }
 				if ( ! isset( $seen['scripts'][ $h ] ) && count( $seen['scripts'] ) < self::MAX_HANDLES ) {
 					$seen['scripts'][ $h ] = self::src_of( $wp_scripts, $h );
 					$changed = true;
@@ -46,6 +47,7 @@ class Velox_Scripts {
 		}
 		if ( $wp_styles && ! empty( $wp_styles->done ) ) {
 			foreach ( $wp_styles->done as $h ) {
+				if ( self::is_admin_handle( $h ) ) { continue; }
 				if ( ! isset( $seen['styles'][ $h ] ) && count( $seen['styles'] ) < self::MAX_HANDLES ) {
 					$seen['styles'][ $h ] = self::src_of( $wp_styles, $h );
 					$changed = true;
@@ -84,13 +86,50 @@ class Velox_Scripts {
 	}
 
 	/** Best-effort loopback request so the list fills in without browsing manually. */
+	/** Handles that are admin-side noise we never want to manage on the front end. */
+	private static function is_admin_handle( $handle ) {
+		$handle = (string) $handle;
+		$blocklist = array(
+			'admin-bar', 'dashicons', 'admin-bar-rtl', 'wp-admin', 'common', 'forms', 'l10n',
+			'wp-pointer', 'heartbeat', 'wp-auth-check', 'admin-bar-css',
+		);
+		if ( in_array( $handle, $blocklist, true ) ) { return true; }
+		// anything clearly admin-namespaced
+		if ( 0 === strpos( $handle, 'admin-' ) || 0 === strpos( $handle, 'wp-admin' ) ) { return true; }
+		return false;
+	}
+
 	public static function scan() {
-		$res = wp_remote_get( home_url( '/' ), array( 'timeout' => 12, 'sslverify' => false ) );
-		if ( is_wp_error( $res ) ) {
-			return array( 'ok' => false, 'message' => 'Could not reach the front page: ' . $res->get_error_message() );
+		// Visit a few representative front-end URLs so we discover handles that
+		// only load on posts/pages, not just the homepage. Each request triggers
+		// collect() on that page, building up the seen list.
+		$urls = array( home_url( '/' ) );
+
+		$recent_post = get_posts( array( 'numberposts' => 1, 'post_status' => 'publish', 'fields' => 'ids' ) );
+		if ( ! empty( $recent_post[0] ) ) { $urls[] = get_permalink( $recent_post[0] ); }
+
+		$recent_page = get_posts( array( 'numberposts' => 1, 'post_type' => 'page', 'post_status' => 'publish', 'fields' => 'ids' ) );
+		if ( ! empty( $recent_page[0] ) ) { $urls[] = get_permalink( $recent_page[0] ); }
+
+		$urls = array_values( array_unique( array_filter( $urls ) ) );
+
+		$reached = 0;
+		$last_err = '';
+		foreach ( $urls as $u ) {
+			$res = wp_remote_get( $u, array( 'timeout' => 12, 'sslverify' => false ) );
+			if ( is_wp_error( $res ) ) { $last_err = $res->get_error_message(); continue; }
+			$reached++;
+		}
+		if ( 0 === $reached ) {
+			return array( 'ok' => false, 'message' => 'Could not reach the site: ' . $last_err );
 		}
 		$seen = self::seen();
-		return array( 'ok' => true, 'scripts' => count( $seen['scripts'] ), 'styles' => count( $seen['styles'] ) );
+		return array(
+			'ok'      => true,
+			'pages'   => $reached,
+			'scripts' => count( $seen['scripts'] ),
+			'styles'  => count( $seen['styles'] ),
+		);
 	}
 
 	/* ------------------------------------------------------------- rules */

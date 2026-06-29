@@ -156,9 +156,20 @@ class Velox_Ajax {
 				) );
 				break;
 
+			case 'builder_plan':
+				$id = isset( $_POST['builder'] ) ? sanitize_key( wp_unslash( $_POST['builder'] ) ) : '';
+				if ( '' === $id ) { $id = Velox_Builders::detect(); }
+				wp_send_json_success( Velox_Builders::plan( $id ) );
+				break;
+
 			case 'builder_apply':
 				$id = isset( $_POST['builder'] ) ? sanitize_key( wp_unslash( $_POST['builder'] ) ) : '';
-				wp_send_json_success( Velox_Builders::apply( $id ) );
+				$keep = null;
+				if ( isset( $_POST['keep'] ) ) {
+					$decoded = json_decode( wp_unslash( $_POST['keep'] ), true );
+					if ( is_array( $decoded ) ) { $keep = array_map( 'sanitize_key', $decoded ); }
+				}
+				wp_send_json_success( Velox_Builders::apply( $id, $keep ) );
 				break;
 
 			case 'builder_request':
@@ -450,10 +461,10 @@ class Velox_Ajax {
 				$opts_raw = isset( $_POST['opts'] ) ? json_decode( wp_unslash( $_POST['opts'] ), true ) : array();
 				$opts_raw = is_array( $opts_raw ) ? $opts_raw : array();
 				// Coerce a few numerics/bools the JS sends as strings.
-				foreach ( array( 'cookie_border_width', 'cookie_radius', 'cookie_offset', 'cookie_width', 'cookie_font_size', 'cookie_gap', 'cookie_grid_cols', 'cookie_pad_y', 'cookie_pad_x', 'cookie_margin' ) as $nk ) {
+				foreach ( array( 'cookie_border_width', 'cookie_radius', 'cookie_offset', 'cookie_width', 'cookie_font_size', 'cookie_gap', 'cookie_grid_cols', 'cookie_pad_y', 'cookie_pad_x', 'cookie_margin', 'cookie_heading_size', 'cookie_heading_weight', 'cookie_body_size', 'cookie_btn_gap', 'cookie_btn_font_size', 'cookie_btn_font_weight', 'cookie_backdrop_blur', 'cookie_max_height', 'cookie_z_index' ) as $nk ) {
 					if ( isset( $opts_raw[ $nk ] ) ) { $opts_raw[ $nk ] = (int) $opts_raw[ $nk ]; }
 				}
-				foreach ( array( 'cookie_shadow', 'cookie_overlay', 'cookie_cat_analytics', 'cookie_cat_marketing', 'cookie_btn_full_mobile' ) as $bk ) {
+				foreach ( array( 'cookie_shadow', 'cookie_overlay', 'cookie_cat_analytics', 'cookie_cat_marketing', 'cookie_btn_full_mobile', 'cookie_link_underline' ) as $bk ) {
 					if ( isset( $opts_raw[ $bk ] ) ) { $opts_raw[ $bk ] = ( '1' === (string) $opts_raw[ $bk ] || 1 === $opts_raw[ $bk ] || true === $opts_raw[ $bk ] ); }
 				}
 				$opts = Velox_Cookies::options( $opts_raw );

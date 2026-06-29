@@ -47,17 +47,17 @@ function velox_script_row( $type, $handle, $src, $rules ) {
 		</label>
 		<?php if ( $on ) : ?>
 			<div style="display:flex;gap:8px;">
-				<button class="velox-btn velox-btn--ghost" id="velox-sm-scan">Scan front page</button>
+				<button class="velox-btn velox-btn--ghost" id="velox-sm-scan">Scan site</button>
 				<button class="velox-btn velox-btn--primary" id="velox-sm-save">Save changes</button>
 			</div>
 		<?php endif; ?>
 	</div>
 
 	<?php if ( ! $on ) : ?>
-		<p class="velox-hint" style="margin-top:14px;">Turn it on, then hit <strong>Scan front page</strong> (or just browse your site) so Velox can learn which handles load. You'll then be able to switch any of them off here.</p>
+		<p class="velox-hint" style="margin-top:14px;">Turn it on, then hit <strong>Scan site</strong> (or just browse your site) so Velox can learn which handles load. You'll then be able to switch any of them off here.</p>
 	<?php else : ?>
 		<?php if ( empty( $seen['scripts'] ) && empty( $seen['styles'] ) ) : ?>
-			<p class="velox-hint" style="margin-top:14px;">No assets discovered yet. Click <strong>Scan front page</strong> above, or visit a few pages of your site, then reload this screen.</p>
+			<p class="velox-hint" style="margin-top:14px;">No assets discovered yet. Click <strong>Scan site</strong> above, or visit a few pages of your site, then reload this screen.</p>
 		<?php else : ?>
 			<p class="velox-hint" style="margin:14px 0 4px;">The list grows as more of your site is visited. Set a rule, then <strong>Save changes</strong>. Disabling a handle also removes anything that depends on it, so re-test the page afterwards.</p>
 

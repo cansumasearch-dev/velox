@@ -39,6 +39,7 @@ $s = Velox_Settings::all();
 		'module_media'       => array( 'Media Editor', 'Rename, alt/title editing, pipe import/export.' ),
 		'module_performance' => array( 'Performance', 'Head cleanup, defer, heartbeat, DNS-prefetch.' ),
 		'module_database'    => array( 'Database', 'Cleanup and table optimization.' ),
+		'module_seo'         => array( 'SEO', 'On-page SEO meta box, sitemap and robots.txt. Turn off if Rank Math / Yoast handles this.' ),
 	);
 	foreach ( $modules as $key => $m ) :
 		$on = ! empty( $s[ $key ] );

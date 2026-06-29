@@ -29,7 +29,6 @@ class Velox_Utilities {
 			'loginurl'   => array( 'label' => 'Custom login URL',    'icon' => 'lock',     'ready' => true,  'enable' => 'util_loginurl', 'page' => true, 'desc' => 'Move wp-login to a custom path to cut brute-force bot traffic.' ),
 			'maintenance'=> array( 'label' => 'Maintenance mode',    'icon' => 'cone',     'ready' => true,  'enable' => 'util_maintenance', 'page' => true, 'desc' => 'Show visitors a branded coming-soon page while you work, admins still get in.' ),
 			'scripts'    => array( 'label' => 'Script Manager',      'icon' => 'code',     'ready' => true,  'enable' => 'util_scripts', 'page' => true, 'desc' => 'Stop specific CSS/JS from loading where it isn\'t needed — globally or per page.' ),
-			'seo'        => array( 'label' => 'SEO',                'icon' => 'search',   'ready' => true,  'enable' => 'module_seo', 'setting' => 'module_seo', 'link' => 'seo', 'desc' => 'On-page SEO meta box, sitemap and robots.txt. Toggle off if another SEO plugin (Rank Math, Yoast) is handling this so they do not clash.' ),
 			'snippets'   => array( 'label' => 'Code Snippets',       'icon' => 'code',     'ready' => true,  'enable' => 'util_snippets', 'setting' => 'util_snippets', 'link' => 'snippets', 'desc' => 'Add PHP, CSS, JS or HTML snippets with run-location and priority. They get their own Snippets menu below Velox.' ),
 		);
 	}
@@ -544,11 +543,36 @@ class Velox_Utilities {
 			'orderby'        => 'date',
 			'order'          => 'ASC',
 		) );
-		$out = array();
+
+		// First pass: cheap DB checks. Anything that survives is a *candidate*.
+		$candidates = array();
 		foreach ( $ids as $id ) {
 			if ( self::is_referenced( $id ) ) {
 				continue;
 			}
+			$candidates[ $id ] = self::all_basenames( $id );
+		}
+
+		// Second pass: actually fetch the site's front-end pages and confirm the
+		// file truly doesn't appear in the rendered HTML (catches page-builder
+		// output, CSS backgrounds, sliders, etc. the DB scan can't see). Any
+		// candidate whose filename shows up on a real page is removed.
+		if ( $candidates ) {
+			$html = self::rendered_html_blob();
+			if ( '' !== $html ) {
+				foreach ( $candidates as $id => $names ) {
+					foreach ( $names as $n ) {
+						if ( '' !== $n && false !== strpos( $html, $n ) ) {
+							unset( $candidates[ $id ] );
+							break;
+						}
+					}
+				}
+			}
+		}
+
+		$out = array();
+		foreach ( array_keys( $candidates ) as $id ) {
 			$file = get_attached_file( $id );
 			$out[] = array(
 				'id'    => $id,
@@ -559,6 +583,57 @@ class Velox_Utilities {
 			);
 		}
 		return $out;
+	}
+
+	/** Every filename this attachment could appear as: original + all generated sizes. */
+	private static function all_basenames( $id ) {
+		$names = array();
+		$file = get_post_meta( $id, '_wp_attached_file', true );
+		if ( ! $file ) { $file = (string) get_attached_file( $id ); }
+		if ( $file ) { $names[ basename( $file ) ] = 1; }
+		$meta = wp_get_attachment_metadata( $id );
+		if ( ! empty( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
+			foreach ( $meta['sizes'] as $size ) {
+				if ( ! empty( $size['file'] ) ) { $names[ basename( $size['file'] ) ] = 1; }
+			}
+		}
+		// WordPress also creates a "-scaled" variant for big images
+		if ( $file ) {
+			$stem = pathinfo( basename( $file ), PATHINFO_FILENAME );
+			$ext  = pathinfo( basename( $file ), PATHINFO_EXTENSION );
+			if ( $stem && $ext ) { $names[ $stem . '-scaled.' . $ext ] = 1; }
+		}
+		return array_keys( $names );
+	}
+
+	/**
+	 * Fetch a set of representative front-end pages and return their combined HTML,
+	 * so we can confirm whether a media file actually appears on the live site.
+	 * Cached briefly so a scan of many files only fetches the pages once.
+	 */
+	private static function rendered_html_blob() {
+		static $blob = null;
+		if ( null !== $blob ) { return $blob; }
+		$blob = '';
+
+		$urls = array( home_url( '/' ) );
+		// a handful of recent posts + pages
+		$posts = get_posts( array( 'numberposts' => 15, 'post_status' => 'publish', 'post_type' => array( 'post', 'page' ), 'fields' => 'ids', 'orderby' => 'modified', 'order' => 'DESC' ) );
+		foreach ( $posts as $pid ) {
+			$link = get_permalink( $pid );
+			if ( $link ) { $urls[] = $link; }
+		}
+		$urls = array_values( array_unique( array_filter( $urls ) ) );
+		// keep the crawl bounded
+		$urls = array_slice( $urls, 0, 20 );
+
+		foreach ( $urls as $u ) {
+			$res = wp_remote_get( $u, array( 'timeout' => 10, 'sslverify' => false ) );
+			if ( is_wp_error( $res ) ) { continue; }
+			$body = wp_remote_retrieve_body( $res );
+			if ( is_string( $body ) && '' !== $body ) { $blob .= "\n" . $body; }
+		}
+		return $blob;
 	}
 
 	private static function thumb_url( $id ) {
@@ -590,7 +665,7 @@ class Velox_Utilities {
 			return true; // too generic to match safely → leave it alone
 		}
 		$like = '%' . $wpdb->esc_like( $stem ) . '%';
-		// Referenced in any post/page content?
+		// Referenced in any post/page content? (catches all size variants via the stem)
 		$in_content = $wpdb->get_var( $wpdb->prepare(
 			"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status NOT IN ('trash','auto-draft') AND post_content LIKE %s",
 			$like
@@ -604,7 +679,24 @@ class Velox_Utilities {
 			$id,
 			$like
 		) );
-		return (bool) $in_meta;
+		if ( $in_meta ) {
+			return true;
+		}
+		// Referenced in options (theme mods, customizer, widgets, plugin settings)?
+		$in_options = $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_value LIKE %s",
+			$like
+		) );
+		if ( $in_options ) {
+			return true;
+		}
+		// Referenced by attachment ID in meta (blocks/galleries store the ID, not the name)?
+		$id_like = '%' . $wpdb->esc_like( (string) (int) $id ) . '%';
+		$by_id = $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_value LIKE %s AND ( meta_key LIKE '%%gallery%%' OR meta_key LIKE '%%image%%' OR meta_key LIKE '%%media%%' OR meta_key LIKE '%%attachment%%' )",
+			$id_like
+		) );
+		return (bool) $by_id;
 	}
 
 	public static function delete_media( $ids ) {

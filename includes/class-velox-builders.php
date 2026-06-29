@@ -190,6 +190,117 @@ class Velox_Builders {
 		return 'wordpress';
 	}
 
+	/**
+	 * Detect notable installed plugins that affect how Velox should be configured
+	 * (other caches/optimizers we should stand down for, SEO plugins that clash
+	 * with our SEO module, form plugins to keep un-deferred, etc.).
+	 * Returns a list of [ slug => [ label, type, note ] ].
+	 */
+	public static function detect_plugins() {
+		$found = array();
+		$checks = array(
+			// Conflicting performance/cache plugins — Velox should be the only one.
+			'wp-rocket'      => array( 'WP Rocket',        'cache',  function () { return defined( 'WP_ROCKET_VERSION' ); } ),
+			'litespeed'      => array( 'LiteSpeed Cache',  'cache',  function () { return defined( 'LSCWP_V' ) || defined( 'LSCWP_VERSION' ); } ),
+			'wp-fastest'     => array( 'WP Fastest Cache', 'cache',  function () { return class_exists( 'WpFastestCache' ); } ),
+			'w3tc'           => array( 'W3 Total Cache',   'cache',  function () { return defined( 'W3TC_VERSION' ); } ),
+			'wp-super-cache' => array( 'WP Super Cache',   'cache',  function () { return defined( 'WPCACHEHOME' ); } ),
+			'autoptimize'    => array( 'Autoptimize',      'cache',  function () { return defined( 'AUTOPTIMIZE_PLUGIN_VERSION' ); } ),
+			'perfmatters'    => array( 'Perfmatters',      'cache',  function () { return defined( 'PERFMATTERS_VERSION' ); } ),
+			'flyingpress'    => array( 'FlyingPress',      'cache',  function () { return defined( 'FLYING_PRESS_VERSION' ); } ),
+			'nitropack'      => array( 'NitroPack',        'cache',  function () { return defined( 'NITROPACK_VERSION' ) || function_exists( 'nitropack_init' ); } ),
+			// SEO plugins — our SEO module should stay off so they don't clash.
+			'yoast'          => array( 'Yoast SEO',        'seo',    function () { return defined( 'WPSEO_VERSION' ); } ),
+			'rankmath'       => array( 'Rank Math',        'seo',    function () { return defined( 'RANK_MATH_VERSION' ); } ),
+			'aioseo'         => array( 'All in One SEO',   'seo',    function () { return defined( 'AIOSEO_VERSION' ); } ),
+			'seopress'       => array( 'SEOPress',         'seo',    function () { return defined( 'SEOPRESS_VERSION' ); } ),
+			// Form plugins — keep their scripts un-deferred/un-delayed.
+			'cf7'            => array( 'Contact Form 7',   'forms',  function () { return defined( 'WPCF7_VERSION' ); } ),
+			'fluentform'     => array( 'Fluent Forms',     'forms',  function () { return defined( 'FLUENTFORM_VERSION' ); } ),
+			'wpforms'        => array( 'WPForms',          'forms',  function () { return defined( 'WPFORMS_VERSION' ); } ),
+			'gravityforms'   => array( 'Gravity Forms',    'forms',  function () { return class_exists( 'GFForms' ); } ),
+			// E-commerce — don't cache cart/checkout, keep its scripts.
+			'woocommerce'    => array( 'WooCommerce',      'shop',   function () { return class_exists( 'WooCommerce' ); } ),
+		);
+		foreach ( $checks as $slug => $c ) {
+			$fn = $c[2];
+			if ( is_callable( $fn ) && $fn() ) {
+				$found[ $slug ] = array( 'label' => $c[0], 'type' => $c[1] );
+			}
+		}
+		return $found;
+	}
+
+	/** Friendly one-liners describing what each perf override actually does. */
+	public static function override_labels() {
+		return array(
+			'perf_defer_exclude'         => array( 'Defer exclusions',        'Scripts kept loading normally (not deferred) so your builder doesn\'t break.' ),
+			'perf_delay_js_exclude'      => array( 'Delay-JS exclusions',     'Scripts excluded from "delay until interaction" — your builder\'s core scripts.' ),
+			'perf_rucss_safelist'        => array( 'Unused-CSS safelist',     'CSS classes never stripped, so JS-added states (menus, sliders) keep their styles.' ),
+			'perf_remove_jquery_migrate' => array( 'Remove jQuery Migrate',   'Drops the legacy jQuery Migrate script — safe on this builder.' ),
+			'perf_disable_block_css'     => array( 'Disable block CSS',       'Removes Gutenberg block CSS your builder doesn\'t use.' ),
+			'perf_disable_global_styles' => array( 'Disable global styles',   'Removes the global-styles inline CSS (theme.json) your builder doesn\'t need.' ),
+			'perf_youtube_facade'        => array( 'YouTube facade',          'Replaces YouTube embeds with a click-to-load thumbnail for speed.' ),
+			'perf_delay_scripts'         => array( 'Delay JS until interaction', 'Holds non-critical JS until the user scrolls/taps — big speed win where safe.' ),
+		);
+	}
+
+	/**
+	 * Build a review plan for a builder: the list of recommended changes (each
+	 * with id, label, note, type and the value it would set), plus the detected
+	 * plugins and any advisories. Nothing is saved — this is for the review step.
+	 */
+	public static function plan( $id ) {
+		$profile = self::get( $id );
+		$resolved = isset( self::registry()[ $id ] ) ? $id : 'wordpress';
+		$labels  = self::override_labels();
+		$plugins = self::detect_plugins();
+
+		$items = array();
+		foreach ( self::override_keys() as $k ) {
+			if ( ! array_key_exists( $k, $profile['overrides'] ) ) { continue; }
+			$val = $profile['overrides'][ $k ];
+			$meta = isset( $labels[ $k ] ) ? $labels[ $k ] : array( $k, '' );
+			$items[] = array(
+				'key'   => $k,
+				'label' => $meta[0],
+				'note'  => $meta[1],
+				'value' => $val,
+				'is_bool' => is_bool( $val ),
+				'on'    => is_bool( $val ) ? $val : ( '' !== (string) $val ),
+				'recommended' => true,
+			);
+		}
+
+		// Advisories from detected plugins.
+		$advisories = array();
+		$caches = array();
+		$seos   = array();
+		foreach ( $plugins as $slug => $p ) {
+			if ( 'cache' === $p['type'] ) { $caches[] = $p['label']; }
+			if ( 'seo' === $p['type'] ) { $seos[] = $p['label']; }
+		}
+		if ( $caches ) {
+			$advisories[] = array( 'type' => 'warn', 'text' => 'Found another optimization plugin: ' . implode( ', ', $caches ) . '. Run only one — disable its JS/CSS optimization so it doesn\'t fight Velox.' );
+		}
+		if ( $seos ) {
+			$advisories[] = array( 'type' => 'info', 'text' => implode( ', ', $seos ) . ' is active, so Velox\'s own SEO module is best left off to avoid duplicate meta tags.' );
+		}
+		if ( isset( $plugins['woocommerce'] ) ) {
+			$advisories[] = array( 'type' => 'info', 'text' => 'WooCommerce detected — cart, checkout and account pages are auto-excluded from caching.' );
+		}
+
+		return array(
+			'ok'        => true,
+			'builder'   => $resolved,
+			'label'     => $profile['label'],
+			'note'      => $profile['note'],
+			'items'     => $items,
+			'plugins'   => array_values( $plugins ),
+			'advisories'=> $advisories,
+		);
+	}
+
 	/** Plain list for the picker: [ id => label ]. */
 	public static function choices() {
 		$out = array();
@@ -217,8 +328,12 @@ class Velox_Builders {
 	/**
 	 * Wipe the performance settings and reconfigure them for the chosen builder.
 	 * Only perf_* keys are reset — image, module, font and database settings stay.
+	 *
+	 * @param string     $id   Builder id.
+	 * @param array|null $keep If provided, only these override keys are applied
+	 *                         (the rest keep their default). null = apply all.
 	 */
-	public static function apply( $id ) {
+	public static function apply( $id, $keep = null ) {
 		$profile  = self::get( $id );
 		$resolved = isset( self::registry()[ $id ] ) ? $id : 'wordpress';
 		$s        = Velox_Settings::all();
@@ -230,11 +345,13 @@ class Velox_Builders {
 				$s[ $k ] = $v;
 			}
 		}
-		// Then apply this builder's tuned overrides.
+		// Then apply this builder's tuned overrides — honouring the keep-list.
+		$applied = array();
 		foreach ( self::override_keys() as $k ) {
-			if ( array_key_exists( $k, $profile['overrides'] ) ) {
-				$s[ $k ] = $profile['overrides'][ $k ];
-			}
+			if ( ! array_key_exists( $k, $profile['overrides'] ) ) { continue; }
+			if ( is_array( $keep ) && ! in_array( $k, $keep, true ) ) { continue; }
+			$s[ $k ] = $profile['overrides'][ $k ];
+			$applied[] = $k;
 		}
 		$s['builder']     = $resolved;
 		$s['wizard_done'] = true;
@@ -244,11 +361,13 @@ class Velox_Builders {
 			Velox_CSS::clear_cache(); // old trimmed CSS no longer matches the new safelist
 		}
 
+		$count = count( $applied );
 		return array(
 			'ok'      => true,
 			'builder' => $resolved,
 			'label'   => $profile['label'],
-			'message' => 'Heads up — we wiped the old performance settings and reconfigured everything for ' . $profile['label'] . '. You can fine-tune it all in Settings → Performance whenever you like.',
+			'applied' => $applied,
+			'message' => 'Configured Velox for ' . $profile['label'] . ' — applied ' . $count . ' tuned setting' . ( 1 === $count ? '' : 's' ) . '. Fine-tune anything in Settings → Performance.',
 		);
 	}
 
