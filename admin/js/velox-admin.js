@@ -2016,6 +2016,84 @@
 			} );
 	}
 
+	/* ---- Field-type registry: categories, icons, descriptions (ACF-style picker) ---- */
+	var VFX_CATS = [
+		{ id: 'basic', label: 'Basic' },
+		{ id: 'content', label: 'Content' },
+		{ id: 'choice', label: 'Choice' },
+		{ id: 'relational', label: 'Relational' },
+		{ id: 'picker', label: 'Pickers' },
+		{ id: 'layout', label: 'Layout' }
+	];
+	var VFX_ICONS = {
+		text: '<path d="M4 7V5h16v2M9 19h6M12 5v14"/>',
+		lines: '<path d="M4 6h16M4 12h16M4 18h10"/>',
+		hash: '<path d="M5 9h14M5 15h14M10 4 8 20M16 4l-2 16"/>',
+		slider: '<path d="M4 12h16"/><circle cx="9" cy="12" r="2.5"/>',
+		at: '<circle cx="12" cy="12" r="4"/><path d="M16 12v1.5a2.5 2.5 0 0 0 5 0V12a9 9 0 1 0-3.5 7.1"/>',
+		link: '<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>',
+		image: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="9" r="1.5"/><path d="m3 17 5-4 4 3 3-2 6 4"/>',
+		images: '<rect x="7" y="3" width="14" height="14" rx="2"/><path d="M3 7v12a2 2 0 0 0 2 2h12"/><circle cx="12" cy="8" r="1.4"/>',
+		file: '<path d="M14 3v5h5"/><path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>',
+		edit: '<path d="M4 20h16"/><path d="M14 6l4 4L8 20H4v-4z"/>',
+		play: '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3z"/>',
+		chevrons: '<rect x="4" y="5" width="16" height="14" rx="2"/><path d="m9 11 3 3 3-3"/>',
+		checksquare: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="m8 12 3 3 5-6"/>',
+		radio: '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3" fill="currentColor"/>',
+		buttons: '<rect x="3" y="7" width="7" height="10" rx="2"/><rect x="14" y="7" width="7" height="10" rx="2"/>',
+		toggle: '<rect x="3" y="7" width="18" height="10" rx="5"/><circle cx="16" cy="12" r="3" fill="currentColor"/>',
+		post: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h8M8 17h5"/>',
+		posts: '<rect x="3" y="5" width="11" height="14" rx="2"/><path d="M17 7h4v12a2 2 0 0 1-2 2H8"/>',
+		tag: '<path d="M3 11V5a2 2 0 0 1 2-2h6l9 9-8 8z"/><circle cx="8" cy="8" r="1.4" fill="currentColor"/>',
+		user: '<circle cx="12" cy="8" r="4"/><path d="M4 20a8 8 0 0 1 16 0"/>',
+		calendar: '<rect x="4" y="5" width="16" height="16" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+		swatch: '<circle cx="12" cy="12" r="8"/><circle cx="9" cy="10" r="1.2" fill="currentColor"/><circle cx="15" cy="10" r="1.2" fill="currentColor"/><circle cx="12" cy="15" r="1.2" fill="currentColor"/>',
+		group: '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>',
+		rows: '<rect x="4" y="4" width="16" height="5" rx="1.5"/><rect x="4" y="11" width="16" height="5" rx="1.5"/><path d="M8 19h8"/>',
+		layers: '<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+		lock: '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+		clock: '<circle cx="12" cy="12" r="8"/><path d="M12 8v4l3 2"/>',
+		message: '<path d="M21 12a8 8 0 0 1-11.3 7.3L4 21l1.7-5.7A8 8 0 1 1 21 12z"/>'
+	};
+	function vfxIcon( name ) {
+		var p = VFX_ICONS[ name ] || VFX_ICONS.text;
+		return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
+	}
+	var VFX_META = {
+		text: { cat: 'basic', icon: 'text', label: 'Text', desc: 'A single line of text.' },
+		textarea: { cat: 'basic', icon: 'lines', label: 'Text Area', desc: 'Multiple lines of plain text.' },
+		number: { cat: 'basic', icon: 'hash', label: 'Number', desc: 'A numeric value.' },
+		range: { cat: 'basic', icon: 'slider', label: 'Range', desc: 'A slider between min and max.' },
+		email: { cat: 'basic', icon: 'at', label: 'Email', desc: 'An email address.' },
+		url: { cat: 'basic', icon: 'link', label: 'URL', desc: 'A web address.' },
+		password: { cat: 'basic', icon: 'lock', label: 'Password', desc: 'A masked password input.' },
+		image: { cat: 'content', icon: 'image', label: 'Image', desc: 'Pick an image from the media library.' },
+		gallery: { cat: 'content', icon: 'images', label: 'Gallery', desc: 'A collection of images.' },
+		file: { cat: 'content', icon: 'file', label: 'File', desc: 'Pick any file from the library.' },
+		wysiwyg: { cat: 'content', icon: 'edit', label: 'WYSIWYG', desc: 'A rich, visual text editor.' },
+		oembed: { cat: 'content', icon: 'play', label: 'oEmbed', desc: 'Embed a video or media URL.' },
+		select: { cat: 'choice', icon: 'chevrons', label: 'Select', desc: 'A dropdown of choices.' },
+		checkbox: { cat: 'choice', icon: 'checksquare', label: 'Checkbox', desc: 'Tick one or more choices.' },
+		radio: { cat: 'choice', icon: 'radio', label: 'Radio', desc: 'Pick one of several choices.' },
+		button_group: { cat: 'choice', icon: 'buttons', label: 'Button Group', desc: 'Pick one, shown as buttons.' },
+		truefalse: { cat: 'choice', icon: 'toggle', label: 'True / False', desc: 'A yes / no toggle.' },
+		link: { cat: 'relational', icon: 'link', label: 'Link', desc: 'A link: URL, text and target.' },
+		post_object: { cat: 'relational', icon: 'post', label: 'Post Object', desc: 'Select a post or page.' },
+		page_link: { cat: 'relational', icon: 'link', label: 'Page Link', desc: 'Select a post; use its permalink.' },
+		relationship: { cat: 'relational', icon: 'posts', label: 'Relationship', desc: 'Select multiple posts/pages.' },
+		taxonomy: { cat: 'relational', icon: 'tag', label: 'Taxonomy', desc: 'Select a taxonomy term.' },
+		user: { cat: 'relational', icon: 'user', label: 'User', desc: 'Select a user.' },
+		date: { cat: 'picker', icon: 'calendar', label: 'Date Picker', desc: 'Pick a date.' },
+		datetime: { cat: 'picker', icon: 'calendar', label: 'Date & Time', desc: 'Pick a date and time.' },
+		time: { cat: 'picker', icon: 'clock', label: 'Time Picker', desc: 'Pick a time.' },
+		color: { cat: 'picker', icon: 'swatch', label: 'Color Picker', desc: 'Pick a color.' },
+		message: { cat: 'layout', icon: 'message', label: 'Message', desc: 'Show a note to editors (no value).' },
+		group: { cat: 'layout', icon: 'group', label: 'Group', desc: 'Bundle sub-fields into one block.' },
+		repeater: { cat: 'layout', icon: 'rows', label: 'Repeater', desc: 'Repeatable rows of sub-fields.' },
+		flexible: { cat: 'layout', icon: 'layers', label: 'Flexible Content', desc: 'Stack rows of chosen layouts.' }
+	};
+	function vfxMeta( t ) { return VFX_META[ t ] || { cat: 'basic', icon: 'text', label: t, desc: '' }; }
+
 	function initFieldsEditor() {
 		var root = $( '#vfg-editor' );
 		if ( ! root ) { return; }
@@ -2079,20 +2157,36 @@
 					'</div>';
 				var body = '';
 				if ( open ) {
-					var typeOpts = Object.keys( TYPES ).map( function ( t ) {
-						return '<option value="' + t + '"' + ( t === f.type ? ' selected' : '' ) + '>' + TYPES[ t ].label + '</option>';
-					} ).join( '' );
 					var hasOpts = TYPES[ f.type ] && TYPES[ f.type ].opts;
-					body = '<div class="vfg-field-body"><div class="vfg-fbody-grid">' +
+					var tMeta = vfxMeta( f.type );
+					var generalGrid = '<div class="vfg-fbody-grid">' +
 						mini( 'Field label', '<input class="velox-input" data-fk="label" value="' + escapeHtml( f.label || '' ) + '">' ) +
 						mini( 'Field name', '<input class="velox-input vfg-mono" data-fk="name" value="' + escapeHtml( f.name || '' ) + '">' ) +
-						mini( 'Field type', '<select class="velox-select" data-fk="type">' + typeOpts + '</select>' ) +
+						mini( 'Field type', '<button type="button" class="vfg-typepick" data-typepick><span class="vfg-typepick-ic">' + vfxIcon( tMeta.icon ) + '</span><span class="vfg-typepick-tx">' + escapeHtml( tMeta.label ) + '</span><svg class="vfg-typepick-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>' ) +
 						mini( 'Default value', '<input class="velox-input" data-fk="default" value="' + escapeHtml( f['default'] || '' ) + '">' ) +
+						typeSettingsUi( f ) +
 						( hasOpts ? minifull( 'Choices (one per line)', '<textarea class="velox-textarea" rows="3" data-fk="options">' + escapeHtml( f.options || '' ) + '</textarea>' ) : '' ) +
 						minifull( 'Placeholder', '<input class="velox-input" data-fk="placeholder" value="' + escapeHtml( f.placeholder || '' ) + '">' ) +
 						minifull( 'Instructions', '<input class="velox-input" data-fk="instructions" value="' + escapeHtml( f.instructions || '' ) + '" placeholder="Shown to editors below the field">' ) +
 						'<label class="vfg-check"><input type="checkbox" data-fk="required"' + ( f.required ? ' checked' : '' ) + '> Required field</label>' +
-					'</div>' + ( ( f.type === 'repeater' || f.type === 'group' ) ? subFieldsUi( f ) : ( f.type === 'flexible' ? flexibleUi( f ) : '' ) ) + conditionalUi( f, i ) + '</div>';
+					'</div>';
+					var structural = ( f.type === 'repeater' || f.type === 'group' ) ? subFieldsUi( f ) : ( f.type === 'flexible' ? flexibleUi( f ) : '' );
+					var curW = f.wrapper_width ? parseInt( f.wrapper_width, 10 ) : 100;
+					var widthOpts = [ 100, 75, 66, 50, 33, 25 ].map( function ( w ) { return '<option value="' + w + '"' + ( curW === w ? ' selected' : '' ) + '>' + w + '%</option>'; } ).join( '' );
+					var presGrid = '<div class="vfg-fbody-grid">' +
+						mini( 'Field width', '<select class="velox-select" data-fk="wrapper_width">' + widthOpts + '</select>' ) +
+						minifull( 'Wrapper CSS class', '<input class="velox-input vfg-mono" data-fk="wrapper_class" value="' + escapeHtml( f.wrapper_class || '' ) + '" placeholder="optional">' ) +
+					'</div>';
+					body = '<div class="vfg-field-body">' +
+						'<div class="vfg-ftabs">' +
+							'<button type="button" class="vfg-ftab is-on" data-ftab="general">General</button>' +
+							'<button type="button" class="vfg-ftab" data-ftab="presentation">Presentation</button>' +
+							'<button type="button" class="vfg-ftab" data-ftab="conditional">Conditional Logic</button>' +
+						'</div>' +
+						'<div class="vfg-ftab-panel" data-ftab-panel="general">' + generalGrid + structural + '</div>' +
+						'<div class="vfg-ftab-panel" data-ftab-panel="presentation" hidden>' + presGrid + '</div>' +
+						'<div class="vfg-ftab-panel" data-ftab-panel="conditional" hidden>' + conditionalUi( f, i ) + '</div>' +
+					'</div>';
 				}
 				card.innerHTML = head + body;
 				// row click toggles (except buttons + handle)
@@ -2111,6 +2205,24 @@
 					} );
 				} );
 				// inputs in the body
+				var ftabs = card.querySelectorAll( '.vfg-ftab' );
+				ftabs.forEach( function ( tb ) {
+					tb.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						var which = tb.getAttribute( 'data-ftab' );
+						ftabs.forEach( function ( x ) { x.classList.toggle( 'is-on', x === tb ); } );
+						card.querySelectorAll( '.vfg-ftab-panel' ).forEach( function ( pnl ) {
+							pnl.hidden = pnl.getAttribute( 'data-ftab-panel' ) !== which;
+						} );
+					} );
+				} );
+				var typePickBtn = card.querySelector( '[data-typepick]' );
+				if ( typePickBtn ) {
+					typePickBtn.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						openTypeModal( i );
+					} );
+				}
 				card.querySelectorAll( '[data-fk]' ).forEach( function ( el ) {
 					var ev = ( el.type === 'checkbox' || el.tagName === 'SELECT' ) ? 'change' : 'input';
 					el.addEventListener( ev, function () {
@@ -2251,6 +2363,17 @@
 		}
 		function mini( label, inner ) { return '<div class="vfg-mini"><span class="vfg-mini-label">' + label + '</span>' + inner + '</div>'; }
 		function minifull( label, inner ) { return '<div class="vfg-mini vfg-mini--full"><span class="vfg-mini-label">' + label + '</span>' + inner + '</div>'; }
+		function typeSettingsUi( f ) {
+			var t = f.type;
+			function num( k, label, ph ) {
+				return mini( label, '<input class="velox-input" type="number" data-fk="' + k + '" value="' + escapeHtml( f[ k ] != null ? f[ k ] : '' ) + '"' + ( ph ? ' placeholder="' + ph + '"' : '' ) + '>' );
+			}
+			if ( t === 'number' || t === 'range' ) { return num( 'min', 'Minimum value' ) + num( 'max', 'Maximum value' ) + num( 'step', 'Step' ); }
+			if ( t === 'textarea' ) { return num( 'rows', 'Rows', '4' ) + num( 'maxlength', 'Character limit' ); }
+			if ( t === 'text' || t === 'email' || t === 'url' || t === 'password' ) { return num( 'maxlength', 'Character limit' ); }
+			if ( t === 'select' ) { return '<label class="vfg-check"><input type="checkbox" data-fk="multiple"' + ( f.multiple ? ' checked' : '' ) + '> Allow multiple selections</label>'; }
+			return '';
+		}
 		function subFieldsUi( f ) {
 			var subTypes = { text: 'Text', textarea: 'Text area', number: 'Number', email: 'Email', url: 'URL', image: 'Image', file: 'File', truefalse: 'True / False', color: 'Color', date: 'Date' };
 			var subs = f.sub_fields || [];
@@ -2314,6 +2437,73 @@
 			} ).join( '' );
 			return head + '<div class="vfg-cond-rules">' + ( rows || '<div class="vfg-sub-empty">No rules yet.</div>' ) +
 				'<button type="button" class="vfg-cond-add vfg-sub-add">+ Add rule</button></div></div>';
+		}
+
+		// ---- Browse Fields modal (type picker) ----
+		var typeModalEl = null, typeModalFor = -1, typeCat = 'basic', typeQuery = '';
+		function availableTypes() { return Object.keys( VFX_META ).filter( function ( t ) { return TYPES[ t ]; } ); }
+		function renderTypeCats() {
+			typeModalEl.querySelector( '.vfx-tcats' ).innerHTML = VFX_CATS.map( function ( c ) {
+				return '<button type="button" class="vfx-tcat' + ( c.id === typeCat ? ' is-on' : '' ) + '" data-cat="' + c.id + '">' + c.label + '</button>';
+			} ).join( '' );
+		}
+		function renderTypeGrid() {
+			var cur = ( typeModalFor >= 0 && group.fields[ typeModalFor ] ) ? group.fields[ typeModalFor ].type : '';
+			var list = availableTypes().filter( function ( t ) {
+				var m = vfxMeta( t );
+				if ( typeQuery ) { return ( m.label + ' ' + m.desc ).toLowerCase().indexOf( typeQuery ) !== -1; }
+				return m.cat === typeCat;
+			} );
+			var grid = typeModalEl.querySelector( '.vfx-tgrid' );
+			if ( ! list.length ) { grid.innerHTML = '<div class="vfx-tempty">No fields match \u201c' + escapeHtml( typeQuery ) + '\u201d.</div>'; return; }
+			grid.innerHTML = list.map( function ( t ) {
+				var m = vfxMeta( t );
+				return '<button type="button" class="vfx-tcard' + ( t === cur ? ' is-on' : '' ) + '" data-type="' + t + '">' +
+					'<span class="vfx-tcard-ic">' + vfxIcon( m.icon ) + '</span>' +
+					'<span class="vfx-tcard-tx"><span class="vfx-tcard-name">' + escapeHtml( m.label ) + '</span><span class="vfx-tcard-desc">' + escapeHtml( m.desc ) + '</span></span></button>';
+			} ).join( '' );
+		}
+		function ensureTypeModal() {
+			if ( typeModalEl ) { return; }
+			typeModalEl = document.createElement( 'div' );
+			typeModalEl.className = 'vfx-typemodal';
+			typeModalEl.innerHTML =
+				'<div class="vfx-modal-overlay" data-close></div>' +
+				'<div class="vfx-modal" role="dialog" aria-modal="true" aria-label="Select a field type">' +
+					'<div class="vfx-modal-head"><div class="vfx-modal-title">Select a field type</div>' +
+						'<button type="button" class="vfx-modal-x" data-close aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>' +
+					'<div class="vfx-modal-search"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg><input type="search" class="vfx-tsearch" placeholder="Search fields\u2026"></div>' +
+					'<div class="vfx-modal-body"><div class="vfx-tcats"></div><div class="vfx-tgrid"></div></div>' +
+				'</div>';
+			document.body.appendChild( typeModalEl );
+			typeModalEl.querySelectorAll( '[data-close]' ).forEach( function ( el ) { el.addEventListener( 'click', closeTypeModal ); } );
+			var search = typeModalEl.querySelector( '.vfx-tsearch' );
+			search.addEventListener( 'input', function () { typeQuery = search.value.trim().toLowerCase(); renderTypeGrid(); } );
+			typeModalEl.querySelector( '.vfx-tgrid' ).addEventListener( 'click', function ( e ) {
+				var c = e.target.closest( '.vfx-tcard' ); if ( c ) { pickType( c.getAttribute( 'data-type' ) ); }
+			} );
+			typeModalEl.querySelector( '.vfx-tcats' ).addEventListener( 'click', function ( e ) {
+				var b = e.target.closest( '.vfx-tcat' );
+				if ( b ) { typeCat = b.getAttribute( 'data-cat' ); typeQuery = ''; search.value = ''; renderTypeCats(); renderTypeGrid(); }
+			} );
+			document.addEventListener( 'keydown', function ( e ) {
+				if ( e.key === 'Escape' && typeModalEl.classList.contains( 'is-open' ) ) { closeTypeModal(); }
+			} );
+		}
+		function openTypeModal( idx ) {
+			ensureTypeModal();
+			typeModalFor = idx; typeQuery = '';
+			typeCat = vfxMeta( group.fields[ idx ] ? group.fields[ idx ].type : 'text' ).cat;
+			typeModalEl.querySelector( '.vfx-tsearch' ).value = '';
+			renderTypeCats(); renderTypeGrid();
+			typeModalEl.classList.add( 'is-open' );
+			setTimeout( function () { typeModalEl.querySelector( '.vfx-tsearch' ).focus(); }, 30 );
+		}
+		function closeTypeModal() { if ( typeModalEl ) { typeModalEl.classList.remove( 'is-open' ); } typeModalFor = -1; }
+		function pickType( t ) {
+			if ( typeModalFor >= 0 && group.fields[ typeModalFor ] ) { group.fields[ typeModalFor ].type = t; openIdx = typeModalFor; }
+			closeTypeModal();
+			renderFields();
 		}
 
 		// ---- location rules ----

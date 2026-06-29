@@ -4,6 +4,32 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.46.0 — Custom fields: tabbed field settings + field widths
+The field editor now matches ACF 6’s layout: each field’s settings are split into **General / Presentation / Conditional Logic** tabs instead of one long stack.
+
+- **Presentation** tab adds a **Field width** setting (100 / 75 / 66 / 50 / 33 / 25%) and an optional wrapper CSS class — set two fields to 50% and they sit side by side on the editor.
+- **Conditional Logic** moves into its own tab.
+
+## 2.45.0 — Custom fields: five more field types
+Added the remaining common field types so the set matches ACF’s basics: **Password** (masked input), **Page Link** (select a post, use its permalink), **Date & Time** and **Time** pickers, and **Message** (a display-only note shown to editors, no stored value). All appear in the Browse Fields picker with icons and descriptions.
+
+## 2.44.0 — Custom fields: per-type field settings
+Fields now show settings specific to their type in the field group editor, instead of the same generic set for everything:
+
+- **Number / Range:** Minimum, Maximum, Step (Range no longer abuses the Choices box).
+- **Text / Email / URL / Password:** Character limit.
+- **Text Area:** Rows + character limit.
+- **Select:** “Allow multiple selections” — renders a multi-select and stores an array.
+
+These are honoured on the actual input (min/max/step/maxlength/rows attributes; multi-select).
+
+## 2.43.0 — Custom fields: ACF-style “Browse Fields” type picker
+The field-type dropdown in the field group editor is replaced with a proper **Browse Fields** experience, matching ACF’s look and feel:
+
+- Each field now shows its type as a button (icon + name); clicking it opens a modal.
+- The modal has a category rail (Basic / Content / Choice / Relational / Pickers / Layout), a searchable, icon-and-description card for every field type, and keyboard/Escape support.
+- Makes the 27 field types actually discoverable instead of buried in a flat dropdown.
+
 ## 2.42.0 — Custom fields: Group field now works
 The **Group** field type was listed but rendered as a plain text box. It now works properly: define sub-fields (same editor as the repeater), they render as one bundled block on the editor, and save as a nested array. Read with `$g = Velox_Fields::get_field('address'); echo $g['street'];`.
 

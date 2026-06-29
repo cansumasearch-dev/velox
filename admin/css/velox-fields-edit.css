@@ -61,3 +61,13 @@
 
 /* group field */
 .velox-fld-group { border: 1px solid #dcdcde; border-radius: 8px; padding: 14px; background: #f6f7f7; display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; }
+
+/* message field (display-only note) */
+.velox-fld-message { background: #f0f6fc; border: 1px solid #c5d9ed; border-left: 3px solid #2271b1; border-radius: 6px; padding: 10px 14px; color: #1d2327; font-size: 13px; }
+.velox-fld-message p { margin: 0 0 8px; }
+.velox-fld-message p:last-child { margin: 0; }
+
+/* field widths (side-by-side fields) */
+.velox-fields-meta { display: flex; flex-wrap: wrap; gap: 18px 16px; align-items: flex-start; }
+.velox-fields-meta > .velox-fields-row { flex: 1 1 100%; margin: 0; box-sizing: border-box; }
+.velox-fields-meta--left > .velox-fields-row { flex-basis: 100%; }

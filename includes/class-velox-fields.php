@@ -27,15 +27,17 @@ class Velox_Fields {
 			'number'       => array( 'label' => 'Number',          'opts' => false ),
 			'email'        => array( 'label' => 'Email',           'opts' => false ),
 			'url'          => array( 'label' => 'URL',             'opts' => false ),
+			'password'     => array( 'label' => 'Password',        'opts' => false ),
 			'select'       => array( 'label' => 'Select',          'opts' => true ),
 			'checkbox'     => array( 'label' => 'Checkbox',        'opts' => true ),
 			'radio'        => array( 'label' => 'Radio',           'opts' => true ),
 			'button_group' => array( 'label' => 'Button group',    'opts' => true ),
 			'truefalse'    => array( 'label' => 'True / False',    'opts' => false ),
-			'range'        => array( 'label' => 'Range slider',    'opts' => true ),
+			'range'        => array( 'label' => 'Range slider',    'opts' => false ),
 			'link'         => array( 'label' => 'Link',            'opts' => false ),
 			'oembed'       => array( 'label' => 'oEmbed',          'opts' => false ),
 			'post_object'  => array( 'label' => 'Post object',     'opts' => true ),
+			'page_link'    => array( 'label' => 'Page link',       'opts' => true ),
 			'relationship' => array( 'label' => 'Relationship',    'opts' => true ),
 			'taxonomy'     => array( 'label' => 'Taxonomy term',   'opts' => true ),
 			'user'         => array( 'label' => 'User',            'opts' => false ),
@@ -44,7 +46,10 @@ class Velox_Fields {
 			'file'         => array( 'label' => 'File',            'opts' => false ),
 			'wysiwyg'      => array( 'label' => 'WYSIWYG editor',  'opts' => false ),
 			'date'         => array( 'label' => 'Date picker',     'opts' => false ),
+			'datetime'     => array( 'label' => 'Date & time',     'opts' => false ),
+			'time'         => array( 'label' => 'Time picker',     'opts' => false ),
 			'color'        => array( 'label' => 'Color picker',    'opts' => false ),
+			'message'      => array( 'label' => 'Message',         'opts' => false ),
 			'repeater'     => array( 'label' => 'Repeater',        'opts' => false ),
 			'flexible'     => array( 'label' => 'Flexible Content', 'opts' => false ),
 			'group'        => array( 'label' => 'Group',           'opts' => false ),
@@ -339,6 +344,14 @@ class Velox_Fields {
 				$field['layouts'] = self::sanitize_layouts( $f['layouts'] ?? array() );
 			}
 			$field['conditional'] = self::sanitize_conditional( $f['conditional'] ?? array() );
+			// Per-type settings (only the relevant ones are honoured at render/save time).
+			foreach ( array( 'min', 'max', 'step', 'rows', 'maxlength' ) as $nk ) {
+				if ( isset( $f[ $nk ] ) && '' !== $f[ $nk ] && is_numeric( $f[ $nk ] ) ) { $field[ $nk ] = $f[ $nk ] + 0; }
+			}
+			$field['multiple']   = ! empty( $f['multiple'] );
+			$ww = isset( $f['wrapper_width'] ) ? (int) $f['wrapper_width'] : 100;
+			$field['wrapper_width'] = ( $ww >= 10 && $ww <= 100 ) ? $ww : 100;
+			$field['wrapper_class'] = sanitize_html_class( $f['wrapper_class'] ?? '' );
 			$out['fields'][] = $field;
 		}
 		foreach ( (array) ( $group['location'] ?? array() ) as $rule_group ) {
@@ -524,9 +537,14 @@ class Velox_Fields {
 	/** Render one field row (label + control + instructions). Shared by meta box + options pages. */
 	private static function render_field_row( $f, $value ) {
 		$cond = isset( $f['conditional'] ) && ! empty( $f['conditional']['enabled'] ) && ! empty( $f['conditional']['groups'] ) ? $f['conditional'] : null;
-		$attrs = ' data-vfx-field="' . esc_attr( $f['name'] ) . '"';
+		$w = isset( $f['wrapper_width'] ) ? (int) $f['wrapper_width'] : 100;
+		$cls = 'velox-fields-row';
+		if ( ! empty( $f['wrapper_class'] ) ) { $cls .= ' ' . sanitize_html_class( $f['wrapper_class'] ); }
+		$attrs = ' class="' . esc_attr( $cls ) . '"';
+		if ( $w > 0 && $w < 100 ) { $attrs .= ' style="width:' . $w . '%"'; }
+		$attrs .= ' data-vfx-field="' . esc_attr( $f['name'] ) . '"';
 		if ( $cond ) { $attrs .= ' data-vfx-cond="' . esc_attr( wp_json_encode( $cond ) ) . '"'; }
-		echo '<div class="velox-fields-row"' . $attrs . '>'; // phpcs:ignore WordPress.Security.EscapeOutput
+		echo '<div' . $attrs . '>'; // phpcs:ignore WordPress.Security.EscapeOutput
 		echo '<label class="velox-fields-label" for="velox_field_' . esc_attr( $f['name'] ) . '">' . esc_html( $f['label'] );
 		if ( ! empty( $f['required'] ) ) { echo ' <span class="velox-fields-req">*</span>'; }
 		echo '</label>';
@@ -538,6 +556,14 @@ class Velox_Fields {
 		echo '</div></div>';
 	}
 
+	private static function minmax_attrs( $f ) {
+		$a = '';
+		if ( isset( $f['min'] ) && '' !== $f['min'] ) { $a .= ' min="' . esc_attr( $f['min'] ) . '"'; }
+		if ( isset( $f['max'] ) && '' !== $f['max'] ) { $a .= ' max="' . esc_attr( $f['max'] ) . '"'; }
+		if ( isset( $f['step'] ) && '' !== $f['step'] ) { $a .= ' step="' . esc_attr( $f['step'] ) . '"'; }
+		return $a;
+	}
+
 	private static function render_field_input( $f, $value ) {
 		$name = 'velox_field[' . esc_attr( $f['name'] ) . ']';
 		$id   = 'velox_field_' . esc_attr( $f['name'] );
@@ -545,7 +571,9 @@ class Velox_Fields {
 		$opts = array_filter( array_map( 'trim', explode( "\n", (string) ( $f['options'] ?? '' ) ) ) );
 		switch ( $f['type'] ) {
 			case 'textarea':
-				echo '<textarea id="' . $id . '" name="' . $name . '" rows="5" class="widefat" placeholder="' . $ph . '">' . esc_textarea( $value ) . '</textarea>';
+				$rows = isset( $f['rows'] ) ? (int) $f['rows'] : 5;
+				$ml   = isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '';
+				echo '<textarea id="' . $id . '" name="' . $name . '" rows="' . esc_attr( $rows ) . '" class="widefat" placeholder="' . $ph . '"' . $ml . '>' . esc_textarea( $value ) . '</textarea>';
 				break;
 			case 'wysiwyg':
 				wp_editor(
@@ -637,10 +665,13 @@ class Velox_Fields {
 				echo '</div>';
 				break;
 			case 'select':
-				echo '<select id="' . $id . '" name="' . $name . '" class="widefat">';
-				echo '<option value="">— Select —</option>';
+				$multi = ! empty( $f['multiple'] );
+				$vals  = $multi ? ( is_array( $value ) ? $value : array_filter( array_map( 'trim', explode( ',', (string) $value ) ) ) ) : array();
+				echo '<select id="' . $id . '" name="' . $name . ( $multi ? '[]' : '' ) . '" class="widefat"' . ( $multi ? ' multiple size="5"' : '' ) . '>';
+				if ( ! $multi ) { echo '<option value="">— Select —</option>'; }
 				foreach ( $opts as $o ) {
-					echo '<option value="' . esc_attr( $o ) . '"' . selected( $value, $o, false ) . '>' . esc_html( $o ) . '</option>';
+					$on = $multi ? in_array( $o, $vals, true ) : ( (string) $value === (string) $o );
+					echo '<option value="' . esc_attr( $o ) . '"' . ( $on ? ' selected' : '' ) . '>' . esc_html( $o ) . '</option>';
 				}
 				echo '</select>';
 				break;
@@ -659,16 +690,28 @@ class Velox_Fields {
 				echo '<label class="velox-fields-choice"><input type="checkbox" name="' . $name . '" value="1"' . checked( $value, '1', false ) . '> ' . esc_html( $f['label'] ) . '</label>';
 				break;
 			case 'number':
-				echo '<input type="number" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '">';
+				echo '<input type="number" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . self::minmax_attrs( $f ) . '>';
 				break;
 			case 'email':
-				echo '<input type="email" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '">';
+				echo '<input type="email" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . '>';
 				break;
 			case 'url':
-				echo '<input type="url" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '">';
+				echo '<input type="url" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . '>';
 				break;
 			case 'date':
 				echo '<input type="date" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '">';
+				break;
+			case 'datetime':
+				echo '<input type="datetime-local" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '">';
+				break;
+			case 'time':
+				echo '<input type="time" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '">';
+				break;
+			case 'password':
+				echo '<input type="password" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '" autocomplete="new-password"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . '>';
+				break;
+			case 'message':
+				echo '<div class="velox-fld-message">' . wp_kses_post( wpautop( (string) ( $f['default'] ?? '' ) ) ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
 				break;
 			case 'color':
 				echo '<input type="color" id="' . $id . '" name="' . $name . '" value="' . esc_attr( $value ? $value : '#000000' ) . '">';
@@ -681,9 +724,9 @@ class Velox_Fields {
 				echo '</div>';
 				break;
 			case 'range':
-				$min = isset( $opts[0] ) && is_numeric( $opts[0] ) ? $opts[0] : 0;
-				$max = isset( $opts[1] ) && is_numeric( $opts[1] ) ? $opts[1] : 100;
-				$step = isset( $opts[2] ) && is_numeric( $opts[2] ) ? $opts[2] : 1;
+				$min = isset( $f['min'] ) ? $f['min'] : 0;
+				$max = isset( $f['max'] ) ? $f['max'] : 100;
+				$step = isset( $f['step'] ) ? $f['step'] : 1;
 				$cur = ( '' === $value ) ? $min : $value;
 				echo '<div class="velox-fld-range"><input type="range" id="' . $id . '" name="' . $name . '" min="' . esc_attr( $min ) . '" max="' . esc_attr( $max ) . '" step="' . esc_attr( $step ) . '" value="' . esc_attr( $cur ) . '"><output class="velox-fld-range-val">' . esc_html( $cur ) . '</output></div>';
 				break;
@@ -706,6 +749,7 @@ class Velox_Fields {
 				echo '</div>';
 				break;
 			case 'post_object':
+			case 'page_link':
 			case 'relationship':
 				$multiple = 'relationship' === $f['type'];
 				$ptypes   = $opts ? $opts : array( 'post', 'page' );
@@ -752,7 +796,7 @@ class Velox_Fields {
 				echo '</div>';
 				break;
 			default: // text, and any not-yet-specialised type
-				echo '<input type="text" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '">';
+				echo '<input type="text" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . '>';
 		}
 	}
 
@@ -858,14 +902,20 @@ class Velox_Fields {
 		if ( 'checkbox' === $f['type'] ) {
 			return isset( $submitted[ $name ] ) ? array_map( 'sanitize_text_field', (array) $submitted[ $name ] ) : array();
 		}
+		if ( 'select' === $f['type'] && ! empty( $f['multiple'] ) ) {
+			return isset( $submitted[ $name ] ) ? array_map( 'sanitize_text_field', (array) $submitted[ $name ] ) : array();
+		}
 		if ( 'wysiwyg' === $f['type'] ) {
 			return isset( $submitted[ $name ] ) ? wp_kses_post( $submitted[ $name ] ) : '';
 		}
 		if ( 'textarea' === $f['type'] ) {
 			return isset( $submitted[ $name ] ) ? sanitize_textarea_field( $submitted[ $name ] ) : '';
 		}
-		if ( in_array( $f['type'], array( 'image', 'file', 'post_object', 'taxonomy', 'user' ), true ) ) {
+		if ( in_array( $f['type'], array( 'image', 'file', 'post_object', 'page_link', 'taxonomy', 'user' ), true ) ) {
 			return isset( $submitted[ $name ] ) ? (int) $submitted[ $name ] : 0;
+		}
+		if ( 'message' === $f['type'] ) {
+			return ''; // display-only, stores nothing
 		}
 		if ( 'relationship' === $f['type'] ) {
 			$ids = isset( $submitted[ $name ] ) ? array_filter( array_map( 'intval', (array) $submitted[ $name ] ) ) : array();
