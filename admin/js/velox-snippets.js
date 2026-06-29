@@ -172,6 +172,24 @@
 		if ( typeFilter ) { typeFilter.addEventListener( 'change', applyFilters ); }
 		if ( searchBox ) { searchBox.addEventListener( 'input', applyFilters ); }
 
+		// Position a (fixed) menu popover next to its trigger, flipping up / left
+		// when there isn't room, so it never gets clipped by the list panel.
+		function placeMenu( pop, trigger ) {
+			pop.style.top = ''; pop.style.left = '';
+			var r  = trigger.getBoundingClientRect();
+			var vw = window.innerWidth, vh = window.innerHeight;
+			var pw = pop.offsetWidth, ph = pop.offsetHeight;
+			// vertical: below the button, flip above if it would overflow the bottom
+			var top = r.bottom + 4;
+			if ( top + ph > vh - 8 ) { top = Math.max( 8, r.top - 4 - ph ); }
+			// horizontal: right-align to the button, clamp to viewport
+			var left = r.right - pw;
+			if ( left < 8 ) { left = 8; }
+			if ( left + pw > vw - 8 ) { left = vw - 8 - pw; }
+			pop.style.top = top + 'px';
+			pop.style.left = left + 'px';
+		}
+
 		// Row actions menu (⋯) — open one popover at a time, close on outside click.
 		list.addEventListener( 'click', function ( e ) {
 			var trigger = e.target.closest( '.velox-snip-menu-btn' );
@@ -183,7 +201,10 @@
 			if ( trigger ) {
 				e.stopPropagation();
 				var pop = trigger.nextElementSibling;
-				if ( pop ) { pop.hidden = ! pop.hidden; }
+				if ( pop ) {
+					pop.hidden = ! pop.hidden;
+					if ( ! pop.hidden ) { placeMenu( pop, trigger ); }
+				}
 			}
 		} );
 		document.addEventListener( 'click', function ( e ) {
@@ -192,6 +213,13 @@
 				if ( open ) { open.hidden = true; }
 			}
 		} );
+		// Keep an open menu glued to its trigger while scrolling / resizing.
+		function repositionOpenMenu() {
+			var open = list.querySelector( '.velox-snip-menu-pop:not([hidden])' );
+			if ( open && open.previousElementSibling ) { placeMenu( open, open.previousElementSibling ); }
+		}
+		window.addEventListener( 'scroll', repositionOpenMenu, true );
+		window.addEventListener( 'resize', repositionOpenMenu );
 
 		// Safe Mode rescue buttons (only present when Safe Mode is showing).
 		var clearPanic = $( '#velox-snip-clear-panic' );

@@ -87,6 +87,7 @@ class Velox_Forms {
 			'success'      => 'Thanks — we\'ll be in touch soon.',
 			'captcha'      => false,
 			'accent'       => '#2ab7f1',
+			'style'        => array(),
 			'emails'       => array(
 				array( 'type' => 'admin', 'enabled' => true, 'to' => get_option( 'admin_email' ), 'cc' => '', 'subject' => 'New form submission', 'body' => "You received a new submission:\n\n{all_fields}" ),
 				array( 'type' => 'customer', 'enabled' => false, 'to_field' => 'email', 'cc' => '', 'subject' => 'We received your message', 'body' => "Hi {name},\n\nThanks for getting in touch — we'll reply shortly.\n\n{site_name}" ),
@@ -117,6 +118,25 @@ class Velox_Forms {
 		return array( 'ok' => true );
 	}
 
+	private static function sanitize_style( $style ) {
+		if ( ! is_array( $style ) ) { return array(); }
+		$targets = array( 'form', 'header', 'labels', 'inputs', 'submit' );
+		$allowed = array( 'bg', 'color', 'hoverBg', 'borderColor', 'fs', 'fw', 'radius', 'border', 'shadow', 'align', 'text',
+			'pt', 'pr', 'pb', 'pl', 'ptb', 'plr', 'mt', 'mr', 'mb', 'ml', 'mtb', 'mlr', '_pfour', '_mfour' );
+		$out = array();
+		foreach ( $targets as $t ) {
+			if ( empty( $style[ $t ] ) || ! is_array( $style[ $t ] ) ) { continue; }
+			$clean = array();
+			foreach ( $style[ $t ] as $k => $v ) {
+				if ( ! in_array( $k, $allowed, true ) ) { continue; }
+				if ( is_bool( $v ) ) { $clean[ $k ] = $v; continue; }
+				$clean[ $k ] = sanitize_text_field( (string) $v );
+			}
+			if ( $clean ) { $out[ $t ] = $clean; }
+		}
+		return $out;
+	}
+
 	private static function sanitize_form( $form ) {
 		$out = array(
 			'id'           => (int) $form['id'],
@@ -127,6 +147,7 @@ class Velox_Forms {
 			'accent'       => sanitize_hex_color( $form['accent'] ?? '#2ab7f1' ) ? sanitize_hex_color( $form['accent'] ) : '#2ab7f1',
 			'fields'       => array(),
 			'emails'       => array(),
+			'style'        => self::sanitize_style( $form['style'] ?? array() ),
 		);
 		$types = array( 'text', 'email', 'tel', 'number', 'url', 'date', 'textarea', 'select', 'radio', 'checkbox', 'multiselect', 'country', 'name', 'consent', 'captcha', 'html', 'step', 'calc' );
 		foreach ( (array) ( $form['fields'] ?? array() ) as $f ) {
@@ -209,6 +230,69 @@ class Velox_Forms {
 		return self::render( (int) $atts['id'] );
 	}
 
+	/**
+	 * Build scoped CSS from a form's saved style settings (set in the Style editor).
+	 * Scope is .velox-form[data-form="ID"] so multiple forms don't collide.
+	 */
+	public static function style_css( $id, $form ) {
+		$s = ( isset( $form['style'] ) && is_array( $form['style'] ) ) ? $form['style'] : array();
+		if ( empty( $s ) ) { return ''; }
+		$scope = '.velox-form[data-form="' . (int) $id . '"]';
+		$px = function ( $v ) {
+			if ( $v === '' || $v === null ) { return ''; }
+			return preg_match( '/[a-z%]/i', (string) $v ) ? $v : ( (float) $v ) . 'px';
+		};
+		$shadow = function ( $k ) {
+			$map = array( 'none' => 'none', 'soft' => '0 1px 3px rgba(16,24,40,.10)', 'medium' => '0 8px 20px -6px rgba(16,24,40,.22)', 'strong' => '0 16px 40px -8px rgba(16,24,40,.32)' );
+			return isset( $map[ $k ] ) ? $map[ $k ] : '';
+		};
+		$col = function ( $v ) {
+			$v = trim( (string) $v );
+			return ( $v !== '' && preg_match( '/^(#[0-9a-f]{3,8}|rgba?\([\d.,\s]+\)|[a-z]+)$/i', $v ) ) ? $v : '';
+		};
+		$rule = function ( $sel, $o ) use ( $px, $shadow, $col ) {
+			$d = '';
+			if ( ! empty( $o['bg'] ) && $col( $o['bg'] ) ) { $d .= 'background:' . $col( $o['bg'] ) . ';'; }
+			if ( ! empty( $o['color'] ) && $col( $o['color'] ) ) { $d .= 'color:' . $col( $o['color'] ) . ';'; }
+			if ( ! empty( $o['fs'] ) ) { $d .= 'font-size:' . $px( $o['fs'] ) . ';'; }
+			if ( ! empty( $o['fw'] ) ) { $d .= 'font-weight:' . (int) $o['fw'] . ';'; }
+			if ( ! empty( $o['radius'] ) ) { $d .= 'border-radius:' . $px( $o['radius'] ) . ';'; }
+			if ( isset( $o['border'] ) && $o['border'] !== '' ) { $d .= 'border-width:' . $px( $o['border'] ) . ';border-style:solid;'; }
+			if ( ! empty( $o['borderColor'] ) && $col( $o['borderColor'] ) ) { $d .= 'border-color:' . $col( $o['borderColor'] ) . ';'; }
+			if ( ! empty( $o['shadow'] ) ) { $d .= 'box-shadow:' . $shadow( $o['shadow'] ) . ';'; }
+			$has_p = isset( $o['pt'] ) || isset( $o['pr'] ) || isset( $o['pb'] ) || isset( $o['pl'] );
+			if ( $has_p ) { $d .= 'padding:' . $px( $o['pt'] ?? 0 ) . ' ' . $px( $o['pr'] ?? 0 ) . ' ' . $px( $o['pb'] ?? 0 ) . ' ' . $px( $o['pl'] ?? 0 ) . ';'; }
+			$has_m = isset( $o['mt'] ) || isset( $o['mr'] ) || isset( $o['mb'] ) || isset( $o['ml'] );
+			if ( $has_m ) { $d .= 'margin:' . $px( $o['mt'] ?? 0 ) . ' ' . $px( $o['mr'] ?? 0 ) . ' ' . $px( $o['mb'] ?? 0 ) . ' ' . $px( $o['ml'] ?? 0 ) . ';'; }
+			return $d ? ( $sel . '{' . $d . '}' ) : '';
+		};
+		// normalise 2-side (tb/lr) into 4-side before emitting
+		$norm = function ( $o, $p ) {
+			if ( isset( $o[ $p . 'tb' ] ) && $o[ $p . 'tb' ] !== '' ) { $o[ $p . 't' ] = $o[ $p . 'tb' ]; $o[ $p . 'b' ] = $o[ $p . 'tb' ]; }
+			if ( isset( $o[ $p . 'lr' ] ) && $o[ $p . 'lr' ] !== '' ) { $o[ $p . 'l' ] = $o[ $p . 'lr' ]; $o[ $p . 'r' ] = $o[ $p . 'lr' ]; }
+			return $o;
+		};
+		$css = '';
+		$f = $norm( $s['form'] ?? array(), 'p' );
+		$css .= $rule( $scope, array( 'bg' => $f['bg'] ?? '', 'radius' => $f['radius'] ?? '', 'shadow' => $f['shadow'] ?? '', 'border' => $f['border'] ?? '', 'borderColor' => $f['borderColor'] ?? '', 'pt' => $f['pt'] ?? null, 'pr' => $f['pr'] ?? null, 'pb' => $f['pb'] ?? null, 'pl' => $f['pl'] ?? null ) );
+		$h = $s['header'] ?? array();
+		$css .= $rule( $scope . ' .velox-form-title, ' . $scope . ' h3', array( 'color' => $h['color'] ?? '', 'fs' => $h['fs'] ?? '', 'fw' => $h['fw'] ?? '' ) );
+		$l = $s['labels'] ?? array();
+		$css .= $rule( $scope . ' .velox-form-label', array( 'color' => $l['color'] ?? '', 'fs' => $l['fs'] ?? '', 'fw' => $l['fw'] ?? '' ) );
+		$inp = $s['inputs'] ?? array();
+		$css .= $rule( $scope . ' .velox-form-field input, ' . $scope . ' .velox-form-field textarea, ' . $scope . ' .velox-form-field select', array( 'bg' => $inp['bg'] ?? '', 'color' => $inp['color'] ?? '', 'fs' => $inp['fs'] ?? '', 'radius' => $inp['radius'] ?? '', 'border' => $inp['border'] ?? '', 'borderColor' => $inp['borderColor'] ?? '' ) );
+		$sub = $norm( $norm( $s['submit'] ?? array(), 'p' ), 'm' );
+		if ( ! empty( $sub['align'] ) ) {
+			$just = array( 'left' => 'flex-start', 'center' => 'center', 'right' => 'flex-end', 'full' => 'stretch' );
+			$j = $just[ $sub['align'] ] ?? 'flex-start';
+			$css .= $scope . '{align-items:' . $j . ';}';
+			if ( 'full' === $sub['align'] ) { $css .= $scope . ' .velox-form-submit{width:100%;}'; }
+		}
+		$css .= $rule( $scope . ' .velox-form-submit', array( 'bg' => $sub['bg'] ?? '', 'color' => $sub['color'] ?? '', 'fs' => $sub['fs'] ?? '', 'fw' => $sub['fw'] ?? '', 'radius' => $sub['radius'] ?? '', 'shadow' => $sub['shadow'] ?? '', 'border' => $sub['border'] ?? '', 'borderColor' => $sub['borderColor'] ?? '', 'pt' => $sub['pt'] ?? null, 'pr' => $sub['pr'] ?? null, 'pb' => $sub['pb'] ?? null, 'pl' => $sub['pl'] ?? null, 'mt' => $sub['mt'] ?? null, 'mr' => $sub['mr'] ?? null, 'mb' => $sub['mb'] ?? null, 'ml' => $sub['ml'] ?? null ) );
+		if ( ! empty( $sub['hoverBg'] ) && $col( $sub['hoverBg'] ) ) { $css .= $scope . ' .velox-form-submit:hover{background:' . $col( $sub['hoverBg'] ) . ';}'; }
+		return $css;
+	}
+
 	public static function render( $id ) {
 		$form = self::get_form( $id );
 		if ( ! $form ) {
@@ -217,12 +301,14 @@ class Velox_Forms {
 		self::$rendered = true;
 		$accent = esc_attr( $form['accent'] );
 		$nonce  = wp_create_nonce( 'velox_form_' . $id );
+		$style_css = self::style_css( $id, $form );
 		$has_cap_field = false;
 		foreach ( $form['fields'] as $f ) {
 			if ( 'captcha' === $f['type'] ) { $has_cap_field = true; break; }
 		}
 
 		ob_start();
+		if ( $style_css ) { echo '<style>' . $style_css . '</style>'; }
 
 		// Detect multi-step: any 'step' field acts as a page break. The label of a
 		// step field becomes the title of the step that FOLLOWS it; the first step's

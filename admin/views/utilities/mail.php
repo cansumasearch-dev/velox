@@ -26,30 +26,60 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 	$form = ( 'new' === $edit ) ? Velox_Forms::blank_form() : Velox_Forms::get_form( (int) $edit );
 	if ( ! $form ) { $form = Velox_Forms::blank_form(); }
 	$captcha_ready = Velox_Forms::captcha_ready();
+	$fid_int       = ( 'new' === $edit ) ? 0 : (int) $edit;
+	$stat_subs     = $fid_int ? (int) Velox_Forms::submission_count( $fid_int ) : 0;
+	$stat_recent   = $fid_int ? (int) Velox_Forms::submission_count_recent( 7 ) : 0;
+	$stat_fields   = is_array( $form['fields'] ?? null ) ? count( $form['fields'] ) : 0;
+	$stat_emails   = 0;
+	if ( ! empty( $form['emails'] ) && is_array( $form['emails'] ) ) {
+		foreach ( $form['emails'] as $em ) { if ( ! empty( $em['enabled'] ) ) { $stat_emails++; } }
+	}
 	?>
-	<div class="vmail-builder" id="vmail-builder">
-		<div class="vmail-bar">
-			<a class="vmail-back" href="<?php echo esc_url( $base ); ?>" title="All forms">&larr;</a>
-			<input type="text" class="vmail-title-input" id="vmail-title" value="<?php echo esc_attr( $form['title'] ); ?>" placeholder="Form name">
-			<div class="vmail-tabs">
+	<div class="vmail-builder vmail-sb" id="vmail-builder">
+		<div class="vmail-sb-top">
+			<a class="vmail-sb-back" href="<?php echo esc_url( $base ); ?>" title="All forms">
+				<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+			</a>
+			<input type="text" class="vmail-sb-title" id="vmail-title" value="<?php echo esc_attr( $form['title'] ); ?>" placeholder="Form name">
+			<?php if ( $fid_int ) : ?><span class="vmail-sb-chip"><span class="d"></span> Live</span><?php else : ?><span class="vmail-sb-chip is-draft"><span class="d"></span> Draft</span><?php endif; ?>
+			<span class="vmail-sb-spacer"></span>
+			<div class="vmail-tabs vmail-sb-tabs">
 				<button type="button" class="vmail-tab is-active" data-tab="build">Build</button>
 				<button type="button" class="vmail-tab" data-tab="notify">Notifications</button>
 				<button type="button" class="vmail-tab" data-tab="settings">Settings</button>
 			</div>
-			<button class="velox-btn velox-btn--primary" id="vmail-save">Save form</button>
+			<button class="velox-btn velox-btn--ghost vmail-sb-btn" id="vmail-style-btn" type="button"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Style editor</button>
+			<button class="velox-btn velox-btn--ghost vmail-sb-btn" id="vmail-preview-btn" type="button">Preview</button>
+			<button class="velox-btn velox-btn--primary vmail-sb-btn" id="vmail-save">Save form</button>
+		</div>
+
+		<div class="vmail-sb-stats">
+			<div class="vmail-sb-stat"><div class="k">Fields</div><div class="v" id="vmail-stat-fields"><?php echo (int) $stat_fields; ?></div></div>
+			<div class="vmail-sb-stat"><div class="k">Submissions</div><div class="v"><?php echo (int) $stat_subs; ?></div></div>
+			<div class="vmail-sb-stat"><div class="k">Last 7 days</div><div class="v"><?php echo (int) $stat_recent; ?></div></div>
+			<div class="vmail-sb-stat"><div class="k">Notifications</div><div class="v"><?php echo (int) $stat_emails; ?> <small>active</small></div></div>
 		</div>
 
 		<div class="vmail-panel" data-panel="build">
-			<div class="vmail-build-grid">
-				<div class="vmail-canvas-wrap">
-					<div class="vmail-canvas" id="vmail-canvas"></div>
+			<div class="vmail-sb-body">
+				<!-- zone 1: palette -->
+				<div class="vmail-sb-zone vmail-sb-zone--pal">
+					<div class="vmail-sb-zhead"><span class="t">Add field</span></div>
+					<div class="vmail-sb-search">
+						<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+						<input type="text" id="vmail-palette-search" placeholder="Search fields…">
+					</div>
+					<div id="vmail-palette" class="vmail-palette-list"></div>
 				</div>
-
-				<div class="vmail-build-rail">
-					<aside class="vmail-palette">
-						<input type="text" id="vmail-palette-search" class="velox-input vmail-palette-search" placeholder="Search fields…">
-						<div id="vmail-palette" class="vmail-palette-list"></div>
-					</aside>
+				<!-- zone 2: canvas -->
+				<div class="vmail-sb-zone vmail-sb-zone--canvas">
+					<div class="vmail-sb-zhead"><span class="t">Form canvas</span><span class="t vmail-sb-zhint">drag to reorder</span></div>
+					<div class="vmail-canvas-wrap">
+						<div class="vmail-canvas" id="vmail-canvas"></div>
+					</div>
+				</div>
+				<!-- zone 3: inspector -->
+				<div class="vmail-sb-zone vmail-sb-zone--insp">
 					<aside class="vmail-inspector" id="vmail-inspector"></aside>
 				</div>
 			</div>
@@ -63,17 +93,11 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		<div class="vmail-panel" data-panel="settings" hidden>
 			<div class="velox-panel">
 				<div class="velox-field">
-					<span class="velox-field-label">Submit button label</span>
-					<input type="text" class="velox-input" id="vmail-submit" value="<?php echo esc_attr( $form['submit_label'] ); ?>">
-				</div>
-				<div class="velox-field">
 					<span class="velox-field-label">Success message</span>
 					<input type="text" class="velox-input" id="vmail-success" value="<?php echo esc_attr( $form['success'] ); ?>">
+					<span class="velox-hint">Shown after the form is submitted successfully.</span>
 				</div>
-				<div class="velox-field">
-					<span class="velox-field-label">Accent colour</span>
-					<input type="color" id="vmail-accent" value="<?php echo esc_attr( $form['accent'] ); ?>" style="width:54px;height:36px;padding:2px;">
-				</div>
+				<p class="velox-hint" style="margin:2px 0 14px;">The submit button text, colours and full styling now live on the <strong>form canvas</strong> — click the button there, or open the <strong>Style editor</strong>.</p>
 				<?php
 				$captcha_gate = Velox_Forms::captcha_enabled();
 				$captcha_desc = ! $captcha_gate
@@ -95,6 +119,34 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<?php endif; ?>
 			</div>
 		</div>
+	</div>
+
+	<!-- Full-screen style editor -->
+	<div class="vse" id="vmail-style-editor" hidden>
+		<div class="vse-top">
+			<div class="vse-brand"><span class="vse-dot"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/></svg></span> Style editor</div>
+			<span class="vse-bc">Kontaktformular · <b id="vse-target-name">Submit button</b></span>
+			<span class="vse-sp"></span>
+			<div class="vse-device" id="vse-device">
+				<button class="is-on" data-dev="desktop" title="Desktop"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8M12 17v4"/></svg></button>
+				<button data-dev="tablet" title="Tablet"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="5" y="2" width="14" height="20" rx="2.5"/></svg></button>
+				<button data-dev="mobile" title="Mobile"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="2" width="10" height="20" rx="2.5"/></svg></button>
+			</div>
+			<button class="velox-btn velox-btn--ghost" id="vse-reset" type="button">Reset</button>
+			<button class="velox-btn velox-btn--primary" id="vse-save" type="button">Save &amp; close</button>
+		</div>
+		<div class="vse-body">
+			<div class="vse-left" id="vse-controls"></div>
+			<div class="vse-stage">
+				<div class="vse-live"><span class="vse-pulse"></span> Live preview</div>
+				<div class="vse-canvas" id="vse-canvas"><div class="vse-form" id="vse-form"></div></div>
+			</div>
+			<div class="vse-right">
+				<div class="vse-right-head"><div class="tt">Elements</div><div class="ts">Select anything to style it</div></div>
+				<div class="vse-tree" id="vse-tree"></div>
+			</div>
+		</div>
+		<style id="vse-live-css"></style>
 	</div>
 	<script type="application/json" id="vmail-data"><?php echo wp_json_encode( $form ); ?></script>
 	<script type="application/json" id="vmail-meta"><?php echo wp_json_encode( array( 'captcha_ready' => $captcha_ready, 'captcha_enabled' => Velox_Forms::captcha_enabled(), 'admin_email' => get_option( 'admin_email' ), 'site_name' => get_bloginfo( 'name' ), 'base' => $base ) ); ?></script>

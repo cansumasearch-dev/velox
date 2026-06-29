@@ -4,6 +4,30 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.33.0 — Custom fields (ACF-style)
+**A brand-new Custom fields module** — add custom fields to posts, pages and any post type, the ACF way.
+- Build **field groups** with a clean editor: expandable field cards (drag to reorder, duplicate, delete), 17 field types (text, textarea, number, email, URL, select, checkbox, radio, true/false, image, file, WYSIWYG, date, color, relationship, repeater, group), with label, name, default, choices, placeholder, instructions and required per field. Field names auto-generate from the label and stay unique.
+- **Location rules** decide where each group shows: post type, post status, page template, taxonomy or user role, with is / is not. Rules within a box are ANDed; add more boxes to OR them together.
+- **Presentation** options: label placement (top / left), meta-box position (normal / side) and ordering.
+- Fields render on the matching post-edit screens and save to post meta.
+- Read values on the front end with `Velox_Fields::get_field('name')`, or drop `{field:name}` merge tags into content.
+- Enable it under Utilities → Custom fields.
+
+## 2.32.0 — Forms builder, reimagined
+**A completely rebuilt form builder.**
+- Fresh, modern design: clean monoline icons throughout, soft rounded field cards, a soft-card field palette, and a calmer layout. The form canvas now runs full-width by default.
+- New editing flow: click a field’s **Edit** to slide in the settings panel from the right (the canvas reflows to make room); close it with the × and the canvas returns to full width.
+- Every field now has a hover toolbar with **Edit, Copy, Paste, Duplicate and Delete** — copy a field and paste it into any form.
+- The submit button is now a real element on the canvas: it appears automatically once the form has a field, and you click it to edit it. (The old submit-label and accent settings have moved out of the Settings tab.)
+
+**New: full-screen Style editor.**
+- A dedicated visual editor (opened from the toolbar) with a live preview of your form. Pick any element from the selector — whole form, header, labels, inputs, or the submit button — and style it completely: colours, hover colour, typography (size & weight), alignment (left / centre / right / full width), padding & margin (with a 2-field or per-side toggle), border, corner radius and box-shadow.
+- Desktop / tablet / mobile preview widths, plus Reset.
+- Your styles are saved with the form and rendered on the front end, scoped per form so multiple forms never clash.
+
+## 2.31.1 — Snippet menu fix
+- Fixed: the ⋯ actions menu on a snippet row was clipped by the list panel and could be invisible on lower rows. It now opens as a viewport-aware popover that flips upward when there isn’t room below, so Edit / Duplicate / Export / Move to trash are always fully visible.
+
 ## 2.31.0 — Sidebar hover, unified inputs, stronger notifications
 **Sidebar.**
 - The Velox item now shows WordPress’s normal submenu; the active-utilities popover appears only when you hover the **Utilities** row specifically (no more whole-Velox flyout). The popover is viewport-aware — it escapes the sidebar overflow, clamps on screen, and flips to the left if there isn’t room on the right.

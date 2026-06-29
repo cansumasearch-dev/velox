@@ -80,6 +80,10 @@ final class Velox {
 			Velox_Forms::init();
 		}
 
+		if ( Velox_Settings::get( 'util_fields', false ) ) {
+			Velox_Fields::init();
+		}
+
 		if ( is_admin() ) {
 			$this->admin = new Velox_Admin();
 			new Velox_PageMeta();

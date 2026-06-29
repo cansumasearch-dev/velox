@@ -394,6 +394,18 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Forms::delete_form( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
 				break;
 
+			case 'fields_save':
+				$group = isset( $_POST['group'] ) ? json_decode( wp_unslash( $_POST['group'] ), true ) : null;
+				if ( ! is_array( $group ) ) {
+					wp_send_json_error( array( 'message' => 'Invalid field group data.' ) );
+				}
+				wp_send_json_success( Velox_Fields::save( $group ) );
+				break;
+
+			case 'fields_delete':
+				wp_send_json_success( Velox_Fields::delete( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
 			case 'submission_delete':
 				wp_send_json_success( Velox_Forms::delete_submission( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
 				break;

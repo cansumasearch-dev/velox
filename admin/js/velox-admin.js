@@ -1843,6 +1843,8 @@
 		initMaintenance();
 		initMail();
 		initMailBuilder();
+		initFieldsEditor();
+		initFieldsList();
 		initCookies();
 		initOctober();
 		initBackup();
@@ -1972,6 +1974,224 @@
 			.catch( function ( e ) {
 				listEl.innerHTML = '<p class="velox-hint" style="padding:18px;">Could not load: ' + esc( e.message ) + '</p>';
 			} );
+	}
+
+	function initFieldsEditor() {
+		var root = $( '#vfg-editor' );
+		if ( ! root ) { return; }
+		var group, TYPES, PARAMS;
+		try { group = JSON.parse( $( '#vfg-data' ).textContent ); } catch ( e ) { return; }
+		try { TYPES = JSON.parse( $( '#vfg-types' ).textContent ); } catch ( e2 ) { TYPES = {}; }
+		try { PARAMS = JSON.parse( $( '#vfg-params' ).textContent ); } catch ( e3 ) { PARAMS = {}; }
+		group.fields = group.fields || [];
+		group.location = group.location || [ [ { param: 'post_type', operator: 'is', value: 'post' } ] ];
+		group.presentation = group.presentation || { label_placement: 'top', position: 'normal', order: 0 };
+
+		var fieldsWrap = $( '#vfg-fields' );
+		var locWrap    = $( '#vfg-location' );
+		var openIdx    = group.fields.length ? 0 : -1;
+
+		function slugify( s ) { return ( s || 'field' ).toLowerCase().replace( /[^a-z0-9]+/g, '_' ).replace( /^_|_$/g, '' ) || 'field'; }
+		function reName() {
+			var used = {};
+			group.fields.forEach( function ( f ) {
+				var base = ( f.name && /^[a-z0-9_]+$/.test( f.name ) ) ? f.name : slugify( f.label );
+				var n = base, i = 2;
+				while ( used[ n ] ) { n = base + '_' + ( i++ ); }
+				used[ n ] = 1; f.name = n;
+			} );
+		}
+		function typeIcon() {
+			return '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg>';
+		}
+		function updateSub() {
+			var n = group.fields.length;
+			var loc = '';
+			if ( group.location[0] && group.location[0][0] ) {
+				var r = group.location[0][0];
+				loc = ' · shows where ' + ( PARAMS[ r.param ] || r.param ) + ' ' + ( r.operator === 'is_not' ? 'is not' : 'is' ) + ' ' + ( r.value || '…' );
+			}
+			$( '#vfg-sub' ).textContent = n + ' field' + ( n === 1 ? '' : 's' ) + loc;
+		}
+
+		function renderFields() {
+			reName();
+			fieldsWrap.innerHTML = '';
+			if ( ! group.fields.length ) {
+				fieldsWrap.innerHTML = '<div class="vfg-empty">No fields yet — click “Add field”.</div>';
+				updateSub(); return;
+			}
+			group.fields.forEach( function ( f, i ) {
+				var open = i === openIdx;
+				var card = document.createElement( 'div' );
+				card.className = 'vfg-field' + ( open ? ' is-open' : '' );
+				var meta = '<code>' + escapeHtml( f.name || slugify( f.label ) ) + '</code>' + ( f.required ? ' · required' : '' );
+				var head =
+					'<div class="vfg-field-row">' +
+						'<span class="vfg-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>' +
+						'<span class="vfg-type-pill">' + typeIcon() + ' ' + ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + '</span>' +
+						'<span class="vfg-field-main"><span class="vfg-field-label">' + escapeHtml( f.label || 'Untitled' ) + '</span><span class="vfg-field-meta">' + meta + '</span></span>' +
+						'<span class="vfg-field-acts">' +
+							'<button type="button" class="vfg-iconbtn" data-act="dup" title="Duplicate"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
+							'<button type="button" class="vfg-iconbtn vfg-del" data-act="del" title="Delete"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>' +
+							'<button type="button" class="vfg-iconbtn" data-act="toggle" title="' + ( open ? 'Collapse' : 'Expand' ) + '"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><path d="' + ( open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6' ) + '"/></svg></button>' +
+						'</span>' +
+					'</div>';
+				var body = '';
+				if ( open ) {
+					var typeOpts = Object.keys( TYPES ).map( function ( t ) {
+						return '<option value="' + t + '"' + ( t === f.type ? ' selected' : '' ) + '>' + TYPES[ t ].label + '</option>';
+					} ).join( '' );
+					var hasOpts = TYPES[ f.type ] && TYPES[ f.type ].opts;
+					body = '<div class="vfg-field-body"><div class="vfg-fbody-grid">' +
+						mini( 'Field label', '<input class="velox-input" data-fk="label" value="' + escapeHtml( f.label || '' ) + '">' ) +
+						mini( 'Field name', '<input class="velox-input vfg-mono" data-fk="name" value="' + escapeHtml( f.name || '' ) + '">' ) +
+						mini( 'Field type', '<select class="velox-select" data-fk="type">' + typeOpts + '</select>' ) +
+						mini( 'Default value', '<input class="velox-input" data-fk="default" value="' + escapeHtml( f['default'] || '' ) + '">' ) +
+						( hasOpts ? minifull( 'Choices (one per line)', '<textarea class="velox-textarea" rows="3" data-fk="options">' + escapeHtml( f.options || '' ) + '</textarea>' ) : '' ) +
+						minifull( 'Placeholder', '<input class="velox-input" data-fk="placeholder" value="' + escapeHtml( f.placeholder || '' ) + '">' ) +
+						minifull( 'Instructions', '<input class="velox-input" data-fk="instructions" value="' + escapeHtml( f.instructions || '' ) + '" placeholder="Shown to editors below the field">' ) +
+						'<label class="vfg-check"><input type="checkbox" data-fk="required"' + ( f.required ? ' checked' : '' ) + '> Required field</label>' +
+					'</div></div>';
+				}
+				card.innerHTML = head + body;
+				// row click toggles (except buttons + handle)
+				card.querySelector( '.vfg-field-row' ).addEventListener( 'click', function ( e ) {
+					if ( e.target.closest( '.vfg-iconbtn' ) || e.target.closest( '.vfg-handle' ) ) { return; }
+					openIdx = ( openIdx === i ) ? -1 : i; renderFields();
+				} );
+				card.querySelectorAll( '.vfg-iconbtn' ).forEach( function ( b ) {
+					b.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						var act = b.getAttribute( 'data-act' );
+						if ( act === 'del' ) { group.fields.splice( i, 1 ); if ( openIdx >= group.fields.length ) { openIdx = group.fields.length - 1; } }
+						else if ( act === 'dup' ) { var c = JSON.parse( JSON.stringify( f ) ); c.name = ''; group.fields.splice( i + 1, 0, c ); openIdx = i + 1; }
+						else if ( act === 'toggle' ) { openIdx = ( openIdx === i ) ? -1 : i; }
+						renderFields();
+					} );
+				} );
+				// inputs in the body
+				card.querySelectorAll( '[data-fk]' ).forEach( function ( el ) {
+					var ev = ( el.type === 'checkbox' || el.tagName === 'SELECT' ) ? 'change' : 'input';
+					el.addEventListener( ev, function () {
+						var k = el.getAttribute( 'data-fk' );
+						if ( k === 'name' ) { f._lockName = true; f.name = slugify( el.value ); }
+						else { f[ k ] = ( el.type === 'checkbox' ) ? el.checked : el.value; }
+						if ( k === 'label' && ! f._lockName ) { f.name = ''; reName(); }
+						if ( k === 'type' || k === 'required' || k === 'label' || k === 'name' ) { renderFields(); }
+						else { updateSub(); }
+					} );
+				} );
+				// drag to reorder
+				card.setAttribute( 'draggable', 'true' );
+				card.addEventListener( 'dragstart', function () { card._from = i; window.__vfgDrag = i; card.classList.add( 'is-drag' ); } );
+				card.addEventListener( 'dragend', function () { card.classList.remove( 'is-drag' ); } );
+				card.addEventListener( 'dragover', function ( e ) { e.preventDefault(); } );
+				card.addEventListener( 'drop', function ( e ) {
+					e.preventDefault();
+					var from = window.__vfgDrag;
+					if ( from == null || from === i ) { return; }
+					var moved = group.fields.splice( from, 1 )[0];
+					group.fields.splice( i, 0, moved );
+					openIdx = i; window.__vfgDrag = null; renderFields();
+				} );
+				fieldsWrap.appendChild( card );
+			} );
+			updateSub();
+		}
+		function mini( label, inner ) { return '<div class="vfg-mini"><span class="vfg-mini-label">' + label + '</span>' + inner + '</div>'; }
+		function minifull( label, inner ) { return '<div class="vfg-mini vfg-mini--full"><span class="vfg-mini-label">' + label + '</span>' + inner + '</div>'; }
+
+		// ---- location rules ----
+		function renderLocation() {
+			locWrap.innerHTML = '';
+			group.location.forEach( function ( rg, gi ) {
+				if ( gi > 0 ) { locWrap.insertAdjacentHTML( 'beforeend', '<div class="vfg-or"><span>or</span></div>' ); }
+				var box = document.createElement( 'div' ); box.className = 'vfg-rulegroup';
+				rg.forEach( function ( rule, ri ) {
+					if ( ri > 0 ) { box.insertAdjacentHTML( 'beforeend', '<div class="vfg-and">and</div>' ); }
+					var paramOpts = Object.keys( PARAMS ).map( function ( p ) {
+						return '<option value="' + p + '"' + ( p === rule.param ? ' selected' : '' ) + '>' + PARAMS[ p ] + '</option>';
+					} ).join( '' );
+					var row = document.createElement( 'div' ); row.className = 'vfg-rule';
+					row.innerHTML =
+						'<select class="velox-select" data-r="param">' + paramOpts + '</select>' +
+						'<select class="velox-select" data-r="operator"><option value="is"' + ( rule.operator !== 'is_not' ? ' selected' : '' ) + '>is</option><option value="is_not"' + ( rule.operator === 'is_not' ? ' selected' : '' ) + '>is not</option></select>' +
+						'<input class="velox-input" data-r="value" value="' + escapeHtml( rule.value || '' ) + '" placeholder="value">' +
+						'<button type="button" class="vfg-rule-del" title="Remove rule"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+					row.querySelectorAll( '[data-r]' ).forEach( function ( el ) {
+						var ev = el.tagName === 'SELECT' ? 'change' : 'input';
+						el.addEventListener( ev, function () { rule[ el.getAttribute( 'data-r' ) ] = el.value; updateSub(); } );
+					} );
+					row.querySelector( '.vfg-rule-del' ).addEventListener( 'click', function () {
+						rg.splice( ri, 1 );
+						if ( ! rg.length ) { group.location.splice( gi, 1 ); }
+						if ( ! group.location.length ) { group.location = [ [ { param: 'post_type', operator: 'is', value: 'post' } ] ]; }
+						renderLocation(); updateSub();
+					} );
+					box.appendChild( row );
+				} );
+				var addRule = document.createElement( 'button' );
+				addRule.type = 'button'; addRule.className = 'vfg-addrule'; addRule.textContent = '+ Add rule';
+				addRule.addEventListener( 'click', function () { rg.push( { param: 'post_type', operator: 'is', value: '' } ); renderLocation(); } );
+				box.appendChild( addRule );
+				locWrap.appendChild( box );
+			} );
+		}
+		$( '#vfg-addgroup' ).addEventListener( 'click', function () {
+			group.location.push( [ { param: 'post_type', operator: 'is', value: '' } ] );
+			renderLocation();
+		} );
+
+		// ---- presentation ----
+		$$( '.vfg-seg' ).forEach( function ( seg ) {
+			seg.querySelectorAll( 'button' ).forEach( function ( b ) {
+				b.addEventListener( 'click', function () {
+					seg.querySelectorAll( 'button' ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === b ); } );
+					group.presentation[ seg.getAttribute( 'data-seg' ) ] = b.getAttribute( 'data-v' );
+				} );
+			} );
+		} );
+		var orderEl = $( '#vfg-order' );
+		if ( orderEl ) { orderEl.addEventListener( 'input', function () { group.presentation.order = parseInt( orderEl.value, 10 ) || 0; } ); }
+
+		// ---- title / active ----
+		var titleEl = $( '#vfg-title' );
+		titleEl.addEventListener( 'input', function () { group.title = titleEl.value; } );
+		var activeEl = $( '#vfg-active' );
+		activeEl.addEventListener( 'change', function () {
+			group.active = activeEl.checked;
+			$( '#vfg-active-label' ).textContent = activeEl.checked ? 'Active' : 'Inactive';
+		} );
+
+		// ---- add field + save ----
+		$( '#vfg-addfield' ).addEventListener( 'click', function () {
+			group.fields.push( { key: '', label: 'New field', name: '', type: 'text', required: false, instructions: '', 'default': '', options: '', placeholder: '' } );
+			openIdx = group.fields.length - 1; renderFields();
+		} );
+		$( '#vfg-save' ).addEventListener( 'click', function () {
+			reName();
+			group.active = activeEl.checked;
+			var btn = $( '#vfg-save' ); btn.disabled = true;
+			api( 'fields_save', { group: JSON.stringify( group ) } )
+				.then( function () { toast( 'Field group saved.' ); setTimeout( function () { location.href = 'admin.php?page=velox-utilities&tool=fields'; }, 500 ); } )
+				.catch( function ( err ) { toast( err.message, 'error' ); btn.disabled = false; } );
+		} );
+
+		renderFields();
+		renderLocation();
+		updateSub();
+	}
+
+	function initFieldsList() {
+		$$( '.vfg-list-del' ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				if ( ! window.confirm( 'Delete the field group “' + btn.getAttribute( 'data-title' ) + '”? This cannot be undone.' ) ) { return; }
+				api( 'fields_delete', { id: btn.getAttribute( 'data-id' ) } )
+					.then( function () { location.reload(); } )
+					.catch( function ( err ) { toast( err.message, 'error' ); } );
+			} );
+		} );
 	}
 
 	function initCookies() {
@@ -2687,25 +2907,26 @@
 		form.fields = form.fields || [];
 		form.emails = form.emails || [];
 
+		function svgIcon( p ) { return '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; }
 		var TYPES = {
-			text:        { label: 'Single line', icon: 'T', opts: false, cat: 'general' },
-			email:       { label: 'Email',       icon: '@', opts: false, cat: 'general' },
-			tel:         { label: 'Phone',       icon: '\u260E', opts: false, cat: 'general' },
-			number:      { label: 'Number',      icon: '#', opts: false, cat: 'general' },
-			textarea:    { label: 'Paragraph',   icon: '\u00B6', opts: false, cat: 'general' },
-			select:      { label: 'Dropdown',    icon: '\u25BE', opts: true,  cat: 'general' },
-			radio:       { label: 'Radio',       icon: '\u25C9', opts: true,  cat: 'general' },
-			checkbox:    { label: 'Checkbox',    icon: '\u2611', opts: false, cat: 'general' },
-			name:        { label: 'Name',        icon: 'Aa', opts: false, cat: 'advanced' },
-			multiselect: { label: 'Multi-select',icon: '\u2630', opts: true,  cat: 'advanced' },
-			country:     { label: 'Country',     icon: '\u25C8', opts: false, cat: 'advanced' },
-			url:         { label: 'Website URL', icon: '\u29C9', opts: false, cat: 'advanced' },
-			date:        { label: 'Date',        icon: '\u25A6', opts: false, cat: 'advanced' },
-			consent:     { label: 'Consent',     icon: '\u2713', opts: false, cat: 'advanced' },
-			captcha:     { label: 'CAPTCHA',     icon: '\u26E8', opts: false, cat: 'advanced' },
-			calc:        { label: 'Calculation', icon: '\u2211', opts: false, cat: 'advanced' },
-			step:        { label: 'Page break',  icon: '\u2398', opts: false, cat: 'layout' },
-			html:        { label: 'Custom HTML',  icon: '\u2039\u203A', opts: false, cat: 'layout' }
+			text:        { label: 'Single line', short: 'Text', icon: svgIcon('<path d="M4 7h16M4 12h11M4 17h7"/>'), opts: false, cat: 'general' },
+			email:       { label: 'Email',       icon: svgIcon('<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 7l9 6 9-6"/>'), opts: false, cat: 'general' },
+			tel:         { label: 'Phone',       icon: svgIcon('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>'), opts: false, cat: 'general' },
+			number:      { label: 'Number',      icon: svgIcon('<path d="M4 9h16M4 15h16M9 4l-2 16M17 4l-2 16"/>'), opts: false, cat: 'general' },
+			textarea:    { label: 'Paragraph', short: 'Textarea',   icon: svgIcon('<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/>'), opts: false, cat: 'general' },
+			select:      { label: 'Dropdown', short: 'Dropdown',    icon: svgIcon('<path d="M6 9l6 6 6-6"/>'), opts: true,  cat: 'general' },
+			radio:       { label: 'Radio',       icon: svgIcon('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/>'), opts: true,  cat: 'general' },
+			checkbox:    { label: 'Checkbox', short: 'Checkbox',    icon: svgIcon('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 5-5"/>'), opts: false, cat: 'general' },
+			name:        { label: 'Name',        icon: svgIcon('<circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/>'), opts: false, cat: 'advanced' },
+			multiselect: { label: 'Multi-select', short: 'Multi',icon: svgIcon('<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>'), opts: true,  cat: 'advanced' },
+			country:     { label: 'Country',     icon: svgIcon('<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/>'), opts: false, cat: 'advanced' },
+			url:         { label: 'Website URL', short: 'URL', icon: svgIcon('<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>'), opts: false, cat: 'advanced' },
+			date:        { label: 'Date',        icon: svgIcon('<rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M16 3v4M8 3v4M3.5 10h17"/>'), opts: false, cat: 'advanced' },
+			consent:     { label: 'Consent',     icon: svgIcon('<path d="M9 12l2 2 4-4"/><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'), opts: false, cat: 'advanced' },
+			captcha:     { label: 'CAPTCHA',     icon: svgIcon('<path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/>'), opts: false, cat: 'advanced' },
+			calc:        { label: 'Calculation', short: 'Calc', icon: svgIcon('<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 7h8M8 12h2M8 16h2M14 12h2M14 16h2"/>'), opts: false, cat: 'advanced' },
+			step:        { label: 'Page break',  icon: svgIcon('<path d="M4 7h16M4 17h16M9 11l3 3 3-3"/>'), opts: false, cat: 'layout' },
+			html:        { label: 'Custom HTML', short: 'HTML',  icon: svgIcon('<path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/>'), opts: false, cat: 'layout' }
 		};
 		var CATS = { general: 'General fields', advanced: 'Advanced fields', layout: 'Layout' };
 
@@ -2713,8 +2934,13 @@
 		var palette    = $( '#vmail-palette' );
 		var inspector  = $( '#vmail-inspector' );
 		var emailsWrap = $( '#vmail-emails' );
-		var selected   = form.fields.length ? 0 : -1;
+		var selected   = -1;
 		var dragFrom   = -1;
+		var clipboard  = null;
+		var inspZone   = inspector ? inspector.closest( '.vmail-sb-zone--insp' ) : null;
+		if ( inspZone ) { inspZone.classList.add( 'is-collapsed' ); }
+		function openInspector() { if ( inspZone ) { inspZone.classList.remove( 'is-collapsed' ); } }
+		function closeInspector() { if ( inspZone ) { inspZone.classList.add( 'is-collapsed' ); } selected = -1; renderCanvas(); }
 
 		function slugify( s ) { return ( s || 'field' ).toLowerCase().replace( /[^a-z0-9]+/g, '_' ).replace( /^_|_$/g, '' ) || 'field'; }
 		function reKey() {
@@ -2777,7 +3003,7 @@
 					b.type = 'button'; b.className = 'vmail-pal-item';
 					var locked = ( t === 'captcha' && ! meta.captcha_enabled );
 					if ( locked ) { b.className += ' is-locked'; b.title = 'CAPTCHA is switched off in Mail settings'; }
-					b.innerHTML = '<span class="vmail-pal-ic">' + TYPES[ t ].icon + '</span><span class="vmail-pal-lbl">' + TYPES[ t ].label + ( locked ? ' \uD83D\uDD12' : '' ) + '</span>';
+					b.innerHTML = '<span class="vmail-pal-ic">' + TYPES[ t ].icon + '</span><span class="vmail-pal-lbl">' + ( TYPES[ t ].short || TYPES[ t ].label ) + ( locked ? ' \uD83D\uDD12' : '' ) + '</span>';
 					b.addEventListener( 'click', function () { addField( t ); } );
 					grid.appendChild( b );
 				} );
@@ -2811,6 +3037,7 @@
 			form.fields.push( f );
 			reKey();
 			selected = form.fields.length - 1;
+			openInspector();
 			renderCanvas(); renderInspector();
 		}
 
@@ -2848,28 +3075,27 @@
 			canvas.innerHTML = '';
 			canvas.style.setProperty( '--vf-accent', form.accent || '#2ab7f1' );
 			if ( ! form.fields.length ) {
-				canvas.innerHTML = '<div class="vmail-empty"><strong>Empty form</strong><span>Click a field on the left to add it.</span></div>';
+				canvas.innerHTML = '<div class="vmail-empty"><strong>Empty form</strong><span>Click a field on the left, or drag one in, to get started.</span></div>';
 				return;
 			}
 			form.fields.forEach( function ( f, i ) {
 				var card = document.createElement( 'div' );
 				card.className = 'vmail-fcard' + ( i === selected ? ' is-selected' : '' ) + ( f.width === 'half' ? ' is-half' : ( f.width === 'third' ? ' is-third' : '' ) );
 				card.setAttribute( 'draggable', 'true' );
-				var ico = function ( p ) { return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
+				var ico = function ( p ) { return '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; };
 				card.innerHTML =
 					'<div class="vmail-fcard-body">' + fieldPreview( f ) + '</div>' +
 					'<div class="vmail-fcard-toolbar">' +
-						'<button type="button" class="vmail-ft" data-act="move" title="Drag to reorder">' + ico('<polyline points="5 9 2 12 5 15"/><polyline points="9 5 12 2 15 5"/><polyline points="15 19 12 22 9 19"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="12" y1="2" x2="12" y2="22"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="up" title="Move up">' + ico('<line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="down" title="Move down">' + ico('<line x1="12" y1="5" x2="12" y2="19"/><polyline points="19 12 12 19 5 12"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="edit" title="Edit">' + ico('<path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.12 2.12 0 0 1 3 3L12 15l-4 1 1-4z"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="dup" title="Duplicate">' + ico('<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>') + '</button>' +
-						'<button type="button" class="vmail-ft vmail-ft-del" data-act="del" title="Remove">' + ico('<polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="edit" title="Edit">' + ico('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="copy" title="Copy">' + ico('<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="paste" title="Paste after">' + ico('<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><rect x="5" y="6" width="14" height="15" rx="2.5"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="dup" title="Duplicate">' + ico('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>') + '</button>' +
+						'<button type="button" class="vmail-ft vmail-ft-del" data-act="del" title="Delete">' + ico('<path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/>') + '</button>' +
 					'</div>' +
 					'<span class="vmail-fcard-type">' + ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + '</span>';
 				card.addEventListener( 'click', function ( e ) {
 					if ( e.target.closest( '.vmail-ft' ) ) { return; }
-					selected = i; renderCanvas(); renderInspector();
+					selected = i; openInspector(); renderCanvas(); renderInspector();
 				} );
 				card.querySelectorAll( '.vmail-ft' ).forEach( function ( tb ) {
 					tb.addEventListener( 'click', function ( e ) {
@@ -2878,14 +3104,19 @@
 						if ( act === 'del' ) {
 							form.fields.splice( i, 1 );
 							if ( selected >= form.fields.length ) { selected = form.fields.length - 1; }
-						} else if ( act === 'up' && i > 0 ) {
-							var m = form.fields.splice( i, 1 )[0]; form.fields.splice( i - 1, 0, m ); selected = i - 1;
-						} else if ( act === 'down' && i < form.fields.length - 1 ) {
-							var m2 = form.fields.splice( i, 1 )[0]; form.fields.splice( i + 1, 0, m2 ); selected = i + 1;
+							if ( ! form.fields.length ) { selected = -1; if ( inspZone ) { inspZone.classList.add( 'is-collapsed' ); } }
+						} else if ( act === 'copy' ) {
+							clipboard = JSON.parse( JSON.stringify( f ) );
+							toast( 'Field copied.' );
+							return;
+						} else if ( act === 'paste' ) {
+							if ( ! clipboard ) { toast( 'Nothing to paste — copy a field first.', 'error' ); return; }
+							var pasted = JSON.parse( JSON.stringify( clipboard ) );
+							form.fields.splice( i + 1, 0, pasted ); reKey(); selected = i + 1;
 						} else if ( act === 'dup' ) {
 							var copy = JSON.parse( JSON.stringify( f ) ); form.fields.splice( i + 1, 0, copy ); reKey(); selected = i + 1;
 						} else if ( act === 'edit' ) {
-							selected = i;
+							selected = i; openInspector();
 						}
 						renderCanvas(); renderInspector();
 					} );
@@ -2904,6 +3135,13 @@
 				} );
 				canvas.appendChild( card );
 			} );
+			// Submit button as a real, selectable element (only shows when fields exist).
+			var sub = document.createElement( 'div' );
+			sub.className = 'vmail-sb-submit' + ( selected === 'submit' ? ' is-selected' : '' );
+			sub.innerHTML = '<button type="button" class="vmail-sb-submit-btn">' + escapeHtml( form.submit_label || 'Submit' ) + '</button>' +
+				'<span class="vmail-sb-submit-tag">Submit button · click to edit</span>';
+			sub.addEventListener( 'click', function () { selected = 'submit'; openInspector(); renderCanvas(); renderInspector(); } );
+			canvas.appendChild( sub );
 		}
 
 		/* ---------- inspector ---------- */
@@ -3040,6 +3278,15 @@
 		}
 
 		function renderInspector() {
+			if ( selected === 'submit' ) {
+				var srows = inspText( 'Button text', 'submit_label', form.submit_label || 'Submit' );
+				srows += '<div class="vmail-insp-note">Want to fully style this button — colours, padding, alignment, shadow? Open the <strong>Style editor</strong> from the top bar.</div>';
+				inspector.innerHTML = '<div class="vmail-insp-head"><span>Submit button</span><button type="button" class="vmail-sb-insp-x" id="vmail-insp-close" title="Close"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="vmail-insp-body">' + srows + '</div>';
+				var sx = $( '#vmail-insp-close', inspector ); if ( sx ) { sx.addEventListener( 'click', closeInspector ); }
+				var sl = $( '[data-k="submit_label"]', inspector );
+				if ( sl ) { sl.addEventListener( 'input', function () { form.submit_label = sl.value; renderCanvas(); } ); }
+				return;
+			}
 			if ( selected < 0 || ! form.fields[ selected ] ) {
 				inspector.innerHTML = '<div class="vmail-insp-empty">Select a field on the canvas to edit its settings.</div>';
 				return;
@@ -3089,7 +3336,8 @@
 				rows += inspText( 'CSS class', 'css', f.css );
 			}
 			rows += conditionalRows( f );
-			inspector.innerHTML = '<div class="vmail-insp-head">' + ( TYPES[ t ] ? TYPES[ t ].label : t ) + ' field</div><div class="vmail-insp-body">' + rows + '</div>';
+			inspector.innerHTML = '<div class="vmail-insp-head"><span>' + ( TYPES[ t ] ? TYPES[ t ].label : t ) + ' field</span><button type="button" class="vmail-sb-insp-x" id="vmail-insp-close" title="Close"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="vmail-insp-body">' + rows + '</div>';
+			var ix = $( '#vmail-insp-close', inspector ); if ( ix ) { ix.addEventListener( 'click', closeInspector ); }
 
 			$$( '[data-k]', inspector ).forEach( function ( el ) {
 				var ev = ( el.type === 'checkbox' || el.tagName === 'SELECT' ) ? 'change' : 'input';
@@ -3257,6 +3505,290 @@
 		renderCanvas();
 		renderInspector();
 		bindSettings();
+
+		/* =========================================================
+		   Full-screen style editor
+		   ========================================================= */
+		initStyleEditor();
+
+		function initStyleEditor() {
+			var root = $( '#vmail-style-editor' );
+			if ( ! root ) { return; }
+			form.style = form.style || {};
+			var S = form.style;
+			// targets: form, header, labels, inputs, submit, + per-field by key
+			function defaults( target ) {
+				return {}; // empty = inherit theme; only set keys override
+			}
+			function st( target ) { S[ target ] = S[ target ] || {}; return S[ target ]; }
+
+			var ICONS = {
+				form: '<rect x="3" y="3" width="18" height="18" rx="3"/>',
+				header: '<path d="M4 5h16v5H4z"/>',
+				labels: '<path d="M4 7h16M4 12h16M4 17h10"/>',
+				inputs: '<rect x="3" y="8" width="18" height="8" rx="2"/>',
+				submit: '<rect x="3" y="8" width="18" height="9" rx="4"/>'
+			};
+			var current = 'submit';
+
+			// ---- live preview ----
+			var pf = $( '#vse-form' );
+			function buildPreview() {
+				var rows = '';
+				var visible = form.fields.filter( function ( f ) { return [ 'step', 'html', 'captcha', 'consent' ].indexOf( f.type ) === -1; } );
+				visible.forEach( function ( f ) {
+					var star = f.required ? ' <span class="rq">*</span>' : '';
+					var input = ( f.type === 'textarea' )
+						? '<textarea class="vse-pf-input ta" data-fkey="' + escapeHtml( f.key ) + '" disabled></textarea>'
+						: '<input class="vse-pf-input" data-fkey="' + escapeHtml( f.key ) + '" disabled>';
+					rows += '<div class="vse-pf-field" data-fkey="' + escapeHtml( f.key ) + '">' +
+						'<label class="vse-pf-label">' + escapeHtml( f.label || f.key ) + star + '</label>' + input + '</div>';
+				} );
+				pf.innerHTML =
+					'<div class="vse-pf-header"><h3>' + escapeHtml( form.title || 'Form' ) + '</h3>' +
+					'<p class="vse-form-sub">' + escapeHtml( form.success ? '' : '' ) + 'Wir freuen uns auf Ihre Nachricht.</p></div>' +
+					rows +
+					'<div class="vse-pf-submit-wrap"><button type="button" class="vse-pf-submit">' + escapeHtml( form.submit_label || 'Submit' ) + '</button></div>';
+				markTarget();
+			}
+			function markTarget() {
+				$$( '.vse-pf-target', pf ).forEach( function ( e ) { e.classList.remove( 'vse-pf-target' ); } );
+				$$( '.is-target', pf ).forEach( function ( e ) { e.classList.remove( 'is-target' ); } );
+				var el = null;
+				if ( current === 'submit' ) { el = $( '.vse-pf-submit-wrap', pf ); if ( el ) { el.classList.add( 'is-target' ); } return; }
+				if ( current === 'header' ) { el = $( '.vse-pf-header', pf ); }
+				else if ( current === 'form' ) { el = pf; }
+				if ( el ) { el.classList.add( 'vse-pf-target' ); }
+			}
+
+			// ---- CSS generation ----
+			function px( v ) { return ( v === '' || v == null ) ? '' : ( /[a-z%]/i.test( String( v ) ) ? v : v + 'px' ); }
+			function shadowVal( k ) {
+				return { none: 'none', soft: '0 1px 3px rgba(16,24,40,.10)', medium: '0 8px 20px -6px rgba(16,24,40,.22)', strong: '0 16px 40px -8px rgba(16,24,40,.32)' }[ k ] || '';
+			}
+			function rule( sel, o ) {
+				var d = '';
+				if ( o.bg ) { d += 'background:' + o.bg + ';'; }
+				if ( o.color ) { d += 'color:' + o.color + ';'; }
+				if ( o.fs ) { d += 'font-size:' + px( o.fs ) + ';'; }
+				if ( o.fw ) { d += 'font-weight:' + o.fw + ';'; }
+				if ( o.radius ) { d += 'border-radius:' + px( o.radius ) + ';'; }
+				if ( o.border ) { d += 'border-width:' + px( o.border ) + ';border-style:solid;'; }
+				if ( o.borderColor ) { d += 'border-color:' + o.borderColor + ';'; }
+				if ( o.shadow ) { d += 'box-shadow:' + shadowVal( o.shadow ) + ';'; }
+				if ( o.pt != null || o.pr != null || o.pb != null || o.pl != null ) {
+					d += 'padding:' + px( o.pt || 0 ) + ' ' + px( o.pr || 0 ) + ' ' + px( o.pb || 0 ) + ' ' + px( o.pl || 0 ) + ';';
+				}
+				if ( o.mt != null || o.mr != null || o.mb != null || o.ml != null ) {
+					d += 'margin:' + px( o.mt || 0 ) + ' ' + px( o.mr || 0 ) + ' ' + px( o.mb || 0 ) + ' ' + px( o.ml || 0 ) + ';';
+				}
+				return d ? ( sel + '{' + d + '}' ) : '';
+			}
+			var SCOPE = '#vse-form';
+			function liveCss() {
+				var css = '';
+				var f = S.form || {}, h = S.header || {}, l = S.labels || {}, inp = S.inputs || {}, sub = S.submit || {};
+				css += rule( SCOPE, { bg: f.bg, radius: f.radius, shadow: f.shadow, pt: f.pt, pr: f.pr, pb: f.pb, pl: f.pl, border: f.border, borderColor: f.borderColor } );
+				css += rule( SCOPE + ' h3', { color: h.color, fs: h.fs, fw: h.fw } );
+				css += rule( SCOPE + ' .vse-pf-label', { color: l.color, fs: l.fs, fw: l.fw } );
+				css += rule( SCOPE + ' .vse-pf-input', { bg: inp.bg, color: inp.color, fs: inp.fs, radius: inp.radius, border: inp.border, borderColor: inp.borderColor } );
+				// submit alignment
+				var wrapJust = { left: 'flex-start', center: 'center', right: 'flex-end', full: 'stretch' }[ sub.align || 'center' ];
+				css += SCOPE + ' .vse-pf-submit-wrap{justify-content:' + wrapJust + ';}';
+				if ( sub.align === 'full' ) { css += SCOPE + ' .vse-pf-submit{width:100%;}'; }
+				css += rule( SCOPE + ' .vse-pf-submit', {
+					bg: sub.bg, color: sub.color, fs: sub.fs, fw: sub.fw, radius: sub.radius, shadow: sub.shadow,
+					pt: sub.pt, pr: sub.pr, pb: sub.pb, pl: sub.pl, mt: sub.mt, mb: sub.mb,
+					border: sub.border, borderColor: sub.borderColor
+				} );
+				if ( sub.hoverBg ) { css += SCOPE + ' .vse-pf-submit:hover{background:' + sub.hoverBg + ';}'; }
+				return css;
+			}
+			function applyLive() {
+				var styleTag = $( '#vse-live-css' ); if ( styleTag ) { styleTag.textContent = liveCss(); }
+			}
+
+			// ---- control builders ----
+			function ctrlText( label, target, key, val ) {
+				return '<div class="vse-ctrl"><div class="vse-cl">' + label + '</div><input class="vse-in" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( val || '' ) + '"></div>';
+			}
+			function ctrlUnit( label, target, key, val ) {
+				return '<div class="vse-ctrl" style="margin:0;"><div class="vse-cl">' + label + '</div><div class="vse-in-unit"><input data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( val == null ? '' : val ) + '"><span class="u">px</span></div></div>';
+			}
+			function ctrlColor( label, target, key, val ) {
+				var v = val || '';
+				return '<div class="vse-ctrl"><div class="vse-cl">' + label + '</div><div class="vse-color">' +
+					'<input type="color" class="vse-swatch" data-t="' + target + '" data-k="' + key + '" data-color="1" value="' + ( /^#([0-9a-f]{6})$/i.test( v ) ? v : '#2ab7f1' ) + '">' +
+					'<input class="vse-hex" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( v ) + '" placeholder="inherit"></div></div>';
+			}
+			function ctrlSeg( label, target, key, val, opts ) {
+				var btns = opts.map( function ( o ) {
+					return '<button type="button" data-t="' + target + '" data-k="' + key + '" data-v="' + o.v + '"' + ( ( val || opts[0].v ) === o.v ? ' class="is-on"' : '' ) + '>' + o.l + '</button>';
+				} ).join( '' );
+				return '<div class="vse-ctrl"><div class="vse-cl">' + label + '</div><div class="vse-seg">' + btns + '</div></div>';
+			}
+			function ctrlSpacing( label, target, prefix ) {
+				var o = st( target );
+				var four = o[ '_' + prefix + 'four' ];
+				var t = o[ prefix + 't' ], r = o[ prefix + 'r' ], b = o[ prefix + 'b' ], l = o[ prefix + 'l' ];
+				var body;
+				if ( four ) {
+					body = '<div class="vse-box4">' +
+						cell( target, prefix + 't', t, 'Top' ) + cell( target, prefix + 'r', r, 'Right' ) +
+						cell( target, prefix + 'b', b, 'Bot' ) + cell( target, prefix + 'l', l, 'Left' ) + '</div>';
+				} else {
+					body = '<div class="vse-box2">' +
+						cell( target, prefix + 'tb', ( t != null ? t : '' ), 'Top / Bottom' ) +
+						cell( target, prefix + 'lr', ( l != null ? l : '' ), 'Left / Right' ) + '</div>';
+				}
+				return '<div class="vse-ctrl"><div class="vse-spacing-head"><span class="vse-cl" style="margin:0;">' + label + '</span>' +
+					'<button type="button" class="vse-sides-toggle' + ( four ? ' is-on' : '' ) + '" data-sides="' + target + ':' + prefix + '" title="Edit each side"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg></button></div>' + body + '</div>';
+			}
+			function cell( target, key, val, lbl ) {
+				return '<div class="vse-cell"><input data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( val == null ? '' : val ) + '"><span class="cl">' + lbl + '</span></div>';
+			}
+
+			function renderControls() {
+				var o = st( current );
+				var head, body = '';
+				var titles = { form: 'Whole form', header: 'Header', labels: 'All labels', inputs: 'All inputs', submit: 'Submit button' };
+				var subs = { form: 'Background, padding, radius', header: 'Title typography', labels: 'Field label text', inputs: 'Field input boxes', submit: 'Style every detail' };
+				var nm = current.indexOf( 'field:' ) === 0 ? ( fieldByKey( current.slice( 6 ) ) || {} ).label : titles[ current ];
+				head = '<div class="vse-left-head"><span class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7">' + ( ICONS[ current ] || ICONS.inputs ) + '</svg></span>' +
+					'<span><span class="tt">' + escapeHtml( nm || 'Element' ) + '</span><br><span class="ts">' + ( subs[ current ] || 'Edit styles' ) + '</span></span></div>';
+
+				if ( current === 'submit' ) {
+					body += '<div class="vse-sec"><div class="vse-sec-t">Content &amp; placement</div>';
+					body += ctrlText( 'Button text', 'submit', 'text', form.submit_label || 'Submit' );
+					body += ctrlSeg( 'Alignment', 'submit', 'align', o.align || 'center', [
+						{ v: 'left', l: 'Left' }, { v: 'center', l: 'Center' }, { v: 'right', l: 'Right' }, { v: 'full', l: 'Full' } ] );
+					body += '</div>';
+					body += '<div class="vse-sec"><div class="vse-sec-t">Colors</div>' +
+						ctrlColor( 'Background', 'submit', 'bg', o.bg ) + ctrlColor( 'Text', 'submit', 'color', o.color ) + ctrlColor( 'Hover background', 'submit', 'hoverBg', o.hoverBg ) + '</div>';
+					body += '<div class="vse-sec"><div class="vse-sec-t">Typography</div><div class="vse-two">' +
+						ctrlUnit( 'Font size', 'submit', 'fs', o.fs ) + ctrlText( 'Font weight', 'submit', 'fw', o.fw ) + '</div></div>';
+					body += '<div class="vse-sec"><div class="vse-sec-t">Spacing</div>' + ctrlSpacing( 'Padding', 'submit', 'p' ) + ctrlSpacing( 'Margin', 'submit', 'm' ) + '</div>';
+					body += '<div class="vse-sec"><div class="vse-sec-t">Border &amp; shadow</div><div class="vse-two">' +
+						ctrlUnit( 'Radius', 'submit', 'radius', o.radius ) + ctrlUnit( 'Border', 'submit', 'border', o.border ) + '</div>' +
+						ctrlColor( 'Border color', 'submit', 'borderColor', o.borderColor ) +
+						ctrlSeg( 'Box shadow', 'submit', 'shadow', o.shadow || 'medium', [ { v: 'none', l: 'None' }, { v: 'soft', l: 'Soft' }, { v: 'medium', l: 'Med' }, { v: 'strong', l: 'Strong' } ] ) + '</div>';
+				} else if ( current === 'form' ) {
+					body += '<div class="vse-sec"><div class="vse-sec-t">Colors</div>' + ctrlColor( 'Background', 'form', 'bg', o.bg ) + '</div>';
+					body += '<div class="vse-sec"><div class="vse-sec-t">Spacing</div>' + ctrlSpacing( 'Padding', 'form', 'p' ) + '</div>';
+					body += '<div class="vse-sec"><div class="vse-sec-t">Border &amp; shadow</div><div class="vse-two">' +
+						ctrlUnit( 'Radius', 'form', 'radius', o.radius ) + ctrlUnit( 'Border', 'form', 'border', o.border ) + '</div>' +
+						ctrlColor( 'Border color', 'form', 'borderColor', o.borderColor ) +
+						ctrlSeg( 'Box shadow', 'form', 'shadow', o.shadow || 'medium', [ { v: 'none', l: 'None' }, { v: 'soft', l: 'Soft' }, { v: 'medium', l: 'Med' }, { v: 'strong', l: 'Strong' } ] ) + '</div>';
+				} else if ( current === 'header' ) {
+					body += '<div class="vse-sec"><div class="vse-sec-t">Title</div>' + ctrlColor( 'Color', 'header', 'color', o.color ) + '<div class="vse-two">' +
+						ctrlUnit( 'Font size', 'header', 'fs', o.fs ) + ctrlText( 'Font weight', 'header', 'fw', o.fw ) + '</div></div>';
+				} else if ( current === 'labels' ) {
+					body += '<div class="vse-sec"><div class="vse-sec-t">Label text</div>' + ctrlColor( 'Color', 'labels', 'color', o.color ) + '<div class="vse-two">' +
+						ctrlUnit( 'Font size', 'labels', 'fs', o.fs ) + ctrlText( 'Font weight', 'labels', 'fw', o.fw ) + '</div></div>';
+				} else if ( current === 'inputs' ) {
+					body += '<div class="vse-sec"><div class="vse-sec-t">Colors</div>' + ctrlColor( 'Background', 'inputs', 'bg', o.bg ) + ctrlColor( 'Text', 'inputs', 'color', o.color ) + ctrlColor( 'Border color', 'inputs', 'borderColor', o.borderColor ) + '</div>';
+					body += '<div class="vse-sec"><div class="vse-sec-t">Shape</div><div class="vse-two">' +
+						ctrlUnit( 'Font size', 'inputs', 'fs', o.fs ) + ctrlUnit( 'Radius', 'inputs', 'radius', o.radius ) + '</div>' + ctrlUnit( 'Border width', 'inputs', 'border', o.border ) + '</div>';
+				}
+				$( '#vse-controls' ).innerHTML = head + body;
+				bindControls();
+			}
+			function fieldByKey( k ) { return form.fields.filter( function ( f ) { return f.key === k; } )[ 0 ]; }
+
+			function bindControls() {
+				var wrap = $( '#vse-controls' );
+				$$( '[data-k]', wrap ).forEach( function ( el ) {
+					var ev = el.getAttribute( 'data-color' ) ? 'input' : 'input';
+					el.addEventListener( ev, function () {
+						var t = el.getAttribute( 'data-t' ), k = el.getAttribute( 'data-k' ), v = el.value;
+						if ( t === 'submit' && k === 'text' ) { form.submit_label = v; buildPreview(); applyLive(); return; }
+						var o = st( t );
+						if ( k === 'ptb' ) { o.pt = v; o.pb = v; }
+						else if ( k === 'plr' ) { o.pl = v; o.pr = v; }
+						else if ( k === 'mtb' ) { o.mt = v; o.mb = v; }
+						else if ( k === 'mlr' ) { o.ml = v; o.mr = v; }
+						else { o[ k ] = v; }
+						// keep hex<->swatch in sync
+						if ( el.getAttribute( 'data-color' ) ) {
+							var hex = $( '.vse-hex[data-k="' + k + '"][data-t="' + t + '"]', wrap ); if ( hex ) { hex.value = v; }
+						} else if ( el.classList.contains( 'vse-hex' ) ) {
+							var sw = $( '.vse-swatch[data-k="' + k + '"][data-t="' + t + '"]', wrap ); if ( sw && /^#([0-9a-f]{6})$/i.test( v ) ) { sw.value = v; }
+						}
+						applyLive();
+					} );
+				} );
+				$$( '.vse-seg button', wrap ).forEach( function ( btn ) {
+					btn.addEventListener( 'click', function () {
+						var t = btn.getAttribute( 'data-t' ), k = btn.getAttribute( 'data-k' ), v = btn.getAttribute( 'data-v' );
+						st( t )[ k ] = v;
+						btn.parentNode.querySelectorAll( 'button' ).forEach( function ( b ) { b.classList.toggle( 'is-on', b === btn ); } );
+						applyLive();
+					} );
+				} );
+				$$( '.vse-sides-toggle', wrap ).forEach( function ( tg ) {
+					tg.addEventListener( 'click', function () {
+						var pair = tg.getAttribute( 'data-sides' ).split( ':' ); var target = pair[0], prefix = pair[1];
+						var o = st( target ); var key = '_' + prefix + 'four';
+						if ( ! o[ key ] ) {
+							// expand 2 -> 4: seed all sides from the tb/lr values
+							var tb = o[ prefix + 'tb' ], lr = o[ prefix + 'lr' ];
+							if ( tb != null ) { o[ prefix + 't' ] = tb; o[ prefix + 'b' ] = tb; }
+							if ( lr != null ) { o[ prefix + 'l' ] = lr; o[ prefix + 'r' ] = lr; }
+						} else {
+							// collapse 4 -> 2
+							o[ prefix + 'tb' ] = o[ prefix + 't' ] || '';
+							o[ prefix + 'lr' ] = o[ prefix + 'l' ] || '';
+						}
+						o[ key ] = ! o[ key ];
+						renderControls();
+					} );
+				} );
+			}
+
+			// ---- selector tree ----
+			function renderTree() {
+				var tree = $( '#vse-tree' );
+				var html = '<div class="vse-tree-glabel">Form</div>';
+				html += node( 'form', 'Whole form', '', ICONS.form );
+				html += node( 'header', 'Header', '', ICONS.header );
+				html += '<div class="vse-tree-glabel">Shared</div>';
+				html += node( 'labels', 'All labels', '', ICONS.labels );
+				html += node( 'inputs', 'All inputs', '', ICONS.inputs );
+				html += node( 'submit', 'Submit button', '', ICONS.submit );
+				tree.innerHTML = html;
+				$$( '.vse-node', tree ).forEach( function ( n ) {
+					n.addEventListener( 'click', function () {
+						current = n.getAttribute( 'data-target' );
+						$$( '.vse-node', tree ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === n ); } );
+						$( '#vse-target-name' ).textContent = n.querySelector( '.nm' ).textContent;
+						renderControls(); markTarget();
+					} );
+				} );
+			}
+			function node( target, name, type, icon ) {
+				return '<div class="vse-node' + ( target === current ? ' is-on' : '' ) + '" data-target="' + target + '">' +
+					'<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' + icon + '</svg></span>' +
+					'<span class="nm">' + escapeHtml( name ) + '</span>' + ( type ? '<span class="ty">' + escapeHtml( type ) + '</span>' : '' ) + '</div>';
+			}
+
+			// ---- open / close / save ----
+			function open() {
+				buildPreview(); renderTree(); renderControls(); applyLive();
+				root.hidden = false; document.body.style.overflow = 'hidden';
+			}
+			function close() { root.hidden = true; document.body.style.overflow = ''; }
+			$( '#vmail-style-btn' ).addEventListener( 'click', open );
+			$( '#vse-save' ).addEventListener( 'click', function () { close(); renderCanvas(); toast( 'Styles applied. Remember to Save the form.' ); } );
+			$( '#vse-reset' ).addEventListener( 'click', function () {
+				form.style = {}; S = form.style; current = 'submit'; buildPreview(); renderTree(); renderControls(); applyLive();
+			} );
+			$$( '#vse-device button' ).forEach( function ( d ) {
+				d.addEventListener( 'click', function () {
+					$$( '#vse-device button' ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === d ); } );
+					var c = $( '#vse-canvas' ); c.className = 'vse-canvas' + ( d.getAttribute( 'data-dev' ) === 'tablet' ? ' is-tablet' : d.getAttribute( 'data-dev' ) === 'mobile' ? ' is-mobile' : '' );
+				} );
+			} );
+		}
 	}
 
 	function initScripts() {
