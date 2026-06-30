@@ -30,6 +30,7 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 	if ( ! $group ) { $group = Velox_Fields::blank(); }
 	$types  = Velox_Fields::types();
 	$params = Velox_Fields::location_params();
+	$paramchoices = Velox_Fields::location_choices();
 	$pres   = $group['presentation'];
 	?>
 	<div class="vfg" id="vfg-editor">
@@ -102,6 +103,7 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 	<script type="application/json" id="vfg-data"><?php echo wp_json_encode( $group ); ?></script>
 	<script type="application/json" id="vfg-types"><?php echo wp_json_encode( $types ); ?></script>
 	<script type="application/json" id="vfg-params"><?php echo wp_json_encode( $params ); ?></script>
+	<script type="application/json" id="vfg-paramchoices"><?php echo wp_json_encode( $paramchoices ); ?></script>
 
 <?php else :
 	$tab = isset( $_GET['tab'] ) ? sanitize_key( wp_unslash( $_GET['tab'] ) ) : 'groups'; // phpcs:ignore WordPress.Security.NonceVerification

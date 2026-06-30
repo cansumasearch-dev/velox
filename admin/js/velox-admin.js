@@ -2101,6 +2101,8 @@
 		try { group = JSON.parse( $( '#vfg-data' ).textContent ); } catch ( e ) { return; }
 		try { TYPES = JSON.parse( $( '#vfg-types' ).textContent ); } catch ( e2 ) { TYPES = {}; }
 		try { PARAMS = JSON.parse( $( '#vfg-params' ).textContent ); } catch ( e3 ) { PARAMS = {}; }
+		var PARAM_CHOICES = {};
+		try { PARAM_CHOICES = JSON.parse( $( '#vfg-paramchoices' ).textContent ); } catch ( e4 ) { PARAM_CHOICES = {}; }
 		group.fields = group.fields || [];
 		group.location = group.location || [ [ { param: 'post_type', operator: 'is', value: 'post' } ] ];
 		group.presentation = group.presentation || { label_placement: 'top', position: 'normal', order: 0 };
@@ -2518,14 +2520,33 @@
 						return '<option value="' + p + '"' + ( p === rule.param ? ' selected' : '' ) + '>' + PARAMS[ p ] + '</option>';
 					} ).join( '' );
 					var row = document.createElement( 'div' ); row.className = 'vfg-rule';
+					var choices = PARAM_CHOICES[ rule.param ];
+					var valueCtrl;
+					if ( choices && Object.keys( choices ).length ) {
+						var vOpts = Object.keys( choices ).map( function ( v ) {
+							return '<option value="' + escapeHtml( v ) + '"' + ( v === rule.value ? ' selected' : '' ) + '>' + escapeHtml( choices[ v ] ) + '</option>';
+						} ).join( '' );
+						valueCtrl = '<select class="velox-select" data-r="value">' + vOpts + '</select>';
+					} else {
+						valueCtrl = '<input class="velox-input" data-r="value" value="' + escapeHtml( rule.value || '' ) + '" placeholder="value">';
+					}
 					row.innerHTML =
 						'<select class="velox-select" data-r="param">' + paramOpts + '</select>' +
 						'<select class="velox-select" data-r="operator"><option value="is"' + ( rule.operator !== 'is_not' ? ' selected' : '' ) + '>is</option><option value="is_not"' + ( rule.operator === 'is_not' ? ' selected' : '' ) + '>is not</option></select>' +
-						'<input class="velox-input" data-r="value" value="' + escapeHtml( rule.value || '' ) + '" placeholder="value">' +
+						valueCtrl +
 						'<button type="button" class="vfg-rule-del" title="Remove rule"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
 					row.querySelectorAll( '[data-r]' ).forEach( function ( el ) {
 						var ev = el.tagName === 'SELECT' ? 'change' : 'input';
-						el.addEventListener( ev, function () { rule[ el.getAttribute( 'data-r' ) ] = el.value; updateSub(); } );
+						el.addEventListener( ev, function () {
+							var k = el.getAttribute( 'data-r' );
+							rule[ k ] = el.value;
+							if ( k === 'param' ) {
+								var ch = PARAM_CHOICES[ rule.param ];
+								rule.value = ch ? ( Object.keys( ch )[ 0 ] || '' ) : '';
+								renderLocation();
+							}
+							updateSub();
+						} );
 					} );
 					row.querySelector( '.vfg-rule-del' ).addEventListener( 'click', function () {
 						rg.splice( ri, 1 );
@@ -5109,4 +5130,121 @@
 	} else {
 		veloxInit();
 	}
+} )();
+
+/* =====================================================================
+ * Velox custom <select> — replaces native dropdowns across the admin.
+ * Progressive enhancement: the native select stays in the DOM (hidden)
+ * as the source of truth, so all existing value/change logic keeps working.
+ * ===================================================================== */
+( function () {
+	'use strict';
+	function closeAll( except ) {
+		document.querySelectorAll( '.vxs.is-open' ).forEach( function ( w ) {
+			if ( w === except ) { return; }
+			w.classList.remove( 'is-open' );
+			var b = w.querySelector( '.vxs-btn' );
+			if ( b ) { b.setAttribute( 'aria-expanded', 'false' ); }
+		} );
+	}
+	function enhance( sel ) {
+		if ( sel.dataset.vxsDone || sel.multiple || sel.classList.contains( 'vxs-skip' ) ) { return; }
+		sel.dataset.vxsDone = '1';
+		var wrap = document.createElement( 'div' );
+		wrap.className = 'vxs';
+		var btn = document.createElement( 'button' );
+		btn.type = 'button';
+		btn.className = 'vxs-btn';
+		btn.setAttribute( 'aria-haspopup', 'listbox' );
+		btn.setAttribute( 'aria-expanded', 'false' );
+		btn.innerHTML = '<span class="vxs-label"></span><svg class="vxs-chev" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>';
+		var menu = document.createElement( 'div' );
+		menu.className = 'vxs-menu';
+		menu.setAttribute( 'role', 'listbox' );
+		sel.parentNode.insertBefore( wrap, sel.nextSibling );
+		wrap.appendChild( sel );          // native select lives inside, hidden
+		wrap.appendChild( btn );
+		wrap.appendChild( menu );
+		if ( sel.disabled ) { wrap.classList.add( 'is-disabled' ); }
+
+		function label() {
+			var o = sel.options[ sel.selectedIndex ];
+			wrap.querySelector( '.vxs-label' ).textContent = o ? o.textContent : '';
+			btn.classList.toggle( 'is-placeholder', !! o && '' === o.value );
+		}
+		function syncOptions() {
+			menu.innerHTML = '';
+			Array.prototype.forEach.call( sel.options, function ( o, i ) {
+				var it = document.createElement( 'div' );
+				it.className = 'vxs-opt' + ( o.selected ? ' is-sel' : '' ) + ( o.disabled ? ' is-dis' : '' );
+				it.setAttribute( 'role', 'option' );
+				it.dataset.i = i;
+				it.textContent = o.textContent;
+				menu.appendChild( it );
+			} );
+			label();
+		}
+		function open() {
+			closeAll( wrap );
+			wrap.classList.add( 'is-open' );
+			btn.setAttribute( 'aria-expanded', 'true' );
+			var s = menu.querySelector( '.is-sel' );
+			if ( s ) { s.scrollIntoView( { block: 'nearest' } ); }
+		}
+		function close() { wrap.classList.remove( 'is-open' ); btn.setAttribute( 'aria-expanded', 'false' ); }
+		function choose( i ) {
+			if ( i < 0 || i >= sel.options.length || sel.options[ i ].disabled ) { return; }
+			sel.selectedIndex = i;
+			sel.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+		}
+		btn.addEventListener( 'click', function ( e ) {
+			e.stopPropagation();
+			if ( sel.disabled ) { return; }
+			wrap.classList.contains( 'is-open' ) ? close() : open();
+		} );
+		menu.addEventListener( 'click', function ( e ) {
+			var it = e.target.closest( '.vxs-opt' );
+			if ( ! it || it.classList.contains( 'is-dis' ) ) { return; }
+			choose( parseInt( it.dataset.i, 10 ) );
+		} );
+		btn.addEventListener( 'keydown', function ( e ) {
+			if ( e.key === 'ArrowDown' || e.key === 'ArrowUp' ) {
+				e.preventDefault();
+				var n = sel.selectedIndex + ( e.key === 'ArrowDown' ? 1 : -1 );
+				while ( n >= 0 && n < sel.options.length && sel.options[ n ].disabled ) { n += ( e.key === 'ArrowDown' ? 1 : -1 ); }
+				if ( n >= 0 && n < sel.options.length ) { choose( n ); }
+			} else if ( e.key === 'Enter' || e.key === ' ' ) {
+				e.preventDefault();
+				wrap.classList.contains( 'is-open' ) ? close() : open();
+			} else if ( e.key === 'Escape' ) { close(); }
+		} );
+		// reflect changes (whether from us, native, or other JS)
+		sel.addEventListener( 'change', function () {
+			menu.querySelectorAll( '.vxs-opt' ).forEach( function ( el ) {
+				el.classList.toggle( 'is-sel', parseInt( el.dataset.i, 10 ) === sel.selectedIndex );
+			} );
+			label();
+			close();
+		} );
+		// re-sync if some other script rewrites the option list
+		new MutationObserver( syncOptions ).observe( sel, { childList: true } );
+		syncOptions();
+	}
+	function scan( root ) {
+		( root || document ).querySelectorAll( 'select.velox-select:not([data-vxs-done])' ).forEach( enhance );
+	}
+	function boot() {
+		scan();
+		new MutationObserver( function ( muts ) {
+			muts.forEach( function ( m ) {
+				m.addedNodes.forEach( function ( n ) {
+					if ( n.nodeType !== 1 ) { return; }
+					if ( n.matches && n.matches( 'select.velox-select' ) ) { enhance( n ); }
+					if ( n.querySelectorAll ) { scan( n ); }
+				} );
+			} );
+		} ).observe( document.body, { childList: true, subtree: true } );
+		document.addEventListener( 'click', function ( e ) { if ( ! e.target.closest( '.vxs' ) ) { closeAll(); } } );
+	}
+	if ( document.readyState === 'loading' ) { document.addEventListener( 'DOMContentLoaded', boot ); } else { boot(); }
 } )();

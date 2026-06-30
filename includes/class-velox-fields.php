@@ -57,6 +57,30 @@ class Velox_Fields {
 	}
 
 	/** Location rule parameters. */
+	/** Choices for each location param, so the value can be a dropdown. */
+	public static function location_choices() {
+		$out = array();
+		$pts = array();
+		foreach ( get_post_types( array( 'show_ui' => true ), 'objects' ) as $pt ) { $pts[ $pt->name ] = $pt->label; }
+		$out['post_type'] = $pts;
+		$tx = array();
+		foreach ( get_taxonomies( array( 'show_ui' => true ), 'objects' ) as $t ) { $tx[ $t->name ] = $t->label; }
+		$out['taxonomy'] = $tx;
+		$out['post_status'] = array( 'publish' => 'Published', 'draft' => 'Draft', 'pending' => 'Pending review', 'private' => 'Private', 'future' => 'Scheduled' );
+		$roles = array();
+		if ( ! function_exists( 'get_editable_roles' ) ) { require_once ABSPATH . 'wp-admin/includes/user.php'; }
+		foreach ( get_editable_roles() as $k => $r ) { $roles[ $k ] = $r['name']; }
+		$out['user_role'] = $roles;
+		$op = array();
+		foreach ( self::all_option_pages() as $p ) { $op[ $p['slug'] ] = $p['title']; }
+		$out['options_page'] = $op;
+		$tpls  = array( 'default' => 'Default template' );
+		$theme = wp_get_theme();
+		if ( $theme ) { foreach ( (array) $theme->get_page_templates() as $file => $tname ) { $tpls[ $file ] = $tname; } }
+		$out['page_template'] = $tpls;
+		return $out;
+	}
+
 	public static function location_params() {
 		return array(
 			'post_type'   => 'Post type',

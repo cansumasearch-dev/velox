@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.47.0 — Custom dropdowns everywhere + pick-from-list location rules
+- **Custom dropdown component:** every native browser `<select>` across the Velox admin (`.velox-select`) is now replaced with a clean custom dropdown matching the design system — rounded, accent focus ring, hover states, keyboard support (arrows / enter / esc), click-outside to close. The native select stays underneath as the source of truth, so nothing breaks.
+- **Location rules are now pick-from-list:** instead of typing a post type or taxonomy slug, the value is a dropdown of the actual registered post types, taxonomies, user roles, post statuses, options pages and page templates. Changing the rule type swaps the available choices automatically.
+
 ## 2.46.0 — Custom fields: tabbed field settings + field widths
 The field editor now matches ACF 6’s layout: each field’s settings are split into **General / Presentation / Conditional Logic** tabs instead of one long stack.
 
