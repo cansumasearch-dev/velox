@@ -2144,14 +2144,15 @@
 			group.fields.forEach( function ( f, i ) {
 				var open = i === openIdx;
 				var card = document.createElement( 'div' );
-				card.className = 'vfg-field' + ( open ? ' is-open' : '' );
-				var meta = '<code>' + escapeHtml( f.name || slugify( f.label ) ) + '</code>' + ( f.required ? ' · required' : '' );
+				card.className = 'vfg-field' + ( open ? ' is-open' : '' ) + ( f.active === false ? ' is-off' : '' );
+				var meta = '<code>' + escapeHtml( f.name || slugify( f.label ) ) + '</code>' + ( f.required ? ' · required' : '' ) + ( f.active === false ? ' · off' : '' );
 				var head =
 					'<div class="vfg-field-row">' +
 						'<span class="vfg-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>' +
 						'<span class="vfg-type-pill">' + typeIcon() + ' ' + ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + '</span>' +
 						'<span class="vfg-field-main"><span class="vfg-field-label">' + escapeHtml( f.label || 'Untitled' ) + '</span><span class="vfg-field-meta">' + meta + '</span></span>' +
 						'<span class="vfg-field-acts">' +
+							'<label class="vfg-field-onoff velox-switch" title="Enable or disable this field"><input type="checkbox" data-act="active"' + ( f.active === false ? '' : ' checked' ) + '><span class="velox-switch-track"></span></label>' +
 							'<button type="button" class="vfg-iconbtn" data-act="dup" title="Duplicate"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
 							'<button type="button" class="vfg-iconbtn vfg-del" data-act="del" title="Delete"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>' +
 							'<button type="button" class="vfg-iconbtn" data-act="toggle" title="' + ( open ? 'Collapse' : 'Expand' ) + '"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><path d="' + ( open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6' ) + '"/></svg></button>' +
@@ -2193,7 +2194,7 @@
 				card.innerHTML = head + body;
 				// row click toggles (except buttons + handle)
 				card.querySelector( '.vfg-field-row' ).addEventListener( 'click', function ( e ) {
-					if ( e.target.closest( '.vfg-iconbtn' ) || e.target.closest( '.vfg-handle' ) ) { return; }
+					if ( e.target.closest( '.vfg-iconbtn' ) || e.target.closest( '.vfg-handle' ) || e.target.closest( '.vfg-field-onoff' ) ) { return; }
 					openIdx = ( openIdx === i ) ? -1 : i; renderFields();
 				} );
 				card.querySelectorAll( '.vfg-iconbtn' ).forEach( function ( b ) {
@@ -2206,6 +2207,17 @@
 						renderFields();
 					} );
 				} );
+				var onoff = card.querySelector( '.vfg-field-onoff input' );
+				if ( onoff ) {
+					onoff.addEventListener( 'click', function ( e ) { e.stopPropagation(); } );
+					onoff.addEventListener( 'change', function () {
+						f.active = onoff.checked;
+						card.classList.toggle( 'is-off', ! onoff.checked );
+						var mEl = card.querySelector( '.vfg-field-meta' );
+						if ( mEl ) { mEl.innerHTML = '<code>' + escapeHtml( f.name || slugify( f.label ) ) + '</code>' + ( f.required ? ' · required' : '' ) + ( f.active === false ? ' · off' : '' ); }
+						updateSub();
+					} );
+				}
 				// inputs in the body
 				var ftabs = card.querySelectorAll( '.vfg-ftab' );
 				ftabs.forEach( function ( tb ) {
@@ -2232,8 +2244,19 @@
 						if ( k === 'name' ) { f._lockName = true; f.name = slugify( el.value ); }
 						else { f[ k ] = ( el.type === 'checkbox' ) ? el.checked : el.value; }
 						if ( k === 'label' && ! f._lockName ) { f.name = ''; reName(); }
-						if ( k === 'type' || k === 'required' || k === 'label' || k === 'name' ) { renderFields(); }
-						else { updateSub(); }
+						// Type swaps the whole settings panel → a full re-render is needed.
+						if ( k === 'type' ) { renderFields(); return; }
+						// Label / name / required update the card header IN PLACE so the
+						// input is never torn out from under you mid-type (focus stays put).
+						var lblEl = card.querySelector( '.vfg-field-label' );
+						if ( lblEl ) { lblEl.textContent = f.label || 'Untitled'; }
+						var metaEl = card.querySelector( '.vfg-field-meta' );
+						if ( metaEl ) { metaEl.innerHTML = '<code>' + escapeHtml( f.name || slugify( f.label ) ) + '</code>' + ( f.required ? ' · required' : '' ); }
+						if ( k === 'label' && ! f._lockName ) {
+							var nameIn = card.querySelector( '[data-fk="name"]' );
+							if ( nameIn && document.activeElement !== nameIn ) { nameIn.value = f.name; }
+						}
+						updateSub();
 					} );
 				} );
 				// repeater sub-fields
@@ -2370,10 +2393,28 @@
 			function num( k, label, ph ) {
 				return mini( label, '<input class="velox-input" type="number" data-fk="' + k + '" value="' + escapeHtml( f[ k ] != null ? f[ k ] : '' ) + '"' + ( ph ? ' placeholder="' + ph + '"' : '' ) + '>' );
 			}
-			if ( t === 'number' || t === 'range' ) { return num( 'min', 'Minimum value' ) + num( 'max', 'Maximum value' ) + num( 'step', 'Step' ); }
-			if ( t === 'textarea' ) { return num( 'rows', 'Rows', '4' ) + num( 'maxlength', 'Character limit' ); }
-			if ( t === 'text' || t === 'email' || t === 'url' || t === 'password' ) { return num( 'maxlength', 'Character limit' ); }
-			if ( t === 'select' ) { return '<label class="vfg-check"><input type="checkbox" data-fk="multiple"' + ( f.multiple ? ' checked' : '' ) + '> Allow multiple selections</label>'; }
+			function chk( k, label, onByDefault ) {
+				var on = ( f[ k ] === undefined ) ? !! onByDefault : !! f[ k ];
+				return '<label class="vfg-check"><input type="checkbox" data-fk="' + k + '"' + ( on ? ' checked' : '' ) + '> ' + label + '</label>';
+			}
+			function pick( k, label, opts ) {
+				var cur = f[ k ] || opts[0][0];
+				var o = opts.map( function ( x ) { return '<option value="' + x[0] + '"' + ( cur === x[0] ? ' selected' : '' ) + '>' + x[1] + '</option>'; } ).join( '' );
+				return mini( label, '<select class="velox-select" data-fk="' + k + '">' + o + '</select>' );
+			}
+			function txt( k, label, ph ) {
+				return mini( label, '<input class="velox-input" data-fk="' + k + '" value="' + escapeHtml( f[ k ] || '' ) + '"' + ( ph ? ' placeholder="' + ph + '"' : '' ) + '>' );
+			}
+			var addons = txt( 'prepend', 'Prepend', 'e.g. $' ) + txt( 'append', 'Append', 'e.g. px' );
+			if ( t === 'number' || t === 'range' ) { return num( 'min', 'Minimum value' ) + num( 'max', 'Maximum value' ) + num( 'step', 'Step' ) + addons + chk( 'readonly', 'Read-only' ); }
+			if ( t === 'textarea' ) { return num( 'rows', 'Rows', '4' ) + num( 'maxlength', 'Character limit' ) + chk( 'readonly', 'Read-only' ); }
+			if ( t === 'text' || t === 'email' || t === 'url' || t === 'password' ) { return num( 'maxlength', 'Character limit' ) + addons + chk( 'readonly', 'Read-only' ); }
+			if ( t === 'select' ) { return chk( 'multiple', 'Allow multiple selections' ) + chk( 'allow_null', 'Allow null (empty choice)', true ); }
+			if ( t === 'checkbox' || t === 'radio' ) { return pick( 'layout', 'Layout', [ [ 'vertical', 'Vertical' ], [ 'horizontal', 'Horizontal' ] ] ); }
+			if ( t === 'button_group' ) { return pick( 'layout', 'Layout', [ [ 'horizontal', 'Horizontal' ], [ 'vertical', 'Vertical' ] ] ); }
+			if ( t === 'wysiwyg' ) { return pick( 'toolbar', 'Toolbar', [ [ 'full', 'Full' ], [ 'basic', 'Basic' ] ] ) + num( 'rows', 'Editor rows', '8' ) + chk( 'media_upload', 'Show media-upload button', true ); }
+			if ( t === 'image' || t === 'file' ) { return pick( 'return_format', 'Return format', [ [ 'id', t === 'file' ? 'Attachment ID' : 'Image ID' ], [ 'url', 'File URL' ], [ 'array', 'Attachment array' ] ] ); }
+			if ( t === 'date' || t === 'datetime' || t === 'time' ) { return txt( 'return_format', 'Return format (PHP date)', t === 'time' ? 'e.g. g:i a' : 'e.g. F j, Y' ); }
 			return '';
 		}
 		function subFieldsUi( f ) {
@@ -2531,10 +2572,14 @@
 						valueCtrl = '<input class="velox-input" data-r="value" value="' + escapeHtml( rule.value || '' ) + '" placeholder="value">';
 					}
 					row.innerHTML =
-						'<select class="velox-select" data-r="param">' + paramOpts + '</select>' +
-						'<select class="velox-select" data-r="operator"><option value="is"' + ( rule.operator !== 'is_not' ? ' selected' : '' ) + '>is</option><option value="is_not"' + ( rule.operator === 'is_not' ? ' selected' : '' ) + '>is not</option></select>' +
-						valueCtrl +
-						'<button type="button" class="vfg-rule-del" title="Remove rule"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+						'<div class="vfg-rule-top">' +
+							'<select class="velox-select" data-r="param">' + paramOpts + '</select>' +
+							'<button type="button" class="vfg-rule-del" title="Remove rule"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+						'</div>' +
+						'<div class="vfg-rule-bot">' +
+							'<select class="velox-select" data-r="operator"><option value="is"' + ( rule.operator !== 'is_not' ? ' selected' : '' ) + '>is</option><option value="is_not"' + ( rule.operator === 'is_not' ? ' selected' : '' ) + '>is not</option></select>' +
+							valueCtrl +
+						'</div>';
 					row.querySelectorAll( '[data-r]' ).forEach( function ( el ) {
 						var ev = el.tagName === 'SELECT' ? 'change' : 'input';
 						el.addEventListener( ev, function () {
@@ -2745,8 +2790,11 @@
 		var opEditor = $( '#vop-editor' );
 		if ( opEditor ) {
 			var opOldSlug = '';
+			var opSlugLocked = false;
+			function opSlugify( s ) { return ( s || '' ).toLowerCase().replace( /[^a-z0-9]+/g, '-' ).replace( /^-+|-+$/g, '' ).slice( 0, 32 ); }
 			function opShow( op ) {
 				opOldSlug = op ? ( op.slug || '' ) : '';
+				opSlugLocked = !! ( op && op.slug );
 				$( '#vop-editor-title' ).textContent = op ? 'Edit options page' : 'Add options page';
 				set( 'vop-title', op ? op.title : '' );
 				set( 'vop-menu', op ? op.menu_title : '' );
@@ -2754,8 +2802,14 @@
 				set( 'vop-parent', op ? ( op.parent || '' ) : '' );
 				set( 'vop-icon', op ? op.icon : 'dashicons-admin-generic' );
 				set( 'vop-position', op && op.position != null ? op.position : 80 );
+				setOn( 'vop-active', op ? ( op.active !== false ) : true );
 				opEditor.hidden = false;
 				opEditor.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
+			}
+			var opTitleEl = $( '#vop-title' ), opSlugEl = $( '#vop-slug' );
+			if ( opTitleEl && opSlugEl ) {
+				opTitleEl.addEventListener( 'input', function () { if ( ! opSlugLocked ) { opSlugEl.value = opSlugify( opTitleEl.value ); } } );
+				opSlugEl.addEventListener( 'input', function () { opSlugLocked = ( opSlugEl.value.trim() !== '' ); } );
 			}
 			var opAdd = $( '#vop-add' ); if ( opAdd ) { opAdd.addEventListener( 'click', function () { opShow( null ); } ); }
 			$$( '.vop-edit' ).forEach( function ( b ) {
@@ -2777,7 +2831,7 @@
 				opSave.addEventListener( 'click', function () {
 					var op = {
 						_old_slug: opOldSlug, slug: v( 'vop-slug' ), title: v( 'vop-title' ), menu_title: v( 'vop-menu' ),
-						parent: v( 'vop-parent' ), icon: v( 'vop-icon' ), position: v( 'vop-position' )
+						parent: v( 'vop-parent' ), icon: v( 'vop-icon' ), position: v( 'vop-position' ), active: chk( 'vop-active' )
 					};
 					if ( ! op.slug && ! op.title ) { toast( 'Give it at least a title.', 'error' ); return; }
 					opSave.disabled = true;
@@ -4880,67 +4934,136 @@
 	}
 
 	function initRedirects() {
-		var addBtn = $( '#velox-redir-add' );
-		if ( ! addBtn ) {
+		var list = $( '#velox-redir-list' );
+		if ( ! list ) {
 			return;
 		}
-		var srcEl   = $( '#velox-redir-source' );
-		var tgtEl   = $( '#velox-redir-target' );
-		var typeEl  = $( '#velox-redir-type' );
-		var cancelBtn = $( '#velox-redir-cancel' );
-		var editingId = null;
+		var modal   = $( '#velox-redir-modal' );
+		var openBtn = $( '#velox-redir-open' );
+		var saveBtn = $( '#velox-redir-save' );
+		var titleEl = $( '#velox-redir-modal-title' );
 
-		function resetForm() {
-			editingId = null;
-			srcEl.value = ''; tgtEl.value = ''; typeEl.value = '301';
-			addBtn.textContent = 'Add';
-			if ( cancelBtn ) { cancelBtn.hidden = true; }
+		var f = {
+			id:       $( '#velox-redir-id' ),
+			source:   $( '#velox-redir-source' ),
+			target:   $( '#velox-redir-target' ),
+			type:     $( '#velox-redir-type' ),
+			match:    $( '#velox-redir-match' ),
+			priority: $( '#velox-redir-priority' ),
+			category: $( '#velox-redir-category' ),
+			desc:     $( '#velox-redir-desc' ),
+			active:   $( '#velox-redir-active' ),
+			ic:       $( '#velox-redir-ic' ),
+			iq:       $( '#velox-redir-iq' ),
+			is:       $( '#velox-redir-is' )
+		};
+		var targetField = $( '#velox-redir-target-field' );
+
+		function syncTargetVisibility() {
+			if ( targetField ) {
+				targetField.style.display = ( '410' === String( f.type.value ) ) ? 'none' : '';
+			}
 		}
-		function startEdit( row ) {
-			editingId = row.getAttribute( 'data-id' );
-			srcEl.value = row.getAttribute( 'data-source' ) || '';
-			tgtEl.value = row.getAttribute( 'data-target' ) || '';
-			typeEl.value = row.getAttribute( 'data-type' ) || '301';
-			addBtn.textContent = 'Update';
-			if ( cancelBtn ) { cancelBtn.hidden = false; }
-			srcEl.focus();
-			addBtn.scrollIntoView( { behavior: 'smooth', block: 'center' } );
+		if ( f.type ) { f.type.addEventListener( 'change', syncTargetVisibility ); }
+
+		function openModal() {
+			if ( ! modal ) { return; }
+			modal.removeAttribute( 'hidden' );
+			modal.classList.add( 'is-open' );
+			document.addEventListener( 'keydown', onKey );
+			if ( f.source ) { setTimeout( function () { f.source.focus(); }, 30 ); }
 		}
-		if ( cancelBtn ) { cancelBtn.addEventListener( 'click', resetForm ); }
+		function closeModal() {
+			if ( ! modal ) { return; }
+			modal.classList.remove( 'is-open' );
+			modal.setAttribute( 'hidden', '' );
+			document.removeEventListener( 'keydown', onKey );
+		}
+		function onKey( e ) { if ( 'Escape' === e.key ) { closeModal(); } }
 
-		addBtn.addEventListener( 'click', function () {
-			if ( ! srcEl.value.trim() ) { toast( 'Enter a source path.', 'error' ); return; }
-			addBtn.disabled = true;
-			var action = editingId ? 'redirect_update' : 'redirect_add';
-			var data   = { source: srcEl.value, target: tgtEl.value, type: typeEl.value };
-			if ( editingId ) { data.id = editingId; }
-			api( action, data )
-				.then( function ( r ) {
-					if ( ! r.ok ) { toast( r.message || 'Could not save.', 'error' ); return; }
-					toast( editingId ? 'Redirect updated.' : 'Redirect added.' );
-					setTimeout( function () { location.reload(); }, 400 );
-				} )
-				.catch( function ( e ) { toast( e.message, 'error' ); } )
-				.then( function () { addBtn.disabled = false; } );
-		} );
+		function newRedirect() {
+			f.id.value = '0';
+			f.source.value = ''; f.target.value = '';
+			f.type.value = '301'; f.match.value = 'exact';
+			f.priority.value = '0'; f.category.value = ''; f.desc.value = '';
+			f.active.checked = true; f.ic.checked = true; f.iq.checked = true; f.is.checked = true;
+			if ( titleEl ) { titleEl.textContent = 'New redirect'; }
+			syncTargetVisibility();
+			openModal();
+		}
+		function editRedirect( row ) {
+			f.id.value = row.getAttribute( 'data-id' ) || '0';
+			f.source.value = row.getAttribute( 'data-source' ) || '';
+			f.target.value = row.getAttribute( 'data-target' ) || '';
+			f.type.value = row.getAttribute( 'data-type' ) || '301';
+			f.match.value = row.getAttribute( 'data-match' ) || 'exact';
+			f.priority.value = row.getAttribute( 'data-priority' ) || '0';
+			f.category.value = row.getAttribute( 'data-category' ) || '';
+			f.desc.value = row.getAttribute( 'data-description' ) || '';
+			f.active.checked = '0' !== row.getAttribute( 'data-active' );
+			f.ic.checked = '0' !== row.getAttribute( 'data-ignore-case' );
+			f.iq.checked = '0' !== row.getAttribute( 'data-ignore-query' );
+			f.is.checked = '0' !== row.getAttribute( 'data-ignore-slash' );
+			if ( titleEl ) { titleEl.textContent = 'Edit redirect'; }
+			syncTargetVisibility();
+			openModal();
+		}
 
-		var redirList = $( '#velox-redir-list' );
-		if ( redirList ) {
-			redirList.addEventListener( 'click', function ( e ) {
-				var row = e.target.closest( '.velox-redir-row' );
-				if ( ! row ) { return; }
-				if ( e.target.classList.contains( 'velox-redir-del' ) ) {
-					api( 'redirect_delete', { id: row.getAttribute( 'data-id' ) } )
-						.then( function () { row.remove(); toast( 'Removed.' ); if ( editingId === row.getAttribute( 'data-id' ) ) { resetForm(); } } )
-						.catch( function ( er ) { toast( er.message, 'error' ); } );
-				} else if ( e.target.classList.contains( 'velox-redir-edit' ) ) {
-					startEdit( row );
-				} else if ( e.target.classList.contains( 'velox-redir-visit' ) ) {
-					var url = row.getAttribute( 'data-visit' );
-					if ( url ) { window.open( url, '_blank', 'noopener' ); }
-				}
+		if ( openBtn ) { openBtn.addEventListener( 'click', newRedirect ); }
+		if ( modal ) {
+			modal.querySelectorAll( '[data-redir-close]' ).forEach( function ( el ) {
+				el.addEventListener( 'click', closeModal );
+			} );
+			modal.addEventListener( 'click', function ( e ) {
+				if ( e.target === modal ) { closeModal(); }
 			} );
 		}
+
+		if ( saveBtn ) {
+			saveBtn.addEventListener( 'click', function () {
+				if ( ! f.source.value.trim() ) { toast( 'Enter a source path or pattern.', 'error' ); f.source.focus(); return; }
+				var editing = '0' !== String( f.id.value );
+				saveBtn.disabled = true;
+				var data = {
+					source:       f.source.value,
+					target:       f.target.value,
+					type:         f.type.value,
+					match_type:   f.match.value,
+					priority:     f.priority.value,
+					category:     f.category.value,
+					description:  f.desc.value,
+					active:       f.active.checked ? 1 : 0,
+					ignore_case:  f.ic.checked ? 1 : 0,
+					ignore_query: f.iq.checked ? 1 : 0,
+					ignore_slash: f.is.checked ? 1 : 0
+				};
+				if ( editing ) { data.id = f.id.value; }
+				api( editing ? 'redirect_update' : 'redirect_add', data )
+					.then( function ( r ) {
+						if ( ! r.ok ) { toast( r.message || 'Could not save.', 'error' ); return; }
+						toast( editing ? 'Redirect updated.' : 'Redirect added.' );
+						closeModal();
+						setTimeout( function () { location.reload(); }, 400 );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { saveBtn.disabled = false; } );
+			} );
+		}
+
+		list.addEventListener( 'click', function ( e ) {
+			var row = e.target.closest( '.velox-redir-row' );
+			if ( ! row ) { return; }
+			if ( e.target.classList.contains( 'velox-redir-del' ) ) {
+				api( 'redirect_delete', { id: row.getAttribute( 'data-id' ) } )
+					.then( function () { row.remove(); toast( 'Removed.' ); } )
+					.catch( function ( er ) { toast( er.message, 'error' ); } );
+			} else if ( e.target.classList.contains( 'velox-redir-edit' ) ) {
+				editRedirect( row );
+			} else if ( e.target.classList.contains( 'velox-redir-visit' ) ) {
+				var url = row.getAttribute( 'data-visit' );
+				if ( url ) { window.open( url, '_blank', 'noopener' ); }
+			}
+		} );
 
 		var logToggle = $( '#velox-log-toggle' );
 		if ( logToggle ) {
@@ -4966,9 +5089,9 @@
 				var row = e.target.closest( '.velox-log-row' );
 				if ( ! row ) { return; }
 				if ( e.target.classList.contains( 'velox-log-fix' ) ) {
-					srcEl.value = row.getAttribute( 'data-path' );
-					tgtEl.focus();
-					srcEl.scrollIntoView( { behavior: 'smooth', block: 'center' } );
+					newRedirect();
+					f.source.value = row.getAttribute( 'data-path' ) || '';
+					if ( f.target ) { f.target.focus(); }
 				} else if ( e.target.classList.contains( 'velox-log-forget' ) ) {
 					api( 'log_forget', { id: row.getAttribute( 'data-id' ) } )
 						.then( function () { row.remove(); toast( 'Removed.' ); } )
@@ -5094,6 +5217,65 @@
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { applyBtn.disabled = false; applyBtn.textContent = 'Apply recommended setup'; } );
 			} );
+		}
+
+		// ---- .htaccess editor (locked until unlocked; unlock snapshots the file) ----
+		var htUnlock = $( '#velox-ht-unlock' );
+		var htArea   = $( '#velox-ht-content' );
+		var htSave   = $( '#velox-ht-save' );
+		var htReset  = $( '#velox-ht-reset' );
+		if ( htUnlock && htArea ) {
+			function htSetLocked( locked ) {
+				htArea.readOnly = locked;
+				htArea.classList.toggle( 'is-locked', locked );
+				if ( htSave ) { htSave.disabled = locked; }
+				if ( htReset ) { htReset.disabled = locked; }
+			}
+			htSetLocked( true );
+
+			htUnlock.addEventListener( 'change', function () {
+				if ( htUnlock.checked ) {
+					if ( ! window.confirm( 'Unlock .htaccess for editing? A snapshot of the current file is taken now so you can reset to it.' ) ) {
+						htUnlock.checked = false;
+						return;
+					}
+					api( 'seo_htaccess_unlock' )
+						.then( function () { htSetLocked( false ); htArea.focus(); toast( 'Editing unlocked — snapshot saved.' ); } )
+						.catch( function ( e ) { htUnlock.checked = false; toast( e.message, 'error' ); } );
+				} else {
+					htSetLocked( true );
+				}
+			} );
+
+			if ( htSave ) {
+				htSave.addEventListener( 'click', function () {
+					if ( ! htArea.value.trim() ) { toast( 'Refusing to save an empty .htaccess.', 'error' ); return; }
+					if ( ! window.confirm( 'Write this to your live .htaccess now? A wrong rule can 500 your site — you can still Reset to the snapshot afterwards.' ) ) { return; }
+					htSave.disabled = true;
+					api( 'seo_htaccess_save', { content: htArea.value } )
+						.then( function ( r ) {
+							if ( ! r.ok ) { toast( r.message || 'Could not save.', 'error' ); return; }
+							toast( '.htaccess saved.' );
+						} )
+						.catch( function ( e ) { toast( e.message, 'error' ); } )
+						.then( function () { htSave.disabled = false; } );
+				} );
+			}
+
+			if ( htReset ) {
+				htReset.addEventListener( 'click', function () {
+					if ( ! window.confirm( 'Reset .htaccess to the snapshot taken when you unlocked?' ) ) { return; }
+					htReset.disabled = true;
+					api( 'seo_htaccess_reset' )
+						.then( function ( r ) {
+							if ( ! r.ok ) { toast( r.message || 'Could not reset.', 'error' ); return; }
+							if ( typeof r.content === 'string' ) { htArea.value = r.content; }
+							toast( '.htaccess reset to snapshot.' );
+						} )
+						.catch( function ( e ) { toast( e.message, 'error' ); } )
+						.then( function () { htReset.disabled = false; } );
+				} );
+			}
 		}
 	}
 

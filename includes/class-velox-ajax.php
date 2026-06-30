@@ -212,6 +212,10 @@ class Velox_Ajax {
 					wp_send_json_error( array( 'message' => 'Unknown tool.' ) );
 				}
 				Velox_Settings::set( $key, $on );
+				// Front-end output may have changed (cookie banner, script rules, …) —
+				// drop the page cache so the toggle takes effect immediately instead of
+				// waiting for cached pages to expire.
+				if ( method_exists( 'Velox_Cache', 'purge_all' ) ) { Velox_Cache::purge_all(); }
 				wp_send_json_success( array( 'ok' => true, 'key' => $key, 'on' => $on ) );
 				break;
 
@@ -254,7 +258,7 @@ class Velox_Ajax {
 				$src  = isset( $_POST['source'] ) ? wp_unslash( $_POST['source'] ) : '';
 				$tgt  = isset( $_POST['target'] ) ? wp_unslash( $_POST['target'] ) : '';
 				$type = isset( $_POST['type'] ) ? (int) $_POST['type'] : 301;
-				wp_send_json_success( Velox_Redirects::add( $src, $tgt, $type ) );
+				wp_send_json_success( Velox_Redirects::add( $src, $tgt, $type, self::redirect_opts() ) );
 				break;
 
 			case 'snippet_save':
@@ -381,7 +385,7 @@ class Velox_Ajax {
 				$src  = isset( $_POST['source'] ) ? wp_unslash( $_POST['source'] ) : '';
 				$tgt  = isset( $_POST['target'] ) ? wp_unslash( $_POST['target'] ) : '';
 				$type = isset( $_POST['type'] ) ? (int) $_POST['type'] : 301;
-				wp_send_json_success( Velox_Redirects::update( $rid, $src, $tgt, $type ) );
+				wp_send_json_success( Velox_Redirects::update( $rid, $src, $tgt, $type, self::redirect_opts() ) );
 				break;
 
 			case 'redirect_delete':
@@ -613,6 +617,19 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'ok' => $ok, 'physical' => Velox_Seo::physical_robots_exists() ) );
 				break;
 
+			case 'seo_htaccess_unlock':
+				wp_send_json_success( Velox_Seo::htaccess_unlock() );
+				break;
+
+			case 'seo_htaccess_save':
+				$content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+				wp_send_json_success( Velox_Seo::htaccess_save( $content ) );
+				break;
+
+			case 'seo_htaccess_reset':
+				wp_send_json_success( Velox_Seo::htaccess_reset() );
+				break;
+
 			case 'seo_sitemap_generate':
 				$ok = Velox_Seo::generate_sitemap();
 				wp_send_json_success( Velox_Seo::sitemap_stats() + array( 'generated' => $ok ) );
@@ -733,5 +750,19 @@ class Velox_Ajax {
 			}
 		}
 		wp_send_json_success( array( 'message' => __( 'Settings saved.', 'velox' ) ) );
+	}
+
+	/** Collect the extra redirect-rule options from the modal POST. */
+	private static function redirect_opts() {
+		return array(
+			'match_type'   => isset( $_POST['match_type'] ) ? sanitize_key( wp_unslash( $_POST['match_type'] ) ) : 'exact',
+			'priority'     => isset( $_POST['priority'] ) ? (int) $_POST['priority'] : 0,
+			'category'     => isset( $_POST['category'] ) ? wp_unslash( $_POST['category'] ) : '',
+			'description'  => isset( $_POST['description'] ) ? wp_unslash( $_POST['description'] ) : '',
+			'active'       => isset( $_POST['active'] ) ? ( '1' === (string) $_POST['active'] || 'true' === (string) $_POST['active'] ) : true,
+			'ignore_case'  => isset( $_POST['ignore_case'] ) ? ( '1' === (string) $_POST['ignore_case'] || 'true' === (string) $_POST['ignore_case'] ) : true,
+			'ignore_query' => isset( $_POST['ignore_query'] ) ? ( '1' === (string) $_POST['ignore_query'] || 'true' === (string) $_POST['ignore_query'] ) : true,
+			'ignore_slash' => isset( $_POST['ignore_slash'] ) ? ( '1' === (string) $_POST['ignore_slash'] || 'true' === (string) $_POST['ignore_slash'] ) : true,
+		);
 	}
 }

@@ -4,6 +4,85 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.64.0 — SEO: editable .htaccess
+Added an **.htaccess editor** to the SEO page, with guardrails so you can't easily break the site.
+### Added
+- View your site-root `.htaccess` directly in Velox. The editor is **read-only until you flip "Unlock editing"**, which takes a snapshot of the current file first.
+- **Save .htaccess** writes your changes to the live file (it refuses to write an empty file, which would 500 the site).
+- **Reset to default** instantly reverts the file to the snapshot taken when you unlocked — your safety net if a rule goes wrong.
+- Clear warnings, plus graceful handling when the file isn't writable or doesn't exist yet.
+
+
+## 2.63.0 — Redirects: full add/edit modal
+The cramped inline "add a redirect" row is replaced by a proper **Add redirect** button that opens a modal with the complete rule, and **Edit** reopens the same modal for any rule.
+### Added
+- **Match types** — beyond exact-URL matching you can now match **URL starts with** (prefix) or a **Regex pattern** (with `$1` back-references supported in the target).
+- **Priority** — higher-priority rules are checked first, so you control which rule wins when several could match.
+- **Category** and **Description** — organise and annotate rules; both show as badges/notes on the list.
+- **Active toggle** — disable a redirect without deleting it (shown as an "Off" badge and dimmed).
+- **Per-rule matching options** — Ignore case, Ignore query parameters and Ignore trailing slash, each toggleable per rule.
+### Notes
+- Redirect rows now show match-type, category and status badges plus the description inline.
+- Existing redirects are migrated automatically (treated as exact, active, with all "ignore" options on) — no action needed.
+
+
+## 2.62.0
+### Fixed
+- **Cookie banner settings — input styling mismatch.** Text inputs, number inputs and textareas were rendering with WordPress's default chunky border while the dropdowns kept the Velox look — a CSS specificity collision (WP's `input[type=…]` attribute selector out-specifies a bare `.velox-input`, but its weaker `select` rule loses to `.velox-select`). Re-asserted the design-system control styling scoped to `.velox-wrap` with element qualifiers so inputs, textareas and selects now share identical border, radius, padding and height everywhere.
+- **Oversized inputs in "Typography & advanced".** WP's default `min-height`/`line-height` were inflating those inputs; now overridden so they match the standard control height across the whole page.
+- Consolidated repeated inline `(optional)` hint styles in the cookie view into a `.velox-hint--inline` utility class.
+
+
+## 2.61.0 — Cookie Banner: fix “not showing” after enabling
+Enabling the banner often showed nothing on the front end. Causes fixed:
+- Toggling a utility on/off now **purges the page cache**, and the purge reaches common third-party caches (WP Fastest Cache, WP Rocket, W3TC, WP Super Cache, LiteSpeed) — not just Velox’s own — so the banner appears immediately instead of waiting for cached pages to expire.
+- The banner now ships with a sensible default **heading and body text**, so it’s usable the moment you enable it without setting anything up.
+Note: Cloudflare’s edge cache can’t be purged without API credentials, so you may still need to clear it (or use Development Mode) when testing.
+
+## 2.60.0 — Script Manager: fix Scan Site
+Scan Site could come back empty (especially right after “Reset discovered list”), which then left nothing to save. Two causes fixed:
+- The loopback request that powers the scan was being served from **page cache**, so WordPress never actually ran and no handles were collected. The scan now appends a unique cache-busting token so the page truly executes.
+- Enforcement was running *during* the scan and dequeuing already-disabled handles, so they could never reappear in the results. Enforcement now stands down during a scan, so discovery sees every handle.
+With discovery working again, the rows repopulate and Save has real rules to store. (Reset still clears only the discovered list and keeps your saved rules on purpose.)
+
+## 2.59.0 — Custom Fields: return formats
+- **Image / File** fields can return the attachment **ID**, the **URL**, or a full **attachment array** from `get_field()`.
+- **Date / Datetime / Time** fields can return a formatted string using any PHP date format (e.g. `F j, Y`).
+- Added a field-config lookup so `get_field()` knows each field’s type and return format. Fully backward-compatible: values come back exactly as before unless you set a return format.
+
+## 2.58.0 — Custom Fields: prepend / append addons
+- Text, number, range, email, URL and password fields can now show a **prepend** and/or **append** addon (e.g. “$” before a price, “px” after a number). They render as joined input addons on the edit screen, and only appear when you set one — fields without addons look exactly as before.
+
+## 2.57.0 — Custom Fields: more per-type settings
+First batch of expanded field settings, each wired end-to-end (editor → save → front-end render):
+- **Read-only** toggle for text, textarea, number, range, email, URL and password fields.
+- **Select:** “Allow null” toggle for the empty choice.
+- **Checkbox / Radio:** Layout — vertical or horizontal.
+- **Button group:** Layout — horizontal or vertical.
+- **WYSIWYG:** Toolbar (Full / Basic), editor rows, and a media-upload button toggle.
+
+## 2.56.0 — Custom Fields: options-page enable/disable
+- Options pages now have an Active toggle (with a status badge in the list), matching field groups, post types and taxonomies. Turn one off and it disappears from the admin menu without being deleted — flip it back on and it returns.
+- Legacy options pages saved before this update are treated as active by default, so nothing you already built changes.
+
+## 2.55.0 — Custom Fields: per-field enable/disable
+- Every field now has its own on/off switch in the editor card. Flip a field off to keep its definition (and any saved values) without showing it on posts or options pages.
+- Disabled fields are skipped on render **and** on save, so turning one off never wipes the data already stored against it. The card dims and shows an “off” badge so the state is obvious at a glance.
+
+## 2.54.0 — Custom Fields: location rules UI + live options-page slug
+- **Location rules** redesigned: each rule is now a tidy card with the remove (×) button *inside* it, the param on its own row and operator + value below, so nothing spills out of the panel — and the panel itself is wider.
+- **Options pages:** the slug now fills in live from the page title as you type (lowercased + hyphenated). Edit the slug yourself and it locks, so your custom slug is never overwritten.
+
+## 2.53.0 — Custom Fields: fix label-typing focus loss
+Typing a field label dropped focus after every single character, forcing you to click back in for each letter. The editor was doing a full re-render of the field list on every keystroke, which tore the input out from under you.
+
+- Label / name / required now update the field card’s title, meta and auto-derived name **in place** — focus stays put and you can type normally.
+- A full re-render now only happens when you change the field *type* (which genuinely swaps the settings panel).
+
+## 2.52.0 — Offcanvas reorder
+- **Overview** now holds Dashboard + Utilities; **System** (Settings, SEO, Backup) moved up right under it.
+- Dropped **Duplicate Post** and **SVG Uploads** from the menu (they’re toggle-only, no settings page — still available in Utilities).
+
 ## 2.51.0 — Live data: Visitors + Form submissions widgets
 Two dashboard widgets now run on real, first-party data.
 

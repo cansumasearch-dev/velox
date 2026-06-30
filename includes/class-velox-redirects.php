@@ -12,7 +12,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Velox_Redirects {
 
-	const DB_VERSION = '1';
+	const DB_VERSION = '2';
 	const MAP_OPTION = 'velox_redirects_map';
 	const VER_OPTION = 'velox_redirects_db';
 
@@ -39,6 +39,14 @@ class Velox_Redirects {
 			source VARCHAR(190) NOT NULL,
 			target TEXT NOT NULL,
 			type SMALLINT NOT NULL DEFAULT 301,
+			match_type VARCHAR(20) NOT NULL DEFAULT 'exact',
+			priority INT NOT NULL DEFAULT 0,
+			category VARCHAR(100) NOT NULL DEFAULT '',
+			description VARCHAR(255) NOT NULL DEFAULT '',
+			active TINYINT(1) NOT NULL DEFAULT 1,
+			ignore_case TINYINT(1) NOT NULL DEFAULT 1,
+			ignore_query TINYINT(1) NOT NULL DEFAULT 1,
+			ignore_slash TINYINT(1) NOT NULL DEFAULT 1,
 			hits BIGINT UNSIGNED NOT NULL DEFAULT 0,
 			created DATETIME NULL,
 			last_hit DATETIME NULL,
@@ -81,33 +89,101 @@ class Velox_Redirects {
 		if ( empty( $map ) || ! is_array( $map ) ) {
 			return;
 		}
-		$req = self::normalize( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '' );
-		if ( '' === $req || ! isset( $map[ $req ] ) ) {
+		$raw = isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '';
+		if ( '' === $raw ) {
 			return;
 		}
-		$rule = $map[ $req ];
-		$type = (int) $rule['type'];
 
-		// Count the hit (only fires on an actual match).
-		global $wpdb;
-		$wpdb->query( $wpdb->prepare(
-			'UPDATE ' . self::table_redirects() . ' SET hits = hits + 1, last_hit = %s WHERE id = %d',
-			current_time( 'mysql' ),
-			(int) $rule['id']
-		) );
+		foreach ( $map as $rule ) {
+			$resolved = self::match_rule( $rule, $raw );
+			if ( false === $resolved ) {
+				continue;
+			}
 
-		if ( 410 === $type ) {
-			status_header( 410 );
-			nocache_headers();
-			wp_die( esc_html__( 'This content is no longer available.', 'velox' ), '', array( 'response' => 410 ) );
+			// Count the hit (only fires on an actual match).
+			global $wpdb;
+			$wpdb->query( $wpdb->prepare(
+				'UPDATE ' . self::table_redirects() . ' SET hits = hits + 1, last_hit = %s WHERE id = %d',
+				current_time( 'mysql' ),
+				(int) $rule['id']
+			) );
+
+			$type = (int) $rule['type'];
+			if ( 410 === $type ) {
+				status_header( 410 );
+				nocache_headers();
+				wp_die( esc_html__( 'This content is no longer available.', 'velox' ), '', array( 'response' => 410 ) );
+			}
+
+			$target = $resolved;
+			if ( '' !== $target && '/' === $target[0] ) {
+				$target = home_url( $target );
+			}
+			wp_redirect( $target, $type ); // phpcs:ignore WordPress.Security.SafeRedirect
+			exit;
+		}
+	}
+
+	/**
+	 * Test a single rule against the raw request URI.
+	 * Returns the resolved target string on a match, or false when it doesn't match.
+	 */
+	protected static function match_rule( $rule, $raw ) {
+		$ignore_case  = ! empty( $rule['ignore_case'] );
+		$ignore_query = ! isset( $rule['ignore_query'] ) || ! empty( $rule['ignore_query'] );
+		$ignore_slash = ! isset( $rule['ignore_slash'] ) || ! empty( $rule['ignore_slash'] );
+		$mt           = isset( $rule['match_type'] ) ? $rule['match_type'] : 'exact';
+
+		$subject = self::request_subject( $raw, ! $ignore_query, ! $ignore_slash );
+		if ( '' === $subject ) {
+			return false;
+		}
+		$src    = (string) $rule['source'];
+		$target = (string) $rule['target'];
+
+		if ( 'regex' === $mt ) {
+			$pattern = '#' . str_replace( '#', '\#', $src ) . '#' . ( $ignore_case ? 'i' : '' );
+			$ok      = @preg_match( $pattern, $subject ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+			if ( 1 !== $ok ) {
+				return false;
+			}
+			if ( '' !== $target ) {
+				$rep = @preg_replace( $pattern, $target, $subject ); // phpcs:ignore WordPress.PHP.NoSilencedErrors.Discouraged
+				if ( is_string( $rep ) ) {
+					$target = $rep;
+				}
+			}
+			return $target;
 		}
 
-		$target = $rule['target'];
-		if ( '' !== $target && '/' === $target[0] ) {
-			$target = home_url( $target );
+		$s = $ignore_case ? strtolower( $subject ) : $subject;
+		$c = $ignore_case ? strtolower( $src ) : $src;
+
+		if ( 'prefix' === $mt ) {
+			return ( '' !== $c && 0 === strpos( $s, $c ) ) ? $target : false;
 		}
-		wp_redirect( $target, $type ); // phpcs:ignore WordPress.Security.SafeRedirect
-		exit;
+		// Exact.
+		return ( $s === $c ) ? $target : false;
+	}
+
+	/** Build the request path to test against, honouring the per-rule query/slash flags. */
+	protected static function request_subject( $raw, $keep_query, $keep_slash ) {
+		$parts = wp_parse_url( $raw );
+		$path  = isset( $parts['path'] ) ? $parts['path'] : '';
+		if ( ! is_string( $path ) || '' === $path ) {
+			return '';
+		}
+		$path = '/' . ltrim( $path, '/' );
+		if ( ! $keep_slash ) {
+			$path = rtrim( $path, '/' );
+			if ( '' === $path ) {
+				$path = '/';
+			}
+		}
+		if ( $keep_query && ! empty( $parts['query'] ) ) {
+			$path .= '?' . $parts['query'];
+		}
+		return $path;
 	}
 
 	public static function maybe_log_404() {
@@ -150,85 +226,146 @@ class Velox_Redirects {
 
 	public static function rebuild_map() {
 		global $wpdb;
-		$rows = $wpdb->get_results( 'SELECT id, source, target, type FROM ' . self::table_redirects(), ARRAY_A );
-		$map  = array();
+		// Only active rules are matched on the front end. Ordered so the matcher can
+		// iterate and take the first hit: highest priority first, then exact before
+		// prefix before regex (most specific wins on a tie), then oldest id.
+		$rows = $wpdb->get_results(
+			'SELECT id, source, target, type, match_type, priority, ignore_case, ignore_query, ignore_slash
+			 FROM ' . self::table_redirects() . ' WHERE active = 1',
+			ARRAY_A
+		);
+		$map = array();
 		if ( $rows ) {
+			$rank = array( 'exact' => 0, 'prefix' => 1, 'regex' => 2 );
+			usort( $rows, function ( $a, $b ) use ( $rank ) {
+				if ( (int) $a['priority'] !== (int) $b['priority'] ) {
+					return (int) $b['priority'] - (int) $a['priority'];
+				}
+				$ra = isset( $rank[ $a['match_type'] ] ) ? $rank[ $a['match_type'] ] : 0;
+				$rb = isset( $rank[ $b['match_type'] ] ) ? $rank[ $b['match_type'] ] : 0;
+				if ( $ra !== $rb ) {
+					return $ra - $rb;
+				}
+				return (int) $a['id'] - (int) $b['id'];
+			} );
 			foreach ( $rows as $row ) {
-				$map[ $row['source'] ] = array(
-					'id'     => (int) $row['id'],
-					'target' => $row['target'],
-					'type'   => (int) $row['type'],
+				$map[] = array(
+					'id'           => (int) $row['id'],
+					'source'       => $row['source'],
+					'target'       => $row['target'],
+					'type'         => (int) $row['type'],
+					'match_type'   => $row['match_type'],
+					'ignore_case'  => (int) $row['ignore_case'],
+					'ignore_query' => (int) $row['ignore_query'],
+					'ignore_slash' => (int) $row['ignore_slash'],
 				);
 			}
 		}
 		update_option( self::MAP_OPTION, $map, false );
 	}
 
-	public static function add( $source, $target, $type = 301 ) {
-		$source = self::normalize( $source );
-		$type   = in_array( (int) $type, array( 301, 302, 307, 410 ), true ) ? (int) $type : 301;
-		if ( '' === $source ) {
-			return array( 'ok' => false, 'message' => 'Enter a source path.' );
+	/** Normalise the extra rule options coming from the editor. Unset = on (the safe default). */
+	protected static function clean_opts( $opts ) {
+		$mt = isset( $opts['match_type'] ) ? $opts['match_type'] : 'exact';
+		$mt = in_array( $mt, array( 'exact', 'prefix', 'regex' ), true ) ? $mt : 'exact';
+		return array(
+			'match_type'   => $mt,
+			'priority'     => isset( $opts['priority'] ) ? (int) $opts['priority'] : 0,
+			'category'     => isset( $opts['category'] ) ? substr( sanitize_text_field( $opts['category'] ), 0, 100 ) : '',
+			'description'  => isset( $opts['description'] ) ? substr( sanitize_text_field( $opts['description'] ), 0, 255 ) : '',
+			'active'       => ( ! isset( $opts['active'] ) || ! empty( $opts['active'] ) ) ? 1 : 0,
+			'ignore_case'  => ( ! isset( $opts['ignore_case'] ) || ! empty( $opts['ignore_case'] ) ) ? 1 : 0,
+			'ignore_query' => ( ! isset( $opts['ignore_query'] ) || ! empty( $opts['ignore_query'] ) ) ? 1 : 0,
+			'ignore_slash' => ( ! isset( $opts['ignore_slash'] ) || ! empty( $opts['ignore_slash'] ) ) ? 1 : 0,
+		);
+	}
+
+	/** Validate + normalise source/target for a given match type. Returns ok+source+target or an error. */
+	protected static function prep( $source, $target, $type, $mt ) {
+		if ( 'exact' === $mt ) {
+			$source = self::normalize( $source );
+		} elseif ( 'prefix' === $mt ) {
+			$source = trim( $source );
+			if ( '' !== $source && '/' !== $source[0] && ! preg_match( '#^https?://#i', $source ) ) {
+				$source = '/' . ltrim( $source, '/' );
+			}
+			$source = rtrim( $source, '/' );
+			if ( '' === $source ) {
+				$source = '/';
+			}
+		} else {
+			$source = trim( $source ); // regex pattern, stored verbatim
 		}
-		if ( 410 !== $type ) {
+		if ( '' === $source ) {
+			return array( 'ok' => false, 'message' => 'Enter a source path or pattern.' );
+		}
+		if ( 410 === (int) $type ) {
+			$target = '';
+		} else {
 			$target = trim( $target );
 			if ( '' === $target ) {
 				return array( 'ok' => false, 'message' => 'Enter where it should go.' );
 			}
-			// Allow a relative path or a full URL.
-			if ( '/' !== $target[0] && ! preg_match( '#^https?://#i', $target ) ) {
+			// Exact/prefix targets may be a relative path or a full URL; regex targets are left
+			// verbatim so back-references like $1 survive.
+			if ( 'regex' !== $mt && '/' !== $target[0] && ! preg_match( '#^https?://#i', $target ) ) {
 				$target = '/' . ltrim( $target, '/' );
 			}
-		} else {
-			$target = '';
 		}
-		if ( $source === self::normalize( $target ) ) {
+		if ( 'exact' === $mt && $source === self::normalize( $target ) ) {
 			return array( 'ok' => false, 'message' => 'Source and target are the same — that would loop.' );
+		}
+		return array( 'ok' => true, 'source' => $source, 'target' => $target );
+	}
+
+	public static function add( $source, $target, $type = 301, $opts = array() ) {
+		$type = in_array( (int) $type, array( 301, 302, 307, 410 ), true ) ? (int) $type : 301;
+		$o    = self::clean_opts( $opts );
+		$p    = self::prep( $source, $target, $type, $o['match_type'] );
+		if ( empty( $p['ok'] ) ) {
+			return $p;
 		}
 
 		global $wpdb;
 		$wpdb->query( $wpdb->prepare(
-			'INSERT INTO ' . self::table_redirects() . ' (source, target, type, created) VALUES (%s, %s, %d, %s)
-			 ON DUPLICATE KEY UPDATE target = VALUES(target), type = VALUES(type)',
-			$source,
-			$target,
-			$type,
-			current_time( 'mysql' )
+			'INSERT INTO ' . self::table_redirects() . ' (source, target, type, match_type, priority, category, description, active, ignore_case, ignore_query, ignore_slash, created)
+			 VALUES (%s, %s, %d, %s, %d, %s, %s, %d, %d, %d, %d, %s)
+			 ON DUPLICATE KEY UPDATE target = VALUES(target), type = VALUES(type), match_type = VALUES(match_type), priority = VALUES(priority), category = VALUES(category), description = VALUES(description), active = VALUES(active), ignore_case = VALUES(ignore_case), ignore_query = VALUES(ignore_query), ignore_slash = VALUES(ignore_slash)',
+			$p['source'], $p['target'], $type, $o['match_type'], $o['priority'], $o['category'], $o['description'], $o['active'], $o['ignore_case'], $o['ignore_query'], $o['ignore_slash'], current_time( 'mysql' )
 		) );
 		self::rebuild_map();
 		return array( 'ok' => true );
 	}
 
-	public static function update( $id, $source, $target, $type = 301 ) {
-		$id     = (int) $id;
-		$source = self::normalize( $source );
-		$type   = in_array( (int) $type, array( 301, 302, 307, 410 ), true ) ? (int) $type : 301;
+	public static function update( $id, $source, $target, $type = 301, $opts = array() ) {
+		$id = (int) $id;
 		if ( ! $id ) {
 			return array( 'ok' => false, 'message' => 'Missing redirect id.' );
 		}
-		if ( '' === $source ) {
-			return array( 'ok' => false, 'message' => 'Enter a source path.' );
-		}
-		if ( 410 !== $type ) {
-			$target = trim( $target );
-			if ( '' === $target ) {
-				return array( 'ok' => false, 'message' => 'Enter where it should go.' );
-			}
-			if ( '/' !== $target[0] && ! preg_match( '#^https?://#i', $target ) ) {
-				$target = '/' . ltrim( $target, '/' );
-			}
-		} else {
-			$target = '';
-		}
-		if ( $source === self::normalize( $target ) ) {
-			return array( 'ok' => false, 'message' => 'Source and target are the same — that would loop.' );
+		$type = in_array( (int) $type, array( 301, 302, 307, 410 ), true ) ? (int) $type : 301;
+		$o    = self::clean_opts( $opts );
+		$p    = self::prep( $source, $target, $type, $o['match_type'] );
+		if ( empty( $p['ok'] ) ) {
+			return $p;
 		}
 		global $wpdb;
 		$wpdb->update(
 			self::table_redirects(),
-			array( 'source' => $source, 'target' => $target, 'type' => $type ),
+			array(
+				'source'       => $p['source'],
+				'target'       => $p['target'],
+				'type'         => $type,
+				'match_type'   => $o['match_type'],
+				'priority'     => $o['priority'],
+				'category'     => $o['category'],
+				'description'  => $o['description'],
+				'active'       => $o['active'],
+				'ignore_case'  => $o['ignore_case'],
+				'ignore_query' => $o['ignore_query'],
+				'ignore_slash' => $o['ignore_slash'],
+			),
 			array( 'id' => $id ),
-			array( '%s', '%s', '%d' ),
+			array( '%s', '%s', '%d', '%s', '%d', '%s', '%s', '%d', '%d', '%d', '%d' ),
 			array( '%d' )
 		);
 		self::rebuild_map();

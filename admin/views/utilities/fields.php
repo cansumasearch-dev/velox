@@ -252,6 +252,8 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 						<span class="vfx-row-title"><?php echo esc_html( $op['menu_title'] ?: $op['title'] ); ?></span>
 						<span class="vfx-row-meta"><code><?php echo esc_html( $op['slug'] ); ?></code> · <?php echo '' === $op['parent'] ? 'top-level menu' : esc_html( 'under ' . $op['parent'] ); ?></span>
 					</button>
+					<?php $op_active = ! isset( $op['active'] ) || ! empty( $op['active'] ); ?>
+					<span class="vfx-row-status <?php echo $op_active ? 'is-active' : ''; ?>"><?php echo $op_active ? 'Active' : 'Inactive'; ?></span>
 					<button class="vfx-row-del vop-del" data-slug="<?php echo esc_attr( $op['slug'] ); ?>" title="Delete"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
 				</div>
 			<?php endforeach; endif; ?>
@@ -281,6 +283,7 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 				<div class="velox-field"><span class="velox-field-label">Dashicon <em>(top-level only)</em></span><input type="text" class="velox-input" id="vop-icon" placeholder="dashicons-admin-generic"></div>
 				<div class="velox-field"><span class="velox-field-label">Menu position</span><input type="number" class="velox-input" id="vop-position" value="80"></div>
 			</div>
+			<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Active</span><span class="velox-toggle-desc">Turn off to hide this page from the admin menu without deleting it.</span></div><span class="velox-switch"><input type="checkbox" id="vop-active" checked><span class="velox-switch-track"></span></span></label>
 			<div class="vfx-editor-actions">
 				<button class="velox-btn velox-btn--ghost" id="vop-cancel" type="button">Cancel</button>
 				<button class="velox-btn velox-btn--primary" id="vop-save" type="button">Save options page</button>

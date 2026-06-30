@@ -87,12 +87,16 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 			$vx_full_nav = array(
 				'Overview'    => array(
 					array( 'tab', 'dashboard', 'Dashboard', 'home' ),
+					array( 'tab', 'utilities', 'Utilities', 'grid' ),
+				),
+				'System'      => array(
+					array( 'tab', 'settings', 'Settings', 'gear' ),
+					array( 'tab', 'seo', 'SEO', 'search' ),
+					array( 'util', 'backup', 'Backup & Restore', 'package' ),
 				),
 				'Content'     => array(
 					array( 'util', 'fields', 'Custom Fields', 'grid' ),
 					array( 'tab', 'media', 'Media Editor', 'tag' ),
-					array( 'util', 'svg', 'SVG Uploads', 'file' ),
-					array( 'util', 'duplicate', 'Duplicate Post', 'copy' ),
 				),
 				'Performance' => array(
 					array( 'tab', 'performance', 'Performance', 'bolt' ),
@@ -110,11 +114,6 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 					array( 'util', 'loginurl', 'Login URL', 'lock' ),
 					array( 'util', 'installer', 'Bulk Installer', 'plug' ),
 					array( 'util', 'october', 'OctoberCMS Theme', 'package' ),
-				),
-				'System'      => array(
-					array( 'util', 'backup', 'Backup & Restore', 'package' ),
-					array( 'tab', 'seo', 'SEO', 'search' ),
-					array( 'tab', 'settings', 'Settings', 'gear' ),
 				),
 			);
 			$vx_cat = Velox_Utilities::catalog();

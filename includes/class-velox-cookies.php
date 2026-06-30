@@ -91,7 +91,7 @@ gtag('consent','update',{
 	 */
 	public static function options( $override = array() ) {
 		$keys = array(
-			'cookie_layout' => 'bar-bottom', 'cookie_heading' => '', 'cookie_body' => '',
+			'cookie_layout' => 'bar-bottom', 'cookie_heading' => 'We value your privacy', 'cookie_body' => 'We use cookies to improve your browsing experience, analyse site traffic and personalise content. You can choose which categories you allow.',
 			'cookie_btn_accept' => 'Accept all', 'cookie_btn_reject' => 'Reject non-essential',
 			'cookie_btn_settings' => 'Preferences', 'cookie_small_text' => '', 'cookie_logo' => '',
 			'cookie_link1_label' => '', 'cookie_link1_url' => '', 'cookie_link2_label' => '', 'cookie_link2_url' => '',

@@ -113,10 +113,19 @@ class Velox_Scripts {
 
 		$urls = array_values( array_unique( array_filter( $urls ) ) );
 
-		$reached = 0;
+		// Unique token busts page caches (so WordPress actually runs and collect()
+		// fires) and tells enforce() to stand down so we discover every handle.
+		$token    = (string) time();
+		$reached  = 0;
 		$last_err = '';
 		foreach ( $urls as $u ) {
-			$res = wp_remote_get( $u, array( 'timeout' => 12, 'sslverify' => false ) );
+			$u   = add_query_arg( 'velox_scan', $token, $u );
+			$res = wp_remote_get( $u, array(
+				'timeout'     => 15,
+				'sslverify'   => false,
+				'redirection' => 2,
+				'headers'     => array( 'Cache-Control' => 'no-cache', 'Pragma' => 'no-cache' ),
+			) );
 			if ( is_wp_error( $res ) ) { $last_err = $res->get_error_message(); continue; }
 			$reached++;
 		}
@@ -194,6 +203,11 @@ class Velox_Scripts {
 	/* --------------------------------------------------------- enforcement */
 
 	public static function enforce() {
+		// During a discovery scan, don't dequeue anything — otherwise handles that
+		// are already disabled by a rule would never re-appear in the scan results.
+		if ( isset( $_GET['velox_scan'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
 		$rules = self::rules();
 		if ( empty( $rules ) ) {
 			return;

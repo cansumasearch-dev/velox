@@ -87,3 +87,33 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 		</div>
 	</div>
 </div>
+
+<!-- ============ .htaccess editor ============ -->
+<?php
+$ht_exists   = Velox_Seo::htaccess_exists();
+$ht_content  = Velox_Seo::htaccess_content();
+$ht_writable = Velox_Seo::htaccess_writable();
+?>
+<div class="velox-panel" id="velox-htaccess">
+	<div class="velox-cache-status-row">
+		<h3 class="velox-panel-title">.htaccess</h3>
+		<label class="velox-inline-toggle" title="Unlock to edit this file">
+			<span>Unlock editing</span>
+			<span class="velox-switch"><input type="checkbox" id="velox-ht-unlock"<?php disabled( ! $ht_writable ); ?>><span class="velox-switch-track"></span></span>
+		</label>
+	</div>
+	<div class="velox-alert velox-alert--warn" style="margin-bottom:12px;">
+		<strong>Careful — this is your live server config.</strong> A bad rule here can take the whole site down with a 500 error. Unlocking takes a snapshot first, so <strong>Reset to default</strong> can always put it back exactly as it was when you unlocked.
+	</div>
+	<?php if ( ! $ht_writable ) : ?>
+		<div class="velox-alert velox-alert--info" style="margin-bottom:12px;">The <code>.htaccess</code> file isn't writable by WordPress, so editing is disabled. Adjust file permissions on the server to enable it.</div>
+	<?php elseif ( ! $ht_exists ) : ?>
+		<div class="velox-alert velox-alert--info" style="margin-bottom:12px;">No <code>.htaccess</code> exists in your site root yet — saving will create one.</div>
+	<?php endif; ?>
+	<textarea class="velox-textarea velox-mono" id="velox-ht-content" rows="14" spellcheck="false" readonly<?php echo $ht_writable ? '' : ' disabled'; ?>><?php echo esc_textarea( $ht_content ); ?></textarea>
+	<div class="velox-actions" style="margin-top:12px;">
+		<button class="velox-btn velox-btn--primary" id="velox-ht-save" disabled>Save .htaccess</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-ht-reset" disabled>Reset to default</button>
+	</div>
+	<span class="velox-hint">Served by Apache / LiteSpeed from your site root. Has no effect on a pure-Nginx server.</span>
+</div>

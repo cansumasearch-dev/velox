@@ -81,3 +81,17 @@
 #velox_overrides .postbox-header .handle-actions button,
 #velox_overrides .postbox-header .toggle-indicator::before { color: #50575e !important; }
 #velox_overrides .postbox-header .handle-actions button:hover { color: #1d2327 !important; background: #f0f0f1 !important; }
+
+/* choice field layouts (radio / checkbox / button group) */
+.velox-fields-choices { display: flex; flex-direction: column; gap: 6px; }
+.velox-fields-choices--horizontal { flex-direction: row; flex-wrap: wrap; gap: 6px 18px; }
+.velox-fld-btngroup--vertical { flex-direction: column; align-items: flex-start; }
+
+/* prepend / append input addons */
+.velox-input-addon { display: flex; align-items: stretch; }
+.velox-input-addon > input, .velox-input-addon > .widefat { flex: 1 1 auto; min-width: 0; border-radius: 0; }
+.velox-input-addon-pre, .velox-input-addon-app { display: flex; align-items: center; padding: 0 10px; background: #f0f0f1; border: 1px solid #8c8f94; color: #50575e; font-size: 13px; white-space: nowrap; }
+.velox-input-addon-pre { border-right: 0; border-radius: 4px 0 0 4px; }
+.velox-input-addon-app { border-left: 0; border-radius: 0 4px 4px 0; }
+.velox-input-addon > input:first-child { border-radius: 4px 0 0 4px; }
+.velox-input-addon > input:last-child { border-radius: 0 4px 4px 0; }

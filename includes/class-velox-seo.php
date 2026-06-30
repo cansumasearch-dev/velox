@@ -467,4 +467,83 @@ class Velox_Seo {
 		}
 		return array( 'ok' => true, 'physical' => self::physical_robots_exists() );
 	}
+
+	/* ----------------------------------------------------------- .htaccess */
+
+	const HTACCESS_SNAPSHOT = 'velox_htaccess_snapshot';
+
+	public static function htaccess_path() {
+		return ABSPATH . '.htaccess';
+	}
+
+	/** Current .htaccess contents ('' when the file doesn't exist). */
+	public static function htaccess_content() {
+		$p = self::htaccess_path();
+		if ( ! file_exists( $p ) ) {
+			return '';
+		}
+		$c = @file_get_contents( $p ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		return is_string( $c ) ? $c : '';
+	}
+
+	public static function htaccess_exists() {
+		return file_exists( self::htaccess_path() );
+	}
+
+	/** Can we actually write the file (or create it in the site root)? */
+	public static function htaccess_writable() {
+		$p = self::htaccess_path();
+		return file_exists( $p ) ? is_writable( $p ) : is_writable( ABSPATH );
+	}
+
+	/** The snapshot taken when the editor was unlocked (null = none yet). */
+	public static function htaccess_snapshot() {
+		$s = get_option( self::HTACCESS_SNAPSHOT, null );
+		return ( null === $s || false === $s ) ? null : $s;
+	}
+
+	/** Capture a snapshot of the current file so Reset can revert to it. Called on unlock. */
+	public static function htaccess_unlock() {
+		update_option( self::HTACCESS_SNAPSHOT, self::htaccess_content(), false );
+		return array( 'ok' => true, 'snapshot' => true );
+	}
+
+	/**
+	 * Write new contents to .htaccess. Refuses an empty file (that would 500 the
+	 * whole site) and snapshots the existing file first if we somehow have none.
+	 */
+	public static function htaccess_save( $content ) {
+		$content = (string) $content;
+		if ( '' === trim( $content ) ) {
+			return array( 'ok' => false, 'message' => 'Refusing to write an empty .htaccess — that would take your site down. Use Reset to default instead.' );
+		}
+		if ( ! self::htaccess_writable() ) {
+			return array( 'ok' => false, 'message' => 'The .htaccess file is not writable — check its file permissions.' );
+		}
+		if ( null === self::htaccess_snapshot() ) {
+			update_option( self::HTACCESS_SNAPSHOT, self::htaccess_content(), false );
+		}
+		$content = str_replace( "\r\n", "\n", $content );
+		$ok = @file_put_contents( self::htaccess_path(), rtrim( $content, "\n" ) . "\n" ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		if ( false === $ok ) {
+			return array( 'ok' => false, 'message' => 'Could not write .htaccess — check file permissions.' );
+		}
+		return array( 'ok' => true );
+	}
+
+	/** Revert .htaccess to the snapshot captured when the editor was unlocked. */
+	public static function htaccess_reset() {
+		$snap = self::htaccess_snapshot();
+		if ( null === $snap ) {
+			return array( 'ok' => false, 'message' => 'There is no snapshot to reset to yet.' );
+		}
+		if ( ! self::htaccess_writable() ) {
+			return array( 'ok' => false, 'message' => 'The .htaccess file is not writable — check its file permissions.' );
+		}
+		$ok = @file_put_contents( self::htaccess_path(), $snap ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		if ( false === $ok ) {
+			return array( 'ok' => false, 'message' => 'Could not restore .htaccess — check file permissions.' );
+		}
+		return array( 'ok' => true, 'content' => $snap );
+	}
 }

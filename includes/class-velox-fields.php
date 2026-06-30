@@ -121,6 +121,7 @@ class Velox_Fields {
 			'position'   => 80,
 			'parent'     => '',           // '' = top-level; or a parent menu slug
 			'capability' => 'manage_options',
+			'active'     => ! isset( $p['active'] ) || ! empty( $p['active'] ),
 		);
 	}
 	public static function save_option_page( $p ) {
@@ -162,6 +163,7 @@ class Velox_Fields {
 	public static function register_option_pages() {
 		foreach ( self::all_option_pages() as $p ) {
 			if ( empty( $p['slug'] ) ) { continue; }
+			if ( isset( $p['active'] ) && ! $p['active'] ) { continue; }
 			$menu_slug = 'velox-opt-' . $p['slug'];
 			$cb        = function () use ( $p ) { Velox_Fields::render_option_page( $p ); };
 			if ( '' === $p['parent'] ) {
@@ -207,6 +209,7 @@ class Velox_Fields {
 		foreach ( $groups as $group ) {
 			echo '<div class="velox-optpage-group"><h2>' . esc_html( $group['title'] ) . '</h2><div class="velox-fields-meta">';
 			foreach ( $group['fields'] as $f ) {
+				if ( isset( $f['active'] ) && ! $f['active'] ) { continue; }
 				$value = isset( $store[ $f['name'] ] ) ? $store[ $f['name'] ] : '';
 				if ( '' === $value && '' !== ( $f['default'] ?? '' ) ) { $value = $f['default']; }
 				self::render_field_row( $f, $value );
@@ -228,6 +231,7 @@ class Velox_Fields {
 		$store     = is_array( $store ) ? $store : array();
 		foreach ( self::groups_for_options_page( $slug ) as $group ) {
 			foreach ( $group['fields'] as $f ) {
+				if ( isset( $f['active'] ) && ! $f['active'] ) { continue; }
 				$store[ $f['name'] ] = self::field_value_from_submitted( $f, $submitted );
 			}
 		}
@@ -356,6 +360,7 @@ class Velox_Fields {
 				'name'         => $name,
 				'type'         => $type,
 				'required'     => ! empty( $f['required'] ),
+				'active'       => ! isset( $f['active'] ) || ! empty( $f['active'] ),
 				'instructions' => sanitize_text_field( $f['instructions'] ?? '' ),
 				'default'      => sanitize_text_field( $f['default'] ?? '' ),
 				'options'      => sanitize_textarea_field( $f['options'] ?? '' ),
@@ -373,6 +378,16 @@ class Velox_Fields {
 				if ( isset( $f[ $nk ] ) && '' !== $f[ $nk ] && is_numeric( $f[ $nk ] ) ) { $field[ $nk ] = $f[ $nk ] + 0; }
 			}
 			$field['multiple']   = ! empty( $f['multiple'] );
+			foreach ( array( 'readonly', 'allow_null', 'media_upload' ) as $bk ) {
+				if ( isset( $f[ $bk ] ) ) { $field[ $bk ] = ! empty( $f[ $bk ] ); }
+			}
+			foreach ( array( 'layout', 'toolbar' ) as $sk ) {
+				if ( isset( $f[ $sk ] ) && '' !== $f[ $sk ] ) { $field[ $sk ] = sanitize_key( $f[ $sk ] ); }
+			}
+			foreach ( array( 'prepend', 'append' ) as $tk ) {
+				if ( isset( $f[ $tk ] ) && '' !== $f[ $tk ] ) { $field[ $tk ] = sanitize_text_field( $f[ $tk ] ); }
+			}
+			if ( isset( $f['return_format'] ) && '' !== $f['return_format'] ) { $field['return_format'] = sanitize_text_field( $f['return_format'] ); }
 			$ww = isset( $f['wrapper_width'] ) ? (int) $f['wrapper_width'] : 100;
 			$field['wrapper_width'] = ( $ww >= 10 && $ww <= 100 ) ? $ww : 100;
 			$field['wrapper_class'] = sanitize_html_class( $f['wrapper_class'] ?? '' );
@@ -551,6 +566,7 @@ class Velox_Fields {
 		wp_nonce_field( 'velox_fields_save_' . $group['id'], 'velox_fields_nonce_' . $group['id'] );
 		echo '<div class="velox-fields-meta velox-fields-meta--' . esc_attr( $placement ) . '">';
 		foreach ( $group['fields'] as $f ) {
+			if ( isset( $f['active'] ) && ! $f['active'] ) { continue; }
 			$value = get_post_meta( $post->ID, $f['name'], true );
 			if ( '' === $value && '' !== ( $f['default'] ?? '' ) ) { $value = $f['default']; }
 			self::render_field_row( $f, $value );
@@ -588,16 +604,28 @@ class Velox_Fields {
 		return $a;
 	}
 
+	private static function wrap_addon( $f, $input_html ) {
+		$pre = trim( (string) ( $f['prepend'] ?? '' ) );
+		$app = trim( (string) ( $f['append'] ?? '' ) );
+		if ( '' === $pre && '' === $app ) { return $input_html; }
+		$h = '<div class="velox-input-addon">';
+		if ( '' !== $pre ) { $h .= '<span class="velox-input-addon-pre">' . esc_html( $pre ) . '</span>'; }
+		$h .= $input_html;
+		if ( '' !== $app ) { $h .= '<span class="velox-input-addon-app">' . esc_html( $app ) . '</span>'; }
+		return $h . '</div>';
+	}
+
 	private static function render_field_input( $f, $value ) {
 		$name = 'velox_field[' . esc_attr( $f['name'] ) . ']';
 		$id   = 'velox_field_' . esc_attr( $f['name'] );
 		$ph   = esc_attr( $f['placeholder'] ?? '' );
 		$opts = array_filter( array_map( 'trim', explode( "\n", (string) ( $f['options'] ?? '' ) ) ) );
+		$ro   = ! empty( $f['readonly'] ) ? ' readonly' : '';
 		switch ( $f['type'] ) {
 			case 'textarea':
 				$rows = isset( $f['rows'] ) ? (int) $f['rows'] : 5;
 				$ml   = isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '';
-				echo '<textarea id="' . $id . '" name="' . $name . '" rows="' . esc_attr( $rows ) . '" class="widefat" placeholder="' . $ph . '"' . $ml . '>' . esc_textarea( $value ) . '</textarea>';
+				echo '<textarea id="' . $id . '" name="' . $name . '" rows="' . esc_attr( $rows ) . '" class="widefat" placeholder="' . $ph . '"' . $ml . $ro . '>' . esc_textarea( $value ) . '</textarea>';
 				break;
 			case 'wysiwyg':
 				wp_editor(
@@ -605,9 +633,9 @@ class Velox_Fields {
 					$id,
 					array(
 						'textarea_name' => 'velox_field[' . $f['name'] . ']',
-						'textarea_rows' => 8,
-						'media_buttons' => true,
-						'teeny'         => false,
+						'textarea_rows' => isset( $f['rows'] ) ? (int) $f['rows'] : 8,
+						'media_buttons' => ! isset( $f['media_upload'] ) || ! empty( $f['media_upload'] ),
+						'teeny'         => isset( $f['toolbar'] ) && 'basic' === $f['toolbar'],
 					)
 				);
 				break;
@@ -692,7 +720,7 @@ class Velox_Fields {
 				$multi = ! empty( $f['multiple'] );
 				$vals  = $multi ? ( is_array( $value ) ? $value : array_filter( array_map( 'trim', explode( ',', (string) $value ) ) ) ) : array();
 				echo '<select id="' . $id . '" name="' . $name . ( $multi ? '[]' : '' ) . '" class="widefat"' . ( $multi ? ' multiple size="5"' : '' ) . '>';
-				if ( ! $multi ) { echo '<option value="">— Select —</option>'; }
+				if ( ! $multi && ( ! isset( $f['allow_null'] ) || ! empty( $f['allow_null'] ) ) ) { echo '<option value="">— Select —</option>'; }
 				foreach ( $opts as $o ) {
 					$on = $multi ? in_array( $o, $vals, true ) : ( (string) $value === (string) $o );
 					echo '<option value="' . esc_attr( $o ) . '"' . ( $on ? ' selected' : '' ) . '>' . esc_html( $o ) . '</option>';
@@ -700,27 +728,31 @@ class Velox_Fields {
 				echo '</select>';
 				break;
 			case 'radio':
+				echo '<div class="velox-fields-choices velox-fields-choices--' . esc_attr( ( isset( $f['layout'] ) && 'horizontal' === $f['layout'] ) ? 'horizontal' : 'vertical' ) . '">';
 				foreach ( $opts as $o ) {
 					echo '<label class="velox-fields-choice"><input type="radio" name="' . $name . '" value="' . esc_attr( $o ) . '"' . checked( $value, $o, false ) . '> ' . esc_html( $o ) . '</label>';
 				}
+				echo '</div>';
 				break;
 			case 'checkbox':
 				$vals = is_array( $value ) ? $value : array_filter( array_map( 'trim', explode( ',', (string) $value ) ) );
+				echo '<div class="velox-fields-choices velox-fields-choices--' . esc_attr( ( isset( $f['layout'] ) && 'horizontal' === $f['layout'] ) ? 'horizontal' : 'vertical' ) . '">';
 				foreach ( $opts as $o ) {
 					echo '<label class="velox-fields-choice"><input type="checkbox" name="' . $name . '[]" value="' . esc_attr( $o ) . '"' . ( in_array( $o, $vals, true ) ? ' checked' : '' ) . '> ' . esc_html( $o ) . '</label>';
 				}
+				echo '</div>';
 				break;
 			case 'truefalse':
 				echo '<label class="velox-fields-choice"><input type="checkbox" name="' . $name . '" value="1"' . checked( $value, '1', false ) . '> ' . esc_html( $f['label'] ) . '</label>';
 				break;
 			case 'number':
-				echo '<input type="number" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . self::minmax_attrs( $f ) . '>';
+				echo self::wrap_addon( $f, '<input type="number" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . self::minmax_attrs( $f ) . $ro . '>' );
 				break;
 			case 'email':
-				echo '<input type="email" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . '>';
+				echo self::wrap_addon( $f, '<input type="email" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . $ro . '>' );
 				break;
 			case 'url':
-				echo '<input type="url" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . '>';
+				echo self::wrap_addon( $f, '<input type="url" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . $ro . '>' );
 				break;
 			case 'date':
 				echo '<input type="date" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '">';
@@ -732,7 +764,7 @@ class Velox_Fields {
 				echo '<input type="time" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '">';
 				break;
 			case 'password':
-				echo '<input type="password" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '" autocomplete="new-password"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . '>';
+				echo self::wrap_addon( $f, '<input type="password" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '" autocomplete="new-password"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . $ro . '>' );
 				break;
 			case 'message':
 				echo '<div class="velox-fld-message">' . wp_kses_post( wpautop( (string) ( $f['default'] ?? '' ) ) ) . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput
@@ -741,7 +773,7 @@ class Velox_Fields {
 				echo '<input type="color" id="' . $id . '" name="' . $name . '" value="' . esc_attr( $value ? $value : '#000000' ) . '">';
 				break;
 			case 'button_group':
-				echo '<div class="velox-fld-btngroup">';
+				echo '<div class="velox-fld-btngroup velox-fld-btngroup--' . esc_attr( ( isset( $f['layout'] ) && 'vertical' === $f['layout'] ) ? 'vertical' : 'horizontal' ) . '">';
 				foreach ( $opts as $o ) {
 					echo '<label class="velox-fld-btn' . ( (string) $value === (string) $o ? ' is-on' : '' ) . '"><input type="radio" name="' . $name . '" value="' . esc_attr( $o ) . '"' . checked( $value, $o, false ) . '> ' . esc_html( $o ) . '</label>';
 				}
@@ -820,7 +852,7 @@ class Velox_Fields {
 				echo '</div>';
 				break;
 			default: // text, and any not-yet-specialised type
-				echo '<input type="text" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . '>';
+				echo self::wrap_addon( $f, '<input type="text" id="' . $id . '" name="' . $name . '" class="widefat" value="' . esc_attr( $value ) . '" placeholder="' . $ph . '"' . ( isset( $f['maxlength'] ) ? ' maxlength="' . (int) $f['maxlength'] . '"' : '' ) . $ro . '>' );
 		}
 	}
 
@@ -915,6 +947,7 @@ class Velox_Fields {
 			}
 			$submitted = isset( $_POST['velox_field'] ) ? (array) wp_unslash( $_POST['velox_field'] ) : array();
 			foreach ( $group['fields'] as $f ) {
+				if ( isset( $f['active'] ) && ! $f['active'] ) { continue; }
 				update_post_meta( $post_id, $f['name'], self::field_value_from_submitted( $f, $submitted ) );
 			}
 		}
@@ -1015,13 +1048,60 @@ class Velox_Fields {
 	 * ------------------------------------------------------------------ */
 
 	/** get_field()-style retrieval. Pass 'option' as $post_id for options-page values. */
+	private static $field_cfg_cache = null;
+
+	/** Resolve a field's saved config by its meta name (first match across all groups). */
+	public static function field_config( $name ) {
+		if ( null === self::$field_cfg_cache ) {
+			self::$field_cfg_cache = array();
+			foreach ( self::all() as $group ) {
+				foreach ( (array) ( $group['fields'] ?? array() ) as $f ) {
+					if ( ! empty( $f['name'] ) && ! isset( self::$field_cfg_cache[ $f['name'] ] ) ) {
+						self::$field_cfg_cache[ $f['name'] ] = $f;
+					}
+				}
+			}
+		}
+		return isset( self::$field_cfg_cache[ $name ] ) ? self::$field_cfg_cache[ $name ] : null;
+	}
+
+	/** Apply a field's return format to a stored value. No-op unless a return format is set. */
+	private static function format_value( $value, $name ) {
+		$cfg = self::field_config( $name );
+		if ( ! is_array( $cfg ) || empty( $cfg['type'] ) ) { return $value; }
+		$type = $cfg['type'];
+		$rf   = isset( $cfg['return_format'] ) ? (string) $cfg['return_format'] : '';
+		if ( ( 'image' === $type || 'file' === $type ) && in_array( $rf, array( 'id', 'url', 'array' ), true ) ) {
+			$id = (int) $value;
+			if ( ! $id ) { return 'array' === $rf ? false : ''; }
+			if ( 'url' === $rf ) { return wp_get_attachment_url( $id ); }
+			if ( 'array' === $rf ) {
+				return array(
+					'ID'    => $id,
+					'id'    => $id,
+					'url'   => wp_get_attachment_url( $id ),
+					'title' => get_the_title( $id ),
+					'alt'   => get_post_meta( $id, '_wp_attachment_image_alt', true ),
+					'mime'  => get_post_mime_type( $id ),
+				);
+			}
+			return $id;
+		}
+		if ( in_array( $type, array( 'date', 'datetime', 'time' ), true ) && '' !== $rf && '' !== (string) $value ) {
+			$ts = strtotime( (string) $value );
+			if ( $ts ) { return date_i18n( $rf, $ts ); }
+		}
+		return $value;
+	}
+
 	public static function get_field( $name, $post_id = null ) {
 		if ( 'option' === $post_id || 'options' === $post_id ) {
 			$store = get_option( self::OPT_STORE, array() );
-			return ( is_array( $store ) && isset( $store[ $name ] ) ) ? $store[ $name ] : '';
+			$raw   = ( is_array( $store ) && isset( $store[ $name ] ) ) ? $store[ $name ] : '';
+			return self::format_value( $raw, $name );
 		}
 		if ( null === $post_id ) { $post_id = get_the_ID(); }
-		return get_post_meta( $post_id, $name, true );
+		return self::format_value( get_post_meta( $post_id, $name, true ), $name );
 	}
 
 	/* ---- Repeater loop API (single-level), mirrors ACF have_rows()/the_row()/get_sub_field() ---- */

@@ -296,6 +296,30 @@
 .velox-input--sm { width: 110px; }
 .velox-textarea { resize: vertical; line-height: 1.5; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; }
 
+.velox-textarea.is-locked { background: var(--vx-n50); color: var(--vx-ink-2); cursor: not-allowed; }
+
+/* WordPress admin styles input[type=…]/textarea with attribute selectors that
+   out-specify a bare .velox-input, so text inputs were rendering with WP's default
+   chunky border while .velox-select kept the Velox look. Re-assert the design-system
+   styling scoped to .velox-wrap (element-qualified) so all three controls match. */
+.velox-wrap input.velox-input,
+.velox-wrap textarea.velox-textarea,
+.velox-wrap select.velox-select {
+	box-sizing: border-box; margin: 0; min-height: 0;
+	color: var(--vx-ink); background-color: #fff;
+	border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm);
+	box-shadow: none; padding: 10px 13px; line-height: 1.4;
+}
+.velox-wrap select.velox-select { padding-right: 38px; }
+.velox-wrap input.velox-input:hover,
+.velox-wrap textarea.velox-textarea:hover,
+.velox-wrap select.velox-select:hover { border-color: var(--vx-line-2); }
+.velox-wrap input.velox-input:focus,
+.velox-wrap textarea.velox-textarea:focus,
+.velox-wrap select.velox-select:focus {
+	outline: none; border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring);
+}
+
 /* Unified input safety-net: any bare text-like input / select / textarea inside a
    Velox page picks up the same styling, so inputs look identical everywhere even
    if a view forgot the .velox-input class. Scoped to .velox-main; excludes toggles,
@@ -729,6 +753,30 @@
 .velox-log-path { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .velox-redir-type, .velox-redir-hits, .velox-log-hits { font-size: 11px; color: var(--vx-ink-2); background: var(--vx-bg); border-radius: 999px; padding: 2px 8px; white-space: nowrap; }
 .velox-redir-row .velox-btn, .velox-log-row .velox-btn { padding: 4px 10px; font-size: 12px; }
+
+/* Redirects — panel heads, richer rows, badges, add/edit modal */
+.velox-redir-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 4px; }
+.velox-redir-head-actions { display: flex; align-items: center; gap: 14px; }
+.velox-redir-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.velox-redir-line { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.velox-redir-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.velox-redir-desc { font-size: 11.5px; color: var(--vx-ink-3); }
+.velox-redir-row.is-off { opacity: .58; }
+.velox-redir-badge { display: inline-flex; align-items: center; font-size: 11px; font-weight: 600; color: var(--vx-ink-2); background: var(--vx-n100); border-radius: var(--vx-r-pill); padding: 2px 9px; line-height: 1.5; }
+.velox-redir-badge--cat { background: var(--vx-primary-tint); color: var(--vx-primary-ink); }
+.velox-redir-badge--off { background: rgba(0,0,0,.06); color: var(--vx-ink-3); }
+
+.velox-modal-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -6px 0 18px; }
+.velox-modal-title { font-size: 17px; font-weight: 650; color: var(--vx-ink); margin: 0; letter-spacing: -0.01em; }
+.velox-modal-x { display: inline-flex; padding: 6px; border: 0; background: transparent; color: var(--vx-ink-3); border-radius: var(--vx-r-sm); cursor: pointer; transition: background var(--vx-dur-1) var(--vx-ease), color var(--vx-dur-1) var(--vx-ease); }
+.velox-modal-x:hover { background: var(--vx-n50); color: var(--vx-ink); }
+.velox-modal-body { display: flex; flex-direction: column; gap: 14px; }
+.velox-modal-foot { display: flex; justify-content: flex-end; gap: 10px; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--vx-line); }
+#velox-redir-modal .velox-modal-box { max-height: 90vh; overflow-y: auto; }
+.velox-redir-flags { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.velox-redir-flags .velox-toggle-row { align-items: center; padding: 11px 13px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); background: var(--vx-card); }
+.velox-redir-flags .velox-toggle-label { font-size: 13px; }
+@media (max-width: 560px) { .velox-redir-flags { grid-template-columns: 1fr; } }
 .velox-inline-toggle { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--vx-ink-2); }
 
 /* ---- Activity log ---- */
@@ -1135,7 +1183,7 @@
 .vfg-title:hover { background: var(--vx-n25); } .vfg-title:focus { outline: none; background: var(--vx-n25); box-shadow: 0 0 0 2px var(--vx-primary-ring); }
 .vfg-sub { font-size: 12px; color: var(--vx-ink-3); padding-left: 4px; }
 .vfg-active { display: inline-flex; align-items: center; gap: 9px; font-size: 13px; font-weight: 600; color: var(--vx-ink-2); }
-.vfg-grid { display: grid; grid-template-columns: minmax(0,1fr) 340px; gap: 16px; align-items: start; }
+.vfg-grid { display: grid; grid-template-columns: minmax(0,1fr) 392px; gap: 16px; align-items: start; }
 .vfg-fields-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .vfg-fields-head h3 { margin: 0; font-size: 15px; font-weight: 600; color: var(--vx-ink); letter-spacing: -0.01em; }
 .vfg-empty { padding: 32px; text-align: center; color: var(--vx-ink-3); font-size: 13px; border: 1px dashed var(--vx-line-2); border-radius: var(--vx-r-md); }
@@ -1170,9 +1218,15 @@
 .vfg-side-body { padding: 14px 16px; }
 .vfg-loc-help { font-size: 12px; color: var(--vx-ink-3); margin: 0 0 12px; line-height: 1.5; }
 .vfg-rulegroup { border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); padding: 11px; margin-bottom: 10px; background: var(--vx-n25); }
-.vfg-rule { display: grid; grid-template-columns: 1fr 64px 1fr auto; gap: 6px; align-items: center; margin-bottom: 8px; }
+.vfg-rule { display: flex; flex-direction: column; gap: 7px; margin-bottom: 8px; padding: 9px; background: var(--vx-card); border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); }
+.vfg-rule-top { display: flex; gap: 7px; align-items: center; }
+.vfg-rule-top > select, .vfg-rule-top > .vxs { flex: 1 1 auto; min-width: 0; }
+.vfg-rule-bot { display: flex; gap: 7px; align-items: center; }
+.vfg-rule-bot > :first-child { flex: 0 0 76px; min-width: 0; }
+.vfg-rule-bot > :last-child { flex: 1 1 auto; min-width: 0; }
+.vfg-rule .vxs { min-width: 0; width: 100%; }
 .vfg-rule select, .vfg-rule input { font-size: 13px; }
-.vfg-rule-del { width: 26px; height: 26px; border: 0; background: transparent; color: var(--vx-ink-3); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.vfg-rule-del { flex: 0 0 26px; width: 26px; height: 26px; border: 0; background: transparent; color: var(--vx-ink-3); border-radius: 6px; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .vfg-rule-del:hover { background: var(--vx-danger-tint); color: var(--vx-danger); }
 .vfg-and { font-size: 11px; font-weight: 700; letter-spacing: .05em; color: var(--vx-ink-3); text-transform: uppercase; text-align: center; margin: 8px 0; }
 .vfg-addrule { font-size: 12px; font-weight: 600; color: var(--vx-primary-ink); background: transparent; border: 0; cursor: pointer; padding: 4px 0; }
@@ -1596,6 +1650,7 @@
 /* the scoped banner CSS positions .vxck-root absolutely within the stage */
 
 .vxck-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.velox-hint--inline { display: inline; font-weight: 400; }
 .vxck-color { display: flex; align-items: center; gap: 11px; font-size: 12.5px; font-weight: 500; color: var(--vx-ink); padding: 8px 10px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); cursor: pointer; transition: border-color var(--vx-dur-1) var(--vx-ease); }
 .vxck-color:hover { border-color: var(--vx-n300); }
 .vxck-color input[type=color] { width: 30px; height: 30px; padding: 2px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-xs); background: var(--vx-card); cursor: pointer; flex: 0 0 auto; }
@@ -2216,3 +2271,8 @@
 .velox-spark { margin-top: auto; padding-top: 10px; }
 .velox-up { color: #157a42; font-weight: 600; }
 .velox-down { color: #b32a2a; font-weight: 600; }
+
+/* per-field on/off switch in the field-group editor */
+.vfg-field-onoff.velox-switch { transform: scale(.82); transform-origin: center; margin-right: 0; }
+.vfg-field.is-off .vfg-field-label, .vfg-field.is-off .vfg-type-pill { opacity: .5; }
+.vfg-field.is-off .vfg-field-meta code { opacity: .6; }

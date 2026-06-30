@@ -64,7 +64,7 @@ $s  = Velox_Settings::all();
 					<span class="velox-switch"><input type="checkbox" data-setting="cookie_consent_mode" <?php checked( ! empty( $s['cookie_consent_mode'] ) ); ?>><span class="velox-switch-track"></span></span>
 				</label>
 				<div class="velox-grid-2">
-					<div class="velox-field"><span class="velox-field-label">GA4 / GTM ID <span class="velox-hint" style="display:inline;font-weight:400;">(optional)</span></span><input type="text" class="velox-input" data-setting="cookie_ga_id" value="<?php echo esc_attr( $s['cookie_ga_id'] ); ?>" placeholder="G-XXXXXXX or GTM-XXXXXX"></div>
+					<div class="velox-field"><span class="velox-field-label">GA4 / GTM ID <span class="velox-hint velox-hint--inline">(optional)</span></span><input type="text" class="velox-input" data-setting="cookie_ga_id" value="<?php echo esc_attr( $s['cookie_ga_id'] ); ?>" placeholder="G-XXXXXXX or GTM-XXXXXX"></div>
 					<div class="velox-field"><span class="velox-field-label">Re-ask after (days)</span><input type="number" class="velox-input velox-input--sm" data-setting="cookie_reconsent_days" value="<?php echo esc_attr( (int) $s['cookie_reconsent_days'] ); ?>"></div>
 				</div>
 				<div class="velox-grid-2">
@@ -84,8 +84,8 @@ $s  = Velox_Settings::all();
 				<h3 class="velox-panel-title">Text</h3>
 				<div class="velox-field"><span class="velox-field-label">Heading</span><input type="text" class="velox-input vxck-live" data-setting="cookie_heading" value="<?php echo esc_attr( $s['cookie_heading'] ); ?>"></div>
 				<div class="velox-field"><span class="velox-field-label">Body</span><textarea class="velox-textarea vxck-live" data-setting="cookie_body" rows="3"><?php echo esc_textarea( $s['cookie_body'] ); ?></textarea></div>
-				<div class="velox-field"><span class="velox-field-label">Logo URL <span class="velox-hint" style="display:inline;font-weight:400;">(optional)</span></span><input type="text" class="velox-input vxck-live" data-setting="cookie_logo" value="<?php echo esc_attr( $s['cookie_logo'] ); ?>" placeholder="https://…/logo.svg"></div>
-				<div class="velox-field"><span class="velox-field-label">Small print <span class="velox-hint" style="display:inline;font-weight:400;">(optional — e.g. legal note)</span></span><textarea class="velox-textarea vxck-live" data-setting="cookie_small_text" rows="2"><?php echo esc_textarea( $s['cookie_small_text'] ); ?></textarea></div>
+				<div class="velox-field"><span class="velox-field-label">Logo URL <span class="velox-hint velox-hint--inline">(optional)</span></span><input type="text" class="velox-input vxck-live" data-setting="cookie_logo" value="<?php echo esc_attr( $s['cookie_logo'] ); ?>" placeholder="https://…/logo.svg"></div>
+				<div class="velox-field"><span class="velox-field-label">Small print <span class="velox-hint velox-hint--inline">(optional — e.g. legal note)</span></span><textarea class="velox-textarea vxck-live" data-setting="cookie_small_text" rows="2"><?php echo esc_textarea( $s['cookie_small_text'] ); ?></textarea></div>
 			</div>
 
 			<div class="velox-panel velox-tool-form">
@@ -156,7 +156,7 @@ $s  = Velox_Settings::all();
 			<div class="velox-panel velox-tool-form">
 				<h3 class="velox-panel-title">Typography &amp; advanced</h3>
 				<div class="velox-grid-2">
-					<div class="velox-field"><span class="velox-field-label">Heading size (px) <span class="velox-hint" style="display:inline;font-weight:400;">0 = auto</span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_heading_size" value="<?php echo esc_attr( (int) $s['cookie_heading_size'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label">Heading size (px) <span class="velox-hint velox-hint--inline">0 = auto</span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_heading_size" value="<?php echo esc_attr( (int) $s['cookie_heading_size'] ); ?>"></div>
 					<div class="velox-field"><span class="velox-field-label">Heading weight</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_heading_weight" value="<?php echo esc_attr( (int) $s['cookie_heading_weight'] ); ?>" placeholder="0 = auto"></div>
 					<div class="velox-field"><span class="velox-field-label">Heading colour</span><input type="text" class="velox-input vxck-live" data-setting="cookie_heading_color" value="<?php echo esc_attr( $s['cookie_heading_color'] ); ?>" placeholder="inherit"></div>
 					<div class="velox-field"><span class="velox-field-label">Body size (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_body_size" value="<?php echo esc_attr( (int) $s['cookie_body_size'] ); ?>" placeholder="0 = auto"></div>
@@ -167,8 +167,8 @@ $s  = Velox_Settings::all();
 					<div class="velox-field"><span class="velox-field-label">Button font weight</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_btn_font_weight" value="<?php echo esc_attr( (int) $s['cookie_btn_font_weight'] ); ?>"></div>
 					<div class="velox-field"><span class="velox-field-label">Overlay colour</span><input type="text" class="velox-input vxck-live" data-setting="cookie_overlay_color" value="<?php echo esc_attr( $s['cookie_overlay_color'] ); ?>" placeholder="rgba(10,12,20,.45)"></div>
 					<div class="velox-field"><span class="velox-field-label">Overlay blur (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_backdrop_blur" value="<?php echo esc_attr( (int) $s['cookie_backdrop_blur'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Max height (px) <span class="velox-hint" style="display:inline;font-weight:400;">0 = none</span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_max_height" value="<?php echo esc_attr( (int) $s['cookie_max_height'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">z-index <span class="velox-hint" style="display:inline;font-weight:400;">0 = default</span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_z_index" value="<?php echo esc_attr( (int) $s['cookie_z_index'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label">Max height (px) <span class="velox-hint velox-hint--inline">0 = none</span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_max_height" value="<?php echo esc_attr( (int) $s['cookie_max_height'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label">z-index <span class="velox-hint velox-hint--inline">0 = default</span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_z_index" value="<?php echo esc_attr( (int) $s['cookie_z_index'] ); ?>"></div>
 				</div>
 				<label class="velox-toggle-row" style="margin-top:6px;">
 					<div class="velox-toggle-meta"><span class="velox-toggle-label">Underline legal links</span></div>

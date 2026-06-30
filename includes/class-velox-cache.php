@@ -304,6 +304,14 @@ class Velox_Cache {
 	public static function purge_all() {
 		self::rrmdir( self::dir(), false );
 		self::write_config(); // keep the drop-in's config in place after a full purge
+		// Velox never stacks a second cache on top of yours — so also nudge the common
+		// third-party page caches, otherwise a change won't show until THEY expire.
+		if ( function_exists( 'wpfc_clear_all_cache' ) ) { wpfc_clear_all_cache( true ); } // WP Fastest Cache
+		if ( function_exists( 'rocket_clean_domain' ) ) { rocket_clean_domain(); }          // WP Rocket
+		if ( function_exists( 'w3tc_flush_all' ) ) { w3tc_flush_all(); }                     // W3 Total Cache
+		if ( function_exists( 'wp_cache_clear_cache' ) ) { wp_cache_clear_cache(); }         // WP Super Cache
+		if ( has_action( 'litespeed_purge_all' ) ) { do_action( 'litespeed_purge_all' ); }   // LiteSpeed Cache
+		do_action( 'velox_purge_all' );
 		return true;
 	}
 
