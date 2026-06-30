@@ -4,6 +4,43 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.51.0 — Live data: Visitors + Form submissions widgets
+Two dashboard widgets now run on real, first-party data.
+
+- **Form submissions** counts genuine submits through Velox&rsquo;s Mail & Forms (spam/honeypot hits excluded) and shows the last 30 days.
+- **Visitors** is a privacy-first counter: a tiny front-end beacon pings a Velox REST endpoint on each view (so it still counts behind your page cache), storing only daily aggregates. No cookies, no raw IP &mdash; uniques are de-duped with a salted hash whose salt rotates daily; bots and logged-in admins are skipped. Shows this week, views, the week-over-week trend and a sparkline.
+- New **Settings → Dashboard traffic** toggle to turn visitor counting off (default on). Mention the aggregate counting in your privacy policy.
+
+Both ship as normal cockpit widgets, so you can remove or re-add them in Edit mode.
+
+## 2.50.0 — Customizable dashboard widgets
+The cockpit is now yours to arrange. Hit **Edit** to enter edit mode, then:
+
+- **Remove** any widget with its × — one at a time.
+- **Select several** (click to tick them) and use **Remove selected** in the batch bar to clear them in one go.
+- **Add widget** lists everything you’ve removed so you can put it back.
+- **Done** leaves edit mode.
+
+Your layout is saved per site (stored in `dash_hidden`) and persists across reloads. Ships with a **Local fonts** widget off by default so the Add-widget picker has something in it. All widgets still run on real Velox data.
+
+## 2.49.1 — Two UI fixes
+- **Snippets type filter:** the “All types” dropdown was the one select that never became a custom dropdown, so its funnel icon overlapped the text. It now matches the rest and the icon no longer overlaps.
+- **Post-edit “Velox” meta box:** forced a light-grey, legible hover on its header so the title/toggle stay visible. (The brown/black hover comes from the WordPress admin colour scheme, not Velox — it affects every plugin’s meta box, including ACF; switching the scheme in your profile removes it everywhere.)
+
+## 2.49.0 — Redesigned Dashboard: the cockpit
+The Dashboard moves to the new design language: an at-a-glance **cockpit** of widgets — Performance (live optimization score), Cache (critical CSS built + purge), Database (junk rows + clean), Images (optimized + engine), and Recommendations — followed by an **Everything in Velox** grid linking to every area and utility.
+
+- All widgets run on real data already computed by Velox (no placeholder numbers).
+- The plugin-conflict (“turf war”) panel is preserved.
+- Same modules and actions as before, reorganised and reskinned.
+
+## 2.48.0 — Redesigned offcanvas: the full Velox menu
+First piece of the new design language lands in the plugin: the sidebar/offcanvas now lists **everything Velox offers** — all areas and utilities — grouped into Overview / Content / Performance / Site Tools / System, instead of only the switched-on ones.
+
+- Cleaner nav: uppercase section labels, lighter rows, a subtle cyan-tint active state (was a solid fill), monospace version pill.
+- Footer is a single “by Sumasearch” link to sumasearch.de with the Velox mark — nothing else.
+- The WordPress admin bars and the collapse toggle are unchanged.
+
 ## 2.47.0 — Custom dropdowns everywhere + pick-from-list location rules
 - **Custom dropdown component:** every native browser `<select>` across the Velox admin (`.velox-select`) is now replaced with a clean custom dropdown matching the design system — rounded, accent focus ring, hover states, keyboard support (arrows / enter / esc), click-outside to close. The native select stays underneath as the source of truth, so nothing breaks.
 - **Location rules are now pick-from-list:** instead of typing a post type or taxonomy slug, the value is a dropdown of the actual registered post types, taxonomies, user roles, post statuses, options pages and page templates. Changing the rule type swaps the available choices automatically.

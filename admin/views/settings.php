@@ -58,6 +58,22 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
+	<h3 class="velox-panel-title">Dashboard traffic</h3>
+	<p class="velox-hint">Velox can count page views with a tiny first-party script &mdash; no cookies, no raw IP stored (visitors are de-duped with a salted daily hash), bots and logged-in admins excluded. Powers the Visitors widget on the dashboard. Turn it off and nothing is collected.</p>
+	<?php $vx_track_on = ( ! isset( $s['traffic_tracking'] ) ) ? true : ! empty( $s['traffic_tracking'] ); ?>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Count visitors</span>
+			<span class="velox-toggle-desc">First-party, aggregate only. Mention it in your privacy policy.</span>
+		</div>
+		<label class="velox-switch">
+			<input type="checkbox" data-setting="traffic_tracking" <?php checked( $vx_track_on ); ?>>
+			<span class="velox-switch-track"></span>
+		</label>
+	</div>
+</div>
+
+<div class="velox-panel">
 	<h3 class="velox-panel-title">Image defaults</h3>
 	<label class="velox-field velox-field--inline">
 		<span class="velox-field-label">Default WebP quality</span>

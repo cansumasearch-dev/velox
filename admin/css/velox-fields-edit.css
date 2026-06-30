@@ -71,3 +71,13 @@
 .velox-fields-meta { display: flex; flex-wrap: wrap; gap: 18px 16px; align-items: flex-start; }
 .velox-fields-meta > .velox-fields-row { flex: 1 1 100%; margin: 0; box-sizing: border-box; }
 .velox-fields-meta--left > .velox-fields-row { flex-basis: 100%; }
+
+/* Keep the per-page "Velox" optimizations meta box header readable on dark
+   admin colour schemes (Coffee / Ectoplasm / Midnight). The brown/black hover
+   came from the chosen WP admin colour scheme, not Velox — this forces a light
+   grey hover with dark, legible title + toggle. */
+#velox_overrides .postbox-header:hover { background: #f6f7f7 !important; }
+#velox_overrides .postbox-header .hndle { color: #1d2327 !important; }
+#velox_overrides .postbox-header .handle-actions button,
+#velox_overrides .postbox-header .toggle-indicator::before { color: #50575e !important; }
+#velox_overrides .postbox-header .handle-actions button:hover { color: #1d2327 !important; background: #f0f0f1 !important; }

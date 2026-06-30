@@ -102,7 +102,7 @@ $safe_mode = Velox_Snippets::safe_mode();
 <div class="velox-snip-toolbar">
 	<div class="velox-snip-filter">
 		<svg class="velox-snip-filter-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-		<select class="velox-snip-type-filter" id="velox-snip-type-filter" aria-label="Filter by code type">
+		<select class="velox-snip-type-filter velox-select" id="velox-snip-type-filter" aria-label="Filter by code type">
 			<option value="">All types</option>
 			<option value="php">PHP — Functions &amp; hooks</option>
 			<option value="css">CSS — Styles</option>

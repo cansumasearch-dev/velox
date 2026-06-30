@@ -57,6 +57,7 @@ final class Velox {
 		$this->updater = new Velox_Updater();
 		Velox_Utilities::init();
 		Velox_Snippets::init();
+		Velox_Stats::init();
 		Velox_Cookies::init();
 		Velox_Backup::init();
 		if ( Velox_Settings::get( 'util_october', false ) ) {

@@ -38,6 +38,13 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Image_Optimizer::library_stats() );
 				break;
 
+			case 'dash_widgets':
+				$hidden = isset( $_POST['hidden'] ) ? (array) wp_unslash( $_POST['hidden'] ) : array();
+				$hidden = array_values( array_unique( array_filter( array_map( 'sanitize_key', $hidden ) ) ) );
+				Velox_Settings::set( 'dash_hidden', $hidden );
+				wp_send_json_success( array( 'hidden' => $hidden ) );
+				break;
+
 			case 'estimate_webp':
 				$id  = (int) ( $_POST['id'] ?? 0 );
 				$q   = isset( $_POST['quality'] ) ? (int) $_POST['quality'] : null;

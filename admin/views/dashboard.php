@@ -46,10 +46,48 @@ usort( $todo, function ( $a, $b ) { return $b['w'] - $a['w']; } );
 $todo = array_slice( $todo, 0, 4 );
 
 $purge_url = wp_nonce_url( admin_url( 'admin-post.php?action=velox_cache&which=all' ), 'velox_cache_all' );
+// "Everything in Velox" — every area + utility, for the catalog grid.
+$velox_tiles = array(
+	array( 'tab', 'dashboard',   'Dashboard',        'home',     'Overview & score' ),
+	array( 'util','fields',      'Custom Fields',    'grid',     'Field groups' ),
+	array( 'tab', 'media',       'Media Editor',     'tag',      'Alt text & files' ),
+	array( 'util','svg',         'SVG Uploads',      'file',     'Safe SVG' ),
+	array( 'util','duplicate',   'Duplicate Post',   'copy',     'One-click clone' ),
+	array( 'tab', 'performance', 'Performance',      'bolt',     'Speed tuning' ),
+	array( 'tab', 'images',      'Images',           'image',    'WebP / AVIF' ),
+	array( 'tab', 'database',    'Database',         'db',       'Cleanup' ),
+	array( 'util','scripts',     'Script Manager',   'code',     'Dequeue CSS/JS' ),
+	array( 'util','unusedmedia', 'Unused Media',     'broom',    'Find & clean' ),
+	array( 'util','redirects',   'Redirects & 404s', 'redirect', 'Manage URLs' ),
+	array( 'util','snippets',    'Code Snippets',    'code',     'PHP/CSS/JS' ),
+	array( 'util','cookies',     'Cookie Banner',    'cookie',   'Consent Mode' ),
+	array( 'util','mail',        'Mail & Forms',     'mail',     'SMTP & forms' ),
+	array( 'util','maintenance', 'Maintenance',      'cone',     'Coming-soon' ),
+	array( 'util','loginurl',    'Login URL',        'lock',     'Hide wp-login' ),
+	array( 'util','installer',   'Bulk Installer',   'plug',     'Plugin stacks' ),
+	array( 'util','october',     'OctoberCMS',       'package',  'Theme export' ),
+	array( 'util','backup',      'Backup & Restore', 'package',  'DB & files' ),
+	array( 'tab', 'seo',         'SEO',              'search',   'Meta & sitemaps' ),
+	array( 'tab', 'settings',    'Settings',         'gear',     'Modules & config' ),
+);
+
+
 ?>
-<div class="velox-page-head">
-	<h1 class="velox-h2">Dashboard</h1>
-	<p class="velox-sub">A quick read on your site's speed setup — and one-click actions to keep it fast.</p>
+<div class="velox-page-head velox-dash-head">
+	<div>
+		<h1 class="velox-h2">Dashboard</h1>
+		<p class="velox-sub">A quick read on your site&rsquo;s setup &mdash; with one-click actions to keep it fast.</p>
+	</div>
+	<div class="velox-dash-actions" id="velox-dash-actions">
+		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">Tune performance</a>
+		<a class="velox-btn velox-btn--primary" href="<?php echo esc_url( $purge_url ); ?>"><?php echo Velox_Admin::icon( 'broom', 16 ); ?> Purge caches</a>
+		<div class="velox-newwidget" id="velox-newwidget" hidden>
+			<button type="button" class="velox-btn velox-btn--ghost" id="velox-newwidget-btn"><?php echo Velox_Admin::icon( 'check', 15 ); ?>Add widget</button>
+			<div class="velox-newwidget-menu" id="velox-newwidget-menu" hidden></div>
+		</div>
+		<button type="button" class="velox-btn velox-btn--ghost" id="velox-dash-done" hidden>Done</button>
+		<button type="button" class="velox-btn velox-btn--ghost" id="velox-dash-edit"><?php echo Velox_Admin::icon( 'grid', 15 ); ?>Edit</button>
+	</div>
 </div>
 
 <?php
@@ -61,7 +99,7 @@ if ( ! empty( $velox_clashes ) ) :
 			<span class="velox-clash-ic">&#9889;</span>
 			<div>
 				<h3 class="velox-panel-title" style="margin:0;">Turf war detected</h3>
-				<p class="velox-hint" style="margin:2px 0 0;">These active plugins overlap features Velox is already handling. Two plugins doing the same job tend to fight over the same output — keep one. Velox has it covered.</p>
+				<p class="velox-hint" style="margin:2px 0 0;">These active plugins overlap features Velox already handles. Two plugins doing the same job tend to fight over the same output &mdash; keep one.</p>
 			</div>
 		</div>
 		<div class="velox-clash-list">
@@ -75,78 +113,145 @@ if ( ! empty( $velox_clashes ) ) :
 	</div>
 <?php endif; ?>
 
-<div class="velox-dash-top">
-	<div class="velox-panel velox-score">
-		<div class="velox-score-ring" style="--val:<?php echo (int) $score; ?>">
-			<span class="velox-score-num"><?php echo (int) $score; ?></span>
-		</div>
-		<div class="velox-score-meta">
-			<span class="velox-pill velox-pill--<?php echo esc_attr( $gcls ); ?>"><?php echo esc_html( $grade ); ?></span>
-			<p class="velox-score-line"><strong><?php echo (int) $on_count; ?></strong> of <?php echo (int) $total; ?> key optimizations active</p>
-			<p class="velox-hint">Turn on more in Performance and Images to raise the score.</p>
-		</div>
-	</div>
+<?php
+// Customizable cockpit: $dash_hidden holds the widget ids the user removed.
+$dash_hidden = (array) Velox_Settings::get( 'dash_hidden', array( 'fonts' ) );
+$vx_wcls = function ( $id, $base ) use ( $dash_hidden ) {
+	return $base . ( in_array( $id, $dash_hidden, true ) ? ' is-hidden' : '' );
+};
+// Per-widget edit affordances (checkbox + remove); hidden until edit mode.
+$vx_wctl = '<span class="velox-w-chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-11"/></svg></span>'
+	. '<button type="button" class="velox-w-x" aria-label="Remove this widget"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
 
-	<div class="velox-panel velox-qa">
-		<h3 class="velox-panel-title">Quick actions</h3>
-		<div class="velox-qa-grid">
-			<a class="velox-qa-btn" href="<?php echo esc_url( $purge_url ); ?>">
-				<span class="velox-qa-ic"><?php echo Velox_Admin::icon( 'broom', 20 ); ?></span>Purge caches</a>
-			<a class="velox-qa-btn" href="<?php echo esc_url( $admin->tab_url( 'images' ) ); ?>">
-				<span class="velox-qa-ic"><?php echo Velox_Admin::icon( 'image', 20 ); ?></span>Optimize images</a>
-			<a class="velox-qa-btn" href="<?php echo esc_url( $admin->tab_url( 'database' ) ); ?>">
-				<span class="velox-qa-ic"><?php echo Velox_Admin::icon( 'db', 20 ); ?></span>Clean database</a>
-			<a class="velox-qa-btn" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">
-				<span class="velox-qa-ic"><?php echo Velox_Admin::icon( 'bolt', 20 ); ?></span>Tune performance</a>
-		</div>
-	</div>
+// Live stats: form submissions + first-party traffic.
+$v_forms = class_exists( 'Velox_Stats' ) ? Velox_Stats::form_total( 30 ) : 0;
+$v_tr    = class_exists( 'Velox_Stats' ) ? Velox_Stats::traffic_summary( 7 ) : array( 'visitors' => 0, 'views' => 0, 'series' => array() );
+$v_tr14  = class_exists( 'Velox_Stats' ) ? Velox_Stats::traffic_summary( 14 ) : array( 'visitors' => 0 );
+$v_tr_last  = max( 0, (int) $v_tr14['visitors'] - (int) $v_tr['visitors'] );
+$v_tr_trend = $v_tr_last > 0 ? (int) round( 100 * ( (int) $v_tr['visitors'] - $v_tr_last ) / $v_tr_last ) : null;
+$v_tr_vals = array();
+foreach ( $v_tr['series'] as $vx_pt ) { $v_tr_vals[] = (int) $vx_pt['v']; }
+if ( empty( $v_tr_vals ) ) { $v_tr_vals = array( 0 ); }
+$vx_max = max( 1, max( $v_tr_vals ) );
+$vx_n   = count( $v_tr_vals );
+$vx_pts = array();
+foreach ( $v_tr_vals as $vx_i => $vx_v ) {
+	$vx_x = $vx_n > 1 ? round( $vx_i * 100 / ( $vx_n - 1 ), 2 ) : 0;
+	$vx_y = round( 36 - ( $vx_v / $vx_max ) * 32 - 2, 2 );
+	$vx_pts[] = $vx_x . ',' . $vx_y;
+}
+$vx_line    = 'M' . implode( ' L', $vx_pts );
+$v_tr_spark = '<svg viewBox="0 0 100 36" preserveAspectRatio="none" width="100%" height="44" style="display:block">'
+	. '<defs><linearGradient id="vxspark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2ab7f1" stop-opacity=".20"/><stop offset="1" stop-color="#2ab7f1" stop-opacity="0"/></linearGradient></defs>'
+	. '<path d="' . esc_attr( $vx_line . ' L100,36 L0,36 Z' ) . '" fill="url(#vxspark)"/>'
+	. '<path d="' . esc_attr( $vx_line ) . '" fill="none" stroke="#2ab7f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+?>
+
+<div class="velox-batchbar" id="velox-batchbar" hidden>
+	<span><b id="velox-batch-count">0</b> <span id="velox-batch-word">widgets</span> selected</span>
+	<span class="velox-batchbar-sp">
+		<button type="button" class="velox-btn velox-btn--sm" id="velox-batch-cancel">Clear</button>
+		<button type="button" class="velox-btn velox-btn--sm velox-batch-remove" id="velox-batch-remove">Remove selected</button>
+	</span>
 </div>
 
-<div class="velox-dash-stats">
-	<div class="velox-statcard">
-		<span class="velox-statcard-label">Images optimized</span>
-		<span class="velox-statcard-val"><span data-dash="done">—</span><span class="velox-statcard-of">/ <span data-dash="total">—</span></span></span>
-		<span class="velox-statcard-foot"><span data-dash="saved">—</span> saved · <a href="<?php echo esc_url( $admin->tab_url( 'images' ) ); ?>">Open →</a></span>
+<div class="velox-cockpit" id="velox-cockpit">
+
+	<div class="<?php echo esc_attr( $vx_wcls( 'perf', 'velox-w velox-w--col4' ) ); ?>" data-widget="perf" data-widget-label="Performance">
+		<?php echo $vx_wctl; ?>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'bolt', 15 ); ?>Performance</div>
+		<div class="velox-w-ring">
+			<div class="velox-score-ring velox-score-ring--sm" style="--val:<?php echo (int) $score; ?>"><span class="velox-score-num"><?php echo (int) $score; ?></span></div>
+			<div>
+				<span class="velox-pill velox-pill--<?php echo esc_attr( $gcls ); ?>"><?php echo esc_html( $grade ); ?></span>
+				<p class="velox-w-sub" style="margin-top:6px;"><strong><?php echo (int) $on_count; ?></strong> of <?php echo (int) $total; ?> optimizations on</p>
+			</div>
+		</div>
 	</div>
-	<div class="velox-statcard">
-		<span class="velox-statcard-label">Critical CSS built</span>
-		<span class="velox-statcard-val"><?php echo (int) $v_css['built']; ?><span class="velox-statcard-of">/ <?php echo (int) $v_css['pages']; ?></span></span>
-		<span class="velox-statcard-foot">pages cached · <a href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">Tune →</a></span>
+
+	<div class="<?php echo esc_attr( $vx_wcls( 'cache', 'velox-w velox-w--col4' ) ); ?>" data-widget="cache" data-widget-label="Cache">
+		<?php echo $vx_wctl; ?>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'broom', 15 ); ?>Cache</div>
+		<div class="velox-w-big"><?php echo (int) $v_css['built']; ?><span class="velox-w-of">/ <?php echo (int) $v_css['pages']; ?> pages</span></div>
+		<div class="velox-w-sub">Critical CSS built &amp; cached</div>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $purge_url ); ?>"><?php echo Velox_Admin::icon( 'broom', 15 ); ?>Purge caches</a>
 	</div>
-	<div class="velox-statcard">
-		<span class="velox-statcard-label">Database cleanable</span>
-		<span class="velox-statcard-val"><?php echo (int) $v_dbsum; ?></span>
-		<span class="velox-statcard-foot">rows of junk · <a href="<?php echo esc_url( $admin->tab_url( 'database' ) ); ?>">Clean →</a></span>
+
+	<div class="<?php echo esc_attr( $vx_wcls( 'db', 'velox-w velox-w--col4' ) ); ?>" data-widget="db" data-widget-label="Database">
+		<?php echo $vx_wctl; ?>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'db', 15 ); ?>Database</div>
+		<div class="velox-w-big"><?php echo (int) $v_dbsum; ?></div>
+		<div class="velox-w-sub">rows of junk to clean out</div>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'database' ) ); ?>">Clean database</a>
 	</div>
-	<div class="velox-statcard">
-		<span class="velox-statcard-label">Image engine</span>
-		<span class="velox-statcard-val velox-statcard-val--sm"><?php echo esc_html( $engine ? strtoupper( $engine ) : '—' ); ?></span>
-		<span class="velox-statcard-foot">
-			<?php if ( $engine ) : ?>
-				WebP ready<?php echo $avif ? ' · AVIF ready' : ''; ?>
-			<?php else : ?>
-				<span class="velox-statcard-warn">No engine detected</span>
-			<?php endif; ?>
-		</span>
+
+	<div class="<?php echo esc_attr( $vx_wcls( 'traffic', 'velox-w velox-w--col8' ) ); ?>" data-widget="traffic" data-widget-label="Visitors">
+		<?php echo $vx_wctl; ?>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'search', 15 ); ?>Visitors &middot; this week</div>
+		<div class="velox-w-trtop">
+			<span class="velox-w-big"><?php echo (int) $v_tr['visitors']; ?></span>
+			<span class="velox-w-sub"><?php echo (int) $v_tr['views']; ?> views<?php if ( null !== $v_tr_trend ) : ?> &middot; <span class="<?php echo $v_tr_trend >= 0 ? 'velox-up' : 'velox-down'; ?>"><?php echo ( $v_tr_trend >= 0 ? '&#9650; ' : '&#9660; ' ) . abs( (int) $v_tr_trend ) . '%'; ?></span> vs last week<?php endif; ?></span>
+		</div>
+		<div class="velox-spark"><?php echo $v_tr_spark; ?></div>
 	</div>
+
+	<div class="<?php echo esc_attr( $vx_wcls( 'forms', 'velox-w velox-w--col4' ) ); ?>" data-widget="forms" data-widget-label="Form submissions">
+		<?php echo $vx_wctl; ?>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'mail', 15 ); ?>Form submissions</div>
+		<div class="velox-w-big"><?php echo (int) $v_forms; ?></div>
+		<div class="velox-w-sub">in the last 30 days</div>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( Velox_Utilities::tool_url( 'mail' ) ); ?>">Open Mail &amp; Forms</a>
+	</div>
+
+	<div class="<?php echo esc_attr( $vx_wcls( 'images', 'velox-w velox-w--col4' ) ); ?>" data-widget="images" data-widget-label="Images">
+		<?php echo $vx_wctl; ?>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'image', 15 ); ?>Images</div>
+		<div class="velox-w-big"><span data-dash="done">&mdash;</span><span class="velox-w-of">/ <span data-dash="total">&mdash;</span></span></div>
+		<div class="velox-w-sub"><span data-dash="saved">&mdash;</span> saved &middot; engine <?php echo $engine ? esc_html( strtoupper( $engine ) ) : '&mdash;'; ?></div>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'images' ) ); ?>">Optimize images</a>
+	</div>
+
+	<div class="<?php echo esc_attr( $vx_wcls( 'reco', 'velox-w velox-w--col8' ) ); ?>" data-widget="reco" data-widget-label="Recommendations">
+		<?php echo $vx_wctl; ?>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'check', 15 ); ?>Recommendations</div>
+		<?php if ( empty( $todo ) ) : ?>
+			<div class="velox-reco-empty"><?php echo Velox_Admin::icon( 'check', 20 ); ?><span>Everything&rsquo;s tuned. Nice work &mdash; your key optimizations are all on.</span></div>
+		<?php else : ?>
+			<div class="velox-reco-list">
+				<?php foreach ( $todo as $c ) : ?>
+					<div class="velox-reco-row">
+						<span class="velox-reco-dot"></span>
+						<span class="velox-reco-label"><?php echo wp_kses_post( $c['todo'] ); ?></span>
+						<a class="velox-reco-go" href="<?php echo esc_url( $admin->tab_url( $c['area'] ) ); ?>">Enable &rarr;</a>
+					</div>
+				<?php endforeach; ?>
+			</div>
+		<?php endif; ?>
+	</div>
+
+	<div class="<?php echo esc_attr( $vx_wcls( 'fonts', 'velox-w velox-w--col4' ) ); ?>" data-widget="fonts" data-widget-label="Local fonts">
+		<?php echo $vx_wctl; ?>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'image', 15 ); ?>Local fonts</div>
+		<div class="velox-w-big"><?php echo (int) ( isset( $v_fonts['files'] ) ? $v_fonts['files'] : 0 ); ?></div>
+		<div class="velox-w-sub"><?php echo ! empty( $v_fonts['active'] ) ? 'self-hosted &middot; active' : 'using Google CDN'; ?></div>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">Manage fonts</a>
+	</div>
+
 </div>
 
-<div class="velox-panel">
-	<h3 class="velox-panel-title">Recommendations</h3>
-	<?php if ( empty( $todo ) ) : ?>
-		<div class="velox-reco-empty">
-			<?php echo Velox_Admin::icon( 'check', 20 ); ?>
-			<span>Everything's tuned. Nice work — your key optimizations are all on.</span>
-		</div>
-	<?php else : ?>
-		<div class="velox-reco-list">
-			<?php foreach ( $todo as $c ) : ?>
-				<div class="velox-reco-row">
-					<span class="velox-reco-dot"></span>
-					<span class="velox-reco-label"><?php echo wp_kses_post( $c['todo'] ); ?></span>
-					<a class="velox-reco-go" href="<?php echo esc_url( $admin->tab_url( $c['area'] ) ); ?>">Enable →</a>
-				</div>
-			<?php endforeach; ?>
-		</div>
-	<?php endif; ?>
+<div class="velox-dash-sec"><h2>Everything in Velox</h2><span class="velox-dash-sec-line"></span></div>
+<div class="velox-cat">
+	<?php
+	foreach ( $velox_tiles as $vt ) {
+		list( $vk, $vid, $vlabel, $vicon, $vsub ) = $vt;
+		$vurl = ( 'tab' === $vk ) ? $admin->tab_url( $vid ) : Velox_Utilities::tool_url( $vid );
+		printf(
+			'<a class="velox-tile" href="%s"><span class="velox-tile-ic">%s</span><span class="velox-tile-tx"><span class="velox-tile-name">%s</span><span class="velox-tile-sub">%s</span></span></a>',
+			esc_url( $vurl ),
+			Velox_Admin::icon( $vicon, 18 ),
+			esc_html( $vlabel ),
+			esc_html( $vsub )
+		);
+	}
+	?>
 </div>

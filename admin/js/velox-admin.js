@@ -5248,3 +5248,88 @@
 	}
 	if ( document.readyState === 'loading' ) { document.addEventListener( 'DOMContentLoaded', boot ); } else { boot(); }
 } )();
+
+/* ===== Dashboard: customizable widgets (add / edit / batch-remove) ===== */
+( function ( $ ) {
+	var cockpit = document.getElementById( 'velox-cockpit' );
+	if ( ! cockpit ) { return; }
+	var editBtn     = document.getElementById( 'velox-dash-edit' );
+	var doneBtn     = document.getElementById( 'velox-dash-done' );
+	var newWrap     = document.getElementById( 'velox-newwidget' );
+	var newBtn      = document.getElementById( 'velox-newwidget-btn' );
+	var newMenu     = document.getElementById( 'velox-newwidget-menu' );
+	var batchbar    = document.getElementById( 'velox-batchbar' );
+	var batchCnt    = document.getElementById( 'velox-batch-count' );
+	var batchWord   = document.getElementById( 'velox-batch-word' );
+	var batchCancel = document.getElementById( 'velox-batch-cancel' );
+	var batchRemove = document.getElementById( 'velox-batch-remove' );
+
+	function widgets()  { return Array.prototype.slice.call( cockpit.querySelectorAll( '.velox-w' ) ); }
+	function hiddenIds(){ return widgets().filter( function ( w ) { return w.classList.contains( 'is-hidden' ); } ).map( function ( w ) { return w.getAttribute( 'data-widget' ); } ); }
+	function selected() { return widgets().filter( function ( w ) { return w.classList.contains( 'sel' ); } ); }
+
+	function save() {
+		if ( ! window.VELOX || ! VELOX.ajaxurl ) { return; }
+		$.post( VELOX.ajaxurl, { action: 'velox', 'do': 'dash_widgets', nonce: VELOX.nonce, hidden: hiddenIds() } );
+	}
+
+	function updateBatch() {
+		var n = selected().length;
+		batchbar.hidden = ( n === 0 );
+		if ( n ) { batchCnt.textContent = n; batchWord.textContent = ( n === 1 ? 'widget' : 'widgets' ); }
+	}
+	function clearSel() { selected().forEach( function ( w ) { w.classList.remove( 'sel' ); } ); updateBatch(); }
+
+	function buildPicker() {
+		newMenu.innerHTML = '';
+		var hidden = widgets().filter( function ( w ) { return w.classList.contains( 'is-hidden' ); } );
+		if ( ! hidden.length ) {
+			var e = document.createElement( 'div' );
+			e.className = 'velox-newwidget-empty';
+			e.textContent = 'All widgets are on the dashboard.';
+			newMenu.appendChild( e );
+			return;
+		}
+		hidden.forEach( function ( w ) {
+			var b = document.createElement( 'button' );
+			b.type = 'button';
+			b.className = 'velox-newwidget-item';
+			b.textContent = w.getAttribute( 'data-widget-label' ) || w.getAttribute( 'data-widget' );
+			b.addEventListener( 'click', function () {
+				w.classList.remove( 'is-hidden' );
+				newMenu.hidden = true;
+				save(); buildPicker();
+			} );
+			newMenu.appendChild( b );
+		} );
+	}
+
+	function enterEdit() { cockpit.classList.add( 'editing' ); editBtn.hidden = true; doneBtn.hidden = false; newWrap.hidden = false; buildPicker(); }
+	function exitEdit()  { cockpit.classList.remove( 'editing' ); editBtn.hidden = false; doneBtn.hidden = true; newWrap.hidden = true; newMenu.hidden = true; clearSel(); }
+
+	editBtn.addEventListener( 'click', enterEdit );
+	doneBtn.addEventListener( 'click', exitEdit );
+	newBtn.addEventListener( 'click', function ( e ) { e.stopPropagation(); newMenu.hidden = ! newMenu.hidden; if ( ! newMenu.hidden ) { buildPicker(); } } );
+	document.addEventListener( 'click', function ( e ) { if ( newWrap && ! newWrap.contains( e.target ) ) { newMenu.hidden = true; } } );
+
+	batchCancel.addEventListener( 'click', clearSel );
+	batchRemove.addEventListener( 'click', function () {
+		selected().forEach( function ( w ) { w.classList.add( 'is-hidden' ); w.classList.remove( 'sel' ); } );
+		save(); buildPicker(); updateBatch();
+	} );
+
+	cockpit.addEventListener( 'click', function ( e ) {
+		if ( ! cockpit.classList.contains( 'editing' ) ) { return; }
+		var w = e.target.closest ? e.target.closest( '.velox-w' ) : null;
+		if ( ! w ) { return; }
+		if ( e.target.closest( '.velox-w-x' ) ) {
+			e.preventDefault();
+			w.classList.add( 'is-hidden' ); w.classList.remove( 'sel' );
+			save(); buildPicker(); updateBatch();
+			return;
+		}
+		if ( e.target.closest( 'a, .velox-w-act' ) ) { return; }
+		w.classList.toggle( 'sel' );
+		updateBatch();
+	} );
+}( jQuery ) );

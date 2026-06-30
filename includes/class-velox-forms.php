@@ -835,6 +835,7 @@ class Velox_Forms {
 		), array( '%d', '%s', '%s', '%s' ) );
 
 		self::send_emails( $form, $data );
+		if ( class_exists( 'Velox_Stats' ) ) { Velox_Stats::bump_form(); }
 
 		wp_send_json_success( array( 'message' => $form['success'] ) );
 	}

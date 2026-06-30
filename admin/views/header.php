@@ -82,29 +82,73 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 
 		<nav class="velox-side-nav">
 			<?php
-			foreach ( $vx_groups as $key => $children ) {
-				if ( ! isset( $enabled[ $key ] ) ) {
-					continue;
-				}
-				velox_side_item( $admin, $enabled[ $key ], $key, $current );
-				if ( 'utilities' === $key ) {
-					// Switched-on utilities become sub-items (Media Editor included).
-					foreach ( Velox_Utilities::enabled_tools() as $tid ) {
-						velox_side_util_item( $admin, $tid, $current, $vx_cur_tool );
+			// Full Velox catalogue — every area and utility, grouped. ('tab' = primary
+			// area via $admin->tab_url(); 'util' = utility via Velox_Utilities::tool_url().)
+			$vx_full_nav = array(
+				'Overview'    => array(
+					array( 'tab', 'dashboard', 'Dashboard', 'home' ),
+				),
+				'Content'     => array(
+					array( 'util', 'fields', 'Custom Fields', 'grid' ),
+					array( 'tab', 'media', 'Media Editor', 'tag' ),
+					array( 'util', 'svg', 'SVG Uploads', 'file' ),
+					array( 'util', 'duplicate', 'Duplicate Post', 'copy' ),
+				),
+				'Performance' => array(
+					array( 'tab', 'performance', 'Performance', 'bolt' ),
+					array( 'tab', 'images', 'Images', 'image' ),
+					array( 'tab', 'database', 'Database', 'db' ),
+					array( 'util', 'scripts', 'Script Manager', 'code' ),
+					array( 'util', 'unusedmedia', 'Unused Media', 'broom' ),
+				),
+				'Site Tools'  => array(
+					array( 'util', 'redirects', 'Redirects & 404s', 'redirect' ),
+					array( 'util', 'snippets', 'Code Snippets', 'code' ),
+					array( 'util', 'cookies', 'Cookie Banner', 'cookie' ),
+					array( 'util', 'mail', 'Mail & Forms', 'mail' ),
+					array( 'util', 'maintenance', 'Maintenance Mode', 'cone' ),
+					array( 'util', 'loginurl', 'Login URL', 'lock' ),
+					array( 'util', 'installer', 'Bulk Installer', 'plug' ),
+					array( 'util', 'october', 'OctoberCMS Theme', 'package' ),
+				),
+				'System'      => array(
+					array( 'util', 'backup', 'Backup & Restore', 'package' ),
+					array( 'tab', 'seo', 'SEO', 'search' ),
+					array( 'tab', 'settings', 'Settings', 'gear' ),
+				),
+			);
+			$vx_cat = Velox_Utilities::catalog();
+			foreach ( $vx_full_nav as $vx_section => $vx_items ) {
+				echo '<div class="velox-side-group">';
+				echo '<div class="velox-side-grouplabel">' . esc_html( $vx_section ) . '</div>';
+				foreach ( $vx_items as $vx_it ) {
+					list( $vx_kind, $vx_id, $vx_lbl, $vx_icon ) = $vx_it;
+					if ( 'tab' === $vx_kind ) {
+						$vx_url = $admin->tab_url( $vx_id );
+						$vx_act = ( $current === $vx_id );
+					} else {
+						$vx_url  = Velox_Utilities::tool_url( $vx_id );
+						$vx_link = isset( $vx_cat[ $vx_id ]['link'] ) ? $vx_cat[ $vx_id ]['link'] : '';
+						$vx_act  = $vx_link ? ( $current === $vx_link ) : ( 'utilities' === $current && $vx_cur_tool === $vx_id );
 					}
-				} else {
-					foreach ( $children as $child ) {
-						if ( isset( $enabled[ $child ] ) ) {
-							velox_side_item( $admin, $enabled[ $child ], $child, $current, true );
-						}
-					}
+					printf(
+						'<a href="%s" class="velox-side-item%s"><span class="velox-side-ic">%s</span><span class="velox-side-label">%s</span></a>',
+						esc_url( $vx_url ),
+						$vx_act ? ' is-active' : '',
+						Velox_Admin::icon( $vx_icon, 18 ),
+						esc_html( $vx_lbl )
+					);
 				}
+				echo '</div>';
 			}
 			?>
 		</nav>
 
 		<div class="velox-side-foot">
-			<a class="velox-side-foot-link" href="https://www.sumasearch.de/" target="_blank" rel="noopener">by Sumasearch</a>
+			<a class="velox-side-foot-link" href="https://sumasearch.de/" target="_blank" rel="noopener">
+				<img src="<?php echo esc_url( VELOX_URL . 'assets/menu-icon.png' ); ?>" alt="" width="14" height="14">
+				by Sumasearch
+			</a>
 		</div>
 	</aside>
 
