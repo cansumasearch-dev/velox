@@ -143,7 +143,11 @@ class Velox_Fields {
 		$p    = is_array( $p ) ? $p : array();
 		$slug = sanitize_key( $p['slug'] ?? '' );
 		$icon = sanitize_text_field( $p['icon'] ?? 'dashicons-admin-generic' );
-		if ( '' !== $icon && 0 !== strpos( $icon, 'dashicons-' ) && ! preg_match( '#^https?://#', $icon ) ) { $icon = 'dashicons-admin-generic'; }
+		if ( 0 === strpos( $icon, 'bi:' ) ) {
+			$icon = 'bi:' . preg_replace( '/[^a-z0-9-]/', '', substr( $icon, 3 ) );
+		} elseif ( '' !== $icon && 0 !== strpos( $icon, 'dashicons-' ) && ! preg_match( '#^https?://#', $icon ) ) {
+			$icon = 'dashicons-admin-generic';
+		}
 		$parents = array( '', 'options-general.php', 'themes.php', 'tools.php', 'edit.php', 'upload.php', 'velox' );
 		$out = array(
 			'slug'       => $slug,
@@ -166,12 +170,45 @@ class Velox_Fields {
 			if ( isset( $p['active'] ) && ! $p['active'] ) { continue; }
 			$menu_slug = 'velox-opt-' . $p['slug'];
 			$cb        = function () use ( $p ) { Velox_Fields::render_option_page( $p ); };
+			$menu_icon = $p['icon'];
+			if ( 0 === strpos( (string) $menu_icon, 'bi:' ) ) {
+				$du        = self::bi_icon_datauri( substr( $menu_icon, 3 ) );
+				$menu_icon = $du ? $du : 'dashicons-admin-generic';
+			}
 			if ( '' === $p['parent'] ) {
-				add_menu_page( $p['title'], $p['menu_title'], $p['capability'], $menu_slug, $cb, $p['icon'], (int) $p['position'] );
+				add_menu_page( $p['title'], $p['menu_title'], $p['capability'], $menu_slug, $cb, $menu_icon, (int) $p['position'] );
 			} else {
 				add_submenu_page( $p['parent'], $p['title'], $p['menu_title'], $p['capability'], $menu_slug, $cb );
 			}
 		}
+	}
+
+	/**
+	 * Resolve a Bootstrap-icon name to a recoloured SVG data URI for the admin menu.
+	 * The official SVG is fetched once from the CDN and cached for a week; failures
+	 * cache briefly so a bad name doesn't hammer the network.
+	 */
+	public static function bi_icon_datauri( $name ) {
+		$name = preg_replace( '/[^a-z0-9-]/', '', (string) $name );
+		if ( '' === $name ) { return ''; }
+		$key    = 'velox_bi_' . $name;
+		$cached = get_transient( $key );
+		if ( false !== $cached ) { return $cached; }
+		$res = wp_remote_get( 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/icons/' . $name . '.svg', array( 'timeout' => 6 ) );
+		if ( is_wp_error( $res ) || 200 !== (int) wp_remote_retrieve_response_code( $res ) ) {
+			set_transient( $key, '', HOUR_IN_SECONDS );
+			return '';
+		}
+		$svg = wp_remote_retrieve_body( $res );
+		if ( ! is_string( $svg ) || false === strpos( $svg, '<svg' ) ) {
+			set_transient( $key, '', HOUR_IN_SECONDS );
+			return '';
+		}
+		// Bootstrap Icons paint with currentColor — recolour to the admin menu grey.
+		$svg = str_replace( 'currentColor', '#a7aaad', $svg );
+		$uri = 'data:image/svg+xml;base64,' . base64_encode( $svg );
+		set_transient( $key, $uri, WEEK_IN_SECONDS );
+		return $uri;
 	}
 
 	/** Field groups whose location targets a given options page. */
@@ -564,6 +601,13 @@ class Velox_Fields {
 		$group = $box['args']['group'];
 		$placement = $group['presentation']['label_placement'] ?? 'top';
 		wp_nonce_field( 'velox_fields_save_' . $group['id'], 'velox_fields_nonce_' . $group['id'] );
+		$count = 0;
+		foreach ( $group['fields'] as $cf ) { if ( ! ( isset( $cf['active'] ) && ! $cf['active'] ) ) { $count++; } }
+		echo '<div class="velox-fields-head">'
+			. '<span class="velox-fields-head-mark"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="6" rx="1.5"/><rect x="3" y="14" width="18" height="6" rx="1.5"/></svg></span>'
+			. '<span class="velox-fields-head-tx">Custom fields</span>'
+			. '<span class="velox-fields-head-count">' . (int) $count . ' field' . ( 1 === $count ? '' : 's' ) . '</span>'
+			. '</div>';
 		echo '<div class="velox-fields-meta velox-fields-meta--' . esc_attr( $placement ) . '">';
 		foreach ( $group['fields'] as $f ) {
 			if ( isset( $f['active'] ) && ! $f['active'] ) { continue; }

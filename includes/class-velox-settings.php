@@ -29,6 +29,7 @@ class Velox_Settings {
 
 			// ---- SEO ----
 			'seo_robots_enable'  => true,
+			'seo_og_enable'      => true,
 			'seo_robots_content' => '', // empty = use the recommended default template
 			'seo_sitemap_enable' => true,
 
@@ -50,7 +51,8 @@ class Velox_Settings {
 			'util_maintenance_btn_text'=> '',
 			'util_maintenance_btn_url' => '',
 			'util_maintenance_brand'   => '',     // footer text; empty = no footer line
-			'util_maintenance_anim'    => 'bar',  // bar | pulse | dots | spinner | none
+			'util_maintenance_anim'    => 'bar',  // bar | pulse | dots | spinner | lottie | none
+			'util_maintenance_lottie'  => '',          // Lottie .json/.lottie URL (when anim = lottie)
 			'util_login_slug'          => '',     // empty = default wp-login; set a slug to move it
 			'util_redirects_log_404'   => true,
 			'util_activity'            => false,
@@ -177,6 +179,7 @@ class Velox_Settings {
 
 			// ---- Performance · General ----
 			'perf_disable_emojis'        => true,
+			'perf_minify_html'           => false,
 			'perf_disable_embeds'        => false,
 			'perf_remove_query_strings'  => false,
 			'perf_disable_xmlrpc'        => true,
@@ -264,6 +267,7 @@ class Velox_Settings {
 				'label' => 'General',
 				'keys'  => array(
 					'perf_disable_emojis', 'perf_disable_embeds', 'perf_remove_query_strings',
+					'perf_minify_html',
 					'perf_disable_xmlrpc', 'perf_disable_self_pingbacks', 'perf_clean_head',
 					'perf_disable_dashicons', 'perf_remove_jquery_migrate', 'perf_disable_comments',
 					'perf_disable_rss', 'perf_disable_app_passwords',

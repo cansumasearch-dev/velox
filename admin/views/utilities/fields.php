@@ -6,6 +6,10 @@
  */
 
 if ( ! defined( 'ABSPATH' ) ) { exit; }
+// Bootstrap Icons webfont — powers the options-page icon picker grid + preview.
+?>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<?php
 
 $enabled = Velox_Settings::get( 'util_fields', false );
 $base    = admin_url( 'admin.php?page=velox-utilities&tool=fields' );
@@ -280,7 +284,13 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 				</div>
 			</div>
 			<div class="velox-grid-2">
-				<div class="velox-field"><span class="velox-field-label">Dashicon <em>(top-level only)</em></span><input type="text" class="velox-input" id="vop-icon" placeholder="dashicons-admin-generic"></div>
+				<div class="velox-field"><span class="velox-field-label">Menu icon <em>(top-level only)</em></span>
+					<div class="vop-icon-row">
+						<button type="button" class="velox-btn velox-btn--ghost" id="vop-icon-pick"><span class="vop-icon-prev" id="vop-icon-prev" aria-hidden="true"></span> Choose icon</button>
+						<input type="text" class="velox-input velox-input--sm" id="vop-icon" placeholder="bi:gift / dashicons-… / URL">
+					</div>
+					<span class="velox-hint">Pick a Bootstrap icon, or type a <code>dashicons-…</code> class or image URL.</span>
+				</div>
 				<div class="velox-field"><span class="velox-field-label">Menu position</span><input type="number" class="velox-input" id="vop-position" value="80"></div>
 			</div>
 			<label class="velox-toggle-row"><div class="velox-toggle-meta"><span class="velox-toggle-label">Active</span><span class="velox-toggle-desc">Turn off to hide this page from the admin menu without deleting it.</span></div><span class="velox-switch"><input type="checkbox" id="vop-active" checked><span class="velox-switch-track"></span></span></label>
@@ -336,3 +346,16 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 		</label>
 	</div>
 <?php endif; ?>
+
+<div class="velox-modal" id="vop-icon-modal" hidden>
+	<div class="velox-modal-box velox-modal-box--lg">
+		<div class="velox-modal-head">
+			<span class="velox-modal-title">Choose a menu icon</span>
+			<button type="button" class="velox-modal-x" id="vop-icon-close" aria-label="Close">&times;</button>
+		</div>
+		<div class="velox-modal-body">
+			<input type="text" class="velox-input" id="vop-icon-search" placeholder="Search icons (e.g. gift, gear, cart)…" autocomplete="off" style="margin-bottom:12px;">
+			<div class="vop-icon-grid" id="vop-icon-grid"></div>
+		</div>
+	</div>
+</div>

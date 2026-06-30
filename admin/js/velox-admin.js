@@ -2803,6 +2803,7 @@
 				set( 'vop-icon', op ? op.icon : 'dashicons-admin-generic' );
 				set( 'vop-position', op && op.position != null ? op.position : 80 );
 				setOn( 'vop-active', op ? ( op.active !== false ) : true );
+				if ( typeof updateIconPreview === 'function' ) { updateIconPreview(); }
 				opEditor.hidden = false;
 				opEditor.scrollIntoView( { behavior: 'smooth', block: 'nearest' } );
 			}
@@ -2840,6 +2841,68 @@
 						.catch( function ( e ) { toast( e.message, 'error' ); opSave.disabled = false; } );
 				} );
 			}
+
+			/* ----- Bootstrap-icon picker ----- */
+			var BI_ICONS = ( 'gift gear gear-fill house house-door person person-fill people person-badge envelope envelope-fill bell bell-fill star star-fill heart heart-fill calendar calendar-event clock clock-history cart cart-fill bag bag-fill shop basket tag tags bookmark bookmark-star flag image images camera camera-fill film play-circle music-note-beamed mic headphones file-earmark file-earmark-text folder folder-fill book journal-text briefcase building buildings bank globe globe2 map geo-alt geo-alt-fill pin-map telephone telephone-fill chat chat-dots chat-square-text reply send inbox shield shield-check shield-lock lock unlock key search trophy award gem diamond lightning lightning-charge fire sun moon moon-stars droplet cloud cloud-arrow-up snow tree flower1 graph-up graph-up-arrow bar-chart pie-chart speedometer2 bullseye rocket rocket-takeoff box box-seam boxes truck credit-card cash cash-stack coin wallet2 receipt clipboard clipboard-check pencil pencil-square pen eraser sliders toggles ui-checks grid grid-3x3-gap list list-ul columns-gap layout-text-window window code-slash terminal bug cpu hdd server wifi link-45deg share trash archive download upload printer puzzle lightbulb magic stars palette brush tools wrench wrench-adjustable hammer megaphone emoji-smile hand-thumbs-up question-circle info-circle exclamation-triangle check-circle x-circle plus-circle dash-circle three-dots gear-wide-connected sticky journal-bookmark' ).split( ' ' );
+			var iconModal  = $( '#vop-icon-modal' );
+			var iconGrid   = $( '#vop-icon-grid' );
+			var iconSearch = $( '#vop-icon-search' );
+			var iconPrev   = $( '#vop-icon-prev' );
+			var iconInput  = $( '#vop-icon' );
+
+			function updateIconPreview() {
+				if ( ! iconPrev ) { return; }
+				var val = ( iconInput.value || '' ).trim();
+				iconPrev.innerHTML = '';
+				iconPrev.className = 'vop-icon-prev';
+				if ( val.indexOf( 'bi:' ) === 0 ) {
+					iconPrev.innerHTML = '<i class="bi bi-' + val.slice( 3 ).replace( /[^a-z0-9-]/g, '' ) + '"></i>';
+				} else if ( val.indexOf( 'dashicons-' ) === 0 ) {
+					iconPrev.innerHTML = '<span class="dashicons ' + val.replace( /[^a-z0-9-]/g, '' ) + '"></span>';
+				} else if ( /^https?:\/\//.test( val ) ) {
+					iconPrev.innerHTML = '<img src="' + val + '" alt="" style="width:16px;height:16px;object-fit:contain;">';
+				} else {
+					iconPrev.className = 'vop-icon-prev is-empty';
+				}
+			}
+			function buildIconGrid( filter ) {
+				if ( ! iconGrid ) { return; }
+				filter = ( filter || '' ).toLowerCase().trim();
+				iconGrid.innerHTML = '';
+				var shown = 0;
+				BI_ICONS.forEach( function ( name ) {
+					if ( filter && name.indexOf( filter ) === -1 ) { return; }
+					shown++;
+					var b = document.createElement( 'button' );
+					b.type = 'button';
+					b.className = 'vop-ic';
+					b.title = name;
+					b.setAttribute( 'data-bi', name );
+					b.innerHTML = '<i class="bi bi-' + name + '"></i>';
+					iconGrid.appendChild( b );
+				} );
+				if ( ! shown ) { iconGrid.innerHTML = '<p class="velox-hint" style="grid-column:1/-1;">No icons match “' + filter + '”.</p>'; }
+			}
+			function openIconModal() { if ( iconModal ) { buildIconGrid( '' ); iconSearch.value = ''; iconModal.hidden = false; setTimeout( function () { iconSearch.focus(); }, 30 ); } }
+			function closeIconModal() { if ( iconModal ) { iconModal.hidden = true; } }
+
+			var iconPickBtn = $( '#vop-icon-pick' );
+			if ( iconPickBtn ) { iconPickBtn.addEventListener( 'click', openIconModal ); }
+			var iconCloseBtn = $( '#vop-icon-close' );
+			if ( iconCloseBtn ) { iconCloseBtn.addEventListener( 'click', closeIconModal ); }
+			if ( iconModal ) { iconModal.addEventListener( 'click', function ( e ) { if ( e.target === iconModal ) { closeIconModal(); } } ); }
+			if ( iconSearch ) { iconSearch.addEventListener( 'input', function () { buildIconGrid( iconSearch.value ); } ); }
+			if ( iconGrid ) {
+				iconGrid.addEventListener( 'click', function ( e ) {
+					var b = e.target.closest( '.vop-ic' );
+					if ( ! b ) { return; }
+					iconInput.value = 'bi:' + b.getAttribute( 'data-bi' );
+					updateIconPreview();
+					closeIconModal();
+				} );
+			}
+			if ( iconInput ) { iconInput.addEventListener( 'input', updateIconPreview ); }
+			updateIconPreview();
 		}
 	}
 
@@ -3196,7 +3259,9 @@
 			btn.addEventListener( 'click', function () {
 				if ( typeof wp === 'undefined' || ! wp.media ) { toast( 'Media library unavailable here.', 'error' ); return; }
 				var target = g( btn.getAttribute( 'data-target' ) );
-				var frame = wp.media( { title: 'Choose image', button: { text: 'Use image' }, multiple: false, library: { type: 'image' } } );
+				var mt     = btn.getAttribute( 'data-mediatype' ) || 'image';
+				var lib    = ( mt === 'any' || mt === '' ) ? {} : { type: mt };
+				var frame = wp.media( { title: 'Choose file', button: { text: 'Use file' }, multiple: false, library: lib } );
 				frame.on( 'select', function () {
 					var att = frame.state().get( 'selection' ).first().toJSON();
 					target.value = att.url; render();
@@ -3898,13 +3963,14 @@
 				card.innerHTML =
 					'<div class="vmail-fcard-body">' + fieldPreview( f ) + '</div>' +
 					'<div class="vmail-fcard-toolbar">' +
+						'<button type="button" class="vmail-ft" data-act="up" title="Move up">' + ico('<path d="M12 19V5M5 12l7-7 7 7"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="down" title="Move down">' + ico('<path d="M12 5v14M19 12l-7 7-7-7"/>') + '</button>' +
 						'<button type="button" class="vmail-ft" data-act="edit" title="Edit">' + ico('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>') + '</button>' +
 						'<button type="button" class="vmail-ft" data-act="copy" title="Copy">' + ico('<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>') + '</button>' +
 						'<button type="button" class="vmail-ft" data-act="paste" title="Paste after">' + ico('<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><rect x="5" y="6" width="14" height="15" rx="2.5"/>') + '</button>' +
 						'<button type="button" class="vmail-ft" data-act="dup" title="Duplicate">' + ico('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>') + '</button>' +
 						'<button type="button" class="vmail-ft vmail-ft-del" data-act="del" title="Delete">' + ico('<path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/>') + '</button>' +
-					'</div>' +
-					'<span class="vmail-fcard-type">' + ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + '</span>';
+					'</div>';
 				card.addEventListener( 'click', function ( e ) {
 					if ( e.target.closest( '.vmail-ft' ) ) { return; }
 					selected = i; openInspector(); renderCanvas(); renderInspector();
@@ -3929,6 +3995,12 @@
 							var copy = JSON.parse( JSON.stringify( f ) ); form.fields.splice( i + 1, 0, copy ); reKey(); selected = i + 1;
 						} else if ( act === 'edit' ) {
 							selected = i; openInspector();
+						} else if ( act === 'up' ) {
+							if ( i <= 0 ) { return; }
+							var fu = form.fields.splice( i, 1 )[ 0 ]; form.fields.splice( i - 1, 0, fu ); selected = i - 1;
+						} else if ( act === 'down' ) {
+							if ( i >= form.fields.length - 1 ) { return; }
+							var fd = form.fields.splice( i, 1 )[ 0 ]; form.fields.splice( i + 1, 0, fd ); selected = i + 1;
 						}
 						renderCanvas(); renderInspector();
 					} );
@@ -4264,7 +4336,7 @@
 				if ( sw ) { sw.addEventListener( 'change', syncState ); syncState(); }
 				$$( '[data-e]', block ).forEach( function ( el ) {
 					var ev = el.type === 'checkbox' ? 'change' : 'input';
-					el.addEventListener( ev, function () { var k = el.getAttribute( 'data-e' ); e[ k ] = el.type === 'checkbox' ? el.checked : el.value; } );
+					el.addEventListener( ev, function () { var k = el.getAttribute( 'data-e' ); e[ k ] = el.type === 'checkbox' ? el.checked : el.value; autosave(); } );
 				} );
 				bindMerge( block );
 			} );
@@ -4297,6 +4369,18 @@
 			api( 'form_save', { form: JSON.stringify( form ) } )
 				.then( function () { toast( 'Form saved.' ); setTimeout( function () { location.href = meta.base || ( location.pathname + '?page=velox-utilities&tool=mail' ); }, 500 ); } )
 				.catch( function ( err ) { toast( err.message, 'error' ); btn.disabled = false; } );
+		}
+		// Persist silently in place — used by the Notifications toggles so a change
+		// sticks immediately without the full Save (which navigates away). Debounced
+		// so rapid toggles collapse into one request.
+		var autosaveTimer = null;
+		function autosave() {
+			if ( autosaveTimer ) { clearTimeout( autosaveTimer ); }
+			autosaveTimer = setTimeout( function () {
+				api( 'form_save', { form: JSON.stringify( form ) } )
+					.then( function () { toast( 'Saved' ); } )
+					.catch( function ( err ) { toast( err.message, 'error' ); } );
+			}, 600 );
 		}
 		$( '#vmail-save' ).addEventListener( 'click', save );
 
@@ -4755,6 +4839,9 @@
 		var delBtn  = $( '#velox-media-delete' );
 		var results = $( '#velox-media-results' );
 		var summary = $( '#velox-media-summary' );
+		var filterWrap = $( '#velox-media-filter' );
+		var mediaItems = [];
+		var mediaMode  = 'unused';
 
 		function fmtBytes( b ) {
 			if ( ! b ) { return '0 KB'; }
@@ -4767,35 +4854,57 @@
 			delBtn.textContent = 'Delete selected (' + checked.length + ')';
 		}
 
+		function renderMedia() {
+			results.innerHTML = '';
+			delBtn.hidden = true;
+			var subset = mediaItems.filter( function ( it ) { return mediaMode === 'used' ? it.used : ! it.used; } );
+			if ( ! subset.length ) {
+				results.innerHTML = mediaMode === 'used'
+					? '<p class="velox-hint">No used images in the scanned set.</p>'
+					: '<p class="velox-hint">Nothing flagged — every image looks referenced. 🎉</p>';
+				summary.textContent = '';
+				return;
+			}
+			var total = 0;
+			subset.forEach( function ( it ) {
+				total += it.bytes || 0;
+				var card = document.createElement( mediaMode === 'used' ? 'div' : 'label' );
+				card.className = 'velox-media-item' + ( mediaMode === 'used' ? ' is-used' : '' );
+				card.innerHTML =
+					( mediaMode === 'used' ? '' : '<input type="checkbox" class="velox-media-pick" value="' + it.id + '">' ) +
+					'<img src="' + it.thumb + '" alt="" loading="lazy">' +
+					'<span class="velox-media-name">' + ( it.title || ( '#' + it.id ) ) + '</span>' +
+					'<span class="velox-media-size">' + fmtBytes( it.bytes ) + '</span>';
+				results.appendChild( card );
+			} );
+			if ( mediaMode === 'used' ) {
+				summary.textContent = subset.length + ' used image' + ( subset.length === 1 ? '' : 's' ) + ' · ' + fmtBytes( total ) + ' total';
+			} else {
+				summary.textContent = subset.length + ' possibly-unused image' + ( subset.length === 1 ? '' : 's' ) + ' · ' + fmtBytes( total ) + ' reclaimable';
+				$$( '.velox-media-pick', results ).forEach( function ( c ) { c.addEventListener( 'change', refreshSelection ); } );
+			}
+		}
+
+		$$( '[data-mediafilter]', filterWrap ).forEach( function ( b ) {
+			b.addEventListener( 'click', function () {
+				mediaMode = b.getAttribute( 'data-mediafilter' );
+				$$( '[data-mediafilter]', filterWrap ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === b ); } );
+				renderMedia();
+			} );
+		} );
+
 		scanBtn.addEventListener( 'click', function () {
 			scanBtn.disabled = true;
 			scanBtn.textContent = 'Scanning…';
 			summary.textContent = '';
-			results.innerHTML = '';
+			results.innerHTML = '<p class="velox-hint">Scanning library, crawling pages and reading builder CSS… this can take a moment on large sites.</p>';
 			api( 'media_scan', {} )
 				.then( function ( d ) {
-					var items = d.items || [];
-					if ( ! items.length ) {
-						results.innerHTML = '<p class="velox-hint">Nothing flagged — every image looks referenced. 🎉</p>';
-						summary.textContent = '';
-						return;
-					}
-					var total = 0;
-					items.forEach( function ( it ) {
-						total += it.bytes || 0;
-						var card = document.createElement( 'label' );
-						card.className = 'velox-media-item';
-						card.innerHTML =
-							'<input type="checkbox" class="velox-media-pick" value="' + it.id + '">' +
-							'<img src="' + it.thumb + '" alt="" loading="lazy">' +
-							'<span class="velox-media-name">' + ( it.title || ( '#' + it.id ) ) + '</span>' +
-							'<span class="velox-media-size">' + fmtBytes( it.bytes ) + '</span>';
-						results.appendChild( card );
-					} );
-					summary.textContent = items.length + ' possibly-unused image' + ( items.length === 1 ? '' : 's' ) + ' · ' + fmtBytes( total ) + ' reclaimable';
-					$$( '.velox-media-pick', results ).forEach( function ( c ) { c.addEventListener( 'change', refreshSelection ); } );
+					mediaItems = d.items || [];
+					filterWrap.hidden = mediaItems.length === 0;
+					renderMedia();
 				} )
-				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.catch( function ( e ) { toast( e.message, 'error' ); results.innerHTML = ''; } )
 				.then( function () { scanBtn.disabled = false; scanBtn.textContent = 'Scan media library'; } );
 		} );
 
@@ -4808,8 +4917,10 @@
 			api( 'media_delete', { ids: ids } )
 				.then( function ( r ) {
 					toast( 'Deleted ' + ( r.deleted || 0 ) + ' file(s), freed ' + fmtBytes( r.freed || 0 ) + '.' );
-					$$( '.velox-media-pick:checked', results ).forEach( function ( c ) { c.closest( '.velox-media-item' ).remove(); } );
-					refreshSelection();
+					var gone = {};
+					ids.forEach( function ( i ) { gone[ i ] = true; } );
+					mediaItems = mediaItems.filter( function ( it ) { return ! gone[ it.id ]; } );
+					renderMedia();
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); } )
 				.then( function () { delBtn.disabled = false; } );
@@ -5448,11 +5559,26 @@
 
 	function widgets()  { return Array.prototype.slice.call( cockpit.querySelectorAll( '.velox-w' ) ); }
 	function hiddenIds(){ return widgets().filter( function ( w ) { return w.classList.contains( 'is-hidden' ); } ).map( function ( w ) { return w.getAttribute( 'data-widget' ); } ); }
+	function orderIds() { return widgets().map( function ( w ) { return w.getAttribute( 'data-widget' ); } ); }
 	function selected() { return widgets().filter( function ( w ) { return w.classList.contains( 'sel' ); } ); }
+
+	// Apply the saved order on load (re-append each known widget in saved order;
+	// anything not in the list keeps its place at the end). The CSS grid lays out
+	// from DOM order, so this is all the "autolayout" needed.
+	( function applySavedOrder() {
+		var raw = cockpit.getAttribute( 'data-order' ) || '';
+		if ( ! raw ) { return; }
+		raw.split( ',' ).forEach( function ( id ) {
+			id = id.trim();
+			if ( ! id ) { return; }
+			var w = cockpit.querySelector( '.velox-w[data-widget="' + id + '"]' );
+			if ( w ) { cockpit.appendChild( w ); }
+		} );
+	}() );
 
 	function save() {
 		if ( ! window.VELOX || ! VELOX.ajaxurl ) { return; }
-		$.post( VELOX.ajaxurl, { action: 'velox', 'do': 'dash_widgets', nonce: VELOX.nonce, hidden: hiddenIds() } );
+		$.post( VELOX.ajaxurl, { action: 'velox', 'do': 'dash_widgets', nonce: VELOX.nonce, hidden: hiddenIds(), order: orderIds() } );
 	}
 
 	function updateBatch() {
@@ -5486,8 +5612,47 @@
 		} );
 	}
 
-	function enterEdit() { cockpit.classList.add( 'editing' ); editBtn.hidden = true; doneBtn.hidden = false; newWrap.hidden = false; buildPicker(); }
-	function exitEdit()  { cockpit.classList.remove( 'editing' ); editBtn.hidden = false; doneBtn.hidden = true; newWrap.hidden = true; newMenu.hidden = true; clearSel(); }
+	function enterEdit() { cockpit.classList.add( 'editing' ); editBtn.hidden = true; doneBtn.hidden = false; newWrap.hidden = false; setDraggable( true ); buildPicker(); }
+	function exitEdit()  { cockpit.classList.remove( 'editing' ); editBtn.hidden = false; doneBtn.hidden = true; newWrap.hidden = true; newMenu.hidden = true; setDraggable( false ); clearSel(); }
+
+	/* ----- drag to reorder (edit mode only) ----- */
+	var dragEl = null;
+	function setDraggable( on ) { widgets().forEach( function ( w ) { w.draggable = on; } ); }
+	function dragTarget( x, y ) {
+		var els = widgets().filter( function ( w ) { return w !== dragEl && ! w.classList.contains( 'is-hidden' ); } );
+		var best = null, bestD = Infinity, before = true;
+		els.forEach( function ( w ) {
+			var r = w.getBoundingClientRect();
+			var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+			var d = Math.abs( x - cx ) + Math.abs( y - cy );
+			if ( d < bestD ) { bestD = d; best = w; before = ( y < r.top ) || ( y < r.bottom && x < cx ); }
+		} );
+		return best ? { el: best, before: before } : null;
+	}
+	cockpit.addEventListener( 'dragstart', function ( e ) {
+		if ( ! cockpit.classList.contains( 'editing' ) ) { return; }
+		if ( e.target.closest && e.target.closest( 'a, button' ) ) { e.preventDefault(); return; }
+		var w = e.target.closest ? e.target.closest( '.velox-w' ) : null;
+		if ( ! w ) { return; }
+		dragEl = w; w.classList.add( 'is-dragging' );
+		if ( e.dataTransfer ) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData( 'text/plain', w.getAttribute( 'data-widget' ) || '' ); } catch ( err ) {} }
+	} );
+	cockpit.addEventListener( 'dragover', function ( e ) {
+		if ( ! dragEl ) { return; }
+		e.preventDefault();
+		if ( e.dataTransfer ) { e.dataTransfer.dropEffect = 'move'; }
+		var t = dragTarget( e.clientX, e.clientY );
+		if ( ! t || t.el === dragEl ) { return; }
+		if ( t.before ) { cockpit.insertBefore( dragEl, t.el ); }
+		else { cockpit.insertBefore( dragEl, t.el.nextSibling ); }
+	} );
+	cockpit.addEventListener( 'drop', function ( e ) { if ( dragEl ) { e.preventDefault(); } } );
+	cockpit.addEventListener( 'dragend', function () {
+		if ( ! dragEl ) { return; }
+		dragEl.classList.remove( 'is-dragging' );
+		dragEl = null;
+		save();
+	} );
 
 	editBtn.addEventListener( 'click', enterEdit );
 	doneBtn.addEventListener( 'click', exitEdit );

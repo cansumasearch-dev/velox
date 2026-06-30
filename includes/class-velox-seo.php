@@ -27,6 +27,9 @@ class Velox_Seo {
 		// <head> output.
 		add_filter( 'pre_get_document_title', array( __CLASS__, 'filter_title' ), 20 );
 		add_action( 'wp_head', array( __CLASS__, 'head_tags' ), 1 );
+		// Own the robots directives through WP's native filter so there's exactly one
+		// robots tag, and so index,follow is emitted explicitly (not just left implicit).
+		add_filter( 'wp_robots', array( __CLASS__, 'filter_wp_robots' ), 20 );
 
 		// Editor meta box + save.
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_box' ) );
@@ -164,11 +167,8 @@ class Velox_Seo {
 		if ( $desc ) {
 			echo '<meta name="description" content="' . esc_attr( wp_strip_all_tags( $desc ) ) . '">' . "\n";
 		}
-		// Only emit a robots tag when it restricts something — index,follow is the default.
-		if ( $noindex || $nofollow ) {
-			$bits = array( $noindex ? 'noindex' : 'index', $nofollow ? 'nofollow' : 'follow' );
-			echo '<meta name="robots" content="' . esc_attr( implode( ',', $bits ) ) . '">' . "\n";
-		}
+		// The robots tag is emitted via the wp_robots filter (filter_wp_robots) so it
+		// stays a single, canonical tag — see init().
 
 		// Canonical — fall back to the post's own permalink when none is set.
 		$canonical = get_post_meta( $id, '_velox_seo_canonical', true );
@@ -178,6 +178,9 @@ class Velox_Seo {
 		}
 
 		// Open Graph — fall back to the SEO title/description, then the post's own.
+		if ( ! Velox_Settings::get( 'seo_og_enable', true ) ) {
+			return; // OG/Twitter cards disabled globally in SEO settings.
+		}
 		$og_title = get_post_meta( $id, '_velox_seo_og_title', true );
 		$og_desc  = get_post_meta( $id, '_velox_seo_og_desc', true );
 		$og_image = get_post_meta( $id, '_velox_seo_og_image', true );
@@ -200,6 +203,36 @@ class Velox_Seo {
 		if ( $og_desc ) {
 			echo '<meta name="twitter:description" content="' . esc_attr( wp_strip_all_tags( $og_desc ) ) . '">' . "\n";
 		}
+	}
+
+	/**
+	 * Emit an explicit robots directive through WP's native wp_robots filter, so the
+	 * page always states its intent — "index, follow" when allowed, "noindex"/"nofollow"
+	 * when restricted — instead of leaving the allow-case implicit (and invisible).
+	 */
+	public static function filter_wp_robots( $robots ) {
+		if ( ! Velox_Settings::get( 'module_seo', true ) || ! is_singular() ) {
+			return $robots;
+		}
+		$id       = get_queried_object_id();
+		$noindex  = '1' === (string) get_post_meta( $id, '_velox_seo_noindex', true );
+		$nofollow = '1' === (string) get_post_meta( $id, '_velox_seo_nofollow', true );
+
+		if ( $noindex ) {
+			$robots['noindex'] = true;
+			unset( $robots['index'] );
+		} else {
+			$robots['index'] = true;
+			unset( $robots['noindex'] );
+		}
+		if ( $nofollow ) {
+			$robots['nofollow'] = true;
+			unset( $robots['follow'] );
+		} else {
+			$robots['follow'] = true;
+			unset( $robots['nofollow'] );
+		}
+		return $robots;
 	}
 
 	/* ------------------------------------------------------------- meta box */

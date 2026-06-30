@@ -144,7 +144,7 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 		</nav>
 
 		<div class="velox-side-foot">
-			<a class="velox-side-foot-link" href="https://sumasearch.de/" target="_blank" rel="noopener">
+			<a class="velox-side-foot-link" href="https://www.sumasearch.de/" target="_blank" rel="noopener">
 				<img src="<?php echo esc_url( VELOX_URL . 'assets/menu-icon.png' ); ?>" alt="" width="14" height="14">
 				by Sumasearch
 			</a>

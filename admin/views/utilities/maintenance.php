@@ -70,12 +70,22 @@ $logo_default = VELOX_URL . 'assets/logo.png';
 			<span class="velox-field-label">Loading animation</span>
 			<select class="velox-select" data-setting="util_maintenance_anim">
 				<?php
-				$anims = array( 'bar' => 'Sliding bar', 'pulse' => 'Pulsing dot', 'dots' => 'Bouncing dots', 'spinner' => 'Spinner', 'none' => 'None' );
+				$anims = array( 'bar' => 'Sliding bar', 'pulse' => 'Pulsing dot', 'dots' => 'Bouncing dots', 'spinner' => 'Spinner', 'lottie' => 'Lottie animation', 'none' => 'None' );
 				foreach ( $anims as $av => $al ) :
 					?>
 					<option value="<?php echo esc_attr( $av ); ?>" <?php selected( $s['util_maintenance_anim'], $av ); ?>><?php echo esc_html( $al ); ?></option>
 				<?php endforeach; ?>
 			</select>
+		</div>
+
+		<div class="velox-field">
+			<span class="velox-field-label">Lottie animation file</span>
+			<div class="velox-media-row">
+				<input type="text" class="velox-input" data-setting="util_maintenance_lottie" value="<?php echo esc_attr( $s['util_maintenance_lottie'] ); ?>" placeholder="https://… .json or .lottie">
+				<button type="button" class="velox-btn velox-btn--ghost velox-media-pick" data-target="util_maintenance_lottie" data-mediatype="any">Choose</button>
+				<button type="button" class="velox-btn velox-btn--ghost velox-media-clear" data-target="util_maintenance_lottie">Clear</button>
+			</div>
+			<span class="velox-hint">Used when <strong>Loading animation</strong> is set to <strong>Lottie animation</strong>. Upload a <code>.json</code> or <code>.lottie</code> from your media library, or paste a link (e.g. from LottieFiles).</span>
 		</div>
 
 		<div class="velox-field">

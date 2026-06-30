@@ -87,6 +87,10 @@ class Velox_Utilities {
 			add_filter( 'page_row_actions', array( __CLASS__, 'duplicate_link' ), 10, 2 );
 			add_action( 'admin_action_velox_duplicate', array( __CLASS__, 'do_duplicate' ) );
 		}
+		// Allow Lottie animation uploads (.json / .lottie) so they can be picked from
+		// the media library for the maintenance logo or loading animation.
+		add_filter( 'upload_mimes', array( __CLASS__, 'allow_lottie_mime' ) );
+		add_filter( 'wp_check_filetype_and_ext', array( __CLASS__, 'fix_lottie_filetype' ), 10, 4 );
 		// Maintenance mode (front end only — wp-admin/login stay reachable)
 		if ( Velox_Settings::get( 'util_maintenance' ) ) {
 			add_action( 'template_redirect', array( __CLASS__, 'maybe_maintenance' ) );
@@ -118,6 +122,29 @@ class Velox_Utilities {
 		if ( '.svg' === strtolower( substr( $filename, -4 ) ) ) {
 			$data['ext']  = 'svg';
 			$data['type'] = 'image/svg+xml';
+		}
+		return $data;
+	}
+
+	public static function allow_lottie_mime( $mimes ) {
+		if ( current_user_can( 'manage_options' ) ) {
+			$mimes['json']   = 'application/json';
+			$mimes['lottie'] = 'application/zip';
+		}
+		return $mimes;
+	}
+
+	public static function fix_lottie_filetype( $data, $file, $filename, $mimes ) {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return $data;
+		}
+		$lower = strtolower( $filename );
+		if ( '.json' === substr( $lower, -5 ) ) {
+			$data['ext']  = 'json';
+			$data['type'] = 'application/json';
+		} elseif ( '.lottie' === substr( $lower, -7 ) ) {
+			$data['ext']  = 'lottie';
+			$data['type'] = 'application/zip';
 		}
 		return $data;
 	}
@@ -330,11 +357,18 @@ class Velox_Utilities {
 
 	/** Build the maintenance page from saved settings. */
 	/** Animation markup + CSS for the maintenance page, by type. */
-	private static function maintenance_anim( $type, $accent, $text ) {
+	private static function maintenance_anim( $type, $accent, $text, $lottie = '' ) {
 		$track = self::hex_to_rgba( $text, 0.14 );
 		switch ( $type ) {
 			case 'none':
 				return array( '', '' );
+			case 'lottie':
+				if ( '' === (string) $lottie ) {
+					return array( '', '' );
+				}
+				$html = '<script src="https://unpkg.com/@lottiefiles/lottie-player@latest/dist/lottie-player.js"></script>'
+					. '<lottie-player class="vx-lottie" src="' . esc_url( $lottie ) . '" autoplay loop style="width:120px;height:120px;margin:24px auto 0"></lottie-player>';
+				return array( '', $html );
 			case 'pulse':
 				$css  = '.vx-pulse{width:46px;height:46px;border-radius:50%;margin:30px auto 0;background:' . esc_attr( $accent ) . ';animation:vxpulse 1.5s ease-in-out infinite}@keyframes vxpulse{0%,100%{opacity:.35;transform:scale(.86)}50%{opacity:1;transform:scale(1)}}';
 				return array( $css, '<div class="vx-pulse"></div>' );
@@ -372,6 +406,7 @@ class Velox_Utilities {
 		$btn_u  = Velox_Settings::get( 'util_maintenance_btn_url' );
 		$brand  = Velox_Settings::get( 'util_maintenance_brand' );
 		$anim   = Velox_Settings::get( 'util_maintenance_anim' );
+		$lottie = Velox_Settings::get( 'util_maintenance_lottie' );
 
 		$title  = '' !== (string) $title ? $title : 'We\'ll be right back';
 		$msg    = '' !== (string) $msg ? $msg : 'The site is undergoing maintenance. Please check back soon.';
@@ -397,7 +432,7 @@ class Velox_Utilities {
 		}
 		$footer = '' !== (string) $brand ? '<div class="brand">' . esc_html( $brand ) . '</div>' : '';
 
-		list( $anim_css, $anim_html ) = self::maintenance_anim( $anim, $accent, $text );
+		list( $anim_css, $anim_html ) = self::maintenance_anim( $anim, $accent, $text, $lottie );
 
 		return '<!DOCTYPE html><html lang="' . esc_attr( get_bloginfo( 'language' ) ) . '"><head><meta charset="utf-8">'
 			. '<meta name="viewport" content="width=device-width,initial-scale=1">'
@@ -534,6 +569,23 @@ class Velox_Utilities {
 	 * ------------------------------------------------------------------- */
 
 	public static function find_unused( $limit = 250 ) {
+		$all = self::scan_media( $limit );
+		$out = array();
+		foreach ( $all as $m ) {
+			if ( empty( $m['used'] ) ) {
+				unset( $m['used'] );
+				$out[] = $m;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Classify every image in the library as used or unused, with file size.
+	 * One rendered-HTML/CSS blob is built and reused across all images. Errs toward
+	 * "used" so a referenced file is never mislabeled as safe to delete.
+	 */
+	public static function scan_media( $limit = 400 ) {
 		$ids = get_posts( array(
 			'post_type'      => 'attachment',
 			'post_status'    => 'inherit',
@@ -544,26 +596,26 @@ class Velox_Utilities {
 			'order'          => 'ASC',
 		) );
 
-		// First pass: cheap DB checks. Anything that survives is a *candidate*.
-		$candidates = array();
+		// DB pass: which ids are referenced somewhere, plus each id's filenames.
+		$used  = array();
+		$names = array();
 		foreach ( $ids as $id ) {
 			if ( self::is_referenced( $id ) ) {
-				continue;
+				$used[ $id ] = true;
+			} else {
+				$names[ $id ] = self::all_basenames( $id );
 			}
-			$candidates[ $id ] = self::all_basenames( $id );
 		}
 
-		// Second pass: actually fetch the site's front-end pages and confirm the
-		// file truly doesn't appear in the rendered HTML (catches page-builder
-		// output, CSS backgrounds, sliders, etc. the DB scan can't see). Any
-		// candidate whose filename shows up on a real page is removed.
-		if ( $candidates ) {
+		// Front-end pass: any remaining candidate whose filename appears in the
+		// rendered HTML or generated CSS is actually in use.
+		if ( $names ) {
 			$html = self::rendered_html_blob();
 			if ( '' !== $html ) {
-				foreach ( $candidates as $id => $names ) {
-					foreach ( $names as $n ) {
+				foreach ( $names as $id => $list ) {
+					foreach ( $list as $n ) {
 						if ( '' !== $n && false !== strpos( $html, $n ) ) {
-							unset( $candidates[ $id ] );
+							$used[ $id ] = true;
 							break;
 						}
 					}
@@ -572,14 +624,15 @@ class Velox_Utilities {
 		}
 
 		$out = array();
-		foreach ( array_keys( $candidates ) as $id ) {
-			$file = get_attached_file( $id );
+		foreach ( $ids as $id ) {
+			$file  = get_attached_file( $id );
 			$out[] = array(
 				'id'    => $id,
 				'title' => get_the_title( $id ),
 				'url'   => wp_get_attachment_url( $id ),
 				'thumb' => self::thumb_url( $id ),
 				'bytes' => ( $file && file_exists( $file ) ) ? (int) filesize( $file ) : 0,
+				'used'  => ! empty( $used[ $id ] ),
 			);
 		}
 		return $out;
@@ -617,21 +670,49 @@ class Velox_Utilities {
 		$blob = '';
 
 		$urls = array( home_url( '/' ) );
-		// a handful of recent posts + pages
-		$posts = get_posts( array( 'numberposts' => 15, 'post_status' => 'publish', 'post_type' => array( 'post', 'page' ), 'fields' => 'ids', 'orderby' => 'modified', 'order' => 'DESC' ) );
+		// Pages first (these are usually the builder-built ones), then posts and
+		// products. A wider net than before so an image on a deeper page isn't
+		// mistaken for unused.
+		$posts = get_posts( array(
+			'numberposts' => 80,
+			'post_status' => 'publish',
+			'post_type'   => array( 'page', 'post', 'product' ),
+			'fields'      => 'ids',
+			'orderby'     => 'modified',
+			'order'       => 'DESC',
+		) );
 		foreach ( $posts as $pid ) {
 			$link = get_permalink( $pid );
 			if ( $link ) { $urls[] = $link; }
 		}
 		$urls = array_values( array_unique( array_filter( $urls ) ) );
-		// keep the crawl bounded
-		$urls = array_slice( $urls, 0, 20 );
+		$urls = array_slice( $urls, 0, 60 );
 
 		foreach ( $urls as $u ) {
 			$res = wp_remote_get( $u, array( 'timeout' => 10, 'sslverify' => false ) );
 			if ( is_wp_error( $res ) ) { continue; }
 			$body = wp_remote_retrieve_body( $res );
 			if ( is_string( $body ) && '' !== $body ) { $blob .= "\n" . $body; }
+		}
+
+		// CRITICAL for Oxygen/Elementor: background-image URLs live in generated CSS
+		// cache files, not the page HTML. Read those local files directly so a section
+		// background is never mistaken for an unused image.
+		$up  = wp_upload_dir();
+		$dir = isset( $up['basedir'] ) ? trailingslashit( $up['basedir'] ) : '';
+		$globs = array();
+		if ( $dir ) {
+			$globs[] = $dir . 'oxygen/css/*.css';
+			$globs[] = $dir . 'elementor/css/*.css';
+			$globs[] = $dir . 'bricks/css/*.css';
+		}
+		foreach ( $globs as $g ) {
+			foreach ( (array) glob( $g ) as $cssfile ) {
+				if ( is_readable( $cssfile ) && filesize( $cssfile ) < 4000000 ) {
+					$css = file_get_contents( $cssfile );
+					if ( is_string( $css ) && '' !== $css ) { $blob .= "\n" . $css; }
+				}
+			}
 		}
 		return $blob;
 	}
@@ -693,7 +774,7 @@ class Velox_Utilities {
 		// Referenced by attachment ID in meta (blocks/galleries store the ID, not the name)?
 		$id_like = '%' . $wpdb->esc_like( (string) (int) $id ) . '%';
 		$by_id = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_value LIKE %s AND ( meta_key LIKE '%%gallery%%' OR meta_key LIKE '%%image%%' OR meta_key LIKE '%%media%%' OR meta_key LIKE '%%attachment%%' )",
+			"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_value LIKE %s AND ( meta_key LIKE '%%gallery%%' OR meta_key LIKE '%%image%%' OR meta_key LIKE '%%media%%' OR meta_key LIKE '%%attachment%%' OR meta_key IN ('ct_builder_shortcodes','_elementor_data','_themify_builder_settings_json','panels_data','_bricks_page_content_2') )",
 			$id_like
 		) );
 		return (bool) $by_id;

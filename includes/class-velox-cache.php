@@ -275,11 +275,54 @@ class Velox_Cache {
 		if ( false !== stripos( $html, '<body class="error404' ) ) {
 			return $html;
 		}
+		if ( Velox_Settings::get( 'perf_minify_html', false ) ) {
+			$html = self::minify_html( $html );
+		}
 		$host = isset( $_SERVER['HTTP_HOST'] ) ? $_SERVER['HTTP_HOST'] : 'localhost';
 		$uri  = isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '/';
 		$stamp = '<!-- Velox cache · ' . gmdate( 'Y-m-d H:i:s' ) . ' UTC -->';
 		self::write( self::path_for( $host, $uri, self::is_mobile() ), $html . "\n" . $stamp );
 		return $html;
+	}
+
+	/**
+	 * Conservative, fail-open HTML minifier. Protects script/style/pre/textarea/code
+	 * and IE conditional comments, drops normal comments, and collapses inter-tag
+	 * whitespace to a single space (so inline spacing is preserved). On any regex
+	 * failure it returns the original HTML untouched — it can never blank a page.
+	 */
+	public static function minify_html( $html ) {
+		if ( ! is_string( $html ) || '' === $html || false === stripos( $html, '<html' ) ) {
+			return $html;
+		}
+		$orig      = $html;
+		$protected = array();
+		$html = preg_replace_callback(
+			'#<(pre|textarea|script|style|code)\b[^>]*>.*?</\1>|<!--\[if[\s\S]*?<!\[endif\]-->#is',
+			function ( $m ) use ( &$protected ) {
+				$key = '<!--VLXP' . count( $protected ) . '-->';
+				$protected[ $key ] = $m[0];
+				return $key;
+			},
+			$html
+		);
+		if ( null === $html ) {
+			return $orig;
+		}
+		// Drop normal HTML comments (the protected placeholders survive).
+		$html = preg_replace( '/<!--(?!VLXP)[\s\S]*?-->/', '', $html );
+		// Collapse whitespace that sits purely between tags, keeping one space so
+		// inline word spacing is never lost.
+		$html = preg_replace( '/>\s+</', '> <', $html );
+		if ( null === $html ) {
+			return $orig;
+		}
+		$html = trim( $html );
+		// Restore protected blocks.
+		if ( $protected ) {
+			$html = strtr( $html, $protected );
+		}
+		return ( '' === $html ) ? $orig : $html;
 	}
 
 	public static function write( $file, $html ) {

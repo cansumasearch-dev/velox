@@ -77,6 +77,15 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 
 <!-- ============ Per-page meta ============ -->
 <div class="velox-panel">
+	<div class="velox-cache-status-row">
+		<h3 class="velox-panel-title">Social cards (Open Graph)</h3>
+		<label class="velox-switch"><input type="checkbox" id="velox-seo-og-enable" data-setting="seo_og_enable" <?php checked( ! empty( $s['seo_og_enable'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+	<p class="velox-hint">Outputs Open Graph and Twitter tags (<code>og:title</code>, <code>og:description</code>, <code>og:image</code>…) so links shared to Facebook, LinkedIn, WhatsApp and X show a rich preview. Turn this off to emit no social tags at all — useful if another tool already handles them.</p>
+</div>
+
+<!-- ============ Per-page meta ============ -->
+<div class="velox-panel">
 	<h3 class="velox-panel-title">Per-page title &amp; description</h3>
 	<p class="velox-hint">Open any post, page or product and you'll find a <strong>Velox SEO</strong> box under the content with a live Google preview. Set a custom SEO title, meta description, mark a page <em>noindex</em>, or exclude it from the sitemap — all in one place.</p>
 	<div class="velox-seo-fauxbox">

@@ -57,7 +57,14 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			<div class="vmail-sb-stat"><div class="k">Fields</div><div class="v" id="vmail-stat-fields"><?php echo (int) $stat_fields; ?></div></div>
 			<div class="vmail-sb-stat"><div class="k">Submissions</div><div class="v"><?php echo (int) $stat_subs; ?></div></div>
 			<div class="vmail-sb-stat"><div class="k">Last 7 days</div><div class="v"><?php echo (int) $stat_recent; ?></div></div>
-			<div class="vmail-sb-stat"><div class="k">Notifications</div><div class="v"><?php echo (int) $stat_emails; ?> <small>active</small></div></div>
+			<?php if ( $fid_int ) : ?>
+				<a class="vmail-sb-stat vmail-sb-stat--link" href="<?php echo esc_url( $base . '&entries=' . $fid_int ); ?>" title="View every submission sent through this form">
+					<div class="k">Notifications <span class="vmail-sb-stat-go" aria-hidden="true">&rarr;</span></div>
+					<div class="v"><?php echo (int) $stat_subs; ?> <small>received</small></div>
+				</a>
+			<?php else : ?>
+				<div class="vmail-sb-stat"><div class="k">Notifications</div><div class="v">0 <small>received</small></div></div>
+			<?php endif; ?>
 		</div>
 
 		<div class="vmail-panel" data-panel="build">

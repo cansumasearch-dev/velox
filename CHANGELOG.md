@@ -4,6 +4,70 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.75.0 — Custom fields: clearer edit screen + Bootstrap icon picker
+- **Field groups are now obvious on the edit screen.** The meta box gets a branded "Custom fields" header with an icon, a field count, an accent border and clean separators between fields — no more blending into the page as a plain grey box.
+- **Bootstrap-icon picker for options pages.** When creating an options page, click "Choose icon" to search a grid of common Bootstrap icons (e.g. gift, gear, cart) instead of hunting for a dashicons class. The exact icon is used for the admin menu. You can still type a `dashicons-…` class or image URL.
+
+
+## 2.74.0 — Maintenance: Lottie loading animation
+- The maintenance loading animation can now be a **Lottie** animation. Pick "Lottie animation" from the dropdown, then choose a `.json`/`.lottie` from your media library or paste a link (e.g. LottieFiles).
+- `.json` and `.lottie` uploads are now allowed in the media library (admins only) so they can be picked.
+- The media picker can now browse non-image files where needed.
+
+
+## 2.73.0 — Unused media: accuracy + used/unused views + sizes
+- **Fixed false "unused" flags.** The scanner now reads the generated CSS cache (Oxygen, Elementor, Bricks) where page-builder `background-image` URLs live, crawls many more pages (up to ~60, including products), and recognises images referenced by ID inside builder meta (`ct_builder_shortcodes`, Elementor, etc.). Images used as section backgrounds or on deeper pages are no longer mistaken for unused.
+- **Used / Unused toggle.** After a scan, switch between every unused image and every used image.
+- **File size on every item** in both views, with a running total.
+
+
+## 2.72.0 — Mail: notifications autosave in place
+- Toggling a notification email on/off (and editing its recipient/subject/advanced fields) now **saves instantly and keeps you on the Notifications tab** — no more clicking Save and getting bounced back to the Mail dashboard. Rapid changes are debounced into one save.
+- (Per-email on/off already gated sending on the back end; this makes the setting stick without a full save.)
+
+
+## 2.71.0 — SEO robots/OG + form-canvas fixes
+- **SEO robots**: pages now state their intent explicitly — `index, follow` when allowed (previously emitted nothing), `noindex`/`nofollow` when restricted — driven through WordPress's native `wp_robots` filter so there's exactly one robots tag.
+- **SEO Open Graph toggle**: new "Social cards (Open Graph)" switch in SEO settings. Off = no OG/Twitter tags anywhere; on = full social tags as before.
+- **Form canvas**: removed the stray field-type label that sat in the bottom-right corner of each field card.
+- **Form canvas**: field cards now have up/down arrows in the hover toolbar to move a field one step at a time (alongside drag-to-reorder).
+- Footer link now points to https://www.sumasearch.de/.
+
+
+## 2.70.0 — Design system: single-sourced colors
+- Consolidated **78 hardcoded colour values** across the admin CSS into the central design tokens, so the whole UI now resolves from one palette (`--vx-*`). Change a token once and every screen follows — no more parallel greys and one-off blues drifting apart.
+- Verified zero visual change: every converted value was an exact or imperceptible match to its token. The neutral ramp and the accent/primary family are now fully tokenised.
+
+
+## 2.69.0 — Dashboard: drag-to-reorder widgets
+- In **Edit** mode you can now drag dashboard widgets to reorder them. The layout reflows automatically and your order is saved, so it sticks across reloads and devices.
+- Completes the dashboard customization set alongside add/remove and the new Traffic page.
+
+
+## 2.68.0 — Dashboard: Traffic page + sparkline labels
+- New **Traffic page** (Dashboard → Visitors widget → "View traffic"). Pick a range (7 / 14 / 30 / 90 days) and see total visitors, page views, your peak day, and daily average, plus a clean visitors-per-day bar chart with the peak day highlighted. First-party counts from Velox's own beacon — no third-party analytics.
+- The traffic **sparkline** on the dashboard now shows its date axis labels (start · middle · end) under the line.
+
+
+## 2.67.0 — Performance: Minify HTML
+- New **Minify HTML** toggle (Performance → General). Strips comments and collapses inter-tag whitespace in the final page HTML, applied as pages are cached.
+- Conservative and fail-open: `<script>`, `<style>`, `<pre>`, `<textarea>` and `<code>` blocks and IE conditional comments are left byte-for-byte intact, attribute values are never touched, a single space is kept between inline elements, and any parsing hiccup returns the original HTML untouched — it can't blank a page.
+
+
+## 2.66.0 — Mail: Style editor matches the dashboard
+The full-screen form Style editor was running its own parallel palette. Rebuilt its chrome on the real Velox design tokens so it's visually one system with the rest of the admin:
+- Flat `--vx-bg` canvas instead of the radial gradient.
+- Scattered one-off grays replaced with the standard ink/line ramp.
+- All radii snapped to the 6 / 10 / 16 scale (inputs, swatches, segmented controls, tree nodes).
+- Active tree node now uses the standard primary tint + readable primary-ink text; device/segment toggles match the dashboard.
+- Removed a duplicate focus rule. (The form preview itself is untouched — that reflects your actual form's styling.)
+
+
+## 2.65.0 — Mail: Notifications card is now your inbox
+- The **Notifications** stat card on the form builder now shows how many submissions you've **received** (instead of how many notification emails were configured), and the whole card is **clickable** — it opens the entries list of everyone who submitted that form.
+- New forms show `0 received` and the card stays non-clickable until the form has entries.
+
+
 ## 2.64.0 — SEO: editable .htaccess
 Added an **.htaccess editor** to the SEO page, with guardrails so you can't easily break the site.
 ### Added

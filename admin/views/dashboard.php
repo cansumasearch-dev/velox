@@ -3,6 +3,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
 /** @var Velox_Admin $admin */
+if ( isset( $_GET['traffic'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification
+	require __DIR__ . '/dashboard-traffic.php';
+	return;
+}
 $engine  = Velox_Image_Optimizer::engine();
 $avif    = Velox_Image_Optimizer::avif_engine();
 
@@ -116,6 +120,7 @@ if ( ! empty( $velox_clashes ) ) :
 <?php
 // Customizable cockpit: $dash_hidden holds the widget ids the user removed.
 $dash_hidden = (array) Velox_Settings::get( 'dash_hidden', array( 'fonts' ) );
+$dash_order  = (array) Velox_Settings::get( 'dash_order', array() );
 $vx_wcls = function ( $id, $base ) use ( $dash_hidden ) {
 	return $base . ( in_array( $id, $dash_hidden, true ) ? ' is-hidden' : '' );
 };
@@ -145,6 +150,19 @@ $v_tr_spark = '<svg viewBox="0 0 100 36" preserveAspectRatio="none" width="100%"
 	. '<defs><linearGradient id="vxspark" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2ab7f1" stop-opacity=".20"/><stop offset="1" stop-color="#2ab7f1" stop-opacity="0"/></linearGradient></defs>'
 	. '<path d="' . esc_attr( $vx_line . ' L100,36 L0,36 Z' ) . '" fill="url(#vxspark)"/>'
 	. '<path d="' . esc_attr( $vx_line ) . '" fill="none" stroke="#2ab7f1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" vector-effect="non-scaling-stroke"/></svg>';
+
+// Date labels for the sparkline x-axis (first · middle · last).
+$vx_fmt_d = function ( $d ) {
+	$ts = strtotime( (string) $d );
+	return $ts ? gmdate( 'M j', $ts ) : '';
+};
+$vx_axis = array( '', '', '' );
+if ( ! empty( $v_tr['series'] ) ) {
+	$vx_s          = array_values( $v_tr['series'] );
+	$vx_axis[0]    = $vx_fmt_d( $vx_s[0]['d'] );
+	$vx_axis[2]    = $vx_fmt_d( $vx_s[ count( $vx_s ) - 1 ]['d'] );
+	$vx_axis[1]    = $vx_fmt_d( $vx_s[ intdiv( count( $vx_s ), 2 ) ]['d'] );
+}
 ?>
 
 <div class="velox-batchbar" id="velox-batchbar" hidden>
@@ -155,7 +173,7 @@ $v_tr_spark = '<svg viewBox="0 0 100 36" preserveAspectRatio="none" width="100%"
 	</span>
 </div>
 
-<div class="velox-cockpit" id="velox-cockpit">
+<div class="velox-cockpit" id="velox-cockpit" data-order="<?php echo esc_attr( implode( ',', $dash_order ) ); ?>">
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'perf', 'velox-w velox-w--col4' ) ); ?>" data-widget="perf" data-widget-label="Performance">
 		<?php echo $vx_wctl; ?>
@@ -193,6 +211,8 @@ $v_tr_spark = '<svg viewBox="0 0 100 36" preserveAspectRatio="none" width="100%"
 			<span class="velox-w-sub"><?php echo (int) $v_tr['views']; ?> views<?php if ( null !== $v_tr_trend ) : ?> &middot; <span class="<?php echo $v_tr_trend >= 0 ? 'velox-up' : 'velox-down'; ?>"><?php echo ( $v_tr_trend >= 0 ? '&#9650; ' : '&#9660; ' ) . abs( (int) $v_tr_trend ) . '%'; ?></span> vs last week<?php endif; ?></span>
 		</div>
 		<div class="velox-spark"><?php echo $v_tr_spark; ?></div>
+		<div class="velox-spark-axis"><span><?php echo esc_html( $vx_axis[0] ); ?></span><span><?php echo esc_html( $vx_axis[1] ); ?></span><span><?php echo esc_html( $vx_axis[2] ); ?></span></div>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'dashboard' ) . '&traffic=1' ); ?>">View traffic</a>
 	</div>
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'forms', 'velox-w velox-w--col4' ) ); ?>" data-widget="forms" data-widget-label="Form submissions">

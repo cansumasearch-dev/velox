@@ -20,6 +20,7 @@ $fields = array(
 
 	// General
 	'perf_disable_emojis'        => array( 'switch', 'Disable emojis', 'Removes the emoji detection script and styles WordPress loads on every page.' ),
+	'perf_minify_html'           => array( 'switch', 'Minify HTML', 'Strips comments and collapses whitespace in the final page HTML. Applies to cached pages and fails safely — script, style, pre and textarea blocks are left untouched.' ),
 	'perf_disable_embeds'        => array( 'switch', 'Disable oEmbed', 'Stops WordPress loading the wp-embed script and embed discovery links.' ),
 	'perf_remove_query_strings'  => array( 'switch', 'Remove query strings', 'Strips ?ver= from static CSS/JS so proxies can cache them better.' ),
 	'perf_disable_xmlrpc'        => array( 'switch', 'Disable XML-RPC', 'Closes a common attack surface and removes the pingback header.' ),

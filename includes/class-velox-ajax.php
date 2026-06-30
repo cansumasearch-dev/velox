@@ -42,7 +42,22 @@ class Velox_Ajax {
 				$hidden = isset( $_POST['hidden'] ) ? (array) wp_unslash( $_POST['hidden'] ) : array();
 				$hidden = array_values( array_unique( array_filter( array_map( 'sanitize_key', $hidden ) ) ) );
 				Velox_Settings::set( 'dash_hidden', $hidden );
+				if ( isset( $_POST['order'] ) ) {
+					$order = (array) wp_unslash( $_POST['order'] );
+					$order = array_values( array_unique( array_filter( array_map( 'sanitize_key', $order ) ) ) );
+					Velox_Settings::set( 'dash_order', $order );
+				}
 				wp_send_json_success( array( 'hidden' => $hidden ) );
+				break;
+
+			case 'dash_traffic':
+				$days = isset( $_POST['days'] ) ? (int) $_POST['days'] : 7;
+				$days = in_array( $days, array( 7, 14, 30 ), true ) ? $days : 7;
+				$cur  = Velox_Stats::traffic_summary( $days );
+				$dbl  = Velox_Stats::traffic_summary( $days * 2 );
+				$cur['prev_visitors'] = max( 0, (int) $dbl['visitors'] - (int) $cur['visitors'] );
+				$cur['days'] = $days;
+				wp_send_json_success( $cur );
 				break;
 
 			case 'estimate_webp':
@@ -220,7 +235,7 @@ class Velox_Ajax {
 				break;
 
 			case 'media_scan':
-				wp_send_json_success( array( 'items' => Velox_Utilities::find_unused() ) );
+				wp_send_json_success( array( 'items' => Velox_Utilities::scan_media() ) );
 				break;
 
 			case 'media_delete':
