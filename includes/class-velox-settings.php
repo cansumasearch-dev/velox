@@ -25,7 +25,7 @@ class Velox_Settings {
 			'module_media'       => true,
 			'module_performance' => true,
 			'module_database'    => true,
-			'module_seo'         => false,
+			'module_seo'         => true,
 
 			// ---- SEO ----
 			'seo_robots_enable'  => true,
@@ -140,6 +140,7 @@ class Velox_Settings {
 			'cache_logged_in'       => false,
 			'cache_mobile_separate' => false,
 			'cache_gzip'            => true,
+			'cache_auto_preload'    => true,   // warm the cache in the background after a full purge
 			'cache_exclude_urls'    => '',
 			'cache_exclude_cookies' => '',
 
@@ -180,6 +181,8 @@ class Velox_Settings {
 			// ---- Performance · General ----
 			'perf_disable_emojis'        => true,
 			'perf_minify_html'           => false,
+			'perf_html_remove_comments'    => true,
+			'perf_html_collapse_whitespace'=> true,
 			'perf_disable_embeds'        => false,
 			'perf_remove_query_strings'  => false,
 			'perf_disable_xmlrpc'        => true,
@@ -261,17 +264,20 @@ class Velox_Settings {
 		return array(
 			'cache' => array(
 				'label' => 'Cache',
-				'keys'  => array( 'cache_enable', 'cache_ttl', 'cache_logged_in', 'cache_mobile_separate', 'cache_gzip', 'cache_exclude_urls', 'cache_exclude_cookies' ),
+				'keys'  => array( 'cache_enable', 'cache_ttl', 'cache_logged_in', 'cache_mobile_separate', 'cache_gzip', 'cache_auto_preload', 'cache_exclude_urls', 'cache_exclude_cookies' ),
 			),
 			'general' => array(
 				'label' => 'General',
 				'keys'  => array(
 					'perf_disable_emojis', 'perf_disable_embeds', 'perf_remove_query_strings',
-					'perf_minify_html',
 					'perf_disable_xmlrpc', 'perf_disable_self_pingbacks', 'perf_clean_head',
 					'perf_disable_dashicons', 'perf_remove_jquery_migrate', 'perf_disable_comments',
 					'perf_disable_rss', 'perf_disable_app_passwords',
 				),
+			),
+			'html' => array(
+				'label' => 'HTML',
+				'keys'  => array( 'perf_minify_html', 'perf_html_remove_comments', 'perf_html_collapse_whitespace' ),
 			),
 			'css' => array(
 				'label' => 'CSS',

@@ -63,6 +63,9 @@ class Velox_Cache {
 		add_action( 'switch_theme', array( __CLASS__, 'purge_all' ) );
 		add_action( 'customize_save_after', array( __CLASS__, 'purge_all' ) );
 		add_action( 'wp_update_nav_menu', array( __CLASS__, 'purge_all' ) );
+		// Auto-warm: after a full purge we schedule a background rebuild so visitors
+		// hit a warm cache instead of paying for the first regeneration themselves.
+		add_action( 'velox_cache_preload', array( __CLASS__, 'preload' ) );
 	}
 
 	/** Is the advanced-cache.php drop-in installed and wired (WP_CACHE on)? */
@@ -309,13 +312,22 @@ class Velox_Cache {
 		if ( null === $html ) {
 			return $orig;
 		}
+		$remove_comments = Velox_Settings::get( 'perf_html_remove_comments', true );
+		$collapse_ws     = Velox_Settings::get( 'perf_html_collapse_whitespace', true );
 		// Drop normal HTML comments (the protected placeholders survive).
-		$html = preg_replace( '/<!--(?!VLXP)[\s\S]*?-->/', '', $html );
+		if ( $remove_comments ) {
+			$html = preg_replace( '/<!--(?!VLXP)[\s\S]*?-->/', '', $html );
+			if ( null === $html ) {
+				return $orig;
+			}
+		}
 		// Collapse whitespace that sits purely between tags, keeping one space so
 		// inline word spacing is never lost.
-		$html = preg_replace( '/>\s+</', '> <', $html );
-		if ( null === $html ) {
-			return $orig;
+		if ( $collapse_ws ) {
+			$html = preg_replace( '/>\s+</', '> <', $html );
+			if ( null === $html ) {
+				return $orig;
+			}
 		}
 		$html = trim( $html );
 		// Restore protected blocks.
@@ -355,6 +367,15 @@ class Velox_Cache {
 		if ( function_exists( 'wp_cache_clear_cache' ) ) { wp_cache_clear_cache(); }         // WP Super Cache
 		if ( has_action( 'litespeed_purge_all' ) ) { do_action( 'litespeed_purge_all' ); }   // LiteSpeed Cache
 		do_action( 'velox_purge_all' );
+		// Warm the cache back up in the background (debounced — rapid purges collapse
+		// into one), so the next visitor doesn't pay for the rebuild. Opt-out via the
+		// "Auto-warm cache after purge" setting.
+		if ( self::enabled()
+			&& Velox_Settings::get( 'cache_auto_preload', true )
+			&& function_exists( 'wp_schedule_single_event' )
+			&& ! wp_next_scheduled( 'velox_cache_preload' ) ) {
+			wp_schedule_single_event( time() + 12, 'velox_cache_preload' );
+		}
 		return true;
 	}
 

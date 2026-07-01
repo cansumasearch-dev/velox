@@ -25,7 +25,13 @@ class Velox_Seo {
 		add_filter( 'robots_txt', array( __CLASS__, 'filter_robots' ), PHP_INT_MAX, 2 );
 
 		// <head> output.
-		add_filter( 'pre_get_document_title', array( __CLASS__, 'filter_title' ), 20 );
+		// Win any pre_get_document_title filter war (Oxygen / other SEO plugins) by
+		// running last, and back it up with a wp_head output-buffer that fixes the
+		// actual <title> tag when a custom SEO title is set (covers themes/builders
+		// that print their own title instead of using wp_get_document_title()).
+		add_filter( 'pre_get_document_title', array( __CLASS__, 'filter_title' ), PHP_INT_MAX );
+		add_action( 'wp_head', array( __CLASS__, 'buffer_title_start' ), -1 );
+		add_action( 'wp_head', array( __CLASS__, 'buffer_title_end' ), 999 );
 		add_action( 'wp_head', array( __CLASS__, 'head_tags' ), 1 );
 		// Own the robots directives through WP's native filter so there's exactly one
 		// robots tag, and so index,follow is emitted explicitly (not just left implicit).
@@ -153,6 +159,33 @@ class Velox_Seo {
 		}
 		$custom = get_post_meta( get_queried_object_id(), '_velox_seo_title', true );
 		return $custom ? $custom : $title;
+	}
+
+	/** The custom SEO title for the current singular view, or '' if none set. */
+	private static function custom_title() {
+		if ( ! Velox_Settings::get( 'module_seo', true ) || ! is_singular() ) { return ''; }
+		$t = get_post_meta( get_queried_object_id(), '_velox_seo_title', true );
+		return is_string( $t ) ? trim( $t ) : '';
+	}
+
+	/** Start buffering wp_head so we can guarantee the <title> when a custom one is set. */
+	public static function buffer_title_start() {
+		if ( '' !== self::custom_title() ) { ob_start(); }
+	}
+
+	/**
+	 * Replace the <title> emitted inside wp_head with the custom SEO title. Replace-only
+	 * (never injects a second tag) so themes/builders that print their own title get
+	 * corrected without ever producing a duplicate title.
+	 */
+	public static function buffer_title_end() {
+		$custom = self::custom_title();
+		if ( '' === $custom || 0 === ob_get_level() ) { return; }
+		$html = ob_get_clean();
+		if ( preg_match( '/<title\b[^>]*>.*?<\/title>/is', $html ) ) {
+			$html = preg_replace( '/<title\b[^>]*>.*?<\/title>/is', '<title>' . esc_html( $custom ) . '</title>', $html, 1 );
+		}
+		echo $html; // phpcs:ignore WordPress.Security.EscapingOutput -- pre-rendered head HTML; injected title is escaped above.
 	}
 
 	public static function head_tags() {

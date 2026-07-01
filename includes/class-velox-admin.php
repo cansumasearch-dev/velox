@@ -378,19 +378,48 @@ class Velox_Admin {
 
 			case 'minified':
 				$label = 'Minified CSS/JS';
-				$purge_wpfc();
+				// Velox clears its OWN minified / used-CSS first — this works with or
+				// without WP Fastest Cache, so the button is never a dead end.
+				if ( class_exists( 'Velox_CSS' ) ) {
+					Velox_CSS::clear_cache();
+					$done[] = 'Velox used/minified CSS';
+				}
+				if ( class_exists( 'Velox_Cache' ) ) {
+					Velox_Cache::purge_all();
+					$done[] = 'Velox page cache';
+				}
+				// Then hand WP Fastest Cache a purge only if it happens to be present —
+				// no error if it isn't.
+				if ( function_exists( 'wpfc_clear_all_cache' ) ) {
+					wpfc_clear_all_cache( true );
+					$done[] = 'WP Fastest Cache';
+				} elseif ( isset( $GLOBALS['wp_fastest_cache'] ) && method_exists( $GLOBALS['wp_fastest_cache'], 'deleteCache' ) ) {
+					$GLOBALS['wp_fastest_cache']->deleteCache( true );
+					$done[] = 'WP Fastest Cache';
+				}
 				break;
 
 			case 'oxygen':
 				$label = 'Oxygen CSS';
+				$oxy_present = defined( 'CT_VERSION' ) || function_exists( 'oxygen_vsb_cache_universal_css_file' ) || class_exists( 'OxygenElement' ) || defined( 'OXYGEN_VSB_PLUGIN_DIR' );
 				if ( function_exists( 'oxygen_vsb_cache_universal_css_file' ) ) {
 					oxygen_vsb_cache_universal_css_file();
 					$done[] = 'Oxygen CSS';
 				} elseif ( has_action( 'oxygen_vsb_cache_generate_css' ) ) {
 					do_action( 'oxygen_vsb_cache_generate_css' );
 					$done[] = 'Oxygen CSS';
+				} elseif ( $oxy_present ) {
+					// Oxygen is installed but this version doesn't expose its regen helper.
+					// Force a rebuild ourselves by clearing the cached universal-CSS
+					// signature options so Oxygen regenerates on the next front-end load,
+					// and drop Velox's own used-CSS cache alongside it.
+					delete_option( 'oxygen_vsb_universal_css_url' );
+					delete_option( 'oxygen_vsb_universal_css_cache' );
+					delete_option( 'ct_universal_css_status' );
+					if ( class_exists( 'Velox_CSS' ) ) { Velox_CSS::clear_cache(); }
+					$done[] = 'Oxygen CSS (queued rebuild)';
 				} else {
-					$missing[] = 'Oxygen not active';
+					$missing[] = "Oxygen isn't installed on this site";
 				}
 				break;
 
@@ -440,7 +469,27 @@ class Velox_Admin {
 
 	/** Size + centre the Velox icon in the left admin menu (loads on every admin page). */
 	public function menu_icon_css() {
-		echo '<style>#adminmenu #toplevel_page_' . esc_attr( self::SLUG ) . ' .wp-menu-image img{width:25px;height:25px;padding:5px 0 0;margin:0 auto;display:block;}</style>';
+		$slug = esc_attr( self::SLUG );
+		echo '<style id="velox-adminmenu-fix">';
+		// Icon sizing.
+		echo '#adminmenu #toplevel_page_' . $slug . ' .wp-menu-image img{width:25px;height:25px;padding:5px 0 0;margin:0 auto;display:block;}';
+		// 8b — legible hover for every Velox menu/submenu item. Some admin colour
+		// schemes paint the hovered row a dark fill and leave the text dark, so the
+		// label + arrow vanish. Keep the background unchanged and colour the text
+		// (and the arrow hint) with the Velox accent instead.
+		$m = '#adminmenu #toplevel_page_' . $slug;
+		echo $m . ' .wp-submenu a:hover,';
+		echo $m . ' .wp-submenu a:focus,';
+		echo $m . ' .wp-submenu li.current a:hover,';
+		echo $m . '.wp-has-current-submenu .wp-submenu a:hover,';
+		echo $m . '.opensub .wp-submenu a:hover{background:transparent!important;color:#2ab7f1!important;box-shadow:none!important;}';
+		// Top-level Velox row hover.
+		echo $m . ':hover>a.menu-top,';
+		echo $m . '>a.menu-top:focus{color:#2ab7f1!important;}';
+		// Arrow hint stays visible in the accent colour on hover/focus.
+		echo $m . ' .velox-util-haspop:hover>a::after,';
+		echo $m . ' .velox-util-haspop>a:focus::after{color:#2ab7f1!important;opacity:1!important;}';
+		echo '</style>';
 	}
 
 	public function assets( $hook ) {

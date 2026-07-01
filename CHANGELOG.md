@@ -4,6 +4,102 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 2.93.0 — Mail editor QA fixes
+- Fixed the Build/Style/Preview mode highlight: the builder's switcher was also binding to the style-editor's copy of the navbar (it's a sibling in the DOM), so the active highlight could get cleared. The switcher is now scoped to the builder, and the Build highlight is restored automatically when the Style or Preview overlay closes.
+- Hardened the navbar so button labels (e.g. "Save form") never wrap to two lines at narrower admin widths.
+
+
+## 2.92.0 — Cache: auto-warm after purge (section 9, part 5 / cache parity)
+- New "Auto-warm cache after purge" setting (Cache tab, on by default). After a full cache clear — manual, theme switch, menu update or customizer save — Velox schedules a debounced background rebuild of the homepage and recent pages a few seconds later, so the next visitor lands on a warm cache instead of triggering the regeneration themselves. This is the WP-Rocket-style preload behaviour applied to Velox's own cache.
+- Rapid successive purges collapse into a single scheduled warm-up.
+
+
+## 2.91.0 — Performance: font detector with per-font preload (section 9, part 4 / 9b)
+- New "Detect fonts" button in the Fonts tab scans your front page and its stylesheets (same-origin + Google Fonts) for every @font-face and lists one row per family / weight / style with the actual file name.
+- Each row has a preload switch. Turning it on adds that font file to the preload list, so Velox emits <link rel="preload" as="font"> for it — ideal for the 1–2 above-the-fold fonts. Turning it off removes it. Changes persist immediately.
+
+
+## 2.90.0 — Performance: info tooltips on every setting (section 9, part 3 / 9d)
+- Every Performance setting (all tabs) now has an "i" info icon that reveals its description on hover or keyboard focus, with an aria-label for screen readers.
+- The always-visible description lines were removed so rows are compact and scannable — the full text now lives in the tooltip.
+
+
+## 2.89.0 — Performance: dedicated HTML tab (section 9, part 2 / 9a)
+- Added an HTML section to the Performance nav (between General and CSS) and moved the Minify HTML control into it.
+- Two new sub-controls under it: "Remove HTML comments" and "Collapse whitespace", each independently toggleable, so you can tune exactly what minification does. Both default on (matching prior behaviour) and only apply when Minify HTML is on. Protected blocks (script/style/pre/textarea/conditional comments) are always preserved.
+
+
+## 2.88.0 — Cache actions do the work themselves (section 9, part 1)
+- "Clear minified CSS/JS" no longer dead-ends with "WP Fastest Cache not active" — Velox clears its own used/minified CSS and page cache first, and only hands WP Fastest Cache a purge if it's actually installed.
+- "Regenerate Oxygen CSS" now recognises Oxygen by several signatures (CT_VERSION, plugin dir, class, function). If Oxygen's own regen helper isn't exposed in that version, Velox queues a rebuild itself by clearing the universal-CSS signature options + its own CSS cache, instead of falsely claiming "Oxygen not active".
+
+
+## 2.87.0 — Admin menu: fix unreadable hover on Velox menu items (8b)
+- Some admin colour schemes painted the hovered Velox menu/submenu row a dark fill while leaving the text dark, so labels and the arrow hint disappeared. Velox now keeps the row background unchanged on hover and colours the text (and arrow) with the accent instead — across the top-level row, every submenu item, and the collapsed-menu flyout.
+
+
+## 2.86.0 — Mail & forms: Preview on the shared navbar (part 4 — form-editor redesign complete)
+- The Preview now uses the same shared navbar as Build and Style (Preview active), with a Desktop/Mobile toggle and Close on the right, plus the on/off toggle kept in sync. Build/back returns to the builder; Style jumps to the Style editor.
+- Preview stays form-only on a clean backdrop (no fake browser chrome); the submit button keeps its label; a slim "nothing is submitted" note sits under the bar.
+- This completes the Mail form-editor redesign: one identical navbar across Build / Style / Preview, restyled palette, and the per-form on/off toggle.
+
+
+## 2.85.0 — Mail & forms: Style editor on the shared navbar (part 3 of the form-editor redesign)
+- The Style editor now uses the exact same top navbar as Build — back, breadcrumb, form name, on/off toggle, and the Build / Style / Preview switcher (Style active). Only the right-side actions differ: device toggles + Reset + Save & close.
+- Build (and the back arrow) return you to the builder; Preview jumps straight to preview; the on/off toggle stays in sync with the one in Build.
+- Next: the rebuilt Preview (form-only, no browser frame).
+
+
+## 2.84.0 — Mail & forms: build-mode palette restyle (part 2 of the form-editor redesign)
+- Reworked the field palette to the approved design: a single-column grouped list (Basic / Advanced / Layout) with borderless icon-row items and soft icon boxes, replacing the old boxed 2-column grid. Field names no longer truncate. All groups open by default.
+- Next: the Style editor and the rebuilt Preview.
+
+
+## 2.83.0 — Mail & forms: unified editor navbar + per-form on/off (part 1 of the form-editor redesign)
+- New shared editor navbar with a Build / Style / Preview mode switcher that stays identical across all three modes; only the right-side actions change. Replaces the old top bar and removes the vanity stat tiles.
+- **Per-form on/off toggle** (next to the form name). When a form is switched off, its shortcode renders nothing on the front end (admins see a small "this form is off" hint). Persists immediately.
+- Note: this is the first stage of the Mail redesign — the palette/canvas/inspector restyle, the Style editor, and the rebuilt Preview land in the next updates.
+
+
+## 2.82.0 — SEO: guarantee the meta title
+- The custom SEO title now overrides reliably even when Oxygen or another SEO plugin fights for it: the title filter runs at max priority, and a head safety-net corrects the <title> tag if something else prints its own (never duplicating it).
+- (Social-cards autosave toggle was already fixed in 2.76.0.)
+
+
+## 2.81.0 — Custom fields: options-page parent fixes
+- **Options pages no longer vanish** when given a non-top-level parent (e.g. "Under Velox"). They now register after the parent menus exist, so the submenu attaches correctly.
+- **Edit reopens with the correct parent.** The parent-menu dropdown was showing the wrong value when reopening a saved options page; the custom dropdown now syncs to the saved parent.
+- (Active toggles on every card and the un-clipped location-rules dropdown were already in place.)
+
+
+## 2.81.0 — Custom fields: active toggle on the cards
+- Field groups, custom post types, taxonomies and options pages now have an **active/inactive toggle right on their card** in the list — flip it to enable/disable without opening the editor. Saves instantly.
+
+
+## 2.80.0 — Maintenance: Lottie field only shows when relevant
+- The "Lottie animation file" input now appears only when the loading animation is set to "Lottie animation", and hides for the other animation types.
+
+
+## 2.79.0 — Unused media: fix "everything is referenced"
+- Fixed the over-eager scan that flagged every image as used. The by-ID reference check now matches an attachment ID only as a discrete value (exact, in a comma list, or quoted in serialized/JSON data) instead of as a bare substring — which had been matching the ID's digits anywhere inside Oxygen's page-builder JSON and marking everything as in use. Real references (ACF images, galleries, blocks) are still detected.
+
+
+## 2.78.0 — Settings: drop Modules, add System status
+- Removed the **Modules** on/off section — Velox is now all-in-one, every module always on (SEO included).
+- Replaced it with a **System status** panel: Velox/WordPress/PHP versions, memory limit, max upload size, and writable checks for the cache dir and .htaccess.
+
+
+## 2.77.0 — Dashboard: grid fill, smooth drag, Y-axis, edit-mode fixes
+- **Widgets now fill the row.** Cards flex to fill the width — one card is full width, two split it in half, three into thirds, with no dead space. Reordering reflows the same way.
+- **Smoother drag.** Reworked drag-to-reorder as a pointer-based sortable: the card lifts and follows the cursor, a placeholder shows the drop slot, and the other cards slide into place.
+- **Visitors widget Y-axis.** The sparkline now shows visitor-count labels (max / mid / 0) down the left.
+- **Edit-mode controls fixed.** The "Done" button and the "widgets selected" bar were showing all the time (a hidden-attribute override bug); they now appear only in Edit mode and disappear on Done.
+
+
+## 2.76.0 — Fix: Social cards (OG) toggle now saves
+- The SEO "Social cards (Open Graph)" switch had no save handler, so it couldn't be turned off — it snapped back on every reload. It now saves on change like the robots/sitemap toggles.
+
+
 ## 2.75.0 — Custom fields: clearer edit screen + Bootstrap icon picker
 - **Field groups are now obvious on the edit screen.** The meta box gets a branded "Custom fields" header with an icon, a field count, an accent border and clean separators between fields — no more blending into the page as a plain grey box.
 - **Bootstrap-icon picker for options pages.** When creating an options page, click "Choose icon" to search a grid of common Bootstrap icons (e.g. gift, gear, cart) instead of hunting for a dashicons class. The exact icon is used for the admin menu. You can still type a `dashicons-…` class or image URL.

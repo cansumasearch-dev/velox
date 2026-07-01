@@ -944,6 +944,60 @@
 			} );
 		}
 
+		/* Font detector (9b): list every @font-face, toggle preload per file. */
+		var fDetect = $( '#velox-font-detect' );
+		var fDList  = $( '#velox-font-detect-list' );
+		function fontPreloadList() {
+			var ta = $( '[data-setting="perf_preload_fonts"]' );
+			return ( ta ? ta.value : '' ).split( '\n' ).map( function ( s ) { return s.trim(); } ).filter( Boolean );
+		}
+		function setFontPreload( urls ) {
+			var ta = $( '[data-setting="perf_preload_fonts"]' );
+			if ( ta ) { ta.value = urls.join( '\n' ); }
+			saveSettings( { perf_preload_fonts: urls.join( '\n' ) } );
+		}
+		if ( fDetect && fDList ) {
+			fDetect.addEventListener( 'click', function () {
+				fDetect.disabled = true;
+				fDetect.textContent = 'Scanning…';
+				api( 'detect_fonts', {} )
+					.then( function ( d ) {
+						var fonts = ( d && d.fonts ) || [];
+						fDList.hidden = false;
+						if ( ! fonts.length ) {
+							fDList.innerHTML = '<p class="velox-hint">No @font-face fonts were detected on the front page. Fonts loaded only inside the builder or via JS may not show here.</p>';
+							return;
+						}
+						var pre  = fontPreloadList();
+						var html = '';
+						fonts.forEach( function ( f ) {
+							var on   = pre.indexOf( f.url ) !== -1;
+							var file = f.url.split( '/' ).pop().split( '?' )[0];
+							var meta = f.weight + ( f.style && 'normal' !== f.style ? ' · ' + f.style : '' );
+							html += '<div class="velox-font-row">' +
+								'<div class="velox-font-info"><span class="velox-font-fam">' + escapeHtml( f.family ) + '</span>' +
+								'<span class="velox-font-meta">' + escapeHtml( meta ) + ' · ' + escapeHtml( file ) + '</span></div>' +
+								'<label class="velox-switch" title="Preload this font"><input type="checkbox" class="velox-font-pre" data-url="' + escapeHtml( f.url ) + '"' + ( on ? ' checked' : '' ) + '><span class="velox-switch-track"></span></label>' +
+								'</div>';
+						} );
+						fDList.innerHTML = html;
+						$$( '.velox-font-pre', fDList ).forEach( function ( cb ) {
+							cb.addEventListener( 'change', function () {
+								var urls = fontPreloadList();
+								var u    = cb.getAttribute( 'data-url' );
+								var i    = urls.indexOf( u );
+								if ( cb.checked && -1 === i ) { urls.push( u ); }
+								else if ( ! cb.checked && -1 !== i ) { urls.splice( i, 1 ); }
+								setFontPreload( urls );
+								toast( cb.checked ? 'Added to preload.' : 'Removed from preload.' );
+							} );
+						} );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { fDetect.disabled = false; fDetect.textContent = 'Detect fonts'; } );
+			} );
+		}
+
 		/* Remove-unused-CSS: scan & build (saves settings first, then renders each page) */
 		var rucssScan = $( '#velox-rucss-scan' );
 		var rucssStatus = $( '#velox-rucss-status' );
@@ -2674,7 +2728,7 @@
 		}
 		function v( id ) { var el = $( '#' + id ); return el ? el.value : ''; }
 		function chk( id ) { var el = $( '#' + id ); return el ? el.checked : false; }
-		function set( id, val ) { var el = $( '#' + id ); if ( el ) { el.value = val == null ? '' : val; } }
+		function set( id, val ) { var el = $( '#' + id ); if ( el ) { el.value = val == null ? '' : val; if ( el.tagName === 'SELECT' ) { el.dispatchEvent( new Event( 'change', { bubbles: false } ) ); } } }
 		function setOn( id, on ) { var el = $( '#' + id ); if ( el ) { el.checked = !! on; } }
 
 		/* ---- Post types ---- */
@@ -2785,6 +2839,19 @@
 				} );
 			}
 		}
+
+		/* ---- Active toggles on entity cards (field groups, post types, taxonomies, options pages) ---- */
+		document.addEventListener( 'change', function ( e ) {
+			var tgl = e.target.closest ? e.target.closest( '.vfx-row-toggle' ) : null;
+			if ( ! tgl || ! e.target.matches( 'input[type="checkbox"]' ) ) { return; }
+			var vtype = tgl.getAttribute( 'data-vtype' ), vid = tgl.getAttribute( 'data-id' ), on = e.target.checked;
+			var statusEl = tgl.parentNode ? tgl.parentNode.querySelector( '.vfx-row-status, .vfg-list-status' ) : null;
+			function paint( active ) { if ( statusEl ) { statusEl.textContent = active ? 'Active' : 'Inactive'; statusEl.classList.toggle( 'is-active', active ); } }
+			paint( on );
+			api( 'vfx_toggle', { vtype: vtype, id: vid, active: on ? 1 : 0 } )
+				.then( function () { toast( on ? 'Activated.' : 'Deactivated.' ); } )
+				.catch( function ( err ) { toast( err.message || 'Could not update.', 'error' ); e.target.checked = ! on; paint( ! on ); } );
+		} );
 
 		/* ---- Options pages ---- */
 		var opEditor = $( '#vop-editor' );
@@ -3193,6 +3260,12 @@
 		var pvLogo = $( '#vmp-logo' ), pvTitle = $( '#vmp-title' ), pvMsg = $( '#vmp-msg' ),
 			pvBtn = $( '#vmp-btn' ), pvAnim = $( '#vmp-anim' ), pvBrand = $( '#vmp-brand' );
 		var elBrand = g( 'util_maintenance_brand' ), elAnim = g( 'util_maintenance_anim' );
+
+		// Lottie file field is only relevant when the animation type is "lottie".
+		var lottieField = $( '#velox-maint-lottie-field' );
+		function syncLottieField() { if ( lottieField && elAnim ) { lottieField.hidden = ( elAnim.value !== 'lottie' ); } }
+		if ( elAnim ) { elAnim.addEventListener( 'change', syncLottieField ); }
+		syncLottieField();
 
 		function animHtml( type, accent ) {
 			if ( type === 'none' ) { return ''; }
@@ -3789,7 +3862,7 @@
 		}
 
 		/* ---------- palette ---------- */
-		var palOpen = { general: true, advanced: false, layout: false };
+		var palOpen = { general: true, advanced: true, layout: true };
 		function renderPalette( filter ) {
 			filter = ( filter || '' ).toLowerCase();
 			palette.innerHTML = '';
@@ -4362,6 +4435,40 @@
 			var suc = $( '#vmail-success' ); if ( suc ) { suc.addEventListener( 'input', function () { form.success = suc.value; } ); }
 			var ac = $( '#vmail-accent' ); if ( ac ) { ac.addEventListener( 'input', function () { form.accent = ac.value; renderCanvas(); } ); }
 			var cap = $( '#vmail-captcha' ); if ( cap ) { cap.addEventListener( 'change', function () { form.captcha = cap.checked; } ); }
+			// Per-form on/off toggle (7a): reflects in the label + persists immediately.
+			var en = $( '#vmail-enabled' ), enLbl = $( '#vmail-onoff-label' );
+			if ( en ) {
+				var syncEnabled = function () { form.enabled = en.checked; if ( enLbl ) { enLbl.textContent = en.checked ? 'On' : 'Off'; enLbl.classList.toggle( 'is-on', en.checked ); } };
+				en.addEventListener( 'change', function () { syncEnabled(); autosave(); toast( en.checked ? 'Form is on.' : 'Form is off — hidden from visitors.' ); } );
+				syncEnabled();
+			}
+			// Mode switcher (Build / Style / Preview) active-state highlight — scoped to
+			// the builder's own navbar so it never touches the style-editor's copy.
+			var navRoot  = $( '#vmail-builder' ) || document;
+			var modebtns = $$( '.vmail-modebtn', navRoot );
+			var ghosts   = $$( '.vmail-nav-ghost', navRoot );
+			modebtns.forEach( function ( b ) {
+				b.addEventListener( 'click', function () {
+					modebtns.forEach( function ( x ) { x.classList.remove( 'is-active' ); } );
+					b.classList.add( 'is-active' );
+					ghosts.forEach( function ( x ) { x.classList.remove( 'is-active' ); } );
+				} );
+			} );
+			// Notifications / Settings ghost buttons: clear the mode highlight while active.
+			ghosts.forEach( function ( b ) {
+				b.addEventListener( 'click', function () {
+					modebtns.forEach( function ( x ) { x.classList.remove( 'is-active' ); } );
+					ghosts.forEach( function ( x ) { x.classList.remove( 'is-active' ); } );
+					b.classList.add( 'is-active' );
+				} );
+			} );
+			// Return to the Build highlight when an overlay (style/preview) closes.
+			window.veloxMailHighlightBuild = function () {
+				modebtns.forEach( function ( x ) { x.classList.remove( 'is-active' ); } );
+				ghosts.forEach( function ( x ) { x.classList.remove( 'is-active' ); } );
+				var bb = navRoot.querySelector ? navRoot.querySelector( '.vmail-modebtn[data-tab="build"]' ) : null;
+				if ( bb ) { bb.classList.add( 'is-active' ); }
+			};
 		}
 		function save() {
 			reKey();
@@ -4406,19 +4513,45 @@
 				overlay = document.createElement( 'div' );
 				overlay.className = 'vmp'; overlay.hidden = true;
 				overlay.innerHTML =
-					'<div class="vmp-top">' +
-						'<span class="vmp-ttl"><span class="vmp-dot"></span> Live preview</span>' +
-						'<span class="vmp-note">Exactly what visitors see \u2014 type in it, nothing is submitted.</span>' +
-						'<span class="vmp-sp"></span>' +
-						'<div class="vmp-dev" id="vmp-dev"><button class="is-on" type="button" data-d="desktop">Desktop</button><button type="button" data-d="mobile">Mobile</button></div>' +
-						'<button class="velox-btn velox-btn--ghost" id="vmp-to-style" type="button"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="margin-right:6px;"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>Edit styles</button>' +
-						'<button class="velox-btn velox-btn--ghost" id="vmp-close" type="button">Close</button>' +
+					'<div class="vmail-nav vmail-nav--vmp">' +
+						'<div class="vmail-nav-left">' +
+							'<a class="vmail-nav-back" id="vmp-back" title="Back to Build" style="cursor:pointer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>' +
+							'<div class="vmail-nav-crumb">Utilities <span>/</span> <b>Mail &amp; forms</b></div>' +
+							'<div class="vmail-nav-vsep"></div>' +
+							'<span class="vmail-nav-title vmail-nav-title--static">' + escapeHtml( form.title || 'Form' ) + '</span>' +
+							'<label class="vmail-nav-switch" title="Turn this form on or off"><input type="checkbox" id="vmp-enabled"' + ( form.enabled !== false ? ' checked' : '' ) + '><span class="vmail-switch-track"></span></label>' +
+							'<span class="vmail-nav-onoff' + ( form.enabled !== false ? ' is-on' : '' ) + '" id="vmp-onoff-label">' + ( form.enabled !== false ? 'On' : 'Off' ) + '</span>' +
+						'</div>' +
+						'<div class="vmail-nav-mode">' +
+							'<button type="button" class="vmail-modebtn" id="vmp-to-build"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M3 12h18M3 19h12"/></svg> Build</button>' +
+							'<button type="button" class="vmail-modebtn" id="vmp-to-style"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Style</button>' +
+							'<button type="button" class="vmail-modebtn is-active"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Preview</button>' +
+						'</div>' +
+						'<div class="vmail-nav-right">' +
+							'<div class="vmail-nav-devs" id="vmp-dev"><button class="is-on" type="button" data-d="desktop"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg> Desktop</button><button type="button" data-d="mobile"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="2" width="10" height="20" rx="2.5"/></svg> Mobile</button></div>' +
+							'<button class="velox-btn velox-btn--primary" id="vmp-close" type="button">Close</button>' +
+						'</div>' +
 					'</div>' +
+					'<div class="vmp-note-bar">Live preview — type in it, nothing is submitted.</div>' +
 					'<div class="vmp-stage"><div class="vmp-frame" id="vmp-frame"><div class="vse-pf" id="vmp-form"></div></div></div>' +
 					'<style id="vmp-css"></style>';
 				document.body.appendChild( overlay );
 				$( '#vmp-close', overlay ).addEventListener( 'click', close );
+				var pBack = $( '#vmp-back', overlay ), pBuild = $( '#vmp-to-build', overlay );
+				if ( pBack ) { pBack.addEventListener( 'click', close ); }
+				if ( pBuild ) { pBuild.addEventListener( 'click', close ); }
 				$( '#vmp-to-style', overlay ).addEventListener( 'click', function () { close(); if ( openStyleEditor ) { openStyleEditor(); } } );
+				var pEn = $( '#vmp-enabled', overlay ), pEnLbl = $( '#vmp-onoff-label', overlay );
+				if ( pEn ) {
+					pEn.addEventListener( 'change', function () {
+						form.enabled = pEn.checked;
+						if ( pEnLbl ) { pEnLbl.textContent = pEn.checked ? 'On' : 'Off'; pEnLbl.classList.toggle( 'is-on', pEn.checked ); }
+						var ben = $( '#vmail-enabled' ), benLbl = $( '#vmail-onoff-label' );
+						if ( ben ) { ben.checked = pEn.checked; }
+						if ( benLbl ) { benLbl.textContent = pEn.checked ? 'On' : 'Off'; benLbl.classList.toggle( 'is-on', pEn.checked ); }
+						autosave(); toast( pEn.checked ? 'Form is on.' : 'Form is off — hidden from visitors.' );
+					} );
+				}
 				$( '#vmp-form', overlay ).addEventListener( 'submit', function ( e ) { e.preventDefault(); } );
 				$$( '#vmp-dev button', overlay ).forEach( function ( d ) {
 					d.addEventListener( 'click', function () {
@@ -4434,7 +4567,7 @@
 				$( '#vmp-css', overlay ).textContent = formPreviewCss( '#vmp-form' );
 				overlay.hidden = false; document.body.style.overflow = 'hidden';
 			}
-			function close() { if ( overlay ) { overlay.hidden = true; document.body.style.overflow = ''; } }
+			function close() { if ( overlay ) { overlay.hidden = true; document.body.style.overflow = ''; } if ( window.veloxMailHighlightBuild ) { window.veloxMailHighlightBuild(); } }
 			openPreviewOverlay = open;
 			btn.addEventListener( 'click', open );
 		}
@@ -4680,7 +4813,7 @@
 					n.addEventListener( 'click', function () {
 						current = n.getAttribute( 'data-target' );
 						$$( '.vse-node', tree ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === n ); } );
-						$( '#vse-target-name' ).textContent = n.querySelector( '.nm' ).textContent;
+						var tn = $( '#vse-target-name' ); if ( tn ) { tn.textContent = n.querySelector( '.nm' ).textContent; }
 						renderControls(); markTarget();
 					} );
 				} );
@@ -4703,12 +4836,31 @@
 			// ---- open / close / save ----
 			function open() {
 				buildPreview(); renderTree(); renderControls(); applyLive();
+				var ven = $( '#vse-enabled' ), venLbl = $( '#vse-onoff-label' );
+				if ( ven ) { ven.checked = ( form.enabled !== false ); if ( venLbl ) { venLbl.textContent = ven.checked ? 'On' : 'Off'; venLbl.classList.toggle( 'is-on', ven.checked ); } }
 				root.hidden = false; document.body.style.overflow = 'hidden';
 			}
-			function close() { root.hidden = true; document.body.style.overflow = ''; }
+			function close() { root.hidden = true; document.body.style.overflow = ''; if ( window.veloxMailHighlightBuild ) { window.veloxMailHighlightBuild(); } }
 			openStyleEditor = open;
 			bindTreeTabs();
 			$( '#vmail-style-btn' ).addEventListener( 'click', open );
+			// Shared-navbar mode switcher inside the style editor: Build + back close it.
+			var toBuild = $( '#vse-to-build' ), backBtn = $( '#vse-back' );
+			if ( toBuild ) { toBuild.addEventListener( 'click', close ); }
+			if ( backBtn ) { backBtn.addEventListener( 'click', close ); }
+			// On/off toggle in the style-editor navbar, kept in sync with the build one.
+			var ven = $( '#vse-enabled' ), venLbl = $( '#vse-onoff-label' );
+			if ( ven ) {
+				ven.addEventListener( 'change', function () {
+					form.enabled = ven.checked;
+					if ( venLbl ) { venLbl.textContent = ven.checked ? 'On' : 'Off'; venLbl.classList.toggle( 'is-on', ven.checked ); }
+					var ben = $( '#vmail-enabled' ), benLbl = $( '#vmail-onoff-label' );
+					if ( ben ) { ben.checked = ven.checked; }
+					if ( benLbl ) { benLbl.textContent = ven.checked ? 'On' : 'Off'; benLbl.classList.toggle( 'is-on', ven.checked ); }
+					autosave(); toast( ven.checked ? 'Form is on.' : 'Form is off — hidden from visitors.' );
+				} );
+				if ( venLbl ) { venLbl.classList.toggle( 'is-on', ven.checked ); }
+			}
 			var toPrev = $( '#vse-to-preview' );
 			if ( toPrev ) { toPrev.addEventListener( 'click', function () { close(); if ( openPreviewOverlay ) { openPreviewOverlay(); } } ); }
 			$( '#vse-save' ).addEventListener( 'click', function () { close(); renderCanvas(); toast( 'Styles applied. Remember to Save the form.' ); } );
@@ -5235,6 +5387,12 @@
 				saveSettings( { seo_sitemap_enable: sitemapEnable.checked ? 1 : 0 }, sitemapEnable.checked ? 'Sitemap enabled.' : 'Sitemap disabled.' );
 			} );
 		}
+		var ogEnable = $( '#velox-seo-og-enable' );
+		if ( ogEnable ) {
+			ogEnable.addEventListener( 'change', function () {
+				saveSettings( { seo_og_enable: ogEnable.checked ? 1 : 0 }, ogEnable.checked ? 'Social cards on.' : 'Social cards off.' );
+			} );
+		}
 
 		var saveBtn = $( '#velox-seo-robots-save' );
 		if ( saveBtn ) {
@@ -5477,13 +5635,29 @@
 			} );
 			label();
 		}
+		function place() {
+			var r = btn.getBoundingClientRect();
+			menu.style.left  = r.left + 'px';
+			menu.style.width = r.width + 'px';
+			var below = window.innerHeight - r.bottom;
+			var mh    = Math.min( 260, menu.scrollHeight + 12 );
+			if ( below < mh + 8 && r.top > below ) {
+				menu.style.top = Math.max( 8, r.top - mh - 5 ) + 'px';
+			} else {
+				menu.style.top = ( r.bottom + 5 ) + 'px';
+			}
+		}
 		function open() {
 			closeAll( wrap );
 			wrap.classList.add( 'is-open' );
 			btn.setAttribute( 'aria-expanded', 'true' );
+			place();
 			var s = menu.querySelector( '.is-sel' );
 			if ( s ) { s.scrollIntoView( { block: 'nearest' } ); }
 		}
+		function onWinChange() { if ( wrap.classList.contains( 'is-open' ) ) { place(); } }
+		window.addEventListener( 'scroll', onWinChange, true );
+		window.addEventListener( 'resize', onWinChange );
 		function close() { wrap.classList.remove( 'is-open' ); btn.setAttribute( 'aria-expanded', 'false' ); }
 		function choose( i ) {
 			if ( i < 0 || i >= sel.options.length || sel.options[ i ].disabled ) { return; }
@@ -5583,7 +5757,7 @@
 
 	function updateBatch() {
 		var n = selected().length;
-		batchbar.hidden = ( n === 0 );
+		batchbar.hidden = ( n === 0 || ! cockpit.classList.contains( 'editing' ) );
 		if ( n ) { batchCnt.textContent = n; batchWord.textContent = ( n === 1 ? 'widget' : 'widgets' ); }
 	}
 	function clearSel() { selected().forEach( function ( w ) { w.classList.remove( 'sel' ); } ); updateBatch(); }
@@ -5615,11 +5789,12 @@
 	function enterEdit() { cockpit.classList.add( 'editing' ); editBtn.hidden = true; doneBtn.hidden = false; newWrap.hidden = false; setDraggable( true ); buildPicker(); }
 	function exitEdit()  { cockpit.classList.remove( 'editing' ); editBtn.hidden = false; doneBtn.hidden = true; newWrap.hidden = true; newMenu.hidden = true; setDraggable( false ); clearSel(); }
 
-	/* ----- drag to reorder (edit mode only) ----- */
-	var dragEl = null;
-	function setDraggable( on ) { widgets().forEach( function ( w ) { w.draggable = on; } ); }
+	/* ----- smooth pointer drag-to-reorder (edit mode only) ----- */
+	var drag = null, justDragged = false;
+	function setDraggable() { /* pointer-based — nothing to toggle */ }
+	function visibleWidgets() { return widgets().filter( function ( w ) { return ! w.classList.contains( 'is-hidden' ); } ); }
 	function dragTarget( x, y ) {
-		var els = widgets().filter( function ( w ) { return w !== dragEl && ! w.classList.contains( 'is-hidden' ); } );
+		var els = Array.prototype.slice.call( cockpit.querySelectorAll( '.velox-w' ) ).filter( function ( w ) { return ! w.classList.contains( 'is-hidden' ); } );
 		var best = null, bestD = Infinity, before = true;
 		els.forEach( function ( w ) {
 			var r = w.getBoundingClientRect();
@@ -5629,28 +5804,66 @@
 		} );
 		return best ? { el: best, before: before } : null;
 	}
-	cockpit.addEventListener( 'dragstart', function ( e ) {
-		if ( ! cockpit.classList.contains( 'editing' ) ) { return; }
-		if ( e.target.closest && e.target.closest( 'a, button' ) ) { e.preventDefault(); return; }
+	// FLIP: animate the widgets sliding to their new slots after a reorder.
+	function flip( mutate ) {
+		var els = visibleWidgets();
+		var first = els.map( function ( w ) { return w.getBoundingClientRect(); } );
+		mutate();
+		els.forEach( function ( w, i ) {
+			var last = w.getBoundingClientRect();
+			var dx = first[ i ].left - last.left, dy = first[ i ].top - last.top;
+			if ( dx || dy ) {
+				w.style.transition = 'none';
+				w.style.transform = 'translate(' + dx + 'px,' + dy + 'px)';
+				requestAnimationFrame( function () {
+					w.style.transition = 'transform 180ms cubic-bezier(.2,.7,.3,1)';
+					w.style.transform = '';
+				} );
+			}
+		} );
+	}
+	cockpit.addEventListener( 'pointerdown', function ( e ) {
+		if ( ! cockpit.classList.contains( 'editing' ) || e.button !== 0 ) { return; }
 		var w = e.target.closest ? e.target.closest( '.velox-w' ) : null;
-		if ( ! w ) { return; }
-		dragEl = w; w.classList.add( 'is-dragging' );
-		if ( e.dataTransfer ) { e.dataTransfer.effectAllowed = 'move'; try { e.dataTransfer.setData( 'text/plain', w.getAttribute( 'data-widget' ) || '' ); } catch ( err ) {} }
+		if ( ! w || w.classList.contains( 'is-hidden' ) ) { return; }
+		if ( e.target.closest( 'a, button, .velox-w-x, .velox-w-act' ) ) { return; }
+		var r = w.getBoundingClientRect();
+		drag = { el: w, sx: e.clientX, sy: e.clientY, ox: e.clientX - r.left, oy: e.clientY - r.top, w: r.width, h: r.height, moved: false, ph: null };
 	} );
-	cockpit.addEventListener( 'dragover', function ( e ) {
-		if ( ! dragEl ) { return; }
+	document.addEventListener( 'pointermove', function ( e ) {
+		if ( ! drag ) { return; }
+		if ( ! drag.moved ) {
+			if ( Math.abs( e.clientX - drag.sx ) + Math.abs( e.clientY - drag.sy ) < 5 ) { return; }
+			drag.moved = true;
+			var ph = document.createElement( 'div' );
+			ph.className = 'velox-w-ph';
+			ph.style.cssText = 'flex:1 1 260px;min-width:0;height:' + drag.h + 'px;';
+			drag.ph = ph;
+			drag.el.parentNode.insertBefore( ph, drag.el );
+			drag.el.classList.add( 'is-dragging' );
+			drag.el.style.cssText += ';position:fixed;margin:0;width:' + drag.w + 'px;height:' + drag.h + 'px;z-index:9999;pointer-events:none;';
+			document.body.appendChild( drag.el );
+		}
 		e.preventDefault();
-		if ( e.dataTransfer ) { e.dataTransfer.dropEffect = 'move'; }
+		drag.el.style.left = ( e.clientX - drag.ox ) + 'px';
+		drag.el.style.top  = ( e.clientY - drag.oy ) + 'px';
 		var t = dragTarget( e.clientX, e.clientY );
-		if ( ! t || t.el === dragEl ) { return; }
-		if ( t.before ) { cockpit.insertBefore( dragEl, t.el ); }
-		else { cockpit.insertBefore( dragEl, t.el.nextSibling ); }
+		if ( t && t.el !== drag.ph ) {
+			flip( function () {
+				if ( t.before ) { cockpit.insertBefore( drag.ph, t.el ); }
+				else { cockpit.insertBefore( drag.ph, t.el.nextSibling ); }
+			} );
+		}
 	} );
-	cockpit.addEventListener( 'drop', function ( e ) { if ( dragEl ) { e.preventDefault(); } } );
-	cockpit.addEventListener( 'dragend', function () {
-		if ( ! dragEl ) { return; }
-		dragEl.classList.remove( 'is-dragging' );
-		dragEl = null;
+	document.addEventListener( 'pointerup', function () {
+		if ( ! drag ) { return; }
+		var d = drag; drag = null;
+		if ( ! d.moved ) { return; }
+		d.el.classList.remove( 'is-dragging' );
+		d.el.style.cssText = '';
+		if ( d.ph && d.ph.parentNode ) { cockpit.insertBefore( d.el, d.ph ); d.ph.remove(); }
+		justDragged = true;
+		setTimeout( function () { justDragged = false; }, 0 );
 		save();
 	} );
 
@@ -5666,7 +5879,7 @@
 	} );
 
 	cockpit.addEventListener( 'click', function ( e ) {
-		if ( ! cockpit.classList.contains( 'editing' ) ) { return; }
+		if ( ! cockpit.classList.contains( 'editing' ) || justDragged ) { return; }
 		var w = e.target.closest ? e.target.closest( '.velox-w' ) : null;
 		if ( ! w ) { return; }
 		if ( e.target.closest( '.velox-w-x' ) ) {

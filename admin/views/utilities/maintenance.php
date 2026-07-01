@@ -78,7 +78,7 @@ $logo_default = VELOX_URL . 'assets/logo.png';
 			</select>
 		</div>
 
-		<div class="velox-field">
+		<div class="velox-field" id="velox-maint-lottie-field" hidden>
 			<span class="velox-field-label">Lottie animation file</span>
 			<div class="velox-media-row">
 				<input type="text" class="velox-input" data-setting="util_maintenance_lottie" value="<?php echo esc_attr( $s['util_maintenance_lottie'] ); ?>" placeholder="https://… .json or .lottie">

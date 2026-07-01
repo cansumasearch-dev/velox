@@ -82,6 +82,7 @@ class Velox_Forms {
 		return array(
 			'id'           => 0,
 			'title'        => 'New form',
+			'enabled'      => true,        // form on/off — when off the shortcode renders nothing on the front end
 			'fields'       => array(), // start empty — the user builds it from the palette
 			'submit_label' => 'Send',
 			'success'      => 'Thanks — we\'ll be in touch soon.',
@@ -145,6 +146,7 @@ class Velox_Forms {
 		$out = array(
 			'id'           => (int) $form['id'],
 			'title'        => sanitize_text_field( $form['title'] ?? 'Form' ),
+			'enabled'      => ! isset( $form['enabled'] ) || ! empty( $form['enabled'] ),
 			'submit_label' => sanitize_text_field( $form['submit_label'] ?? 'Send' ),
 			'success'      => sanitize_text_field( $form['success'] ?? 'Thanks.' ),
 			'captcha'      => ! empty( $form['captcha'] ),
@@ -310,6 +312,13 @@ class Velox_Forms {
 		$form = self::get_form( $id );
 		if ( ! $form ) {
 			return '<!-- velox: form ' . (int) $id . ' not found -->';
+		}
+		// Form switched off in the editor: render nothing on the front end (admins get a hint).
+		if ( isset( $form['enabled'] ) && ! $form['enabled'] ) {
+			if ( current_user_can( 'manage_options' ) ) {
+				return '<div class="velox-form-off" style="padding:14px 16px;border:1px dashed #d2d2d7;border-radius:10px;color:#6e6e73;font:500 13px/1.4 -apple-system,Segoe UI,sans-serif;background:#fafafc">This form is turned off in Velox and is hidden from visitors. <em>(Only administrators see this message.)</em></div>';
+			}
+			return '<!-- velox: form ' . (int) $id . ' is turned off -->';
 		}
 		self::$rendered = true;
 		$accent = esc_attr( $form['accent'] );

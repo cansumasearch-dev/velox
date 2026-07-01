@@ -210,7 +210,10 @@ if ( ! empty( $v_tr['series'] ) ) {
 			<span class="velox-w-big"><?php echo (int) $v_tr['visitors']; ?></span>
 			<span class="velox-w-sub"><?php echo (int) $v_tr['views']; ?> views<?php if ( null !== $v_tr_trend ) : ?> &middot; <span class="<?php echo $v_tr_trend >= 0 ? 'velox-up' : 'velox-down'; ?>"><?php echo ( $v_tr_trend >= 0 ? '&#9650; ' : '&#9660; ' ) . abs( (int) $v_tr_trend ) . '%'; ?></span> vs last week<?php endif; ?></span>
 		</div>
-		<div class="velox-spark"><?php echo $v_tr_spark; ?></div>
+		<div class="velox-spark-wrap">
+			<div class="velox-spark-y"><span><?php echo (int) $vx_max; ?></span><span><?php echo (int) round( $vx_max / 2 ); ?></span><span>0</span></div>
+			<div class="velox-spark"><?php echo $v_tr_spark; ?></div>
+		</div>
 		<div class="velox-spark-axis"><span><?php echo esc_html( $vx_axis[0] ); ?></span><span><?php echo esc_html( $vx_axis[1] ); ?></span><span><?php echo esc_html( $vx_axis[2] ); ?></span></div>
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'dashboard' ) . '&traffic=1' ); ?>">View traffic</a>
 	</div>

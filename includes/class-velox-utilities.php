@@ -771,11 +771,27 @@ class Velox_Utilities {
 		if ( $in_options ) {
 			return true;
 		}
-		// Referenced by attachment ID in meta (blocks/galleries store the ID, not the name)?
-		$id_like = '%' . $wpdb->esc_like( (string) (int) $id ) . '%';
-		$by_id = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE meta_value LIKE %s AND ( meta_key LIKE '%%gallery%%' OR meta_key LIKE '%%image%%' OR meta_key LIKE '%%media%%' OR meta_key LIKE '%%attachment%%' OR meta_key IN ('ct_builder_shortcodes','_elementor_data','_themify_builder_settings_json','panels_data','_bricks_page_content_2') )",
-			$id_like
+		// Referenced by attachment ID in meta (ACF image fields, galleries, blocks store
+		// the ID, not the name). Match the ID only as a *discrete* value — exact, inside a
+		// comma-separated list, or quoted in serialized/JSON data — NEVER as a bare
+		// substring, which would match the ID's digits anywhere inside a page-builder JSON
+		// blob (e.g. Oxygen's ct_builder_shortcodes) and flag basically everything as used.
+		$id_str = (string) (int) $id;
+		$idq    = $wpdb->esc_like( $id_str );
+		$by_id  = $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id <> %d AND (
+				meta_value = %s
+				OR meta_value LIKE %s
+				OR meta_value LIKE %s
+				OR meta_value LIKE %s
+				OR meta_value LIKE %s
+			)",
+			$id,
+			$id_str,                    // exact single-value field (ACF image, _thumbnail_id-style)
+			$idq . ',%',                // start of a comma list
+			'%,' . $idq . ',%',         // middle of a comma list
+			'%,' . $idq,                // end of a comma list
+			'%"' . $idq . '"%'          // serialized / JSON quoted id (ACF gallery, block attrs)
 		) );
 		return (bool) $by_id;
 	}

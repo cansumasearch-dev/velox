@@ -15,12 +15,15 @@ $fields = array(
 	'cache_logged_in'       => array( 'switch', 'Cache for logged-in users', 'Off by default — logged-in visitors always see live pages. Only enable if your site looks identical when logged in.' ),
 	'cache_mobile_separate' => array( 'switch', 'Separate mobile cache', 'Store a separate cached copy for mobile devices. Enable only if your theme serves different markup to phones.' ),
 	'cache_gzip'            => array( 'switch', 'Pre-compress pages', 'Stores gzip (and Brotli where available) copies so the server sends compressed HTML without compressing on every request.' ),
+	'cache_auto_preload'    => array( 'switch', 'Auto-warm cache after purge', 'After a full cache clear, Velox rebuilds the homepage and recent pages in the background (a few seconds later) so the next visitor lands on a warm cache instead of triggering the rebuild themselves.' ),
 	'cache_exclude_urls'    => array( 'textarea', 'Never cache these URLs', 'One path per line. Use * as a wildcard, e.g. /cart, /checkout, /my-account/*.' ),
 	'cache_exclude_cookies' => array( 'textarea', 'Never cache with these cookies', 'One cookie name (or fragment) per line. Requests carrying a matching cookie always bypass the cache.' ),
 
 	// General
 	'perf_disable_emojis'        => array( 'switch', 'Disable emojis', 'Removes the emoji detection script and styles WordPress loads on every page.' ),
 	'perf_minify_html'           => array( 'switch', 'Minify HTML', 'Strips comments and collapses whitespace in the final page HTML. Applies to cached pages and fails safely — script, style, pre and textarea blocks are left untouched.' ),
+	'perf_html_remove_comments'  => array( 'switch', 'Remove HTML comments', 'When minifying, strip <!-- comments --> from the page. Conditional comments and protected blocks are always kept.' ),
+	'perf_html_collapse_whitespace' => array( 'switch', 'Collapse whitespace', 'When minifying, collapse the whitespace between tags. One space is preserved so inline word spacing never breaks.' ),
 	'perf_disable_embeds'        => array( 'switch', 'Disable oEmbed', 'Stops WordPress loading the wp-embed script and embed discovery links.' ),
 	'perf_remove_query_strings'  => array( 'switch', 'Remove query strings', 'Strips ?ver= from static CSS/JS so proxies can cache them better.' ),
 	'perf_disable_xmlrpc'        => array( 'switch', 'Disable XML-RPC', 'Closes a common attack surface and removes the pingback header.' ),
@@ -97,12 +100,12 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 	$opts      = $meta[3] ?? array();
 	$risky_att = $is_risky ? ' data-risky="1"' : '';
 	$badge     = $is_risky ? ' <span class="velox-risky-tag">Risky</span>' : '';
+	$info      = $desc ? ' <span class="velox-info" tabindex="0" data-tip="' . esc_attr( $desc ) . '" aria-label="' . esc_attr( $desc ) . '">i</span>' : '';
 	if ( 'switch' === $type ) {
 		?>
 		<div class="velox-toggle-row"<?php echo $risky_att; ?>>
 			<div class="velox-toggle-meta">
-				<span class="velox-toggle-label"><?php echo esc_html( $label ); ?><?php echo $badge; ?></span>
-				<span class="velox-toggle-desc"><?php echo esc_html( $desc ); ?></span>
+				<span class="velox-toggle-label"><?php echo esc_html( $label ); ?><?php echo $badge; ?><?php echo $info; ?></span>
 			</div>
 			<label class="velox-switch"><input type="checkbox" data-setting="<?php echo esc_attr( $key ); ?>" <?php checked( ! empty( $s[ $key ] ) ); ?>><span class="velox-switch-track"></span></label>
 		</div>
@@ -111,7 +114,7 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 	}
 	?>
 	<div class="velox-field"<?php echo $risky_att; ?>>
-		<span class="velox-field-label"><?php echo esc_html( $label ); ?><?php echo $badge; ?></span>
+		<span class="velox-field-label"><?php echo esc_html( $label ); ?><?php echo $badge; ?><?php echo $info; ?></span>
 		<?php if ( 'number' === $type ) : ?>
 			<input type="number" class="velox-input velox-input--sm" data-setting="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $s[ $key ] ); ?>">
 		<?php elseif ( 'text' === $type ) : ?>
@@ -125,7 +128,6 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 		<?php else : ?>
 			<textarea class="velox-textarea" data-setting="<?php echo esc_attr( $key ); ?>" rows="3"><?php echo esc_textarea( $s[ $key ] ); ?></textarea>
 		<?php endif; ?>
-		<span class="velox-hint"><?php echo esc_html( $desc ); ?></span>
 	</div>
 	<?php
 }
@@ -235,6 +237,13 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 								<button class="velox-btn velox-btn--ghost" id="velox-fonts-clear">Remove local fonts</button>
 							</div>
 							<p class="velox-hint">Velox loads your front page, finds the Google Fonts it uses, downloads the woff2 files into your uploads folder and serves those instead. Re-scan after you change fonts.</p>
+						</div>
+						<div class="velox-fonts-tool">
+							<div class="velox-fonts-status"><strong style="font-size:13px;">Preload fonts</strong><br><span class="velox-hint">Detect every font your site loads, then switch on the 1–2 above-the-fold fonts to preload them. Toggled fonts are added to the preload list above.</span></div>
+							<div class="velox-fonts-btns">
+								<button class="velox-btn velox-btn--primary" id="velox-font-detect">Detect fonts</button>
+							</div>
+							<div id="velox-font-detect-list" class="velox-font-detect-list" hidden></div>
 						</div>
 					<?php endif; ?>
 				</div>

@@ -492,6 +492,24 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Fields::delete_option_page( isset( $_POST['slug'] ) ? sanitize_key( wp_unslash( $_POST['slug'] ) ) : '' ) );
 				break;
 
+			case 'vfx_toggle':
+				$vtype  = isset( $_POST['vtype'] ) ? sanitize_key( wp_unslash( $_POST['vtype'] ) ) : '';
+				$vid    = isset( $_POST['id'] ) ? wp_unslash( $_POST['id'] ) : '';
+				$vact   = ! empty( $_POST['active'] );
+				$vok    = false;
+				if ( 'group' === $vtype ) {
+					$vok = Velox_Fields::set_group_active( (int) $vid, $vact );
+				} elseif ( 'optionpage' === $vtype ) {
+					$vok = Velox_Fields::set_option_page_active( sanitize_key( $vid ), $vact );
+				} elseif ( 'posttype' === $vtype ) {
+					$vok = Velox_Post_Types::set_post_type_active( Velox_Post_Types::clean_slug( $vid, 20 ), $vact );
+				} elseif ( 'taxonomy' === $vtype ) {
+					$vok = Velox_Post_Types::set_taxonomy_active( Velox_Post_Types::clean_slug( $vid, 32 ), $vact );
+				}
+				if ( $vok ) { wp_send_json_success( array( 'active' => $vact ) ); }
+				wp_send_json_error( array( 'message' => 'Could not update.' ) );
+				break;
+
 			case 'submission_delete':
 				wp_send_json_success( Velox_Forms::delete_submission( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
 				break;
@@ -662,6 +680,11 @@ class Velox_Ajax {
 			case 'clear_local_fonts':
 				$fonts = new Velox_Fonts();
 				wp_send_json_success( $fonts->clear() );
+				break;
+
+			case 'detect_fonts':
+				$fonts = new Velox_Fonts();
+				$this->respond( $fonts->detect() );
 				break;
 
 			case 'export_settings':

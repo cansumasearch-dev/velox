@@ -145,7 +145,10 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 						<span class="vfx-row-title"><?php echo esc_html( $pt['plural'] ?: $pt['slug'] ); ?></span>
 						<span class="vfx-row-meta"><code><?php echo esc_html( $pt['slug'] ); ?></code> · <?php echo ! empty( $pt['hierarchical'] ) ? 'hierarchical' : 'flat'; ?><?php echo ! empty( $pt['has_archive'] ) ? ' · archive' : ''; ?></span>
 					</button>
-					<span class="vfx-row-status <?php echo ! empty( $pt['active'] ) ? 'is-active' : ''; ?>"><?php echo ! empty( $pt['active'] ) ? 'Active' : 'Inactive'; ?></span>
+					<span class="vfx-row-active">
+						<span class="vfx-row-status <?php echo ! empty( $pt['active'] ) ? 'is-active' : ''; ?>"><?php echo ! empty( $pt['active'] ) ? 'Active' : 'Inactive'; ?></span>
+						<label class="velox-switch vfx-row-toggle" data-vtype="posttype" data-id="<?php echo esc_attr( $pt['slug'] ); ?>" title="Toggle active"><input type="checkbox" <?php checked( ! empty( $pt['active'] ) ); ?>><span class="velox-switch-track"></span></label>
+					</span>
 					<button class="vfx-row-del vpt-del" data-slug="<?php echo esc_attr( $pt['slug'] ); ?>" title="Delete"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
 				</div>
 			<?php endforeach; endif; ?>
@@ -208,7 +211,10 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 						<span class="vfx-row-title"><?php echo esc_html( $tx['plural'] ?: $tx['slug'] ); ?></span>
 						<span class="vfx-row-meta"><code><?php echo esc_html( $tx['slug'] ); ?></code> · <?php echo ! empty( $tx['hierarchical'] ) ? 'category-like' : 'tag-like'; ?> · <?php echo esc_html( implode( ', ', $tx['object_types'] ) ); ?></span>
 					</button>
-					<span class="vfx-row-status <?php echo ! empty( $tx['active'] ) ? 'is-active' : ''; ?>"><?php echo ! empty( $tx['active'] ) ? 'Active' : 'Inactive'; ?></span>
+					<span class="vfx-row-active">
+						<span class="vfx-row-status <?php echo ! empty( $tx['active'] ) ? 'is-active' : ''; ?>"><?php echo ! empty( $tx['active'] ) ? 'Active' : 'Inactive'; ?></span>
+						<label class="velox-switch vfx-row-toggle" data-vtype="taxonomy" data-id="<?php echo esc_attr( $tx['slug'] ); ?>" title="Toggle active"><input type="checkbox" <?php checked( ! empty( $tx['active'] ) ); ?>><span class="velox-switch-track"></span></label>
+					</span>
 					<button class="vfx-row-del vtx-del" data-slug="<?php echo esc_attr( $tx['slug'] ); ?>" title="Delete"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
 				</div>
 			<?php endforeach; endif; ?>
@@ -257,7 +263,10 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 						<span class="vfx-row-meta"><code><?php echo esc_html( $op['slug'] ); ?></code> · <?php echo '' === $op['parent'] ? 'top-level menu' : esc_html( 'under ' . $op['parent'] ); ?></span>
 					</button>
 					<?php $op_active = ! isset( $op['active'] ) || ! empty( $op['active'] ); ?>
-					<span class="vfx-row-status <?php echo $op_active ? 'is-active' : ''; ?>"><?php echo $op_active ? 'Active' : 'Inactive'; ?></span>
+					<span class="vfx-row-active">
+						<span class="vfx-row-status <?php echo $op_active ? 'is-active' : ''; ?>"><?php echo $op_active ? 'Active' : 'Inactive'; ?></span>
+						<label class="velox-switch vfx-row-toggle" data-vtype="optionpage" data-id="<?php echo esc_attr( $op['slug'] ); ?>" title="Toggle active"><input type="checkbox" <?php checked( $op_active ); ?>><span class="velox-switch-track"></span></label>
+					</span>
 					<button class="vfx-row-del vop-del" data-slug="<?php echo esc_attr( $op['slug'] ); ?>" title="Delete"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>
 				</div>
 			<?php endforeach; endif; ?>
@@ -329,7 +338,10 @@ $edit    = isset( $_GET['group'] ) ? sanitize_text_field( wp_unslash( $_GET['gro
 						<span class="vfg-list-title"><?php echo esc_html( $g['title'] ); ?></span>
 						<span class="vfg-list-meta"><?php echo (int) $nfields; ?> field<?php echo 1 === $nfields ? '' : 's'; ?><?php echo $loc ? ' · ' . esc_html( $loc ) : ''; ?></span>
 					</a>
-					<span class="vfg-list-status <?php echo ! empty( $g['active'] ) ? 'is-active' : ''; ?>"><?php echo ! empty( $g['active'] ) ? 'Active' : 'Inactive'; ?></span>
+					<span class="vfx-row-active">
+						<span class="vfg-list-status <?php echo ! empty( $g['active'] ) ? 'is-active' : ''; ?>"><?php echo ! empty( $g['active'] ) ? 'Active' : 'Inactive'; ?></span>
+						<label class="velox-switch vfx-row-toggle" data-vtype="group" data-id="<?php echo (int) $g['id']; ?>" title="Toggle active"><input type="checkbox" <?php checked( ! empty( $g['active'] ) ); ?>><span class="velox-switch-track"></span></label>
+					</span>
 					<button class="vfg-list-del" data-id="<?php echo (int) $g['id']; ?>" data-title="<?php echo esc_attr( $g['title'] ); ?>" title="Delete">
 						<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg>
 					</button>

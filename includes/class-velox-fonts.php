@@ -210,4 +210,106 @@ class Velox_Fonts {
 		}
 		return $tag;
 	}
+
+	/* ---------------------------------------------------------------- detect (9b) */
+
+	/** Pull a single declaration value out of an @font-face body. */
+	private static function css_decl( $body, $prop ) {
+		if ( preg_match( '/(?:^|;)\s*' . preg_quote( $prop, '/' ) . '\s*:\s*([^;]+)/i', $body, $m ) ) {
+			return trim( $m[1] );
+		}
+		return '';
+	}
+
+	/**
+	 * Scan the front page (and its same-origin + Google Fonts stylesheets) for every
+	 * @font-face the site actually loads, and return one row per family/weight/style
+	 * with the best (woff2-preferred) file URL. Powers the "preload fonts" picker.
+	 */
+	public function detect() {
+		$home = home_url( '/' );
+		$res  = wp_remote_get( $home, array( 'timeout' => 15, 'sslverify' => false, 'user-agent' => 'Mozilla/5.0 (Velox font detect)' ) );
+		if ( is_wp_error( $res ) ) {
+			return $res;
+		}
+		$html = (string) wp_remote_retrieve_body( $res );
+		if ( '' === $html ) {
+			return new WP_Error( 'no_html', __( 'Could not read the front page to scan for fonts.', 'velox' ) );
+		}
+
+		$css      = '';
+		$homehost = wp_parse_url( $home, PHP_URL_HOST );
+
+		// Inline <style> blocks.
+		if ( preg_match_all( '#<style[^>]*>(.*?)</style>#is', $html, $m ) ) {
+			$css .= "\n" . implode( "\n", $m[1] );
+		}
+		// Linked stylesheets — same origin or Google Fonts only.
+		if ( preg_match_all( '#<link[^>]+rel=["\']stylesheet["\'][^>]*>#i', $html, $links ) ) {
+			$seen_css = array();
+			foreach ( $links[0] as $link ) {
+				if ( ! preg_match( '#href=["\']([^"\']+)["\']#i', $link, $h ) ) {
+					continue;
+				}
+				$url = html_entity_decode( $h[1] );
+				if ( 0 === strpos( $url, '//' ) ) {
+					$url = 'https:' . $url;
+				} elseif ( '' !== $url && '/' === $url[0] ) {
+					$url = home_url( $url );
+				}
+				$host = wp_parse_url( $url, PHP_URL_HOST );
+				if ( ! $host || isset( $seen_css[ $url ] ) ) {
+					continue;
+				}
+				$seen_css[ $url ] = true;
+				if ( $host !== $homehost && false === stripos( $host, 'fonts.googleapis.com' ) ) {
+					continue;
+				}
+				$cr = wp_remote_get( $url, array( 'timeout' => 12, 'sslverify' => false, 'user-agent' => 'Mozilla/5.0 (Velox font detect)' ) );
+				if ( ! is_wp_error( $cr ) ) {
+					$css .= "\n" . (string) wp_remote_retrieve_body( $cr );
+				}
+			}
+		}
+
+		$fonts = array();
+		$seen  = array();
+		if ( preg_match_all( '#@font-face\s*{([^}]*)}#is', $css, $faces ) ) {
+			foreach ( $faces[1] as $body ) {
+				$family = trim( self::css_decl( $body, 'font-family' ), " '\"" );
+				$weight = self::css_decl( $body, 'font-weight' );
+				$weight = '' !== $weight ? $weight : '400';
+				$style  = self::css_decl( $body, 'font-style' );
+				$style  = '' !== $style ? $style : 'normal';
+				// Best source URL — prefer woff2.
+				$best = '';
+				if ( preg_match_all( '#url\(\s*([^)]+?)\s*\)#i', $body, $us ) ) {
+					foreach ( $us[1] as $u ) {
+						$u = trim( $u, " '\"" );
+						if ( 0 === strpos( $u, '//' ) ) { $u = 'https:' . $u; }
+						elseif ( '' !== $u && '/' === $u[0] ) { $u = home_url( $u ); }
+						if ( '' === $best ) { $best = $u; }
+						if ( false !== stripos( $u, 'woff2' ) ) { $best = $u; break; }
+					}
+				}
+				if ( '' === $family || '' === $best || isset( $seen[ $best ] ) ) {
+					continue;
+				}
+				$seen[ $best ] = true;
+				$fonts[] = array(
+					'family' => $family,
+					'weight' => $weight,
+					'style'  => $style,
+					'url'    => $best,
+				);
+			}
+		}
+
+		usort( $fonts, function ( $a, $b ) {
+			$c = strcasecmp( $a['family'], $b['family'] );
+			return 0 !== $c ? $c : strcmp( (string) $a['weight'], (string) $b['weight'] );
+		} );
+
+		return array( 'fonts' => $fonts, 'count' => count( $fonts ) );
+	}
 }

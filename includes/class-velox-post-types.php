@@ -45,6 +45,22 @@ class Velox_Post_Types {
 		$v = get_option( self::PT_OPTION, array() );
 		return is_array( $v ) ? $v : array();
 	}
+
+	public static function set_post_type_active( $slug, $active ) {
+		$all = get_option( self::PT_OPTION, array() );
+		if ( ! is_array( $all ) || ! isset( $all[ $slug ] ) ) { return false; }
+		$all[ $slug ]['active'] = (bool) $active;
+		update_option( self::PT_OPTION, $all );
+		return true;
+	}
+
+	public static function set_taxonomy_active( $slug, $active ) {
+		$all = get_option( self::TAX_OPTION, array() );
+		if ( ! is_array( $all ) || ! isset( $all[ $slug ] ) ) { return false; }
+		$all[ $slug ]['active'] = (bool) $active;
+		update_option( self::TAX_OPTION, $all );
+		return true;
+	}
 	public static function all_taxonomies() {
 		$v = get_option( self::TAX_OPTION, array() );
 		return is_array( $v ) ? $v : array();

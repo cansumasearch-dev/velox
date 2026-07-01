@@ -6,7 +6,7 @@ $s = Velox_Settings::all();
 ?>
 <div class="velox-page-head">
 	<h1 class="velox-h2">Settings</h1>
-	<p class="velox-sub">Turn whole modules on or off, set your defaults, and point the auto-updater at your repo.</p>
+	<p class="velox-sub">Set your defaults, point the auto-updater at your repo, and check your environment.</p>
 </div>
 
 <div class="velox-panel">
@@ -31,28 +31,29 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Modules</h3>
-	<p class="velox-hint">Disabling a module hides its tab and stops all of its hooks from loading.</p>
+	<h3 class="velox-panel-title">System status</h3>
+	<p class="velox-hint">A quick read on the environment Velox is running in — handy when debugging or filing a support note.</p>
 	<?php
-	$modules = array(
-		'module_images'      => array( 'Image Optimization', 'WebP conversion, comparator, library stats.' ),
-		'module_media'       => array( 'Media Editor', 'Rename, alt/title editing, pipe import/export.' ),
-		'module_performance' => array( 'Performance', 'Head cleanup, defer, heartbeat, DNS-prefetch.' ),
-		'module_database'    => array( 'Database', 'Cleanup and table optimization.' ),
-		'module_seo'         => array( 'SEO', 'On-page SEO meta box, sitemap and robots.txt. Turn off if Rank Math / Yoast handles this.' ),
+	$vx_cache_dir  = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR . '/cache' : '';
+	$vx_cache_ok   = $vx_cache_dir && ( is_writable( $vx_cache_dir ) || ( ! file_exists( $vx_cache_dir ) && is_writable( dirname( $vx_cache_dir ) ) ) );
+	$vx_htaccess   = get_home_path() . '.htaccess';
+	$vx_status = array(
+		array( 'Velox version', VELOX_VERSION, null ),
+		array( 'WordPress', get_bloginfo( 'version' ), null ),
+		array( 'PHP', PHP_VERSION, version_compare( PHP_VERSION, '7.4', '>=' ) ),
+		array( 'Memory limit', ini_get( 'memory_limit' ), null ),
+		array( 'Max upload size', size_format( wp_max_upload_size() ), null ),
+		array( 'Cache directory writable', $vx_cache_ok ? 'Yes' : 'No', (bool) $vx_cache_ok ),
+		array( '.htaccess writable', ( file_exists( $vx_htaccess ) && is_writable( $vx_htaccess ) ) ? 'Yes' : 'No', file_exists( $vx_htaccess ) && is_writable( $vx_htaccess ) ),
 	);
-	foreach ( $modules as $key => $m ) :
-		$on = ! empty( $s[ $key ] );
+	foreach ( $vx_status as $row ) :
+		$vx_dot = '';
+		if ( true === $row[2] )  { $vx_dot = ' velox-status-v--ok'; }
+		if ( false === $row[2] ) { $vx_dot = ' velox-status-v--warn'; }
 		?>
-		<div class="velox-toggle-row">
-			<div class="velox-toggle-meta">
-				<span class="velox-toggle-label"><?php echo esc_html( $m[0] ); ?></span>
-				<span class="velox-toggle-desc"><?php echo esc_html( $m[1] ); ?></span>
-			</div>
-			<label class="velox-switch">
-				<input type="checkbox" data-setting="<?php echo esc_attr( $key ); ?>" <?php checked( $on ); ?>>
-				<span class="velox-switch-track"></span>
-			</label>
+		<div class="velox-status-row">
+			<span class="velox-status-k"><?php echo esc_html( $row[0] ); ?></span>
+			<span class="velox-status-v<?php echo esc_attr( $vx_dot ); ?>"><?php echo esc_html( $row[1] ); ?></span>
 		</div>
 	<?php endforeach; ?>
 </div>

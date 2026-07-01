@@ -96,7 +96,7 @@ class Velox_Fields {
 		add_action( 'add_meta_boxes', array( __CLASS__, 'register_meta_boxes' ) );
 		add_action( 'save_post', array( __CLASS__, 'save_post_meta' ), 10, 2 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue_edit_assets' ) );
-		add_action( 'admin_menu', array( __CLASS__, 'register_option_pages' ) );
+		add_action( 'admin_menu', array( __CLASS__, 'register_option_pages' ), 100 );
 		add_action( 'admin_post_velox_save_options', array( __CLASS__, 'handle_save_options' ) );
 	}
 
@@ -124,6 +124,22 @@ class Velox_Fields {
 			'active'     => ! isset( $p['active'] ) || ! empty( $p['active'] ),
 		);
 	}
+	public static function set_group_active( $id, $active ) {
+		$all = self::all();
+		if ( ! isset( $all[ $id ] ) ) { return false; }
+		$all[ $id ]['active'] = (bool) $active;
+		update_option( self::OPTION, $all );
+		return true;
+	}
+
+	public static function set_option_page_active( $slug, $active ) {
+		$all = get_option( self::OPT_PAGES, array() );
+		if ( ! isset( $all[ $slug ] ) ) { return false; }
+		$all[ $slug ]['active'] = (bool) $active;
+		update_option( self::OPT_PAGES, $all );
+		return true;
+	}
+
 	public static function save_option_page( $p ) {
 		$p = self::sanitize_option_page( $p );
 		if ( '' === $p['slug'] ) { return array( 'ok' => false, 'message' => 'A slug is required.' ); }
