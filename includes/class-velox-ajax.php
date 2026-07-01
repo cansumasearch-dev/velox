@@ -47,6 +47,22 @@ class Velox_Ajax {
 					$order = array_values( array_unique( array_filter( array_map( 'sanitize_key', $order ) ) ) );
 					Velox_Settings::set( 'dash_order', $order );
 				}
+				if ( isset( $_POST['sizes'] ) && is_array( $_POST['sizes'] ) ) {
+					$sizes = array();
+					foreach ( (array) wp_unslash( $_POST['sizes'] ) as $sid => $sz ) {
+						$sid = sanitize_key( $sid );
+						if ( '' === $sid || ! is_array( $sz ) ) {
+							continue;
+						}
+						$c = isset( $sz['c'] ) ? (int) $sz['c'] : 4;
+						$r = isset( $sz['r'] ) ? (int) $sz['r'] : 1;
+						$sizes[ $sid ] = array(
+							'c' => max( 3, min( 12, $c ) ),
+							'r' => max( 1, min( 3, $r ) ),
+						);
+					}
+					Velox_Settings::set( 'dash_sizes', $sizes );
+				}
 				wp_send_json_success( array( 'hidden' => $hidden ) );
 				break;
 

@@ -82,7 +82,7 @@ final class Velox_Stats {
 			return new WP_REST_Response( $skip, 200 );
 		}
 		$ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? (string) $_SERVER['HTTP_USER_AGENT'] : '';
-		if ( '' === $ua || preg_match( '/bot|crawl|spider|slurp|bing|baidu|yandex|preview|monitor|curl|wget|headless|lighthouse|pingdom|gtmetrix|uptime/i', $ua ) ) {
+		if ( '' === $ua || preg_match( '/bot|crawl|spider|slurp|bing|baidu|yandex|preview|monitor|curl|wget|headless|lighthouse|pingdom|gtmetrix|uptime|facebookexternalhit|whatsapp|telegram|slackbot|discord|semrush|ahrefs|mj12|dotbot|petal|python-requests|go-http|okhttp|apache-http|scrapy|axios|perplexity|gptbot|chatgpt|claudebot|anthropic|ccbot|bytespider|dataprovider|zoominfo/i', $ua ) ) {
 			return new WP_REST_Response( $skip, 200 );
 		}
 
@@ -123,7 +123,14 @@ final class Velox_Stats {
 	/** Print the front-end beacon. Fires once per page view; fire-and-forget. */
 	public static function beacon() {
 		$url = wp_json_encode( esc_url_raw( rest_url( 'velox/v1/hit' ) ) );
-		echo '<script>(function(){try{var u=' . $url . ';if(navigator.sendBeacon){navigator.sendBeacon(u);}else{fetch(u,{method:"POST",keepalive:true,credentials:"same-origin"});}}catch(e){}})();</script>' . "\n";
+		// Skip speculative loads (prerender/prefetch): only count once the page is
+		// actually shown, so browser pre-rendering can't inflate the view count.
+		echo '<script>(function(){try{var u=' . $url . ';'
+			. 'function s(){if(navigator.sendBeacon){navigator.sendBeacon(u);}else{fetch(u,{method:"POST",keepalive:true,credentials:"same-origin"});}}'
+			. 'if(document.prerendering){document.addEventListener("prerenderingchange",s,{once:true});return;}'
+			. 'if(document.visibilityState==="prerender")return;'
+			. 's();'
+			. '}catch(e){}})();</script>' . "\n";
 	}
 
 	/**

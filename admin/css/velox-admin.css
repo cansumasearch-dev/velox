@@ -2253,11 +2253,12 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 /* ===== Dashboard cockpit + module catalog ===== */
 .velox-dash-head { display: flex; align-items: flex-end; gap: 16px; }
 .velox-dash-actions { margin-left: auto; display: flex; gap: 9px; flex: none; }
-.velox-cockpit { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 6px; }
-.velox-w { flex: 1 1 260px; min-width: 0; background: var(--vx-card); border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md, 10px); padding: 16px 17px; display: flex; flex-direction: column; min-height: 128px; }
-.velox-w--col4 { grid-column: span 4; }
-.velox-w--col6 { grid-column: span 6; }
-.velox-w--col8 { grid-column: span 8; }
+.velox-cockpit { display: grid; grid-template-columns: repeat(12, 1fr); grid-auto-rows: minmax(150px, auto); gap: 14px; margin-top: 6px; }
+.velox-w { grid-column: span var(--vx-w-cols, 4); grid-row: span var(--vx-w-rows, 1); min-width: 0; background: var(--vx-card); border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md, 10px); padding: 16px 17px; display: flex; flex-direction: column; min-height: 0; }
+/* legacy span classes kept as fallbacks for any cached markup */
+.velox-w--col4 { --vx-w-cols: 4; }
+.velox-w--col6 { --vx-w-cols: 6; }
+.velox-w--col8 { --vx-w-cols: 8; }
 .velox-w-h { display: flex; align-items: center; gap: 8px; color: var(--vx-ink-2); font-size: 12px; font-weight: 600; letter-spacing: .01em; margin-bottom: 12px; }
 .velox-w-h .velox-ic, .velox-w-h svg { width: 15px; height: 15px; color: var(--vx-ink-3); }
 .velox-w-big { font-size: 27px; font-weight: 750; letter-spacing: -.02em; line-height: 1.1; font-variant-numeric: tabular-nums; color: var(--vx-ink); }
@@ -2282,8 +2283,9 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-tile-tx { display: flex; flex-direction: column; min-width: 0; }
 .velox-tile-name { font-weight: 600; font-size: 13px; color: var(--vx-ink); }
 .velox-tile-sub { font-size: 11.5px; color: var(--vx-ink-3); margin-top: 1px; }
-@media (max-width: 1100px){ .velox-cat { grid-template-columns: repeat(3,1fr); } .velox-w--col4,.velox-w--col6,.velox-w--col8 { grid-column: span 6; } }
-@media (max-width: 700px){ .velox-cat { grid-template-columns: repeat(2,1fr); } .velox-w--col4,.velox-w--col6,.velox-w--col8 { grid-column: span 12; } }
+@media (max-width: 1100px){ .velox-cat { grid-template-columns: repeat(3,1fr); } }
+@media (max-width: 700px){ .velox-cat { grid-template-columns: repeat(2,1fr); } }
+@media (max-width: 640px){ .velox-cockpit { grid-template-columns: 1fr; } .velox-w { grid-column: 1 / -1 !important; grid-row: auto !important; } }
 
 /* snippets type filter: clear the leading funnel icon (native + custom dropdown) */
 .velox-snip-filter .velox-snip-type-filter,
@@ -2312,6 +2314,24 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-w.sel .velox-w-chk { background: var(--vx-primary); border-color: var(--vx-primary); }
 .velox-w.sel .velox-w-chk svg { opacity: 1; }
 .velox-w.is-hidden { display: none !important; }
+
+/* per-widget resize control + grid-size popover */
+.velox-w-size { display: none; position: absolute; bottom: 8px; right: 8px; width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--vx-line-2); background: var(--vx-card); place-items: center; color: var(--vx-ink-3); cursor: pointer; padding: 0; z-index: 3; }
+.velox-w-size svg { width: 13px; height: 13px; }
+.velox-w-size:hover { color: var(--vx-primary-ink); border-color: var(--vx-primary); }
+.velox-cockpit.editing .velox-w-size { display: grid; }
+.velox-w.is-sizing { border-color: var(--vx-primary) !important; border-style: solid !important; box-shadow: 0 0 0 3px var(--vx-primary-ring); }
+.velox-w.is-sizing .velox-w-size { color: #fff; background: var(--vx-primary); border-color: var(--vx-primary); }
+.velox-wsize-pop { position: absolute; z-index: 60; width: 180px; background: var(--vx-card); border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm, 8px); box-shadow: var(--vx-shadow-h, 0 12px 32px rgba(16,24,40,.16)); padding: 12px 13px; }
+.velox-wsize-pop h4 { margin: 0 0 10px; font-size: 12px; font-weight: 700; color: var(--vx-ink-2); letter-spacing: .01em; }
+.velox-wsize-row { display: flex; align-items: center; justify-content: space-between; margin-top: 9px; }
+.velox-wsize-row:first-of-type { margin-top: 0; }
+.velox-wsize-row > span { font-size: 12.5px; color: var(--vx-ink-2); }
+.velox-wsize-step { display: inline-flex; align-items: center; gap: 6px; }
+.velox-wsize-step button { width: 24px; height: 24px; border-radius: 6px; border: 1px solid var(--vx-line-2); background: var(--vx-card); color: var(--vx-ink-2); font-size: 15px; line-height: 1; cursor: pointer; display: grid; place-items: center; padding: 0; }
+.velox-wsize-step button:hover:not(:disabled) { border-color: var(--vx-primary); color: var(--vx-primary-ink); }
+.velox-wsize-step button:disabled { opacity: .4; cursor: default; }
+.velox-wsize-step b { min-width: 18px; text-align: center; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--vx-ink); }
 .velox-batchbar { display: flex; align-items: center; gap: 12px; background: var(--vx-ink); color: #fff; border-radius: var(--vx-r-md, 10px); padding: 10px 14px; margin: 0 0 14px; font-size: 13px; }
 .velox-batchbar b { font-variant-numeric: tabular-nums; }
 .velox-batchbar-sp { margin-left: auto; display: flex; gap: 8px; }

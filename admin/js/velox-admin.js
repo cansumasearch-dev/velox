@@ -5810,6 +5810,21 @@
 	function orderIds() { return widgets().map( function ( w ) { return w.getAttribute( 'data-widget' ); } ); }
 	function selected() { return widgets().filter( function ( w ) { return w.classList.contains( 'sel' ); } ); }
 
+	// Per-widget grid span (columns 3-12, rows 1-3) read from the inline CSS vars.
+	function clampC( n ) { return Math.max( 3, Math.min( 12, n ) ); }
+	function clampR( n ) { return Math.max( 1, Math.min( 3, n ) ); }
+	function sizeOf( w ) {
+		return {
+			c: clampC( parseInt( w.style.getPropertyValue( '--vx-w-cols' ), 10 ) || 4 ),
+			r: clampR( parseInt( w.style.getPropertyValue( '--vx-w-rows' ), 10 ) || 1 )
+		};
+	}
+	function sizesMap() {
+		var m = {};
+		widgets().forEach( function ( w ) { var z = sizeOf( w ); m[ w.getAttribute( 'data-widget' ) ] = { c: z.c, r: z.r }; } );
+		return m;
+	}
+
 	// Apply the saved order on load (re-append each known widget in saved order;
 	// anything not in the list keeps its place at the end). The CSS grid lays out
 	// from DOM order, so this is all the "autolayout" needed.
@@ -5826,7 +5841,7 @@
 
 	function save() {
 		if ( ! window.VELOX || ! VELOX.ajaxurl ) { return; }
-		$.post( VELOX.ajaxurl, { action: 'velox', 'do': 'dash_widgets', nonce: VELOX.nonce, hidden: hiddenIds(), order: orderIds() } );
+		$.post( VELOX.ajaxurl, { action: 'velox', 'do': 'dash_widgets', nonce: VELOX.nonce, hidden: hiddenIds(), order: orderIds(), sizes: sizesMap() } );
 	}
 
 	function updateBatch() {
@@ -5835,6 +5850,56 @@
 		if ( n ) { batchCnt.textContent = n; batchWord.textContent = ( n === 1 ? 'widget' : 'widgets' ); }
 	}
 	function clearSel() { selected().forEach( function ( w ) { w.classList.remove( 'sel' ); } ); updateBatch(); }
+
+	/* ----- grid-size popover (edit mode) ----- */
+	var pop = null, sizingEl = null;
+	function closePop() {
+		if ( pop && pop.parentNode ) { pop.parentNode.removeChild( pop ); }
+		pop = null;
+		if ( sizingEl ) { sizingEl.classList.remove( 'is-sizing' ); sizingEl = null; }
+	}
+	function positionPop( btn ) {
+		var r = btn.getBoundingClientRect();
+		var left = window.pageXOffset + r.right - 180;
+		if ( left < 8 ) { left = 8; }
+		pop.style.top  = ( window.pageYOffset + r.bottom + 6 ) + 'px';
+		pop.style.left = left + 'px';
+	}
+	function openPop( w, btn ) {
+		closePop();
+		sizingEl = w;
+		w.classList.add( 'is-sizing' );
+		var z = sizeOf( w );
+		pop = document.createElement( 'div' );
+		pop.className = 'velox-wsize-pop';
+		pop.innerHTML =
+			'<h4>Grid size</h4>' +
+			'<div class="velox-wsize-row"><span>Width</span><span class="velox-wsize-step" data-axis="c">' +
+				'<button type="button" data-d="-1" aria-label="Narrower">\u2212</button><b>' + z.c + '</b><button type="button" data-d="1" aria-label="Wider">+</button></span></div>' +
+			'<div class="velox-wsize-row"><span>Height</span><span class="velox-wsize-step" data-axis="r">' +
+				'<button type="button" data-d="-1" aria-label="Shorter">\u2212</button><b>' + z.r + '</b><button type="button" data-d="1" aria-label="Taller">+</button></span></div>';
+		document.body.appendChild( pop );
+		positionPop( btn );
+		function refresh() {
+			var cur = sizeOf( w );
+			pop.querySelector( '[data-axis="c"] [data-d="-1"]' ).disabled = cur.c <= 3;
+			pop.querySelector( '[data-axis="c"] [data-d="1"]' ).disabled  = cur.c >= 12;
+			pop.querySelector( '[data-axis="r"] [data-d="-1"]' ).disabled = cur.r <= 1;
+			pop.querySelector( '[data-axis="r"] [data-d="1"]' ).disabled  = cur.r >= 3;
+		}
+		refresh();
+		pop.addEventListener( 'click', function ( e ) {
+			e.stopPropagation();
+			var b = e.target.closest ? e.target.closest( 'button[data-d]' ) : null;
+			if ( ! b || b.disabled ) { return; }
+			var step = b.parentNode, axis = step.getAttribute( 'data-axis' ), d = parseInt( b.getAttribute( 'data-d' ), 10 );
+			var cur = sizeOf( w );
+			if ( axis === 'c' ) { var nc = clampC( cur.c + d ); w.style.setProperty( '--vx-w-cols', nc ); step.querySelector( 'b' ).textContent = nc; }
+			else                { var nr = clampR( cur.r + d ); w.style.setProperty( '--vx-w-rows', nr ); step.querySelector( 'b' ).textContent = nr; }
+			refresh();
+			save();
+		} );
+	}
 
 	function buildPicker() {
 		newMenu.innerHTML = '';
@@ -5861,7 +5926,7 @@
 	}
 
 	function enterEdit() { cockpit.classList.add( 'editing' ); editBtn.hidden = true; doneBtn.hidden = false; newWrap.hidden = false; setDraggable( true ); buildPicker(); }
-	function exitEdit()  { cockpit.classList.remove( 'editing' ); editBtn.hidden = false; doneBtn.hidden = true; newWrap.hidden = true; newMenu.hidden = true; setDraggable( false ); clearSel(); }
+	function exitEdit()  { cockpit.classList.remove( 'editing' ); editBtn.hidden = false; doneBtn.hidden = true; newWrap.hidden = true; newMenu.hidden = true; setDraggable( false ); clearSel(); closePop(); }
 
 	/* ----- smooth pointer drag-to-reorder (edit mode only) ----- */
 	var drag = null, justDragged = false;
@@ -5909,9 +5974,11 @@
 		if ( ! drag.moved ) {
 			if ( Math.abs( e.clientX - drag.sx ) + Math.abs( e.clientY - drag.sy ) < 5 ) { return; }
 			drag.moved = true;
+			closePop();
+			var z = sizeOf( drag.el );
 			var ph = document.createElement( 'div' );
 			ph.className = 'velox-w-ph';
-			ph.style.cssText = 'flex:1 1 260px;min-width:0;height:' + drag.h + 'px;';
+			ph.style.cssText = 'grid-column:span ' + z.c + ';grid-row:span ' + z.r + ';min-width:0;';
 			drag.ph = ph;
 			drag.el.parentNode.insertBefore( ph, drag.el );
 			drag.el.classList.add( 'is-dragging' );
@@ -5956,9 +6023,16 @@
 		if ( ! cockpit.classList.contains( 'editing' ) || justDragged ) { return; }
 		var w = e.target.closest ? e.target.closest( '.velox-w' ) : null;
 		if ( ! w ) { return; }
+		if ( e.target.closest( '.velox-w-size' ) ) {
+			e.preventDefault(); e.stopPropagation();
+			var szbtn = e.target.closest( '.velox-w-size' );
+			if ( sizingEl === w ) { closePop(); } else { openPop( w, szbtn ); }
+			return;
+		}
 		if ( e.target.closest( '.velox-w-x' ) ) {
 			e.preventDefault();
 			w.classList.add( 'is-hidden' ); w.classList.remove( 'sel' );
+			if ( sizingEl === w ) { closePop(); }
 			save(); buildPicker(); updateBatch();
 			return;
 		}
@@ -5966,4 +6040,9 @@
 		w.classList.toggle( 'sel' );
 		updateBatch();
 	} );
+
+	document.addEventListener( 'click', function ( e ) {
+		if ( pop && ! pop.contains( e.target ) && ! ( e.target.closest && e.target.closest( '.velox-w-size' ) ) ) { closePop(); }
+	} );
+	window.addEventListener( 'resize', function () { closePop(); } );
 }( jQuery ) );

@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.02.0 — Resizable dashboard widgets + more accurate visitor counts
+- Dashboard widgets can now be resized. In Edit mode, hit the resize handle on any widget and set its **grid size** — width (columns) and height (rows) — so you can make Visitors wide, shrink a stat card, and lay the dashboard out how you like. Your sizes are saved per site.
+- The dashboard now lays widgets out on a real 12-column grid, so widget sizes are actually respected (previously the size classes did nothing).
+- Visitor tracking is more accurate: browser pre-render/prefetch loads no longer inflate the view count, and the bot filter now catches more crawlers, link-preview bots and HTTP libraries.
+
 ## 3.01.0 — Font manager: detect every font + block unwanted ones (5c)
 - The font detector is now a full font manager. Each detected font shows its source (Google or Local) and can be individually preloaded or blocked.
 - Blocking a Google-hosted font stops it loading entirely (the `<link>` is removed on the front end via style_loader_tag), independent of whether local hosting is on — the core OMGF "remove unwanted Google Fonts" behaviour, plus the existing local-hosting swap and preload.

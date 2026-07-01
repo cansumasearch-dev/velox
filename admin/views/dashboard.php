@@ -126,7 +126,18 @@ $vx_wcls = function ( $id, $base ) use ( $dash_hidden ) {
 };
 // Per-widget edit affordances (checkbox + remove); hidden until edit mode.
 $vx_wctl = '<span class="velox-w-chk"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-11"/></svg></span>'
+	. '<button type="button" class="velox-w-size" aria-label="Resize this widget"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>'
 	. '<button type="button" class="velox-w-x" aria-label="Remove this widget"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+
+// Per-widget grid size (columns 3-12, rows 1-3). Saved sizes override the defaults below.
+$dash_sizes = (array) Velox_Settings::get( 'dash_sizes', array() );
+$vx_wsize   = function ( $id, $dc, $dr ) use ( $dash_sizes ) {
+	$c = isset( $dash_sizes[ $id ]['c'] ) ? (int) $dash_sizes[ $id ]['c'] : $dc;
+	$r = isset( $dash_sizes[ $id ]['r'] ) ? (int) $dash_sizes[ $id ]['r'] : $dr;
+	$c = max( 3, min( 12, $c ) );
+	$r = max( 1, min( 3, $r ) );
+	return '--vx-w-cols:' . $c . ';--vx-w-rows:' . $r . ';';
+};
 
 // Live stats: form submissions + first-party traffic.
 $v_forms = class_exists( 'Velox_Stats' ) ? Velox_Stats::form_total( 30 ) : 0;
@@ -175,7 +186,7 @@ if ( ! empty( $v_tr['series'] ) ) {
 
 <div class="velox-cockpit" id="velox-cockpit" data-order="<?php echo esc_attr( implode( ',', $dash_order ) ); ?>">
 
-	<div class="<?php echo esc_attr( $vx_wcls( 'perf', 'velox-w velox-w--col4' ) ); ?>" data-widget="perf" data-widget-label="Performance">
+	<div class="<?php echo esc_attr( $vx_wcls( 'perf', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'perf', 4, 1 ) ); ?>" data-widget="perf" data-widget-label="Performance">
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'bolt', 15 ); ?>Performance</div>
 		<div class="velox-w-ring">
@@ -187,7 +198,7 @@ if ( ! empty( $v_tr['series'] ) ) {
 		</div>
 	</div>
 
-	<div class="<?php echo esc_attr( $vx_wcls( 'cache', 'velox-w velox-w--col4' ) ); ?>" data-widget="cache" data-widget-label="Cache">
+	<div class="<?php echo esc_attr( $vx_wcls( 'cache', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'cache', 4, 1 ) ); ?>" data-widget="cache" data-widget-label="Cache">
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'broom', 15 ); ?>Cache</div>
 		<div class="velox-w-big"><?php echo (int) $v_css['built']; ?><span class="velox-w-of">/ <?php echo (int) $v_css['pages']; ?> pages</span></div>
@@ -195,7 +206,7 @@ if ( ! empty( $v_tr['series'] ) ) {
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $purge_url ); ?>"><?php echo Velox_Admin::icon( 'broom', 15 ); ?>Purge caches</a>
 	</div>
 
-	<div class="<?php echo esc_attr( $vx_wcls( 'db', 'velox-w velox-w--col4' ) ); ?>" data-widget="db" data-widget-label="Database">
+	<div class="<?php echo esc_attr( $vx_wcls( 'db', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'db', 4, 1 ) ); ?>" data-widget="db" data-widget-label="Database">
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'db', 15 ); ?>Database</div>
 		<div class="velox-w-big"><?php echo (int) $v_dbsum; ?></div>
@@ -203,7 +214,7 @@ if ( ! empty( $v_tr['series'] ) ) {
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'database' ) ); ?>">Clean database</a>
 	</div>
 
-	<div class="<?php echo esc_attr( $vx_wcls( 'traffic', 'velox-w velox-w--col8' ) ); ?>" data-widget="traffic" data-widget-label="Visitors">
+	<div class="<?php echo esc_attr( $vx_wcls( 'traffic', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'traffic', 8, 2 ) ); ?>" data-widget="traffic" data-widget-label="Visitors">
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'search', 15 ); ?>Visitors &middot; this week</div>
 		<div class="velox-w-trtop">
@@ -218,7 +229,7 @@ if ( ! empty( $v_tr['series'] ) ) {
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'dashboard' ) . '&traffic=1' ); ?>">View traffic</a>
 	</div>
 
-	<div class="<?php echo esc_attr( $vx_wcls( 'forms', 'velox-w velox-w--col4' ) ); ?>" data-widget="forms" data-widget-label="Form submissions">
+	<div class="<?php echo esc_attr( $vx_wcls( 'forms', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'forms', 4, 1 ) ); ?>" data-widget="forms" data-widget-label="Form submissions">
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'mail', 15 ); ?>Form submissions</div>
 		<div class="velox-w-big"><?php echo (int) $v_forms; ?></div>
@@ -226,7 +237,7 @@ if ( ! empty( $v_tr['series'] ) ) {
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( Velox_Utilities::tool_url( 'mail' ) ); ?>">Open Mail &amp; Forms</a>
 	</div>
 
-	<div class="<?php echo esc_attr( $vx_wcls( 'images', 'velox-w velox-w--col4' ) ); ?>" data-widget="images" data-widget-label="Images">
+	<div class="<?php echo esc_attr( $vx_wcls( 'images', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'images', 4, 1 ) ); ?>" data-widget="images" data-widget-label="Images">
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'image', 15 ); ?>Images</div>
 		<div class="velox-w-big"><span data-dash="done">&mdash;</span><span class="velox-w-of">/ <span data-dash="total">&mdash;</span></span></div>
@@ -234,7 +245,7 @@ if ( ! empty( $v_tr['series'] ) ) {
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'images' ) ); ?>">Optimize images</a>
 	</div>
 
-	<div class="<?php echo esc_attr( $vx_wcls( 'reco', 'velox-w velox-w--col8' ) ); ?>" data-widget="reco" data-widget-label="Recommendations">
+	<div class="<?php echo esc_attr( $vx_wcls( 'reco', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'reco', 8, 1 ) ); ?>" data-widget="reco" data-widget-label="Recommendations">
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'check', 15 ); ?>Recommendations</div>
 		<?php if ( empty( $todo ) ) : ?>
@@ -252,7 +263,7 @@ if ( ! empty( $v_tr['series'] ) ) {
 		<?php endif; ?>
 	</div>
 
-	<div class="<?php echo esc_attr( $vx_wcls( 'fonts', 'velox-w velox-w--col4' ) ); ?>" data-widget="fonts" data-widget-label="Local fonts">
+	<div class="<?php echo esc_attr( $vx_wcls( 'fonts', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'fonts', 4, 1 ) ); ?>" data-widget="fonts" data-widget-label="Local fonts">
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'image', 15 ); ?>Local fonts</div>
 		<div class="velox-w-big"><?php echo (int) ( isset( $v_fonts['files'] ) ? $v_fonts['files'] : 0 ); ?></div>
