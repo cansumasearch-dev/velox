@@ -737,36 +737,69 @@ class Velox_Utilities {
 			return true;
 		}
 		$file = get_post_meta( $id, '_wp_attached_file', true );
-		$base = $file ? basename( $file ) : basename( (string) get_attached_file( $id ) );
+		if ( ! $file ) {
+			$file = (string) get_attached_file( $id );
+		}
+		$base = $file ? basename( $file ) : '';
 		if ( '' === $base ) {
 			return true; // can't identify the file → treat as in-use (safe)
 		}
-		$stem = pathinfo( $base, PATHINFO_FILENAME );
-		if ( strlen( $stem ) < 3 ) {
-			return true; // too generic to match safely → leave it alone
+		// Build the set of REAL filenames WordPress generated for this attachment:
+		// the original plus every registered size variant (e.g. name-300x200.jpg) and
+		// the -scaled original. Matching these exact filenames (with extension) is far
+		// more precise than a bare filename-stem substring, which used to flag basically
+		// everything as "used" on sites with sequential names (image1 ⊂ image123) or any
+		// option/meta blob that happens to list filenames.
+		$names = array( $base => 1 );
+		$meta  = wp_get_attachment_metadata( $id );
+		if ( is_array( $meta ) ) {
+			if ( ! empty( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
+				foreach ( $meta['sizes'] as $sz ) {
+					if ( ! empty( $sz['file'] ) ) {
+						$names[ basename( $sz['file'] ) ] = 1;
+					}
+				}
+			}
+			if ( ! empty( $meta['original_image'] ) ) {
+				$names[ basename( $meta['original_image'] ) ] = 1;
+			}
 		}
-		$like = '%' . $wpdb->esc_like( $stem ) . '%';
-		// Referenced in any post/page content? (catches all size variants via the stem)
+		$names = array_keys( $names );
+
+		$build_or = function ( $column ) use ( $names, $wpdb ) {
+			$parts = array();
+			$args  = array();
+			foreach ( $names as $nm ) {
+				$parts[] = "$column LIKE %s";
+				$args[]  = '%' . $wpdb->esc_like( $nm ) . '%';
+			}
+			return array( '(' . implode( ' OR ', $parts ) . ')', $args );
+		};
+
+		// Referenced by exact filename in any post/page content?
+		list( $c_sql, $c_args ) = $build_or( 'post_content' );
 		$in_content = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status NOT IN ('trash','auto-draft') AND post_content LIKE %s",
-			$like
+			"SELECT COUNT(*) FROM {$wpdb->posts} WHERE post_status NOT IN ('trash','auto-draft') AND $c_sql",
+			$c_args
 		) );
 		if ( $in_content ) {
 			return true;
 		}
-		// Referenced in any OTHER post's meta (builders, ACF, galleries)?
+		// Referenced by exact filename in another post's meta (builders, ACF, galleries)?
+		list( $m_sql, $m_args ) = $build_or( 'meta_value' );
+		array_unshift( $m_args, $id );
 		$in_meta = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id <> %d AND meta_value LIKE %s",
-			$id,
-			$like
+			"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id <> %d AND $m_sql",
+			$m_args
 		) );
 		if ( $in_meta ) {
 			return true;
 		}
-		// Referenced in options (theme mods, customizer, widgets, plugin settings)?
+		// Referenced by exact filename in options (theme mods, customizer, widgets)?
+		list( $o_sql, $o_args ) = $build_or( 'option_value' );
 		$in_options = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->options} WHERE option_value LIKE %s",
-			$like
+			"SELECT COUNT(*) FROM {$wpdb->options} WHERE $o_sql",
+			$o_args
 		) );
 		if ( $in_options ) {
 			return true;

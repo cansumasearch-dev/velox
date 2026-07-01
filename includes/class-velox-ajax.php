@@ -346,6 +346,15 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Backup::delete( $id ) );
 				break;
 
+			case 'backup_history_delete':
+				$when = isset( $_POST['when'] ) ? sanitize_text_field( wp_unslash( $_POST['when'] ) ) : '';
+				wp_send_json_success( Velox_Backup::delete_history( $when ) );
+				break;
+
+			case 'backup_history_clear':
+				wp_send_json_success( Velox_Backup::clear_history() );
+				break;
+
 			case 'backup_restore':
 				$id   = isset( $_POST['id'] ) ? sanitize_text_field( wp_unslash( $_POST['id'] ) ) : '';
 				$what = isset( $_POST['what'] ) ? sanitize_key( wp_unslash( $_POST['what'] ) ) : 'both';

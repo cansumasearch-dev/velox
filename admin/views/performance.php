@@ -137,23 +137,70 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 		<h1 class="velox-h2">Performance</h1>
 		<p class="velox-sub">A complete performance toolkit — page cache, asset optimization, fonts, preloading and more. Velox works standalone, and plays nicely with Cloudflare and Oxygen. Flip one setting at a time and re-test PageSpeed.</p>
 	</div>
-	<label class="velox-risky-switch">
-		<span class="velox-risky-switch-text">
-			<span class="velox-risky-switch-label">Risky mode</span>
-			<span class="velox-risky-switch-sub">Show settings that <em>might</em> break the site</span>
-		</span>
-		<span class="velox-switch"><input type="checkbox" id="velox-risky-toggle" data-setting="perf_risky_mode" <?php checked( ! empty( $s['perf_risky_mode'] ) ); ?>><span class="velox-switch-track"></span></span>
-	</label>
+	<div class="velox-pf-headactions">
+		<label class="velox-risky-switch">
+			<span class="velox-risky-switch-text">
+				<span class="velox-risky-switch-label">Risky mode</span>
+				<span class="velox-risky-switch-sub">Reveal aggressive settings</span>
+			</span>
+			<span class="velox-switch"><input type="checkbox" id="velox-risky-toggle" data-setting="perf_risky_mode" <?php checked( ! empty( $s['perf_risky_mode'] ) ); ?>><span class="velox-switch-track"></span></span>
+		</label>
+		<button class="velox-btn velox-btn--primary velox-cache-btn" data-which="all">Clear all caches</button>
+	</div>
 </div>
 
-<div class="velox-alert velox-alert--info">
-	These are <strong>100% safe</strong> by default. Turn on <strong>Risky mode</strong> (top right) to reveal aggressive settings like Delay JavaScript — they give bigger wins but should be tested by clicking through forms, sliders and your builder afterwards.
+<?php
+$sec_counts = array();
+$opt_total  = 0;
+foreach ( $sections as $sid => $ssec ) {
+	$n = 0;
+	foreach ( $ssec['keys'] as $k ) {
+		if ( isset( $fields[ $k ] ) && 'switch' === $fields[ $k ][0] && ! empty( $s[ $k ] ) ) {
+			$n++;
+		}
+	}
+	$sec_counts[ $sid ] = $n;
+	$opt_total         += $n;
+}
+$pf_stats    = class_exists( 'Velox_Cache' ) ? Velox_Cache::stats() : array( 'pages' => 0, 'bytes' => 0, 'dropin_active' => false );
+$pf_cache_on = ! empty( $s['cache_enable'] );
+$sec_icons   = array(
+	'cache'   => '<ellipse cx="12" cy="6" rx="8" ry="3"/><path d="M4 6v12c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/>',
+	'general' => '<circle cx="12" cy="12" r="9"/><path d="M12 8v8M8 12h8"/>',
+	'html'    => '<path d="M8 6l-4 6 4 6M16 6l4 6-4 6"/>',
+	'css'     => '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M8 9h8M8 13h5"/>',
+	'js'      => '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M9 9l3 3-3 3"/>',
+	'images'  => '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 15l-5-5L5 21"/>',
+	'fonts'   => '<path d="M4 20V4h13M4 12h9"/>',
+	'cdn'     => '<circle cx="12" cy="12" r="9"/><path d="M2 12h20M12 3a15 15 0 010 18 15 15 0 010-18z"/>',
+);
+?>
+<div class="velox-pf-status">
+	<div class="velox-pf-stat">
+		<span class="k">Page cache</span>
+		<span class="v"><span class="velox-pf-dot velox-pf-dot--<?php echo $pf_cache_on ? 'ok' : 'off'; ?>"></span><?php echo $pf_cache_on ? ( $pf_stats['dropin_active'] ? 'Active · early serve' : 'Active' ) : 'Off'; ?></span>
+	</div>
+	<div class="velox-pf-stat"><span class="k">Optimizations on</span><span class="v"><?php echo (int) $opt_total; ?></span></div>
+	<div class="velox-pf-stat"><span class="k">Cached on disk</span><span class="v"><?php echo (int) $pf_stats['pages']; ?> pages · <?php echo esc_html( size_format( $pf_stats['bytes'] ) ); ?></span></div>
 </div>
 
 <div class="velox-perf">
 	<nav class="velox-perf-nav" id="velox-perf-nav">
-		<?php $first = true; foreach ( $sections as $id => $sec ) : ?>
-			<button type="button" class="velox-perf-navitem<?php echo $first ? ' is-active' : ''; ?>" data-section="<?php echo esc_attr( $id ); ?>"><?php echo esc_html( $sec['label'] ); ?></button>
+		<?php $first = true; foreach ( $sections as $id => $sec ) :
+			$cnt = $sec_counts[ $id ];
+			if ( 'cache' === $id ) {
+				$badge = $pf_cache_on ? 'on' : 'off';
+			} elseif ( 'cdn' === $id ) {
+				$badge = ! empty( $s['perf_cdn_enable'] ) ? 'on' : 'off';
+			} else {
+				$badge = $cnt > 0 ? (string) $cnt : '';
+			}
+			?>
+			<button type="button" class="velox-perf-navitem<?php echo $first ? ' is-active' : ''; ?>" data-section="<?php echo esc_attr( $id ); ?>">
+				<svg class="velox-perf-navic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><?php echo $sec_icons[ $id ] ?? ''; // phpcs:ignore WordPress.Security.EscapeOutput ?></svg>
+				<span class="velox-perf-navlabel"><?php echo esc_html( $sec['label'] ); ?></span>
+				<?php if ( '' !== $badge ) : ?><span class="velox-perf-navcount velox-perf-navcount--<?php echo ( 'on' === $badge || 'off' === $badge ) ? esc_attr( $badge ) : 'num'; ?>"><?php echo esc_html( $badge ); ?></span><?php endif; ?>
+			</button>
 		<?php $first = false; endforeach; ?>
 	</nav>
 
@@ -239,10 +286,11 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 							<p class="velox-hint">Velox loads your front page, finds the Google Fonts it uses, downloads the woff2 files into your uploads folder and serves those instead. Re-scan after you change fonts.</p>
 						</div>
 						<div class="velox-fonts-tool">
-							<div class="velox-fonts-status"><strong style="font-size:13px;">Preload fonts</strong><br><span class="velox-hint">Detect every font your site loads, then switch on the 1–2 above-the-fold fonts to preload them. Toggled fonts are added to the preload list above.</span></div>
+							<div class="velox-fonts-status"><strong style="font-size:13px;">Font manager</strong><br><span class="velox-hint">Detect every font your site loads (Google &amp; local). Preload the 1–2 above-the-fold fonts, and <strong>Block</strong> any you don't want — blocking stops Google-hosted fonts from loading at all.</span></div>
 							<div class="velox-fonts-btns">
 								<button class="velox-btn velox-btn--primary" id="velox-font-detect">Detect fonts</button>
 							</div>
+							<input type="hidden" data-setting="perf_font_block" id="velox-font-block-data" value="<?php echo esc_attr( $s['perf_font_block'] ); ?>">
 							<div id="velox-font-detect-list" class="velox-font-detect-list" hidden></div>
 						</div>
 					<?php endif; ?>

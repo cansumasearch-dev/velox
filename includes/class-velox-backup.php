@@ -267,6 +267,41 @@ class Velox_Backup {
 		file_put_contents( $file, wp_json_encode( array_values( $list ) ) );
 	}
 
+	/** Remove a single history entry (matched by its `when` timestamp). */
+	public static function delete_history( $when ) {
+		$file = self::dir() . '/' . self::HISTORY;
+		$list = self::history();
+		$out  = array();
+		foreach ( $list as $row ) {
+			if ( ( $row['when'] ?? '' ) !== $when ) {
+				$out[] = $row;
+			}
+		}
+		file_put_contents( $file, wp_json_encode( array_values( $out ) ) );
+		return array( 'ok' => true, 'count' => count( $out ) );
+	}
+
+	/** Wipe the entire restore history (does not touch the backups themselves). */
+	public static function clear_history() {
+		$file = self::dir() . '/' . self::HISTORY;
+		file_put_contents( $file, wp_json_encode( array() ) );
+		return array( 'ok' => true );
+	}
+
+	/**
+	 * The Velox plugin's own folder, relative to wp-content (e.g. "plugins/velox").
+	 * Used to make sure restoring an older backup never overwrites — and therefore
+	 * downgrades — the running plugin. Velox always stays on the current version.
+	 */
+	private static function velox_rel_dir() {
+		$abs = untrailingslashit( wp_normalize_path( VELOX_PATH ) );
+		$wpc = untrailingslashit( wp_normalize_path( WP_CONTENT_DIR ) );
+		if ( '' !== $wpc && 0 === strpos( $abs, $wpc ) ) {
+			return ltrim( substr( $abs, strlen( $wpc ) ), '/' );
+		}
+		return 'plugins/' . basename( $abs );
+	}
+
 	/* ----------------------------------------------------------------- *
 	 * Create
 	 * ----------------------------------------------------------------- */
@@ -581,6 +616,7 @@ class Velox_Backup {
 		$rel = ltrim( $rel, '/' );
 		$skip_prefixes = array(
 			$skip_dir . '/',          // our own backups
+			self::velox_rel_dir() . '/', // the Velox plugin itself — never back up / restore it
 			'cache/',
 			'uploads/cache/',
 			'wpo-cache/',
@@ -831,6 +867,7 @@ class Velox_Backup {
 			return array( 'ok' => false, 'message' => 'Could not open the archive.' );
 		}
 		$root  = WP_CONTENT_DIR;
+		$vrel  = self::velox_rel_dir();
 		$count = 0;
 		for ( $i = 0; $i < $zip->numFiles; $i++ ) {
 			$name = $zip->getNameIndex( $i );
@@ -839,6 +876,12 @@ class Velox_Backup {
 			}
 			// Hard guard against path traversal in a tampered archive.
 			if ( false !== strpos( $name, '..' ) || 0 === strpos( $name, '/' ) ) {
+				continue;
+			}
+			// Never restore the Velox plugin's own folder — reverting to an older
+			// backup must not roll Velox itself back to that older version. The plugin
+			// always stays on whatever version is currently installed.
+			if ( '' !== $vrel && ( $name === $vrel || $name === $vrel . '/' || 0 === strpos( $name, $vrel . '/' ) ) ) {
 				continue;
 			}
 			$target = $root . '/' . $name;

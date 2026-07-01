@@ -22,9 +22,20 @@ $s  = Velox_Settings::all();
 
 	<div class="vxck-admin">
 		<div class="vxck-admin-controls">
+			<div class="vxck-insp-top">
+				<div class="vxck-insp-en"><strong>Banner enabled</strong><span>Showing on your site's front end</span></div>
+				<span class="velox-switch"><input type="checkbox" data-setting="util_cookies" id="velox-cookies-toggle" checked><span class="velox-switch-track"></span></span>
+			</div>
+			<div class="vxck-insp-tabs" role="tablist" aria-label="Editor sections">
+				<button type="button" class="vxck-insp-tab is-active" data-cktab="layout">Layout</button>
+				<button type="button" class="vxck-insp-tab" data-cktab="content">Content</button>
+				<button type="button" class="vxck-insp-tab" data-cktab="style">Style</button>
+				<button type="button" class="vxck-insp-tab" data-cktab="setup">Setup</button>
+			</div>
+			<div class="vxck-insp-body">
 
 			<div class="velox-panel velox-tool-form">
-				<h3 class="velox-panel-title">Behaviour &amp; API</h3>
+				<h3 class="velox-panel-title">Placement</h3>
 				<div class="velox-field">
 					<span class="velox-field-label">Placement (desktop)</span>
 					<select class="velox-select vxck-live" data-setting="cookie_layout" id="ck-layout">
@@ -56,6 +67,10 @@ $s  = Velox_Settings::all();
 					</select>
 					<span class="velox-hint">Phones often work best as a bottom or top bar even when desktop is a floating box.</span>
 				</div>
+			</div>
+
+			<div class="velox-panel velox-tool-form">
+				<h3 class="velox-panel-title">Consent &amp; tracking</h3>
 				<label class="velox-toggle-row">
 					<div class="velox-toggle-meta">
 						<span class="velox-toggle-label">Google Consent Mode v2</span>
@@ -266,15 +281,9 @@ $s  = Velox_Settings::all();
 				</div>
 			</div>
 
-			<div class="velox-tool-actions">
+			</div><!-- /.vxck-insp-body -->
+			<div class="vxck-insp-foot">
 				<button class="velox-btn velox-btn--primary velox-util-save">Save settings</button>
-			</div>
-
-			<div class="velox-panel velox-mail-disable">
-				<label class="velox-inline-toggle">
-					<span><strong>Cookie banner is on</strong> <span class="velox-hint" style="display:inline;">— switch off to remove it from the site.</span></span>
-					<span class="velox-switch"><input type="checkbox" data-setting="util_cookies" id="velox-cookies-toggle" checked><span class="velox-switch-track"></span></span>
-				</label>
 			</div>
 		</div>
 
@@ -310,6 +319,33 @@ $s  = Velox_Settings::all();
 	( function () {
 		var root = document.querySelector( '.vxck-admin' );
 		if ( ! root ) { return; }
+
+		/* Inspector tabs (Concept A): map each control panel to a tab by its title,
+		   then show only the active tab's panels. */
+		var TAB_OF = {
+			'Placement': 'layout', 'Layout': 'layout',
+			'Text': 'content', 'Buttons': 'content', 'Legal links': 'content',
+			'Style': 'style', 'Typography & advanced': 'style',
+			'Consent & tracking': 'setup', 'Custom CSS': 'setup'
+		};
+		var panels = root.querySelectorAll( '.vxck-admin-controls .velox-panel' );
+		[].forEach.call( panels, function ( p ) {
+			var h = p.querySelector( '.velox-panel-title' );
+			var title = h ? h.textContent.replace( /\s+/g, ' ' ).trim() : '';
+			p.setAttribute( 'data-cktab-of', TAB_OF[ title ] || 'setup' );
+		} );
+		var tabBtns = root.querySelectorAll( '.vxck-insp-tab' );
+		function showTab( name ) {
+			[].forEach.call( tabBtns, function ( b ) { b.classList.toggle( 'is-active', b.getAttribute( 'data-cktab' ) === name ); } );
+			[].forEach.call( panels, function ( p ) { p.hidden = p.getAttribute( 'data-cktab-of' ) !== name; } );
+			var body = root.querySelector( '.vxck-insp-body' );
+			if ( body ) { body.scrollTop = 0; }
+		}
+		[].forEach.call( tabBtns, function ( b ) {
+			b.addEventListener( 'click', function () { showTab( b.getAttribute( 'data-cktab' ) ); } );
+		} );
+		showTab( 'layout' );
+
 		var stage   = document.getElementById( 'vxck-stage' );
 		var styleEl = document.getElementById( 'vxck-prev-style' );
 		var rootBox = document.getElementById( 'vxck-prev-root' );

@@ -19,10 +19,14 @@ class Velox_Fonts {
 	const DIRNAME = 'velox-fonts';
 
 	public function __construct() {
-		// Front-end swap only runs when the feature is on AND we have a local file.
 		if ( is_admin() ) {
 			return;
 		}
+		// Blocking unwanted fonts works independently of local hosting.
+		if ( '' !== trim( (string) Velox_Settings::get( 'perf_font_block', '' ) ) ) {
+			add_filter( 'style_loader_tag', array( $this, 'block_fonts' ), 98, 4 );
+		}
+		// Front-end local-hosting swap only runs when the feature is on AND we have a local file.
 		if ( ! Velox_Settings::get( 'perf_local_fonts' ) ) {
 			return;
 		}
@@ -211,6 +215,69 @@ class Velox_Fonts {
 		return $tag;
 	}
 
+	/* ---------------------------------------------------------------- block (5c) */
+
+	/** The user's block list — one font family name or URL fragment per line. */
+	public static function block_list() {
+		$raw = (string) Velox_Settings::get( 'perf_font_block', '' );
+		$out = array();
+		foreach ( preg_split( '/\r\n|\r|\n/', $raw ) as $line ) {
+			$line = trim( $line );
+			if ( '' !== $line ) {
+				$out[] = $line;
+			}
+		}
+		return $out;
+	}
+
+	/** Family names present in a Google Fonts CSS URL (family=Inter:...|Poppins:...). */
+	private static function families_in_google_url( $href ) {
+		$fams = array();
+		$q    = wp_parse_url( $href, PHP_URL_QUERY );
+		if ( ! $q ) {
+			return $fams;
+		}
+		parse_str( $q, $args );
+		// css (v1): family=Inter:400|Poppins:600 ; css2 (v2): repeated family=Inter:wght@400
+		$raw = array();
+		if ( isset( $args['family'] ) ) {
+			$raw = is_array( $args['family'] ) ? $args['family'] : explode( '|', $args['family'] );
+		}
+		foreach ( $raw as $f ) {
+			$name = trim( explode( ':', $f )[0] );
+			$name = str_replace( '+', ' ', $name );
+			if ( '' !== $name ) {
+				$fams[] = $name;
+			}
+		}
+		return $fams;
+	}
+
+	/** Remove blocked fonts' <link> tags (Google families or URL fragments). */
+	public function block_fonts( $tag, $handle, $href, $media ) {
+		$blocked = self::block_list();
+		if ( empty( $blocked ) ) {
+			return $tag;
+		}
+		// Google Fonts stylesheet: drop it if any of its families is blocked.
+		if ( false !== stripos( $href, 'fonts.googleapis.com' ) ) {
+			foreach ( self::families_in_google_url( $href ) as $fam ) {
+				foreach ( $blocked as $b ) {
+					if ( 0 === strcasecmp( $fam, $b ) ) {
+						return '';
+					}
+				}
+			}
+		}
+		// Any stylesheet whose URL contains a blocked URL fragment.
+		foreach ( $blocked as $b ) {
+			if ( 0 === strpos( $b, 'http' ) && false !== stripos( $href, $b ) ) {
+				return '';
+			}
+		}
+		return $tag;
+	}
+
 	/* ---------------------------------------------------------------- detect (9b) */
 
 	/** Pull a single declaration value out of an @font-face body. */
@@ -301,6 +368,7 @@ class Velox_Fonts {
 					'weight' => $weight,
 					'style'  => $style,
 					'url'    => $best,
+					'source' => ( false !== stripos( $best, 'gstatic.com' ) || false !== stripos( $best, 'googleapis.com' ) ) ? 'google' : 'local',
 				);
 			}
 		}

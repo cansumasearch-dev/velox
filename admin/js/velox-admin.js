@@ -956,6 +956,15 @@
 			if ( ta ) { ta.value = urls.join( '\n' ); }
 			saveSettings( { perf_preload_fonts: urls.join( '\n' ) } );
 		}
+		function fontBlockList() {
+			var ta = $( '[data-setting="perf_font_block"]' );
+			return ( ta ? ta.value : '' ).split( '\n' ).map( function ( s ) { return s.trim(); } ).filter( Boolean );
+		}
+		function setFontBlock( fams ) {
+			var ta = $( '[data-setting="perf_font_block"]' );
+			if ( ta ) { ta.value = fams.join( '\n' ); }
+			saveSettings( { perf_font_block: fams.join( '\n' ) } );
+		}
 		if ( fDetect && fDList ) {
 			fDetect.addEventListener( 'click', function () {
 				fDetect.disabled = true;
@@ -969,15 +978,23 @@
 							return;
 						}
 						var pre  = fontPreloadList();
+						var blk  = fontBlockList();
 						var html = '';
 						fonts.forEach( function ( f ) {
-							var on   = pre.indexOf( f.url ) !== -1;
-							var file = f.url.split( '/' ).pop().split( '?' )[0];
-							var meta = f.weight + ( f.style && 'normal' !== f.style ? ' · ' + f.style : '' );
-							html += '<div class="velox-font-row">' +
-								'<div class="velox-font-info"><span class="velox-font-fam">' + escapeHtml( f.family ) + '</span>' +
+							var on    = pre.indexOf( f.url ) !== -1;
+							var isBlk = blk.some( function ( b ) { return b.toLowerCase() === ( f.family || '' ).toLowerCase(); } );
+							var file  = f.url.split( '/' ).pop().split( '?' )[0];
+							var meta  = f.weight + ( f.style && 'normal' !== f.style ? ' · ' + f.style : '' );
+							var src   = 'google' === f.source
+								? '<span class="velox-font-src is-google">Google</span>'
+								: '<span class="velox-font-src">Local</span>';
+							html += '<div class="velox-font-row' + ( isBlk ? ' is-blocked' : '' ) + '">' +
+								'<div class="velox-font-info"><span class="velox-font-fam">' + escapeHtml( f.family ) + ' ' + src + '</span>' +
 								'<span class="velox-font-meta">' + escapeHtml( meta ) + ' · ' + escapeHtml( file ) + '</span></div>' +
-								'<label class="velox-switch" title="Preload this font"><input type="checkbox" class="velox-font-pre" data-url="' + escapeHtml( f.url ) + '"' + ( on ? ' checked' : '' ) + '><span class="velox-switch-track"></span></label>' +
+								'<div class="velox-font-acts">' +
+									'<label class="velox-switch" title="Preload this font"><input type="checkbox" class="velox-font-pre" data-url="' + escapeHtml( f.url ) + '"' + ( on ? ' checked' : '' ) + '><span class="velox-switch-track"></span></label>' +
+									'<button type="button" class="velox-font-block' + ( isBlk ? ' is-on' : '' ) + '" data-fam="' + escapeHtml( f.family ) + '" title="Stop this font from loading">' + ( isBlk ? 'Blocked' : 'Block' ) + '</button>' +
+								'</div>' +
 								'</div>';
 						} );
 						fDList.innerHTML = html;
@@ -990,6 +1007,22 @@
 								else if ( ! cb.checked && -1 !== i ) { urls.splice( i, 1 ); }
 								setFontPreload( urls );
 								toast( cb.checked ? 'Added to preload.' : 'Removed from preload.' );
+							} );
+						} );
+						$$( '.velox-font-block', fDList ).forEach( function ( bb ) {
+							bb.addEventListener( 'click', function () {
+								var fams = fontBlockList();
+								var fam  = bb.getAttribute( 'data-fam' );
+								var idx  = fams.map( function ( x ) { return x.toLowerCase(); } ).indexOf( fam.toLowerCase() );
+								var nowBlocked;
+								if ( -1 === idx ) { fams.push( fam ); nowBlocked = true; }
+								else { fams.splice( idx, 1 ); nowBlocked = false; }
+								setFontBlock( fams );
+								bb.classList.toggle( 'is-on', nowBlocked );
+								bb.textContent = nowBlocked ? 'Blocked' : 'Block';
+								var row = bb.closest( '.velox-font-row' );
+								if ( row ) { row.classList.toggle( 'is-blocked', nowBlocked ); }
+								toast( nowBlocked ? 'Font blocked — it won\u2019t load on the site.' : 'Font unblocked.' );
 							} );
 						} );
 					} )
@@ -3150,6 +3183,47 @@
 					if ( restoreModal ) { restoreModal.hidden = false; }
 					return;
 				}
+			} );
+		}
+
+		// Restore-history: per-row remove + clear-all (1a).
+		var histTable = $( '.vbk-hist-table' );
+		if ( histTable ) {
+			histTable.addEventListener( 'click', function ( e ) {
+				var del = e.target.closest( '.vbk-hist-del' );
+				if ( ! del ) { return; }
+				var row = del.closest( 'tr' );
+				if ( ! row ) { return; }
+				del.disabled = true;
+				api( 'backup_history_delete', { when: row.getAttribute( 'data-when' ) } )
+					.then( function () {
+						var body = row.parentNode;
+						row.remove();
+						toast( 'History entry removed.' );
+						if ( body && ! body.querySelector( 'tr' ) ) {
+							var sec = histTable.closest( '.velox-panel' );
+							var head = document.getElementById( 'vbk-hist-clear' );
+							if ( sec ) { sec.remove(); }
+							if ( head && head.closest( '.vbk-hist-head' ) ) { head.closest( '.vbk-hist-head' ).remove(); }
+						}
+					} )
+					.catch( function ( er ) { toast( er.message, 'error' ); del.disabled = false; } );
+			} );
+		}
+		var histClear = $( '#vbk-hist-clear' );
+		if ( histClear ) {
+			histClear.addEventListener( 'click', function () {
+				if ( ! window.confirm( 'Clear the entire restore history? This does not delete any backups.' ) ) { return; }
+				histClear.disabled = true;
+				api( 'backup_history_clear', {} )
+					.then( function () {
+						var sec = histTable ? histTable.closest( '.velox-panel' ) : null;
+						if ( sec ) { sec.remove(); }
+						var head = histClear.closest( '.vbk-hist-head' );
+						if ( head ) { head.remove(); }
+						toast( 'History cleared.' );
+					} )
+					.catch( function ( er ) { toast( er.message, 'error' ); histClear.disabled = false; } );
 			} );
 		}
 

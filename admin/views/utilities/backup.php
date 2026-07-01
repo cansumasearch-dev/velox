@@ -132,13 +132,16 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 
 	<!-- Restore history -->
 	<?php if ( ! empty( $history ) ) : ?>
-		<div class="velox-section-title">Restore history</div>
+		<div class="velox-section-title vbk-hist-head">
+			<span>Restore history</span>
+			<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vbk-hist-clear">Clear history</button>
+		</div>
 		<div class="velox-panel velox-panel--flush">
 			<table class="vbk-table vbk-hist-table">
-				<thead><tr><th>When</th><th>Backup</th><th>What</th><th>Took</th><th>Result</th></tr></thead>
+				<thead><tr><th>When</th><th>Backup</th><th>What</th><th>Took</th><th>Result</th><th></th></tr></thead>
 				<tbody>
 					<?php foreach ( $history as $h ) : ?>
-						<tr>
+						<tr data-when="<?php echo esc_attr( $h['when'] ?? '' ); ?>">
 							<td><?php echo esc_html( date_i18n( 'M j, Y · H:i', strtotime( $h['when'] ) ) ); ?></td>
 							<td><span class="vbk-name"><?php echo esc_html( $h['backup_name'] ?? $h['backup_id'] ?? '—' ); ?></span></td>
 							<td><?php echo esc_html( 'both' === ( $h['what'] ?? '' ) ? 'DB + files' : strtoupper( $h['what'] ?? '' ) ); ?></td>
@@ -150,6 +153,9 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 									<span class="vbk-result vbk-result--fail">Failed</span>
 								<?php endif; ?>
 								<span class="vbk-hist-detail"><?php echo esc_html( $h['detail'] ?? '' ); ?></span>
+							</td>
+							<td class="vbk-hist-x">
+								<button type="button" class="vbk-hist-del" title="Remove this entry" aria-label="Remove this entry"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
 							</td>
 						</tr>
 					<?php endforeach; ?>

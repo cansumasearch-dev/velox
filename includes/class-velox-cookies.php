@@ -242,6 +242,9 @@ gtag('consent','update',{
 		ob_start();
 		?>
 <?php echo $p; ?>.vxck-root{position:<?php echo $scope ? 'absolute' : 'fixed'; ?>;z-index:2147483600;<?php echo $pos['root']; // phpcs:ignore ?>}
+<?php if ( ! $scope ) : ?>
+.vxck-root[data-decided="1"]:not(.vxck-force){display:none;}
+<?php endif; ?>
 <?php echo $p; ?>.vxck-overlay{position:<?php echo $scope ? 'absolute' : 'fixed'; ?>;inset:0;background:rgba(8,10,18,.5);z-index:2147483500;}
 <?php echo $p; ?>.vxck{box-sizing:border-box;<?php echo $pos['box']; // phpcs:ignore ?>;background:<?php echo $bg; ?>;color:<?php echo $text; ?>;border:<?php echo $bw; ?>px solid <?php echo $bcol; ?>;border-radius:<?php echo $rad; ?>px;box-shadow:<?php echo $shadow; ?>;padding:<?php echo $pad_decl; ?>;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;font-size:<?php echo $fs; ?>px;}
 <?php echo $p; ?>.vxck *{box-sizing:border-box;}
@@ -430,7 +433,7 @@ gtag('consent','update',{
 		$markup  = self::markup( $o, false );
 		?>
 <style><?php echo $css; // phpcs:ignore ?></style>
-<div class="vxck-root" id="vxck-root" data-decided="<?php echo $decided ? '1' : '0'; ?>" data-reconsent="<?php echo (int) $o['cookie_reconsent_days']; ?>" hidden>
+<div class="vxck-root" id="vxck-root" data-decided="<?php echo $decided ? '1' : '0'; ?>" data-reconsent="<?php echo (int) $o['cookie_reconsent_days']; ?>">
 <?php echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_* helpers ?>
 </div>
 <script>
@@ -447,8 +450,8 @@ gtag('consent','update',{
 		}
 		try{window.dispatchEvent(new CustomEvent('velox-consent-changed',{detail:{granted:granted}}));}catch(e){}
 	}
-	function close(){root.setAttribute('hidden','');}
-	function open(){root.removeAttribute('hidden');}
+	function close(){root.setAttribute('data-decided','1');root.classList.remove('vxck-force');}
+	function open(){root.classList.add('vxck-force');}
 	function decide(granted){setCookie(granted.length?granted.join(','):'deny');update(granted);close();}
 
 	var prefs=document.getElementById('vxck-prefs'),
@@ -476,7 +479,8 @@ gtag('consent','update',{
 		if(t){e.preventDefault();open();openPrefs();}
 	});
 
-	if(root.getAttribute('data-decided')==='0'){open();}
+	// Initial visibility is handled by CSS (.vxck-root[data-decided="1"] is hidden),
+	// so the banner appears even if this script is delayed or optimised.
 })();
 </script>
 		<?php

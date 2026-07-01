@@ -238,6 +238,7 @@ class Velox_Settings {
 			'perf_fonts_display_swap'    => true,
 			'perf_local_fonts'           => false, // host Google Fonts locally (OMGF-style)
 			'perf_preload_fonts'         => '',    // one font URL per line
+			'perf_font_block'            => '',    // block fonts by family name or URL, one per line
 			'perf_system_fonts'          => false, // skip web fonts, use the system stack
 
 			// ---- Performance · Preload / Network ----
@@ -320,7 +321,7 @@ class Velox_Settings {
 			'perf_rucss_engine', 'cf_account_id', 'cf_api_token', 'perf_rucss_urls',
 			'perf_delay_js', 'perf_delay_js_exclude', 'perf_delay_js_timeout',
 			'perf_content_visibility', 'perf_content_visibility_selector',
-			'perf_system_fonts', 'perf_cdn_enable', 'perf_cdn_url', 'perf_cdn_exclude',
+			'perf_system_fonts',
 		);
 	}
 

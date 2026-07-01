@@ -4,6 +4,49 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.01.0 — Font manager: detect every font + block unwanted ones (5c)
+- The font detector is now a full font manager. Each detected font shows its source (Google or Local) and can be individually preloaded or blocked.
+- Blocking a Google-hosted font stops it loading entirely (the `<link>` is removed on the front end via style_loader_tag), independent of whether local hosting is on — the core OMGF "remove unwanted Google Fonts" behaviour, plus the existing local-hosting swap and preload.
+- New `perf_font_block` setting stores blocked families; new Velox_Fonts::block_fonts(), block_list() and families_in_google_url() enforce it. detect() now labels each font's source.
+- Note: local theme @font-face fonts are detected and labelled, but blocking individual local faces would require rewriting theme CSS, so blocking targets Google-hosted fonts (where the request can be cleanly removed).
+
+
+## 3.00.0 — Performance page redesigned (5a)
+- Rebuilt the Performance UI (Concept 1): a calm status strip up top (page-cache state, optimizations-on count, cache on disk), a primary "Clear all caches" action and Risky-mode toggle in the header, and an icon sidebar with a live "active" count badge per section (on/off for Cache & CDN, a number for the rest).
+- Replaced the noisy yellow risky-mode banner. Panels, tooltips and the cache/font tools are unchanged — every setting is preserved, just presented in a modern, premium shell.
+
+
+## 2.99.0 — Cookie banner settings: redesigned editor (2b + 2c)
+- Rebuilt the cookie editor as a preview-first workspace (Concept A): a large live preview on the left that renders the banner at true proportions with a desktop/mobile toggle, and a compact tabbed inspector on the right (Layout · Content · Style · Setup) that replaces the nine stacked panels.
+- The preview is much bigger (min 560px, full width of its column) so full-width bars, floating boxes and centred modals all preview truthfully — fixing the cramped/overflowing 380px preview.
+- Inspector is a single sticky card with its own scroll and a sticky Save footer; panels are flattened (no nested cards) and grouped under tabs. Enable/disable moved to the inspector header. Stacks gracefully on narrow screens.
+
+
+## 2.98.0 — Cookie banner: reliable front-end visibility (2a)
+- The banner used to render hidden and rely on inline JS to reveal it — if that script was delayed, deferred or optimised away, the banner never appeared. Visibility is now CSS-driven: the banner shows by default and is hidden only once the visitor has made a choice (data-decided="1"), with the "cookie settings" link re-opening it. It no longer depends on JS timing to become visible.
+- Note: on a site with page caching, enable the banner then clear caches so the change reaches already-cached pages; and it correctly stays hidden for visitors who already chose (test in a private window).
+
+
+## 2.97.0 — Performance: CDN section no longer empty (5b)
+- The CDN tab showed only a header because all three CDN fields (enable, URL, exclusions) were flagged "Risky" and hidden behind Risky mode. CDN rewriting is a mainstream, reversible feature, so it's no longer risky — the enable toggle, CDN URL and exclusions now always show.
+
+
+## 2.96.0 — Backup: history remove/clear + never downgrade the plugin on restore
+- Restore history now has a per-row remove (×) and a "Clear history" button (history-only — no backups are touched).
+- **Reverting a backup no longer rolls Velox itself back.** File restore now skips the Velox plugin's own folder, so restoring an older backup keeps the plugin on the currently-installed version. New backups also exclude the Velox folder entirely.
+
+
+## 2.95.0 — Unused media: stop over-reporting images as "used"
+- Root cause: the reference check matched a bare filename STEM as a substring (%stem%), so a short name like "photo" or "img1" matched inside other images' variant filenames (photo-2-300x200.jpg, img12-...) sitting in attachment metadata — flagging almost everything as used.
+- Now it matches the EXACT generated filenames (original + every real size variant + the -scaled original) against content, other posts' meta, and options. Precise IDs are still matched for ACF/galleries/blocks. Result: only genuinely-referenced images are marked used. (Simulated: a 10-image set with 1 truly used went from 5 false "used" to 1 correct.)
+
+
+## 2.94.0 — Mail preview fix (root cause) + settings icon
+- FIXED the broken Mail preview ("a modal I can't click through, page still visible behind it"). Root cause: the design tokens were scoped to .velox-wrap, but the preview overlay is appended to <body> outside it — so its background colour resolved to nothing, leaving an invisible layer that still blocked clicks. Tokens are now global (:root) while base layout stays scoped, so the preview is a proper opaque full-screen overlay. This also hardens every other body-appended element.
+- The form's Name field renders as two styled side-by-side inputs (First/Last) — it was always styled, but the invisible preview hid it.
+- Fixed the truncated Settings gear icon in the editor navbar (the path closed early and rendered broken); it's now a complete cog.
+
+
 ## 2.93.0 — Mail editor QA fixes
 - Fixed the Build/Style/Preview mode highlight: the builder's switcher was also binding to the style-editor's copy of the navbar (it's a sibling in the DOM), so the active highlight could get cleared. The switcher is now scoped to the builder, and the Build highlight is restored automatically when the Style or Preview overlay closes.
 - Hardened the navbar so button labels (e.g. "Save form") never wrap to two lines at narrower admin widths.
