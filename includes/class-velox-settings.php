@@ -255,8 +255,20 @@ class Velox_Settings {
 			// ---- Database ----
 			'db_schedule_cleanup'        => false,
 
+			// ---- PageSpeed (dashboard live status) ----
+			'ps_enable'                  => false,       // run PageSpeed checks + show the widget
+			'ps_api_key'                 => '',          // Google PageSpeed Insights API key
+			'ps_url'                     => '',          // URL to test (blank = site home)
+			'ps_strategy'                => 'mobile',    // mobile | desktop
+			'ps_interval'                => 'daily',     // hourly | twicedaily | daily
+			'ps_show_metrics'            => true,        // show the Core Web Vitals chips
+			'ps_show_issues'             => true,        // show the top opportunities to fix
+
 			// ---- Updater ----
 			'gh_token'                   => '',
+
+			// ---- Housekeeping ----
+			'keep_data_on_uninstall'     => false, // don't wipe settings/tables when the plugin is deleted
 		);
 	}
 

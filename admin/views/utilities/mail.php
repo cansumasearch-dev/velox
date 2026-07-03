@@ -366,7 +366,8 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			<div class="vmail-smtp-actions">
 				<button class="velox-btn velox-btn--primary" id="vmail-smtp-save">Save connections</button>
 				<span class="vmail-smtp-test">
-					<select class="velox-select velox-select--sm" id="vmail-test-conn" title="Send the test through this connection"></select>
+					<select class="velox-select velox-select--sm" id="vmail-test-conn" title="Test / send through this connection"></select>
+					<button class="velox-btn velox-btn--ghost" id="vmail-conn-test" title="Check the connection without sending an email">Test connection</button>
 					<input type="email" class="velox-input" id="vmail-test-to" placeholder="you@example.com">
 					<button class="velox-btn velox-btn--ghost" id="vmail-test">Send test</button>
 				</span>

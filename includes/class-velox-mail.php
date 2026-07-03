@@ -161,6 +161,9 @@ class Velox_Mail {
 		if ( $from && is_email( $from ) ) {
 			$phpmailer->setFrom( $from, $from_name ? $from_name : get_bloginfo( 'name' ), false );
 		}
+		if ( ! empty( $conn['reply_to'] ) && is_email( $conn['reply_to'] ) ) {
+			$phpmailer->addReplyTo( $conn['reply_to'], $from_name );
+		}
 	}
 
 	/* ----------------------------------------------------------------- *
@@ -318,6 +321,93 @@ class Velox_Mail {
 		return array( 'ok' => (bool) $ok, 'message' => $ok ? 'Test email sent via ' . $label . '.' : 'Send failed — check the connection settings.' );
 	}
 
+	/**
+	 * Open a live SMTP handshake (connect → EHLO → STARTTLS → AUTH) to check
+	 * whether a connection is actually reachable and the login works — without
+	 * sending an email. Returns a precise ok/message.
+	 *
+	 * @param array $args host, port, secure (tls|ssl|none), user, pass.
+	 */
+	public static function test_connection( $args ) {
+		$host   = isset( $args['host'] ) ? trim( (string) $args['host'] ) : '';
+		$port   = isset( $args['port'] ) ? (int) $args['port'] : 587;
+		$secure = isset( $args['secure'] ) ? (string) $args['secure'] : 'tls';
+		$user   = isset( $args['user'] ) ? (string) $args['user'] : '';
+		$pass   = isset( $args['pass'] ) ? (string) $args['pass'] : '';
+
+		if ( '' === $host ) {
+			return array( 'ok' => false, 'message' => 'Enter an SMTP host first.' );
+		}
+		if ( $port < 1 || $port > 65535 ) {
+			return array( 'ok' => false, 'message' => 'Enter a valid port (1–65535).' );
+		}
+
+		if ( ! class_exists( '\\PHPMailer\\PHPMailer\\SMTP' ) ) {
+			$base = ABSPATH . WPINC . '/PHPMailer/';
+			if ( file_exists( $base . 'SMTP.php' ) ) {
+				if ( file_exists( $base . 'Exception.php' ) ) {
+					require_once $base . 'Exception.php';
+				}
+				require_once $base . 'SMTP.php';
+			}
+		}
+		if ( ! class_exists( '\\PHPMailer\\PHPMailer\\SMTP' ) ) {
+			return array( 'ok' => false, 'message' => 'SMTP library is not available on this server.' );
+		}
+
+		$smtp = new \PHPMailer\PHPMailer\SMTP();
+		$smtp->Timeout = 10;
+		$conn_host = ( 'ssl' === $secure ) ? 'ssl://' . $host : $host;
+		$hello     = self::server_domain();
+
+		try {
+			if ( ! $smtp->connect( $conn_host, $port, 10 ) ) {
+				return array( 'ok' => false, 'message' => 'Could not reach ' . $host . ':' . $port . '. ' . self::smtp_err( $smtp ) );
+			}
+			if ( ! $smtp->hello( $hello ) ) {
+				$smtp->quit();
+				return array( 'ok' => false, 'message' => 'Server refused the greeting. ' . self::smtp_err( $smtp ) );
+			}
+			if ( 'tls' === $secure ) {
+				if ( ! $smtp->startTLS() ) {
+					$smtp->quit();
+					return array( 'ok' => false, 'message' => 'STARTTLS failed — try SSL, or a different port (587 = TLS, 465 = SSL). ' . self::smtp_err( $smtp ) );
+				}
+				$smtp->hello( $hello );
+			}
+			if ( '' !== $user ) {
+				if ( ! $smtp->authenticate( $user, $pass ) ) {
+					$smtp->quit();
+					return array( 'ok' => false, 'message' => 'Connected, but the login was rejected — check the username and password. ' . self::smtp_err( $smtp ) );
+				}
+			}
+			$smtp->quit();
+			return array(
+				'ok'      => true,
+				'message' => '' !== $user ? 'Connected and signed in — this connection works.' : 'Connected successfully (no authentication set).',
+			);
+		} catch ( \Throwable $e ) {
+			return array( 'ok' => false, 'message' => 'Connection error: ' . $e->getMessage() );
+		}
+	}
+
+	private static function smtp_err( $smtp ) {
+		$e   = $smtp->getError();
+		$msg = '';
+		if ( is_array( $e ) ) {
+			$msg = ! empty( $e['error'] ) ? $e['error'] : '';
+			if ( ! empty( $e['detail'] ) ) {
+				$msg .= ' ' . $e['detail'];
+			}
+		}
+		return trim( (string) $msg );
+	}
+
+	private static function server_domain() {
+		$host = wp_parse_url( home_url(), PHP_URL_HOST );
+		return $host ? $host : 'localhost';
+	}
+
 	/* ----------------------------------------------------------------- *
 	 * Legacy migration
 	 * ----------------------------------------------------------------- */
@@ -372,6 +462,7 @@ class Velox_Mail {
 				'pass'      => isset( $c['pass'] ) ? (string) $c['pass'] : '',
 				'from'      => isset( $c['from'] ) && is_email( $c['from'] ) ? sanitize_email( $c['from'] ) : '',
 				'from_name' => isset( $c['from_name'] ) ? sanitize_text_field( $c['from_name'] ) : '',
+				'reply_to'  => isset( $c['reply_to'] ) && is_email( $c['reply_to'] ) ? sanitize_email( $c['reply_to'] ) : '',
 			);
 			$ids[] = $id;
 		}

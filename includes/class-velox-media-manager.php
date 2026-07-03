@@ -331,6 +331,86 @@ class Velox_Media_Manager {
 		return implode( "\n", $lines );
 	}
 
+	/**
+	 * Build a downloadable zip of the selected images' original files, plus a
+	 * pipe-format metadata file (Dateiname | Alt-Text | Titel) so alt text and
+	 * titles survive the round-trip and can be re-applied via Bulk import.
+	 *
+	 * @param int[] $ids Attachment ids.
+	 * @return array{ok:bool,url?:string,filename?:string,count?:int,message?:string}
+	 */
+	public function build_zip( $ids ) {
+		if ( ! class_exists( 'ZipArchive' ) ) {
+			return array( 'ok' => false, 'message' => 'Zip support (ZipArchive) is not available on this server.' );
+		}
+		$ids = array_values( array_unique( array_filter( array_map( 'intval', (array) $ids ) ) ) );
+		if ( empty( $ids ) ) {
+			return array( 'ok' => false, 'message' => 'No images selected.' );
+		}
+
+		$up  = wp_upload_dir();
+		$dir = trailingslashit( $up['basedir'] ) . 'velox-tmp';
+		if ( ! wp_mkdir_p( $dir ) ) {
+			return array( 'ok' => false, 'message' => 'Could not create a temporary folder in uploads.' );
+		}
+		if ( ! file_exists( $dir . '/index.html' ) ) {
+			@file_put_contents( $dir . '/index.html', '' ); // no directory listing
+		}
+		// Tidy zips older than an hour so this folder never piles up.
+		foreach ( (array) glob( $dir . '/velox-images-*.zip' ) as $old ) {
+			if ( is_file( $old ) && filemtime( $old ) < time() - HOUR_IN_SECONDS ) {
+				@unlink( $old );
+			}
+		}
+
+		$name = 'velox-images-' . gmdate( 'Ymd-His' ) . '-' . wp_generate_password( 6, false ) . '.zip';
+		$path = $dir . '/' . $name;
+		$zip  = new ZipArchive();
+		if ( true !== $zip->open( $path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
+			return array( 'ok' => false, 'message' => 'Could not create the zip file.' );
+		}
+
+		$rows  = array( 'Dateiname | Alt-Text | Titel' );
+		$used  = array();
+		$count = 0;
+		foreach ( $ids as $id ) {
+			if ( 'attachment' !== get_post_type( $id ) ) {
+				continue;
+			}
+			$file = get_attached_file( $id );
+			if ( ! $file || ! file_exists( $file ) ) {
+				continue;
+			}
+			$base = wp_basename( $file );
+			if ( isset( $used[ $base ] ) ) {
+				$base = $id . '-' . $base; // avoid collisions between same-named files
+			}
+			if ( $zip->addFile( $file, $base ) ) {
+				$used[ $base ] = 1;
+				$count++;
+				$alt   = (string) get_post_meta( $id, '_wp_attachment_image_alt', true );
+				$title = (string) get_the_title( $id );
+				$clean = function ( $v ) { return trim( str_replace( array( "\r", "\n", '|' ), ' ', $v ) ); };
+				$rows[] = $base . ' | ' . $clean( $alt ) . ' | ' . $clean( $title );
+			}
+		}
+
+		if ( ! $count ) {
+			$zip->close();
+			@unlink( $path );
+			return array( 'ok' => false, 'message' => 'None of the selected images could be read from disk.' );
+		}
+		$zip->addFromString( 'alt-text-and-titles.txt', implode( "\n", $rows ) . "\n" );
+		$zip->close();
+
+		return array(
+			'ok'       => true,
+			'url'      => trailingslashit( $up['baseurl'] ) . 'velox-tmp/' . $name,
+			'filename' => $name,
+			'count'    => $count,
+		);
+	}
+
 	public function import_pipe( $text ) {
 		$lines   = preg_split( '/\r\n|\r|\n/', trim( $text ) );
 		$updated = 0;

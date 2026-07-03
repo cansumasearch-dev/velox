@@ -74,6 +74,59 @@ $s = Velox_Settings::all();
 	</div>
 </div>
 
+<div class="velox-panel" id="pagespeed">
+	<h3 class="velox-panel-title">Live PageSpeed</h3>
+	<p class="velox-hint">Pull a real Lighthouse score from Google PageSpeed Insights on a schedule and show it on your dashboard. A free <a href="https://developers.google.com/speed/docs/insights/v5/get-started" target="_blank" rel="noopener">PageSpeed Insights API key</a> is recommended (checks run without one, but Google rate-limits keyless requests). Your server needs outbound access to <code>googleapis.com</code> and WordPress cron running.</p>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Enable PageSpeed status</span>
+			<span class="velox-toggle-desc">Runs checks on the schedule below and shows the PageSpeed widget on the dashboard.</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="ps_enable" <?php checked( ! empty( $s['ps_enable'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+	<label class="velox-field velox-field--inline">
+		<span class="velox-field-label">API key</span>
+		<input type="text" class="velox-input" data-setting="ps_api_key" value="<?php echo esc_attr( $s['ps_api_key'] ); ?>" placeholder="Optional — paste your PSI API key" autocomplete="off" spellcheck="false">
+	</label>
+	<label class="velox-field velox-field--inline">
+		<span class="velox-field-label">URL to test</span>
+		<input type="url" class="velox-input" data-setting="ps_url" value="<?php echo esc_attr( $s['ps_url'] ); ?>" placeholder="<?php echo esc_attr( home_url( '/' ) ); ?>">
+	</label>
+	<label class="velox-field velox-field--inline">
+		<span class="velox-field-label">Device</span>
+		<select class="velox-select" data-setting="ps_strategy">
+			<option value="mobile" <?php selected( $s['ps_strategy'], 'mobile' ); ?>>Mobile</option>
+			<option value="desktop" <?php selected( $s['ps_strategy'], 'desktop' ); ?>>Desktop</option>
+		</select>
+	</label>
+	<label class="velox-field velox-field--inline">
+		<span class="velox-field-label">Refresh every</span>
+		<select class="velox-select" data-setting="ps_interval">
+			<option value="hourly" <?php selected( $s['ps_interval'], 'hourly' ); ?>>Hour</option>
+			<option value="twicedaily" <?php selected( $s['ps_interval'], 'twicedaily' ); ?>>12 hours</option>
+			<option value="daily" <?php selected( $s['ps_interval'], 'daily' ); ?>>Day</option>
+		</select>
+	</label>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Show Core Web Vitals</span>
+			<span class="velox-toggle-desc">Display the LCP / CLS / TBT metric chips on the widget.</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="ps_show_metrics" <?php checked( ! empty( $s['ps_show_metrics'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Show what to fix</span>
+			<span class="velox-toggle-desc">List the top opportunities Lighthouse found, biggest time-savings first.</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="ps_show_issues" <?php checked( ! empty( $s['ps_show_issues'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+	<div class="velox-actions">
+		<button type="button" class="velox-btn velox-btn--ghost" data-ps-refresh>Run a check now</button>
+		<span class="velox-hint" style="margin:0;align-self:center;">Save your settings first. A live check can take ~30&nbsp;seconds.</span>
+	</div>
+</div>
+
 <div class="velox-panel">
 	<h3 class="velox-panel-title">Image defaults</h3>
 	<label class="velox-field velox-field--inline">
@@ -122,7 +175,7 @@ $s = Velox_Settings::all();
 
 <div class="velox-panel">
 	<h3 class="velox-panel-title">Migrate from another plugin</h3>
-	<p class="velox-hint">Switching to Velox? Pull your existing configuration straight from these plugins. Velox only reads them — nothing in the other plugin is changed, and your current Velox values aren't overwritten where one already exists.</p>
+	<p class="velox-hint">Switching to Velox? Pull your existing configuration straight from these plugins. Velox only reads them — nothing in the other plugin is changed, and your current Velox values aren&rsquo;t overwritten where one already exists. Plugins marked <em>Migration coming soon</em> are recognised, but their one-click import isn&rsquo;t built yet — <a href="https://www.sumasearch.de/" target="_blank" rel="noopener">tell us</a> which you need next.</p>
 	<div class="velox-import-sources">
 		<?php foreach ( Velox_Import::sources() as $key => $src ) : ?>
 			<div class="velox-import-src" data-source="<?php echo esc_attr( $key ); ?>">
@@ -139,7 +192,11 @@ $s = Velox_Settings::all();
 					<p class="velox-hint" style="margin:4px 0 0;"><?php echo esc_html( $src['desc'] ); ?></p>
 					<div class="velox-import-result" hidden></div>
 				</div>
-				<button class="velox-btn velox-btn--ghost velox-import-run" type="button" <?php echo $src['detected'] ? '' : 'disabled'; ?>>Import</button>
+				<?php if ( ! empty( $src['ready'] ) ) : ?>
+					<button class="velox-btn velox-btn--ghost velox-import-run" type="button" <?php echo $src['detected'] ? '' : 'disabled'; ?>>Import</button>
+				<?php else : ?>
+					<span class="velox-import-soon" title="Velox recognises this plugin — automatic migration is on the way">Migration coming soon</span>
+				<?php endif; ?>
 			</div>
 		<?php endforeach; ?>
 	</div>
@@ -156,6 +213,17 @@ $s = Velox_Settings::all();
 	<div class="velox-actions" id="velox-import-actions" hidden>
 		<button class="velox-btn velox-btn--primary" id="velox-import-apply">Apply imported settings</button>
 		<button class="velox-btn velox-btn--ghost" id="velox-import-cancel">Cancel</button>
+	</div>
+</div>
+
+<div class="velox-panel">
+	<h3 class="velox-panel-title">Housekeeping</h3>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Keep my settings if I delete Velox</span>
+			<span class="velox-toggle-desc">By default, deleting the plugin wipes Velox&rsquo;s settings, forms, redirects and logs. Turn this on to leave everything in place so a reinstall picks up where you left off. Your media is never touched either way.</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="keep_data_on_uninstall" <?php checked( ! empty( $s['keep_data_on_uninstall'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 </div>
 

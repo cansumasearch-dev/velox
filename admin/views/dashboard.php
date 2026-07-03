@@ -174,6 +174,15 @@ if ( ! empty( $v_tr['series'] ) ) {
 	$vx_axis[2]    = $vx_fmt_d( $vx_s[ count( $vx_s ) - 1 ]['d'] );
 	$vx_axis[1]    = $vx_fmt_d( $vx_s[ intdiv( count( $vx_s ), 2 ) ]['d'] );
 }
+
+// ---- Live PageSpeed (cached PSI result) ----
+$v_ps         = class_exists( 'Velox_Pagespeed' ) ? Velox_Pagespeed::result() : array( 'ok' => false, 'score' => 0, 'metrics' => array(), 'issues' => array() );
+$v_ps_on      = class_exists( 'Velox_Pagespeed' ) && Velox_Pagespeed::enabled();
+$v_ps_strat   = class_exists( 'Velox_Pagespeed' ) ? Velox_Pagespeed::strategy() : 'mobile';
+$v_ps_metrics = (bool) Velox_Settings::get( 'ps_show_metrics', true );
+$v_ps_issues  = (bool) Velox_Settings::get( 'ps_show_issues', true );
+list( $v_ps_grade, $v_ps_gcls ) = ( class_exists( 'Velox_Pagespeed' ) && ! empty( $v_ps['ok'] ) ) ? Velox_Pagespeed::grade( $v_ps['score'] ) : array( '', 'warn' );
+$v_ps_ago = ! empty( $v_ps['fetched'] ) ? human_time_diff( (int) $v_ps['fetched'], current_time( 'timestamp' ) ) : '';
 ?>
 
 <div class="velox-batchbar" id="velox-batchbar" hidden>
@@ -227,6 +236,48 @@ if ( ! empty( $v_tr['series'] ) ) {
 		</div>
 		<div class="velox-spark-axis"><span><?php echo esc_html( $vx_axis[0] ); ?></span><span><?php echo esc_html( $vx_axis[1] ); ?></span><span><?php echo esc_html( $vx_axis[2] ); ?></span></div>
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'dashboard' ) . '&traffic=1' ); ?>">View traffic</a>
+	</div>
+
+	<div class="<?php echo esc_attr( $vx_wcls( 'pagespeed', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'pagespeed', 8, 2 ) ); ?>" data-widget="pagespeed" data-widget-label="PageSpeed">
+		<?php echo $vx_wctl; ?>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'bolt', 15 ); ?>PageSpeed<?php echo $v_ps_on ? ' &middot; ' . esc_html( $v_ps_strat ) : ''; ?></div>
+		<?php if ( ! $v_ps_on ) : ?>
+			<div class="velox-ps-empty">
+				<p class="velox-w-sub" style="margin:0;">Real Lighthouse scores from Google PageSpeed Insights, right on your dashboard.</p>
+				<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'settings' ) . '#pagespeed' ); ?>">Turn on in Settings</a>
+			</div>
+		<?php elseif ( empty( $v_ps['ok'] ) ) : ?>
+			<div class="velox-ps-empty">
+				<p class="velox-w-sub" style="margin:0;"><?php echo ! empty( $v_ps['error'] ) ? esc_html( $v_ps['error'] ) : 'No score yet — run the first check.'; ?></p>
+				<button type="button" class="velox-btn velox-btn--primary velox-btn--sm velox-w-act" id="velox-ps-refresh" data-ps-refresh>Refresh now</button>
+			</div>
+		<?php else : ?>
+			<div class="velox-ps-top">
+				<div class="velox-score-ring velox-score-ring--sm velox-score-ring--<?php echo esc_attr( $v_ps_gcls ); ?>" style="--val:<?php echo (int) $v_ps['score']; ?>"><span class="velox-score-num"><?php echo (int) $v_ps['score']; ?></span></div>
+				<div>
+					<span class="velox-pill velox-pill--<?php echo esc_attr( $v_ps_gcls ); ?>"><?php echo esc_html( $v_ps_grade ); ?></span>
+					<?php if ( $v_ps_ago ) : ?><p class="velox-w-sub" style="margin-top:6px;">updated <?php echo esc_html( $v_ps_ago ); ?> ago</p><?php endif; ?>
+				</div>
+			</div>
+			<?php if ( $v_ps_metrics && ! empty( $v_ps['metrics'] ) ) : ?>
+				<div class="velox-ps-metrics">
+					<?php foreach ( $v_ps['metrics'] as $m ) : $mc = isset( $m['score'] ) && null !== $m['score'] ? ( $m['score'] >= 0.9 ? 'ok' : ( $m['score'] >= 0.5 ? 'warn' : 'bad' ) ) : 'warn'; ?>
+						<span class="velox-ps-metric velox-ps-metric--<?php echo esc_attr( $mc ); ?>"><span class="velox-ps-metric-k"><?php echo esc_html( $m['key'] ); ?></span><span class="velox-ps-metric-v"><?php echo esc_html( $m['value'] ); ?></span></span>
+					<?php endforeach; ?>
+				</div>
+			<?php endif; ?>
+			<?php if ( $v_ps_issues && ! empty( $v_ps['issues'] ) ) : ?>
+				<div class="velox-ps-issues">
+					<?php foreach ( $v_ps['issues'] as $is ) : ?>
+						<div class="velox-ps-issue"><span class="velox-reco-dot"></span><span class="velox-ps-issue-t"><?php echo esc_html( $is['title'] ); ?></span><?php if ( ! empty( $is['value'] ) ) : ?><span class="velox-ps-issue-v"><?php echo esc_html( $is['value'] ); ?></span><?php endif; ?></div>
+					<?php endforeach; ?>
+				</div>
+			<?php endif; ?>
+			<div class="velox-ps-foot">
+				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="velox-ps-refresh" data-ps-refresh>Refresh now</button>
+				<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">Tune performance</a>
+			</div>
+		<?php endif; ?>
 	</div>
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'forms', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'forms', 4, 1 ) ); ?>" data-widget="forms" data-widget-label="Form submissions">

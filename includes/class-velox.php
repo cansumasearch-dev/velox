@@ -58,6 +58,7 @@ final class Velox {
 		Velox_Utilities::init();
 		Velox_Snippets::init();
 		Velox_Stats::init();
+		Velox_Pagespeed::init();
 		Velox_Cookies::init();
 		Velox_Backup::init();
 		if ( Velox_Settings::get( 'util_october', false ) ) {

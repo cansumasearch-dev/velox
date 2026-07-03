@@ -427,19 +427,23 @@ gtag('consent','update',{
 	}
 
 	public static function footer() {
-		$decided = ( null !== self::granted() );
 		$o       = self::options();
 		$css     = self::style_block( $o, '' );
 		$markup  = self::markup( $o, false );
 		?>
 <style><?php echo $css; // phpcs:ignore ?></style>
-<div class="vxck-root" id="vxck-root" data-decided="<?php echo $decided ? '1' : '0'; ?>" data-reconsent="<?php echo (int) $o['cookie_reconsent_days']; ?>">
+<div class="vxck-root" id="vxck-root" data-decided="0" data-reconsent="<?php echo (int) $o['cookie_reconsent_days']; ?>">
 <?php echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_* helpers ?>
 </div>
 <script>
 (function(){
 	var root=document.getElementById('vxck-root'); if(!root) return;
 	var NAME='<?php echo esc_js( self::COOKIE ); ?>';
+	function getCookie(n){var m=document.cookie.match('(?:^|; )'+n.replace(/([.$?*|{}()\[\]\\\/+^])/g,'\\$1')+'=([^;]*)');return m?decodeURIComponent(m[1]):null;}
+	// Cache-proof: the server always ships the banner as "not decided", and the
+	// client decides visibility from the real cookie. This stops full-page caches
+	// (WP Fastest Cache / Cloudflare) from freezing one visitor's consent for all.
+	root.setAttribute('data-decided', getCookie(NAME) ? '1' : '0');
 	var days=parseInt(root.getAttribute('data-reconsent'),10)||180;
 	function setCookie(v){var d=new Date();d.setTime(d.getTime()+days*864e5);document.cookie=NAME+'='+encodeURIComponent(v)+';expires='+d.toUTCString()+';path=/;SameSite=Lax';}
 	function update(granted){

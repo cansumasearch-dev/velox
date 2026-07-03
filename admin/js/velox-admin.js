@@ -524,6 +524,7 @@
 						it.id +
 						'">' +
 						'<div class="velox-media-thumb">' +
+						'<input type="checkbox" class="velox-media-select" value="' + it.id + '" aria-label="Select image">' +
 						'<img src="' +
 						escapeHtml( it.thumb || it.full ) +
 						'" alt="" loading="lazy">' +
@@ -549,6 +550,7 @@
 					);
 				} )
 				.join( '' );
+			if ( typeof selecting !== 'undefined' && selecting ) { updateSel(); }
 		}
 
 		function field( key, label, value ) {
@@ -596,6 +598,72 @@
 					btn.disabled = false;
 					btn.textContent = 'Save';
 				} );
+		}
+
+		/* ----- bulk download (select mode) ----- */
+		var selecting  = false;
+		var dlBtn      = $( '#velox-media-download' );
+		var selBar     = $( '#velox-media-selectbar' );
+		var selAllBtn  = $( '#velox-media-selectall' );
+		var selCancel  = $( '#velox-media-selectcancel' );
+		var dlGo       = $( '#velox-media-dl-go' );
+		var selCount   = $( '#velox-media-selcount' );
+
+		function selectedIds() { return $$( '.velox-media-select:checked', gridEl ).map( function ( c ) { return c.value; } ); }
+		function updateSel() {
+			var n = selectedIds().length;
+			if ( dlGo ) { dlGo.disabled = n === 0; dlGo.textContent = 'Download selected' + ( n ? ' (' + n + ')' : '' ); }
+			if ( selCount ) { selCount.textContent = n ? ( n + ' image' + ( n === 1 ? '' : 's' ) + ' selected · alt text & titles come along in a text file' ) : 'Tick the images you want, then download. Alt text & titles come along in a text file.'; }
+			if ( selAllBtn ) {
+				var boxes = $$( '.velox-media-select', gridEl );
+				selAllBtn.textContent = ( boxes.length && boxes.every( function ( b ) { return b.checked; } ) ) ? 'Deselect all' : 'Select all';
+			}
+		}
+		function enterSelect() { selecting = true; gridEl.classList.add( 'is-selecting' ); if ( selBar ) { selBar.hidden = false; } if ( dlBtn ) { dlBtn.hidden = true; } updateSel(); }
+		function exitSelect() {
+			selecting = false; gridEl.classList.remove( 'is-selecting' );
+			if ( selBar ) { selBar.hidden = true; }
+			if ( dlBtn ) { dlBtn.hidden = false; }
+			$$( '.velox-media-select', gridEl ).forEach( function ( c ) { c.checked = false; } );
+			$$( '.velox-media-card', gridEl ).forEach( function ( c ) { c.classList.remove( 'is-selected' ); } );
+		}
+		if ( dlBtn ) { dlBtn.addEventListener( 'click', enterSelect ); }
+		if ( selCancel ) { selCancel.addEventListener( 'click', exitSelect ); }
+		if ( selAllBtn ) {
+			selAllBtn.addEventListener( 'click', function () {
+				var boxes = $$( '.velox-media-select', gridEl );
+				var allOn = boxes.length && boxes.every( function ( b ) { return b.checked; } );
+				boxes.forEach( function ( b ) { b.checked = ! allOn; b.closest( '.velox-media-card' ).classList.toggle( 'is-selected', b.checked ); } );
+				updateSel();
+			} );
+		}
+		gridEl.addEventListener( 'change', function ( e ) {
+			var b = e.target.closest ? e.target.closest( '.velox-media-select' ) : null;
+			if ( ! b ) { return; }
+			b.closest( '.velox-media-card' ).classList.toggle( 'is-selected', b.checked );
+			updateSel();
+		} );
+		if ( dlGo ) {
+			dlGo.addEventListener( 'click', function () {
+				var ids = selectedIds();
+				if ( ! ids.length ) { return; }
+				dlGo.disabled = true;
+				var orig = dlGo.textContent;
+				dlGo.textContent = 'Preparing…';
+				api( 'media_zip', { ids: ids } )
+					.then( function ( r ) {
+						if ( r && r.url ) {
+							var a = document.createElement( 'a' );
+							a.href = r.url; a.download = r.filename || '';
+							document.body.appendChild( a ); a.click(); a.remove();
+							toast( 'Download ready — ' + ( r.count || ids.length ) + ' image' + ( ( r.count || ids.length ) === 1 ? '' : 's' ) + '.', 'success' );
+						} else {
+							toast( 'Could not build the download.', 'error' );
+						}
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { dlGo.disabled = false; dlGo.textContent = orig; } );
+			} );
 		}
 
 		/* paging + search */
@@ -3601,6 +3669,7 @@
 					'<label class="vmail-cf"><span>Password</span><input type="password" class="velox-input vmail-c-pass" value="' + escapeHtml( c.pass || '' ) + '" autocomplete="new-password"></label>' +
 					'<label class="vmail-cf"><span>From address</span><input type="email" class="velox-input vmail-c-from" value="' + escapeHtml( c.from || '' ) + '" placeholder="hello@example.com"></label>' +
 					'<label class="vmail-cf"><span>From name</span><input type="text" class="velox-input vmail-c-fromname" value="' + escapeHtml( c.from_name || '' ) + '"></label>' +
+					'<label class="vmail-cf"><span>Reply-To</span><input type="email" class="velox-input vmail-c-replyto" value="' + escapeHtml( c.reply_to || '' ) + '" placeholder="replies@example.com"></label>' +
 				'</div>';
 			card.querySelector( '.vmail-conn-del' ).addEventListener( 'click', function () {
 				collect();
@@ -3673,7 +3742,8 @@
 					user:      card.querySelector( '.vmail-c-user' ).value,
 					pass:      card.querySelector( '.vmail-c-pass' ).value,
 					from:      card.querySelector( '.vmail-c-from' ).value,
-					from_name: card.querySelector( '.vmail-c-fromname' ).value
+					from_name: card.querySelector( '.vmail-c-fromname' ).value,
+					reply_to:  ( card.querySelector( '.vmail-c-replyto' ) || {} ).value || ''
 				} );
 			} );
 			conns = out;
@@ -3702,7 +3772,7 @@
 
 		$( '#vmail-conn-add' ).addEventListener( 'click', function () {
 			collect();
-			conns.push( { id: uid(), label: '', host: '', port: 587, secure: 'tls', user: '', pass: '', from: '', from_name: '' } );
+			conns.push( { id: uid(), label: '', host: '', port: 587, secure: 'tls', user: '', pass: '', from: '', from_name: '', reply_to: '' } );
 			render();
 		} );
 
@@ -3753,6 +3823,23 @@
 					.then( function ( r ) { toast( r.message, r.ok ? 'success' : 'error' ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { testBtn.disabled = false; } );
+			} );
+		}
+
+		var connTestBtn = $( '#vmail-conn-test' );
+		if ( connTestBtn ) {
+			connTestBtn.addEventListener( 'click', function () {
+				collect();
+				var id = testConn ? testConn.value : ( conns[0] && conns[0].id );
+				var c = conns.filter( function ( x ) { return x.id === id; } )[0] || conns[0];
+				if ( ! c || ! c.host ) { toast( 'Add a connection with a host first.', 'error' ); return; }
+				connTestBtn.disabled = true;
+				var orig = connTestBtn.textContent;
+				connTestBtn.textContent = 'Testing…';
+				api( 'mail_conn_test', { host: c.host, port: c.port, secure: c.secure, user: c.user, pass: c.pass } )
+					.then( function ( r ) { toast( r.message, r.ok ? 'success' : 'error' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { connTestBtn.disabled = false; connTestBtn.textContent = orig; } );
 			} );
 		}
 
@@ -5069,6 +5156,24 @@
 		var mediaItems = [];
 		var mediaMode  = 'unused';
 
+		// Lightbox (shared by both tabs).
+		var lb = null;
+		function lightbox( src, name ) {
+			if ( ! lb ) {
+				lb = document.createElement( 'div' );
+				lb.className = 'velox-lightbox';
+				lb.innerHTML = '<div class="velox-lightbox-inner"><button type="button" class="velox-lightbox-x" aria-label="Close">&times;</button><img alt=""><div class="velox-lightbox-cap"></div></div>';
+				lb.addEventListener( 'click', function ( e ) {
+					if ( e.target === lb || e.target.classList.contains( 'velox-lightbox-x' ) ) { lb.classList.remove( 'is-open' ); }
+				} );
+				document.addEventListener( 'keydown', function ( e ) { if ( e.key === 'Escape' && lb ) { lb.classList.remove( 'is-open' ); } } );
+				document.body.appendChild( lb );
+			}
+			lb.querySelector( 'img' ).src = src;
+			lb.querySelector( '.velox-lightbox-cap' ).textContent = name || '';
+			lb.classList.add( 'is-open' );
+		}
+
 		function fmtBytes( b ) {
 			if ( ! b ) { return '0 KB'; }
 			var u = [ 'B', 'KB', 'MB', 'GB' ], i = Math.floor( Math.log( b ) / Math.log( 1024 ) );
@@ -5083,10 +5188,10 @@
 		function renderMedia() {
 			results.innerHTML = '';
 			delBtn.hidden = true;
-			var subset = mediaItems.filter( function ( it ) { return mediaMode === 'used' ? it.used : ! it.used; } );
+			var subset = mediaItems.filter( function ( it ) { return mediaMode === 'used' ? it.strong : ! it.used; } );
 			if ( ! subset.length ) {
 				results.innerHTML = mediaMode === 'used'
-					? '<p class="velox-hint">No used images in the scanned set.</p>'
+					? '<p class="velox-hint">No images are confirmed in use in the scanned set.</p>'
 					: '<p class="velox-hint">Nothing flagged — every image looks referenced. 🎉</p>';
 				summary.textContent = '';
 				return;
@@ -5098,13 +5203,19 @@
 				card.className = 'velox-media-item' + ( mediaMode === 'used' ? ' is-used' : '' );
 				card.innerHTML =
 					( mediaMode === 'used' ? '' : '<input type="checkbox" class="velox-media-pick" value="' + it.id + '">' ) +
-					'<img src="' + it.thumb + '" alt="" loading="lazy">' +
+					'<img src="' + it.thumb + '" data-full="' + ( it.url || it.thumb ) + '" data-name="' + ( it.title || ( '#' + it.id ) ) + '" alt="" loading="lazy">' +
 					'<span class="velox-media-name">' + ( it.title || ( '#' + it.id ) ) + '</span>' +
 					'<span class="velox-media-size">' + fmtBytes( it.bytes ) + '</span>';
 				results.appendChild( card );
 			} );
+			$$( '.velox-media-item img', results ).forEach( function ( img ) {
+				img.addEventListener( 'click', function ( e ) {
+					e.preventDefault(); e.stopPropagation();
+					lightbox( img.getAttribute( 'data-full' ), img.getAttribute( 'data-name' ) );
+				} );
+			} );
 			if ( mediaMode === 'used' ) {
-				summary.textContent = subset.length + ' used image' + ( subset.length === 1 ? '' : 's' ) + ' · ' + fmtBytes( total ) + ' total';
+				summary.textContent = subset.length + ' image' + ( subset.length === 1 ? '' : 's' ) + ' confirmed in use · ' + fmtBytes( total ) + ' total';
 			} else {
 				summary.textContent = subset.length + ' possibly-unused image' + ( subset.length === 1 ? '' : 's' ) + ' · ' + fmtBytes( total ) + ' reclaimable';
 				$$( '.velox-media-pick', results ).forEach( function ( c ) { c.addEventListener( 'change', refreshSelection ); } );
@@ -6046,3 +6157,36 @@
 	} );
 	window.addEventListener( 'resize', function () { closePop(); } );
 }( jQuery ) );
+
+/* ===== Dashboard: PageSpeed refresh ===== */
+( function () {
+	if ( typeof VELOX === 'undefined' ) { return; }
+	function bind() {
+		var btns = document.querySelectorAll( '[data-ps-refresh]' );
+		if ( ! btns.length ) { return; }
+		Array.prototype.forEach.call( btns, function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				var w = btn.closest ? btn.closest( '.velox-w' ) : null;
+				var orig = btn.textContent;
+				btn.textContent = 'Checking\u2026 (~30s)';
+				btn.disabled = true;
+				if ( w ) { w.classList.add( 'velox-ps-refreshing' ); }
+				var body = 'action=velox&do=ps_refresh&nonce=' + encodeURIComponent( VELOX.nonce );
+				fetch( VELOX.ajaxurl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body } )
+					.then( function ( r ) { return r.json(); } )
+					.then( function ( j ) {
+						if ( j && j.success ) { location.reload(); return; }
+						btn.textContent = orig; btn.disabled = false;
+						if ( w ) { w.classList.remove( 'velox-ps-refreshing' ); }
+						if ( typeof toast === 'function' ) { toast( ( j && j.data && j.data.message ) || 'PageSpeed check failed.', 'error' ); }
+					} )
+					.catch( function () {
+						btn.textContent = orig; btn.disabled = false;
+						if ( w ) { w.classList.remove( 'velox-ps-refreshing' ); }
+						if ( typeof toast === 'function' ) { toast( 'PageSpeed check failed.', 'error' ); }
+					} );
+			} );
+		} );
+	}
+	if ( document.readyState === 'loading' ) { document.addEventListener( 'DOMContentLoaded', bind ); } else { bind(); }
+}() );

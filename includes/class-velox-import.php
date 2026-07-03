@@ -21,25 +21,146 @@ class Velox_Import {
 	/** Which sources we can import, and whether each looks present on this site. */
 	public static function sources() {
 		return array(
+			// --- fully supported (real importers) ---
 			'wprocket' => array(
 				'label'     => 'WP Rocket',
 				'detected'  => self::wprocket_present(),
 				'into'      => 'Performance',
+				'ready'     => true,
 				'desc'      => 'Cache lifespan, exclusions, defer/delay JS, lazy-load, font and preload settings.',
 			),
 			'yoast' => array(
 				'label'     => 'Yoast SEO',
 				'detected'  => self::yoast_present(),
 				'into'      => 'SEO',
+				'ready'     => true,
 				'desc'      => 'Robots.txt rules, sitemap on/off, and per-post SEO titles, descriptions and noindex flags.',
 			),
 			'wpmailsmtp' => array(
 				'label'     => 'WP Mail SMTP',
 				'detected'  => self::wpmailsmtp_present(),
 				'into'      => 'Mail',
+				'ready'     => true,
 				'desc'      => 'SMTP host, port, encryption, auth and From details — imported as a Velox mail connection.',
 			),
+
+			// --- recognised, one-click migration on the way ---
+			'rankmath' => array(
+				'label' => 'Rank Math SEO', 'into' => 'SEO', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'RANK_MATH_VERSION' ), 'option' => array( 'rank-math-options-general' ) ) ),
+				'desc' => 'SEO titles, meta descriptions, robots and sitemap settings.',
+			),
+			'aioseo' => array(
+				'label' => 'All in One SEO', 'into' => 'SEO', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'AIOSEO_VERSION' ), 'option' => array( 'aioseo_options' ) ) ),
+				'desc' => 'SEO titles, meta descriptions, robots and sitemap settings.',
+			),
+			'seopress' => array(
+				'label' => 'SEOPress', 'into' => 'SEO', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'SEOPRESS_VERSION' ), 'option' => array( 'seopress_titles_option_name' ) ) ),
+				'desc' => 'SEO titles, meta descriptions, robots and sitemap settings.',
+			),
+			'litespeed' => array(
+				'label' => 'LiteSpeed Cache', 'into' => 'Performance', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'LSCWP_V', 'LSWCP_PLUGIN_NAME' ) ) ),
+				'desc' => 'Caching, CSS/JS optimisation, lazy-load and image settings.',
+			),
+			'wpfastest' => array(
+				'label' => 'WP Fastest Cache', 'into' => 'Performance', 'ready' => false,
+				'detected' => self::present( array( 'class' => array( 'WpFastestCache' ), 'const' => array( 'WPFC_MAIN_PATH' ) ) ),
+				'desc' => 'Cache, minification and combine settings.',
+			),
+			'w3tc' => array(
+				'label' => 'W3 Total Cache', 'into' => 'Performance', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'W3TC_VERSION', 'W3TC' ) ) ),
+				'desc' => 'Page cache, minify, and browser-cache settings.',
+			),
+			'wpsupercache' => array(
+				'label' => 'WP Super Cache', 'into' => 'Performance', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'WPCACHEHOME' ) ) ),
+				'desc' => 'Page caching configuration.',
+			),
+			'autoptimize' => array(
+				'label' => 'Autoptimize', 'into' => 'Performance', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'AUTOPTIMIZE_PLUGIN_VERSION' ), 'option' => array( 'autoptimize_js' ) ) ),
+				'desc' => 'CSS/JS aggregation, defer and image optimisation.',
+			),
+			'perfmatters' => array(
+				'label' => 'Perfmatters', 'into' => 'Performance', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'PERFMATTERS_VERSION' ) ) ),
+				'desc' => 'Script manager, disabled features and preload settings.',
+			),
+			'flyingpress' => array(
+				'label' => 'FlyingPress', 'into' => 'Performance', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'FLYING_PRESS_VERSION' ) ) ),
+				'desc' => 'Cache, CSS/JS optimisation and lazy-load settings.',
+			),
+			'fluentsmtp' => array(
+				'label' => 'FluentSMTP', 'into' => 'Mail', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'FLUENTMAIL' ), 'option' => array( 'fluentmail-settings' ) ) ),
+				'desc' => 'SMTP connections and routing.',
+			),
+			'postsmtp' => array(
+				'label' => 'Post SMTP', 'into' => 'Mail', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'POST_SMTP_VER' ), 'option' => array( 'postman_options' ) ) ),
+				'desc' => 'SMTP host, port, auth and From details.',
+			),
+			'easywpsmtp' => array(
+				'label' => 'Easy WP SMTP', 'into' => 'Mail', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'EASY_WP_SMTP_VERSION' ), 'option' => array( 'swpsmtp_options' ) ) ),
+				'desc' => 'SMTP host, port, auth and From details.',
+			),
+			'cookieyes' => array(
+				'label' => 'CookieYes', 'into' => 'Cookie Banner', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'CLI_PLUGIN_VERSION' ), 'option' => array( 'cookielawinfo_settings' ) ) ),
+				'desc' => 'Consent banner text, categories and appearance.',
+			),
+			'complianz' => array(
+				'label' => 'Complianz', 'into' => 'Cookie Banner', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'cmplz_plugin_file', 'cmplz_version' ) ) ),
+				'desc' => 'Consent banner and cookie categories.',
+			),
+			'borlabs' => array(
+				'label' => 'Borlabs Cookie', 'into' => 'Cookie Banner', 'ready' => false,
+				'detected' => self::present( array( 'class' => array( 'BorlabsCookie' ), 'const' => array( 'BORLABS_COOKIE_VERSION' ) ) ),
+				'desc' => 'Consent banner and cookie categories.',
+			),
+			'redirection' => array(
+				'label' => 'Redirection', 'into' => 'Redirects & 404s', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'REDIRECTION_VERSION' ), 'option' => array( 'redirection_options' ) ) ),
+				'desc' => 'Redirect rules and 404 handling.',
+			),
+			'wpcode' => array(
+				'label' => 'WPCode', 'into' => 'Code Snippets', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'WPCODE_VERSION' ) ) ),
+				'desc' => 'PHP / CSS / JS snippets.',
+			),
+			'codesnippets' => array(
+				'label' => 'Code Snippets', 'into' => 'Code Snippets', 'ready' => false,
+				'detected' => self::present( array( 'const' => array( 'CODE_SNIPPETS_VERSION' ) ) ),
+				'desc' => 'PHP / CSS / JS snippets.',
+			),
 		);
+	}
+
+	/** Presence check across constants, classes, options and active plugin files. */
+	private static function present( $checks ) {
+		foreach ( (array) ( isset( $checks['const'] ) ? $checks['const'] : array() ) as $c ) {
+			if ( defined( $c ) ) {
+				return true;
+			}
+		}
+		foreach ( (array) ( isset( $checks['class'] ) ? $checks['class'] : array() ) as $cl ) {
+			if ( class_exists( $cl ) ) {
+				return true;
+			}
+		}
+		foreach ( (array) ( isset( $checks['option'] ) ? $checks['option'] : array() ) as $o ) {
+			if ( false !== get_option( $o, false ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	public static function run( $source ) {
@@ -51,7 +172,7 @@ class Velox_Import {
 			case 'wpmailsmtp':
 				return self::import_wpmailsmtp();
 		}
-		return array( 'ok' => false, 'message' => 'Unknown import source.' );
+		return array( 'ok' => false, 'message' => 'Automatic migration for this plugin isn\'t available yet.' );
 	}
 
 	/* ----------------------------------------------------------------- *

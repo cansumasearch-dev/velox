@@ -76,6 +76,18 @@ class Velox_Ajax {
 				wp_send_json_success( $cur );
 				break;
 
+			case 'ps_refresh':
+				if ( ! class_exists( 'Velox_Pagespeed' ) ) {
+					wp_send_json_error( array( 'message' => 'PageSpeed module unavailable.' ) );
+				}
+				$res = Velox_Pagespeed::fetch_and_store();
+				Velox_Pagespeed::sync_schedule();
+				if ( empty( $res['ok'] ) ) {
+					wp_send_json_error( array( 'message' => ! empty( $res['error'] ) ? $res['error'] : 'PageSpeed check failed.' ) );
+				}
+				wp_send_json_success( $res );
+				break;
+
 			case 'estimate_webp':
 				$id  = (int) ( $_POST['id'] ?? 0 );
 				$q   = isset( $_POST['quality'] ) ? (int) $_POST['quality'] : null;
@@ -112,6 +124,15 @@ class Velox_Ajax {
 				$s    = sanitize_text_field( $_POST['search'] ?? '' );
 				$type = sanitize_key( $_POST['type'] ?? 'all' );
 				wp_send_json_success( $mm->list_media( $page, 40, $s, $type ) );
+				break;
+
+			case 'media_zip':
+				$ids = isset( $_POST['ids'] ) ? (array) wp_unslash( $_POST['ids'] ) : array();
+				$res = ( new Velox_Media_Manager() )->build_zip( $ids );
+				if ( empty( $res['ok'] ) ) {
+					wp_send_json_error( array( 'message' => isset( $res['message'] ) ? $res['message'] : 'Could not build the download.' ) );
+				}
+				wp_send_json_success( $res );
 				break;
 
 			case 'save_meta':
@@ -554,6 +575,16 @@ class Velox_Ajax {
 				) );
 				break;
 
+			case 'mail_conn_test':
+				wp_send_json_success( Velox_Mail::test_connection( array(
+					'host'   => isset( $_POST['host'] ) ? sanitize_text_field( wp_unslash( $_POST['host'] ) ) : '',
+					'port'   => isset( $_POST['port'] ) ? (int) $_POST['port'] : 587,
+					'secure' => isset( $_POST['secure'] ) ? sanitize_key( wp_unslash( $_POST['secure'] ) ) : 'tls',
+					'user'   => isset( $_POST['user'] ) ? wp_unslash( $_POST['user'] ) : '',
+					'pass'   => isset( $_POST['pass'] ) ? wp_unslash( $_POST['pass'] ) : '',
+				) ) );
+				break;
+
 			case 'mail_resend':
 				wp_send_json_success( Velox_Mail::resend( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
 				break;
@@ -811,6 +842,11 @@ class Velox_Ajax {
 					break;
 				}
 			}
+		}
+
+		// Keep the PageSpeed cron in step when its enable/interval changed.
+		if ( class_exists( 'Velox_Pagespeed' ) && ( array_key_exists( 'ps_enable', $raw ) || array_key_exists( 'ps_interval', $raw ) ) ) {
+			Velox_Pagespeed::sync_schedule();
 		}
 		wp_send_json_success( array( 'message' => __( 'Settings saved.', 'velox' ) ) );
 	}

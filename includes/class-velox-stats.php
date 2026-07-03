@@ -77,8 +77,8 @@ final class Velox_Stats {
 		if ( ! Velox_Settings::get( 'traffic_tracking', true ) ) {
 			return new WP_REST_Response( $skip, 200 );
 		}
-		// Don't count the people who run the site.
-		if ( is_user_logged_in() && current_user_can( 'edit_posts' ) ) {
+		// Only count real public visitors — never anyone logged into WordPress.
+		if ( is_user_logged_in() ) {
 			return new WP_REST_Response( $skip, 200 );
 		}
 		$ua = isset( $_SERVER['HTTP_USER_AGENT'] ) ? (string) $_SERVER['HTTP_USER_AGENT'] : '';

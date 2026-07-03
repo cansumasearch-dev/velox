@@ -54,6 +54,7 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 		</div>
 		<div class="velox-alert velox-alert--warn velox-seo-cf-note">
 			<strong>Seeing AI "content signals" text instead of yours?</strong> That's <strong>Cloudflare</strong> serving its own robots.txt at the edge, which overrides this. Fix it in your Cloudflare dashboard: <em>your zone → AI Crawl Control / Bots → uncheck "Display Content Signals Policy" / managed robots.txt</em>. Writing a physical file here also helps, since Cloudflare only injects when your origin has no robots.txt.
+		</div>
 	</div>
 
 	<!-- ============ Sitemap ============ -->
@@ -75,25 +76,14 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 	</div>
 </div>
 
-<!-- ============ Per-page meta ============ -->
+<!-- ============ Social cards (Open Graph) ============ -->
 <div class="velox-panel">
-	<div class="velox-cache-status-row">
-		<h3 class="velox-panel-title">Social cards (Open Graph)</h3>
-		<label class="velox-switch"><input type="checkbox" id="velox-seo-og-enable" data-setting="seo_og_enable" <?php checked( ! empty( $s['seo_og_enable'] ) ); ?>><span class="velox-switch-track"></span></label>
-	</div>
-	<p class="velox-hint">Outputs Open Graph and Twitter tags (<code>og:title</code>, <code>og:description</code>, <code>og:image</code>…) so links shared to Facebook, LinkedIn, WhatsApp and X show a rich preview. Turn this off to emit no social tags at all — useful if another tool already handles them.</p>
-</div>
-
-<!-- ============ Per-page meta ============ -->
-<div class="velox-panel">
-	<h3 class="velox-panel-title">Per-page title &amp; description</h3>
-	<p class="velox-hint">Open any post, page or product and you'll find a <strong>Velox SEO</strong> box under the content with a live Google preview. Set a custom SEO title, meta description, mark a page <em>noindex</em>, or exclude it from the sitemap — all in one place.</p>
-	<div class="velox-seo-fauxbox">
-		<div class="velox-seo-preview">
-			<div class="velox-seo-preview-url"><?php echo esc_html( home_url( '/your-page/' ) ); ?></div>
-			<div class="velox-seo-preview-title">Your custom SEO title shows here</div>
-			<div class="velox-seo-preview-desc">…and your meta description previews exactly how Google will render it, with live character counts.</div>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Social cards (Open Graph)</span>
+			<span class="velox-toggle-desc">Adds Open Graph &amp; Twitter tags (<code>og:title</code>, <code>og:image</code>…) so links shared to Facebook, LinkedIn, WhatsApp and X show a rich preview. Turn off if another tool already handles them.</span>
 		</div>
+		<label class="velox-switch"><input type="checkbox" id="velox-seo-og-enable" data-setting="seo_og_enable" <?php checked( ! empty( $s['seo_og_enable'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 </div>
 
@@ -119,7 +109,7 @@ $ht_writable = Velox_Seo::htaccess_writable();
 	<?php elseif ( ! $ht_exists ) : ?>
 		<div class="velox-alert velox-alert--info" style="margin-bottom:12px;">No <code>.htaccess</code> exists in your site root yet — saving will create one.</div>
 	<?php endif; ?>
-	<textarea class="velox-textarea velox-mono" id="velox-ht-content" rows="14" spellcheck="false" readonly<?php echo $ht_writable ? '' : ' disabled'; ?>><?php echo esc_textarea( $ht_content ); ?></textarea>
+	<textarea class="velox-textarea velox-mono" id="velox-ht-content" rows="22" spellcheck="false" readonly<?php echo $ht_writable ? '' : ' disabled'; ?>><?php echo esc_textarea( $ht_content ); ?></textarea>
 	<div class="velox-actions" style="margin-top:12px;">
 		<button class="velox-btn velox-btn--primary" id="velox-ht-save" disabled>Save .htaccess</button>
 		<button class="velox-btn velox-btn--ghost" id="velox-ht-reset" disabled>Reset to default</button>

@@ -89,30 +89,25 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 					array( 'tab', 'dashboard', 'Dashboard', 'home' ),
 					array( 'tab', 'utilities', 'Utilities', 'grid' ),
 				),
-				'System'      => array(
-					array( 'tab', 'settings', 'Settings', 'gear' ),
-					array( 'tab', 'seo', 'SEO', 'search' ),
-					array( 'util', 'backup', 'Backup & Restore', 'package' ),
-				),
-				'Content'     => array(
-					array( 'util', 'fields', 'Custom Fields', 'grid' ),
-					array( 'tab', 'media', 'Media Editor', 'tag' ),
-				),
-				'Performance' => array(
+				'Essentials'  => array(
 					array( 'tab', 'performance', 'Performance', 'bolt' ),
 					array( 'tab', 'images', 'Images', 'image' ),
-					array( 'tab', 'database', 'Database', 'db' ),
-					array( 'util', 'scripts', 'Script Manager', 'code' ),
-					array( 'util', 'unusedmedia', 'Unused Media', 'broom' ),
+					array( 'tab', 'seo', 'SEO', 'search' ),
 				),
-				'Site Tools'  => array(
+				'More'        => array(
+					array( 'tab', 'database', 'Database', 'db' ),
+					array( 'util', 'fields', 'Custom Fields', 'grid' ),
+					array( 'tab', 'media', 'Media Editor', 'tag' ),
 					array( 'util', 'redirects', 'Redirects & 404s', 'redirect' ),
 					array( 'util', 'snippets', 'Code Snippets', 'code' ),
 					array( 'util', 'cookies', 'Cookie Banner', 'cookie' ),
 					array( 'util', 'mail', 'Mail & Forms', 'mail' ),
+					array( 'util', 'scripts', 'Script Manager', 'code' ),
+					array( 'util', 'unusedmedia', 'Unused Media', 'broom' ),
 					array( 'util', 'maintenance', 'Maintenance Mode', 'cone' ),
 					array( 'util', 'loginurl', 'Login URL', 'lock' ),
 					array( 'util', 'installer', 'Bulk Installer', 'plug' ),
+					array( 'util', 'backup', 'Backup & Restore', 'package' ),
 					array( 'util', 'october', 'OctoberCMS Theme', 'package' ),
 				),
 			);
@@ -147,6 +142,9 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 			<a class="velox-side-foot-link" href="https://www.sumasearch.de/" target="_blank" rel="noopener">
 				<img src="<?php echo esc_url( VELOX_URL . 'assets/menu-icon.png' ); ?>" alt="" width="14" height="14">
 				by Sumasearch
+			</a>
+			<a class="velox-side-foot-gear<?php echo ( 'settings' === $current ) ? ' is-active' : ''; ?>" href="<?php echo esc_url( $admin->tab_url( 'settings' ) ); ?>" aria-label="Settings" title="Settings">
+				<?php echo Velox_Admin::icon( 'gear', 18 ); ?>
 			</a>
 		</div>
 	</aside>

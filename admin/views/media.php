@@ -15,9 +15,19 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="velox-toolbar">
 	<input type="search" id="velox-media-search" class="velox-input" placeholder="Search filename or title…">
 	<div class="velox-toolbar-right">
+		<button class="velox-btn velox-btn--ghost" id="velox-media-download">Download images</button>
 		<button class="velox-btn velox-btn--ghost" id="velox-pipe-export">Export pipe list</button>
 		<button class="velox-btn velox-btn--ghost" id="velox-pipe-open">Bulk import</button>
 	</div>
+</div>
+
+<div class="velox-media-selectbar" id="velox-media-selectbar" hidden>
+	<span class="velox-hint" id="velox-media-selcount">Tick the images you want, then download. Alt text &amp; titles come along in a text file.</span>
+	<span class="velox-media-selectbar-actions">
+		<button class="velox-btn velox-btn--ghost velox-btn--sm" id="velox-media-selectall">Select all</button>
+		<button class="velox-btn velox-btn--primary velox-btn--sm" id="velox-media-dl-go" disabled>Download selected</button>
+		<button class="velox-btn velox-btn--ghost velox-btn--sm" id="velox-media-selectcancel">Cancel</button>
+	</span>
 </div>
 
 <div class="velox-media-grid" id="velox-media-grid"><div class="velox-loading">Loading media…</div></div>

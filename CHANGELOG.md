@@ -4,6 +4,44 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.03.5 — Settings: more migrate sources + keep-data option
+- **Migrate from another plugin** now lists the popular tools people switch from — Rank Math, All in One SEO, SEOPress, LiteSpeed, WP Fastest Cache, W3 Total Cache, Autoptimize, Perfmatters, FlyingPress, FluentSMTP, Post SMTP, CookieYes, Complianz, Redirection, WPCode and more. WP Rocket, Yoast and WP Mail SMTP import with one click today; the rest are recognised and marked "Migration coming soon".
+- New **Keep my settings if I delete Velox** option (Settings → Housekeeping). Leave it on and deleting the plugin won&rsquo;t wipe your settings, forms, redirects or logs — handy for reinstalls. Off by default.
+
+## 3.03.4 — Mail: Test connection + Reply-To
+- New **Test connection** button on the SMTP screen actually opens a live handshake with your mail server (connect → encrypt → sign in) and tells you instantly whether the connection works — no need to send a test email and dig through your inbox. Errors are specific (wrong password, bad port, TLS mismatch, host unreachable).
+- Each SMTP connection now has a **Reply-To** field, so replies to your outgoing mail land in the inbox you choose.
+- The existing "Send test" (delivers a real test email) is still there alongside it.
+
+## 3.03.3 — Media Editor: bulk download
+- New **Download images** button on the Media Editor. Click it to enter select mode, tick the images you want (or hit **Select all**), then **Download selected** to get them as a single zip.
+- The zip includes a plain-text file listing each image&rsquo;s alt text and title in the same `Dateiname | Alt-Text | Titel` format as Bulk import — so nothing is lost and you can re-apply it after re-uploading.
+
+## 3.03.2 — Unused Media: accurate "Used" list + image lightbox
+- The **Used** tab now lists only images with a confirmed reference (in your content, page-builder data, or the rendered page/CSS) — loosely-matched files no longer leak in and get mislabeled as used.
+- The **Unused** tab stays deliberately cautious, so nothing borderline is ever offered up for deletion.
+- Click any image in either tab to open it full-size in a lightbox.
+
+## 3.03.1 — SEO screen cleanup
+- Fixed a layout bug where the robots.txt and sitemap panels stacked instead of sitting side-by-side (the robots panel was never closed, nesting the sitemap inside it).
+- Removed the oversized per-page title &amp; description preview card and slimmed the Social cards (Open Graph) section to a compact toggle.
+- Made the .htaccess editor taller so you can see more of the file at once.
+
+## 3.03.0 — Live PageSpeed on the dashboard
+- New **PageSpeed** widget pulls a real Google Lighthouse score for your site and shows it on the dashboard, with Core Web Vitals chips and the top things to fix.
+- Runs on a schedule (hourly / twice-daily / daily) via WP-Cron and caches the result, plus a **Run a check now** button for an on-demand refresh.
+- New **Live PageSpeed** panel in Settings: enable it, add a PageSpeed Insights API key, choose the URL, device (mobile/desktop), refresh interval, and whether to show the metrics and the list of issues.
+- Needs outbound access to googleapis.com and WordPress cron; without an API key Google rate-limits requests.
+
+## 3.02.2 — Cookie banner shows again, truer visitor counts, stretchy Visitors graph
+- **Cookie banner** now decides whether to show on the visitor&rsquo;s side instead of being baked into the page. Full-page caches (WP Fastest Cache / Cloudflare) could freeze one person&rsquo;s consent for everyone and hide the banner site-wide — fixed.
+- **Visitor stats** now ignore every logged-in user (not just admins), so the count reflects real public visitors only.
+- On the dashboard, a resized **Visitors** widget now grows its graph to fill the card and keeps it anchored to the bottom.
+
+## 3.02.1 — Sidebar reorder + Settings gear
+- Reorganised the sidebar: **Essentials** (Performance, Images, SEO) now sit directly under Dashboard &amp; Utilities, with everything else grouped under **More** below.
+- **Settings** moved out of the list into a gear icon in the sidebar footer, next to &ldquo;by Sumasearch&rdquo; — one click from anywhere.
+
 ## 3.02.0 — Resizable dashboard widgets + more accurate visitor counts
 - Dashboard widgets can now be resized. In Edit mode, hit the resize handle on any widget and set its **grid size** — width (columns) and height (rows) — so you can make Visitors wide, shrink a stat card, and lay the dashboard out how you like. Your sizes are saved per site.
 - The dashboard now lays widgets out on a real 12-column grid, so widget sizes are actually respected (previously the size classes did nothing).

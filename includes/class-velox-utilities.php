@@ -596,23 +596,38 @@ class Velox_Utilities {
 			'order'          => 'ASC',
 		) );
 
-		// DB pass: which ids are referenced somewhere, plus each id's filenames.
-		$used  = array();
-		$names = array();
+		// DB pass: which ids are referenced somewhere (strong), plus each id's names.
+		$used   = array(); // loose — anything that looks referenced (keeps it out of "unused")
+		$strong = array(); // strict — a concrete reference or an exact upload-path match
+		$names  = array(); // bare basenames (loose match)
+		$paths  = array(); // upload-relative paths (strict match)
 		foreach ( $ids as $id ) {
 			if ( self::is_referenced( $id ) ) {
-				$used[ $id ] = true;
+				$used[ $id ]   = true;
+				$strong[ $id ] = true;
 			} else {
 				$names[ $id ] = self::all_basenames( $id );
+				$paths[ $id ] = self::all_paths( $id );
 			}
 		}
 
-		// Front-end pass: any remaining candidate whose filename appears in the
-		// rendered HTML or generated CSS is actually in use.
+		// Front-end pass. A file whose full upload path appears in the rendered
+		// HTML/CSS is definitely in use (strong). A bare-filename match only keeps it
+		// out of the "unused" list (loose) — it's too weak to call the file "used".
 		if ( $names ) {
 			$html = self::rendered_html_blob();
 			if ( '' !== $html ) {
 				foreach ( $names as $id => $list ) {
+					foreach ( $paths[ $id ] as $p ) {
+						if ( '' !== $p && false !== strpos( $html, $p ) ) {
+							$used[ $id ]   = true;
+							$strong[ $id ] = true;
+							break;
+						}
+					}
+					if ( ! empty( $strong[ $id ] ) ) {
+						continue;
+					}
 					foreach ( $list as $n ) {
 						if ( '' !== $n && false !== strpos( $html, $n ) ) {
 							$used[ $id ] = true;
@@ -627,15 +642,48 @@ class Velox_Utilities {
 		foreach ( $ids as $id ) {
 			$file  = get_attached_file( $id );
 			$out[] = array(
-				'id'    => $id,
-				'title' => get_the_title( $id ),
-				'url'   => wp_get_attachment_url( $id ),
-				'thumb' => self::thumb_url( $id ),
-				'bytes' => ( $file && file_exists( $file ) ) ? (int) filesize( $file ) : 0,
-				'used'  => ! empty( $used[ $id ] ),
+				'id'     => $id,
+				'title'  => get_the_title( $id ),
+				'url'    => wp_get_attachment_url( $id ),
+				'thumb'  => self::thumb_url( $id ),
+				'bytes'  => ( $file && file_exists( $file ) ) ? (int) filesize( $file ) : 0,
+				'used'   => ! empty( $used[ $id ] ),
+				'strong' => ! empty( $strong[ $id ] ),
 			);
 		}
 		return $out;
+	}
+
+	/** Upload-relative paths (dir + filename) for the original and every size — a precise match. */
+	private static function all_paths( $id ) {
+		$file = get_post_meta( $id, '_wp_attached_file', true );
+		if ( ! $file ) {
+			$file = (string) get_attached_file( $id );
+		}
+		if ( ! $file ) {
+			return array();
+		}
+		$rel = ltrim( str_replace( '\\', '/', $file ), '/' );
+		if ( false !== strpos( $rel, '/uploads/' ) ) {
+			$rel = substr( $rel, strpos( $rel, '/uploads/' ) + 9 );
+		}
+		$dir   = dirname( $rel );
+		$dir   = ( '.' === $dir || '' === $dir ) ? '' : $dir . '/';
+		$paths = array( $rel => 1 );
+		$meta  = wp_get_attachment_metadata( $id );
+		if ( is_array( $meta ) ) {
+			if ( ! empty( $meta['sizes'] ) && is_array( $meta['sizes'] ) ) {
+				foreach ( $meta['sizes'] as $sz ) {
+					if ( ! empty( $sz['file'] ) ) {
+						$paths[ $dir . basename( $sz['file'] ) ] = 1;
+					}
+				}
+			}
+			if ( ! empty( $meta['original_image'] ) ) {
+				$paths[ $dir . basename( $meta['original_image'] ) ] = 1;
+			}
+		}
+		return array_keys( $paths );
 	}
 
 	/** Every filename this attachment could appear as: original + all generated sizes. */
