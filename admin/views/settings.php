@@ -93,11 +93,12 @@ $s = Velox_Settings::all();
 		<input type="url" class="velox-input" data-setting="ps_url" value="<?php echo esc_attr( $s['ps_url'] ); ?>" placeholder="<?php echo esc_attr( home_url( '/' ) ); ?>">
 	</label>
 	<label class="velox-field velox-field--inline">
-		<span class="velox-field-label">Device</span>
+		<span class="velox-field-label">Default view</span>
 		<select class="velox-select" data-setting="ps_strategy">
 			<option value="mobile" <?php selected( $s['ps_strategy'], 'mobile' ); ?>>Mobile</option>
 			<option value="desktop" <?php selected( $s['ps_strategy'], 'desktop' ); ?>>Desktop</option>
 		</select>
+		<span class="velox-hint" style="flex-basis:100%;margin:4px 0 0;">Both devices are checked &mdash; this is just the one shown first on the dashboard.</span>
 	</label>
 	<label class="velox-field velox-field--inline">
 		<span class="velox-field-label">Refresh every</span>

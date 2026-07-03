@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.03.6 — Dashboard PageSpeed: switch device + see what’s wrong & right
+- The dashboard PageSpeed widget now checks **both Mobile and Desktop** on every run and gives you a **Mobile / Desktop switch** right on the card — flip between the two instantly, no waiting for a new check. The **Default view** setting (Settings → Live PageSpeed) just picks which one shows first.
+- A new **See what’s wrong & right** button appears once a score is in. Tap it to expand a tidy breakdown: the opportunities still **to fix** (red) alongside the checks that are already **passing** (green). Collapsed by default so the dashboard stays clean.
+
 ## 3.03.5 — Settings: more migrate sources + keep-data option
 - **Migrate from another plugin** now lists the popular tools people switch from — Rank Math, All in One SEO, SEOPress, LiteSpeed, WP Fastest Cache, W3 Total Cache, Autoptimize, Perfmatters, FlyingPress, FluentSMTP, Post SMTP, CookieYes, Complianz, Redirection, WPCode and more. WP Rocket, Yoast and WP Mail SMTP import with one click today; the rest are recognised and marked "Migration coming soon".
 - New **Keep my settings if I delete Velox** option (Settings → Housekeeping). Leave it on and deleting the plugin won&rsquo;t wipe your settings, forms, redirects or logs — handy for reinstalls. Off by default.

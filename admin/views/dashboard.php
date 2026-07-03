@@ -175,14 +175,87 @@ if ( ! empty( $v_tr['series'] ) ) {
 	$vx_axis[1]    = $vx_fmt_d( $vx_s[ intdiv( count( $vx_s ), 2 ) ]['d'] );
 }
 
-// ---- Live PageSpeed (cached PSI result) ----
-$v_ps         = class_exists( 'Velox_Pagespeed' ) ? Velox_Pagespeed::result() : array( 'ok' => false, 'score' => 0, 'metrics' => array(), 'issues' => array() );
+// ---- Live PageSpeed (cached PSI result — both devices) ----
 $v_ps_on      = class_exists( 'Velox_Pagespeed' ) && Velox_Pagespeed::enabled();
-$v_ps_strat   = class_exists( 'Velox_Pagespeed' ) ? Velox_Pagespeed::strategy() : 'mobile';
+$v_ps_def     = class_exists( 'Velox_Pagespeed' ) ? Velox_Pagespeed::strategy() : 'mobile';
 $v_ps_metrics = (bool) Velox_Settings::get( 'ps_show_metrics', true );
 $v_ps_issues  = (bool) Velox_Settings::get( 'ps_show_issues', true );
-list( $v_ps_grade, $v_ps_gcls ) = ( class_exists( 'Velox_Pagespeed' ) && ! empty( $v_ps['ok'] ) ) ? Velox_Pagespeed::grade( $v_ps['score'] ) : array( '', 'warn' );
-$v_ps_ago = ! empty( $v_ps['fetched'] ) ? human_time_diff( (int) $v_ps['fetched'], current_time( 'timestamp' ) ) : '';
+$v_ps_data    = array(
+	'mobile'  => class_exists( 'Velox_Pagespeed' ) ? Velox_Pagespeed::result( 'mobile' ) : array( 'ok' => false, 'score' => 0, 'metrics' => array(), 'issues' => array(), 'passed' => array() ),
+	'desktop' => class_exists( 'Velox_Pagespeed' ) ? Velox_Pagespeed::result( 'desktop' ) : array( 'ok' => false, 'score' => 0, 'metrics' => array(), 'issues' => array(), 'passed' => array() ),
+);
+$v_ps_has_any = class_exists( 'Velox_Pagespeed' ) && Velox_Pagespeed::has_any();
+
+/**
+ * Render one device panel (score ring, metrics, and a collapsible
+ * what's-wrong / what's-right details section behind a button).
+ */
+$vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v_ps_issues ) {
+	$has = ! empty( $r['ok'] ) && isset( $r['score'] );
+	list( $grade, $gcls ) = $has ? Velox_Pagespeed::grade( $r['score'] ) : array( '', 'warn' );
+	$ago = ! empty( $r['fetched'] ) ? human_time_diff( (int) $r['fetched'], current_time( 'timestamp' ) ) : '';
+	ob_start();
+	?>
+	<div class="velox-ps-panel<?php echo $active ? ' is-active' : ''; ?>" data-ps-panel="<?php echo esc_attr( $device ); ?>"<?php echo $active ? '' : ' hidden'; ?>>
+		<?php if ( ! $has ) : ?>
+			<div class="velox-ps-empty">
+				<p class="velox-w-sub" style="margin:0;"><?php echo ! empty( $r['error'] ) ? esc_html( $r['error'] ) : 'No ' . esc_html( $device ) . ' score yet — run the first check.'; ?></p>
+				<button type="button" class="velox-btn velox-btn--primary velox-btn--sm velox-w-act" data-ps-refresh>Refresh now</button>
+			</div>
+		<?php else : ?>
+			<div class="velox-ps-top">
+				<div class="velox-score-ring velox-score-ring--sm velox-score-ring--<?php echo esc_attr( $gcls ); ?>" style="--val:<?php echo (int) $r['score']; ?>"><span class="velox-score-num"><?php echo (int) $r['score']; ?></span></div>
+				<div>
+					<span class="velox-pill velox-pill--<?php echo esc_attr( $gcls ); ?>"><?php echo esc_html( $grade ); ?></span>
+					<?php if ( $ago ) : ?><p class="velox-w-sub" style="margin-top:6px;">updated <?php echo esc_html( $ago ); ?> ago</p><?php endif; ?>
+				</div>
+			</div>
+			<?php if ( $v_ps_metrics && ! empty( $r['metrics'] ) ) : ?>
+				<div class="velox-ps-metrics">
+					<?php foreach ( $r['metrics'] as $m ) : $mc = isset( $m['score'] ) && null !== $m['score'] ? ( $m['score'] >= 0.9 ? 'ok' : ( $m['score'] >= 0.5 ? 'warn' : 'bad' ) ) : 'warn'; ?>
+						<span class="velox-ps-metric velox-ps-metric--<?php echo esc_attr( $mc ); ?>"><span class="velox-ps-metric-k"><?php echo esc_html( $m['key'] ); ?></span><span class="velox-ps-metric-v"><?php echo esc_html( $m['value'] ); ?></span></span>
+					<?php endforeach; ?>
+				</div>
+			<?php endif; ?>
+
+			<?php
+			$has_wrong = $v_ps_issues && ! empty( $r['issues'] );
+			$has_right = ! empty( $r['passed'] );
+			if ( $has_wrong || $has_right ) :
+				?>
+				<button type="button" class="velox-ps-detailsbtn" data-ps-details aria-expanded="false">
+					<span class="velox-ps-detailsbtn-tx"><?php echo Velox_Admin::icon( 'search', 14 ); ?>See what&rsquo;s wrong &amp; right</span>
+					<svg class="velox-ps-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+				</button>
+				<div class="velox-ps-details" data-ps-detailsbody hidden>
+					<?php if ( $has_wrong ) : ?>
+						<div class="velox-ps-group">
+							<div class="velox-ps-group-h velox-ps-group-h--bad"><?php echo (int) count( $r['issues'] ); ?> to fix</div>
+							<?php foreach ( $r['issues'] as $is ) : ?>
+								<div class="velox-ps-issue"><span class="velox-ps-mark velox-ps-mark--bad">&times;</span><span class="velox-ps-issue-t"><?php echo esc_html( $is['title'] ); ?></span><?php if ( ! empty( $is['value'] ) ) : ?><span class="velox-ps-issue-v"><?php echo esc_html( $is['value'] ); ?></span><?php endif; ?></div>
+							<?php endforeach; ?>
+						</div>
+					<?php endif; ?>
+					<?php if ( $has_right ) : ?>
+						<div class="velox-ps-group">
+							<div class="velox-ps-group-h velox-ps-group-h--ok"><?php echo (int) count( $r['passed'] ); ?> passing</div>
+							<?php foreach ( $r['passed'] as $ps ) : ?>
+								<div class="velox-ps-issue"><span class="velox-ps-mark velox-ps-mark--ok">&#10003;</span><span class="velox-ps-issue-t"><?php echo esc_html( $ps['title'] ); ?></span></div>
+							<?php endforeach; ?>
+						</div>
+					<?php endif; ?>
+				</div>
+			<?php endif; ?>
+
+			<div class="velox-ps-foot">
+				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-ps-refresh>Refresh now</button>
+				<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">Tune performance</a>
+			</div>
+		<?php endif; ?>
+	</div>
+	<?php
+	return ob_get_clean();
+};
 ?>
 
 <div class="velox-batchbar" id="velox-batchbar" hidden>
@@ -240,42 +313,26 @@ $v_ps_ago = ! empty( $v_ps['fetched'] ) ? human_time_diff( (int) $v_ps['fetched'
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'pagespeed', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'pagespeed', 8, 2 ) ); ?>" data-widget="pagespeed" data-widget-label="PageSpeed">
 		<?php echo $vx_wctl; ?>
-		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'bolt', 15 ); ?>PageSpeed<?php echo $v_ps_on ? ' &middot; ' . esc_html( $v_ps_strat ) : ''; ?></div>
+		<div class="velox-w-h velox-ps-head">
+			<span><?php echo Velox_Admin::icon( 'bolt', 15 ); ?>PageSpeed</span>
+			<?php if ( $v_ps_on ) : ?>
+				<div class="velox-ps-seg" role="tablist" aria-label="Device">
+					<button type="button" class="velox-ps-seg-btn<?php echo 'mobile' === $v_ps_def ? ' is-active' : ''; ?>" data-ps-view="mobile" role="tab" aria-selected="<?php echo 'mobile' === $v_ps_def ? 'true' : 'false'; ?>">Mobile</button>
+					<button type="button" class="velox-ps-seg-btn<?php echo 'desktop' === $v_ps_def ? ' is-active' : ''; ?>" data-ps-view="desktop" role="tab" aria-selected="<?php echo 'desktop' === $v_ps_def ? 'true' : 'false'; ?>">Desktop</button>
+				</div>
+			<?php endif; ?>
+		</div>
 		<?php if ( ! $v_ps_on ) : ?>
 			<div class="velox-ps-empty">
 				<p class="velox-w-sub" style="margin:0;">Real Lighthouse scores from Google PageSpeed Insights, right on your dashboard.</p>
 				<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'settings' ) . '#pagespeed' ); ?>">Turn on in Settings</a>
 			</div>
-		<?php elseif ( empty( $v_ps['ok'] ) ) : ?>
-			<div class="velox-ps-empty">
-				<p class="velox-w-sub" style="margin:0;"><?php echo ! empty( $v_ps['error'] ) ? esc_html( $v_ps['error'] ) : 'No score yet — run the first check.'; ?></p>
-				<button type="button" class="velox-btn velox-btn--primary velox-btn--sm velox-w-act" id="velox-ps-refresh" data-ps-refresh>Refresh now</button>
-			</div>
 		<?php else : ?>
-			<div class="velox-ps-top">
-				<div class="velox-score-ring velox-score-ring--sm velox-score-ring--<?php echo esc_attr( $v_ps_gcls ); ?>" style="--val:<?php echo (int) $v_ps['score']; ?>"><span class="velox-score-num"><?php echo (int) $v_ps['score']; ?></span></div>
-				<div>
-					<span class="velox-pill velox-pill--<?php echo esc_attr( $v_ps_gcls ); ?>"><?php echo esc_html( $v_ps_grade ); ?></span>
-					<?php if ( $v_ps_ago ) : ?><p class="velox-w-sub" style="margin-top:6px;">updated <?php echo esc_html( $v_ps_ago ); ?> ago</p><?php endif; ?>
-				</div>
-			</div>
-			<?php if ( $v_ps_metrics && ! empty( $v_ps['metrics'] ) ) : ?>
-				<div class="velox-ps-metrics">
-					<?php foreach ( $v_ps['metrics'] as $m ) : $mc = isset( $m['score'] ) && null !== $m['score'] ? ( $m['score'] >= 0.9 ? 'ok' : ( $m['score'] >= 0.5 ? 'warn' : 'bad' ) ) : 'warn'; ?>
-						<span class="velox-ps-metric velox-ps-metric--<?php echo esc_attr( $mc ); ?>"><span class="velox-ps-metric-k"><?php echo esc_html( $m['key'] ); ?></span><span class="velox-ps-metric-v"><?php echo esc_html( $m['value'] ); ?></span></span>
-					<?php endforeach; ?>
-				</div>
-			<?php endif; ?>
-			<?php if ( $v_ps_issues && ! empty( $v_ps['issues'] ) ) : ?>
-				<div class="velox-ps-issues">
-					<?php foreach ( $v_ps['issues'] as $is ) : ?>
-						<div class="velox-ps-issue"><span class="velox-reco-dot"></span><span class="velox-ps-issue-t"><?php echo esc_html( $is['title'] ); ?></span><?php if ( ! empty( $is['value'] ) ) : ?><span class="velox-ps-issue-v"><?php echo esc_html( $is['value'] ); ?></span><?php endif; ?></div>
-					<?php endforeach; ?>
-				</div>
-			<?php endif; ?>
-			<div class="velox-ps-foot">
-				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="velox-ps-refresh" data-ps-refresh>Refresh now</button>
-				<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">Tune performance</a>
+			<div class="velox-ps-body">
+				<?php
+				echo $vx_ps_panel( 'mobile', $v_ps_data['mobile'], 'mobile' === $v_ps_def );  // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo $vx_ps_panel( 'desktop', $v_ps_data['desktop'], 'desktop' === $v_ps_def ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				?>
 			</div>
 		<?php endif; ?>
 	</div>

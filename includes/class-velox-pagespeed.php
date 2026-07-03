@@ -80,12 +80,47 @@ final class Velox_Pagespeed {
 	 * Fetch + parse
 	 * ----------------------------------------------------------------- */
 
-	/** Hit PSI, parse, and cache. Returns the stored result array. */
+	/**
+	 * Fetch BOTH mobile + desktop, parse, and cache them side by side so the
+	 * dashboard can flip between devices without re-hitting the API each time.
+	 *
+	 * @return array{ok:bool,mobile:array,desktop:array}
+	 */
 	public static function fetch_and_store() {
-		$key  = trim( (string) Velox_Settings::get( 'ps_api_key', '' ) );
-		$args = array(
+		$store = self::normalize_store( get_option( self::RESULT_OPT, array() ) );
+		$ok_any = false;
+
+		foreach ( array( 'mobile', 'desktop' ) as $strat ) {
+			$res = self::fetch_one( $strat );
+			if ( ! empty( $res['ok'] ) ) {
+				$store[ $strat ] = $res;
+				$ok_any = true;
+			} else {
+				// Keep the last good score for this device, just flag the error.
+				$prev              = isset( $store[ $strat ] ) && is_array( $store[ $strat ] ) ? $store[ $strat ] : array();
+				$prev['ok']        = ! empty( $prev['score'] );
+				$prev['strategy']  = $strat;
+				$prev['error']     = ! empty( $res['error'] ) ? $res['error'] : 'PageSpeed check failed.';
+				$prev['fetched']   = time();
+				$store[ $strat ]   = $prev;
+			}
+		}
+
+		update_option( self::RESULT_OPT, $store, false );
+		return array(
+			'ok'      => $ok_any,
+			'mobile'  => isset( $store['mobile'] ) ? $store['mobile'] : array( 'ok' => false ),
+			'desktop' => isset( $store['desktop'] ) ? $store['desktop'] : array( 'ok' => false ),
+		);
+	}
+
+	/** Hit PSI once for a single device and return the parsed payload (or an error shape). */
+	private static function fetch_one( $strategy ) {
+		$strategy = in_array( $strategy, array( 'mobile', 'desktop' ), true ) ? $strategy : 'mobile';
+		$key      = trim( (string) Velox_Settings::get( 'ps_api_key', '' ) );
+		$args     = array(
 			'url'      => self::target_url(),
-			'strategy' => self::strategy(),
+			'strategy' => $strategy,
 			'category' => 'performance',
 		);
 		if ( '' !== $key ) {
@@ -102,7 +137,7 @@ final class Velox_Pagespeed {
 		);
 
 		if ( is_wp_error( $resp ) ) {
-			return self::store_error( $resp->get_error_message() );
+			return array( 'ok' => false, 'error' => $resp->get_error_message() );
 		}
 		$code = (int) wp_remote_retrieve_response_code( $resp );
 		$body = json_decode( wp_remote_retrieve_body( $resp ), true );
@@ -112,33 +147,35 @@ final class Velox_Pagespeed {
 			if ( is_array( $body ) && isset( $body['error']['message'] ) ) {
 				$msg = (string) $body['error']['message'];
 			}
-			return self::store_error( $msg );
+			return array( 'ok' => false, 'error' => $msg );
 		}
 
-		$parsed = self::parse( $body );
+		$parsed = self::parse( $body, $strategy );
 		if ( empty( $parsed['ok'] ) ) {
-			return self::store_error( 'Could not read the PageSpeed response.' );
+			return array( 'ok' => false, 'error' => 'Could not read the PageSpeed response.' );
 		}
-		update_option( self::RESULT_OPT, $parsed, false );
 		return $parsed;
 	}
 
-	private static function store_error( $message ) {
-		$prev = get_option( self::RESULT_OPT, array() );
-		$out  = is_array( $prev ) ? $prev : array();
-		$out['ok']         = ! empty( $prev['score'] ); // keep last good score if we had one
-		$out['error']      = (string) $message;
-		$out['fetched']    = time();
-		update_option( self::RESULT_OPT, $out, false );
-		return $out;
+	/** Migrate the old single-strategy flat cache into the per-device shape. */
+	private static function normalize_store( $store ) {
+		if ( ! is_array( $store ) ) {
+			return array();
+		}
+		if ( isset( $store['score'] ) ) { // legacy flat result → key it under its device
+			$strat = isset( $store['strategy'] ) && in_array( $store['strategy'], array( 'mobile', 'desktop' ), true ) ? $store['strategy'] : 'mobile';
+			return array( $strat => $store );
+		}
+		return $store;
 	}
 
 	/**
 	 * Turn a PSI v5 response into a compact dashboard payload.
 	 *
-	 * @return array{ok:bool,score:int,strategy:string,url:string,fetched:int,metrics:array,issues:array}
+	 * @return array{ok:bool,score:int,strategy:string,url:string,fetched:int,metrics:array,issues:array,passed:array}
 	 */
-	public static function parse( array $body ) {
+	public static function parse( array $body, $strategy = null ) {
+		$strategy = in_array( $strategy, array( 'mobile', 'desktop' ), true ) ? $strategy : self::strategy();
 		$lh = isset( $body['lighthouseResult'] ) && is_array( $body['lighthouseResult'] ) ? $body['lighthouseResult'] : array();
 		if ( empty( $lh['categories']['performance'] ) || ! isset( $lh['categories']['performance']['score'] ) ) {
 			return array( 'ok' => false );
@@ -191,24 +228,57 @@ final class Velox_Pagespeed {
 		);
 		$issues = array_slice( $issues, 0, 5 );
 
+		// What's right — pass/fail checks that Lighthouse marked green.
+		$passed = array();
+		foreach ( $audits as $a ) {
+			if ( ! is_array( $a ) || empty( $a['title'] ) ) {
+				continue;
+			}
+			$sc   = isset( $a['score'] ) ? $a['score'] : null;
+			$mode = isset( $a['scoreDisplayMode'] ) ? (string) $a['scoreDisplayMode'] : '';
+			$is_opp = isset( $a['details']['type'] ) && 'opportunity' === $a['details']['type'];
+			// Only clean pass/fail-style checks, and only the ones that passed.
+			if ( null !== $sc && $sc >= 0.9 && ( 'binary' === $mode || $is_opp ) ) {
+				$passed[] = array( 'title' => (string) $a['title'] );
+			}
+		}
+		$passed = array_slice( $passed, 0, 8 );
+
 		return array(
 			'ok'       => true,
 			'score'    => $score,
-			'strategy' => self::strategy(),
+			'strategy' => $strategy,
 			'url'      => self::target_url(),
 			'fetched'  => time(),
 			'metrics'  => $metrics,
 			'issues'   => $issues,
+			'passed'   => $passed,
 		);
 	}
 
-	/** The cached result (or a shape with ok=false when nothing is stored yet). */
-	public static function result() {
-		$r = get_option( self::RESULT_OPT, array() );
-		if ( ! is_array( $r ) || ! isset( $r['score'] ) ) {
-			return array( 'ok' => false, 'score' => 0, 'metrics' => array(), 'issues' => array() );
+	/**
+	 * The cached result for one device (defaults to the configured strategy).
+	 * Returns a shape with ok=false when nothing is stored yet.
+	 */
+	public static function result( $strategy = null ) {
+		$strategy = in_array( $strategy, array( 'mobile', 'desktop' ), true ) ? $strategy : self::strategy();
+		$store    = self::normalize_store( get_option( self::RESULT_OPT, array() ) );
+		$r        = isset( $store[ $strategy ] ) && is_array( $store[ $strategy ] ) ? $store[ $strategy ] : array();
+		if ( ! isset( $r['score'] ) ) {
+			return array( 'ok' => false, 'score' => 0, 'strategy' => $strategy, 'metrics' => array(), 'issues' => array(), 'passed' => array() );
 		}
 		return $r;
+	}
+
+	/** True if either device has a stored score — used for the dashboard empty state. */
+	public static function has_any() {
+		$store = self::normalize_store( get_option( self::RESULT_OPT, array() ) );
+		foreach ( array( 'mobile', 'desktop' ) as $s ) {
+			if ( isset( $store[ $s ]['score'] ) ) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	/** Grade band for a 0-100 score → [label, css-suffix]. */

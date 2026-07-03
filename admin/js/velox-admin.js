@@ -6158,6 +6158,46 @@
 	window.addEventListener( 'resize', function () { closePop(); } );
 }( jQuery ) );
 
+/* ===== Dashboard: PageSpeed device switch + details toggle ===== */
+( function () {
+	function bindSwitch() {
+		// Mobile / desktop segmented switch — swaps the visible panel client-side.
+		Array.prototype.forEach.call( document.querySelectorAll( '[data-ps-view]' ), function ( seg ) {
+			seg.addEventListener( 'click', function ( e ) {
+				e.stopPropagation();
+				var view = seg.getAttribute( 'data-ps-view' );
+				var widget = seg.closest ? seg.closest( '.velox-w' ) : null;
+				if ( ! widget ) { return; }
+				Array.prototype.forEach.call( widget.querySelectorAll( '[data-ps-view]' ), function ( b ) {
+					var on = b === seg;
+					b.classList.toggle( 'is-active', on );
+					b.setAttribute( 'aria-selected', on ? 'true' : 'false' );
+				} );
+				Array.prototype.forEach.call( widget.querySelectorAll( '[data-ps-panel]' ), function ( p ) {
+					var on = p.getAttribute( 'data-ps-panel' ) === view;
+					p.classList.toggle( 'is-active', on );
+					p.hidden = ! on;
+				} );
+			} );
+		} );
+		// "See what's wrong & right" — expand/collapse the details for this panel.
+		Array.prototype.forEach.call( document.querySelectorAll( '[data-ps-details]' ), function ( btn ) {
+			btn.addEventListener( 'click', function ( e ) {
+				e.stopPropagation();
+				var panel = btn.closest ? btn.closest( '.velox-ps-panel' ) : null;
+				var body = panel ? panel.querySelector( '[data-ps-detailsbody]' ) : null;
+				if ( ! body ) { return; }
+				var open = body.hasAttribute( 'hidden' );
+				body.hidden = ! open;
+				btn.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+				var tx = btn.querySelector( '.velox-ps-detailsbtn-tx' );
+				if ( tx ) { tx.lastChild.textContent = open ? 'Hide details' : 'See what\u2019s wrong & right'; }
+			} );
+		} );
+	}
+	if ( document.readyState === 'loading' ) { document.addEventListener( 'DOMContentLoaded', bindSwitch ); } else { bindSwitch(); }
+}() );
+
 /* ===== Dashboard: PageSpeed refresh ===== */
 ( function () {
 	if ( typeof VELOX === 'undefined' ) { return; }
