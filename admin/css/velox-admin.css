@@ -2422,6 +2422,26 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-psi-more[aria-expanded="true"] .velox-psi-chev { transform: rotate(180deg); }
 .velox-psi-passlist { margin-top: 4px; }
 .velox-psi-passlist[hidden] { display: none; }
+
+/* ===== Converted images gallery ===== */
+.velox-page-head--back { display: flex; flex-direction: column; gap: 4px; }
+.velox-back { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--vx-ink-2); text-decoration: none; margin-bottom: 6px; width: fit-content; }
+.velox-back:hover { color: var(--vx-ink); }
+.velox-conv-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: var(--vx-s4); }
+.velox-conv-card { display: flex; flex-direction: column; background: var(--vx-card); border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); overflow: hidden; }
+.velox-conv-thumb { position: relative; display: block; aspect-ratio: 4 / 3; background: var(--vx-bg) center / cover no-repeat; }
+.velox-conv-save { position: absolute; top: 8px; right: 8px; padding: 3px 8px; font-size: 12px; font-weight: 700; color: #fff; background: var(--vx-success); border-radius: var(--vx-r-pill); }
+.velox-conv-body { display: flex; flex-direction: column; gap: 6px; padding: 11px 12px 13px; }
+.velox-conv-name { font-size: 13px; font-weight: 600; color: var(--vx-ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.velox-conv-sizes { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--vx-ink-3); font-variant-numeric: tabular-nums; }
+.velox-conv-was { text-decoration: line-through; }
+.velox-conv-now { color: var(--vx-ink); font-weight: 700; }
+.velox-conv-tag { margin-left: auto; padding: 2px 7px; font-size: 10.5px; font-weight: 700; letter-spacing: .02em; color: var(--vx-primary-ink); background: var(--vx-primary-tint); border-radius: var(--vx-r-xs); }
+.velox-conv-tag--twin { color: var(--vx-ink-3); background: var(--vx-bg); }
+
+/* Media uploader note */
+.velox-upload-note { margin: 10px 0 0; font-size: 12.5px; color: var(--vx-ink-2); }
+.velox-upload-badge { display: inline-block; padding: 1px 7px; margin-right: 4px; font-size: 11px; font-weight: 700; color: #fff; background: var(--vx-primary); border-radius: var(--vx-r-xs); vertical-align: 1px; }
 .velox-w .velox-reco-list { display: flex; flex-direction: column; gap: 0; }
 .velox-w .velox-reco-empty { display: flex; align-items: center; gap: 10px; color: var(--vx-ink-2); font-size: 13px; padding: 8px 0; }
 .velox-dash-sec { display: flex; align-items: center; gap: 12px; margin: 30px 0 14px; }

@@ -18,20 +18,32 @@ class Velox_Image_Optimizer {
 
 	const META_KEY = '_velox_webp';
 
+	/** Guards against re-entering conversion while we regenerate thumbnails. */
+	private static $busy = false;
+
 	public function __construct() {
 		// Auto-convert on new uploads.
 		if ( Velox_Settings::enabled( 'webp_auto_convert', 'module_images' ) ) {
 			add_filter( 'wp_generate_attachment_metadata', array( $this, 'on_upload' ), 20, 2 );
 		}
 
-		// Optional front-end serving.
+		// Front-end serving (on by default): swap image URLs to WebP/AVIF.
 		if ( ! is_admin() && Velox_Settings::enabled( 'webp_serve_rewrite', 'module_images' ) ) {
+			// Fast path for WordPress-rendered images.
 			add_filter( 'wp_get_attachment_image_attributes', array( $this, 'swap_attributes' ), 99, 3 );
 			add_filter( 'wp_calculate_image_srcset', array( $this, 'swap_srcset' ), 99, 5 );
+			// Catch-all for Oxygen elements, CSS background-images, hard-coded and
+			// content <img> tags — anything WordPress doesn't render itself.
+			add_action( 'template_redirect', array( $this, 'start_buffer' ), 1 );
 		}
 
 		// Clean up webp twins when an attachment is deleted.
 		add_action( 'delete_attachment', array( $this, 'on_delete' ) );
+
+		// Show a Velox line under the "Add media files" uploader.
+		if ( is_admin() && Velox_Settings::enabled( 'image_webp', 'module_images' ) ) {
+			add_action( 'post-upload-ui', array( $this, 'upload_hint' ) );
+		}
 
 		// Downscale oversized uploads to the configured max width (0 = off).
 		$max_w = (int) Velox_Settings::get( 'image_max_width', 2560 );
@@ -118,13 +130,112 @@ class Velox_Image_Optimizer {
 		if ( ! $file || ! file_exists( $file ) ) {
 			return new WP_Error( 'no_file', __( 'Source file not found.', 'velox' ) );
 		}
+		// Already a WebP attachment (e.g. converted in a previous run) — nothing to do.
+		if ( preg_match( '/\.webp$/i', $file ) ) {
+			$existing = get_post_meta( $attachment_id, self::META_KEY, true );
+			if ( ! empty( $existing['files'] ) ) {
+				return $existing;
+			}
+		}
 		if ( ! preg_match( '/\.(jpe?g|png)$/i', $file ) ) {
 			return new WP_Error( 'unsupported', __( 'Only JPG and PNG files can be converted.', 'velox' ) );
 		}
 
-		$targets   = array( $file );
+		// Default path: replace the original with a real WebP so the media library
+		// shows WebP and the reported size matches the file on disk.
+		if ( (bool) Velox_Settings::get( 'image_replace', true ) ) {
+			return $this->replace_inplace( $attachment_id, $file, $quality );
+		}
+
+		return $this->convert_twins( $attachment_id, $file, $quality );
+	}
+
+	/**
+	 * Replace the attachment's file (and thumbnails) with WebP in place.
+	 * The image is resized to the configured width first (down-only, height auto).
+	 */
+	private function replace_inplace( $attachment_id, $file, $quality ) {
+		$do_webp = (bool) Velox_Settings::get( 'image_webp', true );
+		if ( ! $do_webp ) {
+			return new WP_Error( 'no_format', __( 'Enable WebP output in Images settings first.', 'velox' ) );
+		}
+
+		$orig_bytes = (int) filesize( $file );
+		$dest       = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $file );
+
+		if ( ! $this->encode_webp( $file, $dest, $quality ) || ! file_exists( $dest ) ) {
+			return new WP_Error( 'failed', __( 'Conversion failed. Check that GD or Imagick supports WebP on this server.', 'velox' ) );
+		}
+		$webp_bytes = (int) filesize( $dest );
+
+		// Optional AVIF twin next to the new WebP, for capable browsers.
+		$avif_bytes = 0;
+		$avif_files = 0;
+		if ( self::avif_active() ) {
+			$avif_dest = preg_replace( '/\.webp$/i', '.avif', $dest );
+			if ( $this->encode_avif( $file, $avif_dest, $quality ) && file_exists( $avif_dest ) ) {
+				$avif_bytes = (int) filesize( $avif_dest );
+				$avif_files = 1;
+			}
+		}
+
+		// Remove the old thumbnails (they're rebuilt as WebP below).
+		$old_meta = wp_get_attachment_metadata( $attachment_id );
+		$base_dir = trailingslashit( dirname( $file ) );
+		if ( ! empty( $old_meta['sizes'] ) ) {
+			foreach ( $old_meta['sizes'] as $size ) {
+				if ( ! empty( $size['file'] ) && file_exists( $base_dir . $size['file'] ) ) {
+					@unlink( $base_dir . $size['file'] );
+				}
+			}
+		}
+		// Keep the original file on disk as a fallback (default) so hard-coded links
+		// and browsers without WebP support still resolve; only delete it if the user
+		// explicitly turned the fallback off.
+		if ( ! (bool) Velox_Settings::get( 'webp_keep_original', true ) && $file !== $dest && file_exists( $file ) ) {
+			@unlink( $file );
+		}
+
+		// Point the attachment at the WebP, fix its mime type, and rebuild thumbnails.
+		update_attached_file( $attachment_id, $dest );
+		wp_update_post( array( 'ID' => $attachment_id, 'post_mime_type' => 'image/webp' ) );
+
+		if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+		}
+		self::$busy = true;
+		$new_meta   = wp_generate_attachment_metadata( $attachment_id, $dest );
+		self::$busy = false;
+		if ( is_array( $new_meta ) ) {
+			wp_update_attachment_metadata( $attachment_id, $new_meta );
+		}
+
+		$saved_pct = $orig_bytes > 0 ? round( ( 1 - ( $webp_bytes / $orig_bytes ) ) * 100, 1 ) : 0;
+		$stats     = array(
+			'original_bytes' => $orig_bytes,
+			'webp_bytes'     => $webp_bytes,
+			'saved_pct'      => max( 0, $saved_pct ),
+			'quality'        => $quality,
+			'files'          => 1,
+			'avif_bytes'     => $avif_bytes,
+			'avif_files'     => $avif_files,
+			'replaced'       => true,
+			'time'           => time(),
+		);
+		update_post_meta( $attachment_id, self::META_KEY, $stats );
+		delete_post_meta( $attachment_id, '_velox_webp_estimate' );
+		return $stats;
+	}
+
+	/**
+	 * Legacy behaviour: keep the original and generate .webp/.avif twins beside it.
+	 * Reports the MAIN image's before/after bytes (not the sum of every thumbnail),
+	 * so the numbers match what the media library shows.
+	 */
+	private function convert_twins( $attachment_id, $file, $quality ) {
 		$base_dir  = trailingslashit( dirname( $file ) );
 		$meta      = wp_get_attachment_metadata( $attachment_id );
+		$targets   = array( $file );
 
 		if ( Velox_Settings::get( 'webp_convert_sizes', true ) && ! empty( $meta['sizes'] ) ) {
 			foreach ( $meta['sizes'] as $size ) {
@@ -134,36 +245,41 @@ class Velox_Image_Optimizer {
 			}
 		}
 
-		$original_bytes = 0;
-		$webp_bytes     = 0;
-		$converted      = 0;
-		$avif_bytes     = 0;
-		$avif_files     = 0;
-		$do_webp        = (bool) Velox_Settings::get( 'image_webp', true );
-		$do_avif        = self::avif_active();
+		$main_orig  = 0; // main image only — matches what the media library shows
+		$main_webp  = 0;
+		$converted  = 0;
+		$avif_bytes = 0;
+		$avif_files = 0;
+		$do_webp    = (bool) Velox_Settings::get( 'image_webp', true );
+		$do_avif    = self::avif_active();
 
 		if ( ! $do_webp && ! $do_avif ) {
 			return new WP_Error( 'no_format', __( 'No output format selected — enable WebP and/or AVIF in Images settings.', 'velox' ) );
 		}
 
-		foreach ( $targets as $source ) {
+		foreach ( $targets as $i => $source ) {
 			if ( ! file_exists( $source ) ) {
 				continue;
 			}
+			$is_main = ( 0 === $i );
 			if ( $do_webp ) {
 				$dest = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $source );
 				$ok   = $this->encode_webp( $source, $dest, $quality );
 				if ( $ok && file_exists( $dest ) ) {
-					$original_bytes += filesize( $source );
-					$webp_bytes     += filesize( $dest );
+					if ( $is_main ) {
+						$main_orig = (int) filesize( $source );
+						$main_webp = (int) filesize( $dest );
+					}
 					$converted++;
 				}
 			}
 			if ( $do_avif ) {
 				$avif_dest = preg_replace( '/\.(jpe?g|png)$/i', '.avif', $source );
 				if ( $this->encode_avif( $source, $avif_dest, $quality ) && file_exists( $avif_dest ) ) {
-					$avif_bytes += filesize( $avif_dest );
-					$avif_files++;
+					if ( $is_main ) {
+						$avif_bytes = (int) filesize( $avif_dest );
+						$avif_files = 1;
+					}
 				}
 			}
 		}
@@ -172,16 +288,17 @@ class Velox_Image_Optimizer {
 			return new WP_Error( 'failed', __( 'Conversion failed. Check that GD or Imagick supports WebP on this server.', 'velox' ) );
 		}
 
-		$saved_pct = $original_bytes > 0 ? round( ( 1 - ( $webp_bytes / $original_bytes ) ) * 100, 1 ) : 0;
+		$saved_pct = $main_orig > 0 ? round( ( 1 - ( $main_webp / $main_orig ) ) * 100, 1 ) : 0;
 
 		$stats = array(
-			'original_bytes' => $original_bytes,
-			'webp_bytes'     => $webp_bytes,
-			'saved_pct'      => $saved_pct,
+			'original_bytes' => $main_orig,
+			'webp_bytes'     => $main_webp,
+			'saved_pct'      => max( 0, $saved_pct ),
 			'quality'        => $quality,
 			'files'          => $converted,
 			'avif_bytes'     => $avif_bytes,
 			'avif_files'     => $avif_files,
+			'replaced'       => false,
 			'time'           => time(),
 		);
 		update_post_meta( $attachment_id, self::META_KEY, $stats );
@@ -417,7 +534,61 @@ class Velox_Image_Optimizer {
 		);
 	}
 
+	/** All attachments Velox has converted, newest first — powers the converted-images screen. */
+	public static function get_converted() {
+		$q = new WP_Query( array(
+			'post_type'      => 'attachment',
+			'post_status'    => 'inherit',
+			'post_mime_type' => array( 'image/webp', 'image/jpeg', 'image/png' ),
+			'posts_per_page' => -1,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+			'meta_key'       => self::META_KEY, // phpcs:ignore WordPress.DB.SlowDBQuery.slow_db_query_meta_key
+		) );
+		$out = array();
+		foreach ( $q->posts as $id ) {
+			$m = get_post_meta( $id, self::META_KEY, true );
+			if ( empty( $m['files'] ) ) {
+				continue;
+			}
+			$out[] = array(
+				'id'        => (int) $id,
+				'title'     => get_the_title( $id ),
+				'thumb'     => wp_get_attachment_image_url( $id, 'thumbnail' ),
+				'url'       => wp_get_attachment_image_url( $id, 'full' ),
+				'orig'      => (int) $m['original_bytes'],
+				'webp'      => (int) $m['webp_bytes'],
+				'saved_pct' => isset( $m['saved_pct'] ) ? (float) $m['saved_pct'] : 0,
+				'replaced'  => ! empty( $m['replaced'] ),
+				'time'      => isset( $m['time'] ) ? (int) $m['time'] : 0,
+			);
+		}
+		usort( $out, function ( $a, $b ) {
+			return $b['time'] <=> $a['time'];
+		} );
+		return $out;
+	}
+
+	/** Line shown under the "Add media files" uploader. */
+	public function upload_hint() {
+		$replace = (bool) Velox_Settings::get( 'image_replace', true );
+		$auto    = Velox_Settings::enabled( 'webp_auto_convert', 'module_images' );
+		$url     = admin_url( 'admin.php?page=velox-images' );
+		echo '<p class="velox-upload-note">';
+		echo '<span class="velox-upload-badge">Velox</span> ';
+		if ( $auto ) {
+			echo esc_html( $replace ? 'New images are converted to WebP automatically.' : 'New images get a WebP copy automatically.' );
+		} else {
+			echo 'Convert images to WebP after uploading — ';
+			echo '<a href="' . esc_url( $url ) . '">open the optimizer</a>.';
+		}
+		echo '</p>';
+	}
+
 	public function on_upload( $metadata, $attachment_id ) {
+		if ( self::$busy ) {
+			return $metadata; // we're mid-regeneration — don't recurse
+		}
 		$this->convert_attachment( $attachment_id );
 		return $metadata;
 	}
@@ -437,11 +608,17 @@ class Velox_Image_Optimizer {
 				}
 			}
 		}
+		// Remove every format sibling: the served file, its webp/avif twins, and any
+		// kept original .jpg/.png fallback — whatever extension the attachment now has.
 		foreach ( $targets as $t ) {
-			foreach ( array( '.webp', '.avif' ) as $ext ) {
-				$twin = preg_replace( '/\.(jpe?g|png)$/i', $ext, $t );
-				if ( $twin !== $t && file_exists( $twin ) ) {
-					@unlink( $twin );
+			$stem = preg_replace( '/\.(jpe?g|png|webp|avif)$/i', '', $t );
+			if ( $stem === $t ) {
+				continue;
+			}
+			foreach ( array( '.jpg', '.jpeg', '.png', '.webp', '.avif' ) as $ext ) {
+				$sib = $stem . $ext;
+				if ( file_exists( $sib ) ) {
+					@unlink( $sib );
 				}
 			}
 		}
@@ -461,22 +638,30 @@ class Velox_Image_Optimizer {
 
 	/** Return the best available twin for this URL: AVIF, then WebP, else the original. */
 	private function best_url_if_exists( $url ) {
-		if ( ! preg_match( '/\.(jpe?g|png)$/i', $url ) ) {
+		if ( ! preg_match( '/\.(jpe?g|png|webp)$/i', $url ) ) {
 			return $url;
 		}
 		$uploads = wp_upload_dir();
+		if ( empty( $uploads['baseurl'] ) ) {
+			return $url;
+		}
+		// Scheme-tolerant URL→path (handles http, https and protocol-relative //).
+		$to_path = function ( $u ) use ( $uploads ) {
+			$u2 = preg_replace( '#^https?:#', '', $u );
+			$b2 = preg_replace( '#^https?:#', '', $uploads['baseurl'] );
+			return str_replace( $b2, $uploads['basedir'], $u2 );
+		};
 		// Prefer AVIF when the browser accepts it and a twin exists.
 		if ( $this->browser_supports_avif() ) {
-			$avif_url  = preg_replace( '/\.(jpe?g|png)$/i', '.avif', $url );
-			$avif_path = str_replace( $uploads['baseurl'], $uploads['basedir'], $avif_url );
-			if ( file_exists( $avif_path ) ) {
+			$avif_url = preg_replace( '/\.(jpe?g|png|webp)$/i', '.avif', $url );
+			if ( file_exists( $to_path( $avif_url ) ) ) {
 				return $avif_url;
 			}
 		}
-		if ( $this->browser_supports_webp() ) {
-			$webp_url  = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $url );
-			$webp_path = str_replace( $uploads['baseurl'], $uploads['basedir'], $webp_url );
-			if ( file_exists( $webp_path ) ) {
+		// WebP twin applies to jpg/png sources (a .webp is already served as-is).
+		if ( $this->browser_supports_webp() && preg_match( '/\.(jpe?g|png)$/i', $url ) ) {
+			$webp_url = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $url );
+			if ( file_exists( $to_path( $webp_url ) ) ) {
 				return $webp_url;
 			}
 		}
@@ -503,5 +688,50 @@ class Velox_Image_Optimizer {
 			}
 		}
 		return $sources;
+	}
+
+	/**
+	 * Start buffering the page so we can swap EVERY uploads image URL to WebP/AVIF —
+	 * including Oxygen <img> elements, CSS background-images and hard-coded links that
+	 * WordPress never renders itself. Only runs for browsers that accept the format.
+	 */
+	public function start_buffer() {
+		if ( is_admin() || is_feed() || is_embed() ) {
+			return;
+		}
+		if ( ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+			return;
+		}
+		if ( ! $this->browser_supports_webp() && ! $this->browser_supports_avif() ) {
+			return; // no point rewriting for a browser that can't display the result
+		}
+		ob_start( array( $this, 'rewrite_html' ) );
+	}
+
+	/** Swap uploads .jpg/.jpeg/.png URLs to their WebP/AVIF twin when one exists on disk. */
+	public function rewrite_html( $html ) {
+		if ( ! is_string( $html ) || '' === $html || stripos( $html, '<img' ) === false && stripos( $html, 'url(' ) === false ) {
+			return $html;
+		}
+		$uploads = wp_upload_dir();
+		if ( empty( $uploads['baseurl'] ) ) {
+			return $html;
+		}
+		// Match any uploads-dir image URL, protocol-relative or absolute.
+		$base    = preg_quote( preg_replace( '#^https?:#', '', $uploads['baseurl'] ), '#' );
+		$pattern = '#(https?:)?' . $base . '[^\s"\'\\\\)]+?\.(?:jpe?g|png)#i';
+		$cache   = array();
+
+		return preg_replace_callback(
+			$pattern,
+			function ( $m ) use ( &$cache ) {
+				$url = $m[0];
+				if ( ! isset( $cache[ $url ] ) ) {
+					$cache[ $url ] = $this->best_url_if_exists( $url );
+				}
+				return $cache[ $url ];
+			},
+			$html
+		);
 	}
 }

@@ -151,8 +151,8 @@ $s = Velox_Settings::all();
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
 			<span class="velox-toggle-label">Serve WebP on the front end</span>
-			<span class="velox-toggle-desc">Swaps WordPress-rendered &lt;img&gt; to WebP when the browser supports it (originals stay as fallback).</span>
-			<span class="velox-toggle-note">Opt-in. Targets WP/Oxygen Image elements; CSS background-images aren't auto-swapped. With Cloudflare Polish enabled you can leave this off.</span>
+			<span class="velox-toggle-desc">Swaps every uploads image to WebP/AVIF when the browser supports it — WordPress images, Oxygen elements, CSS background-images and hard-coded links (originals stay as fallback).</span>
+			<span class="velox-toggle-note">On by default. Rewrites the page HTML on the front end. With Cloudflare Polish enabled you can leave this off.</span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="webp_serve_rewrite" <?php checked( ! empty( $s['webp_serve_rewrite'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>

@@ -27,11 +27,19 @@ class Velox_Admin {
 			'settings'    => array( 'label' => 'Settings',     'icon' => 'gear', 'module' => null ),
 		);
 
+		// Admin bar shows on the front end too, plus the no-JS handler its cache
+		// links post to — so these register in every context.
+		add_action( 'admin_bar_menu', array( $this, 'admin_bar' ), 80 );
+		add_action( 'admin_post_velox_cache', array( $this, 'handle_cache_action' ) );
+
+		// Everything else is only needed inside wp-admin.
+		if ( ! is_admin() ) {
+			return;
+		}
+
 		add_action( 'admin_menu', array( $this, 'menu' ) );
 		add_action( 'admin_menu', array( $this, 'inject_active_utilities' ), 100 );
-		add_action( 'admin_bar_menu', array( $this, 'admin_bar' ), 80 );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
-		add_action( 'admin_post_velox_cache', array( $this, 'handle_cache_action' ) );
 		add_action( 'admin_notices', array( $this, 'cache_notice' ) );
 		add_action( 'admin_notices', array( $this, 'builder_notice' ) );
 		add_action( 'admin_head', array( $this, 'menu_icon_css' ) );

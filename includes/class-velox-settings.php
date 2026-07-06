@@ -169,13 +169,14 @@ class Velox_Settings {
 			'webp_keep_original' => true,
 			'webp_auto_convert'  => false,
 			'webp_convert_sizes' => true,
-			'webp_serve_rewrite' => false,
+			'webp_serve_rewrite' => true,
 			'image_engine'       => 'auto', // auto | imagick | gd
 			'image_webp'         => true,   // generate WebP output
 			'image_avif'         => false, // also generate AVIF twins + serve them to capable browsers
 			'image_lossless'     => false, // lossless WebP/AVIF (Imagick) — bigger files, perfect quality
 			'image_keep_exif'    => false, // strip camera/GPS metadata by default for smaller files
 			'image_max_width'    => 2560,  // downscale oversized uploads/conversions; 0 = off
+			'image_replace'      => true,  // replace originals with WebP in the media library (in-place)
 			'image_comparison'   => true,  // show the old/new comparator in the Images tab
 
 			// ---- Performance · General ----

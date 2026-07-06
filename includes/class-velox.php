@@ -87,8 +87,10 @@ final class Velox {
 			Velox_Post_Types::init();
 		}
 
+		// Velox_Admin always loads so its admin-bar nodes show on the front end too;
+		// its heavy admin-only hooks are gated inside the class.
+		$this->admin = new Velox_Admin();
 		if ( is_admin() ) {
-			$this->admin = new Velox_Admin();
 			new Velox_PageMeta();
 		}
 	}

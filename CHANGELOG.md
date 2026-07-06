@@ -4,6 +4,22 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.05.2 — Admin bar on the front end
+- Fixed the Velox and Velox Maintenance items disappearing from the admin bar on the front end — they now show on every page, front and back, for admins. The heavy admin-only hooks stay gated so the front end stays light.
+
+## 3.05.1 — WebP on the front end (Oxygen-aware)
+- **Front-end images now actually serve WebP.** A new page rewrite swaps every uploads image — WordPress images, Oxygen Image elements, CSS background-images and hard-coded links — to WebP/AVIF when the browser supports it. This is what the old "serve WebP" option missed (it only touched WordPress-rendered images, not Oxygen).
+- Front-end WebP serving is now **on by default**.
+- In replace mode the **original is kept on disk as a fallback** and only swapped in for capable browsers, so hard-coded links and older browsers never hit a missing file. Attachment deletion cleans up every format sibling.
+
+## 3.05.0 — Real WebP conversion + converted-images view
+- **Images now actually become WebP.** With replace mode on (default), converting turns the JPG/PNG into a WebP right in your media library — correct mime type, correct smaller size shown — instead of a hidden front-end-only copy.
+- **Fixed the wrong size readout.** The optimizer was adding up the original plus every thumbnail; it now reports the single main image, so the number matches what the media library shows.
+- **Resize behaves as expected:** wider images scale down to the resize width with the height following automatically, and images already narrower are left alone (never upscaled). Relabelled the setting to make this clear.
+- **New “Converted images” screen** — reach it from the button on the Images page to see every converted image with its before/after size and % saved.
+- The WordPress “Add media files” uploader now shows a Velox line about WebP conversion.
+- Added a **Replace originals with WebP** toggle (Images → Output formats) if you’d rather keep originals and serve WebP only on the front-end.
+
 ## 3.04.3 — PageSpeed report: card layout
 - Split the PageSpeed report into clearly separated **cards** — an Overview card with the category gauges, a Metrics card, and one card per category — so it reads as distinct sections instead of one cramped wall.
 - Overview card now leads with a plain headline (issues to fix on this device) plus the gauge for each category and the score legend.
