@@ -423,6 +423,118 @@ class Velox_Mail {
 		return $host ? $host : 'localhost';
 	}
 
+	/** Look up a TXT record on $host that begins with $prefix (e.g. "v=spf1"). */
+	private static function lookup_txt( $host, $prefix ) {
+		if ( ! function_exists( 'dns_get_record' ) ) {
+			return null; // host has DNS lookups disabled — can't check
+		}
+		$recs = @dns_get_record( $host, DNS_TXT );
+		if ( ! is_array( $recs ) ) {
+			return '';
+		}
+		foreach ( $recs as $r ) {
+			$txt = isset( $r['txt'] ) ? $r['txt'] : ( isset( $r['entries'] ) ? implode( '', (array) $r['entries'] ) : '' );
+			if ( '' !== $txt && stripos( $txt, $prefix ) === 0 ) {
+				return $txt;
+			}
+		}
+		return '';
+	}
+
+	/** Best-effort DKIM detection across common selectors. Returns the selector or ''. */
+	private static function detect_dkim( $domain ) {
+		if ( ! function_exists( 'dns_get_record' ) ) {
+			return null;
+		}
+		foreach ( array( 's1', 's2', 'default', 'dkim', 'k1', 'mail', 'selector1', 'selector2', 'ionos1' ) as $sel ) {
+			$host = $sel . '._domainkey.' . $domain;
+			$txt  = @dns_get_record( $host, DNS_TXT );
+			if ( is_array( $txt ) && $txt ) {
+				return $sel;
+			}
+			$cn = @dns_get_record( $host, DNS_CNAME );
+			if ( is_array( $cn ) && $cn ) {
+				return $sel;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Diagnose why mail may not reach Gmail / Microsoft: sender alignment, SMTP,
+	 * and the domain's SPF / DMARC / DKIM DNS records.
+	 */
+	public static function deliverability_report() {
+		$domain = strtolower( preg_replace( '/^www\./', '', self::server_domain() ) );
+
+		$from = trim( (string) Velox_Settings::get( 'mail_from_email', '' ) );
+		if ( '' === $from ) {
+			$conn = self::connection( self::primary_id() );
+			$from = ( $conn && ! empty( $conn['from'] ) ) ? $conn['from'] : 'wordpress@' . $domain;
+		}
+		$from_domain = strtolower( trim( (string) substr( strrchr( $from, '@' ), 1 ) ) );
+		$smtp_on     = (bool) Velox_Settings::get( 'mail_smtp_enabled', false ) && (bool) self::connections();
+
+		$checks = array();
+
+		$aligned  = ( $from_domain === $domain );
+		$checks[] = array(
+			'label'  => 'Sender address',
+			'status' => $aligned ? 'pass' : 'warn',
+			'detail' => $aligned
+				? $from . ' — matches your site domain.'
+				: $from . ' does not match ' . $domain . '. Use a From address on your own domain (Mail → Settings → Sender identity).',
+		);
+
+		$checks[] = array(
+			'label'  => 'Authenticated sending (SMTP)',
+			'status' => $smtp_on ? 'pass' : 'fail',
+			'detail' => $smtp_on
+				? 'Mail is sent through your SMTP connection.'
+				: 'Off — mail goes out through PHP mail(), which Gmail and Microsoft 365 routinely drop. Add an SMTP connection below and enable it.',
+		);
+
+		$spf = self::lookup_txt( $domain, 'v=spf1' );
+		$checks[] = array(
+			'label'  => 'SPF record',
+			'status' => null === $spf ? 'unknown' : ( $spf ? 'pass' : 'fail' ),
+			'detail' => null === $spf
+				? 'Could not check (DNS lookups are disabled on this server).'
+				: ( $spf
+					? $spf
+					: 'No SPF record on ' . $domain . '. Add a TXT record authorising your sender — for IONOS it looks like "v=spf1 include:_spf.perfora.net include:mail.ionos.com ~all" (confirm the exact include on IONOS\'s SPF help page).' ),
+		);
+
+		$dmarc = self::lookup_txt( '_dmarc.' . $domain, 'v=DMARC1' );
+		$checks[] = array(
+			'label'  => 'DMARC record',
+			'status' => null === $dmarc ? 'unknown' : ( $dmarc ? 'pass' : 'warn' ),
+			'detail' => null === $dmarc
+				? 'Could not check (DNS lookups are disabled on this server).'
+				: ( $dmarc
+					? $dmarc
+					: 'No DMARC record. Add a TXT record at _dmarc.' . $domain . ' with "v=DMARC1; p=none; rua=mailto:you@' . $domain . '".' ),
+		);
+
+		$dkim = self::detect_dkim( $domain );
+		$checks[] = array(
+			'label'  => 'DKIM signing',
+			'status' => null === $dkim ? 'unknown' : ( $dkim ? 'pass' : 'warn' ),
+			'detail' => null === $dkim
+				? 'Could not check (DNS lookups are disabled on this server).'
+				: ( $dkim
+					? 'Found DKIM selector "' . $dkim . '".'
+					: 'No DKIM selector detected. Turn on DKIM for ' . $domain . ' in your IONOS mail settings and add the record they give you (it may already be active under a custom selector).' ),
+		);
+
+		return array(
+			'domain' => $domain,
+			'from'   => $from,
+			'smtp'   => $smtp_on,
+			'checks' => $checks,
+		);
+	}
+
 	/* ----------------------------------------------------------------- *
 	 * Legacy migration
 	 * ----------------------------------------------------------------- */

@@ -596,6 +596,10 @@ class Velox_Ajax {
 				) );
 				break;
 
+			case 'mail_deliverability':
+				wp_send_json_success( Velox_Mail::deliverability_report() );
+				break;
+
 			case 'mail_conn_test':
 				wp_send_json_success( Velox_Mail::test_connection( array(
 					'host'   => isset( $_POST['host'] ) ? sanitize_text_field( wp_unslash( $_POST['host'] ) ) : '',

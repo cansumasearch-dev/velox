@@ -3491,6 +3491,31 @@
 	}
 
 	function initMail() {
+		// Deliverability check.
+		var delivBtn = $( '#vmail-deliv-btn' );
+		var delivOut = $( '#vmail-deliv' );
+		if ( delivBtn && delivOut ) {
+			delivBtn.addEventListener( 'click', function () {
+				delivBtn.disabled = true;
+				var prev = delivBtn.textContent;
+				delivBtn.textContent = 'Checking…';
+				api( 'mail_deliverability' )
+					.then( function ( r ) {
+						var icon = { pass: '✓', warn: '!', fail: '✕', unknown: '?' };
+						var html = '<div class="vmail-deliv-head">Checking <strong>' + escapeHtml( r.domain ) + '</strong> · sending as <strong>' + escapeHtml( r.from ) + '</strong></div>';
+						( r.checks || [] ).forEach( function ( c ) {
+							html += '<div class="vmail-deliv-row">' +
+								'<span class="vmail-deliv-mark vmail-deliv-mark--' + c.status + '">' + ( icon[ c.status ] || '?' ) + '</span>' +
+								'<div class="vmail-deliv-tx"><span class="vmail-deliv-label">' + escapeHtml( c.label ) + '</span>' +
+								'<span class="vmail-deliv-detail">' + escapeHtml( c.detail ) + '</span></div></div>';
+						} );
+						delivOut.innerHTML = html;
+						delivOut.hidden = false;
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { delivBtn.disabled = false; delivBtn.textContent = prev; } );
+			} );
+		}
 		// Sender identity (From name / email): save on change, stay in place.
 		$$( '[data-setting="mail_from_name"], [data-setting="mail_from_email"]' ).forEach( function ( el ) {
 			el.addEventListener( 'change', function () {

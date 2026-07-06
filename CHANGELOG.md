@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.06.2 — Inbox scrolling fix
+- Fixed the inbox list clipping when you had more submissions than fit on screen — the list now scrolls properly so you can reach every message, and the inbox height scales with your window.
+
+## 3.06.1 — Deliverability checker
+- New **Check deliverability** button (Mail → Settings) that inspects your domain and tells you exactly why Gmail/Microsoft may be dropping your mail: sender-address alignment, whether SMTP is on, and your live SPF, DMARC and DKIM DNS records — with the exact record to add when one is missing.
+
 ## 3.06.0 — Outlook-style inbox
 - The submissions inbox now works like a real mail client: sender **avatars**, **unread** markers that clear when you open a message, **pin** important ones to the top, **mark as done**, and **filter** by All / Unread / Pinned / Done.
 - **Reply straight from the inbox** — write a reply and it emails the person who submitted (through your SMTP + sender identity), then marks the entry done.

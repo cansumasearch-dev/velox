@@ -372,6 +372,16 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				</div>
 			</div>
 		</div>
+		<div class="velox-panel velox-tool-form">
+			<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+				<div>
+					<h3 class="velox-panel-title" style="margin:0 0 4px;">Deliverability check</h3>
+					<p class="velox-hint" style="margin:0;">Mail not reaching Gmail or Microsoft? Run this to see exactly which authentication record your domain is missing.</p>
+				</div>
+				<button type="button" class="velox-btn velox-btn--primary" id="vmail-deliv-btn">Check deliverability</button>
+			</div>
+			<div class="vmail-deliv" id="vmail-deliv" hidden></div>
+		</div>
 		<div class="velox-panel velox-tool-form" id="vmail-smtp" data-base="<?php echo esc_attr( $base ); ?>">
 			<div class="vmail-smtp-head">
 				<div>
