@@ -17,6 +17,18 @@ final class Velox_Pagespeed {
 	const HOOK       = 'velox_pagespeed_refresh'; // cron hook
 	const ENDPOINT   = 'https://www.googleapis.com/pagespeedonline/v5/runPagespeed';
 
+	/**
+	 * The Lighthouse categories PSI can return, in display order.
+	 * (Google does NOT expose an "agentic browsing" category — these four are
+	 * everything runPagespeed reports.)
+	 */
+	const CATEGORIES = array(
+		'performance'    => 'Performance',
+		'accessibility'  => 'Accessibility',
+		'best-practices' => 'Best Practices',
+		'seo'            => 'SEO',
+	);
+
 	public static function init() {
 		add_action( self::HOOK, array( __CLASS__, 'refresh' ) );
 		add_action( 'admin_init', array( __CLASS__, 'sync_schedule' ) );
@@ -118,15 +130,22 @@ final class Velox_Pagespeed {
 	private static function fetch_one( $strategy ) {
 		$strategy = in_array( $strategy, array( 'mobile', 'desktop' ), true ) ? $strategy : 'mobile';
 		$key      = trim( (string) Velox_Settings::get( 'ps_api_key', '' ) );
-		$args     = array(
+
+		// Base params (single-value) via add_query_arg…
+		$args = array(
 			'url'      => self::target_url(),
 			'strategy' => $strategy,
-			'category' => 'performance',
+			'locale'   => 'en', // force English audit titles/descriptions
 		);
 		if ( '' !== $key ) {
 			$args['key'] = $key;
 		}
 		$endpoint = add_query_arg( array_map( 'rawurlencode', $args ), self::ENDPOINT );
+
+		// …then append one category param per category (PSI takes it repeated).
+		foreach ( array_keys( self::CATEGORIES ) as $cat ) {
+			$endpoint .= '&category=' . rawurlencode( $cat );
+		}
 
 		$resp = wp_remote_get(
 			$endpoint,
@@ -170,20 +189,23 @@ final class Velox_Pagespeed {
 	}
 
 	/**
-	 * Turn a PSI v5 response into a compact dashboard payload.
+	 * Turn a PSI v5 response into our cached payload: category scores, the full
+	 * per-category audit list (for the report accordions), the Core Web Vitals
+	 * chips, plus the top issues / passing checks for the dashboard widget.
 	 *
-	 * @return array{ok:bool,score:int,strategy:string,url:string,fetched:int,metrics:array,issues:array,passed:array}
+	 * @return array{ok:bool,score:int,strategy:string,url:string,fetched:int,metrics:array,categories:array,audits:array,issues:array,passed:array}
 	 */
 	public static function parse( array $body, $strategy = null ) {
 		$strategy = in_array( $strategy, array( 'mobile', 'desktop' ), true ) ? $strategy : self::strategy();
-		$lh = isset( $body['lighthouseResult'] ) && is_array( $body['lighthouseResult'] ) ? $body['lighthouseResult'] : array();
-		if ( empty( $lh['categories']['performance'] ) || ! isset( $lh['categories']['performance']['score'] ) ) {
+		$lh       = isset( $body['lighthouseResult'] ) && is_array( $body['lighthouseResult'] ) ? $body['lighthouseResult'] : array();
+		$cats     = isset( $lh['categories'] ) && is_array( $lh['categories'] ) ? $lh['categories'] : array();
+		if ( empty( $cats['performance'] ) || ! array_key_exists( 'score', $cats['performance'] ) ) {
 			return array( 'ok' => false );
 		}
-		$score = (int) round( 100 * (float) $lh['categories']['performance']['score'] );
 		$audits = isset( $lh['audits'] ) && is_array( $lh['audits'] ) ? $lh['audits'] : array();
+		$score  = null !== $cats['performance']['score'] ? (int) round( 100 * (float) $cats['performance']['score'] ) : 0;
 
-		// Core Web Vitals / lab metrics.
+		// Core Web Vitals / lab metrics (chips on the dashboard + report).
 		$metric_map = array(
 			'largest-contentful-paint' => 'LCP',
 			'cumulative-layout-shift'  => 'CLS',
@@ -194,7 +216,7 @@ final class Velox_Pagespeed {
 		$metrics = array();
 		foreach ( $metric_map as $id => $label ) {
 			if ( isset( $audits[ $id ] ) ) {
-				$a = $audits[ $id ];
+				$a         = $audits[ $id ];
 				$metrics[] = array(
 					'key'   => $label,
 					'value' => isset( $a['displayValue'] ) ? (string) $a['displayValue'] : '—',
@@ -203,57 +225,139 @@ final class Velox_Pagespeed {
 			}
 		}
 
-		// Top opportunities (things to fix), biggest time-savings first.
-		$issues = array();
-		foreach ( $audits as $a ) {
-			if ( ! is_array( $a ) ) {
+		// Build the per-category audit lists (what powers the report accordions).
+		$categories  = array();
+		$audits_by   = array();
+		foreach ( self::CATEGORIES as $cat_id => $cat_label ) {
+			if ( empty( $cats[ $cat_id ] ) || ! is_array( $cats[ $cat_id ] ) ) {
 				continue;
 			}
-			$is_opp   = isset( $a['details']['type'] ) && 'opportunity' === $a['details']['type'];
-			$savings  = isset( $a['details']['overallSavingsMs'] ) ? (float) $a['details']['overallSavingsMs'] : 0;
-			$sc       = isset( $a['score'] ) ? $a['score'] : null;
-			if ( $is_opp && null !== $sc && $sc < 0.9 && ! empty( $a['title'] ) ) {
-				$issues[] = array(
-					'title'   => (string) $a['title'],
-					'value'   => isset( $a['displayValue'] ) ? (string) $a['displayValue'] : '',
+			$c        = $cats[ $cat_id ];
+			$c_score  = array_key_exists( 'score', $c ) && null !== $c['score'] ? (int) round( 100 * (float) $c['score'] ) : null;
+			$refs     = isset( $c['auditRefs'] ) && is_array( $c['auditRefs'] ) ? $c['auditRefs'] : array();
+			$list     = array();
+			foreach ( $refs as $ref ) {
+				$aid   = isset( $ref['id'] ) ? $ref['id'] : '';
+				$group = isset( $ref['group'] ) ? (string) $ref['group'] : '';
+				if ( '' === $aid || ! isset( $audits[ $aid ] ) || 'metrics' === $group || 'hidden' === $group ) {
+					continue; // metric tiles are shown as chips, not accordion rows
+				}
+				$a     = $audits[ $aid ];
+				$sc    = array_key_exists( 'score', $a ) ? $a['score'] : null;
+				$mode  = isset( $a['scoreDisplayMode'] ) ? (string) $a['scoreDisplayMode'] : '';
+				$title = isset( $a['title'] ) ? (string) $a['title'] : '';
+				if ( '' === $title || in_array( $mode, array( 'notApplicable', 'manual' ), true ) ) {
+					continue;
+				}
+				$display = isset( $a['displayValue'] ) ? (string) $a['displayValue'] : '';
+				// Keep scored checks, plus informational rows that actually say something.
+				$scored = in_array( $mode, array( 'binary', 'numeric', 'metricSavings' ), true ) && null !== $sc;
+				if ( ! $scored && ! ( 'informative' === $mode && '' !== $display ) ) {
+					continue;
+				}
+				$fail    = $scored && (float) $sc < 0.9;
+				// PSI shape-coded severity: poor (red ▲) / avg (orange ◼) / pass (green ●) / na (○).
+				if ( ! $scored ) {
+					$sev = 'na';
+				} elseif ( (float) $sc < 0.5 ) {
+					$sev = 'poor';
+				} elseif ( (float) $sc < 0.9 ) {
+					$sev = 'avg';
+				} else {
+					$sev = 'pass';
+				}
+				$savings = self::audit_savings( $a, $mode );
+				$list[]  = array(
+					'id'      => (string) $aid,
+					'title'   => $title,
+					'desc'    => self::clean_desc( isset( $a['description'] ) ? (string) $a['description'] : '' ),
+					'display' => $display,
+					'state'   => $scored ? ( $fail ? 'fail' : 'pass' ) : 'info',
+					'sev'     => $sev,
+					'weight'  => isset( $ref['weight'] ) ? (float) $ref['weight'] : 0,
 					'savings' => $savings,
 				);
 			}
-		}
-		usort(
-			$issues,
-			function ( $x, $y ) {
-				return $y['savings'] <=> $x['savings'];
+			// Order: failures first (biggest savings / weight), then passes, then info.
+			$rank = array( 'fail' => 0, 'pass' => 1, 'info' => 2 );
+			usort(
+				$list,
+				function ( $x, $y ) use ( $rank ) {
+					if ( $rank[ $x['state'] ] !== $rank[ $y['state'] ] ) {
+						return $rank[ $x['state'] ] <=> $rank[ $y['state'] ];
+					}
+					if ( $x['savings'] !== $y['savings'] ) {
+						return $y['savings'] <=> $x['savings'];
+					}
+					return $y['weight'] <=> $x['weight'];
+				}
+			);
+			$fail_n = 0;
+			foreach ( $list as $it ) {
+				if ( 'fail' === $it['state'] ) {
+					++$fail_n;
+				}
 			}
-		);
-		$issues = array_slice( $issues, 0, 5 );
+			$categories[]         = array( 'id' => $cat_id, 'label' => $cat_label, 'score' => $c_score, 'fails' => $fail_n, 'total' => count( $list ) );
+			$audits_by[ $cat_id ] = $list;
+		}
 
-		// What's right — pass/fail checks that Lighthouse marked green.
+		// Dashboard widget: top issues + passing checks come from Performance.
+		$perf   = isset( $audits_by['performance'] ) ? $audits_by['performance'] : array();
+		$issues = array();
 		$passed = array();
-		foreach ( $audits as $a ) {
-			if ( ! is_array( $a ) || empty( $a['title'] ) ) {
-				continue;
-			}
-			$sc   = isset( $a['score'] ) ? $a['score'] : null;
-			$mode = isset( $a['scoreDisplayMode'] ) ? (string) $a['scoreDisplayMode'] : '';
-			$is_opp = isset( $a['details']['type'] ) && 'opportunity' === $a['details']['type'];
-			// Only clean pass/fail-style checks, and only the ones that passed.
-			if ( null !== $sc && $sc >= 0.9 && ( 'binary' === $mode || $is_opp ) ) {
-				$passed[] = array( 'title' => (string) $a['title'] );
+		foreach ( $perf as $it ) {
+			if ( 'fail' === $it['state'] && count( $issues ) < 5 ) {
+				$issues[] = array( 'title' => $it['title'], 'value' => $it['display'], 'savings' => $it['savings'] );
+			} elseif ( 'pass' === $it['state'] && count( $passed ) < 8 ) {
+				$passed[] = array( 'title' => $it['title'] );
 			}
 		}
-		$passed = array_slice( $passed, 0, 8 );
 
 		return array(
-			'ok'       => true,
-			'score'    => $score,
-			'strategy' => $strategy,
-			'url'      => self::target_url(),
-			'fetched'  => time(),
-			'metrics'  => $metrics,
-			'issues'   => $issues,
-			'passed'   => $passed,
+			'ok'         => true,
+			'score'      => $score,
+			'strategy'   => $strategy,
+			'url'        => self::target_url(),
+			'fetched'    => time(),
+			'metrics'    => $metrics,
+			'categories' => $categories,
+			'audits'     => $audits_by,
+			'issues'     => $issues,
+			'passed'     => $passed,
 		);
+	}
+
+	/** Numeric "how much would this save" used to rank failing audits. */
+	private static function audit_savings( $a, $mode ) {
+		$s = 0.0;
+		if ( isset( $a['details']['overallSavingsMs'] ) ) {
+			$s = (float) $a['details']['overallSavingsMs'];
+		}
+		if ( isset( $a['metricSavings'] ) && is_array( $a['metricSavings'] ) ) {
+			$sum = 0.0;
+			foreach ( $a['metricSavings'] as $v ) {
+				$sum += (float) $v;
+			}
+			$s = max( $s, $sum );
+		}
+		if ( 0.0 === $s && 'metricSavings' === $mode && isset( $a['numericValue'] ) ) {
+			$s = (float) $a['numericValue'];
+		}
+		return $s;
+	}
+
+	/** Strip Lighthouse's markdown links / backticks and trim to a readable length. */
+	private static function clean_desc( $s ) {
+		$s = preg_replace( '/\[([^\]]+)\]\([^)]+\)/', '$1', $s ); // [label](url) → label
+		$s = str_replace( '`', '', $s );
+		$s = trim( preg_replace( '/\s+/', ' ', $s ) );
+		if ( function_exists( 'mb_strlen' ) && mb_strlen( $s ) > 320 ) {
+			$s = rtrim( mb_substr( $s, 0, 317 ) ) . '…';
+		} elseif ( strlen( $s ) > 320 ) {
+			$s = rtrim( substr( $s, 0, 317 ) ) . '…';
+		}
+		return $s;
 	}
 
 	/**
@@ -265,7 +369,7 @@ final class Velox_Pagespeed {
 		$store    = self::normalize_store( get_option( self::RESULT_OPT, array() ) );
 		$r        = isset( $store[ $strategy ] ) && is_array( $store[ $strategy ] ) ? $store[ $strategy ] : array();
 		if ( ! isset( $r['score'] ) ) {
-			return array( 'ok' => false, 'score' => 0, 'strategy' => $strategy, 'metrics' => array(), 'issues' => array(), 'passed' => array() );
+			return array( 'ok' => false, 'score' => 0, 'strategy' => $strategy, 'metrics' => array(), 'categories' => array(), 'audits' => array(), 'issues' => array(), 'passed' => array() );
 		}
 		return $r;
 	}

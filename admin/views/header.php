@@ -112,6 +112,10 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 				),
 			);
 			$vx_cat = Velox_Utilities::catalog();
+			// Drop PageSpeed in right under Performance when the module is on.
+			if ( class_exists( 'Velox_Pagespeed' ) && Velox_Pagespeed::enabled() ) {
+				array_splice( $vx_full_nav['Essentials'], 1, 0, array( array( 'tab', 'pagespeed', 'PageSpeed', 'search' ) ) );
+			}
 			foreach ( $vx_full_nav as $vx_section => $vx_items ) {
 				echo '<div class="velox-side-group">';
 				echo '<div class="velox-side-grouplabel">' . esc_html( $vx_section ) . '</div>';

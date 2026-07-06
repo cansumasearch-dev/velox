@@ -2344,6 +2344,84 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-ps-mark { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 17px; height: 17px; border-radius: var(--vx-r-xs); font-size: 12px; font-weight: 700; line-height: 1; }
 .velox-ps-mark--bad { color: var(--vx-danger); background: var(--vx-danger-tint); }
 .velox-ps-mark--ok { color: var(--vx-success); background: var(--vx-success-tint); }
+
+/* ===== Full PageSpeed report screen (PSI style, card layout) ===== */
+.velox-psf { margin-top: 4px; }
+.velox-psf-seg { margin-bottom: var(--vx-s5); }
+.velox-psf-panel[hidden] { display: none; }
+.velox-psf-empty { padding: 24px; }
+
+/* Card stack — gap-based, no margin between siblings */
+.velox-psi-stack { display: grid; gap: var(--vx-s5); }
+.velox-psi-stack > .velox-panel { margin-bottom: 0; }
+.velox-psi-card { padding: var(--vx-s5); }
+.velox-psi-cardh { font-size: 15px; font-weight: 700; letter-spacing: -0.01em; color: var(--vx-ink); margin: 0; }
+
+/* Overview card */
+.velox-psi-overhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: var(--vx-s5); }
+.velox-psi-overline { margin: 4px 0 0; font-size: 13.5px; color: var(--vx-ink-2); }
+.velox-psi-overline strong { color: var(--vx-ink); font-weight: 700; }
+.velox-psi-stamp { flex: none; font-size: 12px; color: var(--vx-ink-3); }
+.velox-psi-gauges { display: flex; flex-wrap: wrap; gap: var(--vx-s4); }
+.velox-psi-gauge { flex: 1 1 120px; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; border-radius: var(--vx-r-md); text-decoration: none; transition: background .12s; }
+.velox-psi-gauge:hover { background: var(--vx-bg); }
+.velox-psi-gauge-label { font-size: 13px; font-weight: 600; color: var(--vx-ink); text-align: center; }
+.velox-psi-gauge-sub { font-size: 11.5px; color: var(--vx-ink-3); }
+.velox-psi-legend { display: flex; align-items: center; gap: 20px; margin-top: var(--vx-s5); padding-top: var(--vx-s4); border-top: 1px solid var(--vx-line); font-size: 12px; color: var(--vx-ink-3); }
+.velox-psi-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.velox-psi-key { width: 9px; height: 9px; display: inline-block; }
+.velox-psi-key--poor { background: var(--vx-danger); clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.velox-psi-key--avg { background: #c8891f; border-radius: 2px; }
+.velox-psi-key--pass { background: var(--vx-success); border-radius: 50%; }
+
+/* Shape indicator */
+.velox-psi-ind { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 16px; }
+.velox-psi-ind--poor { color: var(--vx-danger); }
+.velox-psi-ind--avg { color: #c8891f; }
+.velox-psi-ind--pass { color: var(--vx-success); }
+.velox-psi-ind--na { color: var(--vx-ink-3); }
+.velox-psi-ind svg { display: block; }
+.velox-psi-ind--poor svg, .velox-psi-ind--avg svg, .velox-psi-ind--pass svg { fill: currentColor; }
+
+/* Metrics card */
+.velox-psi-metrics { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 0 var(--vx-s5); margin-top: var(--vx-s4); }
+.velox-psi-metric { display: flex; align-items: center; gap: 10px; padding: 11px 0; border-top: 1px solid var(--vx-line); }
+.velox-psi-metric-k { font-size: 13.5px; color: var(--vx-ink-2); flex: 1; }
+.velox-psi-metric-v { font-size: 14px; font-weight: 700; color: var(--vx-ink); font-variant-numeric: tabular-nums; }
+
+/* Category card */
+.velox-psi-cathead { display: flex; align-items: center; gap: 10px; margin-bottom: var(--vx-s3); }
+.velox-psi-catbadge { flex: none; display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 24px; padding: 0 8px; font-size: 13px; font-weight: 700; border-radius: var(--vx-r-sm); font-variant-numeric: tabular-nums; }
+.velox-psi-catbadge--ok { color: var(--vx-success); background: var(--vx-success-tint); }
+.velox-psi-catbadge--warn { color: #9a6410; background: var(--vx-warning-tint); }
+.velox-psi-catbadge--bad { color: var(--vx-danger); background: var(--vx-danger-tint); }
+.velox-psi-catmeta { font-size: 12.5px; color: var(--vx-ink-3); margin-left: auto; }
+
+/* Diagnostic rows */
+.velox-psi-list { margin-top: 4px; }
+.velox-psi-row { border-top: 1px solid var(--vx-line); }
+.velox-psi-list > .velox-psi-row:first-child { border-top: 0; }
+.velox-psi-rowh { display: flex; align-items: center; gap: 12px; width: 100%; padding: 12px 4px; font: inherit; text-align: left; background: transparent; border: 0; border-radius: var(--vx-r-sm); cursor: pointer; transition: background .12s; }
+.velox-psi-rowh[disabled] { cursor: default; }
+.velox-psi-rowh:not([disabled]):hover { background: var(--vx-bg); }
+.velox-psi-rowh:focus-visible { outline: 2px solid var(--vx-primary-ring); outline-offset: -2px; }
+.velox-psi-rowt { flex: 1; min-width: 0; font-size: 13.5px; font-weight: 500; color: var(--vx-ink); }
+.velox-psi-rowv { flex: none; font-size: 13px; color: var(--vx-ink-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.velox-psi-rowv--warn { color: var(--vx-danger); }
+.velox-psi-chev { flex: none; color: var(--vx-ink-3); transition: transform .18s; }
+.velox-psi-rowh[aria-expanded="true"] .velox-psi-chev { transform: rotate(180deg); }
+.velox-psi-rowb { padding: 0 4px 14px 40px; }
+.velox-psi-rowb[hidden] { display: none; }
+.velox-psi-rowb p { margin: 0; font-size: 13px; line-height: 1.55; color: var(--vx-ink-2); max-width: 68ch; }
+
+/* All-clear + passed-audits disclosure */
+.velox-psi-clear { display: flex; align-items: center; gap: 10px; margin-top: 4px; font-size: 13.5px; color: var(--vx-ink-2); }
+.velox-psi-more { display: inline-flex; align-items: center; gap: 8px; margin-top: var(--vx-s4); padding: 0; font: inherit; font-size: 13px; font-weight: 600; color: var(--vx-primary-ink); background: transparent; border: 0; cursor: pointer; }
+.velox-psi-more:hover { color: var(--vx-primary-d); }
+.velox-psi-more:focus-visible { outline: 2px solid var(--vx-primary-ring); outline-offset: 2px; border-radius: 4px; }
+.velox-psi-more[aria-expanded="true"] .velox-psi-chev { transform: rotate(180deg); }
+.velox-psi-passlist { margin-top: 4px; }
+.velox-psi-passlist[hidden] { display: none; }
 .velox-w .velox-reco-list { display: flex; flex-direction: column; gap: 0; }
 .velox-w .velox-reco-empty { display: flex; align-items: center; gap: 10px; color: var(--vx-ink-2); font-size: 13px; padding: 8px 0; }
 .velox-dash-sec { display: flex; align-items: center; gap: 12px; margin: 30px 0 14px; }

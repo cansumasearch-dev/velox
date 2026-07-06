@@ -20,6 +20,7 @@ class Velox_Admin {
 			'images'      => array( 'label' => 'Images',       'icon' => 'image', 'module' => 'module_images' ),
 			'media'       => array( 'label' => 'Media Editor', 'icon' => 'tag', 'module' => 'module_media' ),
 			'performance' => array( 'label' => 'Performance',  'icon' => 'bolt', 'module' => 'module_performance' ),
+			'pagespeed'   => array( 'label' => 'PageSpeed',    'icon' => 'search', 'module' => 'ps_enable' ),
 			'database'    => array( 'label' => 'Database',     'icon' => 'db', 'module' => 'module_database' ),
 			'seo'         => array( 'label' => 'SEO',          'icon' => 'search', 'module' => 'module_seo' ),
 			'utilities'   => array( 'label' => 'Utilities',    'icon' => 'grid', 'module' => null ),

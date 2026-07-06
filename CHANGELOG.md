@@ -4,6 +4,28 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.04.3 — PageSpeed report: card layout
+- Split the PageSpeed report into clearly separated **cards** — an Overview card with the category gauges, a Metrics card, and one card per category — so it reads as distinct sections instead of one cramped wall.
+- Overview card now leads with a plain headline (issues to fix on this device) plus the gauge for each category and the score legend.
+
+## 3.04.2 — PageSpeed report rebuilt to match Google PSI
+- Rebuilt the PageSpeed report to mirror Google’s own PageSpeed Insights layout: a row of category gauges, a proper **Metrics** section, then diagnostics grouped by category.
+- Every check now uses Lighthouse’s colour-blind-safe **shape indicators** — red triangle (poor), orange square (average), green circle (good) — so problems read at a glance.
+- Failures show first with their savings; passed audits sit behind a **“Passed audits (N)”** toggle. Snapped the whole screen to the Velox spacing/radius grid so it feels native, not templated.
+
+## 3.04.1 — PageSpeed report: cleaner, faster to read
+- Reworked the PageSpeed report to be easier to scan: it now opens with a **plain-English summary** (your score, how many issues to fix, how many checks pass) instead of four equal cards.
+- Categories became a compact **score strip** you can click to jump straight to that section.
+- Each category now shows the **problems first**; the passing checks are tucked behind a **“N passing checks”** toggle so the page isn’t a wall of rows. Savings show as tidy pills and the status icons are crisper.
+
+## 3.04.0 — Full PageSpeed report + fixes
+- **New PageSpeed screen** in the sidebar, right under Performance. It pulls the complete Google PageSpeed Insights report for your site and shows **every category — Performance, Accessibility, Best Practices and SEO** — each with its own score.
+- **Mobile / Desktop** buttons at the top switch the whole report between devices instantly (both are still checked on every run).
+- Each category lists its checks as **expandable accordions**, failures first with their estimated savings, then the passing checks — tap any row to read what it means and how to fix it.
+- **Fixed: the dashboard “see what’s wrong” list was empty.** It now reads the current Lighthouse format correctly, so real opportunities and passing checks show up again.
+- The report and the checks now come back in **English** regardless of your server locale.
+- The dashboard PageSpeed widget got a **Full report** link straight to the new screen.
+
 ## 3.03.6 — Dashboard PageSpeed: switch device + see what’s wrong & right
 - The dashboard PageSpeed widget now checks **both Mobile and Desktop** on every run and gives you a **Mobile / Desktop switch** right on the card — flip between the two instantly, no waiting for a new check. The **Default view** setting (Settings → Live PageSpeed) just picks which one shows first.
 - A new **See what’s wrong & right** button appears once a score is in. Tap it to expand a tidy breakdown: the opportunities still **to fix** (red) alongside the checks that are already **passing** (green). Collapsed by default so the dashboard stays clean.

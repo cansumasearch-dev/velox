@@ -249,7 +249,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 
 			<div class="velox-ps-foot">
 				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-ps-refresh>Refresh now</button>
-				<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">Tune performance</a>
+				<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $admin->tab_url( 'pagespeed' ) ); ?>">Full report &rarr;</a>
 			</div>
 		<?php endif; ?>
 	</div>

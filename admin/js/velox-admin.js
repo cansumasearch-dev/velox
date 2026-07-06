@@ -6162,18 +6162,19 @@
 ( function () {
 	function bindSwitch() {
 		// Mobile / desktop segmented switch — swaps the visible panel client-side.
+		// Works on the dashboard widget (.velox-w) and the full report (.velox-psf).
 		Array.prototype.forEach.call( document.querySelectorAll( '[data-ps-view]' ), function ( seg ) {
 			seg.addEventListener( 'click', function ( e ) {
 				e.stopPropagation();
 				var view = seg.getAttribute( 'data-ps-view' );
-				var widget = seg.closest ? seg.closest( '.velox-w' ) : null;
-				if ( ! widget ) { return; }
-				Array.prototype.forEach.call( widget.querySelectorAll( '[data-ps-view]' ), function ( b ) {
+				var scope = seg.closest ? seg.closest( '.velox-w, .velox-psf' ) : null;
+				if ( ! scope ) { return; }
+				Array.prototype.forEach.call( scope.querySelectorAll( '[data-ps-view]' ), function ( b ) {
 					var on = b === seg;
 					b.classList.toggle( 'is-active', on );
 					b.setAttribute( 'aria-selected', on ? 'true' : 'false' );
 				} );
-				Array.prototype.forEach.call( widget.querySelectorAll( '[data-ps-panel]' ), function ( p ) {
+				Array.prototype.forEach.call( scope.querySelectorAll( '[data-ps-panel]' ), function ( p ) {
 					var on = p.getAttribute( 'data-ps-panel' ) === view;
 					p.classList.toggle( 'is-active', on );
 					p.hidden = ! on;
@@ -6194,6 +6195,28 @@
 				if ( tx ) { tx.lastChild.textContent = open ? 'Hide details' : 'See what\u2019s wrong & right'; }
 			} );
 		} );
+		// Full report — per-audit accordion rows.
+		Array.prototype.forEach.call( document.querySelectorAll( '[data-psf-acc]' ), function ( head ) {
+			head.addEventListener( 'click', function () {
+				var acc = head.closest ? head.closest( '.velox-psi-row, .velox-psf-acc' ) : null;
+				var body = acc ? acc.querySelector( '[data-psf-body]' ) : null;
+				if ( ! body ) { return; }
+				var open = body.hasAttribute( 'hidden' );
+				body.hidden = ! open;
+				head.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+			} );
+		} );
+		// Full report — "Passed audits" disclosure per category.
+		Array.prototype.forEach.call( document.querySelectorAll( '[data-psf-passtoggle]' ), function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				var sec = btn.closest ? btn.closest( '.velox-psi-cat, .velox-psi-section, .velox-psf-sec' ) : null;
+				var body = sec ? sec.querySelector( '[data-psf-passbody]' ) : null;
+				if ( ! body ) { return; }
+				var open = body.hasAttribute( 'hidden' );
+				body.hidden = ! open;
+				btn.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+			} );
+		} );
 	}
 	if ( document.readyState === 'loading' ) { document.addEventListener( 'DOMContentLoaded', bindSwitch ); } else { bindSwitch(); }
 }() );
@@ -6208,7 +6231,7 @@
 			btn.addEventListener( 'click', function () {
 				var w = btn.closest ? btn.closest( '.velox-w' ) : null;
 				var orig = btn.textContent;
-				btn.textContent = 'Checking\u2026 (~30s)';
+				btn.textContent = 'Checking\u2026 (~60s)';
 				btn.disabled = true;
 				if ( w ) { w.classList.add( 'velox-ps-refreshing' ); }
 				var body = 'action=velox&do=ps_refresh&nonce=' + encodeURIComponent( VELOX.nonce );
