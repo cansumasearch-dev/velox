@@ -262,29 +262,59 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		<?php
 		// ===================== GLOBAL SUBMISSIONS INBOX =====================
 		$inbox = Velox_Forms::inbox( 200 );
+		$vx_initials = function ( $name ) {
+			$name = trim( wp_strip_all_tags( (string) $name ) );
+			if ( '' === $name ) { return '?'; }
+			$parts = preg_split( '/\s+/', $name );
+			$a = mb_substr( $parts[0], 0, 1 );
+			$b = count( $parts ) > 1 ? mb_substr( end( $parts ), 0, 1 ) : '';
+			return mb_strtoupper( $a . $b );
+		};
+		$vx_unread = 0;
+		foreach ( $inbox as $r ) { if ( empty( $r['read'] ) ) { $vx_unread++; } }
 		?>
 		<div class="velox-section-title">Inbox</div>
 		<div class="velox-panel velox-panel--flush vmail-inbox" id="vmail-inbox">
 			<?php if ( empty( $inbox ) ) : ?>
 				<p class="velox-hint" style="padding:26px;">No submissions yet. Every message sent through any of your forms lands here — who wrote, when, through which form, and everything they filled out.</p>
 			<?php else : ?>
+				<div class="vmail-inbox-filters" role="tablist" aria-label="Filter submissions">
+					<button type="button" class="vmail-filter is-on" data-filter="all">All</button>
+					<button type="button" class="vmail-filter" data-filter="unread">Unread<?php echo $vx_unread ? ' <span class="vmail-filter-count">' . (int) $vx_unread . '</span>' : ''; ?></button>
+					<button type="button" class="vmail-filter" data-filter="pinned">Pinned</button>
+					<button type="button" class="vmail-filter" data-filter="done">Done</button>
+				</div>
 				<div class="vmail-inbox-split">
 					<div class="vmail-inbox-list" id="vmail-inbox-list" role="listbox" aria-label="Submissions">
 						<?php foreach ( $inbox as $i => $row ) : ?>
-							<div class="vmail-inbox-item<?php echo 0 === $i ? ' is-active' : ''; ?>" data-id="<?php echo (int) $row['id']; ?>" role="option" aria-selected="<?php echo 0 === $i ? 'true' : 'false'; ?>">
+							<div class="vmail-inbox-item<?php echo 0 === $i ? ' is-active' : ''; ?><?php echo empty( $row['read'] ) ? ' is-unread' : ''; ?><?php echo ! empty( $row['pinned'] ) ? ' is-pinned' : ''; ?>"
+								data-id="<?php echo (int) $row['id']; ?>"
+								data-read="<?php echo empty( $row['read'] ) ? '0' : '1'; ?>"
+								data-pinned="<?php echo ! empty( $row['pinned'] ) ? '1' : '0'; ?>"
+								data-status="<?php echo esc_attr( $row['status'] ); ?>"
+								data-email="<?php echo esc_attr( $row['email'] ); ?>"
+								role="option" aria-selected="<?php echo 0 === $i ? 'true' : 'false'; ?>">
 								<button type="button" class="vmail-inbox-open" aria-label="Open submission">
-									<span class="vmail-inbox-who"><?php echo esc_html( $row['who'] ); ?></span>
-									<span class="vmail-inbox-meta">
+									<span class="vmail-avatar" aria-hidden="true"><?php echo esc_html( $vx_initials( $row['who'] ) ); ?></span>
+									<span class="vmail-inbox-body">
+										<span class="vmail-inbox-line1">
+											<span class="vmail-inbox-who"><?php echo esc_html( $row['who'] ); ?></span>
+											<span class="vmail-inbox-when"><?php echo esc_html( date_i18n( 'M j', strtotime( $row['created'] ) ) ); ?></span>
+										</span>
 										<span class="vmail-inbox-form"><?php echo esc_html( $row['form_title'] ); ?></span>
-										<span class="vmail-inbox-when"><?php echo esc_html( date_i18n( 'M j · H:i', strtotime( $row['created'] ) ) ); ?></span>
+										<span class="vmail-inbox-prev"><?php echo esc_html( $row['preview'] ); ?></span>
 									</span>
-									<span class="vmail-inbox-prev"><?php echo esc_html( $row['preview'] ); ?></span>
+									<span class="vmail-inbox-marks" aria-hidden="true">
+										<svg class="vmail-pin-ic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v6l-2 4h10l-2-4V4M12 14v6M8 4h8"/></svg>
+										<span class="vmail-unread-dot"></span>
+									</span>
 								</button>
 								<button type="button" class="vmail-inbox-del" data-id="<?php echo (int) $row['id']; ?>" title="Delete this submission" aria-label="Delete this submission">
 									<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
 								</button>
 							</div>
 						<?php endforeach; ?>
+						<div class="vmail-inbox-nomatch" hidden>Nothing here.</div>
 					</div>
 					<div class="vmail-inbox-detail" id="vmail-inbox-detail" aria-live="polite">
 						<div class="vmail-inbox-empty-detail">Select a submission to read it.</div>
@@ -326,6 +356,22 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		$vx_primary  = Velox_Mail::primary_id();
 		$vx_fallback = Velox_Mail::fallback_id();
 		?>
+		<div class="velox-panel velox-tool-form">
+			<h3 class="velox-panel-title" style="margin:0 0 4px;">Sender identity</h3>
+			<p class="velox-hint" style="margin:0 0 16px;">By default WordPress sends mail as <code>WordPress &lt;wordpress@yourdomain&gt;</code>. Set your own name and address here and every mail Velox sends uses it instead.</p>
+			<div class="velox-grid-2">
+				<div class="velox-field">
+					<span class="velox-field-label">From name</span>
+					<input type="text" class="velox-input" data-setting="mail_from_name" value="<?php echo esc_attr( $s['mail_from_name'] ); ?>" placeholder="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
+					<span class="velox-hint">Shown as the sender name, e.g. your company.</span>
+				</div>
+				<div class="velox-field">
+					<span class="velox-field-label">From email</span>
+					<input type="email" class="velox-input" data-setting="mail_from_email" value="<?php echo esc_attr( $s['mail_from_email'] ); ?>" placeholder="<?php echo esc_attr( 'info@' . wp_parse_url( home_url(), PHP_URL_HOST ) ); ?>">
+					<span class="velox-hint">Use an address on your own domain so it isn't marked as spam.</span>
+				</div>
+			</div>
+		</div>
 		<div class="velox-panel velox-tool-form" id="vmail-smtp" data-base="<?php echo esc_attr( $base ); ?>">
 			<div class="vmail-smtp-head">
 				<div>

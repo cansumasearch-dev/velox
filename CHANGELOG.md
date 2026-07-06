@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.06.0 — Outlook-style inbox
+- The submissions inbox now works like a real mail client: sender **avatars**, **unread** markers that clear when you open a message, **pin** important ones to the top, **mark as done**, and **filter** by All / Unread / Pinned / Done.
+- **Reply straight from the inbox** — write a reply and it emails the person who submitted (through your SMTP + sender identity), then marks the entry done.
+- Form notifications now set **Reply-To** to the submitter automatically, so mail is never spoofed as the visitor (a common reason Gmail/Microsoft silently drop it) and you can just hit Reply.
+
+## 3.05.3 — Mail fixes
+- Saving a form no longer bounces you back to the mail dashboard — you stay on the tab you were on (Build, Notifications or Settings).
+- New **Sender identity** setting (Mail → Settings): set your own From name and address so mail no longer goes out as "WordPress <wordpress@yourdomain>".
+- Inbox: tightened the gap between each field label and its value so submissions are easier to read.
+- The form-name box in the builder is now a proper, visible input instead of near-invisible text.
+
 ## 3.05.2 — Admin bar on the front end
 - Fixed the Velox and Velox Maintenance items disappearing from the admin bar on the front end — they now show on every page, front and back, for admins. The heavy admin-only hooks stay gated so the front end stays light.
 

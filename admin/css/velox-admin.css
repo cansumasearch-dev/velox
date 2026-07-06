@@ -1927,22 +1927,47 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-inbox-item { position: relative; display: flex; align-items: stretch; border-bottom: 1px solid var(--vx-line); transition: background var(--vx-dur-1) var(--vx-ease); }
 .vmail-inbox-item:hover { background: var(--vx-n25); }
 .vmail-inbox-item.is-active { background: var(--vx-primary-tint); box-shadow: inset 3px 0 0 var(--vx-primary); }
-.vmail-inbox-open { flex: 1 1 auto; min-width: 0; text-align: left; border: 0; background: transparent; cursor: pointer; padding: 13px 14px 13px 18px; }
+.vmail-inbox-open { flex: 1 1 auto; min-width: 0; display: flex; align-items: flex-start; gap: 11px; text-align: left; border: 0; background: transparent; cursor: pointer; padding: 12px 6px 12px 16px; }
+.vmail-avatar { flex: none; width: 36px; height: 36px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; color: var(--vx-primary-ink); background: var(--vx-primary-tint); letter-spacing: .01em; }
+.vmail-avatar--lg { width: 46px; height: 46px; font-size: 16px; }
+.vmail-inbox-body { flex: 1 1 auto; min-width: 0; }
+.vmail-inbox-line1 { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.vmail-inbox-who { font-weight: 500; font-size: 14px; color: var(--vx-ink); letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vmail-inbox-when { font-size: 12px; color: var(--vx-ink-3); flex: none; }
+.vmail-inbox-form { display: block; font-size: 12px; color: var(--vx-primary-ink); font-weight: 500; margin: 2px 0 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vmail-inbox-prev { display: block; font-size: 12px; color: var(--vx-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vmail-inbox-marks { flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; padding-top: 2px; }
+.vmail-pin-ic { color: var(--vx-ink-3); opacity: 0; }
+.vmail-inbox-item.is-pinned .vmail-pin-ic { opacity: 1; color: var(--vx-primary); }
+.vmail-unread-dot { width: 8px; height: 8px; border-radius: 50%; background: transparent; }
+.vmail-inbox-item.is-unread .vmail-unread-dot { background: var(--vx-primary); }
+.vmail-inbox-item.is-unread .vmail-inbox-who { font-weight: 700; }
+.vmail-inbox-nomatch { padding: 22px 18px; font-size: 13px; color: var(--vx-ink-3); }
 .vmail-inbox-del { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 38px; border: 0; background: transparent; color: var(--vx-ink-3); cursor: pointer; opacity: 0; transition: opacity var(--vx-dur-1) var(--vx-ease), color var(--vx-dur-1) var(--vx-ease), background var(--vx-dur-1) var(--vx-ease); border-radius: var(--vx-r-sm); margin: 6px 6px 6px 0; }
 .vmail-inbox-item:hover .vmail-inbox-del { opacity: 1; }
 .vmail-inbox-del:hover { background: var(--vx-danger-tint); color: var(--vx-danger); }
-.vmail-inbox-who { display: block; font-weight: 600; font-size: 14px; color: var(--vx-ink); letter-spacing: -0.01em; }
-.vmail-inbox-meta { display: flex; justify-content: space-between; gap: 8px; margin: 3px 0; }
-.vmail-inbox-form { font-size: 12px; color: var(--vx-primary-ink); font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vmail-inbox-when { font-size: 12px; color: var(--vx-ink-3); flex: none; }
-.vmail-inbox-prev { display: block; font-size: 12px; color: var(--vx-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Filter bar */
+.vmail-inbox-filters { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--vx-line); }
+.vmail-filter { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; font: inherit; font-size: 13px; font-weight: 500; color: var(--vx-ink-2); background: transparent; border: 1px solid transparent; border-radius: var(--vx-r-pill); cursor: pointer; transition: background .12s, color .12s; }
+.vmail-filter:hover { background: var(--vx-bg); }
+.vmail-filter.is-on { background: var(--vx-primary-tint); color: var(--vx-primary-ink); }
+.vmail-filter-count { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; padding: 0 5px; font-size: 11px; font-weight: 700; color: #fff; background: var(--vx-primary); border-radius: var(--vx-r-pill); }
+
+/* Reading pane: email link, actions, reply composer */
+.vmail-d-email { display: inline-block; font-size: 13px; color: var(--vx-primary-ink); text-decoration: none; margin-top: 2px; }
+.vmail-d-email:hover { text-decoration: underline; }
+.vmail-d-actions { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0 4px; }
+.vmail-reply { margin: 12px 0 4px; padding: 14px; background: var(--vx-bg); border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); display: flex; flex-direction: column; gap: 10px; }
+.vmail-reply[hidden] { display: none; }
+.vmail-reply-foot { display: flex; gap: 8px; }
 .vmail-inbox-detail { padding: 24px 28px; overflow-y: auto; }
 .vmail-inbox-empty-detail { color: var(--vx-ink-3); font-size: 14px; padding: 40px 0; text-align: center; }
 .vmail-d-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; padding-bottom: 16px; margin-bottom: 16px; border-bottom: 1px solid var(--vx-line); }
 .vmail-d-who { font-size: 18px; font-weight: 600; color: var(--vx-ink); letter-spacing: -0.015em; }
 .vmail-d-meta { font-size: 12.5px; color: var(--vx-ink-3); margin-top: 3px; }
 .vmail-d-dl { margin: 0; }
-.vmail-d-row { display: grid; grid-template-columns: 180px 1fr; gap: 16px; padding: 11px 0; border-bottom: 1px solid var(--vx-line); }
+.vmail-d-row { display: grid; grid-template-columns: minmax(80px, 160px) 1fr; gap: 14px; padding: 11px 0; border-bottom: 1px solid var(--vx-line); }
 .vmail-d-row:last-child { border-bottom: 0; }
 .vmail-d-row dt { font-size: 13px; font-weight: 600; color: var(--vx-ink-2); }
 .vmail-d-row dd { margin: 0; font-size: 14px; color: var(--vx-ink); line-height: 1.5; word-break: break-word; }
@@ -2598,8 +2623,9 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-nav-crumb b { color: var(--vx-ink-2); font-weight: 600; }
 .vmail-nav-crumb span { color: var(--vx-n300); }
 .vmail-nav-vsep { width: 1px; height: 20px; background: var(--vx-line2); flex: none; }
-.vmail-nav-title { border: 1px solid transparent; background: transparent; font-size: 14px; font-weight: 600; color: var(--vx-ink); padding: 5px 8px; border-radius: 7px; min-width: 90px; max-width: 200px; font-family: inherit; }
-.vmail-nav-title:hover { background: var(--vx-n25); }
+.vmail-nav-title { border: 1px solid var(--vx-line-2); background: var(--vx-n25); font-size: 14px; font-weight: 600; color: var(--vx-ink); padding: 7px 11px; border-radius: var(--vx-r-sm); min-width: 140px; max-width: 240px; font-family: inherit; transition: border-color .12s, background .12s, box-shadow .12s; }
+.vmail-nav-title::placeholder { color: var(--vx-ink-3); font-weight: 500; }
+.vmail-nav-title:hover { background: var(--vx-card); border-color: var(--vx-n200); }
 .vmail-nav-title:focus { outline: none; background: var(--vx-card); border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring); }
 .vmail-nav-switch { position: relative; width: 38px; height: 22px; flex: none; cursor: pointer; }
 .vmail-nav-switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }

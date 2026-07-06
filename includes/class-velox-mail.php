@@ -70,6 +70,21 @@ class Velox_Mail {
 		if ( Velox_Settings::get( 'mail_smtp_enabled', false ) && self::connections() ) {
 			add_action( 'phpmailer_init', array( __CLASS__, 'configure_smtp' ) );
 		}
+		// Replace the default "WordPress <wordpress@domain>" sender site-wide.
+		add_filter( 'wp_mail_from', array( __CLASS__, 'filter_from_email' ), 20 );
+		add_filter( 'wp_mail_from_name', array( __CLASS__, 'filter_from_name' ), 20 );
+	}
+
+	/** Sender address override (falls back to WordPress's default when unset/invalid). */
+	public static function filter_from_email( $email ) {
+		$set = trim( (string) Velox_Settings::get( 'mail_from_email', '' ) );
+		return ( '' !== $set && is_email( $set ) ) ? $set : $email;
+	}
+
+	/** Sender name override (falls back to WordPress's default when unset). */
+	public static function filter_from_name( $name ) {
+		$set = trim( (string) Velox_Settings::get( 'mail_from_name', '' ) );
+		return '' !== $set ? $set : $name;
 	}
 
 	/* ----------------------------------------------------------------- *

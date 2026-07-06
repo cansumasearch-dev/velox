@@ -3491,6 +3491,14 @@
 	}
 
 	function initMail() {
+		// Sender identity (From name / email): save on change, stay in place.
+		$$( '[data-setting="mail_from_name"], [data-setting="mail_from_email"]' ).forEach( function ( el ) {
+			el.addEventListener( 'change', function () {
+				var p = {};
+				p[ el.getAttribute( 'data-setting' ) ] = el.value;
+				saveSettings( p, 'Sender saved.' );
+			} );
+		} );
 		var toggle = $( '#velox-mail-toggle' );
 		if ( toggle ) {
 			toggle.addEventListener( 'change', function () {
@@ -3565,7 +3573,17 @@
 				.catch( function ( e ) { toast( e.message, 'error' ); } );
 		}
 
+		function initials( name ) {
+			name = ( name || '' ).trim();
+			if ( ! name ) { return '?'; }
+			var p = name.split( /\s+/ );
+			return ( p[0].charAt( 0 ) + ( p.length > 1 ? p[ p.length - 1 ].charAt( 0 ) : '' ) ).toUpperCase();
+		}
+
+		var current = null; // the submission currently open in the reading pane
+
 		function renderDetail( sub ) {
+			current = sub;
 			var rows = '';
 			var data = sub.data || {};
 			var labels = sub.labels || {};
@@ -3580,12 +3598,70 @@
 			if ( sub.form_title ) { meta.push( escapeHtml( sub.form_title ) ); }
 			if ( sub.created ) { meta.push( escapeHtml( sub.created ) ); }
 			if ( sub.ip ) { meta.push( 'IP ' + escapeHtml( sub.ip ) ); }
+			var email = sub.email || '';
+			var pinned = !! sub.pinned;
+			var done = sub.status === 'done';
+			var canReply = email && /.+@.+\..+/.test( email );
+
 			detail.innerHTML =
 				'<div class="vmail-d-head">' +
-					'<div><div class="vmail-d-who">' + escapeHtml( sub.who || 'Submission' ) + '</div>' +
-					'<div class="vmail-d-meta">' + meta.join( '  ·  ' ) + '</div></div>' +
+					'<span class="vmail-avatar vmail-avatar--lg" aria-hidden="true">' + escapeHtml( initials( sub.who ) ) + '</span>' +
+					'<div style="flex:1;min-width:0">' +
+						'<div class="vmail-d-who">' + escapeHtml( sub.who || 'Submission' ) + '</div>' +
+						( email ? '<a class="vmail-d-email" href="mailto:' + escapeHtml( email ) + '">' + escapeHtml( email ) + '</a>' : '' ) +
+						'<div class="vmail-d-meta">' + meta.join( '  ·  ' ) + '</div>' +
+					'</div>' +
+				'</div>' +
+				'<div class="vmail-d-actions">' +
+					'<button type="button" class="velox-btn velox-btn--primary vmail-act" data-act="reply"' + ( canReply ? '' : ' disabled title="No email address to reply to"' ) + '>Reply</button>' +
+					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="pin">' + ( pinned ? 'Unpin' : 'Pin' ) + '</button>' +
+					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="done">' + ( done ? 'Reopen' : 'Mark done' ) + '</button>' +
+					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="delete">Delete</button>' +
+				'</div>' +
+				'<div class="vmail-reply" id="vmail-reply" hidden>' +
+					'<input type="text" class="velox-input vmail-reply-subj" id="vmail-reply-subj" value="Re: ' + escapeHtml( sub.form_title || '' ) + '">' +
+					'<textarea class="velox-textarea vmail-reply-body" id="vmail-reply-body" rows="5" placeholder="Write your reply to ' + escapeHtml( email ) + '…"></textarea>' +
+					'<div class="vmail-reply-foot">' +
+						'<button type="button" class="velox-btn velox-btn--primary" data-act="reply-send">Send reply</button>' +
+						'<button type="button" class="velox-btn velox-btn--ghost" data-act="reply-cancel">Cancel</button>' +
+					'</div>' +
 				'</div>' +
 				'<dl class="vmail-d-dl">' + rows + '</dl>';
+		}
+
+		function updateUnreadCount() {
+			var n = list.querySelectorAll( '.vmail-inbox-item[data-read="0"]' ).length;
+			var btn = document.querySelector( '.vmail-filter[data-filter="unread"]' );
+			if ( ! btn ) { return; }
+			var badge = btn.querySelector( '.vmail-filter-count' );
+			if ( n > 0 ) {
+				if ( ! badge ) { badge = document.createElement( 'span' ); badge.className = 'vmail-filter-count'; btn.appendChild( badge ); }
+				badge.textContent = n;
+			} else if ( badge ) { badge.remove(); }
+		}
+
+		function markRead( id, itemEl ) {
+			var item = itemEl || list.querySelector( '.vmail-inbox-item[data-id="' + id + '"]' );
+			if ( ! item || item.getAttribute( 'data-read' ) === '1' ) { return; }
+			item.setAttribute( 'data-read', '1' );
+			item.classList.remove( 'is-unread' );
+			updateUnreadCount();
+			api( 'submission_flag', { id: id, flag: 'read', on: '1' } ).catch( function () {} );
+		}
+
+		var activeFilter = 'all';
+		function applyFilter() {
+			var shown = 0;
+			list.querySelectorAll( '.vmail-inbox-item' ).forEach( function ( it ) {
+				var ok = 'all' === activeFilter
+					|| ( 'unread' === activeFilter && it.getAttribute( 'data-read' ) === '0' )
+					|| ( 'pinned' === activeFilter && it.getAttribute( 'data-pinned' ) === '1' )
+					|| ( 'done' === activeFilter && it.getAttribute( 'data-status' ) === 'done' );
+				it.style.display = ok ? '' : 'none';
+				if ( ok ) { shown++; }
+			} );
+			var nomatch = list.querySelector( '.vmail-inbox-nomatch' );
+			if ( nomatch ) { nomatch.hidden = shown > 0; }
 		}
 
 		function load( id, itemEl ) {
@@ -3595,14 +3671,13 @@
 			} );
 			detail.innerHTML = '<div class="vmail-inbox-empty-detail">Loading…</div>';
 			api( 'submission_get', { id: id } )
-				.then( renderDetail )
+				.then( function ( sub ) { renderDetail( sub ); markRead( id, itemEl ); } )
 				.catch( function ( e ) { detail.innerHTML = '<div class="vmail-inbox-empty-detail">' + escapeHtml( e.message ) + '</div>'; } );
 		}
 
 		list.addEventListener( 'click', function ( e ) {
 			var item = e.target.closest( '.vmail-inbox-item' );
 			if ( ! item ) { return; }
-			// Per-row trash takes priority over opening.
 			if ( e.target.closest( '.vmail-inbox-del' ) ) {
 				e.stopPropagation();
 				deleteSubmission( item.getAttribute( 'data-id' ), item );
@@ -3610,6 +3685,59 @@
 			}
 			load( item.getAttribute( 'data-id' ), item );
 		} );
+
+		// Reading-pane actions: reply / pin / done / delete.
+		detail.addEventListener( 'click', function ( e ) {
+			var b = e.target.closest( '[data-act]' );
+			if ( ! b || ! current ) { return; }
+			var act = b.getAttribute( 'data-act' );
+			var id = current.id;
+			var itemEl = list.querySelector( '.vmail-inbox-item[data-id="' + id + '"]' );
+			if ( 'reply' === act ) {
+				var box = $( '#vmail-reply' ); if ( box ) { box.hidden = false; var t = $( '#vmail-reply-body' ); if ( t ) { t.focus(); } }
+			} else if ( 'reply-cancel' === act ) {
+				var bx = $( '#vmail-reply' ); if ( bx ) { bx.hidden = true; }
+			} else if ( 'reply-send' === act ) {
+				var subj = ( $( '#vmail-reply-subj' ) || {} ).value || '';
+				var body = ( $( '#vmail-reply-body' ) || {} ).value || '';
+				if ( ! body.trim() ) { toast( 'Write a reply first.', 'error' ); return; }
+				b.disabled = true;
+				api( 'submission_reply', { id: id, subject: subj, body: body } )
+					.then( function ( r ) {
+						toast( 'Reply sent to ' + ( r.to || 'recipient' ) + '.' );
+						if ( itemEl ) { itemEl.setAttribute( 'data-read', '1' ); itemEl.classList.remove( 'is-unread' ); itemEl.setAttribute( 'data-status', 'done' ); }
+						current.status = 'done'; updateUnreadCount(); applyFilter();
+						var bx2 = $( '#vmail-reply' ); if ( bx2 ) { bx2.hidden = true; }
+						var dn = detail.querySelector( '[data-act="done"]' ); if ( dn ) { dn.textContent = 'Reopen'; }
+					} )
+					.catch( function ( err ) { toast( err.message, 'error' ); } )
+					.then( function () { b.disabled = false; } );
+			} else if ( 'pin' === act ) {
+				var pon = ! current.pinned; current.pinned = pon;
+				b.textContent = pon ? 'Unpin' : 'Pin';
+				if ( itemEl ) { itemEl.setAttribute( 'data-pinned', pon ? '1' : '0' ); itemEl.classList.toggle( 'is-pinned', pon ); if ( pon ) { list.insertBefore( itemEl, list.firstChild ); } }
+				api( 'submission_flag', { id: id, flag: 'pinned', on: pon ? '1' : '0' } ).catch( function () {} );
+				applyFilter();
+			} else if ( 'done' === act ) {
+				var don = current.status !== 'done'; current.status = don ? 'done' : 'open';
+				b.textContent = don ? 'Reopen' : 'Mark done';
+				if ( itemEl ) { itemEl.setAttribute( 'data-status', current.status ); }
+				api( 'submission_flag', { id: id, flag: 'done', on: don ? '1' : '0' } ).catch( function () {} );
+				applyFilter();
+			} else if ( 'delete' === act ) {
+				deleteSubmission( id, itemEl );
+			}
+		} );
+
+		var filterBar = document.querySelector( '.vmail-inbox-filters' );
+		if ( filterBar ) {
+			filterBar.addEventListener( 'click', function ( e ) {
+				var b = e.target.closest( '.vmail-filter' ); if ( ! b ) { return; }
+				filterBar.querySelectorAll( '.vmail-filter' ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === b ); } );
+				activeFilter = b.getAttribute( 'data-filter' );
+				applyFilter();
+			} );
+		}
 
 		// Auto-open the first submission so the panel isn't empty on load.
 		var first = list.querySelector( '.vmail-inbox-item' );
@@ -4635,7 +4763,7 @@
 			reKey();
 			var btn = $( '#vmail-save' ); btn.disabled = true;
 			api( 'form_save', { form: JSON.stringify( form ) } )
-				.then( function () { toast( 'Form saved.' ); setTimeout( function () { location.href = meta.base || ( location.pathname + '?page=velox-utilities&tool=mail' ); }, 500 ); } )
+				.then( function () { toast( 'Form saved.' ); btn.disabled = false; } )
 				.catch( function ( err ) { toast( err.message, 'error' ); btn.disabled = false; } );
 		}
 		// Persist silently in place — used by the Notifications toggles so a change

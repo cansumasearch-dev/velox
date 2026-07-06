@@ -568,6 +568,27 @@ class Velox_Ajax {
 				wp_send_json_success( $sub );
 				break;
 
+			case 'submission_flag':
+				$res = Velox_Forms::set_flag(
+					isset( $_POST['id'] ) ? (int) $_POST['id'] : 0,
+					isset( $_POST['flag'] ) ? sanitize_key( wp_unslash( $_POST['flag'] ) ) : '',
+					isset( $_POST['on'] ) && ( '1' === (string) $_POST['on'] || 'true' === $_POST['on'] )
+				);
+				if ( false === $res ) {
+					wp_send_json_error( array( 'message' => 'Unknown flag.' ) );
+				}
+				wp_send_json_success( $res );
+				break;
+
+			case 'submission_reply':
+				$res = Velox_Forms::reply(
+					isset( $_POST['id'] ) ? (int) $_POST['id'] : 0,
+					isset( $_POST['subject'] ) ? wp_unslash( $_POST['subject'] ) : '',
+					isset( $_POST['body'] ) ? wp_unslash( $_POST['body'] ) : ''
+				);
+				$this->respond( $res );
+				break;
+
 			case 'mail_test':
 				wp_send_json_success( Velox_Mail::send_test(
 					isset( $_POST['to'] ) ? sanitize_email( wp_unslash( $_POST['to'] ) ) : '',

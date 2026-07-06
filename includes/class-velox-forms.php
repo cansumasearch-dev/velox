@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Velox_Forms {
 
-	const DB_VERSION  = '1';
+	const DB_VERSION  = '2';
 	const VER_OPTION  = 'velox_forms_db';
 	const FORMS_OPTION = 'velox_forms';
 
@@ -39,8 +39,13 @@ class Velox_Forms {
 			created DATETIME NULL,
 			data LONGTEXT NULL,
 			ip VARCHAR(45) NULL,
+			pinned TINYINT(1) NOT NULL DEFAULT 0,
+			read_at DATETIME NULL,
+			status VARCHAR(20) NOT NULL DEFAULT 'open',
 			PRIMARY KEY  (id),
-			KEY form_id (form_id)
+			KEY form_id (form_id),
+			KEY pinned (pinned),
+			KEY status (status)
 		) {$charset};" );
 		update_option( self::VER_OPTION, self::DB_VERSION );
 	}
@@ -874,6 +879,14 @@ class Velox_Forms {
 				if ( is_email( $reply ) ) {
 					$headers[] = 'Reply-To: ' . $reply;
 				}
+			} elseif ( 'customer' !== $e['type'] ) {
+				// Admin notification with no explicit Reply-To: point it at the person
+				// who submitted, so you can just hit Reply — and so we never spoof the
+				// From as the submitter (which makes Gmail/Microsoft drop the mail).
+				$submitter = self::derive_email( $data );
+				if ( $submitter && is_email( $submitter ) ) {
+					$headers[] = 'Reply-To: ' . $submitter;
+				}
 			}
 			if ( ! empty( $e['cc'] ) ) {
 				foreach ( array_filter( array_map( 'trim', explode( ',', $e['cc'] ) ) ) as $cc ) {
@@ -941,9 +954,9 @@ class Velox_Forms {
 		global $wpdb;
 		$t = self::table();
 		if ( $form_id ) {
-			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE form_id = %d ORDER BY id DESC LIMIT %d OFFSET %d", $form_id, $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE form_id = %d ORDER BY pinned DESC, id DESC LIMIT %d OFFSET %d", $form_id, $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB
 		} else {
-			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} ORDER BY id DESC LIMIT %d OFFSET %d", $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} ORDER BY pinned DESC, id DESC LIMIT %d OFFSET %d", $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB
 		}
 		$rows = $rows ?: array();
 
@@ -966,6 +979,9 @@ class Velox_Forms {
 				'who'        => self::derive_who( $d ),
 				'email'      => self::derive_email( $d ),
 				'preview'    => self::derive_preview( $d ),
+				'pinned'     => ! empty( $r['pinned'] ),
+				'read'       => ! empty( $r['read_at'] ),
+				'status'     => isset( $r['status'] ) ? $r['status'] : 'open',
 				'data'       => $d,
 			);
 		}
@@ -1031,7 +1047,58 @@ class Velox_Forms {
 		$row['form_title'] = $form ? $form['title'] : 'Form #' . (int) $row['form_id'];
 		$row['who']    = self::derive_who( $row['data'] );
 		$row['email']  = self::derive_email( $row['data'] );
+		$row['pinned'] = ! empty( $row['pinned'] );
+		$row['read']   = ! empty( $row['read_at'] );
+		$row['status'] = isset( $row['status'] ) ? $row['status'] : 'open';
 		return $row;
+	}
+
+	/**
+	 * Toggle an inbox flag on a submission. $flag ∈ pinned | read | done.
+	 * Returns the new state array, or false on a bad id.
+	 */
+	public static function set_flag( $sid, $flag, $on ) {
+		global $wpdb;
+		$sid = (int) $sid;
+		$on  = (bool) $on;
+		$t   = self::table();
+		if ( 'pinned' === $flag ) {
+			$wpdb->update( $t, array( 'pinned' => $on ? 1 : 0 ), array( 'id' => $sid ) ); // phpcs:ignore WordPress.DB
+		} elseif ( 'read' === $flag ) {
+			$wpdb->update( $t, array( 'read_at' => $on ? current_time( 'mysql' ) : null ), array( 'id' => $sid ) ); // phpcs:ignore WordPress.DB
+		} elseif ( 'done' === $flag ) {
+			$wpdb->update( $t, array( 'status' => $on ? 'done' : 'open' ), array( 'id' => $sid ) ); // phpcs:ignore WordPress.DB
+		} else {
+			return false;
+		}
+		return array( 'id' => $sid, 'flag' => $flag, 'on' => $on );
+	}
+
+	/**
+	 * Reply to a submission by emailing the person who submitted it. Sends through
+	 * Velox_Mail (so SMTP + the sender identity apply), marks the entry read + done.
+	 */
+	public static function reply( $sid, $subject, $body ) {
+		$sub = self::submission( $sid );
+		if ( ! $sub ) {
+			return new WP_Error( 'not_found', __( 'Submission not found.', 'velox' ) );
+		}
+		$to = self::derive_email( $sub['data'] );
+		if ( ! $to || ! is_email( $to ) ) {
+			return new WP_Error( 'no_email', __( 'This submission has no email address to reply to.', 'velox' ) );
+		}
+		$subject = trim( wp_strip_all_tags( (string) $subject ) );
+		if ( '' === $subject ) {
+			$subject = 'Re: ' . $sub['form_title'];
+		}
+		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
+		$ok      = Velox_Mail::send( $to, $subject, wpautop( wp_kses_post( (string) $body ) ), $headers );
+		if ( ! $ok ) {
+			return new WP_Error( 'send_failed', __( 'The reply could not be sent — check your mail settings.', 'velox' ) );
+		}
+		self::set_flag( $sid, 'read', true );
+		self::set_flag( $sid, 'done', true );
+		return array( 'ok' => true, 'to' => $to );
 	}
 
 	/** Total entries, optionally for one form. */

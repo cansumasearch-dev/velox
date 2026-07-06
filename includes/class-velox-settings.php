@@ -146,6 +146,8 @@ class Velox_Settings {
 
 			// ---- Mail & forms ----
 			'mail_smtp_enabled'   => false,
+			'mail_from_name'      => '',     // overrides the default "WordPress" sender name
+			'mail_from_email'     => '',     // overrides the default wordpress@domain sender address
 			'mail_smtp_host'      => '',
 			'mail_smtp_port'      => 587,
 			'mail_smtp_secure'    => 'tls',  // tls | ssl | none
