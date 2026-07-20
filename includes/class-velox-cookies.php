@@ -265,7 +265,7 @@ gtag('consent','update',{
 <?php echo $p; ?>.vxck-overlay{position:<?php echo $scope ? 'absolute' : 'fixed'; ?>;inset:0;background:rgba(8,10,18,.5);z-index:2147483500;}
 <?php echo $p; ?>.vxck{box-sizing:border-box;<?php echo $pos['box']; // phpcs:ignore ?>;background:<?php echo $bg; ?>;color:<?php echo $text; ?>;border:<?php echo $bw; ?>px solid <?php echo $bcol; ?>;border-radius:<?php echo $rad; ?>px;box-shadow:<?php echo $shadow; ?>;padding:<?php echo $pad_decl; ?>;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;font-size:<?php echo $fs; ?>px;}
 <?php echo $p; ?>.vxck *{box-sizing:border-box;}
-<?php echo $p; ?>.vxck-main{flex:1 1 360px;min-width:0;}
+<?php echo $p; ?>.vxck-main{flex:1 1 auto;min-width:0;}
 <?php echo $p; ?>.vxck-logo{max-height:34px;width:auto;margin-bottom:12px;display:block;}
 <?php echo $p; ?>.vxck-h{margin:0 0 8px;font-size:<?php echo $fs + 3; ?>px;font-weight:700;letter-spacing:-.01em;color:<?php echo $text; ?>;}
 <?php echo $p; ?>.vxck-body{margin:0 0 14px;font-size:<?php echo $fs; ?>px;opacity:.85;}
@@ -343,12 +343,20 @@ gtag('consent','update',{
 		if ( ! empty( $o['cookie_body_color'] ) ) { $extra .= $p . '.vxck-body{color:' . self::hex( $o['cookie_body_color'] ) . ';opacity:1;}'; }
 		if ( ! empty( $o['cookie_link_color'] ) ) { $extra .= $p . '.vxck-links a{color:' . self::hex( $o['cookie_link_color'] ) . ';}'; }
 		$extra .= $p . '.vxck-links a{text-decoration:' . ( ! empty( $o['cookie_link_underline'] ) ? 'underline' : 'none' ) . ';}';
-		// Keep the banner's blocks packed together. Without this, a flex box with any
-		// spare height (e.g. a vertical/column layout, or a max-height) spreads its
-		// heading/body, categories and buttons into large empty gaps.
-		$extra .= $p . '.vxck{align-content:flex-start;}';
-		if ( isset( $o['cookie_layout_mode'] ) && 'custom' === $o['cookie_layout_mode'] && 'column' === $o['cookie_direction'] ) {
-			$extra .= $p . '.vxck{justify-content:flex-start;}' . $p . '.vxck-main{flex-grow:0;}';
+		// Clean, gap-proof inner layout. This overrides the older free-form layout
+		// controls, which could spread the heading, categories and buttons into large
+		// empty gaps. Bars lay out horizontally (content left, buttons right, wrapping
+		// cleanly); boxes and the modal stack top-to-bottom. The banner is always the
+		// height of its content, so there is never spare space to distribute.
+		$is_bar = ( 'bar-bottom' === $layout || 'bar-top' === $layout );
+		if ( $is_bar ) {
+			$extra .= $p . '.vxck{display:flex;flex-wrap:wrap;flex-direction:row;align-items:center;align-content:center;justify-content:space-between;gap:14px 28px;}';
+			$extra .= $p . '.vxck-main{flex:1 1 340px;}';
+			$extra .= $p . '.vxck-actions{flex:0 0 auto;}';
+			$extra .= $p . '.vxck-prefs{flex-basis:100%;}';
+		} else {
+			$extra .= $p . '.vxck{display:block;}';
+			$extra .= $p . '.vxck-main,' . $p . '.vxck-prefs,' . $p . '.vxck-actions{width:auto;}';
 		}
 		if ( (int) $o['cookie_backdrop_blur'] > 0 ) { $extra .= $p . '.vxck-overlay{backdrop-filter:blur(' . (int) $o['cookie_backdrop_blur'] . 'px);}'; }
 		if ( ! empty( $o['cookie_overlay_color'] ) ) { $extra .= $p . '.vxck-overlay{background:' . self::safe_color( $o['cookie_overlay_color'] ) . ';}'; }

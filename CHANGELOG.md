@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.07.6 — Cookie banner: the gap is dead
+- Root cause fixed: .vxck-main used flex:1 1 360px, and in a column layout the 360px became a minimum HEIGHT, forcing a huge empty gap between the text and the buttons/categories. Changed to flex:1 1 auto so it sizes to its content.
+- Added a clean, gap-proof layout override on top: bars lay out horizontally (content left, buttons right, wrapping cleanly), boxes/modal stack tightly — the banner is always exactly the height of its content.
+
 ## 3.07.5 — Cookie banner: spacing, underline, and a display failsafe
 - Fixed the big empty gap in the banner: content now packs together instead of spreading into large blank space (happened with vertical/column layouts and any spare height).
 - Fixed the "underline links" toggle — turning it on now actually underlines the links (it was doing nothing because the base style was already no-underline).
