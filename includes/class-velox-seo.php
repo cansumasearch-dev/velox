@@ -444,15 +444,32 @@ class Velox_Seo {
 		$homepage_id  = (int) get_option( 'page_on_front' );
 		$homepage_url = trailingslashit( home_url( '/' ) );
 
+		$changefreq = (string) Velox_Settings::get( 'seo_sitemap_changefreq', 'weekly' );
+		$priority   = (string) Velox_Settings::get( 'seo_sitemap_priority', '0.7' );
+
+		// Which post types are included, from the settings toggles.
+		$type_map = array( 'post' => 'seo_sitemap_posts', 'page' => 'seo_sitemap_pages', 'product' => 'seo_sitemap_products' );
+		$types    = array();
+		foreach ( self::POST_TYPES as $pt ) {
+			if ( ! isset( $type_map[ $pt ] ) || (bool) Velox_Settings::get( $type_map[ $pt ], true ) ) {
+				$types[] = $pt;
+			}
+		}
+
 		$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
 		$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . PHP_EOL;
 
-		if ( $homepage_id && 'publish' === get_post_status( $homepage_id ) && '1' !== (string) get_post_meta( $homepage_id, 'sitemap_exclude', true ) ) {
-			$xml .= self::sitemap_url( $homepage_url, get_the_modified_date( 'c', $homepage_id ) );
+		if ( (bool) Velox_Settings::get( 'seo_sitemap_home', true ) && $homepage_id && 'publish' === get_post_status( $homepage_id ) && '1' !== (string) get_post_meta( $homepage_id, 'sitemap_exclude', true ) ) {
+			$xml .= self::sitemap_url( $homepage_url, get_the_modified_date( 'c', $homepage_id ), '1.0', $changefreq );
+		}
+
+		if ( empty( $types ) ) {
+			$xml .= '</urlset>';
+			return (bool) @file_put_contents( ABSPATH . 'sitemap.xml', $xml ); // phpcs:ignore
 		}
 
 		$q = new WP_Query( array(
-			'post_type'      => self::POST_TYPES,
+			'post_type'      => $types,
 			'posts_per_page' => -1,
 			'post_status'    => 'publish',
 			'orderby'        => 'title',
@@ -473,7 +490,7 @@ class Velox_Seo {
 				if ( '1' === (string) get_post_meta( $pid, '_velox_seo_noindex', true ) ) {
 					continue; // noindex pages don't belong in the sitemap
 				}
-				$xml .= self::sitemap_url( $url, get_the_modified_date( 'c' ) );
+				$xml .= self::sitemap_url( $url, get_the_modified_date( 'c' ), $priority, $changefreq );
 			}
 			wp_reset_postdata();
 		}
@@ -482,11 +499,17 @@ class Velox_Seo {
 		return (bool) @file_put_contents( ABSPATH . 'sitemap.xml', $xml );
 	}
 
-	private static function sitemap_url( $loc, $lastmod ) {
+	private static function sitemap_url( $loc, $lastmod, $priority = '', $changefreq = '' ) {
 		$out  = '  <url>' . PHP_EOL;
 		$out .= '    <loc>' . esc_url( $loc ) . '</loc>' . PHP_EOL;
 		if ( $lastmod ) {
 			$out .= '    <lastmod>' . esc_html( $lastmod ) . '</lastmod>' . PHP_EOL;
+		}
+		if ( '' !== $changefreq ) {
+			$out .= '    <changefreq>' . esc_html( $changefreq ) . '</changefreq>' . PHP_EOL;
+		}
+		if ( '' !== $priority ) {
+			$out .= '    <priority>' . esc_html( $priority ) . '</priority>' . PHP_EOL;
 		}
 		$out .= '  </url>' . PHP_EOL;
 		return $out;

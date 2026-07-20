@@ -285,6 +285,12 @@
 
 /* ---------- Fields ---------- */
 .velox-field { display: block; margin-bottom: 20px; }
+/* Settings rows (direct panel children): symmetric padding + a divider so the
+   separator sits the same distance from the text above and below it. */
+.velox-panel > .velox-field { padding: 16px 0; margin-bottom: 0; border-bottom: 1px solid var(--vx-line); }
+.velox-panel > .velox-field:last-child { border-bottom: 0; }
+/* Tool-form fields keep their own grouped spacing (no row dividers). */
+.velox-tool-form > .velox-field { padding: 0; margin-bottom: 18px; border-bottom: 0; }
 .velox-field--inline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
 .velox-field-label { display: block; font-weight: 600; font-size: 13px; letter-spacing: -.005em; color: var(--vx-ink); margin-bottom: 7px; }
 .velox-field-label small, .velox-field-label em { font-weight: 500; color: var(--vx-ink-3); font-style: normal; }
@@ -421,7 +427,7 @@
 .velox-compare-stat--save b { color: var(--vx-accent-d); }
 
 /* ---------- Toggles ---------- */
-.velox-toggle-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--vx-line); }
+.velox-toggle-row { display: flex; align-items: center; justify-content: space-between; gap: 20px; padding: 16px 0; border-bottom: 1px solid var(--vx-line); }
 .velox-toggle-row:last-child { border-bottom: 0; }
 .velox-toggle-meta { display: flex; flex-direction: column; gap: 3px; }
 .velox-toggle-label { font-weight: 600; font-size: 14.5px; }
@@ -969,6 +975,24 @@
 
 /* ---- SEO ---- */
 .velox-mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 13px; line-height: 1.6; }
+
+/* Small toggle variant */
+.velox-switch--sm { width: 38px; height: 22px; }
+.velox-switch--sm .velox-switch-track::after { width: 16px; height: 16px; top: 3px; left: 3px; }
+.velox-switch--sm input:checked + .velox-switch-track::after { transform: translateX(16px); }
+.velox-redir-toggle { flex: none; margin: 0 2px; }
+
+/* Sitemap editor + live preview */
+.velox-smap-editor { display: grid; grid-template-columns: minmax(220px, 280px) 1fr; gap: var(--vx-s5); margin: 4px 0 18px; align-items: start; }
+.velox-smap-opts { display: flex; flex-direction: column; }
+.velox-smap-optrow { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--vx-line); }
+.velox-smap-optrow:last-child { border-bottom: 0; }
+.velox-smap-optlabel { font-size: 13px; font-weight: 500; color: var(--vx-ink); }
+.velox-smap-preview-wrap { border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); overflow: hidden; background: #1d1f21; }
+.velox-smap-preview-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; padding: 9px 13px; background: #16181a; color: #e6e6e6; font-size: 12px; font-weight: 600; border-bottom: 1px solid rgba(255,255,255,.08); }
+.velox-smap-preview-head span { font-weight: 400; color: #9aa0a6; font-size: 11px; }
+.velox-smap-preview { margin: 0; padding: 14px; max-height: 320px; overflow: auto; color: #d6dee6; font-size: 12.5px; line-height: 1.55; white-space: pre; tab-size: 2; }
+@media (max-width: 720px) { .velox-smap-editor { grid-template-columns: 1fr; } }
 .velox-seo-oneclick-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .velox-seo-oneclick .velox-panel-title { margin-top: 0; }
 .velox-seo-fauxbox { margin-top: 12px; }
@@ -1511,9 +1535,8 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-snip-type-filter { appearance: none; -webkit-appearance: none; padding: 9px 34px 9px 36px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); font-size: 13px; font-weight: 500; color: var(--vx-ink); cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; }
 .velox-snip-type-filter:hover { border-color: var(--vx-n300); }
 .velox-snip-search { position: relative; flex: 1; max-width: 340px; }
-.velox-snip-search-ic { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--vx-ink-3); pointer-events: none; }
-.velox-snip-search-input { width: 100%; padding: 9px 12px 9px 34px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); font-size: 13px; color: var(--vx-ink); }
-.velox-snip-search-input:focus { outline: none; border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring); }
+.velox-snip-search-ic { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--vx-ink-3); pointer-events: none; z-index: 1; }
+.velox-snip-search input.velox-snip-search-input { padding-left: 38px; }
 .velox-snip-row.is-hidden { display: none; }
 
 /* Type-picker modal */

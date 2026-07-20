@@ -4,6 +4,40 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.06.11 — More accurate unused-media detection
+- Fixed images being wrongly counted as "used". The rendered-page scan matched filenames as loose substrings (so "photo.jpg" matched "myphoto.jpg" and "1.jpg" matched "21.jpg"); it now matches whole file tokens only.
+- The database scan no longer counts an image as used just because its filename appears in another attachment's own file records (_wp_attached_file / _wp_attachment_metadata etc.). Real references in content, builder meta, galleries and options still count.
+
+## 3.06.10 — Code Snippets inside the plugin shell
+- Code Snippets now opens inside the Velox shell (with the sidebar nav) like every other page — Media Editor, Custom Fields, etc. — instead of on its own bare screen. The Code Snippets item in the sidebar highlights while you are on it.
+
+## 3.06.9 — Snippets search styling
+- The snippets search box now uses the standard Velox input styling (so it no longer falls back to an unstyled box), and the search icon no longer overlaps the text — the field has proper left padding to clear it.
+
+## 3.06.8 — Toggle redirects on/off
+- Each redirect now has an on/off switch right on its row. Turn one off to stop it matching on the front end without deleting it; flip it back on any time. (The engine already only matched active rules — now you can control that per redirect.)
+
+## 3.06.7 — Editable sitemap with live preview
+- The XML sitemap is now configurable: choose which content to include (home, posts, pages, products), set change frequency and priority, and see a **live preview** (built from example URLs, not your real site) that updates as you change each setting.
+- Those settings now drive the real sitemap — included types, changefreq and priority are written into sitemap.xml on regenerate (homepage always priority 1.0).
+
+## 3.06.6 — Optimize images from the Media Library
+- Added an "Optimize images" button to the top of the WordPress Media Library (next to "Add New Media File") that jumps straight to the Velox image optimizer, so anyone managing media can convert them without hunting for the plugin page.
+
+## 3.06.5 — Actually replace old conversions with WebP
+- Images converted before replace-mode existed were marked "done" and skipped forever, so they stayed PNG in the media library. The optimizer now treats any image whose main file is still PNG/JPG as not-yet-done, so re-running bulk optimization actually turns them into WebP (media library + front-end).
+
+## 3.06.4 — Performance nav icons
+- The Preload & Network and Background sections now have clear icons in the Performance sidebar (a broadcast mark and a cycle mark) instead of a faint/placeholder one.
+
+## 3.06.3 — Even separator spacing
+- Settings rows with a toggle were top-aligned, so the divider sat closer to the row below than the one above. Rows are now vertically centred, so every separator is the same distance from the text above and below it across all pages.
+
+## 3.06.3 — UI fixes
+- Settings rows: dividers now sit an equal distance above and below their text everywhere, instead of hugging the line beneath a field.
+- Performance tab: added icons for the "Preload & Network" and "Background" sections.
+- Snippets: the search box is properly styled again and its icon no longer overlaps the placeholder text.
+
 ## 3.06.2 — Inbox scrolling fix
 - Fixed the inbox list clipping when you had more submissions than fit on screen — the list now scrolls properly so you can reach every message, and the inbox height scales with your window.
 

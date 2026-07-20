@@ -619,7 +619,7 @@ class Velox_Utilities {
 			if ( '' !== $html ) {
 				foreach ( $names as $id => $list ) {
 					foreach ( $paths[ $id ] as $p ) {
-						if ( '' !== $p && false !== strpos( $html, $p ) ) {
+						if ( self::html_has( $html, $p ) ) {
 							$used[ $id ]   = true;
 							$strong[ $id ] = true;
 							break;
@@ -629,7 +629,7 @@ class Velox_Utilities {
 						continue;
 					}
 					foreach ( $list as $n ) {
-						if ( '' !== $n && false !== strpos( $html, $n ) ) {
+						if ( self::html_has( $html, $n ) ) {
 							$used[ $id ] = true;
 							break;
 						}
@@ -652,6 +652,18 @@ class Velox_Utilities {
 			);
 		}
 		return $out;
+	}
+
+	/**
+	 * True when $name appears in $html as a whole file token — preceded by a path
+	 * or attribute boundary and followed by end/query/quote — so "photo.jpg" is not
+	 * matched inside "myphoto.jpg" and "1.jpg" is not matched inside "21.jpg".
+	 */
+	private static function html_has( $html, $name ) {
+		if ( '' === $name ) {
+			return false;
+		}
+		return (bool) preg_match( '#(?:^|[/"\'=\s(\\\\])' . preg_quote( $name, '#' ) . '(?:[?#"\'\s)>\]]|$)#', $html );
 	}
 
 	/** Upload-relative paths (dir + filename) for the original and every size — a precise match. */
@@ -834,10 +846,14 @@ class Velox_Utilities {
 			return true;
 		}
 		// Referenced by exact filename in another post's meta (builders, ACF, galleries)?
-		list( $m_sql, $m_args ) = $build_or( 'meta_value' );
-		array_unshift( $m_args, $id );
-		$in_meta = $wpdb->get_var( $wpdb->prepare(
-			"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id <> %d AND $m_sql",
+		// Skip attachment file-record meta so an image isn't called "used" just because
+		// its name sits in another attachment's own bookkeeping.
+		list( $m_sql, $m_like ) = $build_or( 'meta_value' );
+		$noise    = array( '_wp_attached_file', '_wp_attachment_metadata', '_wp_attachment_backup_sizes', '_velox_webp', '_velox_webp_estimate' );
+		$noise_ph = implode( ',', array_fill( 0, count( $noise ), '%s' ) );
+		$m_args   = array_merge( array( $id ), $noise, $m_like );
+		$in_meta  = $wpdb->get_var( $wpdb->prepare(
+			"SELECT COUNT(*) FROM {$wpdb->postmeta} WHERE post_id <> %d AND meta_key NOT IN ($noise_ph) AND $m_sql", // phpcs:ignore WordPress.DB
 			$m_args
 		) );
 		if ( $in_meta ) {

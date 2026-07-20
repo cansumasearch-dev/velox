@@ -112,7 +112,7 @@ $safe_mode = Velox_Snippets::safe_mode();
 	</div>
 	<div class="velox-snip-search">
 		<svg class="velox-snip-search-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-		<input type="text" class="velox-snip-search-input" id="velox-snip-search" placeholder="Search snippets…" aria-label="Search snippets">
+		<input type="text" class="velox-input velox-snip-search-input" id="velox-snip-search" placeholder="Search snippets…" aria-label="Search snippets">
 	</div>
 </div>
 

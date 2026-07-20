@@ -32,6 +32,12 @@ class Velox_Settings {
 			'seo_og_enable'      => true,
 			'seo_robots_content' => '', // empty = use the recommended default template
 			'seo_sitemap_enable' => true,
+			'seo_sitemap_home'      => true,
+			'seo_sitemap_posts'     => true,
+			'seo_sitemap_pages'     => true,
+			'seo_sitemap_products'  => true,
+			'seo_sitemap_changefreq' => 'weekly',
+			'seo_sitemap_priority'   => '0.7',
 
 			// ---- Builder-aware setup ----
 			'builder'            => '',     // chosen page builder id ('' = wizard not run)

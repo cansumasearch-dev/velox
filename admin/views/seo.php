@@ -68,7 +68,29 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 			<div><span><?php echo $sitemap['exists'] ? 'Live' : 'Not built'; ?></span><small>Status</small></div>
 			<div><span style="font-size:14px;"><?php echo $sitemap['exists'] ? esc_html( $sitemap['modified'] ) : '—'; ?></span><small>Updated</small></div>
 		</div>
-		<p class="velox-hint">Includes your home page first, then published posts, pages and products (A–Z). Exclude any single page from its editor (the <strong>Velox SEO</strong> box → "Exclude from sitemap").</p>
+		<p class="velox-hint">Home page first, then your chosen post types (A–Z). Exclude any single page from its editor (the <strong>Velox SEO</strong> box → "Exclude from sitemap").</p>
+
+		<div class="velox-smap-editor">
+			<div class="velox-smap-opts">
+				<div class="velox-smap-optrow"><span class="velox-smap-optlabel">Home page</span><label class="velox-switch velox-switch--sm"><input type="checkbox" id="velox-smap-home" data-setting="seo_sitemap_home" <?php checked( ! empty( $s['seo_sitemap_home'] ) ); ?>><span class="velox-switch-track"></span></label></div>
+				<div class="velox-smap-optrow"><span class="velox-smap-optlabel">Posts</span><label class="velox-switch velox-switch--sm"><input type="checkbox" id="velox-smap-posts" data-setting="seo_sitemap_posts" <?php checked( ! empty( $s['seo_sitemap_posts'] ) ); ?>><span class="velox-switch-track"></span></label></div>
+				<div class="velox-smap-optrow"><span class="velox-smap-optlabel">Pages</span><label class="velox-switch velox-switch--sm"><input type="checkbox" id="velox-smap-pages" data-setting="seo_sitemap_pages" <?php checked( ! empty( $s['seo_sitemap_pages'] ) ); ?>><span class="velox-switch-track"></span></label></div>
+				<div class="velox-smap-optrow"><span class="velox-smap-optlabel">Products</span><label class="velox-switch velox-switch--sm"><input type="checkbox" id="velox-smap-products" data-setting="seo_sitemap_products" <?php checked( ! empty( $s['seo_sitemap_products'] ) ); ?>><span class="velox-switch-track"></span></label></div>
+				<div class="velox-smap-optrow"><span class="velox-smap-optlabel">Change frequency</span>
+					<select class="velox-select velox-select--sm" id="velox-smap-changefreq" data-setting="seo_sitemap_changefreq">
+						<?php foreach ( array( 'always', 'hourly', 'daily', 'weekly', 'monthly', 'yearly', 'never' ) as $cf ) : ?>
+							<option value="<?php echo esc_attr( $cf ); ?>" <?php selected( $s['seo_sitemap_changefreq'], $cf ); ?>><?php echo esc_html( ucfirst( $cf ) ); ?></option>
+						<?php endforeach; ?>
+					</select>
+				</div>
+				<div class="velox-smap-optrow"><span class="velox-smap-optlabel">Priority</span><input type="number" class="velox-input velox-input--sm" id="velox-smap-priority" data-setting="seo_sitemap_priority" value="<?php echo esc_attr( $s['seo_sitemap_priority'] ); ?>" min="0" max="1" step="0.1" style="max-width:80px;"></div>
+			</div>
+			<div class="velox-smap-preview-wrap">
+				<div class="velox-smap-preview-head">Live preview <span>example URLs — not your real site</span></div>
+				<pre class="velox-mono velox-smap-preview" id="velox-smap-preview"></pre>
+			</div>
+		</div>
+
 		<div class="velox-actions">
 			<button class="velox-btn velox-btn--primary" id="velox-seo-smap-gen">Regenerate sitemap</button>
 			<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( home_url( '/sitemap.xml' ) ); ?>" target="_blank" rel="noopener">View sitemap</a>

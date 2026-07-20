@@ -99,8 +99,7 @@ class Velox_Ajax {
 				$ids  = Velox_Image_Optimizer::get_convertible_ids();
 				$todo = array();
 				foreach ( $ids as $id ) {
-					$m = get_post_meta( $id, Velox_Image_Optimizer::META_KEY, true );
-					if ( empty( $m ) ) {
+					if ( ! Velox_Image_Optimizer::is_done( $id ) ) {
 						$todo[] = $id;
 					}
 				}
@@ -451,6 +450,13 @@ class Velox_Ajax {
 
 			case 'redirect_delete':
 				wp_send_json_success( Velox_Redirects::delete( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'redirect_toggle':
+				wp_send_json_success( Velox_Redirects::set_active(
+					isset( $_POST['id'] ) ? (int) $_POST['id'] : 0,
+					isset( $_POST['on'] ) && ( '1' === (string) $_POST['on'] || 'true' === $_POST['on'] )
+				) );
 				break;
 
 			case 'log_clear':

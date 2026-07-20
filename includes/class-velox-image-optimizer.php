@@ -43,6 +43,7 @@ class Velox_Image_Optimizer {
 		// Show a Velox line under the "Add media files" uploader.
 		if ( is_admin() && Velox_Settings::enabled( 'image_webp', 'module_images' ) ) {
 			add_action( 'post-upload-ui', array( $this, 'upload_hint' ) );
+			add_action( 'admin_head-upload.php', array( $this, 'media_library_button' ) );
 		}
 
 		// Downscale oversized uploads to the configured max width (0 = off).
@@ -471,9 +472,10 @@ class Velox_Image_Optimizer {
 		}
 		$orig = (int) filesize( $file );
 
-		// Already converted → return the real numbers we stored.
-		$done = get_post_meta( $attachment_id, self::META_KEY, true );
-		if ( ! empty( $done ) && ! empty( $done['files'] ) ) {
+		// Already optimized (in replace mode: main file is WebP) → return stored numbers.
+		// Old twin-mode conversions still on PNG/JPG fall through to be replaced.
+		if ( self::is_done( $attachment_id ) ) {
+			$done = get_post_meta( $attachment_id, self::META_KEY, true );
 			return array( 'original' => (int) $done['original_bytes'], 'webp' => (int) $done['webp_bytes'], 'converted' => true );
 		}
 
@@ -502,6 +504,23 @@ class Velox_Image_Optimizer {
 	/* ----------------------------------------------------------------
 	 * Bulk helpers
 	 * ------------------------------------------------------------- */
+	/**
+	 * Has this attachment actually been optimized? In replace mode that means its
+	 * main file is now WebP — old twin-mode conversions (still PNG/JPG) count as
+	 * not done, so they get picked up and replaced on the next run.
+	 */
+	public static function is_done( $attachment_id ) {
+		$m = get_post_meta( $attachment_id, self::META_KEY, true );
+		if ( empty( $m ) || empty( $m['files'] ) ) {
+			return false;
+		}
+		if ( ! (bool) Velox_Settings::get( 'image_replace', true ) ) {
+			return true;
+		}
+		$file = get_attached_file( $attachment_id );
+		return $file && preg_match( '/\.webp$/i', $file );
+	}
+
 	public static function get_convertible_ids() {
 		$q = new WP_Query( array(
 			'post_type'      => 'attachment',
@@ -520,8 +539,8 @@ class Velox_Image_Optimizer {
 		$done  = 0;
 		$saved = 0;
 		foreach ( $ids as $id ) {
-			$m = get_post_meta( $id, self::META_KEY, true );
-			if ( ! empty( $m ) && ! empty( $m['files'] ) ) {
+			if ( self::is_done( $id ) ) {
+				$m = get_post_meta( $id, self::META_KEY, true );
 				$done++;
 				$saved += ( (int) $m['original_bytes'] - (int) $m['webp_bytes'] );
 			}
@@ -567,6 +586,35 @@ class Velox_Image_Optimizer {
 			return $b['time'] <=> $a['time'];
 		} );
 		return $out;
+	}
+
+	/** Adds an "Optimize images" action button to the Media Library screen header. */
+	public function media_library_button() {
+		if ( ! current_user_can( 'upload_files' ) ) {
+			return;
+		}
+		$url = admin_url( 'admin.php?page=velox-images' );
+		?>
+		<script>
+		( function () {
+			function add() {
+				if ( document.getElementById( 'velox-optimize-link' ) ) { return; }
+				var heading = document.querySelector( '.wrap .wp-heading-inline' );
+				if ( ! heading ) { return; }
+				var link = document.createElement( 'a' );
+				link.id = 'velox-optimize-link';
+				link.href = <?php echo wp_json_encode( $url ); ?>;
+				link.className = 'page-title-action';
+				link.textContent = 'Optimize images';
+				var actions = document.querySelectorAll( '.wrap .page-title-action' );
+				if ( actions.length ) { actions[ actions.length - 1 ].insertAdjacentElement( 'afterend', link ); }
+				else { heading.insertAdjacentElement( 'afterend', link ); }
+			}
+			if ( document.readyState !== 'loading' ) { add(); }
+			else { document.addEventListener( 'DOMContentLoaded', add ); }
+		} )();
+		</script>
+		<?php
 	}
 
 	/** Line shown under the "Add media files" uploader. */

@@ -737,7 +737,17 @@ class Velox_Snippets {
 		$action = isset( $_GET['action'] ) ? sanitize_key( wp_unslash( $_GET['action'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification
 		$id     = isset( $_GET['id'] ) ? (int) $_GET['id'] : 0;
 
-		echo '<div class="velox-wrap velox-snippets-page"><div class="velox-main">';
+		// Render inside the standard Velox shell (sidebar + header) so Code Snippets
+		// stays inside the plugin like every other page, instead of a bare screen.
+		$admin  = ( class_exists( 'Velox' ) && Velox::instance()->admin ) ? Velox::instance()->admin : null;
+		$header = VELOX_PATH . 'admin/views/header.php';
+		if ( $admin && is_readable( $header ) ) {
+			include $header;
+		} else {
+			echo '<div class="velox-wrap"><div class="velox-app"><div class="velox-content"><main class="velox-main">';
+		}
+
+		echo '<div class="velox-snippets-page">';
 		if ( 'edit' === $action || 'new' === $action ) {
 			$snippet  = $id ? self::get( $id ) : null;
 			$new_type = isset( $_GET['type'] ) ? sanitize_key( wp_unslash( $_GET['type'] ) ) : 'php'; // phpcs:ignore WordPress.Security.NonceVerification
@@ -748,8 +758,9 @@ class Velox_Snippets {
 			$counts   = self::counts();
 			include VELOX_PATH . 'admin/views/snippets-list.php';
 		}
-		echo '<div class="velox-toast" id="velox-toast"></div>';
-		echo '</div></div>';
+		echo '</div>'; // .velox-snippets-page
+
+		echo '</main></div></div></div>';
 	}
 
 	public static function list_url( $filter = 'all' ) {

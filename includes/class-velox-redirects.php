@@ -372,6 +372,18 @@ class Velox_Redirects {
 		return array( 'ok' => true );
 	}
 
+	/** Flip a single redirect on or off without touching its other fields. */
+	public static function set_active( $id, $on ) {
+		$id = (int) $id;
+		if ( ! $id ) {
+			return array( 'ok' => false, 'message' => 'Missing redirect id.' );
+		}
+		global $wpdb;
+		$wpdb->update( self::table_redirects(), array( 'active' => $on ? 1 : 0 ), array( 'id' => $id ), array( '%d' ), array( '%d' ) ); // phpcs:ignore WordPress.DB
+		self::rebuild_map();
+		return array( 'ok' => true, 'active' => $on ? 1 : 0 );
+	}
+
 	public static function delete( $id ) {
 		global $wpdb;
 		$wpdb->delete( self::table_redirects(), array( 'id' => (int) $id ), array( '%d' ) );

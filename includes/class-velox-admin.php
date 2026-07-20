@@ -529,6 +529,11 @@ class Velox_Admin {
 			}
 		}
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : self::SLUG;
+		// Code Snippets renders its own page but lives inside the Velox shell, so
+		// report it as the active section for the sidebar highlight.
+		if ( class_exists( 'Velox_Snippets' ) && Velox_Snippets::MENU_SLUG === $page ) {
+			return 'snippets';
+		}
 		foreach ( $this->tabs as $key => $tab ) {
 			if ( $this->page_slug( $key ) === $page ) {
 				return $key;

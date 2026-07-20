@@ -82,6 +82,10 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 					</div>
 					<span class="velox-redir-type"><?php echo esc_html( $r['type'] ); ?></span>
 					<span class="velox-redir-hits"><?php echo (int) $r['hits']; ?> hits</span>
+					<label class="velox-switch velox-switch--sm velox-redir-toggle" title="Enable or disable this redirect">
+						<input type="checkbox" class="velox-redir-active" <?php checked( ! isset( $r['active'] ) || $r['active'] ); ?>>
+						<span class="velox-switch-track"></span>
+					</label>
 					<?php if ( $is_ex ) : ?>
 						<button class="velox-btn velox-btn--ghost velox-redir-visit" title="Open the source URL in a new tab to test it">Visit</button>
 					<?php endif; ?>

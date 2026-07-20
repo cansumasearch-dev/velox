@@ -5666,6 +5666,24 @@
 			}
 		} );
 
+		// Per-redirect on/off toggle.
+		list.addEventListener( 'change', function ( e ) {
+			if ( ! e.target.classList.contains( 'velox-redir-active' ) ) { return; }
+			var row = e.target.closest( '.velox-redir-row' );
+			if ( ! row ) { return; }
+			var on = e.target.checked;
+			row.classList.toggle( 'is-off', ! on );
+			row.setAttribute( 'data-active', on ? '1' : '0' );
+			api( 'redirect_toggle', { id: row.getAttribute( 'data-id' ), on: on ? '1' : '0' } )
+				.then( function () { toast( on ? 'Redirect enabled.' : 'Redirect disabled.' ); } )
+				.catch( function ( er ) {
+					toast( er.message, 'error' );
+					e.target.checked = ! on; // revert on failure
+					row.classList.toggle( 'is-off', on );
+					row.setAttribute( 'data-active', on ? '0' : '1' );
+				} );
+		} );
+
 		var logToggle = $( '#velox-log-toggle' );
 		if ( logToggle ) {
 			logToggle.addEventListener( 'change', function () {
@@ -5730,6 +5748,44 @@
 			ogEnable.addEventListener( 'change', function () {
 				saveSettings( { seo_og_enable: ogEnable.checked ? 1 : 0 }, ogEnable.checked ? 'Social cards on.' : 'Social cards off.' );
 			} );
+		}
+
+		// Sitemap settings: persist on change + live preview with example URLs.
+		var smapPreview = $( '#velox-smap-preview' );
+		if ( smapPreview ) {
+			function smapUrl( loc, priority, cf, lastmod ) {
+				var o = '  <url>\n    <loc>' + loc + '</loc>\n';
+				if ( lastmod ) { o += '    <lastmod>' + lastmod + '</lastmod>\n'; }
+				if ( cf ) { o += '    <changefreq>' + cf + '</changefreq>\n'; }
+				if ( priority ) { o += '    <priority>' + priority + '</priority>\n'; }
+				return o + '  </url>\n';
+			}
+			function buildSmap() {
+				var g = function ( id ) { return document.getElementById( id ); };
+				var cf = g( 'velox-smap-changefreq' ).value;
+				var pr = g( 'velox-smap-priority' ).value;
+				var today = new Date().toISOString().slice( 0, 10 );
+				var xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
+				if ( g( 'velox-smap-home' ).checked ) { xml += smapUrl( 'https://example.com/', '1.0', cf, today ); }
+				if ( g( 'velox-smap-pages' ).checked ) { xml += smapUrl( 'https://example.com/about/', pr, cf, today ) + smapUrl( 'https://example.com/contact/', pr, cf, today ); }
+				if ( g( 'velox-smap-posts' ).checked ) { xml += smapUrl( 'https://example.com/blog/sample-post/', pr, cf, today ); }
+				if ( g( 'velox-smap-products' ).checked ) { xml += smapUrl( 'https://example.com/product/sample-product/', pr, cf, today ); }
+				xml += '</urlset>';
+				smapPreview.textContent = xml;
+			}
+			[ 'velox-smap-home', 'velox-smap-posts', 'velox-smap-pages', 'velox-smap-products', 'velox-smap-changefreq', 'velox-smap-priority' ].forEach( function ( id ) {
+				var elc = document.getElementById( id );
+				if ( ! elc ) { return; }
+				elc.addEventListener( 'change', function () {
+					var key = elc.getAttribute( 'data-setting' );
+					var val = 'checkbox' === elc.type ? ( elc.checked ? 1 : 0 ) : elc.value;
+					var p = {}; p[ key ] = val;
+					saveSettings( p, 'Sitemap settings saved.' );
+					buildSmap();
+				} );
+				if ( 'checkbox' !== elc.type ) { elc.addEventListener( 'input', buildSmap ); }
+			} );
+			buildSmap();
 		}
 
 		var saveBtn = $( '#velox-seo-robots-save' );
