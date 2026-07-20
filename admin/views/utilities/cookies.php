@@ -22,15 +22,11 @@ $s  = Velox_Settings::all();
 
 	<div class="vxck-admin">
 		<div class="vxck-admin-controls">
-			<div class="vxck-insp-top">
-				<div class="vxck-insp-en"><strong>Banner enabled</strong><span>Showing on your site's front end</span></div>
-				<span class="velox-switch"><input type="checkbox" data-setting="util_cookies" id="velox-cookies-toggle" checked><span class="velox-switch-track"></span></span>
-			</div>
-			<div class="vxck-insp-tabs" role="tablist" aria-label="Editor sections">
-				<button type="button" class="vxck-insp-tab is-active" data-cktab="layout">Layout</button>
-				<button type="button" class="vxck-insp-tab" data-cktab="content">Content</button>
-				<button type="button" class="vxck-insp-tab" data-cktab="style">Style</button>
-				<button type="button" class="vxck-insp-tab" data-cktab="setup">Setup</button>
+			<div class="velox-panel vxck-enable-panel">
+				<label class="vxck-enable-row">
+					<span class="vxck-enable-meta"><strong>Banner enabled</strong><span>Showing the consent banner on your site's front end.</span></span>
+					<span class="velox-switch"><input type="checkbox" data-setting="util_cookies" id="velox-cookies-toggle" checked><span class="velox-switch-track"></span></span>
+				</label>
 			</div>
 			<div class="vxck-insp-body">
 
@@ -38,22 +34,35 @@ $s  = Velox_Settings::all();
 				<h3 class="velox-panel-title">Placement</h3>
 				<div class="velox-field">
 					<span class="velox-field-label">Placement (desktop)</span>
-					<select class="velox-select vxck-live" data-setting="cookie_layout" id="ck-layout">
+					<div class="vxck-place-grid" role="group" aria-label="Banner placement">
 						<?php
 						$layouts = array(
-							'bar-bottom'   => 'Bottom bar (full width)',
-							'bar-top'      => 'Top bar (full width)',
-							'box-bl'       => 'Floating box — bottom left',
-							'box-br'       => 'Floating box — bottom right',
-							'box-tl'       => 'Floating box — top left',
-							'box-tr'       => 'Floating box — top right',
+							'bar-bottom'   => 'Bottom bar',
+							'bar-top'      => 'Top bar',
+							'box-bl'       => 'Box, bottom left',
+							'box-br'       => 'Box, bottom right',
+							'box-tl'       => 'Box, top left',
+							'box-tr'       => 'Box, top right',
 							'modal-center' => 'Centred modal',
 						);
-						foreach ( $layouts as $v => $l ) {
-							printf( '<option value="%s"%s>%s</option>', esc_attr( $v ), selected( $s['cookie_layout'], $v, false ), esc_html( $l ) );
-						}
-						?>
-					</select>
+						$glyph = array(
+							'bar-bottom'   => '<rect x="4" y="23" width="40" height="6" rx="1.5"/>',
+							'bar-top'      => '<rect x="4" y="3" width="40" height="6" rx="1.5"/>',
+							'box-bl'       => '<rect x="5" y="19" width="17" height="10" rx="1.5"/>',
+							'box-br'       => '<rect x="26" y="19" width="17" height="10" rx="1.5"/>',
+							'box-tl'       => '<rect x="5" y="3" width="17" height="10" rx="1.5"/>',
+							'box-tr'       => '<rect x="26" y="3" width="17" height="10" rx="1.5"/>',
+							'modal-center' => '<rect x="15" y="10" width="18" height="12" rx="1.5"/>',
+						);
+						foreach ( $layouts as $v => $l ) :
+							$act = ( (string) $s['cookie_layout'] === $v ) ? ' is-active' : '';
+							?>
+							<button type="button" class="vxck-seg-btn vxck-place<?php echo $act; ?>" data-setting="cookie_layout" data-value="<?php echo esc_attr( $v ); ?>" aria-pressed="<?php echo $act ? 'true' : 'false'; ?>">
+								<svg viewBox="0 0 48 32" width="46" height="31" aria-hidden="true"><rect class="vxck-place-screen" x="0.75" y="0.75" width="46.5" height="30.5" rx="3"/><g class="vxck-place-el"><?php echo $glyph[ $v ]; // phpcs:ignore ?></g></svg>
+								<span><?php echo esc_html( $l ); ?></span>
+							</button>
+						<?php endforeach; ?>
+					</div>
 				</div>
 				<div class="velox-field">
 					<span class="velox-field-label">Entrance animation</span>
@@ -147,7 +156,7 @@ $s  = Velox_Settings::all();
 			</div>
 
 			<div class="velox-panel velox-tool-form">
-				<h3 class="velox-panel-title">Style</h3>
+				<h3 class="velox-panel-title">Colours</h3>
 				<div class="vxck-colors">
 					<?php
 					$colors = array(
@@ -166,7 +175,11 @@ $s  = Velox_Settings::all();
 						</label>
 					<?php endforeach; ?>
 				</div>
-				<div class="velox-grid-2" style="margin-top:14px;">
+			</div>
+
+			<div class="velox-panel velox-tool-form">
+				<h3 class="velox-panel-title">Shape &amp; size</h3>
+				<div class="velox-grid-2">
 					<div class="velox-field"><span class="velox-field-label">Border width (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_border_width" value="<?php echo esc_attr( (int) $s['cookie_border_width'] ); ?>"></div>
 					<div class="velox-field"><span class="velox-field-label">Corner radius (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_radius" value="<?php echo esc_attr( (int) $s['cookie_radius'] ); ?>"></div>
 					<div class="velox-field"><span class="velox-field-label">Edge offset (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_offset" value="<?php echo esc_attr( (int) $s['cookie_offset'] ); ?>"></div>
@@ -218,89 +231,6 @@ $s  = Velox_Settings::all();
 				<textarea class="velox-textarea vxck-live" data-setting="cookie_custom_css" rows="6" spellcheck="false" placeholder=".vxck{font-family:Comfortaa,sans-serif;}&#10;.vxck-b-b1:hover{transform:translateY(-2px);}"><?php echo esc_textarea( $s['cookie_custom_css'] ); ?></textarea>
 			</div>
 
-			<div class="velox-panel velox-tool-form vxck-layout-panel">
-				<div class="vxck-layout-head">
-					<div>
-						<h3 class="velox-panel-title" style="margin:0;">Layout</h3>
-						<p class="velox-hint" style="margin:4px 0 0;">Control the box like you would in Oxygen — display, direction, spacing and alignment. Switch to Custom to unlock the controls.</p>
-					</div>
-					<div class="vxck-mode-seg" role="tablist" aria-label="Layout mode">
-						<button type="button" class="vxck-mode-btn<?php echo 'custom' !== $s['cookie_layout_mode'] ? ' is-active' : ''; ?>" data-mode="preset">Preset</button>
-						<button type="button" class="vxck-mode-btn<?php echo 'custom' === $s['cookie_layout_mode'] ? ' is-active' : ''; ?>" data-mode="custom">Custom</button>
-					</div>
-				</div>
-				<input type="hidden" class="vxck-live" data-setting="cookie_layout_mode" id="ck-layout-mode" value="<?php echo esc_attr( $s['cookie_layout_mode'] ); ?>">
-
-				<div class="vxck-layout-controls<?php echo 'custom' === $s['cookie_layout_mode'] ? '' : ' is-locked'; ?>" id="ck-layout-controls">
-					<div class="velox-field">
-						<span class="velox-field-label">Display</span>
-						<div class="vxck-seg" data-seg="cookie_display">
-							<?php foreach ( array( 'flex' => 'Flex', 'grid' => 'Grid', 'block' => 'Block' ) as $v => $l ) : ?>
-								<button type="button" class="vxck-seg-btn vxck-live<?php echo $s['cookie_display'] === $v ? ' is-active' : ''; ?>" data-setting="cookie_display" data-value="<?php echo esc_attr( $v ); ?>"><?php echo esc_html( $l ); ?></button>
-							<?php endforeach; ?>
-						</div>
-					</div>
-
-					<div class="vxck-when-flex"<?php echo 'flex' !== $s['cookie_display'] ? ' hidden' : ''; ?>>
-						<div class="velox-field">
-							<span class="velox-field-label">Direction</span>
-							<div class="vxck-seg" data-seg="cookie_direction">
-								<?php foreach ( array( 'row' => 'Row →', 'column' => 'Column ↓' ) as $v => $l ) : ?>
-									<button type="button" class="vxck-seg-btn vxck-live<?php echo $s['cookie_direction'] === $v ? ' is-active' : ''; ?>" data-setting="cookie_direction" data-value="<?php echo esc_attr( $v ); ?>"><?php echo esc_html( $l ); ?></button>
-								<?php endforeach; ?>
-							</div>
-						</div>
-						<div class="velox-grid-2">
-							<div class="velox-field">
-								<span class="velox-field-label">Align items</span>
-								<select class="velox-select vxck-live" data-setting="cookie_align">
-									<?php foreach ( array( 'flex-start' => 'Start', 'center' => 'Center', 'flex-end' => 'End', 'stretch' => 'Stretch' ) as $v => $l ) : ?>
-										<option value="<?php echo esc_attr( $v ); ?>" <?php selected( $s['cookie_align'], $v ); ?>><?php echo esc_html( $l ); ?></option>
-									<?php endforeach; ?>
-								</select>
-							</div>
-							<div class="velox-field">
-								<span class="velox-field-label">Justify content</span>
-								<select class="velox-select vxck-live" data-setting="cookie_justify">
-									<?php foreach ( array( 'flex-start' => 'Start', 'center' => 'Center', 'flex-end' => 'End', 'space-between' => 'Space between', 'space-around' => 'Space around' ) as $v => $l ) : ?>
-										<option value="<?php echo esc_attr( $v ); ?>" <?php selected( $s['cookie_justify'], $v ); ?>><?php echo esc_html( $l ); ?></option>
-									<?php endforeach; ?>
-								</select>
-							</div>
-						</div>
-					</div>
-
-					<div class="vxck-when-grid"<?php echo 'grid' !== $s['cookie_display'] ? ' hidden' : ''; ?>>
-						<div class="velox-field">
-							<span class="velox-field-label">Grid columns</span>
-							<input type="number" min="1" max="4" class="velox-input velox-input--sm vxck-live" data-setting="cookie_grid_cols" value="<?php echo esc_attr( (int) $s['cookie_grid_cols'] ); ?>">
-						</div>
-					</div>
-
-					<div class="velox-field">
-						<span class="velox-field-label">Gap (px)</span>
-						<input type="range" min="0" max="64" class="velox-range vxck-live" data-setting="cookie_gap" value="<?php echo esc_attr( (int) $s['cookie_gap'] ); ?>" oninput="this.nextElementSibling.textContent=this.value+'px'">
-						<span class="vxck-range-val"><?php echo (int) $s['cookie_gap']; ?>px</span>
-					</div>
-
-					<div class="velox-grid-2">
-						<div class="velox-field">
-							<span class="velox-field-label">Padding Y (px)</span>
-							<input type="number" min="0" max="80" class="velox-input velox-input--sm vxck-live" data-setting="cookie_pad_y" value="<?php echo esc_attr( (int) $s['cookie_pad_y'] ); ?>">
-						</div>
-						<div class="velox-field">
-							<span class="velox-field-label">Padding X (px)</span>
-							<input type="number" min="0" max="80" class="velox-input velox-input--sm vxck-live" data-setting="cookie_pad_x" value="<?php echo esc_attr( (int) $s['cookie_pad_x'] ); ?>">
-						</div>
-					</div>
-
-					<div class="velox-field">
-						<span class="velox-field-label">Outer margin (px)</span>
-						<input type="number" min="0" max="60" class="velox-input velox-input--sm vxck-live" data-setting="cookie_margin" value="<?php echo esc_attr( (int) $s['cookie_margin'] ); ?>">
-						<span class="velox-hint">Space around the whole box. Useful for floating layouts.</span>
-					</div>
-				</div>
-			</div>
 
 			</div><!-- /.vxck-insp-body -->
 			<div class="vxck-insp-foot">
@@ -340,32 +270,6 @@ $s  = Velox_Settings::all();
 	( function () {
 		var root = document.querySelector( '.vxck-admin' );
 		if ( ! root ) { return; }
-
-		/* Inspector tabs (Concept A): map each control panel to a tab by its title,
-		   then show only the active tab's panels. */
-		var TAB_OF = {
-			'Placement': 'layout', 'Layout': 'layout',
-			'Text': 'content', 'Buttons': 'content', 'Legal links': 'content',
-			'Style': 'style', 'Typography & advanced': 'style',
-			'Consent & tracking': 'setup', 'Custom CSS': 'setup'
-		};
-		var panels = root.querySelectorAll( '.vxck-admin-controls .velox-panel' );
-		[].forEach.call( panels, function ( p ) {
-			var h = p.querySelector( '.velox-panel-title' );
-			var title = h ? h.textContent.replace( /\s+/g, ' ' ).trim() : '';
-			p.setAttribute( 'data-cktab-of', TAB_OF[ title ] || 'setup' );
-		} );
-		var tabBtns = root.querySelectorAll( '.vxck-insp-tab' );
-		function showTab( name ) {
-			[].forEach.call( tabBtns, function ( b ) { b.classList.toggle( 'is-active', b.getAttribute( 'data-cktab' ) === name ); } );
-			[].forEach.call( panels, function ( p ) { p.hidden = p.getAttribute( 'data-cktab-of' ) !== name; } );
-			var body = root.querySelector( '.vxck-insp-body' );
-			if ( body ) { body.scrollTop = 0; }
-		}
-		[].forEach.call( tabBtns, function ( b ) {
-			b.addEventListener( 'click', function () { showTab( b.getAttribute( 'data-cktab' ) ); } );
-		} );
-		showTab( 'layout' );
 
 		var stage   = document.getElementById( 'vxck-stage' );
 		var styleEl = document.getElementById( 'vxck-prev-style' );
@@ -421,42 +325,19 @@ $s  = Velox_Settings::all();
 		root.addEventListener( 'input', rerender );
 		root.addEventListener( 'change', rerender );
 
-		// --- Oxygen-style layout controls ---
-		var modeInput = document.getElementById( 'ck-layout-mode' );
-		var controls  = document.getElementById( 'ck-layout-controls' );
-
-		// Preset / Custom mode segment.
-		root.querySelectorAll( '.vxck-mode-btn' ).forEach( function ( btn ) {
-			btn.addEventListener( 'click', function () {
-				var mode = btn.getAttribute( 'data-mode' );
-				root.querySelectorAll( '.vxck-mode-btn' ).forEach( function ( b ) { b.classList.toggle( 'is-active', b === btn ); } );
-				if ( modeInput ) { modeInput.value = mode; }
-				if ( controls ) { controls.classList.toggle( 'is-locked', mode !== 'custom' ); }
-				rerender();
-			} );
-		} );
-
-		// Segmented value controls (display / direction).
+		// Segmented value controls (placement picker). Clicking one activates it
+		// within its data-setting group; collectSettings + the preview read the
+		// active button's data-value.
 		root.querySelectorAll( '.vxck-seg-btn' ).forEach( function ( btn ) {
 			btn.addEventListener( 'click', function () {
 				var key = btn.getAttribute( 'data-setting' );
 				root.querySelectorAll( '.vxck-seg-btn[data-setting="' + key + '"]' ).forEach( function ( b ) {
 					b.classList.toggle( 'is-active', b === btn );
+					b.setAttribute( 'aria-pressed', b === btn ? 'true' : 'false' );
 				} );
-				if ( key === 'cookie_display' ) { syncDisplay(); }
 				rerender();
 			} );
 		} );
-
-		// Show the flex- or grid-specific controls based on the chosen display.
-		function syncDisplay() {
-			var disp = val( 'cookie_display' );
-			var flexEl = root.querySelector( '.vxck-when-flex' );
-			var gridEl = root.querySelector( '.vxck-when-grid' );
-			if ( flexEl ) { flexEl.hidden = ( disp !== 'flex' ); }
-			if ( gridEl ) { gridEl.hidden = ( disp !== 'grid' ); }
-		}
-		syncDisplay();
 
 		// Device tabs — toggle a class the scoped CSS keys its mobile rules off.
 		document.querySelectorAll( '.vxck-device' ).forEach( function ( tab ) {

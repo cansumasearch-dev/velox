@@ -4,6 +4,22 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.08.2 — Cookie banner editor: clean split layout
+- Settings on the left as standard Velox cards; the live preview is pinned on the right so it stays visible while you scroll and edit.
+- Uses the same panels, spacing and components as the rest of the plugin — no bespoke inspector, no tabs.
+- Collapses to a single column (preview on top) on narrow screens.
+
+## 3.08.1 — Cookie banner page now matches the rest of Velox
+- Rebuilt the page as a single column of standard panels (like Settings and SEO) instead of the bespoke two-pane tabbed inspector that made it look like a different app.
+- Live preview sits in a panel at the top; all settings stack below in normal Velox cards; one Save button at the bottom.
+- Kept the visual placement picker and every control, all still wired to the live preview and save.
+
+## 3.08.0 — Cookie banner editor redesign
+- Rebuilt the editor around three clear tabs — Content, Design, Behaviour — matching the rest of Velox.
+- Placement is now a visual picker (mini-diagrams of bar / floating box / modal) instead of a dropdown.
+- Removed the Oxygen-style custom-layout controls (display/direction/justify/align/grid) — the footgun behind the banner gap; the banner now uses one clean, robust layout.
+- Colours and Shape & size are now separate, focused sections; consent/tracking lives under Behaviour.
+
 ## 3.07.6 — Cookie banner: the gap is dead
 - Root cause fixed: .vxck-main used flex:1 1 360px, and in a column layout the 360px became a minimum HEIGHT, forcing a huge empty gap between the text and the buttons/categories. Changed to flex:1 1 auto so it sizes to its content.
 - Added a clean, gap-proof layout override on top: bars lay out horizontally (content left, buttons right, wrapping cleanly), boxes/modal stack tightly — the banner is always exactly the height of its content.

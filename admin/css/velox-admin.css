@@ -1750,36 +1750,31 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 /* ============================================================
  * Cookie banner editor
  * ============================================================ */
-.vxck-admin { display: grid; grid-template-columns: minmax(0,1fr) 384px; gap: 22px; align-items: start; }
-.vxck-admin-controls { order: 1; position: sticky; top: 24px; display: flex; flex-direction: column; min-width: 0; max-height: calc(100vh - 96px); background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: 16px; overflow: hidden; }
-.vxck-admin-preview { order: -1; position: sticky; top: 24px; }
-/* Inspector: header + tabs + scroll body + sticky footer (Concept A) */
-.vxck-insp-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 16px; border-bottom: 1px solid var(--vx-line); background: var(--vx-n25); }
-.vxck-insp-en strong { display: block; font-size: 13px; color: var(--vx-n900); }
-.vxck-insp-en span { font-size: 12px; color: var(--vx-ink-3); }
-.vxck-insp-tabs { display: flex; padding: 6px; gap: 2px; border-bottom: 1px solid var(--vx-line); }
-.vxck-insp-tab { flex: 1; border: 0; background: transparent; font: inherit; font-size: 12.5px; font-weight: 500; color: var(--vx-n500); padding: 8px 6px; border-radius: 8px; cursor: pointer; transition: background var(--vx-dur-1) var(--vx-ease), color var(--vx-dur-1) var(--vx-ease); }
-.vxck-insp-tab:hover { background: var(--vx-n50); color: var(--vx-n900); }
-.vxck-insp-tab.is-active { background: var(--vx-n900); color: #fff; }
-.vxck-insp-body { flex: 1; overflow-y: auto; padding: 2px 16px 8px; }
-.vxck-admin-controls .velox-panel { border: 0; background: transparent; border-radius: 0; padding: 16px 0; margin: 0; border-bottom: 1px solid var(--vx-line); }
-.vxck-admin-controls .velox-panel:last-child { border-bottom: 0; }
-.vxck-admin-controls .velox-panel[hidden] { display: none; }
+.vxck-admin { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 24px; align-items: start; }
+.vxck-admin-controls { order: 0; position: static; display: block; min-width: 0; max-height: none; background: transparent; border: 0; border-radius: 0; overflow: visible; }
+.vxck-admin-preview { order: 1; position: sticky; top: 24px; margin-bottom: 0; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); padding: var(--vx-s5); }
+.vxck-insp-body { display: block; }
 .vxck-admin-controls .velox-mail-disable { display: none; }
-.vxck-insp-foot { padding: 12px 16px; border-top: 1px solid var(--vx-line); background: var(--vx-n25); }
-.vxck-insp-foot .velox-btn { width: 100%; justify-content: center; }
+/* Banner-enabled row (top panel) */
+.vxck-enable-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; cursor: pointer; }
+.vxck-enable-meta strong { display: block; font-size: 14px; font-weight: 600; color: var(--vx-ink); }
+.vxck-enable-meta span { display: block; font-size: 12.5px; color: var(--vx-ink-3); margin-top: 2px; }
+/* Save row */
+.vxck-insp-foot { margin: 4px 0 var(--vx-s6); }
+.vxck-insp-foot .velox-btn { min-width: 190px; justify-content: center; }
+@media (max-width: 1100px) { .vxck-admin { grid-template-columns: 1fr; } .vxck-admin-preview { position: static; order: -1; margin-bottom: var(--vx-s4); } }
 @media (max-width: 1100px) {
 	.vxck-admin { grid-template-columns: 1fr; }
 	.vxck-admin-preview, .vxck-admin-controls { position: static; max-height: none; }
 	.vxck-admin-controls .velox-panel[hidden] { display: none; }
 }
-.vxck-preview-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-.vxck-preview-label { display: block; font-size: 11px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--vx-ink-3); }
+.vxck-preview-bar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.vxck-preview-label { display: block; font-size: 16px; font-weight: 600; letter-spacing: -0.012em; color: var(--vx-ink); }
 .vxck-device-tabs { display: inline-flex; background: var(--vx-n50); border: 1px solid var(--vx-line); border-radius: var(--vx-r-pill); padding: 2px; gap: 2px; }
 .vxck-device { border: 0; background: transparent; font-size: 12px; font-weight: 600; color: var(--vx-ink-2); padding: 5px 14px; border-radius: var(--vx-r-pill); cursor: pointer; }
 .vxck-device.is-active { background: var(--vx-card); color: var(--vx-ink); box-shadow: var(--vx-shadow-sm); }
 /* The stage is a faux mini-viewport; the REAL banner renders inside it. */
-.vxck-stage { position: relative; overflow: hidden; background: var(--vx-n50); border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); min-height: 560px; transition: max-width var(--vx-dur-2) var(--vx-ease); margin: 0 auto; }
+.vxck-stage { position: relative; overflow: hidden; background: var(--vx-n50); border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); min-height: 420px; transition: max-width var(--vx-dur-2) var(--vx-ease); margin: 0 auto; }
 .vxck-stage[data-device="desktop"] { max-width: none; }
 .vxck-stage[data-device="mobile"] { max-width: 380px; min-height: 460px; }
 .vxck-stage-page { position: absolute; inset: 0; padding: 22px; display: flex; flex-direction: column; gap: 10px; opacity: .5; }
@@ -1789,6 +1784,18 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 /* the scoped banner CSS positions .vxck-root absolutely within the stage */
 
 .vxck-colors { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+/* Visual placement picker (scoped high enough to override the .vxck-seg-btn base) */
+.vxck-admin .vxck-place-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.vxck-admin .vxck-place { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); cursor: pointer; font: inherit; font-size: 12px; font-weight: 500; color: var(--vx-ink-2); text-align: center; transition: border-color var(--vx-dur-1) var(--vx-ease), background var(--vx-dur-1) var(--vx-ease), color var(--vx-dur-1) var(--vx-ease); }
+.vxck-admin .vxck-place:hover { border-color: var(--vx-n300); background: var(--vx-card); color: var(--vx-ink); }
+.vxck-admin .vxck-place:focus-visible { outline: none; box-shadow: 0 0 0 3px var(--vx-primary-ring); border-color: var(--vx-primary); }
+.vxck-admin .vxck-place.is-active { border-color: var(--vx-primary); background: var(--vx-primary-tint); color: var(--vx-ink); font-weight: 500; }
+.vxck-admin .vxck-place svg { display: block; }
+.vxck-admin .vxck-place .vxck-place-screen { fill: none; stroke: var(--vx-n300); stroke-width: 1; }
+.vxck-admin .vxck-place .vxck-place-el { fill: var(--vx-n300); }
+.vxck-admin .vxck-place:hover .vxck-place-el { fill: var(--vx-n500); }
+.vxck-admin .vxck-place.is-active .vxck-place-screen { stroke: var(--vx-primary); }
+.vxck-admin .vxck-place.is-active .vxck-place-el { fill: var(--vx-primary); }
 .velox-hint--inline { display: inline; font-weight: 400; }
 .vxck-color { display: flex; align-items: center; gap: 11px; font-size: 12.5px; font-weight: 500; color: var(--vx-ink); padding: 8px 10px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); background: var(--vx-card); cursor: pointer; transition: border-color var(--vx-dur-1) var(--vx-ease); }
 .vxck-color:hover { border-color: var(--vx-n300); }
