@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.08.3 — Unused media: correct Used/Unused split
+- The Used and Unused tabs are now complementary — every image lands in exactly one of them. Previously, loosely-referenced images showed in neither tab, which looked like used images leaking into the wrong place.
+- Used tab now shows everything referenced anywhere; Unused shows only files with no reference at all (still conservative before deletion).
+
 ## 3.08.2 — Cookie banner editor: clean split layout
 - Settings on the left as standard Velox cards; the live preview is pinned on the right so it stays visible while you scroll and edit.
 - Uses the same panels, spacing and components as the rest of the plugin — no bespoke inspector, no tabs.

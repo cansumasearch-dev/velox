@@ -5458,7 +5458,7 @@
 		function renderMedia() {
 			results.innerHTML = '';
 			delBtn.hidden = true;
-			var subset = mediaItems.filter( function ( it ) { return mediaMode === 'used' ? it.strong : ! it.used; } );
+			var subset = mediaItems.filter( function ( it ) { return mediaMode === 'used' ? !! it.used : ! it.used; } );
 			if ( ! subset.length ) {
 				results.innerHTML = mediaMode === 'used'
 					? '<p class="velox-hint">No images are confirmed in use in the scanned set.</p>'
@@ -5485,7 +5485,7 @@
 				} );
 			} );
 			if ( mediaMode === 'used' ) {
-				summary.textContent = subset.length + ' image' + ( subset.length === 1 ? '' : 's' ) + ' confirmed in use · ' + fmtBytes( total ) + ' total';
+				summary.textContent = subset.length + ' image' + ( subset.length === 1 ? '' : 's' ) + ' in use · ' + fmtBytes( total ) + ' total';
 			} else {
 				summary.textContent = subset.length + ' possibly-unused image' + ( subset.length === 1 ? '' : 's' ) + ' · ' + fmtBytes( total ) + ' reclaimable';
 				$$( '.velox-media-pick', results ).forEach( function ( c ) { c.addEventListener( 'change', refreshSelection ); } );
