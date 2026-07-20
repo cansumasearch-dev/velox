@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.08.4 — Image optimizer: surface conversion failures
+- The bulk converter no longer silently swallows failed images. It now counts failures, shows them in the progress and summary, and — if nothing converts — tells you your server likely can’t encode WebP (GD/Imagick), which is the usual reason images stay jpg/png.
+
 ## 3.08.3 — Unused media: correct Used/Unused split
 - The Used and Unused tabs are now complementary — every image lands in exactly one of them. Previously, loosely-referenced images showed in neither tab, which looked like used images leaking into the wrong place.
 - Used tab now shows everything referenced anywhere; Unused shows only files with no reference at all (still conservative before deletion).

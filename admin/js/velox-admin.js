@@ -300,10 +300,12 @@
 					}
 					var done = 0;
 					var saved = 0;
+					var failed = 0;
+					var lastErr = '';
 
 					function next() {
 						if ( stopFlag || ! ids.length ) {
-							finish( done, saved, stopFlag ? 'Stopped.' : null );
+							finish( done, saved, stopFlag ? 'Stopped.' : null, failed, lastErr );
 							return;
 						}
 						var id = ids.shift();
@@ -314,16 +316,18 @@
 									saved += res.original_bytes - res.webp_bytes;
 								}
 							} )
-							.catch( function () {
-								/* skip a bad image, keep going */
+							.catch( function ( e ) {
+								failed++;
+								if ( e && e.message ) { lastErr = e.message; }
 							} )
 							.then( function () {
-								var pct = Math.round( ( done / total ) * 100 );
+								var handled = done + failed;
+								var pct = Math.round( ( handled / total ) * 100 );
 								if ( bar ) {
 									bar.style.width = pct + '%';
 								}
 								if ( text ) {
-									text.textContent = done + ' / ' + total + ' · ' + bytes( saved ) + ' saved';
+									text.textContent = handled + ' / ' + total + ' · ' + bytes( saved ) + ' saved' + ( failed ? ' · ' + failed + ' failed' : '' );
 								}
 								next();
 							} );
@@ -336,11 +340,20 @@
 				} );
 		}
 
-		function finish( done, saved, customMsg ) {
+		function finish( done, saved, customMsg, failed, lastErr ) {
 			resetBulkButtons();
 			if ( summary ) {
-				summary.textContent =
-					customMsg || 'Done — ' + done + ' images, ' + bytes( saved ) + ' saved.';
+				if ( customMsg ) {
+					summary.textContent = customMsg;
+				} else if ( failed ) {
+					summary.textContent = 'Done — ' + done + ' converted, ' + failed + ' failed. ' + (
+						done === 0
+							? 'Your server could not encode any images to WebP — ask your host to enable WebP support in GD or Imagick.'
+							: ( lastErr || 'Some images could not be converted.' )
+					);
+				} else {
+					summary.textContent = 'Done — ' + done + ' images, ' + bytes( saved ) + ' saved.';
+				}
 			}
 			refreshStats().then( loadCompareOptions );
 		}
