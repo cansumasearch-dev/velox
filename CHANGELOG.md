@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.07.5 — Cookie banner: spacing, underline, and a display failsafe
+- Fixed the big empty gap in the banner: content now packs together instead of spreading into large blank space (happened with vertical/column layouts and any spare height).
+- Fixed the "underline links" toggle — turning it on now actually underlines the links (it was doing nothing because the base style was already no-underline).
+- Added a first-load display failsafe: when a visitor has not chosen yet, the banner is forced visible even if a theme or optimiser tried to hide it.
+
 ## 3.07.4 — Cookie banner entrance animations + reliable first-load display
 - Added an "Entrance animation" setting for the cookie banner: slide up from bottom (default), slide down from top, fade, zoom, slide from left/right, or none.
 - Hardened first-load display: the banner's resting state is always visible, so the animation is only a nice entrance and never what makes the banner appear. Respects prefers-reduced-motion.

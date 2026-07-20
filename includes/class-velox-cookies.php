@@ -342,7 +342,14 @@ gtag('consent','update',{
 		if ( (int) $o['cookie_body_size'] > 0 ) { $extra .= $p . '.vxck-body{font-size:' . (int) $o['cookie_body_size'] . 'px;}'; }
 		if ( ! empty( $o['cookie_body_color'] ) ) { $extra .= $p . '.vxck-body{color:' . self::hex( $o['cookie_body_color'] ) . ';opacity:1;}'; }
 		if ( ! empty( $o['cookie_link_color'] ) ) { $extra .= $p . '.vxck-links a{color:' . self::hex( $o['cookie_link_color'] ) . ';}'; }
-		if ( empty( $o['cookie_link_underline'] ) ) { $extra .= $p . '.vxck-links a{text-decoration:none;}'; }
+		$extra .= $p . '.vxck-links a{text-decoration:' . ( ! empty( $o['cookie_link_underline'] ) ? 'underline' : 'none' ) . ';}';
+		// Keep the banner's blocks packed together. Without this, a flex box with any
+		// spare height (e.g. a vertical/column layout, or a max-height) spreads its
+		// heading/body, categories and buttons into large empty gaps.
+		$extra .= $p . '.vxck{align-content:flex-start;}';
+		if ( isset( $o['cookie_layout_mode'] ) && 'custom' === $o['cookie_layout_mode'] && 'column' === $o['cookie_direction'] ) {
+			$extra .= $p . '.vxck{justify-content:flex-start;}' . $p . '.vxck-main{flex-grow:0;}';
+		}
 		if ( (int) $o['cookie_backdrop_blur'] > 0 ) { $extra .= $p . '.vxck-overlay{backdrop-filter:blur(' . (int) $o['cookie_backdrop_blur'] . 'px);}'; }
 		if ( ! empty( $o['cookie_overlay_color'] ) ) { $extra .= $p . '.vxck-overlay{background:' . self::safe_color( $o['cookie_overlay_color'] ) . ';}'; }
 		if ( (int) $o['cookie_max_height'] > 0 ) { $extra .= $p . '.vxck{max-height:' . (int) $o['cookie_max_height'] . 'px;overflow:auto;}'; }
@@ -449,7 +456,7 @@ gtag('consent','update',{
 		$markup  = self::markup( $o, false );
 		?>
 <style><?php echo $css; // phpcs:ignore ?></style>
-<div class="vxck-root" id="vxck-root" data-decided="0" data-reconsent="<?php echo (int) $o['cookie_reconsent_days']; ?>">
+<div class="vxck-root" id="vxck-root" data-decided="0" data-reconsent="<?php echo (int) $o['cookie_reconsent_days']; ?>" data-show-display="<?php echo 'modal-center' === $o['cookie_layout'] ? 'flex' : 'block'; ?>">
 <?php echo $markup; // phpcs:ignore WordPress.Security.EscapeOutput -- built with esc_* helpers ?>
 </div>
 <script>
@@ -461,6 +468,16 @@ gtag('consent','update',{
 	// client decides visibility from the real cookie. This stops full-page caches
 	// (WP Fastest Cache / Cloudflare) from freezing one visitor's consent for all.
 	root.setAttribute('data-decided', getCookie(NAME) ? '1' : '0');
+	// Failsafe: if the visitor hasn't chosen yet, guarantee the banner is actually
+	// visible — override a theme or optimiser that may have hidden .vxck-root.
+	if ( ! getCookie(NAME) ) {
+		try {
+			if ( getComputedStyle(root).display === 'none' ) {
+				root.style.setProperty('display', root.getAttribute('data-show-display') || 'block', 'important');
+			}
+			root.style.setProperty('visibility','visible','important');
+		} catch(e){}
+	}
 	var days=parseInt(root.getAttribute('data-reconsent'),10)||180;
 	function setCookie(v){var d=new Date();d.setTime(d.getTime()+days*864e5);document.cookie=NAME+'='+encodeURIComponent(v)+';expires='+d.toUTCString()+';path=/;SameSite=Lax';}
 	function update(granted){
