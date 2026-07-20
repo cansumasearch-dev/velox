@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.06.13 — Cloudflare setup guide moved into the plugin
+- The Cloudflare cache-clear walkthrough is now an expandable "Setup guide" right in Performance → Clear cache (install the plugin, create an API token, connect it), instead of a separate docs file.
+
+## 3.06.12 — Clearer Cloudflare requirement + setup guide
+- The Clear-cache panel now explains that clearing Cloudflare goes through the official Cloudflare plugin, shows whether it is connected, and lists the quick setup steps when it is not (previously it just said "Cloudflare plugin not active").
+- Added a full walkthrough at docs/cloudflare-cache-setup.md covering the plugin install, creating a Cloudflare API token, and connecting it.
+
 ## 3.06.11 — More accurate unused-media detection
 - Fixed images being wrongly counted as "used". The rendered-page scan matched filenames as loose substrings (so "photo.jpg" matched "myphoto.jpg" and "1.jpg" matched "21.jpg"); it now matches whole file tokens only.
 - The database scan no longer counts an image as used just because its filename appears in another attachment's own file records (_wp_attached_file / _wp_attachment_metadata etc.). Real references in content, builder meta, galleries and options still count.

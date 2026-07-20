@@ -438,7 +438,7 @@ class Velox_Admin {
 					do_action( 'cloudflare_purge_everything' );
 					$done[] = 'Cloudflare';
 				} else {
-					$missing[] = 'Cloudflare plugin not active';
+					$missing[] = 'Cloudflare plugin not active — install & connect the official Cloudflare plugin (with an API token) to purge the edge cache';
 				}
 				break;
 

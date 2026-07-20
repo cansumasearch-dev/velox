@@ -212,13 +212,60 @@ $sec_icons   = array(
 				<?php if ( 'general' === $id ) : ?>
 					<div class="velox-panel velox-cache-panel">
 						<h3 class="velox-panel-title">Clear cache</h3>
-						<p class="velox-hint">Purge caches across your whole stack in one click. Velox talks to WP Fastest Cache, Oxygen and Cloudflare directly.</p>
+						<p class="velox-hint">Purge caches across your whole stack in one click. Velox clears its own page cache, WP Fastest Cache and Oxygen directly. Cloudflare is cleared through the official Cloudflare plugin (see the note below).</p>
 						<div class="velox-cache-btns">
 							<button class="velox-btn velox-btn--primary velox-cache-btn" data-which="all">Clear all caches</button>
 							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="minified">Minified CSS/JS</button>
 							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="oxygen">Regenerate Oxygen CSS</button>
 							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="cloudflare">Cloudflare</button>
 						</div>
+						<?php $vx_cf_ready = has_action( 'cloudflare_purge_everything' ); ?>
+						<div class="velox-cf-note <?php echo $vx_cf_ready ? 'is-ready' : 'is-missing'; ?>">
+							<?php if ( $vx_cf_ready ) : ?>
+								<strong>Cloudflare connected.</strong> The official Cloudflare plugin is active, so the <em>Cloudflare</em> button above purges your edge cache.
+							<?php else : ?>
+								<strong>Cloudflare needs a one-time setup.</strong> The <em>Cloudflare</em> button clears your edge cache through the <strong>official Cloudflare plugin</strong> — Velox asks that plugin to purge, so it must be installed and connected to your account. Until then the button reports <em>"Cloudflare plugin not active."</em>
+								<span class="velox-cf-steps">Quick setup: <strong>1)</strong> install the <strong>“Cloudflare”</strong> plugin, <strong>2)</strong> create a Cloudflare API token, <strong>3)</strong> connect it. Full steps below.</span>
+							<?php endif; ?>
+						</div>
+						<details class="velox-cf-guide">
+							<summary>Setup guide: clear Cloudflare cache from Velox</summary>
+							<div class="velox-cf-guide-body">
+								<p><strong>What the button does.</strong> Velox doesn't talk to Cloudflare directly — when you clear the Cloudflare cache, Velox asks the <strong>official Cloudflare plugin</strong> to purge everything. So it only works once that plugin is installed and connected; otherwise you get <em>"Cloudflare plugin not active."</em> Your Velox page cache still clears fine without it.</p>
+								<p class="velox-hint" style="margin:0 0 4px;">The <code>Cloudflare account ID</code> / <code>API token</code> fields under Performance → CSS are a separate feature (the used-CSS engine) and aren't used for cache clearing.</p>
+
+								<h4>Step 1 — Install the official plugin</h4>
+								<p>Plugins → Add New → search <strong>Cloudflare</strong> → install &amp; activate the one by <strong>Cloudflare, Inc.</strong> (listed as "Cloudflare – CDN &amp; Edge Caching"). Don't confuse it with "WP Cloudflare Super Page Cache."</p>
+
+								<h4>Step 2 — Create a Cloudflare API token</h4>
+								<ol>
+									<li>Log in at <code>dash.cloudflare.com</code>.</li>
+									<li>Profile icon (top right) → <strong>My Profile</strong>.</li>
+									<li><strong>API Tokens</strong> tab → <strong>Create Token</strong>.</li>
+									<li>Find <strong>WordPress</strong> in the templates → <strong>Use template</strong> (sets the right permissions automatically).</li>
+									<li>Continue to summary → <strong>Create Token</strong> → <strong>copy it now</strong> (shown only once) and store it safely.</li>
+								</ol>
+								<p class="velox-hint" style="margin:0;">For agency/company accounts, prefer an <em>Account</em> token so it survives staff changes.</p>
+
+								<h4>Step 3 — Connect the plugin</h4>
+								<ol>
+									<li>Settings → Cloudflare (or the plugin's Settings link).</li>
+									<li>Sign in with an existing account.</li>
+									<li>Authentication Mode → <strong>API Token</strong>.</li>
+									<li>Enter your Cloudflare account email + paste the token → <strong>Save API Credentials</strong>.</li>
+								</ol>
+
+								<h4>Verify</h4>
+								<p>Come back here — this note should turn green ("Cloudflare connected") and the Cloudflare button should report "Cloudflare purged."</p>
+
+								<h4>Good to know</h4>
+								<ul>
+									<li>The Cloudflare plugin already auto-purges on publish/edit; this button is for an on-demand whole-site purge.</li>
+									<li>Don't run a second full-page cache plugin (WP Rocket, W3 Total Cache) alongside it — Cloudflare recommends turning those off. Velox's own page cache is fine.</li>
+									<li>If the site is ever compromised, revoke the token in Cloudflare (My Profile → API Tokens) and issue a new one.</li>
+								</ul>
+							</div>
+						</details>
 					</div>
 				<?php endif; ?>
 				<?php if ( 'cache' === $id ) :
