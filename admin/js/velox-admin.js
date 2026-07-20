@@ -6033,7 +6033,7 @@
 					updateSmapView();
 				} );
 			} );
-			[ 'velox-smap-accent', 'velox-smap-heading', 'velox-smap-logo' ].forEach( function ( id ) {
+			[ 'velox-smap-accent', 'velox-smap-bg', 'velox-smap-fg', 'velox-smap-layout', 'velox-smap-spacing', 'velox-smap-heading', 'velox-smap-logo' ].forEach( function ( id ) {
 				var el = document.getElementById( id );
 				if ( ! el ) { return; }
 				var handler = function () {

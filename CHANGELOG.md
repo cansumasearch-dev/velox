@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.2 — Fix Custom sitemap style controls
+- The Custom style controls (background, text, layout, spacing) were not wired up, so changing them did nothing — no live preview update, and nothing saved so regenerating kept the defaults. They now save, update the preview live, and regenerate the sitemap.
+
 ## 3.09.1 — Sitemap styles: stop the browser caching the old look
 - The sitemap now references its stylesheet with a cache-busting version (velox-sitemap.xsl?v=…). Switching styles was being hidden because the browser kept serving the previously-cached stylesheet, making every style look identical in the live sitemap.
 
