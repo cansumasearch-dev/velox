@@ -87,7 +87,7 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 			</div>
 			<?php
 			$vx_smap_style  = isset( $s['seo_sitemap_style'] ) ? $s['seo_sitemap_style'] : 'none';
-			$vx_smap_styles = array( 'none' => 'Classic', 'clean' => 'Clean', 'dark' => 'Dark', 'minimal' => 'Minimal', 'custom' => 'Custom' );
+			$vx_smap_styles = array( 'none' => 'Classic', 'clean' => 'Clean', 'cards' => 'Cards', 'dark' => 'Dark', 'minimal' => 'Minimal', 'custom' => 'Custom' );
 			?>
 			<div class="velox-smap-styles">
 				<span class="velox-smap-optlabel" style="width:100%;">Sitemap appearance <span class="velox-hint" style="font-weight:400;">— how sitemap.xml looks when opened in a browser. Search engines still read the plain XML.</span></span>
@@ -103,7 +103,19 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 			</div>
 			<div class="velox-smap-custom" id="velox-smap-custom"<?php echo 'custom' === $vx_smap_style ? '' : ' hidden'; ?>>
 				<span class="velox-smap-optlabel">Custom</span>
+				<label class="velox-smap-cf"><span>Background</span><input type="color" id="velox-smap-bg" data-setting="seo_sitemap_bg" value="<?php echo esc_attr( isset( $s['seo_sitemap_bg'] ) ? $s['seo_sitemap_bg'] : '#ffffff' ); ?>"></label>
+				<label class="velox-smap-cf"><span>Text</span><input type="color" id="velox-smap-fg" data-setting="seo_sitemap_fg" value="<?php echo esc_attr( isset( $s['seo_sitemap_fg'] ) ? $s['seo_sitemap_fg'] : '#1d1d1f' ); ?>"></label>
 				<label class="velox-smap-cf"><span>Accent</span><input type="color" id="velox-smap-accent" data-setting="seo_sitemap_accent" value="<?php echo esc_attr( $s['seo_sitemap_accent'] ); ?>"></label>
+				<label class="velox-smap-cf"><span>Layout</span>
+					<select class="velox-select velox-input--sm" id="velox-smap-layout" data-setting="seo_sitemap_layout" style="max-width:140px;">
+						<?php $vx_lay = isset( $s['seo_sitemap_layout'] ) ? $s['seo_sitemap_layout'] : 'table'; foreach ( array( 'table' => 'Table', 'list' => 'List', 'cards' => 'Cards' ) as $vk => $vl ) { printf( '<option value="%s"%s>%s</option>', esc_attr( $vk ), selected( $vx_lay, $vk, false ), esc_html( $vl ) ); } ?>
+					</select>
+				</label>
+				<label class="velox-smap-cf"><span>Spacing</span>
+					<select class="velox-select velox-input--sm" id="velox-smap-spacing" data-setting="seo_sitemap_spacing" style="max-width:140px;">
+						<?php $vx_sp = isset( $s['seo_sitemap_spacing'] ) ? $s['seo_sitemap_spacing'] : 'normal'; foreach ( array( 'compact' => 'Compact', 'normal' => 'Normal', 'spacious' => 'Spacious' ) as $vk => $vl ) { printf( '<option value="%s"%s>%s</option>', esc_attr( $vk ), selected( $vx_sp, $vk, false ), esc_html( $vl ) ); } ?>
+					</select>
+				</label>
 				<label class="velox-smap-cf"><span>Heading</span><input type="text" class="velox-input velox-input--sm" id="velox-smap-heading" data-setting="seo_sitemap_heading" value="<?php echo esc_attr( $s['seo_sitemap_heading'] ); ?>" style="max-width:160px;"></label>
 				<label class="velox-smap-cf"><span>Show logo</span><label class="velox-switch velox-switch--sm"><input type="checkbox" id="velox-smap-logo" data-setting="seo_sitemap_logo" <?php checked( ! empty( $s['seo_sitemap_logo'] ) ); ?>><span class="velox-switch-track"></span></label></label>
 			</div>

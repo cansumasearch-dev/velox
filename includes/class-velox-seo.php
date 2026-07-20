@@ -445,7 +445,11 @@ class Velox_Seo {
 		$style = (string) Velox_Settings::get( 'seo_sitemap_style', 'none' );
 		if ( 'none' !== $style ) {
 			self::write_sitemap_xsl( $style );
-			$xml .= '<?xml-stylesheet type="text/xsl" href="' . esc_url( home_url( '/velox-sitemap.xsl' ) ) . '"?>' . PHP_EOL;
+			// Cache-bust by the stylesheet's mtime, so switching styles isn't hidden
+			// by the browser caching the previous velox-sitemap.xsl at a fixed URL.
+			$xslver = @filemtime( ABSPATH . 'velox-sitemap.xsl' ); // phpcs:ignore
+			$xslver = $xslver ? $xslver : time();
+			$xml .= '<?xml-stylesheet type="text/xsl" href="' . esc_url( home_url( '/velox-sitemap.xsl?v=' . $xslver ) ) . '"?>' . PHP_EOL;
 		} else {
 			$xsl = ABSPATH . 'velox-sitemap.xsl';
 			if ( file_exists( $xsl ) ) { @unlink( $xsl ); } // phpcs:ignore
@@ -524,36 +528,87 @@ class Velox_Seo {
 		if ( ! preg_match( '/^#[0-9a-fA-F]{3,8}$/', $accent ) ) { $accent = '#2ab7f1'; }
 		if ( '' === $heading ) { $heading = 'XML Sitemap'; }
 
-		switch ( $style ) {
-			case 'dark':
-				$bg = '#1d1f21'; $fg = '#d3dbe2'; $muted = '#8b96a0'; $border = 'rgba(255,255,255,.09)'; $thbg = '#22262a'; $link = '#7ec7ff'; $bar = $accent; break;
-			case 'minimal':
-				$bg = '#ffffff'; $fg = '#1d1d1f'; $muted = '#6e6e73'; $border = '#eeeeee'; $thbg = '#fafafa'; $link = '#0f7ab5'; $bar = 'transparent'; break;
-			case 'custom':
-			case 'clean':
-			default:
-				$bg = '#ffffff'; $fg = '#1d1d1f'; $muted = '#6e6e73'; $border = '#eeeeee'; $thbg = '#f5f7f9'; $link = '#0f7ab5'; $bar = $accent; break;
-		}
+		$c = self::sitemap_style_config( $style, $accent );
 
+		// Brand block (logo or site name), coloured for the palette.
 		$brand = '';
 		if ( $logo_on ) {
 			$logo_id  = (int) get_theme_mod( 'custom_logo' );
 			$logo_src = $logo_id ? wp_get_attachment_image_url( $logo_id, 'medium' ) : '';
 			$brand    = $logo_src
-				? '<img src="' . esc_url( $logo_src ) . '" alt="" style="height:30px;width:auto;margin-bottom:8px;display:block;"/>'
-				: '<div style="font-size:12px;font-weight:600;color:' . $muted . ';margin-bottom:4px;">' . esc_html( get_bloginfo( 'name' ) ) . '</div>';
+				? '<img src="' . esc_url( $logo_src ) . '" alt="" style="height:30px;width:auto;margin-bottom:10px;display:block;"/>'
+				: '<div class="vx-brand">' . esc_html( get_bloginfo( 'name' ) ) . '</div>';
 		}
 
-		$css = 'body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:' . $bg . ';color:' . $fg . ';}'
-			. '.vx-wrap{max-width:1040px;margin:0 auto;padding:0 20px 40px;}'
-			. 'header.vx-h{padding:22px 0 18px;border-bottom:3px solid ' . $bar . ';margin-bottom:6px;}'
-			. 'h1{font-size:20px;margin:0;font-weight:600;}'
-			. '.vx-sub{color:' . $muted . ';font-size:13px;margin-top:4px;}'
-			. 'table{width:100%;border-collapse:collapse;font-size:13px;}'
-			. 'th{text-align:left;background:' . $thbg . ';color:' . $muted . ';padding:10px 12px;font-weight:600;}'
-			. 'td{padding:9px 12px;border-top:1px solid ' . $border . ';vertical-align:top;}'
-			. 'a{color:' . $link . ';text-decoration:none;}a:hover{text-decoration:underline;}'
-			. '.vx-num{color:' . $muted . ';white-space:nowrap;}';
+		$font = $c['font'];
+		$bg   = $c['bg'];
+		$fg   = $c['fg'];
+		$muted = $c['muted'];
+		$border = $c['border'];
+		$link = $c['link'];
+		$accent = $c['accent'];
+		$pad  = $c['pad'];
+
+		// ---- Shared shell CSS ----
+		$css  = 'body{margin:0;font-family:' . $font . ';background:' . $bg . ';color:' . $fg . ';-webkit-font-smoothing:antialiased;}'
+			. '.vx-wrap{max-width:1080px;margin:0 auto;padding:' . $c['wrap_pad'] . ';}'
+			. '.vx-brand{font-size:12px;font-weight:600;color:' . $muted . ';margin-bottom:6px;letter-spacing:.02em;}'
+			. 'a{color:' . $link . ';text-decoration:none;word-break:break-all;}a:hover{text-decoration:underline;}'
+			. 'h1{margin:0;font-weight:600;}'
+			. '.vx-sub{color:' . $muted . ';font-size:13px;margin-top:5px;}';
+
+		// ---- Header ----
+		$headerbar = ( 'none' === $c['bar'] ) ? '' : 'border-bottom:3px solid ' . $c['bar'] . ';';
+		$css .= 'header.vx-h{padding:' . $c['head_pad'] . ';' . $headerbar . 'margin-bottom:' . $c['head_mb'] . ';}'
+			. 'header.vx-h h1{font-size:' . $c['h1'] . ';}';
+
+		$rows = '';
+		if ( 'cards' === $c['layout'] ) {
+			// ---- CARD GRID ----
+			$css .= '.vx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:' . $c['gap'] . ';}'
+				. '.vx-card{background:' . $c['card'] . ';border:1px solid ' . $border . ';border-radius:' . $c['radius'] . ';padding:16px 18px;transition:box-shadow .15s,transform .15s;}'
+				. '.vx-card:hover{box-shadow:0 8px 24px rgba(0,0,0,.08);transform:translateY(-2px);}'
+				. '.vx-card a{font-size:14px;font-weight:500;display:block;margin-bottom:12px;}'
+				. '.vx-tags{display:flex;flex-wrap:wrap;gap:6px;}'
+				. '.vx-tag{font-size:11px;color:' . $muted . ';background:' . $c['thbg'] . ';border:1px solid ' . $border . ';border-radius:999px;padding:3px 10px;}';
+			$rows = '<div class="vx-grid"><xsl:for-each select="s:urlset/s:url">'
+				. '<div class="vx-card"><a href="{s:loc}"><xsl:value-of select="s:loc"/></a>'
+				. '<div class="vx-tags">'
+				. '<xsl:if test="s:priority"><span class="vx-tag">P <xsl:value-of select="s:priority"/></span></xsl:if>'
+				. '<xsl:if test="s:changefreq"><span class="vx-tag"><xsl:value-of select="s:changefreq"/></span></xsl:if>'
+				. '<xsl:if test="s:lastmod"><span class="vx-tag"><xsl:value-of select="substring(s:lastmod,1,10)"/></span></xsl:if>'
+				. '</div></div>'
+				. '</xsl:for-each></div>';
+		} elseif ( 'list' === $c['layout'] ) {
+			// ---- BARE LIST (whitespace, no table chrome) ----
+			$css .= '.vx-list{display:flex;flex-direction:column;}'
+				. '.vx-item{padding:' . $c['item_pad'] . ';border-bottom:1px solid ' . $border . ';}'
+				. '.vx-item a{font-size:15px;}'
+				. '.vx-meta{color:' . $muted . ';font-size:12px;margin-top:5px;display:flex;gap:14px;flex-wrap:wrap;}'
+				. '.vx-meta span::before{content:"";}';
+			$rows = '<div class="vx-list"><xsl:for-each select="s:urlset/s:url">'
+				. '<div class="vx-item"><a href="{s:loc}"><xsl:value-of select="s:loc"/></a>'
+				. '<div class="vx-meta">'
+				. '<xsl:if test="s:priority"><span>Priority <xsl:value-of select="s:priority"/></span></xsl:if>'
+				. '<xsl:if test="s:changefreq"><span><xsl:value-of select="s:changefreq"/></span></xsl:if>'
+				. '<xsl:if test="s:lastmod"><span><xsl:value-of select="substring(s:lastmod,1,10)"/></span></xsl:if>'
+				. '</div></div>'
+				. '</xsl:for-each></div>';
+		} else {
+			// ---- TABLE (clean / dark / custom-table) ----
+			$css .= 'table{width:100%;border-collapse:collapse;font-size:13px;}'
+				. 'th{text-align:left;background:' . $c['thbg'] . ';color:' . $muted . ';padding:' . $pad . ';font-weight:600;text-transform:' . $c['th_transform'] . ';letter-spacing:' . $c['th_ls'] . ';font-size:' . $c['th_fs'] . ';}'
+				. 'td{padding:' . $pad . ';border-top:1px solid ' . $border . ';vertical-align:top;}'
+				. 'tbody tr:hover{background:' . $c['rowhover'] . ';}'
+				. '.vx-num{color:' . $muted . ';white-space:nowrap;}';
+			$rows = '<table><thead><tr><th>URL</th><th>Priority</th><th>Change frequency</th><th>Last modified</th></tr></thead><tbody>'
+				. '<xsl:for-each select="s:urlset/s:url"><tr>'
+				. '<td><a href="{s:loc}"><xsl:value-of select="s:loc"/></a></td>'
+				. '<td class="vx-num"><xsl:value-of select="s:priority"/></td>'
+				. '<td class="vx-num"><xsl:value-of select="s:changefreq"/></td>'
+				. '<td class="vx-num"><xsl:value-of select="s:lastmod"/></td>'
+				. '</tr></xsl:for-each></tbody></table>';
+		}
 
 		$xsl = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
 			. '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:s="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n"
@@ -563,20 +618,92 @@ class Velox_Seo {
 			. '<body><div class="vx-wrap">'
 			. '<header class="vx-h">' . $brand . '<h1>' . esc_html( $heading ) . '</h1>'
 			. '<div class="vx-sub">Generated by Velox &#183; <xsl:value-of select="count(s:urlset/s:url)"/> URLs</div></header>'
-			. '<table><thead><tr><th>URL</th><th>Priority</th><th>Change frequency</th><th>Last modified</th></tr></thead><tbody>'
-			. '<xsl:for-each select="s:urlset/s:url">'
-			. '<tr>'
-			. '<td><a href="{s:loc}"><xsl:value-of select="s:loc"/></a></td>'
-			. '<td class="vx-num"><xsl:value-of select="s:priority"/></td>'
-			. '<td class="vx-num"><xsl:value-of select="s:changefreq"/></td>'
-			. '<td class="vx-num"><xsl:value-of select="s:lastmod"/></td>'
-			. '</tr>'
-			. '</xsl:for-each>'
-			. '</tbody></table>'
+			. $rows
 			. '</div></body></html>'
 			. '</xsl:template></xsl:stylesheet>';
 
 		return (bool) @file_put_contents( ABSPATH . 'velox-sitemap.xsl', $xsl ); // phpcs:ignore
+	}
+
+	/**
+	 * Per-style visual config. Each built-in style is a genuinely different
+	 * layout/treatment (not just a colour tweak); 'custom' is driven by settings.
+	 */
+	private static function sitemap_style_config( $style, $accent ) {
+		$sans = '-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif';
+		$mono = 'ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace';
+		$base = array(
+			'layout' => 'table', 'font' => $sans, 'wrap_pad' => '0 20px 48px',
+			'head_pad' => '24px 0 18px', 'head_mb' => '8px', 'h1' => '20px',
+			'pad' => '10px 12px', 'radius' => '12px', 'gap' => '14px', 'item_pad' => '16px 2px',
+			'thbg' => '#f5f7f9', 'rowhover' => 'rgba(0,0,0,.02)', 'card' => '#ffffff',
+			'th_transform' => 'none', 'th_ls' => '0', 'th_fs' => '13px', 'accent' => $accent,
+		);
+		switch ( $style ) {
+			case 'dark':
+				return array_merge( $base, array(
+					'layout' => 'table', 'font' => $mono,
+					'bg' => '#0d1117', 'fg' => '#e6edf3', 'muted' => '#7d8590',
+					'border' => 'rgba(255,255,255,.08)', 'thbg' => '#161b22', 'link' => '#58a6ff',
+					'bar' => 'none', 'pad' => '7px 12px', 'rowhover' => 'rgba(255,255,255,.03)',
+					'th_transform' => 'uppercase', 'th_ls' => '.06em', 'th_fs' => '11px',
+					'head_pad' => '22px 0 16px',
+				) );
+			case 'minimal':
+				return array_merge( $base, array(
+					'layout' => 'list',
+					'bg' => '#ffffff', 'fg' => '#111111', 'muted' => '#9a9a9e',
+					'border' => '#f0f0f0', 'link' => '#111111', 'bar' => 'none',
+					'wrap_pad' => '0 24px 64px', 'head_pad' => '48px 0 24px', 'head_mb' => '10px', 'h1' => '15px',
+				) );
+			case 'cards':
+				return array_merge( $base, array(
+					'layout' => 'cards',
+					'bg' => '#f6f8fa', 'fg' => '#1d1d1f', 'muted' => '#6e6e73',
+					'border' => '#e6e8eb', 'thbg' => '#eef1f4', 'link' => '#0f7ab5', 'bar' => $accent,
+					'card' => '#ffffff', 'radius' => '14px', 'gap' => '14px',
+					'wrap_pad' => '0 20px 48px',
+				) );
+			case 'custom':
+				$bg  = (string) Velox_Settings::get( 'seo_sitemap_bg', '#ffffff' );
+				$fg  = (string) Velox_Settings::get( 'seo_sitemap_fg', '#1d1d1f' );
+				$lay = (string) Velox_Settings::get( 'seo_sitemap_layout', 'table' );
+				$sp  = (string) Velox_Settings::get( 'seo_sitemap_spacing', 'normal' );
+				if ( ! preg_match( '/^#[0-9a-fA-F]{3,8}$/', $bg ) ) { $bg = '#ffffff'; }
+				if ( ! preg_match( '/^#[0-9a-fA-F]{3,8}$/', $fg ) ) { $fg = '#1d1d1f'; }
+				if ( ! in_array( $lay, array( 'table', 'list', 'cards' ), true ) ) { $lay = 'table'; }
+				// Is the background dark? pick borders/muted accordingly.
+				$dark = self::is_dark_hex( $bg );
+				$muted  = $dark ? 'rgba(255,255,255,.55)' : 'rgba(0,0,0,.5)';
+				$border = $dark ? 'rgba(255,255,255,.12)' : 'rgba(0,0,0,.08)';
+				$thbg   = $dark ? 'rgba(255,255,255,.05)' : 'rgba(0,0,0,.03)';
+				$pad    = 'compact' === $sp ? '6px 10px' : ( 'spacious' === $sp ? '16px 16px' : '11px 13px' );
+				$ipad   = 'compact' === $sp ? '10px 2px' : ( 'spacious' === $sp ? '24px 2px' : '16px 2px' );
+				$gap    = 'compact' === $sp ? '8px' : ( 'spacious' === $sp ? '22px' : '14px' );
+				return array_merge( $base, array(
+					'layout' => $lay, 'bg' => $bg, 'fg' => $fg, 'muted' => $muted,
+					'border' => $border, 'thbg' => $thbg, 'link' => $accent, 'bar' => $accent,
+					'card' => $dark ? 'rgba(255,255,255,.04)' : '#ffffff',
+					'pad' => $pad, 'item_pad' => $ipad, 'gap' => $gap,
+					'rowhover' => $dark ? 'rgba(255,255,255,.04)' : 'rgba(0,0,0,.02)',
+				) );
+			case 'clean':
+			default:
+				return array_merge( $base, array(
+					'layout' => 'table',
+					'bg' => '#ffffff', 'fg' => '#1d1d1f', 'muted' => '#6e6e73',
+					'border' => '#eeeeee', 'thbg' => '#f5f7f9', 'link' => '#0f7ab5', 'bar' => $accent,
+				) );
+		}
+	}
+
+	/** Rough luminance check for a hex colour. */
+	private static function is_dark_hex( $hex ) {
+		$hex = ltrim( $hex, '#' );
+		if ( 3 === strlen( $hex ) ) { $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2]; }
+		if ( strlen( $hex ) < 6 ) { return false; }
+		$r = hexdec( substr( $hex, 0, 2 ) ); $g = hexdec( substr( $hex, 2, 2 ) ); $b = hexdec( substr( $hex, 4, 2 ) );
+		return ( ( 0.299 * $r + 0.587 * $g + 0.114 * $b ) < 128 );
 	}
 
 	private static function sitemap_url( $loc, $lastmod, $priority = '', $changefreq = '' ) {

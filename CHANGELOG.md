@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.1 — Sitemap styles: stop the browser caching the old look
+- The sitemap now references its stylesheet with a cache-busting version (velox-sitemap.xsl?v=…). Switching styles was being hidden because the browser kept serving the previously-cached stylesheet, making every style look identical in the live sitemap.
+
+## 3.09.0 — Sitemap appearance: genuinely distinct styles + real Custom
+- The sitemap styles are now different layouts, not recoloured copies of one table: Clean (table), Cards (card grid), Dark (mono console), Minimal (bare whitespace list).
+- Added a real Custom style with background, text colour, accent, layout (table/list/cards) and spacing (compact/normal/spacious) — dark backgrounds auto-adjust borders and muted text.
+- Live preview in the SEO editor now renders each layout for real so you can see the difference before applying.
+
 ## 3.08.4 — Image optimizer: surface conversion failures
 - The bulk converter no longer silently swallows failed images. It now counts failures, shows them in the progress and summary, and — if nothing converts — tells you your server likely can’t encode WebP (GD/Imagick), which is the usual reason images stay jpg/png.
 

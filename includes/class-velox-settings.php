@@ -38,10 +38,14 @@ class Velox_Settings {
 			'seo_sitemap_products'  => true,
 			'seo_sitemap_changefreq' => 'weekly',
 			'seo_sitemap_priority'   => '0.7',
-			'seo_sitemap_style'      => 'none',      // none = plain XML (default). clean/dark/minimal/custom add an XSL look
+			'seo_sitemap_style'      => 'none',      // none = plain XML (default). clean/dark/minimal/cards add an XSL look; custom is configurable
 			'seo_sitemap_accent'     => '#2ab7f1',
 			'seo_sitemap_heading'    => 'XML Sitemap',
 			'seo_sitemap_logo'       => true,
+			'seo_sitemap_bg'         => '#ffffff',   // custom style background
+			'seo_sitemap_fg'         => '#1d1d1f',   // custom style text colour
+			'seo_sitemap_layout'     => 'table',     // custom style layout: table | list | cards
+			'seo_sitemap_spacing'    => 'normal',    // custom style spacing: compact | normal | spacious
 
 			// ---- Builder-aware setup ----
 			'builder'            => '',     // chosen page builder id ('' = wizard not run)
