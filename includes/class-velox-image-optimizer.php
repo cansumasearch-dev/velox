@@ -44,6 +44,7 @@ class Velox_Image_Optimizer {
 		if ( is_admin() && Velox_Settings::enabled( 'image_webp', 'module_images' ) ) {
 			add_action( 'post-upload-ui', array( $this, 'upload_hint' ) );
 			add_action( 'admin_head-upload.php', array( $this, 'media_library_button' ) );
+			add_action( 'admin_menu', array( $this, 'media_submenu' ), 20 );
 		}
 
 		// Downscale oversized uploads to the configured max width (0 = off).
@@ -586,6 +587,20 @@ class Velox_Image_Optimizer {
 			return $b['time'] <=> $a['time'];
 		} );
 		return $out;
+	}
+
+	/** Adds "Optimize Images" under the WordPress Media menu, linking to the Velox optimizer. */
+	public function media_submenu() {
+		if ( ! current_user_can( 'upload_files' ) ) {
+			return;
+		}
+		add_submenu_page(
+			'upload.php',
+			__( 'Optimize Images', 'velox' ),
+			__( 'Optimize Images', 'velox' ),
+			'upload_files',
+			'admin.php?page=velox-images'
+		);
 	}
 
 	/** Adds an "Optimize images" action button to the Media Library screen header. */

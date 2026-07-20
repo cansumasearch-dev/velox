@@ -91,7 +91,7 @@ gtag('consent','update',{
 	 */
 	public static function options( $override = array() ) {
 		$keys = array(
-			'cookie_layout' => 'bar-bottom', 'cookie_heading' => 'We value your privacy', 'cookie_body' => 'We use cookies to improve your browsing experience, analyse site traffic and personalise content. You can choose which categories you allow.',
+			'cookie_layout' => 'bar-bottom', 'cookie_animation' => 'slide-up', 'cookie_heading' => 'We value your privacy', 'cookie_body' => 'We use cookies to improve your browsing experience, analyse site traffic and personalise content. You can choose which categories you allow.',
 			'cookie_btn_accept' => 'Accept all', 'cookie_btn_reject' => 'Reject non-essential',
 			'cookie_btn_settings' => 'Preferences', 'cookie_small_text' => '', 'cookie_logo' => '',
 			'cookie_link1_label' => '', 'cookie_link1_url' => '', 'cookie_link2_label' => '', 'cookie_link2_url' => '',
@@ -200,6 +200,18 @@ gtag('consent','update',{
 		$btn_full = ! empty( $o['cookie_btn_full_mobile'] );
 
 		$pos = self::position_css( $layout, $offset, $width );
+		// Entrance animation. The banner's resting state stays visible (no fill-mode),
+		// so it always appears even if the animation can't run — the animation is only
+		// a nice entrance, never what makes it show.
+		$anim     = isset( $o['cookie_animation'] ) ? (string) $o['cookie_animation'] : 'slide-up';
+		$anim_kf  = array(
+			'slide-up'    => 'from{transform:translateY(120%)}to{transform:translateY(0)}',
+			'slide-down'  => 'from{transform:translateY(-120%)}to{transform:translateY(0)}',
+			'slide-left'  => 'from{transform:translateX(-120%)}to{transform:translateX(0)}',
+			'slide-right' => 'from{transform:translateX(120%)}to{transform:translateX(0)}',
+			'fade'        => 'from{opacity:0}to{opacity:1}',
+			'zoom'        => 'from{opacity:0;transform:scale(.92)}to{opacity:1;transform:scale(1)}',
+		);
 		// Mobile layout: 'inherit' keeps desktop placement; otherwise switch.
 		$mob_layout = ( 'inherit' === $mobile ) ? $layout : $mobile;
 		$pos_m = self::position_css( $mob_layout, min( $offset, 12 ), $width );
@@ -244,6 +256,11 @@ gtag('consent','update',{
 <?php echo $p; ?>.vxck-root{position:<?php echo $scope ? 'absolute' : 'fixed'; ?>;z-index:2147483600;<?php echo $pos['root']; // phpcs:ignore ?>}
 <?php if ( ! $scope ) : ?>
 .vxck-root[data-decided="1"]:not(.vxck-force){display:none;}
+<?php if ( isset( $anim_kf[ $anim ] ) ) : ?>
+@keyframes vxck-in{<?php echo $anim_kf[ $anim ]; // phpcs:ignore ?>}
+.vxck-root[data-decided="0"] .vxck,.vxck-root.vxck-force .vxck{animation:vxck-in .45s cubic-bezier(.16,1,.3,1);}
+@media(prefers-reduced-motion:reduce){.vxck-root .vxck{animation:none!important;}}
+<?php endif; ?>
 <?php endif; ?>
 <?php echo $p; ?>.vxck-overlay{position:<?php echo $scope ? 'absolute' : 'fixed'; ?>;inset:0;background:rgba(8,10,18,.5);z-index:2147483500;}
 <?php echo $p; ?>.vxck{box-sizing:border-box;<?php echo $pos['box']; // phpcs:ignore ?>;background:<?php echo $bg; ?>;color:<?php echo $text; ?>;border:<?php echo $bw; ?>px solid <?php echo $bcol; ?>;border-radius:<?php echo $rad; ?>px;box-shadow:<?php echo $shadow; ?>;padding:<?php echo $pad_decl; ?>;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;line-height:1.5;font-size:<?php echo $fs; ?>px;}

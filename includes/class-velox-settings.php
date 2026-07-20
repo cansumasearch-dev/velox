@@ -38,6 +38,10 @@ class Velox_Settings {
 			'seo_sitemap_products'  => true,
 			'seo_sitemap_changefreq' => 'weekly',
 			'seo_sitemap_priority'   => '0.7',
+			'seo_sitemap_style'      => 'none',      // none = plain XML (default). clean/dark/minimal/custom add an XSL look
+			'seo_sitemap_accent'     => '#2ab7f1',
+			'seo_sitemap_heading'    => 'XML Sitemap',
+			'seo_sitemap_logo'       => true,
 
 			// ---- Builder-aware setup ----
 			'builder'            => '',     // chosen page builder id ('' = wizard not run)
@@ -78,6 +82,7 @@ class Velox_Settings {
 
 			// ---- Cookie banner ----
 			'cookie_layout'            => 'bar-bottom',   // bar-bottom | box-bl | box-br | modal-center
+			'cookie_animation'         => 'slide-up',     // slide-up (default) | slide-down | fade | zoom | slide-left | slide-right | none
 			'cookie_cat_analytics'     => true,
 			'cookie_cat_marketing'     => true,
 			'cookie_consent_mode'      => true,           // Google Consent Mode v2
@@ -154,6 +159,7 @@ class Velox_Settings {
 			'mail_smtp_enabled'   => false,
 			'mail_from_name'      => '',     // overrides the default "WordPress" sender name
 			'mail_from_email'     => '',     // overrides the default wordpress@domain sender address
+			'mail_reply_templates' => '',   // JSON array of saved reply templates
 			'mail_smtp_host'      => '',
 			'mail_smtp_port'      => 587,
 			'mail_smtp_secure'    => 'tls',  // tls | ssl | none

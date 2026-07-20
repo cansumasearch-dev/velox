@@ -56,6 +56,27 @@ $s  = Velox_Settings::all();
 					</select>
 				</div>
 				<div class="velox-field">
+					<span class="velox-field-label">Entrance animation</span>
+					<select class="velox-select vxck-live" data-setting="cookie_animation" id="ck-animation">
+						<?php
+						$ck_anim  = isset( $s['cookie_animation'] ) ? $s['cookie_animation'] : 'slide-up';
+						$ck_anims = array(
+							'slide-up'    => 'Slide up from bottom (default)',
+							'slide-down'  => 'Slide down from top',
+							'fade'        => 'Fade in',
+							'zoom'        => 'Zoom in',
+							'slide-left'  => 'Slide in from left',
+							'slide-right' => 'Slide in from right',
+							'none'        => 'No animation',
+						);
+						foreach ( $ck_anims as $v => $l ) {
+							printf( '<option value="%s"%s>%s</option>', esc_attr( $v ), selected( $ck_anim, $v, false ), esc_html( $l ) );
+						}
+						?>
+					</select>
+					<span class="velox-hint">Plays when the banner first appears on the live site.</span>
+				</div>
+				<div class="velox-field">
 					<span class="velox-field-label">Placement (mobile)</span>
 					<select class="velox-select vxck-live" data-setting="cookie_layout_mobile" id="ck-layout-mobile">
 						<?php

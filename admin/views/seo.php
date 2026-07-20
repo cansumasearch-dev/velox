@@ -85,9 +85,32 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 				</div>
 				<div class="velox-smap-optrow"><span class="velox-smap-optlabel">Priority</span><input type="number" class="velox-input velox-input--sm" id="velox-smap-priority" data-setting="seo_sitemap_priority" value="<?php echo esc_attr( $s['seo_sitemap_priority'] ); ?>" min="0" max="1" step="0.1" style="max-width:80px;"></div>
 			</div>
+			<?php
+			$vx_smap_style  = isset( $s['seo_sitemap_style'] ) ? $s['seo_sitemap_style'] : 'none';
+			$vx_smap_styles = array( 'none' => 'Classic', 'clean' => 'Clean', 'dark' => 'Dark', 'minimal' => 'Minimal', 'custom' => 'Custom' );
+			?>
+			<div class="velox-smap-styles">
+				<span class="velox-smap-optlabel" style="width:100%;">Sitemap appearance <span class="velox-hint" style="font-weight:400;">— how sitemap.xml looks when opened in a browser. Search engines still read the plain XML.</span></span>
+				<div class="velox-smap-stylecards">
+					<?php foreach ( $vx_smap_styles as $vx_k => $vx_lbl ) : ?>
+						<button type="button" class="velox-smap-style<?php echo $vx_smap_style === $vx_k ? ' is-active' : ''; ?>" data-style="<?php echo esc_attr( $vx_k ); ?>">
+							<span class="velox-smap-sw velox-smap-sw--<?php echo esc_attr( $vx_k ); ?>"></span>
+							<span class="velox-smap-style-name"><?php echo esc_html( $vx_lbl ); ?></span>
+							<?php if ( 'none' === $vx_k ) : ?><span class="velox-smap-style-note">Default</span><?php endif; ?>
+						</button>
+					<?php endforeach; ?>
+				</div>
+			</div>
+			<div class="velox-smap-custom" id="velox-smap-custom"<?php echo 'custom' === $vx_smap_style ? '' : ' hidden'; ?>>
+				<span class="velox-smap-optlabel">Custom</span>
+				<label class="velox-smap-cf"><span>Accent</span><input type="color" id="velox-smap-accent" data-setting="seo_sitemap_accent" value="<?php echo esc_attr( $s['seo_sitemap_accent'] ); ?>"></label>
+				<label class="velox-smap-cf"><span>Heading</span><input type="text" class="velox-input velox-input--sm" id="velox-smap-heading" data-setting="seo_sitemap_heading" value="<?php echo esc_attr( $s['seo_sitemap_heading'] ); ?>" style="max-width:160px;"></label>
+				<label class="velox-smap-cf"><span>Show logo</span><label class="velox-switch velox-switch--sm"><input type="checkbox" id="velox-smap-logo" data-setting="seo_sitemap_logo" <?php checked( ! empty( $s['seo_sitemap_logo'] ) ); ?>><span class="velox-switch-track"></span></label></label>
+			</div>
 			<div class="velox-smap-preview-wrap">
 				<div class="velox-smap-preview-head">Live preview <span>example URLs — not your real site</span></div>
 				<pre class="velox-mono velox-smap-preview" id="velox-smap-preview"></pre>
+				<div class="velox-smap-styled" id="velox-smap-styled" hidden></div>
 			</div>
 		</div>
 

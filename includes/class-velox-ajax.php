@@ -590,9 +590,25 @@ class Velox_Ajax {
 				$res = Velox_Forms::reply(
 					isset( $_POST['id'] ) ? (int) $_POST['id'] : 0,
 					isset( $_POST['subject'] ) ? wp_unslash( $_POST['subject'] ) : '',
-					isset( $_POST['body'] ) ? wp_unslash( $_POST['body'] ) : ''
+					isset( $_POST['body'] ) ? wp_unslash( $_POST['body'] ) : '',
+					isset( $_POST['from_email'] ) ? sanitize_email( wp_unslash( $_POST['from_email'] ) ) : '',
+					isset( $_POST['from_name'] ) ? wp_unslash( $_POST['from_name'] ) : ''
 				);
 				$this->respond( $res );
+				break;
+
+			case 'mail_template_save':
+				$this->respond( Velox_Forms::save_reply_template(
+					isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '',
+					isset( $_POST['subject'] ) ? wp_unslash( $_POST['subject'] ) : '',
+					isset( $_POST['body'] ) ? wp_unslash( $_POST['body'] ) : ''
+				) );
+				break;
+
+			case 'mail_template_delete':
+				wp_send_json_success( Velox_Forms::delete_reply_template(
+					isset( $_POST['id'] ) ? wp_unslash( $_POST['id'] ) : ''
+				) );
 				break;
 
 			case 'mail_test':
@@ -753,6 +769,14 @@ class Velox_Ajax {
 			case 'seo_sitemap_generate':
 				$ok = Velox_Seo::generate_sitemap();
 				wp_send_json_success( Velox_Seo::sitemap_stats() + array( 'generated' => $ok ) );
+
+			case 'seo_sitemap_preview':
+				$all = Velox_Seo::sitemap_entries( 200 );
+				wp_send_json_success( array(
+					'entries' => array_slice( $all, 0, 150 ),
+					'total'   => count( $all ),
+					'home'    => trailingslashit( home_url( '/' ) ),
+				) );
 				break;
 
 			case 'seo_apply_recommended':

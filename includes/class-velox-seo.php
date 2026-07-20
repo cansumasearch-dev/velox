@@ -441,13 +441,41 @@ class Velox_Seo {
 		if ( ! Velox_Settings::get( 'module_seo', true ) || ! Velox_Settings::get( 'seo_sitemap_enable', true ) ) {
 			return false;
 		}
+		$xml   = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
+		$style = (string) Velox_Settings::get( 'seo_sitemap_style', 'none' );
+		if ( 'none' !== $style ) {
+			self::write_sitemap_xsl( $style );
+			$xml .= '<?xml-stylesheet type="text/xsl" href="' . esc_url( home_url( '/velox-sitemap.xsl' ) ) . '"?>' . PHP_EOL;
+		} else {
+			$xsl = ABSPATH . 'velox-sitemap.xsl';
+			if ( file_exists( $xsl ) ) { @unlink( $xsl ); } // phpcs:ignore
+		}
+		$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . PHP_EOL;
+		foreach ( self::sitemap_entries() as $e ) {
+			$xml .= self::sitemap_url( $e['loc'], $e['lastmod'], $e['priority'], $e['changefreq'] );
+		}
+		$xml .= '</urlset>';
+
+		return (bool) @file_put_contents( ABSPATH . 'sitemap.xml', $xml ); // phpcs:ignore
+	}
+
+	/**
+	 * The real sitemap entries — home first, then the included post types (A–Z),
+	 * honouring the per-page exclude and noindex meta. This is the single source of
+	 * truth: both the written sitemap.xml and the admin live preview use it, so the
+	 * preview matches the real site exactly. Pass a $limit to cap it for the preview.
+	 *
+	 * @return array<int,array{loc:string,lastmod:string,priority:string,changefreq:string}>
+	 */
+	public static function sitemap_entries( $limit = 0 ) {
+		if ( ! Velox_Settings::get( 'module_seo', true ) || ! Velox_Settings::get( 'seo_sitemap_enable', true ) ) {
+			return array();
+		}
 		$homepage_id  = (int) get_option( 'page_on_front' );
 		$homepage_url = trailingslashit( home_url( '/' ) );
+		$changefreq   = (string) Velox_Settings::get( 'seo_sitemap_changefreq', 'weekly' );
+		$priority     = (string) Velox_Settings::get( 'seo_sitemap_priority', '0.7' );
 
-		$changefreq = (string) Velox_Settings::get( 'seo_sitemap_changefreq', 'weekly' );
-		$priority   = (string) Velox_Settings::get( 'seo_sitemap_priority', '0.7' );
-
-		// Which post types are included, from the settings toggles.
 		$type_map = array( 'post' => 'seo_sitemap_posts', 'page' => 'seo_sitemap_pages', 'product' => 'seo_sitemap_products' );
 		$types    = array();
 		foreach ( self::POST_TYPES as $pt ) {
@@ -456,47 +484,99 @@ class Velox_Seo {
 			}
 		}
 
-		$xml  = '<?xml version="1.0" encoding="UTF-8"?>' . PHP_EOL;
-		$xml .= '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">' . PHP_EOL;
-
+		$entries = array();
 		if ( (bool) Velox_Settings::get( 'seo_sitemap_home', true ) && $homepage_id && 'publish' === get_post_status( $homepage_id ) && '1' !== (string) get_post_meta( $homepage_id, 'sitemap_exclude', true ) ) {
-			$xml .= self::sitemap_url( $homepage_url, get_the_modified_date( 'c', $homepage_id ), '1.0', $changefreq );
+			$entries[] = array( 'loc' => $homepage_url, 'lastmod' => (string) get_the_modified_date( 'c', $homepage_id ), 'priority' => '1.0', 'changefreq' => $changefreq );
 		}
-
-		if ( empty( $types ) ) {
-			$xml .= '</urlset>';
-			return (bool) @file_put_contents( ABSPATH . 'sitemap.xml', $xml ); // phpcs:ignore
-		}
-
-		$q = new WP_Query( array(
-			'post_type'      => $types,
-			'posts_per_page' => -1,
-			'post_status'    => 'publish',
-			'orderby'        => 'title',
-			'order'          => 'ASC',
-			'no_found_rows'  => true,
-		) );
-		if ( $q->have_posts() ) {
-			while ( $q->have_posts() ) {
-				$q->the_post();
-				$pid = get_the_ID();
-				$url = trailingslashit( get_permalink() );
-				if ( $url === $homepage_url ) {
-					continue;
+		if ( ! empty( $types ) ) {
+			$q = new WP_Query( array(
+				'post_type'      => $types,
+				'posts_per_page' => $limit > 0 ? (int) $limit : -1,
+				'post_status'    => 'publish',
+				'orderby'        => 'title',
+				'order'          => 'ASC',
+				'no_found_rows'  => true,
+			) );
+			if ( $q->have_posts() ) {
+				while ( $q->have_posts() ) {
+					$q->the_post();
+					$pid = get_the_ID();
+					$url = trailingslashit( get_permalink() );
+					if ( $url === $homepage_url ) { continue; }
+					if ( '1' === (string) get_post_meta( $pid, 'sitemap_exclude', true ) ) { continue; }
+					if ( '1' === (string) get_post_meta( $pid, '_velox_seo_noindex', true ) ) { continue; }
+					$entries[] = array( 'loc' => $url, 'lastmod' => (string) get_the_modified_date( 'c' ), 'priority' => $priority, 'changefreq' => $changefreq );
 				}
-				if ( '1' === (string) get_post_meta( $pid, 'sitemap_exclude', true ) ) {
-					continue;
-				}
-				if ( '1' === (string) get_post_meta( $pid, '_velox_seo_noindex', true ) ) {
-					continue; // noindex pages don't belong in the sitemap
-				}
-				$xml .= self::sitemap_url( $url, get_the_modified_date( 'c' ), $priority, $changefreq );
+				wp_reset_postdata();
 			}
-			wp_reset_postdata();
 		}
-		$xml .= '</urlset>';
+		return $entries;
+	}
 
-		return (bool) @file_put_contents( ABSPATH . 'sitemap.xml', $xml );
+	/**
+	 * Write the XSL stylesheet that styles how sitemap.xml renders in a browser.
+	 * Search engines ignore it and read the raw XML; this is purely cosmetic for people.
+	 */
+	private static function write_sitemap_xsl( $style ) {
+		$accent  = (string) Velox_Settings::get( 'seo_sitemap_accent', '#2ab7f1' );
+		$heading = wp_strip_all_tags( (string) Velox_Settings::get( 'seo_sitemap_heading', 'XML Sitemap' ) );
+		$logo_on = (bool) Velox_Settings::get( 'seo_sitemap_logo', true );
+		if ( ! preg_match( '/^#[0-9a-fA-F]{3,8}$/', $accent ) ) { $accent = '#2ab7f1'; }
+		if ( '' === $heading ) { $heading = 'XML Sitemap'; }
+
+		switch ( $style ) {
+			case 'dark':
+				$bg = '#1d1f21'; $fg = '#d3dbe2'; $muted = '#8b96a0'; $border = 'rgba(255,255,255,.09)'; $thbg = '#22262a'; $link = '#7ec7ff'; $bar = $accent; break;
+			case 'minimal':
+				$bg = '#ffffff'; $fg = '#1d1d1f'; $muted = '#6e6e73'; $border = '#eeeeee'; $thbg = '#fafafa'; $link = '#0f7ab5'; $bar = 'transparent'; break;
+			case 'custom':
+			case 'clean':
+			default:
+				$bg = '#ffffff'; $fg = '#1d1d1f'; $muted = '#6e6e73'; $border = '#eeeeee'; $thbg = '#f5f7f9'; $link = '#0f7ab5'; $bar = $accent; break;
+		}
+
+		$brand = '';
+		if ( $logo_on ) {
+			$logo_id  = (int) get_theme_mod( 'custom_logo' );
+			$logo_src = $logo_id ? wp_get_attachment_image_url( $logo_id, 'medium' ) : '';
+			$brand    = $logo_src
+				? '<img src="' . esc_url( $logo_src ) . '" alt="" style="height:30px;width:auto;margin-bottom:8px;display:block;"/>'
+				: '<div style="font-size:12px;font-weight:600;color:' . $muted . ';margin-bottom:4px;">' . esc_html( get_bloginfo( 'name' ) ) . '</div>';
+		}
+
+		$css = 'body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:' . $bg . ';color:' . $fg . ';}'
+			. '.vx-wrap{max-width:1040px;margin:0 auto;padding:0 20px 40px;}'
+			. 'header.vx-h{padding:22px 0 18px;border-bottom:3px solid ' . $bar . ';margin-bottom:6px;}'
+			. 'h1{font-size:20px;margin:0;font-weight:600;}'
+			. '.vx-sub{color:' . $muted . ';font-size:13px;margin-top:4px;}'
+			. 'table{width:100%;border-collapse:collapse;font-size:13px;}'
+			. 'th{text-align:left;background:' . $thbg . ';color:' . $muted . ';padding:10px 12px;font-weight:600;}'
+			. 'td{padding:9px 12px;border-top:1px solid ' . $border . ';vertical-align:top;}'
+			. 'a{color:' . $link . ';text-decoration:none;}a:hover{text-decoration:underline;}'
+			. '.vx-num{color:' . $muted . ';white-space:nowrap;}';
+
+		$xsl = '<?xml version="1.0" encoding="UTF-8"?>' . "\n"
+			. '<xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:s="http://www.sitemaps.org/schemas/sitemap/0.9">' . "\n"
+			. '<xsl:output method="html" encoding="UTF-8" indent="yes"/>' . "\n"
+			. '<xsl:template match="/">' . "\n"
+			. '<html><head><meta charset="UTF-8"/><title>' . esc_html( $heading ) . '</title><style>' . $css . '</style></head>'
+			. '<body><div class="vx-wrap">'
+			. '<header class="vx-h">' . $brand . '<h1>' . esc_html( $heading ) . '</h1>'
+			. '<div class="vx-sub">Generated by Velox &#183; <xsl:value-of select="count(s:urlset/s:url)"/> URLs</div></header>'
+			. '<table><thead><tr><th>URL</th><th>Priority</th><th>Change frequency</th><th>Last modified</th></tr></thead><tbody>'
+			. '<xsl:for-each select="s:urlset/s:url">'
+			. '<tr>'
+			. '<td><a href="{s:loc}"><xsl:value-of select="s:loc"/></a></td>'
+			. '<td class="vx-num"><xsl:value-of select="s:priority"/></td>'
+			. '<td class="vx-num"><xsl:value-of select="s:changefreq"/></td>'
+			. '<td class="vx-num"><xsl:value-of select="s:lastmod"/></td>'
+			. '</tr>'
+			. '</xsl:for-each>'
+			. '</tbody></table>'
+			. '</div></body></html>'
+			. '</xsl:template></xsl:stylesheet>';
+
+		return (bool) @file_put_contents( ABSPATH . 'velox-sitemap.xsl', $xsl ); // phpcs:ignore
 	}
 
 	private static function sitemap_url( $loc, $lastmod, $priority = '', $changefreq = '' ) {

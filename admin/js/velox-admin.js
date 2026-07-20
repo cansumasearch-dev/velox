@@ -3643,14 +3643,6 @@
 					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="done">' + ( done ? 'Reopen' : 'Mark done' ) + '</button>' +
 					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="delete">Delete</button>' +
 				'</div>' +
-				'<div class="vmail-reply" id="vmail-reply" hidden>' +
-					'<input type="text" class="velox-input vmail-reply-subj" id="vmail-reply-subj" value="Re: ' + escapeHtml( sub.form_title || '' ) + '">' +
-					'<textarea class="velox-textarea vmail-reply-body" id="vmail-reply-body" rows="5" placeholder="Write your reply to ' + escapeHtml( email ) + '…"></textarea>' +
-					'<div class="vmail-reply-foot">' +
-						'<button type="button" class="velox-btn velox-btn--primary" data-act="reply-send">Send reply</button>' +
-						'<button type="button" class="velox-btn velox-btn--ghost" data-act="reply-cancel">Cancel</button>' +
-					'</div>' +
-				'</div>' +
 				'<dl class="vmail-d-dl">' + rows + '</dl>';
 		}
 
@@ -3719,24 +3711,7 @@
 			var id = current.id;
 			var itemEl = list.querySelector( '.vmail-inbox-item[data-id="' + id + '"]' );
 			if ( 'reply' === act ) {
-				var box = $( '#vmail-reply' ); if ( box ) { box.hidden = false; var t = $( '#vmail-reply-body' ); if ( t ) { t.focus(); } }
-			} else if ( 'reply-cancel' === act ) {
-				var bx = $( '#vmail-reply' ); if ( bx ) { bx.hidden = true; }
-			} else if ( 'reply-send' === act ) {
-				var subj = ( $( '#vmail-reply-subj' ) || {} ).value || '';
-				var body = ( $( '#vmail-reply-body' ) || {} ).value || '';
-				if ( ! body.trim() ) { toast( 'Write a reply first.', 'error' ); return; }
-				b.disabled = true;
-				api( 'submission_reply', { id: id, subject: subj, body: body } )
-					.then( function ( r ) {
-						toast( 'Reply sent to ' + ( r.to || 'recipient' ) + '.' );
-						if ( itemEl ) { itemEl.setAttribute( 'data-read', '1' ); itemEl.classList.remove( 'is-unread' ); itemEl.setAttribute( 'data-status', 'done' ); }
-						current.status = 'done'; updateUnreadCount(); applyFilter();
-						var bx2 = $( '#vmail-reply' ); if ( bx2 ) { bx2.hidden = true; }
-						var dn = detail.querySelector( '[data-act="done"]' ); if ( dn ) { dn.textContent = 'Reopen'; }
-					} )
-					.catch( function ( err ) { toast( err.message, 'error' ); } )
-					.then( function () { b.disabled = false; } );
+				openReplyModal( current );
 			} else if ( 'pin' === act ) {
 				var pon = ! current.pinned; current.pinned = pon;
 				b.textContent = pon ? 'Unpin' : 'Pin';
@@ -3762,6 +3737,148 @@
 				activeFilter = b.getAttribute( 'data-filter' );
 				applyFilter();
 			} );
+		}
+
+		// ===== Reply composer modal =====
+		var replyModal = $( '#vmail-reply-modal' );
+		var replyFor = null;
+		function openReplyModal( sub ) {
+			if ( ! replyModal ) { return; }
+			replyFor = sub;
+			var t = $( '#vmail-reply-title' ); if ( t ) { t.textContent = 'Reply to ' + ( sub.who || 'submission' ); }
+			var s = $( '#vmail-reply-sub' ); if ( s ) { s.textContent = ( sub.form_title || '' ) + ( sub.email ? '  ·  ' + sub.email : '' ); }
+			var av = $( '#vmail-reply-avatar' ); if ( av ) { av.textContent = initials( sub.who ); }
+			var to = $( '#vmail-reply-to' ); if ( to ) { to.value = sub.email || ''; }
+			var subj = $( '#vmail-reply-subject' ); if ( subj ) { subj.value = 'Re: ' + ( sub.form_title || '' ); }
+			var body = $( '#vmail-reply-body' ); if ( body ) { body.innerHTML = ''; }
+			var tpl = $( '#vmail-reply-tpl' ); if ( tpl ) { tpl.value = ''; }
+			var from = $( '#vmail-reply-from' ); if ( from ) { from.value = 'account'; }
+			var cr = $( '#vmail-reply-customrow' ); if ( cr ) { cr.hidden = true; }
+			replyModal.hidden = false;
+			setTimeout( function () { if ( body ) { body.focus(); } }, 30 );
+		}
+		function closeReplyModal() { if ( replyModal ) { replyModal.hidden = true; } }
+		function insertReplyImage() {
+			var body = $( '#vmail-reply-body' );
+			if ( window.wp && window.wp.media ) {
+				var frame = window.wp.media( { title: 'Insert image', multiple: false, library: { type: 'image' }, button: { text: 'Insert' } } );
+				frame.on( 'select', function () {
+					var att = frame.state().get( 'selection' ).first().toJSON();
+					var url = ( att.sizes && att.sizes.large ) ? att.sizes.large.url : att.url;
+					if ( url && body ) { body.focus(); document.execCommand( 'insertImage', false, url ); }
+				} );
+				frame.open();
+			} else {
+				var url = window.prompt( 'Image URL (must be publicly accessible)' );
+				if ( url && body ) { body.focus(); document.execCommand( 'insertImage', false, url ); }
+			}
+		}
+		if ( replyModal ) {
+			replyModal.querySelectorAll( '.vmail-tb-btn[data-cmd]' ).forEach( function ( btn ) {
+				btn.addEventListener( 'click', function ( e ) {
+					e.preventDefault();
+					var cmd = btn.getAttribute( 'data-cmd' );
+					var body = $( '#vmail-reply-body' ); if ( body ) { body.focus(); }
+					if ( 'createLink' === cmd ) {
+						var url = window.prompt( 'Link URL' ); if ( url ) { document.execCommand( 'createLink', false, url ); }
+					} else if ( 'insertImage' === cmd ) {
+						insertReplyImage();
+					} else {
+						document.execCommand( cmd, false, null );
+					}
+				} );
+			} );
+			var colorInput = $( '#vmail-reply-color' );
+			if ( colorInput ) {
+				colorInput.addEventListener( 'input', function () {
+					var body = $( '#vmail-reply-body' ); if ( body ) { body.focus(); }
+					document.execCommand( 'foreColor', false, colorInput.value );
+				} );
+			}
+			var fromSel = $( '#vmail-reply-from' );
+			if ( fromSel ) {
+				fromSel.addEventListener( 'change', function () {
+					var cr = $( '#vmail-reply-customrow' );
+					if ( cr ) { cr.hidden = ( 'custom' !== fromSel.value ); }
+					if ( 'custom' === fromSel.value ) { var ci = $( '#vmail-reply-fromcustom' ); if ( ci ) { ci.focus(); } }
+				} );
+			}
+			var tplSel = $( '#vmail-reply-tpl' );
+			if ( tplSel ) {
+				tplSel.addEventListener( 'change', function () {
+					var opt = tplSel.options[ tplSel.selectedIndex ];
+					if ( ! opt || ! opt.value ) { return; }
+					var subj = opt.getAttribute( 'data-subject' ) || '';
+					var body = opt.getAttribute( 'data-body' ) || '';
+					if ( subj ) { var s = $( '#vmail-reply-subject' ); if ( s ) { s.value = subj; } }
+					var b = $( '#vmail-reply-body' ); if ( b ) { b.innerHTML = body; }
+				} );
+			}
+			var saveTpl = $( '#vmail-reply-savetpl' );
+			if ( saveTpl ) {
+				saveTpl.addEventListener( 'click', function () {
+					var name = window.prompt( 'Template name' ); if ( ! name ) { return; }
+					var subj = ( $( '#vmail-reply-subject' ) || {} ).value || '';
+					var body = ( $( '#vmail-reply-body' ) || {} ).innerHTML || '';
+					saveTpl.disabled = true;
+					api( 'mail_template_save', { name: name, subject: subj, body: body } )
+						.then( function ( r ) {
+							toast( 'Template saved.' );
+							var sel = $( '#vmail-reply-tpl' );
+							var tpls = r.templates || [];
+							var last = tpls[ tpls.length - 1 ];
+							if ( sel && last ) {
+								var o = document.createElement( 'option' );
+								o.value = last.id; o.textContent = last.name;
+								o.setAttribute( 'data-subject', last.subject || '' );
+								o.setAttribute( 'data-body', last.body || '' );
+								sel.appendChild( o );
+							}
+						} )
+						.catch( function ( e ) { toast( e.message, 'error' ); } )
+						.then( function () { saveTpl.disabled = false; } );
+				} );
+			}
+			var sendBtn = $( '#vmail-reply-send' );
+			if ( sendBtn ) {
+				sendBtn.addEventListener( 'click', function () {
+					if ( ! replyFor ) { return; }
+					var bodyEl = $( '#vmail-reply-body' );
+					if ( ! bodyEl || ! bodyEl.textContent.trim() ) { toast( 'Write a reply first.', 'error' ); return; }
+					var payload = {
+						id: replyFor.id,
+						subject: ( $( '#vmail-reply-subject' ) || {} ).value || '',
+						body: bodyEl.innerHTML || ''
+					};
+					var fromChoice = ( $( '#vmail-reply-from' ) || {} ).value || 'account';
+					if ( 'account' === fromChoice ) {
+						var opt = $( '#vmail-reply-from' ).options[ 0 ];
+						payload.from_email = opt.getAttribute( 'data-email' ) || '';
+						payload.from_name = opt.getAttribute( 'data-name' ) || '';
+					} else {
+						payload.from_email = ( $( '#vmail-reply-fromcustom' ) || {} ).value || '';
+						payload.from_name = '';
+					}
+					var id = replyFor.id;
+					var itemEl = list.querySelector( '.vmail-inbox-item[data-id="' + id + '"]' );
+					sendBtn.disabled = true;
+					api( 'submission_reply', payload )
+						.then( function ( r ) {
+							toast( 'Reply sent to ' + ( r.to || 'recipient' ) + '.' );
+							if ( itemEl ) { itemEl.setAttribute( 'data-read', '1' ); itemEl.classList.remove( 'is-unread' ); itemEl.setAttribute( 'data-status', 'done' ); }
+							if ( current && current.id === id ) { current.status = 'done'; var dn = detail.querySelector( '[data-act="done"]' ); if ( dn ) { dn.textContent = 'Reopen'; } }
+							updateUnreadCount(); applyFilter();
+							closeReplyModal();
+						} )
+						.catch( function ( e ) { toast( e.message, 'error' ); } )
+						.then( function () { sendBtn.disabled = false; } );
+				} );
+			}
+			var closeX = $( '#vmail-reply-close' ), cancelBtn = $( '#vmail-reply-cancel' );
+			if ( closeX ) { closeX.addEventListener( 'click', closeReplyModal ); }
+			if ( cancelBtn ) { cancelBtn.addEventListener( 'click', closeReplyModal ); }
+			replyModal.addEventListener( 'click', function ( e ) { if ( e.target === replyModal ) { closeReplyModal(); } } );
+			document.addEventListener( 'keydown', function ( e ) { if ( 'Escape' === e.key && ! replyModal.hidden ) { closeReplyModal(); } } );
 		}
 
 		// Auto-open the first submission so the panel isn't empty on load.
@@ -5760,18 +5877,38 @@
 				if ( priority ) { o += '    <priority>' + priority + '</priority>\n'; }
 				return o + '  </url>\n';
 			}
-			function buildSmap() {
-				var g = function ( id ) { return document.getElementById( id ); };
-				var cf = g( 'velox-smap-changefreq' ).value;
-				var pr = g( 'velox-smap-priority' ).value;
+			var smapEntries = null; // null until loaded from the server; then the real entries
+			var smapTotal = 0;
+			function smapG( id ) { return document.getElementById( id ); }
+			function smapExample() {
 				var today = new Date().toISOString().slice( 0, 10 );
+				var cf = ( smapG( 'velox-smap-changefreq' ) || {} ).value || 'weekly';
+				var pr = ( smapG( 'velox-smap-priority' ) || {} ).value || '0.7';
+				var out = [];
+				if ( smapG( 'velox-smap-home' ) && smapG( 'velox-smap-home' ).checked ) { out.push( { loc: 'https://example.com/', priority: '1.0', changefreq: cf, lastmod: today } ); }
+				if ( smapG( 'velox-smap-pages' ) && smapG( 'velox-smap-pages' ).checked ) { out.push( { loc: 'https://example.com/about/', priority: pr, changefreq: cf, lastmod: today }, { loc: 'https://example.com/contact/', priority: pr, changefreq: cf, lastmod: today } ); }
+				if ( smapG( 'velox-smap-posts' ) && smapG( 'velox-smap-posts' ).checked ) { out.push( { loc: 'https://example.com/blog/sample-post/', priority: pr, changefreq: cf, lastmod: today } ); }
+				if ( smapG( 'velox-smap-products' ) && smapG( 'velox-smap-products' ).checked ) { out.push( { loc: 'https://example.com/product/sample-product/', priority: pr, changefreq: cf, lastmod: today } ); }
+				return out;
+			}
+			function smapList() { return ( null !== smapEntries ) ? smapEntries : smapExample(); }
+			function loadSmapEntries() {
+				api( 'seo_sitemap_preview', {} )
+					.then( function ( r ) { smapEntries = ( r && r.entries ) ? r.entries : []; smapTotal = r ? ( r.total || smapEntries.length ) : smapEntries.length; updateSmapView(); } )
+					.catch( function () { updateSmapView(); } );
+			}
+			function buildSmap() {
+				var list = smapList();
 				var xml = '<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n';
-				if ( g( 'velox-smap-home' ).checked ) { xml += smapUrl( 'https://example.com/', '1.0', cf, today ); }
-				if ( g( 'velox-smap-pages' ).checked ) { xml += smapUrl( 'https://example.com/about/', pr, cf, today ) + smapUrl( 'https://example.com/contact/', pr, cf, today ); }
-				if ( g( 'velox-smap-posts' ).checked ) { xml += smapUrl( 'https://example.com/blog/sample-post/', pr, cf, today ); }
-				if ( g( 'velox-smap-products' ).checked ) { xml += smapUrl( 'https://example.com/product/sample-product/', pr, cf, today ); }
+				list.forEach( function ( e ) { xml += smapUrl( e.loc, e.priority, e.changefreq, ( e.lastmod || '' ).slice( 0, 10 ) ); } );
+				if ( ! list.length ) { xml += '  <!-- no URLs: turn on a section above -->\n'; }
 				xml += '</urlset>';
-				smapPreview.textContent = xml;
+				var esc = xml.replace( /&/g, '&amp;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' );
+				esc = esc.replace( /(&lt;\?[^]*?\?&gt;)/g, '<span class="vx-xml-decl">$1</span>' );
+				esc = esc.replace( /(&lt;!--[^]*?--&gt;)/g, '<span class="vx-xml-val">$1</span>' );
+				esc = esc.replace( /(&lt;\/?[a-zA-Z][^&]*?&gt;)/g, '<span class="vx-xml-tag">$1</span>' );
+				esc = esc.replace( /(&gt;<\/span>)([^<\n]+)(<span class="vx-xml-tag">&lt;\/)/g, '$1<span class="vx-xml-val">$2</span>$3' );
+				smapPreview.innerHTML = esc;
 			}
 			[ 'velox-smap-home', 'velox-smap-posts', 'velox-smap-pages', 'velox-smap-products', 'velox-smap-changefreq', 'velox-smap-priority' ].forEach( function ( id ) {
 				var elc = document.getElementById( id );
@@ -5780,12 +5917,91 @@
 					var key = elc.getAttribute( 'data-setting' );
 					var val = 'checkbox' === elc.type ? ( elc.checked ? 1 : 0 ) : elc.value;
 					var p = {}; p[ key ] = val;
-					saveSettings( p, 'Sitemap settings saved.' );
-					buildSmap();
+					saveSettings( p, 'Sitemap settings saved.' ).then( loadSmapEntries );
 				} );
-				if ( 'checkbox' !== elc.type ) { elc.addEventListener( 'input', buildSmap ); }
+				if ( 'checkbox' !== elc.type ) { elc.addEventListener( 'input', function () { updateSmapView(); } ); }
 			} );
-			buildSmap();
+
+			// ---- Sitemap appearance (style picker + custom + styled preview) ----
+			var smapStyled = document.getElementById( 'velox-smap-styled' );
+			var smapWrap = smapPreview ? smapPreview.parentNode : null;
+			var currentStyle = 'none';
+			var activeCard = document.querySelector( '.velox-smap-style.is-active' );
+			if ( activeCard ) { currentStyle = activeCard.getAttribute( 'data-style' ); }
+
+			function styledPalette( style ) {
+				var accent = ( document.getElementById( 'velox-smap-accent' ) || {} ).value || '#2ab7f1';
+				if ( 'dark' === style ) { return { bg: '#1d1f21', fg: '#d3dbe2', muted: '#8b96a0', border: 'rgba(255,255,255,.09)', thbg: '#22262a', link: '#7ec7ff', bar: accent }; }
+				if ( 'minimal' === style ) { return { bg: '#fff', fg: '#1d1d1f', muted: '#6e6e73', border: '#eee', thbg: '#fafafa', link: '#0f7ab5', bar: 'transparent' }; }
+				return { bg: '#fff', fg: '#1d1d1f', muted: '#6e6e73', border: '#eee', thbg: '#f5f7f9', link: '#0f7ab5', bar: accent };
+			}
+			function renderStyledPreview( style ) {
+				if ( ! smapStyled ) { return; }
+				var p = styledPalette( style );
+				var heading = ( document.getElementById( 'velox-smap-heading' ) || {} ).value || 'XML Sitemap';
+				var list = smapList();
+				var total = ( null !== smapEntries ) ? smapTotal : list.length;
+				var body = list.map( function ( e ) {
+					var lm = ( e.lastmod || '' ).slice( 0, 10 );
+					return '<tr><td style="padding:9px 14px;border-top:1px solid ' + p.border + ';word-break:break-all;"><a href="' + escapeHtml( e.loc ) + '" style="color:' + p.link + ';text-decoration:none;">' + escapeHtml( e.loc ) + '</a></td>' +
+						'<td style="padding:9px 12px;border-top:1px solid ' + p.border + ';color:' + p.muted + ';">' + escapeHtml( e.priority || '' ) + '</td>' +
+						'<td style="padding:9px 12px;border-top:1px solid ' + p.border + ';color:' + p.muted + ';">' + escapeHtml( e.changefreq || '' ) + '</td>' +
+						'<td style="padding:9px 14px;border-top:1px solid ' + p.border + ';color:' + p.muted + ';white-space:nowrap;">' + escapeHtml( lm ) + '</td></tr>';
+				} ).join( '' );
+				if ( ! list.length ) { body = '<tr><td colspan="4" style="padding:16px 14px;color:' + p.muted + ';">No URLs — turn on a section above.</td></tr>'; }
+				var moreNote = ( total > list.length ) ? '<div style="padding:10px 16px;font-size:12px;color:' + p.muted + ';border-top:1px solid ' + p.border + ';">Showing first ' + list.length + ' of ' + total + ' URLs.</div>' : '';
+				smapStyled.style.background = p.bg;
+				smapStyled.innerHTML = '<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;color:' + p.fg + ';">' +
+					'<div style="padding:18px 16px 16px;border-bottom:3px solid ' + p.bar + ';">' +
+						'<div style="font-size:18px;font-weight:600;">' + escapeHtml( heading ) + '</div>' +
+						'<div style="font-size:12px;color:' + p.muted + ';margin-top:3px;">Generated by Velox · ' + total + ' URLs</div>' +
+					'</div>' +
+					'<table style="width:100%;border-collapse:collapse;font-size:12.5px;table-layout:fixed;">' +
+						'<thead><tr style="background:' + p.thbg + ';color:' + p.muted + ';text-align:left;">' +
+						'<th style="padding:9px 14px;">URL</th><th style="padding:9px 12px;width:80px;">Priority</th><th style="padding:9px 12px;width:110px;">Change freq.</th><th style="padding:9px 14px;width:110px;">Last modified</th></tr></thead>' +
+						'<tbody>' + body + '</tbody></table>' + moreNote;
+			}
+			function updateSmapView() {
+				if ( 'none' === currentStyle ) {
+					if ( smapPreview ) { smapPreview.hidden = false; }
+					if ( smapStyled ) { smapStyled.hidden = true; }
+					if ( smapWrap ) { smapWrap.style.background = '#1d1f21'; }
+					buildSmap();
+				} else {
+					if ( smapPreview ) { smapPreview.hidden = true; }
+					if ( smapStyled ) { smapStyled.hidden = false; }
+					if ( smapWrap ) { smapWrap.style.background = '#fff'; }
+					renderStyledPreview( currentStyle );
+				}
+			}
+
+			var customBox = document.getElementById( 'velox-smap-custom' );
+			document.querySelectorAll( '.velox-smap-style' ).forEach( function ( card ) {
+				card.addEventListener( 'click', function () {
+					document.querySelectorAll( '.velox-smap-style' ).forEach( function ( c ) { c.classList.remove( 'is-active' ); } );
+					card.classList.add( 'is-active' );
+					currentStyle = card.getAttribute( 'data-style' );
+					if ( customBox ) { customBox.hidden = ( 'custom' !== currentStyle ); }
+					saveSettings( { seo_sitemap_style: currentStyle }, 'Sitemap style saved.' )
+						.then( function () { api( 'seo_sitemap_generate', {} ).catch( function () {} ); } );
+					updateSmapView();
+				} );
+			} );
+			[ 'velox-smap-accent', 'velox-smap-heading', 'velox-smap-logo' ].forEach( function ( id ) {
+				var el = document.getElementById( id );
+				if ( ! el ) { return; }
+				var handler = function () {
+					var key = el.getAttribute( 'data-setting' );
+					var val = 'checkbox' === el.type ? ( el.checked ? 1 : 0 ) : el.value;
+					var p = {}; p[ key ] = val;
+					saveSettings( p, 'Sitemap style saved.' ).then( function () { api( 'seo_sitemap_generate', {} ).catch( function () {} ); } );
+					updateSmapView();
+				};
+				el.addEventListener( 'change', handler );
+				if ( 'text' === el.type || 'color' === el.type ) { el.addEventListener( 'input', function () { updateSmapView(); } ); }
+			} );
+
+			loadSmapEntries();
 		}
 
 		var saveBtn = $( '#velox-seo-robots-save' );

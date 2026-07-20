@@ -4,6 +4,35 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.07.4 — Cookie banner entrance animations + reliable first-load display
+- Added an "Entrance animation" setting for the cookie banner: slide up from bottom (default), slide down from top, fade, zoom, slide from left/right, or none.
+- Hardened first-load display: the banner's resting state is always visible, so the animation is only a nice entrance and never what makes the banner appear. Respects prefers-reduced-motion.
+- Note: after enabling the banner, clear any page cache and delete a stale velox_consent cookie so a new visitor sees it.
+
+## 3.07.3 — Live sitemap preview uses your real URLs
+- The sitemap preview now shows your actual site — the real home, posts, pages and product URLs it will contain — instead of example.com placeholders, so it matches exactly what visitors see at /sitemap.xml (in both the plain and styled looks).
+- The written sitemap and the preview now share one source of truth, so they can never drift. Large sites show the first 150 URLs with a "showing X of N" note.
+
+## 3.07.2 — Sitemap appearance styles
+- New "Sitemap appearance" picker: choose how sitemap.xml looks when opened in a browser. Classic (plain XML) stays the default — nothing changes unless you pick a style.
+- Ready-made looks (Clean, Dark, Minimal) plus Custom (accent colour, heading text, show-logo). Velox generates the matching XSL stylesheet and the preview reflects the chosen look.
+- Search engines still read the plain XML underneath, so styling has no SEO impact.
+
+## 3.07.1 — Wider sitemap preview
+- The sitemap live preview is no longer cramped in a narrow column. The options now sit in a compact bar on top and the preview spans the full width below, taller, with XML syntax colouring (tags, values and the declaration are coloured) for a clearer read.
+
+## 3.07.0 — Reply composer
+- Replying to a submission now opens a proper composer modal with a rich-text toolbar (bold, italic, underline, text colour, link, image, bullet/numbered lists). Images are picked from the Media Library so they display in inboxes.
+- Saved reply templates: pick a template to pre-fill the reply instantly, or "Save as template" to store the current reply as a reusable canned response.
+- Choose the sender when replying — your logged-in account address, or a custom address you type; the chosen address is used as the From.
+
+## 3.06.15 — SMTP panel restyle
+- Reworked the SMTP connections layout: the cramped, misaligned save/test row is now a clean Save action plus a dedicated "Test your setup" card with evenly-aligned controls (connection picker, Test connection, recipient, Send test).
+
+## 3.06.14 — Form-name label + Media menu link
+- The form-name box in the Mail & Forms editor now has a clear "Form name" label above it, so it is obvious what it is, and is properly styled.
+- Added an "Optimize Images" entry under the WordPress Media menu (next to Library / Add Media File) that links to the Velox optimizer.
+
 ## 3.06.13 — Cloudflare setup guide moved into the plugin
 - The Cloudflare cache-clear walkthrough is now an expandable "Setup guide" right in Performance → Clear cache (install the plugin, create an API token, connect it), instead of a separate docs file.
 

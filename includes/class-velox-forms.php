@@ -1078,7 +1078,7 @@ class Velox_Forms {
 	 * Reply to a submission by emailing the person who submitted it. Sends through
 	 * Velox_Mail (so SMTP + the sender identity apply), marks the entry read + done.
 	 */
-	public static function reply( $sid, $subject, $body ) {
+	public static function reply( $sid, $subject, $body, $from_email = '', $from_name = '' ) {
 		$sub = self::submission( $sid );
 		if ( ! $sub ) {
 			return new WP_Error( 'not_found', __( 'Submission not found.', 'velox' ) );
@@ -1092,13 +1092,61 @@ class Velox_Forms {
 			$subject = 'Re: ' . $sub['form_title'];
 		}
 		$headers = array( 'Content-Type: text/html; charset=UTF-8' );
-		$ok      = Velox_Mail::send( $to, $subject, wpautop( wp_kses_post( (string) $body ) ), $headers );
+
+		// Sender: the composer sends either the logged-in account address or a
+		// custom one the user typed. A valid custom From overrides everything else.
+		$from_email = trim( (string) $from_email );
+		$from_name  = trim( wp_strip_all_tags( (string) $from_name ) );
+		if ( '' !== $from_email && is_email( $from_email ) ) {
+			$headers[] = '' !== $from_name
+				? 'From: ' . $from_name . ' <' . $from_email . '>'
+				: 'From: ' . $from_email;
+		}
+
+		// Body arrives as HTML from the rich editor; sanitize but don't re-wrap it.
+		$html = wp_kses_post( (string) $body );
+		$ok   = Velox_Mail::send( $to, $subject, $html, $headers );
 		if ( ! $ok ) {
 			return new WP_Error( 'send_failed', __( 'The reply could not be sent — check your mail settings.', 'velox' ) );
 		}
 		self::set_flag( $sid, 'read', true );
 		self::set_flag( $sid, 'done', true );
 		return array( 'ok' => true, 'to' => $to );
+	}
+
+	/* ----------------------------------------------------------------- *
+	 * Saved reply templates (canned responses)
+	 * ----------------------------------------------------------------- */
+
+	public static function reply_templates() {
+		$raw = Velox_Settings::get( 'mail_reply_templates', '' );
+		$arr = is_string( $raw ) && '' !== $raw ? json_decode( $raw, true ) : ( is_array( $raw ) ? $raw : array() );
+		return is_array( $arr ) ? array_values( $arr ) : array();
+	}
+
+	public static function save_reply_template( $name, $subject, $body ) {
+		$name = trim( wp_strip_all_tags( (string) $name ) );
+		if ( '' === $name ) {
+			return new WP_Error( 'no_name', __( 'Give the template a name.', 'velox' ) );
+		}
+		$list   = self::reply_templates();
+		$list[] = array(
+			'id'      => 'tpl_' . wp_generate_password( 8, false ),
+			'name'    => $name,
+			'subject' => trim( wp_strip_all_tags( (string) $subject ) ),
+			'body'    => wp_kses_post( (string) $body ),
+		);
+		Velox_Settings::set( 'mail_reply_templates', wp_json_encode( array_values( $list ) ) );
+		return array( 'ok' => true, 'templates' => self::reply_templates() );
+	}
+
+	public static function delete_reply_template( $id ) {
+		$id   = sanitize_text_field( (string) $id );
+		$list = array_values( array_filter( self::reply_templates(), function ( $t ) use ( $id ) {
+			return isset( $t['id'] ) && $t['id'] !== $id;
+		} ) );
+		Velox_Settings::set( 'mail_reply_templates', wp_json_encode( $list ) );
+		return array( 'ok' => true, 'templates' => $list );
 	}
 
 	/** Total entries, optionally for one form. */

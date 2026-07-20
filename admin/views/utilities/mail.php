@@ -41,7 +41,10 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<a class="vmail-nav-back" href="<?php echo esc_url( $base ); ?>" title="All forms"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
 				<div class="vmail-nav-crumb">Utilities <span>/</span> <b>Mail &amp; forms</b></div>
 				<div class="vmail-nav-vsep"></div>
-				<input type="text" class="vmail-nav-title" id="vmail-title" value="<?php echo esc_attr( $form['title'] ); ?>" placeholder="Form name">
+				<div class="vmail-nav-field">
+					<span class="vmail-nav-field-label">Form name</span>
+					<input type="text" class="vmail-nav-title" id="vmail-title" value="<?php echo esc_attr( $form['title'] ); ?>" placeholder="Untitled form">
+				</div>
 				<label class="vmail-nav-switch" title="Turn this form on or off">
 					<input type="checkbox" id="vmail-enabled" <?php checked( ! isset( $form['enabled'] ) || ! empty( $form['enabled'] ) ); ?>>
 					<span class="vmail-switch-track"></span>
@@ -323,6 +326,95 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			<?php endif; ?>
 		</div>
 
+		<?php
+		$vx_ru = wp_get_current_user();
+		$vx_reply_email = ( $vx_ru && $vx_ru->user_email ) ? $vx_ru->user_email : get_option( 'admin_email' );
+		$vx_reply_name  = ( $vx_ru && $vx_ru->display_name ) ? $vx_ru->display_name : get_bloginfo( 'name' );
+		$vx_reply_tpls  = Velox_Forms::reply_templates();
+		$vx_tb = function ( $cmd, $label, $svg, $extra = '' ) {
+			return '<button type="button" class="vmail-tb-btn" data-cmd="' . esc_attr( $cmd ) . '" title="' . esc_attr( $label ) . '" aria-label="' . esc_attr( $label ) . '"' . $extra . '><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' . $svg . '</svg></button>';
+		};
+		?>
+		<div class="vmail-modal-overlay" id="vmail-reply-modal" hidden>
+			<div class="vmail-modal" role="dialog" aria-modal="true" aria-label="Reply to submission">
+				<div class="vmail-modal-head">
+					<div class="vmail-modal-head-l">
+						<span class="vmail-avatar" id="vmail-reply-avatar" aria-hidden="true">?</span>
+						<div>
+							<div class="vmail-modal-title" id="vmail-reply-title">Reply</div>
+							<div class="vmail-modal-sub" id="vmail-reply-sub"></div>
+						</div>
+					</div>
+					<button type="button" class="vmail-modal-x" id="vmail-reply-close" aria-label="Close">
+						<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
+					</button>
+				</div>
+				<div class="vmail-modal-body">
+					<div class="vmail-rrow">
+						<label class="vmail-rlabel">From</label>
+						<select class="velox-select" id="vmail-reply-from">
+							<option value="account" data-email="<?php echo esc_attr( $vx_reply_email ); ?>" data-name="<?php echo esc_attr( $vx_reply_name ); ?>">Your account — <?php echo esc_html( $vx_reply_email ); ?></option>
+							<option value="custom">Custom address…</option>
+						</select>
+					</div>
+					<div class="vmail-rrow" id="vmail-reply-customrow" hidden>
+						<label class="vmail-rlabel"></label>
+						<input type="email" class="velox-input" id="vmail-reply-fromcustom" placeholder="name@yourdomain.com">
+						<span class="velox-hint" style="flex:none;margin:0;">shown as the sender</span>
+					</div>
+					<div class="vmail-rrow">
+						<label class="vmail-rlabel">To</label>
+						<input type="text" class="velox-input" id="vmail-reply-to" readonly>
+					</div>
+					<div class="vmail-rrow">
+						<label class="vmail-rlabel">Subject</label>
+						<input type="text" class="velox-input" id="vmail-reply-subject">
+					</div>
+					<div class="vmail-rrow vmail-rrow--tpl">
+						<label class="vmail-rlabel">Template</label>
+						<select class="velox-select" id="vmail-reply-tpl">
+							<option value="">Start blank</option>
+							<?php foreach ( $vx_reply_tpls as $t ) : ?>
+								<option value="<?php echo esc_attr( $t['id'] ); ?>" data-subject="<?php echo esc_attr( $t['subject'] ); ?>" data-body="<?php echo esc_attr( $t['body'] ); ?>"><?php echo esc_html( $t['name'] ); ?></option>
+							<?php endforeach; ?>
+						</select>
+						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-reply-savetpl">Save as template</button>
+					</div>
+					<div class="vmail-editor">
+						<div class="vmail-editor-tb">
+							<?php
+							echo $vx_tb( 'bold', 'Bold', '<path d="M6 4h8a4 4 0 0 1 0 8H6zM6 12h9a4 4 0 0 1 0 8H6z"/>' ); // phpcs:ignore
+							echo $vx_tb( 'italic', 'Italic', '<line x1="19" y1="4" x2="10" y2="4"/><line x1="14" y1="20" x2="5" y2="20"/><line x1="15" y1="4" x2="9" y2="20"/>' ); // phpcs:ignore
+							echo $vx_tb( 'underline', 'Underline', '<path d="M6 3v7a6 6 0 0 0 12 0V3"/><line x1="4" y1="21" x2="20" y2="21"/>' ); // phpcs:ignore
+							?>
+							<span class="vmail-tb-sep"></span>
+							<label class="vmail-tb-btn vmail-tb-color" title="Text colour" aria-label="Text colour">
+								<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3 4 20h3l1.6-4h6.8L18 20h3z"/><path d="M9.2 13h5.6"/></svg>
+								<input type="color" id="vmail-reply-color" value="#1d1d1f">
+							</label>
+							<?php
+							echo $vx_tb( 'createLink', 'Insert link', '<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>' ); // phpcs:ignore
+							echo $vx_tb( 'insertImage', 'Insert image', '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 16l-5-5L5 20"/>' ); // phpcs:ignore
+							?>
+							<span class="vmail-tb-sep"></span>
+							<?php
+							echo $vx_tb( 'insertUnorderedList', 'Bulleted list', '<line x1="9" y1="6" x2="20" y2="6"/><line x1="9" y1="12" x2="20" y2="12"/><line x1="9" y1="18" x2="20" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/>' ); // phpcs:ignore
+							echo $vx_tb( 'insertOrderedList', 'Numbered list', '<line x1="10" y1="6" x2="20" y2="6"/><line x1="10" y1="12" x2="20" y2="12"/><line x1="10" y1="18" x2="20" y2="18"/><path d="M4 6h1v4M4 10h2"/><path d="M4 14h2l-2 3h2"/>' ); // phpcs:ignore
+							?>
+						</div>
+						<div class="vmail-editor-body" id="vmail-reply-body" contenteditable="true" role="textbox" aria-multiline="true"></div>
+					</div>
+				</div>
+				<div class="vmail-modal-foot">
+					<span class="velox-hint" style="margin:0;">Sends through your SMTP + sender identity.</span>
+					<div class="vmail-modal-foot-btns">
+						<button type="button" class="velox-btn velox-btn--ghost" id="vmail-reply-cancel">Cancel</button>
+						<button type="button" class="velox-btn velox-btn--primary" id="vmail-reply-send">Send reply</button>
+					</div>
+				</div>
+			</div>
+		</div>
+
 		<div class="velox-section-title">Forms</div>
 		<div class="velox-panel velox-panel--flush">
 			<?php if ( empty( $forms ) ) : ?>
@@ -419,14 +511,22 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<div id="vmail-route-list" class="vmail-route-list"></div>
 			</div>
 
-			<div class="vmail-smtp-actions">
+			<div class="vmail-smtp-foot">
 				<button class="velox-btn velox-btn--primary" id="vmail-smtp-save">Save connections</button>
-				<span class="vmail-smtp-test">
-					<select class="velox-select velox-select--sm" id="vmail-test-conn" title="Test / send through this connection"></select>
-					<button class="velox-btn velox-btn--ghost" id="vmail-conn-test" title="Check the connection without sending an email">Test connection</button>
-					<input type="email" class="velox-input" id="vmail-test-to" placeholder="you@example.com">
-					<button class="velox-btn velox-btn--ghost" id="vmail-test">Send test</button>
-				</span>
+				<span class="velox-hint vmail-smtp-foot-hint">Changes apply to new mail once saved.</span>
+			</div>
+
+			<div class="vmail-smtp-testcard">
+				<div class="vmail-smtp-testcard-head">
+					<span class="vmail-smtp-testcard-title">Test your setup</span>
+					<span class="velox-hint" style="margin:0;">Check a connection, or send yourself a real email to confirm delivery.</span>
+				</div>
+				<div class="vmail-smtp-testrow">
+					<select class="velox-select vmail-smtp-testctl" id="vmail-test-conn" title="Which connection to test"></select>
+					<button class="velox-btn velox-btn--ghost vmail-smtp-testctl" id="vmail-conn-test" title="Check the connection without sending an email">Test connection</button>
+					<input type="email" class="velox-input vmail-smtp-testctl" id="vmail-test-to" placeholder="you@example.com">
+					<button class="velox-btn velox-btn--primary vmail-smtp-testctl" id="vmail-test">Send test</button>
+				</div>
 			</div>
 		</div>
 
