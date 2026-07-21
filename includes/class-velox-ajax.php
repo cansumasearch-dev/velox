@@ -252,8 +252,8 @@ class Velox_Ajax {
 			case 'util_toggle':
 				$key = isset( $_POST['key'] ) ? sanitize_key( wp_unslash( $_POST['key'] ) ) : '';
 				$on  = ! empty( $_POST['on'] ) && 'false' !== $_POST['on'];
-				// Allow any enable key declared in the utilities catalog.
-				$allowed = array();
+				// Allow any enable key declared in the utilities catalog, plus the core module toggles.
+				$allowed = array( 'module_performance', 'module_seo', 'module_images' );
 				foreach ( Velox_Utilities::catalog() as $tool ) {
 					if ( ! empty( $tool['enable'] ) ) {
 						$allowed[] = $tool['enable'];

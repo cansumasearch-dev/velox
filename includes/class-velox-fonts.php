@@ -334,22 +334,29 @@ class Velox_Fonts {
 	 * loopback — the builder's @font-face rules live in these cached files.
 	 */
 	private static function builder_css_blob() {
-		$up   = wp_upload_dir();
+		$up = wp_upload_dir();
 		if ( empty( $up['basedir'] ) ) {
 			return '';
 		}
-		$base = trailingslashit( $up['basedir'] );
-		$dirs = array( $base . 'oxygen/css', $base . 'bricks/css', $base . 'elementor/css' );
-		$blob = '';
-		foreach ( $dirs as $dir ) {
-			if ( ! is_dir( $dir ) ) {
+		$base  = trailingslashit( $up['basedir'] );
+		$roots = array( $base . 'oxygen', $base . 'bricks', $base . 'elementor/css' );
+		$blob  = '';
+		foreach ( $roots as $root ) {
+			if ( ! is_dir( $root ) ) {
 				continue;
 			}
-			$files = glob( $dir . '/*.css' );
-			foreach ( (array) $files as $file ) {
-				if ( is_readable( $file ) ) {
-					$blob .= "\n" . (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			try {
+				$it = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ) );
+				foreach ( $it as $file ) {
+					if ( $file->isFile() && 'css' === strtolower( $file->getExtension() ) && $file->getSize() < 3000000 ) {
+						$c = @file_get_contents( $file->getPathname() ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+						if ( $c ) {
+							$blob .= "\n" . $c;
+						}
+					}
 				}
+			} catch ( Exception $e ) {
+				continue;
 			}
 		}
 		return $blob;
@@ -429,6 +436,37 @@ class Velox_Fonts {
 
 		if ( '' === trim( $css ) ) {
 			return new WP_Error( 'no_css', __( 'No CSS found to scan. If your host blocks loopback, Velox reads the builder CSS cache instead — open your site once so it gets generated, then try again.', 'velox' ) );
+		}
+
+		// Oxygen references Google Fonts by family NAME in its CSS but loads them via a
+		// front-end <link> we can't see over loopback. Pull the non-system family names
+		// out of the CSS and ask Google for each one — valid families return @font-face
+		// (with real URLs), invalid ones 400 and are skipped. This is what lets Google
+		// Fonts show up on hosts where the front page can't be fetched.
+		if ( preg_match_all( '/font-family\s*:\s*([^;{}]+)/i', $css . ' ' . $html, $ff ) ) {
+			$sys = array( 'inherit', 'initial', 'unset', 'revert', 'serif', 'sans-serif', 'monospace', 'cursive', 'fantasy', 'system-ui', '-apple-system', 'blinkmacsystemfont', 'segoe ui', 'helvetica', 'helvetica neue', 'arial', 'times', 'times new roman', 'georgia', 'courier', 'courier new', 'verdana', 'tahoma', 'trebuchet ms', 'ui-monospace', 'ui-sans-serif', 'ui-serif', 'menlo', 'monaco', 'consolas', 'sans', 'emoji', 'icomoon', 'fontawesome', 'dashicons' );
+			$cands = array();
+			foreach ( $ff[1] as $decl ) {
+				$parts = explode( ',', $decl );
+				$first = trim( $parts[0], " '\"\t\r\n" );
+				$low   = strtolower( $first );
+				if ( '' === $first || strlen( $first ) > 40 || in_array( $low, $sys, true ) || preg_match( '/[{}();:\\\\]|var\(|!important|url\(/i', $first ) ) {
+					continue;
+				}
+				$cands[ $first ] = true;
+			}
+			$fetched = 0;
+			foreach ( array_keys( $cands ) as $fam ) {
+				if ( $fetched >= 10 ) {
+					break;
+				}
+				$fetched++;
+				$gurl = 'https://fonts.googleapis.com/css2?family=' . rawurlencode( $fam ) . ':wght@400;700&display=swap';
+				$gr   = wp_remote_get( $gurl, array( 'timeout' => 8, 'sslverify' => false, 'user-agent' => 'Mozilla/5.0 (Velox)' ) );
+				if ( ! is_wp_error( $gr ) && 200 === (int) wp_remote_retrieve_response_code( $gr ) ) {
+					$css .= "\n" . (string) wp_remote_retrieve_body( $gr );
+				}
+			}
 		}
 
 		if ( preg_match_all( '#@font-face\s*{([^}]*)}#is', $css, $faces ) ) {

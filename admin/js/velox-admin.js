@@ -139,6 +139,21 @@
 			} );
 	}
 
+	// Subtle corner pill used by auto-save so we don't spam a toast on every toggle.
+	function flashSaved() {
+		var el = document.getElementById( 'velox-autosave-flag' );
+		if ( ! el ) {
+			el = document.createElement( 'div' );
+			el.id = 'velox-autosave-flag';
+			el.className = 'velox-autosave-flag';
+			el.innerHTML = '<span class="velox-autosave-dot"></span>Saved';
+			document.body.appendChild( el );
+		}
+		el.classList.add( 'is-show' );
+		clearTimeout( el._t );
+		el._t = setTimeout( function () { el.classList.remove( 'is-show' ); }, 1300 );
+	}
+
 	/* ----------------------------------------------------------------
 	 * Dashboard
 	 * ------------------------------------------------------------- */
@@ -1330,8 +1345,9 @@
 	 * ------------------------------------------------------------- */
 
 	function initSettings() {
-		var btn = $( '#velox-settings-save' );
-		if ( ! btn ) {
+		// Importer cards only exist on the Settings page — use them as the guard now
+		// that the Save button is gone.
+		if ( ! document.querySelector( '.velox-import-src' ) ) {
 			return;
 		}
 
@@ -1373,16 +1389,31 @@
 			} );
 		} );
 
-		btn.addEventListener( 'click', function () {
-			btn.disabled = true;
-			btn.textContent = 'Saving…';
-			saveSettings(
-				collectSettings( document.querySelector( '.velox-main' ) || document ),
-				'Settings saved.'
-			).then( function () {
-				btn.disabled = false;
-				btn.textContent = 'Save settings';
-			} );
+		// Auto-save: every setting saves the instant you change it — no Save button.
+		var sroot   = document.querySelector( '.velox-main' ) || document;
+		var atimers = {};
+		function autoSaveEl( el ) {
+			var key = el.getAttribute( 'data-setting' );
+			if ( ! key ) { return; }
+			var val = ( 'checkbox' === el.type ) ? ( el.checked ? 1 : 0 ) : el.value;
+			var payload = {};
+			payload[ key ] = val;
+			api( 'save_settings', payload )
+				.then( flashSaved )
+				.catch( function ( e ) { toast( ( e && e.message ) || 'Could not save', 'error' ); } );
+		}
+		sroot.addEventListener( 'change', function ( e ) {
+			var el = e.target.closest ? e.target.closest( '[data-setting]' ) : null;
+			if ( el ) { autoSaveEl( el ); }
+		} );
+		sroot.addEventListener( 'input', function ( e ) {
+			var el = e.target.closest ? e.target.closest( '[data-setting]' ) : null;
+			if ( ! el ) { return; }
+			var t = el.tagName;
+			if ( 'TEXTAREA' !== t && ! ( 'INPUT' === t && /^(text|number|url|email|search|password)$/.test( el.type ) ) ) { return; }
+			var key = el.getAttribute( 'data-setting' );
+			clearTimeout( atimers[ key ] );
+			atimers[ key ] = setTimeout( function () { autoSaveEl( el ); }, 700 );
 		} );
 
 		/* Quick-setup presets */
@@ -1746,13 +1777,9 @@
 			api( 'convert_one', { id: id } )
 				.then( function ( res ) {
 					var saved = res && res.original_bytes ? ( res.original_bytes - ( res.webp_bytes || 0 ) ) : 0;
-					var badges = card.querySelector( '.velox-lib-badges' );
-					if ( badges ) {
-						badges.innerHTML = '<span class="velox-lib-badge velox-lib-badge--webp">WebP</span>';
-					}
-					btn.remove();
 					toast( saved > 0 ? 'Converted · ' + bytes( saved ) + ' saved' : 'Converted to WebP', 'success' );
 					document.dispatchEvent( new CustomEvent( 'velox:refresh-stats' ) );
+					load(); // re-fetch the grid so this image now shows as WebP, no manual refresh
 				} )
 				.catch( function ( err ) {
 					toast( ( err && err.message ) || 'Conversion failed', 'error' );
@@ -1836,8 +1863,10 @@
 				var existing = $( '#velox-bulk-bar' );
 				if ( existing ) {
 					existing.remove();
+					bulkBtn.classList.remove( 'is-active' );
 					return;
 				}
+				bulkBtn.classList.add( 'is-active' );
 				var bar = document.createElement( 'div' );
 				bar.className = 'velox-bulk-bar';
 				bar.id = 'velox-bulk-bar';
@@ -3976,6 +4005,27 @@
 
 		var SECURE = { tls: 'TLS', ssl: 'SSL', none: 'None' };
 
+		// Provider presets — pick one to fill host/port/encryption (FluentSMTP-style).
+		var SMTP_PRESETS = {
+			'':         { label: 'Custom / other host' },
+			ionos:      { label: 'IONOS',                 host: 'smtp.ionos.de',                        port: 587, secure: 'tls' },
+			gmail:      { label: 'Gmail / Google Workspace', host: 'smtp.gmail.com',                    port: 587, secure: 'tls' },
+			outlook:    { label: 'Outlook / Office 365',  host: 'smtp.office365.com',                   port: 587, secure: 'tls' },
+			sendgrid:   { label: 'SendGrid',              host: 'smtp.sendgrid.net',                    port: 587, secure: 'tls' },
+			mailgun:    { label: 'Mailgun',               host: 'smtp.mailgun.org',                     port: 587, secure: 'tls' },
+			ses:        { label: 'Amazon SES (eu-central-1)', host: 'email-smtp.eu-central-1.amazonaws.com', port: 587, secure: 'tls' },
+			brevo:      { label: 'Brevo (Sendinblue)',    host: 'smtp-relay.brevo.com',                 port: 587, secure: 'tls' },
+			postmark:   { label: 'Postmark',              host: 'smtp.postmarkapp.com',                 port: 587, secure: 'tls' },
+			zoho:       { label: 'Zoho Mail',             host: 'smtp.zoho.com',                        port: 587, secure: 'tls' }
+		};
+		function providerFor( host ) {
+			host = ( host || '' ).toLowerCase();
+			for ( var k in SMTP_PRESETS ) {
+				if ( k && SMTP_PRESETS[ k ].host && SMTP_PRESETS[ k ].host.toLowerCase() === host ) { return k; }
+			}
+			return '';
+		}
+
 		function connCard( c, idx ) {
 			var card = document.createElement( 'div' );
 			card.className = 'vmail-conn';
@@ -3983,8 +4033,13 @@
 			var secOpts = Object.keys( SECURE ).map( function ( v ) {
 				return '<option value="' + v + '"' + ( c.secure === v ? ' selected' : '' ) + '>' + SECURE[ v ] + '</option>';
 			} ).join( '' );
+			var curProv = providerFor( c.host );
+			var provOpts = Object.keys( SMTP_PRESETS ).map( function ( v ) {
+				return '<option value="' + v + '"' + ( curProv === v ? ' selected' : '' ) + '>' + SMTP_PRESETS[ v ].label + '</option>';
+			} ).join( '' );
 			card.innerHTML =
 				'<div class="vmail-conn-top">' +
+					'<select class="velox-select vmail-c-provider" title="Pick your provider to fill the server settings">' + provOpts + '</select>' +
 					'<input type="text" class="velox-input vmail-c-label" value="' + escapeHtml( c.label || '' ) + '" placeholder="Connection name (e.g. Transactional)">' +
 					'<button type="button" class="vmail-conn-del" title="Remove connection" aria-label="Remove connection">&times;</button>' +
 				'</div>' +
@@ -4006,6 +4061,19 @@
 			// keep label in sync into the routing/select dropdowns live
 			card.querySelector( '.vmail-c-label' ).addEventListener( 'input', function () { collect(); syncSelects(); } );
 			card.querySelector( '.vmail-c-host' ).addEventListener( 'input', function () { collect(); syncSelects(); } );
+			card.querySelector( '.vmail-c-provider' ).addEventListener( 'change', function () {
+				var p = SMTP_PRESETS[ this.value ];
+				if ( p && p.host ) {
+					card.querySelector( '.vmail-c-host' ).value = p.host;
+					card.querySelector( '.vmail-c-port' ).value = p.port;
+					card.querySelector( '.vmail-c-secure' ).value = p.secure;
+					if ( ! card.querySelector( '.vmail-c-label' ).value ) {
+						card.querySelector( '.vmail-c-label' ).value = p.label;
+					}
+					collect();
+					syncSelects();
+				}
+			} );
 			return card;
 		}
 
@@ -6123,6 +6191,30 @@
 					.then( function () { resetBtn.disabled = false; } );
 			} );
 		}
+
+		// Quick-add snippet chips.
+		var robotsHome = ( window.location.origin || '' );
+		var robotsSnips = {
+			sitemap: 'Sitemap: ' + robotsHome + '/sitemap.xml',
+			admin: 'User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php',
+			ai: '# Block common AI crawlers\nUser-agent: GPTBot\nUser-agent: ChatGPT-User\nUser-agent: CCBot\nUser-agent: ClaudeBot\nUser-agent: anthropic-ai\nUser-agent: Google-Extended\nUser-agent: PerplexityBot\nDisallow: /',
+			allow: 'User-agent: *\nDisallow:'
+		};
+		$$( '[data-robots-snip]' ).forEach( function ( chip ) {
+			chip.addEventListener( 'click', function () {
+				if ( ! robots ) { return; }
+				var block = robotsSnips[ chip.getAttribute( 'data-robots-snip' ) ];
+				if ( ! block ) { return; }
+				if ( robots.value.indexOf( block.split( '\n' )[0] ) !== -1 && 'sitemap' !== chip.getAttribute( 'data-robots-snip' ) ) {
+					toast( 'That block looks like it is already there.' );
+					return;
+				}
+				robots.value = robots.value.replace( /\s*$/, '' ) + '\n\n' + block + '\n';
+				robots.focus();
+				robots.scrollTop = robots.scrollHeight;
+				toast( 'Added — review and save.' );
+			} );
+		} );
 		var physBtn = $( '#velox-seo-robots-physical' );
 		if ( physBtn ) {
 			physBtn.addEventListener( 'click', function () {

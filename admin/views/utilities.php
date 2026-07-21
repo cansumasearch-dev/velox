@@ -29,6 +29,38 @@ if ( '' !== $tool && isset( $tools[ $tool ] ) && ! empty( $tools[ $tool ]['ready
 	<p class="velox-sub">A toolbox of site and admin helpers. Switch on what you need — anything you enable appears under Utilities in the sidebar, ready to open.</p>
 </div>
 
+<?php
+$vx_modules = array(
+	array( 'id' => 'performance', 'key' => 'module_performance', 'label' => 'Performance', 'icon' => 'bolt',   'desc' => 'Caching, defer/delay JS, lazy-load, fonts and PageSpeed.' ),
+	array( 'id' => 'images',      'key' => 'module_images',      'label' => 'Images',      'icon' => 'image',  'desc' => 'WebP/AVIF conversion and the image optimizer.' ),
+	array( 'id' => 'seo',         'key' => 'module_seo',         'label' => 'SEO',         'icon' => 'search', 'desc' => 'XML sitemap, meta titles & descriptions and robots.' ),
+);
+?>
+<h2 class="velox-util-sec">Core areas</h2>
+<div class="velox-util-grid">
+	<?php foreach ( $vx_modules as $mod ) :
+		$mon = (bool) Velox_Settings::get( $mod['key'], true );
+		?>
+		<div class="velox-util-card">
+			<div class="velox-util-head">
+				<div class="velox-util-ic"><?php echo Velox_Admin::icon( $mod['icon'], 20 ); ?></div>
+				<label class="velox-switch">
+					<input type="checkbox" class="velox-util-toggle" data-key="<?php echo esc_attr( $mod['key'] ); ?>" <?php checked( $mon ); ?>>
+					<span class="velox-switch-track"></span>
+				</label>
+			</div>
+			<h3 class="velox-util-name"><?php echo esc_html( $mod['label'] ); ?></h3>
+			<p class="velox-util-desc"><?php echo esc_html( $mod['desc'] ); ?></p>
+			<?php if ( $mon ) : ?>
+				<a class="velox-util-open" href="<?php echo esc_url( $admin->tab_url( $mod['id'] ) ); ?>">Open<span class="velox-util-arrow">&rarr;</span></a>
+			<?php else : ?>
+				<span class="velox-util-hint-off">Switch on to use</span>
+			<?php endif; ?>
+		</div>
+	<?php endforeach; ?>
+</div>
+
+<h2 class="velox-util-sec">Tools</h2>
 <div class="velox-util-grid">
 	<?php
 	foreach ( $tools as $id => $t ) :

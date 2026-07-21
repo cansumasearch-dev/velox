@@ -639,7 +639,7 @@
 
 /* Amber "Risky" tag on individual settings */
 .velox-risky-tag { display: inline-block; margin-left: 8px; font-size: 10px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: #92400e; background: #fef3c7; border: 1px solid #fde68a; padding: 2px 7px; border-radius: 999px; vertical-align: middle; }
-[data-risky="1"] { border-left: 2px solid #fde68a; padding-left: 12px; margin-left: -14px; }
+[data-risky="1"] { border-left: 2px solid #fde68a; padding-left: 12px; }
 
 /* Clear-cache panel */
 .velox-cache-panel { border: 1px solid var(--vx-line); }
@@ -751,7 +751,18 @@
 .velox-wiz-done-mark{font-size:40px;text-align:center;margin-bottom:6px}
 .velox-wizard-step[data-step="done"]{text-align:center}
 
+/* ---- Auto-save flash ---- */
+.velox-autosave-flag { position: fixed; bottom: 22px; right: 22px; z-index: 99999; display: inline-flex; align-items: center; gap: 8px; background: #1d1d1f; color: #fff; font-size: 13px; font-weight: 600; padding: 9px 15px; border-radius: 999px; box-shadow: 0 8px 24px rgba(0,0,0,.22); opacity: 0; transform: translateY(8px); transition: opacity .2s var(--vx-ease), transform .2s var(--vx-ease); pointer-events: none; }
+.velox-autosave-flag.is-show { opacity: 1; transform: translateY(0); }
+.velox-autosave-dot { width: 8px; height: 8px; border-radius: 50%; background: #34d399; }
+.velox-autosave-note { margin-top: 4px; }
+.velox-robots-snips { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--vx-line); }
+.velox-robots-snips-label { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--vx-ink-3); }
+.velox-robots-snips-hint { flex-basis: 100%; margin: 2px 0 0; }
+
 /* ---- Utilities hub ---- */
+.velox-util-sec { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--vx-ink-3); margin: 0 0 14px; }
+.velox-util-grid + .velox-util-sec { margin-top: 32px; }
 .velox-util-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px; }
 .velox-util-card { display: flex; flex-direction: column; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); padding: 20px 20px 18px; min-height: 168px; transition: border-color .15s var(--vx-ease), box-shadow .15s var(--vx-ease), transform .15s var(--vx-ease); }
 .velox-util-card:hover { border-color: var(--vx-n300); box-shadow: 0 8px 24px rgba(0,0,0,.07); transform: translateY(-2px); }
@@ -1872,6 +1883,8 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 /* A connection is one panel; fields inside it are NOT cards (no nested cards). */
 .vmail-conn { border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); padding: var(--vx-s4); background: var(--vx-n25); }
 .vmail-conn-top { display: flex; align-items: center; gap: var(--vx-s2); margin-bottom: var(--vx-s3); }
+.vmail-conn-top .vmail-c-provider { flex: none; max-width: 210px; }
+.vmail-conn-top .vmail-c-label { flex: 1 1 auto; min-width: 0; }
 .vmail-c-label { font-weight: 600; }
 .vmail-conn-del {
 	flex: none; width: 30px; height: 30px; border: 0; border-radius: var(--vx-r-sm);

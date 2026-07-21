@@ -4,6 +4,26 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.39 — SMTP provider presets
+- Added provider presets to each SMTP connection (IONOS, Gmail/Workspace, Outlook/Office 365, SendGrid, Mailgun, Amazon SES, Brevo, Postmark, Zoho, or Custom). Pick one and the host, port and encryption fill in automatically — you just add your username, password and From address. The connection already existing is detected and shown. This is on top of the existing multi-connection routing, fallback, real-handshake "Test connection" and "Send test" tools under Mail & Forms → Settings → SMTP connections.
+
+## 3.09.38 — Real icons + Find & replace clarity
+- Replaced all of the hand-drawn admin icons with the real Lucide icon set (MIT-licensed) — consistent, professional icons across the sidebar, cards and headers. Names stayed the same so nothing else changed.
+- Renamed the confusing "Bulk rename" button on Images to "Find & replace names" and gave it an active state, so it is clear it opens the find/replace bar (which fills the rename boxes to review before applying).
+
+## 3.09.37 — Auto-save settings + robots.txt quick-add
+- Settings now save automatically the moment you change a toggle or field — the "Save settings" button is gone, replaced by a subtle "Saved" flash so you can see it took. (Deliberate actions like renaming images or writing robots.txt still have their own buttons.)
+- The robots.txt editor has quick-add chips (Sitemap line, Protect wp-admin, Block AI crawlers, Allow everything) that append ready-made blocks — fills the empty space with something actually useful.
+
+## 3.09.36 — Oxygen: unused-media false positives + Google Font detection
+- Unused Media now reads your builder’s CSS cache (Oxygen/Bricks/Elementor, searched recursively) so images used only as section/hero backgrounds are correctly counted as USED instead of showing up as unused. This was flagging template/background images across every page.
+- Font detection now pulls font-family names out of your builder CSS and fetches each from Google directly, so Google Fonts used in Oxygen are detected even when the host blocks loopback and they load via a front-end link. Custom @font-face detection is also more robust (recursive cache search).
+
+## 3.09.35 — Module toggles moved to Utilities; risky alignment; convert reload
+- Moved the Performance/SEO/Images module toggles out of Settings and into the Utilities tab as a "Core areas" section (with the same card + toggle style as the utilities).
+- Fixed risky-mode fields: the divider lines now align with the rest of the panel content instead of bleeding into the left padding; the risky content keeps its indent + accent bar.
+- The single-image Convert button now reloads the library grid so the image immediately shows as WebP — no manual refresh.
+
 ## 3.09.34 — Font-display strategy dropdown
 - Replaced the single "font-display: swap" on/off switch with a proper strategy dropdown: Off, Swap (recommended), Fallback, Optional, and Block. The chosen mode is applied to your Google Fonts (via display=) and to locally-hosted fonts, so you can tune exactly how text behaves while fonts load.
 

@@ -210,7 +210,7 @@ endif;
 		</div>
 		<input type="search" id="velox-lib-search" class="velox-input" placeholder="Search filename or title…">
 		<div class="velox-lib-toolbar-right">
-			<button class="velox-btn velox-btn--ghost" id="velox-lib-bulk">Bulk rename</button>
+			<button class="velox-btn velox-btn--ghost" id="velox-lib-bulk">Find &amp; replace names</button>
 			<button class="velox-btn velox-btn--primary" id="velox-lib-apply-all" hidden>Apply all names</button>
 		</div>
 	</div>

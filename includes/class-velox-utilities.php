@@ -621,7 +621,7 @@ class Velox_Utilities {
 		// HTML/CSS is definitely in use (strong). A bare-filename match only keeps it
 		// out of the "unused" list (loose) — it's too weak to call the file "used".
 		if ( $names ) {
-			$html = self::db_content_blob() . "\n" . self::rendered_html_blob();
+			$html = self::db_content_blob() . "\n" . self::builder_css_blob() . "\n" . self::rendered_html_blob();
 			if ( '' !== $html ) {
 				foreach ( $names as $id => $list ) {
 					foreach ( $paths[ $id ] as $p ) {
@@ -748,6 +748,37 @@ class Velox_Utilities {
 		$ph   = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
 		$rows = $wpdb->get_col( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key IN ($ph) AND meta_value <> ''", $keys ) ); // phpcs:ignore WordPress.DB
 		foreach ( (array) $rows as $m ) { $blob .= "\n" . $m; }
+		return $blob;
+	}
+
+	/**
+	 * Page builders (especially Oxygen) compile background-image URLs into CSS cache
+	 * files on disk, not the database — so an image used only as a section/hero
+	 * background looks "unused" to a DB-only scan. Read those cached CSS files (found
+	 * recursively, since the cache folder can be customised) so those images count.
+	 */
+	private static function builder_css_blob() {
+		static $blob = null;
+		if ( null !== $blob ) { return $blob; }
+		$blob = '';
+		$up   = wp_upload_dir();
+		if ( empty( $up['basedir'] ) ) { return $blob; }
+		$base  = trailingslashit( $up['basedir'] );
+		$roots = array( $base . 'oxygen', $base . 'bricks', $base . 'elementor/css' );
+		foreach ( $roots as $root ) {
+			if ( ! is_dir( $root ) ) { continue; }
+			try {
+				$it = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $root, FilesystemIterator::SKIP_DOTS ) );
+				foreach ( $it as $file ) {
+					if ( $file->isFile() && 'css' === strtolower( $file->getExtension() ) && $file->getSize() < 3000000 ) {
+						$c = @file_get_contents( $file->getPathname() ); // phpcs:ignore
+						if ( $c ) { $blob .= "\n" . $c; }
+					}
+				}
+			} catch ( Exception $e ) {
+				continue;
+			}
+		}
 		return $blob;
 	}
 

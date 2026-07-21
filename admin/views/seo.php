@@ -47,6 +47,14 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 				<button class="velox-btn velox-btn--ghost" id="velox-seo-robots-physical">Write to physical file</button>
 			<?php endif; ?>
 		</div>
+		<div class="velox-robots-snips">
+			<span class="velox-robots-snips-label">Quick add:</span>
+			<button type="button" class="velox-chip" data-robots-snip="sitemap">Sitemap line</button>
+			<button type="button" class="velox-chip" data-robots-snip="admin">Protect wp-admin</button>
+			<button type="button" class="velox-chip" data-robots-snip="ai">Block AI crawlers</button>
+			<button type="button" class="velox-chip" data-robots-snip="allow">Allow everything</button>
+			<span class="velox-hint velox-robots-snips-hint">Appends a ready-made block to the editor above — review, then save.</span>
+		</div>
 		<div id="velox-seo-robots-live" class="velox-seo-live" hidden>
 			<div class="velox-seo-live-head"><span>Live at <code><?php echo esc_html( home_url( '/robots.txt' ) ); ?></code></span><span id="velox-seo-live-badge"></span></div>
 			<pre id="velox-seo-live-out" class="velox-seo-live-out"></pre>
