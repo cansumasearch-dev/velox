@@ -778,6 +778,53 @@
 .velox-util-hint-off { margin-top: 16px; font-size: 12px; font-weight: 500; color: var(--vx-ink-3); }
 .velox-util-badge { flex: none; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--vx-ink-3); background: var(--vx-n50); border: 1px solid var(--vx-line); padding: 3px 8px; border-radius: 999px; }
 
+/* Dangerous utility card + warning */
+.velox-util-card.is-dangerous { background: #fef2f2; border-color: #fecaca; }
+.velox-util-card.is-dangerous:hover { border-color: #f87171; box-shadow: 0 8px 24px rgba(220,38,38,.12); }
+.velox-util-card.is-dangerous .velox-util-ic { background: #fee2e2; color: #dc2626; }
+.velox-util-danger { margin: 12px 0 0; font-size: 12px; font-weight: 600; color: #b91c1c; line-height: 1.45; }
+
+/* Danger confirmation modal */
+.velox-danger-overlay { position: fixed; inset: 0; z-index: 100001; background: rgba(10,12,20,.5); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.velox-danger-modal { width: 100%; max-width: 480px; background: var(--vx-card); border-radius: var(--vx-r-lg); box-shadow: 0 24px 60px rgba(0,0,0,.3); padding: 26px; border-top: 4px solid #dc2626; }
+.velox-danger-ic { font-size: 30px; color: #dc2626; line-height: 1; }
+.velox-danger-title { margin: 10px 0 8px; font-size: 18px; font-weight: 700; }
+.velox-danger-lead { margin: 0 0 12px; font-size: 14px; color: var(--vx-ink-2); line-height: 1.5; }
+.velox-danger-list { margin: 0 0 18px; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; }
+.velox-danger-list li { font-size: 13px; line-height: 1.5; color: var(--vx-ink); }
+.velox-danger-list code { background: var(--vx-n50); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+.velox-danger-acts { display: flex; justify-content: flex-end; gap: 10px; }
+.velox-danger-go { background: #dc2626; color: #fff; border-color: #dc2626; }
+.velox-danger-go:hover { background: #b91c1c; border-color: #b91c1c; }
+
+/* File manager — one flush panel with an internal split, mirroring the mail inbox */
+.velox-fm { display: grid; grid-template-columns: 340px 1fr; height: clamp(440px, 68vh, 780px); margin-top: var(--vx-s4); background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); overflow: hidden; box-shadow: var(--vx-shadow-sm); }
+.velox-fm-browser { border-right: 1px solid var(--vx-line); display: flex; flex-direction: column; min-height: 0; }
+.velox-fm-crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 1px; padding: 14px 16px; border-bottom: 1px solid var(--vx-line); font-size: 13px; flex: none; }
+.velox-fm-crumb { background: none; border: 0; color: var(--vx-ink-3); font-weight: 500; font-size: 13px; cursor: pointer; padding: 4px 7px; border-radius: var(--vx-r-xs); transition: background .15s, color .15s; }
+.velox-fm-crumb:hover { background: var(--vx-n50); color: var(--vx-ink); }
+.velox-fm-crumb:last-child { color: var(--vx-ink); font-weight: 600; }
+.velox-fm-crumb-sep { color: var(--vx-n300); font-size: 12px; }
+.velox-fm-list { overflow-y: auto; flex: 1; min-height: 0; padding: 8px; }
+.velox-fm-row { display: flex; align-items: center; gap: 12px; width: 100%; text-align: left; background: none; border: 0; border-radius: var(--vx-r-sm); padding: 11px 12px; cursor: pointer; font-size: 14px; color: var(--vx-ink); letter-spacing: -0.01em; transition: background .12s var(--vx-ease, ease); }
+.velox-fm-row:hover { background: var(--vx-n50); }
+.velox-fm-ic { flex: none; display: inline-flex; color: var(--vx-ink-3); }
+.velox-fm-ic svg { width: 18px; height: 18px; }
+.velox-fm-row.is-dir .velox-fm-ic { color: var(--vx-ink-2); }
+.velox-fm-row.is-dir .velox-fm-rowname { font-weight: 550; }
+.velox-fm-row.is-up { color: var(--vx-ink-2); }
+.velox-fm-rowname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.velox-fm-rowmeta { flex: none; font-size: 12px; color: var(--vx-ink-3); font-variant-numeric: tabular-nums; }
+.velox-fm-chev { flex: none; color: var(--vx-n300); }
+.velox-fm-msg { padding: 34px 16px; font-size: 13px; color: var(--vx-ink-3); text-align: center; }
+.velox-fm-editor { display: flex; flex-direction: column; min-height: 0; }
+.velox-fm-empty { padding: 64px 24px; text-align: center; color: var(--vx-ink-3); font-size: 14px; margin: auto; max-width: 340px; line-height: 1.5; }
+.velox-fm-edhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 13px 14px 13px 18px; border-bottom: 1px solid var(--vx-line); flex: none; min-height: 56px; }
+.velox-fm-edname { font-size: 13px; font-weight: 500; color: var(--vx-ink-2); font-family: var(--vx-mono); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.velox-fm-ro { font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--vx-ink-3); background: var(--vx-n50); border: 1px solid var(--vx-line-2); padding: 4px 9px; border-radius: var(--vx-r-pill); }
+.velox-fm-code { flex: 1; width: 100%; box-sizing: border-box; border: 0; resize: none; padding: 18px 20px; font-family: var(--vx-mono); font-size: 13px; line-height: 1.7; tab-size: 4; outline: none; color: var(--vx-ink); background: var(--vx-card); min-height: 0; }
+@media (max-width: 900px) { .velox-fm { grid-template-columns: 1fr; height: auto; } .velox-fm-browser { border-right: 0; border-bottom: 1px solid var(--vx-line); } .velox-fm-list { max-height: 300px; } .velox-fm-code { min-height: 360px; } }
+
 /* ---- Switch ---- */
 .velox-switch { position: relative; display: inline-block; flex: none; cursor: pointer; }
 .velox-switch input { position: absolute; opacity: 0; width: 0; height: 0; }

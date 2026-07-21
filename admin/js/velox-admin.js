@@ -139,6 +139,34 @@
 			} );
 	}
 
+	// One-time confirmation before enabling a dangerous tool (e.g. File Manager).
+	function veloxDangerModal( tool, onProceed ) {
+		var overlay = document.createElement( 'div' );
+		overlay.className = 'velox-danger-overlay';
+		overlay.innerHTML =
+			'<div class="velox-danger-modal">' +
+				'<div class="velox-danger-ic" aria-hidden="true">&#9888;</div>' +
+				'<h3 class="velox-danger-title">Turn on the File Manager?</h3>' +
+				'<p class="velox-danger-lead">This lets you open and edit any file on your site directly from here. It\u2019s great for debugging \u2014 but there are real risks:</p>' +
+				'<ul class="velox-danger-list">' +
+					'<li>Editing the wrong file (like <code>wp-config.php</code> or a theme\u2019s <code>functions.php</code>) can take the whole site down \u2014 including this dashboard.</li>' +
+					'<li>There\u2019s no undo. Saving overwrites the file on the server immediately.</li>' +
+					'<li>Only touch files you understand. When in doubt, make a backup first (Utilities \u2192 Backup &amp; restore).</li>' +
+				'</ul>' +
+				'<div class="velox-danger-acts">' +
+					'<button type="button" class="velox-btn velox-btn--ghost" data-danger="cancel">Cancel</button>' +
+					'<button type="button" class="velox-btn velox-danger-go" data-danger="go">I understand \u2014 enable it</button>' +
+				'</div>' +
+			'</div>';
+		document.body.appendChild( overlay );
+		function close() { overlay.remove(); }
+		overlay.addEventListener( 'click', function ( e ) {
+			var act = e.target.getAttribute ? e.target.getAttribute( 'data-danger' ) : null;
+			if ( e.target === overlay || 'cancel' === act ) { close(); }
+			else if ( 'go' === act ) { close(); onProceed(); }
+		} );
+	}
+
 	// Subtle corner pill used by auto-save so we don't spam a toast on every toggle.
 	function flashSaved() {
 		var el = document.getElementById( 'velox-autosave-flag' );
@@ -2092,17 +2120,33 @@
 
 	function initUtilities() {
 		$$( '.velox-util-toggle' ).forEach( function ( box ) {
-			box.addEventListener( 'change', function () {
-				var key = box.getAttribute( 'data-key' );
-				var on  = box.checked;
+			function commit( on ) {
 				box.disabled = true;
-				api( 'util_toggle', { key: key, on: on ? '1' : 'false' } )
+				api( 'util_toggle', { key: box.getAttribute( 'data-key' ), on: on ? '1' : 'false' } )
 					.then( function () {
 						toast( on ? 'Turned on — added to the sidebar.' : 'Turned off.' );
-						// Re-render the sidebar (and any Open buttons) with the new state.
 						setTimeout( function () { location.reload(); }, 450 );
 					} )
 					.catch( function ( e ) { box.checked = ! on; box.disabled = false; toast( e.message, 'error' ); } );
+			}
+			box.addEventListener( 'change', function () {
+				var on        = box.checked;
+				var dangerous = '1' === box.getAttribute( 'data-dangerous' );
+				var acked     = '1' === box.getAttribute( 'data-acked' );
+				// First time enabling a dangerous tool → confirm. After that, never again.
+				if ( on && dangerous && ! acked ) {
+					box.checked = false;
+					veloxDangerModal( box.getAttribute( 'data-tool' ), function () {
+						box.checked = true;
+						box.setAttribute( 'data-acked', '1' );
+						var p = {};
+						p[ box.getAttribute( 'data-key' ) + '_ack' ] = 1;
+						api( 'save_settings', p ).catch( function () {} );
+						commit( true );
+					} );
+					return;
+				}
+				commit( on );
 			} );
 		} );
 		// Tool sub-page Save buttons (Maintenance, Custom login URL, …)
@@ -2122,6 +2166,7 @@
 		initActivity();
 		initScripts();
 		initMaintenance();
+		initFileManager();
 		initMail();
 		initMailBuilder();
 		initFieldsEditor();
@@ -3574,6 +3619,98 @@
 			btn.addEventListener( 'click', function () { g( btn.getAttribute( 'data-target' ) ).value = ''; render(); } );
 		} );
 		render();
+	}
+
+	function initFileManager() {
+		var root = document.getElementById( 'velox-fm' );
+		if ( ! root ) { return; }
+		var crumbs = document.getElementById( 'velox-fm-crumbs' );
+		var listEl = document.getElementById( 'velox-fm-list' );
+		var editor = document.getElementById( 'velox-fm-editor' );
+
+		var IC = {
+			folder: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>',
+			file: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.7.7l3.6 3.6A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/></svg>',
+			up: '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v6"/></svg>',
+			chev: '<svg class="velox-fm-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>'
+		};
+
+		function fmtSize( n ) {
+			if ( ! n ) { return '0 B'; }
+			var u = [ 'B', 'KB', 'MB', 'GB' ], i = 0;
+			while ( n >= 1024 && i < u.length - 1 ) { n /= 1024; i++; }
+			return ( n < 10 && i > 0 ? n.toFixed( 1 ) : Math.round( n ) ) + ' ' + u[ i ];
+		}
+		function renderCrumbs( path ) {
+			var parts = path ? path.split( '/' ) : [];
+			var html = '<button type="button" class="velox-fm-crumb" data-path="">site root</button>';
+			var acc = '';
+			parts.forEach( function ( p ) {
+				acc = acc ? acc + '/' + p : p;
+				html += '<span class="velox-fm-crumb-sep">/</span><button type="button" class="velox-fm-crumb" data-path="' + escapeHtml( acc ) + '">' + escapeHtml( p ) + '</button>';
+			} );
+			crumbs.innerHTML = html;
+		}
+		function load( path ) {
+			listEl.innerHTML = '<div class="velox-loading">Loading…</div>';
+			api( 'fm_list', { path: path } )
+				.then( function ( r ) {
+					if ( ! r || ! r.ok ) { listEl.innerHTML = '<div class="velox-fm-msg">' + escapeHtml( ( r && r.message ) || 'Could not open folder.' ) + '</div>'; return; }
+					renderCrumbs( r.path );
+					var html = '';
+					if ( null !== r.parent ) {
+						html += '<button type="button" class="velox-fm-row is-up" data-path="' + escapeHtml( r.parent ) + '" data-dir="1"><span class="velox-fm-ic">' + IC.up + '</span><span class="velox-fm-rowname">Up a level</span></button>';
+					}
+					r.items.forEach( function ( it ) {
+						html += '<button type="button" class="velox-fm-row' + ( it.dir ? ' is-dir' : '' ) + '" data-path="' + escapeHtml( it.rel ) + '" data-dir="' + ( it.dir ? '1' : '0' ) + '">' +
+							'<span class="velox-fm-ic">' + ( it.dir ? IC.folder : IC.file ) + '</span>' +
+							'<span class="velox-fm-rowname">' + escapeHtml( it.name ) + '</span>' +
+							'<span class="velox-fm-rowmeta">' + ( it.dir ? '' : fmtSize( it.size ) ) + ( it.writable ? '' : ' · read-only' ) + '</span>' +
+							( it.dir ? IC.chev : '' ) +
+							'</button>';
+					} );
+					listEl.innerHTML = html || '<div class="velox-fm-msg">This folder is empty.</div>';
+				} )
+				.catch( function ( e ) { listEl.innerHTML = '<div class="velox-fm-msg">' + escapeHtml( e.message ) + '</div>'; } );
+		}
+		function openFile( path ) {
+			editor.innerHTML = '<div class="velox-loading">Opening…</div>';
+			api( 'fm_read', { path: path } )
+				.then( function ( r ) {
+					if ( ! r || ! r.ok ) { editor.innerHTML = '<div class="velox-fm-empty">' + escapeHtml( ( r && r.message ) || 'Could not open file.' ) + '</div>'; return; }
+					editor.innerHTML =
+						'<div class="velox-fm-edhead">' +
+							'<span class="velox-fm-edname">' + escapeHtml( r.rel ) + '</span>' +
+							( r.writable ? '<button type="button" class="velox-btn velox-btn--primary velox-btn--sm" id="velox-fm-save">Save</button>' : '<span class="velox-fm-ro">read-only</span>' ) +
+						'</div>' +
+						'<textarea class="velox-fm-code" id="velox-fm-code" spellcheck="false"' + ( r.writable ? '' : ' readonly' ) + '></textarea>';
+					var ta = document.getElementById( 'velox-fm-code' );
+					ta.value = r.content;
+					var saveBtn = document.getElementById( 'velox-fm-save' );
+					if ( saveBtn ) {
+						saveBtn.addEventListener( 'click', function () {
+							saveBtn.disabled = true;
+							saveBtn.textContent = 'Saving…';
+							api( 'fm_save', { path: r.rel, content: ta.value } )
+								.then( function ( s ) { toast( ( s && s.ok ) ? 'Saved.' : ( ( s && s.message ) || 'Save failed' ), ( s && s.ok ) ? 'success' : 'error' ); } )
+								.catch( function ( e ) { toast( e.message, 'error' ); } )
+								.then( function () { saveBtn.disabled = false; saveBtn.textContent = 'Save'; } );
+						} );
+					}
+				} )
+				.catch( function ( e ) { editor.innerHTML = '<div class="velox-fm-empty">' + escapeHtml( e.message ) + '</div>'; } );
+		}
+		listEl.addEventListener( 'click', function ( e ) {
+			var row = e.target.closest( '.velox-fm-row' );
+			if ( ! row ) { return; }
+			if ( '1' === row.getAttribute( 'data-dir' ) ) { load( row.getAttribute( 'data-path' ) ); }
+			else { openFile( row.getAttribute( 'data-path' ) ); }
+		} );
+		crumbs.addEventListener( 'click', function ( e ) {
+			var c = e.target.closest( '.velox-fm-crumb' );
+			if ( c ) { load( c.getAttribute( 'data-path' ) ); }
+		} );
+		load( '' );
 	}
 
 	function initMail() {

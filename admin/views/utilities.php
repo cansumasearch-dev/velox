@@ -68,17 +68,19 @@ $vx_modules = array(
 		$enable = isset( $t['enable'] ) ? $t['enable'] : '';
 		$on     = '' !== $enable && (bool) Velox_Settings::get( $enable, false );
 		$has_open = ! empty( $t['page'] ) || ! empty( $t['link'] );
+		$danger = ! empty( $t['dangerous'] );
+		$acked  = $danger && (bool) Velox_Settings::get( $enable . '_ack', false );
 		// Where "Open" goes: linked tools (Media) open a top-level tab; the rest open their utility page.
 		$open_url = ! empty( $t['link'] )
 			? admin_url( 'admin.php?page=velox-' . $t['link'] )
 			: admin_url( 'admin.php?page=velox-utilities&tool=' . $id );
 		?>
-		<div class="velox-util-card<?php echo $ready ? '' : ' is-planned'; ?>">
+		<div class="velox-util-card<?php echo $ready ? '' : ' is-planned'; ?><?php echo $danger ? ' is-dangerous' : ''; ?>">
 			<div class="velox-util-head">
 				<div class="velox-util-ic"><?php echo Velox_Admin::icon( $t['icon'], 20 ); ?></div>
 				<?php if ( $ready && '' !== $enable ) : ?>
 					<label class="velox-switch">
-						<input type="checkbox" class="velox-util-toggle" data-key="<?php echo esc_attr( $enable ); ?>" data-tool="<?php echo esc_attr( $id ); ?>" <?php checked( $on ); ?>>
+						<input type="checkbox" class="velox-util-toggle" data-key="<?php echo esc_attr( $enable ); ?>" data-tool="<?php echo esc_attr( $id ); ?>" data-dangerous="<?php echo $danger ? '1' : '0'; ?>" data-acked="<?php echo $acked ? '1' : '0'; ?>" <?php checked( $on ); ?>>
 						<span class="velox-switch-track"></span>
 					</label>
 				<?php elseif ( ! $ready ) : ?>
@@ -87,6 +89,9 @@ $vx_modules = array(
 			</div>
 			<h3 class="velox-util-name"><?php echo esc_html( $t['label'] ); ?></h3>
 			<p class="velox-util-desc"><?php echo esc_html( $t['desc'] ); ?></p>
+			<?php if ( $danger ) : ?>
+				<p class="velox-util-danger">⚠ Editing files directly can break your site. Use with care.</p>
+			<?php endif; ?>
 			<?php if ( $ready && $has_open && $on ) : ?>
 				<a class="velox-util-open" href="<?php echo esc_url( $open_url ); ?>">Open<span class="velox-util-arrow">&rarr;</span></a>
 			<?php elseif ( $ready && $has_open && ! $on ) : ?>

@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.48 — File Manager matches the plugin
+- Rebuilt the File Manager to match the rest of Velox: one flush 18px-radius panel with an internal divider (same construction as the mail inbox two-pane) instead of two small boxes, bigger 14px rows with 18px icons, real design tokens throughout, taller editor. No more mismatched look.
+
+## 3.09.47 — File Manager redesign
+- Reworked the File Manager UI to the Velox design system: replaced the emoji folder/file icons with real Lucide icons, muted neutral palette, tighter 8px spacing, cleaner rows with hover, breadcrumb navigation with chevron separators, and a proper monospace editor with a focus accent and an icon empty state.
+
+## 3.09.46 — File Manager (dangerous tool)
+- New File Manager utility: browse and edit your site files from the dashboard like SFTP/Plesk (admin-only, every path clamped inside the site root, 2 MB text-file limit, binary files blocked).
+- Because it is risky, its card has a red background + warning text, and the first time you enable it you must confirm a modal explaining the risks (edit the wrong file and the site can go down, no undo). Cancel leaves it off; confirm enables it. After that first confirmation the modal never shows again — only the red card + warning remain.
+- Did NOT build the "staging clone" request: a true safe replica is a whole separate product (separate DB + files + URL) and a half-built one could let edits hit the live site. Plesk WordPress Toolkit (Clone/Staging) or WP Staging does this safely at the host level.
+
 ## 3.09.45 — SMTP setup guide
 - Added a "Setup guide" button next to "+ Add connection". It opens step-by-step instructions for getting the username/password/From right for whichever provider you use (Gmail app password, GMX/web.de IMAP toggle, IONOS, SendGrid, Mailgun, SES, Brevo, Postmark, Zoho, or a custom host). It opens on the provider of your first connection and has a dropdown to view any other.
 

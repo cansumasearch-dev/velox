@@ -586,6 +586,21 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'items' => Velox_Forms::inbox( 300, 0, 0, 'deleted' ) ) );
 				break;
 
+			case 'fm_list':
+				wp_send_json_success( Velox_Filemanager::list_dir( isset( $_POST['path'] ) ? wp_unslash( $_POST['path'] ) : '' ) );
+				break;
+
+			case 'fm_read':
+				wp_send_json_success( Velox_Filemanager::read_file( isset( $_POST['path'] ) ? wp_unslash( $_POST['path'] ) : '' ) );
+				break;
+
+			case 'fm_save':
+				wp_send_json_success( Velox_Filemanager::save_file(
+					isset( $_POST['path'] ) ? wp_unslash( $_POST['path'] ) : '',
+					isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : ''
+				) );
+				break;
+
 			case 'mail_folders_save':
 				$folders = isset( $_POST['folders'] ) ? json_decode( wp_unslash( $_POST['folders'] ), true ) : array();
 				wp_send_json_success( Velox_Forms::save_folders( is_array( $folders ) ? $folders : array() ) );
