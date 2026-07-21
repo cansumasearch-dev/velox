@@ -175,7 +175,7 @@ $vx_psf_panel = function ( $device, $r, $active ) use ( $admin, $ps_metrics ) {
 };
 ?>
 
-<div class="velox-page-head">
+<div class="velox-page-head velox-page-head--row">
 	<div>
 		<h1 class="velox-h2">PageSpeed</h1>
 		<p class="velox-sub">The full Google PageSpeed Insights report for <code><?php echo esc_html( $ps_url ); ?></code> &mdash; every category, every check.</p>

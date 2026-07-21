@@ -42,26 +42,24 @@ if ( '' !== $tool && isset( $tools[ $tool ] ) && ! empty( $tools[ $tool ]['ready
 			: admin_url( 'admin.php?page=velox-utilities&tool=' . $id );
 		?>
 		<div class="velox-util-card<?php echo $ready ? '' : ' is-planned'; ?>">
-			<div class="velox-util-ic"><?php echo Velox_Admin::icon( $t['icon'], 22 ); ?></div>
-			<div class="velox-util-body">
-				<div class="velox-util-top">
-					<h3 class="velox-util-name"><?php echo esc_html( $t['label'] ); ?></h3>
-					<?php if ( $ready && '' !== $enable ) : ?>
-						<label class="velox-switch">
-							<input type="checkbox" class="velox-util-toggle" data-key="<?php echo esc_attr( $enable ); ?>" data-tool="<?php echo esc_attr( $id ); ?>" <?php checked( $on ); ?>>
-							<span class="velox-switch-track"></span>
-						</label>
-					<?php elseif ( ! $ready ) : ?>
-						<span class="velox-util-badge">Planned</span>
-					<?php endif; ?>
-				</div>
-				<p class="velox-util-desc"><?php echo esc_html( $t['desc'] ); ?></p>
-				<?php if ( $ready && $has_open && $on ) : ?>
-					<a class="velox-btn velox-btn--ghost velox-util-open" href="<?php echo esc_url( $open_url ); ?>">Open</a>
-				<?php elseif ( $ready && $has_open && ! $on ) : ?>
-					<span class="velox-util-hint-off">Switch on to use</span>
+			<div class="velox-util-head">
+				<div class="velox-util-ic"><?php echo Velox_Admin::icon( $t['icon'], 20 ); ?></div>
+				<?php if ( $ready && '' !== $enable ) : ?>
+					<label class="velox-switch">
+						<input type="checkbox" class="velox-util-toggle" data-key="<?php echo esc_attr( $enable ); ?>" data-tool="<?php echo esc_attr( $id ); ?>" <?php checked( $on ); ?>>
+						<span class="velox-switch-track"></span>
+					</label>
+				<?php elseif ( ! $ready ) : ?>
+					<span class="velox-util-badge">Planned</span>
 				<?php endif; ?>
 			</div>
+			<h3 class="velox-util-name"><?php echo esc_html( $t['label'] ); ?></h3>
+			<p class="velox-util-desc"><?php echo esc_html( $t['desc'] ); ?></p>
+			<?php if ( $ready && $has_open && $on ) : ?>
+				<a class="velox-util-open" href="<?php echo esc_url( $open_url ); ?>">Open<span class="velox-util-arrow">&rarr;</span></a>
+			<?php elseif ( $ready && $has_open && ! $on ) : ?>
+				<span class="velox-util-hint-off">Switch on to use</span>
+			<?php endif; ?>
 		</div>
 	<?php endforeach; ?>
 </div>

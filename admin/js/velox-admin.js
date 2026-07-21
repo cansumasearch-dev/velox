@@ -246,6 +246,8 @@
 			} );
 		}
 		refreshStats().then( loadCompareOptions );
+		// A single-image convert (from the library grid) asks the stats to refresh live.
+		document.addEventListener( 'velox:refresh-stats', function () { refreshStats(); } );
 
 		/* ---- bulk convert ---- */
 		var startBtn = $( '#velox-bulk-start' );
@@ -1055,12 +1057,15 @@
 						var fonts = ( d && d.fonts ) || [];
 						fDList.hidden = false;
 						if ( ! fonts.length ) {
-							fDList.innerHTML = '<p class="velox-hint">No @font-face fonts were detected on the front page. Fonts loaded only inside the builder or via JS may not show here.</p>';
+							fDList.innerHTML = '<p class="velox-hint">No fonts were detected. Velox scans your front page and your builder\'s CSS cache (Oxygen/Bricks/Elementor) — fonts injected purely by JavaScript may still not show here.</p>';
 							return;
 						}
 						var pre  = fontPreloadList();
 						var blk  = fontBlockList();
-						var html = '';
+						var html = '<div class="velox-font-legend">' +
+							'<span class="velox-font-legend-l">Detected fonts</span>' +
+							'<span class="velox-font-legend-r"><strong>Preload</strong> loads a font early (above-the-fold only) · <strong>Block</strong> stops it loading</span>' +
+							'</div>';
 						fonts.forEach( function ( f ) {
 							var on    = pre.indexOf( f.url ) !== -1;
 							var isBlk = blk.some( function ( b ) { return b.toLowerCase() === ( f.family || '' ).toLowerCase(); } );
@@ -1073,8 +1078,8 @@
 								'<div class="velox-font-info"><span class="velox-font-fam">' + escapeHtml( f.family ) + ' ' + src + '</span>' +
 								'<span class="velox-font-meta">' + escapeHtml( meta ) + ' · ' + escapeHtml( file ) + '</span></div>' +
 								'<div class="velox-font-acts">' +
-									'<label class="velox-switch" title="Preload this font"><input type="checkbox" class="velox-font-pre" data-url="' + escapeHtml( f.url ) + '"' + ( on ? ' checked' : '' ) + '><span class="velox-switch-track"></span></label>' +
-									'<button type="button" class="velox-font-block' + ( isBlk ? ' is-on' : '' ) + '" data-fam="' + escapeHtml( f.family ) + '" title="Stop this font from loading">' + ( isBlk ? 'Blocked' : 'Block' ) + '</button>' +
+									'<label class="velox-font-pre-lbl" title="Preload this font so it starts loading immediately — use only for fonts visible above the fold"><span>Preload</span><span class="velox-switch"><input type="checkbox" class="velox-font-pre" data-url="' + escapeHtml( f.url ) + '"' + ( on ? ' checked' : '' ) + '><span class="velox-switch-track"></span></span></label>' +
+									'<button type="button" class="velox-font-block' + ( isBlk ? ' is-on' : '' ) + '" data-fam="' + escapeHtml( f.family ) + '" title="Stop this font from loading at all">' + ( isBlk ? 'Blocked' : 'Block' ) + '</button>' +
 								'</div>' +
 								'</div>';
 						} );
@@ -1537,9 +1542,11 @@
 			lbImg.src = src;
 			lbMeta.textContent = meta || '';
 			lightbox.hidden = false;
+			lightbox.classList.add( 'is-open' );
 		}
 		function closeLightbox() {
 			if ( lightbox ) {
+				lightbox.classList.remove( 'is-open' );
 				lightbox.hidden = true;
 				lbImg.src = '';
 			}
@@ -1664,13 +1671,17 @@
 						'data-meta="' + escapeHtml( ( it.filename || '' ) + '  ·  ' + dims + '  ·  ' + bytes( it.bytes ) ) + '">' +
 						'<img src="' + escapeHtml( it.thumb || it.full ) + '" loading="lazy" alt="">' +
 						'<div class="velox-lib-badges">' +
-							'<span class="velox-lib-badge">' + escapeHtml( typeLabel( it.mime ) ) + '</span>' +
-							( it.webp ? '<span class="velox-lib-badge velox-lib-badge--webp">WebP</span>' : '' ) +
+							( ( /webp/i.test( it.mime || '' ) || it.webp )
+								? '<span class="velox-lib-badge velox-lib-badge--webp">WebP</span>'
+								: '<span class="velox-lib-badge">' + escapeHtml( typeLabel( it.mime ) ) + '</span>' ) +
 						'</div>' +
 					'</div>' +
 					'<div class="velox-lib-body">' +
 						'<div class="velox-lib-meta"><span>' + dims + '</span><span>' + bytes( it.bytes ) + '</span></div>' +
 						savingHtml( it ) +
+						( ( /webp/i.test( it.mime || '' ) || it.webp )
+							? ''
+							: '<button class="velox-btn velox-btn--ghost velox-lib-convert" type="button">Convert to WebP</button>' ) +
 						'<div class="velox-lib-rename">' +
 							'<input type="text" data-id="' + it.id + '" data-orig="' + escapeHtml( parts.base ) + '" ' +
 								'value="' + escapeHtml( value ) + '" class="' + dirty.trim() + '" spellcheck="false">' +
@@ -1695,6 +1706,11 @@
 			if ( applyBtn ) {
 				var card = applyBtn.closest( '.velox-lib-card' );
 				applySingle( card, applyBtn );
+				return;
+			}
+			var convertBtn = e.target.closest( '.velox-lib-convert' );
+			if ( convertBtn ) {
+				convertSingle( convertBtn.closest( '.velox-lib-card' ), convertBtn );
 			}
 		} );
 
@@ -1717,6 +1733,33 @@
 			savePending( pending );
 			refreshApplyAll();
 		} );
+
+		function convertSingle( card, btn ) {
+			var id = card.getAttribute( 'data-id' );
+			if ( ! id ) {
+				return;
+			}
+			btn.disabled = true;
+			var orig = btn.textContent;
+			btn.textContent = 'Converting…';
+			// No quality passed → the endpoint uses your saved WebP quality (same as bulk).
+			api( 'convert_one', { id: id } )
+				.then( function ( res ) {
+					var saved = res && res.original_bytes ? ( res.original_bytes - ( res.webp_bytes || 0 ) ) : 0;
+					var badges = card.querySelector( '.velox-lib-badges' );
+					if ( badges ) {
+						badges.innerHTML = '<span class="velox-lib-badge velox-lib-badge--webp">WebP</span>';
+					}
+					btn.remove();
+					toast( saved > 0 ? 'Converted · ' + bytes( saved ) + ' saved' : 'Converted to WebP', 'success' );
+					document.dispatchEvent( new CustomEvent( 'velox:refresh-stats' ) );
+				} )
+				.catch( function ( err ) {
+					toast( ( err && err.message ) || 'Conversion failed', 'error' );
+					btn.disabled = false;
+					btn.textContent = orig;
+				} );
+		}
 
 		function applySingle( card, btn ) {
 			var input = $( '.velox-lib-rename input', card );

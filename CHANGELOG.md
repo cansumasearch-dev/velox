@@ -4,6 +4,53 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.34 — Font-display strategy dropdown
+- Replaced the single "font-display: swap" on/off switch with a proper strategy dropdown: Off, Swap (recommended), Fallback, Optional, and Block. The chosen mode is applied to your Google Fonts (via display=) and to locally-hosted fonts, so you can tune exactly how text behaves while fonts load.
+
+## 3.09.33 — Clearer Font manager
+- The detected-fonts list now has a legend explaining Preload vs Block, and every preload toggle has a visible "Preload" label instead of an unlabelled switch. Rewrote the Font manager description so it is obvious what each control does (and that local/builder fonts can be preloaded but not blocked).
+
+## 3.09.32 — font-display: swap now actually applies
+- The font-display swap toggle previously only did anything when hosting fonts locally. Now, when it is on, Velox appends display=swap to your enqueued Google Fonts (both the <link> tag and the registered src) so they render with font-display:swap and stop tripping the PageSpeed warning. Note: fonts loaded via a hard-coded <link> (not enqueued) or your own local @font-face files are not rewritten this way.
+
+## 3.09.31 — Fonts: detect Oxygen fonts + fix left-wall text
+- Font detection now reads your page builder’s compiled CSS cache from disk (Oxygen/Bricks/Elementor) and fetches any referenced Google Fonts, so it works even when the host blocks loopback (IONOS/Plesk). Previously it just said "could not read the front page" and found nothing.
+- Fixed the detect-list message sitting flush against the left border (it now has proper padding), and updated its wording to reflect builder-CSS scanning.
+
+## 3.09.30 — Utility cards redesigned
+- Reworked the utility cards into a cleaner vertical layout: icon and toggle on a top row, name and description below, and an animated "Open →" link. Consistent card heights, a subtle hover lift, and clearer on/off/planned states.
+
+## 3.09.29 — Performance / SEO / Images are now toggleable modules
+- Added a Modules panel in Settings with on/off switches for Performance, SEO and Images (like the utilities). Switching one off hides it (and PageSpeed, under Performance) from the sidebar and stops it running; the toggles live in Settings — always reachable via the gear — so you can never lock yourself out. Empty sidebar groups are hidden automatically.
+
+## 3.09.28 — Single-image convert in the WP Media Library
+- The attachment details panel (Media Library grid and the editor media modal) now shows a "Convert to WebP" button for jpg/png images, or a "✓ Optimized with Velox" note if already done. It uses the same convert endpoint and your saved quality, and reports the KB saved. Only loads on media/editor screens.
+
+## 3.09.27 — Single-image convert button (Velox Images grid)
+- Each non-WebP image in the Images grid now has a "Convert to WebP" button that converts just that one image using your current WebP quality (same engine as bulk). The card updates to the WebP badge, shows the bytes saved, and the library stats refresh live. (Media Library tab button is next.)
+
+## 3.09.26 — Remove the double separator on Performance panels
+- Fixed the back-to-back double line in the Performance panels: a settings field already draws a bottom border, and the tool block right below it drew a top border too. The tool block no longer draws its own top border when it directly follows a field, so it is a single divider now.
+
+## 3.09.25 — Image stats no longer reset to 0/0
+- The optimizer library stats (optimized / pending / saved / %) now read the persistent optimization meta instead of only counting jpg/png. Previously, replace-mode turned images into .webp, which dropped them out of the "convertible" query, so after re-login everything showed 0/0 optimized and 0 B saved. The real numbers now persist.
+
+## 3.09.24 — Undo the oversized header gap
+- Reverted the global header-to-content gap from 48px back to 28px — it was far too large and applied between the header and everything on every page. The intended small gap for action buttons under the header is handled by the header row layout instead.
+
+## 3.09.23 — Header spacing + unused-media box height
+- PageSpeed header buttons now sit beside the title instead of crammed under the description (missing --row layout class); header-to-content gap increased to 48px across all pages.
+- Unused Media panel is now compact — the empty box dropped from ~100px to ~74px, no more dead white space before scanning.
+
+## 3.09.22 — Cookie preview width + sidebar deactivation (real fixes)
+- Cookie banner live preview is now a 620px column (was 400) so it is actually wide — previously only its height had been changed.
+- Switched-off utilities now really disappear from the custom sidebar (the sidebar loop never checked enabled state before); groups that become empty are hidden too.
+
+## 3.09.21 — Images: lightbox click, single WebP badge; settings spacing
+- The image zoom-click now actually opens the lightbox (it was opening but staying invisible due to a CSS conflict — it now toggles the is-open class the stylesheet expects).
+- Removed the duplicate badge on WebP images — you no longer get a dark "WEBP" type badge plus a blue "WebP" badge; one blue badge for WebP, the format badge for others.
+- Added a gap between the Import/Export buttons and the JSON box.
+
 ## 3.09.20 — Cookie-consent migrations (CookieYes, Complianz, Borlabs)
 - Added importers for CookieYes, Complianz and Borlabs Cookie that bring over the banner heading, body text and button labels where they are stored plainly. Cookie categories, script-blocking and appearance use a different model and are not carried over — the importer says so. Every recognised plugin in the Migrate list now has a real importer.
 

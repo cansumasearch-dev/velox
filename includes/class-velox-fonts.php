@@ -26,6 +26,13 @@ class Velox_Fonts {
 		if ( '' !== trim( (string) Velox_Settings::get( 'perf_font_block', '' ) ) ) {
 			add_filter( 'style_loader_tag', array( $this, 'block_fonts' ), 98, 4 );
 		}
+		// font-display strategy — ask Google to serve its fonts with the chosen mode.
+		// This makes the setting actually do something without needing local hosting
+		// (which handles it itself). Only relevant when we're NOT localizing.
+		if ( '' !== self::display_mode() && ! Velox_Settings::get( 'perf_local_fonts' ) ) {
+			add_filter( 'style_loader_tag', array( $this, 'add_display_swap' ), 97, 4 );
+			add_action( 'wp_enqueue_scripts', array( $this, 'swap_google_src' ), 98 );
+		}
 		// Front-end local-hosting swap only runs when the feature is on AND we have a local file.
 		if ( ! Velox_Settings::get( 'perf_local_fonts' ) ) {
 			return;
@@ -91,7 +98,7 @@ class Velox_Fonts {
 		$combined  = '';
 		$files     = 0;
 		$families  = array();
-		$swap      = (bool) Velox_Settings::get( 'perf_fonts_display_swap', true );
+		$swap      = self::display_mode();
 
 		foreach ( $css_urls as $css_url ) {
 			// Request with a modern browser UA so Google returns woff2 (not ttf).
@@ -127,8 +134,8 @@ class Velox_Fonts {
 				return 'url(' . trailingslashit( $dir['url'] ) . $name . ')';
 			}, $css );
 
-			if ( $swap && false === stripos( $css, 'font-display' ) ) {
-				$css = preg_replace( '/@font-face\s*{/i', "@font-face{font-display:swap;", $css );
+			if ( '' !== $swap && false === stripos( $css, 'font-display' ) ) {
+				$css = preg_replace( '/@font-face\s*{/i', "@font-face{font-display:{$swap};", $css );
 			}
 
 			preg_match_all( '/font-family:\s*[\'"]?([^;\'"]+)/i', $css, $fam );
@@ -215,6 +222,39 @@ class Velox_Fonts {
 		return $tag;
 	}
 
+	/** The chosen font-display value, or '' when off/invalid. */
+	private static function display_mode() {
+		$m = (string) Velox_Settings::get( 'perf_font_display', 'swap' );
+		return in_array( $m, array( 'swap', 'optional', 'fallback', 'block' ), true ) ? $m : '';
+	}
+
+	/** Append display=<mode> to a Google Fonts <link> so it renders with that font-display. */
+	public function add_display_swap( $tag, $handle, $href, $media ) {
+		$mode = self::display_mode();
+		if ( '' === $mode || false === stripos( $href, 'fonts.googleapis.com' ) || false !== stripos( $href, 'display=' ) ) {
+			return $tag;
+		}
+		$new = $href . ( false !== strpos( $href, '?' ) ? '&' : '?' ) . 'display=' . $mode;
+		return str_replace( $href, esc_url( $new ), $tag );
+	}
+
+	/** Also patch the enqueued src, for setups that read it directly rather than the tag. */
+	public function swap_google_src() {
+		$mode = self::display_mode();
+		if ( '' === $mode ) {
+			return;
+		}
+		$styles = wp_styles();
+		if ( empty( $styles->registered ) ) {
+			return;
+		}
+		foreach ( $styles->registered as $obj ) {
+			if ( ! empty( $obj->src ) && false !== stripos( $obj->src, 'fonts.googleapis.com' ) && false === stripos( $obj->src, 'display=' ) ) {
+				$obj->src .= ( false !== strpos( $obj->src, '?' ) ? '&' : '?' ) . 'display=' . $mode;
+			}
+		}
+	}
+
 	/* ---------------------------------------------------------------- block (5c) */
 
 	/** The user's block list — one font family name or URL fragment per line. */
@@ -289,26 +329,50 @@ class Velox_Fonts {
 	}
 
 	/**
+	 * Read CSS that page builders compile to disk (Oxygen, Bricks, Elementor). This is
+	 * how Velox finds fonts on hosts where it can't fetch the rendered front page over
+	 * loopback — the builder's @font-face rules live in these cached files.
+	 */
+	private static function builder_css_blob() {
+		$up   = wp_upload_dir();
+		if ( empty( $up['basedir'] ) ) {
+			return '';
+		}
+		$base = trailingslashit( $up['basedir'] );
+		$dirs = array( $base . 'oxygen/css', $base . 'bricks/css', $base . 'elementor/css' );
+		$blob = '';
+		foreach ( $dirs as $dir ) {
+			if ( ! is_dir( $dir ) ) {
+				continue;
+			}
+			$files = glob( $dir . '/*.css' );
+			foreach ( (array) $files as $file ) {
+				if ( is_readable( $file ) ) {
+					$blob .= "\n" . (string) file_get_contents( $file ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+				}
+			}
+		}
+		return $blob;
+	}
+
+	/**
 	 * Scan the front page (and its same-origin + Google Fonts stylesheets) for every
 	 * @font-face the site actually loads, and return one row per family/weight/style
 	 * with the best (woff2-preferred) file URL. Powers the "preload fonts" picker.
 	 */
 	public function detect() {
-		$home = home_url( '/' );
-		$res  = wp_remote_get( $home, array( 'timeout' => 15, 'sslverify' => false, 'user-agent' => 'Mozilla/5.0 (Velox font detect)' ) );
-		if ( is_wp_error( $res ) ) {
-			return $res;
-		}
-		$html = (string) wp_remote_retrieve_body( $res );
-		if ( '' === $html ) {
-			return new WP_Error( 'no_html', __( 'Could not read the front page to scan for fonts.', 'velox' ) );
-		}
-
+		$home     = home_url( '/' );
 		$css      = '';
 		$homehost = wp_parse_url( $home, PHP_URL_HOST );
 
+		// Best case: read the rendered front page. On hosts that block loopback
+		// (common on IONOS/Plesk) this comes back empty — we then fall back to the
+		// builder's on-disk CSS cache below so detection still works.
+		$res  = wp_remote_get( $home, array( 'timeout' => 15, 'sslverify' => false, 'user-agent' => 'Mozilla/5.0 (Velox font detect)' ) );
+		$html = is_wp_error( $res ) ? '' : (string) wp_remote_retrieve_body( $res );
+
 		// Inline <style> blocks.
-		if ( preg_match_all( '#<style[^>]*>(.*?)</style>#is', $html, $m ) ) {
+		if ( '' !== $html && preg_match_all( '#<style[^>]*>(.*?)</style>#is', $html, $m ) ) {
 			$css .= "\n" . implode( "\n", $m[1] );
 		}
 		// Linked stylesheets — same origin or Google Fonts only.
@@ -341,6 +405,32 @@ class Velox_Fonts {
 
 		$fonts = array();
 		$seen  = array();
+
+		// Builder CSS compiled to disk (Oxygen/Bricks/Elementor) — read directly so
+		// custom @font-face fonts are found even when the front page can't be fetched.
+		$css .= "\n" . self::builder_css_blob();
+
+		// Fetch any Google Fonts CSS referenced anywhere, so their @font-face parse
+		// into real families (this hits fonts.googleapis.com, not loopback).
+		if ( preg_match_all( '#https://fonts\.googleapis\.com/css2?\?[^"\')\s;>]+#i', $css . ' ' . $html, $gf ) ) {
+			$done = array();
+			foreach ( $gf[0] as $gurl ) {
+				$gurl = html_entity_decode( $gurl );
+				if ( isset( $done[ $gurl ] ) ) {
+					continue;
+				}
+				$done[ $gurl ] = true;
+				$gr = wp_remote_get( $gurl, array( 'timeout' => 12, 'sslverify' => false, 'user-agent' => 'Mozilla/5.0 (Velox)' ) );
+				if ( ! is_wp_error( $gr ) ) {
+					$css .= "\n" . (string) wp_remote_retrieve_body( $gr );
+				}
+			}
+		}
+
+		if ( '' === trim( $css ) ) {
+			return new WP_Error( 'no_css', __( 'No CSS found to scan. If your host blocks loopback, Velox reads the builder CSS cache instead — open your site once so it gets generated, then try again.', 'velox' ) );
+		}
+
 		if ( preg_match_all( '#@font-face\s*{([^}]*)}#is', $css, $faces ) ) {
 			foreach ( $faces[1] as $body ) {
 				$family = trim( self::css_decl( $body, 'font-family' ), " '\"" );

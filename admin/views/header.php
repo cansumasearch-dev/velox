@@ -116,24 +116,38 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 				),
 			);
 			$vx_cat = Velox_Utilities::catalog();
+			// Whole areas that can be switched off in Settings → Modules.
+			$vx_tab_modules = array(
+				'performance' => 'module_performance',
+				'pagespeed'   => 'module_performance',
+				'images'      => 'module_images',
+				'seo'         => 'module_seo',
+			);
 			// Drop PageSpeed in right under Performance when the module is on.
 			if ( class_exists( 'Velox_Pagespeed' ) && Velox_Pagespeed::enabled() ) {
 				array_splice( $vx_full_nav['Essentials'], 1, 0, array( array( 'tab', 'pagespeed', 'PageSpeed', 'search' ) ) );
 			}
 			foreach ( $vx_full_nav as $vx_section => $vx_items ) {
-				echo '<div class="velox-side-group">';
-				echo '<div class="velox-side-grouplabel">' . esc_html( $vx_section ) . '</div>';
+				$vx_rows = '';
 				foreach ( $vx_items as $vx_it ) {
 					list( $vx_kind, $vx_id, $vx_lbl, $vx_icon ) = $vx_it;
 					if ( 'tab' === $vx_kind ) {
+						// Hide whole areas whose module is switched off.
+						if ( isset( $vx_tab_modules[ $vx_id ] ) && ! Velox_Settings::get( $vx_tab_modules[ $vx_id ], true ) ) {
+							continue;
+						}
 						$vx_url = $admin->tab_url( $vx_id );
 						$vx_act = ( $current === $vx_id );
 					} else {
+						// Switched-off utilities disappear from the sidebar (always-on tools stay).
+						if ( ! Velox_Utilities::is_available( $vx_id ) ) {
+							continue;
+						}
 						$vx_url  = Velox_Utilities::tool_url( $vx_id );
 						$vx_link = isset( $vx_cat[ $vx_id ]['link'] ) ? $vx_cat[ $vx_id ]['link'] : '';
 						$vx_act  = $vx_link ? ( $current === $vx_link ) : ( 'utilities' === $current && $vx_cur_tool === $vx_id );
 					}
-					printf(
+					$vx_rows .= sprintf(
 						'<a href="%s" class="velox-side-item%s"><span class="velox-side-ic">%s</span><span class="velox-side-label">%s</span></a>',
 						esc_url( $vx_url ),
 						$vx_act ? ' is-active' : '',
@@ -141,7 +155,10 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 						esc_html( $vx_lbl )
 					);
 				}
-				echo '</div>';
+				if ( '' === $vx_rows ) {
+					continue; // whole group is switched off — don't render an empty header
+				}
+				echo '<div class="velox-side-group"><div class="velox-side-grouplabel">' . esc_html( $vx_section ) . '</div>' . $vx_rows . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
 			}
 			?>
 		</nav>

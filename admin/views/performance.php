@@ -70,7 +70,13 @@ $fields = array(
 
 	// Fonts
 	'perf_fonts_preconnect'      => array( 'switch', 'Preconnect Google Fonts', 'Adds preconnect to fonts.googleapis.com and fonts.gstatic.com.' ),
-	'perf_fonts_display_swap'    => array( 'switch', 'Force font-display: swap', 'Adds display=swap to Google Fonts so text shows while fonts load.' ),
+	'perf_font_display'          => array( 'select', 'font-display strategy', 'How text renders while a web font loads. Applied to your Google Fonts via the display= parameter. "Swap" is the safe default (shows fallback text immediately, then swaps in the web font).', array(
+		'off'      => 'Off — leave the font default',
+		'swap'     => 'Swap — show text immediately, then swap (recommended)',
+		'fallback' => 'Fallback — very brief block, then swap',
+		'optional' => 'Optional — skip the swap on slow networks (no layout shift)',
+		'block'    => 'Block — hide text until the font loads',
+	) ),
 	'perf_local_fonts'           => array( 'switch', 'Host Google Fonts locally', 'Downloads your Google Fonts and serves them from your own server — kills the third-party request and speeds up first paint. Click "Scan & download" below after enabling.' ),
 	'perf_preload_fonts'         => array( 'textarea', 'Preload fonts', 'One font URL per line (.woff2 recommended). Preload only the 1–2 above-the-fold fonts.' ),
 	'perf_system_fonts'          => array( 'switch', 'Use system fonts', 'Skips web fonts and uses the visitor\'s own system stack — zero font requests. This overrides theme fonts, so check your design after turning it on.' ),
@@ -335,7 +341,7 @@ $sec_icons   = array(
 							<p class="velox-hint">Velox loads your front page, finds the Google Fonts it uses, downloads the woff2 files into your uploads folder and serves those instead. Re-scan after you change fonts.</p>
 						</div>
 						<div class="velox-fonts-tool">
-							<div class="velox-fonts-status"><strong style="font-size:13px;">Font manager</strong><br><span class="velox-hint">Detect every font your site loads (Google &amp; local). Preload the 1–2 above-the-fold fonts, and <strong>Block</strong> any you don't want — blocking stops Google-hosted fonts from loading at all.</span></div>
+							<div class="velox-fonts-status"><strong style="font-size:13px;">Font manager</strong><br><span class="velox-hint">Detects every font your site loads. For each one: <strong>Preload</strong> starts it loading immediately (only worth it for the 1&ndash;2 fonts visible above the fold), and <strong>Block</strong> stops a Google-hosted font from loading at all. Local/builder fonts can be preloaded but not blocked.</span></div>
 							<div class="velox-fonts-btns">
 								<button class="velox-btn velox-btn--primary" id="velox-font-detect">Detect fonts</button>
 							</div>

@@ -255,6 +255,7 @@ class Velox_Settings {
 			// ---- Performance · Fonts ----
 			'perf_fonts_preconnect'      => true,
 			'perf_fonts_display_swap'    => true,
+			'perf_font_display'          => 'swap',
 			'perf_local_fonts'           => false, // host Google Fonts locally (OMGF-style)
 			'perf_preload_fonts'         => '',    // one font URL per line
 			'perf_font_block'            => '',    // block fonts by family name or URL, one per line
@@ -325,7 +326,7 @@ class Velox_Settings {
 			),
 			'fonts' => array(
 				'label' => 'Fonts',
-				'keys'  => array( 'perf_fonts_preconnect', 'perf_fonts_display_swap', 'perf_local_fonts', 'perf_preload_fonts', 'perf_system_fonts' ),
+				'keys'  => array( 'perf_fonts_preconnect', 'perf_font_display', 'perf_local_fonts', 'perf_preload_fonts', 'perf_system_fonts' ),
 			),
 			'preload' => array(
 				'label' => 'Preload & Network',

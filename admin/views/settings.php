@@ -10,6 +10,32 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
+	<h3 class="velox-panel-title">Modules</h3>
+	<p class="velox-hint">Turn whole areas of Velox on or off. A switched-off module disappears from the sidebar and stops running — flip it back on here anytime.</p>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Performance</span>
+			<span class="velox-toggle-desc">Caching, defer/delay JS, lazy-load, fonts and PageSpeed.</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="module_performance" <?php checked( ! empty( $s['module_performance'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">SEO</span>
+			<span class="velox-toggle-desc">XML sitemap, meta titles &amp; descriptions and robots.</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="module_seo" <?php checked( ! empty( $s['module_seo'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Images</span>
+			<span class="velox-toggle-desc">WebP/AVIF conversion and the image optimizer.</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="module_images" <?php checked( ! empty( $s['module_images'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+</div>
+
+<div class="velox-panel">
 	<h3 class="velox-panel-title">Quick setup</h3>
 	<p class="velox-hint">Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards.</p>
 	<div class="velox-fonts-btns">

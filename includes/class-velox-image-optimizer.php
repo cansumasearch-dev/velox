@@ -45,6 +45,9 @@ class Velox_Image_Optimizer {
 			add_action( 'post-upload-ui', array( $this, 'upload_hint' ) );
 			add_action( 'admin_head-upload.php', array( $this, 'media_library_button' ) );
 			add_action( 'admin_menu', array( $this, 'media_submenu' ), 20 );
+			// Per-image "Convert to WebP" button in the attachment details panel.
+			add_filter( 'attachment_fields_to_edit', array( $this, 'media_convert_field' ), 10, 2 );
+			add_action( 'admin_print_footer_scripts', array( $this, 'media_convert_script' ), 100 );
 		}
 
 		// Downscale oversized uploads to the configured max width (0 = off).
@@ -535,22 +538,36 @@ class Velox_Image_Optimizer {
 	}
 
 	public static function library_stats() {
-		$ids   = self::get_convertible_ids();
-		$total = count( $ids );
+		global $wpdb;
+
+		// "Done" and "saved" come from our persistent optimization meta, which stays on
+		// the attachment even after replace-mode turns it into a .webp (so the numbers
+		// survive conversion and re-login — previously they vanished because converted
+		// images are no longer jpg/png and dropped out of the convertible query).
+		$rows  = $wpdb->get_col( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key = %s", self::META_KEY ) );
 		$done  = 0;
 		$saved = 0;
-		foreach ( $ids as $id ) {
-			if ( self::is_done( $id ) ) {
-				$m = get_post_meta( $id, self::META_KEY, true );
+		foreach ( (array) $rows as $mv ) {
+			$m = maybe_unserialize( $mv );
+			if ( is_array( $m ) && isset( $m['original_bytes'], $m['webp_bytes'] ) ) {
 				$done++;
 				$saved += ( (int) $m['original_bytes'] - (int) $m['webp_bytes'] );
 			}
 		}
+
+		// "Pending" = jpg/png still awaiting conversion (not already done).
+		$pending = 0;
+		foreach ( self::get_convertible_ids() as $id ) {
+			if ( ! self::is_done( $id ) ) {
+				$pending++;
+			}
+		}
+
 		return array(
-			'total'       => $total,
+			'total'       => $done + $pending,
 			'done'        => $done,
-			'pending'     => max( 0, $total - $done ),
-			'saved_bytes' => $saved,
+			'pending'     => $pending,
+			'saved_bytes' => max( 0, $saved ),
 		);
 	}
 
@@ -627,6 +644,83 @@ class Velox_Image_Optimizer {
 			}
 			if ( document.readyState !== 'loading' ) { add(); }
 			else { document.addEventListener( 'DOMContentLoaded', add ); }
+		} )();
+		</script>
+		<?php
+	}
+
+	/**
+	 * Adds a "Convert to WebP" button (or an "optimized" note) into the attachment
+	 * details panel for jpg/png images, in the Media Library grid and the editor modal.
+	 */
+	public function media_convert_field( $fields, $post ) {
+		if ( ! current_user_can( 'upload_files' ) ) {
+			return $fields;
+		}
+		$mime = get_post_mime_type( $post );
+		if ( ! in_array( $mime, array( 'image/jpeg', 'image/png' ), true ) ) {
+			return $fields; // already webp/avif or not an image we convert
+		}
+		if ( self::is_done( $post->ID ) ) {
+			$html = '<span class="velox-mlib-done" style="color:#1a7f37;font-weight:600;">&#10003; Optimized with Velox</span>';
+		} else {
+			$html = '<button type="button" class="button velox-mlib-convert" data-id="' . (int) $post->ID . '" data-nonce="' . esc_attr( wp_create_nonce( 'velox_nonce' ) ) . '">Convert to WebP</button> <span class="velox-mlib-result" style="margin-left:8px;"></span>';
+		}
+		$fields['velox_convert'] = array(
+			'label' => 'Velox WebP',
+			'input' => 'html',
+			'html'  => $html,
+		);
+		return $fields;
+	}
+
+	/** Delegated click handler for the Media Library convert button (media screens only). */
+	public function media_convert_script() {
+		if ( ! current_user_can( 'upload_files' ) ) {
+			return;
+		}
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || ! in_array( $screen->base, array( 'upload', 'post' ), true ) ) {
+			return; // Media Library grid + post/attachment editor cover the attachment modal.
+		}
+		?>
+		<script>
+		( function () {
+			document.addEventListener( 'click', function ( e ) {
+				var btn = e.target.closest ? e.target.closest( '.velox-mlib-convert' ) : null;
+				if ( ! btn ) { return; }
+				e.preventDefault();
+				var result = btn.parentNode ? btn.parentNode.querySelector( '.velox-mlib-result' ) : null;
+				btn.disabled = true;
+				btn.textContent = 'Converting…';
+				var body = new FormData();
+				body.append( 'action', 'velox' );
+				body.append( 'do', 'convert_one' );
+				body.append( 'id', btn.getAttribute( 'data-id' ) );
+				body.append( 'nonce', btn.getAttribute( 'data-nonce' ) );
+				fetch( ajaxurl, { method: 'POST', credentials: 'same-origin', body: body } )
+					.then( function ( r ) { return r.json(); } )
+					.then( function ( res ) {
+						if ( res && res.success ) {
+							var d = res.data || {};
+							var saved = ( d.original_bytes || 0 ) - ( d.webp_bytes || 0 );
+							var span = document.createElement( 'span' );
+							span.className = 'velox-mlib-done';
+							span.style.cssText = 'color:#1a7f37;font-weight:600;';
+							span.textContent = '\u2713 Converted' + ( saved > 0 ? ' \u00b7 ' + Math.round( saved / 1024 ) + ' KB saved' : '' );
+							btn.replaceWith( span );
+						} else {
+							btn.disabled = false;
+							btn.textContent = 'Convert to WebP';
+							if ( result ) { result.textContent = ( res && res.data && res.data.message ) || 'Conversion failed'; }
+						}
+					} )
+					.catch( function () {
+						btn.disabled = false;
+						btn.textContent = 'Convert to WebP';
+						if ( result ) { result.textContent = 'Conversion failed'; }
+					} );
+			} );
 		} )();
 		</script>
 		<?php
