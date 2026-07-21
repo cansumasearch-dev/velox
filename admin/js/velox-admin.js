@@ -4216,16 +4216,16 @@
 
 		// Provider presets — pick one to fill host/port/encryption (FluentSMTP-style).
 		var SMTP_PRESETS = {
-			'':         { label: 'Custom / other host' },
-			ionos:      { label: 'IONOS',                 host: 'smtp.ionos.de',                        port: 587, secure: 'tls' },
-			gmail:      { label: 'Gmail / Google Workspace', host: 'smtp.gmail.com',                    port: 587, secure: 'tls' },
-			outlook:    { label: 'Outlook / Office 365',  host: 'smtp.office365.com',                   port: 587, secure: 'tls' },
-			sendgrid:   { label: 'SendGrid',              host: 'smtp.sendgrid.net',                    port: 587, secure: 'tls' },
-			mailgun:    { label: 'Mailgun',               host: 'smtp.mailgun.org',                     port: 587, secure: 'tls' },
-			ses:        { label: 'Amazon SES (eu-central-1)', host: 'email-smtp.eu-central-1.amazonaws.com', port: 587, secure: 'tls' },
-			brevo:      { label: 'Brevo (Sendinblue)',    host: 'smtp-relay.brevo.com',                 port: 587, secure: 'tls' },
-			postmark:   { label: 'Postmark',              host: 'smtp.postmarkapp.com',                 port: 587, secure: 'tls' },
-			zoho:       { label: 'Zoho Mail',             host: 'smtp.zoho.com',                        port: 587, secure: 'tls' }
+			'':         { label: 'Custom / other host', hint: 'Enter the SMTP host, username and password your mail provider gave you.' },
+			ionos:      { label: 'IONOS',                 host: 'smtp.ionos.de',                        port: 587, secure: 'tls', hint: 'Username = your full IONOS mailbox address, password = that mailbox\u2019s password.' },
+			gmail:      { label: 'Gmail / Google Workspace', host: 'smtp.gmail.com',                    port: 587, secure: 'tls', hint: 'Username = your Gmail address, password = a Google App Password (not your normal login) with 2FA on.' },
+			outlook:    { label: 'Outlook / Office 365',  host: 'smtp.office365.com',                   port: 587, secure: 'tls', hint: 'Username = your email address, password = your account or app password.' },
+			sendgrid:   { label: 'SendGrid',              host: 'smtp.sendgrid.net',                    port: 587, secure: 'tls', hint: 'Username = the literal word "apikey", password = your SendGrid API key.' },
+			mailgun:    { label: 'Mailgun',               host: 'smtp.mailgun.org',                     port: 587, secure: 'tls', hint: 'Username = your Mailgun SMTP login, password = its SMTP password (from Domain settings).' },
+			ses:        { label: 'Amazon SES (eu-central-1)', host: 'email-smtp.eu-central-1.amazonaws.com', port: 587, secure: 'tls', hint: 'Username & password = your SES SMTP credentials (not your AWS keys). Change the region in the host if needed.' },
+			brevo:      { label: 'Brevo (Sendinblue)',    host: 'smtp-relay.brevo.com',                 port: 587, secure: 'tls', hint: 'Username = your Brevo account email, password = your SMTP key (SMTP & API settings).' },
+			postmark:   { label: 'Postmark',              host: 'smtp.postmarkapp.com',                 port: 587, secure: 'tls', hint: 'Username and password are both your Postmark Server API token.' },
+			zoho:       { label: 'Zoho Mail',             host: 'smtp.zoho.com',                        port: 587, secure: 'tls', hint: 'Username = your Zoho email, password = an app-specific password.' }
 		};
 		function providerFor( host ) {
 			host = ( host || '' ).toLowerCase();
@@ -4261,7 +4261,8 @@
 					'<label class="vmail-cf"><span>From address</span><input type="email" class="velox-input vmail-c-from" value="' + escapeHtml( c.from || '' ) + '" placeholder="hello@example.com"></label>' +
 					'<label class="vmail-cf"><span>From name</span><input type="text" class="velox-input vmail-c-fromname" value="' + escapeHtml( c.from_name || '' ) + '"></label>' +
 					'<label class="vmail-cf"><span>Reply-To</span><input type="email" class="velox-input vmail-c-replyto" value="' + escapeHtml( c.reply_to || '' ) + '" placeholder="replies@example.com"></label>' +
-				'</div>';
+				'</div>' +
+				'<p class="velox-hint vmail-conn-hint">' + escapeHtml( ( SMTP_PRESETS[ curProv ] || SMTP_PRESETS[''] ).hint ) + '</p>';
 			card.querySelector( '.vmail-conn-del' ).addEventListener( 'click', function () {
 				collect();
 				conns = conns.filter( function ( x ) { return x.id !== c.id; } );
@@ -4272,6 +4273,8 @@
 			card.querySelector( '.vmail-c-host' ).addEventListener( 'input', function () { collect(); syncSelects(); } );
 			card.querySelector( '.vmail-c-provider' ).addEventListener( 'change', function () {
 				var p = SMTP_PRESETS[ this.value ];
+				var h = card.querySelector( '.vmail-conn-hint' );
+				if ( h && p ) { h.textContent = p.hint; }
 				if ( p && p.host ) {
 					card.querySelector( '.vmail-c-host' ).value = p.host;
 					card.querySelector( '.vmail-c-port' ).value = p.port;
@@ -4444,6 +4447,35 @@
 					.then( function ( r ) { toast( r.message, r.ok ? 'success' : 'error' ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { connTestBtn.disabled = false; connTestBtn.textContent = orig; } );
+			} );
+		}
+
+		// The Mail page has its own settings toggles (Send-through-SMTP, sender identity,
+		// CAPTCHA) that aren't on the Settings page, so auto-save them here on change.
+		var mailPage = document.querySelector( '.velox-main' );
+		if ( mailPage && ! mailPage._veloxMailAutosave ) {
+			mailPage._veloxMailAutosave = true;
+			var mtimers = {};
+			function mailSaveEl( el ) {
+				var key = el.getAttribute( 'data-setting' );
+				if ( ! key ) { return; }
+				var val = ( 'checkbox' === el.type ) ? ( el.checked ? 1 : 0 ) : el.value;
+				var p = {};
+				p[ key ] = val;
+				api( 'save_settings', p ).then( flashSaved ).catch( function ( er ) { toast( ( er && er.message ) || 'Could not save', 'error' ); } );
+			}
+			mailPage.addEventListener( 'change', function ( e ) {
+				var el = e.target.closest ? e.target.closest( '[data-setting]' ) : null;
+				if ( el ) { mailSaveEl( el ); }
+			} );
+			mailPage.addEventListener( 'input', function ( e ) {
+				var el = e.target.closest ? e.target.closest( '[data-setting]' ) : null;
+				if ( ! el ) { return; }
+				var t = el.tagName;
+				if ( 'TEXTAREA' !== t && ! ( 'INPUT' === t && /^(text|email|url|password|search)$/.test( el.type ) ) ) { return; }
+				var key = el.getAttribute( 'data-setting' );
+				clearTimeout( mtimers[ key ] );
+				mtimers[ key ] = setTimeout( function () { mailSaveEl( el ); }, 700 );
 			} );
 		}
 

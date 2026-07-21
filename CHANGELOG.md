@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.43 — Fix: SMTP toggle now saves + credential hints
+- Fixed the "Send through SMTP" toggle (and the sender-identity / CAPTCHA settings on the Mail page) not persisting — they now auto-save on change like everything else. This regressed when settings auto-save was added, because those toggles live on the Mail page, not Settings.
+- Each SMTP connection now shows a provider-specific credential hint (e.g. for IONOS: username = your full mailbox address, password = its password; SendGrid: username = "apikey"), so it is clear you still enter a username, password and From address after picking a provider.
+
 ## 3.09.42 — Mail inbox: colored folders
 - Added folders to the inbox. Click "+ Folders" to create, rename, recolor or remove folders (each with its own color). Open a submission and use the folder dropdown to file it; folder chips appear in the filter bar (with color dots) to show just that folder. Completes the inbox overhaul (soft-delete + Deleted tab, bulk actions, pinned-to-top, and now folders).
 
