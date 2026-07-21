@@ -386,6 +386,10 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 	<?php
 	foreach ( $velox_tiles as $vt ) {
 		list( $vk, $vid, $vlabel, $vicon, $vsub ) = $vt;
+		// Only show utilities that are actually switched on (always-on tools stay).
+		if ( 'util' === $vk && ! Velox_Utilities::is_available( $vid ) ) {
+			continue;
+		}
 		$vurl = ( 'tab' === $vk ) ? $admin->tab_url( $vid ) : Velox_Utilities::tool_url( $vid );
 		printf(
 			'<a class="velox-tile" href="%s"><span class="velox-tile-ic">%s</span><span class="velox-tile-tx"><span class="velox-tile-name">%s</span><span class="velox-tile-sub">%s</span></span></a>',

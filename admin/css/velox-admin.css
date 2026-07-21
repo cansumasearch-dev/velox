@@ -163,7 +163,7 @@
 
 .velox-side-nav { display: flex; flex-direction: column; gap: 1px; padding: 8px 12px; flex: 1; overflow-y: auto; }
 /* grouped sections */
-.velox-side-group { margin-top: 13px; }
+.velox-side-group { margin-top: 26px; }
 .velox-side-group:first-child { margin-top: 2px; }
 .velox-side-grouplabel { font-size: 10.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--vx-ink-3); padding: 6px 10px 4px; }
 .velox-side-item {
@@ -228,7 +228,7 @@
 .velox-h1 { font-size: 40px; line-height: 1.1; font-weight: 600; letter-spacing: -0.022em; margin: 0 0 12px; color: var(--vx-ink); }
 .velox-h2 { font-size: 28px; line-height: 1.14; font-weight: 600; letter-spacing: -0.021em; margin: 0 0 6px; color: var(--vx-ink); }
 .velox-accent { color: var(--vx-primary-ink); }
-.velox-sub { color: var(--vx-ink-2); font-size: 17px; line-height: 1.47; margin: 0; max-width: 640px; }
+.velox-sub { color: var(--vx-ink-2); font-size: 17px; line-height: 1.47; margin: 7px 0 0; max-width: 640px; }
 .velox-section-title { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--vx-ink-3); margin: var(--vx-s6) 0 14px; font-weight: 600; }
 
 /* ---------- Hero ---------- */
@@ -291,7 +291,9 @@
 .velox-panel > .velox-field:last-child { border-bottom: 0; }
 /* Tool-form fields keep their own grouped spacing (no row dividers). */
 .velox-tool-form > .velox-field { padding: 0; margin-bottom: 18px; border-bottom: 0; }
-.velox-field--inline { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.velox-field--inline { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+.velox-field--inline > .velox-field-label { flex: 0 0 128px; margin-bottom: 0; }
+.velox-field--inline > .velox-input, .velox-field--inline > .velox-select { flex: 1 1 auto; width: auto; min-width: 0; }
 .velox-field-label { display: block; font-weight: 600; font-size: 13px; letter-spacing: -.005em; color: var(--vx-ink); margin-bottom: 7px; }
 .velox-field-label small, .velox-field-label em { font-weight: 500; color: var(--vx-ink-3); font-style: normal; }
 .velox-hint { display: block; color: var(--vx-ink-2); font-size: 12.5px; line-height: 1.5; margin-top: 7px; }
@@ -619,7 +621,7 @@
 .velox-perf-navitem.is-active::before { content: none; }
 
 /* ---------- General spacing consistency ---------- */
-.velox-page-head { margin-bottom: 28px; }
+.velox-page-head { margin-bottom: 36px; }
 .velox-panel { padding: 28px; margin-bottom: 20px; }
 .velox-panel-title { margin-bottom: 18px; }
 
@@ -748,16 +750,19 @@
 .velox-wizard-step[data-step="done"]{text-align:center}
 
 /* ---- Utilities hub ---- */
-.velox-util-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
-.velox-util-card { display: flex; gap: 16px; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-radius); padding: 22px; box-shadow: var(--vx-shadow); transition: box-shadow .15s, transform .15s; }
-.velox-util-card:hover { box-shadow: var(--vx-shadow-h); }
-.velox-util-card.is-planned { opacity: .62; }
-.velox-util-ic { flex: none; width: 44px; height: 44px; border-radius: var(--vx-r-md); background: var(--vx-bg); display: flex; align-items: center; justify-content: center; color: var(--vx-accent); }
-.velox-util-body { flex: 1; min-width: 0; }
-.velox-util-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
-.velox-util-name { font-size: 16px; font-weight: 700; margin: 0; letter-spacing: -.01em; }
-.velox-util-desc { color: var(--vx-ink-2); font-size: 13.5px; line-height: 1.5; margin: 0; }
-.velox-util-badge { flex: none; font-size: 11px; font-weight: 600; color: var(--vx-ink-2); background: var(--vx-bg); border: 1px solid var(--vx-line); padding: 3px 9px; border-radius: 999px; }
+.velox-util-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.velox-util-card { display: flex; gap: 14px; background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); padding: 20px; transition: border-color .15s var(--vx-ease), box-shadow .15s var(--vx-ease), transform .15s var(--vx-ease); }
+.velox-util-card:hover { border-color: var(--vx-n300); box-shadow: 0 6px 20px rgba(0,0,0,.06); transform: translateY(-1px); }
+.velox-util-card.is-planned { opacity: .6; }
+.velox-util-card.is-planned:hover { transform: none; box-shadow: none; border-color: var(--vx-line); }
+.velox-util-ic { flex: none; width: 42px; height: 42px; border-radius: var(--vx-r-md); background: var(--vx-primary-tint); display: flex; align-items: center; justify-content: center; color: var(--vx-primary); }
+.velox-util-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.velox-util-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 5px; }
+.velox-util-name { font-size: 15px; font-weight: 600; margin: 0; letter-spacing: -.01em; color: var(--vx-ink); }
+.velox-util-desc { color: var(--vx-ink-2); font-size: 13px; line-height: 1.5; margin: 0; }
+.velox-util-open { align-self: flex-start; margin-top: 14px; }
+.velox-util-hint-off { margin-top: 14px; font-size: 12px; font-weight: 500; color: var(--vx-ink-3); }
+.velox-util-badge { flex: none; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--vx-ink-3); background: var(--vx-n50); border: 1px solid var(--vx-line); padding: 3px 8px; border-radius: 999px; }
 
 /* ---- Switch ---- */
 .velox-switch { position: relative; display: inline-block; flex: none; cursor: pointer; }
@@ -783,6 +788,7 @@
 .velox-btn--danger { background: #dc2626; color: #fff; }
 .velox-btn--danger:hover { background: #b91c1c; }
 .velox-media-results { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; margin-top: 16px; }
+.velox-media-results:empty { margin-top: 0; }
 .velox-media-item { position: relative; display: flex; flex-direction: column; gap: 6px; border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); padding: 10px; cursor: pointer; background: var(--vx-card); }
 .velox-media-item:hover { box-shadow: var(--vx-shadow); }
 .velox-media-item img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: var(--vx-r-sm); background: var(--vx-bg); cursor: zoom-in; }
@@ -1776,7 +1782,7 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vxck-device { border: 0; background: transparent; font-size: 12px; font-weight: 600; color: var(--vx-ink-2); padding: 5px 14px; border-radius: var(--vx-r-pill); cursor: pointer; }
 .vxck-device.is-active { background: var(--vx-card); color: var(--vx-ink); box-shadow: var(--vx-shadow-sm); }
 /* The stage is a faux mini-viewport; the REAL banner renders inside it. */
-.vxck-stage { position: relative; overflow: hidden; background: var(--vx-n50); border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); min-height: 420px; transition: max-width var(--vx-dur-2) var(--vx-ease); margin: 0 auto; }
+.vxck-stage { position: relative; overflow: hidden; background: var(--vx-n50); border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); min-height: 520px; transition: max-width var(--vx-dur-2) var(--vx-ease); margin: 0 auto; }
 .vxck-stage[data-device="desktop"] { max-width: none; }
 .vxck-stage[data-device="mobile"] { max-width: 380px; min-height: 460px; }
 .vxck-stage-page { position: absolute; inset: 0; padding: 22px; display: flex; flex-direction: column; gap: 10px; opacity: .5; }

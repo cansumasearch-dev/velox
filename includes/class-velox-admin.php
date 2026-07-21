@@ -114,8 +114,9 @@ class Velox_Admin {
 				if ( ! isset( $cat[ $id ] ) ) { continue; }
 				?>
 				<a class="velox-side-subfly-item" role="menuitem" href="<?php echo esc_url( Velox_Utilities::tool_url( $id ) ); ?>">
-					<span class="velox-util-dot" aria-hidden="true"></span>
-					<span><?php echo esc_html( $cat[ $id ]['label'] ); ?></span>
+					<span class="velox-util-ficon" aria-hidden="true"><?php echo Velox_Admin::icon( $cat[ $id ]['icon'], 15 ); // phpcs:ignore ?></span>
+					<span class="velox-util-flabel"><?php echo esc_html( $cat[ $id ]['label'] ); ?></span>
+					<span class="velox-util-fgo" aria-hidden="true">&rsaquo;</span>
 				</a>
 			<?php endforeach; ?>
 		</div>
@@ -165,10 +166,10 @@ class Velox_Admin {
 			/* Active-utilities popover, anchored to the Utilities submenu item.
 			   JS sets top/left; this is a fixed, escape-the-overflow popover. */
 			.velox-util-pop {
-				position: fixed; z-index: 100000; min-width: 210px;
+				position: fixed; z-index: 100000; min-width: 232px;
 				max-height: calc(100vh - 16px); overflow-y: auto; overscroll-behavior: contain;
 				background: #1d1d1f; color: #fff;
-				border-radius: 11px; padding: 7px;
+				border-radius: 12px; padding: 8px;
 				box-shadow: 0 12px 40px -8px rgba(0,0,0,.45);
 				opacity: 0; visibility: hidden; transform: translateX(-6px);
 				transition: opacity .14s ease, transform .14s ease, visibility .14s;
@@ -176,16 +177,26 @@ class Velox_Admin {
 			}
 			.velox-util-pop.is-open { opacity: 1; visibility: visible; transform: translateX(0); }
 			.velox-side-subfly-head {
-				font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase;
-				color: #86868b; padding: 4px 10px 8px;
+				font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase;
+				color: #86868b; padding: 5px 10px 9px; border-bottom: 1px solid rgba(255,255,255,.07); margin-bottom: 5px;
 			}
 			.velox-side-subfly-item {
-				display: flex; align-items: center; gap: 9px;
-				padding: 8px 10px; border-radius: 7px;
+				display: flex; align-items: center; gap: 11px;
+				padding: 8px 10px; border-radius: 8px;
 				color: #f5f5f7 !important; text-decoration: none; font-size: 13px; font-weight: 500;
+				transition: background .12s ease;
 			}
-			.velox-side-subfly-item:hover { background: rgba(255,255,255,.08); color: #fff !important; }
-			.velox-util-dot { width: 6px; height: 6px; border-radius: 50%; background: #2ab7f1; flex: none; }
+			.velox-util-ficon {
+				flex: none; width: 26px; height: 26px; border-radius: 7px;
+				background: rgba(255,255,255,.08); color: #9fdcfb;
+				display: flex; align-items: center; justify-content: center;
+			}
+			.velox-util-ficon svg { width: 15px; height: 15px; }
+			.velox-util-flabel { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+			.velox-util-fgo { color: #6e6e73; font-size: 16px; line-height: 1; opacity: 0; transition: opacity .12s ease, transform .12s ease; transform: translateX(-3px); }
+			.velox-side-subfly-item:hover { background: rgba(255,255,255,.1); color: #fff !important; }
+			.velox-side-subfly-item:hover .velox-util-ficon { background: #2ab7f1; color: #fff; }
+			.velox-side-subfly-item:hover .velox-util-fgo { opacity: 1; transform: translateX(0); }
 			/* Small arrow hint on the Utilities submenu row when it has a popover. */
 			#adminmenu .velox-util-haspop > a::after {
 				content: "\203A"; margin-left: auto; padding-left: 8px; opacity: .55; font-size: 14px; line-height: 1;

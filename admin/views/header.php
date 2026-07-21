@@ -94,20 +94,24 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 					array( 'tab', 'images', 'Images', 'image' ),
 					array( 'tab', 'seo', 'SEO', 'search' ),
 				),
-				'More'        => array(
-					array( 'tab', 'database', 'Database', 'db' ),
-					array( 'util', 'fields', 'Custom Fields', 'grid' ),
+				'Content & media' => array(
 					array( 'tab', 'media', 'Media Editor', 'tag' ),
-					array( 'util', 'redirects', 'Redirects & 404s', 'redirect' ),
+					array( 'util', 'unusedmedia', 'Unused Media', 'broom' ),
+					array( 'util', 'fields', 'Custom Fields', 'grid' ),
 					array( 'util', 'snippets', 'Code Snippets', 'code' ),
+					array( 'util', 'scripts', 'Script Manager', 'code' ),
+				),
+				'Site & visitors' => array(
+					array( 'util', 'redirects', 'Redirects & 404s', 'redirect' ),
 					array( 'util', 'cookies', 'Cookie Banner', 'cookie' ),
 					array( 'util', 'mail', 'Mail & Forms', 'mail' ),
-					array( 'util', 'scripts', 'Script Manager', 'code' ),
-					array( 'util', 'unusedmedia', 'Unused Media', 'broom' ),
 					array( 'util', 'maintenance', 'Maintenance Mode', 'cone' ),
 					array( 'util', 'loginurl', 'Login URL', 'lock' ),
-					array( 'util', 'installer', 'Bulk Installer', 'plug' ),
+				),
+				'System'      => array(
+					array( 'tab', 'database', 'Database', 'db' ),
 					array( 'util', 'backup', 'Backup & Restore', 'package' ),
+					array( 'util', 'installer', 'Bulk Installer', 'plug' ),
 					array( 'util', 'october', 'OctoberCMS Theme', 'package' ),
 				),
 			);

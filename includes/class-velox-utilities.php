@@ -45,6 +45,12 @@ class Velox_Utilities {
 		return '' !== $key && (bool) Velox_Settings::get( $key, false );
 	}
 
+	/** A tool is "available" if it has no on/off toggle, or its toggle is on. Switched-off tools are hidden from the dashboard/flyout. */
+	public static function is_available( $id ) {
+		$key = self::enable_key( $id );
+		return '' === $key || (bool) Velox_Settings::get( $key, false );
+	}
+
 	/** Ordered list of switched-on utility ids — drives the sidebar sub-menu. */
 	public static function enabled_tools() {
 		$out = array();
@@ -615,7 +621,7 @@ class Velox_Utilities {
 		// HTML/CSS is definitely in use (strong). A bare-filename match only keeps it
 		// out of the "unused" list (loose) — it's too weak to call the file "used".
 		if ( $names ) {
-			$html = self::rendered_html_blob();
+			$html = self::db_content_blob() . "\n" . self::rendered_html_blob();
 			if ( '' !== $html ) {
 				foreach ( $names as $id => $list ) {
 					foreach ( $paths[ $id ] as $p ) {
@@ -724,6 +730,27 @@ class Velox_Utilities {
 	 * so we can confirm whether a media file actually appears on the live site.
 	 * Cached briefly so a scan of many files only fetches the pages once.
 	 */
+	/**
+	 * A blob of every place image references actually live in the database:
+	 * post content plus the stored markup of the major page builders. This needs
+	 * no HTTP loopback, so it works on hosts that block a site from fetching itself
+	 * (common on IONOS/Plesk) where rendered_html_blob() comes back empty.
+	 */
+	private static function db_content_blob() {
+		static $blob = null;
+		if ( null !== $blob ) { return $blob; }
+		global $wpdb;
+		$blob = '';
+		$contents = $wpdb->get_col( "SELECT post_content FROM {$wpdb->posts} WHERE post_status NOT IN ('trash','auto-draft') AND post_content <> ''" );
+		foreach ( (array) $contents as $c ) { $blob .= "\n" . $c; }
+		// Page-builder stored markup: Oxygen, Elementor, Bricks, Beaver, WPBakery, Divi.
+		$keys = array( 'ct_builder_shortcodes', '_ct_builder_shortcodes', 'ct_builder_json', '_elementor_data', '_bricks_page_content_2', '_bricks_page_header_2', '_bricks_page_footer_2', '_fl_builder_data', '_vc_post_settings', 'panels_data' );
+		$ph   = implode( ',', array_fill( 0, count( $keys ), '%s' ) );
+		$rows = $wpdb->get_col( $wpdb->prepare( "SELECT meta_value FROM {$wpdb->postmeta} WHERE meta_key IN ($ph) AND meta_value <> ''", $keys ) ); // phpcs:ignore WordPress.DB
+		foreach ( (array) $rows as $m ) { $blob .= "\n" . $m; }
+		return $blob;
+	}
+
 	private static function rendered_html_blob() {
 		static $blob = null;
 		if ( null !== $blob ) { return $blob; }
@@ -746,10 +773,10 @@ class Velox_Utilities {
 			if ( $link ) { $urls[] = $link; }
 		}
 		$urls = array_values( array_unique( array_filter( $urls ) ) );
-		$urls = array_slice( $urls, 0, 60 );
+		$urls = array_slice( $urls, 0, 20 );
 
 		foreach ( $urls as $u ) {
-			$res = wp_remote_get( $u, array( 'timeout' => 10, 'sslverify' => false ) );
+			$res = wp_remote_get( $u, array( 'timeout' => 4, 'sslverify' => false, 'redirection' => 1 ) );
 			if ( is_wp_error( $res ) ) { continue; }
 			$body = wp_remote_retrieve_body( $res );
 			if ( is_string( $body ) && '' !== $body ) { $blob .= "\n" . $body; }

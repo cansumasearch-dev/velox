@@ -10,6 +10,16 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
+	<h3 class="velox-panel-title">Quick setup</h3>
+	<p class="velox-hint">Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards.</p>
+	<div class="velox-fonts-btns">
+		<button class="velox-btn velox-btn--primary" id="velox-preset-safe">Apply safe defaults</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-preset-aggressive">Apply aggressive preset</button>
+	</div>
+	<p class="velox-hint"><strong>Safe</strong> turns on only the optimizations that can't break a site. <strong>Aggressive</strong> adds async CSS, unused-CSS removal (auto-learn), JS delay and bloat removal — then test and exclude anything that misbehaves. Neither touches jQuery Migrate or content-visibility (those need per-site testing).</p>
+</div>
+
+<div class="velox-panel">
 	<h3 class="velox-panel-title">Page builder</h3>
 	<?php $vx_b = Velox_Builders::current(); ?>
 	<p class="velox-hint">Velox tunes its performance settings to your builder. Currently configured for:
@@ -21,56 +31,39 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Quick setup</h3>
-	<p class="velox-hint">Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards.</p>
-	<div class="velox-fonts-btns">
-		<button class="velox-btn velox-btn--primary" id="velox-preset-safe">Apply safe defaults</button>
-		<button class="velox-btn velox-btn--ghost" id="velox-preset-aggressive">Apply aggressive preset</button>
-	</div>
-	<p class="velox-hint"><strong>Safe</strong> turns on only the optimizations that can't break a site. <strong>Aggressive</strong> adds async CSS, unused-CSS removal (auto-learn), JS delay and bloat removal — then test and exclude anything that misbehaves. Neither touches jQuery Migrate or content-visibility (those need per-site testing).</p>
-</div>
-
-<div class="velox-panel">
-	<h3 class="velox-panel-title">System status</h3>
-	<p class="velox-hint">A quick read on the environment Velox is running in — handy when debugging or filing a support note.</p>
-	<?php
-	$vx_cache_dir  = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR . '/cache' : '';
-	$vx_cache_ok   = $vx_cache_dir && ( is_writable( $vx_cache_dir ) || ( ! file_exists( $vx_cache_dir ) && is_writable( dirname( $vx_cache_dir ) ) ) );
-	$vx_htaccess   = get_home_path() . '.htaccess';
-	$vx_status = array(
-		array( 'Velox version', VELOX_VERSION, null ),
-		array( 'WordPress', get_bloginfo( 'version' ), null ),
-		array( 'PHP', PHP_VERSION, version_compare( PHP_VERSION, '7.4', '>=' ) ),
-		array( 'Memory limit', ini_get( 'memory_limit' ), null ),
-		array( 'Max upload size', size_format( wp_max_upload_size() ), null ),
-		array( 'Cache directory writable', $vx_cache_ok ? 'Yes' : 'No', (bool) $vx_cache_ok ),
-		array( '.htaccess writable', ( file_exists( $vx_htaccess ) && is_writable( $vx_htaccess ) ) ? 'Yes' : 'No', file_exists( $vx_htaccess ) && is_writable( $vx_htaccess ) ),
-	);
-	foreach ( $vx_status as $row ) :
-		$vx_dot = '';
-		if ( true === $row[2] )  { $vx_dot = ' velox-status-v--ok'; }
-		if ( false === $row[2] ) { $vx_dot = ' velox-status-v--warn'; }
-		?>
-		<div class="velox-status-row">
-			<span class="velox-status-k"><?php echo esc_html( $row[0] ); ?></span>
-			<span class="velox-status-v<?php echo esc_attr( $vx_dot ); ?>"><?php echo esc_html( $row[1] ); ?></span>
-		</div>
-	<?php endforeach; ?>
-</div>
-
-<div class="velox-panel">
-	<h3 class="velox-panel-title">Dashboard traffic</h3>
-	<p class="velox-hint">Velox can count page views with a tiny first-party script &mdash; no cookies, no raw IP stored (visitors are de-duped with a salted daily hash), bots and logged-in admins excluded. Powers the Visitors widget on the dashboard. Turn it off and nothing is collected.</p>
-	<?php $vx_track_on = ( ! isset( $s['traffic_tracking'] ) ) ? true : ! empty( $s['traffic_tracking'] ); ?>
+	<h3 class="velox-panel-title">Image defaults</h3>
+	<label class="velox-field velox-field--inline">
+		<span class="velox-field-label">Default WebP quality</span>
+		<input type="number" min="1" max="100" class="velox-input velox-input--sm" data-setting="webp_quality" value="<?php echo esc_attr( $s['webp_quality'] ); ?>">
+	</label>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Count visitors</span>
-			<span class="velox-toggle-desc">First-party, aggregate only. Mention it in your privacy policy.</span>
+			<span class="velox-toggle-label">Auto-convert new uploads</span>
+			<span class="velox-toggle-desc">Every new JPG/PNG upload is converted to WebP automatically.</span>
 		</div>
-		<label class="velox-switch">
-			<input type="checkbox" data-setting="traffic_tracking" <?php checked( $vx_track_on ); ?>>
-			<span class="velox-switch-track"></span>
-		</label>
+		<label class="velox-switch"><input type="checkbox" data-setting="webp_auto_convert" <?php checked( ! empty( $s['webp_auto_convert'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Convert thumbnail sizes too</span>
+			<span class="velox-toggle-desc">Also generates WebP for each registered image size (recommended for srcset).</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="webp_convert_sizes" <?php checked( ! empty( $s['webp_convert_sizes'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Serve WebP on the front end</span>
+			<span class="velox-toggle-desc">Swaps every uploads image to WebP/AVIF when the browser supports it — WordPress images, Oxygen elements, CSS background-images and hard-coded links (originals stay as fallback).</span>
+			<span class="velox-toggle-note">On by default. Rewrites the page HTML on the front end. With Cloudflare Polish enabled you can leave this off.</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="webp_serve_rewrite" <?php checked( ! empty( $s['webp_serve_rewrite'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+	<div class="velox-toggle-row">
+		<div class="velox-toggle-meta">
+			<span class="velox-toggle-label">Before/after comparator</span>
+			<span class="velox-toggle-desc">Shows the original-vs-WebP drag comparison panel on the Images tab.</span>
+		</div>
+		<label class="velox-switch"><input type="checkbox" data-setting="image_comparison" <?php checked( ! empty( $s['image_comparison'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 </div>
 
@@ -129,48 +122,18 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Image defaults</h3>
-	<label class="velox-field velox-field--inline">
-		<span class="velox-field-label">Default WebP quality</span>
-		<input type="number" min="1" max="100" class="velox-input velox-input--sm" data-setting="webp_quality" value="<?php echo esc_attr( $s['webp_quality'] ); ?>">
-	</label>
+	<h3 class="velox-panel-title">Dashboard traffic</h3>
+	<p class="velox-hint">Velox can count page views with a tiny first-party script &mdash; no cookies, no raw IP stored (visitors are de-duped with a salted daily hash), bots and logged-in admins excluded. Powers the Visitors widget on the dashboard. Turn it off and nothing is collected.</p>
+	<?php $vx_track_on = ( ! isset( $s['traffic_tracking'] ) ) ? true : ! empty( $s['traffic_tracking'] ); ?>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Auto-convert new uploads</span>
-			<span class="velox-toggle-desc">Every new JPG/PNG upload is converted to WebP automatically.</span>
+			<span class="velox-toggle-label">Count visitors</span>
+			<span class="velox-toggle-desc">First-party, aggregate only. Mention it in your privacy policy.</span>
 		</div>
-		<label class="velox-switch"><input type="checkbox" data-setting="webp_auto_convert" <?php checked( ! empty( $s['webp_auto_convert'] ) ); ?>><span class="velox-switch-track"></span></label>
-	</div>
-	<div class="velox-toggle-row">
-		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Convert thumbnail sizes too</span>
-			<span class="velox-toggle-desc">Also generates WebP for each registered image size (recommended for srcset).</span>
-		</div>
-		<label class="velox-switch"><input type="checkbox" data-setting="webp_convert_sizes" <?php checked( ! empty( $s['webp_convert_sizes'] ) ); ?>><span class="velox-switch-track"></span></label>
-	</div>
-	<div class="velox-toggle-row">
-		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Serve WebP on the front end</span>
-			<span class="velox-toggle-desc">Swaps every uploads image to WebP/AVIF when the browser supports it — WordPress images, Oxygen elements, CSS background-images and hard-coded links (originals stay as fallback).</span>
-			<span class="velox-toggle-note">On by default. Rewrites the page HTML on the front end. With Cloudflare Polish enabled you can leave this off.</span>
-		</div>
-		<label class="velox-switch"><input type="checkbox" data-setting="webp_serve_rewrite" <?php checked( ! empty( $s['webp_serve_rewrite'] ) ); ?>><span class="velox-switch-track"></span></label>
-	</div>
-	<div class="velox-toggle-row">
-		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Before/after comparator</span>
-			<span class="velox-toggle-desc">Shows the original-vs-WebP drag comparison panel on the Images tab.</span>
-		</div>
-		<label class="velox-switch"><input type="checkbox" data-setting="image_comparison" <?php checked( ! empty( $s['image_comparison'] ) ); ?>><span class="velox-switch-track"></span></label>
-	</div>
-</div>
-
-<div class="velox-panel">
-	<h3 class="velox-panel-title">Updates</h3>
-	<p class="velox-hint">Velox updates straight from GitHub releases, so it never appears in the public plugin directory. When a new version is released it shows up like any other plugin update.</p>
-	<div class="velox-actions">
-		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'update-core.php?force-check=1' ) ); ?>">Check for updates</a>
-		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'plugins.php' ) ); ?>">Open plugins page</a>
+		<label class="velox-switch">
+			<input type="checkbox" data-setting="traffic_tracking" <?php checked( $vx_track_on ); ?>>
+			<span class="velox-switch-track"></span>
+		</label>
 	</div>
 </div>
 
@@ -225,6 +188,45 @@ $s = Velox_Settings::all();
 			<span class="velox-toggle-desc">By default, deleting the plugin wipes Velox&rsquo;s settings, forms, redirects and logs. Turn this on to leave everything in place so a reinstall picks up where you left off. Your media is never touched either way.</span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="keep_data_on_uninstall" <?php checked( ! empty( $s['keep_data_on_uninstall'] ) ); ?>><span class="velox-switch-track"></span></label>
+	</div>
+</div>
+
+<div class="velox-panel">
+	<h3 class="velox-panel-title">System status</h3>
+	<p class="velox-hint">A quick read on the environment Velox is running in — handy when debugging or filing a support note.</p>
+	<?php
+	$vx_cache_dir  = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR . '/cache' : '';
+	$vx_cache_ok   = $vx_cache_dir && ( is_writable( $vx_cache_dir ) || ( ! file_exists( $vx_cache_dir ) && is_writable( dirname( $vx_cache_dir ) ) ) );
+	$vx_htaccess   = get_home_path() . '.htaccess';
+	$vx_mem     = ini_get( 'memory_limit' );
+	$vx_mem_disp = ( '-1' === (string) $vx_mem || '' === (string) $vx_mem ) ? 'Unlimited' : size_format( wp_convert_hr_to_bytes( $vx_mem ) );
+	$vx_status = array(
+		array( 'Velox version', VELOX_VERSION, null ),
+		array( 'WordPress', get_bloginfo( 'version' ), null ),
+		array( 'PHP', PHP_VERSION, version_compare( PHP_VERSION, '7.4', '>=' ) ),
+		array( 'Memory limit', $vx_mem_disp, null ),
+		array( 'Max upload size', size_format( wp_max_upload_size() ), null ),
+		array( 'Cache directory writable', $vx_cache_ok ? 'Yes' : 'No', (bool) $vx_cache_ok ),
+		array( '.htaccess writable', ( file_exists( $vx_htaccess ) && is_writable( $vx_htaccess ) ) ? 'Yes' : 'No', file_exists( $vx_htaccess ) && is_writable( $vx_htaccess ) ),
+	);
+	foreach ( $vx_status as $row ) :
+		$vx_dot = '';
+		if ( true === $row[2] )  { $vx_dot = ' velox-status-v--ok'; }
+		if ( false === $row[2] ) { $vx_dot = ' velox-status-v--warn'; }
+		?>
+		<div class="velox-status-row">
+			<span class="velox-status-k"><?php echo esc_html( $row[0] ); ?></span>
+			<span class="velox-status-v<?php echo esc_attr( $vx_dot ); ?>"><?php echo esc_html( $row[1] ); ?></span>
+		</div>
+	<?php endforeach; ?>
+</div>
+
+<div class="velox-panel">
+	<h3 class="velox-panel-title">Updates</h3>
+	<p class="velox-hint">Velox updates straight from GitHub releases, so it never appears in the public plugin directory. When a new version is released it shows up like any other plugin update.</p>
+	<div class="velox-actions">
+		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'update-core.php?force-check=1' ) ); ?>">Check for updates</a>
+		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'plugins.php' ) ); ?>">Open plugins page</a>
 	</div>
 </div>
 

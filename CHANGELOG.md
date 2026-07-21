@@ -4,6 +4,70 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.20 — Cookie-consent migrations (CookieYes, Complianz, Borlabs)
+- Added importers for CookieYes, Complianz and Borlabs Cookie that bring over the banner heading, body text and button labels where they are stored plainly. Cookie categories, script-blocking and appearance use a different model and are not carried over — the importer says so. Every recognised plugin in the Migrate list now has a real importer.
+
+## 3.09.19 — Redirection, Code Snippets & WPCode migrations
+- Redirection importer: brings your URL redirects (source, target, 301/302/307/410, regex/exact, enabled state) into Velox Redirects & 404s; non-URL rules are skipped and counted.
+- Code Snippets and WPCode importers: bring PHP/CSS/JS/HTML snippets into Velox Code Snippets, mapped to the right type. Everything is imported INACTIVE so no third-party code runs until you review and activate it.
+
+## 3.09.18 — W3 Total Cache + WP Super Cache (last migrations)
+- Added honest importers for W3 Total Cache and WP Super Cache: each brings over its cache lifespan (the only setting that maps to Velox) and clearly states that its page-cache and server/.htaccess rules are not part of Velox. The Performance-category migrations are now all real. Still on the way: Redirection, Code Snippets/WPCode, and the cookie-consent plugins (CookieYes, Complianz, Borlabs).
+
+## 3.09.17 — Perfmatters + FlyingPress migrations
+- Perfmatters importer: defer/delay JS, iframe lazy-load, JS exclusions, font preloads and DNS-prefetch. The per-page script manager stays with Perfmatters.
+- FlyingPress importer: defer/delay JS, lazy-load, JS exclusions and font preloads.
+
+## 3.09.16 — LiteSpeed + Autoptimize migrations
+- LiteSpeed Cache importer: public cache lifespan, separate mobile cache, and defer/delay JS (reads both the v4 per-option format and the older serialized config). Server-level cache rules stay with LiteSpeed.
+- Autoptimize importer: defer JS and image lazy-load. Its CSS/JS aggregation & minification have no Velox equivalent and are honestly not carried over.
+
+## 3.09.15 — SMTP migrations (FluentSMTP, Post SMTP, Easy WP SMTP)
+- Added one-click importers for FluentSMTP, Post SMTP and Easy WP SMTP: each brings its SMTP host, port, encryption, auth and From into a new Velox mail connection (appended, never replacing existing ones). SMTP is not switched on automatically — send a test first. Passwords that are encrypted/stored in constants may need re-entering.
+
+## 3.09.14 — SEOPress migration
+- Added a one-click importer for SEOPress: per-page titles, meta descriptions and noindex flags, plus sitemap on/off. Existing Velox values are never overwritten.
+
+## 3.09.13 — All in One SEO migration
+- Added a one-click importer for All in One SEO: per-page titles, meta descriptions and noindex flags (reading AIOSEO v4’s custom table and falling back to v3 postmeta), plus sitemap on/off. Smart tags are resolved to plain text; existing Velox values are never overwritten.
+
+## 3.09.12 — WP Fastest Cache migration
+- Added a one-click importer for WP Fastest Cache into Performance: mobile/logged-in caching, render-blocking (defer) and lazy-load toggles, plus page cache-exclusion URLs. Caching is not switched on automatically — review first. Detection requires the plugin to be installed/active.
+
+## 3.09.11 — Rank Math SEO migration
+- Added a real one-click importer for Rank Math SEO: brings over per-page SEO titles, meta descriptions and noindex flags (with Rank Math’s %variables% resolved), plus sitemap on/off. Existing Velox per-page values are never overwritten. Detection now requires the plugin to actually be installed/active.
+
+## 3.09.10 — More space between sidebar sections
+- Increased the gap between sidebar groups so the sections read as clearly separate.
+
+## 3.09.9 — Sidebar navigation regrouped so things are findable
+- Broke the 14-item "More" catch-all in the sidebar into clear sections — Overview, Essentials, Content & media, Site & visitors, System — so related tools sit together and nothing gets lost in one long undifferentiated list.
+
+## 3.09.8 — Clearer sidebar utilities flyout
+- The active-utilities flyout now shows each tool’s own icon in a tile (instead of a generic dot), with a divider under the heading, row highlighting and a chevron affordance on hover — much easier to scan and see what’s what.
+
+## 3.09.7 — Utilities: cleaner cards + switched-off tools hidden
+- Redesigned the utility cards: accent-tinted icons, tighter type and spacing, clearer on/off/planned states, subtle hover.
+- Switched-off utilities now disappear from the dashboard catalog (and already do from the sidebar flyout), reappearing when re-enabled. Always-on tools stay.
+- Removed the dead whitespace under the Unused Media panel before a scan.
+
+## 3.09.6 — Settings tidy-up
+- System status now shows the memory limit in the same units as upload size (e.g. 256 MB, not 256M) so they read consistently.
+- PageSpeed API key and URL fields (and all inline fields) now share a fixed label column, so their inputs are the same width and line up.
+- Reordered the Settings page: setup and feature config on top, diagnostics and Updates at the bottom.
+
+## 3.09.5 — Import/export works again + migration false-detection fixed
+- Fixed Import/Export doing nothing: a missing variable declaration threw a JS error and killed both buttons. Export/import of settings JSON now works.
+- Migration no longer detects uninstalled plugins. It was treating leftover database options (e.g. Yoast’s, which survive uninstall) as "plugin present". Detection is now based on the plugin actually being installed/active on disk.
+
+## 3.09.4 — Unused media detection (real fix) + spacing
+- Unused media now scans the database directly (post content + Oxygen/Elementor/Bricks/etc. stored markup) instead of relying on the server fetching its own pages. On hosts that block loopback (common on IONOS/Plesk) that self-fetch returned nothing, so everything looked unused — now used images are correctly detected. Self-fetch is still used as a bonus but fails fast so it can’t hang the scan.
+- Bigger cookie banner live preview.
+- More breathing room under page headers across all pages, and a small gap between page titles and their subtitles.
+
+## 3.09.3 — Sitemap logo: preview now shows it
+- "Show logo" puts your WordPress Customizer site logo at the top of the sitemap, falling back to your site name if no logo is set. The live preview now actually draws it, and the toggle is relabelled "Show logo / name" to reflect the fallback.
+
 ## 3.09.2 — Fix Custom sitemap style controls
 - The Custom style controls (background, text, layout, spacing) were not wired up, so changing them did nothing — no live preview update, and nothing saved so regenerating kept the defaults. They now save, update the preview live, and regenerate the sitemap.
 

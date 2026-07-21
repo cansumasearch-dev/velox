@@ -117,12 +117,16 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 					</select>
 				</label>
 				<label class="velox-smap-cf"><span>Heading</span><input type="text" class="velox-input velox-input--sm" id="velox-smap-heading" data-setting="seo_sitemap_heading" value="<?php echo esc_attr( $s['seo_sitemap_heading'] ); ?>" style="max-width:160px;"></label>
-				<label class="velox-smap-cf"><span>Show logo</span><label class="velox-switch velox-switch--sm"><input type="checkbox" id="velox-smap-logo" data-setting="seo_sitemap_logo" <?php checked( ! empty( $s['seo_sitemap_logo'] ) ); ?>><span class="velox-switch-track"></span></label></label>
+				<label class="velox-smap-cf"><span>Show logo / name</span><label class="velox-switch velox-switch--sm"><input type="checkbox" id="velox-smap-logo" data-setting="seo_sitemap_logo" <?php checked( ! empty( $s['seo_sitemap_logo'] ) ); ?>><span class="velox-switch-track"></span></label></label>
 			</div>
 			<div class="velox-smap-preview-wrap">
 				<div class="velox-smap-preview-head">Live preview <span>example URLs — not your real site</span></div>
 				<pre class="velox-mono velox-smap-preview" id="velox-smap-preview"></pre>
-				<div class="velox-smap-styled" id="velox-smap-styled" hidden></div>
+				<?php
+				$vx_smap_logo_id  = (int) get_theme_mod( 'custom_logo' );
+				$vx_smap_logo_url = $vx_smap_logo_id ? wp_get_attachment_image_url( $vx_smap_logo_id, 'medium' ) : '';
+				?>
+				<div class="velox-smap-styled" id="velox-smap-styled" data-brand-name="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>" data-logo-url="<?php echo esc_attr( $vx_smap_logo_url ); ?>" hidden></div>
 			</div>
 		</div>
 
