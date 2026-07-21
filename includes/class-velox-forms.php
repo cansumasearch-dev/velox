@@ -15,7 +15,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Velox_Forms {
 
-	const DB_VERSION  = '2';
+	const DB_VERSION  = '3';
 	const VER_OPTION  = 'velox_forms_db';
 	const FORMS_OPTION = 'velox_forms';
 
@@ -42,10 +42,13 @@ class Velox_Forms {
 			pinned TINYINT(1) NOT NULL DEFAULT 0,
 			read_at DATETIME NULL,
 			status VARCHAR(20) NOT NULL DEFAULT 'open',
+			folder VARCHAR(40) NOT NULL DEFAULT '',
+			deleted_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			KEY form_id (form_id),
 			KEY pinned (pinned),
-			KEY status (status)
+			KEY status (status),
+			KEY deleted_at (deleted_at)
 		) {$charset};" );
 		update_option( self::VER_OPTION, self::DB_VERSION );
 	}
@@ -937,10 +940,102 @@ class Velox_Forms {
 		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} ORDER BY id DESC LIMIT %d", $limit ), ARRAY_A ) ?: array();
 	}
 
+	/** User-defined inbox folders: [ { id, name, color } ]. */
+	public static function folders() {
+		$raw = Velox_Settings::get( 'mail_folders', '' );
+		$arr = is_string( $raw ) ? json_decode( $raw, true ) : ( is_array( $raw ) ? $raw : array() );
+		return is_array( $arr ) ? array_values( $arr ) : array();
+	}
+
+	public static function save_folders( $folders ) {
+		$clean = array();
+		$seen  = array();
+		foreach ( (array) $folders as $f ) {
+			$name = isset( $f['name'] ) ? sanitize_text_field( $f['name'] ) : '';
+			if ( '' === $name ) {
+				continue;
+			}
+			$id = isset( $f['id'] ) && '' !== $f['id'] ? sanitize_key( $f['id'] ) : 'f_' . substr( md5( $name . wp_rand() ), 0, 8 );
+			if ( isset( $seen[ $id ] ) ) {
+				continue;
+			}
+			$seen[ $id ] = 1;
+			$color = isset( $f['color'] ) ? sanitize_hex_color( $f['color'] ) : '';
+			$clean[] = array( 'id' => $id, 'name' => $name, 'color' => $color ? $color : '#2ab7f1' );
+		}
+		Velox_Settings::save( array_merge( Velox_Settings::all(), array( 'mail_folders' => wp_json_encode( $clean ) ) ) );
+		return array( 'ok' => true, 'folders' => $clean );
+	}
+
+	/** Assign one submission to a folder ('' = none). */
+	public static function set_folder( $sid, $folder_id ) {
+		global $wpdb;
+		$folder_id = sanitize_key( $folder_id );
+		if ( '' !== $folder_id ) {
+			$valid = false;
+			foreach ( self::folders() as $f ) {
+				if ( $f['id'] === $folder_id ) { $valid = true; break; }
+			}
+			if ( ! $valid ) { $folder_id = ''; }
+		}
+		$wpdb->update( self::table(), array( 'folder' => $folder_id ), array( 'id' => (int) $sid ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB
+		return array( 'ok' => true, 'id' => (int) $sid, 'folder' => $folder_id );
+	}
+
 	public static function delete_submission( $sid ) {
+		global $wpdb;
+		// Soft delete — moves it to the Deleted tab so it can be restored.
+		$wpdb->update( self::table(), array( 'deleted_at' => current_time( 'mysql' ) ), array( 'id' => (int) $sid ), array( '%s' ), array( '%d' ) ); // phpcs:ignore WordPress.DB
+		return array( 'ok' => true );
+	}
+
+	public static function restore_submission( $sid ) {
+		global $wpdb;
+		$wpdb->update( self::table(), array( 'deleted_at' => null ), array( 'id' => (int) $sid ), array( null ), array( '%d' ) ); // phpcs:ignore WordPress.DB
+		return array( 'ok' => true );
+	}
+
+	public static function purge_submission( $sid ) {
 		global $wpdb;
 		$wpdb->delete( self::table(), array( 'id' => (int) $sid ), array( '%d' ) );
 		return array( 'ok' => true );
+	}
+
+	/** Bulk inbox action across many ids: delete | restore | purge | read | unread | done | open. */
+	public static function bulk_submissions( $ids, $action ) {
+		$ids = array_values( array_filter( array_map( 'intval', (array) $ids ) ) );
+		if ( ! $ids ) {
+			return array( 'ok' => false, 'message' => 'Nothing selected.' );
+		}
+		global $wpdb;
+		$t  = self::table();
+		$in = implode( ',', array_fill( 0, count( $ids ), '%d' ) );
+		switch ( $action ) {
+			case 'delete':
+				$wpdb->query( $wpdb->prepare( "UPDATE {$t} SET deleted_at = %s WHERE id IN ($in)", array_merge( array( current_time( 'mysql' ) ), $ids ) ) ); // phpcs:ignore WordPress.DB
+				break;
+			case 'restore':
+				$wpdb->query( $wpdb->prepare( "UPDATE {$t} SET deleted_at = NULL WHERE id IN ($in)", $ids ) ); // phpcs:ignore WordPress.DB
+				break;
+			case 'purge':
+				$wpdb->query( $wpdb->prepare( "DELETE FROM {$t} WHERE id IN ($in)", $ids ) ); // phpcs:ignore WordPress.DB
+				break;
+			case 'read':
+				$wpdb->query( $wpdb->prepare( "UPDATE {$t} SET read_at = %s WHERE id IN ($in)", array_merge( array( current_time( 'mysql' ) ), $ids ) ) ); // phpcs:ignore WordPress.DB
+				break;
+			case 'unread':
+				$wpdb->query( $wpdb->prepare( "UPDATE {$t} SET read_at = NULL WHERE id IN ($in)", $ids ) ); // phpcs:ignore WordPress.DB
+				break;
+			case 'done':
+				$wpdb->query( $wpdb->prepare( "UPDATE {$t} SET status = 'done' WHERE id IN ($in)", $ids ) ); // phpcs:ignore WordPress.DB
+				break;
+			case 'open':
+				$wpdb->query( $wpdb->prepare( "UPDATE {$t} SET status = 'open' WHERE id IN ($in)", $ids ) ); // phpcs:ignore WordPress.DB
+				break;
+			default:
+				return array( 'ok' => false, 'message' => 'Unknown action.' );
+		}
+		return array( 'ok' => true, 'ids' => $ids, 'action' => $action, 'count' => count( $ids ) );
 	}
 
 	/**
@@ -950,13 +1045,14 @@ class Velox_Forms {
 	 *
 	 * @return array list of { id, form_id, form_title, created, ip, who, email, preview, data }
 	 */
-	public static function inbox( $limit = 200, $offset = 0, $form_id = 0 ) {
+	public static function inbox( $limit = 200, $offset = 0, $form_id = 0, $scope = 'active' ) {
 		global $wpdb;
 		$t = self::table();
+		$where = ( 'deleted' === $scope ) ? 'deleted_at IS NOT NULL' : 'deleted_at IS NULL';
 		if ( $form_id ) {
-			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE form_id = %d ORDER BY pinned DESC, id DESC LIMIT %d OFFSET %d", $form_id, $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE form_id = %d AND {$where} ORDER BY pinned DESC, id DESC LIMIT %d OFFSET %d", $form_id, $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB
 		} else {
-			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} ORDER BY pinned DESC, id DESC LIMIT %d OFFSET %d", $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB
+			$rows = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE {$where} ORDER BY pinned DESC, id DESC LIMIT %d OFFSET %d", $limit, $offset ), ARRAY_A ); // phpcs:ignore WordPress.DB
 		}
 		$rows = $rows ?: array();
 
@@ -982,6 +1078,7 @@ class Velox_Forms {
 				'pinned'     => ! empty( $r['pinned'] ),
 				'read'       => ! empty( $r['read_at'] ),
 				'status'     => isset( $r['status'] ) ? $r['status'] : 'open',
+				'folder'     => isset( $r['folder'] ) ? $r['folder'] : '',
 				'data'       => $d,
 			);
 		}

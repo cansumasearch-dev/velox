@@ -566,6 +566,38 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Forms::delete_submission( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
 				break;
 
+			case 'submission_restore':
+				wp_send_json_success( Velox_Forms::restore_submission( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'submission_purge':
+				wp_send_json_success( Velox_Forms::purge_submission( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 ) );
+				break;
+
+			case 'submission_bulk':
+				$ids = isset( $_POST['ids'] ) ? array_map( 'intval', (array) json_decode( wp_unslash( $_POST['ids'] ), true ) ) : array();
+				wp_send_json_success( Velox_Forms::bulk_submissions(
+					$ids,
+					isset( $_POST['bulk'] ) ? sanitize_key( wp_unslash( $_POST['bulk'] ) ) : ''
+				) );
+				break;
+
+			case 'submission_deleted_list':
+				wp_send_json_success( array( 'items' => Velox_Forms::inbox( 300, 0, 0, 'deleted' ) ) );
+				break;
+
+			case 'mail_folders_save':
+				$folders = isset( $_POST['folders'] ) ? json_decode( wp_unslash( $_POST['folders'] ), true ) : array();
+				wp_send_json_success( Velox_Forms::save_folders( is_array( $folders ) ? $folders : array() ) );
+				break;
+
+			case 'submission_set_folder':
+				wp_send_json_success( Velox_Forms::set_folder(
+					isset( $_POST['id'] ) ? (int) $_POST['id'] : 0,
+					isset( $_POST['folder'] ) ? sanitize_key( wp_unslash( $_POST['folder'] ) ) : ''
+				) );
+				break;
+
 			case 'submission_get':
 				$sub = Velox_Forms::submission( isset( $_POST['id'] ) ? (int) $_POST['id'] : 0 );
 				if ( ! $sub ) {

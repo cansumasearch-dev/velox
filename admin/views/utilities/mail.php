@@ -286,6 +286,20 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					<button type="button" class="vmail-filter" data-filter="unread">Unread<?php echo $vx_unread ? ' <span class="vmail-filter-count">' . (int) $vx_unread . '</span>' : ''; ?></button>
 					<button type="button" class="vmail-filter" data-filter="pinned">Pinned</button>
 					<button type="button" class="vmail-filter" data-filter="done">Done</button>
+					<span class="vmail-folder-chips" id="vmail-folder-chips"></span>
+					<button type="button" class="vmail-folder-manage" id="vmail-folder-manage" title="Manage folders">+ Folders</button>
+					<button type="button" class="vmail-filter vmail-filter--deleted" data-filter="deleted">Deleted</button>
+				</div>
+				<script type="application/json" id="vmail-folders-data"><?php echo wp_json_encode( Velox_Forms::folders() ); ?></script>
+				<div class="vmail-bulkbar" id="vmail-bulkbar" hidden>
+					<label class="vmail-bulk-all" title="Select all shown"><input type="checkbox" id="vmail-check-all"></label>
+					<span class="vmail-bulk-count" id="vmail-bulk-count">0 selected</span>
+					<div class="vmail-bulk-acts">
+						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-bulk="read">Mark read</button>
+						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-bulk="done">Mark done</button>
+						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-bulk="delete">Delete</button>
+					</div>
+					<button type="button" class="vmail-bulk-clear" id="vmail-bulk-clear">Clear</button>
 				</div>
 				<div class="vmail-inbox-split">
 					<div class="vmail-inbox-list" id="vmail-inbox-list" role="listbox" aria-label="Submissions">
@@ -295,8 +309,10 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 								data-read="<?php echo empty( $row['read'] ) ? '0' : '1'; ?>"
 								data-pinned="<?php echo ! empty( $row['pinned'] ) ? '1' : '0'; ?>"
 								data-status="<?php echo esc_attr( $row['status'] ); ?>"
+								data-folder="<?php echo esc_attr( $row['folder'] ); ?>"
 								data-email="<?php echo esc_attr( $row['email'] ); ?>"
 								role="option" aria-selected="<?php echo 0 === $i ? 'true' : 'false'; ?>">
+								<label class="vmail-inbox-check" title="Select"><input type="checkbox" class="vmail-check" data-id="<?php echo (int) $row['id']; ?>"></label>
 								<button type="button" class="vmail-inbox-open" aria-label="Open submission">
 									<span class="vmail-avatar" aria-hidden="true"><?php echo esc_html( $vx_initials( $row['who'] ) ); ?></span>
 									<span class="vmail-inbox-body">

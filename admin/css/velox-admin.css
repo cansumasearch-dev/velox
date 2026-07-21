@@ -1883,6 +1883,35 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 /* A connection is one panel; fields inside it are NOT cards (no nested cards). */
 .vmail-conn { border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); padding: var(--vx-s4); background: var(--vx-n25); }
 .vmail-conn-top { display: flex; align-items: center; gap: var(--vx-s2); margin-bottom: var(--vx-s3); }
+.vmail-del-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border-bottom: 1px solid var(--vx-line); }
+.vmail-del-row .vmail-inbox-open { flex: 1; min-width: 0; display: flex; align-items: center; gap: 10px; background: none; border: 0; text-align: left; }
+.vmail-del-acts { display: flex; gap: 6px; flex: none; }
+.vmail-del-empty { justify-content: center; color: var(--vx-ink-3); font-size: 13px; padding: 22px 14px; }
+.vmail-inbox-check { display: flex; align-items: center; padding: 0 2px 0 10px; flex: none; }
+.vmail-inbox-check input { width: 16px; height: 16px; cursor: pointer; }
+.vmail-bulkbar { display: flex; align-items: center; gap: 12px; padding: 9px 14px; background: var(--vx-primary-tint); border-bottom: 1px solid var(--vx-line); }
+.vmail-bulk-all { display: flex; align-items: center; padding-left: 8px; }
+.vmail-bulk-all input { width: 16px; height: 16px; cursor: pointer; }
+.vmail-bulk-count { font-size: 13px; font-weight: 600; color: var(--vx-ink); }
+.vmail-bulk-acts { display: flex; gap: 6px; }
+.vmail-bulk-clear { margin-left: auto; background: none; border: 0; color: var(--vx-ink-2); font-size: 12px; font-weight: 600; cursor: pointer; text-decoration: underline; }
+.vmail-folder-chips { display: inline-flex; align-items: center; gap: 6px; }
+.vmail-folder-chip { display: inline-flex; align-items: center; gap: 6px; }
+.vmail-folder-dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
+.vmail-folder-manage { background: none; border: 1px dashed var(--vx-line-2); color: var(--vx-ink-2); font-size: 12px; font-weight: 600; padding: 4px 10px; border-radius: 999px; cursor: pointer; }
+.vmail-folder-manage:hover { border-color: var(--vx-primary); color: var(--vx-primary); }
+.vmail-fm-overlay { position: fixed; inset: 0; z-index: 100000; background: rgba(10,12,20,.45); display: flex; align-items: center; justify-content: center; padding: 20px; }
+.vmail-fm { width: 100%; max-width: 460px; background: var(--vx-card); border-radius: var(--vx-r-lg); box-shadow: 0 24px 60px rgba(0,0,0,.28); padding: 20px; }
+.vmail-fm-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; font-size: 15px; }
+.vmail-fm-x { background: none; border: 0; font-size: 22px; line-height: 1; color: var(--vx-ink-3); cursor: pointer; }
+.vmail-fm-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.vmail-fm-row { display: flex; align-items: center; gap: 8px; }
+.vmail-fm-color { width: 38px; height: 38px; padding: 2px; border: 1px solid var(--vx-line); border-radius: 8px; background: none; cursor: pointer; flex: none; }
+.vmail-fm-row .vmail-fm-name { flex: 1; }
+.vmail-fm-del { background: none; border: 0; font-size: 20px; line-height: 1; color: var(--vx-ink-3); cursor: pointer; flex: none; }
+.vmail-fm-del:hover { color: var(--vx-danger, #e11d48); }
+.vmail-fm-foot { margin-top: 14px; display: flex; justify-content: flex-end; }
+.vmail-filter--deleted { margin-left: auto; }
 .vmail-conn-top .vmail-c-provider { flex: none; max-width: 210px; }
 .vmail-conn-top .vmail-c-label { flex: 1 1 auto; min-width: 0; }
 .vmail-c-label { font-weight: 600; }

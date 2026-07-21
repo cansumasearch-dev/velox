@@ -3667,7 +3667,7 @@
 		if ( ! list || ! detail ) { return; }
 
 		function deleteSubmission( id, itemEl ) {
-			if ( ! window.confirm( 'Delete this submission permanently?' ) ) { return; }
+			if ( ! window.confirm( 'Move this submission to Deleted? You can restore it later.' ) ) { return; }
 			api( 'submission_delete', { id: id } )
 				.then( function () {
 					var item = itemEl || list.querySelector( '.vmail-inbox-item[data-id="' + id + '"]' );
@@ -3679,7 +3679,7 @@
 						if ( next ) { load( next.getAttribute( 'data-id' ), next ); }
 						else { detail.innerHTML = '<div class="vmail-inbox-empty-detail">No submissions left.</div>'; }
 					}
-					toast( 'Submission deleted.' );
+					toast( 'Moved to Deleted.' );
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); } );
 		}
@@ -3728,6 +3728,7 @@
 					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="pin">' + ( pinned ? 'Unpin' : 'Pin' ) + '</button>' +
 					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="done">' + ( done ? 'Reopen' : 'Mark done' ) + '</button>' +
 					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="delete">Delete</button>' +
+					( folders.length ? '<select class="velox-select velox-select--sm vmail-d-folder" title="Move to folder">' + folderOptions( sub.folder || '' ) + '</select>' : '' ) +
 				'</div>' +
 				'<dl class="vmail-d-dl">' + rows + '</dl>';
 		}
@@ -3756,10 +3757,12 @@
 		function applyFilter() {
 			var shown = 0;
 			list.querySelectorAll( '.vmail-inbox-item' ).forEach( function ( it ) {
+				if ( it.classList.contains( 'vmail-del-row' ) ) { return; }
 				var ok = 'all' === activeFilter
 					|| ( 'unread' === activeFilter && it.getAttribute( 'data-read' ) === '0' )
 					|| ( 'pinned' === activeFilter && it.getAttribute( 'data-pinned' ) === '1' )
-					|| ( 'done' === activeFilter && it.getAttribute( 'data-status' ) === 'done' );
+					|| ( 'done' === activeFilter && it.getAttribute( 'data-status' ) === 'done' )
+					|| ( 0 === activeFilter.indexOf( 'folder:' ) && it.getAttribute( 'data-folder' ) === activeFilter.slice( 7 ) );
 				it.style.display = ok ? '' : 'none';
 				if ( ok ) { shown++; }
 			} );
@@ -3821,7 +3824,213 @@
 				var b = e.target.closest( '.vmail-filter' ); if ( ! b ) { return; }
 				filterBar.querySelectorAll( '.vmail-filter' ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === b ); } );
 				activeFilter = b.getAttribute( 'data-filter' );
-				applyFilter();
+				if ( 'deleted' === activeFilter ) {
+					showDeleted();
+				} else {
+					hideDeleted();
+					applyFilter();
+				}
+			} );
+		}
+
+		function hideDeleted() {
+			list.querySelectorAll( '.vmail-del-row' ).forEach( function ( r ) { r.remove(); } );
+			list.querySelectorAll( '.vmail-inbox-item' ).forEach( function ( it ) { it.style.display = ''; } );
+		}
+
+		function checkDeletedEmpty() {
+			if ( ! list.querySelector( '.vmail-del-row' ) ) {
+				var empty = document.createElement( 'div' );
+				empty.className = 'vmail-del-row vmail-del-empty';
+				empty.textContent = 'Nothing in the deleted bin.';
+				list.appendChild( empty );
+			}
+		}
+
+		function delRow( it ) {
+			var row = document.createElement( 'div' );
+			row.className = 'vmail-inbox-item vmail-del-row';
+			row.setAttribute( 'data-id', it.id );
+			row.innerHTML =
+				'<div class="vmail-inbox-open" style="cursor:default">' +
+					'<span class="vmail-avatar" aria-hidden="true">' + escapeHtml( initials( it.who ) ) + '</span>' +
+					'<span class="vmail-inbox-body">' +
+						'<span class="vmail-inbox-line1"><span class="vmail-inbox-who">' + escapeHtml( it.who || 'Anonymous' ) + '</span><span class="vmail-inbox-when">' + escapeHtml( it.form_title || '' ) + '</span></span>' +
+						'<span class="vmail-inbox-prev">' + escapeHtml( it.preview || '' ) + '</span>' +
+					'</span>' +
+				'</div>' +
+				'<div class="vmail-del-acts">' +
+					'<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm vmail-del-restore">Restore</button>' +
+					'<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm vmail-del-purge" title="Delete permanently">Delete forever</button>' +
+				'</div>';
+			row.querySelector( '.vmail-del-restore' ).addEventListener( 'click', function () {
+				api( 'submission_restore', { id: it.id } )
+					.then( function () { row.remove(); toast( 'Restored to inbox.' ); checkDeletedEmpty(); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+			} );
+			row.querySelector( '.vmail-del-purge' ).addEventListener( 'click', function () {
+				if ( ! window.confirm( 'Permanently delete this submission? This cannot be undone.' ) ) { return; }
+				api( 'submission_purge', { id: it.id } )
+					.then( function () { row.remove(); toast( 'Deleted permanently.' ); checkDeletedEmpty(); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+			} );
+			return row;
+		}
+
+		function showDeleted() {
+			list.querySelectorAll( '.vmail-inbox-item' ).forEach( function ( it ) { it.style.display = 'none'; } );
+			var nomatch = list.querySelector( '.vmail-inbox-nomatch' ); if ( nomatch ) { nomatch.hidden = true; }
+			list.querySelectorAll( '.vmail-del-row' ).forEach( function ( r ) { r.remove(); } );
+			var loading = document.createElement( 'div' );
+			loading.className = 'vmail-del-row vmail-del-empty';
+			loading.textContent = 'Loading deleted…';
+			list.appendChild( loading );
+			detail.innerHTML = '<div class="vmail-inbox-empty-detail">Deleted submissions live here. Restore any to send it back to the inbox, or delete it forever.</div>';
+			api( 'submission_deleted_list', {} )
+				.then( function ( r ) {
+					loading.remove();
+					var items = ( r && r.items ) || [];
+					if ( ! items.length ) { checkDeletedEmpty(); return; }
+					items.forEach( function ( it ) { list.appendChild( delRow( it ) ); } );
+				} )
+				.catch( function ( e ) { loading.remove(); toast( e.message, 'error' ); } );
+		}
+
+		// ===== Folders =====
+		var folders = [];
+		try { folders = JSON.parse( ( document.getElementById( 'vmail-folders-data' ) || {} ).textContent || '[]' ); } catch ( e ) {}
+		folders = Array.isArray( folders ) ? folders : [];
+		var folderChips = document.getElementById( 'vmail-folder-chips' );
+		function renderFolderChips() {
+			if ( ! folderChips ) { return; }
+			folderChips.innerHTML = folders.map( function ( f ) {
+				return '<button type="button" class="vmail-filter vmail-folder-chip" data-filter="folder:' + f.id + '"><span class="vmail-folder-dot" style="background:' + escapeHtml( f.color ) + '"></span>' + escapeHtml( f.name ) + '</button>';
+			} ).join( '' );
+		}
+		function folderOptions( sel ) {
+			return '<option value="">No folder</option>' + folders.map( function ( f ) {
+				return '<option value="' + f.id + '"' + ( sel === f.id ? ' selected' : '' ) + '>' + escapeHtml( f.name ) + '</option>';
+			} ).join( '' );
+		}
+		renderFolderChips();
+
+		var folderManageBtn = document.getElementById( 'vmail-folder-manage' );
+		if ( folderManageBtn ) {
+			folderManageBtn.addEventListener( 'click', function () {
+				var overlay = document.createElement( 'div' );
+				overlay.className = 'vmail-fm-overlay';
+				overlay.innerHTML =
+					'<div class="vmail-fm">' +
+						'<div class="vmail-fm-head"><strong>Folders</strong><button type="button" class="vmail-fm-x" aria-label="Close">&times;</button></div>' +
+						'<div class="vmail-fm-list" id="vmail-fm-list"></div>' +
+						'<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-fm-add">+ Add folder</button>' +
+						'<div class="vmail-fm-foot"><button type="button" class="velox-btn velox-btn--primary" id="vmail-fm-save">Save folders</button></div>' +
+					'</div>';
+				document.body.appendChild( overlay );
+				var fmList = overlay.querySelector( '#vmail-fm-list' );
+				var working = folders.map( function ( f ) { return { id: f.id, name: f.name, color: f.color }; } );
+				function drawRows() {
+					fmList.innerHTML = '';
+					working.forEach( function ( f, idx ) {
+						var row = document.createElement( 'div' );
+						row.className = 'vmail-fm-row';
+						row.innerHTML =
+							'<input type="color" class="vmail-fm-color" value="' + escapeHtml( f.color || '#2ab7f1' ) + '">' +
+							'<input type="text" class="velox-input vmail-fm-name" value="' + escapeHtml( f.name || '' ) + '" placeholder="Folder name">' +
+							'<button type="button" class="vmail-fm-del" aria-label="Remove folder">&times;</button>';
+						row.querySelector( '.vmail-fm-color' ).addEventListener( 'input', function () { working[ idx ].color = this.value; } );
+						row.querySelector( '.vmail-fm-name' ).addEventListener( 'input', function () { working[ idx ].name = this.value; } );
+						row.querySelector( '.vmail-fm-del' ).addEventListener( 'click', function () { working.splice( idx, 1 ); drawRows(); } );
+						fmList.appendChild( row );
+					} );
+				}
+				drawRows();
+				overlay.querySelector( '#vmail-fm-add' ).addEventListener( 'click', function () { working.push( { id: '', name: '', color: '#2ab7f1' } ); drawRows(); } );
+				function closeFm() { overlay.remove(); }
+				overlay.querySelector( '.vmail-fm-x' ).addEventListener( 'click', closeFm );
+				overlay.addEventListener( 'click', function ( e ) { if ( e.target === overlay ) { closeFm(); } } );
+				overlay.querySelector( '#vmail-fm-save' ).addEventListener( 'click', function () {
+					var sv = overlay.querySelector( '#vmail-fm-save' );
+					sv.disabled = true;
+					api( 'mail_folders_save', { folders: JSON.stringify( working ) } )
+						.then( function ( r ) { folders = ( r && r.folders ) || []; renderFolderChips(); toast( 'Folders saved.' ); closeFm(); } )
+						.catch( function ( er ) { sv.disabled = false; toast( er.message, 'error' ); } );
+				} );
+			} );
+		}
+
+		// Assign the open submission to a folder (change handler on the detail pane).
+		detail.addEventListener( 'change', function ( e ) {
+			var sel = e.target.closest ? e.target.closest( '.vmail-d-folder' ) : null;
+			if ( ! sel || ! current ) { return; }
+			var fid = sel.value;
+			api( 'submission_set_folder', { id: current.id, folder: fid } )
+				.then( function () {
+					current.folder = fid;
+					var it = list.querySelector( '.vmail-inbox-item[data-id="' + current.id + '"]' );
+					if ( it ) { it.setAttribute( 'data-folder', fid ); }
+					toast( fid ? 'Moved to folder.' : 'Removed from folder.' );
+				} )
+				.catch( function ( er ) { toast( er.message, 'error' ); } );
+		} );
+
+		// ===== Bulk selection =====
+		var bulkbar   = document.getElementById( 'vmail-bulkbar' );
+		var bulkCount = document.getElementById( 'vmail-bulk-count' );
+		var checkAll  = document.getElementById( 'vmail-check-all' );
+		function checkedIds() {
+			return Array.prototype.slice.call( list.querySelectorAll( '.vmail-check:checked' ) )
+				.map( function ( c ) { return parseInt( c.getAttribute( 'data-id' ), 10 ); } );
+		}
+		function refreshBulk() {
+			var ids = checkedIds();
+			if ( bulkbar ) { bulkbar.hidden = 0 === ids.length; }
+			if ( bulkCount ) { bulkCount.textContent = ids.length + ' selected'; }
+		}
+		list.addEventListener( 'change', function ( e ) {
+			if ( e.target && e.target.classList && e.target.classList.contains( 'vmail-check' ) ) { refreshBulk(); }
+		} );
+		if ( checkAll ) {
+			checkAll.addEventListener( 'change', function () {
+				list.querySelectorAll( '.vmail-inbox-item' ).forEach( function ( it ) {
+					if ( 'none' === it.style.display || it.classList.contains( 'vmail-del-row' ) ) { return; }
+					var cb = it.querySelector( '.vmail-check' );
+					if ( cb ) { cb.checked = checkAll.checked; }
+				} );
+				refreshBulk();
+			} );
+		}
+		var bulkClear = document.getElementById( 'vmail-bulk-clear' );
+		if ( bulkClear ) {
+			bulkClear.addEventListener( 'click', function () {
+				list.querySelectorAll( '.vmail-check:checked' ).forEach( function ( c ) { c.checked = false; } );
+				if ( checkAll ) { checkAll.checked = false; }
+				refreshBulk();
+			} );
+		}
+		if ( bulkbar ) {
+			bulkbar.addEventListener( 'click', function ( e ) {
+				var b = e.target.closest( '[data-bulk]' ); if ( ! b ) { return; }
+				var action = b.getAttribute( 'data-bulk' );
+				var ids = checkedIds();
+				if ( ! ids.length ) { return; }
+				if ( 'delete' === action && ! window.confirm( 'Move ' + ids.length + ' submission(s) to Deleted?' ) ) { return; }
+				api( 'submission_bulk', { ids: JSON.stringify( ids ), bulk: action } )
+					.then( function ( r ) {
+						ids.forEach( function ( id ) {
+							var it = list.querySelector( '.vmail-inbox-item[data-id="' + id + '"]' );
+							if ( ! it ) { return; }
+							if ( 'delete' === action ) { it.remove(); }
+							else if ( 'read' === action ) { it.setAttribute( 'data-read', '1' ); it.classList.remove( 'is-unread' ); }
+							else if ( 'done' === action ) { it.setAttribute( 'data-status', 'done' ); }
+						} );
+						if ( 'read' === action ) { updateUnreadCount(); }
+						if ( checkAll ) { checkAll.checked = false; }
+						refreshBulk();
+						applyFilter();
+						toast( ( r && r.count ? r.count : ids.length ) + ' updated.' );
+					} )
+					.catch( function ( e2 ) { toast( e2.message, 'error' ); } );
 			} );
 		}
 

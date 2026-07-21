@@ -4,6 +4,15 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.42 — Mail inbox: colored folders
+- Added folders to the inbox. Click "+ Folders" to create, rename, recolor or remove folders (each with its own color). Open a submission and use the folder dropdown to file it; folder chips appear in the filter bar (with color dots) to show just that folder. Completes the inbox overhaul (soft-delete + Deleted tab, bulk actions, pinned-to-top, and now folders).
+
+## 3.09.41 — Mail inbox: bulk actions
+- Each submission now has a selection checkbox. Select any (or use select-all) and a bulk bar appears to Mark read, Mark done, or Delete them all at once. Wired to the bulk backend from the previous version.
+
+## 3.09.40 — Mail inbox: soft-delete + Deleted tab + restore
+- Deleting a submission now moves it to a new Deleted tab instead of erasing it, and the inbox list count drops immediately. The Deleted tab lists everything you removed with Restore (send it back to the inbox) and Delete forever (permanent). Backs a new soft-delete column with a DB migration. (Bulk actions and colored folders are the next steps.)
+
 ## 3.09.39 — SMTP provider presets
 - Added provider presets to each SMTP connection (IONOS, Gmail/Workspace, Outlook/Office 365, SendGrid, Mailgun, Amazon SES, Brevo, Postmark, Zoho, or Custom). Pick one and the host, port and encryption fill in automatically — you just add your username, password and From address. The connection already existing is detected and shown. This is on top of the existing multi-connection routing, fallback, real-handshake "Test connection" and "Send test" tools under Mail & Forms → Settings → SMTP connections.
 
