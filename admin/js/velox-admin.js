@@ -4225,7 +4225,9 @@
 			ses:        { label: 'Amazon SES (eu-central-1)', host: 'email-smtp.eu-central-1.amazonaws.com', port: 587, secure: 'tls', hint: 'Username & password = your SES SMTP credentials (not your AWS keys). Change the region in the host if needed.' },
 			brevo:      { label: 'Brevo (Sendinblue)',    host: 'smtp-relay.brevo.com',                 port: 587, secure: 'tls', hint: 'Username = your Brevo account email, password = your SMTP key (SMTP & API settings).' },
 			postmark:   { label: 'Postmark',              host: 'smtp.postmarkapp.com',                 port: 587, secure: 'tls', hint: 'Username and password are both your Postmark Server API token.' },
-			zoho:       { label: 'Zoho Mail',             host: 'smtp.zoho.com',                        port: 587, secure: 'tls', hint: 'Username = your Zoho email, password = an app-specific password.' }
+			zoho:       { label: 'Zoho Mail',             host: 'smtp.zoho.com',                        port: 587, secure: 'tls', hint: 'Username = your Zoho email, password = an app-specific password.' },
+			gmx:        { label: 'GMX',                   host: 'mail.gmx.net',                         port: 587, secure: 'tls', hint: 'First enable POP3/IMAP in GMX settings (Home \u2192 Settings \u2192 POP3/IMAP). Then: username = your full GMX address, password = your normal GMX password.' },
+			webde:      { label: 'web.de',                host: 'smtp.web.de',                          port: 587, secure: 'tls', hint: 'First enable POP3/IMAP in web.de settings. Then: username = your full web.de address, password = your normal password.' }
 		};
 		function providerFor( host ) {
 			host = ( host || '' ).toLowerCase();
@@ -4234,6 +4236,99 @@
 			}
 			return '';
 		}
+
+		var SMTP_GUIDES = {
+			gmail: { title: 'Gmail / Google Workspace', note: 'Gmail needs an App Password, not your normal login. Free Gmail sends roughly 500 emails/day.', steps: [
+				'Turn on 2-Step Verification: myaccount.google.com/security \u2192 2-Step Verification.',
+				'Open myaccount.google.com/apppasswords and create an app password (name it "Velox").',
+				'Copy the 16-character code Google gives you.',
+				'Here, set Provider = Gmail (fills smtp.gmail.com, port 587, TLS).',
+				'Username = your full Gmail address.',
+				'Password = that 16-character App Password (spaces are fine).',
+				'From address = the same Gmail address (Gmail forces the sender to match).',
+				'Save connections, then Test connection, then Send test.'
+			] },
+			gmx: { title: 'GMX', note: 'GMX works with your normal password once IMAP/POP is enabled.', steps: [
+				'Log in to GMX webmail \u2192 Home \u2192 Settings \u2192 POP3/IMAP.',
+				'Turn on POP3/IMAP access and save.',
+				'Here, set Provider = GMX (fills mail.gmx.net, port 587, TLS).',
+				'Username = your full GMX address. Password = your normal GMX password.',
+				'From address = your GMX address.',
+				'Save connections, then Test connection, then Send test.'
+			] },
+			webde: { title: 'web.de', note: 'web.de works with your normal password once IMAP/POP is enabled.', steps: [
+				'Log in to web.de \u2192 Settings \u2192 enable POP3/IMAP access.',
+				'Here, set Provider = web.de (fills smtp.web.de, port 587, TLS).',
+				'Username = your full web.de address. Password = your normal password.',
+				'From address = your web.de address.',
+				'Save connections, then Test connection, then Send test.'
+			] },
+			ionos: { title: 'IONOS', note: 'Uses the mailbox password directly.', steps: [
+				'Make sure the mailbox exists in your IONOS control panel.',
+				'Here, set Provider = IONOS (fills smtp.ionos.de, port 587, TLS).',
+				'Username = your full IONOS mailbox address. Password = that mailbox\u2019s password.',
+				'From address = the same mailbox address.',
+				'Save connections, then Test connection, then Send test.'
+			] },
+			outlook: { title: 'Outlook / Hotmail (personal)', note: 'Not supported.', steps: [
+				'Microsoft has retired plain SMTP (basic auth) for personal Outlook.com accounts \u2014 even app passwords no longer work; it needs OAuth, which Velox does not do.',
+				'Use Gmail, GMX or web.de instead, or a free sending service like Brevo (300/day) which also lets you send from your own domain.'
+			] },
+			sendgrid: { title: 'SendGrid', note: 'Free tier available; verify a sender first.', steps: [
+				'Create a SendGrid account and verify a Single Sender or your domain.',
+				'Settings \u2192 API Keys \u2192 Create API Key with "Mail Send" permission. Copy it.',
+				'Here, set Provider = SendGrid (fills smtp.sendgrid.net, port 587, TLS).',
+				'Username = the literal word apikey. Password = your API key.',
+				'From address = your verified sender.',
+				'Save, then Test connection, then Send test.'
+			] },
+			mailgun: { title: 'Mailgun', note: 'Requires a verified domain.', steps: [
+				'Add and verify your sending domain in Mailgun (DNS records).',
+				'Open the domain \u2192 SMTP credentials to get the SMTP login + password.',
+				'Here, set Provider = Mailgun (fills smtp.mailgun.org, port 587, TLS).',
+				'Username = the SMTP login (postmaster@your-domain). Password = its SMTP password.',
+				'From address = an address on the verified domain.',
+				'Save, then Test connection, then Send test.'
+			] },
+			ses: { title: 'Amazon SES', note: 'Use SES SMTP credentials, not your AWS keys.', steps: [
+				'Verify a domain or email in SES and request production access (out of sandbox).',
+				'SES \u2192 SMTP settings \u2192 Create SMTP credentials \u2192 copy the username + password.',
+				'Here, set Provider = Amazon SES, and change the region in the host if you are not on eu-central-1.',
+				'Username + Password = the SES SMTP credentials you just created.',
+				'From address = your verified sender.',
+				'Save, then Test connection, then Send test.'
+			] },
+			brevo: { title: 'Brevo (Sendinblue)', note: 'Free 300 emails/day; good for client sites.', steps: [
+				'Create a Brevo account.',
+				'SMTP & API \u2192 SMTP tab \u2192 note your login email and generate an SMTP key.',
+				'Here, set Provider = Brevo (fills smtp-relay.brevo.com, port 587, TLS).',
+				'Username = your Brevo account email. Password = the SMTP key.',
+				'From address = a verified sender (verify your domain for best delivery).',
+				'Save, then Test connection, then Send test.'
+			] },
+			postmark: { title: 'Postmark', note: 'Token is used for both username and password.', steps: [
+				'Create a Postmark server and verify a Sender Signature or domain.',
+				'Copy the Server API Token.',
+				'Here, set Provider = Postmark (fills smtp.postmarkapp.com, port 587, TLS).',
+				'Username AND Password = your Server API Token (the same value in both).',
+				'From address = your verified signature.',
+				'Save, then Test connection, then Send test.'
+			] },
+			zoho: { title: 'Zoho Mail', note: 'Uses an app-specific password.', steps: [
+				'Enable IMAP/SMTP access in Zoho Mail settings.',
+				'Generate an app-specific password in your Zoho account security settings.',
+				'Here, set Provider = Zoho (fills smtp.zoho.com, port 587, TLS).',
+				'Username = your Zoho email. Password = the app-specific password.',
+				'Save, then Test connection, then Send test.'
+			] },
+			'': { title: 'Custom / other host', note: '', steps: [
+				'Get the SMTP host, port, username and password from your mail provider or hosting panel.',
+				'Port 587 = TLS (STARTTLS), port 465 = SSL. Pick the matching Encryption.',
+				'Username is usually your full email address; password is that mailbox\u2019s password.',
+				'From address = an address on the same account or domain.',
+				'Save, then Test connection, then Send test \u2014 the test message tells you exactly what is wrong if it fails.'
+			] }
+		};
 
 		function connCard( c, idx ) {
 			var card = document.createElement( 'div' );
@@ -4382,6 +4477,39 @@
 			conns.push( { id: uid(), label: '', host: '', port: 587, secure: 'tls', user: '', pass: '', from: '', from_name: '', reply_to: '' } );
 			render();
 		} );
+
+		var guideBtn = $( '#vmail-conn-guide' );
+		if ( guideBtn ) {
+			guideBtn.addEventListener( 'click', function () {
+				collect();
+				var def = 'gmail';
+				if ( conns[0] && conns[0].host ) { def = providerFor( conns[0].host ); }
+				var overlay = document.createElement( 'div' );
+				overlay.className = 'vmail-fm-overlay';
+				var provOpts = Object.keys( SMTP_GUIDES ).map( function ( k ) {
+					return '<option value="' + k + '"' + ( k === def ? ' selected' : '' ) + '>' + escapeHtml( SMTP_GUIDES[ k ].title ) + '</option>';
+				} ).join( '' );
+				overlay.innerHTML =
+					'<div class="vmail-fm vmail-guide">' +
+						'<div class="vmail-fm-head"><strong>SMTP setup guide</strong><button type="button" class="vmail-fm-x" aria-label="Close">&times;</button></div>' +
+						'<select class="velox-select vmail-guide-sel">' + provOpts + '</select>' +
+						'<div class="vmail-guide-body"></div>' +
+					'</div>';
+				document.body.appendChild( overlay );
+				var gbody = overlay.querySelector( '.vmail-guide-body' );
+				function drawGuide( k ) {
+					var g = SMTP_GUIDES[ k ] || SMTP_GUIDES[''];
+					gbody.innerHTML =
+						( g.note ? '<p class="vmail-guide-note">' + escapeHtml( g.note ) + '</p>' : '' ) +
+						'<ol class="vmail-guide-steps">' + g.steps.map( function ( s ) { return '<li>' + escapeHtml( s ) + '</li>'; } ).join( '' ) + '</ol>';
+				}
+				drawGuide( def );
+				overlay.querySelector( '.vmail-guide-sel' ).addEventListener( 'change', function () { drawGuide( this.value ); } );
+				function closeGuide() { overlay.remove(); }
+				overlay.querySelector( '.vmail-fm-x' ).addEventListener( 'click', closeGuide );
+				overlay.addEventListener( 'click', function ( e ) { if ( e.target === overlay ) { closeGuide(); } } );
+			} );
+		}
 
 		var routeAdd = $( '#vmail-route-add' );
 		if ( routeAdd ) {

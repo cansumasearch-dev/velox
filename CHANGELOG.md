@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.45 — SMTP setup guide
+- Added a "Setup guide" button next to "+ Add connection". It opens step-by-step instructions for getting the username/password/From right for whichever provider you use (Gmail app password, GMX/web.de IMAP toggle, IONOS, SendGrid, Mailgun, SES, Brevo, Postmark, Zoho, or a custom host). It opens on the provider of your first connection and has a dropdown to view any other.
+
+## 3.09.44 — SMTP presets: GMX + web.de
+- Added GMX (mail.gmx.net) and web.de (smtp.web.de) SMTP presets with hints (both need POP3/IMAP enabled in the webmail settings first, then your normal address + password). Note: personal Outlook.com no longer supports plain SMTP (Microsoft retired basic auth), and Gmail needs an App Password.
+
 ## 3.09.43 — Fix: SMTP toggle now saves + credential hints
 - Fixed the "Send through SMTP" toggle (and the sender-identity / CAPTCHA settings on the Mail page) not persisting — they now auto-save on change like everything else. This regressed when settings auto-save was added, because those toggles live on the Mail page, not Settings.
 - Each SMTP connection now shows a provider-specific credential hint (e.g. for IONOS: username = your full mailbox address, password = its password; SendGrid: username = "apikey"), so it is clear you still enter a username, password and From address after picking a provider.

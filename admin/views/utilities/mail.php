@@ -503,7 +503,10 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			</div>
 
 			<div id="vmail-conn-list" class="vmail-conn-list"></div>
-			<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-conn-add">+ Add connection</button>
+			<div class="vmail-conn-addrow">
+				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-conn-add">+ Add connection</button>
+				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-conn-guide">Setup guide</button>
+			</div>
 
 			<div class="vmail-routing" id="vmail-routing" hidden>
 				<div class="vmail-routing-grid">
