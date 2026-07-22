@@ -117,6 +117,11 @@ class Velox_Forms {
 		$form          = self::sanitize_form( $form );
 		$forms[ $id ]  = $form;
 		update_option( self::FORMS_OPTION, $forms, false );
+		// A form's styles are rendered inline into the (cached) page, so a stale
+		// full-page cache would keep serving the old look. Purge it on save.
+		if ( class_exists( 'Velox_Cache' ) && method_exists( 'Velox_Cache', 'purge_all' ) ) {
+			Velox_Cache::purge_all();
+		}
 		return array( 'ok' => true, 'id' => $id );
 	}
 

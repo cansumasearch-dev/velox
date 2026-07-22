@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.66 — Fix: form styles not showing on a cached front end
+- Saving a form now purges the page cache. Form styling is rendered inline into the page HTML, so a stale full-page cache (WP Fastest Cache, etc.) kept serving the old, unstyled version even though the styles were saved correctly. Velox_Cache::purge_all() now runs on every form save so the front end picks up style changes immediately.
+
 ## 3.09.65 — Settings panel grouped
 - Organised the form Settings panel into clear labelled sections — After submitting, Spam protection, Embed — instead of one flat card, matching the grouped inspector and settings elsewhere. Added a hint under the shortcode.
 
