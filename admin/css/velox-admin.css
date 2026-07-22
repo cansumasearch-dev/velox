@@ -2040,6 +2040,7 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 	color: var(--vx-ink-3); margin: var(--vx-s4) 0 var(--vx-s2); padding-top: var(--vx-s3);
 	border-top: 1px solid var(--vx-line);
 }
+.vmail-insp-body > .vmail-insp-sub:first-child { border-top: 0; margin-top: 0; padding-top: 0; }
 .vmail-minmax { display: flex; gap: var(--vx-s2); }
 .vmail-minmax .velox-input { width: 50%; }
 

@@ -5329,6 +5329,7 @@
 				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
 				rows += conditionalRows( f );
 			} else {
+				rows += '<div class="vmail-insp-sub">Basics</div>';
 				rows += inspText( 'Label', 'label', f.label );
 				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
 				rows += '<label class="vmail-insp-check"><input type="checkbox" data-k="required"' + ( f.required ? ' checked' : '' ) + '> Required field</label>';
@@ -5338,6 +5339,7 @@
 				if ( noDefault.indexOf( t ) === -1 ) { rows += inspText( 'Default value', 'default', f['default'] ); }
 				rows += inspText( 'Help text', 'help', f.help );
 				rows += validationRows( f, t );
+				rows += '<div class="vmail-insp-sub">Advanced</div>';
 				rows += widthSelect( f );
 				rows += inspText( 'CSS class', 'css', f.css );
 			}

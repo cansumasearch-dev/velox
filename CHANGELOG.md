@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.58 — Build inspector (2/5): grouped sections
+- Grouped the field inspector (right panel in Build) into clear sections — Basics, Validation, Advanced, Conditional logic — instead of one flat list, matching the cleaner style-editor layout. Width and CSS class moved under Advanced so the common fields stay up top.
+
 ## 3.09.57 — Style editor: per-field styling back (cleanly)
 - Brought back styling a single specific field, which the last version removed. The five clear global targets stay at the top; individual fields now live in a separate "Style one specific field" section below them, each labelled with the field name and type. You get per-field control without the overwhelming wall of items.
 
