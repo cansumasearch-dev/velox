@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.63 — HOTFIX: fatal error from the new fields
+- Fixed a fatal PHP error introduced in 3.09.61. Adding the Address field accidentally removed the "if multiselect" line in the submission handler, which closed the method early and crashed the plugin site-wide. Restored it and verified every PHP file with a real linter. Sorry again.
+
 ## 3.09.62 — Polish the new field styles
 - Cleaned up the front-end styling of the new fields: bulletproof star-button reset (no more browser button chrome on the rating stars), tighter heading hierarchy, tidier address grid, and a clearer slider value badge. They inherit the form’s normal field spacing and whatever you set in the Style editor.
 

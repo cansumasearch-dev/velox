@@ -853,6 +853,7 @@ class Velox_Forms {
 				$data[ $key ] = $joined;
 				continue;
 			}
+			if ( 'multiselect' === $type ) {
 				$picked = is_array( $val ) ? array_map( function ( $v ) { return trim( wp_strip_all_tags( (string) $v ) ); }, $val ) : array();
 				$picked = array_filter( $picked );
 				if ( $f['required'] && empty( $picked ) ) {
