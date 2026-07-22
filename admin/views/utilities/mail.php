@@ -50,6 +50,10 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					<span class="vmail-switch-track"></span>
 				</label>
 				<span class="vmail-nav-onoff" id="vmail-onoff-label"><?php echo ( ! isset( $form['enabled'] ) || ! empty( $form['enabled'] ) ) ? 'On' : 'Off'; ?></span>
+				<button type="button" class="vmail-nav-sc" data-code='[velox_form id="<?php echo (int) $form['id']; ?>"]' title="Form shortcode — click to copy">
+					<span class="vmail-nav-sc-tag">Shortcode</span>
+					<code>[velox_form id="<?php echo (int) $form['id']; ?>"]</code>
+				</button>
 			</div>
 			<div class="vmail-nav-mode">
 				<button type="button" class="vmail-tab vmail-modebtn is-active" data-tab="build"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M3 12h18M3 19h12"/></svg> Build</button>
@@ -137,6 +141,10 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					<span class="vmail-switch-track"></span>
 				</label>
 				<span class="vmail-nav-onoff" id="vse-onoff-label"><?php echo ( ! isset( $form['enabled'] ) || ! empty( $form['enabled'] ) ) ? 'On' : 'Off'; ?></span>
+				<button type="button" class="vmail-nav-sc" data-code='[velox_form id="<?php echo (int) $form['id']; ?>"]' title="Form shortcode — click to copy">
+					<span class="vmail-nav-sc-tag">Shortcode</span>
+					<code>[velox_form id="<?php echo (int) $form['id']; ?>"]</code>
+				</button>
 			</div>
 			<div class="vmail-nav-mode">
 				<button type="button" class="vmail-modebtn" id="vse-to-build"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M3 12h18M3 19h12"/></svg> Build</button>
@@ -149,24 +157,22 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					<button data-dev="mobile" title="Mobile"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="2" width="10" height="20" rx="2.5"/></svg></button>
 				</div>
 				<button class="vmail-nav-ghost" id="vse-reset" type="button"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5"/></svg> Reset</button>
-				<button class="velox-btn velox-btn--primary" id="vse-save" type="button">Save &amp; close</button>
+				<button class="velox-btn velox-btn--primary" id="vse-save" type="button">Save styles</button>
 			</div>
 		</div>
 		<div class="vse-body">
-			<div class="vse-left" id="vse-controls"></div>
+			<div class="vse-left">
+				<div class="vse-picker">
+					<div class="vse-picker-head">
+						<div class="tt">What do you want to style?</div>
+					</div>
+					<div class="vse-tree" id="vse-tree"></div>
+				</div>
+				<div class="vse-controls" id="vse-controls"></div>
+			</div>
 			<div class="vse-stage">
 				<div class="vse-live"><span class="vse-pulse"></span> Live preview</div>
 				<div class="vse-canvas" id="vse-canvas"><div class="vse-form" id="vse-form"></div></div>
-			</div>
-			<div class="vse-right">
-				<div class="vse-right-head"><div class="tt">Elements</div><div class="ts">Select anything to style it</div></div>
-				<div class="vse-tabs" id="vse-tabs">
-					<button type="button" class="is-on" data-tab="all">All</button>
-					<button type="button" data-tab="inputs">Inputs</button>
-					<button type="button" data-tab="text">Text</button>
-					<button type="button" data-tab="buttons">Button</button>
-				</div>
-				<div class="vse-tree" id="vse-tree"></div>
 			</div>
 		</div>
 		<style id="vse-live-css"></style>

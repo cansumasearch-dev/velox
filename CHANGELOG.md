@@ -4,6 +4,37 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.57 — Style editor: per-field styling back (cleanly)
+- Brought back styling a single specific field, which the last version removed. The five clear global targets stay at the top; individual fields now live in a separate "Style one specific field" section below them, each labelled with the field name and type. You get per-field control without the overwhelming wall of items.
+
+## 3.09.56 — Style editor: clear targets, less clutter
+- Replaced the confusing element list (which showed every single field: Single line, Email, Phone...) with five plain-language targets, each with a description of what it edits: Whole form (background, padding & corners), Title (the heading), Labels (text above each field), Input boxes (every box people type into), Button (the submit button).
+- Removed the All/Inputs/Text/Button tab bar — pointless now that there are only five clear targets. Bigger rows with real breathing room so it is not cramped or overwhelming.
+
+## 3.09.55 — Style editor rebuild (1/5): single pick-and-style column
+- Rebuilt the style-editor layout. The element picker (Elements list + All/Inputs/Text/Button tabs) moved from the far right into the left column, sitting directly above the controls for the selected element. You now pick and style in one place instead of bouncing between the right edge and left edge of the screen; the live preview fills the rest. First of a full Mail & Forms editor rebuild (build, preview, notifications, settings to follow).
+
+## 3.09.54 — Form fixes: required validation, removed 3 fields, tighter canvas
+- Removed Custom HTML, Page break and Calculation from the field palette.
+- Required fields now actually block submission. Two fixes: (1) inspector changes (including the Required toggle) now auto-save, so "required" persists instead of only sticking if you manually hit Save; (2) the front-end form now validates before sending and shows "Please fill in the required fields before sending." with the empty fields highlighted, instead of submitting anyway.
+- Tightened the vertical gap between field cards in the builder canvas (16px to 8px).
+
+## 3.09.53 — Shortcode shown in the editor toolbar
+- Dropped the separate embed bar. The form shortcode now shows as a small chip in the toolbar itself (in the empty space next to On/Off), and appears in all three modes — Build, Style and Preview. Click it to copy.
+
+## 3.09.52 — Fix cramped form toolbar + roomy embed bar
+- Fixed the cramped builder toolbar: the shortcode chip I had jammed into the top row was overflowing it. Moved the shortcode to its own full-width "Embed this form" bar directly under the toolbar (label + shortcode + Copy button + hint), with real breathing room. The toolbar now also wraps gracefully instead of overlapping on narrower screens.
+
+## 3.09.51 — Form editor: shortcode chip + save-stays-in-style
+- Added a click-to-copy shortcode chip ([velox_form id="X"]) right in the builder and style toolbars, so you can grab the embed code without leaving the editor.
+- In Style mode, the button is now "Save styles" and it saves without kicking you back to the forms list — you stay in the style editor. (Styles also still auto-save on every change.)
+
+## 3.09.50 — Fix: form styles not applying on the front end
+- Fixed form Style-editor changes not showing on the front end. The style controls updated the live preview but never saved, so the front end kept rendering the unstyled version. Style edits now auto-save (debounced) the moment you make them, exactly like the Notifications toggles — so what you see in the editor is what ships. (Re-open a form and nudge any style control once to persist styles set before this fix.)
+
+## 3.09.49 — HOTFIX: fatal error
+- Fixed a fatal PHP error introduced in 3.09.46 (File Manager). The File Manager catalog description had a double-escaped apostrophe that closed the PHP string early, crashing the whole plugin (and the site). Removed the apostrophe. Sorry about that.
+
 ## 3.09.48 — File Manager matches the plugin
 - Rebuilt the File Manager to match the rest of Velox: one flush 18px-radius panel with an internal divider (same construction as the mail inbox two-pane) instead of two small boxes, bigger 14px rows with 18px icons, real design tokens throughout, taller editor. No more mismatched look.
 

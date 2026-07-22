@@ -30,7 +30,7 @@ class Velox_Utilities {
 			'maintenance'=> array( 'label' => 'Maintenance mode',    'icon' => 'cone',     'ready' => true,  'enable' => 'util_maintenance', 'page' => true, 'desc' => 'Show visitors a branded coming-soon page while you work, admins still get in.' ),
 			'scripts'    => array( 'label' => 'Script Manager',      'icon' => 'code',     'ready' => true,  'enable' => 'util_scripts', 'page' => true, 'desc' => 'Stop specific CSS/JS from loading where it isn\'t needed — globally or per page.' ),
 			'snippets'   => array( 'label' => 'Code Snippets',       'icon' => 'code',     'ready' => true,  'enable' => 'util_snippets', 'setting' => 'util_snippets', 'link' => 'snippets', 'desc' => 'Add PHP, CSS, JS or HTML snippets with run-location and priority. They get their own Snippets menu below Velox.' ),
-			'filemanager'=> array( 'label' => 'File Manager',        'icon' => 'folder',   'ready' => true,  'enable' => 'util_filemanager', 'page' => true, 'dangerous' => true, 'desc' => 'Browse and edit your site\\'s files directly from the dashboard — like SFTP or the Plesk file manager. Powerful for debugging, but a wrong edit to the wrong file can take the whole site down.' ),
+			'filemanager'=> array( 'label' => 'File Manager',        'icon' => 'folder',   'ready' => true,  'enable' => 'util_filemanager', 'page' => true, 'dangerous' => true, 'desc' => 'Browse and edit your site files directly from the dashboard — like SFTP or the Plesk file manager. Powerful for debugging, but a wrong edit to the wrong file can take the whole site down.' ),
 		);
 	}
 

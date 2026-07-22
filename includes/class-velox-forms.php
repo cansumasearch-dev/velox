@@ -1527,6 +1527,26 @@ class Velox_Forms {
       var msg=form.querySelector('.velox-form-msg');
       var btn=form.querySelector('.velox-form-submit');
       form.querySelectorAll('.has-error').forEach(function(el){el.classList.remove('has-error');});
+      /* Client-side validation: block the send and flag required/invalid fields. */
+      var firstBad=null;
+      var flds=form.querySelectorAll('input,select,textarea');
+      for(var i=0;i<flds.length;i++){
+        var el=flds[i];
+        if(el.disabled||el.type==='hidden'||el.name==='vf_hp'){continue;}
+        if(el.closest('[style*="display: none"]')){continue;}
+        if(typeof el.checkValidity==='function'&&!el.checkValidity()){
+          var w=el.closest('.velox-form-field')||el.closest('.velox-form-row')||el.closest('.velox-form-consent');
+          if(w){w.classList.add('has-error');}
+          if(!firstBad){firstBad=el;}
+        }
+      }
+      if(firstBad){
+        msg.className='velox-form-msg is-err';
+        msg.textContent='Please fill in the required fields before sending.';
+        msg.hidden=false;
+        if(typeof firstBad.reportValidity==='function'){firstBad.reportValidity();}else{firstBad.focus();}
+        return;
+      }
       var fd=new FormData(form);
       fd.append('action','velox_form');
       fd.append('form_id',form.getAttribute('data-form'));

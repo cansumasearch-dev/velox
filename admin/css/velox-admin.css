@@ -1165,7 +1165,7 @@
 
 /* canvas (left/main) */
 .vmail-canvas-wrap { background: var(--vx-card); border: 1px solid var(--vx-line); border-radius: var(--vx-r-lg); padding: 22px; min-height: 360px; }
-.vmail-canvas { display: flex; flex-wrap: wrap; gap: 16px 14px; --vf-accent: var(--vx-primary); }
+.vmail-canvas { display: flex; flex-wrap: wrap; gap: 8px 14px; --vf-accent: var(--vx-primary); }
 .vmail-empty { width: 100%; text-align: center; padding: 70px 20px; color: var(--vx-ink-3); display: flex; flex-direction: column; gap: 6px; border: 1px dashed var(--vx-line-2); border-radius: var(--vx-r-md); }
 .vmail-empty strong { font-size: 15px; color: var(--vx-ink-2); font-weight: 600; }
 
@@ -1470,8 +1470,16 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vse-device button { border: 0; background: transparent; width: 34px; height: 28px; border-radius: var(--vx-r-sm); color: var(--vx-ink-3); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color var(--vx-dur-1) var(--vx-ease), background var(--vx-dur-1) var(--vx-ease); }
 .vse-device button.is-on { background: var(--vx-card); color: var(--vx-ink); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
 .vse-body { flex: 1; display: flex; min-height: 0; }
-.vse-left { width: 300px; flex: none; background: var(--vx-card); border-right: 1px solid var(--vx-line); overflow-y: auto; }
-.vse-right { width: 240px; flex: none; background: var(--vx-card); border-left: 1px solid var(--vx-line); overflow-y: auto; }
+.vse-left { width: 348px; flex: none; background: var(--vx-card); border-right: 1px solid var(--vx-line); display: flex; flex-direction: column; min-height: 0; }
+.vse-picker { flex: none; max-height: 52%; display: flex; flex-direction: column; min-height: 180px; border-bottom: 1px solid var(--vx-line); background: var(--vx-n25); }
+.vse-picker-head { padding: 16px 16px 6px; flex: none; }
+.vse-picker-head .tt { font-size: 13px; font-weight: 680; letter-spacing: -0.01em; color: var(--vx-ink); }
+.vse-picker-head .ts { font-size: 11.5px; color: var(--vx-ink-3); margin-top: 2px; }
+.vse-picker .vse-tabs { margin: 0 16px 8px; }
+.vse-controls { flex: 1; overflow-y: auto; min-height: 0; }
+.vse-controls-head { padding: 15px 16px 13px; border-bottom: 1px solid var(--vx-line); display: flex; align-items: center; gap: 10px; position: sticky; top: 0; background: var(--vx-card); z-index: 2; }
+.vse-tree { flex: 1; overflow-y: auto; min-height: 0; padding: 4px 12px 12px; }
+.vse-tree-sec { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--vx-ink-3); padding: 14px 12px 6px; margin-top: 4px; border-top: 1px solid var(--vx-line); }
 .vse-stage { flex: 1; min-width: 0; background: var(--vx-bg); display: flex; flex-direction: column; align-items: center; padding: 30px 40px 40px; overflow-y: auto; }
 .vse-live { display: flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; color: var(--vx-ink-3); margin-bottom: 18px; }
 .vse-pulse { width: 7px; height: 7px; border-radius: 50%; background: #23c483; }
@@ -1479,7 +1487,7 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vse-canvas.is-tablet { max-width: 600px; } .vse-canvas.is-mobile { max-width: 380px; }
 
 /* left controls */
-.vse-left-head { padding: 16px 16px 12px; border-bottom: 1px solid var(--vx-line); display: flex; align-items: center; gap: 9px; }
+.vse-left-head { padding: 15px 16px 13px; border-bottom: 1px solid var(--vx-line); display: flex; align-items: center; gap: 9px; position: sticky; top: 0; background: var(--vx-card); z-index: 2; }
 .vse-left-head .ic { width: 30px; height: 30px; border-radius: var(--vx-r-md); background: var(--vx-primary-tint); color: var(--vx-primary); display: flex; align-items: center; justify-content: center; flex: none; }
 .vse-left-head .tt { font-size: 14px; font-weight: 680; letter-spacing: -0.01em; }
 .vse-left-head .ts { font-size: 11.5px; color: var(--vx-ink-3); }
@@ -1515,18 +1523,18 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vse-right-head { padding: 15px 16px 13px; border-bottom: 1px solid var(--vx-line); }
 .vse-right-head .tt { font-size: 13px; font-weight: 680; letter-spacing: -0.01em; }
 .vse-right-head .ts { font-size: 11.5px; color: var(--vx-ink-3); margin-top: 2px; }
-.vse-tree { padding: 10px; }
+.vse-tree { flex: 1; overflow-y: auto; padding: 2px 10px 10px; min-height: 0; }
 .vse-tree-glabel { font-size: 10px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; color: var(--vx-ink-3); padding: 8px 8px 6px; }
-.vse-node { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: var(--vx-r-md); cursor: pointer; color: var(--vx-ink-2); transition: background var(--vx-dur-1) var(--vx-ease); margin-bottom: 2px; }
+.vse-node { display: flex; align-items: center; gap: 12px; padding: 12px 12px; border-radius: 10px; cursor: pointer; color: var(--vx-ink); transition: background var(--vx-dur-1) var(--vx-ease); margin-bottom: 4px; }
 .vse-node:hover { background: var(--vx-n50); }
-.vse-node.is-on { background: var(--vx-primary-tint); color: var(--vx-primary-ink); }
-.vse-node .ic { width: 26px; height: 26px; border-radius: var(--vx-r-sm); background: var(--vx-bg); display: flex; align-items: center; justify-content: center; color: var(--vx-ink-2); flex: none; }
-.vse-node.is-on .ic { background: var(--vx-card); color: var(--vx-primary); }
-.vse-node .ic svg { width: 15px; height: 15px; }
-.vse-node .nm { font-size: 12.5px; font-weight: 600; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.vse-node .ty { font-size: 10px; color: var(--vx-ink-3); font-weight: 600; }
-.vse-node.is-on .ty { color: #5bb8e0; }
-.vse-node.child { margin-left: 14px; }
+.vse-node.is-on { background: var(--vx-primary-tint); }
+.vse-node .ic { width: 34px; height: 34px; border-radius: 9px; background: var(--vx-card); border: 1px solid var(--vx-line); display: flex; align-items: center; justify-content: center; color: var(--vx-ink-2); flex: none; }
+.vse-node.is-on .ic { background: #fff; border-color: transparent; color: var(--vx-primary); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
+.vse-node .ic svg { width: 17px; height: 17px; }
+.vse-node .tx { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.vse-node .nm { font-size: 13.5px; font-weight: 600; letter-spacing: -0.01em; color: var(--vx-ink); }
+.vse-node .ds { font-size: 11.5px; color: var(--vx-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.vse-node.is-on .nm { color: var(--vx-primary-ink); }
 
 /* the live preview form */
 .vse-form { background: #fff; border-radius: 18px; padding: 40px 56px 44px; box-shadow: 0 4px 16px -6px rgba(16,24,40,.12), 0 18px 50px -20px rgba(16,24,40,.2); }
@@ -2850,7 +2858,7 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vfx-row-active .velox-switch { flex: none; }
 
 /* ===== Mail & forms — unified editor navbar (Build / Style / Preview) ===== */
-.vmail-nav { display: flex; align-items: center; gap: 16px; padding: 11px 18px; background: var(--vx-card); border: 1px solid var(--vx-line2); border-radius: var(--vx-r-lg, 16px); margin-bottom: 16px; }
+.vmail-nav { display: flex; align-items: center; flex-wrap: wrap; gap: 16px; row-gap: 12px; padding: 11px 18px; background: var(--vx-card); border: 1px solid var(--vx-line2); border-radius: var(--vx-r-lg, 16px); margin-bottom: 16px; }
 .vmail-nav-left { display: flex; align-items: center; gap: 11px; min-width: 0; }
 .vmail-nav-back { width: 30px; height: 30px; border: 1px solid var(--vx-line2); border-radius: 8px; display: flex; align-items: center; justify-content: center; color: var(--vx-ink-2); flex: none; }
 .vmail-nav-back:hover { background: var(--vx-n25); color: var(--vx-ink); }
@@ -2871,6 +2879,13 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-nav-switch input:checked + .vmail-switch-track { background: var(--vx-success); }
 .vmail-nav-switch input:checked + .vmail-switch-track::after { transform: translateX(16px); }
 .vmail-nav-onoff { font-size: 11px; font-weight: 600; color: var(--vx-ink-3); min-width: 20px; }
+.vmail-nav-sc { display: inline-flex; align-items: center; gap: 8px; background: var(--vx-n25); border: 1px solid var(--vx-line2); border-radius: var(--vx-r-sm); padding: 5px 10px; cursor: pointer; transition: background .15s, border-color .15s; min-width: 0; }
+.vmail-nav-sc:hover { background: var(--vx-n50); border-color: var(--vx-n300); }
+.vmail-nav-sc-tag { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--vx-ink-3); flex: none; }
+.vmail-nav-sc code { font-family: var(--vx-mono); font-size: 12px; font-weight: 500; color: var(--vx-ink-2); letter-spacing: -0.01em; white-space: nowrap; }
+.vmail-nav-sc:hover code { color: var(--vx-ink); }
+.vmail-nav-sc.is-copied { background: #ecfdf5; border-color: #6ee7b7; }
+.vmail-nav-sc.is-copied .vmail-nav-sc-tag, .vmail-nav-sc.is-copied code { color: #047857; }
 .vmail-nav-onoff.is-on { color: var(--vx-success); }
 .vmail-nav-mode { margin: 0 auto; display: flex; gap: 2px; background: var(--vx-n50); border: 1px solid var(--vx-line); border-radius: 9px; padding: 3px; }
 .vmail-modebtn { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--vx-ink-2); padding: 6px 14px; border-radius: 7px; border: none; background: none; cursor: pointer; font-family: inherit; }

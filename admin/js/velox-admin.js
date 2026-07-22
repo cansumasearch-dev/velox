@@ -4772,10 +4772,7 @@
 			url:         { label: 'Website URL', short: 'URL', icon: svgIcon('<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>'), opts: false, cat: 'advanced' },
 			date:        { label: 'Date',        icon: svgIcon('<rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M16 3v4M8 3v4M3.5 10h17"/>'), opts: false, cat: 'advanced' },
 			consent:     { label: 'Consent',     icon: svgIcon('<path d="M9 12l2 2 4-4"/><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'), opts: false, cat: 'advanced' },
-			captcha:     { label: 'CAPTCHA',     icon: svgIcon('<path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/>'), opts: false, cat: 'advanced' },
-			calc:        { label: 'Calculation', short: 'Calc', icon: svgIcon('<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 7h8M8 12h2M8 16h2M14 12h2M14 16h2"/>'), opts: false, cat: 'advanced' },
-			step:        { label: 'Page break',  icon: svgIcon('<path d="M4 7h16M4 17h16M9 11l3 3 3-3"/>'), opts: false, cat: 'layout' },
-			html:        { label: 'Custom HTML', short: 'HTML',  icon: svgIcon('<path d="M9 8l-4 4 4 4M15 8l4 4-4 4"/>'), opts: false, cat: 'layout' }
+			captcha:     { label: 'CAPTCHA',     icon: svgIcon('<path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/>'), opts: false, cat: 'advanced' }
 		};
 		var CATS = { general: 'General fields', advanced: 'Advanced fields', layout: 'Layout' };
 
@@ -5353,7 +5350,7 @@
 				el.addEventListener( ev, function () {
 					var k = el.getAttribute( 'data-k' );
 					if ( k === 'key' ) {
-						f._lockKey = true; f.key = slugify( el.value ); renderCanvas(); return;
+						f._lockKey = true; f.key = slugify( el.value ); renderCanvas(); autosave(); return;
 					}
 					f[ k ] = ( el.type === 'checkbox' ) ? el.checked : el.value;
 					if ( k === 'label' && ! f._lockKey ) {
@@ -5361,6 +5358,7 @@
 						var ke = $( '[data-k="key"]', inspector ); if ( ke ) { ke.value = f.key; }
 					}
 					renderCanvas();
+					autosave();
 				} );
 			} );
 
@@ -5553,6 +5551,22 @@
 		}
 		$( '#vmail-save' ).addEventListener( 'click', save );
 
+		// Shortcode displays (build + style + preview toolbars): click to copy.
+		// Delegated so it also catches the preview overlay's chip, which is built lazily.
+		document.addEventListener( 'click', function ( e ) {
+			var chip = e.target.closest ? e.target.closest( '.vmail-nav-sc' ) : null;
+			if ( ! chip ) { return; }
+			var code = chip.getAttribute( 'data-code' ) || '';
+			var done = function () { toast( 'Shortcode copied.' ); chip.classList.add( 'is-copied' ); setTimeout( function () { chip.classList.remove( 'is-copied' ); }, 1200 ); };
+			if ( navigator.clipboard && navigator.clipboard.writeText ) {
+				navigator.clipboard.writeText( code ).then( done ).catch( function () { done(); } );
+			} else {
+				var t = document.createElement( 'textarea' ); t.value = code; document.body.appendChild( t ); t.select();
+				try { document.execCommand( 'copy' ); } catch ( er ) {}
+				document.body.removeChild( t ); done();
+			}
+		} );
+
 		var palSearch = $( '#vmail-palette-search' );
 		if ( palSearch ) { palSearch.addEventListener( 'input', function () { renderPalette( palSearch.value ); } ); }
 
@@ -5583,6 +5597,7 @@
 							'<span class="vmail-nav-title vmail-nav-title--static">' + escapeHtml( form.title || 'Form' ) + '</span>' +
 							'<label class="vmail-nav-switch" title="Turn this form on or off"><input type="checkbox" id="vmp-enabled"' + ( form.enabled !== false ? ' checked' : '' ) + '><span class="vmail-switch-track"></span></label>' +
 							'<span class="vmail-nav-onoff' + ( form.enabled !== false ? ' is-on' : '' ) + '" id="vmp-onoff-label">' + ( form.enabled !== false ? 'On' : 'Off' ) + '</span>' +
+							'<button type="button" class="vmail-nav-sc" data-code=\'[velox_form id="' + form.id + '"]\' title="Form shortcode — click to copy"><span class="vmail-nav-sc-tag">Shortcode</span><code>[velox_form id="' + form.id + '"]</code></button>' +
 						'</div>' +
 						'<div class="vmail-nav-mode">' +
 							'<button type="button" class="vmail-modebtn" id="vmp-to-build"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M3 12h18M3 19h12"/></svg> Build</button>' +
@@ -5703,6 +5718,7 @@
 			function liveCss() { return formPreviewCss( SCOPE ); }
 			function applyLive() {
 				var styleTag = $( '#vse-live-css' ); if ( styleTag ) { styleTag.textContent = liveCss(); }
+				autosave(); // persist style edits (debounced) so they actually reach the front end
 			}
 
 			// ---- control builders ----
@@ -5851,25 +5867,23 @@
 			// ---- selector tree (filtered by the tab bar) ----
 			function renderTree() {
 				var tree = $( '#vse-tree' );
-				var tab = treeTab;
-				var html = '';
+				var items = [
+					[ 'form',   'Whole form',  'Background, padding & corners', ICONS.form ],
+					[ 'header', 'Title',       'The heading at the top',        ICONS.header ],
+					[ 'labels', 'Labels',      'The text above each field',     ICONS.labels ],
+					[ 'inputs', 'Input boxes', 'Every box people type into',    ICONS.inputs ],
+					[ 'submit', 'Button',      'The submit button',             ICONS.submit ]
+				];
+				var html = items.map( function ( it ) { return node( it[0], it[1], it[2], it[3] ); } ).join( '' );
+				// Style one specific field on its own — kept in a separate section so it
+				// doesn't clutter the common targets above.
 				var styleable = form.fields.filter( function ( f ) { return [ 'step', 'html', 'captcha' ].indexOf( f.type ) === -1; } );
-				if ( tab === 'all' ) {
-					html += '<div class="vse-tree-glabel">Form</div>' + node( 'form', 'Whole form', '', ICONS.form );
-				}
-				if ( tab === 'all' || tab === 'text' ) {
-					html += '<div class="vse-tree-glabel">Text</div>' + node( 'header', 'Header', '', ICONS.header ) + node( 'labels', 'All labels', '', ICONS.labels );
-				}
-				if ( tab === 'all' || tab === 'inputs' ) {
-					html += '<div class="vse-tree-glabel">Inputs</div>' + node( 'inputs', 'All inputs', '', ICONS.inputs );
+				if ( styleable.length ) {
+					html += '<div class="vse-tree-sec">Style one specific field</div>';
 					styleable.forEach( function ( f ) {
-						html += node( 'field:' + f.key, f.label || f.key, ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ), ICONS.inputs );
+						html += node( 'field:' + f.key, f.label || f.key, ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + ' field', ICONS.inputs );
 					} );
 				}
-				if ( tab === 'all' || tab === 'buttons' ) {
-					html += '<div class="vse-tree-glabel">Button</div>' + node( 'submit', 'Submit button', '', ICONS.submit );
-				}
-				if ( ! html ) { html = '<div class="vse-tree-empty">Nothing to style in this tab yet.</div>'; }
 				tree.innerHTML = html;
 				$$( '.vse-node', tree ).forEach( function ( n ) {
 					n.addEventListener( 'click', function () {
@@ -5889,10 +5903,10 @@
 					} );
 				} );
 			}
-			function node( target, name, type, icon ) {
+			function node( target, name, desc, icon ) {
 				return '<div class="vse-node' + ( target === current ? ' is-on' : '' ) + '" data-target="' + target + '">' +
 					'<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' + icon + '</svg></span>' +
-					'<span class="nm">' + escapeHtml( name ) + '</span>' + ( type ? '<span class="ty">' + escapeHtml( type ) + '</span>' : '' ) + '</div>';
+					'<span class="tx"><span class="nm">' + escapeHtml( name ) + '</span>' + ( desc ? '<span class="ds">' + escapeHtml( desc ) + '</span>' : '' ) + '</span></div>';
 			}
 
 			// ---- open / close / save ----
@@ -5925,7 +5939,14 @@
 			}
 			var toPrev = $( '#vse-to-preview' );
 			if ( toPrev ) { toPrev.addEventListener( 'click', function () { close(); if ( openPreviewOverlay ) { openPreviewOverlay(); } } ); }
-			$( '#vse-save' ).addEventListener( 'click', function () { close(); renderCanvas(); toast( 'Styles applied. Remember to Save the form.' ); } );
+			$( '#vse-save' ).addEventListener( 'click', function () {
+				// Persist the whole form (styles included) but STAY in the style editor.
+				var b = this; b.disabled = true;
+				api( 'form_save', { form: JSON.stringify( form ) } )
+					.then( function () { toast( 'Styles saved.' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { b.disabled = false; } );
+			} );
 			$( '#vse-reset' ).addEventListener( 'click', function () {
 				form.style = {}; S = form.style; current = 'submit'; buildPreview(); renderTree(); renderControls(); applyLive();
 			} );
