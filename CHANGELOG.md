@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.69 — FIX: form styles never saved (empty-array bug)
+- Fixed the real cause of form styles not persisting. An unstyled form was loaded with its style as a JSON array ([]) rather than an object. The Style editor set properties on that array, which worked for the live preview but were silently dropped by JSON.stringify on save (it ignores non-index array properties), so the database always received an empty style. The style is now coerced to a plain object on load, so edits actually save and reach the front end. Removed the 3.09.68 diagnostics.
+
 ## 3.09.68 — Diagnostic build for the style-persistence issue
 - Temporary logging: the Style editor logs the style it sends on save, and the server returns the style it actually persisted, so we can pin down whether the style is lost in the browser payload or in storage. No functional change; to be removed once diagnosed.
 

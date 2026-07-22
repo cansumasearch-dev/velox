@@ -4755,6 +4755,9 @@
 		try { meta = JSON.parse( ( $( '#vmail-meta' ) || {} ).textContent || '{}' ); } catch ( e2 ) { meta = {}; }
 		form.fields = form.fields || [];
 		form.emails = form.emails || [];
+		// PHP encodes an empty style as a JSON array []; JS then tacks properties onto
+		// that array, which JSON.stringify silently drops on save. Force a plain object.
+		if ( ! form.style || typeof form.style !== 'object' || Array.isArray( form.style ) ) { form.style = {}; }
 
 		function svgIcon( p ) { return '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; }
 		var TYPES = {
@@ -5990,10 +5993,9 @@
 			$( '#vse-save' ).addEventListener( 'click', function () {
 				// Persist the whole form (styles included) but STAY in the style editor.
 				var b = this; b.disabled = true;
-				try { console.log( '[VELOX] Save styles — form.style being sent:', JSON.parse( JSON.stringify( form.style || {} ) ) ); } catch ( e ) {}
 				api( 'form_save', { form: JSON.stringify( form ) } )
-					.then( function ( res ) { console.log( '[VELOX] server responded:', res ); toast( 'Styles saved.' ); } )
-					.catch( function ( e ) { console.log( '[VELOX] save error:', e ); toast( e.message, 'error' ); } )
+					.then( function () { toast( 'Styles saved.' ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { b.disabled = false; } );
 			} );
 			$( '#vse-reset' ).addEventListener( 'click', function () {
