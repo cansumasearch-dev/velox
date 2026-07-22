@@ -123,7 +123,10 @@ class Velox_Forms {
 		if ( class_exists( 'Velox_Cache' ) && method_exists( 'Velox_Cache', 'purge_all' ) ) {
 			Velox_Cache::purge_all();
 		}
-		return array( 'ok' => true, 'id' => $id );
+		// Diagnostic: re-read from storage so the client can compare what it sent
+		// against what actually persisted (isolates JS payload vs. DB/object-cache).
+		$reread = self::get_form( $id );
+		return array( 'ok' => true, 'id' => $id, 'saved_style' => isset( $reread['style'] ) ? $reread['style'] : null );
 	}
 
 	public static function delete_form( $id ) {

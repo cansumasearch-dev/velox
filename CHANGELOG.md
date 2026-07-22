@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.68 — Diagnostic build for the style-persistence issue
+- Temporary logging: the Style editor logs the style it sends on save, and the server returns the style it actually persisted, so we can pin down whether the style is lost in the browser payload or in storage. No functional change; to be removed once diagnosed.
+
 ## 3.09.67 — Fix: form styles stripped by Oxygen
 - Form styles now print in the page footer instead of inline inside the shortcode output. Oxygen (and some other builders) strip inline <style> tags from shortcode/element content, which is why custom form styling never appeared on the front end even though it saved and previewed correctly. The styles are now emitted via wp_footer, which builders do not sanitize, so they reliably reach the page. Works together with the 3.09.66 cache purge.
 

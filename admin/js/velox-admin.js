@@ -5990,9 +5990,10 @@
 			$( '#vse-save' ).addEventListener( 'click', function () {
 				// Persist the whole form (styles included) but STAY in the style editor.
 				var b = this; b.disabled = true;
+				try { console.log( '[VELOX] Save styles — form.style being sent:', JSON.parse( JSON.stringify( form.style || {} ) ) ); } catch ( e ) {}
 				api( 'form_save', { form: JSON.stringify( form ) } )
-					.then( function () { toast( 'Styles saved.' ); } )
-					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function ( res ) { console.log( '[VELOX] server responded:', res ); toast( 'Styles saved.' ); } )
+					.catch( function ( e ) { console.log( '[VELOX] save error:', e ); toast( e.message, 'error' ); } )
 					.then( function () { b.disabled = false; } );
 			} );
 			$( '#vse-reset' ).addEventListener( 'click', function () {
