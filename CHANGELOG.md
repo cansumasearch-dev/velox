@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.59 — Build density: crush the gaps, grid the palette
+- Fixed the huge gaps in the field inspector. Every field had a 20px bottom margin stacking on top of the panel’s 14px flex gap (~34px between fields); removed the margin so fields sit ~11px apart. Tightened labels, hints, checkboxes and section headers to match.
+- Turned the field palette from a stranded single-column list into a 2-column card grid, so you see far more field types at once and it fills the column instead of floating at the top with dead space below.
+
 ## 3.09.58 — Build inspector (2/5): grouped sections
 - Grouped the field inspector (right panel in Build) into clear sections — Basics, Validation, Advanced, Conditional logic — instead of one flat list, matching the cleaner style-editor layout. Width and CSS class moved under Advanced so the common fields stay up top.
 

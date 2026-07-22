@@ -1277,11 +1277,11 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-sb .vmail-pal-cat { width: 100%; display: flex; align-items: center; padding: 6px 16px 6px; font-size: 10.5px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--sb-faint); background: transparent; border: 0; cursor: default; pointer-events: none; }
 .vmail-sb .vmail-pal-chev { display: none; }
 .vmail-sb .vmail-pal-body { display: block !important; }
-.vmail-sb .vmail-pal-grid { display: flex; flex-direction: column; gap: 1px; padding: 0 10px 10px; }
-.vmail-sb .vmail-pal-item { display: flex; align-items: center; gap: 10px; padding: 8px; border: 0; border-radius: 8px; background: transparent; box-shadow: none; cursor: grab; font-size: 13px; font-weight: 500; color: var(--vx-ink); transition: background .15s; min-width: 0; }
-.vmail-sb .vmail-pal-item:hover { box-shadow: none; background: var(--vx-n50); }
+.vmail-sb .vmail-pal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 0 12px 12px; }
+.vmail-sb .vmail-pal-item { display: flex; align-items: center; gap: 8px; padding: 9px 9px; border: 1px solid var(--vx-line); border-radius: 9px; background: var(--vx-card); box-shadow: none; cursor: grab; font-size: 12.5px; font-weight: 500; color: var(--vx-ink); transition: background .15s, border-color .15s, box-shadow .15s; min-width: 0; }
+.vmail-sb .vmail-pal-item:hover { box-shadow: 0 1px 3px rgba(16,24,40,.06); background: var(--vx-card); border-color: var(--vx-n300); }
 .vmail-sb .vmail-pal-item:active { transform: scale(.99); }
-.vmail-sb .vmail-pal-ic { width: 28px; height: 28px; border-radius: 7px; border: 1px solid var(--vx-line); background: var(--vx-n50); display: flex; align-items: center; justify-content: center; color: var(--vx-ink-2); flex: none; transition: background .15s, color .15s, border-color .15s; }
+.vmail-sb .vmail-pal-ic { width: 26px; height: 26px; border-radius: 7px; border: 1px solid var(--vx-line); background: var(--vx-n50); display: flex; align-items: center; justify-content: center; color: var(--vx-ink-2); flex: none; transition: background .15s, color .15s, border-color .15s; }
 .vmail-sb .vmail-pal-ic svg { width: 15px; height: 15px; }
 .vmail-sb .vmail-pal-item:hover .vmail-pal-ic { background: #fff; border-color: var(--vx-primary-ring); color: var(--vx-primary-ink); }
 .vmail-sb .vmail-pal-lbl { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
@@ -1559,7 +1559,13 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 /* inspector */
 .vmail-insp-empty { padding: 40px 22px; color: var(--vx-ink-3); font-size: 13px; text-align: center; line-height: 1.5; }
 .vmail-insp-head { padding: 14px 16px; border-bottom: 1px solid var(--vx-line); font-weight: 600; font-size: 13px; color: var(--vx-primary-ink); letter-spacing: -0.01em; }
-.vmail-insp-body { padding: 16px; display: flex; flex-direction: column; gap: 14px; max-height: 72vh; overflow-y: auto; }
+.vmail-insp-body { padding: 16px; display: flex; flex-direction: column; gap: 11px; max-height: 72vh; overflow-y: auto; }
+.vmail-insp-body .velox-field { margin-bottom: 0; }
+.vmail-insp-body .velox-field-label { margin-bottom: 5px; }
+.vmail-insp-body .velox-hint { margin-top: 4px; }
+.vmail-insp-body .vmail-insp-check { margin: 2px 0; }
+.vmail-insp-body .vmail-insp-sub { margin: 8px 0 2px; padding-top: 11px; }
+.vmail-insp-body > .vmail-insp-sub:first-child { margin-top: 0; padding-top: 0; }
 .vmail-insp-body .velox-field-label { font-size: 12.5px; font-weight: 600; color: var(--vx-ink-2); margin-bottom: 6px; display: block; }
 .vmail-insp-check { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--vx-ink-2); cursor: pointer; }
 /* segmented control inside inspector (Label Placement etc.) */
