@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.67 — Fix: form styles stripped by Oxygen
+- Form styles now print in the page footer instead of inline inside the shortcode output. Oxygen (and some other builders) strip inline <style> tags from shortcode/element content, which is why custom form styling never appeared on the front end even though it saved and previewed correctly. The styles are now emitted via wp_footer, which builders do not sanitize, so they reliably reach the page. Works together with the 3.09.66 cache purge.
+
 ## 3.09.66 — Fix: form styles not showing on a cached front end
 - Saving a form now purges the page cache. Form styling is rendered inline into the page HTML, so a stale full-page cache (WP Fastest Cache, etc.) kept serving the old, unstyled version even though the styles were saved correctly. Velox_Cache::purge_all() now runs on every form save so the front end picks up style changes immediately.
 

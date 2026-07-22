@@ -20,6 +20,7 @@ class Velox_Forms {
 	const FORMS_OPTION = 'velox_forms';
 
 	private static $rendered = false;
+	private static $form_styles = array();
 
 	/* ----------------------------------------------------------------- setup */
 
@@ -346,7 +347,9 @@ class Velox_Forms {
 		}
 
 		ob_start();
-		if ( $style_css ) { echo '<style>' . $style_css . '</style>'; }
+		// Note: form styles are printed in wp_footer (print_assets), NOT inline here —
+		// some page builders (Oxygen) strip inline <style> from shortcode output.
+		if ( $style_css ) { self::$form_styles[ (int) $id ] = $style_css; }
 
 		// Detect multi-step: any 'step' field acts as a page break. The label of a
 		// step field becomes the title of the step that FOLLOWS it; the first step's
@@ -1527,6 +1530,11 @@ class Velox_Forms {
 	public static function print_assets() {
 		if ( ! self::$rendered ) {
 			return;
+		}
+		// Per-form custom styles, printed in the footer so page builders that strip
+		// inline <style> from shortcode output (e.g. Oxygen) can't drop them.
+		if ( ! empty( self::$form_styles ) ) {
+			echo "<style id=\"velox-form-styles\">\n" . implode( "\n", self::$form_styles ) . "\n</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput
 		}
 		// CAPTCHA provider script, only if a rendered form uses it.
 		if ( self::captcha_ready() ) {
