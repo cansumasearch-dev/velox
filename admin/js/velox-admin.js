@@ -4771,7 +4771,12 @@
 			country:     { label: 'Country',     icon: svgIcon('<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/>'), opts: false, cat: 'advanced' },
 			url:         { label: 'Website URL', short: 'URL', icon: svgIcon('<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>'), opts: false, cat: 'advanced' },
 			date:        { label: 'Date',        icon: svgIcon('<rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M16 3v4M8 3v4M3.5 10h17"/>'), opts: false, cat: 'advanced' },
+			time:        { label: 'Time',        icon: svgIcon('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'), opts: false, cat: 'advanced' },
+			range:       { label: 'Slider', short: 'Slider', icon: svgIcon('<path d="M3 12h18"/><circle cx="9" cy="12" r="3.2" fill="currentColor" stroke="none"/>'), opts: false, cat: 'advanced' },
+			rating:      { label: 'Star rating', short: 'Rating', icon: svgIcon('<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/>'), opts: false, cat: 'advanced' },
+			address:     { label: 'Address',     icon: svgIcon('<path d="M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'), opts: false, cat: 'advanced' },
 			consent:     { label: 'Consent',     icon: svgIcon('<path d="M9 12l2 2 4-4"/><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'), opts: false, cat: 'advanced' },
+			heading:     { label: 'Section heading', short: 'Heading', icon: svgIcon('<path d="M6 4v16M18 4v16M6 12h12"/>'), opts: false, cat: 'layout' },
 			captcha:     { label: 'CAPTCHA',     icon: svgIcon('<path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/>'), opts: false, cat: 'advanced' }
 		};
 		var CATS = { general: 'General fields', advanced: 'Advanced fields', layout: 'Layout' };
@@ -4809,7 +4814,7 @@
 				'default': f['default'] || '', help: f.help || '',
 				width: ( f.width === 'half' || f.width === 'third' ) ? f.width : 'full',
 				css: f.css || '', content: f.content || '',
-				min: f.min != null ? f.min : '', max: f.max != null ? f.max : '',
+				min: f.min != null ? f.min : '', max: f.max != null ? f.max : '', step: f.step != null ? f.step : '',
 				pattern: f.pattern || '', pattern_msg: f.pattern_msg || '',
 				calc: f.calc || '', calc_prefix: f.calc_prefix || '', calc_suffix: f.calc_suffix || '',
 				cond: ( f.cond && f.cond.rules && f.cond.rules.length ) ? f.cond : null,
@@ -4992,6 +4997,11 @@
 			if ( type === 'html' ) { f.label = ''; f.content = '<p>Your custom HTML here.</p>'; }
 			if ( type === 'step' ) { f.label = 'Step ' + ( form.fields.filter( function ( x ) { return x.type === 'step'; } ).length + 1 ); f.width = 'full'; }
 			if ( type === 'calc' ) { f.label = 'Total'; f.calc = ''; f.width = 'full'; }
+			if ( type === 'time' ) { f.label = 'Time'; }
+			if ( type === 'range' ) { f.label = 'Choose a value'; f.min = '0'; f.max = '100'; f.step = '1'; f['default'] = '50'; }
+			if ( type === 'rating' ) { f.label = 'Your rating'; f.max = '5'; }
+			if ( type === 'address' ) { f.label = 'Address'; f.width = 'full'; }
+			if ( type === 'heading' ) { f.label = 'Section title'; f.help = 'Optional description for this section.'; f.width = 'full'; }
 			if ( atIndex == null || atIndex < 0 || atIndex > form.fields.length ) { atIndex = form.fields.length; }
 			form.fields.splice( atIndex, 0, f );
 			reKey();
@@ -5077,6 +5087,20 @@
 			if ( f.type === 'select' || f.type === 'country' ) {
 				var inner = f.type === 'country' ? '<option>Germany</option><option>Switzerland</option><option>Austria</option><option>\u2026</option>' : optList( f ).map( function ( o ) { return '<option>' + escapeHtml( o ) + '</option>'; } ).join( '' );
 				return lbl + '<select disabled><option>\u2014</option>' + inner + '</select>' + help;
+			}
+			if ( f.type === 'heading' ) {
+				return '<div class="vmail-heading-prev"><strong>' + escapeHtml( f.label || 'Section heading' ) + '</strong>' + ( f.help ? '<span>' + escapeHtml( f.help ) + '</span>' : '' ) + '</div>';
+			}
+			if ( f.type === 'rating' ) {
+				var rmax = parseInt( f.max, 10 ) || 5; var stars = '';
+				for ( var si = 0; si < rmax; si++ ) { stars += '\u2605'; }
+				return lbl + '<div class="vmail-rating-prev">' + stars + '</div>' + help;
+			}
+			if ( f.type === 'address' ) {
+				return lbl + '<div class="vmail-addr-prev"><input disabled placeholder="Street address"><input disabled placeholder="City"><input disabled placeholder="ZIP / Postal code"><input disabled placeholder="Country"></div>' + help;
+			}
+			if ( f.type === 'range' ) {
+				return lbl + '<div class="vmail-range-prev"><input type="range" disabled><span class="vmail-range-val">' + escapeHtml( f['default'] || f.min || '0' ) + '</span></div>' + help;
 			}
 			return lbl + '<input type="' + escapeHtml( f.type ) + '" disabled placeholder="' + escapeHtml( f.placeholder || '' ) + '" value="' + escapeHtml( f['default'] || '' ) + '">' + help;
 		}

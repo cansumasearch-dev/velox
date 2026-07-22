@@ -163,7 +163,7 @@ class Velox_Forms {
 			'emails'       => array(),
 			'style'        => self::sanitize_style( $form['style'] ?? array() ),
 		);
-		$types = array( 'text', 'email', 'tel', 'number', 'url', 'date', 'textarea', 'select', 'radio', 'checkbox', 'multiselect', 'country', 'name', 'consent', 'captcha', 'html', 'step', 'calc' );
+		$types = array( 'text', 'email', 'tel', 'number', 'url', 'date', 'time', 'range', 'rating', 'address', 'heading', 'textarea', 'select', 'radio', 'checkbox', 'multiselect', 'country', 'name', 'consent', 'captcha', 'html', 'step', 'calc' );
 		foreach ( (array) ( $form['fields'] ?? array() ) as $f ) {
 			$label = sanitize_text_field( $f['label'] ?? '' );
 			$key   = sanitize_key( $f['key'] ?? '' );
@@ -211,6 +211,7 @@ class Velox_Forms {
 				'content'     => isset( $f['content'] ) ? wp_kses_post( $f['content'] ) : '',
 				'min'         => isset( $f['min'] ) && '' !== $f['min'] ? sanitize_text_field( $f['min'] ) : '',
 				'max'         => isset( $f['max'] ) && '' !== $f['max'] ? sanitize_text_field( $f['max'] ) : '',
+				'step'        => isset( $f['step'] ) && '' !== $f['step'] ? sanitize_text_field( $f['step'] ) : '',
 				'pattern'     => isset( $f['pattern'] ) ? sanitize_text_field( $f['pattern'] ) : '',
 				'pattern_msg' => isset( $f['pattern_msg'] ) ? sanitize_text_field( $f['pattern_msg'] ) : '',
 				'calc'        => isset( $f['calc'] ) ? self::sanitize_formula( $f['calc'] ) : '',
@@ -526,6 +527,55 @@ class Velox_Forms {
 				<?php echo $help; // phpcs:ignore ?>
 			</div>
 			<?php
+		} elseif ( 'heading' === $type ) {
+			?>
+			<div class="velox-form-row velox-form-heading<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
+				<?php if ( '' !== $label ) : ?><span class="velox-form-heading-title"><?php echo esc_html( $f['label'] ); ?></span><?php endif; ?>
+				<?php if ( ! empty( $f['help'] ) ) : ?><span class="velox-form-heading-desc"><?php echo esc_html( $f['help'] ); ?></span><?php endif; ?>
+			</div>
+			<?php
+		} elseif ( 'address' === $type ) {
+			?>
+			<div class="velox-form-row velox-form-address<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
+				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
+				<div class="velox-form-addr-grid">
+					<input type="text" name="<?php echo esc_attr( $name ); ?>[street]" placeholder="Street address" class="velox-form-addr-street"<?php echo $rq; ?>>
+					<input type="text" name="<?php echo esc_attr( $name ); ?>[city]" placeholder="City"<?php echo $rq; ?>>
+					<input type="text" name="<?php echo esc_attr( $name ); ?>[postal]" placeholder="ZIP / Postal code"<?php echo $rq; ?>>
+					<input type="text" name="<?php echo esc_attr( $name ); ?>[country]" placeholder="Country"<?php echo $rq; ?>>
+				</div>
+				<?php echo $help; // phpcs:ignore ?>
+			</div>
+			<?php
+		} elseif ( 'range' === $type ) {
+			$rmin  = '' !== (string) $f['min'] ? (float) $f['min'] : 0;
+			$rmax  = '' !== (string) $f['max'] ? (float) $f['max'] : 100;
+			$rstep = ( isset( $f['step'] ) && '' !== (string) $f['step'] ) ? (float) $f['step'] : 1;
+			$rval  = '' !== (string) $def ? (float) $def : $rmin;
+			?>
+			<label class="velox-form-field velox-form-range<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
+				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
+				<div class="velox-form-range-wrap">
+					<input type="range" name="<?php echo esc_attr( $name ); ?>" min="<?php echo esc_attr( $rmin ); ?>" max="<?php echo esc_attr( $rmax ); ?>" step="<?php echo esc_attr( $rstep ); ?>" value="<?php echo esc_attr( $rval ); ?>" data-vf-range="1">
+					<output class="velox-form-range-val"><?php echo esc_html( $rval ); ?></output>
+				</div>
+				<?php echo $help; // phpcs:ignore ?>
+			</label>
+			<?php
+		} elseif ( 'rating' === $type ) {
+			$rmax = max( 1, min( 10, (int) ( '' !== (string) $f['max'] ? $f['max'] : 5 ) ) );
+			?>
+			<div class="velox-form-field velox-form-rating<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
+				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
+				<div class="velox-form-stars" data-vf-rating="1"<?php echo $req ? ' data-required="1"' : ''; ?>>
+					<input type="hidden" name="<?php echo esc_attr( $name ); ?>" value="">
+					<?php for ( $i = 1; $i <= $rmax; $i++ ) : ?>
+						<button type="button" class="velox-form-star" data-v="<?php echo (int) $i; ?>" aria-label="<?php echo esc_attr( $i . ' / ' . $rmax ); ?>">&#9733;</button>
+					<?php endfor; ?>
+				</div>
+				<?php echo $help; // phpcs:ignore ?>
+			</div>
+			<?php
 		} else {
 			?>
 			<label class="velox-form-field<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
@@ -756,7 +806,7 @@ class Velox_Forms {
 			}
 
 			// Presentational / structural fields carry no user data.
-			if ( 'html' === $type || 'step' === $type ) {
+			if ( 'html' === $type || 'step' === $type || 'heading' === $type ) {
 				continue;
 			}
 			if ( 'calc' === $type ) {
@@ -790,7 +840,19 @@ class Velox_Forms {
 				$data[ $key ] = $full;
 				continue;
 			}
-			if ( 'multiselect' === $type ) {
+			if ( 'address' === $type ) {
+				$parts = is_array( $val ) ? $val : array();
+				$street  = trim( wp_strip_all_tags( (string) ( $parts['street'] ?? '' ) ) );
+				$city    = trim( wp_strip_all_tags( (string) ( $parts['city'] ?? '' ) ) );
+				$postal  = trim( wp_strip_all_tags( (string) ( $parts['postal'] ?? '' ) ) );
+				$country = trim( wp_strip_all_tags( (string) ( $parts['country'] ?? '' ) ) );
+				$joined  = trim( implode( ', ', array_filter( array( $street, trim( $postal . ' ' . $city ), $country ) ) ) );
+				if ( $f['required'] && '' === $joined ) {
+					$errors[ $key ] = 'required';
+				}
+				$data[ $key ] = $joined;
+				continue;
+			}
 				$picked = is_array( $val ) ? array_map( function ( $v ) { return trim( wp_strip_all_tags( (string) $v ) ); }, $val ) : array();
 				$picked = array_filter( $picked );
 				if ( $f['required'] && empty( $picked ) ) {
@@ -913,7 +975,7 @@ class Velox_Forms {
 		if ( false !== strpos( $text, '{all_fields}' ) ) {
 			$lines = array();
 			foreach ( $form['fields'] as $f ) {
-				if ( in_array( $f['type'], array( 'consent', 'html', 'captcha' ), true ) ) {
+				if ( in_array( $f['type'], array( 'consent', 'html', 'captcha', 'heading', 'step' ), true ) ) {
 					continue;
 				}
 				$val     = isset( $data[ $f['key'] ] ) ? $data[ $f['key'] ] : '';
@@ -1296,7 +1358,7 @@ class Velox_Forms {
 		$cols = array();
 		if ( $form && ! empty( $form['fields'] ) ) {
 			foreach ( $form['fields'] as $f ) {
-				if ( in_array( $f['type'], array( 'html', 'captcha' ), true ) ) {
+				if ( in_array( $f['type'], array( 'html', 'captcha', 'heading', 'step' ), true ) ) {
 					continue;
 				}
 				if ( ! empty( $f['key'] ) && ! in_array( $f['key'], $cols, true ) ) {
@@ -1387,6 +1449,19 @@ class Velox_Forms {
 .velox-form-submit{align-self:flex-start;background:var(--vf-accent);color:#fff;border:0;border-radius:10px;padding:12px 26px;font-size:15px;font-weight:600;cursor:pointer;transition:filter .15s}
 .velox-form-submit:hover{filter:brightness(.93)}
 .velox-form-submit:disabled{opacity:.6;cursor:default}
+.velox-form-heading{gap:5px}
+.velox-form-heading-title{font-size:17px;font-weight:700;color:#1d1d1f;letter-spacing:-.01em;line-height:1.3}
+.velox-form-heading-desc{font-size:13.5px;color:#6e6e73;line-height:1.5}
+.velox-form-heading:not(:first-child){margin-top:10px;padding-top:18px;border-top:1px solid #ececf0}
+.velox-form-addr-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.velox-form-addr-grid .velox-form-addr-street{grid-column:1 / -1}
+.velox-form-range-wrap{display:flex;align-items:center;gap:14px}
+.velox-form-range-wrap input[type=range]{flex:1;accent-color:var(--vf-accent);height:6px}
+.velox-form-range-val{min-width:46px;text-align:center;font-weight:600;font-size:14px;color:#1d1d1f;background:#f4f5f7;border-radius:8px;padding:5px 8px;font-variant-numeric:tabular-nums}
+.velox-form-stars{display:inline-flex;gap:6px}
+.velox-form-star{-webkit-appearance:none;appearance:none;background:transparent;border:0;box-shadow:none;padding:0;margin:0;cursor:pointer;font-size:30px;line-height:1;color:#d4d8e0;-webkit-tap-highlight-color:transparent;transition:color .12s,transform .12s}
+.velox-form-star:hover{transform:scale(1.15)}
+.velox-form-star.is-on{color:#f5b301}
 .velox-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden}
 .velox-form-msg{padding:13px 15px;border-radius:10px;font-size:14px}
 .velox-form-msg.is-ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
@@ -1413,6 +1488,22 @@ class Velox_Forms {
 <script>
 (function(){
   document.querySelectorAll('.velox-form').forEach(function(form){
+    /* ---- star rating ---- */
+    form.querySelectorAll('.velox-form-stars').forEach(function(box){
+      var hidden=box.querySelector('input[type=hidden]');
+      var stars=box.querySelectorAll('.velox-form-star');
+      function paint(n){stars.forEach(function(s){s.classList.toggle('is-on',parseInt(s.getAttribute('data-v'),10)<=n);});}
+      stars.forEach(function(s){
+        s.addEventListener('click',function(){hidden.value=s.getAttribute('data-v');paint(parseInt(hidden.value,10));});
+        s.addEventListener('mouseenter',function(){paint(parseInt(s.getAttribute('data-v'),10));});
+      });
+      box.addEventListener('mouseleave',function(){paint(parseInt(hidden.value,10)||0);});
+    });
+    /* ---- range slider live value ---- */
+    form.querySelectorAll('input[data-vf-range]').forEach(function(r){
+      var out=r.parentNode.querySelector('.velox-form-range-val');
+      if(out){r.addEventListener('input',function(){out.textContent=r.value;});}
+    });
     /* ---- conditional logic: show/hide fields based on other answers ---- */
     function fieldValue(key){
       var els=form.querySelectorAll('[name="vf['+key+']"],[name="vf['+key+'][]"]');

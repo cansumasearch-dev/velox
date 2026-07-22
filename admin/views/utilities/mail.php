@@ -41,10 +41,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<a class="vmail-nav-back" href="<?php echo esc_url( $base ); ?>" title="All forms"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
 				<div class="vmail-nav-crumb">Utilities <span>/</span> <b>Mail &amp; forms</b></div>
 				<div class="vmail-nav-vsep"></div>
-				<div class="vmail-nav-field">
-					<span class="vmail-nav-field-label">Form name</span>
-					<input type="text" class="vmail-nav-title" id="vmail-title" value="<?php echo esc_attr( $form['title'] ); ?>" placeholder="Untitled form">
-				</div>
+				<input type="text" class="velox-input vmail-title-input" id="vmail-title" value="<?php echo esc_attr( $form['title'] ); ?>" placeholder="Form name">
 				<label class="vmail-nav-switch" title="Turn this form on or off">
 					<input type="checkbox" id="vmail-enabled" <?php checked( ! isset( $form['enabled'] ) || ! empty( $form['enabled'] ) ); ?>>
 					<span class="vmail-switch-track"></span>

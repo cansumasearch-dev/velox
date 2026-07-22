@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.62 — Polish the new field styles
+- Cleaned up the front-end styling of the new fields: bulletproof star-button reset (no more browser button chrome on the rating stars), tighter heading hierarchy, tidier address grid, and a clearer slider value badge. They inherit the form’s normal field spacing and whatever you set in the Style editor.
+
+## 3.09.61 — Five new field types
+- Added five genuinely useful field types (the ones listed earlier but never built): Time (time picker), Slider (range with min/max/step and a live value readout), Star rating (click-to-rate, configurable number of stars via the max setting), Address (street, city, ZIP, country in one field, combined on submission), and Section heading (a titled divider with optional description to organise long forms — the useful version of a page break, not raw HTML).
+- Each is fully wired: palette, canvas preview, front-end render, required validation, and entry storage. File upload is intentionally not included yet — it needs its own pass for upload handling and security.
+
+## 3.09.60 — Fix the form toolbar
+- Removed the "FORM NAME" label above the name field; it is now a normal-sized input with a "Form name" placeholder inside, matching every other input in the plugin.
+- Fixed the toolbar layout: no more giant gap before Build/Style/Preview and no more Notifications button wrapping onto a second row. One clean line — form context on the left, mode switcher next to it, actions on the right.
+
 ## 3.09.59 — Build density: crush the gaps, grid the palette
 - Fixed the huge gaps in the field inspector. Every field had a 20px bottom margin stacking on top of the panel’s 14px flex gap (~34px between fields); removed the margin so fields sit ~11px apart. Tightened labels, hints, checkboxes and section headers to match.
 - Turned the field palette from a stranded single-column list into a 2-column card grid, so you see far more field types at once and it fills the column instead of floating at the top with dead space below.
