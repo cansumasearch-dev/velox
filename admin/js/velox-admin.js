@@ -4775,6 +4775,7 @@
 			range:       { label: 'Slider', short: 'Slider', icon: svgIcon('<path d="M3 12h18"/><circle cx="9" cy="12" r="3.2" fill="currentColor" stroke="none"/>'), opts: false, cat: 'advanced' },
 			rating:      { label: 'Star rating', short: 'Rating', icon: svgIcon('<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/>'), opts: false, cat: 'advanced' },
 			address:     { label: 'Address',     icon: svgIcon('<path d="M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'), opts: false, cat: 'advanced' },
+			file:        { label: 'File upload', short: 'File', icon: svgIcon('<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M12 11v6M9.5 13.5 12 11l2.5 2.5"/>'), opts: false, cat: 'advanced' },
 			consent:     { label: 'Consent',     icon: svgIcon('<path d="M9 12l2 2 4-4"/><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'), opts: false, cat: 'advanced' },
 			heading:     { label: 'Section heading', short: 'Heading', icon: svgIcon('<path d="M6 4v16M18 4v16M6 12h12"/>'), opts: false, cat: 'layout' },
 			captcha:     { label: 'CAPTCHA',     icon: svgIcon('<path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/>'), opts: false, cat: 'advanced' }
@@ -4815,6 +4816,7 @@
 				width: ( f.width === 'half' || f.width === 'third' ) ? f.width : 'full',
 				css: f.css || '', content: f.content || '',
 				min: f.min != null ? f.min : '', max: f.max != null ? f.max : '', step: f.step != null ? f.step : '',
+				accept: f.accept != null ? f.accept : 'images,pdf,docs', maxsize: f.maxsize != null ? f.maxsize : '5',
 				pattern: f.pattern || '', pattern_msg: f.pattern_msg || '',
 				calc: f.calc || '', calc_prefix: f.calc_prefix || '', calc_suffix: f.calc_suffix || '',
 				cond: ( f.cond && f.cond.rules && f.cond.rules.length ) ? f.cond : null,
@@ -5001,6 +5003,7 @@
 			if ( type === 'range' ) { f.label = 'Choose a value'; f.min = '0'; f.max = '100'; f.step = '1'; f['default'] = '50'; }
 			if ( type === 'rating' ) { f.label = 'Your rating'; f.max = '5'; }
 			if ( type === 'address' ) { f.label = 'Address'; f.width = 'full'; }
+			if ( type === 'file' ) { f.label = 'Upload a file'; f.accept = 'images,pdf,docs'; f.maxsize = '5'; f.width = 'full'; }
 			if ( type === 'heading' ) { f.label = 'Section title'; f.help = 'Optional description for this section.'; f.width = 'full'; }
 			if ( atIndex == null || atIndex < 0 || atIndex > form.fields.length ) { atIndex = form.fields.length; }
 			form.fields.splice( atIndex, 0, f );
@@ -5087,6 +5090,9 @@
 			if ( f.type === 'select' || f.type === 'country' ) {
 				var inner = f.type === 'country' ? '<option>Germany</option><option>Switzerland</option><option>Austria</option><option>\u2026</option>' : optList( f ).map( function ( o ) { return '<option>' + escapeHtml( o ) + '</option>'; } ).join( '' );
 				return lbl + '<select disabled><option>\u2014</option>' + inner + '</select>' + help;
+			}
+			if ( f.type === 'file' ) {
+				return lbl + '<div class="vmail-file-prev"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11v6M9.5 13.5 12 11l2.5 2.5"/><path d="M20 16.7V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2.3"/></svg><span>Click to upload or drag a file</span></div>' + help;
 			}
 			if ( f.type === 'heading' ) {
 				return '<div class="vmail-heading-prev"><strong>' + escapeHtml( f.label || 'Section heading' ) + '</strong>' + ( f.help ? '<span>' + escapeHtml( f.help ) + '</span>' : '' ) + '</div>';
@@ -5341,6 +5347,22 @@
 					'<input type="text" class="velox-input" data-k="calc_prefix" value="' + escapeHtml( f.calc_prefix || '' ) + '" placeholder="e.g. €">' +
 					'<input type="text" class="velox-input" data-k="calc_suffix" value="' + escapeHtml( f.calc_suffix || '' ) + '" placeholder="e.g. /mo">' +
 				'</div></div>';
+				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
+				rows += conditionalRows( f );
+			} else if ( t === 'file' ) {
+				rows += '<div class="vmail-insp-sub">Basics</div>';
+				rows += inspText( 'Label', 'label', f.label );
+				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
+				rows += '<label class="vmail-insp-check"><input type="checkbox" data-k="required"' + ( f.required ? ' checked' : '' ) + '> Required field</label>';
+				rows += '<div class="velox-field"><span class="velox-field-label">Allowed file types</span><select class="velox-select" data-k="accept">' +
+					'<option value="images,pdf,docs"' + ( f.accept === 'images,pdf,docs' ? ' selected' : '' ) + '>Images, PDF &amp; documents</option>' +
+					'<option value="images"' + ( f.accept === 'images' ? ' selected' : '' ) + '>Images only (JPG, PNG, GIF, WebP)</option>' +
+					'<option value="pdf"' + ( f.accept === 'pdf' ? ' selected' : '' ) + '>PDF only</option>' +
+					'<option value="docs"' + ( f.accept === 'docs' ? ' selected' : '' ) + '>Documents (PDF, Word, text)</option>' +
+					'</select></div>';
+				rows += '<div class="velox-field"><span class="velox-field-label">Max size (MB)</span><input type="number" class="velox-input" data-k="maxsize" min="1" max="64" value="' + escapeHtml( f.maxsize || '5' ) + '"></div>';
+				rows += inspText( 'Help text', 'help', f.help );
+				rows += '<div class="vmail-insp-sub">Advanced</div>';
 				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
 				rows += conditionalRows( f );
 			} else if ( t === 'html' ) {

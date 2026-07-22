@@ -1192,6 +1192,8 @@
 .vmail-fcard-body .vmail-range-prev { display: flex; align-items: center; gap: 12px; }
 .vmail-fcard-body .vmail-range-prev input[type=range] { flex: 1; pointer-events: none; }
 .vmail-fcard-body .vmail-range-val { min-width: 40px; text-align: center; font-weight: 600; font-size: 13px; color: var(--vx-ink); background: var(--vx-n50); border-radius: 6px; padding: 3px 6px; }
+.vmail-fcard-body .vmail-file-prev { display: flex; align-items: center; gap: 9px; padding: 12px 14px; border: 1.5px dashed var(--vx-line-2); border-radius: 10px; background: var(--vx-n25); color: var(--vx-ink-3); font-size: 13px; }
+.vmail-fcard-body .vmail-file-prev svg { color: var(--vx-ink-3); flex: none; }
 /* hover toolbar — dark pill, top-right, like FluentForms */
 .vmail-fcard-toolbar { position: absolute; top: -13px; right: 8px; display: none; align-items: center; gap: 1px; background: var(--vx-n800); border-radius: var(--vx-r-sm); padding: 3px; box-shadow: 0 4px 14px -4px rgba(0,0,0,.4); z-index: 5; }
 .vmail-fcard:hover .vmail-fcard-toolbar, .vmail-fcard.is-selected .vmail-fcard-toolbar { display: flex; }

@@ -163,7 +163,7 @@ class Velox_Forms {
 			'emails'       => array(),
 			'style'        => self::sanitize_style( $form['style'] ?? array() ),
 		);
-		$types = array( 'text', 'email', 'tel', 'number', 'url', 'date', 'time', 'range', 'rating', 'address', 'heading', 'textarea', 'select', 'radio', 'checkbox', 'multiselect', 'country', 'name', 'consent', 'captcha', 'html', 'step', 'calc' );
+		$types = array( 'text', 'email', 'tel', 'number', 'url', 'date', 'time', 'range', 'rating', 'address', 'file', 'heading', 'textarea', 'select', 'radio', 'checkbox', 'multiselect', 'country', 'name', 'consent', 'captcha', 'html', 'step', 'calc' );
 		foreach ( (array) ( $form['fields'] ?? array() ) as $f ) {
 			$label = sanitize_text_field( $f['label'] ?? '' );
 			$key   = sanitize_key( $f['key'] ?? '' );
@@ -212,6 +212,8 @@ class Velox_Forms {
 				'min'         => isset( $f['min'] ) && '' !== $f['min'] ? sanitize_text_field( $f['min'] ) : '',
 				'max'         => isset( $f['max'] ) && '' !== $f['max'] ? sanitize_text_field( $f['max'] ) : '',
 				'step'        => isset( $f['step'] ) && '' !== $f['step'] ? sanitize_text_field( $f['step'] ) : '',
+				'accept'      => isset( $f['accept'] ) ? sanitize_text_field( $f['accept'] ) : '',
+				'maxsize'     => isset( $f['maxsize'] ) && '' !== $f['maxsize'] ? (string) max( 1, min( 64, (int) $f['maxsize'] ) ) : '',
 				'pattern'     => isset( $f['pattern'] ) ? sanitize_text_field( $f['pattern'] ) : '',
 				'pattern_msg' => isset( $f['pattern_msg'] ) ? sanitize_text_field( $f['pattern_msg'] ) : '',
 				'calc'        => isset( $f['calc'] ) ? self::sanitize_formula( $f['calc'] ) : '',
@@ -534,6 +536,24 @@ class Velox_Forms {
 				<?php if ( ! empty( $f['help'] ) ) : ?><span class="velox-form-heading-desc"><?php echo esc_html( $f['help'] ); ?></span><?php endif; ?>
 			</div>
 			<?php
+		} elseif ( 'file' === $type ) {
+			$accept_map = array(
+				'images'          => 'image/*',
+				'pdf'             => '.pdf',
+				'docs'            => '.pdf,.doc,.docx,.txt',
+				'images,pdf,docs' => 'image/*,.pdf,.doc,.docx,.txt',
+			);
+			$fa     = isset( $f['accept'] ) ? $f['accept'] : 'images,pdf,docs';
+			$accept = isset( $accept_map[ $fa ] ) ? $accept_map[ $fa ] : '';
+			$maxmb  = ( isset( $f['maxsize'] ) && '' !== (string) $f['maxsize'] ) ? (int) $f['maxsize'] : 5;
+			?>
+			<label class="velox-form-field velox-form-file<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
+				<?php if ( '' !== $label ) : ?><span class="velox-form-label"><?php echo $label . $star; ?></span><?php endif; ?>
+				<input type="file" name="vf_file[<?php echo esc_attr( $f['key'] ); ?>]"<?php echo $accept ? ' accept="' . esc_attr( $accept ) . '"' : ''; // phpcs:ignore ?><?php echo $rq; ?> data-vf-max="<?php echo esc_attr( $maxmb ); ?>">
+				<span class="velox-form-file-hint">Max <?php echo esc_html( $maxmb ); ?> MB</span>
+				<?php echo $help; // phpcs:ignore ?>
+			</label>
+			<?php
 		} elseif ( 'address' === $type ) {
 			?>
 			<div class="velox-form-row velox-form-address<?php echo esc_attr( $width . $css ); ?>"<?php echo $fkey_attr . $cond_attr; // phpcs:ignore ?>>
@@ -763,6 +783,75 @@ class Velox_Forms {
 		return 'hide' === $action ? ! $pass : $pass;
 	}
 
+	/**
+	 * Validate and store one uploaded file. Returns the URL string on success,
+	 * '' when no file was provided, or a WP_Error on a rejected/failed upload.
+	 */
+	private static function process_upload( $f ) {
+		$key = $f['key'];
+		if ( empty( $_FILES['vf_file'] ) || ! isset( $_FILES['vf_file']['name'][ $key ] ) ) {
+			return '';
+		}
+		$err  = isset( $_FILES['vf_file']['error'][ $key ] ) ? (int) $_FILES['vf_file']['error'][ $key ] : UPLOAD_ERR_NO_FILE;
+		$name = (string) $_FILES['vf_file']['name'][ $key ];
+		if ( UPLOAD_ERR_NO_FILE === $err || '' === $name ) {
+			return '';
+		}
+		if ( UPLOAD_ERR_OK !== $err ) {
+			return new WP_Error( 'upload', 'Upload failed, please try again.' );
+		}
+		$file = array(
+			'name'     => $name,
+			'type'     => (string) $_FILES['vf_file']['type'][ $key ],
+			'tmp_name' => (string) $_FILES['vf_file']['tmp_name'][ $key ],
+			'error'    => $err,
+			'size'     => (int) $_FILES['vf_file']['size'][ $key ],
+		);
+		// Reject anything that was not a genuine HTTP upload.
+		if ( ! is_uploaded_file( $file['tmp_name'] ) ) {
+			return new WP_Error( 'upload', 'Upload failed.' );
+		}
+		// Size cap from the field (defaults to 5 MB, hard-capped at 64 MB).
+		$maxmb = ( isset( $f['maxsize'] ) && '' !== (string) $f['maxsize'] ) ? max( 1, min( 64, (int) $f['maxsize'] ) ) : 5;
+		if ( $file['size'] > $maxmb * 1024 * 1024 ) {
+			return new WP_Error( 'size', 'That file is larger than ' . $maxmb . ' MB.' );
+		}
+		// Whitelist extensions/MIME per the field's "allowed types" setting.
+		$sets  = array(
+			'images' => array( 'jpg|jpeg|jpe' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp' ),
+			'pdf'    => array( 'pdf' => 'application/pdf' ),
+			'docs'   => array(
+				'pdf'  => 'application/pdf',
+				'doc'  => 'application/msword',
+				'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+				'txt'  => 'text/plain',
+			),
+		);
+		$fa    = isset( $f['accept'] ) ? $f['accept'] : 'images,pdf,docs';
+		$mimes = array();
+		foreach ( explode( ',', $fa ) as $grp ) {
+			if ( isset( $sets[ $grp ] ) ) {
+				$mimes = array_merge( $mimes, $sets[ $grp ] );
+			}
+		}
+		if ( empty( $mimes ) ) {
+			$mimes = array_merge( $sets['images'], $sets['docs'] );
+		}
+		// Sniff real content vs. extension — blocks disguised executables.
+		$check = wp_check_filetype_and_ext( $file['tmp_name'], $file['name'], $mimes );
+		if ( empty( $check['ext'] ) || empty( $check['type'] ) ) {
+			return new WP_Error( 'type', 'That file type is not allowed.' );
+		}
+		if ( ! function_exists( 'wp_handle_upload' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+		$moved = wp_handle_upload( $file, array( 'test_form' => false, 'mimes' => $mimes ) );
+		if ( ! is_array( $moved ) || isset( $moved['error'] ) || empty( $moved['url'] ) ) {
+			return new WP_Error( 'upload', 'Upload failed.' );
+		}
+		return esc_url_raw( $moved['url'] );
+	}
+
 	public static function handle_submit() {
 		$id   = isset( $_POST['form_id'] ) ? (int) $_POST['form_id'] : 0;
 		$form = self::get_form( $id );
@@ -851,6 +940,21 @@ class Velox_Forms {
 					$errors[ $key ] = 'required';
 				}
 				$data[ $key ] = $joined;
+				continue;
+			}
+			if ( 'file' === $type ) {
+				$up = self::process_upload( $f );
+				if ( is_wp_error( $up ) ) {
+					$errors[ $key ] = 'file';
+					$data[ $key ]   = '';
+				} elseif ( '' === $up ) {
+					if ( $f['required'] ) {
+						$errors[ $key ] = 'required';
+					}
+					$data[ $key ] = '';
+				} else {
+					$data[ $key ] = $up;
+				}
 				continue;
 			}
 			if ( 'multiselect' === $type ) {
@@ -1463,6 +1567,11 @@ class Velox_Forms {
 .velox-form-star{-webkit-appearance:none;appearance:none;background:transparent;border:0;box-shadow:none;padding:0;margin:0;cursor:pointer;font-size:30px;line-height:1;color:#d4d8e0;-webkit-tap-highlight-color:transparent;transition:color .12s,transform .12s}
 .velox-form-star:hover{transform:scale(1.15)}
 .velox-form-star.is-on{color:#f5b301}
+.velox-form-file input[type=file]{width:100%;box-sizing:border-box;font-size:14px;color:#3a3a3c;padding:10px 12px;border:1.5px dashed #cfd4dc;border-radius:10px;background:#fafbfc;cursor:pointer;transition:border-color .15s,background .15s}
+.velox-form-file input[type=file]:hover{border-color:var(--vf-accent);background:#fff}
+.velox-form-file input[type=file]::file-selector-button{margin-right:12px;border:0;border-radius:7px;background:#eef0f3;color:#1d1d1f;font-weight:600;font-size:13px;padding:7px 12px;cursor:pointer;font-family:inherit}
+.velox-form-file input[type=file]::file-selector-button:hover{background:#e3e6ea}
+.velox-form-file-hint{font-size:12px;color:#8a8f98}
 .velox-hp{position:absolute!important;left:-9999px!important;width:1px!important;height:1px!important;overflow:hidden}
 .velox-form-msg{padding:13px 15px;border-radius:10px;font-size:14px}
 .velox-form-msg.is-ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0}
@@ -1638,6 +1747,15 @@ class Velox_Forms {
         msg.hidden=false;
         if(typeof firstBad.reportValidity==='function'){firstBad.reportValidity();}else{firstBad.focus();}
         return;
+      }
+      var bigFile=null;
+      form.querySelectorAll('input[type=file][data-vf-max]').forEach(function(inp){
+        if(inp.files&&inp.files[0]){var maxb=parseInt(inp.getAttribute('data-vf-max'),10)*1024*1024;if(inp.files[0].size>maxb){bigFile=inp;}}
+      });
+      if(bigFile){
+        var wf=bigFile.closest('.velox-form-field');if(wf){wf.classList.add('has-error');}
+        msg.className='velox-form-msg is-err';msg.textContent='One of your files is larger than the allowed size.';msg.hidden=false;
+        bigFile.focus();return;
       }
       var fd=new FormData(form);
       fd.append('action','velox_form');

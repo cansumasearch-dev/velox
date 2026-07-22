@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.64 — File upload field
+- Added a File upload field. In the inspector you can set the allowed types (Images, PDF, Documents, or a mix) and a max size in MB. Uploads are validated server-side: size cap, an extension + real-content MIME whitelist (blocks disguised executables via wp_check_filetype_and_ext), is_uploaded_file check, and storage through WordPress’s own wp_handle_upload. The submission stores the file URL, which shows in notifications and the entries table. Front-end also checks size before sending. Every PHP file was verified with a real php -l linter before shipping.
+
 ## 3.09.63 — HOTFIX: fatal error from the new fields
 - Fixed a fatal PHP error introduced in 3.09.61. Adding the Address field accidentally removed the "if multiselect" line in the submission handler, which closed the method early and crashed the plugin site-wide. Restored it and verified every PHP file with a real linter. Sorry again.
 
