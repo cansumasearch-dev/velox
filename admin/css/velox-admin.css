@@ -2897,6 +2897,8 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-nav-switch input:checked + .vmail-switch-track { background: var(--vx-success); }
 .vmail-nav-switch input:checked + .vmail-switch-track::after { transform: translateX(16px); }
 .vmail-nav-onoff { font-size: 11px; font-weight: 600; color: var(--vx-ink-3); min-width: 20px; }
+.vmail-set-sec { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--vx-ink-3); margin: 22px 0 12px; padding-top: 18px; border-top: 1px solid var(--vx-line); }
+.velox-panel > .vmail-set-sec:first-child { margin-top: 0; padding-top: 0; border-top: 0; }
 .vmail-title-input { width: 190px; max-width: 190px; height: 36px; flex: none; }
 .vmail-nav-sc { display: inline-flex; align-items: center; gap: 8px; background: var(--vx-n25); border: 1px solid var(--vx-line2); border-radius: var(--vx-r-sm); padding: 5px 10px; cursor: pointer; transition: background .15s, border-color .15s; min-width: 0; }
 .vmail-nav-sc:hover { background: var(--vx-n50); border-color: var(--vx-n300); }

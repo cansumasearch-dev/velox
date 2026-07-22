@@ -96,12 +96,15 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 
 		<div class="vmail-panel" data-panel="settings" hidden>
 			<div class="velox-panel">
+				<div class="vmail-set-sec">After submitting</div>
 				<div class="velox-field">
 					<span class="velox-field-label">Success message</span>
 					<input type="text" class="velox-input" id="vmail-success" value="<?php echo esc_attr( $form['success'] ); ?>">
 					<span class="velox-hint">Shown after the form is submitted successfully.</span>
 				</div>
-				<p class="velox-hint" style="margin:2px 0 14px;">The submit button text, colours and full styling now live on the <strong>form canvas</strong> — click the button there, or open the <strong>Style editor</strong>.</p>
+				<p class="velox-hint" style="margin:2px 0 0;">The submit button text, colours and full styling live on the <strong>form canvas</strong> — click the button there, or open the <strong>Style editor</strong>.</p>
+
+				<div class="vmail-set-sec">Spam protection</div>
 				<?php
 				$captcha_gate = Velox_Forms::captcha_enabled();
 				$captcha_desc = ! $captcha_gate
@@ -116,9 +119,11 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					<span class="velox-switch"><input type="checkbox" id="vmail-captcha" <?php checked( ! empty( $form['captcha'] ) && $captcha_gate ); ?> <?php disabled( ! $captcha_gate ); ?>><span class="velox-switch-track"></span></span>
 				</label>
 				<?php if ( 'new' !== $edit ) : ?>
-					<div class="velox-field" style="margin-top:8px;">
+					<div class="vmail-set-sec">Embed</div>
+					<div class="velox-field">
 						<span class="velox-field-label">Shortcode</span>
 						<code class="velox-mail-shortcode">[velox_form id="<?php echo (int) $form['id']; ?>"]</code>
+						<span class="velox-hint">Paste this into any page, widget or Oxygen Shortcode element.</span>
 					</div>
 				<?php endif; ?>
 			</div>

@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.65 — Settings panel grouped
+- Organised the form Settings panel into clear labelled sections — After submitting, Spam protection, Embed — instead of one flat card, matching the grouped inspector and settings elsewhere. Added a hint under the shortcode.
+
 ## 3.09.64 — File upload field
 - Added a File upload field. In the inspector you can set the allowed types (Images, PDF, Documents, or a mix) and a max size in MB. Uploads are validated server-side: size cap, an extension + real-content MIME whitelist (blocks disguised executables via wp_check_filetype_and_ext), is_uploaded_file check, and storage through WordPress’s own wp_handle_upload. The submission stores the file URL, which shows in notifications and the entries table. Front-end also checks size before sending. Every PHP file was verified with a real php -l linter before shipping.
 
