@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.79 — Style panel controls stop fighting WordPress
+- Fixed the number fields and dropdowns in the Style editor rendering wrong. WordPress’s own admin stylesheet puts a border, padding, line-height and a 30px minimum height on every input and select, and its selectors were outranking ours — so the input drew its own box inside the field and pushed the unit outside it, and dropdowns came out taller than everything else.
+- All controls in the panel now carry a scoped reset that WordPress cannot override, so a control is always exactly one 32px box: value, stepper and unit inside a single border, and dropdowns matching the number fields. The folder manager’s name field uses the same reset.
+
 ## 3.09.78 — Gradient fixes and quieter number fields
 - The gradient preview bar is now live. It was only redrawn when the whole panel re-rendered, so it kept showing the default blue-to-purple while your actual colours were something else entirely. It now follows the From, To, Type and Angle controls as you change them.
 - Choosing Gradient seeds the From and To colours instead of leaving them on Inherit, so the bar and the form always agree.
