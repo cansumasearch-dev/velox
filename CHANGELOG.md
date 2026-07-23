@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.10.3 — "In use" now means proven, not guessed
+- Reworked how a verdict is reached. A string found somewhere in the database can no longer mark an image as in use — only real evidence can: the crawl actually rendering it on a page, or WordPress structurally pointing at it (featured image, product gallery, site logo or icon). Everything else that is merely mentioned somewhere is now "Possibly used".
+- This is why wrong files kept appearing under Used: a mention in a draft, an old theme setting, or a stale builder CSS cache file was enough to promote an image to "in use".
+- Stopped scanning page-builder CSS caches. Builders keep generated stylesheets for pages that no longer exist, so images from deleted pages looked used forever. The crawl reads the stylesheets pages genuinely load instead, which is both accurate and current.
+- The media view now has three real groups — Not found, Possibly used, In use — and only Not found can be selected for deletion.
+
 ## 3.10.2 — The media scan now reads your actual pages
 - Added a real crawl. The scan now reads every published page, post and custom post type, plus the homepage, and records which images are genuinely rendered — rather than inferring usage from database strings. Because it reads finished markup, it works the same for Oxygen, Elementor, Bricks, Divi, Beaver and anything else: by the time a page is output, it is all just img tags and url().
 - The crawl runs from your browser rather than the server, so it is unaffected by hosts that block loopback requests — which is why the old front-end pass silently did nothing on some setups.

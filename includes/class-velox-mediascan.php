@@ -67,9 +67,8 @@ class Velox_MediaScan {
 		foreach ( (array) $paths as $rel ) {
 			$key = self::path_key( wp_unslash( (string) $rel ) );
 			if ( '' === $key ) { continue; }
-			// A crawl hit is the strongest evidence there is — it overwrites any
-			// weaker guess from the database pass.
-			$refs['paths'][ $key ] = 'Seen on: ' . $label;
+			// A crawl hit is proof: the page really rendered this file.
+			if ( ! isset( $refs['seen'][ $key ] ) ) { $refs['seen'][ $key ] = 'Seen on: ' . $label; }
 			$n++;
 		}
 		self::save_refs( $refs );
@@ -105,7 +104,7 @@ class Velox_MediaScan {
 			'done'    => 0,
 		);
 		update_option( self::STATE, $state, false );
-		update_option( self::REFS, array( 'paths' => array(), 'ids' => array() ), false );
+		update_option( self::REFS, array( 'seen' => array(), 'paths' => array(), 'ids' => array(), 'weak' => array() ), false );
 		return self::progress( $state, 'Starting…' );
 	}
 
@@ -268,8 +267,8 @@ class Velox_MediaScan {
 				$sib = get_post_meta( (int) $r['post_id'], '_' . $key, true );
 				if ( is_string( $sib ) && 0 === strpos( $sib, 'field_' ) ) {
 					$id = (int) $val;
-					if ( $id > 0 && ! isset( $refs['ids'][ $id ] ) ) {
-						$refs['ids'][ $id ] = 'Custom field: ' . $key . ' (weak)';
+					if ( $id > 0 && ! isset( $refs['weak'][ $id ] ) ) {
+						$refs['weak'][ $id ] = 'Custom field: ' . $key;
 					}
 				}
 			}
@@ -323,8 +322,8 @@ class Velox_MediaScan {
 				// Only keys that actually name an image are trusted here.
 				if ( ctype_digit( $v ) && strlen( $v ) < 10 && preg_match( '/(image|thumb|logo|icon|photo|avatar|banner|cover)/i', $r['meta_key'] ) ) {
 					$id = (int) $v;
-					if ( $id > 0 && ! isset( $refs['ids'][ $id ] ) ) {
-						$refs['ids'][ $id ] = $set[1] . ' field: ' . $r['meta_key'] . ' (weak)';
+					if ( $id > 0 && ! isset( $refs['weak'][ $id ] ) ) {
+						$refs['weak'][ $id ] = $set[1] . ' field: ' . $r['meta_key'];
 					}
 				}
 				self::extract( $v, $set[1] . ': ' . $r['meta_key'], $refs );
@@ -343,13 +342,9 @@ class Velox_MediaScan {
 	private static function scan_files( &$state ) {
 		$refs  = self::refs();
 		$roots = array( get_stylesheet_directory(), get_template_directory() );
-		$up    = wp_upload_dir();
-		if ( ! empty( $up['basedir'] ) ) {
-			$b = trailingslashit( $up['basedir'] );
-			foreach ( array( 'oxygen', 'bricks', 'elementor', 'uploads-cache' ) as $d ) {
-				if ( is_dir( $b . $d ) ) { $roots[] = $b . $d; }
-			}
-		}
+		// Deliberately NOT scanning builder CSS caches any more: they keep stale
+		// files for pages that no longer exist, which marked deleted-page images as
+		// used. The crawl fetches the stylesheets pages really load instead.
 		foreach ( array_unique( array_filter( $roots ) ) as $root ) {
 			self::scan_dir( $root, $refs );
 		}
@@ -466,22 +461,21 @@ class Velox_MediaScan {
 			$state_ = 'unused';
 			$where  = '';
 
-			if ( $id === $logo ) {
+			// 1. Proof — the crawl rendered it, or WordPress structurally points at it.
+			if ( '' !== $key && isset( $refs['seen'][ $key ] ) ) {
+				$state_ = 'used'; $where = $refs['seen'][ $key ];
+			} elseif ( $id === $logo ) {
 				$state_ = 'used'; $where = 'Site logo';
 			} elseif ( $id === $icon ) {
 				$state_ = 'used'; $where = 'Site icon';
 			} elseif ( isset( $refs['ids'][ $id ] ) ) {
-				$w = $refs['ids'][ $id ];
-				$state_ = ( false !== strpos( $w, '(weak)' ) ) ? 'maybe' : 'used';
-				$where  = str_replace( ' (weak)', '', $w );
+				$state_ = 'used'; $where = $refs['ids'][ $id ];
+			// 2. Mentioned somewhere, but never seen on a page. Could be a draft, an
+			//    old setting or a theme file — worth a look, not proof of use.
 			} elseif ( '' !== $key && isset( $refs['paths'][ $key ] ) ) {
-				$state_ = 'used';
-				$where  = $refs['paths'][ $key ];
-			}
-			// Anything the crawl actually rendered is used, full stop.
-			if ( '' !== $key && isset( $refs['paths'][ $key ] ) && 0 === strpos( (string) $refs['paths'][ $key ], 'Seen on:' ) ) {
-				$state_ = 'used';
-				$where  = $refs['paths'][ $key ];
+				$state_ = 'maybe'; $where = $refs['paths'][ $key ];
+			} elseif ( isset( $refs['weak'][ $id ] ) ) {
+				$state_ = 'maybe'; $where = $refs['weak'][ $id ];
 			}
 
 			$res[ $id ] = array( 's' => $state_, 'w' => $where );
@@ -536,8 +530,10 @@ class Velox_MediaScan {
 	private static function refs() {
 		$r = get_option( self::REFS );
 		if ( ! is_array( $r ) ) { $r = array(); }
+		if ( ! isset( $r['seen'] ) ) { $r['seen'] = array(); }
 		if ( ! isset( $r['paths'] ) ) { $r['paths'] = array(); }
 		if ( ! isset( $r['ids'] ) ) { $r['ids'] = array(); }
+		if ( ! isset( $r['weak'] ) ) { $r['weak'] = array(); }
 		return $r;
 	}
 

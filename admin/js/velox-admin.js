@@ -6674,10 +6674,10 @@
 		function renderMedia() {
 			results.innerHTML = '';
 			delBtn.hidden = true;
-			var subset = mediaItems.filter( function ( it ) { return mediaMode === 'used' ? !! it.used : ! it.used; } );
+			var subset = mediaItems.filter( function ( it ) { return ( it.state || 'unused' ) === mediaMode; } );
 			if ( ! subset.length ) {
-				results.innerHTML = mediaMode === 'used'
-					? '<p class="velox-hint">No images are confirmed in use in the scanned set.</p>'
+				results.innerHTML = mediaMode !== 'unused'
+					? '<p class="velox-hint">Nothing in this group.</p>'
 					: '<p class="velox-hint">Nothing flagged — every image looks referenced. 🎉</p>';
 				summary.textContent = '';
 				return;
@@ -6685,10 +6685,11 @@
 			var total = 0;
 			subset.forEach( function ( it ) {
 				total += it.bytes || 0;
-				var card = document.createElement( mediaMode === 'used' ? 'div' : 'label' );
-				card.className = 'velox-media-item' + ( mediaMode === 'used' ? ' is-used' : '' );
+				var pickable = ( 'unused' === mediaMode );
+				var card = document.createElement( pickable ? 'label' : 'div' );
+				card.className = 'velox-media-item' + ( pickable ? '' : ' is-used' );
 				card.innerHTML =
-					( mediaMode === 'used' ? '' : '<input type="checkbox" class="velox-media-pick" value="' + it.id + '">' ) +
+					( pickable ? '<input type="checkbox" class="velox-media-pick" value="' + it.id + '">' : '' ) +
 					'<img src="' + it.thumb + '" data-full="' + ( it.url || it.thumb ) + '" data-name="' + ( it.title || ( '#' + it.id ) ) + '" alt="" loading="lazy">' +
 					'<span class="velox-media-name">' + ( it.title || ( '#' + it.id ) ) + '</span>' +
 					'<span class="velox-media-size">' + ( it.size || fmtBytes( it.bytes ) ) + '</span>' +
@@ -6702,8 +6703,8 @@
 					lightbox( img.getAttribute( 'data-full' ), img.getAttribute( 'data-name' ) );
 				} );
 			} );
-			if ( mediaMode === 'used' ) {
-				summary.textContent = subset.length + ' image' + ( subset.length === 1 ? '' : 's' ) + ' in use · ' + fmtBytes( total ) + ' total';
+			if ( mediaMode !== 'unused' ) {
+				summary.textContent = subset.length + ' image' + ( subset.length === 1 ? '' : 's' ) + ' · ' + fmtBytes( total ) + ' total';
 			} else {
 				summary.textContent = subset.length + ' possibly-unused image' + ( subset.length === 1 ? '' : 's' ) + ' · ' + fmtBytes( total ) + ' reclaimable';
 				$$( '.velox-media-pick', results ).forEach( function ( c ) { c.addEventListener( 'change', refreshSelection ); } );
