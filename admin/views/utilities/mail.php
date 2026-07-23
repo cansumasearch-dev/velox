@@ -96,6 +96,15 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 
 		<div class="vmail-panel" data-panel="settings" hidden>
 			<div class="velox-panel">
+				<div class="vmail-set-sec">Appearance</div>
+				<label class="velox-toggle-row">
+					<div class="velox-toggle-meta">
+						<span class="velox-toggle-label">Show form title</span>
+						<span class="velox-toggle-desc">Displays the form name as a heading above the fields, on the site and in the style preview.</span>
+					</div>
+					<span class="velox-switch"><input type="checkbox" id="vmail-show-title" <?php checked( ! empty( $form['show_title'] ) ); ?>><span class="velox-switch-track"></span></span>
+				</label>
+
 				<div class="vmail-set-sec">After submitting</div>
 				<div class="velox-field">
 					<span class="velox-field-label">Success message</span>

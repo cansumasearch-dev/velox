@@ -4874,7 +4874,10 @@
 				rows += previewFieldHtml( f );
 			} );
 			if ( ! rows ) { rows = '<div class="vse-pf-empty">Add a field to see it here.</div>'; }
-			return '<div class="vse-pf-header"><h3>' + escapeHtml( form.title || 'Form' ) + '</h3></div>' +
+			var header = form.show_title && ( form.title || '' ).trim()
+				? '<div class="vse-pf-header"><h3>' + escapeHtml( form.title ) + '</h3></div>'
+				: '';
+			return header +
 				rows +
 				'<div class="vse-pf-submit-wrap"><button type="button" class="vse-pf-submit">' + escapeHtml( form.submit_label || 'Submit' ) + '</button></div>';
 		}
@@ -5546,6 +5549,14 @@
 			var suc = $( '#vmail-success' ); if ( suc ) { suc.addEventListener( 'input', function () { form.success = suc.value; } ); }
 			var ac = $( '#vmail-accent' ); if ( ac ) { ac.addEventListener( 'input', function () { form.accent = ac.value; renderCanvas(); } ); }
 			var cap = $( '#vmail-captcha' ); if ( cap ) { cap.addEventListener( 'change', function () { form.captcha = cap.checked; } ); }
+			var sht = $( '#vmail-show-title' );
+			if ( sht ) {
+				sht.addEventListener( 'change', function () {
+					form.show_title = sht.checked;
+					if ( typeof renderCanvas === 'function' ) { renderCanvas(); }
+					autosave();
+				} );
+			}
 			// Per-form on/off toggle (7a): reflects in the label + persists immediately.
 			var en = $( '#vmail-enabled' ), enLbl = $( '#vmail-onoff-label' );
 			if ( en ) {

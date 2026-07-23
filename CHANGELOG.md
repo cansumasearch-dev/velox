@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.70 — Front end now matches the style preview
+- The form’s front-end base styling now mirrors the Style editor preview exactly, so anything left on "inherit" looks the same in both places. Previously the preview had its own card look (white background, 18px corners, 40/56/44 padding, soft shadow, 48px inputs with 11px corners, stacked radios, centred pill button) while the front end fell back to a plain, much flatter default — which is why the two never matched and the default styling appeared to do nothing.
+- Aligned: form card background, corner radius, padding and shadow; field and label spacing; label size/weight; input and textarea height, padding, border width, radius and font size; radio and checkbox layout (now stacked) and control size; help text; submit button size, radius, shadow and centring; and the form title.
+- Submit alignment is now applied to the button itself (align-self) instead of the whole form, so Left/Center/Right/Full behave the same as in the preview.
+- Added a "Show form title" toggle under Settings. The preview and the front end both respect it, so the heading no longer appears in one and not the other. It is off by default, so existing forms do not suddenly gain a heading.
+
 ## 3.09.69 — FIX: form styles never saved (empty-array bug)
 - Fixed the real cause of form styles not persisting. An unstyled form was loaded with its style as a JSON array ([]) rather than an object. The Style editor set properties on that array, which worked for the live preview but were silently dropped by JSON.stringify on save (it ignores non-index array properties), so the database always received an empty style. The style is now coerced to a plain object on load, so edits actually save and reach the front end. Removed the 3.09.68 diagnostics.
 

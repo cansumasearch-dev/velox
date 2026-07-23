@@ -164,6 +164,7 @@ class Velox_Forms {
 			'submit_label' => sanitize_text_field( $form['submit_label'] ?? 'Send' ),
 			'success'      => sanitize_text_field( $form['success'] ?? 'Thanks.' ),
 			'captcha'      => ! empty( $form['captcha'] ),
+			'show_title'   => ! empty( $form['show_title'] ),
 			'accent'       => sanitize_hex_color( $form['accent'] ?? '#2ab7f1' ) ? sanitize_hex_color( $form['accent'] ) : '#2ab7f1',
 			'fields'       => array(),
 			'emails'       => array(),
@@ -307,8 +308,8 @@ class Velox_Forms {
 		$sub = $norm( $norm( $s['submit'] ?? array(), 'p' ), 'm' );
 		if ( ! empty( $sub['align'] ) ) {
 			$just = array( 'left' => 'flex-start', 'center' => 'center', 'right' => 'flex-end', 'full' => 'stretch' );
-			$j = $just[ $sub['align'] ] ?? 'flex-start';
-			$css .= $scope . '{align-items:' . $j . ';}';
+			$j = $just[ $sub['align'] ] ?? 'center';
+			$css .= $scope . ' .velox-form-submit{align-self:' . $j . ';}';
 			if ( 'full' === $sub['align'] ) { $css .= $scope . ' .velox-form-submit{width:100%;}'; }
 		}
 		$css .= $rule( $scope . ' .velox-form-submit', array( 'bg' => $sub['bg'] ?? '', 'color' => $sub['color'] ?? '', 'fs' => $sub['fs'] ?? '', 'fw' => $sub['fw'] ?? '', 'radius' => $sub['radius'] ?? '', 'shadow' => $sub['shadow'] ?? '', 'border' => $sub['border'] ?? '', 'borderColor' => $sub['borderColor'] ?? '', 'pt' => $sub['pt'] ?? null, 'pr' => $sub['pr'] ?? null, 'pb' => $sub['pb'] ?? null, 'pl' => $sub['pl'] ?? null, 'mt' => $sub['mt'] ?? null, 'mr' => $sub['mr'] ?? null, 'mb' => $sub['mb'] ?? null, 'ml' => $sub['ml'] ?? null ) );
@@ -385,6 +386,9 @@ class Velox_Forms {
 			$total   = count( $steps );
 			?>
 			<form class="velox-form velox-form--steps" data-form="<?php echo (int) $id; ?>" data-steps="<?php echo (int) $total; ?>" style="--vf-accent:<?php echo $accent; ?>">
+				<?php if ( ! empty( $form['show_title'] ) && '' !== trim( (string) $form['title'] ) ) : ?>
+					<h3 class="velox-form-title"><?php echo esc_html( $form['title'] ); ?></h3>
+				<?php endif; ?>
 				<div class="velox-form-msg" hidden></div>
 				<div class="velox-form-progress" aria-hidden="true">
 					<?php for ( $i = 0; $i < $total; $i++ ) : ?>
@@ -416,6 +420,9 @@ class Velox_Forms {
 		} else {
 			?>
 			<form class="velox-form" data-form="<?php echo (int) $id; ?>" style="--vf-accent:<?php echo $accent; ?>">
+				<?php if ( ! empty( $form['show_title'] ) && '' !== trim( (string) $form['title'] ) ) : ?>
+					<h3 class="velox-form-title"><?php echo esc_html( $form['title'] ); ?></h3>
+				<?php endif; ?>
 				<div class="velox-form-msg" hidden></div>
 				<div class="velox-form-grid">
 					<?php foreach ( $form['fields'] as $f ) : ?>
@@ -1546,25 +1553,30 @@ class Velox_Forms {
 		}
 		?>
 <style>
-.velox-form{max-width:560px;display:flex;flex-direction:column;gap:16px;font-family:inherit}
-.velox-form-grid{display:flex;flex-wrap:wrap;gap:16px}
-.velox-form-field,.velox-form-row{display:flex;flex-direction:column;gap:6px;width:100%}
+/* Base look. These defaults intentionally mirror the Style editor preview
+   (.vse-form / .vse-pf-*) so "inherit" renders identically in both places. */
+.velox-form{max-width:560px;display:flex;flex-direction:column;gap:20px;font-family:inherit;box-sizing:border-box;background:#fff;border-radius:18px;padding:40px 56px 44px;box-shadow:0 4px 16px -6px rgba(16,24,40,.12),0 18px 50px -20px rgba(16,24,40,.2)}
+.velox-form *,.velox-form *::before,.velox-form *::after{box-sizing:border-box}
+.velox-form-title{margin:0 0 6px;font-size:23px;font-weight:700;letter-spacing:-.02em;line-height:1.25;color:#1d1d1f}
+.velox-form-grid{display:flex;flex-wrap:wrap;gap:20px 16px}
+.velox-form-field,.velox-form-row{display:flex;flex-direction:column;gap:8px;width:100%}
 .velox-form-field--half{width:calc(50% - 8px)}
 .velox-form-field--third{width:calc(33.333% - 11px)}
 .velox-form-name-row{display:flex;gap:12px}
 .velox-form-name-row input{flex:1;min-width:0}
-@media(max-width:520px){.velox-form-field--half,.velox-form-field--third{width:100%}}
-.velox-form-radios{display:flex;flex-wrap:wrap;gap:14px}
-.velox-form-radio{display:inline-flex;align-items:center;gap:7px;font-size:14px;cursor:pointer}
-.velox-form-radio input{width:auto;margin:0}
-.velox-form-help{font-size:13px;color:#6b7280}
-.velox-form-label{font-size:14px;font-weight:600}
-.velox-form .velox-req{color:#e11d48}
-.velox-form input,.velox-form textarea,.velox-form select{width:100%;padding:11px 13px;border:1px solid #d4d8e0;border-radius:10px;font-size:15px;font-family:inherit;background:#fff;color:#1d1d1f}
+@media(max-width:520px){.velox-form{padding:26px 22px 30px}.velox-form-field--half,.velox-form-field--third{width:100%}}
+.velox-form-radios{display:flex;flex-direction:column;gap:9px}
+.velox-form-radio{display:flex;align-items:center;gap:9px;font-size:14px;color:#2a2a2c;cursor:pointer}
+.velox-form-radio input{width:17px;height:17px;flex:none;margin:0;accent-color:var(--vf-accent)}
+.velox-form-help{margin-top:-1px;font-size:12.5px;color:#86868b}
+.velox-form-label{font-size:13.5px;font-weight:600;color:#2a2a2c}
+.velox-form .velox-req{color:#f4517b;margin-left:3px}
+.velox-form input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]),.velox-form select{width:100%;height:48px;padding:0 15px;border:1.5px solid #e0e0e3;border-radius:11px;font-size:14px;font-family:inherit;background:#fff;color:#1d1d1f}
+.velox-form textarea{width:100%;min-height:112px;padding:13px 15px;border:1.5px solid #e0e0e3;border-radius:11px;font-size:14px;font-family:inherit;background:#fff;color:#1d1d1f;resize:vertical}
 .velox-form input:focus,.velox-form textarea:focus,.velox-form select:focus{outline:none;border-color:var(--vf-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--vf-accent) 22%,transparent)}
-.velox-form-consent{display:flex;gap:9px;align-items:flex-start;font-size:14px;line-height:1.45;cursor:pointer}
-.velox-form-consent input{width:auto;margin-top:3px}
-.velox-form-submit{align-self:flex-start;background:var(--vf-accent);color:#fff;border:0;border-radius:10px;padding:12px 26px;font-size:15px;font-weight:600;cursor:pointer;transition:filter .15s}
+.velox-form-consent{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:#2a2a2c;cursor:pointer}
+.velox-form-consent input{width:18px;height:18px;flex:none;margin-top:1px;accent-color:var(--vf-accent)}
+.velox-form-submit{align-self:center;margin-top:8px;background:var(--vf-accent);color:#fff;border:0;border-radius:12px;padding:15px 44px;font-size:15px;font-weight:600;cursor:pointer;box-shadow:0 8px 20px -6px color-mix(in srgb,var(--vf-accent) 55%,transparent);transition:filter .15s}
 .velox-form-submit:hover{filter:brightness(.93)}
 .velox-form-submit:disabled{opacity:.6;cursor:default}
 .velox-form-heading{gap:5px}
