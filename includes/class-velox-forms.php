@@ -138,6 +138,10 @@ class Velox_Forms {
 		$fixed   = array( 'form', 'header', 'labels', 'inputs', 'submit' );
 		$allowed = array( 'bg', 'color', 'hoverBg', 'borderColor', 'fs', 'fw', 'radius', 'border', 'shadow', 'align', 'text',
 			'labelColor', 'labelFs', 'labelFw',
+			'lh', 'ls', 'w', 'h', 'minh', 'maxw',
+			'bgMode', 'gradType', 'gradAngle', 'gradFrom', 'gradTo',
+			'imgUrl', 'imgSize', 'imgPos', 'imgRepeat',
+			'shX', 'shY', 'shBlur', 'shSpread', 'shColor', 'shInset',
 			'pt', 'pr', 'pb', 'pl', 'ptb', 'plr', 'mt', 'mr', 'mb', 'ml', 'mtb', 'mlr', '_pfour', '_mfour' );
 		$out = array();
 		foreach ( $style as $t => $vals ) {
@@ -276,20 +280,66 @@ class Velox_Forms {
 		};
 		$rule = function ( $sel, $o ) use ( $px, $shadow, $col ) {
 			$d = '';
-			if ( ! empty( $o['bg'] ) && $col( $o['bg'] ) ) { $d .= 'background:' . $col( $o['bg'] ) . ';'; }
+			// ---- background: solid colour, gradient or image ----
+			$mode = isset( $o['bgMode'] ) ? $o['bgMode'] : 'color';
+			if ( 'gradient' === $mode ) {
+				$from = $col( $o['gradFrom'] ?? '' );
+				$to   = $col( $o['gradTo'] ?? '' );
+				if ( $from && $to ) {
+					$ang = isset( $o['gradAngle'] ) && '' !== $o['gradAngle'] ? (float) $o['gradAngle'] : 90;
+					$d  .= 'radial' === ( $o['gradType'] ?? 'linear' )
+						? 'background-image:radial-gradient(circle,' . $from . ',' . $to . ');'
+						: 'background-image:linear-gradient(' . $ang . 'deg,' . $from . ',' . $to . ');';
+				}
+			} elseif ( 'image' === $mode ) {
+				$url = isset( $o['imgUrl'] ) ? esc_url_raw( trim( (string) $o['imgUrl'] ) ) : '';
+				if ( $url ) {
+					$d .= 'background-image:url(' . $url . ');';
+					$d .= 'background-size:' . ( in_array( $o['imgSize'] ?? 'cover', array( 'cover', 'contain', 'auto' ), true ) ? $o['imgSize'] : 'cover' ) . ';';
+					$pos = $o['imgPos'] ?? 'center';
+					$d  .= 'background-position:' . ( preg_match( '/^[a-z ]{1,20}$/', $pos ) ? $pos : 'center' ) . ';';
+					$d  .= 'background-repeat:' . ( in_array( $o['imgRepeat'] ?? 'no-repeat', array( 'no-repeat', 'repeat', 'repeat-x', 'repeat-y' ), true ) ? $o['imgRepeat'] : 'no-repeat' ) . ';';
+				}
+				if ( ! empty( $o['bg'] ) && $col( $o['bg'] ) ) { $d .= 'background-color:' . $col( $o['bg'] ) . ';'; }
+			}
+			if ( 'gradient' !== $mode && 'image' !== $mode && ! empty( $o['bg'] ) && $col( $o['bg'] ) ) {
+				$d .= 'background:' . $col( $o['bg'] ) . ';';
+			}
+			// ---- text ----
 			if ( ! empty( $o['color'] ) && $col( $o['color'] ) ) { $d .= 'color:' . $col( $o['color'] ) . ';'; }
 			if ( ! empty( $o['fs'] ) ) { $d .= 'font-size:' . $px( $o['fs'] ) . ';'; }
 			if ( ! empty( $o['fw'] ) ) { $d .= 'font-weight:' . (int) $o['fw'] . ';'; }
+			if ( isset( $o['lh'] ) && '' !== $o['lh'] ) { $d .= 'line-height:' . ( preg_match( '/[a-z%]/i', (string) $o['lh'] ) ? $o['lh'] : (float) $o['lh'] ) . ';'; }
+			if ( isset( $o['ls'] ) && '' !== $o['ls'] ) { $d .= 'letter-spacing:' . $px( $o['ls'] ) . ';'; }
+			// ---- box ----
 			if ( ! empty( $o['radius'] ) ) { $d .= 'border-radius:' . $px( $o['radius'] ) . ';'; }
 			if ( isset( $o['border'] ) && $o['border'] !== '' ) { $d .= 'border-width:' . $px( $o['border'] ) . ';border-style:solid;'; }
 			if ( ! empty( $o['borderColor'] ) && $col( $o['borderColor'] ) ) { $d .= 'border-color:' . $col( $o['borderColor'] ) . ';'; }
-			if ( ! empty( $o['shadow'] ) ) { $d .= 'box-shadow:' . $shadow( $o['shadow'] ) . ';'; }
+			// ---- size ----
+			if ( ! empty( $o['w'] ) ) { $d .= 'width:' . $px( $o['w'] ) . ';'; }
+			if ( ! empty( $o['h'] ) ) { $d .= 'height:' . $px( $o['h'] ) . ';'; }
+			if ( ! empty( $o['minh'] ) ) { $d .= 'min-height:' . $px( $o['minh'] ) . ';'; }
+			if ( ! empty( $o['maxw'] ) ) { $d .= 'max-width:' . $px( $o['maxw'] ) . ';'; }
+			// ---- shadow: preset or fully custom ----
+			if ( ! empty( $o['shadow'] ) ) {
+				if ( 'custom' === $o['shadow'] ) {
+					$sc = $col( $o['shColor'] ?? '' );
+					$d .= 'box-shadow:' . ( ! empty( $o['shInset'] ) ? 'inset ' : '' ) .
+						$px( $o['shX'] ?? 0 ) . ' ' . $px( $o['shY'] ?? 0 ) . ' ' .
+						$px( $o['shBlur'] ?? 0 ) . ' ' . $px( $o['shSpread'] ?? 0 ) . ' ' .
+						( $sc ? $sc : 'rgba(16,24,40,.22)' ) . ';';
+				} else {
+					$d .= 'box-shadow:' . $shadow( $o['shadow'] ) . ';';
+				}
+			}
+			// ---- spacing ----
 			$has_p = isset( $o['pt'] ) || isset( $o['pr'] ) || isset( $o['pb'] ) || isset( $o['pl'] );
 			if ( $has_p ) { $d .= 'padding:' . $px( $o['pt'] ?? 0 ) . ' ' . $px( $o['pr'] ?? 0 ) . ' ' . $px( $o['pb'] ?? 0 ) . ' ' . $px( $o['pl'] ?? 0 ) . ';'; }
 			$has_m = isset( $o['mt'] ) || isset( $o['mr'] ) || isset( $o['mb'] ) || isset( $o['ml'] );
 			if ( $has_m ) { $d .= 'margin:' . $px( $o['mt'] ?? 0 ) . ' ' . $px( $o['mr'] ?? 0 ) . ' ' . $px( $o['mb'] ?? 0 ) . ' ' . $px( $o['ml'] ?? 0 ) . ';'; }
 			return $d ? ( $sel . '{' . $d . '}' ) : '';
 		};
+
 		// normalise 2-side (tb/lr) into 4-side before emitting
 		$norm = function ( $o, $p ) {
 			if ( isset( $o[ $p . 'tb' ] ) && $o[ $p . 'tb' ] !== '' ) { $o[ $p . 't' ] = $o[ $p . 'tb' ]; $o[ $p . 'b' ] = $o[ $p . 'tb' ]; }
@@ -298,13 +348,13 @@ class Velox_Forms {
 		};
 		$css = '';
 		$f = $norm( $s['form'] ?? array(), 'p' );
-		$css .= $rule( $scope, array( 'bg' => $f['bg'] ?? '', 'radius' => $f['radius'] ?? '', 'shadow' => $f['shadow'] ?? '', 'border' => $f['border'] ?? '', 'borderColor' => $f['borderColor'] ?? '', 'pt' => $f['pt'] ?? null, 'pr' => $f['pr'] ?? null, 'pb' => $f['pb'] ?? null, 'pl' => $f['pl'] ?? null ) );
+		$css .= $rule( $scope, $f );
 		$h = $s['header'] ?? array();
-		$css .= $rule( $scope . ' .velox-form-title, ' . $scope . ' h3', array( 'color' => $h['color'] ?? '', 'fs' => $h['fs'] ?? '', 'fw' => $h['fw'] ?? '' ) );
+		$css .= $rule( $scope . ' .velox-form-title, ' . $scope . ' h3', $h );
 		$l = $s['labels'] ?? array();
-		$css .= $rule( $scope . ' .velox-form-label', array( 'color' => $l['color'] ?? '', 'fs' => $l['fs'] ?? '', 'fw' => $l['fw'] ?? '' ) );
+		$css .= $rule( $scope . ' .velox-form-label', $l );
 		$inp = $s['inputs'] ?? array();
-		$css .= $rule( $scope . ' .velox-form-field input, ' . $scope . ' .velox-form-field textarea, ' . $scope . ' .velox-form-field select', array( 'bg' => $inp['bg'] ?? '', 'color' => $inp['color'] ?? '', 'fs' => $inp['fs'] ?? '', 'radius' => $inp['radius'] ?? '', 'border' => $inp['border'] ?? '', 'borderColor' => $inp['borderColor'] ?? '' ) );
+		$css .= $rule( $scope . ' .velox-form-field input, ' . $scope . ' .velox-form-field textarea, ' . $scope . ' .velox-form-field select', $inp );
 		$sub = $norm( $norm( $s['submit'] ?? array(), 'p' ), 'm' );
 		if ( ! empty( $sub['align'] ) ) {
 			$just = array( 'left' => 'flex-start', 'center' => 'center', 'right' => 'flex-end', 'full' => 'stretch' );
@@ -312,7 +362,7 @@ class Velox_Forms {
 			$css .= $scope . ' .velox-form-submit{align-self:' . $j . ';}';
 			if ( 'full' === $sub['align'] ) { $css .= $scope . ' .velox-form-submit{width:100%;}'; }
 		}
-		$css .= $rule( $scope . ' .velox-form-submit', array( 'bg' => $sub['bg'] ?? '', 'color' => $sub['color'] ?? '', 'fs' => $sub['fs'] ?? '', 'fw' => $sub['fw'] ?? '', 'radius' => $sub['radius'] ?? '', 'shadow' => $sub['shadow'] ?? '', 'border' => $sub['border'] ?? '', 'borderColor' => $sub['borderColor'] ?? '', 'pt' => $sub['pt'] ?? null, 'pr' => $sub['pr'] ?? null, 'pb' => $sub['pb'] ?? null, 'pl' => $sub['pl'] ?? null, 'mt' => $sub['mt'] ?? null, 'mr' => $sub['mr'] ?? null, 'mb' => $sub['mb'] ?? null, 'ml' => $sub['ml'] ?? null ) );
+		$css .= $rule( $scope . ' .velox-form-submit', $sub );
 		if ( ! empty( $sub['hoverBg'] ) && $col( $sub['hoverBg'] ) ) { $css .= $scope . ' .velox-form-submit:hover{background:' . $col( $sub['hoverBg'] ) . ';}'; }
 		// Per-field overrides (set in the Style editor → Individual fields).
 		foreach ( $s as $t => $o ) {
@@ -321,7 +371,7 @@ class Velox_Forms {
 			if ( ! preg_match( '/^[a-z0-9_]+$/', $k ) ) { continue; }
 			$fsel = $scope . ' [data-vf-key="' . $k . '"]';
 			$css .= $rule( $fsel . ' .velox-form-label', array( 'color' => $o['labelColor'] ?? '', 'fs' => $o['labelFs'] ?? '', 'fw' => $o['labelFw'] ?? '' ) );
-			$css .= $rule( $fsel . ' input, ' . $fsel . ' textarea, ' . $fsel . ' select', array( 'bg' => $o['bg'] ?? '', 'color' => $o['color'] ?? '', 'fs' => $o['fs'] ?? '', 'radius' => $o['radius'] ?? '', 'border' => $o['border'] ?? '', 'borderColor' => $o['borderColor'] ?? '' ) );
+			$css .= $rule( $fsel . ' input, ' . $fsel . ' textarea, ' . $fsel . ' select', $o );
 		}
 		return $css;
 	}
@@ -1116,10 +1166,11 @@ class Velox_Forms {
 	public static function submissions( $form_id = 0, $limit = 100 ) {
 		global $wpdb;
 		$t = self::table();
+		// Deleted entries live in the inbox's Deleted tab — never list them here.
 		if ( $form_id ) {
-			return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE form_id = %d ORDER BY id DESC LIMIT %d", $form_id, $limit ), ARRAY_A ) ?: array();
+			return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE form_id = %d AND deleted_at IS NULL ORDER BY id DESC LIMIT %d", $form_id, $limit ), ARRAY_A ) ?: array();
 		}
-		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} ORDER BY id DESC LIMIT %d", $limit ), ARRAY_A ) ?: array();
+		return $wpdb->get_results( $wpdb->prepare( "SELECT * FROM {$t} WHERE deleted_at IS NULL ORDER BY id DESC LIMIT %d", $limit ), ARRAY_A ) ?: array();
 	}
 
 	/** User-defined inbox folders: [ { id, name, color } ]. */
@@ -1538,11 +1589,6 @@ class Velox_Forms {
 		if ( ! self::$rendered ) {
 			return;
 		}
-		// Per-form custom styles, printed in the footer so page builders that strip
-		// inline <style> from shortcode output (e.g. Oxygen) can't drop them.
-		if ( ! empty( self::$form_styles ) ) {
-			echo "<style id=\"velox-form-styles\">\n" . implode( "\n", self::$form_styles ) . "\n</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput
-		}
 		// CAPTCHA provider script, only if a rendered form uses it.
 		if ( self::captcha_ready() ) {
 			if ( 'recaptcha' === self::captcha_provider() ) {
@@ -1571,7 +1617,7 @@ class Velox_Forms {
 .velox-form-help{margin-top:-1px;font-size:12.5px;color:#86868b}
 .velox-form-label{font-size:13.5px;font-weight:600;color:#2a2a2c}
 .velox-form .velox-req{color:#f4517b;margin-left:3px}
-.velox-form input:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range]),.velox-form select{width:100%;height:48px;padding:0 15px;border:1.5px solid #e0e0e3;border-radius:11px;font-size:14px;font-family:inherit;background:#fff;color:#1d1d1f}
+.velox-form input:where(:not([type=checkbox]):not([type=radio]):not([type=file]):not([type=range])),.velox-form select{width:100%;height:48px;padding:0 15px;border:1.5px solid #e0e0e3;border-radius:11px;font-size:14px;font-family:inherit;background:#fff;color:#1d1d1f}
 .velox-form textarea{width:100%;min-height:112px;padding:13px 15px;border:1.5px solid #e0e0e3;border-radius:11px;font-size:14px;font-family:inherit;background:#fff;color:#1d1d1f;resize:vertical}
 .velox-form input:focus,.velox-form textarea:focus,.velox-form select:focus{outline:none;border-color:var(--vf-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--vf-accent) 22%,transparent)}
 .velox-form-consent{display:flex;gap:10px;align-items:flex-start;font-size:14px;line-height:1.45;color:#2a2a2c;cursor:pointer}
@@ -1620,6 +1666,14 @@ class Velox_Forms {
 .velox-form-calc-fix{font-size:15px;color:#6b7280;font-weight:600}
 .velox-form-calc-input{background:#f6f7f9!important;font-weight:600}
 </style>
+<?php
+		// Per-form custom styles come last so they always beat the base stylesheet
+		// above. Printed in the footer because some builders (Oxygen) strip inline
+		// <style> out of shortcode output.
+		if ( ! empty( self::$form_styles ) ) {
+			echo "<style id=\"velox-form-styles\">\n" . implode( "\n", self::$form_styles ) . "\n</style>\n"; // phpcs:ignore WordPress.Security.EscapeOutput
+		}
+		?>
 <script>
 (function(){
   document.querySelectorAll('.velox-form').forEach(function(form){

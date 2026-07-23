@@ -218,10 +218,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		</div>
 
 		<div class="velox-panel velox-panel--flush">
-			<?php if ( empty( $subs ) ) : ?>
-				<p class="velox-hint" style="padding:26px;">No entries yet. Once someone submits this form, every message lands here — what they wrote, when, and from where.</p>
-			<?php else : ?>
-				<div class="vmail-entries">
+			<div class="vmail-entries" id="vmail-entries" data-form="<?php echo (int) $entries_for; ?>">
 					<?php foreach ( $subs as $sub ) :
 						$d = json_decode( $sub['data'], true );
 						$d = is_array( $d ) ? $d : array();
@@ -253,8 +250,12 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 							</div>
 						</details>
 					<?php endforeach; ?>
+					<div class="vmail-entries-blank" id="vmail-entries-blank"<?php echo empty( $subs ) ? '' : ' hidden'; ?>>
+						<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg>
+						<span class="t">No entries yet</span>
+						<span class="s">Submissions through this form show up here as they arrive.</span>
+					</div>
 				</div>
-			<?php endif; ?>
 		</div>
 
 	<?php else :
@@ -293,17 +294,17 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		?>
 		<div class="velox-section-title">Inbox</div>
 		<div class="velox-panel velox-panel--flush vmail-inbox" id="vmail-inbox">
-			<?php if ( empty( $inbox ) ) : ?>
-				<p class="velox-hint" style="padding:26px;">No submissions yet. Every message sent through any of your forms lands here — who wrote, when, through which form, and everything they filled out.</p>
-			<?php else : ?>
-				<div class="vmail-inbox-filters" role="tablist" aria-label="Filter submissions">
+			<div class="vmail-inbox-filters" role="tablist" aria-label="Filter submissions">
 					<button type="button" class="vmail-filter is-on" data-filter="all">All</button>
 					<button type="button" class="vmail-filter" data-filter="unread">Unread<?php echo $vx_unread ? ' <span class="vmail-filter-count">' . (int) $vx_unread . '</span>' : ''; ?></button>
 					<button type="button" class="vmail-filter" data-filter="pinned">Pinned</button>
 					<button type="button" class="vmail-filter" data-filter="done">Done</button>
 					<span class="vmail-folder-chips" id="vmail-folder-chips"></span>
 					<button type="button" class="vmail-folder-manage" id="vmail-folder-manage" title="Manage folders">+ Folders</button>
-					<button type="button" class="vmail-filter vmail-filter--deleted" data-filter="deleted">Deleted</button>
+					<button type="button" class="vmail-filter vmail-filter--deleted" data-filter="deleted" title="Deleted submissions">
+						<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+						Deleted
+					</button>
 				</div>
 				<script type="application/json" id="vmail-folders-data"><?php echo wp_json_encode( Velox_Forms::folders() ); ?></script>
 				<div class="vmail-bulkbar" id="vmail-bulkbar" hidden>
@@ -343,18 +344,35 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 										<span class="vmail-unread-dot"></span>
 									</span>
 								</button>
-								<button type="button" class="vmail-inbox-del" data-id="<?php echo (int) $row['id']; ?>" title="Delete this submission" aria-label="Delete this submission">
-									<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+								<div class="vmail-inbox-acts">
+								<button type="button" class="vmail-act vmail-act--pin" data-act="pin" data-id="<?php echo (int) $row['id']; ?>" title="Pin to top" aria-label="Pin to top">
+									<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v6l-2 4h10l-2-4V4M12 14v6M8 4h8"/></svg>
 								</button>
+								<button type="button" class="vmail-act vmail-act--done" data-act="done" data-id="<?php echo (int) $row['id']; ?>" title="Mark as done" aria-label="Mark as done">
+									<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+								</button>
+								<button type="button" class="vmail-act vmail-act--read" data-act="read" data-id="<?php echo (int) $row['id']; ?>" title="Mark read or unread" aria-label="Mark read or unread">
+									<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg>
+								</button>
+								<button type="button" class="vmail-act vmail-act--del vmail-inbox-del" data-id="<?php echo (int) $row['id']; ?>" title="Move to Deleted" aria-label="Move to Deleted">
+									<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+								</button>
+							</div>
 							</div>
 						<?php endforeach; ?>
 						<div class="vmail-inbox-nomatch" hidden>Nothing here.</div>
+						<?php if ( empty( $inbox ) ) : ?>
+							<div class="vmail-inbox-blank" id="vmail-inbox-blank">
+								<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg>
+								<span class="t">No submissions yet</span>
+								<span class="s">Messages sent through your forms land here.</span>
+							</div>
+						<?php endif; ?>
 					</div>
 					<div class="vmail-inbox-detail" id="vmail-inbox-detail" aria-live="polite">
 						<div class="vmail-inbox-empty-detail">Select a submission to read it.</div>
 					</div>
 				</div>
-			<?php endif; ?>
 		</div>
 
 		<?php

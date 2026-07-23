@@ -63,6 +63,7 @@
 	--vx-line-2:var(--vx-n150);  /* hairline border (defined) */
 	--vx-bg:    var(--vx-n50);   /* app background — parchment */
 	--vx-card:  var(--vx-n0);    /* card / panel surface — white */
+	--vx-hover: rgba(42,183,241,.07); /* row hover on white — never the page bg */
 	--vx-sidebar: var(--vx-n0);
 	--vx-tile-dark: var(--vx-n850); /* dark module surface */
 	/* ---- Spacing — Apple scale (4 / 8 / 12 / 17 / 24 / 32 / 48 / 80) ---- */
@@ -1501,7 +1502,7 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vse-cl { display: flex; align-items: center; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--vx-ink-2); margin-bottom: 7px; }
 .vse-in { width: 100%; font-family: inherit; font-size: 14px; line-height: 1.4; color: var(--vx-ink); background: #fff; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); padding: 10px 13px; box-sizing: border-box; -webkit-appearance: none; appearance: none; transition: border-color var(--vx-dur-1) var(--vx-ease), box-shadow var(--vx-dur-1) var(--vx-ease); }
 .vse-in:focus { outline: none; border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring); }
-.vse-two { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.vse-two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .vse-hex { flex: 1; font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; line-height: 1.4; color: var(--vx-ink); background: #fff; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); padding: 10px 13px; box-sizing: border-box; text-transform: uppercase; -webkit-appearance: none; appearance: none; transition: border-color var(--vx-dur-1) var(--vx-ease), box-shadow var(--vx-dur-1) var(--vx-ease); }
 .vse-hex:focus { outline: none; border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring); }
 .vse-seg { display: flex; gap: 2px; background: var(--vx-bg); border-radius: var(--vx-r-md); padding: 3px; }
@@ -1759,7 +1760,7 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-table tbody td { padding: 16px 22px; border-bottom: 1px solid var(--vx-line); vertical-align: middle; }
 .vmail-table tbody tr:last-child td { border-bottom: 0; }
 .vmail-trow { transition: background .12s; }
-.vmail-trow:hover { background: var(--vx-bg); }
+.vmail-trow:hover { background: var(--vx-hover); }
 .vmail-t-name { font-weight: 700; font-size: 15px; color: var(--vx-ink); text-decoration: none; letter-spacing: -.01em; }
 .vmail-t-name:hover { color: var(--vx-primary); }
 .vmail-t-count { display: inline-flex; align-items: center; justify-content: center; min-width: 34px; height: 26px; padding: 0 10px; border-radius: 999px; background: var(--vx-primary-tint); color: var(--vx-primary-d); font-weight: 700; font-size: 13px; text-decoration: none; }
@@ -1774,7 +1775,7 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-entry:last-child { border-bottom: 0; }
 .vmail-entry-sum { display: flex; align-items: center; gap: 18px; padding: 16px 22px; cursor: pointer; list-style: none; transition: background .12s; }
 .vmail-entry-sum::-webkit-details-marker { display: none; }
-.vmail-entry-sum:hover { background: var(--vx-bg); }
+.vmail-entry-sum:hover { background: var(--vx-hover); }
 .vmail-entry-date { flex: 0 0 auto; font-size: 13px; font-weight: 600; color: var(--vx-ink-2); width: 150px; }
 .vmail-entry-preview { flex: 1 1 auto; min-width: 0; color: var(--vx-ink); font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vmail-entry-chev { flex: 0 0 auto; color: var(--vx-ink-3); transition: transform .18s; }
@@ -1951,7 +1952,6 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-guide-note { margin: 0 0 12px; font-size: 13px; color: var(--vx-ink-2); background: var(--vx-primary-tint); border-radius: var(--vx-r-sm); padding: 10px 12px; }
 .vmail-guide-steps { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 9px; }
 .vmail-guide-steps li { font-size: 13.5px; line-height: 1.5; color: var(--vx-ink); }
-.vmail-filter--deleted { margin-left: auto; }
 .vmail-conn-top .vmail-c-provider { flex: none; max-width: 210px; }
 .vmail-conn-top .vmail-c-label { flex: 1 1 auto; min-width: 0; }
 .vmail-c-label { font-weight: 600; }
@@ -2151,9 +2151,6 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-modal-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 18px; border-top: 1px solid var(--vx-line); background: var(--vx-bg); }
 .vmail-modal-foot-btns { display: flex; gap: 8px; }
 @media (max-width: 560px) { .vmail-rrow { flex-wrap: wrap; } .vmail-rlabel { width: 100%; } }
-.vmail-inbox-del { flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; width: 38px; border: 0; background: transparent; color: var(--vx-ink-3); cursor: pointer; opacity: 0; transition: opacity var(--vx-dur-1) var(--vx-ease), color var(--vx-dur-1) var(--vx-ease), background var(--vx-dur-1) var(--vx-ease); border-radius: var(--vx-r-sm); margin: 6px 6px 6px 0; }
-.vmail-inbox-item:hover .vmail-inbox-del { opacity: 1; }
-.vmail-inbox-del:hover { background: var(--vx-danger-tint); color: var(--vx-danger); }
 
 /* Filter bar */
 .vmail-inbox-filters { display: flex; gap: 6px; padding: 10px 12px; border-bottom: 1px solid var(--vx-line); }
@@ -2956,7 +2953,8 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vse-grp-h:hover { color: var(--vx-ink-2); }
 .vse-grp-h svg { color: var(--vx-n300); transform: rotate(-90deg); transition: transform .18s var(--vx-ease, ease); }
 .vse-grp.is-open .vse-grp-h svg { transform: none; }
-.vse-grp-b { display: none; padding-bottom: 12px; }
+.vse-grp-b { display: none; padding-bottom: 14px; }
+.vse-grp.is-open .vse-grp-b > * + * { margin-top: 10px; }
 .vse-grp.is-open .vse-grp-b { display: block; }
 .vse-sk { font-size: 11px; color: var(--vx-ink-3); margin: 4px 0 6px; }
 
@@ -2987,3 +2985,64 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vse-hex.is-inherit { font-family: inherit; color: var(--vx-n300); }
 .vse-revert { flex: none; display: inline-flex; padding: 4px; border: 0; background: none; border-radius: 6px; color: var(--vx-n300); cursor: pointer; }
 .vse-revert:hover { background: var(--vx-n50); color: var(--vx-ink-2); }
+
+/* ---- inbox row hover actions ---- */
+.vmail-inbox-acts { flex: 0 0 auto; display: flex; align-items: center; gap: 2px; padding: 0 8px 0 4px; opacity: 0; transition: opacity var(--vx-dur-1) var(--vx-ease); }
+.vmail-inbox-item:hover .vmail-inbox-acts,
+.vmail-inbox-item:focus-within .vmail-inbox-acts { opacity: 1; }
+.vmail-act { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; border: 0; background: transparent; border-radius: 7px; color: var(--vx-ink-3); cursor: pointer; transition: background .12s, color .12s; }
+.vmail-act:hover { background: var(--vx-n100); color: var(--vx-ink); }
+.vmail-act--del:hover { background: var(--vx-danger-tint); color: var(--vx-danger); }
+.vmail-act--pin:hover { background: var(--vx-primary-tint); color: var(--vx-primary-ink); }
+.vmail-act--done:hover { background: var(--vx-success-tint); color: var(--vx-success); }
+.vmail-inbox-item.is-pinned .vmail-act--pin { opacity: 1; color: var(--vx-primary); }
+.vmail-inbox-item[data-status="done"] .vmail-act--done { color: var(--vx-success); }
+
+/* ---- Deleted tab: pushed right, but clearly a real tab ---- */
+.vmail-filter--deleted { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--vx-line-2); background: var(--vx-card); color: var(--vx-ink-2); }
+.vmail-filter--deleted svg { opacity: .7; }
+.vmail-filter--deleted:hover { border-color: var(--vx-n300); color: var(--vx-ink); background: var(--vx-n25); }
+.vmail-filter--deleted.is-on { background: var(--vx-danger-tint); border-color: rgba(200,54,47,.28); color: var(--vx-danger); }
+.vmail-filter--deleted.is-on svg { opacity: 1; }
+
+/* ---- inbox empty state, shown inside the list so the UI never disappears ---- */
+.vmail-inbox-blank { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 46px 22px; text-align: center; color: var(--vx-ink-3); }
+.vmail-inbox-blank svg { color: var(--vx-n300); margin-bottom: 4px; }
+.vmail-inbox-blank .t { font-size: 13.5px; font-weight: 600; color: var(--vx-ink-2); }
+.vmail-inbox-blank .s { font-size: 12.5px; }
+.vmail-entries-blank { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 46px 22px; text-align: center; color: var(--vx-ink-3); }
+.vmail-entries-blank[hidden] { display: none; }
+.vmail-entries-blank svg { color: var(--vx-n300); margin-bottom: 4px; }
+.vmail-entries-blank .t { font-size: 13.5px; font-weight: 600; color: var(--vx-ink-2); }
+.vmail-entries-blank .s { font-size: 12.5px; }
+
+/* ---- one control height for every field in the style panel ---- */
+.vse-controls .vse-in,
+.vse-controls select.vse-in,
+.vse-controls .vse-num,
+.vse-controls .vse-hex { height: 32px; box-sizing: border-box; }
+.vse-controls select.vse-in { padding: 0 8px; font-size: 12.5px; border: 1px solid var(--vx-line-2); border-radius: 8px; background: var(--vx-card); color: var(--vx-ink); font-family: inherit; }
+.vse-controls .vse-in { padding: 0 10px; font-size: 12.5px; border: 1px solid var(--vx-line-2); border-radius: 8px; background: var(--vx-card); color: var(--vx-ink); font-family: inherit; width: 100%; }
+.vse-controls .vse-in:focus { outline: none; border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring); }
+
+/* ---- label left, controls hard right ---- */
+.vse-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; }
+.vse-rk { font-size: 12px; color: var(--vx-ink-2); flex: none; width: auto; }
+.vse-rc { display: flex; align-items: center; gap: 7px; flex: none; }
+.vse-rc .vse-hex { width: 92px; flex: none; border: 1px solid var(--vx-line-2); border-radius: 8px; padding: 0 9px; background: var(--vx-card); }
+.vse-revert.is-hidden { visibility: hidden; }
+
+/* ---- number field: value, stepper, unit ---- */
+.vse-num { padding: 0 4px 0 10px; gap: 4px; }
+.vse-step { display: flex; flex-direction: column; gap: 1px; flex: none; }
+.vse-step button { display: flex; align-items: center; justify-content: center; width: 16px; height: 12px; padding: 0; border: 0; border-radius: 3px; background: var(--vx-n50); color: var(--vx-ink-3); cursor: pointer; }
+.vse-step button:hover { background: var(--vx-n150); color: var(--vx-ink); }
+.vse-num:hover .vse-step button, .vse-num:focus-within .vse-step button { background: var(--vx-n100); }
+
+/* ---- background modes, gradient bar, shadow preview ---- */
+.vse-seg--full { display: flex; width: 100%; }
+.vse-seg--full button { flex: 1; }
+.vse-seg--sm button { padding: 5px 12px; font-size: 11.5px; }
+.vse-gradbar { height: 32px; border-radius: 8px; border: 1px solid var(--vx-line-2); }
+.vse-shprev { height: 44px; border-radius: 10px; background: var(--vx-card); border: 1px solid var(--vx-line); margin: 2px 4px 6px; }
+.vse-sk { font-size: 11px; color: var(--vx-ink-3); }

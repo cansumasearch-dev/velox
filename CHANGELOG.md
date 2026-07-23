@@ -4,6 +4,22 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.73 — Style editor: full control set, and custom styles win again
+- FIXED: custom form styles were being overridden by the plugin’s own base stylesheet. The base input rule used a chain of :not() selectors, and each one adds specificity, so it outscored the per-form rules and silently killed them. The exclusions now sit inside :where(), which adds none, and per-form styles are printed after the base sheet instead of before. Anything you set in the Style editor now actually applies.
+- Every target now has the full set of controls: background (solid colour, linear or radial gradient with angle and both stops, or an image with size, position and repeat), size (width, height, min height, max width), text (size, weight, line height, letter spacing, colour), shape (corner, border, border colour), spacing (padding and margin on all four sides) and shadow.
+- Shadow keeps the None / Soft / Med / Strong presets and adds Custom, with X, Y, blur, spread, colour and inset, plus a live preview of the result.
+- Colour rows are now laid out with the label on the left and the swatch, hex and reset pinned right, so the value no longer sits underneath the label text.
+- Every control in the panel is the same slim 32px height — number fields, dropdowns and colour inputs all match, and one spacing scale is used throughout.
+- Number fields gained stepper arrows and keyboard support: click the arrows or use up and down (hold shift for steps of ten).
+
+## 3.09.72 — Mail & forms: live updates, inbox actions, delete fix
+- Fixed entries not deleting. Deleting an entry soft-deletes it, but the entries list never filtered deleted rows out, so everything reappeared on reload. It now excludes them, and the confirmation says the entry moves to Deleted (restorable from the inbox) rather than claiming to delete permanently.
+- The inbox and the per-form entries list now update on their own — new submissions appear and removed ones disappear without reloading the page.
+- The inbox always shows its full interface. An empty inbox now shows a small message inside the list instead of replacing the filters, folders and reading pane with a paragraph.
+- Inbox rows gained hover actions: pin, mark done, mark read/unread and delete. Folder assignment stays inside the opened message.
+- The Deleted tab is now a proper outlined tab with a trash icon, and turns red when active, instead of blending into the filter bar.
+- Fixed row hover using the same colour as the page background, which made rows look like holes in the panel. Added a dedicated hover token used by the forms table and entries list.
+
 ## 3.09.71 — Style editor rebuilt
 - Replaced the tall list of style targets with a compact icon strip (Form, Title, Labels, Inputs, Button). The header is now about a quarter of its old height, leaving the panel to the controls.
 - Added an "Applies to" dropdown for Labels and Inputs: style all of them, or pick one specific field. "All" stays selected by default so it is always clear whether an edit is global or per-field.

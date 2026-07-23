@@ -586,6 +586,27 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'items' => Velox_Forms::inbox( 300, 0, 0, 'deleted' ) ) );
 				break;
 
+			case 'inbox_sync':
+				// Lightweight poll used to keep the inbox live without a page reload.
+				wp_send_json_success( array( 'items' => Velox_Forms::inbox( 60, 0, 0, 'active' ) ) );
+				break;
+
+			case 'entries_sync':
+				$vx_fid  = isset( $_POST['form'] ) ? (int) $_POST['form'] : 0;
+				$vx_rows = Velox_Forms::submissions( $vx_fid, 500 );
+				$vx_out  = array();
+				foreach ( $vx_rows as $vx_r ) {
+					$vx_d = json_decode( $vx_r['data'], true );
+					$vx_out[] = array(
+						'id'      => (int) $vx_r['id'],
+						'created' => $vx_r['created'],
+						'ip'      => isset( $vx_r['ip'] ) ? $vx_r['ip'] : '',
+						'data'    => is_array( $vx_d ) ? $vx_d : array(),
+					);
+				}
+				wp_send_json_success( array( 'labels' => Velox_Forms::field_labels( $vx_fid ), 'items' => $vx_out ) );
+				break;
+
 			case 'fm_list':
 				wp_send_json_success( Velox_Filemanager::list_dir( isset( $_POST['path'] ) ? wp_unslash( $_POST['path'] ) : '' ) );
 				break;

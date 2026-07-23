@@ -3763,19 +3763,25 @@
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 		} );
-		$$( '.velox-mail-sub-del' ).forEach( function ( btn ) {
-			btn.addEventListener( 'click', function ( e ) {
-				e.preventDefault();
-				var sub = btn.closest( '.vmail-entry' ) || btn.closest( '.velox-mail-sub' );
-				var id  = btn.getAttribute( 'data-id' ) || ( sub && sub.getAttribute( 'data-id' ) );
-				if ( ! window.confirm( 'Delete this entry permanently?' ) ) { return; }
-				api( 'submission_delete', { id: id } )
-					.then( function () { if ( sub ) { sub.remove(); } toast( 'Removed.' ); } )
-					.catch( function ( er ) { toast( er.message, 'error' ); } );
-			} );
+		document.addEventListener( 'click', function ( e ) {
+			var btn = e.target.closest ? e.target.closest( '.velox-mail-sub-del' ) : null;
+			if ( ! btn ) { return; }
+			e.preventDefault();
+			var sub = btn.closest( '.vmail-entry' ) || btn.closest( '.velox-mail-sub' );
+			var id  = btn.getAttribute( 'data-id' ) || ( sub && sub.getAttribute( 'data-id' ) );
+			if ( ! window.confirm( 'Move this entry to Deleted? You can restore it from the inbox.' ) ) { return; }
+			api( 'submission_delete', { id: id } )
+				.then( function () {
+					if ( sub ) { sub.remove(); }
+					var eb = document.getElementById( 'vmail-entries-blank' ), ew = document.getElementById( 'vmail-entries' );
+					if ( eb && ew ) { eb.hidden = !! ew.querySelector( '.vmail-entry' ); }
+					toast( 'Moved to Deleted.' );
+				} )
+				.catch( function ( er ) { toast( er.message, 'error' ); } );
 		} );
 		initMailSmtp();
 		initMailInbox();
+		initEntriesLive();
 		initMailCaptchaGate();
 
 		var logClear = $( '#vmail-log-clear' );
@@ -3798,6 +3804,70 @@
 	}
 
 	/* ---- Submissions inbox: master list + detail panel ---- */
+	function initEntriesLive() {
+		var wrap = document.getElementById( 'vmail-entries' );
+		if ( ! wrap ) { return; }
+		var formId = wrap.getAttribute( 'data-form' ) || '0';
+		var blank = document.getElementById( 'vmail-entries-blank' );
+		var busy = false;
+
+		function entryRow( it, labels ) {
+			var el = document.createElement( 'details' );
+			el.className = 'vmail-entry';
+			el.setAttribute( 'data-id', it.id );
+			var prev = [];
+			Object.keys( it.data || {} ).forEach( function ( k ) {
+				var v = it.data[ k ];
+				if ( prev.length < 2 && v && 'object' !== typeof v && String( v ).trim() ) { prev.push( String( v ).trim() ); }
+			} );
+			var when = '';
+			var d = new Date( String( it.created ).replace( ' ', 'T' ) );
+			if ( ! isNaN( d.getTime() ) ) {
+				when = d.toLocaleDateString( undefined, { month: 'short', day: 'numeric', year: 'numeric' } ) +
+					' · ' + d.toLocaleTimeString( undefined, { hour: '2-digit', minute: '2-digit' } );
+			}
+			var dl = Object.keys( it.data || {} ).map( function ( k ) {
+				var v = it.data[ k ];
+				var lbl = ( labels && labels[ k ] ) ? labels[ k ] : k.replace( /[_-]/g, ' ' );
+				return '<dt>' + escapeHtml( lbl ) + '</dt><dd>' + escapeHtml( Array.isArray( v ) ? v.join( ', ' ) : String( v == null ? '' : v ) ) + '</dd>';
+			} ).join( '' );
+			el.innerHTML =
+				'<summary class="vmail-entry-sum">' +
+					'<span class="vmail-entry-date">' + escapeHtml( when ) + '</span>' +
+					'<span class="vmail-entry-preview">' + escapeHtml( prev.join( '  ·  ' ) ) + '</span>' +
+					'<span class="vmail-entry-chev" aria-hidden="true">\u25be</span>' +
+				'</summary>' +
+				'<div class="vmail-entry-body"><dl class="vmail-entry-dl">' + dl + '</dl>' +
+					'<div class="vmail-entry-foot"><span class="vmail-entry-meta">#' + it.id + ( it.ip ? ' · IP ' + escapeHtml( it.ip ) : '' ) + '</span>' +
+					'<button class="velox-btn velox-btn--ghost velox-mail-sub-del" data-id="' + it.id + '">Delete entry</button></div>' +
+				'</div>';
+			return el;
+		}
+
+		function sync() {
+			if ( busy || document.hidden ) { return; }
+			busy = true;
+			api( 'entries_sync', { form: formId } )
+				.then( function ( r ) {
+					var items = ( r && r.items ) || [], labels = ( r && r.labels ) || {};
+					var seen = {};
+					items.forEach( function ( it ) { seen[ String( it.id ) ] = 1; } );
+					$$( '.vmail-entry', wrap ).forEach( function ( el ) {
+						if ( ! seen[ el.getAttribute( 'data-id' ) ] ) { el.remove(); }
+					} );
+					items.slice().reverse().forEach( function ( it ) {
+						if ( wrap.querySelector( '.vmail-entry[data-id="' + it.id + '"]' ) ) { return; }
+						wrap.insertBefore( entryRow( it, labels ), wrap.firstChild );
+					} );
+					if ( blank ) { blank.hidden = items.length > 0; }
+				} )
+				.catch( function () {} )
+				.then( function () { busy = false; } );
+		}
+		setInterval( sync, 12000 );
+		document.addEventListener( 'visibilitychange', function () { if ( ! document.hidden ) { sync(); } } );
+	}
+
 	function initMailInbox() {
 		var list   = $( '#vmail-inbox-list' );
 		var detail = $( '#vmail-inbox-detail' );
@@ -3926,8 +3996,113 @@
 				deleteSubmission( item.getAttribute( 'data-id' ), item );
 				return;
 			}
+			// Row hover actions: pin / done / read, without opening the message.
+			var act = e.target.closest( '.vmail-act' );
+			if ( act ) {
+				e.stopPropagation();
+				var id = item.getAttribute( 'data-id' ), kind = act.getAttribute( 'data-act' );
+				if ( 'pin' === kind ) {
+					var pon = '1' !== item.getAttribute( 'data-pinned' );
+					item.setAttribute( 'data-pinned', pon ? '1' : '0' );
+					item.classList.toggle( 'is-pinned', pon );
+					if ( pon ) { list.insertBefore( item, list.firstChild ); }
+					api( 'submission_flag', { id: id, flag: 'pinned', on: pon ? '1' : '0' } ).catch( function () {} );
+					toast( pon ? 'Pinned.' : 'Unpinned.' );
+				} else if ( 'done' === kind ) {
+					var don = 'done' !== item.getAttribute( 'data-status' );
+					item.setAttribute( 'data-status', don ? 'done' : 'open' );
+					api( 'submission_flag', { id: id, flag: 'done', on: don ? '1' : '0' } ).catch( function () {} );
+					toast( don ? 'Marked done.' : 'Reopened.' );
+				} else if ( 'read' === kind ) {
+					var ron = '1' !== item.getAttribute( 'data-read' );
+					item.setAttribute( 'data-read', ron ? '1' : '0' );
+					item.classList.toggle( 'is-unread', ! ron );
+					api( 'submission_flag', { id: id, flag: 'read', on: ron ? '1' : '0' } ).catch( function () {} );
+				}
+				applyFilter();
+				return;
+			}
 			load( item.getAttribute( 'data-id' ), item );
 		} );
+
+		// ===== Live sync: keep the inbox current without reloading the page =====
+		function fmtWhen( created ) {
+			if ( ! created ) { return ''; }
+			var d = new Date( String( created ).replace( ' ', 'T' ) );
+			if ( isNaN( d.getTime() ) ) { return ''; }
+			return d.toLocaleDateString( undefined, { month: 'short', day: 'numeric' } );
+		}
+		function liveRow( it ) {
+			var row = document.createElement( 'div' );
+			row.className = 'vmail-inbox-item' + ( it.read ? '' : ' is-unread' ) + ( it.pinned ? ' is-pinned' : '' );
+			row.setAttribute( 'data-id', it.id );
+			row.setAttribute( 'data-read', it.read ? '1' : '0' );
+			row.setAttribute( 'data-pinned', it.pinned ? '1' : '0' );
+			row.setAttribute( 'data-status', it.status || 'open' );
+			row.setAttribute( 'data-folder', it.folder || '' );
+			row.setAttribute( 'data-email', it.email || '' );
+			row.setAttribute( 'role', 'option' );
+			function actBtn( kind, title, path ) {
+				return '<button type="button" class="vmail-act vmail-act--' + kind + '" data-act="' + kind + '" data-id="' + it.id + '" title="' + title + '" aria-label="' + title + '">' +
+					'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg></button>';
+			}
+			row.innerHTML =
+				'<label class="vmail-inbox-check" title="Select"><input type="checkbox" class="vmail-check" data-id="' + it.id + '"></label>' +
+				'<button type="button" class="vmail-inbox-open" aria-label="Open submission">' +
+					'<span class="vmail-avatar" aria-hidden="true">' + escapeHtml( initials( it.who ) ) + '</span>' +
+					'<span class="vmail-inbox-body">' +
+						'<span class="vmail-inbox-line1"><span class="vmail-inbox-who">' + escapeHtml( it.who || 'Anonymous' ) + '</span>' +
+						'<span class="vmail-inbox-when">' + escapeHtml( fmtWhen( it.created ) ) + '</span></span>' +
+						'<span class="vmail-inbox-form">' + escapeHtml( it.form_title || '' ) + '</span>' +
+						'<span class="vmail-inbox-prev">' + escapeHtml( it.preview || '' ) + '</span>' +
+					'</span>' +
+					'<span class="vmail-inbox-marks" aria-hidden="true">' +
+						'<svg class="vmail-pin-ic" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v6l-2 4h10l-2-4V4M12 14v6M8 4h8"/></svg>' +
+						'<span class="vmail-unread-dot"></span>' +
+					'</span>' +
+				'</button>' +
+				'<div class="vmail-inbox-acts">' +
+					actBtn( 'pin', 'Pin to top', '<path d="M9 4v6l-2 4h10l-2-4V4M12 14v6M8 4h8"/>' ) +
+					actBtn( 'done', 'Mark as done', '<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>' ) +
+					actBtn( 'read', 'Mark read or unread', '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/>' ) +
+					'<button type="button" class="vmail-act vmail-act--del vmail-inbox-del" data-id="' + it.id + '" title="Move to Deleted" aria-label="Move to Deleted">' +
+						'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>' +
+					'</button>' +
+				'</div>';
+			return row;
+		}
+		var syncing = false;
+		function syncInbox() {
+			// Only sync the live inbox — the Deleted view has its own loader.
+			if ( syncing || document.hidden ) { return; }
+			var onDeleted = document.querySelector( '.vmail-filter[data-filter="deleted"].is-on' );
+			if ( onDeleted ) { return; }
+			syncing = true;
+			api( 'inbox_sync', {} )
+				.then( function ( r ) {
+					var items = ( r && r.items ) || [];
+					var seen = {}, added = 0;
+					items.forEach( function ( it ) { seen[ String( it.id ) ] = it; } );
+					// Drop rows that no longer exist (deleted elsewhere).
+					$$( '.vmail-inbox-item', list ).forEach( function ( el ) {
+						var id = el.getAttribute( 'data-id' );
+						if ( ! seen[ id ] ) { el.remove(); }
+					} );
+					// Add rows we don't have yet, newest first.
+					items.slice().reverse().forEach( function ( it ) {
+						if ( list.querySelector( '.vmail-inbox-item[data-id="' + it.id + '"]' ) ) { return; }
+						list.insertBefore( liveRow( it ), list.firstChild );
+						added++;
+					} );
+					var blank = document.getElementById( 'vmail-inbox-blank' );
+					if ( blank ) { blank.hidden = items.length > 0; }
+					if ( added ) { applyFilter(); }
+				} )
+				.catch( function () {} )
+				.then( function () { syncing = false; } );
+		}
+		setInterval( syncInbox, 12000 );
+		document.addEventListener( 'visibilitychange', function () { if ( ! document.hidden ) { syncInbox(); } } );
 
 		// Reading-pane actions: reply / pin / done / delete.
 		detail.addEventListener( 'click', function ( e ) {
@@ -4889,14 +5064,40 @@
 		}
 		function pfRule( sel, o ) {
 			var d = '';
-			if ( o.bg ) { d += 'background:' + o.bg + ';'; }
+			var mode = o.bgMode || 'color';
+			if ( 'gradient' === mode && o.gradFrom && o.gradTo ) {
+				d += 'radial' === ( o.gradType || 'linear' )
+					? 'background-image:radial-gradient(circle,' + o.gradFrom + ',' + o.gradTo + ');'
+					: 'background-image:linear-gradient(' + ( o.gradAngle === '' || o.gradAngle == null ? 90 : o.gradAngle ) + 'deg,' + o.gradFrom + ',' + o.gradTo + ');';
+			} else if ( 'image' === mode && o.imgUrl ) {
+				d += 'background-image:url(' + o.imgUrl + ');';
+				d += 'background-size:' + ( o.imgSize || 'cover' ) + ';';
+				d += 'background-position:' + ( o.imgPos || 'center' ) + ';';
+				d += 'background-repeat:' + ( o.imgRepeat || 'no-repeat' ) + ';';
+				if ( o.bg ) { d += 'background-color:' + o.bg + ';'; }
+			} else if ( o.bg ) {
+				d += 'background:' + o.bg + ';';
+			}
 			if ( o.color ) { d += 'color:' + o.color + ';'; }
 			if ( o.fs ) { d += 'font-size:' + pfPx( o.fs ) + ';'; }
 			if ( o.fw ) { d += 'font-weight:' + o.fw + ';'; }
+			if ( o.lh != null && '' !== o.lh ) { d += 'line-height:' + o.lh + ';'; }
+			if ( o.ls != null && '' !== o.ls ) { d += 'letter-spacing:' + pfPx( o.ls ) + ';'; }
 			if ( o.radius ) { d += 'border-radius:' + pfPx( o.radius ) + ';'; }
 			if ( o.border ) { d += 'border-width:' + pfPx( o.border ) + ';border-style:solid;'; }
 			if ( o.borderColor ) { d += 'border-color:' + o.borderColor + ';'; }
-			if ( o.shadow ) { d += 'box-shadow:' + pfShadow( o.shadow ) + ';'; }
+			if ( o.w ) { d += 'width:' + pfPx( o.w ) + ';'; }
+			if ( o.h ) { d += 'height:' + pfPx( o.h ) + ';'; }
+			if ( o.minh ) { d += 'min-height:' + pfPx( o.minh ) + ';'; }
+			if ( o.maxw ) { d += 'max-width:' + pfPx( o.maxw ) + ';'; }
+			if ( o.shadow ) {
+				if ( 'custom' === o.shadow ) {
+					d += 'box-shadow:' + ( o.shInset ? 'inset ' : '' ) + pfPx( o.shX || 0 ) + ' ' + pfPx( o.shY || 0 ) + ' ' +
+						pfPx( o.shBlur || 0 ) + ' ' + pfPx( o.shSpread || 0 ) + ' ' + ( o.shColor || 'rgba(16,24,40,.22)' ) + ';';
+				} else {
+					d += 'box-shadow:' + pfShadow( o.shadow ) + ';';
+				}
+			}
 			if ( o.pt != null || o.pr != null || o.pb != null || o.pl != null ) {
 				d += 'padding:' + pfPx( o.pt || 0 ) + ' ' + pfPx( o.pr || 0 ) + ' ' + pfPx( o.pb || 0 ) + ' ' + pfPx( o.pl || 0 ) + ';';
 			}
@@ -4909,18 +5110,14 @@
 			var S = form.style || {};
 			var css = '';
 			var f = S.form || {}, h = S.header || {}, l = S.labels || {}, inp = S.inputs || {}, sub = S.submit || {};
-			css += pfRule( scope, { bg: f.bg, radius: f.radius, shadow: f.shadow, pt: f.pt, pr: f.pr, pb: f.pb, pl: f.pl, border: f.border, borderColor: f.borderColor } );
-			css += pfRule( scope + ' h3', { color: h.color, fs: h.fs, fw: h.fw } );
-			css += pfRule( scope + ' .vse-pf-label', { color: l.color, fs: l.fs, fw: l.fw } );
-			css += pfRule( scope + ' .vse-pf-input', { bg: inp.bg, color: inp.color, fs: inp.fs, radius: inp.radius, border: inp.border, borderColor: inp.borderColor } );
+			css += pfRule( scope, f );
+			css += pfRule( scope + ' h3', h );
+			css += pfRule( scope + ' .vse-pf-label', l );
+			css += pfRule( scope + ' .vse-pf-input', inp );
 			var wrapJust = { left: 'flex-start', center: 'center', right: 'flex-end', full: 'stretch' }[ sub.align || 'center' ];
 			css += scope + ' .vse-pf-submit-wrap{justify-content:' + wrapJust + ';}';
 			if ( sub.align === 'full' ) { css += scope + ' .vse-pf-submit{width:100%;}'; }
-			css += pfRule( scope + ' .vse-pf-submit', {
-				bg: sub.bg, color: sub.color, fs: sub.fs, fw: sub.fw, radius: sub.radius, shadow: sub.shadow,
-				pt: sub.pt, pr: sub.pr, pb: sub.pb, pl: sub.pl, mt: sub.mt, mb: sub.mb,
-				border: sub.border, borderColor: sub.borderColor
-			} );
+			css += pfRule( scope + ' .vse-pf-submit', sub );
 			if ( sub.hoverBg ) { css += scope + ' .vse-pf-submit:hover{background:' + sub.hoverBg + ';}'; }
 			// per-field overrides
 			Object.keys( S ).forEach( function ( t ) {
@@ -4928,7 +5125,7 @@
 				var key = t.slice( 6 ), o = S[ t ] || {};
 				var fs = scope + ' .vse-pf-field[data-fkey="' + key + '"]';
 				css += pfRule( fs + ' .vse-pf-label', { color: o.labelColor, fs: o.labelFs, fw: o.labelFw } );
-				css += pfRule( fs + ' .vse-pf-input', { bg: o.bg, color: o.color, fs: o.fs, radius: o.radius, border: o.border, borderColor: o.borderColor } );
+				css += pfRule( fs + ' .vse-pf-input', o );
 			} );
 			return css;
 		}
@@ -5748,7 +5945,7 @@
 					return [ 'step', 'html', 'captcha', 'heading' ].indexOf( f.type ) === -1;
 				} );
 			}
-			var openGroups = { content: true, colour: true, text: true, shape: true, spacing: false, shadow: false };
+			var openGroups = { content: true, colour: true, hover: false, size: false, text: true, shape: true, spacing: false, shadow: false };
 
 			// ---- live preview ----
 			var pf = $( '#vse-form' );
@@ -5771,24 +5968,6 @@
 			function px( v ) { return ( v === '' || v == null ) ? '' : ( /[a-z%]/i.test( String( v ) ) ? v : v + 'px' ); }
 			function shadowVal( k ) {
 				return { none: 'none', soft: '0 1px 3px rgba(16,24,40,.10)', medium: '0 8px 20px -6px rgba(16,24,40,.22)', strong: '0 16px 40px -8px rgba(16,24,40,.32)' }[ k ] || '';
-			}
-			function rule( sel, o ) {
-				var d = '';
-				if ( o.bg ) { d += 'background:' + o.bg + ';'; }
-				if ( o.color ) { d += 'color:' + o.color + ';'; }
-				if ( o.fs ) { d += 'font-size:' + px( o.fs ) + ';'; }
-				if ( o.fw ) { d += 'font-weight:' + o.fw + ';'; }
-				if ( o.radius ) { d += 'border-radius:' + px( o.radius ) + ';'; }
-				if ( o.border ) { d += 'border-width:' + px( o.border ) + ';border-style:solid;'; }
-				if ( o.borderColor ) { d += 'border-color:' + o.borderColor + ';'; }
-				if ( o.shadow ) { d += 'box-shadow:' + shadowVal( o.shadow ) + ';'; }
-				if ( o.pt != null || o.pr != null || o.pb != null || o.pl != null ) {
-					d += 'padding:' + px( o.pt || 0 ) + ' ' + px( o.pr || 0 ) + ' ' + px( o.pb || 0 ) + ' ' + px( o.pl || 0 ) + ';';
-				}
-				if ( o.mt != null || o.mr != null || o.mb != null || o.ml != null ) {
-					d += 'margin:' + px( o.mt || 0 ) + ' ' + px( o.mr || 0 ) + ' ' + px( o.mb || 0 ) + ' ' + px( o.ml || 0 ) + ';';
-				}
-				return d ? ( sel + '{' + d + '}' ) : '';
 			}
 			var SCOPE = '#vse-form';
 			function liveCss() { return formPreviewCss( SCOPE ); }
@@ -5830,24 +6009,38 @@
 				return '<div class="vse-fld"><div class="vse-fk">' + label + '</div>' +
 					'<select class="vse-in" data-t="' + target + '" data-k="' + key + '">' + o + '</select></div>';
 			}
+			var STEP = '<span class="vse-step"><button type="button" data-step="up" tabindex="-1">' + svgi( '<path d="m6 15 6-6 6 6"/>', 9, 2.6 ) + '</button>' +
+				'<button type="button" data-step="down" tabindex="-1">' + svgi( CHEV, 9, 2.6 ) + '</button></span>';
 			function ctrlNum( label, target, key, val, units ) {
 				var p = splitUnit( val );
 				var list = ( units || UNITS ).join( ',' );
 				return '<div class="vse-fld"><div class="vse-fk">' + label + '</div>' +
-					'<div class="vse-num"><input class="vse-nv" data-t="' + target + '" data-k="' + key + '" data-unit="' + p.u + '" value="' + escapeHtml( 'auto' === p.u ? '' : p.n ) + '" placeholder="\u2014">' +
-					'<button type="button" class="vse-unit' + ( 'px' === p.u ? '' : ' is-alt' ) + '" data-t="' + target + '" data-k="' + key + '" data-units="' + list + '">' + p.u + svgi( CHEV, 9, 2.6 ) + '</button>' +
+					'<div class="vse-num"><input class="vse-nv" type="text" inputmode="decimal" data-t="' + target + '" data-k="' + key + '" data-unit="' + p.u + '" value="' + escapeHtml( 'auto' === p.u ? '' : p.n ) + '" placeholder="\u2014">' +
+					STEP +
+					'<button type="button" class="vse-unit' + ( 'px' === p.u ? '' : ' is-alt' ) + '" data-t="' + target + '" data-k="' + key + '" data-units="' + list + '">' + p.u + svgi( CHEV, 8, 2.6 ) + '</button>' +
 					'</div></div>';
 			}
+			// Label on the left, controls hard right — they never collide.
 			function ctrlColor( label, target, key, val ) {
 				var v = ( val == null ? '' : String( val ) ).trim();
 				var has = '' !== v;
 				var hexOk = /^#([0-9a-f]{6})$/i.test( v );
-				return '<div class="vse-row"><span class="vse-rk">' + label + '</span>' +
+				return '<div class="vse-row"><span class="vse-rk">' + label + '</span><span class="vse-rc">' +
 					'<span class="vse-sw' + ( has ? '' : ' is-inherit' ) + '"' + ( has ? ' style="background:' + escapeHtml( v ) + '"' : '' ) + '>' +
 					'<input type="color" data-t="' + target + '" data-k="' + key + '" data-color="1" value="' + ( hexOk ? v : '#2ab7f1' ) + '"></span>' +
 					'<input class="vse-hex' + ( has ? '' : ' is-inherit' ) + '" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( v ) + '" placeholder="Inherit">' +
-					( has ? '<button type="button" class="vse-revert" data-t="' + target + '" data-k="' + key + '" title="Reset to inherit">' + svgi( REVERT, 14, 1.8 ) + '</button>' : '' ) +
-					'</div>';
+					'<button type="button" class="vse-revert' + ( has ? '' : ' is-hidden' ) + '" data-t="' + target + '" data-k="' + key + '" title="Reset to inherit">' + svgi( REVERT, 13, 1.8 ) + '</button>' +
+					'</span></div>';
+			}
+			function ctrlToggle( label, target, key, on ) {
+				return '<div class="vse-row"><span class="vse-rk">' + label + '</span><span class="vse-rc">' +
+					'<span class="vse-seg vse-seg--sm"><button type="button" data-t="' + target + '" data-k="' + key + '" data-v=""' + ( on ? '' : ' class="is-on"' ) + '>Off</button>' +
+					'<button type="button" data-t="' + target + '" data-k="' + key + '" data-v="1"' + ( on ? ' class="is-on"' : '' ) + '>On</button></span>' +
+					'</span></div>';
+			}
+			function ctrlUrl( label, target, key, val ) {
+				return '<div class="vse-fld"><div class="vse-fk">' + label + '</div>' +
+					'<input class="vse-in" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( val || '' ) + '" placeholder="https://\u2026"></div>';
 			}
 			function ctrlSeg( label, target, key, val, opts ) {
 				var btns = opts.map( function ( o ) {
@@ -5876,51 +6069,120 @@
 					'<div class="vse-grp-b">' + inner + '</div></div>';
 			}
 
+			var WEIGHTS = [ { v: '', l: 'Inherit' }, { v: '400', l: 'Regular' }, { v: '500', l: 'Medium' },
+				{ v: '600', l: 'Semibold' }, { v: '700', l: 'Bold' } ];
+			var SHADOWS = [ { v: 'none', l: 'None' }, { v: 'soft', l: 'Soft' }, { v: 'medium', l: 'Med' },
+				{ v: 'strong', l: 'Strong' }, { v: 'custom', l: 'Custom' } ];
+			var DIM = [ 'px', 'rem', 'em', '%', 'auto' ];
+			var PLAIN = [ 'px', 'rem', 'em', '%' ];
+
+			function grpBackground( t, o, rich ) {
+				var mode = o.bgMode || 'color';
+				var inner = '';
+				if ( rich ) {
+					inner += '<span class="vse-seg vse-seg--full">' +
+						[ [ 'color', 'Colour' ], [ 'gradient', 'Gradient' ], [ 'image', 'Image' ] ].map( function ( m ) {
+							return '<button type="button" data-t="' + t + '" data-k="bgMode" data-v="' + m[0] + '"' +
+								( mode === m[0] ? ' class="is-on"' : '' ) + '>' + m[1] + '</button>';
+						} ).join( '' ) + '</span>';
+				}
+				if ( ! rich || 'color' === mode ) {
+					inner += ctrlColor( 'Fill', t, 'bg', o.bg );
+				} else if ( 'gradient' === mode ) {
+					inner += '<div class="vse-gradbar" style="background:' +
+						( 'radial' === ( o.gradType || 'linear' )
+							? 'radial-gradient(circle,' + ( o.gradFrom || '#2ab7f1' ) + ',' + ( o.gradTo || '#7b5cff' ) + ')'
+							: 'linear-gradient(' + ( o.gradAngle || 90 ) + 'deg,' + ( o.gradFrom || '#2ab7f1' ) + ',' + ( o.gradTo || '#7b5cff' ) + ')' ) + '"></div>';
+					inner += '<div class="vse-two">' +
+						ctrlSelect( 'Type', t, 'gradType', o.gradType || 'linear', [ { v: 'linear', l: 'Linear' }, { v: 'radial', l: 'Radial' } ] ) +
+						ctrlNum( 'Angle', t, 'gradAngle', o.gradAngle, [ 'deg' ] ) + '</div>';
+					inner += ctrlColor( 'From', t, 'gradFrom', o.gradFrom ) + ctrlColor( 'To', t, 'gradTo', o.gradTo );
+				} else {
+					inner += ctrlUrl( 'Image URL', t, 'imgUrl', o.imgUrl );
+					inner += '<div class="vse-two">' +
+						ctrlSelect( 'Size', t, 'imgSize', o.imgSize || 'cover', [ { v: 'cover', l: 'Cover' }, { v: 'contain', l: 'Contain' }, { v: 'auto', l: 'Auto' } ] ) +
+						ctrlSelect( 'Position', t, 'imgPos', o.imgPos || 'center', [ { v: 'center', l: 'Center' }, { v: 'top', l: 'Top' }, { v: 'bottom', l: 'Bottom' }, { v: 'left', l: 'Left' }, { v: 'right', l: 'Right' } ] ) + '</div>';
+					inner += '<div class="vse-two">' +
+						ctrlSelect( 'Repeat', t, 'imgRepeat', o.imgRepeat || 'no-repeat', [ { v: 'no-repeat', l: 'No repeat' }, { v: 'repeat', l: 'Tile' }, { v: 'repeat-x', l: 'Tile X' }, { v: 'repeat-y', l: 'Tile Y' } ] ) +
+						'</div>';
+					inner += ctrlColor( 'Behind image', t, 'bg', o.bg );
+				}
+				return grp( 'colour', 'Background', inner );
+			}
+			function grpSize( t, o ) {
+				return grp( 'size', 'Size', '<div class="vse-two">' + ctrlNum( 'Width', t, 'w', o.w, DIM ) + ctrlNum( 'Height', t, 'h', o.h, DIM ) + '</div>' +
+					'<div class="vse-two">' + ctrlNum( 'Min height', t, 'minh', o.minh, DIM ) + ctrlNum( 'Max width', t, 'maxw', o.maxw, DIM ) + '</div>' );
+			}
+			function grpText( t, o, withColor ) {
+				var inner = '<div class="vse-two">' + ctrlNum( 'Size', t, 'fs', o.fs, PLAIN ) + ctrlSelect( 'Weight', t, 'fw', o.fw, WEIGHTS ) + '</div>' +
+					'<div class="vse-two">' + ctrlNum( 'Line height', t, 'lh', o.lh, [ '', 'px', 'rem', 'em' ] ) + ctrlNum( 'Letter spacing', t, 'ls', o.ls, PLAIN ) + '</div>';
+				if ( withColor ) { inner += ctrlColor( 'Colour', t, 'color', o.color ); }
+				return grp( 'text', 'Text', inner );
+			}
+			function grpShape( t, o ) {
+				return grp( 'shape', 'Shape', '<div class="vse-two">' + ctrlNum( 'Corner', t, 'radius', o.radius, PLAIN ) +
+					ctrlNum( 'Border', t, 'border', o.border, PLAIN ) + '</div>' + ctrlColor( 'Border colour', t, 'borderColor', o.borderColor ) );
+			}
+			function grpSpacing( t, both ) {
+				var inner = '<div class="vse-sk">Padding</div>' + ctrlSides( t, 'p' );
+				if ( both ) { inner += '<div class="vse-sk">Margin</div>' + ctrlSides( t, 'm' ); }
+				return grp( 'spacing', 'Spacing', inner );
+			}
+			function grpShadow( t, o ) {
+				var inner = ctrlSeg( '', t, 'shadow', o.shadow || 'none', SHADOWS );
+				if ( 'custom' === o.shadow ) {
+					inner += '<div class="vse-shprev" style="box-shadow:' + ( o.shInset ? 'inset ' : '' ) +
+						( o.shX || 0 ) + 'px ' + ( o.shY || 0 ) + 'px ' + ( o.shBlur || 0 ) + 'px ' + ( o.shSpread || 0 ) + 'px ' +
+						( o.shColor || 'rgba(16,24,40,.22)' ) + '"></div>';
+					inner += '<div class="vse-two">' + ctrlNum( 'X', t, 'shX', o.shX, PLAIN ) + ctrlNum( 'Y', t, 'shY', o.shY, PLAIN ) + '</div>';
+					inner += '<div class="vse-two">' + ctrlNum( 'Blur', t, 'shBlur', o.shBlur, PLAIN ) + ctrlNum( 'Spread', t, 'shSpread', o.shSpread, PLAIN ) + '</div>';
+					inner += ctrlColor( 'Colour', t, 'shColor', o.shColor );
+					inner += ctrlToggle( 'Inset', t, 'shInset', !! o.shInset );
+				}
+				return grp( 'shadow', 'Shadow', inner );
+			}
+
 			function renderControls() {
 				var o = st( current ), t = curTarget, body = '';
-				var W = [ { v: '', l: 'Inherit' }, { v: '400', l: 'Regular' }, { v: '500', l: 'Medium' },
-					{ v: '600', l: 'Semibold' }, { v: '700', l: 'Bold' } ];
-				var SH = [ { v: 'none', l: 'None' }, { v: 'soft', l: 'Soft' }, { v: 'medium', l: 'Med' }, { v: 'strong', l: 'Strong' } ];
-				var DIM = [ 'px', 'rem', 'em', '%', 'auto' ];
+				var bucket = current;
 
 				if ( 'submit' === t ) {
 					body += grp( 'content', 'Content', ctrlText( 'Button text', 'submit', 'text', form.submit_label || 'Submit' ) +
 						ctrlSeg( 'Alignment', 'submit', 'align', o.align || 'center',
 							[ { v: 'left', l: 'Left' }, { v: 'center', l: 'Center' }, { v: 'right', l: 'Right' }, { v: 'full', l: 'Full' } ] ) );
-					body += grp( 'colour', 'Colour', ctrlColor( 'Fill', 'submit', 'bg', o.bg ) +
-						ctrlColor( 'Text', 'submit', 'color', o.color ) + ctrlColor( 'Hover fill', 'submit', 'hoverBg', o.hoverBg ) );
-					body += grp( 'text', 'Text', '<div class="vse-two">' + ctrlNum( 'Size', 'submit', 'fs', o.fs ) +
-						ctrlSelect( 'Weight', 'submit', 'fw', o.fw, W ) + '</div>' );
-					body += grp( 'shape', 'Shape', '<div class="vse-two">' + ctrlNum( 'Corner', 'submit', 'radius', o.radius ) +
-						ctrlNum( 'Border', 'submit', 'border', o.border ) + '</div>' + ctrlColor( 'Border colour', 'submit', 'borderColor', o.borderColor ) );
-					body += grp( 'spacing', 'Spacing', '<div class="vse-sk">Padding</div>' + ctrlSides( 'submit', 'p' ) +
-						'<div class="vse-sk">Margin</div>' + ctrlSides( 'submit', 'm' ) );
-					body += grp( 'shadow', 'Shadow', ctrlSeg( '', 'submit', 'shadow', o.shadow || 'medium', SH ) );
+					body += grpBackground( 'submit', o, true );
+					body += grp( 'hover', 'Hover', ctrlColor( 'Hover fill', 'submit', 'hoverBg', o.hoverBg ) );
+					body += grpSize( 'submit', o );
+					body += grpText( 'submit', o, true );
+					body += grpShape( 'submit', o );
+					body += grpSpacing( 'submit', true );
+					body += grpShadow( 'submit', o );
 				} else if ( 'form' === t ) {
-					body += grp( 'colour', 'Colour', ctrlColor( 'Background', 'form', 'bg', o.bg ) +
-						ctrlColor( 'Border colour', 'form', 'borderColor', o.borderColor ) );
-					body += grp( 'shape', 'Shape', '<div class="vse-two">' + ctrlNum( 'Corner', 'form', 'radius', o.radius ) +
-						ctrlNum( 'Border', 'form', 'border', o.border ) + '</div>' );
-					body += grp( 'spacing', 'Spacing', ctrlSides( 'form', 'p' ) );
-					body += grp( 'shadow', 'Shadow', ctrlSeg( '', 'form', 'shadow', o.shadow || 'medium', SH ) );
+					body += grpBackground( 'form', o, true );
+					body += grpSize( 'form', o );
+					body += grpShape( 'form', o );
+					body += grpSpacing( 'form', true );
+					body += grpShadow( 'form', o );
 				} else if ( 'header' === t ) {
-					body += grp( 'colour', 'Colour', ctrlColor( 'Text', 'header', 'color', o.color ) );
-					body += grp( 'text', 'Text', '<div class="vse-two">' + ctrlNum( 'Size', 'header', 'fs', o.fs ) +
-						ctrlSelect( 'Weight', 'header', 'fw', o.fw, W ) + '</div>' );
+					body += grpText( 'header', o, true );
+					body += grpSpacing( 'header', true );
 				} else if ( 'labels' === t ) {
-					// One field's label lives on that field's bucket under label* keys.
 					var kc = curScope ? 'labelColor' : 'color';
 					var ks = curScope ? 'labelFs' : 'fs';
 					var kw = curScope ? 'labelFw' : 'fw';
-					body += grp( 'colour', 'Colour', ctrlColor( 'Text', current, kc, o[ kc ] ) );
-					body += grp( 'text', 'Text', '<div class="vse-two">' + ctrlNum( 'Size', current, ks, o[ ks ] ) +
-						ctrlSelect( 'Weight', current, kw, o[ kw ], W ) + '</div>' );
+					body += grp( 'colour', 'Colour', ctrlColor( 'Text', bucket, kc, o[ kc ] ) );
+					body += grp( 'text', 'Text', '<div class="vse-two">' + ctrlNum( 'Size', bucket, ks, o[ ks ], PLAIN ) +
+						ctrlSelect( 'Weight', bucket, kw, o[ kw ], WEIGHTS ) + '</div>' +
+						( curScope ? '' : '<div class="vse-two">' + ctrlNum( 'Line height', 'labels', 'lh', o.lh, [ '', 'px', 'rem', 'em' ] ) +
+							ctrlNum( 'Letter spacing', 'labels', 'ls', o.ls, PLAIN ) + '</div>' ) );
+					if ( ! curScope ) { body += grpSpacing( 'labels', true ); }
 				} else {
-					body += grp( 'colour', 'Colour', ctrlColor( 'Fill', current, 'bg', o.bg ) +
-						ctrlColor( 'Text', current, 'color', o.color ) + ctrlColor( 'Border colour', current, 'borderColor', o.borderColor ) );
-					body += grp( 'text', 'Text', '<div class="vse-two">' + ctrlNum( 'Size', current, 'fs', o.fs ) + '</div>' );
-					body += grp( 'shape', 'Shape', '<div class="vse-two">' + ctrlNum( 'Corner', current, 'radius', o.radius, DIM ) +
-						ctrlNum( 'Border', current, 'border', o.border ) + '</div>' );
+					body += grpBackground( bucket, o, false );
+					body += grpSize( bucket, o );
+					body += grpText( bucket, o, true );
+					body += grpShape( bucket, o );
+					body += grpSpacing( bucket, false );
+					body += grpShadow( bucket, o );
 				}
 				$( '#vse-controls' ).innerHTML = body;
 				bindControls();
@@ -6011,12 +6273,40 @@
 					} );
 				} );
 
-				// Segmented options (alignment, shadow).
+				// Segmented options (alignment, background mode, shadow preset, inset).
+				var RERENDER = { bgMode: 1, shadow: 1, gradType: 1 };
 				$$( '.vse-seg button', wrap ).forEach( function ( btn ) {
 					btn.addEventListener( 'click', function () {
-						st( btn.getAttribute( 'data-t' ) )[ btn.getAttribute( 'data-k' ) ] = btn.getAttribute( 'data-v' );
+						var t = btn.getAttribute( 'data-t' ), k = btn.getAttribute( 'data-k' ), v = btn.getAttribute( 'data-v' );
+						var o = st( t );
+						if ( '' === v ) { delete o[ k ]; } else { o[ k ] = v; }
 						btn.parentNode.querySelectorAll( 'button' ).forEach( function ( b ) { b.classList.toggle( 'is-on', b === btn ); } );
 						applyLive();
+						if ( RERENDER[ k ] ) { renderControls(); }
+					} );
+				} );
+
+				// Stepper buttons + arrow keys on every number field.
+				function bump( input, delta ) {
+					var cur = parseFloat( input.value );
+					if ( isNaN( cur ) ) { cur = 0; }
+					var next = Math.round( ( cur + delta ) * 100 ) / 100;
+					input.value = String( next );
+					input.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+				}
+				$$( '.vse-step button', wrap ).forEach( function ( b ) {
+					b.addEventListener( 'click', function ( e ) {
+						e.preventDefault();
+						var input = b.closest( '.vse-num' ).querySelector( '.vse-nv' );
+						bump( input, 'up' === b.getAttribute( 'data-step' ) ? 1 : -1 );
+					} );
+				} );
+				$$( '.vse-nv', wrap ).forEach( function ( input ) {
+					input.addEventListener( 'keydown', function ( e ) {
+						if ( 'ArrowUp' !== e.key && 'ArrowDown' !== e.key ) { return; }
+						e.preventDefault();
+						var mult = e.shiftKey ? 10 : 1;
+						bump( input, ( 'ArrowUp' === e.key ? 1 : -1 ) * mult );
 					} );
 				} );
 			}
