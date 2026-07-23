@@ -6728,9 +6728,69 @@
 					'<div class="velox-scan-pct">' + pct + '%</div>' +
 				'</div>';
 		}
+		// Pull every uploads reference out of a blob of HTML or CSS. Works the same
+		// for any builder, because by this point it's all just markup and url().
+		function extractUploads( text ) {
+			var out = [], re = /uploads\/((?:\d{4}\/\d{2}\/)?[^\s"'\\)<>\[\]]+?\.[a-z0-9]{2,5})/gi, m;
+			var flat = text.indexOf( '\\/' ) !== -1 ? text.replace( /\\\//g, '/' ) : text;
+			while ( ( m = re.exec( flat ) ) !== null ) { out.push( m[1] ); }
+			return out;
+		}
+		var cssDone = {};
+		function crawlOne( url ) {
+			return fetch( url, { credentials: 'same-origin' } )
+				.then( function ( r ) { return r.ok ? r.text() : ''; } )
+				.then( function ( html ) {
+					if ( ! html ) { return []; }
+					var found = extractUploads( html );
+					// Background images live in stylesheets, not the markup — this is
+					// the part a database scan can never see. Each sheet once.
+					var sheets = [];
+					try {
+						var doc = new DOMParser().parseFromString( html, 'text/html' );
+						$$( 'link[rel="stylesheet"]', doc ).forEach( function ( l ) {
+							var href = l.getAttribute( 'href' ) || '';
+							if ( ! href ) { return; }
+							var abs = new URL( href, url ).href;
+							if ( abs.indexOf( window.location.origin ) !== 0 ) { return; }
+							if ( cssDone[ abs ] ) { return; }
+							cssDone[ abs ] = 1;
+							sheets.push( abs );
+						} );
+					} catch ( e ) {}
+					if ( ! sheets.length ) { return found; }
+					return Promise.all( sheets.map( function ( href ) {
+						return fetch( href, { credentials: 'same-origin' } )
+							.then( function ( r ) { return r.ok ? r.text() : ''; } )
+							.then( function ( css ) { return css ? extractUploads( css ) : []; } )
+							.catch( function () { return []; } );
+					} ) ).then( function ( lists ) {
+						lists.forEach( function ( l ) { found = found.concat( l ); } );
+						return found;
+					} );
+				} )
+				.catch( function () { return []; } );
+		}
+		function crawlPages( urls ) {
+			var i = 0, total = urls.length;
+			function next() {
+				if ( i >= total ) { return api( 'media_crawl_done', { pages: total } ); }
+				var url = urls[ i++ ];
+				var label = url.replace( window.location.origin, '' ) || '/';
+				scanProgress( 70 + Math.floor( ( i / total ) * 13 ), 'Reading page ' + i + ' of ' + total );
+				return crawlOne( url ).then( function ( paths ) {
+					if ( ! paths.length ) { return null; }
+					return api( 'media_crawl_report', { paths: JSON.stringify( paths ), label: label } );
+				} ).then( next, next );
+			}
+			return next();
+		}
 		function runScan() {
 			return api( 'media_scan_step', {} ).then( function ( p ) {
 				scanProgress( p.percent || 0, p.label );
+				if ( p.crawl ) {
+					return crawlPages( p.urls || [] ).then( runScan );
+				}
 				if ( p.done ) { return p; }
 				return runScan();
 			} );
@@ -6750,7 +6810,8 @@
 					} );
 					filterWrap.hidden = mediaItems.length === 0;
 					var c = d.counts || {};
-					summary.textContent = ( c.used || 0 ) + ' in use · ' + ( c.maybe || 0 ) + ' possibly used · ' + ( c.unused || 0 ) + ' with no reference found';
+					var cov = d.crawled ? ( ' · read ' + d.crawled + ' of ' + ( d.crawlable || d.crawled ) + ' pages' ) : '';
+					summary.textContent = ( c.used || 0 ) + ' in use · ' + ( c.maybe || 0 ) + ' possibly used · ' + ( c.unused || 0 ) + ' with no reference found' + cov;
 					renderMedia();
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); results.innerHTML = ''; } )

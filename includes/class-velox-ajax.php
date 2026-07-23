@@ -282,6 +282,19 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_MediaScan::step() );
 				break;
 
+			case 'media_crawl_report':
+				wp_send_json_success( Velox_MediaScan::crawl_report(
+					isset( $_POST['paths'] ) ? (array) json_decode( wp_unslash( $_POST['paths'] ), true ) : array(),
+					isset( $_POST['label'] ) ? wp_unslash( $_POST['label'] ) : ''
+				) );
+				break;
+
+			case 'media_crawl_done':
+				wp_send_json_success( Velox_MediaScan::crawl_done(
+					isset( $_POST['pages'] ) ? (int) $_POST['pages'] : 0
+				) );
+				break;
+
 			case 'media_scan_results':
 				wp_send_json_success( Velox_MediaScan::results(
 					isset( $_POST['filter'] ) ? sanitize_key( wp_unslash( $_POST['filter'] ) ) : 'all'

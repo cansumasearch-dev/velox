@@ -30,8 +30,66 @@ class Velox_MediaScan {
 			'options'  => array( 'label' => 'Theme & plugin settings', 'batch' => 200 ),
 			'meta'     => array( 'label' => 'Categories & users', 'batch' => 300 ),
 			'files'    => array( 'label' => 'Theme & builder CSS', 'batch' => 1 ),
+			'crawl'    => array( 'label' => 'Reading your pages', 'batch' => 1 ),
 			'compare'  => array( 'label' => 'Checking media', 'batch' => 60 ),
 		);
+	}
+
+	/**
+	 * Every public URL worth reading. The browser crawls these, not the server —
+	 * loopback HTTP is blocked on a lot of hosts, and the browser is already
+	 * authenticated and on the right origin.
+	 */
+	public static function crawl_urls( $max = 400 ) {
+		$urls  = array( home_url( '/' ) );
+		$types = get_post_types( array( 'public' => true ), 'names' );
+		unset( $types['attachment'] );
+		$ids = get_posts( array(
+			'post_type'      => array_values( $types ),
+			'post_status'    => 'publish',
+			'posts_per_page' => (int) $max,
+			'fields'         => 'ids',
+			'orderby'        => 'modified',
+			'order'          => 'DESC',
+		) );
+		foreach ( $ids as $pid ) {
+			$link = get_permalink( $pid );
+			if ( $link ) { $urls[] = $link; }
+		}
+		return array_values( array_unique( array_filter( $urls ) ) );
+	}
+
+	/** Record upload paths a crawled page actually rendered. */
+	public static function crawl_report( $paths, $label ) {
+		$refs  = self::refs();
+		$label = sanitize_text_field( (string) $label );
+		$n     = 0;
+		foreach ( (array) $paths as $rel ) {
+			$key = self::path_key( wp_unslash( (string) $rel ) );
+			if ( '' === $key ) { continue; }
+			// A crawl hit is the strongest evidence there is — it overwrites any
+			// weaker guess from the database pass.
+			$refs['paths'][ $key ] = 'Seen on: ' . $label;
+			$n++;
+		}
+		self::save_refs( $refs );
+		$state = get_option( self::STATE );
+		if ( is_array( $state ) ) {
+			$state['crawled'] = ( isset( $state['crawled'] ) ? (int) $state['crawled'] : 0 ) + 1;
+			update_option( self::STATE, $state, false );
+		}
+		return array( 'ok' => true, 'indexed' => $n );
+	}
+
+	/** Crawl finished (or was skipped) — move on to matching. */
+	public static function crawl_done( $pages = 0 ) {
+		$state = get_option( self::STATE );
+		if ( ! is_array( $state ) ) { return self::start(); }
+		$state['phase']       = 'compare';
+		$state['cursor']      = 0;
+		$state['crawl_total'] = (int) $pages;
+		update_option( self::STATE, $state, false );
+		return array( 'ok' => true );
 	}
 
 	/* ------------------------------------------------------------------ job */
@@ -62,6 +120,18 @@ class Velox_MediaScan {
 			return self::finish( $state );
 		}
 		$batch = $phases[ $phase ]['batch'];
+
+		// The crawl is driven by the browser: hand it the URL list and wait.
+		if ( 'crawl' === $phase ) {
+			return array(
+				'done'    => false,
+				'crawl'   => true,
+				'urls'    => self::crawl_urls(),
+				'percent' => 70,
+				'label'   => 'Reading your pages',
+				'phase'   => 'crawl',
+			);
+		}
 
 		switch ( $phase ) {
 			case 'posts':
@@ -108,10 +178,12 @@ class Velox_MediaScan {
 		$res = get_option( self::RESULT );
 		$res = is_array( $res ) ? $res : array();
 		return array(
-			'done'    => true,
-			'percent' => 100,
-			'label'   => 'Finished',
-			'counts'  => self::counts( $res ),
+			'done'     => true,
+			'percent'  => 100,
+			'label'    => 'Finished',
+			'counts'   => self::counts( $res ),
+			'crawled'  => isset( $state['crawled'] ) ? (int) $state['crawled'] : 0,
+			'crawlable'=> isset( $state['crawl_total'] ) ? (int) $state['crawl_total'] : 0,
 		);
 	}
 
@@ -406,6 +478,11 @@ class Velox_MediaScan {
 				$state_ = 'used';
 				$where  = $refs['paths'][ $key ];
 			}
+			// Anything the crawl actually rendered is used, full stop.
+			if ( '' !== $key && isset( $refs['paths'][ $key ] ) && 0 === strpos( (string) $refs['paths'][ $key ], 'Seen on:' ) ) {
+				$state_ = 'used';
+				$where  = $refs['paths'][ $key ];
+			}
 
 			$res[ $id ] = array( 's' => $state_, 'w' => $where );
 		}
@@ -434,7 +511,13 @@ class Velox_MediaScan {
 				'where' => $r['w'],
 			);
 		}
-		return array( 'items' => $out, 'counts' => self::counts( $res ) );
+		$st = get_option( self::STATE );
+		return array(
+			'items'     => $out,
+			'counts'    => self::counts( $res ),
+			'crawled'   => is_array( $st ) && isset( $st['crawled'] ) ? (int) $st['crawled'] : 0,
+			'crawlable' => is_array( $st ) && isset( $st['crawl_total'] ) ? (int) $st['crawl_total'] : 0,
+		);
 	}
 
 	private static function counts( $res ) {

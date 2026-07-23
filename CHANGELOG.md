@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.10.2 — The media scan now reads your actual pages
+- Added a real crawl. The scan now reads every published page, post and custom post type, plus the homepage, and records which images are genuinely rendered — rather than inferring usage from database strings. Because it reads finished markup, it works the same for Oxygen, Elementor, Bricks, Divi, Beaver and anything else: by the time a page is output, it is all just img tags and url().
+- The crawl runs from your browser rather than the server, so it is unaffected by hosts that block loopback requests — which is why the old front-end pass silently did nothing on some setups.
+- Linked stylesheets are fetched and read too, so CSS background images are caught. That was the single biggest blind spot: a background defined in a stylesheet is mentioned nowhere in the database.
+- Anything the crawl actually rendered is marked used outright and says which page it appeared on, overriding weaker database guesses.
+- The summary now reports crawl coverage (for example "read 47 of 52 pages"), so "no reference found" is a statement about pages actually checked instead of an assumption.
+
 ## 3.10.1 — Media scan: stop images vouching for themselves
 - Fixed the big one: every attachment stores its own file path in its own postmeta (_wp_attached_file, and every generated size in _wp_attachment_metadata). The scan read all postmeta, so every image referenced itself and the entire library came back "used". Attachment-owned meta is now excluded, along with revisions and trashed posts.
 - A bare number in a custom field is no longer treated as an image reference. Prices, counts, order numbers and timestamps all look like attachment ids; it now only counts when ACF has registered a matching image field alongside it.
