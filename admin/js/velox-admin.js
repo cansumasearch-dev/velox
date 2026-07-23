@@ -6691,7 +6691,9 @@
 					( mediaMode === 'used' ? '' : '<input type="checkbox" class="velox-media-pick" value="' + it.id + '">' ) +
 					'<img src="' + it.thumb + '" data-full="' + ( it.url || it.thumb ) + '" data-name="' + ( it.title || ( '#' + it.id ) ) + '" alt="" loading="lazy">' +
 					'<span class="velox-media-name">' + ( it.title || ( '#' + it.id ) ) + '</span>' +
-					'<span class="velox-media-size">' + fmtBytes( it.bytes ) + '</span>';
+					'<span class="velox-media-size">' + ( it.size || fmtBytes( it.bytes ) ) + '</span>' +
+					( it.where ? '<span class="velox-media-where" title="' + escapeHtml( it.where ) + '">' + escapeHtml( it.where ) + '</span>' : '' ) +
+					( 'maybe' === it.state ? '<span class="velox-media-flag">Possibly used</span>' : '' );
 				results.appendChild( card );
 			} );
 			$$( '.velox-media-item img', results ).forEach( function ( img ) {
@@ -6716,15 +6718,39 @@
 			} );
 		} );
 
+		// The scan runs in batches: each step walks a slice of one source, so a
+		// big library never blows the PHP time limit and progress is visible.
+		function scanProgress( pct, label ) {
+			results.innerHTML =
+				'<div class="velox-scan">' +
+					'<div class="velox-scan-label">' + escapeHtml( label || 'Scanning…' ) + '</div>' +
+					'<div class="velox-scan-bar"><span style="width:' + pct + '%"></span></div>' +
+					'<div class="velox-scan-pct">' + pct + '%</div>' +
+				'</div>';
+		}
+		function runScan() {
+			return api( 'media_scan_step', {} ).then( function ( p ) {
+				scanProgress( p.percent || 0, p.label );
+				if ( p.done ) { return p; }
+				return runScan();
+			} );
+		}
 		scanBtn.addEventListener( 'click', function () {
 			scanBtn.disabled = true;
 			scanBtn.textContent = 'Scanning…';
 			summary.textContent = '';
-			results.innerHTML = '<p class="velox-hint">Scanning library, crawling pages and reading builder CSS… this can take a moment on large sites.</p>';
-			api( 'media_scan', {} )
+			scanProgress( 1, 'Starting…' );
+			api( 'media_scan_start', {} )
+				.then( runScan )
+				.then( function () { return api( 'media_scan_results', { filter: 'all' } ); } )
 				.then( function ( d ) {
-					mediaItems = d.items || [];
+					mediaItems = ( d.items || [] ).map( function ( it ) {
+						it.used = ( 'unused' !== it.state );
+						return it;
+					} );
 					filterWrap.hidden = mediaItems.length === 0;
+					var c = d.counts || {};
+					summary.textContent = ( c.used || 0 ) + ' in use · ' + ( c.maybe || 0 ) + ' possibly used · ' + ( c.unused || 0 ) + ' with no reference found';
 					renderMedia();
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); results.innerHTML = ''; } )

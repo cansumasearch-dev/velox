@@ -3193,3 +3193,12 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-fm input.vmail-fm-name { height: 32px !important; min-height: 32px !important; box-sizing: border-box !important;
 	margin: 0 !important; padding: 0 10px !important; line-height: normal !important; box-shadow: none !important;
 	max-width: none !important; }
+
+/* ---- media scan progress ---- */
+.velox-scan { display: flex; align-items: center; gap: 14px; padding: 22px 4px; }
+.velox-scan-label { font-size: 13px; color: var(--vx-ink-2); min-width: 190px; }
+.velox-scan-bar { flex: 1; height: 6px; border-radius: 99px; background: var(--vx-n100); overflow: hidden; }
+.velox-scan-bar span { display: block; height: 100%; border-radius: 99px; background: var(--vx-primary); transition: width .25s ease; }
+.velox-scan-pct { font-size: 12px; color: var(--vx-ink-3); font-variant-numeric: tabular-nums; min-width: 38px; text-align: right; }
+.velox-media-where { display: block; font-size: 11px; color: var(--vx-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+.velox-media-flag { display: inline-block; margin-top: 4px; padding: 2px 7px; border-radius: 999px; background: var(--vx-n50); border: 1px solid var(--vx-line-2); font-size: 10.5px; font-weight: 600; color: var(--vx-ink-3); }

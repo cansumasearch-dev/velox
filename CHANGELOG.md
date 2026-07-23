@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.10.0 — Unused media rebuilt
+- Replaced the media scanner. It used to ask "for each image, does it appear anywhere?", which meant building huge content blobs, capping the work at 400 images and 20 pages, and guessing. It now walks every place a reference can live once, indexes what it finds, and checks attachments against that index — in resumable batches with a progress bar, so a large library cannot time out.
+- Removed the dependency on loopback HTTP requests. The old front-end pass fetched pages over HTTP and silently skipped everything when the host blocked loopback (common on IONOS and similar), so on those sites it contributed nothing at all.
+- Much wider coverage: posts and pages, custom fields and page-builder data, the options table (theme mods, widgets, customizer, Oxygen settings), category and user meta, theme and child-theme files, builder CSS caches, and Additional CSS. Featured images, product galleries and the site logo and icon are recognised as hard references.
+- Fixed images being wrongly reported as unused. Resized, scaled and WebP-converted variants now normalise to the same key as the original, so an optimiser rewriting hero.jpg to hero.webp no longer makes the original look unused. JSON-escaped URLs and relative ../uploads/ paths in stylesheets are matched too.
+- Fixed images being wrongly reported as used. Post revisions are no longer scanned, so an image removed from a page is no longer kept alive forever by an old revision.
+- Results now say where a file was found, and separate "possibly used" (a weak match, such as a bare ID in a custom field) from "no reference found", so only genuinely unreferenced files are offered for deletion.
+
 ## 3.09.79 — Style panel controls stop fighting WordPress
 - Fixed the number fields and dropdowns in the Style editor rendering wrong. WordPress’s own admin stylesheet puts a border, padding, line-height and a 30px minimum height on every input and select, and its selectors were outranking ours — so the input drew its own box inside the field and pushed the unit outside it, and dropdowns came out taller than everything else.
 - All controls in the panel now carry a scoped reset that WordPress cannot override, so a control is always exactly one 32px box: value, stepper and unit inside a single border, and dropdowns matching the number fields. The folder manager’s name field uses the same reset.

@@ -274,6 +274,20 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'items' => Velox_Utilities::scan_media() ) );
 				break;
 
+			case 'media_scan_start':
+				wp_send_json_success( Velox_MediaScan::start() );
+				break;
+
+			case 'media_scan_step':
+				wp_send_json_success( Velox_MediaScan::step() );
+				break;
+
+			case 'media_scan_results':
+				wp_send_json_success( Velox_MediaScan::results(
+					isset( $_POST['filter'] ) ? sanitize_key( wp_unslash( $_POST['filter'] ) ) : 'all'
+				) );
+				break;
+
 			case 'media_delete':
 				$ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['ids'] ) ) : array();
 				wp_send_json_success( Velox_Utilities::delete_media( $ids ) );
