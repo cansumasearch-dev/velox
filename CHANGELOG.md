@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.10.5 — Possibly-used cleaned up, archives crawled
+- Builder templates are now excluded from the database passes as well, not just the crawl. Their stored layout data was still producing a database "mention", which pushed template demo images into Possibly used even though they appear nowhere on the site.
+- The crawl now also reads archive pages: custom post type archives, the blog page, and category and tag listings. Images that only ever appear on a listing page — never on an individual permalink — were being missed and reported as unused.
+
 ## 3.10.4 — Stop crawling builder templates
 - The crawl was walking page-builder template posts. Oxygen (and Elementor, Bricks, Divi, Beaver, WPBakery and block themes) register their templates and design libraries as public post types, so the crawler was opening each template on its own and marking whatever demo content it contained as "in use" — which is why artwork that appears nowhere on the site kept showing up as used, credited to a /?ct_template= URL.
 - Builder template and library post types are now excluded, and any permalink that is a builder preview URL is skipped. Templates that are genuinely in use are still covered, because they render as part of the pages that use them.

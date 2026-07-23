@@ -40,16 +40,14 @@ class Velox_MediaScan {
 	 * loopback HTTP is blocked on a lot of hosts, and the browser is already
 	 * authenticated and on the right origin.
 	 */
-	public static function crawl_urls( $max = 400 ) {
-		$urls  = array( home_url( '/' ) );
-		$types = get_post_types( array( 'public' => true ), 'names' );
-		// Builders register their templates and design libraries as public post
-		// types. Crawling those renders a template on its own — so an unassigned
-		// template, or one full of demo content, vouches for images that appear
-		// nowhere on the real site. Templates that ARE in use get picked up anyway,
-		// because they render as part of the pages that use them.
-		$skip = array(
-			'attachment', 'revision', 'nav_menu_item', 'customize_changeset', 'oembed_cache', 'user_request',
+	/**
+	 * Builder templates and design libraries. Their content is demo material or a
+	 * layout shell — it only counts when a real page renders it, which the page
+	 * crawl already covers. Reading them directly (or their meta) makes images
+	 * that appear nowhere on the site look used.
+	 */
+	public static function builder_types() {
+		return array(
 			'ct_template', 'oxy_user_library',            // Oxygen
 			'elementor_library',                          // Elementor
 			'bricks_template',                            // Bricks
@@ -57,7 +55,16 @@ class Velox_MediaScan {
 			'fl-builder-template', 'fl-theme-layout',     // Beaver
 			'vc4_templates', 'vc_grid_item',              // WPBakery
 			'themer_layout', 'tve_lead_shortcode',        // Generate/Thrive
-			'wp_block', 'wp_template', 'wp_template_part', 'wp_global_styles', 'wp_navigation', // block themes
+			'wp_block', 'wp_template', 'wp_template_part', 'wp_global_styles', 'wp_navigation',
+		);
+	}
+
+	public static function crawl_urls( $max = 400 ) {
+		$urls  = array( home_url( '/' ) );
+		$types = get_post_types( array( 'public' => true ), 'names' );
+		$skip  = array_merge(
+			array( 'attachment', 'revision', 'nav_menu_item', 'customize_changeset', 'oembed_cache', 'user_request' ),
+			self::builder_types()
 		);
 		foreach ( $skip as $t ) { unset( $types[ $t ] ); }
 		$ids = get_posts( array(
@@ -73,6 +80,30 @@ class Velox_MediaScan {
 			// Belt and braces: builder preview URLs are query-string based.
 			if ( ! $link || preg_match( '/[?&](ct_template|elementor-preview|bricks_preview|et_fb|fl_builder)=/i', $link ) ) { continue; }
 			$urls[] = $link;
+		}
+		// Archives matter: a listing page can show images that appear on no single
+		// permalink we'd otherwise fetch (a CPT archive, the blog page, a category).
+		if ( get_option( 'page_for_posts' ) ) {
+			$blog = get_permalink( (int) get_option( 'page_for_posts' ) );
+			if ( $blog ) { $urls[] = $blog; }
+		}
+		foreach ( $types as $t ) {
+			$archive = get_post_type_archive_link( $t );
+			if ( $archive ) { $urls[] = $archive; }
+		}
+		$taxes = get_taxonomies( array( 'public' => true ), 'names' );
+		unset( $taxes['post_format'] );
+		$terms = get_terms( array(
+			'taxonomy'   => array_values( $taxes ),
+			'hide_empty' => true,
+			'number'     => 60,
+			'fields'     => 'all',
+		) );
+		if ( ! is_wp_error( $terms ) ) {
+			foreach ( $terms as $term ) {
+				$link = get_term_link( $term );
+				if ( ! is_wp_error( $link ) && $link ) { $urls[] = $link; }
+			}
 		}
 		return array_values( array_unique( array_filter( $urls ) ) );
 	}
@@ -221,13 +252,22 @@ class Velox_MediaScan {
 		);
 	}
 
+	/** Builder types as a SQL fragment, safe to concatenate into NOT IN (...). */
+	private static function skip_sql() {
+		$out = '';
+		foreach ( self::builder_types() as $t ) {
+			if ( preg_match( '/^[a-z0-9_\-]+$/i', $t ) ) { $out .= ",'" . $t . "'"; }
+		}
+		return $out;
+	}
+
 	/* -------------------------------------------------------------- sources */
 
 	private static function scan_posts( &$state, $batch ) {
 		global $wpdb;
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT ID, post_title, post_content FROM {$wpdb->posts}
-			 WHERE post_type NOT IN ('revision','attachment')
+			 WHERE post_type NOT IN ('revision','attachment'" . self::skip_sql() . ")
 			   AND post_status NOT IN ('trash','auto-draft')
 			   AND post_content <> ''
 			 ORDER BY ID ASC LIMIT %d OFFSET %d",
@@ -255,8 +295,7 @@ class Velox_MediaScan {
 			 FROM {$wpdb->postmeta} pm
 			 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
 			 WHERE pm.meta_value <> ''
-			   AND p.post_type <> 'attachment'
-			   AND p.post_type <> 'revision'
+			   AND p.post_type NOT IN ('attachment','revision'" . self::skip_sql() . ")
 			   AND p.post_status NOT IN ('trash','auto-draft')
 			 ORDER BY pm.meta_id ASC LIMIT %d OFFSET %d",
 			$batch, (int) $state['cursor']
