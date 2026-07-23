@@ -173,11 +173,9 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		</div>
 		<div class="vse-body">
 			<div class="vse-left">
-				<div class="vse-picker">
-					<div class="vse-picker-head">
-						<div class="tt">What do you want to style?</div>
-					</div>
-					<div class="vse-tree" id="vse-tree"></div>
+				<div class="vse-sticky">
+					<div class="vse-strip" id="vse-strip"></div>
+					<div class="vse-scope" id="vse-scope" hidden></div>
 				</div>
 				<div class="vse-controls" id="vse-controls"></div>
 			</div>

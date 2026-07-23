@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.71 — Style editor rebuilt
+- Replaced the tall list of style targets with a compact icon strip (Form, Title, Labels, Inputs, Button). The header is now about a quarter of its old height, leaving the panel to the controls.
+- Added an "Applies to" dropdown for Labels and Inputs: style all of them, or pick one specific field. "All" stays selected by default so it is always clear whether an edit is global or per-field.
+- The strip and the "Applies to" row are sticky, so you can switch target or field at any scroll position. They pick up a soft shadow once the controls scroll underneath.
+- Controls are now collapsible groups (Colour, Text, Shape open; Spacing and Shadow folded) with paired values side by side instead of one long stack.
+- Number fields have a clickable unit: switch any size, corner, border or spacing value between px, rem, em, % (and auto where it applies). Non-px units are highlighted so they stand out at a glance.
+- Inherited values now read as inherited — a dashed empty swatch and grey "Inherit" text instead of a blue swatch labelled INHERIT. Anything you have overridden gets a revert button to put it back.
+
 ## 3.09.70 — Front end now matches the style preview
 - The form’s front-end base styling now mirrors the Style editor preview exactly, so anything left on "inherit" looks the same in both places. Previously the preview had its own card look (white background, 18px corners, 40/56/44 padding, soft shadow, 48px inputs with 11px corners, stacked radios, centred pill button) while the front end fell back to a plain, much flatter default — which is why the two never matched and the default styling appeared to do nothing.
 - Aligned: form card background, corner radius, padding and shadow; field and label spacing; label size/weight; input and textarea height, padding, border width, radius and font size; radio and checkbox layout (now stacked) and control size; help text; submit button size, radius, shadow and centring; and the form title.

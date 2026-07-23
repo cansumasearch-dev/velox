@@ -5728,13 +5728,27 @@
 			function st( target ) { S[ target ] = S[ target ] || {}; return S[ target ]; }
 
 			var ICONS = {
-				form: '<rect x="3" y="3" width="18" height="18" rx="3"/>',
-				header: '<path d="M4 5h16v5H4z"/>',
-				labels: '<path d="M4 7h16M4 12h16M4 17h10"/>',
-				inputs: '<rect x="3" y="8" width="18" height="8" rx="2"/>',
-				submit: '<rect x="3" y="8" width="18" height="9" rx="4"/>'
+				form:   '<rect x="3" y="3" width="18" height="18" rx="3"/>',
+				header: '<path d="M4 7h16M4 12h9M4 17h6"/>',
+				labels: '<path d="M4 6h9M4 12h16M4 18h7"/>',
+				inputs: '<rect x="3" y="8" width="18" height="8" rx="2.5"/>',
+				submit: '<rect x="3" y="8.5" width="18" height="7" rx="3.5"/><path d="M12 19v2"/>'
 			};
-			var current = 'submit';
+			var TARGETS = [
+				{ k: 'form', n: 'Form' }, { k: 'header', n: 'Title' }, { k: 'labels', n: 'Labels' },
+				{ k: 'inputs', n: 'Inputs' }, { k: 'submit', n: 'Button' }
+			];
+			// curTarget = which kind of thing is being styled; curScope = '' for all of
+			// them, or a single field key. `current` is the resulting style bucket.
+			var curTarget = 'form', curScope = '', current = 'form';
+			function syncCurrent() { current = curScope ? 'field:' + curScope : curTarget; }
+			function scopeable( t ) { return 'inputs' === t || 'labels' === t; }
+			function styleableFields() {
+				return form.fields.filter( function ( f ) {
+					return [ 'step', 'html', 'captcha', 'heading' ].indexOf( f.type ) === -1;
+				} );
+			}
+			var openGroups = { content: true, colour: true, text: true, shape: true, spacing: false, shadow: false };
 
 			// ---- live preview ----
 			var pf = $( '#vse-form' );
@@ -5784,203 +5798,312 @@
 			}
 
 			// ---- control builders ----
-			function ctrlText( label, target, key, val ) {
-				return '<div class="vse-ctrl"><div class="vse-cl">' + label + '</div><input class="vse-in" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( val || '' ) + '"></div>';
+			function svgi( p, s, sw ) {
+				return '<svg viewBox="0 0 24 24" width="' + ( s || 14 ) + '" height="' + ( s || 14 ) + '" fill="none" stroke="currentColor" stroke-width="' + ( sw || 2 ) + '" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
 			}
-			function ctrlUnit( label, target, key, val ) {
-				return '<div class="vse-ctrl" style="margin:0;"><div class="vse-cl">' + label + '</div><div class="vse-in-unit"><input data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( val == null ? '' : val ) + '"><span class="u">px</span></div></div>';
+			var CHEV = '<path d="m6 9 6 6 6-6"/>';
+			var REVERT = '<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v6"/>';
+			var UNITS = [ 'px', 'rem', 'em', '%' ];
+			// Values are stored with their unit baked in ("11px", "0.95rem", "auto").
+			// Both the PHP and JS CSS builders pass anything containing a letter or %
+			// through untouched, so no unit conversion is needed on either side.
+			function splitUnit( v ) {
+				v = ( v == null ? '' : String( v ) ).trim();
+				if ( 'auto' === v ) { return { n: '', u: 'auto' }; }
+				var m = v.match( /^(-?[0-9.]+)\s*(px|rem|em|%)?$/ );
+				if ( ! m ) { return { n: v, u: 'px' }; }
+				return { n: m[1], u: m[2] || 'px' };
+			}
+			function joinUnit( n, u ) {
+				if ( 'auto' === u ) { return 'auto'; }
+				n = String( n == null ? '' : n ).trim();
+				return '' === n ? '' : n + u;
+			}
+			function ctrlText( label, target, key, val ) {
+				return '<div class="vse-fld"><div class="vse-fk">' + label + '</div>' +
+					'<input class="vse-in" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( val || '' ) + '"></div>';
+			}
+			function ctrlSelect( label, target, key, val, opts ) {
+				var o = opts.map( function ( x ) {
+					return '<option value="' + x.v + '"' + ( String( val == null ? '' : val ) === x.v ? ' selected' : '' ) + '>' + x.l + '</option>';
+				} ).join( '' );
+				return '<div class="vse-fld"><div class="vse-fk">' + label + '</div>' +
+					'<select class="vse-in" data-t="' + target + '" data-k="' + key + '">' + o + '</select></div>';
+			}
+			function ctrlNum( label, target, key, val, units ) {
+				var p = splitUnit( val );
+				var list = ( units || UNITS ).join( ',' );
+				return '<div class="vse-fld"><div class="vse-fk">' + label + '</div>' +
+					'<div class="vse-num"><input class="vse-nv" data-t="' + target + '" data-k="' + key + '" data-unit="' + p.u + '" value="' + escapeHtml( 'auto' === p.u ? '' : p.n ) + '" placeholder="\u2014">' +
+					'<button type="button" class="vse-unit' + ( 'px' === p.u ? '' : ' is-alt' ) + '" data-t="' + target + '" data-k="' + key + '" data-units="' + list + '">' + p.u + svgi( CHEV, 9, 2.6 ) + '</button>' +
+					'</div></div>';
 			}
 			function ctrlColor( label, target, key, val ) {
-				var v = val || '';
-				return '<div class="vse-ctrl"><div class="vse-cl">' + label + '</div><div class="vse-color">' +
-					'<input type="color" class="vse-swatch" data-t="' + target + '" data-k="' + key + '" data-color="1" value="' + ( /^#([0-9a-f]{6})$/i.test( v ) ? v : '#2ab7f1' ) + '">' +
-					'<input class="vse-hex" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( v ) + '" placeholder="inherit"></div></div>';
+				var v = ( val == null ? '' : String( val ) ).trim();
+				var has = '' !== v;
+				var hexOk = /^#([0-9a-f]{6})$/i.test( v );
+				return '<div class="vse-row"><span class="vse-rk">' + label + '</span>' +
+					'<span class="vse-sw' + ( has ? '' : ' is-inherit' ) + '"' + ( has ? ' style="background:' + escapeHtml( v ) + '"' : '' ) + '>' +
+					'<input type="color" data-t="' + target + '" data-k="' + key + '" data-color="1" value="' + ( hexOk ? v : '#2ab7f1' ) + '"></span>' +
+					'<input class="vse-hex' + ( has ? '' : ' is-inherit' ) + '" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( v ) + '" placeholder="Inherit">' +
+					( has ? '<button type="button" class="vse-revert" data-t="' + target + '" data-k="' + key + '" title="Reset to inherit">' + svgi( REVERT, 14, 1.8 ) + '</button>' : '' ) +
+					'</div>';
 			}
 			function ctrlSeg( label, target, key, val, opts ) {
 				var btns = opts.map( function ( o ) {
 					return '<button type="button" data-t="' + target + '" data-k="' + key + '" data-v="' + o.v + '"' + ( ( val || opts[0].v ) === o.v ? ' class="is-on"' : '' ) + '>' + o.l + '</button>';
 				} ).join( '' );
-				return '<div class="vse-ctrl"><div class="vse-cl">' + label + '</div><div class="vse-seg">' + btns + '</div></div>';
+				return '<div class="vse-ctrl">' + ( label ? '<div class="vse-cl">' + label + '</div>' : '' ) + '<div class="vse-seg">' + btns + '</div></div>';
 			}
-			function ctrlSpacing( label, target, prefix ) {
+			function ctrlSides( target, prefix ) {
 				var o = st( target );
-				var four = o[ '_' + prefix + 'four' ];
-				var t = o[ prefix + 't' ], r = o[ prefix + 'r' ], b = o[ prefix + 'b' ], l = o[ prefix + 'l' ];
-				var body;
-				if ( four ) {
-					body = '<div class="vse-box4">' +
-						cell( target, prefix + 't', t, 'Top' ) + cell( target, prefix + 'r', r, 'Right' ) +
-						cell( target, prefix + 'b', b, 'Bot' ) + cell( target, prefix + 'l', l, 'Left' ) + '</div>';
-				} else {
-					body = '<div class="vse-box2">' +
-						cell( target, prefix + 'tb', ( t != null ? t : '' ), 'Top / Bottom' ) +
-						cell( target, prefix + 'lr', ( l != null ? l : '' ), 'Left / Right' ) + '</div>';
+				function pick( a, b ) {
+					var x = o[ a ];
+					if ( x == null || '' === x ) { x = o[ b ]; }
+					return x == null ? '' : x;
 				}
-				return '<div class="vse-ctrl"><div class="vse-spacing-head"><span class="vse-cl" style="margin:0;">' + label + '</span>' +
-					'<button type="button" class="vse-sides-toggle' + ( four ? ' is-on' : '' ) + '" data-sides="' + target + ':' + prefix + '" title="Edit each side"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 9h16M9 4v16"/></svg></button></div>' + body + '</div>';
+				return '<div class="vse-two">' +
+					ctrlNum( 'Top', target, prefix + 't', pick( prefix + 't', prefix + 'tb' ) ) +
+					ctrlNum( 'Right', target, prefix + 'r', pick( prefix + 'r', prefix + 'lr' ) ) +
+					ctrlNum( 'Bottom', target, prefix + 'b', pick( prefix + 'b', prefix + 'tb' ) ) +
+					ctrlNum( 'Left', target, prefix + 'l', pick( prefix + 'l', prefix + 'lr' ) ) +
+					'</div>';
 			}
-			function cell( target, key, val, lbl ) {
-				return '<div class="vse-cell"><input data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( val == null ? '' : val ) + '"><span class="cl">' + lbl + '</span></div>';
+			function grp( key, title, inner ) {
+				var open = false !== openGroups[ key ];
+				return '<div class="vse-grp' + ( open ? ' is-open' : '' ) + '" data-grp="' + key + '">' +
+					'<button type="button" class="vse-grp-h"><span>' + title + '</span>' + svgi( CHEV, 14, 2 ) + '</button>' +
+					'<div class="vse-grp-b">' + inner + '</div></div>';
 			}
 
 			function renderControls() {
-				var o = st( current );
-				var head, body = '';
-				var titles = { form: 'Whole form', header: 'Header', labels: 'All labels', inputs: 'All inputs', submit: 'Submit button' };
-				var subs = { form: 'Background, padding, radius', header: 'Title typography', labels: 'Field label text', inputs: 'Field input boxes', submit: 'Style every detail' };
-				var nm = current.indexOf( 'field:' ) === 0 ? ( fieldByKey( current.slice( 6 ) ) || {} ).label : titles[ current ];
-				head = '<div class="vse-left-head"><span class="ic"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7">' + ( ICONS[ current ] || ICONS.inputs ) + '</svg></span>' +
-					'<span><span class="tt">' + escapeHtml( nm || 'Element' ) + '</span><br><span class="ts">' + ( subs[ current ] || 'Edit styles' ) + '</span></span></div>';
+				var o = st( current ), t = curTarget, body = '';
+				var W = [ { v: '', l: 'Inherit' }, { v: '400', l: 'Regular' }, { v: '500', l: 'Medium' },
+					{ v: '600', l: 'Semibold' }, { v: '700', l: 'Bold' } ];
+				var SH = [ { v: 'none', l: 'None' }, { v: 'soft', l: 'Soft' }, { v: 'medium', l: 'Med' }, { v: 'strong', l: 'Strong' } ];
+				var DIM = [ 'px', 'rem', 'em', '%', 'auto' ];
 
-				if ( current === 'submit' ) {
-					body += '<div class="vse-sec"><div class="vse-sec-t">Content &amp; placement</div>';
-					body += ctrlText( 'Button text', 'submit', 'text', form.submit_label || 'Submit' );
-					body += ctrlSeg( 'Alignment', 'submit', 'align', o.align || 'center', [
-						{ v: 'left', l: 'Left' }, { v: 'center', l: 'Center' }, { v: 'right', l: 'Right' }, { v: 'full', l: 'Full' } ] );
-					body += '</div>';
-					body += '<div class="vse-sec"><div class="vse-sec-t">Colors</div>' +
-						ctrlColor( 'Background', 'submit', 'bg', o.bg ) + ctrlColor( 'Text', 'submit', 'color', o.color ) + ctrlColor( 'Hover background', 'submit', 'hoverBg', o.hoverBg ) + '</div>';
-					body += '<div class="vse-sec"><div class="vse-sec-t">Typography</div><div class="vse-two">' +
-						ctrlUnit( 'Font size', 'submit', 'fs', o.fs ) + ctrlText( 'Font weight', 'submit', 'fw', o.fw ) + '</div></div>';
-					body += '<div class="vse-sec"><div class="vse-sec-t">Spacing</div>' + ctrlSpacing( 'Padding', 'submit', 'p' ) + ctrlSpacing( 'Margin', 'submit', 'm' ) + '</div>';
-					body += '<div class="vse-sec"><div class="vse-sec-t">Border &amp; shadow</div><div class="vse-two">' +
-						ctrlUnit( 'Radius', 'submit', 'radius', o.radius ) + ctrlUnit( 'Border', 'submit', 'border', o.border ) + '</div>' +
-						ctrlColor( 'Border color', 'submit', 'borderColor', o.borderColor ) +
-						ctrlSeg( 'Box shadow', 'submit', 'shadow', o.shadow || 'medium', [ { v: 'none', l: 'None' }, { v: 'soft', l: 'Soft' }, { v: 'medium', l: 'Med' }, { v: 'strong', l: 'Strong' } ] ) + '</div>';
-				} else if ( current === 'form' ) {
-					body += '<div class="vse-sec"><div class="vse-sec-t">Colors</div>' + ctrlColor( 'Background', 'form', 'bg', o.bg ) + '</div>';
-					body += '<div class="vse-sec"><div class="vse-sec-t">Spacing</div>' + ctrlSpacing( 'Padding', 'form', 'p' ) + '</div>';
-					body += '<div class="vse-sec"><div class="vse-sec-t">Border &amp; shadow</div><div class="vse-two">' +
-						ctrlUnit( 'Radius', 'form', 'radius', o.radius ) + ctrlUnit( 'Border', 'form', 'border', o.border ) + '</div>' +
-						ctrlColor( 'Border color', 'form', 'borderColor', o.borderColor ) +
-						ctrlSeg( 'Box shadow', 'form', 'shadow', o.shadow || 'medium', [ { v: 'none', l: 'None' }, { v: 'soft', l: 'Soft' }, { v: 'medium', l: 'Med' }, { v: 'strong', l: 'Strong' } ] ) + '</div>';
-				} else if ( current === 'header' ) {
-					body += '<div class="vse-sec"><div class="vse-sec-t">Title</div>' + ctrlColor( 'Color', 'header', 'color', o.color ) + '<div class="vse-two">' +
-						ctrlUnit( 'Font size', 'header', 'fs', o.fs ) + ctrlText( 'Font weight', 'header', 'fw', o.fw ) + '</div></div>';
-				} else if ( current === 'labels' ) {
-					body += '<div class="vse-sec"><div class="vse-sec-t">Label text</div>' + ctrlColor( 'Color', 'labels', 'color', o.color ) + '<div class="vse-two">' +
-						ctrlUnit( 'Font size', 'labels', 'fs', o.fs ) + ctrlText( 'Font weight', 'labels', 'fw', o.fw ) + '</div></div>';
-				} else if ( current === 'inputs' ) {
-					body += '<div class="vse-sec"><div class="vse-sec-t">Colors</div>' + ctrlColor( 'Background', 'inputs', 'bg', o.bg ) + ctrlColor( 'Text', 'inputs', 'color', o.color ) + ctrlColor( 'Border color', 'inputs', 'borderColor', o.borderColor ) + '</div>';
-					body += '<div class="vse-sec"><div class="vse-sec-t">Shape</div><div class="vse-two">' +
-						ctrlUnit( 'Font size', 'inputs', 'fs', o.fs ) + ctrlUnit( 'Radius', 'inputs', 'radius', o.radius ) + '</div>' + ctrlUnit( 'Border width', 'inputs', 'border', o.border ) + '</div>';
-				} else if ( current.indexOf( 'field:' ) === 0 ) {
-					body += '<div class="vse-sec"><div class="vse-sec-t">This field\u2019s label</div>' + ctrlColor( 'Color', current, 'labelColor', o.labelColor ) +
-						'<div class="vse-two">' + ctrlUnit( 'Font size', current, 'labelFs', o.labelFs ) + ctrlText( 'Font weight', current, 'labelFw', o.labelFw ) + '</div></div>';
-					body += '<div class="vse-sec"><div class="vse-sec-t">This field\u2019s input</div>' + ctrlColor( 'Background', current, 'bg', o.bg ) + ctrlColor( 'Text', current, 'color', o.color ) + ctrlColor( 'Border color', current, 'borderColor', o.borderColor ) + '</div>';
-					body += '<div class="vse-sec"><div class="vse-sec-t">Shape</div><div class="vse-two">' +
-						ctrlUnit( 'Font size', current, 'fs', o.fs ) + ctrlUnit( 'Radius', current, 'radius', o.radius ) + '</div>' + ctrlUnit( 'Border width', current, 'border', o.border ) + '</div>';
+				if ( 'submit' === t ) {
+					body += grp( 'content', 'Content', ctrlText( 'Button text', 'submit', 'text', form.submit_label || 'Submit' ) +
+						ctrlSeg( 'Alignment', 'submit', 'align', o.align || 'center',
+							[ { v: 'left', l: 'Left' }, { v: 'center', l: 'Center' }, { v: 'right', l: 'Right' }, { v: 'full', l: 'Full' } ] ) );
+					body += grp( 'colour', 'Colour', ctrlColor( 'Fill', 'submit', 'bg', o.bg ) +
+						ctrlColor( 'Text', 'submit', 'color', o.color ) + ctrlColor( 'Hover fill', 'submit', 'hoverBg', o.hoverBg ) );
+					body += grp( 'text', 'Text', '<div class="vse-two">' + ctrlNum( 'Size', 'submit', 'fs', o.fs ) +
+						ctrlSelect( 'Weight', 'submit', 'fw', o.fw, W ) + '</div>' );
+					body += grp( 'shape', 'Shape', '<div class="vse-two">' + ctrlNum( 'Corner', 'submit', 'radius', o.radius ) +
+						ctrlNum( 'Border', 'submit', 'border', o.border ) + '</div>' + ctrlColor( 'Border colour', 'submit', 'borderColor', o.borderColor ) );
+					body += grp( 'spacing', 'Spacing', '<div class="vse-sk">Padding</div>' + ctrlSides( 'submit', 'p' ) +
+						'<div class="vse-sk">Margin</div>' + ctrlSides( 'submit', 'm' ) );
+					body += grp( 'shadow', 'Shadow', ctrlSeg( '', 'submit', 'shadow', o.shadow || 'medium', SH ) );
+				} else if ( 'form' === t ) {
+					body += grp( 'colour', 'Colour', ctrlColor( 'Background', 'form', 'bg', o.bg ) +
+						ctrlColor( 'Border colour', 'form', 'borderColor', o.borderColor ) );
+					body += grp( 'shape', 'Shape', '<div class="vse-two">' + ctrlNum( 'Corner', 'form', 'radius', o.radius ) +
+						ctrlNum( 'Border', 'form', 'border', o.border ) + '</div>' );
+					body += grp( 'spacing', 'Spacing', ctrlSides( 'form', 'p' ) );
+					body += grp( 'shadow', 'Shadow', ctrlSeg( '', 'form', 'shadow', o.shadow || 'medium', SH ) );
+				} else if ( 'header' === t ) {
+					body += grp( 'colour', 'Colour', ctrlColor( 'Text', 'header', 'color', o.color ) );
+					body += grp( 'text', 'Text', '<div class="vse-two">' + ctrlNum( 'Size', 'header', 'fs', o.fs ) +
+						ctrlSelect( 'Weight', 'header', 'fw', o.fw, W ) + '</div>' );
+				} else if ( 'labels' === t ) {
+					// One field's label lives on that field's bucket under label* keys.
+					var kc = curScope ? 'labelColor' : 'color';
+					var ks = curScope ? 'labelFs' : 'fs';
+					var kw = curScope ? 'labelFw' : 'fw';
+					body += grp( 'colour', 'Colour', ctrlColor( 'Text', current, kc, o[ kc ] ) );
+					body += grp( 'text', 'Text', '<div class="vse-two">' + ctrlNum( 'Size', current, ks, o[ ks ] ) +
+						ctrlSelect( 'Weight', current, kw, o[ kw ], W ) + '</div>' );
+				} else {
+					body += grp( 'colour', 'Colour', ctrlColor( 'Fill', current, 'bg', o.bg ) +
+						ctrlColor( 'Text', current, 'color', o.color ) + ctrlColor( 'Border colour', current, 'borderColor', o.borderColor ) );
+					body += grp( 'text', 'Text', '<div class="vse-two">' + ctrlNum( 'Size', current, 'fs', o.fs ) + '</div>' );
+					body += grp( 'shape', 'Shape', '<div class="vse-two">' + ctrlNum( 'Corner', current, 'radius', o.radius, DIM ) +
+						ctrlNum( 'Border', current, 'border', o.border ) + '</div>' );
 				}
-				$( '#vse-controls' ).innerHTML = head + body;
+				$( '#vse-controls' ).innerHTML = body;
 				bindControls();
 			}
+
 			function fieldByKey( k ) { return form.fields.filter( function ( f ) { return f.key === k; } )[ 0 ]; }
 
 			function bindControls() {
 				var wrap = $( '#vse-controls' );
-				$$( '[data-k]', wrap ).forEach( function ( el ) {
-					var ev = el.getAttribute( 'data-color' ) ? 'input' : 'input';
+
+				// Collapsible groups.
+				$$( '.vse-grp-h', wrap ).forEach( function ( h ) {
+					h.addEventListener( 'click', function () {
+						var g = h.parentNode, key = g.getAttribute( 'data-grp' );
+						var open = ! g.classList.contains( 'is-open' );
+						g.classList.toggle( 'is-open', open );
+						openGroups[ key ] = open;
+					} );
+				} );
+
+				// Text, select and colour inputs.
+				$$( '.vse-in, .vse-hex, input[data-color]', wrap ).forEach( function ( el ) {
+					var ev = 'SELECT' === el.tagName ? 'change' : 'input';
 					el.addEventListener( ev, function () {
 						var t = el.getAttribute( 'data-t' ), k = el.getAttribute( 'data-k' ), v = el.value;
-						if ( t === 'submit' && k === 'text' ) { form.submit_label = v; buildPreview(); applyLive(); return; }
+						if ( 'submit' === t && 'text' === k ) { form.submit_label = v; buildPreview(); applyLive(); return; }
 						var o = st( t );
-						if ( k === 'ptb' ) { o.pt = v; o.pb = v; }
-						else if ( k === 'plr' ) { o.pl = v; o.pr = v; }
-						else if ( k === 'mtb' ) { o.mt = v; o.mb = v; }
-						else if ( k === 'mlr' ) { o.ml = v; o.mr = v; }
-						else { o[ k ] = v; }
-						// keep hex<->swatch in sync
+						if ( '' === String( v ).trim() ) { delete o[ k ]; } else { o[ k ] = v; }
 						if ( el.getAttribute( 'data-color' ) ) {
-							var hex = $( '.vse-hex[data-k="' + k + '"][data-t="' + t + '"]', wrap ); if ( hex ) { hex.value = v; }
-						} else if ( el.classList.contains( 'vse-hex' ) ) {
-							var sw = $( '.vse-swatch[data-k="' + k + '"][data-t="' + t + '"]', wrap ); if ( sw && /^#([0-9a-f]{6})$/i.test( v ) ) { sw.value = v; }
+							var hex = $( '.vse-hex[data-k="' + k + '"][data-t="' + t + '"]', wrap );
+							if ( hex ) { hex.value = v; hex.classList.remove( 'is-inherit' ); }
+							var sw = el.parentNode;
+							if ( sw ) { sw.classList.remove( 'is-inherit' ); sw.style.background = v; }
 						}
 						applyLive();
 					} );
+					// Re-render on blur so the revert arrow and inherit state catch up.
+					if ( el.classList.contains( 'vse-hex' ) ) {
+						el.addEventListener( 'change', function () { renderControls(); } );
+					}
 				} );
+
+				// Number + unit fields.
+				$$( '.vse-nv', wrap ).forEach( function ( el ) {
+					el.addEventListener( 'input', function () {
+						var t = el.getAttribute( 'data-t' ), k = el.getAttribute( 'data-k' ), u = el.getAttribute( 'data-unit' ) || 'px';
+						var o = st( t ), v = joinUnit( el.value, u );
+						if ( '' === v ) { delete o[ k ]; } else { o[ k ] = v; }
+						applyLive();
+					} );
+				} );
+
+				// Unit chips: click to swap px / rem / em / % / auto.
+				$$( '.vse-unit', wrap ).forEach( function ( btn ) {
+					btn.addEventListener( 'click', function ( e ) {
+						e.stopPropagation();
+						closeUnitMenus();
+						var units = ( btn.getAttribute( 'data-units' ) || 'px' ).split( ',' );
+						var t = btn.getAttribute( 'data-t' ), k = btn.getAttribute( 'data-k' );
+						var cur = ( st( t )[ k ] != null ) ? splitUnit( st( t )[ k ] ).u : 'px';
+						var menu = document.createElement( 'div' );
+						menu.className = 'vse-unit-menu';
+						menu.innerHTML = units.map( function ( u ) {
+							return '<button type="button" data-u="' + u + '"' + ( u === cur ? ' class="is-on"' : '' ) + '>' + u + '</button>';
+						} ).join( '' );
+						btn.parentNode.appendChild( menu );
+						$$( 'button', menu ).forEach( function ( b ) {
+							b.addEventListener( 'click', function ( ev2 ) {
+								ev2.stopPropagation();
+								var u = b.getAttribute( 'data-u' ), o = st( t );
+								var num = splitUnit( o[ k ] ).n;
+								var v = joinUnit( 'auto' === u ? '' : num, u );
+								if ( '' === v ) { delete o[ k ]; } else { o[ k ] = v; }
+								closeUnitMenus();
+								renderControls();
+								applyLive();
+							} );
+						} );
+					} );
+				} );
+
+				// Revert a single property back to inherit.
+				$$( '.vse-revert', wrap ).forEach( function ( b ) {
+					b.addEventListener( 'click', function () {
+						delete st( b.getAttribute( 'data-t' ) )[ b.getAttribute( 'data-k' ) ];
+						renderControls();
+						applyLive();
+					} );
+				} );
+
+				// Segmented options (alignment, shadow).
 				$$( '.vse-seg button', wrap ).forEach( function ( btn ) {
 					btn.addEventListener( 'click', function () {
-						var t = btn.getAttribute( 'data-t' ), k = btn.getAttribute( 'data-k' ), v = btn.getAttribute( 'data-v' );
-						st( t )[ k ] = v;
+						st( btn.getAttribute( 'data-t' ) )[ btn.getAttribute( 'data-k' ) ] = btn.getAttribute( 'data-v' );
 						btn.parentNode.querySelectorAll( 'button' ).forEach( function ( b ) { b.classList.toggle( 'is-on', b === btn ); } );
 						applyLive();
 					} );
 				} );
-				$$( '.vse-sides-toggle', wrap ).forEach( function ( tg ) {
-					tg.addEventListener( 'click', function () {
-						var pair = tg.getAttribute( 'data-sides' ).split( ':' ); var target = pair[0], prefix = pair[1];
-						var o = st( target ); var key = '_' + prefix + 'four';
-						if ( ! o[ key ] ) {
-							// expand 2 -> 4: seed all sides from the tb/lr values
-							var tb = o[ prefix + 'tb' ], lr = o[ prefix + 'lr' ];
-							if ( tb != null ) { o[ prefix + 't' ] = tb; o[ prefix + 'b' ] = tb; }
-							if ( lr != null ) { o[ prefix + 'l' ] = lr; o[ prefix + 'r' ] = lr; }
-						} else {
-							// collapse 4 -> 2
-							o[ prefix + 'tb' ] = o[ prefix + 't' ] || '';
-							o[ prefix + 'lr' ] = o[ prefix + 'l' ] || '';
-						}
-						o[ key ] = ! o[ key ];
-						renderControls();
-					} );
-				} );
 			}
+			function closeUnitMenus() { $$( '.vse-unit-menu' ).forEach( function ( m ) { m.parentNode.removeChild( m ); } ); }
 
-			// ---- selector tree (filtered by the tab bar) ----
-			function renderTree() {
-				var tree = $( '#vse-tree' );
-				var items = [
-					[ 'form',   'Whole form',  'Background, padding & corners', ICONS.form ],
-					[ 'header', 'Title',       'The heading at the top',        ICONS.header ],
-					[ 'labels', 'Labels',      'The text above each field',     ICONS.labels ],
-					[ 'inputs', 'Input boxes', 'Every box people type into',    ICONS.inputs ],
-					[ 'submit', 'Button',      'The submit button',             ICONS.submit ]
-				];
-				var html = items.map( function ( it ) { return node( it[0], it[1], it[2], it[3] ); } ).join( '' );
-				// Style one specific field on its own — kept in a separate section so it
-				// doesn't clutter the common targets above.
-				var styleable = form.fields.filter( function ( f ) { return [ 'step', 'html', 'captcha' ].indexOf( f.type ) === -1; } );
-				if ( styleable.length ) {
-					html += '<div class="vse-tree-sec">Style one specific field</div>';
-					styleable.forEach( function ( f ) {
-						html += node( 'field:' + f.key, f.label || f.key, ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + ' field', ICONS.inputs );
+			// ---- sticky target strip + "applies to" scope ----
+			function renderStrip() {
+				var el = $( '#vse-strip' );
+				if ( ! el ) { return; }
+				el.innerHTML = TARGETS.map( function ( t ) {
+					return '<button type="button" class="vse-tab' + ( t.k === curTarget ? ' is-on' : '' ) + '" data-target="' + t.k + '">' +
+						svgi( ICONS[ t.k ], 17, 1.7 ) + '<span>' + t.n + '</span></button>';
+				} ).join( '' );
+				$$( '.vse-tab', el ).forEach( function ( b ) {
+					b.addEventListener( 'click', function () {
+						curTarget = b.getAttribute( 'data-target' );
+						curScope = '';
+						syncCurrent();
+						renderStrip(); renderScope(); renderControls(); markTarget();
 					} );
+				} );
+			}
+			function scopeLabel() {
+				if ( ! curScope ) { return 'inputs' === curTarget ? 'All inputs' : 'All labels'; }
+				var f = fieldByKey( curScope );
+				return ( f && f.label ) ? f.label : curScope;
+			}
+			function renderScope() {
+				var el = $( '#vse-scope' );
+				if ( ! el ) { return; }
+				if ( ! scopeable( curTarget ) ) { el.hidden = true; el.innerHTML = ''; return; }
+				el.hidden = false;
+				var all = 'inputs' === curTarget ? 'All inputs' : 'All labels';
+				var fields = styleableFields();
+				var items = '<div class="vse-scope-sec">Everything</div>' +
+					'<button type="button" class="vse-scope-i' + ( curScope ? '' : ' is-on' ) + '" data-key="">' +
+					'<span class="nm">' + all + '</span>' + ( curScope ? '' : svgi( '<path d="m5 13 4 4L19 7"/>', 14, 2.2 ) ) + '</button>';
+				if ( fields.length ) {
+					items += '<div class="vse-scope-dv"></div><div class="vse-scope-sec">Individual fields</div>';
+					items += fields.map( function ( f ) {
+						var ty = TYPES[ f.type ] ? TYPES[ f.type ].label : f.type;
+						return '<button type="button" class="vse-scope-i' + ( curScope === f.key ? ' is-on' : '' ) + '" data-key="' + escapeHtml( f.key ) + '">' +
+							'<span class="nm">' + escapeHtml( f.label || f.key ) + '</span><span class="ty">' + escapeHtml( ty ) + '</span>' +
+							( curScope === f.key ? svgi( '<path d="m5 13 4 4L19 7"/>', 14, 2.2 ) : '' ) + '</button>';
+					} ).join( '' );
 				}
-				tree.innerHTML = html;
-				$$( '.vse-node', tree ).forEach( function ( n ) {
-					n.addEventListener( 'click', function () {
-						current = n.getAttribute( 'data-target' );
-						$$( '.vse-node', tree ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === n ); } );
-						var tn = $( '#vse-target-name' ); if ( tn ) { tn.textContent = n.querySelector( '.nm' ).textContent; }
-						renderControls(); markTarget();
+				el.innerHTML = '<span class="vse-scope-ic">' + svgi( '<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>', 14, 1.7 ) + '</span>' +
+					'<span class="vse-scope-l">Applies to</span>' +
+					'<button type="button" class="vse-scope-sel" id="vse-scope-btn"><span>' + escapeHtml( scopeLabel() ) + '</span>' + svgi( CHEV, 13, 2 ) + '</button>' +
+					'<div class="vse-scope-pop" id="vse-scope-pop" hidden>' + items + '</div>';
+
+				var btn = $( '#vse-scope-btn', el ), pop = $( '#vse-scope-pop', el );
+				btn.addEventListener( 'click', function ( e ) {
+					e.stopPropagation();
+					pop.hidden = ! pop.hidden;
+					btn.classList.toggle( 'is-open', ! pop.hidden );
+				} );
+				$$( '.vse-scope-i', pop ).forEach( function ( it ) {
+					it.addEventListener( 'click', function () {
+						curScope = it.getAttribute( 'data-key' ) || '';
+						syncCurrent();
+						renderScope(); renderControls(); markTarget();
 					} );
 				} );
 			}
-			function bindTreeTabs() {
-				$$( '#vse-tabs button' ).forEach( function ( t ) {
-					t.addEventListener( 'click', function () {
-						treeTab = t.getAttribute( 'data-tab' );
-						$$( '#vse-tabs button' ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === t ); } );
-						renderTree();
-					} );
-				} );
-			}
-			function node( target, name, desc, icon ) {
-				return '<div class="vse-node' + ( target === current ? ' is-on' : '' ) + '" data-target="' + target + '">' +
-					'<span class="ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7">' + icon + '</svg></span>' +
-					'<span class="tx"><span class="nm">' + escapeHtml( name ) + '</span>' + ( desc ? '<span class="ds">' + escapeHtml( desc ) + '</span>' : '' ) + '</span></div>';
-			}
+			document.addEventListener( 'click', function () {
+				var pop = $( '#vse-scope-pop' ), btn = $( '#vse-scope-btn' );
+				if ( pop ) { pop.hidden = true; }
+				if ( btn ) { btn.classList.remove( 'is-open' ); }
+				closeUnitMenus();
+			} );
 
 			// ---- open / close / save ----
+			var leftCol = $( '.vse-left', root ), stickyEl = $( '.vse-sticky', root );
+			if ( leftCol && stickyEl ) {
+				leftCol.addEventListener( 'scroll', function () {
+					stickyEl.classList.toggle( 'is-pinned', leftCol.scrollTop > 2 );
+				} );
+			}
 			function open() {
-				buildPreview(); renderTree(); renderControls(); applyLive();
+				syncCurrent(); buildPreview(); renderStrip(); renderScope(); renderControls(); applyLive();
 				var ven = $( '#vse-enabled' ), venLbl = $( '#vse-onoff-label' );
 				if ( ven ) { ven.checked = ( form.enabled !== false ); if ( venLbl ) { venLbl.textContent = ven.checked ? 'On' : 'Off'; venLbl.classList.toggle( 'is-on', ven.checked ); } }
 				root.hidden = false; document.body.style.overflow = 'hidden';
 			}
 			function close() { root.hidden = true; document.body.style.overflow = ''; if ( window.veloxMailHighlightBuild ) { window.veloxMailHighlightBuild(); } }
 			openStyleEditor = open;
-			bindTreeTabs();
 			$( '#vmail-style-btn' ).addEventListener( 'click', open );
 			// Shared-navbar mode switcher inside the style editor: Build + back close it.
 			var toBuild = $( '#vse-to-build' ), backBtn = $( '#vse-back' );
@@ -6010,7 +6133,7 @@
 					.then( function () { b.disabled = false; } );
 			} );
 			$( '#vse-reset' ).addEventListener( 'click', function () {
-				form.style = {}; S = form.style; current = 'submit'; buildPreview(); renderTree(); renderControls(); applyLive();
+				form.style = {}; S = form.style; curTarget = 'form'; curScope = ''; syncCurrent(); buildPreview(); renderStrip(); renderScope(); renderControls(); applyLive();
 			} );
 			$$( '#vse-device button' ).forEach( function ( d ) {
 				d.addEventListener( 'click', function () {
