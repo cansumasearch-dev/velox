@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.78 — Gradient fixes and quieter number fields
+- The gradient preview bar is now live. It was only redrawn when the whole panel re-rendered, so it kept showing the default blue-to-purple while your actual colours were something else entirely. It now follows the From, To, Type and Angle controls as you change them.
+- Choosing Gradient seeds the From and To colours instead of leaving them on Inherit, so the bar and the form always agree.
+- Fixed the Angle field showing px. A number field now defaults to the first unit it actually allows, so Angle shows deg and line height shows no unit at all.
+- Fixed a stored angle like "135deg" being written into the preview as "135degdeg", which silently broke the gradient in the live preview.
+- Toned down the unit chip in number fields. It had a grey pill background that made every field look like two separate boxes; it is now quiet text that only lifts on hover, so the value, stepper and unit read as one control. Non-px units still tint so they stand out.
+
 ## 3.09.77 — Folders: default names and a cleaner manager
 - Folders left without a name are no longer silently discarded when you save. They get a sensible default (Folder 1, Folder 2 and so on) instead of vanishing.
 - Rebuilt the folder manager to match the style editor: a proper header with a subtitle, colour swatches that show the chosen colour directly rather than a raw colour input, slim 32px name fields, an icon delete button that turns red on hover, a dashed Add folder button, an empty state, and a footer with Cancel next to Save.

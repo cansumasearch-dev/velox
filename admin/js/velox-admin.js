@@ -5121,7 +5121,7 @@
 			if ( 'gradient' === mode && o.gradFrom && o.gradTo ) {
 				d += 'radial' === ( o.gradType || 'linear' )
 					? 'background-image:radial-gradient(circle,' + o.gradFrom + ',' + o.gradTo + ');'
-					: 'background-image:linear-gradient(' + ( o.gradAngle === '' || o.gradAngle == null ? 90 : o.gradAngle ) + 'deg,' + o.gradFrom + ',' + o.gradTo + ');';
+					: 'background-image:linear-gradient(' + ( isNaN( parseFloat( o.gradAngle ) ) ? 90 : parseFloat( o.gradAngle ) ) + 'deg,' + o.gradFrom + ',' + o.gradTo + ');';
 			} else if ( 'image' === mode && o.imgUrl ) {
 				d += 'background-image:url(' + o.imgUrl + ');';
 				d += 'background-size:' + ( o.imgSize || 'cover' ) + ';';
@@ -6044,8 +6044,21 @@
 			}
 			var SCOPE = '#vse-form';
 			function liveCss() { return formPreviewCss( SCOPE ); }
+			function gradCss( o ) {
+				var from = o.gradFrom || '#2ab7f1', to = o.gradTo || '#7b5cff';
+				var ang = parseFloat( o.gradAngle );
+				if ( isNaN( ang ) ) { ang = 90; }
+				return 'radial' === ( o.gradType || 'linear' )
+					? 'radial-gradient(circle,' + from + ',' + to + ')'
+					: 'linear-gradient(' + ang + 'deg,' + from + ',' + to + ')';
+			}
+			function refreshGradBar() {
+				var bar = $( '#vse-controls .vse-gradbar' );
+				if ( bar ) { bar.style.background = gradCss( st( current ) ); }
+			}
 			function applyLive() {
 				var styleTag = $( '#vse-live-css' ); if ( styleTag ) { styleTag.textContent = liveCss(); }
+				refreshGradBar();
 				autosave(); // persist style edits (debounced) so they actually reach the front end
 			}
 
@@ -6059,12 +6072,13 @@
 			// Values are stored with their unit baked in ("11px", "0.95rem", "auto").
 			// Both the PHP and JS CSS builders pass anything containing a letter or %
 			// through untouched, so no unit conversion is needed on either side.
-			function splitUnit( v ) {
+			function splitUnit( v, def ) {
+				def = def == null ? 'px' : def;
 				v = ( v == null ? '' : String( v ) ).trim();
 				if ( 'auto' === v ) { return { n: '', u: 'auto' }; }
-				var m = v.match( /^(-?[0-9.]+)\s*(px|rem|em|%)?$/ );
-				if ( ! m ) { return { n: v, u: 'px' }; }
-				return { n: m[1], u: m[2] || 'px' };
+				var m = v.match( /^(-?[0-9.]+)\s*(px|rem|em|%|deg)?$/ );
+				if ( ! m ) { return { n: v, u: def }; }
+				return { n: m[1], u: m[2] || def };
 			}
 			function joinUnit( n, u ) {
 				if ( 'auto' === u ) { return 'auto'; }
@@ -6085,12 +6099,13 @@
 			var STEP = '<span class="vse-step"><button type="button" data-step="up" tabindex="-1">' + svgi( '<path d="m6 15 6-6 6 6"/>', 9, 2.6 ) + '</button>' +
 				'<button type="button" data-step="down" tabindex="-1">' + svgi( CHEV, 9, 2.6 ) + '</button></span>';
 			function ctrlNum( label, target, key, val, units ) {
-				var p = splitUnit( val );
-				var list = ( units || UNITS ).join( ',' );
+				var arr = units || UNITS;
+				var p = splitUnit( val, arr[0] );
+				var list = arr.join( ',' );
 				return '<div class="vse-fld"><div class="vse-fk">' + label + '</div>' +
 					'<div class="vse-num"><input class="vse-nv" type="text" inputmode="decimal" data-t="' + target + '" data-k="' + key + '" data-unit="' + p.u + '" value="' + escapeHtml( 'auto' === p.u ? '' : p.n ) + '" placeholder="\u2014">' +
 					STEP +
-					'<button type="button" class="vse-unit' + ( 'px' === p.u ? '' : ' is-alt' ) + '" data-t="' + target + '" data-k="' + key + '" data-units="' + list + '">' + p.u + svgi( CHEV, 8, 2.6 ) + '</button>' +
+					'<button type="button" class="vse-unit' + ( 'px' === p.u ? '' : ' is-alt' ) + '" data-t="' + target + '" data-k="' + key + '" data-units="' + list + '">' + ( '' === p.u ? '\u2014' : p.u ) + svgi( CHEV, 8, 2.6 ) + '</button>' +
 					'</div></div>';
 			}
 			// Label on the left, controls hard right — they never collide.
@@ -6162,10 +6177,7 @@
 				if ( ! rich || 'color' === mode ) {
 					inner += ctrlColor( 'Fill', t, 'bg', o.bg );
 				} else if ( 'gradient' === mode ) {
-					inner += '<div class="vse-gradbar" style="background:' +
-						( 'radial' === ( o.gradType || 'linear' )
-							? 'radial-gradient(circle,' + ( o.gradFrom || '#2ab7f1' ) + ',' + ( o.gradTo || '#7b5cff' ) + ')'
-							: 'linear-gradient(' + ( o.gradAngle || 90 ) + 'deg,' + ( o.gradFrom || '#2ab7f1' ) + ',' + ( o.gradTo || '#7b5cff' ) + ')' ) + '"></div>';
+					inner += '<div class="vse-gradbar" style="background:' + gradCss( o ) + '"></div>';
 					inner += '<div class="vse-two">' +
 						ctrlSelect( 'Type', t, 'gradType', o.gradType || 'linear', [ { v: 'linear', l: 'Linear' }, { v: 'radial', l: 'Radial' } ] ) +
 						ctrlNum( 'Angle', t, 'gradAngle', o.gradAngle, [ 'deg' ] ) + '</div>';
@@ -6315,11 +6327,11 @@
 						closeUnitMenus();
 						var units = ( btn.getAttribute( 'data-units' ) || 'px' ).split( ',' );
 						var t = btn.getAttribute( 'data-t' ), k = btn.getAttribute( 'data-k' );
-						var cur = ( st( t )[ k ] != null ) ? splitUnit( st( t )[ k ] ).u : 'px';
+						var cur = splitUnit( st( t )[ k ], units[0] ).u;
 						var menu = document.createElement( 'div' );
 						menu.className = 'vse-unit-menu';
 						menu.innerHTML = units.map( function ( u ) {
-							return '<button type="button" data-u="' + u + '"' + ( u === cur ? ' class="is-on"' : '' ) + '>' + u + '</button>';
+							return '<button type="button" data-u="' + u + '"' + ( u === cur ? ' class="is-on"' : '' ) + '>' + ( '' === u ? '\u2014' : u ) + '</button>';
 						} ).join( '' );
 						btn.parentNode.appendChild( menu );
 						$$( 'button', menu ).forEach( function ( b ) {
@@ -6353,6 +6365,10 @@
 						var t = btn.getAttribute( 'data-t' ), k = btn.getAttribute( 'data-k' ), v = btn.getAttribute( 'data-v' );
 						var o = st( t );
 						if ( '' === v ) { delete o[ k ]; } else { o[ k ] = v; }
+						if ( 'bgMode' === k && 'gradient' === v ) {
+							if ( ! o.gradFrom ) { o.gradFrom = o.bg || '#2ab7f1'; }
+							if ( ! o.gradTo ) { o.gradTo = '#7b5cff'; }
+						}
 						btn.parentNode.querySelectorAll( 'button' ).forEach( function ( b ) { b.classList.toggle( 'is-on', b === btn ); } );
 						applyLive();
 						if ( RERENDER[ k ] ) { renderControls(); }
