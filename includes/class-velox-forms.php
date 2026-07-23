@@ -1186,7 +1186,8 @@ class Velox_Forms {
 		foreach ( (array) $folders as $f ) {
 			$name = isset( $f['name'] ) ? sanitize_text_field( $f['name'] ) : '';
 			if ( '' === $name ) {
-				continue;
+				// Don't silently discard a folder just because it wasn't named.
+				$name = 'Folder ' . ( count( $clean ) + 1 );
 			}
 			$id = isset( $f['id'] ) && '' !== $f['id'] ? sanitize_key( $f['id'] ) : 'f_' . substr( md5( $name . wp_rand() ), 0, 8 );
 			if ( isset( $seen[ $id ] ) ) {

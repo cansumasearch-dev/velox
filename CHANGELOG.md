@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.77 — Folders: default names and a cleaner manager
+- Folders left without a name are no longer silently discarded when you save. They get a sensible default (Folder 1, Folder 2 and so on) instead of vanishing.
+- Rebuilt the folder manager to match the style editor: a proper header with a subtitle, colour swatches that show the chosen colour directly rather than a raw colour input, slim 32px name fields, an icon delete button that turns red on hover, a dashed Add folder button, an empty state, and a footer with Cancel next to Save.
+
 ## 3.09.76 — Deleted view fixed, and counts stop lying
 - Fixed the Deleted button in the new rail doing nothing. The rail buttons were missing the class the filter handler looks for, and the handler was bound to the top bar only, so clicks in the rail never reached it. Inbox and Deleted in the rail both work now.
 - Entry counts no longer include deleted submissions. A form showing "4 entries" with an empty list was counting four entries sitting in Deleted; totals, the per-form count and the last-7-days figure now count only live entries.

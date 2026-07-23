@@ -4265,24 +4265,44 @@
 				overlay.className = 'vmail-fm-overlay';
 				overlay.innerHTML =
 					'<div class="vmail-fm">' +
-						'<div class="vmail-fm-head"><strong>Folders</strong><button type="button" class="vmail-fm-x" aria-label="Close">&times;</button></div>' +
-						'<div class="vmail-fm-list" id="vmail-fm-list"></div>' +
-						'<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-fm-add">+ Add folder</button>' +
-						'<div class="vmail-fm-foot"><button type="button" class="velox-btn velox-btn--primary" id="vmail-fm-save">Save folders</button></div>' +
+						'<div class="vmail-fm-head">' +
+							'<div><strong>Folders</strong><span class="vmail-fm-sub">Colour-code submissions in your inbox.</span></div>' +
+							'<button type="button" class="vmail-fm-x" aria-label="Close">' +
+								'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
+							'</button>' +
+						'</div>' +
+						'<div class="vmail-fm-body">' +
+							'<div class="vmail-fm-list" id="vmail-fm-list"></div>' +
+							'<button type="button" class="vmail-fm-add" id="vmail-fm-add">' +
+								'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>' +
+								'Add folder</button>' +
+						'</div>' +
+						'<div class="vmail-fm-foot">' +
+							'<button type="button" class="velox-btn velox-btn--ghost" id="vmail-fm-cancel">Cancel</button>' +
+							'<button type="button" class="velox-btn velox-btn--primary" id="vmail-fm-save">Save folders</button>' +
+						'</div>' +
 					'</div>';
 				document.body.appendChild( overlay );
 				var fmList = overlay.querySelector( '#vmail-fm-list' );
 				var working = folders.map( function ( f ) { return { id: f.id, name: f.name, color: f.color }; } );
 				function drawRows() {
 					fmList.innerHTML = '';
+					if ( ! working.length ) {
+						fmList.innerHTML = '<div class="vmail-fm-empty">No folders yet. Add one to start sorting submissions.</div>';
+					}
 					working.forEach( function ( f, idx ) {
 						var row = document.createElement( 'div' );
 						row.className = 'vmail-fm-row';
 						row.innerHTML =
-							'<input type="color" class="vmail-fm-color" value="' + escapeHtml( f.color || '#2ab7f1' ) + '">' +
-							'<input type="text" class="velox-input vmail-fm-name" value="' + escapeHtml( f.name || '' ) + '" placeholder="Folder name">' +
-							'<button type="button" class="vmail-fm-del" aria-label="Remove folder">&times;</button>';
-						row.querySelector( '.vmail-fm-color' ).addEventListener( 'input', function () { working[ idx ].color = this.value; } );
+							'<span class="vmail-fm-sw" style="background:' + escapeHtml( f.color || '#2ab7f1' ) + '">' +
+								'<input type="color" class="vmail-fm-color" value="' + escapeHtml( f.color || '#2ab7f1' ) + '" aria-label="Folder colour"></span>' +
+							'<input type="text" class="vmail-fm-name" value="' + escapeHtml( f.name || '' ) + '" placeholder="Folder ' + ( idx + 1 ) + '">' +
+							'<button type="button" class="vmail-fm-del" title="Remove folder" aria-label="Remove folder">' +
+								'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
+						row.querySelector( '.vmail-fm-color' ).addEventListener( 'input', function () {
+							working[ idx ].color = this.value;
+							this.parentNode.style.background = this.value;
+						} );
 						row.querySelector( '.vmail-fm-name' ).addEventListener( 'input', function () { working[ idx ].name = this.value; } );
 						row.querySelector( '.vmail-fm-del' ).addEventListener( 'click', function () { working.splice( idx, 1 ); drawRows(); } );
 						fmList.appendChild( row );
@@ -4292,6 +4312,7 @@
 				overlay.querySelector( '#vmail-fm-add' ).addEventListener( 'click', function () { working.push( { id: '', name: '', color: '#2ab7f1' } ); drawRows(); } );
 				function closeFm() { overlay.remove(); }
 				overlay.querySelector( '.vmail-fm-x' ).addEventListener( 'click', closeFm );
+				overlay.querySelector( '#vmail-fm-cancel' ).addEventListener( 'click', closeFm );
 				overlay.addEventListener( 'click', function ( e ) { if ( e.target === overlay ) { closeFm(); } } );
 				overlay.querySelector( '#vmail-fm-save' ).addEventListener( 'click', function () {
 					var sv = overlay.querySelector( '#vmail-fm-save' );
