@@ -43,7 +43,23 @@ class Velox_MediaScan {
 	public static function crawl_urls( $max = 400 ) {
 		$urls  = array( home_url( '/' ) );
 		$types = get_post_types( array( 'public' => true ), 'names' );
-		unset( $types['attachment'] );
+		// Builders register their templates and design libraries as public post
+		// types. Crawling those renders a template on its own — so an unassigned
+		// template, or one full of demo content, vouches for images that appear
+		// nowhere on the real site. Templates that ARE in use get picked up anyway,
+		// because they render as part of the pages that use them.
+		$skip = array(
+			'attachment', 'revision', 'nav_menu_item', 'customize_changeset', 'oembed_cache', 'user_request',
+			'ct_template', 'oxy_user_library',            // Oxygen
+			'elementor_library',                          // Elementor
+			'bricks_template',                            // Bricks
+			'et_pb_layout',                               // Divi
+			'fl-builder-template', 'fl-theme-layout',     // Beaver
+			'vc4_templates', 'vc_grid_item',              // WPBakery
+			'themer_layout', 'tve_lead_shortcode',        // Generate/Thrive
+			'wp_block', 'wp_template', 'wp_template_part', 'wp_global_styles', 'wp_navigation', // block themes
+		);
+		foreach ( $skip as $t ) { unset( $types[ $t ] ); }
 		$ids = get_posts( array(
 			'post_type'      => array_values( $types ),
 			'post_status'    => 'publish',
@@ -54,7 +70,9 @@ class Velox_MediaScan {
 		) );
 		foreach ( $ids as $pid ) {
 			$link = get_permalink( $pid );
-			if ( $link ) { $urls[] = $link; }
+			// Belt and braces: builder preview URLs are query-string based.
+			if ( ! $link || preg_match( '/[?&](ct_template|elementor-preview|bricks_preview|et_fb|fl_builder)=/i', $link ) ) { continue; }
+			$urls[] = $link;
 		}
 		return array_values( array_unique( array_filter( $urls ) ) );
 	}

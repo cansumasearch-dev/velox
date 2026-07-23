@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.10.4 — Stop crawling builder templates
+- The crawl was walking page-builder template posts. Oxygen (and Elementor, Bricks, Divi, Beaver, WPBakery and block themes) register their templates and design libraries as public post types, so the crawler was opening each template on its own and marking whatever demo content it contained as "in use" — which is why artwork that appears nowhere on the site kept showing up as used, credited to a /?ct_template= URL.
+- Builder template and library post types are now excluded, and any permalink that is a builder preview URL is skipped. Templates that are genuinely in use are still covered, because they render as part of the pages that use them.
+
 ## 3.10.3 — "In use" now means proven, not guessed
 - Reworked how a verdict is reached. A string found somewhere in the database can no longer mark an image as in use — only real evidence can: the crawl actually rendering it on a page, or WordPress structurally pointing at it (featured image, product gallery, site logo or icon). Everything else that is merely mentioned somewhere is now "Possibly used".
 - This is why wrong files kept appearing under Used: a mention in a draft, an old theme setting, or a stale builder CSS cache file was enough to promote an image to "in use".
