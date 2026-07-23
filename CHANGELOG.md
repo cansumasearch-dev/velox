@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.10.1 — Media scan: stop images vouching for themselves
+- Fixed the big one: every attachment stores its own file path in its own postmeta (_wp_attached_file, and every generated size in _wp_attachment_metadata). The scan read all postmeta, so every image referenced itself and the entire library came back "used". Attachment-owned meta is now excluded, along with revisions and trashed posts.
+- A bare number in a custom field is no longer treated as an image reference. Prices, counts, order numbers and timestamps all look like attachment ids; it now only counts when ACF has registered a matching image field alongside it.
+- An "id" in builder or block JSON only counts when it sits next to an uploads URL, so navigation items, form fields and settings no longer mark random images as used.
+- The scanner no longer reads its own saved results, blueprints or transients back as evidence of usage.
+
 ## 3.10.0 — Unused media rebuilt
 - Replaced the media scanner. It used to ask "for each image, does it appear anywhere?", which meant building huge content blobs, capping the work at 400 images and 20 pages, and guessing. It now walks every place a reference can live once, indexes what it finds, and checks attachments against that index — in resumable batches with a progress bar, so a large library cannot time out.
 - Removed the dependency on loopback HTTP requests. The old front-end pass fetched pages over HTTP and silently skipped everything when the host blocked loopback (common on IONOS and similar), so on those sites it contributed nothing at all.

@@ -157,9 +157,19 @@ class Velox_MediaScan {
 
 	private static function scan_postmeta( &$state, $batch ) {
 		global $wpdb;
+		// Crucially: skip meta belonging to attachments. Every attachment stores its
+		// own path in _wp_attached_file and every size filename in
+		// _wp_attachment_metadata, so scanning those makes every image "reference
+		// itself" and the whole library looks used.
 		$rows = $wpdb->get_results( $wpdb->prepare(
-			"SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta}
-			 WHERE meta_value <> '' ORDER BY meta_id ASC LIMIT %d OFFSET %d",
+			"SELECT pm.post_id, pm.meta_key, pm.meta_value
+			 FROM {$wpdb->postmeta} pm
+			 INNER JOIN {$wpdb->posts} p ON p.ID = pm.post_id
+			 WHERE pm.meta_value <> ''
+			   AND p.post_type <> 'attachment'
+			   AND p.post_type <> 'revision'
+			   AND p.post_status NOT IN ('trash','auto-draft')
+			 ORDER BY pm.meta_id ASC LIMIT %d OFFSET %d",
 			$batch, (int) $state['cursor']
 		), ARRAY_A );
 		if ( ! $rows ) { return false; }
@@ -179,13 +189,16 @@ class Velox_MediaScan {
 				}
 				continue;
 			}
-			// A meta value that is nothing but an ID is very likely an image field
-			// (ACF and friends). Treated as weak so it never justifies deletion but
-			// also never gets deleted by mistake.
+			// A bare integer on its own means nothing — prices, counts and timestamps
+			// all look like attachment ids. Only trust it when ACF has registered a
+			// matching field key alongside it, which is a real image-field signal.
 			if ( ctype_digit( $val ) && strlen( $val ) < 10 && '_' !== substr( $key, 0, 1 ) ) {
-				$id = (int) $val;
-				if ( $id > 0 && ! isset( $refs['ids'][ $id ] ) ) {
-					$refs['ids'][ $id ] = 'Custom field: ' . $key . ' (weak)';
+				$sib = get_post_meta( (int) $r['post_id'], '_' . $key, true );
+				if ( is_string( $sib ) && 0 === strpos( $sib, 'field_' ) ) {
+					$id = (int) $val;
+					if ( $id > 0 && ! isset( $refs['ids'][ $id ] ) ) {
+						$refs['ids'][ $id ] = 'Custom field: ' . $key . ' (weak)';
+					}
 				}
 			}
 			self::extract( $val, 'Field: ' . $key, $refs );
@@ -201,6 +214,10 @@ class Velox_MediaScan {
 		$rows = $wpdb->get_results( $wpdb->prepare(
 			"SELECT option_name, option_value FROM {$wpdb->options}
 			 WHERE ( option_value LIKE %s OR option_name LIKE %s OR option_name LIKE %s OR option_name LIKE %s )
+			   AND option_name NOT LIKE 'velox_mscan%'
+			   AND option_name NOT LIKE 'velox_blueprints%'
+			   AND option_name NOT LIKE '_transient%'
+			   AND option_name NOT LIKE '_site_transient%'
 			 ORDER BY option_id ASC LIMIT %d OFFSET %d",
 			'%wp-content/uploads%', 'theme_mods_%', 'widget_%', 'oxygen_%',
 			$batch, (int) $state['cursor']
@@ -231,7 +248,8 @@ class Velox_MediaScan {
 		foreach ( array( array( $rows, 'Category' ), array( $rows2, 'User' ) ) as $set ) {
 			foreach ( (array) $set[0] as $r ) {
 				$v = (string) $r['meta_value'];
-				if ( ctype_digit( $v ) && strlen( $v ) < 10 ) {
+				// Only keys that actually name an image are trusted here.
+				if ( ctype_digit( $v ) && strlen( $v ) < 10 && preg_match( '/(image|thumb|logo|icon|photo|avatar|banner|cover)/i', $r['meta_key'] ) ) {
 					$id = (int) $v;
 					if ( $id > 0 && ! isset( $refs['ids'][ $id ] ) ) {
 						$refs['ids'][ $id ] = $set[1] . ' field: ' . $r['meta_key'] . ' (weak)';
@@ -319,10 +337,19 @@ class Velox_MediaScan {
 				if ( ! isset( $refs['ids'][ (int) $id ] ) ) { $refs['ids'][ (int) $id ] = $label; }
 			}
 		}
-		// Builder/block JSON commonly stores {"id":123,"url":"…"}.
-		if ( false !== strpos( $flat, '"id"' ) && preg_match_all( '/"id"\s*:\s*"?(\d{1,9})"?/', $flat, $mj ) ) {
-			foreach ( $mj[1] as $id ) {
-				if ( ! isset( $refs['ids'][ (int) $id ] ) ) { $refs['ids'][ (int) $id ] = $label . ' (weak)'; }
+		// Builder/block JSON stores {"id":123,"url":"…uploads…"}. Matching a bare
+		// "id" anywhere would tag menus, settings and form fields as image use, so
+		// only accept an id that sits next to an uploads URL.
+		if ( false !== strpos( $flat, '"id"' ) && false !== stripos( $flat, 'uploads/' ) ) {
+			if ( preg_match_all( '/"id"\s*:\s*"?(\d{1,9})"?\s*,\s*"url"\s*:\s*"[^"]*uploads\//i', $flat, $mj ) ) {
+				foreach ( $mj[1] as $id ) {
+					if ( ! isset( $refs['ids'][ (int) $id ] ) ) { $refs['ids'][ (int) $id ] = $label; }
+				}
+			}
+			if ( preg_match_all( '/"url"\s*:\s*"[^"]*uploads\/[^"]*"\s*,\s*"id"\s*:\s*"?(\d{1,9})"?/i', $flat, $mk ) ) {
+				foreach ( $mk[1] as $id ) {
+					if ( ! isset( $refs['ids'][ (int) $id ] ) ) { $refs['ids'][ (int) $id ] = $label; }
+				}
 			}
 		}
 	}
