@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.76 — Deleted view fixed, and counts stop lying
+- Fixed the Deleted button in the new rail doing nothing. The rail buttons were missing the class the filter handler looks for, and the handler was bound to the top bar only, so clicks in the rail never reached it. Inbox and Deleted in the rail both work now.
+- Entry counts no longer include deleted submissions. A form showing "4 entries" with an empty list was counting four entries sitting in Deleted; totals, the per-form count and the last-7-days figure now count only live entries.
+- Added a separate Deleted box beside the other stats, and the per-form entries page shows how many of that form’s entries are in Deleted.
+
 ## 3.09.75 — Inbox folder rail
 - Folders and Deleted moved out of the top filter bar into a left rail, so they read as places you go rather than chips squeezed in beside the filters.
 - The rail lists Inbox with a total count, then your folders as full rows with their colour dot, name and a count of what is in them, then New folder, with Deleted pinned to the bottom behind a divider. Deleted turns red when active.

@@ -4145,14 +4145,18 @@
 			}
 		} );
 
-		var filterBar = document.querySelector( '.vmail-inbox-filters' );
-		if ( filterBar ) {
-			filterBar.addEventListener( 'click', function ( e ) {
+		// Filters live in two places now: the status bar on top and the folder rail
+		// on the left. Listen on the whole inbox so both work, and clear the "on"
+		// state across both so only one scope is ever active.
+		var inboxRoot = document.getElementById( 'vmail-inbox' );
+		if ( inboxRoot ) {
+			inboxRoot.addEventListener( 'click', function ( e ) {
 				var b = e.target.closest( '.vmail-filter' ); if ( ! b ) { return; }
-				filterBar.querySelectorAll( '.vmail-filter' ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === b ); } );
+				inboxRoot.querySelectorAll( '.vmail-filter' ).forEach( function ( x ) { x.classList.toggle( 'is-on', x === b ); } );
 				activeFilter = b.getAttribute( 'data-filter' );
 				if ( 'deleted' === activeFilter ) {
 					showDeleted();
+					syncRail();
 				} else {
 					hideDeleted();
 					applyFilter();

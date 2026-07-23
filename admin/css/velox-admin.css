@@ -3122,3 +3122,9 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 	.vmail-rail-sec, .vmail-rail-item .lb, .vmail-rail-item .ct, .vmail-rail-add { display: none; }
 	.vmail-rail-item { justify-content: center; padding: 0; }
 }
+
+/* deleted entries stat reads as secondary, not a headline number */
+.vmail-stat--muted .vmail-stat-n { color: var(--vx-ink-3); }
+.vmail-stat--muted .vmail-stat-l { color: var(--vx-n300); }
+.vmail-sub-del { display: inline-block; margin-left: 6px; padding: 2px 8px; border-radius: 999px;
+	background: var(--vx-n50); border: 1px solid var(--vx-line-2); font-size: 11.5px; color: var(--vx-ink-3); }

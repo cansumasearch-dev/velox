@@ -1484,9 +1484,19 @@ class Velox_Forms {
 		global $wpdb;
 		$t = self::table();
 		if ( $form_id ) {
-			return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE form_id = %d", $form_id ) ); // phpcs:ignore WordPress.DB
+			return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE form_id = %d AND deleted_at IS NULL", $form_id ) ); // phpcs:ignore WordPress.DB
 		}
-		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t}" ); // phpcs:ignore WordPress.DB
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE deleted_at IS NULL" ); // phpcs:ignore WordPress.DB
+	}
+
+	/** How many entries are sitting in the Deleted view. */
+	public static function submission_count_deleted( $form_id = 0 ) {
+		global $wpdb;
+		$t = self::table();
+		if ( $form_id ) {
+			return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE form_id = %d AND deleted_at IS NOT NULL", $form_id ) ); // phpcs:ignore WordPress.DB
+		}
+		return (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE deleted_at IS NOT NULL" ); // phpcs:ignore WordPress.DB
 	}
 
 	/** Entries received within the last N days. */
@@ -1494,7 +1504,7 @@ class Velox_Forms {
 		global $wpdb;
 		$t     = self::table();
 		$since = gmdate( 'Y-m-d H:i:s', (int) current_time( 'timestamp' ) - ( (int) $days * DAY_IN_SECONDS ) ); // phpcs:ignore WordPress.DateTime
-		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE created >= %s", $since ) ); // phpcs:ignore WordPress.DB
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE created >= %s AND deleted_at IS NULL", $since ) ); // phpcs:ignore WordPress.DB
 	}
 
 	/** Map a form's field keys → human labels, for rendering entries. */

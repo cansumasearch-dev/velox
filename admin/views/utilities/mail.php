@@ -205,7 +205,12 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			<div>
 				<a class="vmail-back-link" href="<?php echo esc_url( $base ); ?>">&larr; All forms</a>
 				<h1 class="velox-h2" style="margin-top:8px;"><?php echo esc_html( $ititle ); ?> <span class="vmail-head-sub">— entries</span></h1>
-				<p class="velox-sub"><?php echo count( $subs ); ?> submission<?php echo 1 === count( $subs ) ? '' : 's'; ?> received through this form.</p>
+				<p class="velox-sub"><?php echo count( $subs ); ?> submission<?php echo 1 === count( $subs ) ? '' : 's'; ?> received through this form.<?php
+					$vx_fdel = Velox_Forms::submission_count_deleted( $entries_for );
+					if ( $vx_fdel ) {
+						echo ' <span class="vmail-sub-del">' . (int) $vx_fdel . ' in Deleted</span>';
+					}
+				?></p>
 			</div>
 			<div class="vmail-entries-actions">
 				<?php if ( ! empty( $subs ) ) :
@@ -261,6 +266,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 	<?php else :
 		// ===================== DASHBOARD =====================
 		$total_entries = Velox_Forms::submission_count();
+		$deleted_count = Velox_Forms::submission_count_deleted();
 		$recent        = Velox_Forms::submission_count_recent( 7 );
 		$log           = Velox_Mail::log( 50 );
 		?>
@@ -276,6 +282,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			<div class="vmail-stat"><span class="vmail-stat-n"><?php echo count( $forms ); ?></span><span class="vmail-stat-l">Forms</span></div>
 			<div class="vmail-stat"><span class="vmail-stat-n"><?php echo (int) $total_entries; ?></span><span class="vmail-stat-l">Total entries</span></div>
 			<div class="vmail-stat"><span class="vmail-stat-n"><?php echo (int) $recent; ?></span><span class="vmail-stat-l">Last 7 days</span></div>
+			<div class="vmail-stat vmail-stat--muted"><span class="vmail-stat-n"><?php echo (int) $deleted_count; ?></span><span class="vmail-stat-l">Deleted</span></div>
 		</div>
 
 		<?php
@@ -325,7 +332,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				</div>
 				<div class="vmail-inbox-split">
 					<nav class="vmail-rail" aria-label="Folders">
-						<button type="button" class="vmail-rail-item is-on" data-rail="inbox" data-filter="all">
+						<button type="button" class="vmail-filter vmail-rail-item is-on" data-rail="inbox" data-filter="all">
 							<span class="ic"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
 							<span class="lb">Inbox</span>
 							<span class="ct"><?php echo count( $inbox ); ?></span>
@@ -338,7 +345,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 						</button>
 						<div class="vmail-rail-space"></div>
 						<div class="vmail-rail-foot">
-							<button type="button" class="vmail-rail-item vmail-rail-item--del" data-rail="deleted" data-filter="deleted" title="Deleted submissions">
+							<button type="button" class="vmail-filter vmail-rail-item vmail-rail-item--del" data-rail="deleted" data-filter="deleted" title="Deleted submissions">
 								<span class="ic"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
 								<span class="lb">Deleted</span>
 							</button>
