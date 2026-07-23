@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.75 — Inbox folder rail
+- Folders and Deleted moved out of the top filter bar into a left rail, so they read as places you go rather than chips squeezed in beside the filters.
+- The rail lists Inbox with a total count, then your folders as full rows with their colour dot, name and a count of what is in them, then New folder, with Deleted pinned to the bottom behind a divider. Deleted turns red when active.
+- The top bar now carries only the status filters — All, Unread, Pinned and Done — each with an icon and count.
+- On screens under 1180px the rail collapses to icons only so the reading pane keeps its room.
+
 ## 3.09.74 — Style fields rebuilt, icon actions, copyable shortcode
 - Fixed the number fields in the Style editor. The stepper buttons had their own grey background, so every field read as three separate boxes instead of one control. The stepper is now transparent and only fades in on hover or focus, and the value, stepper and unit all sit inside a single bordered field.
 - Dropdowns (Weight, Type, Position and the rest) now render without native browser chrome, so they are exactly the same 32px height as every other control. Verified across all nine controls in the panel.

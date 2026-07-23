@@ -2099,7 +2099,7 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
    Mail & forms — submissions inbox + CAPTCHA gate (stage 5)
    ======================================================================== */
 .vmail-inbox { padding: 0; overflow: hidden; }
-.vmail-inbox-split { display: grid; grid-template-columns: 320px 1fr; height: clamp(380px, 66vh, 720px); }
+.vmail-inbox-split { display: grid; grid-template-columns: 178px 320px 1fr; height: clamp(380px, 66vh, 720px); }
 .vmail-inbox-list { border-right: 1px solid var(--vx-line); overflow-y: auto; min-height: 0; }
 .vmail-inbox-item { position: relative; display: flex; align-items: stretch; border-bottom: 1px solid var(--vx-line); transition: background var(--vx-dur-1) var(--vx-ease); }
 .vmail-inbox-item:hover { background: var(--vx-n25); }
@@ -2999,11 +2999,6 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-inbox-item[data-status="done"] .vmail-act--done { color: var(--vx-success); }
 
 /* ---- Deleted tab: pushed right, but clearly a real tab ---- */
-.vmail-filter--deleted { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--vx-line-2); background: var(--vx-card); color: var(--vx-ink-2); }
-.vmail-filter--deleted svg { opacity: .7; }
-.vmail-filter--deleted:hover { border-color: var(--vx-n300); color: var(--vx-ink); background: var(--vx-n25); }
-.vmail-filter--deleted.is-on { background: var(--vx-danger-tint); border-color: rgba(200,54,47,.28); color: var(--vx-danger); }
-.vmail-filter--deleted.is-on svg { opacity: 1; }
 
 /* ---- inbox empty state, shown inside the list so the UI never disappears ---- */
 .vmail-inbox-blank { display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 46px 22px; text-align: center; color: var(--vx-ink-3); }
@@ -3086,3 +3081,44 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vmail-sc-btn:hover .velox-copy-ic { color: var(--vx-ink-2); }
 .vmail-sc-btn.is-copied { background: var(--vx-success-tint); border-color: rgba(29,138,78,.3); }
 .vmail-sc-btn.is-copied code, .vmail-sc-btn.is-copied .velox-copy-ic { color: var(--vx-success); }
+
+/* ---- inbox left rail: folders + deleted ---- */
+.vmail-rail { width: 178px; flex: none; border-right: 1px solid var(--vx-line); background: var(--vx-n25);
+	display: flex; flex-direction: column; padding: 10px 8px; min-height: 0; }
+.vmail-rail-sec { font-size: 9.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase;
+	color: var(--vx-ink-3); padding: 12px 8px 5px; }
+.vmail-rail-item { display: flex; align-items: center; gap: 9px; width: 100%; height: 32px; padding: 0 9px;
+	border: 0; border-radius: 8px; background: none; cursor: pointer; font-family: inherit; font-size: 12.5px;
+	color: var(--vx-ink); text-align: left; transition: background .12s, color .12s; }
+.vmail-rail-item + .vmail-rail-item { margin-top: 1px; }
+.vmail-rail-item .ic { display: inline-flex; align-items: center; justify-content: center; width: 15px; color: var(--vx-ink-3); flex: none; }
+.vmail-rail-item .lb { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vmail-rail-item .ct { font-size: 11px; color: var(--vx-n300); font-variant-numeric: tabular-nums; flex: none; }
+.vmail-rail-item:hover { background: var(--vx-n50); }
+.vmail-rail-item.is-on { background: var(--vx-primary-tint); color: var(--vx-primary-ink); font-weight: 600; }
+.vmail-rail-item.is-on .ic { color: var(--vx-primary); }
+.vmail-rail-item.is-on .ct { color: #5bb8e0; }
+.vmail-rail-item--del.is-on { background: var(--vx-danger-tint); color: var(--vx-danger); }
+.vmail-rail-item--del.is-on .ic { color: var(--vx-danger); }
+.vmail-rail-add { display: flex; align-items: center; gap: 9px; width: 100%; height: 30px; padding: 0 9px;
+	border: 0; border-radius: 8px; background: none; cursor: pointer; font-family: inherit; font-size: 12px;
+	color: var(--vx-ink-3); text-align: left; margin-top: 2px; }
+.vmail-rail-add .ic { display: inline-flex; width: 15px; justify-content: center; flex: none; }
+.vmail-rail-add:hover { background: var(--vx-n50); color: var(--vx-ink-2); }
+.vmail-rail-space { flex: 1; min-height: 14px; }
+.vmail-rail-foot { border-top: 1px solid var(--vx-line); padding-top: 8px; }
+.vmail-folder-chips { display: block; }
+.vmail-rail-item .vmail-folder-dot { width: 9px; height: 9px; border-radius: 50%; display: block; }
+
+/* top bar now only carries the status filters */
+.vmail-inbox-filters .vmail-filter { display: inline-flex; align-items: center; gap: 6px; }
+.vmail-inbox-filters .vmail-filter svg { opacity: .75; }
+.vmail-inbox-filters .vmail-filter.is-on svg { opacity: 1; }
+
+/* narrow screens: collapse the rail to icons, names on hover */
+@media (max-width: 1180px) {
+	.vmail-inbox-split { grid-template-columns: 52px 300px 1fr; }
+	.vmail-rail { width: auto; padding: 10px 6px; align-items: stretch; }
+	.vmail-rail-sec, .vmail-rail-item .lb, .vmail-rail-item .ct, .vmail-rail-add { display: none; }
+	.vmail-rail-item { justify-content: center; padding: 0; }
+}

@@ -3961,6 +3961,13 @@
 		}
 
 		var activeFilter = 'all';
+		function syncRail() {
+			var railInbox = document.querySelector( '.vmail-rail-item[data-rail="inbox"]' );
+			if ( ! railInbox ) { return; }
+			var onDeleted = !! document.querySelector( '.vmail-filter[data-filter="deleted"].is-on' );
+			var onFolder  = !! document.querySelector( '.vmail-folder-chip.is-on' );
+			railInbox.classList.toggle( 'is-on', ! onDeleted && ! onFolder );
+		}
 		function refreshBlank() {
 			var b = document.getElementById( 'vmail-inbox-blank' );
 			if ( ! b ) { return; }
@@ -3982,6 +3989,7 @@
 			var nomatch = list.querySelector( '.vmail-inbox-nomatch' );
 			if ( nomatch ) { nomatch.hidden = shown > 0; }
 			refreshBlank();
+			syncRail();
 		}
 
 		function load( id, itemEl ) {
@@ -4226,8 +4234,17 @@
 		var folderChips = document.getElementById( 'vmail-folder-chips' );
 		function renderFolderChips() {
 			if ( ! folderChips ) { return; }
+			var counts = {};
+			$$( '.vmail-inbox-item', list ).forEach( function ( it ) {
+				var fid = it.getAttribute( 'data-folder' ) || '';
+				if ( fid ) { counts[ fid ] = ( counts[ fid ] || 0 ) + 1; }
+			} );
 			folderChips.innerHTML = folders.map( function ( f ) {
-				return '<button type="button" class="vmail-filter vmail-folder-chip" data-filter="folder:' + f.id + '"><span class="vmail-folder-dot" style="background:' + escapeHtml( f.color ) + '"></span>' + escapeHtml( f.name ) + '</button>';
+				var n = counts[ f.id ] || 0;
+				return '<button type="button" class="vmail-filter vmail-rail-item vmail-folder-chip" data-filter="folder:' + f.id + '">' +
+					'<span class="ic"><span class="vmail-folder-dot" style="background:' + escapeHtml( f.color ) + '"></span></span>' +
+					'<span class="lb">' + escapeHtml( f.name ) + '</span>' +
+					( n ? '<span class="ct">' + n + '</span>' : '' ) + '</button>';
 			} ).join( '' );
 		}
 		function folderOptions( sel ) {

@@ -295,15 +295,21 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		<div class="velox-section-title">Inbox</div>
 		<div class="velox-panel velox-panel--flush vmail-inbox" id="vmail-inbox">
 			<div class="vmail-inbox-filters" role="tablist" aria-label="Filter submissions">
-					<button type="button" class="vmail-filter is-on" data-filter="all">All</button>
-					<button type="button" class="vmail-filter" data-filter="unread">Unread<?php echo $vx_unread ? ' <span class="vmail-filter-count">' . (int) $vx_unread . '</span>' : ''; ?></button>
-					<button type="button" class="vmail-filter" data-filter="pinned">Pinned</button>
-					<button type="button" class="vmail-filter" data-filter="done">Done</button>
-					<span class="vmail-folder-chips" id="vmail-folder-chips"></span>
-					<button type="button" class="vmail-folder-manage" id="vmail-folder-manage" title="Manage folders">+ Folders</button>
-					<button type="button" class="vmail-filter vmail-filter--deleted" data-filter="deleted" title="Deleted submissions">
-						<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
-						Deleted
+					<button type="button" class="vmail-filter is-on" data-filter="all">
+						<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg>
+						All<?php echo count( $inbox ) ? ' <span class="vmail-filter-count">' . count( $inbox ) . '</span>' : ''; ?>
+					</button>
+					<button type="button" class="vmail-filter" data-filter="unread">
+						<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9"><circle cx="12" cy="12" r="8"/></svg>
+						Unread<?php echo $vx_unread ? ' <span class="vmail-filter-count">' . (int) $vx_unread . '</span>' : ''; ?>
+					</button>
+					<button type="button" class="vmail-filter" data-filter="pinned">
+						<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v6l-2 4h10l-2-4V4M12 14v6M8 4h8"/></svg>
+						Pinned
+					</button>
+					<button type="button" class="vmail-filter" data-filter="done">
+						<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
+						Done
 					</button>
 				</div>
 				<script type="application/json" id="vmail-folders-data"><?php echo wp_json_encode( Velox_Forms::folders() ); ?></script>
@@ -318,6 +324,26 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					<button type="button" class="vmail-bulk-clear" id="vmail-bulk-clear">Clear</button>
 				</div>
 				<div class="vmail-inbox-split">
+					<nav class="vmail-rail" aria-label="Folders">
+						<button type="button" class="vmail-rail-item is-on" data-rail="inbox" data-filter="all">
+							<span class="ic"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
+							<span class="lb">Inbox</span>
+							<span class="ct"><?php echo count( $inbox ); ?></span>
+						</button>
+						<div class="vmail-rail-sec">Folders</div>
+						<div class="vmail-folder-chips" id="vmail-folder-chips"></div>
+						<button type="button" class="vmail-rail-add" id="vmail-folder-manage" title="Manage folders">
+							<span class="ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
+							New folder
+						</button>
+						<div class="vmail-rail-space"></div>
+						<div class="vmail-rail-foot">
+							<button type="button" class="vmail-rail-item vmail-rail-item--del" data-rail="deleted" data-filter="deleted" title="Deleted submissions">
+								<span class="ic"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
+								<span class="lb">Deleted</span>
+							</button>
+						</div>
+					</nav>
 					<div class="vmail-inbox-list" id="vmail-inbox-list" role="listbox" aria-label="Submissions">
 						<?php foreach ( $inbox as $i => $row ) : ?>
 							<div class="vmail-inbox-item<?php echo 0 === $i ? ' is-active' : ''; ?><?php echo empty( $row['read'] ) ? ' is-unread' : ''; ?><?php echo ! empty( $row['pinned'] ) ? ' is-pinned' : ''; ?>"
