@@ -3961,6 +3961,12 @@
 		}
 
 		var activeFilter = 'all';
+		function refreshBlank() {
+			var b = document.getElementById( 'vmail-inbox-blank' );
+			if ( ! b ) { return; }
+			if ( document.querySelector( '.vmail-filter[data-filter="deleted"].is-on' ) ) { b.hidden = true; return; }
+			b.hidden = !! list.querySelector( '.vmail-inbox-item' );
+		}
 		function applyFilter() {
 			var shown = 0;
 			list.querySelectorAll( '.vmail-inbox-item' ).forEach( function ( it ) {
@@ -3975,6 +3981,7 @@
 			} );
 			var nomatch = list.querySelector( '.vmail-inbox-nomatch' );
 			if ( nomatch ) { nomatch.hidden = shown > 0; }
+			refreshBlank();
 		}
 
 		function load( id, itemEl ) {
@@ -4172,8 +4179,10 @@
 					'</span>' +
 				'</div>' +
 				'<div class="vmail-del-acts">' +
-					'<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm vmail-del-restore">Restore</button>' +
-					'<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm vmail-del-purge" title="Delete permanently">Delete forever</button>' +
+					'<button type="button" class="vmail-iact vmail-del-restore" title="Restore to inbox" aria-label="Restore to inbox">' +
+						'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v6"/></svg></button>' +
+					'<button type="button" class="vmail-iact vmail-iact--del vmail-del-purge" title="Delete permanently" aria-label="Delete permanently">' +
+						'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>' +
 				'</div>';
 			row.querySelector( '.vmail-del-restore' ).addEventListener( 'click', function () {
 				api( 'submission_restore', { id: it.id } )
@@ -4192,6 +4201,8 @@
 		function showDeleted() {
 			list.querySelectorAll( '.vmail-inbox-item' ).forEach( function ( it ) { it.style.display = 'none'; } );
 			var nomatch = list.querySelector( '.vmail-inbox-nomatch' ); if ( nomatch ) { nomatch.hidden = true; }
+			// The "no submissions yet" panel belongs to the live inbox, not this view.
+			var blankEl = document.getElementById( 'vmail-inbox-blank' ); if ( blankEl ) { blankEl.hidden = true; }
 			list.querySelectorAll( '.vmail-del-row' ).forEach( function ( r ) { r.remove(); } );
 			var loading = document.createElement( 'div' );
 			loading.className = 'vmail-del-row vmail-del-empty';
@@ -5809,6 +5820,26 @@
 			}, 600 );
 		}
 		$( '#vmail-save' ).addEventListener( 'click', save );
+
+		// Any element carrying data-code copies it (forms table shortcode cell).
+		document.addEventListener( 'click', function ( e ) {
+			var c = e.target.closest ? e.target.closest( '.velox-copy' ) : null;
+			if ( ! c ) { return; }
+			e.preventDefault();
+			var code = c.getAttribute( 'data-code' ) || '';
+			var done = function () {
+				toast( 'Shortcode copied.' );
+				c.classList.add( 'is-copied' );
+				setTimeout( function () { c.classList.remove( 'is-copied' ); }, 1200 );
+			};
+			if ( navigator.clipboard && navigator.clipboard.writeText ) {
+				navigator.clipboard.writeText( code ).then( done ).catch( done );
+			} else {
+				var t = document.createElement( 'textarea' ); t.value = code; document.body.appendChild( t ); t.select();
+				try { document.execCommand( 'copy' ); } catch ( er ) {}
+				document.body.removeChild( t ); done();
+			}
+		} );
 
 		// Shortcode displays (build + style + preview toolbars): click to copy.
 		// Delegated so it also catches the preview overlay's chip, which is built lazily.

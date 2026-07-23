@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.09.74 — Style fields rebuilt, icon actions, copyable shortcode
+- Fixed the number fields in the Style editor. The stepper buttons had their own grey background, so every field read as three separate boxes instead of one control. The stepper is now transparent and only fades in on hover or focus, and the value, stepper and unit all sit inside a single bordered field.
+- Dropdowns (Weight, Type, Position and the rest) now render without native browser chrome, so they are exactly the same 32px height as every other control. Verified across all nine controls in the panel.
+- Deleted submissions use icon buttons with tooltips instead of full-width Restore and Delete forever buttons, and the "No submissions yet" panel no longer shows while viewing Deleted.
+- Form rows use icon buttons for entries, edit and delete instead of three text buttons.
+- The shortcode in the forms list is now click-to-copy, the same as in the editor, and flashes green when copied.
+
 ## 3.09.73 — Style editor: full control set, and custom styles win again
 - FIXED: custom form styles were being overridden by the plugin’s own base stylesheet. The base input rule used a chain of :not() selectors, and each one adds specificity, so it outscored the per-form rules and silently killed them. The exclusions now sit inside :where(), which adds none, and per-form styles are printed after the base sheet instead of before. Anything you set in the Style editor now actually applies.
 - Every target now has the full set of controls: background (solid colour, linear or radial gradient with angle and both stops, or an image with size, position and repeat), size (width, height, min height, max width), text (size, weight, line height, letter spacing, colour), shape (corner, border, border colour), spacing (padding and margin on all four sides) and shadow.

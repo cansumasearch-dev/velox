@@ -477,12 +477,18 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 							?>
 							<tr class="vmail-trow" data-id="<?php echo (int) $f['id']; ?>">
 								<td><a class="vmail-t-name" href="<?php echo esc_url( $base . '&form=' . (int) $f['id'] ); ?>"><?php echo esc_html( $f['title'] ); ?></a></td>
-								<td><code class="velox-mail-shortcode">[velox_form id="<?php echo (int) $f['id']; ?>"]</code></td>
+								<td><button type="button" class="velox-copy vmail-sc-btn" data-code='[velox_form id="<?php echo (int) $f['id']; ?>"]' title="Click to copy"><code>[velox_form id="<?php echo (int) $f['id']; ?>"]</code><span class="velox-copy-ic"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="12" height="12" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></span></button></td>
 								<td class="vmail-th-num"><a class="vmail-t-count" href="<?php echo esc_url( $base . '&entries=' . (int) $f['id'] ); ?>"><?php echo (int) $fc; ?></a></td>
 								<td class="vmail-t-act">
-									<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $base . '&entries=' . (int) $f['id'] ); ?>">Entries</a>
-									<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $base . '&form=' . (int) $f['id'] ); ?>">Edit</a>
-									<button class="velox-btn velox-btn--ghost velox-btn--sm velox-mail-formdel">Delete</button>
+									<a class="vmail-iact" href="<?php echo esc_url( $base . '&entries=' . (int) $f['id'] ); ?>" title="View entries" aria-label="View entries">
+										<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg>
+									</a>
+									<a class="vmail-iact" href="<?php echo esc_url( $base . '&form=' . (int) $f['id'] ); ?>" title="Edit form" aria-label="Edit form">
+										<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+									</a>
+									<button class="vmail-iact vmail-iact--del velox-mail-formdel" title="Delete form" aria-label="Delete form">
+										<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+									</button>
 								</td>
 							</tr>
 						<?php endforeach; ?>

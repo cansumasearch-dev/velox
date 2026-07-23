@@ -1482,7 +1482,7 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vse-device button { border: 0; background: transparent; width: 34px; height: 28px; border-radius: var(--vx-r-sm); color: var(--vx-ink-3); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: color var(--vx-dur-1) var(--vx-ease), background var(--vx-dur-1) var(--vx-ease); }
 .vse-device button.is-on { background: var(--vx-card); color: var(--vx-ink); box-shadow: 0 1px 2px rgba(16,24,40,.08); }
 .vse-body { flex: 1; display: flex; min-height: 0; }
-.vse-left { width: 320px; flex: none; background: var(--vx-card); border-right: 1px solid var(--vx-line); min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.vse-left { width: 336px; flex: none; background: var(--vx-card); border-right: 1px solid var(--vx-line); min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .vse-controls { padding: 2px 14px 18px; }
 .vse-controls-head { padding: 15px 16px 13px; border-bottom: 1px solid var(--vx-line); display: flex; align-items: center; gap: 10px; position: sticky; top: 0; background: var(--vx-card); z-index: 2; }
 .vse-stage { flex: 1; min-width: 0; background: var(--vx-bg); display: flex; flex-direction: column; align-items: center; padding: 30px 40px 40px; overflow-y: auto; }
@@ -3033,11 +3033,6 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vse-revert.is-hidden { visibility: hidden; }
 
 /* ---- number field: value, stepper, unit ---- */
-.vse-num { padding: 0 4px 0 10px; gap: 4px; }
-.vse-step { display: flex; flex-direction: column; gap: 1px; flex: none; }
-.vse-step button { display: flex; align-items: center; justify-content: center; width: 16px; height: 12px; padding: 0; border: 0; border-radius: 3px; background: var(--vx-n50); color: var(--vx-ink-3); cursor: pointer; }
-.vse-step button:hover { background: var(--vx-n150); color: var(--vx-ink); }
-.vse-num:hover .vse-step button, .vse-num:focus-within .vse-step button { background: var(--vx-n100); }
 
 /* ---- background modes, gradient bar, shadow preview ---- */
 .vse-seg--full { display: flex; width: 100%; }
@@ -3046,3 +3041,48 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vse-gradbar { height: 32px; border-radius: 8px; border: 1px solid var(--vx-line-2); }
 .vse-shprev { height: 44px; border-radius: 10px; background: var(--vx-card); border: 1px solid var(--vx-line); margin: 2px 4px 6px; }
 .vse-sk { font-size: 11px; color: var(--vx-ink-3); }
+
+/* ---- number field reads as ONE control: value, quiet stepper, unit ---- */
+.vse-controls .vse-num { display: flex; align-items: center; gap: 3px; height: 32px; padding: 0 4px 0 9px;
+	border: 1px solid var(--vx-line-2); border-radius: 8px; background: var(--vx-card); box-sizing: border-box; }
+.vse-controls .vse-num:hover { border-color: var(--vx-n300); }
+.vse-controls .vse-num:focus-within { border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring); }
+.vse-controls .vse-nv { flex: 1 1 0; min-width: 0; width: auto; height: 100%; border: 0; outline: none; background: none;
+	font-family: inherit; font-size: 12.5px; color: var(--vx-ink); padding: 0; }
+.vse-controls .vse-nv::placeholder { color: var(--vx-n300); }
+.vse-step { display: flex; flex-direction: column; justify-content: center; gap: 0; flex: none; width: 13px;
+	opacity: 0; transition: opacity .12s; }
+.vse-num:hover .vse-step, .vse-num:focus-within .vse-step { opacity: 1; }
+.vse-step button { display: flex; align-items: center; justify-content: center; width: 13px; height: 11px;
+	padding: 0; margin: 0; border: 0; background: none; color: var(--vx-n300); cursor: pointer; line-height: 0; }
+.vse-step button:hover { color: var(--vx-primary); }
+.vse-controls .vse-unit { flex: none; height: 22px; padding: 0 4px; gap: 0; border: 0; border-radius: 5px;
+	background: var(--vx-n50); font-size: 10.5px; font-weight: 600; color: var(--vx-ink-2); cursor: pointer; }
+.vse-controls .vse-unit:hover { background: var(--vx-n150); color: var(--vx-ink); }
+.vse-controls .vse-unit.is-alt { background: var(--vx-primary-tint); color: var(--vx-primary-ink); }
+
+/* selects must match the number fields exactly, so kill the native chrome */
+.vse-controls select.vse-in { -webkit-appearance: none; appearance: none; height: 32px; padding: 0 26px 0 9px;
+	background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+	background-repeat: no-repeat; background-position: right 8px center; background-size: 13px; }
+
+/* ---- compact icon actions (forms table, deleted rows) ---- */
+.vmail-iact { display: inline-flex; align-items: center; justify-content: center; width: 30px; height: 30px;
+	border: 1px solid transparent; border-radius: 8px; background: none; color: var(--vx-ink-3); cursor: pointer;
+	text-decoration: none; transition: background .12s, color .12s, border-color .12s; }
+.vmail-iact:hover { background: var(--vx-n50); border-color: var(--vx-line-2); color: var(--vx-ink); }
+.vmail-iact--del:hover { background: var(--vx-danger-tint); border-color: rgba(200,54,47,.25); color: var(--vx-danger); }
+.vmail-t-act { display: flex; align-items: center; gap: 2px; justify-content: flex-end; }
+.vmail-del-acts { display: flex; align-items: center; gap: 2px; padding-right: 8px; }
+
+/* ---- copyable shortcode cell ---- */
+.vmail-sc-btn { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; padding: 5px 9px;
+	border: 1px solid transparent; border-radius: 7px; background: var(--vx-n25); cursor: pointer; font-family: inherit;
+	transition: background .12s, border-color .12s; }
+.vmail-sc-btn code { font-family: var(--vx-mono); font-size: 12px; color: var(--vx-ink-2); white-space: nowrap; }
+.vmail-sc-btn .velox-copy-ic { display: inline-flex; color: var(--vx-n300); flex: none; }
+.vmail-sc-btn:hover { background: var(--vx-n50); border-color: var(--vx-line-2); }
+.vmail-sc-btn:hover code { color: var(--vx-ink); }
+.vmail-sc-btn:hover .velox-copy-ic { color: var(--vx-ink-2); }
+.vmail-sc-btn.is-copied { background: var(--vx-success-tint); border-color: rgba(29,138,78,.3); }
+.vmail-sc-btn.is-copied code, .vmail-sc-btn.is-copied .velox-copy-ic { color: var(--vx-success); }
