@@ -529,10 +529,12 @@ class Velox_MediaScan {
 				$state_ = 'used'; $where = $refs['ids'][ $id ];
 			// 2. Mentioned somewhere, but never seen on a page. Could be a draft, an
 			//    old setting or a theme file — worth a look, not proof of use.
+			// Mentioned somewhere but never rendered on a page: that is not usage.
+			// Keep the note so you can see why it turned up, but it stays a candidate.
 			} elseif ( '' !== $key && isset( $refs['paths'][ $key ] ) ) {
-				$state_ = 'maybe'; $where = $refs['paths'][ $key ];
+				$where = 'Mentioned in: ' . $refs['paths'][ $key ];
 			} elseif ( isset( $refs['weak'][ $id ] ) ) {
-				$state_ = 'maybe'; $where = $refs['weak'][ $id ];
+				$where = 'Mentioned in: ' . $refs['weak'][ $id ];
 			}
 
 			$res[ $id ] = array( 's' => $state_, 'w' => $where );
@@ -557,7 +559,7 @@ class Velox_MediaScan {
 				'title' => get_the_title( $id ),
 				'url'   => wp_get_attachment_url( $id ),
 				'thumb' => wp_get_attachment_image_url( $id, 'thumbnail' ),
-				'size'  => ( $file && file_exists( $file ) ) ? size_format( filesize( $file ), 1 ) : '',
+				'bytes' => ( $file && file_exists( $file ) ) ? (int) filesize( $file ) : 0,
 				'state' => $r['s'],
 				'where' => $r['w'],
 			);
@@ -572,7 +574,7 @@ class Velox_MediaScan {
 	}
 
 	private static function counts( $res ) {
-		$c = array( 'used' => 0, 'maybe' => 0, 'unused' => 0 );
+		$c = array( 'used' => 0, 'unused' => 0 );
 		foreach ( (array) $res as $r ) {
 			if ( isset( $c[ $r['s'] ] ) ) { $c[ $r['s'] ]++; }
 		}

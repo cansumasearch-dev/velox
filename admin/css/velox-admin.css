@@ -3200,5 +3200,6 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-scan-bar { flex: 1; height: 6px; border-radius: 99px; background: var(--vx-n100); overflow: hidden; }
 .velox-scan-bar span { display: block; height: 100%; border-radius: 99px; background: var(--vx-primary); transition: width .25s ease; }
 .velox-scan-pct { font-size: 12px; color: var(--vx-ink-3); font-variant-numeric: tabular-nums; min-width: 38px; text-align: right; }
-.velox-media-where { display: block; font-size: 11px; color: var(--vx-ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-.velox-media-flag { display: inline-block; margin-top: 4px; padding: 2px 7px; border-radius: 999px; background: var(--vx-n50); border: 1px solid var(--vx-line-2); font-size: 10.5px; font-weight: 600; color: var(--vx-ink-3); }
+.velox-media-where { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+	font-size: 11px; line-height: 1.4; color: var(--vx-ink-3); margin-top: 3px; overflow-wrap: anywhere; }
+

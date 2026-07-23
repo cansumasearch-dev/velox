@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.10.6 — Two groups, working sizes, readable provenance
+- Dropped the Possibly used group. Anything merely mentioned in the database but never rendered on a page now sits in Not in use, where it belongs — with a note saying where it was mentioned, so you can still see why it turned up.
+- Renamed Not found to Not in use.
+- Fixed the size total always reading 0 KB. The rewritten scanner returned a pre-formatted size string while the view still expected raw bytes, so every total added up to nothing. It sends real byte counts again.
+- Fixed the "Seen on" line being cut off. It was locked to a single line with an ellipsis, so anything longer than the card was unreadable; it now wraps to two lines.
+
 ## 3.10.5 — Possibly-used cleaned up, archives crawled
 - Builder templates are now excluded from the database passes as well, not just the crawl. Their stored layout data was still producing a database "mention", which pushed template demo images into Possibly used even though they appear nowhere on the site.
 - The crawl now also reads archive pages: custom post type archives, the blog page, and category and tag listings. Images that only ever appear on a listing page — never on an individual permalink — were being missed and reported as unused.

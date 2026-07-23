@@ -6676,8 +6676,8 @@
 			delBtn.hidden = true;
 			var subset = mediaItems.filter( function ( it ) { return ( it.state || 'unused' ) === mediaMode; } );
 			if ( ! subset.length ) {
-				results.innerHTML = mediaMode !== 'unused'
-					? '<p class="velox-hint">Nothing in this group.</p>'
+				results.innerHTML = 'used' === mediaMode
+					? '<p class="velox-hint">Nothing is confirmed in use yet — run a scan.</p>'
 					: '<p class="velox-hint">Nothing flagged — every image looks referenced. 🎉</p>';
 				summary.textContent = '';
 				return;
@@ -6692,9 +6692,9 @@
 					( pickable ? '<input type="checkbox" class="velox-media-pick" value="' + it.id + '">' : '' ) +
 					'<img src="' + it.thumb + '" data-full="' + ( it.url || it.thumb ) + '" data-name="' + ( it.title || ( '#' + it.id ) ) + '" alt="" loading="lazy">' +
 					'<span class="velox-media-name">' + ( it.title || ( '#' + it.id ) ) + '</span>' +
-					'<span class="velox-media-size">' + ( it.size || fmtBytes( it.bytes ) ) + '</span>' +
+					'<span class="velox-media-size">' + fmtBytes( it.bytes ) + '</span>' +
 					( it.where ? '<span class="velox-media-where" title="' + escapeHtml( it.where ) + '">' + escapeHtml( it.where ) + '</span>' : '' ) +
-					( 'maybe' === it.state ? '<span class="velox-media-flag">Possibly used</span>' : '' );
+					'';
 				results.appendChild( card );
 			} );
 			$$( '.velox-media-item img', results ).forEach( function ( img ) {
@@ -6811,8 +6811,8 @@
 					} );
 					filterWrap.hidden = mediaItems.length === 0;
 					var c = d.counts || {};
-					var cov = d.crawled ? ( ' · read ' + d.crawled + ' of ' + ( d.crawlable || d.crawled ) + ' pages' ) : '';
-					summary.textContent = ( c.used || 0 ) + ' in use · ' + ( c.maybe || 0 ) + ' possibly used · ' + ( c.unused || 0 ) + ' with no reference found' + cov;
+					var cov = d.crawled ? ( ' · read ' + d.crawled + ' page' + ( 1 === d.crawled ? '' : 's' ) ) : '';
+					summary.textContent = ( c.used || 0 ) + ' in use · ' + ( c.unused || 0 ) + ' not in use' + cov;
 					renderMedia();
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); results.innerHTML = ''; } )
