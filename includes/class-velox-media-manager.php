@@ -15,6 +15,88 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Velox_Media_Manager {
 
+	public function __construct() {
+		// This class is also instantiated inside AJAX handlers; only wire the
+		// attachment UI on real admin page loads.
+		if ( is_admin() && ! wp_doing_ajax() ) {
+			add_filter( 'attachment_fields_to_edit', array( $this, 'attachment_resize_field' ), 20, 2 );
+			add_action( 'admin_enqueue_scripts', array( $this, 'modal_assets' ) );
+		}
+	}
+
+	/**
+	 * Adds the resize controls to WordPress's own Attachment details panel, so
+	 * they're available in the media library modal as well as Velox's own grid.
+	 */
+	public function attachment_resize_field( $fields, $post ) {
+		// The resize endpoint is gated on manage_options, so don't offer the
+		// controls to users whose request would just be refused.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return $fields;
+		}
+		if ( 0 !== strpos( (string) $post->post_mime_type, 'image/' ) || 'image/svg+xml' === $post->post_mime_type ) {
+			return $fields;
+		}
+		$meta = wp_get_attachment_metadata( $post->ID );
+		$w    = isset( $meta['width'] ) ? (int) $meta['width'] : 0;
+		$h    = isset( $meta['height'] ) ? (int) $meta['height'] : 0;
+		if ( $w < 1 || $h < 1 ) {
+			return $fields;
+		}
+
+		ob_start();
+		?>
+		<div class="velox-rz" data-id="<?php echo (int) $post->ID; ?>" data-w="<?php echo $w; ?>" data-h="<?php echo $h; ?>">
+			<div class="velox-rz-row">
+				<input type="number" class="velox-rz-w" min="1" max="12000" value="<?php echo $w; ?>" aria-label="Width">
+				<button type="button" class="velox-rz-lock is-on" aria-pressed="true" title="Keep proportions">&#128279;</button>
+				<input type="number" class="velox-rz-h" min="1" max="12000" value="<?php echo $h; ?>" aria-label="Height">
+			</div>
+			<div class="velox-rz-row velox-rz-presets">
+				<button type="button" data-scale="0.5">50%</button>
+				<button type="button" data-scale="0.75">75%</button>
+				<button type="button" data-scale="1">100%</button>
+				<button type="button" data-scale="1.5">150%</button>
+				<button type="button" data-scale="2">200%</button>
+			</div>
+			<button type="button" class="button button-primary velox-rz-go">Resize image</button>
+			<span class="velox-rz-msg"></span>
+			<p class="description">Replaces the file in place and rebuilds its thumbnails — the filename and every link to it stay the same. Cannot be undone.</p>
+		</div>
+		<?php
+		$fields['velox_resize'] = array(
+			'label' => 'Resize (Velox)',
+			'input' => 'html',
+			'html'  => ob_get_clean(),
+		);
+		return $fields;
+	}
+
+	/** Small script + styles for the controls above, only on media screens. */
+	public function modal_assets( $hook ) {
+		if ( ! in_array( $hook, array( 'upload.php', 'post.php', 'post-new.php' ), true ) ) {
+			return;
+		}
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		wp_enqueue_script( 'velox-media-modal', VELOX_ASSETS . 'js/velox-media-modal.js', array(), VELOX_VERSION, true );
+		wp_localize_script( 'velox-media-modal', 'VELOX_RZ', array(
+			'ajaxurl' => admin_url( 'admin-ajax.php' ),
+			'nonce'   => wp_create_nonce( 'velox_nonce' ),
+		) );
+		wp_add_inline_style( 'wp-admin', '
+			.velox-rz-row{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+			.velox-rz-row input[type=number]{width:88px}
+			.velox-rz-lock{width:32px;height:30px;border:1px solid #c3c4c7;border-radius:4px;background:#fff;cursor:pointer;line-height:1}
+			.velox-rz-lock.is-on{background:#e8f6fd;border-color:#8ed4f5}
+			.velox-rz-presets button{flex:1;height:26px;border:1px solid #c3c4c7;border-radius:4px;background:#fff;cursor:pointer;font-size:11px}
+			.velox-rz-presets button:hover{background:#f0f0f1}
+			.velox-rz-msg{margin-left:8px;font-size:12px}
+			.velox-rz-msg.ok{color:#1d8a4e}.velox-rz-msg.err{color:#c8362f}
+		' );
+	}
+
 	/* ----------------------------------------------------------------
 	 * Alt / Title / Caption
 	 * ------------------------------------------------------------- */

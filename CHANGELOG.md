@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.11.1 — Resize from the WordPress media library too
+- The resize controls now also appear in WordPress’s own Attachment details panel, so you can resize straight from the media library or the picker in any editor, not only from Velox’s Media Editor.
+- Same behaviour there: type a width and the height follows the original proportions, the link button unlocks it, quick presets from 50% to 200%, and the thumbnail refreshes in place once it is done.
+- Only shown for images (never SVGs) and only to users who can manage options, since that is what the resize endpoint requires.
+
 ## 3.11.0 — Resize images from the Media editor
 - Click any image in the Media editor to resize it. Enter a width and the height follows automatically from the original proportions (and the other way round); the link button turns that off if you want to stretch it deliberately.
 - Quick presets for 50%, 75%, original, 150% and 200%, and hovering a thumbnail now shows its current dimensions.
