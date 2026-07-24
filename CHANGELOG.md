@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.12.3 — Fix the Velox meta box turning dark
+- The Velox box in the page editor changed colour on hover, with the header going black and the title becoming unreadable. That comes from other editor styling on that screen — Oxygen renders its own meta boxes dark, and it bleeds into every box on the page. Velox now pins its own box to normal WordPress colours so it stays readable whatever else is loaded, scoped to that box alone so nothing else on the screen is touched.
+
 ## 3.12.2 — Edit SEO opens the panel for you
 - Clicking Edit SEO in the health list now opens that page in the editor with the Velox SEO sidebar already open, and puts the cursor in the first field that is still empty — so you land on the thing you came to fix instead of hunting for the panel.
 - Works with both the current and older editor sidebar APIs, and retries briefly while the editor mounts rather than firing once and missing.

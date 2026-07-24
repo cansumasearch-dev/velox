@@ -15,6 +15,38 @@ class Velox_PageMeta {
 	public function __construct() {
 		add_action( 'add_meta_boxes', array( $this, 'add_box' ) );
 		add_action( 'save_post', array( $this, 'save' ), 10, 2 );
+		add_action( 'admin_head', array( $this, 'box_styles' ) );
+	}
+
+	/**
+	 * Pin down our own meta box's appearance.
+	 *
+	 * Page builders and other plugins restyle .postbox on the editor screen —
+	 * Oxygen for one renders its meta boxes dark — and that bleeds into every box
+	 * on the page, including this one, which made the header go black on hover.
+	 * Scoped to our box only, so nothing else on the screen changes.
+	 */
+	public function box_styles() {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! $screen || ! in_array( $screen->base, array( 'post' ), true ) ) {
+			return;
+		}
+		echo '<style id="velox-overrides-box">
+			#velox_overrides { background: #fff; border: 1px solid #dcdcde; }
+			#velox_overrides .postbox-header,
+			#velox_overrides .postbox-header:hover,
+			#velox_overrides .postbox-header:focus-within {
+				background: #fff !important; border-bottom: 1px solid #dcdcde !important;
+			}
+			#velox_overrides .hndle,
+			#velox_overrides .hndle:hover,
+			#velox_overrides h2.hndle { background: transparent !important; color: #1d2327 !important; }
+			#velox_overrides .handle-actions .handlediv,
+			#velox_overrides .handle-actions .order-higher-indicator,
+			#velox_overrides .handle-actions .order-lower-indicator { color: #787c82 !important; background: transparent !important; }
+			#velox_overrides .inside { background: #fff !important; color: #1d2327 !important; }
+			#velox_overrides .inside label { color: #1d2327 !important; }
+		</style>' . "\n";
 	}
 
 	/** Is a feature switched off for the page currently being rendered? */
