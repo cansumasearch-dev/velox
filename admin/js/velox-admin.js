@@ -7226,6 +7226,85 @@
 		}
 	}
 
+	/* ---- SEO health: counts, issues, and the pages behind each one ---- */
+	function initSeoHealth() {
+		var root = document.getElementById( 'velox-seoh' );
+		if ( ! root ) { return; }
+		var scanBtn = document.getElementById( 'velox-seoh-scan' );
+		var tilesEl = document.getElementById( 'velox-seoh-tiles' );
+		var issuesEl = document.getElementById( 'velox-seoh-issues' );
+		var subEl = document.getElementById( 'velox-seoh-sub' );
+		var openKey = '';
+		var data = null;
+
+		function tile( n, label, tone ) {
+			return '<div class="velox-seoh-tile"><div class="n' + ( tone ? ' ' + tone : '' ) + '">' + n + '</div>' +
+				'<div class="l">' + escapeHtml( label ) + '</div></div>';
+		}
+		function pageRow( r, goto ) {
+			var open = r.url ? '<a class="velox-btn velox-btn--ghost velox-btn--sm" href="' + escapeHtml( r.url ) + '" target="_blank" rel="noopener" title="Open page">' +
+				'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></svg></a>' : '';
+			var edit = '';
+			if ( 'media' === goto ) {
+				edit = '<a class="velox-btn velox-btn--ghost velox-btn--sm" href="' + escapeHtml( VELOX.mediaUrl || '#' ) + '">Media Editor</a>';
+			} else if ( r.edit ) {
+				edit = '<a class="velox-btn velox-btn--ghost velox-btn--sm" href="' + escapeHtml( r.edit ) + '">Edit SEO</a>';
+			}
+			return '<div class="velox-seoh-row"><span class="grow"><span class="pt">' + escapeHtml( r.title ) + '</span>' +
+				'<span class="pu">' + escapeHtml( r.path || '' ) + '</span></span>' +
+				( r.note ? '<span class="velox-seoh-note">' + escapeHtml( r.note ) + '</span>' : '' ) +
+				'<span class="acts">' + edit + open + '</span></div>';
+		}
+		function render() {
+			if ( ! data ) { return; }
+			var st = data.stats || {};
+			tilesEl.hidden = false;
+			tilesEl.innerHTML =
+				tile( st.total || 0, 'Pages checked', '' ) +
+				tile( st.indexable || 0, 'Indexable', 'g' ) +
+				tile( st.noindex || 0, 'Set to noindex', st.noindex ? 'a' : '' ) +
+				tile( st.with_desc || 0, 'With description', 'g' ) +
+				tile( st.no_desc || 0, 'Missing description', st.no_desc ? 'r' : '' );
+
+			issuesEl.innerHTML = ( data.issues || [] ).map( function ( is ) {
+				var isOpen = ( openKey === is.key && is.count > 0 );
+				var head = '<div class="velox-seoh-iss' + ( isOpen ? ' is-open' : '' ) + ( is.count ? '' : ' is-clear' ) + '" data-key="' + is.key + '">' +
+					'<span class="cnt ' + is.level + '">' + is.count + '</span>' +
+					'<span class="grow"><span class="nm">' + escapeHtml( is.label ) + '</span>' +
+					'<span class="ds">' + escapeHtml( is.desc ) + '</span></span>' +
+					( is.count ? '<span class="chev">' + ( isOpen ? '&#9662;' : '&#9656;' ) + '</span>' : '<span class="velox-seoh-clear">Clear</span>' ) +
+					'</div>';
+				if ( ! isOpen ) { return head; }
+				var rows = ( is.rows || [] ).map( function ( r ) { return pageRow( r, is.goto ); } ).join( '' );
+				var more = is.count > ( is.rows || [] ).length
+					? '<div class="velox-seoh-more">+ ' + ( is.count - is.rows.length ) + ' more</div>' : '';
+				return head + '<div class="velox-seoh-drill">' + rows + more + '</div>';
+			} ).join( '' );
+
+			$$( '.velox-seoh-iss', issuesEl ).forEach( function ( el ) {
+				el.addEventListener( 'click', function () {
+					var k = el.getAttribute( 'data-key' );
+					openKey = ( openKey === k ) ? '' : k;
+					render();
+				} );
+			} );
+		}
+		function run() {
+			scanBtn.disabled = true;
+			subEl.textContent = 'Scanning…';
+			api( 'seo_health', {} )
+				.then( function ( d ) {
+					data = d;
+					subEl.textContent = ( d.stats.total || 0 ) + ' pages checked · just now';
+					render();
+				} )
+				.catch( function ( e ) { subEl.textContent = e.message; } )
+				.then( function () { scanBtn.disabled = false; } );
+		}
+		scanBtn.addEventListener( 'click', run );
+		run();
+	}
+
 	function initSeo() {
 		var robots = $( '#velox-seo-robots' );
 		var applyBtn = $( '#velox-seo-apply' );
@@ -7639,6 +7718,7 @@
 		initPerformance();
 		initDatabase();
 		initSeo();
+		initSeoHealth();
 		initSettings();
 	}
 	if ( document.readyState === 'loading' ) {

@@ -523,6 +523,7 @@ class Velox_Admin {
 			'ajaxurl'     => admin_url( 'admin-ajax.php' ),
 			'nonce'       => wp_create_nonce( 'velox_nonce' ),
 			'webp_engine' => Velox_Image_Optimizer::engine(),
+			'mediaUrl'    => admin_url( 'admin.php?page=' . self::SLUG . '-media' ),
 		) );
 	}
 

@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.12.0 — SEO health
+- Added an SEO health panel to the SEO screen. It checks every published page and shows the counts at a glance: pages checked, indexable, set to noindex, with a description, and missing one.
+- Below that, the issues worth fixing — pages with no meta description, images with no alt text, titles over 60 characters, duplicate titles competing for the same search, and anything set to noindex. Checks that come back clean are shown as Clear rather than hidden, so you can see they were actually run.
+- Click any issue to see exactly which pages are affected, each with a link to edit its SEO and to open the page itself. Alt text links through to the Media Editor, which is where that gets fixed.
+- The scan reads the database directly, so it is immediate and needs no crawling.
+
 ## 3.11.2 — Fix: resize controls missing from the media modal
 - The resize controls added in 3.11.1 never appeared in WordPress’s Attachment details panel. The media modal builds that panel over AJAX, and the filter that adds the controls was deliberately skipped on AJAX requests — so the field was never generated. It is now registered for those requests too.
 

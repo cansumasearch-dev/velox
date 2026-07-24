@@ -3231,3 +3231,48 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 	background: var(--vx-card); font-family: inherit; font-size: 12px; font-weight: 500; color: var(--vx-ink-2);
 	cursor: pointer; transition: background .12s, border-color .12s, color .12s; }
 .velox-resize-presets button:hover { background: var(--vx-n50); border-color: var(--vx-n300); color: var(--vx-ink); }
+
+/* ---- SEO health ---- */
+.velox-seoh { margin-top: 18px; }
+.velox-seoh-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 18px 20px 14px; }
+.velox-seoh-t { font-size: 15px; font-weight: 680; letter-spacing: -0.01em; }
+.velox-seoh-s { font-size: 12px; color: var(--vx-ink-3); margin-top: 2px; }
+.velox-seoh-tiles { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--vx-line);
+	border-top: 1px solid var(--vx-line); border-bottom: 1px solid var(--vx-line); }
+.velox-seoh-tile { background: var(--vx-card); padding: 13px 16px; }
+.velox-seoh-tile .n { font-size: 21px; font-weight: 700; letter-spacing: -0.02em; line-height: 1.1; }
+.velox-seoh-tile .n.g { color: var(--vx-success); }
+.velox-seoh-tile .n.r { color: var(--vx-danger); }
+.velox-seoh-tile .n.a { color: #b4690e; }
+.velox-seoh-tile .l { font-size: 11.5px; color: var(--vx-ink-3); margin-top: 3px; }
+@media (max-width: 900px) { .velox-seoh-tiles { grid-template-columns: repeat(2, 1fr); } }
+
+.velox-seoh-iss { display: flex; align-items: center; gap: 13px; padding: 13px 20px;
+	border-top: 1px solid var(--vx-line); cursor: pointer; transition: background .12s; }
+.velox-seoh-iss:hover { background: var(--vx-hover); }
+.velox-seoh-iss.is-open { background: var(--vx-hover); }
+.velox-seoh-iss.is-clear { cursor: default; }
+.velox-seoh-iss.is-clear:hover { background: none; }
+.velox-seoh-iss .cnt { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center;
+	justify-content: center; font-size: 13.5px; font-weight: 700; flex: none; }
+.velox-seoh-iss .cnt.bad { background: var(--vx-danger-tint); color: var(--vx-danger); }
+.velox-seoh-iss .cnt.warn { background: #fdf3e7; color: #b4690e; }
+.velox-seoh-iss .cnt.ok { background: var(--vx-success-tint); color: var(--vx-success); }
+.velox-seoh-iss .grow { flex: 1; min-width: 0; }
+.velox-seoh-iss .nm { display: block; font-size: 13.5px; font-weight: 600; }
+.velox-seoh-iss .ds { display: block; font-size: 11.5px; color: var(--vx-ink-3); margin-top: 1px; }
+.velox-seoh-iss .chev { color: var(--vx-n300); flex: none; font-size: 12px; }
+.velox-seoh-clear { font-size: 11px; font-weight: 700; color: var(--vx-success); flex: none; }
+
+.velox-seoh-drill { background: var(--vx-n25); border-top: 1px solid var(--vx-line); padding: 12px 20px 14px; }
+.velox-seoh-row { display: flex; align-items: center; gap: 12px; background: var(--vx-card);
+	border: 1px solid var(--vx-line); border-radius: 10px; padding: 9px 12px; margin-bottom: 6px; }
+.velox-seoh-row .grow { flex: 1; min-width: 0; }
+.velox-seoh-row .pt { display: block; font-size: 13px; font-weight: 600; color: var(--vx-ink);
+	overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.velox-seoh-row .pu { display: block; font-family: var(--vx-mono); font-size: 11px; color: var(--vx-ink-3);
+	margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.velox-seoh-row .acts { display: flex; gap: 6px; flex: none; }
+.velox-seoh-note { font-size: 11px; font-weight: 600; color: #b4690e; background: #fdf3e7;
+	border-radius: 999px; padding: 3px 9px; flex: none; }
+.velox-seoh-more { text-align: center; font-size: 12px; color: var(--vx-ink-3); padding: 6px 0 2px; }

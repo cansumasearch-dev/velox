@@ -840,6 +840,10 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Cache::preload( 30 ) );
 				break;
 
+			case 'seo_health':
+				wp_send_json_success( Velox_SEO_Health::scan() );
+				break;
+
 			case 'seo_robots_save':
 				$content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : '';
 				wp_send_json_success( Velox_Seo::save_robots( $content ) );

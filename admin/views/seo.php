@@ -185,3 +185,18 @@ $ht_writable = Velox_Seo::htaccess_writable();
 	</div>
 	<span class="velox-hint">Served by Apache / LiteSpeed from your site root. Has no effect on a pure-Nginx server.</span>
 </div>
+
+<div class="velox-panel velox-panel--flush velox-seoh" id="velox-seoh">
+	<div class="velox-seoh-top">
+		<div>
+			<div class="velox-seoh-t">SEO health</div>
+			<div class="velox-seoh-s" id="velox-seoh-sub">Checks every published page for the things that quietly cost you traffic.</div>
+		</div>
+		<button class="velox-btn velox-btn--ghost velox-btn--sm" id="velox-seoh-scan">
+			<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5"/></svg>
+			Scan
+		</button>
+	</div>
+	<div class="velox-seoh-tiles" id="velox-seoh-tiles" hidden></div>
+	<div id="velox-seoh-issues"></div>
+</div>
