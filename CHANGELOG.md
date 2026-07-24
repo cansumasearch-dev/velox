@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.13.2 — Resizable SEO sidebar, and the counter bar stops crossing out the count
+- The editor sidebar can now be dragged wider. WordPress fixes it at 280px with no way to change that, so Velox adds a handle on its left edge — drag to resize, double-click to go back to normal. The width is remembered, and only applies while the Velox SEO panel is open.
+- A long search title used to push the whole panel sideways and leave a horizontal scrollbar under it. Long words now wrap instead.
+- The character-count bar sat on top of the count itself and struck it through. The count has moved up next to the field label, where it reads as "48 / 60", and the bar sits under the input.
+- The search preview shows the domain and a breadcrumb on separate lines, the way Google renders it, instead of one long URL broken mid-word.
+- Search title and meta description gained placeholders showing what happens if you leave them empty.
+
 ## 3.13.1 — Field group header no longer goes dark on hover
 - Hovering a Velox field group in the post editor turned its header near-black. Oxygen's admin stylesheet paints every meta box header with its dark colour on hover, and its selector outranked ours, so our styling never applied.
 - The field group header now shows a light grey hover instead, with the title and the collapse arrow kept legible.

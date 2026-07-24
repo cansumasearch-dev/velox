@@ -35,7 +35,8 @@
 		var s = document.createElement( 'style' );
 		s.id = 'velox-gseo-css';
 		s.textContent =
-			'.velox-gseo{padding:0}' +
+			'.velox-gseo{padding:0;overflow-x:hidden}' +
+			'.velox-gseo *{min-width:0}' +
 			'.velox-gseo-score{display:flex;align-items:center;gap:12px;padding:14px 16px;background:#f6f7f7;border-bottom:1px solid #e0e0e3}' +
 			'.velox-gseo-ring{width:46px;height:46px;border-radius:50%;flex:none;display:flex;align-items:center;justify-content:center}' +
 			'.velox-gseo-ring i{width:36px;height:36px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:12.5px;font-weight:700}' +
@@ -46,18 +47,42 @@
 			'.velox-gseo-ck:first-child{border-top:0}' +
 			'.velox-gseo-m{width:16px;height:16px;border-radius:50%;flex:none;margin-top:1px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:#fff;line-height:1}' +
 			'.velox-gseo-m.g{background:#1d8a4e}.velox-gseo-m.r{background:#c8362f}.velox-gseo-m.a{background:#e8a33d}' +
-			'.velox-gseo-ct{font-size:12px;color:#1d2327;line-height:1.45}' +
-			'.velox-gseo-preview{border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;background:#fff}' +
-			'.velox-gseo-url{color:#202124;font-size:12px;margin-bottom:2px;word-break:break-all}' +
-			'.velox-gseo-title{color:#1a0dab;font-size:16px;line-height:1.3;font-weight:500}' +
-			'.velox-gseo-desc{color:#4d5156;font-size:13px;line-height:1.5;margin-top:3px}' +
+			'.velox-gseo-ct{font-size:12px;color:#1d2327;line-height:1.45;overflow-wrap:anywhere}' +
+			/* Search preview card — host and breadcrumb on their own lines, the way
+			   Google actually renders it, instead of one break-all URL string. */
+			'.velox-gseo-preview{border:1px solid #dcdcde;border-radius:8px;padding:12px 14px;background:#fff;overflow:hidden}' +
+			'.velox-gseo-site{display:flex;align-items:flex-start;gap:9px;margin:0 0 7px}' +
+			'.velox-gseo-fav{width:20px;height:20px;border-radius:50%;background:#e8eaed;flex:none}' +
+			'.velox-gseo-host{font-size:12.5px;color:#202124;line-height:1.35;overflow-wrap:anywhere}' +
+			'.velox-gseo-crumb{font-size:12px;color:#5f6368;line-height:1.35;overflow-wrap:anywhere}' +
+			'.velox-gseo-title{color:#1a0dab;font-size:16px;line-height:1.3;font-weight:500;overflow-wrap:anywhere}' +
+			'.velox-gseo-desc{color:#4d5156;font-size:13px;line-height:1.5;margin-top:3px;overflow-wrap:anywhere}' +
 			'.velox-gseo-desc.is-empty{color:#8c8f94;font-style:italic}' +
-			'.velox-gseo-bar{height:3px;border-radius:99px;background:#e8e8ea;overflow:hidden;margin:-8px 0 16px}' +
+			/* Field block: label left, live counter right, meter directly under the
+			   input. The meter used to carry margin-top:-8px, which dragged it up on
+			   top of the help text and struck the character count through. */
+			'.velox-gseo-field{margin:0 0 18px}' +
+			'.velox-gseo-field:last-child{margin-bottom:0}' +
+			'.velox-gseo-fh{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin:0 0 6px}' +
+			'.velox-gseo-fl{font-size:13px;font-weight:600;color:#1d2327}' +
+			'.velox-gseo-fc{font-size:12px;color:#787c82;flex:none;font-variant-numeric:tabular-nums}' +
+			'.velox-gseo-fc.is-over{color:#c8362f;font-weight:600}' +
+			'.velox-gseo-hint{margin:6px 0 0;font-size:12px;color:#646970;line-height:1.4}' +
+			'.velox-gseo-bar{height:3px;border-radius:99px;background:#e8e8ea;overflow:hidden;margin:7px 0 0}' +
 			'.velox-gseo-bar span{display:block;height:100%;border-radius:99px;transition:width .15s}' +
-			'.velox-gseo-seg{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px}' +
+			'.velox-gseo-field .components-base-control{margin-bottom:0}' +
+			'.velox-gseo-seg{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:0 0 16px;flex-wrap:wrap}' +
 			'.velox-gseo-seg-label{font-weight:600;font-size:13px}' +
 			'.velox-gseo-out{margin:4px 0 0;color:#646970;font-size:12px}' +
-			'.velox-gseo-out code{background:#f0f0f1;padding:2px 6px;border-radius:4px}';
+			'.velox-gseo-out code{background:#f0f0f1;padding:2px 6px;border-radius:4px}' +
+			/* Drag handle on the sidebar's left edge. WordPress pins the editor
+			   sidebar at 280px with no way to resize it, so we add one. */
+			'.velox-seo-resizer{position:absolute;top:0;left:-3px;width:7px;height:100%;cursor:col-resize;z-index:120;touch-action:none}' +
+			'.velox-seo-resizer::before{content:"";position:absolute;top:0;left:2px;width:3px;height:100%;background:transparent;transition:background .12s}' +
+			'.velox-seo-resizer:hover::before{background:#2ab7f1}' +
+			'body.velox-seo-resizing{cursor:col-resize;user-select:none}' +
+			'body.velox-seo-resizing .velox-seo-resizer::before{background:#2ab7f1}' +
+			'body.velox-seo-resizing iframe{pointer-events:none}';
 		document.head.appendChild( s );
 	} )();
 
@@ -192,18 +217,50 @@
 			} )
 		);
 
+		// Google shows the host and a breadcrumb, not the raw URL. Rendering the
+		// full link with word-break:break-all snapped domains mid-word.
+		var host = '', crumb = '';
+		try {
+			var u = new URL( link || window.location.href );
+			host  = u.hostname;
+			crumb = u.pathname.split( '/' ).filter( Boolean ).join( ' \u203a ' );
+		} catch ( e ) {
+			host = link || '';
+		}
+
 		var preview = el( 'div', { className: 'velox-gseo-preview' },
-			el( 'div', { className: 'velox-gseo-url' }, link || '' ),
+			el( 'div', { className: 'velox-gseo-site' },
+				el( 'span', { className: 'velox-gseo-fav' } ),
+				el( 'span', {},
+					el( 'div', { className: 'velox-gseo-host' }, host ),
+					crumb ? el( 'div', { className: 'velox-gseo-crumb' }, '\u203a ' + crumb ) : null
+				)
+			),
 			el( 'div', { className: 'velox-gseo-title' }, effTitle || 'Page title' ),
 			el( 'div', { className: 'velox-gseo-desc' + ( seoDesc ? '' : ' is-empty' ) },
 				seoDesc || 'No description yet — Google will pick a sentence from the page.' )
 		);
 
-		function meter( len, max ) {
-			var w = Math.min( 100, max ? Math.round( ( len / max ) * 100 ) : 0 );
-			var col = len > max ? '#c8362f' : ( w > 90 ? '#e8a33d' : '#1d8a4e' );
-			return el( 'div', { className: 'velox-gseo-bar' },
-				el( 'span', { style: { width: w + '%', background: len ? col : 'transparent' } } ) );
+		/**
+		 * A labelled field with the character count sitting on the same line as
+		 * the label and the meter directly beneath the input.
+		 */
+		function field( label, control, hint, len, max ) {
+			var counted = 'number' === typeof len && max;
+			var over = counted && len > max;
+			var near = counted && ! over && len > max * 0.9;
+			var w    = counted ? Math.min( 100, Math.round( ( len / max ) * 100 ) ) : 0;
+			var col  = over ? '#c8362f' : ( near ? '#e8a33d' : '#1d8a4e' );
+			return el( 'div', { className: 'velox-gseo-field' },
+				el( 'div', { className: 'velox-gseo-fh' },
+					el( 'span', { className: 'velox-gseo-fl' }, label ),
+					counted ? el( 'span', { className: 'velox-gseo-fc' + ( over ? ' is-over' : '' ) }, len + ' / ' + max ) : null
+				),
+				control,
+				counted ? el( 'div', { className: 'velox-gseo-bar' },
+					el( 'span', { style: { width: w + '%', background: len ? col : 'transparent' } } ) ) : null,
+				hint ? el( 'p', { className: 'velox-gseo-hint' }, hint ) : null
+			);
 		}
 
 		var body = el( 'div', { className: 'velox-gseo' },
@@ -211,23 +268,32 @@
 			checklistEl,
 			el( c.PanelBody, { title: 'Preview', initialOpen: true }, preview ),
 			el( c.PanelBody, { title: 'Search appearance', initialOpen: true },
-				el( c.TextControl, {
-					label: 'Focus keyword', value: focusKw,
-					help: 'The phrase this page should rank for.',
-					onChange: function ( v ) { setMeta( '_velox_seo_focus_kw', v ); }
-				} ),
-				el( c.TextControl, {
-					label: 'Search title', value: seoTitle,
-					help: seoTitle.length + ' / 60 characters',
-					onChange: function ( v ) { setMeta( '_velox_seo_title', v ); }
-				} ),
-				meter( seoTitle.length, 60 ),
-				el( c.TextareaControl, {
-					label: 'Meta description', value: seoDesc, rows: 4,
-					help: seoDesc.length + ' / 160 characters',
-					onChange: function ( v ) { setMeta( '_velox_seo_desc', v ); }
-				} ),
-				meter( seoDesc.length, 160 )
+				field( 'Focus keyword',
+					el( c.TextControl, {
+						value: focusKw,
+						__nextHasNoMarginBottom: true,
+						onChange: function ( v ) { setMeta( '_velox_seo_focus_kw', v ); }
+					} ),
+					'The phrase this page should rank for.'
+				),
+				field( 'Search title',
+					el( c.TextControl, {
+						value: seoTitle,
+						placeholder: postTitle ? 'Using the page title: \u201c' + postTitle + '\u201d' : 'Using the page title',
+						__nextHasNoMarginBottom: true,
+						onChange: function ( v ) { setMeta( '_velox_seo_title', v ); }
+					} ),
+					null, seoTitle.length, 60
+				),
+				field( 'Meta description',
+					el( c.TextareaControl, {
+						value: seoDesc, rows: 4,
+						placeholder: 'Write what should show under the title\u2026',
+						__nextHasNoMarginBottom: true,
+						onChange: function ( v ) { setMeta( '_velox_seo_desc', v ); }
+					} ),
+					null, seoDesc.length, 160
+				)
 			),
 			el( c.PanelBody, { title: 'Search engines', initialOpen: false },
 				el( 'div', { className: 'velox-gseo-seg' },
@@ -320,4 +386,145 @@
 			}
 			if ( tries > 40 ) { clearInterval( timer ); }
 		}, 250 );
+	}() );
+
+	/**
+	 * Resizable sidebar.
+	 *
+	 * WordPress pins the editor sidebar at a fixed 280px — there is no core
+	 * resize — so we add a drag handle on its left edge while the Velox SEO
+	 * panel is mounted, and put the width back when it unmounts so the Page and
+	 * Block tabs are unaffected. Width is remembered per browser.
+	 */
+	( function veloxSeoResizer() {
+		var MIN = 280;
+		var KEY = 'veloxSeoSidebarWidth';
+		var shell = null;
+		var handle = null;
+		var queued = false;
+
+		function maxWidth() {
+			return Math.max( MIN, Math.min( 760, window.innerWidth - 360 ) );
+		}
+
+		function stored() {
+			try {
+				var v = parseInt( window.localStorage.getItem( KEY ), 10 );
+				return ( v >= MIN ) ? Math.min( v, maxWidth() ) : 0;
+			} catch ( e ) { return 0; }
+		}
+
+		function save( w ) {
+			try { window.localStorage.setItem( KEY, String( Math.round( w ) ) ); } catch ( e ) {}
+		}
+
+		// Class names have moved between editor packages, so walk up rather than
+		// hard-coding one selector.
+		function findShell( node ) {
+			var n = node;
+			while ( n && n !== document.body ) {
+				if ( n.classList && (
+					n.classList.contains( 'interface-interface-skeleton__sidebar' ) ||
+					n.classList.contains( 'editor-interface-skeleton__sidebar' )
+				) ) { return n; }
+				n = n.parentElement;
+			}
+			var area = node.closest ? node.closest( '.interface-complementary-area' ) : null;
+			return area ? area.parentElement : null;
+		}
+
+		function apply( w ) {
+			if ( ! shell ) { return; }
+			shell.style.width = w + 'px';
+			shell.style.flexBasis = w + 'px';
+			shell.style.maxWidth = 'none';
+			var area = shell.querySelector( '.interface-complementary-area' );
+			if ( area ) { area.style.width = '100%'; area.style.maxWidth = 'none'; }
+		}
+
+		function reset() {
+			if ( ! shell ) { return; }
+			shell.style.width = '';
+			shell.style.flexBasis = '';
+			shell.style.maxWidth = '';
+			var area = shell.querySelector( '.interface-complementary-area' );
+			if ( area ) { area.style.width = ''; area.style.maxWidth = ''; }
+			if ( handle && handle.parentElement ) { handle.parentElement.removeChild( handle ); }
+			handle = null;
+			shell = null;
+		}
+
+		function startDrag( e ) {
+			if ( ! shell || 0 !== e.button ) { return; }
+			e.preventDefault();
+			var startX = e.clientX;
+			var startW = shell.getBoundingClientRect().width;
+			var live = startW;
+
+			// Pointer capture keeps the move events coming even once the cursor
+			// crosses into the editor canvas iframe.
+			try { handle.setPointerCapture( e.pointerId ); } catch ( err ) {}
+			document.body.classList.add( 'velox-seo-resizing' );
+
+			function move( ev ) {
+				live = Math.max( MIN, Math.min( maxWidth(), startW + ( startX - ev.clientX ) ) );
+				apply( live );
+			}
+			function stop() {
+				handle.removeEventListener( 'pointermove', move );
+				handle.removeEventListener( 'pointerup', stop );
+				handle.removeEventListener( 'pointercancel', stop );
+				document.body.classList.remove( 'velox-seo-resizing' );
+				save( live );
+			}
+			handle.addEventListener( 'pointermove', move );
+			handle.addEventListener( 'pointerup', stop );
+			handle.addEventListener( 'pointercancel', stop );
+		}
+
+		function sync() {
+			queued = false;
+			var panel = document.querySelector( '.velox-gseo' );
+			if ( ! panel ) { reset(); return; }
+			if ( shell && shell.isConnected && handle && handle.isConnected ) { return; }
+
+			shell = findShell( panel );
+			if ( ! shell ) { return; }
+			if ( 'static' === window.getComputedStyle( shell ).position ) {
+				shell.style.position = 'relative';
+			}
+
+			handle = document.createElement( 'div' );
+			handle.className = 'velox-seo-resizer';
+			handle.setAttribute( 'role', 'separator' );
+			handle.setAttribute( 'aria-orientation', 'vertical' );
+			handle.setAttribute( 'title', 'Drag to resize — double-click to reset' );
+			handle.addEventListener( 'pointerdown', startDrag );
+			handle.addEventListener( 'dblclick', function () {
+				try { window.localStorage.removeItem( KEY ); } catch ( e ) {}
+				shell.style.width = '';
+				shell.style.flexBasis = '';
+			} );
+			shell.appendChild( handle );
+
+			var w = stored();
+			if ( w ) { apply( w ); }
+		}
+
+		function schedule() {
+			if ( queued ) { return; }
+			queued = true;
+			window.requestAnimationFrame( sync );
+		}
+
+		function boot() {
+			new window.MutationObserver( schedule ).observe( document.body, { childList: true, subtree: true } );
+			schedule();
+		}
+
+		if ( 'loading' === document.readyState ) {
+			document.addEventListener( 'DOMContentLoaded', boot );
+		} else {
+			boot();
+		}
 	}() );
