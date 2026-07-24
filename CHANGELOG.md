@@ -4,6 +4,15 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.12.2 — Edit SEO opens the panel for you
+- Clicking Edit SEO in the health list now opens that page in the editor with the Velox SEO sidebar already open, and puts the cursor in the first field that is still empty — so you land on the thing you came to fix instead of hunting for the panel.
+- Works with both the current and older editor sidebar APIs, and retries briefly while the editor mounts rather than firing once and missing.
+
+## 3.12.1 — SEO health: pages with no SEO at all
+- Added two checks that were missing: pages with no search title, and pages with no SEO set at all — neither a title nor a description, where Google is guessing both. The summary now counts pages with SEO set against pages with none.
+- Made the drill-down visible. Expanding an issue was a faint grey chevron that did not look clickable; it is now a proper "View pages" button that flips to "Hide" when open.
+- Expanding is handled by one delegated listener on the list rather than re-binding every row on each render, so it cannot silently stop working.
+
 ## 3.12.0 — SEO health
 - Added an SEO health panel to the SEO screen. It checks every published page and shows the counts at a glance: pages checked, indexable, set to noindex, with a description, and missing one.
 - Below that, the issues worth fixing — pages with no meta description, images with no alt text, titles over 60 characters, duplicate titles competing for the same search, and anything set to noindex. Checks that come back clean are shown as Clear rather than hidden, so you can see they were actually run.

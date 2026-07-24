@@ -145,3 +145,57 @@
 
 	wp.plugins.registerPlugin( 'velox-seo', { render: VeloxSeoPanel, icon: icon() } );
 } )( window.wp );
+
+	/**
+	 * Opening from the SEO health list: pop this sidebar open automatically and
+	 * put the cursor in whichever field is still empty.
+	 */
+	( function () {
+		if ( ! /[?&]velox-seo=1/.test( window.location.search ) ) {
+			return;
+		}
+		var TARGET = 'velox-seo/velox-seo';
+
+		function openSidebar() {
+			try {
+				var iface = wp.data.dispatch( 'core/interface' );
+				if ( iface && iface.enableComplementaryArea ) {
+					iface.enableComplementaryArea( 'core/edit-post', TARGET );
+					return true;
+				}
+			} catch ( e ) {}
+			try {
+				var ep = wp.data.dispatch( 'core/edit-post' );
+				if ( ep && ep.openGeneralSidebar ) {
+					ep.openGeneralSidebar( TARGET );
+					return true;
+				}
+			} catch ( e2 ) {}
+			return false;
+		}
+
+		function focusFirstEmpty() {
+			var panel = document.querySelector( '.velox-gseo' );
+			if ( ! panel ) { return false; }
+			var fields = panel.querySelectorAll( 'input[type="text"], textarea' );
+			for ( var i = 0; i < fields.length; i++ ) {
+				if ( ! fields[ i ].value ) { fields[ i ].focus(); return true; }
+			}
+			if ( fields.length ) { fields[0].focus(); return true; }
+			return false;
+		}
+
+		// The editor mounts asynchronously, so keep trying briefly rather than
+		// firing once and hoping.
+		var tries = 0;
+		var opened = false;
+		var timer = setInterval( function () {
+			tries++;
+			if ( ! opened ) { opened = openSidebar(); }
+			if ( opened ) {
+				// Give the panel a moment to mount, then stop regardless.
+				if ( focusFirstEmpty() || tries > 12 ) { clearInterval( timer ); return; }
+			}
+			if ( tries > 40 ) { clearInterval( timer ); }
+		}, 250 );
+	}() );

@@ -3261,7 +3261,11 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-seoh-iss .grow { flex: 1; min-width: 0; }
 .velox-seoh-iss .nm { display: block; font-size: 13.5px; font-weight: 600; }
 .velox-seoh-iss .ds { display: block; font-size: 11.5px; color: var(--vx-ink-3); margin-top: 1px; }
-.velox-seoh-iss .chev { color: var(--vx-n300); flex: none; font-size: 12px; }
+.velox-seoh-view { display: inline-flex; align-items: center; gap: 5px; flex: none; height: 28px; padding: 0 11px;
+	border: 1px solid var(--vx-line-2); border-radius: 8px; background: var(--vx-card);
+	font-size: 12px; font-weight: 600; color: var(--vx-ink-2); transition: background .12s, border-color .12s, color .12s; }
+.velox-seoh-iss:hover .velox-seoh-view { border-color: var(--vx-primary); color: var(--vx-primary-ink); background: var(--vx-primary-tint); }
+.velox-seoh-view svg { transition: transform .15s; }
 .velox-seoh-clear { font-size: 11px; font-weight: 700; color: var(--vx-success); flex: none; }
 
 .velox-seoh-drill { background: var(--vx-n25); border-top: 1px solid var(--vx-line); padding: 12px 20px 14px; }

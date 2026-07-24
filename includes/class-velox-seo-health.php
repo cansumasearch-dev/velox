@@ -41,6 +41,8 @@ class Velox_SEO_Health {
 		$long     = array();
 		$titles   = array();
 		$dupes    = array();
+		$no_title = array();
+		$no_seo   = array();
 
 		foreach ( $posts as $p ) {
 			$desc  = trim( (string) get_post_meta( $p->ID, '_velox_seo_desc', true ) );
@@ -55,6 +57,12 @@ class Velox_SEO_Health {
 			}
 			if ( '' === $desc ) {
 				$no_desc[] = $row;
+			}
+			if ( '' === $stitle ) {
+				$no_title[] = $row;
+			}
+			if ( '' === $stitle && '' === $desc ) {
+				$no_seo[] = $row;
 			}
 			if ( mb_strlen( $eff ) > self::TITLE_MAX ) {
 				$long[] = $row + array( 'note' => mb_strlen( $eff ) . ' characters' );
@@ -82,6 +90,10 @@ class Velox_SEO_Health {
 		$alt = self::images_without_alt();
 
 		$issues = array(
+			self::issue( 'noseo', 'bad', 'Pages with no SEO set at all',
+				'Neither a search title nor a description — Google is guessing both', $no_seo ),
+			self::issue( 'title', 'bad', 'Pages with no search title',
+				'Falls back to the page title, which is rarely what you would choose', $no_title ),
 			self::issue( 'desc', 'bad', 'Pages with no meta description',
 				'Google writes its own snippet instead of yours', $no_desc ),
 			self::issue( 'alt', 'bad', 'Images with no alt text',
@@ -99,8 +111,8 @@ class Velox_SEO_Health {
 				'total'     => $total,
 				'indexable' => $total - count( $noindex ),
 				'noindex'   => count( $noindex ),
-				'with_desc' => $total - count( $no_desc ),
-				'no_desc'   => count( $no_desc ),
+				'with_seo'  => $total - count( $no_seo ),
+				'no_seo'    => count( $no_seo ),
 			),
 			'issues'  => $issues,
 			'scanned' => time(),
@@ -113,7 +125,9 @@ class Velox_SEO_Health {
 			'title' => $p->post_title ? $p->post_title : ( '#' . $p->ID ),
 			'url'   => get_permalink( $p->ID ),
 			'path'  => wp_make_link_relative( (string) get_permalink( $p->ID ) ),
-			'edit'  => get_edit_post_link( $p->ID, 'raw' ),
+			// The flag tells the editor to pop the Velox SEO sidebar open on load,
+			// so you land on the fields instead of hunting for the panel.
+			'edit'  => add_query_arg( 'velox-seo', '1', (string) get_edit_post_link( $p->ID, 'raw' ) ),
 			'note'  => '',
 		);
 	}

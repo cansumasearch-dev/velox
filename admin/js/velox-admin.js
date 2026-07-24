@@ -7263,8 +7263,8 @@
 				tile( st.total || 0, 'Pages checked', '' ) +
 				tile( st.indexable || 0, 'Indexable', 'g' ) +
 				tile( st.noindex || 0, 'Set to noindex', st.noindex ? 'a' : '' ) +
-				tile( st.with_desc || 0, 'With description', 'g' ) +
-				tile( st.no_desc || 0, 'Missing description', st.no_desc ? 'r' : '' );
+				tile( st.with_seo || 0, 'With SEO set', 'g' ) +
+				tile( st.no_seo || 0, 'No SEO at all', st.no_seo ? 'r' : '' );
 
 			issuesEl.innerHTML = ( data.issues || [] ).map( function ( is ) {
 				var isOpen = ( openKey === is.key && is.count > 0 );
@@ -7272,7 +7272,11 @@
 					'<span class="cnt ' + is.level + '">' + is.count + '</span>' +
 					'<span class="grow"><span class="nm">' + escapeHtml( is.label ) + '</span>' +
 					'<span class="ds">' + escapeHtml( is.desc ) + '</span></span>' +
-					( is.count ? '<span class="chev">' + ( isOpen ? '&#9662;' : '&#9656;' ) + '</span>' : '<span class="velox-seoh-clear">Clear</span>' ) +
+					( is.count
+						? '<span class="velox-seoh-view">' + ( isOpen ? 'Hide' : 'View pages' ) +
+							'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"' +
+							( isOpen ? ' style="transform:rotate(180deg)"' : '' ) + '><path d="m6 9 6 6 6-6"/></svg></span>'
+						: '<span class="velox-seoh-clear">Clear</span>' ) +
 					'</div>';
 				if ( ! isOpen ) { return head; }
 				var rows = ( is.rows || [] ).map( function ( r ) { return pageRow( r, is.goto ); } ).join( '' );
@@ -7281,14 +7285,16 @@
 				return head + '<div class="velox-seoh-drill">' + rows + more + '</div>';
 			} ).join( '' );
 
-			$$( '.velox-seoh-iss', issuesEl ).forEach( function ( el ) {
-				el.addEventListener( 'click', function () {
-					var k = el.getAttribute( 'data-key' );
-					openKey = ( openKey === k ) ? '' : k;
-					render();
-				} );
-			} );
+
 		}
+		issuesEl.addEventListener( 'click', function ( e ) {
+			var el = e.target.closest ? e.target.closest( '.velox-seoh-iss' ) : null;
+			if ( ! el || el.classList.contains( 'is-clear' ) ) { return; }
+			var k = el.getAttribute( 'data-key' );
+			openKey = ( openKey === k ) ? '' : k;
+			render();
+		} );
+
 		function run() {
 			scanBtn.disabled = true;
 			subEl.textContent = 'Scanning…';
