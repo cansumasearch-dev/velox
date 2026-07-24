@@ -401,6 +401,7 @@
 		var KEY = 'veloxSeoSidebarWidth';
 		var shell = null;
 		var handle = null;
+		var stretched = [];
 		var queued = false;
 
 		function maxWidth() {
@@ -438,17 +439,41 @@
 			shell.style.width = w + 'px';
 			shell.style.flexBasis = w + 'px';
 			shell.style.maxWidth = 'none';
-			var area = shell.querySelector( '.interface-complementary-area' );
-			if ( area ) { area.style.width = '100%'; area.style.maxWidth = 'none'; }
+		}
+
+		// Widening the shell alone is not enough: WordPress puts one or more
+		// wrappers between it and our panel, and those carry their own 280px.
+		// The class names have moved between editor packages, so stretch
+		// whatever is actually in the chain rather than naming them.
+		function stretch() {
+			unstretch();
+			var panel = document.querySelector( '.velox-gseo' );
+			if ( ! panel || ! shell ) { return; }
+			var n = panel.parentElement;
+			while ( n && n !== shell && n !== document.body ) {
+				n.style.width = '100%';
+				n.style.maxWidth = 'none';
+				n.style.minWidth = '0';
+				stretched.push( n );
+				n = n.parentElement;
+			}
+		}
+
+		function unstretch() {
+			stretched.forEach( function ( n ) {
+				n.style.width = '';
+				n.style.maxWidth = '';
+				n.style.minWidth = '';
+			} );
+			stretched = [];
 		}
 
 		function reset() {
+			unstretch();
 			if ( ! shell ) { return; }
 			shell.style.width = '';
 			shell.style.flexBasis = '';
 			shell.style.maxWidth = '';
-			var area = shell.querySelector( '.interface-complementary-area' );
-			if ( area ) { area.style.width = ''; area.style.maxWidth = ''; }
 			if ( handle && handle.parentElement ) { handle.parentElement.removeChild( handle ); }
 			handle = null;
 			shell = null;
@@ -486,29 +511,36 @@
 			queued = false;
 			var panel = document.querySelector( '.velox-gseo' );
 			if ( ! panel ) { reset(); return; }
-			if ( shell && shell.isConnected && handle && handle.isConnected ) { return; }
 
-			shell = findShell( panel );
-			if ( ! shell ) { return; }
-			if ( 'static' === window.getComputedStyle( shell ).position ) {
-				shell.style.position = 'relative';
+			if ( ! shell || ! shell.isConnected || ! handle || ! handle.isConnected ) {
+				shell = findShell( panel );
+				if ( ! shell ) { return; }
+				if ( 'static' === window.getComputedStyle( shell ).position ) {
+					shell.style.position = 'relative';
+				}
+
+				handle = document.createElement( 'div' );
+				handle.className = 'velox-seo-resizer';
+				handle.setAttribute( 'role', 'separator' );
+				handle.setAttribute( 'aria-orientation', 'vertical' );
+				handle.setAttribute( 'title', 'Drag to resize — double-click to reset' );
+				handle.addEventListener( 'pointerdown', startDrag );
+				handle.addEventListener( 'dblclick', function () {
+					try { window.localStorage.removeItem( KEY ); } catch ( e ) {}
+					shell.style.width = '';
+					shell.style.flexBasis = '';
+				} );
+				shell.appendChild( handle );
+
+				var w = stored();
+				if ( w ) { apply( w ); }
+				stretch();
+				return;
 			}
 
-			handle = document.createElement( 'div' );
-			handle.className = 'velox-seo-resizer';
-			handle.setAttribute( 'role', 'separator' );
-			handle.setAttribute( 'aria-orientation', 'vertical' );
-			handle.setAttribute( 'title', 'Drag to resize — double-click to reset' );
-			handle.addEventListener( 'pointerdown', startDrag );
-			handle.addEventListener( 'dblclick', function () {
-				try { window.localStorage.removeItem( KEY ); } catch ( e ) {}
-				shell.style.width = '';
-				shell.style.flexBasis = '';
-			} );
-			shell.appendChild( handle );
-
-			var w = stored();
-			if ( w ) { apply( w ); }
+			// A re-render can swap the wrappers out from under us, which drops
+			// the inline widths and snaps the content back to 280px.
+			if ( ! stretched.length || ! stretched[ 0 ].isConnected ) { stretch(); }
 		}
 
 		function schedule() {

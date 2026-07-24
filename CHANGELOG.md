@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.13.3 — Dragging the sidebar wider now widens the content too
+- Resizing the sidebar moved its edge but left the fields at their old width. WordPress puts wrappers between the sidebar and the panel that carry their own fixed width, and only one of them was being cleared. All of them are now, so the preview and the fields fill the space you drag out.
+- The widths are re-applied if the editor re-renders and swaps those wrappers out, which previously snapped the content back to its original width mid-edit.
+
 ## 3.13.2 — Resizable SEO sidebar, and the counter bar stops crossing out the count
 - The editor sidebar can now be dragged wider. WordPress fixes it at 280px with no way to change that, so Velox adds a handle on its left edge — drag to resize, double-click to go back to normal. The width is remembered, and only applies while the Velox SEO panel is open.
 - A long search title used to push the whole panel sideways and leave a horizontal scrollbar under it. Long words now wrap instead.
