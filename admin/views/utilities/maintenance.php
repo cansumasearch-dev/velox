@@ -20,12 +20,9 @@ $logo_default = VELOX_URL . 'assets/logo.png';
 			<label class="velox-switch"><input type="checkbox" data-setting="util_maintenance" <?php checked( ! empty( $s['util_maintenance'] ) ); ?>><span class="velox-switch-track"></span></label>
 		</div>
 
-		<div class="velox-toggle-row">
-			<div class="velox-toggle-meta">
-				<span class="velox-toggle-label">Hide all content from search engines</span>
-				<span class="velox-toggle-desc">Sets every page and post to noindex, nofollow, and anything you create or duplicate while the window is open starts hidden too. When you switch maintenance back off, Velox asks what to do with them.</span>
-			</div>
-			<label class="velox-switch"><input type="checkbox" data-setting="util_maintenance_seo" <?php checked( ! empty( $s['util_maintenance_seo'] ) ); ?>><span class="velox-switch-track"></span></label>
+		<div class="velox-alert velox-alert--info">
+			<strong>While maintenance is on, everything is hidden from search.</strong>
+			Every page and post is set to noindex, nofollow, and anything you create or duplicate meanwhile starts hidden too. Pages you had already set to noindex are left alone. When you switch maintenance back off, Velox asks what to do with them.
 		</div>
 
 		<?php

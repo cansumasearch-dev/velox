@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.15.1 — Maintenance now really does hide everything
+- 3.15.0 put the hide-from-search behaviour behind its own switch that defaulted to off, so turning maintenance on did nothing. The switch is gone: maintenance mode hides everything from search, full stop.
+- Pages now report noindex, nofollow the moment maintenance goes on, rather than only once the background pass had finished writing to every post — and it no longer depends on the SEO module being switched on.
+- The "what should happen now?" question is worked out from the pages themselves instead of from a flag set at the moment you flipped the switch. If it was ever missed there was no way back to it; now it keeps asking until you answer, and closing it snoozes it only until the next time maintenance is touched.
+
 ## 3.15.0 — Maintenance mode can hide everything from search
 - New switch on the Maintenance page: **Hide all content from search engines**. Turn it on with maintenance and every page, post and product is set to noindex, nofollow.
 - Anything you create or duplicate while the window is open starts hidden too, so work done during a rebuild cannot go live in search before you have looked at it.

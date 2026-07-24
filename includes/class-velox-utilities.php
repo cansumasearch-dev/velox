@@ -110,6 +110,13 @@ class Velox_Utilities {
 		add_action( 'update_option_' . Velox_Settings::OPTION, array( __CLASS__, 'maintenance_seo_transition' ), 10, 2 );
 		if ( self::maintenance_seo_on() ) {
 			add_action( 'transition_post_status', array( __CLASS__, 'maintenance_seo_new_post' ), 10, 3 );
+			// Belt and braces for what is actually served. The stored per-post
+			// meta only reaches the page through the SEO module, which can be
+			// switched off, and the batch that writes it may not have finished
+			// yet. This forces the directive immediately either way.
+			if ( ! is_admin() ) {
+				add_filter( 'wp_robots', array( __CLASS__, 'maintenance_robots' ), 50 );
+			}
 		}
 		// HTML lang override. Front end only — filtering this in wp-admin would
 		// relabel the admin itself, which is a different setting entirely.
@@ -219,13 +226,18 @@ class Velox_Utilities {
 	/** Meta marker: "Velox hid this for maintenance and may put it back". */
 	const MAINT_MARK = '_velox_maint_marked';
 
-	/** Where a pending decision is parked. Its own option, so writing it from the
-	 *  velox_settings update hook cannot recurse into that same option. */
-	const MAINT_PENDING = 'velox_maint_seo_pending';
+	/** Snooze flag for the "what now?" question. Its own option, so writing it
+	 *  from the velox_settings update hook cannot recurse into that option. */
+	const MAINT_DISMISS = 'velox_maint_seo_dismissed';
 
-	/** Is the hide-from-search behaviour currently active? */
+	/**
+	 * Active whenever maintenance is. There is deliberately no separate switch:
+	 * an opt-in toggle here just means the protection is off on exactly the
+	 * sites that forgot to turn it on, and the exit prompt already gives full
+	 * control over what happens to everything afterwards.
+	 */
 	public static function maintenance_seo_on() {
-		return (bool) Velox_Settings::get( 'util_maintenance' ) && (bool) Velox_Settings::get( 'util_maintenance_seo' );
+		return (bool) Velox_Settings::get( 'util_maintenance' );
 	}
 
 	/** Post types that can show up in search results. */
@@ -242,30 +254,42 @@ class Velox_Utilities {
 	}
 
 	/**
-	 * Fires on every write to the settings option, so it catches the toggle
-	 * wherever it happened: the Utilities card, the tool page, or the admin bar.
+	 * Any change to the maintenance switches un-snoozes the question, so it is
+	 * asked again the next time the window closes. Fires on every write to the
+	 * settings option, so it catches the toggle wherever it happened: the
+	 * Utilities card, the tool page, or the admin-bar shortcut.
 	 */
 	public static function maintenance_seo_transition( $old, $new ) {
-		$was = ! empty( $old['util_maintenance'] ) && ! empty( $old['util_maintenance_seo'] );
-		$now = ! empty( $new['util_maintenance'] ) && ! empty( $new['util_maintenance_seo'] );
-		if ( $was === $now ) {
-			return;
+		$was = ! empty( $old['util_maintenance'] );
+		$now = ! empty( $new['util_maintenance'] );
+		if ( $was !== $now ) {
+			delete_option( self::MAINT_DISMISS );
 		}
-		if ( $now ) {
-			update_option( self::MAINT_PENDING, 'apply', false );
-			return;
-		}
-		// Switched off: only ask if we actually hid something.
-		update_option( self::MAINT_PENDING, self::maintenance_seo_count( 'marked' ) ? 'decide' : '', false );
 	}
 
-	/** Pending state: '' | 'apply' | 'decide'. */
+	/**
+	 * What needs doing, worked out from the data rather than from a flag set at
+	 * the moment a switch was flipped. A missed transition used to mean the
+	 * prompt never appeared and there was no way back to it; now the state is
+	 * simply whatever the posts say it is.
+	 *
+	 *   'apply'  — the window is open and there is still visible content
+	 *   'decide' — the window is closed but we are still holding things hidden
+	 *   ''       — nothing to do
+	 */
 	public static function maintenance_seo_pending() {
-		return (string) get_option( self::MAINT_PENDING, '' );
+		if ( self::maintenance_seo_on() ) {
+			return self::maintenance_seo_count( 'todo' ) ? 'apply' : '';
+		}
+		if ( get_option( self::MAINT_DISMISS ) ) {
+			return '';
+		}
+		return self::maintenance_seo_count( 'marked' ) ? 'decide' : '';
 	}
 
+	/** Snooze the question until the maintenance switch is next touched. */
 	public static function maintenance_seo_clear_pending() {
-		update_option( self::MAINT_PENDING, '', false );
+		update_option( self::MAINT_DISMISS, 1, false );
 	}
 
 	/**
@@ -370,6 +394,15 @@ class Velox_Utilities {
 			);
 		}
 		return $rows;
+	}
+
+	/** Everything is noindex, nofollow for as long as the window is open. */
+	public static function maintenance_robots( $robots ) {
+		$robots = is_array( $robots ) ? $robots : array();
+		unset( $robots['index'], $robots['follow'] );
+		$robots['noindex']  = true;
+		$robots['nofollow'] = true;
+		return $robots;
 	}
 
 	/**

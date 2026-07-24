@@ -2299,7 +2299,6 @@
 				} ).catch( function () { busy = false; } );
 			} )();
 			function finish( n ) {
-				api( 'maint_seo_dismiss' ).catch( function () {} );
 				busy = false;
 				if ( n ) { toast( n + ' item' + ( 1 === n ? '' : 's' ) + ' hidden from search.', 'success' ); }
 			}
@@ -2384,7 +2383,11 @@
 				if ( ! btn || 'INPUT' === btn.tagName ) { return; }
 				var act = btn.getAttribute( 'data-act' );
 
-				if ( 'later' === act ) { close(); return; }
+				if ( 'later' === act ) {
+					api( 'maint_seo_dismiss' ).catch( function () {} );
+					close();
+					return;
+				}
 
 				if ( 'release' === act || 'keep' === act ) {
 					resolveAll( act, function () {
