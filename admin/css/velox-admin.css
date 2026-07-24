@@ -3318,3 +3318,32 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vxlang-diff-sep { height: 12px; margin: 4px 0 4px 40px; border-left: 1px solid var(--vx-line-2); }
 .vxlang-diff.is-same .vxlang-diff-row.is-new .vxlang-diff-code { color: var(--vx-ink-2); font-weight: 400; }
 .vxlang-off-note { margin: 0 0 16px; }
+
+/* -------------------------------------------------------------------------
+   Maintenance → search visibility decision modal.
+   Reuses .velox-modal / .velox-modal-box; only the choice row and the page
+   picker are new.
+   ------------------------------------------------------------------------- */
+.vxms-lead { margin: 0 0 18px; }
+.vxms-choices { display: flex; flex-wrap: wrap; gap: 10px; }
+.vxms-pick { margin-top: 20px; border-top: 1px solid var(--vx-line); padding-top: 16px; }
+.vxms-pick[hidden] { display: none; }
+.vxms-pick-bar { display: flex; align-items: center; justify-content: space-between;
+	gap: 12px; margin-bottom: 10px; }
+.vxms-all { display: inline-flex; align-items: center; gap: 8px; font-size: 13px;
+	font-weight: 500; color: var(--vx-ink); cursor: pointer; }
+.vxms-count { font-size: 12.5px; color: var(--vx-ink-3); font-variant-numeric: tabular-nums; }
+.vxms-list { max-height: 300px; overflow-y: auto; border: 1px solid var(--vx-line);
+	border-radius: var(--vx-r-md); background: var(--vx-n25); padding: 4px;
+	font-size: 13px; color: var(--vx-ink-2); }
+.vxms-list[aria-busy="true"] { padding: 16px; }
+.vxms-row { display: flex; align-items: center; gap: 10px; padding: 9px 10px;
+	border-radius: var(--vx-r-sm); cursor: pointer; }
+.vxms-row:hover { background: var(--vx-n0); }
+.vxms-row-title { flex: 1 1 auto; min-width: 0; color: var(--vx-ink);
+	overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vxms-row-type { flex: none; font-size: 11px; font-weight: 600; letter-spacing: .03em;
+	text-transform: uppercase; color: var(--vx-ink-3); }
+.vxms-pick-foot { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 14px; }
+.vxms-note { margin: 0; }
+.vxms-foot { margin: 18px 0 0; }

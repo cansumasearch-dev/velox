@@ -105,6 +105,12 @@ class Velox_Utilities {
 		}
 		// Admin-bar quick toggle (available to admins whether it's on or off).
 		add_action( 'admin_init', array( __CLASS__, 'maybe_toggle_maintenance' ) );
+		// Maintenance → search visibility. The transition hook is registered
+		// unconditionally: it has to notice the switch going OFF too.
+		add_action( 'update_option_' . Velox_Settings::OPTION, array( __CLASS__, 'maintenance_seo_transition' ), 10, 2 );
+		if ( self::maintenance_seo_on() ) {
+			add_action( 'transition_post_status', array( __CLASS__, 'maintenance_seo_new_post' ), 10, 3 );
+		}
 		// HTML lang override. Front end only — filtering this in wp-admin would
 		// relabel the admin itself, which is a different setting entirely.
 		if ( ! is_admin() && Velox_Settings::get( 'util_htmllang' ) ) {
@@ -195,6 +201,192 @@ class Velox_Utilities {
 			$installed[ $site ] = isset( $common[ $site ] ) ? $common[ $site ] : $site;
 		}
 		return array( 'installed' => $installed, 'common' => $common );
+	}
+
+	/* ---------------------------------------------------------------------
+	 * Maintenance → search visibility
+	 *
+	 * While maintenance is on the front end already answers 503, so crawlers
+	 * never reach a real page. The point of this is what happens *after*: work
+	 * published during a maintenance window should not go live in search the
+	 * second the site reopens.
+	 *
+	 * Pages that were already noindex before maintenance started are never
+	 * touched and never marked, so their own setting survives untouched and no
+	 * snapshot of the previous state is needed — the marker is the record.
+	 * ------------------------------------------------------------------- */
+
+	/** Meta marker: "Velox hid this for maintenance and may put it back". */
+	const MAINT_MARK = '_velox_maint_marked';
+
+	/** Where a pending decision is parked. Its own option, so writing it from the
+	 *  velox_settings update hook cannot recurse into that same option. */
+	const MAINT_PENDING = 'velox_maint_seo_pending';
+
+	/** Is the hide-from-search behaviour currently active? */
+	public static function maintenance_seo_on() {
+		return (bool) Velox_Settings::get( 'util_maintenance' ) && (bool) Velox_Settings::get( 'util_maintenance_seo' );
+	}
+
+	/** Post types that can show up in search results. */
+	public static function maintenance_seo_types() {
+		$types = get_post_types( array( 'public' => true ), 'names' );
+		unset( $types['attachment'] );
+		unset( $types['ct_template'] );   // Oxygen builder templates are never crawled alone
+		return array_values( $types );
+	}
+
+	/** Statuses worth marking — drafts included, since they get published later. */
+	private static function maintenance_seo_statuses() {
+		return array( 'publish', 'future', 'draft', 'pending', 'private' );
+	}
+
+	/**
+	 * Fires on every write to the settings option, so it catches the toggle
+	 * wherever it happened: the Utilities card, the tool page, or the admin bar.
+	 */
+	public static function maintenance_seo_transition( $old, $new ) {
+		$was = ! empty( $old['util_maintenance'] ) && ! empty( $old['util_maintenance_seo'] );
+		$now = ! empty( $new['util_maintenance'] ) && ! empty( $new['util_maintenance_seo'] );
+		if ( $was === $now ) {
+			return;
+		}
+		if ( $now ) {
+			update_option( self::MAINT_PENDING, 'apply', false );
+			return;
+		}
+		// Switched off: only ask if we actually hid something.
+		update_option( self::MAINT_PENDING, self::maintenance_seo_count( 'marked' ) ? 'decide' : '', false );
+	}
+
+	/** Pending state: '' | 'apply' | 'decide'. */
+	public static function maintenance_seo_pending() {
+		return (string) get_option( self::MAINT_PENDING, '' );
+	}
+
+	public static function maintenance_seo_clear_pending() {
+		update_option( self::MAINT_PENDING, '', false );
+	}
+
+	/**
+	 * Query args for the two sets we care about.
+	 *  - 'todo'   : visible content we have not hidden yet
+	 *  - 'marked' : content we hid and could put back
+	 */
+	private static function maintenance_seo_query( $set, $limit ) {
+		$args = array(
+			'post_type'        => self::maintenance_seo_types(),
+			'post_status'      => self::maintenance_seo_statuses(),
+			'posts_per_page'   => $limit,
+			'fields'           => 'ids',
+			'no_found_rows'    => -1 !== $limit,
+			'suppress_filters' => true,
+			'orderby'          => 'ID',
+			'order'            => 'ASC',
+		);
+		if ( 'marked' === $set ) {
+			$args['meta_query'] = array(
+				array( 'key' => self::MAINT_MARK, 'compare' => 'EXISTS' ),
+			);
+			return $args;
+		}
+		// Not marked yet, and not already set to noindex by hand.
+		$args['meta_query'] = array(
+			'relation' => 'AND',
+			array( 'key' => self::MAINT_MARK, 'compare' => 'NOT EXISTS' ),
+			array(
+				'relation' => 'OR',
+				array( 'key' => '_velox_seo_noindex', 'compare' => 'NOT EXISTS' ),
+				array( 'key' => '_velox_seo_noindex', 'value' => '1', 'compare' => '!=' ),
+			),
+		);
+		return $args;
+	}
+
+	/** How many items are in a set. */
+	public static function maintenance_seo_count( $set ) {
+		$q = new WP_Query( array_merge(
+			self::maintenance_seo_query( $set, 1 ),
+			array( 'no_found_rows' => false, 'posts_per_page' => 1 )
+		) );
+		return (int) $q->found_posts;
+	}
+
+	/** One batch of ids from a set. */
+	public static function maintenance_seo_batch( $set, $limit = 60 ) {
+		$q = new WP_Query( self::maintenance_seo_query( $set, (int) $limit ) );
+		return array_map( 'intval', $q->posts );
+	}
+
+	/** Hide a batch: noindex + nofollow, and remember that we did it. */
+	public static function maintenance_seo_hide( array $ids ) {
+		foreach ( $ids as $id ) {
+			$id = (int) $id;
+			update_post_meta( $id, '_velox_seo_noindex', '1' );
+			update_post_meta( $id, '_velox_seo_nofollow', '1' );
+			update_post_meta( $id, self::MAINT_MARK, '1' );
+		}
+		return count( $ids );
+	}
+
+	/** Put a batch back to index, follow and drop the marker. */
+	public static function maintenance_seo_release( array $ids ) {
+		foreach ( $ids as $id ) {
+			$id = (int) $id;
+			if ( ! metadata_exists( 'post', $id, self::MAINT_MARK ) ) {
+				continue; // never hidden by us — leave the owner's setting alone
+			}
+			update_post_meta( $id, '_velox_seo_noindex', '0' );
+			update_post_meta( $id, '_velox_seo_nofollow', '0' );
+			delete_post_meta( $id, self::MAINT_MARK );
+		}
+		return count( $ids );
+	}
+
+	/** Keep a batch hidden permanently: drop only the marker. */
+	public static function maintenance_seo_keep( array $ids ) {
+		foreach ( $ids as $id ) {
+			delete_post_meta( (int) $id, self::MAINT_MARK );
+		}
+		return count( $ids );
+	}
+
+	/** Marked items for the "choose pages" picker. */
+	public static function maintenance_seo_list( $limit = 300 ) {
+		$ids  = self::maintenance_seo_batch( 'marked', (int) $limit );
+		$rows = array();
+		foreach ( $ids as $id ) {
+			$post = get_post( $id );
+			if ( ! $post ) {
+				continue;
+			}
+			$obj    = get_post_type_object( $post->post_type );
+			$rows[] = array(
+				'id'     => (int) $id,
+				'title'  => $post->post_title ? $post->post_title : '(no title)',
+				'type'   => $obj ? $obj->labels->singular_name : $post->post_type,
+				'status' => $post->post_status,
+				'url'    => get_permalink( $id ),
+			);
+		}
+		return $rows;
+	}
+
+	/**
+	 * Anything created while the window is open starts hidden — including
+	 * duplicates, which are inserted as drafts and so pass through here too.
+	 */
+	public static function maintenance_seo_new_post( $new_status, $old_status, $post ) {
+		if ( ! in_array( $old_status, array( 'new', 'auto-draft' ), true ) ) {
+			return; // an edit to something that already existed
+		}
+		if ( in_array( $new_status, array( 'auto-draft', 'inherit', 'trash' ), true ) ) {
+			return;
+		}
+		if ( ! $post || ! in_array( $post->post_type, self::maintenance_seo_types(), true ) ) {
+			return;
+		}
+		self::maintenance_seo_hide( array( $post->ID ) );
 	}
 
 	/* ---------------------------------------------------------------------

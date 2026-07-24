@@ -20,6 +20,24 @@ $logo_default = VELOX_URL . 'assets/logo.png';
 			<label class="velox-switch"><input type="checkbox" data-setting="util_maintenance" <?php checked( ! empty( $s['util_maintenance'] ) ); ?>><span class="velox-switch-track"></span></label>
 		</div>
 
+		<div class="velox-toggle-row">
+			<div class="velox-toggle-meta">
+				<span class="velox-toggle-label">Hide all content from search engines</span>
+				<span class="velox-toggle-desc">Sets every page and post to noindex, nofollow, and anything you create or duplicate while the window is open starts hidden too. When you switch maintenance back off, Velox asks what to do with them.</span>
+			</div>
+			<label class="velox-switch"><input type="checkbox" data-setting="util_maintenance_seo" <?php checked( ! empty( $s['util_maintenance_seo'] ) ); ?>><span class="velox-switch-track"></span></label>
+		</div>
+
+		<?php
+		$vx_marked = class_exists( 'Velox_Utilities' ) ? Velox_Utilities::maintenance_seo_count( 'marked' ) : 0;
+		if ( $vx_marked ) :
+			?>
+			<div class="velox-alert velox-alert--info">
+				<strong><?php echo (int) $vx_marked; ?> item<?php echo 1 === $vx_marked ? '' : 's'; ?> currently hidden by maintenance.</strong>
+				Pages that were already set to noindex before you switched this on were left alone, so their own setting is untouched.
+			</div>
+		<?php endif; ?>
+
 		<div class="velox-field">
 			<span class="velox-field-label">Heading</span>
 			<input type="text" class="velox-input" data-setting="util_maintenance_title" value="<?php echo esc_attr( $s['util_maintenance_title'] ); ?>">

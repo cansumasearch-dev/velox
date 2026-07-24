@@ -196,6 +196,57 @@ class Velox_Ajax {
 				$this->respond( $css->build_for_path( $path ) );
 				break;
 
+			/* -------- Maintenance → search visibility -------- */
+			case 'maint_seo_status':
+				wp_send_json_success( array(
+					'pending' => Velox_Utilities::maintenance_seo_pending(),
+					'todo'    => Velox_Utilities::maintenance_seo_count( 'todo' ),
+					'marked'  => Velox_Utilities::maintenance_seo_count( 'marked' ),
+				) );
+				break;
+
+			case 'maint_seo_hide':
+				$ids = Velox_Utilities::maintenance_seo_batch( 'todo', 60 );
+				Velox_Utilities::maintenance_seo_hide( $ids );
+				wp_send_json_success( array(
+					'done'      => count( $ids ),
+					'remaining' => Velox_Utilities::maintenance_seo_count( 'todo' ),
+				) );
+				break;
+
+			// mode: 'release' (back to index,follow) or 'keep' (stay hidden).
+			// ids: optional explicit selection; omitted means "everything marked".
+			case 'maint_seo_resolve':
+				$mode = isset( $_POST['mode'] ) ? sanitize_key( $_POST['mode'] ) : 'release';
+				// The JS helper flattens values into FormData, so ids arrive as a
+				// comma-separated string rather than an array.
+				$raw  = isset( $_POST['ids'] ) ? wp_unslash( $_POST['ids'] ) : '';
+				$raw  = is_array( $raw ) ? $raw : explode( ',', (string) $raw );
+				$ids  = array_values( array_filter( array_map( 'absint', $raw ) ) );
+				if ( empty( $ids ) ) {
+					$ids = Velox_Utilities::maintenance_seo_batch( 'marked', 60 );
+				}
+				if ( 'keep' === $mode ) {
+					Velox_Utilities::maintenance_seo_keep( $ids );
+				} else {
+					Velox_Utilities::maintenance_seo_release( $ids );
+				}
+				$left = Velox_Utilities::maintenance_seo_count( 'marked' );
+				if ( ! $left ) {
+					Velox_Utilities::maintenance_seo_clear_pending();
+				}
+				wp_send_json_success( array( 'done' => count( $ids ), 'remaining' => $left ) );
+				break;
+
+			case 'maint_seo_list':
+				wp_send_json_success( array( 'rows' => Velox_Utilities::maintenance_seo_list( 300 ) ) );
+				break;
+
+			case 'maint_seo_dismiss':
+				Velox_Utilities::maintenance_seo_clear_pending();
+				wp_send_json_success( array( 'ok' => true ) );
+				break;
+
 			case 'rucss_reset_learn':
 				wp_send_json_success( Velox_CSS::reset_learning() );
 				break;

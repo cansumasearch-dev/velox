@@ -2260,7 +2260,180 @@
 		initOctober();
 		initBackup();
 		initHtmlLang();
+		initMaintSeo();
 		initOctoberEditor();
+	}
+
+	/**
+	 * Maintenance → search visibility.
+	 *
+	 * Two jobs. When the window opens, hide everything that is still visible.
+	 * When it closes, ask what should happen to what we hid. Both run in batches
+	 * so a site with a few thousand posts does not hit a request timeout, and
+	 * both are driven from the pending flag rather than from the toggle itself,
+	 * so it works no matter where maintenance was switched (Utilities card, tool
+	 * page, or the admin-bar shortcut).
+	 */
+	function initMaintSeo() {
+		if ( ! window.VELOX || ! VELOX.ajaxurl ) { return; }
+		var busy = false;
+
+		api( 'maint_seo_status' ).then( function ( d ) {
+			if ( ! d ) { return; }
+			if ( 'apply' === d.pending ) { hideAll( d.todo ); }
+			else if ( 'decide' === d.pending && d.marked ) { askWhatNext( d.marked ); }
+		} ).catch( function () {} );
+
+		/* ---- hide everything, one batch at a time ---- */
+		function hideAll( total ) {
+			if ( busy ) { return; }
+			busy = true;
+			var done = 0;
+			if ( ! total ) { return finish(); }
+			toast( 'Hiding ' + total + ' item' + ( 1 === total ? '' : 's' ) + ' from search…', 'info' );
+			( function step() {
+				api( 'maint_seo_hide' ).then( function ( r ) {
+					done += ( r && r.done ) || 0;
+					if ( r && r.remaining > 0 && r.done > 0 ) { return step(); }
+					finish( done );
+				} ).catch( function () { busy = false; } );
+			} )();
+			function finish( n ) {
+				api( 'maint_seo_dismiss' ).catch( function () {} );
+				busy = false;
+				if ( n ) { toast( n + ' item' + ( 1 === n ? '' : 's' ) + ' hidden from search.', 'success' ); }
+			}
+		}
+
+		/* ---- the decision modal ---- */
+		function askWhatNext( marked ) {
+			var wrap = document.createElement( 'div' );
+			wrap.className = 'velox-modal';
+			wrap.innerHTML =
+				'<div class="velox-modal-box velox-modal-box--lg">' +
+					'<div class="velox-modal-head">' +
+						'<h2 class="velox-modal-title">Maintenance is off — what about search engines?</h2>' +
+						'<button type="button" class="velox-modal-x" data-act="later" aria-label="Decide later">&times;</button>' +
+					'</div>' +
+					'<p class="velox-sub vxms-lead"></p>' +
+					'<div class="vxms-choices">' +
+						'<button type="button" class="velox-btn velox-btn--primary" data-act="release">Make them visible again</button>' +
+						'<button type="button" class="velox-btn velox-btn--ghost" data-act="keep">Keep them hidden</button>' +
+						'<button type="button" class="velox-btn velox-btn--ghost" data-act="pick">Choose pages…</button>' +
+					'</div>' +
+					'<div class="vxms-pick" hidden>' +
+						'<div class="vxms-pick-bar">' +
+							'<label class="vxms-all"><input type="checkbox" data-act="all"> Select all</label>' +
+							'<span class="vxms-count"></span>' +
+						'</div>' +
+						'<div class="vxms-list" aria-busy="true">Loading pages…</div>' +
+						'<div class="vxms-pick-foot">' +
+							'<button type="button" class="velox-btn velox-btn--primary" data-act="apply">Make selected visible</button>' +
+							'<span class="velox-hint vxms-note">Anything left unticked stays hidden.</span>' +
+						'</div>' +
+					'</div>' +
+					'<p class="velox-hint vxms-foot">Pages that were already noindex before maintenance started were never touched, so they are not in this list.</p>' +
+				'</div>';
+			document.body.appendChild( wrap );
+
+			var lead  = wrap.querySelector( '.vxms-lead' );
+			var pick  = wrap.querySelector( '.vxms-pick' );
+			var list  = wrap.querySelector( '.vxms-list' );
+			var count = wrap.querySelector( '.vxms-count' );
+			lead.textContent = marked + ' item' + ( 1 === marked ? ' is' : 's are' ) +
+				' still hidden from search because maintenance hid ' + ( 1 === marked ? 'it' : 'them' ) + '.';
+
+			function close() { wrap.remove(); }
+
+			function lock( on ) {
+				$$( 'button', wrap ).forEach( function ( b ) { b.disabled = on; } );
+			}
+
+			// Walk every remaining marked item in batches.
+			function resolveAll( mode, after ) {
+				lock( true );
+				( function step() {
+					api( 'maint_seo_resolve', { mode: mode } ).then( function ( r ) {
+						if ( r && r.remaining > 0 && r.done > 0 ) { return step(); }
+						lock( false );
+						if ( after ) { after(); }
+					} ).catch( function () { lock( false ); } );
+				} )();
+			}
+
+			function selected() {
+				return $$( '.vxms-row input:checked', wrap ).map( function ( i ) {
+					return i.value;
+				} );
+			}
+
+			function refreshCount() {
+				var n = selected().length;
+				count.textContent = n + ' selected';
+			}
+
+			wrap.addEventListener( 'change', function ( e ) {
+				if ( 'all' === e.target.getAttribute( 'data-act' ) ) {
+					$$( '.vxms-row input', wrap ).forEach( function ( i ) { i.checked = e.target.checked; } );
+				}
+				refreshCount();
+			} );
+
+			wrap.addEventListener( 'click', function ( e ) {
+				var btn = e.target.closest( '[data-act]' );
+				if ( ! btn || 'INPUT' === btn.tagName ) { return; }
+				var act = btn.getAttribute( 'data-act' );
+
+				if ( 'later' === act ) { close(); return; }
+
+				if ( 'release' === act || 'keep' === act ) {
+					resolveAll( act, function () {
+						toast( 'release' === act ? 'Pages are visible to search engines again.' : 'Pages stay hidden.', 'success' );
+						close();
+					} );
+					return;
+				}
+
+				if ( 'pick' === act ) {
+					pick.hidden = false;
+					btn.disabled = true;
+					api( 'maint_seo_list' ).then( function ( d ) {
+						var rows = ( d && d.rows ) || [];
+						if ( ! rows.length ) { list.textContent = 'Nothing to show.'; return; }
+						list.innerHTML = rows.map( function ( r ) {
+							return '<label class="vxms-row">' +
+								'<input type="checkbox" value="' + r.id + '">' +
+								'<span class="vxms-row-title"></span>' +
+								'<span class="vxms-row-type"></span>' +
+								'</label>';
+						} ).join( '' );
+						// Titles are set as text, never as markup.
+						$$( '.vxms-row', list ).forEach( function ( row, i ) {
+							row.querySelector( '.vxms-row-title' ).textContent = rows[ i ].title;
+							row.querySelector( '.vxms-row-type' ).textContent  = rows[ i ].type;
+						} );
+						list.removeAttribute( 'aria-busy' );
+						refreshCount();
+					} ).catch( function () { list.textContent = 'Could not load the list.'; } );
+					return;
+				}
+
+				if ( 'apply' === act ) {
+					var ids = selected();
+					lock( true );
+					var freeing = ids.length
+						? api( 'maint_seo_resolve', { mode: 'release', ids: ids.join( ',' ) } )
+						: Promise.resolve();
+					freeing.then( function () {
+						// Whatever is left stays hidden for good.
+						resolveAll( 'keep', function () {
+							toast( ids.length + ' page' + ( 1 === ids.length ? '' : 's' ) + ' made visible, the rest stay hidden.', 'success' );
+							close();
+						} );
+					} ).catch( function () { lock( false ); } );
+				}
+			} );
+		}
 	}
 
 	/**

@@ -68,6 +68,7 @@ class Velox_Settings {
 			'util_maintenance_anim'    => 'bar',  // bar | pulse | dots | spinner | lottie | none
 			'util_maintenance_lottie'  => '',          // Lottie .json/.lottie URL (when anim = lottie)
 			'util_login_slug'          => '',     // empty = default wp-login; set a slug to move it
+			'util_maintenance_seo'     => false,  // hide all content from search while maintenance is on
 			'util_htmllang'            => false,  // override the <html lang="…"> attribute
 			'util_htmllang_value'      => '',     // BCP-47 tag, e.g. de-DE; empty = leave alone
 			'util_redirects_log_404'   => true,

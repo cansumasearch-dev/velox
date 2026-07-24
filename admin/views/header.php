@@ -107,12 +107,14 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 					array( 'util', 'mail', 'Mail & Forms', 'mail' ),
 					array( 'util', 'maintenance', 'Maintenance Mode', 'cone' ),
 					array( 'util', 'loginurl', 'Login URL', 'lock' ),
+					array( 'util', 'htmllang', 'HTML Lang', 'globe' ),
 				),
 				'System'      => array(
 					array( 'tab', 'database', 'Database', 'db' ),
 					array( 'util', 'backup', 'Backup & Restore', 'package' ),
 					array( 'util', 'installer', 'Bulk Installer', 'plug' ),
 					array( 'util', 'october', 'OctoberCMS Theme', 'package' ),
+					array( 'util', 'filemanager', 'File Manager', 'folder' ),
 				),
 			);
 			$vx_cat = Velox_Utilities::catalog();

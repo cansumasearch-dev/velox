@@ -68,6 +68,8 @@ $velox_tiles = array(
 	array( 'util','mail',        'Mail & Forms',     'mail',     'SMTP & forms' ),
 	array( 'util','maintenance', 'Maintenance',      'cone',     'Coming-soon' ),
 	array( 'util','loginurl',    'Login URL',        'lock',     'Hide wp-login' ),
+	array( 'util','htmllang',    'HTML Lang',        'globe',    'Page language' ),
+	array( 'util','filemanager', 'File Manager',     'folder',   'Browse & edit' ),
 	array( 'util','installer',   'Bulk Installer',   'plug',     'Plugin stacks' ),
 	array( 'util','october',     'OctoberCMS',       'package',  'Theme export' ),
 	array( 'util','backup',      'Backup & Restore', 'package',  'DB & files' ),

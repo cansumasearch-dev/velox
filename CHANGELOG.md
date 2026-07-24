@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.15.0 — Maintenance mode can hide everything from search
+- New switch on the Maintenance page: **Hide all content from search engines**. Turn it on with maintenance and every page, post and product is set to noindex, nofollow.
+- Anything you create or duplicate while the window is open starts hidden too, so work done during a rebuild cannot go live in search before you have looked at it.
+- Pages that were already set to noindex before you switched this on are left completely alone. Velox only records the ones it hid itself, so nobody's existing setting gets trampled and there is nothing to restore afterwards.
+- Switching maintenance back off asks what should happen: make everything visible again, keep it all hidden, or pick page by page — anything left unticked stays hidden. The question appears wherever you switched maintenance off, including the admin-bar shortcut.
+- Both jobs run in batches, so a site with thousands of posts will not time out.
+
+## 3.14.1 — HTML lang switcher now appears in the navigation
+- The new HTML lang switcher was reachable only from the Utilities hub. It now sits in the Velox side navigation under "Site & visitors" and in the dashboard shortcut grid, like every other tool.
+- File Manager had the same problem and was missing from both lists since it shipped. It is now in the navigation under "System" and in the shortcut grid.
+
 ## 3.14.0 — HTML lang switcher
 - New utility: **HTML lang switcher**. Sets the `lang` attribute on the `<html>` tag for sites where a theme or builder hard-codes it and the WordPress site language never reaches the page. Screen readers and search engines both read that attribute to decide what language a page is in, so a German site serving `lang="en-US"` is worth fixing.
 - The page reads your live front page in the browser and shows the attribute that is actually being served, rather than assuming the setting worked — which is the whole reason the tool exists. A coloured dot flags whether it matches what WordPress thinks it should be.
