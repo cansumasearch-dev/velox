@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.11.2 — Fix: resize controls missing from the media modal
+- The resize controls added in 3.11.1 never appeared in WordPress’s Attachment details panel. The media modal builds that panel over AJAX, and the filter that adds the controls was deliberately skipped on AJAX requests — so the field was never generated. It is now registered for those requests too.
+
 ## 3.11.1 — Resize from the WordPress media library too
 - The resize controls now also appear in WordPress’s own Attachment details panel, so you can resize straight from the media library or the picker in any editor, not only from Velox’s Media Editor.
 - Same behaviour there: type a width and the height follows the original proportions, the link button unlocks it, quick presets from 50% to 200%, and the thumbnail refreshes in place once it is done.

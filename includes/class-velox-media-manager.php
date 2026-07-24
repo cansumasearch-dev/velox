@@ -16,9 +16,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Velox_Media_Manager {
 
 	public function __construct() {
-		// This class is also instantiated inside AJAX handlers; only wire the
-		// attachment UI on real admin page loads.
-		if ( is_admin() && ! wp_doing_ajax() ) {
+		// The media modal builds its details panel over AJAX (wp_ajax_get_attachment
+		// runs attachment_fields_to_edit), so this filter has to be registered on
+		// AJAX requests as well or the field simply never appears there.
+		if ( is_admin() ) {
 			add_filter( 'attachment_fields_to_edit', array( $this, 'attachment_resize_field' ), 20, 2 );
 			add_action( 'admin_enqueue_scripts', array( $this, 'modal_assets' ) );
 		}
