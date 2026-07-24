@@ -4,6 +4,18 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.13.0 — Velox SEO panel rebuilt
+- The SEO sidebar now tells you how the page is doing instead of only holding fields. A score and a checklist sit at the top, in the same spirit as the SEO health screen but for the page you are editing.
+- Each check names the consequence rather than the rule — "No meta description, Google writes its own" — and covers the search title, description, focus keyword, indexing, sitemap, whether the page has an H1, and whether its images have alt text.
+- Missing title and missing description are now reported separately. Previously only the description was flagged, so a page with neither showed a single vague warning.
+- Focus keyword moved up next to the fields it judges, and now reports whether it actually appears in the title and description.
+- Character counts gained a bar under each field that turns amber near the limit and red past it, and the preview shows a proper empty state instead of instructions.
+- Search engines, Social and Advanced are collapsed by default, so the checklist and preview are what you see first.
+- Checks that need the page content (H1, image alt text) are skipped rather than failed on builder-made pages, which have no blocks to read.
+
+## 3.12.4 — Actually beat Oxygen’s meta box styling
+- The previous fix did not work. Oxygen ships "#editor .postbox > .postbox-header:hover { background: var(--oxy-dark) !important }", and since both rules were marked important the more specific selector won — which was Oxygen’s. Velox now matches that structure with two ids so its own box keeps normal colours on hover. Verified in a browser against the real rule; other meta boxes on the screen are left exactly as they were.
+
 ## 3.12.3 — Fix the Velox meta box turning dark
 - The Velox box in the page editor changed colour on hover, with the header going black and the title becoming unreadable. That comes from other editor styling on that screen — Oxygen renders its own meta boxes dark, and it bleeds into every box on the page. Velox now pins its own box to normal WordPress colours so it stays readable whatever else is loaded, scoped to that box alone so nothing else on the screen is touched.
 

@@ -31,19 +31,28 @@ class Velox_PageMeta {
 		if ( ! $screen || ! in_array( $screen->base, array( 'post' ), true ) ) {
 			return;
 		}
+		// Oxygen ships: #editor .postbox > .postbox-header:hover { background: var(--oxy-dark) !important }
+		// which is (1,3,0) — so matching its !important isn't enough, the selector
+		// has to outrank it. Two ids and the same child combinator does that.
 		echo '<style id="velox-overrides-box">
-			#velox_overrides { background: #fff; border: 1px solid #dcdcde; }
-			#velox_overrides .postbox-header,
-			#velox_overrides .postbox-header:hover,
-			#velox_overrides .postbox-header:focus-within {
-				background: #fff !important; border-bottom: 1px solid #dcdcde !important;
+			#velox_overrides.postbox { background: #fff !important; border: 1px solid #dcdcde !important; }
+			#editor #velox_overrides.postbox > .postbox-header,
+			#editor #velox_overrides.postbox > .postbox-header:hover,
+			#editor #velox_overrides.postbox > .postbox-header:focus-within,
+			#velox_overrides.postbox > .postbox-header,
+			#velox_overrides.postbox > .postbox-header:hover {
+				background: #fff !important;
+				border-bottom: 1px solid #dcdcde !important;
 			}
-			#velox_overrides .hndle,
-			#velox_overrides .hndle:hover,
-			#velox_overrides h2.hndle { background: transparent !important; color: #1d2327 !important; }
-			#velox_overrides .handle-actions .handlediv,
-			#velox_overrides .handle-actions .order-higher-indicator,
-			#velox_overrides .handle-actions .order-lower-indicator { color: #787c82 !important; background: transparent !important; }
+			#editor #velox_overrides.postbox > .postbox-header .hndle,
+			#editor #velox_overrides.postbox > .postbox-header:hover .hndle,
+			#velox_overrides.postbox > .postbox-header .hndle {
+				background: transparent !important; color: #1d2327 !important;
+			}
+			#editor #velox_overrides.postbox > .postbox-header .handle-actions button,
+			#velox_overrides.postbox > .postbox-header .handle-actions button {
+				color: #787c82 !important; background: transparent !important;
+			}
 			#velox_overrides .inside { background: #fff !important; color: #1d2327 !important; }
 			#velox_overrides .inside label { color: #1d2327 !important; }
 		</style>' . "\n";
