@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.14.0 — HTML lang switcher
+- New utility: **HTML lang switcher**. Sets the `lang` attribute on the `<html>` tag for sites where a theme or builder hard-codes it and the WordPress site language never reaches the page. Screen readers and search engines both read that attribute to decide what language a page is in, so a German site serving `lang="en-US"` is worth fixing.
+- The page reads your live front page in the browser and shows the attribute that is actually being served, rather than assuming the setting worked — which is the whole reason the tool exists. A coloured dot flags whether it matches what WordPress thinks it should be.
+- Pick a language from the dropdown, or type your own tag. A before/after line shows exactly what the `<html>` tag will look like once you save.
+- Switches on and off from Utilities like every other tool, and does nothing at all while it is off.
+- Fixed: `--vx-mono` was used in eight places across the admin stylesheet but never defined, so code chips, file paths and URL rows had been falling back to the normal interface font instead of monospace.
+
 ## 3.13.5 — SEO sidebar rebuilt to the approved design
 - The score ring and the long checklist are gone. Status now reads as a row of pills — Indexed, In sitemap, No description — so the state of the page is one glance instead of seven lines.
 - A Desktop / Mobile switch sits at the top and the search preview follows it, including the shorter description Google shows on phones.

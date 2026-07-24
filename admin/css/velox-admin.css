@@ -71,6 +71,10 @@
 	--vx-s5: 24px; --vx-s6: 32px; --vx-s7: 48px; --vx-s8: 80px; --vx-s9: 96px;
 	/* ---- Radius — Apple ladder (5 / 8 / 11 / 18) ---- */
 	--vx-r-xs: 5px; --vx-r-sm: 8px; --vx-r-md: 11px; --vx-r-lg: 18px; --vx-r-pill: 9999px;
+	/* Monospace stack. Referenced by rules throughout this file but never
+	   declared, so every var(--vx-mono) was silently falling back to the
+	   inherited Inter — code chips, file paths and URL rows included. */
+	--vx-mono: ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, Consolas, monospace;
 	--vx-radius: 18px;           /* legacy alias */
 	/* ---- Elevation — Apple's near-flat system ----
 	   UI hierarchy comes from surface-color change + hairlines, NOT shadows.
@@ -3280,3 +3284,37 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-seoh-note { font-size: 11px; font-weight: 600; color: #b4690e; background: #fdf3e7;
 	border-radius: 999px; padding: 3px 9px; flex: none; }
 .velox-seoh-more { text-align: center; font-size: 12px; color: var(--vx-ink-3); padding: 6px 0 2px; }
+
+/* -------------------------------------------------------------------------
+   HTML lang switcher (Utilities → htmllang)
+   Uses the shared field/panel components; only the live readout and the
+   before/after line are new. Grayscale structure, colour only on the status
+   dot and the resulting value.
+   ------------------------------------------------------------------------- */
+.vxlang-live { display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+	border: 1px solid var(--vx-line); border-radius: var(--vx-r-md); background: var(--vx-n25); }
+.vxlang-live-dot { width: 8px; height: 8px; border-radius: 50%; flex: none; background: var(--vx-n300); }
+.vxlang-live[data-state="loading"] .vxlang-live-dot { background: var(--vx-n300); }
+.vxlang-live[data-state="ok"] .vxlang-live-dot { background: var(--vx-success); }
+.vxlang-live[data-state="warn"] .vxlang-live-dot { background: var(--vx-warning); }
+.vxlang-live[data-state="error"] .vxlang-live-dot { background: var(--vx-danger); }
+.vxlang-live-val { flex: 1 1 auto; min-width: 0; font-family: var(--vx-mono); font-size: 12.5px;
+	color: var(--vx-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vxlang-live[data-state="loading"] .vxlang-live-val,
+.vxlang-live[data-state="error"] .vxlang-live-val { color: var(--vx-ink-2); }
+.vxlang-live #vxlang-recheck { flex: none; }
+
+.vxlang-custom { margin-top: 8px; }
+
+.vxlang-diff { border: 1px solid var(--vx-line); border-radius: var(--vx-r-md);
+	background: var(--vx-n25); padding: 14px 16px; margin: 0 0 18px; }
+.vxlang-diff[data-empty="1"] { display: none; }
+.vxlang-diff-row { display: flex; align-items: center; gap: 12px; }
+.vxlang-diff-tag { flex: 0 0 82px; font-size: 11px; font-weight: 600; letter-spacing: .04em;
+	text-transform: uppercase; color: var(--vx-ink-3); }
+.vxlang-diff-code { font-family: var(--vx-mono); font-size: 12.5px; color: var(--vx-ink-2);
+	overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.vxlang-diff-row.is-new .vxlang-diff-code { color: var(--vx-ink); font-weight: 600; }
+.vxlang-diff-sep { height: 12px; margin: 4px 0 4px 40px; border-left: 1px solid var(--vx-line-2); }
+.vxlang-diff.is-same .vxlang-diff-row.is-new .vxlang-diff-code { color: var(--vx-ink-2); font-weight: 400; }
+.vxlang-off-note { margin: 0 0 16px; }

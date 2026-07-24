@@ -2259,7 +2259,97 @@
 		initCookies();
 		initOctober();
 		initBackup();
+		initHtmlLang();
 		initOctoberEditor();
+	}
+
+	/**
+	 * HTML lang switcher.
+	 *
+	 * The live value is read from the front page in the browser rather than on
+	 * the server: loopback HTTP is blocked on some hosts, so wp_remote_get() on
+	 * your own site fails silently and would report nothing at all.
+	 */
+	function initHtmlLang() {
+		var root = $( '#vxlang' );
+		if ( ! root ) { return; }
+
+		var pick    = $( '#vxlang-pick', root );
+		var custom  = $( '#vxlang-custom', root );
+		var live    = $( '#vxlang-live', root );
+		var liveVal = $( '#vxlang-live-val', root );
+		var recheck = $( '#vxlang-recheck', root );
+		var diff    = $( '#vxlang-diff', root );
+		var oldEl   = $( '#vxlang-diff-old', root );
+		var newEl   = $( '#vxlang-diff-new', root );
+		var offNote = $( '#vxlang-off-note', root );
+		var toggle  = root.querySelector( '[data-setting="util_htmllang"]' );
+		var current = '';
+
+		function tag( value ) {
+			return '<html lang="' + ( value || '…' ) + '">';
+		}
+
+		function paint() {
+			var next = ( custom.value || '' ).trim();
+			oldEl.textContent = tag( current );
+			newEl.textContent = tag( next );
+			diff.setAttribute( 'data-empty', next ? '0' : '1' );
+			diff.classList.toggle( 'is-same', !! next && next === current );
+			if ( offNote ) { offNote.hidden = ! toggle || toggle.checked; }
+		}
+
+		function setLive( state, text ) {
+			live.setAttribute( 'data-state', state );
+			liveVal.textContent = text;
+		}
+
+		function read() {
+			setLive( 'loading', 'Reading your front page…' );
+			// Cache-bust, or the browser can hand back a copy from before the
+			// last save and the readout quietly lies.
+			var url = root.getAttribute( 'data-home' );
+			url += ( url.indexOf( '?' ) === -1 ? '?' : '&' ) + 'velox_lang_check=' + Date.now();
+			fetch( url, { credentials: 'same-origin' } )
+				.then( function ( r ) {
+					if ( ! r.ok ) { throw new Error( 'HTTP ' + r.status ); }
+					return r.text();
+				} )
+				.then( function ( html ) {
+					var m = html.match( /<html[^>]*\slang\s*=\s*["']([^"']+)["']/i );
+					if ( ! m ) {
+						current = '';
+						setLive( 'warn', 'No lang attribute found on the <html> tag' );
+					} else {
+						current = m[ 1 ].trim();
+						var site = root.getAttribute( 'data-site' ) || '';
+						setLive( current === site || ! site ? 'ok' : 'warn', '<html lang="' + current + '">' );
+					}
+					paint();
+				} )
+				.catch( function ( err ) {
+					current = '';
+					setLive( 'error', 'Could not read the front page (' + err.message + ')' );
+					paint();
+				} );
+		}
+
+		pick.addEventListener( 'change', function () {
+			if ( '__custom' === pick.value ) {
+				custom.hidden = false;
+				custom.focus();
+			} else {
+				custom.hidden = true;
+				custom.value = pick.value;
+			}
+			paint();
+		} );
+		custom.addEventListener( 'input', paint );
+		if ( toggle ) { toggle.addEventListener( 'change', paint ); }
+		recheck.addEventListener( 'click', read );
+
+		paint();
+		read();
 	}
 
 	function initOctoberEditor() {

@@ -30,6 +30,7 @@ class Velox_Utilities {
 			'maintenance'=> array( 'label' => 'Maintenance mode',    'icon' => 'cone',     'ready' => true,  'enable' => 'util_maintenance', 'page' => true, 'desc' => 'Show visitors a branded coming-soon page while you work, admins still get in.' ),
 			'scripts'    => array( 'label' => 'Script Manager',      'icon' => 'code',     'ready' => true,  'enable' => 'util_scripts', 'page' => true, 'desc' => 'Stop specific CSS/JS from loading where it isn\'t needed — globally or per page.' ),
 			'snippets'   => array( 'label' => 'Code Snippets',       'icon' => 'code',     'ready' => true,  'enable' => 'util_snippets', 'setting' => 'util_snippets', 'link' => 'snippets', 'desc' => 'Add PHP, CSS, JS or HTML snippets with run-location and priority. They get their own Snippets menu below Velox.' ),
+			'htmllang'   => array( 'label' => 'HTML lang switcher',  'icon' => 'globe',    'ready' => true,  'enable' => 'util_htmllang', 'page' => true, 'desc' => 'Set the lang attribute on the <html> tag when the theme or builder hard-codes it and the WordPress site language never reaches the page.' ),
 			'filemanager'=> array( 'label' => 'File Manager',        'icon' => 'folder',   'ready' => true,  'enable' => 'util_filemanager', 'page' => true, 'dangerous' => true, 'desc' => 'Browse and edit your site files directly from the dashboard — like SFTP or the Plesk file manager. Powerful for debugging, but a wrong edit to the wrong file can take the whole site down.' ),
 		);
 	}
@@ -104,10 +105,96 @@ class Velox_Utilities {
 		}
 		// Admin-bar quick toggle (available to admins whether it's on or off).
 		add_action( 'admin_init', array( __CLASS__, 'maybe_toggle_maintenance' ) );
+		// HTML lang override. Front end only — filtering this in wp-admin would
+		// relabel the admin itself, which is a different setting entirely.
+		if ( ! is_admin() && Velox_Settings::get( 'util_htmllang' ) ) {
+			add_filter( 'language_attributes', array( __CLASS__, 'html_lang_attributes' ), 99 );
+		}
 		// Custom login URL
 		if ( Velox_Settings::get( 'util_loginurl' ) && '' !== self::login_slug() ) {
 			self::login_init();
 		}
+	}
+
+	/* ---------------------------------------------------------------------
+	 * HTML lang switcher
+	 * ------------------------------------------------------------------- */
+
+	/**
+	 * Normalise a language tag for the lang attribute.
+	 *
+	 * WordPress stores locales as de_DE; the HTML attribute wants de-DE. Anything
+	 * outside letters, digits and hyphens is dropped rather than escaped, so a
+	 * pasted value can never break out of the attribute.
+	 */
+	public static function sanitize_lang( $value ) {
+		$value = str_replace( '_', '-', trim( (string) $value ) );
+		$value = preg_replace( '/[^A-Za-z0-9-]/', '', $value );
+		$value = preg_replace( '/-+/', '-', $value );
+		return substr( trim( $value, '-' ), 0, 35 );
+	}
+
+	/** Replace (or add) lang="…" in the attribute string WordPress builds. */
+	public static function html_lang_attributes( $output ) {
+		$lang = self::sanitize_lang( Velox_Settings::get( 'util_htmllang_value', '' ) );
+		if ( '' === $lang ) {
+			return $output;
+		}
+		if ( preg_match( '/\blang\s*=\s*"[^"]*"/i', $output ) ) {
+			return preg_replace( '/\blang\s*=\s*"[^"]*"/i', 'lang="' . esc_attr( $lang ) . '"', $output, 1 );
+		}
+		return trim( $output . ' lang="' . esc_attr( $lang ) . '"' );
+	}
+
+	/**
+	 * Choices for the switcher: languages actually installed on this site first,
+	 * then a common list, so the usual pick is one or two rows down.
+	 */
+	public static function lang_choices() {
+		$common = array(
+			'de-DE' => 'German (Germany)',
+			'de-AT' => 'German (Austria)',
+			'de-CH' => 'German (Switzerland)',
+			'en-US' => 'English (United States)',
+			'en-GB' => 'English (United Kingdom)',
+			'fr-FR' => 'French',
+			'fr-CH' => 'French (Switzerland)',
+			'it-IT' => 'Italian',
+			'it-CH' => 'Italian (Switzerland)',
+			'es-ES' => 'Spanish',
+			'nl-NL' => 'Dutch',
+			'pl-PL' => 'Polish',
+			'pt-PT' => 'Portuguese',
+			'tr-TR' => 'Turkish',
+			'ru-RU' => 'Russian',
+			'uk-UA' => 'Ukrainian',
+			'cs-CZ' => 'Czech',
+			'da-DK' => 'Danish',
+			'sv-SE' => 'Swedish',
+			'nb-NO' => 'Norwegian',
+			'fi-FI' => 'Finnish',
+			'el-GR' => 'Greek',
+			'hu-HU' => 'Hungarian',
+			'ro-RO' => 'Romanian',
+			'ar'    => 'Arabic',
+			'zh-CN' => 'Chinese (Simplified)',
+			'ja'    => 'Japanese',
+			'ko'    => 'Korean',
+		);
+		$installed = array();
+		if ( function_exists( 'get_available_languages' ) ) {
+			foreach ( get_available_languages() as $locale ) {
+				$tag = self::sanitize_lang( $locale );
+				if ( '' !== $tag ) {
+					$installed[ $tag ] = isset( $common[ $tag ] ) ? $common[ $tag ] : $tag;
+				}
+			}
+		}
+		$site = self::sanitize_lang( get_bloginfo( 'language' ) );
+		if ( '' !== $site && ! isset( $installed[ $site ] ) ) {
+			$installed[ $site ] = isset( $common[ $site ] ) ? $common[ $site ] : $site;
+		}
+		return array( 'installed' => $installed, 'common' => $common );
 	}
 
 	/* ---------------------------------------------------------------------
