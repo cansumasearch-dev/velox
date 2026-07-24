@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.13.4 — The sidebar content actually widens now
+- Dragging the sidebar moved its edge but the fields stayed narrow. WordPress re-applies its own width to one of the wrappers after Velox sets it, so the value Velox wrote was overwritten on the next render and the content snapped back to 280px.
+- The width is now applied from a stylesheet rather than written onto the elements, which WordPress cannot overwrite. The preview and the fields fill whatever width you drag out, and stay there while you type.
+
 ## 3.13.3 — Dragging the sidebar wider now widens the content too
 - Resizing the sidebar moved its edge but left the fields at their old width. WordPress puts wrappers between the sidebar and the panel that carry their own fixed width, and only one of them was being cleared. All of them are now, so the preview and the fields fill the space you drag out.
 - The widths are re-applied if the editor re-renders and swaps those wrappers out, which previously snapped the content back to its original width mid-edit.

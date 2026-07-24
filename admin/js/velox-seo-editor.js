@@ -75,14 +75,30 @@
 			'.velox-gseo-seg-label{font-weight:600;font-size:13px}' +
 			'.velox-gseo-out{margin:4px 0 0;color:#646970;font-size:12px}' +
 			'.velox-gseo-out code{background:#f0f0f1;padding:2px 6px;border-radius:4px}' +
-			/* Drag handle on the sidebar's left edge. WordPress pins the editor
-			   sidebar at 280px with no way to resize it, so we add one. */
+			/* Drag handle on the left edge of the sidebar. WordPress pins the
+			   editor sidebar at 280px with no way to resize it, so we add one. */
 			'.velox-seo-resizer{position:absolute;top:0;left:-3px;width:7px;height:100%;cursor:col-resize;z-index:120;touch-action:none}' +
 			'.velox-seo-resizer::before{content:"";position:absolute;top:0;left:2px;width:3px;height:100%;background:transparent;transition:background .12s}' +
 			'.velox-seo-resizer:hover::before{background:#2ab7f1}' +
 			'body.velox-seo-resizing{cursor:col-resize;user-select:none}' +
 			'body.velox-seo-resizing .velox-seo-resizer::before{background:#2ab7f1}' +
-			'body.velox-seo-resizing iframe{pointer-events:none}';
+			'body.velox-seo-resizing iframe{pointer-events:none}' +
+			/* The sidebar width has to be driven from a stylesheet, not inline
+			   styles. WordPress rewrites its own inline width on
+			   .interface-complementary-area__fill after we set ours, so an inline
+			   value always loses the last write. A rule carrying !important beats
+			   an inline style that has none, so the drag only updates a custom
+			   property and CSS does the rest. Scoped to .velox-seo-open, which is
+			   only on the body while our panel is mounted. */
+			'body.velox-seo-open .interface-interface-skeleton__sidebar,' +
+			'body.velox-seo-open .editor-interface-skeleton__sidebar{' +
+			'width:var(--velox-seo-w,280px)!important;flex-basis:var(--velox-seo-w,280px)!important;max-width:none!important}' +
+			'body.velox-seo-open .interface-complementary-area__fill,' +
+			'body.velox-seo-open .interface-complementary-area,' +
+			'body.velox-seo-open .editor-sidebar,' +
+			'body.velox-seo-open .velox-seo-stretch{' +
+			'width:100%!important;max-width:none!important;min-width:0!important;flex-basis:auto!important}' +
+			'body.velox-seo-open .interface-complementary-area .components-panel{width:100%!important;max-width:none!important}';
 		document.head.appendChild( s );
 	} )();
 
@@ -391,17 +407,19 @@
 	/**
 	 * Resizable sidebar.
 	 *
-	 * WordPress pins the editor sidebar at a fixed 280px — there is no core
-	 * resize — so we add a drag handle on its left edge while the Velox SEO
-	 * panel is mounted, and put the width back when it unmounts so the Page and
-	 * Block tabs are unaffected. Width is remembered per browser.
+	 * WordPress pins the editor sidebar at 280px and offers no way to change it,
+	 * so we add a drag handle on its left edge while the Velox SEO panel is
+	 * mounted. The width itself is applied by the stylesheet above through the
+	 * --velox-seo-w custom property: WordPress rewrites its own inline width on
+	 * the sidebar wrappers, so anything we set inline gets clobbered on the next
+	 * render. Everything is scoped to the .velox-seo-open body class, so the Page
+	 * and Block tabs are untouched.
 	 */
 	( function veloxSeoResizer() {
 		var MIN = 280;
 		var KEY = 'veloxSeoSidebarWidth';
 		var shell = null;
 		var handle = null;
-		var stretched = [];
 		var queued = false;
 
 		function maxWidth() {
@@ -415,8 +433,8 @@
 			} catch ( e ) { return 0; }
 		}
 
-		function save( w ) {
-			try { window.localStorage.setItem( KEY, String( Math.round( w ) ) ); } catch ( e ) {}
+		function apply( w ) {
+			document.documentElement.style.setProperty( '--velox-seo-w', w + 'px' );
 		}
 
 		// Class names have moved between editor packages, so walk up rather than
@@ -434,46 +452,25 @@
 			return area ? area.parentElement : null;
 		}
 
-		function apply( w ) {
-			if ( ! shell ) { return; }
-			shell.style.width = w + 'px';
-			shell.style.flexBasis = w + 'px';
-			shell.style.maxWidth = 'none';
-		}
-
-		// Widening the shell alone is not enough: WordPress puts one or more
-		// wrappers between it and our panel, and those carry their own 280px.
-		// The class names have moved between editor packages, so stretch
-		// whatever is actually in the chain rather than naming them.
-		function stretch() {
-			unstretch();
-			var panel = document.querySelector( '.velox-gseo' );
-			if ( ! panel || ! shell ) { return; }
+		// Tag every wrapper between the panel and the shell, so the stylesheet
+		// covers wrappers whose class names we do not know about.
+		function mark( panel ) {
 			var n = panel.parentElement;
 			while ( n && n !== shell && n !== document.body ) {
-				n.style.width = '100%';
-				n.style.maxWidth = 'none';
-				n.style.minWidth = '0';
-				stretched.push( n );
+				if ( ! n.classList.contains( 'velox-seo-stretch' ) ) {
+					n.classList.add( 'velox-seo-stretch' );
+				}
 				n = n.parentElement;
 			}
 		}
 
-		function unstretch() {
-			stretched.forEach( function ( n ) {
-				n.style.width = '';
-				n.style.maxWidth = '';
-				n.style.minWidth = '';
-			} );
-			stretched = [];
-		}
-
 		function reset() {
-			unstretch();
-			if ( ! shell ) { return; }
-			shell.style.width = '';
-			shell.style.flexBasis = '';
-			shell.style.maxWidth = '';
+			document.body.classList.remove( 'velox-seo-open' );
+			document.documentElement.style.removeProperty( '--velox-seo-w' );
+			Array.prototype.forEach.call(
+				document.querySelectorAll( '.velox-seo-stretch' ),
+				function ( n ) { n.classList.remove( 'velox-seo-stretch' ); }
+			);
 			if ( handle && handle.parentElement ) { handle.parentElement.removeChild( handle ); }
 			handle = null;
 			shell = null;
@@ -500,7 +497,7 @@
 				handle.removeEventListener( 'pointerup', stop );
 				handle.removeEventListener( 'pointercancel', stop );
 				document.body.classList.remove( 'velox-seo-resizing' );
-				save( live );
+				try { window.localStorage.setItem( KEY, String( Math.round( live ) ) ); } catch ( e2 ) {}
 			}
 			handle.addEventListener( 'pointermove', move );
 			handle.addEventListener( 'pointerup', stop );
@@ -510,7 +507,10 @@
 		function sync() {
 			queued = false;
 			var panel = document.querySelector( '.velox-gseo' );
-			if ( ! panel ) { reset(); return; }
+			if ( ! panel ) {
+				if ( shell || document.body.classList.contains( 'velox-seo-open' ) ) { reset(); }
+				return;
+			}
 
 			if ( ! shell || ! shell.isConnected || ! handle || ! handle.isConnected ) {
 				shell = findShell( panel );
@@ -527,20 +527,18 @@
 				handle.addEventListener( 'pointerdown', startDrag );
 				handle.addEventListener( 'dblclick', function () {
 					try { window.localStorage.removeItem( KEY ); } catch ( e ) {}
-					shell.style.width = '';
-					shell.style.flexBasis = '';
+					document.documentElement.style.removeProperty( '--velox-seo-w' );
 				} );
 				shell.appendChild( handle );
 
 				var w = stored();
 				if ( w ) { apply( w ); }
-				stretch();
-				return;
 			}
 
-			// A re-render can swap the wrappers out from under us, which drops
-			// the inline widths and snaps the content back to 280px.
-			if ( ! stretched.length || ! stretched[ 0 ].isConnected ) { stretch(); }
+			// Cheap enough to redo on every batch: a re-render can drop the class
+			// from wrappers it recreates.
+			document.body.classList.add( 'velox-seo-open' );
+			mark( panel );
 		}
 
 		function schedule() {
