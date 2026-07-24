@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.13.5 — SEO sidebar rebuilt to the approved design
+- The score ring and the long checklist are gone. Status now reads as a row of pills — Indexed, In sitemap, No description — so the state of the page is one glance instead of seven lines.
+- A Desktop / Mobile switch sits at the top and the search preview follows it, including the shorter description Google shows on phones.
+- Sections are titled and separated properly, the field labels read as sentences with the character count on the same line, and the inputs got a proper reset so WordPress admin styling stops overriding them.
+- Social preview and Advanced are collapsed rows with a summary of what is inside, and the focus keyword moved to Advanced next to the canonical URL.
+- The sitemap control is now "Include in sitemap" and reads on when the page is included, instead of an inverted "exclude" toggle.
+
 ## 3.13.4 — The sidebar content actually widens now
 - Dragging the sidebar moved its edge but the fields stayed narrow. WordPress re-applies its own width to one of the wrappers after Velox sets it, so the value Velox wrote was overwritten on the next render and the content snapped back to 280px.
 - The width is now applied from a stylesheet rather than written onto the elements, which WordPress cannot overwrite. The preview and the fields fill whatever width you drag out, and stay there while you type.
