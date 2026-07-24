@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.13.1 — Field group header no longer goes dark on hover
+- Hovering a Velox field group in the post editor turned its header near-black. Oxygen's admin stylesheet paints every meta box header with its dark colour on hover, and its selector outranked ours, so our styling never applied.
+- The field group header now shows a light grey hover instead, with the title and the collapse arrow kept legible.
+- The per-page "Velox" optimizations box was one selector away from the same problem and got the same guard.
+
 ## 3.13.0 — Velox SEO panel rebuilt
 - The SEO sidebar now tells you how the page is doing instead of only holding fields. A score and a checklist sit at the top, in the same spirit as the SEO health screen but for the page you are editing.
 - Each check names the consequence rather than the rule — "No meta description, Google writes its own" — and covers the search title, description, focus keyword, indexing, sitemap, whether the page has an H1, and whether its images have alt text.

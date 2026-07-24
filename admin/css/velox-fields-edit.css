@@ -107,3 +107,24 @@
 .velox-fields-meta > .velox-fields-row { padding-bottom: 16px; border-bottom: 1px solid #f3f4f5; }
 .velox-fields-meta > .velox-fields-row:last-child { border-bottom: 0; padding-bottom: 0; }
 .velox-fields-label { font-size: 13px; }
+
+/* ── Oxygen paints every meta box header dark on hover ──────────────────────
+   Oxygen's admin.css ships
+     #editor .postbox > .postbox-header:hover { background: var(--oxy-dark) !important }
+   which scores (1,3,0). Matching !important is not enough — the selector has to
+   outrank it, so we add #editor + .postbox on top of the [id^=] attribute and
+   land on (1,4,0). Result: a light grey hover instead of near-black. */
+#editor .postbox[id^="velox_fields_"] > .postbox-header:hover,
+#editor .postbox[id^="velox_fields_"] > .postbox-header:focus-within {
+	background: #f6f7f7 !important;
+}
+#editor .postbox[id^="velox_fields_"] > .postbox-header .hndle { color: #1d2327 !important; }
+#editor .postbox[id^="velox_fields_"] > .postbox-header .handle-actions button,
+#editor .postbox[id^="velox_fields_"] > .postbox-header .toggle-indicator::before { color: #50575e !important; }
+#editor .postbox[id^="velox_fields_"] > .postbox-header .handle-actions button:hover { color: #1d2327 !important; background: #f0f0f1 !important; }
+
+/* Same guard for the per-page optimisations box. Its existing rule above is
+   (1,1,1) and also loses to Oxygen — two ids puts it at (2,2,0). */
+#editor .postbox#velox_overrides > .postbox-header:hover,
+#editor .postbox#velox_overrides > .postbox-header:focus-within { background: #f6f7f7 !important; }
+#editor .postbox#velox_overrides > .postbox-header .hndle { color: #1d2327 !important; }
