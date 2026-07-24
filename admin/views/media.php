@@ -56,6 +56,39 @@ if ( ! defined( 'ABSPATH' ) ) {
 </div>
 
 <!-- Pipe import modal -->
+<div class="velox-modal" id="velox-resize-modal" hidden>
+	<div class="velox-modal-box velox-resize-box">
+		<h3 class="velox-h4">Resize image</h3>
+		<p class="velox-hint" id="velox-resize-current"></p>
+		<div class="velox-resize-preview"><img id="velox-resize-img" alt=""></div>
+		<div class="velox-resize-fields">
+			<label class="velox-field">
+				<span class="velox-field-label">Width</span>
+				<span class="velox-resize-num"><input type="number" min="1" max="12000" id="velox-resize-w" class="velox-input"><span class="u">px</span></span>
+			</label>
+			<button type="button" class="velox-resize-link is-on" id="velox-resize-lock" title="Keep the original proportions" aria-pressed="true">
+				<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
+			</button>
+			<label class="velox-field">
+				<span class="velox-field-label">Height</span>
+				<span class="velox-resize-num"><input type="number" min="1" max="12000" id="velox-resize-h" class="velox-input"><span class="u">px</span></span>
+			</label>
+		</div>
+		<div class="velox-resize-presets" id="velox-resize-presets">
+			<button type="button" data-scale="0.5">50%</button>
+			<button type="button" data-scale="0.75">75%</button>
+			<button type="button" data-scale="1">Original</button>
+			<button type="button" data-scale="1.5">150%</button>
+			<button type="button" data-scale="2">200%</button>
+		</div>
+		<p class="velox-hint">The file is replaced in place and its thumbnails are rebuilt, so the filename and every link to it stay exactly as they are. This cannot be undone.</p>
+		<div class="velox-modal-actions">
+			<button class="velox-btn velox-btn--primary" id="velox-resize-go">Resize image</button>
+			<button class="velox-btn velox-btn--ghost" id="velox-resize-cancel">Cancel</button>
+		</div>
+	</div>
+</div>
+
 <div class="velox-modal" id="velox-pipe-modal" hidden>
 	<div class="velox-modal-box velox-modal-box--lg">
 		<h3 class="velox-panel-title">Bulk import — pipe format</h3>

@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.11.0 — Resize images from the Media editor
+- Click any image in the Media editor to resize it. Enter a width and the height follows automatically from the original proportions (and the other way round); the link button turns that off if you want to stretch it deliberately.
+- Quick presets for 50%, 75%, original, 150% and 200%, and hovering a thumbnail now shows its current dimensions.
+- Images can be scaled up as well as down. WordPress refuses to enlarge through its normal resize call, so this scales through a full-frame crop instead.
+- The file is replaced in place and its thumbnails and srcset are rebuilt, so the filename and every existing link to the image keep working. SVGs are refused, since vectors scale on their own.
+
 ## 3.10.6 — Two groups, working sizes, readable provenance
 - Dropped the Possibly used group. Anything merely mentioned in the database but never rendered on a page now sits in Not in use, where it belongs — with a note saying where it was mentioned, so you can still see why it turned up.
 - Renamed Not found to Not in use.

@@ -580,12 +580,15 @@
 					return (
 						'<div class="velox-media-card" data-id="' +
 						it.id +
-						'">' +
+						'" data-w="' + ( it.width || 0 ) + '" data-h="' + ( it.height || 0 ) +
+						'" data-full="' + escapeHtml( it.full || it.thumb || '' ) +
+						'" data-name="' + escapeHtml( it.filename || '' ) + '">' +
 						'<div class="velox-media-thumb">' +
 						'<input type="checkbox" class="velox-media-select" value="' + it.id + '" aria-label="Select image">' +
 						'<img src="' +
 						escapeHtml( it.thumb || it.full ) +
-						'" alt="" loading="lazy">' +
+						'" alt="" loading="lazy" class="velox-media-open" title="Click to resize">' +
+						'<span class="velox-media-dims">' + ( it.width ? it.width + ' × ' + it.height : '' ) + '</span>' +
 						( it.webp
 							? '<span class="velox-media-badge">WebP</span>'
 							: '' ) +
@@ -628,12 +631,22 @@
 		gridEl.addEventListener( 'click', function ( e ) {
 			var saveBtn = e.target.closest( '.velox-media-save' );
 			var renameBtn = e.target.closest( '.velox-media-rename' );
+			var openImg = e.target.closest( '.velox-media-open' );
 			if ( saveBtn ) {
 				var card = saveBtn.closest( '.velox-media-card' );
 				saveCard( card, saveBtn );
 			} else if ( renameBtn ) {
 				var card2 = renameBtn.closest( '.velox-media-card' );
 				openRename( card2.getAttribute( 'data-id' ), renameBtn.getAttribute( 'data-name' ) );
+			} else if ( openImg ) {
+				var card3 = openImg.closest( '.velox-media-card' );
+				openResize(
+					card3.getAttribute( 'data-id' ),
+					card3.getAttribute( 'data-name' ),
+					card3.getAttribute( 'data-w' ),
+					card3.getAttribute( 'data-h' ),
+					card3.getAttribute( 'data-full' )
+				);
 			}
 		} );
 
@@ -753,6 +766,78 @@
 		}
 
 		/* rename modal */
+		// ---- resize ----
+		var rzModal = $( '#velox-resize-modal' );
+		var rzW = $( '#velox-resize-w' ), rzH = $( '#velox-resize-h' );
+		var rzLock = $( '#velox-resize-lock' ), rzImg = $( '#velox-resize-img' );
+		var rzCur = $( '#velox-resize-current' );
+		var rzId = 0, rzOrigW = 0, rzOrigH = 0, rzRatio = 1, rzKeep = true;
+
+		function openResize( id, name, w, h, src ) {
+			rzId = parseInt( id, 10 );
+			rzOrigW = parseInt( w, 10 ) || 0;
+			rzOrigH = parseInt( h, 10 ) || 0;
+			rzRatio = ( rzOrigW && rzOrigH ) ? ( rzOrigH / rzOrigW ) : 1;
+			if ( rzImg ) { rzImg.src = src || ''; }
+			if ( rzCur ) {
+				rzCur.textContent = name + ( rzOrigW ? ' — currently ' + rzOrigW + ' × ' + rzOrigH + ' px' : '' );
+			}
+            if ( rzW ) { rzW.value = rzOrigW || ''; }
+			if ( rzH ) { rzH.value = rzOrigH || ''; }
+			if ( rzModal ) { rzModal.hidden = false; }
+		}
+		if ( rzLock ) {
+			rzLock.addEventListener( 'click', function () {
+				rzKeep = ! rzKeep;
+				rzLock.classList.toggle( 'is-on', rzKeep );
+				rzLock.setAttribute( 'aria-pressed', rzKeep ? 'true' : 'false' );
+			} );
+		}
+		if ( rzW ) {
+			rzW.addEventListener( 'input', function () {
+				if ( ! rzKeep || ! rzRatio ) { return; }
+				var v = parseInt( rzW.value, 10 );
+				if ( v > 0 ) { rzH.value = Math.max( 1, Math.round( v * rzRatio ) ); }
+			} );
+		}
+		if ( rzH ) {
+			rzH.addEventListener( 'input', function () {
+				if ( ! rzKeep || ! rzRatio ) { return; }
+				var v = parseInt( rzH.value, 10 );
+				if ( v > 0 ) { rzW.value = Math.max( 1, Math.round( v / rzRatio ) ); }
+			} );
+		}
+		$$( '#velox-resize-presets button' ).forEach( function ( b ) {
+			b.addEventListener( 'click', function () {
+				var sc = parseFloat( b.getAttribute( 'data-scale' ) ) || 1;
+				if ( ! rzOrigW ) { return; }
+				rzW.value = Math.max( 1, Math.round( rzOrigW * sc ) );
+				rzH.value = Math.max( 1, Math.round( rzOrigH * sc ) );
+			} );
+		} );
+		var rzCancel = $( '#velox-resize-cancel' );
+		if ( rzCancel ) { rzCancel.addEventListener( 'click', function () { rzModal.hidden = true; } ); }
+		if ( rzModal ) {
+			rzModal.addEventListener( 'click', function ( e ) { if ( e.target === rzModal ) { rzModal.hidden = true; } } );
+		}
+		var rzGo = $( '#velox-resize-go' );
+		if ( rzGo ) {
+			rzGo.addEventListener( 'click', function () {
+				var w = parseInt( rzW.value, 10 ), h = parseInt( rzH.value, 10 );
+				if ( ! ( w > 0 && h > 0 ) ) { toast( 'Enter a width and height.', 'error' ); return; }
+				rzGo.disabled = true;
+				rzGo.textContent = 'Resizing…';
+				api( 'media_resize', { id: rzId, w: w, h: h } )
+					.then( function ( r ) {
+						toast( r.unchanged ? 'Already that size.' : 'Resized to ' + r.width + ' × ' + r.height + '.' );
+						rzModal.hidden = true;
+						loadMedia();
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { rzGo.disabled = false; rzGo.textContent = 'Resize image'; } );
+			} );
+		}
+
 		var renameModal = $( '#velox-rename-modal' );
 		var renameCurrent = $( '#velox-rename-current' );
 		var renameInput = $( '#velox-rename-input' );

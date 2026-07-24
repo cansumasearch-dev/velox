@@ -301,6 +301,19 @@ class Velox_Ajax {
 				) );
 				break;
 
+			case 'media_resize':
+				$vx_mm  = new Velox_Media_Manager();
+				$vx_res = $vx_mm->resize_image(
+					isset( $_POST['id'] ) ? (int) $_POST['id'] : 0,
+					isset( $_POST['w'] ) ? (int) $_POST['w'] : 0,
+					isset( $_POST['h'] ) ? (int) $_POST['h'] : 0
+				);
+				if ( is_wp_error( $vx_res ) ) {
+					wp_send_json_error( array( 'message' => $vx_res->get_error_message() ) );
+				}
+				wp_send_json_success( $vx_res );
+				break;
+
 			case 'media_delete':
 				$ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['ids'] ) ) : array();
 				wp_send_json_success( Velox_Utilities::delete_media( $ids ) );

@@ -165,6 +165,85 @@ class Velox_Media_Manager {
 		);
 	}
 
+	/**
+	 * Resize an attachment's actual file, in place.
+	 *
+	 * The filename and URL are deliberately left alone so nothing that already
+	 * points at this image breaks. Uses crop() rather than resize() because
+	 * WordPress refuses to scale an image *up* through resize().
+	 *
+	 * @param int $attachment_id Attachment.
+	 * @param int $width         Target width in pixels.
+	 * @param int $height        Target height in pixels.
+	 * @return array|WP_Error
+	 */
+	public function resize_image( $attachment_id, $width, $height ) {
+		$attachment_id = (int) $attachment_id;
+		$width         = (int) $width;
+		$height        = (int) $height;
+
+		if ( $width < 1 || $height < 1 ) {
+			return new WP_Error( 'bad_size', 'Give a width and height of at least 1 pixel.' );
+		}
+		if ( $width > 12000 || $height > 12000 ) {
+			return new WP_Error( 'bad_size', 'That is larger than 12000 pixels — pick something smaller.' );
+		}
+		$post = get_post( $attachment_id );
+		if ( ! $post || 'attachment' !== $post->post_type ) {
+			return new WP_Error( 'not_found', 'That image no longer exists.' );
+		}
+		if ( 'image/svg+xml' === $post->post_mime_type ) {
+			return new WP_Error( 'vector', 'SVGs are vectors — they scale on their own, no resizing needed.' );
+		}
+		$file = get_attached_file( $attachment_id );
+		if ( ! $file || ! file_exists( $file ) ) {
+			return new WP_Error( 'missing', 'The file is missing from the uploads folder.' );
+		}
+
+		$editor = wp_get_image_editor( $file );
+		if ( is_wp_error( $editor ) ) {
+			return $editor;
+		}
+		$size = $editor->get_size();
+		$ow   = isset( $size['width'] ) ? (int) $size['width'] : 0;
+		$oh   = isset( $size['height'] ) ? (int) $size['height'] : 0;
+		if ( $ow < 1 || $oh < 1 ) {
+			return new WP_Error( 'unreadable', 'Could not read the image dimensions.' );
+		}
+		if ( $ow === $width && $oh === $height ) {
+			return array( 'ok' => true, 'width' => $ow, 'height' => $oh, 'unchanged' => true );
+		}
+
+		// Full-source crop == a straight scale, and unlike resize() it will enlarge.
+		$done = $editor->crop( 0, 0, $ow, $oh, $width, $height, false );
+		if ( is_wp_error( $done ) ) {
+			return $done;
+		}
+		$saved = $editor->save( $file );
+		if ( is_wp_error( $saved ) ) {
+			return $saved;
+		}
+
+		// Rebuild the intermediate sizes so thumbnails and srcset match the new file.
+		if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+		}
+		$meta = wp_generate_attachment_metadata( $attachment_id, $file );
+		if ( is_array( $meta ) ) {
+			wp_update_attachment_metadata( $attachment_id, $meta );
+		}
+		clean_post_cache( $attachment_id );
+
+		return array(
+			'ok'     => true,
+			'width'  => $width,
+			'height' => $height,
+			'bytes'  => file_exists( $file ) ? (int) filesize( $file ) : 0,
+			'url'    => wp_get_attachment_image_url( $attachment_id, 'full' ),
+			'thumb'  => wp_get_attachment_image_url( $attachment_id, 'thumbnail' ),
+		);
+	}
+
 	private function path_to_url( $path, $uploads ) {
 		return str_replace( $uploads['basedir'], $uploads['baseurl'], $path );
 	}
