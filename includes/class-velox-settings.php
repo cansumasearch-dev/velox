@@ -27,18 +27,11 @@ class Velox_Settings {
 	 * their translation files are filled in.
 	 */
 	public static function admin_languages() {
+		// English-only for now — additional languages will return once the
+		// switching mechanism is finalised.
 		return array(
 			''      => __( 'Follow WordPress', 'velox' ),
 			'en_US' => 'English',
-			'de_DE' => 'Deutsch',
-			'es_ES' => 'Español',
-			'fr_FR' => 'Français',
-			'it_IT' => 'Italiano',
-			'pt_BR' => 'Português (Brasil)',
-			'nl_NL' => 'Nederlands',
-			'pl_PL' => 'Polski',
-			'ja'    => '日本語',
-			'tr_TR' => 'Türkçe',
 		);
 	}
 

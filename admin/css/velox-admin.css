@@ -201,21 +201,48 @@
 /* Global top bar — holds the language switcher, pinned top-right on every page */
 .velox-langbar {
 	display: flex; justify-content: flex-end; align-items: center;
-	margin: 0 0 6px; min-height: 24px;
-	background: transparent; padding: 0; border: 0;
+	margin: 0 0 10px; min-height: 28px;
 }
+/* Modern pill switcher: white surface, hairline border, custom chevron, subtle hover */
 .velox-langswitch {
-	display: inline-flex; align-items: center; gap: 4px;
-	padding: 0; border: 0; background: transparent;
-	color: var(--vx-muted, #94a3b8); line-height: 1;
+	position: relative; display: inline-flex; align-items: center;
+	background: var(--vx-card, #fff);
+	border: 1px solid var(--vx-line-2, #e0e0e3);
+	border-radius: var(--vx-r-pill, 9999px);
+	padding: 0 34px 0 12px; height: 32px;
+	box-shadow: 0 1px 2px rgba(16,16,20,.04);
+	transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
 }
-.velox-langswitch .velox-ic { flex: 0 0 auto; width: 13px; height: 13px; opacity: .55; }
+.velox-langswitch:hover {
+	border-color: #cdced2;
+	box-shadow: 0 2px 6px rgba(16,16,20,.07);
+}
+.velox-langswitch:focus-within {
+	border-color: var(--vx-accent, #2ab7f1);
+	box-shadow: 0 0 0 3px rgba(42,183,241,.16);
+}
+.velox-langswitch .velox-langswitch-globe {
+	flex: 0 0 auto; width: 15px; height: 15px; margin-right: 7px;
+	color: var(--vx-accent, #2ab7f1);
+}
+/* custom chevron on the right */
+.velox-langswitch::after {
+	content: ""; position: absolute; right: 13px; top: 50%;
+	width: 9px; height: 9px; margin-top: -3px; pointer-events: none;
+	border-right: 1.7px solid var(--vx-ink-3, #8b9099);
+	border-bottom: 1.7px solid var(--vx-ink-3, #8b9099);
+	transform: rotate(45deg);
+	transition: border-color .15s ease;
+}
+.velox-langswitch:hover::after { border-color: var(--vx-ink-2, #6e6e73); }
 .velox-langswitch-select {
+	appearance: none; -webkit-appearance: none;
 	border: 0; background: transparent; box-shadow: none; outline: none;
-	font: inherit; font-size: 12px; color: var(--vx-muted, #94a3b8);
-	padding: 0 2px; margin: 0; cursor: pointer; min-height: 0; height: auto;
+	font-family: inherit; font-size: 13px; font-weight: 500;
+	color: var(--vx-ink, #1d1d1f);
+	padding: 0; margin: 0; height: 100%; min-height: 0;
+	cursor: pointer; line-height: 1;
 }
-.velox-langswitch-select:hover { color: var(--vx-text, #0f172a); }
 .velox-langswitch-select:focus { outline: none; box-shadow: none; }
 
 /* Collapse toggle + collapsed sidebar (icons only) */

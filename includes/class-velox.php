@@ -27,23 +27,6 @@ final class Velox {
 	}
 
 	private function __construct() {
-		// Scope Velox's admin UI language to Velox ONLY. plugin_locale receives
-		// the text domain, so this filter can key off 'velox' and never touches
-		// WordPress core, the site locale, or any other plugin. (Do NOT use
-		// determine_locale here — it has no domain and would switch all of wp-admin.)
-		add_filter(
-			'plugin_locale',
-			function ( $locale, $domain ) {
-				if ( 'velox' !== $domain ) {
-					return $locale;
-				}
-				$choice = Velox_Settings::get( 'admin_language', '' );
-				return ( is_string( $choice ) && '' !== $choice ) ? $choice : $locale;
-			},
-			10,
-			2
-		);
-
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
 		// Load translations on init (WordPress 6.7+ warns if this happens earlier).
 		add_action( 'init', array( $this, 'load_textdomain' ), 1 );
@@ -52,31 +35,12 @@ final class Velox {
 	/**
 	 * Load the Velox text domain.
 	 *
-	 * The plugin_locale filter above handles the normal path, but WordPress 6.5+
-	 * loads translations "just in time" and resolves the locale via
-	 * determine_locale() — which returns the SITE locale, so the chosen language
-	 * can be ignored and the UI stays in English. To make the choice actually
-	 * stick, when a language is picked (and we're in wp-admin) we explicitly load
-	 * that specific .mo up front. That populates the translation cache before any
-	 * just-in-time resolution happens, so our language wins. When no language is
-	 * chosen we just do the standard load and follow WordPress.
+	 * English is the source language, so there is no .mo to load for it — this is
+	 * effectively a no-op registration for now. When additional languages return,
+	 * the locale-selection logic will be reinstated here.
 	 */
 	public function load_textdomain() {
-		$dir    = dirname( VELOX_BASENAME ) . '/languages';
-		$choice = Velox_Settings::get( 'admin_language', '' );
-
-		if ( is_admin() && is_string( $choice ) && '' !== $choice ) {
-			// Drop anything already loaded/registered for this domain so the
-			// just-in-time loader can't win with the site locale first.
-			unload_textdomain( 'velox' );
-			$mofile = WP_PLUGIN_DIR . '/' . $dir . '/velox-' . $choice . '.mo';
-			if ( file_exists( $mofile ) ) {
-				load_textdomain( 'velox', $mofile, $choice );
-				return;
-			}
-		}
-
-		load_plugin_textdomain( 'velox', false, $dir );
+		load_plugin_textdomain( 'velox', false, dirname( VELOX_BASENAME ) . '/languages' );
 	}
 
 	public function init() {
