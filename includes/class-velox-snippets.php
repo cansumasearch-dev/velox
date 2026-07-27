@@ -349,13 +349,19 @@ class Velox_Snippets {
 		if ( '' === trim( $code ) ) {
 			return true;
 		}
+		// Syntax-check WITHOUT executing or registering any declarations.
+		// token_get_all( ..., TOKEN_PARSE ) forces a full parse and throws a
+		// ParseError on invalid syntax, but never declares the functions/classes/
+		// constants in the code — so it can't redeclare-collide with the live
+		// snippet (the old `if (false) { eval }` wrapper did, which silently
+		// flipped valid snippets to inactive).
 		try {
-			eval( 'if ( false ) { ' . $code . "\n}" ); // phpcs:ignore Squiz.PHP.Eval
+			token_get_all( '<?php ' . $code, TOKEN_PARSE );
 			return true;
 		} catch ( \ParseError $e ) {
 			return $e->getMessage();
 		} catch ( \Throwable $e ) {
-			return true; // not executed, so anything else isn't a syntax problem
+			return true; // anything non-parse isn't a syntax problem
 		}
 	}
 
@@ -380,10 +386,14 @@ class Velox_Snippets {
 		// it now and bump the panic counter so repeated crashes trip Safe Mode.
 		$crashed = (int) get_option( self::SAFE_OPTION, 0 );
 		if ( $crashed ) {
+			// A breadcrumb survived from a previous request. This can happen for
+			// reasons unrelated to the snippet (an unrelated fatal later in that
+			// request, a timeout, a plugin conflict) — so we must NOT disable the
+			// snippet on the strength of a leftover breadcrumb. That was causing
+			// healthy snippets to "deactivate themselves" on a normal load with no
+			// error logged. Clear it, log it, and carry on running normally.
 			delete_option( self::SAFE_OPTION );
-			self::set_active( $crashed, false, 'Auto-disabled after it crashed the site on the previous load.' );
-			update_option( self::PANIC_OPTION, (int) get_option( self::PANIC_OPTION, 0 ) + 1, false );
-			return; // don't run anything else this load — let the site recover first
+			error_log( sprintf( '[Velox] stale execution breadcrumb for snippet #%d cleared (not disabling).', $crashed ) );
 		}
 
 		foreach ( self::all( 'active' ) as $snippet ) {
@@ -412,7 +422,18 @@ class Velox_Snippets {
 		try {
 			eval( $code ); // phpcs:ignore Squiz.PHP.Eval
 		} catch ( \Throwable $e ) {
-			self::set_active( $snippet['id'], false, 'Disabled after an error: ' . $e->getMessage() );
+			// Do NOT silently disable — that hides the real problem and looks like
+			// the snippet "deactivates itself". Log it loudly and leave it active so
+			// the failure is visible and the user stays in control.
+			error_log( sprintf(
+				'[Velox] snippet #%d "%s" threw %s: %s in %s:%d',
+				(int) $snippet['id'],
+				isset( $snippet['name'] ) ? $snippet['name'] : '',
+				get_class( $e ),
+				$e->getMessage(),
+				$e->getFile(),
+				$e->getLine()
+			) );
 		}
 		delete_option( self::SAFE_OPTION );
 		self::$executing = 0;
@@ -429,11 +450,19 @@ class Velox_Snippets {
 			return;
 		}
 		$err = error_get_last();
-		$fatal = array( E_ERROR, E_PARSE, E_COMPILE, E_CORE_ERROR, E_USER_ERROR );
+		$fatal = array( E_ERROR, E_PARSE, E_COMPILE_ERROR, E_CORE_ERROR, E_USER_ERROR );
 		if ( $err && in_array( $err['type'], $fatal, true ) ) {
-			self::set_active( self::$executing, false, 'Auto-disabled after a fatal error: ' . $err['message'] );
-			delete_option( self::SAFE_OPTION ); // handled here → no need for next-load recovery
-			update_option( self::PANIC_OPTION, (int) get_option( self::PANIC_OPTION, 0 ) + 1, false );
+			// Log the fatal so it's diagnosable, and clear the breadcrumb so the
+			// next load doesn't act on it. Do NOT auto-disable — leave the snippet
+			// active and let the user decide; silent disabling was hiding the cause.
+			error_log( sprintf(
+				'[Velox] snippet #%d fataled: %s in %s:%d',
+				(int) self::$executing,
+				$err['message'],
+				isset( $err['file'] ) ? $err['file'] : '?',
+				isset( $err['line'] ) ? (int) $err['line'] : 0
+			) );
+			delete_option( self::SAFE_OPTION );
 		}
 	}
 

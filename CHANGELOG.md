@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.15.2 — Snippets never silently deactivate themselves
+- Velox no longer switches a PHP snippet off on its own. Previously a snippet could quietly flip to inactive after a runtime error, a leftover "execution breadcrumb" from an earlier request, or a shutdown-time fatal — often with nothing written to the error log, so it looked like the snippet "deactivated itself" for no reason. All three of those paths now log a clear `[Velox]` line (naming the snippet, the message, and the file/line) and leave the snippet active. You stay in control of what's on.
+- Fixed the crash guard referencing an undefined `E_COMPILE` constant, which made the guard itself fatal instead of doing its job.
+- Snippet syntax-checking now uses a proper tokenizer pass instead of an `if (false) { … }` eval wrapper, so validating a snippet can never collide with or redeclare the live copy.
+
 ## 3.15.1 — Maintenance now really does hide everything
 - 3.15.0 put the hide-from-search behaviour behind its own switch that defaulted to off, so turning maintenance on did nothing. The switch is gone: maintenance mode hides everything from search, full stop.
 - Pages now report noindex, nofollow the moment maintenance goes on, rather than only once the background pass had finished writing to every post — and it no longer depends on the SEO module being switched on.
