@@ -4,6 +4,20 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.19.1 — Restore clean pill look on the switcher
+- Removed the visible chevron from the language switcher button so it keeps the clean globe + label pill look. The menu still opens on click, with the checkmark on the active language.
+
+## 3.19.0 — Working English/German switcher, full German translation
+- Rebuilt language switching from scratch. Instead of WordPress .mo files + locale (which never reliably applied because of just-in-time loading and caching), Velox now swaps strings directly through the gettext filter using a shipped PHP dictionary. This actually works, is scoped to Velox only (never touches the rest of wp-admin), and applies instantly on reload.
+- Added German back with a complete dictionary covering every translatable string in the plugin admin UI — 1031 entries, nothing left out.
+- New custom dropdown switcher (globe + current language + chevron, with a checkmark menu) that replaces the native select, so WordPress admin styling can no longer break its appearance.
+
+## 3.18.3 — Language indicator is now a clean static pill
+- Removed the dropdown entirely (it only had English anyway, and WordPress kept rendering its own select box + arrow inside the pill). The top-right indicator is now a simple static pill: globe icon + "English". The picker returns properly when more languages are re-added.
+
+## 3.18.2 — Fix double-chevron on language switcher
+- The switcher was showing two dropdown arrows (the custom chevron plus WordPress’s native select arrow) and splitting into two chunks. Forced appearance:none and removed the native background arrow so it renders as one clean pill.
+
 ## 3.18.1 — Reset to English + modern language switcher
 - Removed all translation files and trimmed the switcher to English only, as a clean baseline while the language-switching mechanism is reworked.
 - Redesigned the language switcher as a modern pill button that matches the Velox theme: white surface, hairline border, accent globe icon, custom chevron, and a subtle hover lift.

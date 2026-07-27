@@ -201,49 +201,42 @@
 /* Global top bar — holds the language switcher, pinned top-right on every page */
 .velox-langbar {
 	display: flex; justify-content: flex-end; align-items: center;
-	margin: 0 0 10px; min-height: 28px;
+	margin: 0 0 10px; min-height: 30px;
 }
-/* Modern pill switcher: white surface, hairline border, custom chevron, subtle hover */
-.velox-langswitch {
-	position: relative; display: inline-flex; align-items: center;
+/* Custom dropdown (no native <select>, so WP admin CSS can't mangle it). */
+.velox-langswitch { position: relative; display: inline-block; }
+.velox-langswitch-btn {
+	display: inline-flex; align-items: center; gap: 7px;
 	background: var(--vx-card, #fff);
 	border: 1px solid var(--vx-line-2, #e0e0e3);
 	border-radius: var(--vx-r-pill, 9999px);
-	padding: 0 34px 0 12px; height: 32px;
+	padding: 0 14px 0 11px; height: 32px; margin: 0;
+	font-family: inherit; font-size: 13px; font-weight: 500; line-height: 1;
+	color: var(--vx-ink, #1d1d1f); cursor: pointer;
 	box-shadow: 0 1px 2px rgba(16,16,20,.04);
-	transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+	transition: border-color .15s ease, box-shadow .15s ease;
 }
-.velox-langswitch:hover {
-	border-color: #cdced2;
-	box-shadow: 0 2px 6px rgba(16,16,20,.07);
+.velox-langswitch-btn:hover { border-color: #cdced2; box-shadow: 0 2px 6px rgba(16,16,20,.07); }
+.velox-langswitch-btn:focus-visible { outline: none; border-color: var(--vx-accent, #2ab7f1); box-shadow: 0 0 0 3px rgba(42,183,241,.16); }
+.velox-langswitch-globe { flex: 0 0 auto; width: 15px; height: 15px; color: var(--vx-accent, #2ab7f1); }
+.velox-langswitch-label { white-space: nowrap; }
+
+.velox-langswitch-menu {
+	position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
+	min-width: 100%; margin: 0; padding: 5px; list-style: none;
+	background: var(--vx-card, #fff);
+	border: 1px solid var(--vx-line-2, #e0e0e3); border-radius: var(--vx-r-md, 11px);
+	box-shadow: 0 8px 24px rgba(16,16,20,.12), 0 2px 6px rgba(16,16,20,.06);
 }
-.velox-langswitch:focus-within {
-	border-color: var(--vx-accent, #2ab7f1);
-	box-shadow: 0 0 0 3px rgba(42,183,241,.16);
+.velox-langswitch-opt {
+	display: flex; align-items: center; justify-content: space-between; gap: 14px;
+	padding: 7px 10px; border-radius: var(--vx-r-sm, 8px);
+	font-size: 13px; font-weight: 500; color: var(--vx-ink, #1d1d1f);
+	white-space: nowrap; cursor: pointer; transition: background .12s ease;
 }
-.velox-langswitch .velox-langswitch-globe {
-	flex: 0 0 auto; width: 15px; height: 15px; margin-right: 7px;
-	color: var(--vx-accent, #2ab7f1);
-}
-/* custom chevron on the right */
-.velox-langswitch::after {
-	content: ""; position: absolute; right: 13px; top: 50%;
-	width: 9px; height: 9px; margin-top: -3px; pointer-events: none;
-	border-right: 1.7px solid var(--vx-ink-3, #8b9099);
-	border-bottom: 1.7px solid var(--vx-ink-3, #8b9099);
-	transform: rotate(45deg);
-	transition: border-color .15s ease;
-}
-.velox-langswitch:hover::after { border-color: var(--vx-ink-2, #6e6e73); }
-.velox-langswitch-select {
-	appearance: none; -webkit-appearance: none;
-	border: 0; background: transparent; box-shadow: none; outline: none;
-	font-family: inherit; font-size: 13px; font-weight: 500;
-	color: var(--vx-ink, #1d1d1f);
-	padding: 0; margin: 0; height: 100%; min-height: 0;
-	cursor: pointer; line-height: 1;
-}
-.velox-langswitch-select:focus { outline: none; box-shadow: none; }
+.velox-langswitch-opt:hover, .velox-langswitch-opt:focus-visible { background: var(--vx-bg, #f5f5f7); outline: none; }
+.velox-langswitch-check { flex: 0 0 auto; color: var(--vx-accent, #2ab7f1); opacity: 0; }
+.velox-langswitch-opt.is-selected .velox-langswitch-check { opacity: 1; }
 
 /* Collapse toggle + collapsed sidebar (icons only) */
 .velox-side-brand { position: relative; }

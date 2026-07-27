@@ -28,19 +28,91 @@ final class Velox {
 
 	private function __construct() {
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
-		// Load translations on init (WordPress 6.7+ warns if this happens earlier).
-		add_action( 'init', array( $this, 'load_textdomain' ), 1 );
+		// Apply the chosen admin-UI language via the gettext filter. This is a
+		// direct string swap keyed on the English source, so it does NOT depend on
+		// WordPress .mo files, the site locale, just-in-time loading, or any cache —
+		// which is what made the old locale-based approach unreliable. Registered
+		// early (on construct) so it's in place before any __() call runs.
+		add_filter( 'gettext', array( $this, 'translate_string' ), 10, 3 );
+		add_filter( 'gettext_with_context', array( $this, 'translate_string_ctx' ), 10, 4 );
 	}
 
 	/**
-	 * Load the Velox text domain.
+	 * The loaded translation dictionary for the current admin language, or null
+	 * for English (source). Lazily loaded and cached for the request.
 	 *
-	 * English is the source language, so there is no .mo to load for it — this is
-	 * effectively a no-op registration for now. When additional languages return,
-	 * the locale-selection logic will be reinstated here.
+	 * @var array<string,string>|null|false  false = not yet resolved.
 	 */
-	public function load_textdomain() {
-		load_plugin_textdomain( 'velox', false, dirname( VELOX_BASENAME ) . '/languages' );
+	private $vx_dict = false;
+
+	/**
+	 * Resolve which dictionary to use, once per request.
+	 *
+	 * @return array<string,string>|null
+	 */
+	private function get_dict() {
+		if ( false !== $this->vx_dict ) {
+			return $this->vx_dict;
+		}
+		$this->vx_dict = null;
+
+		// Only translate inside wp-admin; the front end stays on the site language.
+		if ( ! is_admin() ) {
+			return null;
+		}
+
+		$choice = Velox_Settings::get( 'admin_language', '' );
+		// English / Follow WordPress => source strings, no dictionary.
+		if ( ! is_string( $choice ) || '' === $choice || 'en_US' === $choice ) {
+			return null;
+		}
+
+		// Map a locale to a shipped dictionary file. Add new languages here.
+		$available = array( 'de_DE' => 'de_DE' );
+		if ( ! isset( $available[ $choice ] ) ) {
+			return null;
+		}
+
+		$file = VELOX_PATH . 'includes/lang/' . $available[ $choice ] . '.php';
+		if ( is_readable( $file ) ) {
+			$dict = include $file;
+			if ( is_array( $dict ) ) {
+				$this->vx_dict = $dict;
+			}
+		}
+		return $this->vx_dict;
+	}
+
+	/**
+	 * gettext filter — swap Velox's English source strings for the chosen language.
+	 *
+	 * @param string $translation Current (possibly already translated) text.
+	 * @param string $text        Original English source string (the msgid).
+	 * @param string $domain      Text domain.
+	 * @return string
+	 */
+	public function translate_string( $translation, $text, $domain ) {
+		if ( 'velox' !== $domain ) {
+			return $translation;
+		}
+		$dict = $this->get_dict();
+		if ( $dict && isset( $dict[ $text ] ) ) {
+			return $dict[ $text ];
+		}
+		return $translation;
+	}
+
+	/**
+	 * gettext_with_context filter — same swap for _x() calls.
+	 *
+	 * @param string $translation Current text.
+	 * @param string $text        Source string.
+	 * @param string $context     Context (unused; keys are unique enough).
+	 * @param string $domain      Text domain.
+	 * @return string
+	 */
+	public function translate_string_ctx( $translation, $text, $context, $domain ) {
+		return $this->translate_string( $translation, $text, $domain );
 	}
 
 	public function init() {

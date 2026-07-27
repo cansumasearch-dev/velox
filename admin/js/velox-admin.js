@@ -104,24 +104,56 @@
 		}, 3200 );
 	}
 
-	/* Global language switcher (top-right on every Velox page) - */
+	/* Global language switcher (custom dropdown, top-right on every Velox page) - */
 
 	function initLangSwitch() {
-		var sel = document.getElementById( 'velox-langswitch' );
-		if ( ! sel ) { return; }
-		var prev = sel.value;
-		sel.addEventListener( 'change', function () {
-			var val = sel.value;
-			sel.disabled = true;
+		var root = document.getElementById( 'velox-langswitch' );
+		if ( ! root ) { return; }
+		var btn  = root.querySelector( '.velox-langswitch-btn' );
+		var menu = root.querySelector( '.velox-langswitch-menu' );
+		var opts = Array.prototype.slice.call( root.querySelectorAll( '.velox-langswitch-opt' ) );
+		if ( ! btn || ! menu ) { return; }
+		var current = root.getAttribute( 'data-current' ) || '';
+
+		function open() {
+			menu.hidden = false;
+			root.classList.add( 'is-open' );
+			btn.setAttribute( 'aria-expanded', 'true' );
+			document.addEventListener( 'click', onDocClick, true );
+			document.addEventListener( 'keydown', onKey );
+		}
+		function close() {
+			menu.hidden = true;
+			root.classList.remove( 'is-open' );
+			btn.setAttribute( 'aria-expanded', 'false' );
+			document.removeEventListener( 'click', onDocClick, true );
+			document.removeEventListener( 'keydown', onKey );
+		}
+		function onDocClick( e ) { if ( ! root.contains( e.target ) ) { close(); } }
+		function onKey( e ) { if ( 'Escape' === e.key ) { close(); btn.focus(); } }
+
+		btn.addEventListener( 'click', function ( e ) {
+			e.stopPropagation();
+			if ( menu.hidden ) { open(); } else { close(); }
+		} );
+
+		function choose( val ) {
+			if ( val === current ) { close(); return; }
+			// Lock the UI briefly, save, then reload so the new language applies everywhere.
+			opts.forEach( function ( o ) { o.style.pointerEvents = 'none'; } );
 			saveSettings( { admin_language: val }, null )
-				.then( function () {
-					// Reload so the newly chosen .mo takes effect across the UI.
-					window.location.reload();
-				} )
+				.then( function () { window.location.reload(); } )
 				.catch( function () {
-					sel.disabled = false;
-					sel.value = prev; // revert on failure
+					opts.forEach( function ( o ) { o.style.pointerEvents = ''; } );
+					close();
 				} );
+		}
+
+		opts.forEach( function ( opt ) {
+			opt.addEventListener( 'click', function () { choose( opt.getAttribute( 'data-value' ) || '' ); } );
+			opt.addEventListener( 'keydown', function ( e ) {
+				if ( 'Enter' === e.key || ' ' === e.key ) { e.preventDefault(); choose( opt.getAttribute( 'data-value' ) || '' ); }
+			} );
 		} );
 	}
 

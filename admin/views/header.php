@@ -274,21 +274,25 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 		// Global language switcher — pinned top-right on every Velox page.
 		$vx_lang_cur = (string) Velox_Settings::get( 'admin_language', '' );
 		?>
+		<?php
+		$vx_lang_cur   = (string) Velox_Settings::get( 'admin_language', '' );
+		$vx_langs      = Velox_Settings::admin_languages();
+		$vx_cur_label  = isset( $vx_langs[ $vx_lang_cur ] ) ? $vx_langs[ $vx_lang_cur ] : $vx_langs[''];
+		?>
 		<div class="velox-langbar">
-			<div class="velox-langswitch" title="<?php esc_attr_e( 'Velox admin language', 'velox' ); ?>">
-				<svg class="velox-langswitch-globe" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-				<select class="velox-langswitch-select" id="velox-langswitch" aria-label="<?php esc_attr_e( 'Velox admin language', 'velox' ); ?>">
-					<?php
-					foreach ( Velox_Settings::admin_languages() as $vx_code => $vx_label ) {
-						printf(
-							'<option value="%s"%s>%s</option>',
-							esc_attr( $vx_code ),
-							selected( $vx_lang_cur, $vx_code, false ),
-							esc_html( $vx_label )
-						);
-					}
-					?>
-				</select>
+			<div class="velox-langswitch" id="velox-langswitch" data-current="<?php echo esc_attr( $vx_lang_cur ); ?>">
+				<button type="button" class="velox-langswitch-btn" aria-haspopup="listbox" aria-expanded="false" title="<?php esc_attr_e( 'Velox admin language', 'velox' ); ?>">
+					<svg class="velox-langswitch-globe" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+					<span class="velox-langswitch-label"><?php echo esc_html( $vx_cur_label ); ?></span>
+				</button>
+				<ul class="velox-langswitch-menu" role="listbox" hidden>
+					<?php foreach ( $vx_langs as $vx_code => $vx_label ) : ?>
+						<li role="option" class="velox-langswitch-opt<?php echo ( (string) $vx_code === $vx_lang_cur ) ? ' is-selected' : ''; ?>" data-value="<?php echo esc_attr( $vx_code ); ?>" tabindex="0" aria-selected="<?php echo ( (string) $vx_code === $vx_lang_cur ) ? 'true' : 'false'; ?>">
+							<?php echo esc_html( $vx_label ); ?>
+							<svg class="velox-langswitch-check" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6L9 17l-5-5"/></svg>
+						</li>
+					<?php endforeach; ?>
+				</ul>
 			</div>
 		</div>
 
