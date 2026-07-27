@@ -27,26 +27,45 @@ final class Velox {
 	}
 
 	private function __construct() {
+		// The locale filters must be registered BEFORE the text domain loads.
+		// plugin_locale runs when load_plugin_textdomain() resolves the .mo file;
+		// determine_locale runs earlier in the admin and is what WordPress 6.x
+		// actually consults first. We hook both so the chosen language wins.
+		$pick_locale = function ( $locale, $domain = 'velox' ) {
+			if ( 'velox' !== $domain ) {
+				return $locale;
+			}
+			// Only override inside wp-admin — the front end stays on the site locale.
+			if ( ! is_admin() ) {
+				return $locale;
+			}
+			$choice = Velox_Settings::get( 'admin_language', '' );
+			return ( is_string( $choice ) && '' !== $choice ) ? $choice : $locale;
+		};
+		add_filter( 'plugin_locale', $pick_locale, 10, 2 );
+		add_filter(
+			'determine_locale',
+			function ( $locale ) use ( $pick_locale ) {
+				return $pick_locale( $locale, 'velox' );
+			},
+			10,
+			1
+		);
+
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
+		// Load translations on init (WordPress 6.7+ warns if this happens earlier).
+		add_action( 'init', array( $this, 'load_textdomain' ), 1 );
+	}
+
+	/**
+	 * Load the Velox text domain. Hooked to init so it runs after the
+	 * determine_locale/plugin_locale filters above are in place.
+	 */
+	public function load_textdomain() {
+		load_plugin_textdomain( 'velox', false, dirname( VELOX_BASENAME ) . '/languages' );
 	}
 
 	public function init() {
-		// Let the user pick Velox's admin UI language independently of the site
-		// locale. The filter is scoped to our text domain only, so it never
-		// changes the language of WordPress core or any other plugin.
-		add_filter(
-			'plugin_locale',
-			function ( $locale, $domain ) {
-				if ( 'velox' !== $domain ) {
-					return $locale;
-				}
-				$choice = Velox_Settings::get( 'admin_language', '' );
-				return ( is_string( $choice ) && '' !== $choice ) ? $choice : $locale;
-			},
-			10,
-			2
-		);
-		load_plugin_textdomain( 'velox', false, dirname( VELOX_BASENAME ) . '/languages' );
 
 		// Heal any settings corrupted by the pre-1.1.1 save bug (runs once).
 		Velox_Settings::migrate();

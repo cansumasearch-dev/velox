@@ -104,6 +104,27 @@
 		}, 3200 );
 	}
 
+	/* Global language switcher (top-right on every Velox page) - */
+
+	function initLangSwitch() {
+		var sel = document.getElementById( 'velox-langswitch' );
+		if ( ! sel ) { return; }
+		var prev = sel.value;
+		sel.addEventListener( 'change', function () {
+			var val = sel.value;
+			sel.disabled = true;
+			saveSettings( { admin_language: val }, null )
+				.then( function () {
+					// Reload so the newly chosen .mo takes effect across the UI.
+					window.location.reload();
+				} )
+				.catch( function () {
+					sel.disabled = false;
+					sel.value = prev; // revert on failure
+				} );
+		} );
+	}
+
 	/* Settings collection (shared by performance + settings tabs) - */
 
 	function collectSettings( root ) {
@@ -7980,6 +8001,7 @@
 	}
 
 	function veloxInit() {
+		initLangSwitch();
 		initSidebar();
 		initWizard();
 		initUtilities();

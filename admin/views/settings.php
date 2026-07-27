@@ -10,29 +10,6 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title"><?php esc_html_e('Language', 'velox'); ?></h3>
-	<label class="velox-field velox-field--inline">
-		<span class="velox-field-label"><?php esc_html_e( 'Velox admin language', 'velox' ); ?></span>
-		<select class="velox-select" data-setting="admin_language">
-			<?php
-			$vx_current_lang = isset( $s['admin_language'] ) ? (string) $s['admin_language'] : '';
-			foreach ( Velox_Settings::admin_languages() as $vx_code => $vx_label ) {
-				printf(
-					'<option value="%1$s" %2$s>%3$s</option>',
-					esc_attr( $vx_code ),
-					selected( $vx_current_lang, $vx_code, false ),
-					esc_html( $vx_label )
-				);
-			}
-			?>
-		</select>
-		<span class="velox-hint" style="flex-basis:100%;margin:4px 0 0;">
-			<?php esc_html_e( 'Changes the language of Velox\'s own screens only — WordPress and your other plugins are unaffected. English and German are complete; other languages are being translated and fall back to English until finished.', 'velox' ); ?>
-		</span>
-	</label>
-</div>
-
-<div class="velox-panel">
 	<h3 class="velox-panel-title"><?php esc_html_e('Quick setup', 'velox'); ?></h3>
 	<p class="velox-hint"><?php esc_html_e('Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards.', 'velox'); ?></p>
 	<div class="velox-fonts-btns">

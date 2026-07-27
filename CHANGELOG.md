@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.17.0 — Language switcher fix + moved to top bar
+- Fixed the admin language never changing: translations now load on the init hook and the chosen language is applied via the determine_locale filter (which WordPress 6.x consults first in wp-admin), so picking a language now actually switches the UI instead of staying English.
+- Moved the language switcher out of Settings. It now lives in a compact top bar, pinned to the top-right of every Velox page next to the header, with a globe icon. Changing it saves and reloads immediately.
+
 ## 3.16.9 — Japanese complete
 - Japanese (ja) now covers 100% of the human-readable admin UI — every label, button, message, hint and long description, including all reconstructed sentences with placeholders. Uses WordPress-JP terminology (ダッシュボード, 投稿, 外観, 固定ページ) and consistent polite keigo (です/ます). Only literal code tokens stay untranslated.
 
