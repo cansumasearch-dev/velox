@@ -43,41 +43,53 @@ final class Velox {
 	 *
 	 * @var array<string,string>|null|false  false = not yet resolved.
 	 */
+	/** @var array<string,string>|null|false  false = dict not yet loaded from disk. */
 	private $vx_dict = false;
+	/** @var string|null  Resolved locale for this request (null = not yet resolved). */
+	private $vx_locale = null;
 
 	/**
-	 * Resolve which dictionary to use, once per request.
+	 * Resolve which dictionary to use.
+	 *
+	 * We deliberately do NOT permanently cache a "no translation" decision: the
+	 * gettext filter can fire very early in the request (before settings or the
+	 * admin context are meaningful), and caching that first negative result would
+	 * lock the whole page into English. Instead we resolve the chosen locale once
+	 * it's safely readable, then load the dictionary file a single time.
 	 *
 	 * @return array<string,string>|null
 	 */
 	private function get_dict() {
-		if ( false !== $this->vx_dict ) {
-			return $this->vx_dict;
-		}
-		$this->vx_dict = null;
-
-		// Only translate inside wp-admin; the front end stays on the site language.
-		if ( ! is_admin() ) {
+		// Only translate inside wp-admin; the front end keeps the site language.
+		if ( ! function_exists( 'is_admin' ) || ! is_admin() ) {
 			return null;
 		}
 
-		$choice = Velox_Settings::get( 'admin_language', '' );
-		// English / Follow WordPress => source strings, no dictionary.
-		if ( ! is_string( $choice ) || '' === $choice || 'en_US' === $choice ) {
-			return null;
+		// Resolve the chosen locale (cache only a real, non-empty answer).
+		if ( null === $this->vx_locale ) {
+			if ( ! class_exists( 'Velox_Settings' ) ) {
+				return null; // too early — try again on the next call
+			}
+			$choice = Velox_Settings::get( 'admin_language', '' );
+			if ( ! is_string( $choice ) || '' === $choice || 'en_US' === $choice ) {
+				return null; // English / Follow WordPress — no dictionary, don't cache
+			}
+			$available = array( 'de_DE' => 'de_DE' ); // add new languages here
+			if ( ! isset( $available[ $choice ] ) ) {
+				return null;
+			}
+			$this->vx_locale = $available[ $choice ];
 		}
 
-		// Map a locale to a shipped dictionary file. Add new languages here.
-		$available = array( 'de_DE' => 'de_DE' );
-		if ( ! isset( $available[ $choice ] ) ) {
-			return null;
-		}
-
-		$file = VELOX_PATH . 'includes/lang/' . $available[ $choice ] . '.php';
-		if ( is_readable( $file ) ) {
-			$dict = include $file;
-			if ( is_array( $dict ) ) {
-				$this->vx_dict = $dict;
+		// Load the dictionary file once.
+		if ( false === $this->vx_dict ) {
+			$this->vx_dict = null;
+			$file = VELOX_PATH . 'includes/lang/' . $this->vx_locale . '.php';
+			if ( is_readable( $file ) ) {
+				$dict = include $file;
+				if ( is_array( $dict ) ) {
+					$this->vx_dict = $dict;
+				}
 			}
 		}
 		return $this->vx_dict;

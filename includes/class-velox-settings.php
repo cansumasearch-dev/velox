@@ -28,7 +28,6 @@ class Velox_Settings {
 	 */
 	public static function admin_languages() {
 		return array(
-			''      => __( 'Follow WordPress', 'velox' ),
 			'en_US' => 'English',
 			'de_DE' => 'Deutsch',
 		);

@@ -275,9 +275,13 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 		$vx_lang_cur = (string) Velox_Settings::get( 'admin_language', '' );
 		?>
 		<?php
-		$vx_lang_cur   = (string) Velox_Settings::get( 'admin_language', '' );
-		$vx_langs      = Velox_Settings::admin_languages();
-		$vx_cur_label  = isset( $vx_langs[ $vx_lang_cur ] ) ? $vx_langs[ $vx_lang_cur ] : $vx_langs[''];
+		$vx_lang_cur = (string) Velox_Settings::get( 'admin_language', '' );
+		// Treat the unset/default and 'en_US' as English for display + selection.
+		if ( '' === $vx_lang_cur ) {
+			$vx_lang_cur = 'en_US';
+		}
+		$vx_langs     = Velox_Settings::admin_languages();
+		$vx_cur_label = isset( $vx_langs[ $vx_lang_cur ] ) ? $vx_langs[ $vx_lang_cur ] : 'English';
 		?>
 		<div class="velox-langbar">
 			<div class="velox-langswitch" id="velox-langswitch" data-current="<?php echo esc_attr( $vx_lang_cur ); ?>">

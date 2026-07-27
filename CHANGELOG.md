@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.19.2 — Language actually applies everywhere + clearer switcher
+- Fixed the translation only partially applying (most of the UI stayed English). The gettext filter was caching an early "no translation" decision made before the admin language setting was readable, which locked the whole page into English. It now resolves the chosen language only once it is actually available, so the entire admin UI switches to German.
+- Removed the confusing "Follow WordPress" option — the switcher is now simply English / Deutsch.
+
 ## 3.19.1 — Restore clean pill look on the switcher
 - Removed the visible chevron from the language switcher button so it keeps the clean globe + label pill look. The menu still opens on click, with the checkmark on the active language.
 
