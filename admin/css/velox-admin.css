@@ -201,25 +201,21 @@
 /* Global top bar — holds the language switcher, pinned top-right on every page */
 .velox-topbar {
 	display: flex; justify-content: flex-end; align-items: center;
-	margin: 0 0 8px; min-height: 32px;
+	margin: 0 0 6px; min-height: 24px;
 }
 .velox-langswitch {
-	display: inline-flex; align-items: center; gap: 6px;
-	padding: 4px 8px; border: 1px solid var(--vx-border, #e2e8f0);
-	border-radius: 8px; background: var(--vx-surface, #fff);
-	color: var(--vx-muted, #64748b); line-height: 1;
+	display: inline-flex; align-items: center; gap: 4px;
+	padding: 0; border: 0; background: transparent;
+	color: var(--vx-muted, #94a3b8); line-height: 1;
 }
-.velox-langswitch:hover { border-color: #cbd5e1; }
-.velox-langswitch .velox-ic { flex: 0 0 auto; opacity: .7; }
+.velox-langswitch .velox-ic { flex: 0 0 auto; width: 13px; height: 13px; opacity: .55; }
 .velox-langswitch-select {
 	border: 0; background: transparent; box-shadow: none; outline: none;
-	font: inherit; font-size: 13px; color: var(--vx-text, #0f172a);
-	padding: 2px 4px; margin: 0; cursor: pointer; min-height: 0; height: auto;
+	font: inherit; font-size: 12px; color: var(--vx-muted, #94a3b8);
+	padding: 0 2px; margin: 0; cursor: pointer; min-height: 0; height: auto;
 }
+.velox-langswitch-select:hover { color: var(--vx-text, #0f172a); }
 .velox-langswitch-select:focus { outline: none; box-shadow: none; }
-@media (max-width: 782px) {
-	.velox-topbar { margin-bottom: 4px; }
-}
 
 /* Collapse toggle + collapsed sidebar (icons only) */
 .velox-side-brand { position: relative; }

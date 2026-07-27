@@ -27,29 +27,21 @@ final class Velox {
 	}
 
 	private function __construct() {
-		// The locale filters must be registered BEFORE the text domain loads.
-		// plugin_locale runs when load_plugin_textdomain() resolves the .mo file;
-		// determine_locale runs earlier in the admin and is what WordPress 6.x
-		// actually consults first. We hook both so the chosen language wins.
-		$pick_locale = function ( $locale, $domain = 'velox' ) {
-			if ( 'velox' !== $domain ) {
-				return $locale;
-			}
-			// Only override inside wp-admin — the front end stays on the site locale.
-			if ( ! is_admin() ) {
-				return $locale;
-			}
-			$choice = Velox_Settings::get( 'admin_language', '' );
-			return ( is_string( $choice ) && '' !== $choice ) ? $choice : $locale;
-		};
-		add_filter( 'plugin_locale', $pick_locale, 10, 2 );
+		// Scope Velox's admin UI language to Velox ONLY. plugin_locale receives
+		// the text domain, so this filter can key off 'velox' and never touches
+		// WordPress core, the site locale, or any other plugin. (Do NOT use
+		// determine_locale here — it has no domain and would switch all of wp-admin.)
 		add_filter(
-			'determine_locale',
-			function ( $locale ) use ( $pick_locale ) {
-				return $pick_locale( $locale, 'velox' );
+			'plugin_locale',
+			function ( $locale, $domain ) {
+				if ( 'velox' !== $domain ) {
+					return $locale;
+				}
+				$choice = Velox_Settings::get( 'admin_language', '' );
+				return ( is_string( $choice ) && '' !== $choice ) ? $choice : $locale;
 			},
 			10,
-			1
+			2
 		);
 
 		add_action( 'plugins_loaded', array( $this, 'init' ) );
@@ -59,7 +51,7 @@ final class Velox {
 
 	/**
 	 * Load the Velox text domain. Hooked to init so it runs after the
-	 * determine_locale/plugin_locale filters above are in place.
+	 * plugin_locale filter above is in place.
 	 */
 	public function load_textdomain() {
 		load_plugin_textdomain( 'velox', false, dirname( VELOX_BASENAME ) . '/languages' );
