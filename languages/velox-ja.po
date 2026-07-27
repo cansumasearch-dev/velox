@@ -1,1043 +1,414 @@
-# Velox — Japanese (ja)
+# Velox — ja
 msgid ""
 msgstr ""
-"Project-Id-Version: Velox\n"
 "Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: 8bit\n"
 "Language: ja\n"
 "Plural-Forms: nplurals=1; plural=0;\n"
 
-msgid "\"Cloudflare plugin not active.\""
-msgstr "「Cloudflare プラグインが有効ではありません。」"
+msgid "Settings"
+msgstr "設定"
 
-msgid "%1$s tab → %2$s."
-msgstr "%1$s タブ → %2$s。"
+msgid "Quick setup"
+msgstr "クイックセットアップ"
 
-msgid "%1$s turns on only the optimizations that can't break a site. %2$s adds async CSS, unused-CSS removal (auto-learn), JS delay and bloat removal — then test and exclude anything that misbehaves. Neither touches jQuery Migrate or content-visibility (those need per-site testing)."
-msgstr "%1$s はサイトを壊す恐れのない最適化のみを有効にします。%2$s は非同期 CSS、未使用 CSS の削除（自動学習）、JS の遅延、不要コードの除去を追加します。その後テストを行い、問題が発生するものは除外してください。どちらも jQuery Migrate や content-visibility には影響しません（これらはサイトごとのテストが必要です）。"
+msgid "Apply safe defaults"
+msgstr "安全な既定値を適用"
 
-msgid "(dashicons-… or image URL)"
-msgstr "（dashicons-… または画像 URL）"
+msgid "Apply aggressive preset"
+msgstr "アグレッシブなプリセットを適用"
 
-msgid "(lowercase, max 20 chars — this is the post type key)"
-msgstr "（小文字、最大 20 文字 — これは投稿タイプのキーです）"
+msgid "Safe"
+msgstr "安全"
 
-msgid "(lowercase, max 32 chars)"
-msgstr "（小文字、最大 32 文字）"
+msgid "Aggressive"
+msgstr "アグレッシブ"
 
-msgid "(lowercase, max 32)"
-msgstr "（小文字、最大 32）"
+msgid "Page builder"
+msgstr "ページビルダー"
 
-msgid "(optional — defaults to your domain)"
-msgstr "（任意 — 既定ではお使いのドメイン）"
+msgid "Run setup wizard"
+msgstr "セットアップウィザードを実行"
 
-msgid "(optional — e.g. legal note)"
-msgstr "（任意 — 例: 法的な注記）"
+msgid "Image defaults"
+msgstr "画像の既定値"
 
-msgid "(optional)"
-msgstr "（任意）"
+msgid "Default WebP quality"
+msgstr "既定の WebP 品質"
 
-msgid "(top-level only)"
-msgstr "（トップレベルのみ）"
+msgid "Auto-convert new uploads"
+msgstr "新規アップロードを自動変換"
 
-msgid "+ Add connection"
-msgstr "+ 接続を追加"
+msgid "Every new JPG/PNG upload is converted to WebP automatically."
+msgstr "新しくアップロードされた JPG/PNG はすべて自動的に WebP に変換されます。"
 
-msgid "+ Add rule"
-msgstr "+ ルールを追加"
+msgid "Convert thumbnail sizes too"
+msgstr "サムネイルサイズも変換"
 
-msgid "+ Add rule group"
-msgstr "+ ルールグループを追加"
+msgid "Serve WebP on the front end"
+msgstr "フロントエンドで WebP を配信"
 
-msgid "+ New form"
-msgstr "+ 新規フォーム"
+msgid "Before/after comparator"
+msgstr "ビフォー／アフター比較"
 
-msgid ".htaccess"
+msgid "Shows the original-vs-WebP drag comparison panel on the Images tab."
+msgstr "「画像」タブに、オリジナルと WebP のドラッグ比較パネルを表示します。"
+
+msgid "Live PageSpeed"
+msgstr "ライブ PageSpeed"
+
+msgid "PageSpeed Insights API key"
+msgstr "PageSpeed Insights API キー"
+
+msgid "googleapis.com"
 msgstr ""
 
-msgid ".htm"
+msgid "Enable PageSpeed status"
+msgstr "PageSpeed ステータスを有効化"
+
+msgid "API key"
+msgstr "API キー"
+
+msgid "URL to test"
+msgstr "テストする URL"
+
+msgid "Default view"
+msgstr "既定の表示"
+
+msgid "Mobile"
+msgstr "モバイル"
+
+msgid "Desktop"
+msgstr "デスクトップ"
+
+msgid "Refresh every"
+msgstr "更新間隔"
+
+msgid "Hour"
+msgstr "時"
+
+msgid "12 hours"
+msgstr "12 時間"
+
+msgid "Day"
+msgstr "日"
+
+msgid "Show Core Web Vitals"
+msgstr "Core Web Vitals を表示"
+
+msgid "Display the LCP / CLS / TBT metric chips on the widget."
+msgstr "ウィジェットに LCP / CLS / TBT の指標チップを表示します。"
+
+msgid "Show what to fix"
+msgstr "修正すべき点を表示"
+
+msgid "Run a check now"
+msgstr "今すぐチェックを実行"
+
+msgid "Save your settings first. A live check can take ~30&nbsp;seconds."
+msgstr "まず設定を保存してください。ライブチェックには約 30&nbsp;秒かかることがあります。"
+
+msgid "Dashboard traffic"
+msgstr "ダッシュボードのトラフィック"
+
+msgid "Count visitors"
+msgstr "訪問者をカウント"
+
+msgid "First-party, aggregate only. Mention it in your privacy policy."
+msgstr "ファーストパーティで、集計のみです。プライバシーポリシーに記載してください。"
+
+msgid "Migrate from another plugin"
+msgstr "別のプラグインから移行"
+
+msgid "Migration coming soon"
+msgstr "移行機能は近日公開"
+
+msgid "tell us"
+msgstr "お知らせください"
+
+msgid "which you need next."
+msgstr "次に必要なもの。"
+
+msgid "Detected"
+msgstr "検出済み"
+
+msgid "Not found"
+msgstr "見つかりません"
+
+msgid "Import"
+msgstr "インポート"
+
+msgid "Velox recognises this plugin — automatic migration is on the way"
+msgstr "Velox はこのプラグインを認識しています — 自動移行は準備中です"
+
+msgid "Import / Export"
+msgstr "インポート／エクスポート"
+
+msgid "Export settings"
+msgstr "設定をエクスポート"
+
+msgid "Import settings"
+msgstr "設定をインポート"
+
+msgid "Apply imported settings"
+msgstr "インポートした設定を適用"
+
+msgid "Cancel"
+msgstr "キャンセル"
+
+msgid "Housekeeping"
+msgstr "メンテナンス"
+
+msgid "Keep my settings if I delete Velox"
+msgstr "Velox を削除しても設定を保持する"
+
+msgid "System status"
+msgstr "システムステータス"
+
+msgid "Updates"
+msgstr "更新"
+
+msgid "Check for updates"
+msgstr "更新を確認"
+
+msgid "Open plugins page"
+msgstr "プラグインページを開く"
+
+msgid "Changes save automatically as you make them."
+msgstr "変更は行うたびに自動的に保存されます。"
+
+msgid "Utilities"
+msgstr "ユーティリティ"
+
+msgid "Core areas"
+msgstr "コア機能"
+
+msgid "Open"
+msgstr "開く"
+
+msgid "Switch on to use"
+msgstr "オンにして使用"
+
+msgid "Tools"
+msgstr "ツール"
+
+msgid "Planned"
+msgstr "予定"
+
+msgid "⚠ Editing files directly can break your site. Use with care."
+msgstr "⚠ ファイルを直接編集すると、サイトが壊れる可能性があります。慎重に使用してください。"
+
+msgid "Traffic"
+msgstr "トラフィック"
+
+msgid "Visitors"
+msgstr "訪問者"
+
+msgid "Page views"
+msgstr "ページビュー"
+
+msgid "Peak day"
+msgstr "ピーク日"
+
+msgid "Daily average"
+msgstr "日次平均"
+
+msgid "visitors / day"
+msgstr "訪問者 / 日"
+
+msgid "Visitors per day"
+msgstr "1 日あたりの訪問者"
+
+msgid "No visits recorded in this range yet."
+msgstr "この範囲ではまだ訪問が記録されていません。"
+
+msgid "Script Manager"
+msgstr "スクリプトマネージャー"
+
+msgid "front"
+msgstr "フロント"
+
+msgid "blog"
+msgstr "ブログ"
+
+msgid "archive"
+msgstr "アーカイブ"
+
+msgid "shop"
+msgstr "ショップ"
+
+msgid "type:product"
 msgstr ""
 
-msgid ".json"
+msgid "type:post"
 msgstr ""
 
-msgid ".lottie"
-msgstr ""
+msgid "Enable Script Manager"
+msgstr "スクリプトマネージャーを有効化"
 
-msgid ".sql"
-msgstr ""
+msgid "Scan site"
+msgstr "サイトをスキャン"
 
-msgid ".vxck"
+msgid "Save changes"
+msgstr "変更を保存"
+
+msgid "Styles (CSS)"
+msgstr "スタイル（CSS）"
+
+msgid "Scripts (JS)"
+msgstr "スクリプト（JS）"
+
+msgid "Reset discovered list"
+msgstr "検出済みリストをリセット"
+
+msgid "Unused media"
+msgstr "未使用のメディア"
+
+msgid "Scan media library"
+msgstr "メディアライブラリをスキャン"
+
+msgid "Not in use"
+msgstr "未使用"
+
+msgid "In use"
+msgstr "使用中"
+
+msgid "Delete selected"
+msgstr "選択項目を削除"
+
+msgid "Bulk installer"
+msgstr "一括インストーラー"
+
+msgid "Plugins — slugs or links"
+msgstr "プラグイン — スラッグまたはリンク"
+
+msgid "wp-fastest-cache"
 msgstr ""
 
 msgid ".zip"
 msgstr ""
 
-msgid "/new"
-msgstr ""
-
-msgid "/wp-admin"
-msgstr ""
-
-msgid "/wp-login.php"
-msgstr ""
-
-msgid "0 = auto"
-msgstr "0 = 自動"
-
-msgid "0 = default"
-msgstr "0 = 既定"
-
-msgid "0 = none"
-msgstr "0 = なし"
-
-msgid "0 selected"
-msgstr "0 件選択中"
-
-msgid "12 hours"
-msgstr "12 時間"
-
-msgid "404 log"
-msgstr "404 ログ"
-
-msgid "410 Gone"
-msgstr "410 Gone"
-
-msgid "A bad rule here can take the whole site down with a 500 error. Unlocking takes a snapshot first, so %s can always put it back exactly as it was when you unlocked."
-msgstr "ここで不正なルールを設定すると、500 エラーでサイト全体がダウンする可能性があります。ロック解除の際にはまずスナップショットを取得するため、%s はロック解除時の状態にいつでも正確に戻すことができます。"
-
-msgid "A complete performance toolkit — page cache, asset optimization, fonts, preloading and more. Velox works standalone, and plays nicely with Cloudflare and Oxygen. Flip one setting at a time and re-test PageSpeed."
-msgstr "ページキャッシュ、アセット最適化、フォント、プリロードなどを備えた総合的なパフォーマンスツールキットです。Velox は単独で動作し、Cloudflare や Oxygen とも問題なく連携します。設定は一度に 1 つずつ変更し、PageSpeed を再テストしてください。"
-
-msgid "A fully styleable consent banner wired to Google Consent Mode v2. Edit every colour, text and link, pick where it sits, and it stores the visitor's choice — analytics and ad tags only fire once they agree."
-msgstr "Google Consent Mode v2 と連携した、完全にスタイル設定可能な同意バナーです。すべての色、テキスト、リンクを編集し、配置場所を選択できます。訪問者の選択を保存し、同意した場合にのみ分析タグと広告タグが発火します。"
-
-msgid "A physical %s exists in your site root and is being served directly. The editor keeps it in sync on save. This is the most reliable setup behind Nginx or a CDN — use \"Back to virtual\" to remove it."
-msgstr "サイトのルートに物理的な %s が存在し、直接配信されています。エディターは保存時にこれを同期します。これは Nginx や CDN の背後で最も信頼性の高い構成です。削除するには「仮想に戻す」を使用してください。"
-
-msgid "A quick read on the environment Velox is running in — handy when debugging or filing a support note."
-msgstr "Velox が動作している環境をすばやく確認できます。デバッグやサポートへの問い合わせの際に便利です。"
-
-msgid "A running record of who did what — logins, content changes, plugin and theme changes, user changes and updates. Handy for client sites and shared logins."
-msgstr "誰が何を行ったかの継続的な記録です。ログイン、コンテンツの変更、プラグインやテーマの変更、ユーザーの変更、更新などが含まれます。クライアントサイトや共有ログインに便利です。"
-
-msgid "A toolbox of site and admin helpers. Switch on what you need — anything you enable appears under Utilities in the sidebar, ready to open."
-msgstr "サイトと管理用のユーティリティのツールボックスです。必要なものをオンにしてください。有効にしたものはサイドバーの「ユーティリティ」に表示され、すぐに開けます。"
-
-msgid "AI Crawl Control"
-msgstr "AI クロール制御"
-
-msgid "API Token"
-msgstr "API トークン"
-
-msgid "API Tokens"
-msgstr "API トークン"
-
-msgid "API key"
-msgstr "API キー"
-
-msgid "API token"
-msgstr "API トークン"
-
-msgid "AVIF"
-msgstr "AVIF"
-
-msgid "Accent"
-msgstr "アクセント"
-
-msgid "Account"
-msgstr "アカウント"
+msgid "Or upload plugin ZIPs"
+msgstr "またはプラグインの ZIP をアップロード"
 
 msgid "Activate after install"
 msgstr "インストール後に有効化"
 
-msgid "Active"
-msgstr "有効"
+msgid "Turn each plugin on as soon as it's installed."
+msgstr "各プラグインをインストールしたらすぐにオンにしてください。"
 
-msgid "Active redirects"
-msgstr "有効なリダイレクト"
+msgid "Install from list"
+msgstr "リストからインストール"
 
-msgid "Activity log"
-msgstr "アクティビティログ"
+msgid "Upload &amp; install ZIPs"
+msgstr "ZIP をアップロード &amp; インストール"
 
-msgid "Add PHP, CSS, JS or HTML that runs by location and priority. A bad PHP snippet auto-disables, and Safe Mode keeps a crash from ever locking you out."
-msgstr "場所と優先順位に応じて実行される PHP、CSS、JS、HTML を追加できます。不正な PHP スニペットは自動的に無効化され、セーフモードによりクラッシュでロックアウトされることを防ぎます。"
+msgid "Save as blueprint"
+msgstr "ブループリントとして保存"
 
-msgid "Add alt text, titles and captions to every image for SEO and accessibility, and rename files safely. File renames update every reference across your posts and Oxygen builder data automatically."
-msgstr "SEO とアクセシビリティのために、すべての画像に代替テキスト、タイトル、キャプションを追加し、ファイル名を安全に変更できます。ファイル名の変更は、投稿や Oxygen ビルダーのデータ内のすべての参照を自動的に更新します。"
+msgid "Saved blueprints"
+msgstr "保存済みのブループリント"
 
-msgid "Add button"
-msgstr "ボタンを追加"
+msgid "No blueprints yet. Save a slug list above to create one."
+msgstr "まだブループリントがありません。上でスラッグリストを保存して作成してください。"
 
-msgid "Add custom fields to posts, pages and any post type — ACF-style field groups with location rules and a %s API."
-msgstr "投稿、固定ページ、任意の投稿タイプにカスタムフィールドを追加できます。ロケーションルールと %s API を備えた ACF 形式のフィールドグループです。"
-
-msgid "Add field"
-msgstr "フィールドを追加"
-
-msgid "Add images"
-msgstr "画像を追加"
-
-msgid "Add one or more sending connections, then route mail to them by the From address. If a send fails, Velox retries through your fallback."
-msgstr "1 つ以上の送信接続を追加し、差出人アドレスに応じてメールをそれらに振り分けます。送信に失敗した場合、Velox はフォールバック接続を通じて再試行します。"
-
-msgid "Add options page"
-msgstr "オプションページを追加"
-
-msgid "Add post type"
-msgstr "投稿タイプを追加"
-
-msgid "Add redirect"
-msgstr "リダイレクトを追加"
-
-msgid "Add row"
-msgstr "行を追加"
-
-msgid "Add snippet"
-msgstr "スニペットを追加"
-
-msgid "Add taxonomy"
-msgstr "タクソノミーを追加"
-
-msgid "Add your Cloudflare account ID and API token first."
-msgstr "まず Cloudflare のアカウント ID と API トークンを追加してください。"
-
-msgid "Add your first snippet"
-msgstr "最初のスニペットを追加"
-
-msgid "Add, remove and reorder buttons. Each one can be a button or a link, do something (accept, reject, open preferences, save) or point to a URL, and be styled individually."
-msgstr "ボタンの追加、削除、並べ替えができます。各ボタンはボタンまたはリンクにでき、アクション（同意、拒否、設定を開く、保存）を実行したり URL を指定したりでき、個別にスタイルを設定できます。"
-
-msgid "After saving"
-msgstr "保存後"
-
-msgid "After submitting"
-msgstr "送信後"
-
-msgid "Aggressive"
-msgstr "アグレッシブ"
-
-msgid "All"
-msgstr "すべて"
-
-msgid "All snippets"
-msgstr "すべてのスニペット"
-
-msgid "All types"
-msgstr "すべてのタイプ"
-
-msgid "Allow everything"
-msgstr "すべて許可"
-
-msgid "Also generates WebP for each registered image size (recommended for srcset)."
-msgstr "登録された各画像サイズに対して WebP も生成します（srcset に推奨）。"
-
-msgid "Alt text"
-msgstr "代替テキスト"
-
-msgid "An extra AVIF twin, usually 15–30% smaller again. Capable browsers get AVIF, everyone else falls back to WebP, then the original. Slower to encode."
-msgstr "さらに 15〜30% 小さくなる AVIF の追加バージョンです。対応ブラウザーは AVIF を受け取り、それ以外は WebP、次に元の画像へとフォールバックします。エンコードは遅くなります。"
-
-msgid "Appearance"
-msgstr "外観"
-
-msgid "Appends a ready-made block to the editor above — review, then save."
-msgstr "既製のブロックを上のエディターに追加します。確認してから保存してください。"
-
-msgid "Applies the standard robots.txt, switches on the sitemap and generates it right now — everything wired in one click."
-msgstr "標準の robots.txt を適用し、サイトマップを有効にして今すぐ生成します。すべてがワンクリックで設定されます。"
-
-msgid "Apply aggressive preset"
-msgstr "アグレッシブなプリセットを適用"
-
-msgid "Apply all names"
-msgstr "すべての名前を適用"
-
-msgid "Apply imported settings"
-msgstr "インポートした設定を適用"
-
-msgid "Apply recommended setup"
-msgstr "推奨設定を適用"
-
-msgid "Apply safe defaults"
-msgstr "安全な既定値を適用"
-
-msgid "Apply selected"
-msgstr "選択項目を適用"
-
-msgid "Apply to library"
-msgstr "ライブラリに適用"
-
-msgid "Attach taxonomies"
-msgstr "タクソノミーを紐付け"
-
-msgid "Attach to post types"
-msgstr "投稿タイプに紐付け"
-
-msgid "Authentication Mode → %s."
-msgstr "認証モード → %s。"
-
-msgid "Auto (recommended)"
-msgstr "自動（推奨）"
-
-msgid "Auto picks the best available engine. Force one only if you have a reason to."
-msgstr "自動モードは利用可能な最適なエンジンを選択します。理由がある場合にのみ特定のエンジンを強制してください。"
-
-msgid "Auto-convert new uploads"
-msgstr "新規アップロードを自動変換"
-
-msgid "Auto-learn builds itself from real traffic — no setup needed. Cloudflare/Local can be scanned manually below."
-msgstr "自動学習は実際のトラフィックから自ら構築されるため、設定は不要です。Cloudflare／ローカルは下で手動でスキャンできます。"
-
-msgid "Auto-learn data and cached CSS cleared. Learning will restart from your next visitors."
-msgstr "自動学習データとキャッシュされた CSS をクリアしました。学習は次の訪問者から再開されます。"
-
-msgid "Auto-learn needs no action — it optimizes each page after a few visits and keeps improving. Use Scan only for the Cloudflare or Local engines. Clear/Reset after a design change or if something looks off."
-msgstr "自動学習は操作不要です。数回の訪問後に各ページを最適化し、改善を続けます。スキャンは Cloudflare またはローカルエンジンの場合にのみ使用してください。デザイン変更後や何かおかしいと感じた場合はクリア／リセットしてください。"
-
-msgid "Automation"
-msgstr "自動化"
-
-msgid "Available"
-msgstr "利用可能"
-
-msgid "Back"
-msgstr "戻る"
-
-msgid "Back to virtual"
-msgstr "仮想に戻す"
-
-msgid "Back up your database and files, download them, restore in a click, or import a backup from another site. Backups live in a protected folder under %s."
-msgstr "データベースとファイルのバックアップを作成し、ダウンロードしたり、ワンクリックで復元したり、別のサイトからバックアップをインポートしたりできます。バックアップは %s 内の保護されたフォルダーに保存されます。"
-
-msgid "Background"
-msgstr "背景"
-
-msgid "Background image"
-msgstr "背景画像"
-
-msgid "Backup"
-msgstr "バックアップ"
-
-msgid "Backups"
-msgstr "バックアップ"
-
-msgid "Banner enabled"
-msgstr "バナー有効"
-
-msgid "Base font size (px)"
-msgstr "基本フォントサイズ（px）"
-
-msgid "Before / after"
-msgstr "ビフォー／アフター"
-
-msgid "Before/after comparator"
-msgstr "ビフォー／アフター比較"
-
-msgid "Block"
-msgstr "ブロック"
-
-msgid "Block AI crawlers"
-msgstr "AI クローラーをブロック"
-
-msgid "Body"
-msgstr "本文"
-
-msgid "Body colour"
-msgstr "本文の色"
-
-msgid "Body size (px)"
-msgstr "本文サイズ（px）"
-
-msgid "Bookmark your always-works recovery URL:"
-msgstr "常に機能する復旧用 URL をブックマークしてください:"
-
-msgid "Bookmark your login URL before leaving this page."
-msgstr "このページを離れる前に、ログイン URL をブックマークしてください。"
-
-msgid "Border width (px)"
-msgstr "枠線の幅（px）"
-
-msgid "Bots"
-msgstr "ボット"
-
-msgid "Box / modal width (px)"
-msgstr "ボックス／モーダルの幅（px）"
-
-msgid "Build"
-msgstr "ビルド"
-
-msgid "Build a theme"
-msgstr "テーマをビルド"
-
-msgid "Build forms, route submissions to styled notification emails (to you and to the customer), and send everything reliably over SMTP."
-msgstr "フォームを作成し、送信内容をスタイル付きの通知メール（あなたと顧客宛て）に振り分け、すべてを SMTP 経由で確実に送信できます。"
-
-msgid "Build forms, route submissions to styled notification emails, and send reliably over SMTP."
-msgstr "フォームを作成し、送信内容をスタイル付きの通知メールに振り分け、SMTP 経由で確実に送信できます。"
-
-msgid "Builder not listed? %s"
-msgstr "ビルダーが一覧にありませんか ? %s"
-
-msgid "Built"
-msgstr "ビルド済み"
-
-msgid "Built %1$s (%2$s)"
-msgstr "ビルド日時 %1$s（%2$s）"
-
-msgid "Bulk import"
-msgstr "一括インポート"
-
-msgid "Bulk import — pipe format"
-msgstr "一括インポート — パイプ形式"
-
-msgid "Bulk installer"
-msgstr "一括インストーラー"
-
-msgid "Bulk optimization"
-msgstr "一括最適化"
-
-msgid "Button"
-msgstr "ボタン"
-
-msgid "Button font size (px)"
-msgstr "ボタンのフォントサイズ（px）"
-
-msgid "Button font weight"
-msgstr "ボタンのフォントの太さ"
-
-msgid "Button gap (px)"
-msgstr "ボタンの間隔（px）"
-
-msgid "Buttons"
-msgstr "ボタン"
-
-msgid "By default WordPress sends mail as %s. Set your own name and address here and every mail Velox sends uses it instead."
-msgstr "既定では WordPress は %s としてメールを送信します。ここで独自の名前とアドレスを設定すると、Velox が送信するすべてのメールでそれが使用されます。"
-
-msgid "CAPTCHA"
-msgstr "CAPTCHA"
-
-msgid "CSS"
-msgstr "CSS"
-
-msgid "CSS — Styles"
-msgstr "CSS — スタイル"
-
-msgid "Cached on disk"
-msgstr "ディスクにキャッシュ済み"
-
-msgid "Cancel"
-msgstr "キャンセル"
-
-msgid "Caption"
-msgstr "キャプション"
-
-msgid "Careful — this is your live server config."
-msgstr "注意 — これは稼働中のサーバー設定です。"
-
-msgid "Careful:"
-msgstr "注意:"
-
-msgid "Category"
-msgstr "カテゴリー"
-
-msgid "Change frequency"
-msgstr "変更頻度"
-
-msgid "Changes apply to new mail once saved."
-msgstr "変更は保存後、新しいメールに適用されます。"
-
-msgid "Changes save automatically as you make them."
-msgstr "変更は行うたびに自動的に保存されます。"
-
-msgid "Changes the language of Velox's own screens only — WordPress and your other plugins are unaffected. English and German are complete; other languages are being translated and fall back to English until finished."
-msgstr "Velox 独自の画面の言語のみを変更します。WordPress やその他のプラグインには影響しません。英語とドイツ語は完成しています。その他の言語は翻訳中で、完成するまでは英語にフォールバックします。"
-
-msgid "Check a connection, or send yourself a real email to confirm delivery."
-msgstr "接続を確認するか、実際のメールを自分宛てに送信して配信を確認してください。"
-
-msgid "Check deliverability"
-msgstr "到達性を確認"
-
-msgid "Check for updates"
-msgstr "更新を確認"
-
-msgid "Checks every published page for the things that quietly cost you traffic."
-msgstr "公開済みの各ページについて、知らないうちにトラフィックを失っている要因を確認します。"
-
-msgid "Choose"
-msgstr "選択"
-
-msgid "Choose a menu icon"
-msgstr "メニューアイコンを選択"
-
-msgid "Choose icon"
-msgstr "アイコンを選択"
-
-msgid "Choose what to include. Large sites can take a minute — a progress box will keep you posted."
-msgstr "含める内容を選択してください。大規模なサイトでは 1 分ほどかかる場合があります。進捗ボックスで状況をお知らせします。"
-
-msgid "Classes"
-msgstr "クラス"
-
-msgid "Clean"
-msgstr "クリーンアップ"
-
-msgid "Clean database"
-msgstr "データベースをクリーンアップ"
-
-msgid "Clean everything"
-msgstr "すべてクリーンアップ"
-
-msgid "Cleanup"
-msgstr "クリーンアップ"
-
-msgid "Clear"
-msgstr "クリア"
-
-msgid "Clear Safe Mode"
-msgstr "セーフモードを解除"
-
-msgid "Clear all caches"
-msgstr "すべてのキャッシュをクリア"
-
-msgid "Clear cache"
-msgstr "キャッシュをクリア"
-
-msgid "Clear history"
-msgstr "履歴をクリア"
-
-msgid "Clear log"
-msgstr "ログをクリア"
-
-msgid "Clear used-CSS cache"
-msgstr "使用済み CSS キャッシュをクリア"
-
-msgid "Cleared %d cached used-CSS file(s)."
-msgstr "キャッシュされた使用済み CSS ファイルを %d 件クリアしました。"
-
-msgid "Close"
-msgstr "閉じる"
-
-msgid "Cloudflare"
-msgstr "Cloudflare"
-
-msgid "Cloudflare Turnstile (free)"
-msgstr "Cloudflare Turnstile（無料）"
-
-msgid "Cloudflare account ID"
-msgstr "Cloudflare アカウント ID"
-
-msgid "Cloudflare connected."
-msgstr "Cloudflare に接続しました。"
-
-msgid "Cloudflare daily browser limit reached (10 min/day on the free plan). Try again tomorrow or upgrade to Workers Paid."
-msgstr "Cloudflare の 1 日あたりのブラウザー上限に達しました（無料プランでは 1 日 10 分）。明日再度お試しいただくか、Workers Paid にアップグレードしてください。"
-
-msgid "Cloudflare needs a one-time setup."
-msgstr "Cloudflare には一度きりの初期設定が必要です。"
-
-msgid "Cloudflare render failed: %s"
-msgstr "Cloudflare のレンダリングに失敗しました: %s"
-
-msgid "Cloudflare, Inc."
-msgstr "Cloudflare, Inc."
-
-msgid "Code"
-msgstr "コード"
-
-msgid "Code Snippets"
-msgstr "コードスニペット"
-
-msgid "Colours"
-msgstr "色"
-
-msgid "Come back here — this note should turn green (\"Cloudflare connected\") and the Cloudflare button should report \"Cloudflare purged.\""
-msgstr "ここに戻ってください。この表示が緑色（「Cloudflare に接続しました」）になり、Cloudflare ボタンが「Cloudflare をパージしました」と表示するはずです。"
-
-msgid "Content Signals Policy"
-msgstr "コンテンツシグナルポリシー"
-
-msgid "Contents"
-msgstr "コンテンツ"
-
-msgid "Continue to summary → %1$s → %2$s (shown only once) and store it safely."
-msgstr "概要へ進んでください → %1$s → %2$s（1 回のみ表示）。安全に保管してください。"
-
-msgid "Conversion engine"
-msgstr "変換エンジン"
-
-msgid "Conversion failed. Check that GD or Imagick supports WebP on this server."
-msgstr "変換に失敗しました。このサーバーで GD または Imagick が WebP に対応しているか確認してください。"
-
-msgid "Convert every JPG and PNG in your library to the formats selected above. Safe to stop and resume anytime."
-msgstr "ライブラリ内のすべての JPG と PNG を、上で選択した形式に変換します。いつでも安全に停止・再開できます。"
-
-msgid "Convert pending images"
-msgstr "保留中の画像を変換"
-
-msgid "Convert thumbnail sizes too"
-msgstr "サムネイルサイズも変換"
-
-msgid "Converted images"
-msgstr "変換済みの画像"
-
-msgid "Cookie banner"
-msgstr "Cookie バナー"
-
-msgid "Copy your whole Velox config to another site. Export gives you a JSON blob; paste one in and hit Import to apply it."
-msgstr "Velox の設定全体を別のサイトにコピーします。エクスポートすると JSON ブロブが得られます。それを貼り付けて「インポート」を押すと適用されます。"
-
-msgid "Core areas"
-msgstr "コア機能"
-
-msgid "Corner radius (px)"
-msgstr "角の丸み（px）"
-
-msgid "Could not create the local fonts folder. Check uploads permissions."
-msgstr "ローカルフォントフォルダーを作成できませんでした。アップロードの権限を確認してください。"
-
-msgid "Could not create the used-CSS folder."
-msgstr "使用済み CSS フォルダーを作成できませんでした。"
-
-msgid "Could not create the zip file."
-msgstr "ZIP ファイルを作成できませんでした。"
-
-msgid "Could not read the front page to scan for fonts."
-msgstr "フォントをスキャンするためにフロントページを読み込めませんでした。"
-
-msgid "Could not rename %s. Check file permissions."
-msgstr "%s の名前を変更できませんでした。ファイルの権限を確認してください。"
-
-msgid "Count visitors"
-msgstr "訪問者をカウント"
-
-msgid "Counts are live. Nothing is deleted until you press a button."
-msgstr "カウントはリアルタイムです。ボタンを押すまで何も削除されません。"
-
-msgid "Create Token"
-msgstr "トークンを作成"
-
-msgid "Create a backup"
-msgstr "バックアップを作成"
-
-msgid "Create backup"
-msgstr "バックアップを作成"
-
-msgid "Create custom post types and taxonomies, then attach field groups to them — all without code."
-msgstr "カスタム投稿タイプとタクソノミーを作成し、それらにフィールドグループを紐付けできます。すべてコード不要です。"
-
-msgid "Create field group"
-msgstr "フィールドグループを作成"
-
-msgid "Create your first field group to start adding custom fields."
-msgstr "カスタムフィールドの追加を始めるには、最初のフィールドグループを作成してください。"
-
-msgid "Custom"
-msgstr "カスタム"
-
-msgid "Custom CSS"
-msgstr "カスタム CSS"
-
-msgid "Custom address…"
-msgstr "カスタムアドレス…"
-
-msgid "Custom fields"
-msgstr "カスタムフィールド"
-
-msgid "Custom fields is on"
-msgstr "カスタムフィールドは有効です"
-
-msgid "Custom login URL"
-msgstr "カスタムログイン URL"
-
-msgid "Custom post types appear in the admin sidebar next to Posts and Pages."
-msgstr "カスタム投稿タイプは、管理サイドバーの「投稿」と「固定ページ」の隣に表示されます。"
-
-msgid "Daily average"
-msgstr "日次平均"
-
-msgid "Dashboard"
-msgstr "ダッシュボード"
-
-msgid "Dashboard traffic"
-msgstr "ダッシュボードのトラフィック"
-
-msgid "Database"
-msgstr "データベース"
-
-msgid "Database only"
-msgstr "データベースのみ"
-
-msgid "Dateiname | Alt-Text | Titel"
-msgstr ""
-
-msgid "Day"
-msgstr "日"
-
-msgid "Default"
-msgstr "既定"
-
-msgid "Default WebP quality"
-msgstr "既定の WebP 品質"
-
-msgid "Default view"
-msgstr "既定の表示"
+msgid "Load"
+msgstr "読み込み"
 
 msgid "Delete"
 msgstr "削除"
 
-msgid "Delete entry"
-msgstr "エントリーを削除"
+msgid "Activity log"
+msgstr "アクティビティログ"
 
-msgid "Delete forever"
-msgstr "完全に削除"
+msgid "Record activity"
+msgstr "アクティビティを記録"
 
-msgid "Delete selected"
-msgstr "選択項目を削除"
+msgid "Clear log"
+msgstr "ログをクリア"
 
-msgid "Deleted"
-msgstr "削除済み"
+msgid "All"
+msgstr "すべて"
 
-msgid "Deliverability check"
-msgstr "到達性チェック"
+msgid "Nothing logged yet for this filter"
+msgstr "このフィルターについてはまだ何も記録されていません"
 
-msgid "Description"
-msgstr "説明"
+msgid "Nothing logged yet"
+msgstr "まだ何も記録されていません"
 
-msgid "Desktop"
-msgstr "デスクトップ"
+msgid "Prefix"
+msgstr "プレフィックス"
 
-msgid "Detect fonts"
-msgstr "フォントを検出"
+msgid "Off"
+msgstr "オフ"
 
-msgid "Detect it for me →"
-msgstr "自動で検出する →"
+msgid "Redirects &amp; 404s"
+msgstr "リダイレクト &amp; 404"
 
-msgid "Detected"
-msgstr "検出済み"
+msgid "Active redirects"
+msgstr "有効なリダイレクト"
 
-msgid "Detects every font your site loads. For each one: %1$s starts it loading immediately (only worth it for the 1–2 fonts visible above the fold), and %2$s stops a Google-hosted font from loading at all. Local/builder fonts can be preloaded but not blocked."
-msgstr "サイトが読み込むすべてのフォントを検出します。各フォントについて: %1$s は即座に読み込みを開始します（ファーストビューに表示される 1〜2 個のフォントにのみ有効です）。%2$s は Google ホストのフォントの読み込みを完全に停止します。ローカル／ビルダーのフォントはプリロードできますが、ブロックはできません。"
+msgid "Add redirect"
+msgstr "リダイレクトを追加"
 
-msgid "Dim background (modal)"
-msgstr "背景を暗くする（モーダル）"
+msgid "No redirects yet. Add one to send an old URL somewhere useful."
+msgstr "まだリダイレクトがありません。追加して、古い URL を役立つ場所へ転送しましょう。"
 
-msgid "Display the LCP / CLS / TBT metric chips on the widget."
-msgstr "ウィジェットに LCP / CLS / TBT の指標チップを表示します。"
+msgid "Enable or disable this redirect"
+msgstr "このリダイレクトを有効または無効にする"
 
-msgid "Displays the form name as a heading above the fields, on the site and in the style preview."
-msgstr "フォーム名を、サイト上およびスタイルプレビュー内のフィールドの上に見出しとして表示します。"
+msgid "Open the source URL in a new tab to test it"
+msgstr "テストするためにソース URL を新しいタブで開く"
 
-msgid "Don't run a second full-page cache plugin (WP Rocket, W3 Total Cache) alongside it — Cloudflare recommends turning those off. Velox's own page cache is fine."
-msgstr "2 つ目のフルページキャッシュプラグイン（WP Rocket、W3 Total Cache）を併用しないでください。Cloudflare はそれらを無効にすることを推奨しています。Velox 独自のページキャッシュは問題ありません。"
-
-msgid "Done"
-msgstr "完了"
-
-msgid "Download images"
-msgstr "画像をダウンロード"
-
-msgid "Download renamed"
-msgstr "名前変更済みをダウンロード"
-
-msgid "Download selected"
-msgstr "選択項目をダウンロード"
-
-msgid "Download theme"
-msgstr "テーマをダウンロード"
-
-msgid "Drag the handle to reorder"
-msgstr "ハンドルをドラッグして並べ替え"
-
-msgid "Drag the slider or type an exact value. 80% is a good balance; lossless mode below ignores this."
-msgstr "スライダーをドラッグするか、正確な値を入力してください。80% が良いバランスです。下のロスレスモードではこの値は無視されます。"
-
-msgid "Drop shadow"
-msgstr "ドロップシャドウ"
-
-msgid "Duplicate"
-msgstr "複製"
-
-msgid "Duration"
-msgstr "所要時間"
-
-msgid "Edge offset (px)"
-msgstr "端からのオフセット（px）"
+msgid "Visit"
+msgstr "訪問"
 
 msgid "Edit"
 msgstr "編集"
 
-msgid "Edit form"
-msgstr "フォームを編集"
-
-msgid "Edit names"
-msgstr "名前を編集"
-
-msgid "Edit the %1$s, %2$s and %3$s on any image below, then hit %4$s. Use %5$s to change the actual filename without breaking links. For bulk work, use %6$s with the %7$s format."
-msgstr "下の任意の画像で %1$s、%2$s、%3$s を編集し、%4$s を押してください。リンクを壊さずに実際のファイル名を変更するには %5$s を使用します。一括作業には、%7$s 形式で %6$s を使用してください。"
-
-msgid "Edit your robots.txt, control how each page appears in Google, and keep an XML sitemap in sync — the essentials, without a second heavyweight SEO plugin."
-msgstr "robots.txt を編集し、各ページが Google にどう表示されるかを制御し、XML サイトマップを同期させておけます。もう 1 つの重量級 SEO プラグインなしで、必要な機能が揃います。"
-
-msgid "Embed"
-msgstr "埋め込み"
-
-msgid "Enable Custom fields"
-msgstr "カスタムフィールドを有効化"
-
-msgid "Enable OctoberCMS theme builder"
-msgstr "OctoberCMS テーマビルダーを有効化"
-
-msgid "Enable PageSpeed status"
-msgstr "PageSpeed ステータスを有効化"
-
-msgid "Enable Script Manager"
-msgstr "スクリプトマネージャーを有効化"
-
-msgid "Enable WebP output in Images settings first."
-msgstr "まず「画像」設定で WebP 出力を有効にしてください。"
-
-msgid "Enable cookie banner"
-msgstr "Cookie バナーを有効化"
-
-msgid "Enable maintenance mode"
-msgstr "メンテナンスモードを有効化"
-
-msgid "Engine"
-msgstr "エンジン"
-
-msgid "Enter your Cloudflare account email + paste the token → %s."
-msgstr "Cloudflare アカウントのメールアドレスを入力し、トークンを貼り付けてください → %s。"
-
-msgid "Entrance animation"
-msgstr "登場アニメーション"
-
-msgid "Entries"
-msgstr "エントリー"
-
-msgid "Every new JPG/PNG upload is converted to WebP automatically."
-msgstr "新しくアップロードされた JPG/PNG はすべて自動的に WebP に変換されます。"
-
-msgid "Every page and post is set to noindex, nofollow, and anything you create or duplicate meanwhile starts hidden too. Pages you had already set to noindex are left alone. When you switch maintenance back off, Velox asks what to do with them."
-msgstr "すべての固定ページと投稿が noindex、nofollow に設定され、その間に作成または複製したものも非表示の状態で開始されます。すでに noindex に設定していたページはそのままにされます。メンテナンスを再びオフにすると、Velox はそれらをどう扱うかを尋ねます。"
-
-msgid "Everything in Velox"
-msgstr "Velox 内のすべて"
-
-msgid "Everything in this category passed."
-msgstr "このカテゴリーのすべてが合格しました。"
-
-msgid "Export / Bulk import"
-msgstr "エクスポート／一括インポート"
-
-msgid "Export CSV"
-msgstr "CSV をエクスポート"
-
-msgid "Export DB"
-msgstr "DB をエクスポート"
-
-msgid "Export all"
-msgstr "すべてエクスポート"
-
-msgid "Export as plugin"
-msgstr "プラグインとしてエクスポート"
-
-msgid "Export files"
-msgstr "ファイルをエクスポート"
-
-msgid "Export pipe list"
-msgstr "パイプリストをエクスポート"
-
-msgid "Export settings"
-msgstr "設定をエクスポート"
-
-msgid "Failed"
-msgstr "失敗"
-
-msgid "Fallback connection"
-msgstr "フォールバック接続"
-
-msgid "Feeds are disabled on this site."
-msgstr "このサイトではフィードが無効になっています。"
-
-msgid "Field groups"
-msgstr "フィールドグループ"
-
-msgid "Field groups attach custom fields to your content based on location rules."
-msgstr "フィールドグループは、ロケーションルールに基づいてカスタムフィールドをコンテンツに紐付けます。"
-
-msgid "Fields"
-msgstr "フィールド"
-
-msgid "File Manager"
-msgstr "ファイルマネージャー"
-
-msgid "Files only"
-msgstr "ファイルのみ"
-
-msgid "Find %1$s in the templates → %2$s (sets the right permissions automatically)."
-msgstr "テンプレート内で %1$s を見つけてください → %2$s（適切な権限を自動的に設定します）。"
-
-msgid "Finds images nothing in your content or page-builder data points at. It's deliberately cautious — it won't list a file that looks referenced anywhere — but always eyeball the list before deleting, since some references (external CSS, exports) can't be detected."
-msgstr "コンテンツやページビルダーのデータのどこからも参照されていない画像を見つけます。意図的に慎重に動作し、どこかで参照されているように見えるファイルは一覧に表示しません。ただし、一部の参照（外部 CSS、エクスポートなど）は検出できないため、削除前に必ず一覧を目視で確認してください。"
-
-msgid "First-party visitor counts, measured by Velox's own lightweight beacon — no third-party analytics."
-msgstr "Velox 独自の軽量ビーコンで計測されるファーストパーティの訪問者数です。サードパーティの分析は使用しません。"
-
-msgid "First-party, aggregate only. Mention it in your privacy policy."
-msgstr "ファーストパーティで、集計のみです。プライバシーポリシーに記載してください。"
-
-msgid "Folders"
-msgstr "フォルダー"
-
-msgid "Follow WordPress"
-msgstr "WordPress に従う"
-
-msgid "Font manager"
-msgstr "フォントマネージャー"
-
-msgid "Footer HTML, also embeddable with [velox_snippet id=\"…\"]."
+msgid "/new"
 msgstr ""
 
-msgid "Footer text"
-msgstr "フッターテキスト"
+msgid "410 Gone"
+msgstr "410 Gone"
 
-msgid "For agency/company accounts, prefer an %s token so it survives staff changes."
-msgstr "代理店や企業のアカウントの場合は、担当者の変更後も維持されるよう %s トークンを選択してください。"
+msgid "404 log"
+msgstr "404 ログ"
+
+msgid "Log 404s"
+msgstr "404 を記録"
 
 msgid "Forget"
 msgstr "削除"
 
-msgid "Form"
-msgstr "フォーム"
-
-msgid "Form canvas"
-msgstr "フォームキャンバス"
-
-msgid "Forms"
-msgstr "フォーム"
-
-msgid "Found the Google Fonts CSS but could not download any font files. The server may be blocking outbound requests to fonts.gstatic.com."
-msgstr "Google Fonts の CSS は見つかりましたが、フォントファイルをダウンロードできませんでした。サーバーが fonts.gstatic.com への送信リクエストをブロックしている可能性があります。"
-
-msgid "Frequency"
-msgstr "頻度"
+msgid "New redirect"
+msgstr "新規リダイレクト"
 
 msgid "From"
 msgstr "差出人"
 
-msgid "From email"
-msgstr "差出人メールアドレス"
-
-msgid "From name"
-msgstr "差出人名"
-
-msgid "Front end shows the holding page to everyone except logged-in admins."
-msgstr "フロントエンドは、ログイン中の管理者を除くすべての人に待機ページを表示します。"
-
-msgid "Full control — target any element inside the banner. Scope your rules with %1$s (the banner) or %2$s (a specific button). Applied on top of everything above."
-msgstr "完全な制御 — バナー内の任意の要素を対象にできます。%1$s（バナー）または %2$s（特定のボタン）でルールの範囲を指定します。上記すべての上に適用されます。"
-
-msgid "Full-width buttons on mobile"
-msgstr "モバイルで全幅ボタン"
-
-msgid "GA4 / GTM ID"
-msgstr ""
-
-msgid "GD"
-msgstr "GD"
-
-msgid "GIF"
-msgstr "GIF"
-
-msgid "Get keys from your provider, paste them below, then switch on “Require CAPTCHA” per form. No keys = the option stays unusable."
-msgstr "プロバイダーからキーを取得して下に貼り付け、フォームごとに「CAPTCHA を必須にする」をオンにしてください。キーがない場合、このオプションは使用できないままになります。"
-
-msgid "Give the WordPress/Oxygen names something human. Every change is applied to the HTML %s the CSS together, and the preview updates as you type. When you're done, download a renamed version."
-msgstr "WordPress/Oxygen の名前を、人が読める分かりやすいものにしましょう。すべての変更は HTML %s CSS の両方に同時に適用され、入力すると同時にプレビューが更新されます。完了したら、名前を変更したバージョンをダウンロードしてください。"
-
-msgid "Give the template a name."
-msgstr "テンプレートに名前を付けてください。"
-
-msgid "Go to the optimizer"
-msgstr "最適化ツールへ移動"
-
-msgid "Good to know"
-msgstr "知っておくと便利"
-
-msgid "Google Consent Mode v2"
-msgstr "Google Consent Mode v2"
-
-msgid "Google reCAPTCHA"
-msgstr "Google reCAPTCHA"
-
-msgid "HTML"
-msgstr "HTML"
-
-msgid "HTML lang switcher"
-msgstr "HTML 言語スイッチャー"
-
-msgid "HTML — Markup"
-msgstr "HTML — マークアップ"
+msgid "To"
+msgstr "宛先"
 
 msgid "HTTP status"
 msgstr "HTTP ステータス"
 
-msgid "Has archive page"
-msgstr "アーカイブページあり"
+msgid "Match type"
+msgstr "一致タイプ"
 
-msgid "Heading"
-msgstr "見出し"
-
-msgid "Heading colour"
-msgstr "見出しの色"
-
-msgid "Heading size (px)"
-msgstr "見出しのサイズ（px）"
-
-msgid "Heading weight"
-msgstr "見出しの太さ"
-
-msgid "Height"
-msgstr "高さ"
-
-msgid "Hierarchical (category-like)"
-msgstr "階層型（カテゴリー型）"
-
-msgid "Hierarchical (page-like)"
-msgstr "階層型（ページ型）"
+msgid "Priority"
+msgstr "優先度"
 
 msgid "Higher numbers are checked first."
 msgstr "数値が大きいものから先にチェックされます。"
 
-msgid "Home page"
-msgstr "ホームページ"
+msgid "Category"
+msgstr "カテゴリー"
 
-msgid "Home page first, then your chosen post types (A–Z). Exclude any single page from its editor (the"
-msgstr "まずホームページ、次に選択した投稿タイプ（A〜Z 順）です。個々のページはそのエディターから除外できます（"
+msgid "Description"
+msgstr "説明"
 
-msgid "Hosted %1$d font file(s) across %2$d family/families locally."
-msgstr "%2$d 個のファミリーにわたる %1$d 個のフォントファイルをローカルにホストしました。"
-
-msgid "Hour"
-msgstr "時"
-
-msgid "Housekeeping"
-msgstr "メンテナンス"
-
-msgid "How do you want to set up"
-msgstr "どのように設定しますか"
-
-msgid "I'll configure it myself"
-msgstr "自分で設定する"
-
-msgid "IDs"
-msgstr "ID"
-
-msgid "If the site is ever compromised, revoke the token in Cloudflare (My Profile → API Tokens) and issue a new one."
-msgstr "サイトが侵害された場合は、Cloudflare（マイプロフィール → API トークン）でトークンを失効させ、新しいものを発行してください。"
+msgid "Active"
+msgstr "有効"
 
 msgid "Ignore case"
 msgstr "大文字と小文字を区別しない"
@@ -1048,740 +419,323 @@ msgstr "クエリパラメーターを無視"
 msgid "Ignore trailing slash"
 msgstr "末尾のスラッシュを無視"
 
-msgid "Image defaults"
-msgstr "画像の既定値"
+msgid "Save redirect"
+msgstr "リダイレクトを保存"
 
-msgid "Image, GIF, or Lottie (.json / .lottie) URL. Leave empty to use the default Velox mark."
-msgstr "画像、GIF、または Lottie（.json / .lottie）の URL です。空欄のままにすると既定の Velox マークが使用されます。"
+msgid "Custom fields"
+msgstr "カスタムフィールド"
 
-msgid "Images"
-msgstr "画像"
+msgid "get_field()"
+msgstr ""
 
-msgid "Images wider than this are scaled down to it; the height follows automatically to keep the aspect ratio. Images already narrower are left at their own size (never upscaled). 0 = never resize."
-msgstr "この値より幅の広い画像はこの幅まで縮小され、高さは縦横比を保つよう自動的に調整されます。すでにこれより幅の狭い画像はそのままのサイズで維持されます（拡大されることはありません）。0 = リサイズしない。"
+msgid "Enable Custom fields"
+msgstr "カスタムフィールドを有効化"
 
-msgid "Imagick"
-msgstr "Imagick"
+msgid "— switch on to create field groups."
+msgstr "— オンにするとフィールドグループを作成できます。"
 
-msgid "Import"
-msgstr "インポート"
+msgid "Velox_Fields::get_field('name')"
+msgstr ""
 
-msgid "Import / Export"
-msgstr "インポート／エクスポート"
+msgid "All field groups"
+msgstr "すべてのフィールドグループ"
 
-msgid "Import settings"
-msgstr "設定をインポート"
+msgid "Save group"
+msgstr "グループを保存"
 
-msgid "In use"
-msgstr "使用中"
+msgid "Fields"
+msgstr "フィールド"
 
-msgid "In your page source right now"
-msgstr "現在のページソース内"
+msgid "Drag the handle to reorder"
+msgstr "ハンドルをドラッグして並べ替え"
 
-msgid "Inbox"
-msgstr "受信トレイ"
-
-msgid "Inject CSS into the page head — front-end, admin, or both."
-msgstr "CSS をページの head に挿入します。フロントエンド、管理画面、またはその両方です。"
-
-msgid "Insert field"
-msgstr "フィールドを挿入"
-
-msgid "Install a whole stack at once — paste wordpress.org slugs or links, or upload plugin ZIPs straight from your computer. Save a list as a blueprint to re-apply on the next site."
-msgstr "スタック全体を一度にインストールできます。wordpress.org のスラッグやリンクを貼り付けるか、コンピューターからプラグインの ZIP を直接アップロードしてください。リストをブループリントとして保存すると、次のサイトで再適用できます。"
-
-msgid "Install from list"
-msgstr "リストからインストール"
-
-msgid "Insufficient permissions."
-msgstr "権限が不足しています。"
-
-msgid "JPG"
-msgstr "JPG"
-
-msgid "JS"
-msgstr "JS"
-
-msgid "JS — Scripts"
-msgstr "JS — スクリプト"
-
-msgid "Keep my settings if I delete Velox"
-msgstr "Velox を削除しても設定を保持する"
-
-msgid "Keep newest"
-msgstr "最新のものを保持"
-
-msgid "Label placement"
-msgstr "ラベルの配置"
-
-msgid "Language"
-msgstr "言語"
-
-msgid "Last 7 days"
-msgstr "過去 7 日間"
-
-msgid "Latest"
-msgstr "最新"
-
-msgid "Layout"
-msgstr "レイアウト"
-
-msgid "Leave empty to keep the default wp-login. With a slug set, your login lives at:"
-msgstr "既定の wp-login を維持するには空欄のままにしてください。スラッグを設定すると、ログインは次の場所になります:"
-
-msgid "Leave unchanged"
-msgstr "変更しない"
-
-msgid "Left"
-msgstr "左"
-
-msgid "Legal links"
-msgstr "法的リンク"
-
-msgid "Legal-link colour"
-msgstr "法的リンクの色"
-
-msgid "Library"
-msgstr "ライブラリ"
-
-msgid "Link 1 URL"
-msgstr "リンク 1 の URL"
-
-msgid "Link 1 label"
-msgstr "リンク 1 のラベル"
-
-msgid "Link 2 URL"
-msgstr "リンク 2 の URL"
-
-msgid "Link 2 label"
-msgstr "リンク 2 のラベル"
-
-msgid "List the top opportunities Lighthouse found, biggest time-savings first."
-msgstr "Lighthouse が見つけた主要な改善機会を、時間短縮効果の大きい順に一覧表示します。"
-
-msgid "Live PageSpeed"
-msgstr "ライブ PageSpeed"
-
-msgid "Live PageSpeed is switched off. Turn it on to pull real Lighthouse reports for this site."
-msgstr "ライブ PageSpeed はオフになっています。このサイトの実際の Lighthouse レポートを取得するにはオンにしてください。"
-
-msgid "Live at %s"
-msgstr "%s で公開中"
-
-msgid "Live preview"
-msgstr "ライブプレビュー"
-
-msgid "Load"
-msgstr "読み込み"
-
-msgid "Loading animation"
-msgstr "読み込みアニメーション"
-
-msgid "Loading images…"
-msgstr "画像を読み込み中…"
-
-msgid "Loading media…"
-msgstr "メディアを読み込み中…"
-
-msgid "Loading optimized images…"
-msgstr "最適化された画像を読み込み中…"
-
-msgid "Loading…"
-msgstr "読み込み中…"
-
-msgid "Local fonts removed. Google Fonts will load normally again."
-msgstr "ローカルフォントを削除しました。Google Fonts は再び通常どおり読み込まれます。"
-
-msgid "Location"
-msgstr "ロケーション"
+msgid "Add field"
+msgstr "フィールドを追加"
 
 msgid "Location rules"
 msgstr "ロケーションルール"
 
-msgid "Log 404s"
-msgstr "404 を記録"
+msgid "Show this group where %1$s rules in a box match, or %2$s box matches."
+msgstr "ボックス内の %1$s のルールが一致する場合、または %2$s のボックスが一致する場合に、このグループを表示します。"
 
-msgid "Log in at %s."
-msgstr "%s でログインしてください。"
+msgid "all"
+msgstr "すべて"
 
-msgid "Logging is off. Flip it on to start recording events from this point forward."
-msgstr "ログ記録はオフです。オンにすると、この時点以降のイベントの記録を開始します。"
+msgid "any"
+msgstr "任意"
 
-msgid "Login slug"
-msgstr "ログインスラッグ"
-
-msgid "Logo"
-msgstr "ロゴ"
-
-msgid "Logo URL"
-msgstr "ロゴ URL"
-
-msgid "Lossless WebP"
-msgstr "ロスレス WebP"
-
-msgid "Lottie animation"
-msgstr "Lottie アニメーション"
-
-msgid "Lottie animation file"
-msgstr "Lottie アニメーションファイル"
-
-msgid "Mail not reaching Gmail or Microsoft? Run this to see exactly which authentication record your domain is missing."
-msgstr "メールが Gmail や Microsoft に届きませんか ? これを実行すると、ドメインにどの認証レコードが不足しているかを正確に確認できます。"
-
-msgid "Maintenance mode"
-msgstr "メンテナンスモード"
-
-msgid "Manage fonts"
-msgstr "フォントを管理"
-
-msgid "Mark done"
-msgstr "完了にする"
-
-msgid "Mark read"
-msgstr "既読にする"
-
-msgid "Markup"
-msgstr "マークアップ"
-
-msgid "Match type"
-msgstr "一致タイプ"
-
-msgid "Max height (px)"
-msgstr "最大の高さ（px）"
-
-msgid "Media"
-msgstr "メディア"
-
-msgid "Menu icon"
-msgstr "メニューアイコン"
-
-msgid "Menu position"
-msgstr "メニューの位置"
-
-msgid "Menu title"
-msgstr "メニュータイトル"
-
-msgid "Message"
-msgstr "メッセージ"
-
-msgid "Messages sent through your forms land here."
-msgstr "フォームを通じて送信されたメッセージはここに届きます。"
-
-msgid "Metrics"
-msgstr "指標"
-
-msgid "Migrate from another plugin"
-msgstr "別のプラグインから移行"
-
-msgid "Migration coming soon"
-msgstr "移行機能は近日公開"
-
-msgid "Minified CSS/JS"
-msgstr "圧縮された CSS/JS"
-
-msgid "Mobile"
-msgstr "モバイル"
-
-msgid "Move to trash"
-msgstr "ゴミ箱へ移動"
-
-msgid "Moves the login page off the default %s to a path only you know — most brute-force bots hammer wp-login, so this quietly cuts that traffic."
-msgstr "ログインページを既定の %s から、あなただけが知るパスに移動します。ほとんどの総当たり攻撃ボットは wp-login を狙うため、これによりそのトラフィックを目立たずに削減します。"
-
-msgid "My Profile"
-msgstr "マイプロフィール"
-
-msgid "Name"
-msgstr "名前"
-
-msgid "New field group"
-msgstr "新規フィールドグループ"
-
-msgid "New file name"
-msgstr "新しいファイル名"
-
-msgid "New folder"
-msgstr "新規フォルダー"
-
-msgid "New form"
-msgstr "新規フォーム"
-
-msgid "New name matches the current name."
-msgstr "新しい名前が現在の名前と同じです。"
-
-msgid "New redirect"
-msgstr "新規リダイレクト"
-
-msgid "Newest"
-msgstr "最新"
-
-msgid "Next"
-msgstr "次へ"
-
-msgid "Next →"
-msgstr "次へ →"
-
-msgid "No %s exists in your site root yet — saving will create one."
-msgstr "サイトのルートにはまだ %s が存在しません。保存すると作成されます。"
-
-msgid "No CSS found to scan. If your host blocks loopback, Velox reads the builder CSS cache instead — open your site once so it gets generated, then try again."
-msgstr "スキャンする CSS が見つかりませんでした。ホストがループバックをブロックしている場合、Velox は代わりにビルダーの CSS キャッシュを読み込みます。生成されるようにサイトを一度開いてから、再度お試しください。"
-
-msgid "No Google Fonts were found on the front page. If your fonts load elsewhere, link a page that uses them."
-msgstr "フロントページで Google Fonts が見つかりませんでした。フォントが別の場所で読み込まれる場合は、それを使用するページを指定してください。"
-
-msgid "No HTML came back for that path."
-msgstr "そのパスに対して HTML が返されませんでした。"
-
-msgid "No assets discovered yet. Click %s above, or visit a few pages of your site, then reload this screen."
-msgstr "まだアセットが検出されていません。上の %s をクリックするか、サイトのいくつかのページを開いてから、この画面を再読み込みしてください。"
-
-msgid "No backups yet. Create one above, import one, or set up a schedule below."
-msgstr "まだバックアップがありません。上で作成するか、インポートするか、下でスケジュールを設定してください。"
-
-msgid "No blueprints yet. Save a slug list above to create one."
-msgstr "まだブループリントがありません。上でスラッグリストを保存して作成してください。"
-
-msgid "No builds yet. Name your theme above and hit %s."
-msgstr "まだビルドがありません。上でテーマに名前を付けて %s を押してください。"
-
-msgid "No custom post types yet. Add one and it shows up in the sidebar straight away."
-msgstr "まだカスタム投稿タイプがありません。追加すると、すぐにサイドバーに表示されます。"
-
-msgid "No custom taxonomies yet."
-msgstr "まだカスタムタクソノミーがありません。"
-
-msgid "No entries yet"
-msgstr "まだエントリーがありません"
-
-msgid "No field groups yet"
-msgstr "まだフィールドグループがありません"
-
-msgid "No fonts hosted locally yet. Enable the toggle, then scan."
-msgstr "まだローカルにホストされたフォントがありません。トグルを有効にしてからスキャンしてください。"
-
-msgid "No forms yet. Hit %1$s to create one — you'll get a %2$s shortcode to embed anywhere, including an Oxygen Shortcode element."
-msgstr "まだフォームがありません。%1$s を押して作成してください。%2$s ショートコードが得られ、Oxygen のショートコード要素を含む任意の場所に埋め込めます。"
-
-msgid "No image engine (Imagick or GD with WebP) was found on this server. Conversion is disabled until one is enabled in your PHP settings — see the compatibility list below."
-msgstr "このサーバーで画像エンジン（Imagick または WebP 対応の GD）が見つかりませんでした。PHP 設定でいずれかが有効になるまで、変換は無効になります。下の互換性リストをご覧ください。"
-
-msgid "No local stylesheets to trim on that page."
-msgstr "そのページに削減できるローカルのスタイルシートはありません。"
-
-msgid "No options pages yet."
-msgstr "まだオプションページがありません。"
-
-msgid "No output format selected — enable WebP and/or AVIF in Images settings."
-msgstr "出力形式が選択されていません。「画像」設定で WebP や AVIF を有効にしてください。"
-
-msgid "No redirects yet. Add one to send an old URL somewhere useful."
-msgstr "まだリダイレクトがありません。追加して、古い URL を役立つ場所へ転送しましょう。"
-
-msgid "No snippets here yet."
-msgstr "まだここにスニペットがありません。"
-
-msgid "No snippets match your filter."
-msgstr "フィルターに一致するスニペットがありません。"
-
-msgid "No submissions yet"
-msgstr "まだ送信がありません"
-
-msgid "No visits recorded in this range yet."
-msgstr "この範囲ではまだ訪問が記録されていません。"
-
-msgid "Normal"
-msgstr "標準"
-
-msgid "Not a media item."
-msgstr "メディア項目ではありません。"
-
-msgid "Not allowed."
-msgstr "許可されていません。"
-
-msgid "Not found"
-msgstr "見つかりません"
-
-msgid "Not in use"
-msgstr "未使用"
-
-msgid "Not installed"
-msgstr "未インストール"
-
-msgid "Not on this server"
-msgstr "このサーバーにはありません"
-
-msgid "Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards."
-msgstr "何を有効にすればよいか分かりませんか ? 出発点を選んでください。あとからすべて微調整できます。"
-
-msgid "Nothing converted yet. Run a bulk optimization to fill this up."
-msgstr "まだ何も変換されていません。一括最適化を実行してここを埋めてください。"
-
-msgid "Nothing here."
-msgstr "ここには何もありません。"
-
-msgid "Nothing sent yet."
-msgstr "まだ何も送信されていません。"
-
-msgid "Notifications"
-msgstr "通知"
-
-msgid "Notifications are sent when the form is submitted. Use the %1$s menu to drop in merge tags like %2$s, or %3$s for the whole submission."
-msgstr "フォームが送信されると通知が送られます。%1$s メニューを使用して、%2$s のような差し込みタグを挿入するか、送信内容全体には %3$s を使用してください。"
-
-msgid "Now"
-msgstr "現在"
-
-msgid "OctoberCMS builder is on"
-msgstr "OctoberCMS ビルダーは有効です"
-
-msgid "OctoberCMS theme"
-msgstr "OctoberCMS テーマ"
-
-msgid "Off (default) strips camera, date and GPS data for smaller, more private files. On keeps it."
-msgstr "オフ（既定）は、より小さくプライバシーに配慮したファイルにするため、カメラ、日付、GPS のデータを削除します。オンにするとそれらを保持します。"
-
-msgid "Offer Analytics"
-msgstr "分析を提供"
-
-msgid "Offer Marketing"
-msgstr "マーケティングを提供"
-
-msgid "On (recommended): the JPG/PNG becomes a WebP right in your media library, at its real smaller size. Off: keeps the original and serves a WebP copy only on the front-end."
-msgstr "オン（推奨）: JPG/PNG がメディアライブラリ内でそのまま WebP になり、実際に小さいサイズになります。オフ: 元の画像を保持し、フロントエンドでのみ WebP のコピーを配信します。"
-
-msgid "On by default. Rewrites the page HTML on the front end. With Cloudflare Polish enabled you can leave this off."
-msgstr "既定でオンです。フロントエンドのページ HTML を書き換えます。Cloudflare Polish を有効にしている場合は、これをオフのままにできます。"
-
-msgid "Once Weekly"
-msgstr "週 1 回"
-
-msgid "Once enabled, %1$s and %2$s redirect away for logged-out visitors. If you ever lock yourself out, clear the %3$s value (or deactivate Velox) via your hosting file manager to restore the default login."
-msgstr "有効にすると、ログアウトした訪問者に対して %1$s と %2$s が別の場所へリダイレクトします。万一ロックアウトされた場合は、ホスティングのファイルマネージャーから %3$s の値をクリアする（または Velox を無効化する）ことで、既定のログインを復元できます。"
-
-msgid "Once on, build field groups here and they'll appear on the matching post edit screens. Read values on the front end with %1$s or the %2$s merge tag."
-msgstr "オンにしたら、ここでフィールドグループを作成すると、対応する投稿編集画面に表示されます。フロントエンドでは %1$s または %2$s 差し込みタグで値を読み込めます。"
-
-msgid "One per line. Accepts a plain slug (%1$s), a wordpress.org link, or a direct %2$s download URL."
-msgstr "1 行に 1 つです。単純なスラッグ（%1$s）、wordpress.org のリンク、または直接の %2$s ダウンロード URL を受け付けます。"
-
-msgid "One row per image: %s. Filenames are matched to your library; a header row is ignored."
-msgstr "画像 1 つにつき 1 行です: %s。ファイル名はライブラリと照合されます。ヘッダー行は無視されます。"
-
-msgid "Only JPG and PNG files can be converted."
-msgstr "JPG と PNG のファイルのみ変換できます。"
-
-msgid "Open"
-msgstr "開く"
-
-msgid "Open Performance"
-msgstr "パフォーマンスを開く"
-
-msgid "Open plugins page"
-msgstr "プラグインページを開く"
-
-msgid "Optimizations on"
-msgstr "最適化オン"
-
-msgid "Optimize Images"
-msgstr "画像を最適化"
-
-msgid "Optimize images"
-msgstr "画像を最適化"
-
-msgid "Optimize tables"
-msgstr "テーブルを最適化"
-
-msgid "Optimized"
-msgstr "最適化済み"
-
-msgid "Options pages"
-msgstr "オプションページ"
-
-msgid "Options pages are admin screens for global settings (read with %s). Target one from a field group's location rule."
-msgstr "オプションページは、グローバル設定用の管理画面です（%s で読み込みます）。フィールドグループのロケーションルールから対象に指定できます。"
-
-msgid "Or upload plugin ZIPs"
-msgstr "またはプラグインの ZIP をアップロード"
-
-msgid "Order number"
-msgstr "並び順の番号"
-
-msgid "Original"
-msgstr "オリジナル"
-
-msgid "Output formats"
-msgstr "出力形式"
-
-msgid "Overlay blur (px)"
-msgstr "オーバーレイのぼかし（px）"
-
-msgid "Overlay colour"
-msgstr "オーバーレイの色"
-
-msgid "Override the lang attribute"
-msgstr "lang 属性を上書き"
-
-msgid "Overview"
-msgstr "概要"
-
-msgid "PHP"
-msgstr "PHP"
-
-msgid "PHP-zip is not available on this server, so the plugin zip cannot be built. Ask your host to enable the php-zip extension."
-msgstr "このサーバーでは PHP-zip が利用できないため、プラグインの ZIP をビルドできません。ホストに php-zip 拡張機能の有効化を依頼してください。"
-
-msgid "PHP-zip isn't available on this server, so %1$s backups can't be created or restored — database backups still work. Ask your host to enable the %2$s extension."
-msgstr "このサーバーでは PHP-zip が利用できないため、%1$s のバックアップは作成も復元もできません。データベースのバックアップは引き続き機能します。ホストに %2$s 拡張機能の有効化を依頼してください。"
-
-msgid "PNG"
-msgstr "PNG"
-
-msgid "Page builder"
-msgstr "ページビルダー"
-
-msgid "Page cache"
-msgstr "ページキャッシュ"
-
-msgid "Page cache status"
-msgstr "ページキャッシュの状態"
-
-msgid "Page title"
-msgstr "ページタイトル"
-
-msgid "Page views"
-msgstr "ページビュー"
-
-msgid "PageSpeed"
-msgstr "PageSpeed"
-
-msgid "PageSpeed Insights API key"
-msgstr "PageSpeed Insights API キー"
-
-msgid "Pages"
-msgstr "固定ページ"
-
-msgid "Pages that were already set to noindex before you switched this on were left alone, so their own setting is untouched."
-msgstr "この機能をオンにする前にすでに noindex に設定されていたページはそのままにされ、その独自の設定は変更されていません。"
-
-msgid "Paragraph number"
-msgstr "段落番号"
-
-msgid "Parent menu"
-msgstr "親メニュー"
-
-msgid "Paste this into any page, widget or Oxygen Shortcode element."
-msgstr "これを任意のページ、ウィジェット、または Oxygen のショートコード要素に貼り付けてください。"
-
-msgid "Peak day"
-msgstr "ピーク日"
-
-msgid "Pending"
-msgstr "保留中"
-
-msgid "Perfect quality with no compression loss — larger files. Great for graphics and screenshots, overkill for photos."
-msgstr "圧縮による劣化のない完璧な品質ですが、ファイルは大きくなります。グラフィックやスクリーンショットに最適ですが、写真には過剰です。"
-
-msgid "Performance"
-msgstr "パフォーマンス"
-
-msgid "Phones often work best as a bottom or top bar even when desktop is a floating box."
-msgstr "デスクトップではフローティングボックスであっても、スマートフォンでは下部または上部のバーが最適に機能することがよくあります。"
-
-msgid "Pick a Bootstrap icon, or type a %s class or image URL."
-msgstr "Bootstrap アイコンを選択するか、%s クラスまたは画像 URL を入力してください。"
-
-msgid "Pick a file on the left to open it here."
-msgstr "左でファイルを選択すると、ここで開きます。"
-
-msgid "Pick one or more %s plugin files from your computer and install them directly."
-msgstr "コンピューターから 1 つ以上の %s プラグインファイルを選択して、直接インストールしてください。"
-
-msgid "Pick the recommended path and Velox scans your plugins and tunes everything for you — or configure it yourself."
-msgstr "推奨のパスを選ぶと、Velox がプラグインをスキャンしてすべてを自動で調整します。または自分で設定することもできます。"
-
-msgid "Pick yours below — every builder needs different speed settings. Not sure? %s"
-msgstr "下からご自身のものを選んでください。ビルダーごとに必要な速度設定は異なります。分かりませんか ? %s"
-
-msgid "Pinned"
-msgstr "ピン留め済み"
-
-msgid "Placement"
-msgstr "配置"
-
-msgid "Placement (desktop)"
-msgstr "配置（デスクトップ）"
-
-msgid "Placement (mobile)"
-msgstr "配置（モバイル）"
-
-msgid "Planned"
-msgstr "予定"
-
-msgid "Plays when the banner first appears on the live site."
-msgstr "公開サイトでバナーが最初に表示されるときに再生されます。"
-
-msgid "Please keep this tab open."
-msgstr "このタブを開いたままにしてください。"
-
-msgid "Please provide a valid file name."
-msgstr "有効なファイル名を入力してください。"
-
-msgid "Plugins — slugs or links"
-msgstr "プラグイン — スラッグまたはリンク"
-
-msgid "Plugins → Add New → search %1$s → install &amp; activate the one by %2$s (listed as \"Cloudflare – CDN &amp; Edge Caching\"). Don't confuse it with \"WP Cloudflare Super Page Cache.\""
-msgstr "プラグイン → 新規追加 → %1$s を検索 → %2$s によるもの（「Cloudflare – CDN &amp; Edge Caching」と表示）をインストールして有効化してください。「WP Cloudflare Super Page Cache」と混同しないでください。"
-
-msgid "Plural label"
-msgstr "複数形ラベル"
-
-msgid "Position"
-msgstr "位置"
-
-msgid "Post types"
-msgstr "投稿タイプ"
-
-msgid "Posts"
-msgstr "投稿"
-
-msgid "Preload"
-msgstr "プリロード"
-
-msgid "Preload now"
-msgstr "今すぐプリロード"
+msgid "+ Add rule group"
+msgstr "+ ルールグループを追加"
 
 msgid "Presentation"
 msgstr "表示"
 
-msgid "Preserve EXIF metadata"
-msgstr "EXIF メタデータを保持"
+msgid "Label placement"
+msgstr "ラベルの配置"
 
-msgid "Preview"
-msgstr "プレビュー"
+msgid "Top"
+msgstr "上"
 
-msgid "Primary connection"
-msgstr "プライマリ接続"
+msgid "Left"
+msgstr "左"
 
-msgid "Priority"
-msgstr "優先度"
+msgid "Position"
+msgstr "位置"
 
-msgid "Products"
-msgstr "商品"
+msgid "Normal"
+msgstr "標準"
 
-msgid "Profile icon (top right) → %s."
-msgstr "プロフィールアイコン（右上）→ %s。"
+msgid "Side"
+msgstr "サイド"
 
-msgid "Protect wp-admin"
-msgstr "wp-admin を保護"
+msgid "Order number"
+msgstr "並び順の番号"
 
-msgid "Provider"
-msgstr "プロバイダー"
+msgid "Field groups"
+msgstr "フィールドグループ"
+
+msgid "Post types"
+msgstr "投稿タイプ"
+
+msgid "Taxonomies"
+msgstr "タクソノミー"
+
+msgid "Options pages"
+msgstr "オプションページ"
+
+msgid "Custom post types appear in the admin sidebar next to Posts and Pages."
+msgstr "カスタム投稿タイプは、管理サイドバーの「投稿」と「固定ページ」の隣に表示されます。"
+
+msgid "Add post type"
+msgstr "投稿タイプを追加"
+
+msgid "Toggle active"
+msgstr "有効状態を切り替え"
+
+msgid "Singular label"
+msgstr "単数形ラベル"
+
+msgid "Plural label"
+msgstr "複数形ラベル"
+
+msgid "Slug"
+msgstr "スラッグ"
+
+msgid "(lowercase, max 20 chars — this is the post type key)"
+msgstr "（小文字、最大 20 文字 — これは投稿タイプのキーです）"
+
+msgid "Menu icon"
+msgstr "メニューアイコン"
+
+msgid "(dashicons-… or image URL)"
+msgstr "（dashicons-… または画像 URL）"
+
+msgid "Menu position"
+msgstr "メニューの位置"
+
+msgid "Supports"
+msgstr "対応"
+
+msgid "Attach taxonomies"
+msgstr "タクソノミーを紐付け"
 
 msgid "Public"
 msgstr "公開"
 
-msgid "Pull a real Lighthouse score from Google PageSpeed Insights on a schedule and show it on your dashboard. A free %1$s is recommended (checks run without one, but Google rate-limits keyless requests). Your server needs outbound access to %2$s and WordPress cron running."
-msgstr "Google PageSpeed Insights から実際の Lighthouse スコアをスケジュールで取得し、ダッシュボードに表示します。無料の %1$s が推奨されます（なくてもチェックは実行されますが、Google はキーなしのリクエストにレート制限をかけます）。サーバーには %2$s への送信アクセスと、稼働中の WordPress cron が必要です。"
+msgid "Show in sidebar menu"
+msgstr "サイドバーメニューに表示"
 
-msgid "Purge caches across your whole stack in one click. Velox clears its own page cache, WP Fastest Cache and Oxygen directly. Cloudflare is cleared through the official Cloudflare plugin (see the note below)."
-msgstr "ワンクリックでスタック全体のキャッシュをパージします。Velox は自身のページキャッシュ、WP Fastest Cache、Oxygen を直接クリアします。Cloudflare は公式の Cloudflare プラグインを通じてクリアされます（下の注記を参照）。"
+msgid "Show in REST (Gutenberg)"
+msgstr "REST（Gutenberg）で表示"
 
-msgid "Purge page cache"
-msgstr "ページキャッシュをパージ"
+msgid "Has archive page"
+msgstr "アーカイブページあり"
 
-msgid "Quality"
-msgstr "品質"
+msgid "Hierarchical (page-like)"
+msgstr "階層型（ページ型）"
 
-msgid "Quick add:"
-msgstr "クイック追加:"
+msgid "Save post type"
+msgstr "投稿タイプを保存"
 
-msgid "Quick setup"
-msgstr "クイックセットアップ"
+msgid "Add taxonomy"
+msgstr "タクソノミーを追加"
 
-msgid "Quick setup: %1$s install the %2$s plugin, %3$s create a Cloudflare API token, %4$s connect it. Full steps below."
-msgstr "クイックセットアップ: %1$s %2$s プラグインをインストール、%3$s Cloudflare API トークンを作成、%4$s それを接続します。詳しい手順は下にあります。"
+msgid "No custom taxonomies yet."
+msgstr "まだカスタムタクソノミーがありません。"
 
-msgid "Re-ask after (days)"
-msgstr "再確認までの日数"
+msgid "(lowercase, max 32 chars)"
+msgstr "（小文字、最大 32 文字）"
 
-msgid "Re-check"
-msgstr "再チェック"
+msgid "Attach to post types"
+msgstr "投稿タイプに紐付け"
 
-msgid "Read from your live front page in this browser, so it shows what visitors and crawlers really get rather than what the setting claims. WordPress itself is set to %s."
-msgstr "このブラウザーで稼働中のフロントページから読み込むため、設定が示す内容ではなく、訪問者やクローラーが実際に受け取る内容を表示します。WordPress 自体は %s に設定されています。"
+msgid "Hierarchical (category-like)"
+msgstr "階層型（カテゴリー型）"
 
-msgid "Real Lighthouse scores from Google PageSpeed Insights, right on your dashboard."
-msgstr "Google PageSpeed Insights による実際の Lighthouse スコアを、ダッシュボードに直接表示します。"
+msgid "Show admin column"
+msgstr "管理列を表示"
 
-msgid "Recommended"
-msgstr "推奨"
+msgid "Save taxonomy"
+msgstr "タクソノミーを保存"
 
-msgid "Recommended for"
-msgstr "推奨対象"
+msgid "Velox_Fields::get_field('name','option')"
+msgstr ""
 
-msgid "Recommended setup"
-msgstr "推奨設定"
+msgid "Add options page"
+msgstr "オプションページを追加"
 
-msgid "Record activity"
-msgstr "アクティビティを記録"
+msgid "No options pages yet."
+msgstr "まだオプションページがありません。"
 
-msgid "Refresh every"
-msgstr "更新間隔"
+msgid "Page title"
+msgstr "ページタイトル"
 
-msgid "Refresh now"
-msgstr "今すぐ更新"
+msgid "Menu title"
+msgstr "メニュータイトル"
 
-msgid "Regenerate Oxygen CSS"
-msgstr "Oxygen の CSS を再生成"
+msgid "(optional)"
+msgstr "（任意）"
 
-msgid "Regenerate sitemap"
-msgstr "サイトマップを再生成"
+msgid "(lowercase, max 32)"
+msgstr "（小文字、最大 32）"
 
-msgid "Remove"
-msgstr "削除"
+msgid "Parent menu"
+msgstr "親メニュー"
 
-msgid "Remove local fonts"
-msgstr "ローカルフォントを削除"
+msgid "Top-level menu"
+msgstr "トップレベルメニュー"
 
-msgid "Remove selected"
-msgstr "選択項目を削除"
+msgid "Under Velox"
+msgstr "「Velox」の下"
 
-msgid "Rename file"
-msgstr "ファイル名を変更"
+msgid "Under Settings"
+msgstr "「設定」の下"
 
-msgid "Replace originals with WebP"
-msgstr "オリジナルを WebP に置き換え"
+msgid "Under Appearance"
+msgstr "「外観」の下"
 
-msgid "Reply"
-msgstr "返信"
+msgid "Under Tools"
+msgstr "「ツール」の下"
 
-msgid "Request it →"
-msgstr "リクエストする →"
+msgid "Under Posts"
+msgstr "「投稿」の下"
 
-msgid "Resend"
-msgstr "再送信"
+msgid "Under Media"
+msgstr "「メディア」の下"
 
-msgid "Reset"
-msgstr "リセット"
+msgid "(top-level only)"
+msgstr "（トップレベルのみ）"
 
-msgid "Reset auto-learn"
-msgstr "自動学習をリセット"
+msgid "Choose icon"
+msgstr "アイコンを選択"
 
-msgid "Reset discovered list"
-msgstr "検出済みリストをリセット"
+msgid "Pick a Bootstrap icon, or type a %s class or image URL."
+msgstr "Bootstrap アイコンを選択するか、%s クラスまたは画像 URL を入力してください。"
 
-msgid "Reset to default"
-msgstr "既定にリセット"
+msgid "dashicons-…"
+msgstr ""
 
-msgid "Reset to recommended"
-msgstr "推奨にリセット"
+msgid "Turn off to hide this page from the admin menu without deleting it."
+msgstr "オフにすると、このページを削除せずに管理メニューから非表示にできます。"
 
-msgid "Resize image"
-msgstr "画像をリサイズ"
+msgid "Save options page"
+msgstr "オプションページを保存"
 
-msgid "Resize width (px)"
-msgstr "リサイズ幅（px）"
+msgid "New field group"
+msgstr "新規フィールドグループ"
+
+msgid "No field groups yet"
+msgstr "まだフィールドグループがありません"
+
+msgid "Create your first field group to start adding custom fields."
+msgstr "カスタムフィールドの追加を始めるには、最初のフィールドグループを作成してください。"
+
+msgid "Create field group"
+msgstr "フィールドグループを作成"
+
+msgid "Custom fields is on"
+msgstr "カスタムフィールドは有効です"
+
+msgid "— switch off to disable."
+msgstr "— オフにすると無効になります。"
+
+msgid "Choose a menu icon"
+msgstr "メニューアイコンを選択"
+
+msgid "Backup &amp; restore"
+msgstr "バックアップ &amp; 復元"
+
+msgid "wp-content"
+msgstr ""
+
+msgid "Enable Backup &amp; restore"
+msgstr "バックアップ &amp; 復元を有効化"
+
+msgid "file"
+msgstr "ファイル"
+
+msgid "php-zip"
+msgstr ""
+
+msgid "Backups"
+msgstr "バックアップ"
+
+msgid "Total size"
+msgstr "合計サイズ"
+
+msgid "Newest"
+msgstr "最新"
+
+msgid "Restores run"
+msgstr "復元が実行されます"
+
+msgid "Create a backup"
+msgstr "バックアップを作成"
+
+msgid "Export all"
+msgstr "すべてエクスポート"
+
+msgid "Export DB"
+msgstr "DB をエクスポート"
+
+msgid "Export files"
+msgstr "ファイルをエクスポート"
+
+msgid "Create backup"
+msgstr "バックアップを作成"
+
+msgid "Import &amp; restore a backup"
+msgstr "バックアップをインポート &amp; 復元"
+
+msgid ".sql"
+msgstr ""
+
+msgid "restored straight away"
+msgstr "すぐに復元"
+
+msgid "Import &amp; restore"
+msgstr "インポート &amp; 復元"
+
+msgid "Your backups"
+msgstr "あなたのバックアップ"
+
+msgid "Backup"
+msgstr "バックアップ"
+
+msgid "Contents"
+msgstr "コンテンツ"
+
+msgid "Size"
+msgstr "サイズ"
+
+msgid "When"
+msgstr "日時"
+
+msgid "safety"
+msgstr "安全"
+
+msgid "imported"
+msgstr "インポート"
 
 msgid "Restore"
 msgstr "復元"
@@ -1789,975 +743,1866 @@ msgstr "復元"
 msgid "Restore history"
 msgstr "復元履歴"
 
-msgid "Restore now"
-msgstr "今すぐ復元"
-
-msgid "Restore this backup?"
-msgstr "このバックアップを復元しますか ?"
-
-msgid "Restores run"
-msgstr "復元が実行されます"
-
-msgid "Result"
-msgstr "結果"
-
-msgid "Reveal aggressive settings"
-msgstr "アグレッシブな設定を表示"
-
-msgid "Revert point"
-msgstr "復帰ポイント"
-
-msgid "Risky mode"
-msgstr "リスクありモード"
-
-msgid "Routing rules"
-msgstr "ルーティングルール"
-
-msgid "Run PHP early — add_action, add_filter, custom logic. Lint-checked and crash-guarded."
-msgstr "PHP を早い段階で実行します — add_action、add_filter、カスタムロジックなど。構文チェック済みで、クラッシュから保護されます。"
-
-msgid "Run a check now"
-msgstr "今すぐチェックを実行"
-
-msgid "Run backups automatically via WP-Cron. Older backups beyond your keep-count are pruned after each scheduled run."
-msgstr "WP-Cron 経由でバックアップを自動的に実行します。保持数を超えた古いバックアップは、スケジュールされた各実行後に削除されます。"
-
-msgid "Run check now"
-msgstr "今すぐチェックを実行"
-
-msgid "Run first check"
-msgstr "最初のチェックを実行"
-
-msgid "Run setup wizard"
-msgstr "セットアップウィザードを実行"
-
-msgid "Runs checks on the schedule below and shows the PageSpeed widget on the dashboard."
-msgstr "下のスケジュールでチェックを実行し、ダッシュボードに PageSpeed ウィジェットを表示します。"
-
-msgid "Runs the cleanup (not table optimization) once a week via WP-Cron."
-msgstr "WP-Cron 経由で週 1 回クリーンアップ（テーブル最適化ではありません）を実行します。"
-
-msgid "SEO"
-msgstr "SEO"
-
-msgid "SEO health"
-msgstr "SEO の健全性"
-
-msgid "SMTP connections"
-msgstr "SMTP 接続"
-
-msgid "SVG"
-msgstr "SVG"
-
-msgid "Safe"
-msgstr "安全"
-
-msgid "Safe Mode is active — PHP snippets are not running."
-msgstr "セーフモードが有効です。PHP スニペットは実行されていません。"
-
-msgid "Save"
-msgstr "保存"
-
-msgid "Save .htaccess"
-msgstr ".htaccess を保存"
-
-msgid "Save API Credentials"
-msgstr "API 認証情報を保存"
-
-msgid "Save as blueprint"
-msgstr "ブループリントとして保存"
-
-msgid "Save as template"
-msgstr "テンプレートとして保存"
-
-msgid "Save automation"
-msgstr "自動化を保存"
-
-msgid "Save changes"
-msgstr "変更を保存"
-
-msgid "Save connections"
-msgstr "接続を保存"
-
-msgid "Save form"
-msgstr "フォームを保存"
-
-msgid "Save group"
-msgstr "グループを保存"
-
-msgid "Save only"
-msgstr "保存のみ"
-
-msgid "Save options page"
-msgstr "オプションページを保存"
-
-msgid "Save performance settings"
-msgstr "パフォーマンス設定を保存"
-
-msgid "Save post type"
-msgstr "投稿タイプを保存"
-
-msgid "Save redirect"
-msgstr "リダイレクトを保存"
-
-msgid "Save robots.txt"
-msgstr "robots.txt を保存"
-
-msgid "Save schedule"
-msgstr "スケジュールを保存"
-
-msgid "Save settings"
-msgstr "設定を保存"
-
-msgid "Save styles"
-msgstr "スタイルを保存"
-
-msgid "Save taxonomy"
-msgstr "タクソノミーを保存"
-
-msgid "Saved"
-msgstr "保存済み"
-
-msgid "Saved blueprints"
-msgstr "保存済みのブループリント"
-
-msgid "Saves your %s database (a small DB-only backup) so you can undo this restore. It's the small one labelled “safety”."
-msgstr "この復元を取り消せるよう、%s データベース（データベースのみの小さなバックアップ）を保存します。「safety」というラベルの付いた小さなものです。"
-
-msgid "Scan"
-msgstr "スキャン"
-
-msgid "Scan media library"
-msgstr "メディアライブラリをスキャン"
-
-msgid "Scan site"
-msgstr "サイトをスキャン"
-
-msgid "Scan the whole site and export it as an importable OctoberCMS theme: every published page becomes a %s page, the shared header/footer are lifted into partials, the CSS is converted into the theme's SCSS structure, and the media you actually use (and have in the library) is bundled in. Builds are versioned — re-scan to pick up new pages, and keep older versions to revert to."
-msgstr "サイト全体をスキャンし、インポート可能な OctoberCMS テーマとしてエクスポートします。公開済みの各ページは %s ページになり、共有のヘッダー／フッターはパーシャルに切り出され、CSS はテーマの SCSS 構造に変換され、実際に使用している（かつライブラリにある）メディアが同梱されます。ビルドはバージョン管理されます。新しいページを取り込むには再スキャンし、戻せるよう古いバージョンを保持してください。"
-
-msgid "Scanning…"
-msgstr "スキャン中…"
-
-msgid "Schedule"
-msgstr "スケジュール"
-
-msgid "Script Manager"
-msgstr "スクリプトマネージャー"
-
-msgid "Scripts"
-msgstr "スクリプト"
-
-msgid "Scripts (JS)"
-msgstr "スクリプト（JS）"
-
-msgid "Secret key"
-msgstr "シークレットキー"
-
-msgid "Seeing AI \"content signals\" text instead of yours?"
-msgstr "ご自身のものではなく AI の「コンテンツシグナル」テキストが表示されていますか ?"
-
-msgid "Select a submission to read it."
-msgstr "送信を選択すると内容を読めます。"
-
-msgid "Select all"
-msgstr "すべて選択"
-
-msgid "Select file"
-msgstr "ファイルを選択"
-
-msgid "Select image"
-msgstr "画像を選択"
-
-msgid "Send"
-msgstr "送信"
-
-msgid "Send log"
-msgstr "送信ログ"
-
-msgid "Send mail from a specific address or name through a chosen connection — e.g. route %s through a transactional provider and newsletters through another."
-msgstr "選択した接続を通じて、特定のアドレスや名前からメールを送信します。例: %s はトランザクション用プロバイダー経由で、ニュースレターは別の接続経由で振り分けます。"
-
-msgid "Send old or moved URLs somewhere useful, and watch which missing pages your visitors actually hit so you can fix the ones that matter."
-msgstr "古い URL や移動した URL を役立つ場所へ転送し、訪問者が実際にアクセスしている存在しないページを確認して、重要なものを修正できます。"
-
-msgid "Send reply"
-msgstr "返信を送信"
-
-msgid "Send test"
-msgstr "テストを送信"
-
-msgid "Sender identity"
-msgstr "差出人情報"
-
-msgid "Sends through your SMTP + sender identity."
-msgstr "お使いの SMTP と差出人情報を通じて送信します。"
-
-msgid "Serve WebP on the front end"
-msgstr "フロントエンドで WebP を配信"
-
-msgid "Served by Apache / LiteSpeed from your site root. Has no effect on a pure-Nginx server."
-msgstr "サイトのルートから Apache / LiteSpeed によって配信されます。純粋な Nginx サーバーでは効果がありません。"
-
-msgid "Served by WordPress at %s. Edit freely — the Sitemap line should point at your sitemap.xml."
-msgstr "%s で WordPress によって配信されます。自由に編集してください。Sitemap の行はお使いの sitemap.xml を指すようにしてください。"
-
-msgid "Set your defaults, point the auto-updater at your repo, and check your environment."
-msgstr "既定値を設定し、自動更新ツールをリポジトリに向け、環境を確認してください。"
-
-msgid "Sets consent to denied by default and updates Google tags when the visitor chooses. The correct way to stay compliant."
-msgstr "既定で同意を拒否に設定し、訪問者が選択したときに Google タグを更新します。コンプライアンスを維持するための正しい方法です。"
-
-msgid "Sets the %1$s attribute on the %2$s tag. Handy when a theme or builder hard-codes it and the WordPress site language never actually reaches the page — screen readers and search engines both read this attribute to decide what language the page is in."
-msgstr "%2$s タグに %1$s 属性を設定します。テーマやビルダーがこれをハードコードしていて、WordPress サイトの言語設定が実際にはページに反映されない場合に便利です。スクリーンリーダーと検索エンジンはどちらも、この属性を読み取ってページの言語を判断します。"
-
-msgid "Settings"
-msgstr "設定"
-
-msgid "Settings imported."
-msgstr "設定をインポートしました。"
-
-msgid "Settings saved."
-msgstr "設定を保存しました。"
-
-msgid "Settings → Cloudflare (or the plugin's Settings link)."
-msgstr "設定 → Cloudflare（またはプラグインの「設定」リンク）。"
-
-msgid "Setup guide"
-msgstr "セットアップガイド"
-
-msgid "Setup guide: clear Cloudflare cache from Velox"
-msgstr "セットアップガイド: Velox から Cloudflare キャッシュをクリアする"
-
-msgid "Shortcode"
-msgstr "ショートコード"
-
-msgid "Show Core Web Vitals"
-msgstr "Core Web Vitals を表示"
-
-msgid "Show admin column"
-msgstr "管理列を表示"
-
-msgid "Show form title"
-msgstr "フォームタイトルを表示"
-
-msgid "Show in REST (Gutenberg)"
-msgstr "REST（Gutenberg）で表示"
-
-msgid "Show in sidebar menu"
-msgstr "サイドバーメニューに表示"
-
-msgid "Show logo / name"
-msgstr "ロゴ／名前を表示"
-
-msgid "Show this group where %1$s rules in a box match, or %2$s box matches."
-msgstr "ボックス内の %1$s のルールが一致する場合、または %2$s のボックスが一致する場合に、このグループを表示します。"
-
-msgid "Show what to fix"
-msgstr "修正すべき点を表示"
-
-msgid "Showing the consent banner on your site's front end."
-msgstr "サイトのフロントエンドに同意バナーを表示しています。"
-
-msgid "Shown after the form is submitted successfully."
-msgstr "フォームが正常に送信された後に表示されます。"
-
-msgid "Shown as the sender name, e.g. your company."
-msgstr "差出人名として表示されます。例: 貴社名。"
-
-msgid "Shown only when both a label and a link are set."
-msgstr "ラベルとリンクの両方が設定されている場合にのみ表示されます。"
-
-msgid "Shown under the heading. Line breaks are kept."
-msgstr "見出しの下に表示されます。改行は保持されます。"
-
-msgid "Shows the original-vs-WebP drag comparison panel on the Images tab."
-msgstr "「画像」タブに、オリジナルと WebP のドラッグ比較パネルを表示します。"
-
-msgid "Shows visitors a branded holding page while you work. You and any other admins keep seeing the live site, and wp-admin stays reachable. Sends a 503 so search engines know it's temporary."
-msgstr "作業中、訪問者にブランド付きの待機ページを表示します。あなたと他の管理者は引き続き公開サイトを見ることができ、wp-admin にもアクセスできます。一時的なものであることを検索エンジンに伝えるため 503 を送信します。"
-
-msgid "Side"
-msgstr "サイド"
-
-msgid "Sign in with an existing account."
-msgstr "既存のアカウントでサインインしてください。"
-
-msgid "Singular label"
-msgstr "単数形ラベル"
-
-msgid "Site key"
-msgstr "サイトキー"
-
-msgid "Sitemap appearance"
-msgstr "サイトマップの表示"
-
-msgid "Sitemap line"
-msgstr "サイトマップの行"
-
-msgid "Sits behind a tint of your background colour so text stays readable."
-msgstr "テキストが読みやすいままになるよう、背景色の色合いの後ろに配置されます。"
-
-msgid "Size"
-msgstr "サイズ"
-
-msgid "Skip for now"
-msgstr "今はスキップ"
-
-msgid "Skip the automatic tuning and head straight to Settings → Performance to set everything by hand."
-msgstr "自動調整をスキップして、設定 → パフォーマンスに直接進み、すべてを手動で設定します。"
-
-msgid "Slug"
-msgstr "スラッグ"
-
-msgid "Small line at the very bottom. Empty = nothing shown (no site name forced in)."
-msgstr "一番下の小さな行です。空 = 何も表示されません（サイト名は強制されません）。"
-
-msgid "Small print"
-msgstr "注意書き"
-
-msgid "Social cards (Open Graph)"
-msgstr "ソーシャルカード（Open Graph）"
-
-msgid "Source file not found."
-msgstr "ソースファイルが見つかりません。"
-
-msgid "Source is a path on this site. Target can be a path (%1$s) or a full URL. Choose %2$s to tell search engines a page is permanently removed."
-msgstr "ソースはこのサイト内のパスです。ターゲットはパス（%1$s）または完全な URL にできます。ページが恒久的に削除されたことを検索エンジンに伝えるには %2$s を選択してください。"
-
-msgid "Spacing"
-msgstr "間隔"
-
-msgid "Spam protection"
-msgstr "スパム保護"
-
-msgid "Start blank"
-msgstr "空の状態から開始"
-
-msgid "Status"
-msgstr "ステータス"
-
-msgid "Step 1 — Install the official plugin"
-msgstr "ステップ 1 — 公式プラグインをインストール"
-
-msgid "Step 2 — Create a Cloudflare API token"
-msgstr "ステップ 2 — Cloudflare API トークンを作成"
-
-msgid "Step 3 — Connect the plugin"
-msgstr "ステップ 3 — プラグインを接続"
-
-msgid "Stop"
-msgstr "停止"
-
-msgid "Stop plugins from loading CSS/JS where it isn't needed — the classic example is keeping Contact Form 7 off every page except your contact page. Pages are matched by ID, slug, %1$s (homepage), %2$s, %3$s, %4$s, or a whole post type with %5$s, %6$s, etc."
-msgstr "必要のない場所でプラグインが CSS/JS を読み込むのを止めます。典型的な例は、お問い合わせページ以外のすべてのページで Contact Form 7 を無効にすることです。ページは ID、スラッグ、%1$s（ホームページ）、%2$s、%3$s、%4$s、または %5$s、%6$s などで投稿タイプ全体として照合されます。"
-
-msgid "Style"
-msgstr "スタイル"
-
-msgid "Style editor"
-msgstr "スタイルエディター"
-
-msgid "Styles"
-msgstr "スタイル"
-
-msgid "Styles (CSS)"
-msgstr "スタイル（CSS）"
-
-msgid "Subject"
-msgstr "件名"
-
-msgid "Submission not found."
-msgstr "送信が見つかりません。"
-
-msgid "Submissions through this form show up here as they arrive."
-msgstr "このフォームからの送信は、届き次第ここに表示されます。"
-
-msgid "Success"
-msgstr "成功"
-
-msgid "Success message"
-msgstr "成功メッセージ"
-
-msgid "Supported"
-msgstr "対応"
-
-msgid "Supports"
-msgstr "対応"
-
-msgid "Swaps every uploads image to WebP/AVIF when the browser supports it — WordPress images, Oxygen elements, CSS background-images and hard-coded links (originals stay as fallback)."
-msgstr "ブラウザーが対応している場合、アップロードされたすべての画像を WebP/AVIF に置き換えます。対象は WordPress の画像、Oxygen の要素、CSS の背景画像、ハードコードされたリンクです（オリジナルはフォールバックとして残ります）。"
-
-msgid "Switch off all PHP snippets"
-msgstr "すべての PHP スニペットをオフにする"
-
-msgid "Switch on to use"
-msgstr "オンにして使用"
-
-msgid "Switch to"
-msgstr "切り替え先"
-
-msgid "Switching builders? Run this again — Velox will wipe the old performance settings and reconfigure for the new one. Your image, font and database settings are kept."
-msgstr "ビルダーを切り替えますか ? これを再度実行してください。Velox は古いパフォーマンス設定を消去し、新しいビルダー用に再設定します。画像、フォント、データベースの設定は保持されます。"
-
-msgid "System status"
-msgstr "システムステータス"
-
-msgid "Take a database backup in Plesk before a big cleanup the first time. After that it's routine — revisions and transients pile up fast on builder sites."
-msgstr "大規模なクリーンアップを初めて行う前に、Plesk でデータベースのバックアップを取ってください。それ以降は日常的な作業です。ビルダーサイトではリビジョンや transient がすぐに蓄積します。"
-
-msgid "Take a safety snapshot first"
-msgstr "まず安全のためのスナップショットを取得"
-
-msgid "Taxonomies"
-msgstr "タクソノミー"
-
-msgid "Taxonomies group your content — like Categories (hierarchical) or Tags (flat)."
-msgstr "タクソノミーはコンテンツをグループ化します。カテゴリー（階層型）やタグ（フラット型）のようなものです。"
-
-msgid "Template"
-msgstr "テンプレート"
-
-msgid "Test connection"
-msgstr "接続をテスト"
-
-msgid "Test your setup"
-msgstr "設定をテスト"
-
-msgid "Text"
-msgstr "テキスト"
-
-msgid "That \"content signals\" block is coming from Cloudflare — not Velox."
-msgstr "その「コンテンツシグナル」のブロックは Velox ではなく Cloudflare から出力されています。"
-
-msgid "That backup file is no longer available."
-msgstr "そのバックアップファイルはもう利用できません。"
-
-msgid "That doesn't look like valid Velox settings JSON."
-msgstr "有効な Velox 設定 JSON ではないようです。"
-
-msgid "That's %1$s serving its own robots.txt at the edge, which overrides this. Fix it in your Cloudflare dashboard: %2$s. Writing a physical file here also helps, since Cloudflare only injects when your origin has no robots.txt."
-msgstr "これは %1$s がエッジで独自の robots.txt を配信しており、それがこれを上書きしています。Cloudflare のダッシュボードで修正してください: %2$s。ここに物理ファイルを書き込むことも有効です。Cloudflare はオリジンに robots.txt がない場合にのみ挿入するためです。"
-
-msgid "The %1$s / %2$s fields under Performance → CSS are a separate feature (the used-CSS engine) and aren't used for cache clearing."
-msgstr "パフォーマンス → CSS の下にある %1$s / %2$s のフィールドは別の機能（使用済み CSS エンジン）であり、キャッシュのクリアには使用されません。"
-
-msgid "The %1$s button clears your edge cache through the %2$s — Velox asks that plugin to purge, so it must be installed and connected to your account. Until then the button reports %3$s"
-msgstr "%1$s ボタンは %2$s を通じてエッジキャッシュをクリアします。Velox はそのプラグインにパージを依頼するため、プラグインがインストールされ、アカウントに接続されている必要があります。それまでの間、ボタンは %3$s と表示します"
-
-msgid "The %s file isn't writable by WordPress, so editing is disabled. Adjust file permissions on the server to enable it."
-msgstr "%s ファイルは WordPress によって書き込みできないため、編集は無効になっています。有効にするには、サーバー上でファイルの権限を調整してください。"
-
-msgid "The Cloudflare plugin already auto-purges on publish/edit; this button is for an on-demand whole-site purge."
-msgstr "Cloudflare プラグインは公開／編集時にすでに自動的にパージします。このボタンは、必要に応じてサイト全体をパージするためのものです。"
-
-msgid "The file is replaced in place and its thumbnails are rebuilt, so the filename and every link to it stay exactly as they are. This cannot be undone."
-msgstr "ファイルはその場で置き換えられ、そのサムネイルが再構築されるため、ファイル名とそれへのすべてのリンクはそのまま維持されます。この操作は取り消せません。"
-
-msgid "The full Google PageSpeed Insights report for %s &mdash; every category, every check."
-msgstr "%s の完全な Google PageSpeed Insights レポートです &mdash; すべてのカテゴリー、すべてのチェックを含みます。"
-
-msgid "The list grows as more of your site is visited. Set a rule, then %s. Disabling a handle also removes anything that depends on it, so re-test the page afterwards."
-msgstr "サイトが訪問されるにつれてリストは増えていきます。ルールを設定してから %s してください。ハンドルを無効にすると、それに依存するものもすべて削除されるため、その後ページを再テストしてください。"
-
-msgid "The modern baseline — typically 25–35% smaller than JPG/PNG with wide browser support."
-msgstr "現代の標準です。通常、JPG/PNG より 25〜35% 小さく、幅広いブラウザーに対応しています。"
-
-msgid "The official Cloudflare plugin is active, so the %s button above purges your edge cache."
-msgstr "公式の Cloudflare プラグインが有効なため、上の %s ボタンでエッジキャッシュをパージします。"
-
-msgid "The override is switched off, so saving stores the choice without changing the page yet."
-msgstr "上書きはオフになっているため、保存すると選択内容は保存されますが、ページはまだ変更されません。"
-
-msgid "The reply could not be sent — check your mail settings."
-msgstr "返信を送信できませんでした。メール設定を確認してください。"
-
-msgid "The submit button text, colours and full styling live on the %1$s — click the button there, or open the %2$s."
-msgstr "送信ボタンのテキスト、色、すべてのスタイルは %1$s にあります。そこでボタンをクリックするか、%2$s を開いてください。"
-
-msgid "Theme name"
-msgstr "テーマ名"
-
-msgid "This content is no longer available."
-msgstr "このコンテンツはもう利用できません。"
-
-msgid "This crawls every published page over HTTP, so a large site can take a minute. If you're behind Cloudflare, run %s first — the builder falls back to your origin server automatically, but a strict WAF can still block it."
-msgstr "これは公開済みの各ページを HTTP でクロールするため、大規模なサイトでは 1 分ほどかかることがあります。Cloudflare の背後にある場合は、まず %s を実行してください。ビルダーは自動的にオリジンサーバーへフォールバックしますが、厳格な WAF ではブロックされる場合があります。"
-
-msgid "This is the real banner — same markup and CSS your visitors get. Switch the device tabs to check both layouts."
-msgstr "これは実際のバナーです。訪問者が受け取るのと同じマークアップと CSS です。デバイスのタブを切り替えて、両方のレイアウトを確認してください。"
-
-msgid "This one hits the real login file directly, so it works even if the pretty URL above is blocked by your server or a CDN. If you ever can't reach the pretty URL, use this."
-msgstr "これは実際のログインファイルに直接アクセスするため、上のきれいな URL がサーバーや CDN によってブロックされていても機能します。きれいな URL にアクセスできない場合は、これを使用してください。"
-
-msgid "This replaces your current site with the contents of this backup."
-msgstr "これは現在のサイトをこのバックアップの内容で置き換えます。"
-
-msgid "This submission has no email address to reply to."
-msgstr "この送信には返信先のメールアドレスがありません。"
-
-msgid "Tip: drop %s anywhere (e.g. your footer) and it reopens this banner."
-msgstr "ヒント: %s を任意の場所（例: フッター）に配置すると、このバナーが再び開きます。"
-
-msgid "Title"
-msgstr "タイトル"
-
-msgid "To"
-msgstr "宛先"
-
-msgid "Took"
-msgstr "所要時間"
-
-msgid "Tools"
-msgstr "ツール"
-
-msgid "Top"
-msgstr "上"
-
-msgid "Top-level menu"
-msgstr "トップレベルメニュー"
-
-msgid "Total entries"
-msgstr "エントリー合計"
-
-msgid "Total size"
-msgstr "合計サイズ"
-
-msgid "Traffic"
-msgstr "トラフィック"
-
-msgid "Tried automatically if the primary send fails. Optional."
-msgstr "プライマリの送信が失敗した場合に自動的に試行されます。任意です。"
-
-msgid "Tune performance"
-msgstr "パフォーマンスを調整"
-
-msgid "Turf war detected"
-msgstr "縄張り争いを検出"
-
-msgid "Turn each plugin on as soon as it's installed."
-msgstr "各プラグインをインストールしたらすぐにオンにしてください。"
-
-msgid "Turn it on, then hit %s (or just browse your site) so Velox can learn which handles load. You'll then be able to switch any of them off here."
-msgstr "オンにしてから %s を押す（またはサイトを閲覧するだけ）と、Velox がどのハンドルが読み込まれるかを学習できます。その後、ここでそれらのいずれもオフにできます。"
-
-msgid "Turn off to hide this page from the admin menu without deleting it."
-msgstr "オフにすると、このページを削除せずに管理メニューから非表示にできます。"
-
-msgid "Turn on in Settings"
-msgstr "設定でオンにする"
-
-msgid "Turn this on to create and manage backups. Nothing runs until you ask for it."
-msgstr "これをオンにすると、バックアップの作成と管理ができます。指示するまで何も実行されません。"
-
-msgid "Turn this on to create forms and configure SMTP. Embed any form with %s — including inside an Oxygen Shortcode element."
-msgstr "これをオンにすると、フォームの作成と SMTP の設定ができます。Oxygen のショートコード要素内を含め、任意のフォームを %s で埋め込めます。"
-
-msgid "Turn this on to scan your site and generate themes. Nothing is changed on your live site — it only reads the rendered pages."
-msgstr "これをオンにすると、サイトをスキャンしてテーマを生成できます。公開サイトには何も変更されません。レンダリングされたページを読み込むだけです。"
-
-msgid "Turn this on to show the consent banner on your site's front end and unlock the editor below."
-msgstr "これをオンにすると、サイトのフロントエンドに同意バナーを表示し、下のエディターのロックを解除できます。"
-
-msgid "Type"
-msgstr "タイプ"
-
-msgid "Typed names are saved in your browser — reload safely, they'll still be here until you apply them. Renaming updates every reference in posts and Oxygen automatically."
-msgstr "入力した名前はブラウザーに保存されます。安全に再読み込みでき、適用するまでここに残ります。名前の変更は、投稿や Oxygen 内のすべての参照を自動的に更新します。"
-
-msgid "URL to test"
-msgstr "テストする URL"
-
-msgid "URLs"
-msgstr "URL"
-
-msgid "Under Appearance"
-msgstr "「外観」の下"
-
-msgid "Under Media"
-msgstr "「メディア」の下"
-
-msgid "Under Posts"
-msgstr "「投稿」の下"
-
-msgid "Under Settings"
-msgstr "「設定」の下"
-
-msgid "Under Tools"
-msgstr "「ツール」の下"
-
-msgid "Under Velox"
-msgstr "「Velox」の下"
-
-msgid "Underline legal links"
-msgstr "法的リンクに下線を付ける"
-
-msgid "Unknown action."
-msgstr "不明なアクションです。"
-
-msgid "Unlock editing"
-msgstr "編集のロックを解除"
-
-msgid "Unused media"
-msgstr "未使用のメディア"
-
-msgid "Updated"
-msgstr "更新済み"
-
-msgid "Updates"
-msgstr "更新"
-
-msgid "Updates as you type. Admins still see the live site."
-msgstr "入力すると同時に更新されます。管理者は引き続き公開サイトを見ることができます。"
-
-msgid "Upload a %1$s dump or a %2$s archive made on another site and it's %3$s. A safety backup of the current site is taken first, so you can roll the restore back from the list below."
-msgstr "別のサイトで作成した %1$s ダンプまたは %2$s アーカイブをアップロードすると、%3$s されます。まず現在のサイトの安全用バックアップが取得されるため、下のリストから復元を取り消すことができます。"
-
-msgid "Use an address on your own domain so it isn't marked as spam."
-msgstr "スパムとして扱われないよう、ご自身のドメインのアドレスを使用してください。"
-
-msgid "Use template"
-msgstr "テンプレートを使用"
-
-msgid "Use the short region form, like %1$s or %2$s. Underscores are converted to hyphens for you."
-msgstr "%1$s や %2$s のような短い地域形式を使用してください。アンダースコアは自動的にハイフンに変換されます。"
-
-msgid "Used for any mail that doesn't match a route below."
-msgstr "下のいずれのルートにも一致しないすべてのメールに使用されます。"
-
-msgid "Used when %1$s is set to %2$s. Upload a %3$s or %4$s from your media library, or paste a link (e.g. from LottieFiles)."
-msgstr "%1$s が %2$s に設定されている場合に使用されます。メディアライブラリから %3$s または %4$s をアップロードするか、リンク（例: LottieFiles から）を貼り付けてください。"
-
-msgid "Utilities"
-msgstr "ユーティリティ"
-
-msgid "Velox"
-msgstr "Velox"
-
-msgid "Velox SEO"
-msgstr "Velox SEO"
-
-msgid "Velox admin language"
-msgstr "Velox 管理言語"
-
-msgid "Velox counts a visit the first time a real browser loads a page. Numbers will fill in as people visit your site."
-msgstr "Velox は、実際のブラウザーが初めてページを読み込んだときに訪問をカウントします。人々がサイトを訪れるにつれて数値が埋まっていきます。"
-
-msgid "Velox doesn't talk to Cloudflare directly — when you clear the Cloudflare cache, Velox asks the %1$s to purge everything. So it only works once that plugin is installed and connected; otherwise you get %2$s Your Velox page cache still clears fine without it."
-msgstr "Velox は Cloudflare と直接通信しません。Cloudflare キャッシュをクリアすると、Velox は %1$s にすべてのパージを依頼します。そのため、このプラグインがインストールされ接続されている場合にのみ機能します。そうでない場合は %2$s になります。Velox のページキャッシュは、それがなくても問題なくクリアされます。"
-
-msgid "Velox is serving the clean robots.txt shown in the editor above. Cloudflare adds the signals block at the edge, so no WordPress plugin can remove it. To turn it off: open your Cloudflare dashboard → select this domain → %1$s (older accounts: %2$s) → switch off %3$s / managed robots.txt, then come back and click %4$s again."
-msgstr "Velox は上のエディターに表示されているクリーンな robots.txt を配信しています。Cloudflare はエッジでシグナルのブロックを追加するため、どの WordPress プラグインもそれを削除できません。オフにするには: Cloudflare ダッシュボードを開く → このドメインを選択 → %1$s（古いアカウントの場合: %2$s）→ %3$s / 管理された robots.txt をオフにする、その後戻って再度 %4$s をクリックしてください。"
-
-msgid "Velox loads your front page, finds the Google Fonts it uses, downloads the woff2 files into your uploads folder and serves those instead. Re-scan after you change fonts."
-msgstr "Velox はフロントページを読み込み、使用している Google Fonts を検出し、woff2 ファイルをアップロードフォルダーにダウンロードして、それらを代わりに配信します。フォントを変更したら再スキャンしてください。"
-
-msgid "Velox scans your builder and installed plugins, then shows tuned settings you can review and tweak before applying."
-msgstr "Velox はビルダーとインストール済みのプラグインをスキャンし、適用前に確認・微調整できる調整済みの設定を表示します。"
-
-msgid "Velox skipped your PHP snippets because one crashed the site (or you asked for Safe Mode). CSS, JS and HTML snippets are unaffected. Fix or switch off the offending snippet, then clear Safe Mode."
-msgstr "いずれかのスニペットがサイトをクラッシュさせた（またはセーフモードを要求した）ため、Velox は PHP スニペットをスキップしました。CSS、JS、HTML のスニペットは影響を受けません。問題のあるスニペットを修正またはオフにしてから、セーフモードを解除してください。"
-
-msgid "Velox tunes its performance settings to your builder. Currently configured for:"
-msgstr "Velox はパフォーマンス設定をお使いのビルダーに合わせて調整します。現在の設定対象:"
-
-msgid "Velox updates straight from GitHub releases, so it never appears in the public plugin directory. When a new version is released it shows up like any other plugin update."
-msgstr "Velox は GitHub のリリースから直接更新されるため、公開プラグインディレクトリには一切表示されません。新しいバージョンがリリースされると、他のプラグインの更新と同じように表示されます。"
-
-msgid "Velox_Fields::get_field('name')"
-msgstr ""
-
-msgid "Velox_Fields::get_field('name','option')"
-msgstr ""
-
-msgid "Verify"
-msgstr "確認"
-
-msgid "Version"
-msgstr "バージョン"
-
-msgid "View converted images →"
-msgstr "変換済みの画像を表示 →"
-
-msgid "View live robots.txt"
-msgstr "公開中の robots.txt を表示"
-
-msgid "View sitemap"
-msgstr "サイトマップを表示"
-
-msgid "View traffic"
-msgstr "トラフィックを表示"
-
-msgid "Visit"
-msgstr "訪問"
-
-msgid "Visitors"
-msgstr "訪問者"
-
-msgid "Visitors per day"
-msgstr "1 日あたりの訪問者"
-
-msgid "WP-Cron runs on traffic — quiet sites may back up a little late."
-msgstr "WP-Cron はトラフィックに応じて実行されます。訪問の少ないサイトでは、バックアップが少し遅れる場合があります。"
-
-msgid "WebP"
-msgstr "WebP"
-
-msgid "Weekly auto-clean"
-msgstr "週次自動クリーンアップ"
+msgid "Clear history"
+msgstr "履歴をクリア"
 
 msgid "What"
 msgstr "内容"
 
-msgid "What kind of snippet?"
-msgstr "どの種類のスニペットですか ?"
+msgid "Took"
+msgstr "所要時間"
 
-msgid "What the button does."
-msgstr "ボタンの動作。"
+msgid "Result"
+msgstr "結果"
+
+msgid "Success"
+msgstr "成功"
+
+msgid "Failed"
+msgstr "失敗"
+
+msgid "Remove this entry"
+msgstr "このエントリーを削除"
+
+msgid "Schedule"
+msgstr "スケジュール"
+
+msgid "Frequency"
+msgstr "頻度"
 
 msgid "What to back up"
 msgstr "バックアップする対象"
 
-msgid "When"
-msgstr "日時"
+msgid "Database &amp; files"
+msgstr "データベース &amp; ファイル"
 
-msgid "When this is off, the “Require CAPTCHA” switch is locked on every form. Turn it on and add your keys to allow forms to use it."
-msgstr "これがオフの場合、すべてのフォームで「CAPTCHA を必須にする」スイッチがロックされます。オンにしてキーを追加すると、フォームで使用できるようになります。"
+msgid "Database only"
+msgstr "データベースのみ"
 
-msgid "Which page builder do you use?"
-msgstr "どのページビルダーを使用していますか ?"
+msgid "Files only"
+msgstr "ファイルのみ"
 
-msgid "While maintenance is on, everything is hidden from search."
-msgstr "メンテナンスがオンの間、すべてが検索から非表示になります。"
+msgid "Keep newest"
+msgstr "最新のものを保持"
 
-msgid "While this is off, the page keeps whatever WordPress and your theme produce."
-msgstr "これがオフの間、ページは WordPress とテーマが生成する内容をそのまま維持します。"
+msgid "Save schedule"
+msgstr "スケジュールを保存"
 
-msgid "Width"
-msgstr "幅"
+msgid "WP-Cron runs on traffic — quiet sites may back up a little late."
+msgstr "WP-Cron はトラフィックに応じて実行されます。訪問の少ないサイトでは、バックアップが少し遅れる場合があります。"
 
-msgid "WordPress"
-msgstr "WordPress"
+msgid "Backup &amp; restore is on"
+msgstr "バックアップ &amp; 復元は有効です"
+
+msgid "— switch off to hide this tool (your stored backups are kept)."
+msgstr "— オフにするとこのツールが非表示になります（保存済みのバックアップは保持されます）。"
 
 msgid "Working…"
 msgstr "処理中…"
 
-msgid "Write to physical file"
-msgstr "物理ファイルに書き込む"
+msgid "Please keep this tab open."
+msgstr "このタブを開いたままにしてください。"
 
-msgid "XML sitemap"
-msgstr "XML サイトマップ"
+msgid "Restore this backup?"
+msgstr "このバックアップを復元しますか ?"
 
-msgid "Yes"
-msgstr "はい"
+msgid "This replaces your current site with the contents of this backup."
+msgstr "これは現在のサイトをこのバックアップの内容で置き換えます。"
 
-msgid "You're all set"
-msgstr "準備が整いました"
-
-msgid "Your backups"
-msgstr "あなたのバックアップ"
-
-msgid "Your image optimization center — pick formats and quality, then convert your whole library. With replace mode on, images become WebP right in your media library; the resize width sets a max (height follows automatically, smaller images are left untouched)."
-msgstr "画像最適化の中心となる場所です。形式と品質を選び、ライブラリ全体を変換してください。置換モードをオンにすると、画像はメディアライブラリ内でそのまま WebP になります。リサイズ幅は最大値を設定します（高さは自動的に追従し、より小さい画像はそのまま維持されます）。"
-
-msgid "[velox_form id=\"1\"]"
-msgstr ""
-
-msgid "[velox_form]"
-msgstr ""
-
-msgid "all"
-msgstr "すべて"
-
-msgid "and"
-msgstr "および"
-
-msgid "any"
-msgstr "任意"
-
-msgid "archive"
-msgstr "アーカイブ"
-
-msgid "billing@…"
-msgstr ""
-
-msgid "blog"
-msgstr "ブログ"
-
-msgid "box → \"Exclude from sitemap\")."
-msgstr "ボックス → 「サイトマップから除外」）。"
-
-msgid "by Sumasearch"
-msgstr "提供: Sumasearch"
-
-msgid "copy it now"
-msgstr "今すぐコピー"
+msgid "Take a safety snapshot first"
+msgstr "まず安全のためのスナップショットを取得"
 
 msgid "current"
 msgstr "現在"
 
-msgid "dash.cloudflare.com"
+msgid "Restore now"
+msgstr "今すぐ復元"
+
+msgid "Mail &amp; forms"
+msgstr "メール &amp; フォーム"
+
+msgid "Enable Mail &amp; forms"
+msgstr "メール &amp; フォームを有効化"
+
+msgid "[velox_form id=\"1\"]"
 msgstr ""
 
-msgid "dashicons-…"
-msgstr ""
+msgid "All forms"
+msgstr "すべてのフォーム"
 
-msgid "de-DE"
-msgstr ""
+msgid "Turn this form on or off"
+msgstr "このフォームをオンまたはオフにする"
+
+msgid "Form shortcode — click to copy"
+msgstr "フォームのショートコード — クリックしてコピー"
+
+msgid "Shortcode"
+msgstr "ショートコード"
+
+msgid "Build"
+msgstr "ビルド"
+
+msgid "Style"
+msgstr "スタイル"
+
+msgid "Preview"
+msgstr "プレビュー"
+
+msgid "Notifications"
+msgstr "通知"
+
+msgid "Save form"
+msgstr "フォームを保存"
+
+msgid "Form canvas"
+msgstr "フォームキャンバス"
 
 msgid "drag to reorder"
 msgstr "ドラッグして並べ替え"
 
-msgid "editing core, %1$s, or a theme's %2$s can take the whole site down. If you're unsure, make a backup first (Utilities &rarr; Backup &amp; restore)."
-msgstr "コア、%1$s、またはテーマの %2$s を編集すると、サイト全体がダウンする可能性があります。不安な場合は、まずバックアップを取ってください（ユーティリティ &rarr; バックアップと復元）。"
+msgid "Insert field"
+msgstr "フィールドを挿入"
 
-msgid "en-GB"
-msgstr ""
+msgid "Appearance"
+msgstr "外観"
 
-msgid "example URLs — not your real site"
-msgstr "サンプル URL — 実際のサイトではありません"
+msgid "Show form title"
+msgstr "フォームタイトルを表示"
 
-msgid "file"
-msgstr "ファイル"
+msgid "After submitting"
+msgstr "送信後"
+
+msgid "Success message"
+msgstr "成功メッセージ"
+
+msgid "Shown after the form is submitted successfully."
+msgstr "フォームが正常に送信された後に表示されます。"
 
 msgid "form canvas"
 msgstr "フォームキャンバス"
 
-msgid "front"
-msgstr "フロント"
+msgid "Style editor"
+msgstr "スタイルエディター"
 
-msgid "functions.php"
-msgstr ""
+msgid "Spam protection"
+msgstr "スパム保護"
 
-msgid "get_field()"
-msgstr ""
+msgid "Require CAPTCHA"
+msgstr "CAPTCHA を必須にする"
 
-msgid "googleapis.com"
-msgstr ""
+msgid "Embed"
+msgstr "埋め込み"
 
-msgid "imported"
-msgstr "インポート"
+msgid "Paste this into any page, widget or Oxygen Shortcode element."
+msgstr "これを任意のページ、ウィジェット、または Oxygen のショートコード要素に貼り付けてください。"
 
-msgid "in the last 30 days"
-msgstr "過去 30 日間"
+msgid "Back to Build"
+msgstr "ビルドに戻る"
 
-msgid "lang"
-msgstr ""
+msgid "Reset"
+msgstr "リセット"
 
-msgid "official Cloudflare plugin"
-msgstr "公式 Cloudflare プラグイン"
+msgid "Save styles"
+msgstr "スタイルを保存"
 
-msgid "og:image"
-msgstr ""
+msgid "Live preview"
+msgstr "ライブプレビュー"
 
-msgid "og:title"
-msgstr ""
+msgid "— entries"
+msgstr "— 件"
 
-msgid "optional"
-msgstr "任意"
+msgid "Export CSV"
+msgstr "CSV をエクスポート"
 
-msgid "php-zip"
-msgstr ""
+msgid "Edit form"
+msgstr "フォームを編集"
 
-msgid "px"
-msgstr ""
+msgid "Delete entry"
+msgstr "エントリーを削除"
 
-msgid "restored straight away"
-msgstr "すぐに復元"
+msgid "No entries yet"
+msgstr "まだエントリーがありません"
 
-msgid "robots.txt"
-msgstr ""
+msgid "Submissions through this form show up here as they arrive."
+msgstr "このフォームからの送信は、届き次第ここに表示されます。"
 
-msgid "rows of junk to clean out"
-msgstr "行の不要なデータをクリーンアップ"
+msgid "+ New form"
+msgstr "+ 新規フォーム"
 
-msgid "safety"
-msgstr "安全"
+msgid "Forms"
+msgstr "フォーム"
 
-msgid "selected"
-msgstr "選択中"
+msgid "Total entries"
+msgstr "エントリー合計"
 
-msgid "shop"
-msgstr "ショップ"
+msgid "Last 7 days"
+msgstr "過去 7 日間"
+
+msgid "Deleted"
+msgstr "削除済み"
+
+msgid "Inbox"
+msgstr "受信トレイ"
+
+msgid "Pinned"
+msgstr "ピン留め済み"
+
+msgid "Done"
+msgstr "完了"
+
+msgid "Select all shown"
+msgstr "表示中のすべてを選択"
+
+msgid "0 selected"
+msgstr "0 件選択中"
+
+msgid "Mark read"
+msgstr "既読にする"
+
+msgid "Mark done"
+msgstr "完了にする"
+
+msgid "Clear"
+msgstr "クリア"
+
+msgid "Folders"
+msgstr "フォルダー"
+
+msgid "Manage folders"
+msgstr "フォルダーを管理"
+
+msgid "New folder"
+msgstr "新規フォルダー"
+
+msgid "Deleted submissions"
+msgstr "削除された送信"
+
+msgid "Select"
+msgstr "選択"
+
+msgid "Pin to top"
+msgstr "上部に固定"
+
+msgid "Mark as done"
+msgstr "完了にする"
+
+msgid "Mark read or unread"
+msgstr "既読または未読にする"
+
+msgid "Move to Deleted"
+msgstr "削除済みに移動"
+
+msgid "Nothing here."
+msgstr "ここには何もありません。"
+
+msgid "No submissions yet"
+msgstr "まだ送信がありません"
+
+msgid "Messages sent through your forms land here."
+msgstr "フォームを通じて送信されたメッセージはここに届きます。"
+
+msgid "Select a submission to read it."
+msgstr "送信を選択すると内容を読めます。"
+
+msgid "Reply"
+msgstr "返信"
+
+msgid "Your account — %s"
+msgstr "あなたのアカウント — %s"
+
+msgid "Custom address…"
+msgstr "カスタムアドレス…"
 
 msgid "shown as the sender"
 msgstr "差出人として表示"
 
-msgid "tell us"
-msgstr "お知らせください"
+msgid "Subject"
+msgstr "件名"
 
-msgid "type:post"
+msgid "Template"
+msgstr "テンプレート"
+
+msgid "Start blank"
+msgstr "空の状態から開始"
+
+msgid "Save as template"
+msgstr "テンプレートとして保存"
+
+msgid "Text colour"
+msgstr "テキストの色"
+
+msgid "Sends through your SMTP + sender identity."
+msgstr "お使いの SMTP と差出人情報を通じて送信します。"
+
+msgid "Send reply"
+msgstr "返信を送信"
+
+msgid "New form"
+msgstr "新規フォーム"
+
+msgid "[velox_form]"
 msgstr ""
 
-msgid "type:product"
+msgid "Form"
+msgstr "フォーム"
+
+msgid "Entries"
+msgstr "エントリー"
+
+msgid "Click to copy"
+msgstr "クリックしてコピー"
+
+msgid "View entries"
+msgstr "エントリーを表示"
+
+msgid "Delete form"
+msgstr "フォームを削除"
+
+msgid "Sender identity"
+msgstr "差出人情報"
+
+msgid "From name"
+msgstr "差出人名"
+
+msgid "Shown as the sender name, e.g. your company."
+msgstr "差出人名として表示されます。例: 貴社名。"
+
+msgid "From email"
+msgstr "差出人メールアドレス"
+
+msgid "Use an address on your own domain so it isn't marked as spam."
+msgstr "スパムとして扱われないよう、ご自身のドメインのアドレスを使用してください。"
+
+msgid "Deliverability check"
+msgstr "到達性チェック"
+
+msgid "Check deliverability"
+msgstr "到達性を確認"
+
+msgid "SMTP connections"
+msgstr "SMTP 接続"
+
+msgid "Send through SMTP"
+msgstr "SMTP 経由で送信"
+
+msgid "+ Add connection"
+msgstr "+ 接続を追加"
+
+msgid "Setup guide"
+msgstr "セットアップガイド"
+
+msgid "Primary connection"
+msgstr "プライマリ接続"
+
+msgid "Used for any mail that doesn't match a route below."
+msgstr "下のいずれのルートにも一致しないすべてのメールに使用されます。"
+
+msgid "Fallback connection"
+msgstr "フォールバック接続"
+
+msgid "Tried automatically if the primary send fails. Optional."
+msgstr "プライマリの送信が失敗した場合に自動的に試行されます。任意です。"
+
+msgid "Routing rules"
+msgstr "ルーティングルール"
+
+msgid "+ Add rule"
+msgstr "+ ルールを追加"
+
+msgid "billing@…"
+msgstr ""
+
+msgid "Save connections"
+msgstr "接続を保存"
+
+msgid "Changes apply to new mail once saved."
+msgstr "変更は保存後、新しいメールに適用されます。"
+
+msgid "Test your setup"
+msgstr "設定をテスト"
+
+msgid "Check a connection, or send yourself a real email to confirm delivery."
+msgstr "接続を確認するか、実際のメールを自分宛てに送信して配信を確認してください。"
+
+msgid "Which connection to test"
+msgstr "テストする接続"
+
+msgid "Check the connection without sending an email"
+msgstr "メールを送信せずに接続を確認"
+
+msgid "Test connection"
+msgstr "接続をテスト"
+
+msgid "Send test"
+msgstr "テストを送信"
+
+msgid "CAPTCHA"
+msgstr "CAPTCHA"
+
+msgid "Allow forms to use CAPTCHA"
+msgstr "フォームに CAPTCHA の使用を許可"
+
+msgid "Provider"
+msgstr "プロバイダー"
+
+msgid "Cloudflare Turnstile (free)"
+msgstr "Cloudflare Turnstile（無料）"
+
+msgid "Google reCAPTCHA"
+msgstr "Google reCAPTCHA"
+
+msgid "Site key"
+msgstr "サイトキー"
+
+msgid "Secret key"
+msgstr "シークレットキー"
+
+msgid "Save settings"
+msgstr "設定を保存"
+
+msgid "Send log"
+msgstr "送信ログ"
+
+msgid "Nothing sent yet."
+msgstr "まだ何も送信されていません。"
+
+msgid "Send this message again"
+msgstr "このメッセージを再送信"
+
+msgid "Resend"
+msgstr "再送信"
+
+msgid "Mail &amp; forms is on"
+msgstr "メール &amp; フォームは有効です"
+
+msgid "— switch off to disable forms and SMTP."
+msgstr "— オフにするとフォームと SMTP が無効になります。"
+
+msgid "Maintenance mode"
+msgstr "メンテナンスモード"
+
+msgid "Enable maintenance mode"
+msgstr "メンテナンスモードを有効化"
+
+msgid "Front end shows the holding page to everyone except logged-in admins."
+msgstr "フロントエンドは、ログイン中の管理者を除くすべての人に待機ページを表示します。"
+
+msgid "While maintenance is on, everything is hidden from search."
+msgstr "メンテナンスがオンの間、すべてが検索から非表示になります。"
+
+msgid "Heading"
+msgstr "見出し"
+
+msgid "Message"
+msgstr "メッセージ"
+
+msgid "Shown under the heading. Line breaks are kept."
+msgstr "見出しの下に表示されます。改行は保持されます。"
+
+msgid "Footer text"
+msgstr "フッターテキスト"
+
+msgid "Logo"
+msgstr "ロゴ"
+
+msgid "Choose"
+msgstr "選択"
+
+msgid "Background image"
+msgstr "背景画像"
+
+msgid "Sits behind a tint of your background colour so text stays readable."
+msgstr "テキストが読みやすいままになるよう、背景色の色合いの後ろに配置されます。"
+
+msgid "Colours"
+msgstr "色"
+
+msgid "Background"
+msgstr "背景"
+
+msgid "Text"
+msgstr "テキスト"
+
+msgid "Accent"
+msgstr "アクセント"
+
+msgid "Loading animation"
+msgstr "読み込みアニメーション"
+
+msgid "Lottie animation file"
+msgstr "Lottie アニメーションファイル"
+
+msgid "Lottie animation"
+msgstr "Lottie アニメーション"
+
+msgid ".json"
+msgstr ""
+
+msgid ".lottie"
+msgstr ""
+
+msgid "Button"
+msgstr "ボタン"
+
+msgid "Shown only when both a label and a link are set."
+msgstr "ラベルとリンクの両方が設定されている場合にのみ表示されます。"
+
+msgid "Save"
+msgstr "保存"
+
+msgid "Reset to default"
+msgstr "既定にリセット"
+
+msgid "Updates as you type. Admins still see the live site."
+msgstr "入力すると同時に更新されます。管理者は引き続き公開サイトを見ることができます。"
+
+msgid "File Manager"
+msgstr "ファイルマネージャー"
+
+msgid "Careful:"
+msgstr "注意:"
+
+msgid "wp-config.php"
+msgstr ""
+
+msgid "functions.php"
+msgstr ""
+
+msgid "Loading&hellip;"
+msgstr "読み込み中&hellip;"
+
+msgid "Pick a file on the left to open it here."
+msgstr "左でファイルを選択すると、ここで開きます。"
+
+msgid "Cookie banner"
+msgstr "Cookie バナー"
+
+msgid "Enable cookie banner"
+msgstr "Cookie バナーを有効化"
+
+msgid "Banner enabled"
+msgstr "バナー有効"
+
+msgid "Showing the consent banner on your site's front end."
+msgstr "サイトのフロントエンドに同意バナーを表示しています。"
+
+msgid "Placement"
+msgstr "配置"
+
+msgid "Placement (desktop)"
+msgstr "配置（デスクトップ）"
+
+msgid "Entrance animation"
+msgstr "登場アニメーション"
+
+msgid "Plays when the banner first appears on the live site."
+msgstr "公開サイトでバナーが最初に表示されるときに再生されます。"
+
+msgid "Placement (mobile)"
+msgstr "配置（モバイル）"
+
+msgid "Consent &amp; tracking"
+msgstr "同意 &amp; トラッキング"
+
+msgid "Google Consent Mode v2"
+msgstr "Google Consent Mode v2"
+
+msgid "GA4 / GTM ID"
+msgstr ""
+
+msgid "Re-ask after (days)"
+msgstr "再確認までの日数"
+
+msgid "Offer Analytics"
+msgstr "分析を提供"
+
+msgid "Offer Marketing"
+msgstr "マーケティングを提供"
+
+msgid "Tip: drop %s anywhere (e.g. your footer) and it reopens this banner."
+msgstr "ヒント: %s を任意の場所（例: フッター）に配置すると、このバナーが再び開きます。"
+
+msgid "Body"
+msgstr "本文"
+
+msgid "Logo URL"
+msgstr "ロゴ URL"
+
+msgid "Small print"
+msgstr "注意書き"
+
+msgid "(optional — e.g. legal note)"
+msgstr "（任意 — 例: 法的な注記）"
+
+msgid "Buttons"
+msgstr "ボタン"
+
+msgid "Add button"
+msgstr "ボタンを追加"
+
+msgid "Legal links"
+msgstr "法的リンク"
+
+msgid "Link 1 label"
+msgstr "リンク 1 のラベル"
+
+msgid "Link 1 URL"
+msgstr "リンク 1 の URL"
+
+msgid "Link 2 label"
+msgstr "リンク 2 のラベル"
+
+msgid "Link 2 URL"
+msgstr "リンク 2 の URL"
+
+msgid "Shape &amp; size"
+msgstr "形状 &amp; サイズ"
+
+msgid "Border width (px)"
+msgstr "枠線の幅（px）"
+
+msgid "Corner radius (px)"
+msgstr "角の丸み（px）"
+
+msgid "Edge offset (px)"
+msgstr "端からのオフセット（px）"
+
+msgid "Box / modal width (px)"
+msgstr "ボックス／モーダルの幅（px）"
+
+msgid "Floating boxes &amp; modal only — bars are full width."
+msgstr "フローティングボックス &amp; モーダルのみ — バーは全幅です。"
+
+msgid "Base font size (px)"
+msgstr "基本フォントサイズ（px）"
+
+msgid "Drop shadow"
+msgstr "ドロップシャドウ"
+
+msgid "Dim background (modal)"
+msgstr "背景を暗くする（モーダル）"
+
+msgid "Full-width buttons on mobile"
+msgstr "モバイルで全幅ボタン"
+
+msgid "Typography &amp; advanced"
+msgstr "タイポグラフィ &amp; 詳細設定"
+
+msgid "Heading size (px)"
+msgstr "見出しのサイズ（px）"
+
+msgid "0 = auto"
+msgstr "0 = 自動"
+
+msgid "Heading weight"
+msgstr "見出しの太さ"
+
+msgid "Heading colour"
+msgstr "見出しの色"
+
+msgid "Body size (px)"
+msgstr "本文サイズ（px）"
+
+msgid "Body colour"
+msgstr "本文の色"
+
+msgid "Legal-link colour"
+msgstr "法的リンクの色"
+
+msgid "Button gap (px)"
+msgstr "ボタンの間隔（px）"
+
+msgid "Button font size (px)"
+msgstr "ボタンのフォントサイズ（px）"
+
+msgid "Button font weight"
+msgstr "ボタンのフォントの太さ"
+
+msgid "Overlay colour"
+msgstr "オーバーレイの色"
+
+msgid "Overlay blur (px)"
+msgstr "オーバーレイのぼかし（px）"
+
+msgid "Max height (px)"
+msgstr "最大の高さ（px）"
+
+msgid "0 = none"
+msgstr "0 = なし"
+
+msgid "z-index"
+msgstr ""
+
+msgid "0 = default"
+msgstr "0 = 既定"
+
+msgid "Underline legal links"
+msgstr "法的リンクに下線を付ける"
+
+msgid "Custom CSS"
+msgstr "カスタム CSS"
+
+msgid ".vxck"
+msgstr ""
+
+msgid "Accept all cookies"
+msgstr "すべての Cookie を受け入れる"
+
+msgid "Reject non-essential"
+msgstr "必須以外を拒否"
+
+msgid "Open preferences"
+msgstr "設定を開く"
+
+msgid "Save chosen preferences"
+msgstr "選択した設定を保存"
+
+msgid "Go to a URL (link)"
+msgstr "URL へ移動（リンク）"
+
+msgid "No buttons. Click “Add button”."
+msgstr "ボタンがありません。「ボタンを追加」をクリックしてください。"
+
+msgid "Drag to reorder"
+msgstr "ドラッグして並べ替え"
+
+msgid "Duplicate"
+msgstr "複製"
+
+msgid "Label"
+msgstr "ラベル"
+
+msgid "Type"
+msgstr "タイプ"
+
+msgid "Link"
+msgstr "リンク"
+
+msgid "Action"
+msgstr "アクション"
+
+msgid "Preset style"
+msgstr "プリセットスタイル"
+
+msgid "Per-button styling"
+msgstr "ボタンごとのスタイル"
+
+msgid "Custom login URL"
+msgstr "カスタムログイン URL"
+
+msgid "/wp-login.php"
+msgstr ""
+
+msgid "Login slug"
+msgstr "ログインスラッグ"
+
+msgid "Bookmark your always-works recovery URL:"
+msgstr "常に機能する復旧用 URL をブックマークしてください:"
+
+msgid "Bookmark your login URL before leaving this page."
+msgstr "このページを離れる前に、ログイン URL をブックマークしてください。"
+
+msgid "/wp-admin"
 msgstr ""
 
 msgid "util_login_slug"
 msgstr ""
 
-msgid "visitors / day"
-msgstr "訪問者 / 日"
+msgid "OctoberCMS theme"
+msgstr "OctoberCMS テーマ"
 
-msgid "which you need next."
-msgstr "次に必要なもの。"
-
-msgid "widgets"
-msgstr "ウィジェット"
-
-msgid "wp-config.php"
+msgid ".htm"
 msgstr ""
 
-msgid "wp-content"
-msgstr ""
+msgid "Enable OctoberCMS theme builder"
+msgstr "OctoberCMS テーマビルダーを有効化"
 
-msgid "wp-fastest-cache"
-msgstr ""
+msgid "Rename classes &amp; IDs"
+msgstr "クラス &amp; ID の名前を変更"
 
-msgid "your builder"
-msgstr "お使いのビルダー"
+msgid "and"
+msgstr "および"
 
-msgid "your zone → AI Crawl Control / Bots → uncheck \"Display Content Signals Policy\" / managed robots.txt"
-msgstr "お使いのゾーン → AI Crawl Control / Bots → 「Display Content Signals Policy」/ 管理された robots.txt のチェックを外す"
+msgid "Classes"
+msgstr "クラス"
 
-msgid "z-index"
-msgstr ""
+msgid "IDs"
+msgstr "ID"
 
-msgid "— entries"
-msgstr "— 件"
+msgid "Download renamed"
+msgstr "名前変更済みをダウンロード"
 
-msgid "— how sitemap.xml looks when opened in a browser. Search engines still read the plain XML."
-msgstr "— sitemap.xml をブラウザーで開いたときの見え方です。検索エンジンは引き続きプレーンな XML を読み込みます。"
+msgid "Loading…"
+msgstr "読み込み中…"
 
-msgid "— switch off to disable forms and SMTP."
-msgstr "— オフにするとフォームと SMTP が無効になります。"
+msgid "Build a theme"
+msgstr "テーマをビルド"
 
-msgid "— switch off to disable."
-msgstr "— オフにすると無効になります。"
+msgid "Theme name"
+msgstr "テーマ名"
 
-msgid "— switch off to hide it."
-msgstr "— オフにすると非表示になります。"
+msgid "(optional — defaults to your domain)"
+msgstr "（任意 — 既定ではお使いのドメイン）"
 
-msgid "— switch off to hide this tool (your stored backups are kept)."
-msgstr "— オフにするとこのツールが非表示になります（保存済みのバックアップは保持されます）。"
+msgid "Scan &amp; build theme"
+msgstr "テーマをスキャン &amp; 作成"
 
-msgid "— switch on to create field groups."
-msgstr "— オンにするとフィールドグループを作成できます。"
+msgid "No builds yet. Name your theme above and hit %s."
+msgstr "まだビルドがありません。上でテーマに名前を付けて %s を押してください。"
 
-msgid "“Cloudflare”"
-msgstr "「Cloudflare」"
+msgid "Scan &amp; build"
+msgstr "スキャン &amp; 作成"
 
-msgid "…) so links shared to Facebook, LinkedIn, WhatsApp and X show a rich preview. Turn off if another tool already handles them."
-msgstr "…）により、Facebook、LinkedIn、WhatsApp、X に共有されたリンクがリッチプレビューを表示します。別のツールがすでに処理している場合はオフにしてください。"
-
-msgid "← Prev"
-msgstr "← 前へ"
+msgid "⤓ Download all"
+msgstr "⤓ すべてダウンロード"
 
 msgid "↻ Re-scan website"
 msgstr "↻ サイトを再スキャン"
 
-msgid "⚠ Editing files directly can break your site. Use with care."
-msgstr "⚠ ファイルを直接編集すると、サイトが壊れる可能性があります。慎重に使用してください。"
+msgid "Version"
+msgstr "バージョン"
 
-msgid "⤓ Download all"
-msgstr "⤓ すべてダウンロード"
+msgid "Built"
+msgstr "ビルド済み"
+
+msgid "Duration"
+msgstr "所要時間"
+
+msgid "Pages"
+msgstr "固定ページ"
+
+msgid "Media"
+msgstr "メディア"
+
+msgid "Latest"
+msgstr "最新"
+
+msgid "Revert point"
+msgstr "復帰ポイント"
+
+msgid "Download theme"
+msgstr "テーマをダウンロード"
+
+msgid "Unzip into storage/app/media/"
+msgstr "storage/app/media/ に展開"
+
+msgid "Download media (%d)"
+msgstr "メディアをダウンロード（%d）"
+
+msgid "Edit names"
+msgstr "名前を編集"
+
+msgid "OctoberCMS builder is on"
+msgstr "OctoberCMS ビルダーは有効です"
+
+msgid "— switch off to hide it."
+msgstr "— オフにすると非表示になります。"
+
+msgid "HTML lang switcher"
+msgstr "HTML 言語スイッチャー"
+
+msgid "lang"
+msgstr ""
+
+msgid "Override the lang attribute"
+msgstr "lang 属性を上書き"
+
+msgid "In your page source right now"
+msgstr "現在のページソース内"
+
+msgid "Reading your front page&hellip;"
+msgstr "フロントページを読み込み中&hellip;"
+
+msgid "Re-check"
+msgstr "再チェック"
+
+msgid "Switch to"
+msgstr "切り替え先"
+
+msgid "Leave unchanged"
+msgstr "変更しない"
+
+msgid "Something else&hellip;"
+msgstr "その他&hellip;"
+
+msgid "de-DE"
+msgstr ""
+
+msgid "en-GB"
+msgstr ""
+
+msgid "Now"
+msgstr "現在"
+
+msgid "After saving"
+msgstr "保存後"
+
+msgid "Dashboard"
+msgstr "ダッシュボード"
+
+msgid "Tune performance"
+msgstr "パフォーマンスを調整"
+
+msgid "Add widget"
+msgstr "ウィジェットを追加"
+
+msgid "Turf war detected"
+msgstr "縄張り争いを検出"
+
+msgid "Refresh now"
+msgstr "今すぐ更新"
+
+msgid "See what&rsquo;s wrong &amp; right"
+msgstr "問題点 &amp; 良い点を確認"
+
+msgid "Full report &rarr;"
+msgstr "完全なレポート &rarr;"
+
+msgid "widgets"
+msgstr "ウィジェット"
+
+msgid "selected"
+msgstr "選択中"
+
+msgid "Remove selected"
+msgstr "選択項目を削除"
+
+msgid "Performance"
+msgstr "パフォーマンス"
+
+msgid "Cache"
+msgstr "キャッシュ"
+
+msgid "Critical CSS built &amp; cached"
+msgstr "クリティカル CSS を作成 &amp; キャッシュ済み"
+
+msgid "Purge caches"
+msgstr "キャッシュをパージ"
+
+msgid "Database"
+msgstr "データベース"
+
+msgid "rows of junk to clean out"
+msgstr "行の不要なデータをクリーンアップ"
+
+msgid "Clean database"
+msgstr "データベースをクリーンアップ"
+
+msgid "Visitors &middot; this week"
+msgstr "訪問者 &middot; 今週"
+
+msgid "View traffic"
+msgstr "トラフィックを表示"
+
+msgid "Turn on in Settings"
+msgstr "設定でオンにする"
+
+msgid "Form submissions"
+msgstr "フォーム送信"
+
+msgid "in the last 30 days"
+msgstr "過去 30 日間"
+
+msgid "Open Mail &amp; Forms"
+msgstr "メール &amp; フォームを開く"
+
+msgid "Images"
+msgstr "画像"
+
+msgid "Optimize images"
+msgstr "画像を最適化"
+
+msgid "Recommendations"
+msgstr "おすすめ"
+
+msgid "Enable &rarr;"
+msgstr "有効化 &rarr;"
+
+msgid "Local fonts"
+msgstr "ローカルフォント"
+
+msgid "Manage fonts"
+msgstr "フォントを管理"
+
+msgid "Everything in Velox"
+msgstr "Velox 内のすべて"
+
+msgid "Counts are live. Nothing is deleted until you press a button."
+msgstr "カウントはリアルタイムです。ボタンを押すまで何も削除されません。"
+
+msgid "Cleanup"
+msgstr "クリーンアップ"
+
+msgid "Clean"
+msgstr "クリーンアップ"
+
+msgid "Clean everything"
+msgstr "すべてクリーンアップ"
+
+msgid "Optimize tables"
+msgstr "テーブルを最適化"
+
+msgid "Automation"
+msgstr "自動化"
+
+msgid "Weekly auto-clean"
+msgstr "週次自動クリーンアップ"
+
+msgid "Runs the cleanup (not table optimization) once a week via WP-Cron."
+msgstr "WP-Cron 経由で週 1 回クリーンアップ（テーブル最適化ではありません）を実行します。"
+
+msgid "Save automation"
+msgstr "自動化を保存"
+
+msgid "Run check now"
+msgstr "今すぐチェックを実行"
+
+msgid "Overview"
+msgstr "概要"
+
+msgid "issue"
+msgstr "問題"
+
+msgid "issues"
+msgstr "問題"
+
+msgid "to fix on %s"
+msgstr "%s で修正すべき"
+
+msgid "No issues found on %s"
+msgstr "%s で問題は見つかりませんでした"
+
+msgid "Checked %s ago"
+msgstr "%s前に確認"
+
+msgid "Metrics"
+msgstr "指標"
+
+msgid "Everything in this category passed."
+msgstr "このカテゴリーのすべてが合格しました。"
+
+msgid "Passed audits (%d)"
+msgstr "合格した監査（%d）"
+
+msgid "PageSpeed"
+msgstr "PageSpeed"
+
+msgid "Open on PageSpeed Insights &#8599;"
+msgstr "PageSpeed Insights で開く &#8599;"
+
+msgid "Run first check"
+msgstr "最初のチェックを実行"
+
+msgid "Code Snippets"
+msgstr "コードスニペット"
+
+msgid "Add snippet"
+msgstr "スニペットを追加"
+
+msgid "Safe Mode is active — PHP snippets are not running."
+msgstr "セーフモードが有効です。PHP スニペットは実行されていません。"
+
+msgid "Switch off all PHP snippets"
+msgstr "すべての PHP スニペットをオフにする"
+
+msgid "Clear Safe Mode"
+msgstr "セーフモードを解除"
+
+msgid "What kind of snippet?"
+msgstr "どの種類のスニペットですか ?"
+
+msgid "PHP"
+msgstr "PHP"
+
+msgid "Functions &amp; hooks"
+msgstr "関数 &amp; フック"
+
+msgid "CSS"
+msgstr "CSS"
+
+msgid "Styles"
+msgstr "スタイル"
+
+msgid "Inject CSS into the page head — front-end, admin, or both."
+msgstr "CSS をページの head に挿入します。フロントエンド、管理画面、またはその両方です。"
+
+msgid "JS"
+msgstr "JS"
+
+msgid "Scripts"
+msgstr "スクリプト"
+
+msgid "Print JavaScript before &lt;/body&gt; for the chosen location."
+msgstr "選択した場所の &lt;/body&gt; の前に JavaScript を出力します。"
+
+msgid "HTML"
+msgstr "HTML"
+
+msgid "Markup"
+msgstr "マークアップ"
+
+msgid "Footer HTML, also embeddable with [velox_snippet id=\"…\"]."
+msgstr ""
+
+msgid "All types"
+msgstr "すべてのタイプ"
+
+msgid "PHP — Functions &amp; hooks"
+msgstr "PHP — 関数 &amp; フック"
+
+msgid "CSS — Styles"
+msgstr "CSS — スタイル"
+
+msgid "JS — Scripts"
+msgstr "JS — スクリプト"
+
+msgid "HTML — Markup"
+msgstr "HTML — マークアップ"
+
+msgid "No snippets here yet."
+msgstr "まだここにスニペットがありません。"
+
+msgid "Add your first snippet"
+msgstr "最初のスニペットを追加"
+
+msgid "Delete forever"
+msgstr "完全に削除"
+
+msgid "Export as plugin"
+msgstr "プラグインとしてエクスポート"
+
+msgid "Move to trash"
+msgstr "ゴミ箱へ移動"
+
+msgid "No snippets match your filter."
+msgstr "フィルターに一致するスニペットがありません。"
+
+msgid "All snippets"
+msgstr "すべてのスニペット"
+
+msgid "Save only"
+msgstr "保存のみ"
+
+msgid "Code"
+msgstr "コード"
+
+msgid "Name"
+msgstr "名前"
+
+msgid "optional"
+msgstr "任意"
+
+msgid "Location"
+msgstr "ロケーション"
+
+msgid "Paragraph number"
+msgstr "段落番号"
+
+msgid "Risky"
+msgstr "リスクあり"
+
+msgid "Risky mode"
+msgstr "リスクありモード"
+
+msgid "Reveal aggressive settings"
+msgstr "アグレッシブな設定を表示"
+
+msgid "Clear all caches"
+msgstr "すべてのキャッシュをクリア"
+
+msgid "Page cache"
+msgstr "ページキャッシュ"
+
+msgid "Optimizations on"
+msgstr "最適化オン"
+
+msgid "Cached on disk"
+msgstr "ディスクにキャッシュ済み"
+
+msgid "Clear cache"
+msgstr "キャッシュをクリア"
+
+msgid "Minified CSS/JS"
+msgstr "圧縮された CSS/JS"
+
+msgid "Regenerate Oxygen CSS"
+msgstr "Oxygen の CSS を再生成"
+
+msgid "Cloudflare"
+msgstr "Cloudflare"
+
+msgid "Cloudflare connected."
+msgstr "Cloudflare に接続しました。"
+
+msgid "Cloudflare needs a one-time setup."
+msgstr "Cloudflare には一度きりの初期設定が必要です。"
+
+msgid "official Cloudflare plugin"
+msgstr "公式 Cloudflare プラグイン"
+
+msgid "\"Cloudflare plugin not active.\""
+msgstr "「Cloudflare プラグインが有効ではありません。」"
+
+msgid "“Cloudflare”"
+msgstr "「Cloudflare」"
+
+msgid "Setup guide: clear Cloudflare cache from Velox"
+msgstr "セットアップガイド: Velox から Cloudflare キャッシュをクリアする"
+
+msgid "What the button does."
+msgstr "ボタンの動作。"
+
+msgid "Cloudflare account ID"
+msgstr "Cloudflare アカウント ID"
+
+msgid "API token"
+msgstr "API トークン"
+
+msgid "Step 1 — Install the official plugin"
+msgstr "ステップ 1 — 公式プラグインをインストール"
+
+msgid "Cloudflare, Inc."
+msgstr "Cloudflare, Inc."
+
+msgid "Step 2 — Create a Cloudflare API token"
+msgstr "ステップ 2 — Cloudflare API トークンを作成"
+
+msgid "Log in at %s."
+msgstr "%s でログインしてください。"
+
+msgid "dash.cloudflare.com"
+msgstr ""
+
+msgid "Profile icon (top right) → %s."
+msgstr "プロフィールアイコン（右上）→ %s。"
+
+msgid "My Profile"
+msgstr "マイプロフィール"
+
+msgid "%1$s tab → %2$s."
+msgstr "%1$s タブ → %2$s。"
+
+msgid "API Tokens"
+msgstr "API トークン"
+
+msgid "Create Token"
+msgstr "トークンを作成"
+
+msgid "WordPress"
+msgstr "WordPress"
+
+msgid "Use template"
+msgstr "テンプレートを使用"
+
+msgid "copy it now"
+msgstr "今すぐコピー"
+
+msgid "Account"
+msgstr "アカウント"
+
+msgid "Step 3 — Connect the plugin"
+msgstr "ステップ 3 — プラグインを接続"
+
+msgid "Settings → Cloudflare (or the plugin's Settings link)."
+msgstr "設定 → Cloudflare（またはプラグインの「設定」リンク）。"
+
+msgid "Sign in with an existing account."
+msgstr "既存のアカウントでサインインしてください。"
+
+msgid "Authentication Mode → %s."
+msgstr "認証モード → %s。"
+
+msgid "API Token"
+msgstr "API トークン"
+
+msgid "Enter your Cloudflare account email + paste the token → %s."
+msgstr "Cloudflare アカウントのメールアドレスを入力し、トークンを貼り付けてください → %s。"
+
+msgid "Save API Credentials"
+msgstr "API 認証情報を保存"
+
+msgid "Verify"
+msgstr "確認"
+
+msgid "Good to know"
+msgstr "知っておくと便利"
+
+msgid "Page cache status"
+msgstr "ページキャッシュの状態"
+
+msgid "Purge page cache"
+msgstr "ページキャッシュをパージ"
+
+msgid "Preload now"
+msgstr "今すぐプリロード"
+
+msgid "Scan &amp; build (Cloudflare/Local)"
+msgstr "スキャン &amp; 作成（Cloudflare/ローカル）"
+
+msgid "Clear used-CSS cache"
+msgstr "使用済み CSS キャッシュをクリア"
+
+msgid "Reset auto-learn"
+msgstr "自動学習をリセット"
+
+msgid "No fonts hosted locally yet. Enable the toggle, then scan."
+msgstr "まだローカルにホストされたフォントがありません。トグルを有効にしてからスキャンしてください。"
+
+msgid "Scan &amp; download fonts"
+msgstr "フォントをスキャン &amp; ダウンロード"
+
+msgid "Remove local fonts"
+msgstr "ローカルフォントを削除"
+
+msgid "Font manager"
+msgstr "フォントマネージャー"
+
+msgid "Preload"
+msgstr "プリロード"
+
+msgid "Block"
+msgstr "ブロック"
+
+msgid "Detect fonts"
+msgstr "フォントを検出"
+
+msgid "Save performance settings"
+msgstr "パフォーマンス設定を保存"
+
+msgid "Converted images"
+msgstr "変換済みの画像"
+
+msgid "Nothing converted yet. Run a bulk optimization to fill this up."
+msgstr "まだ何も変換されていません。一括最適化を実行してここを埋めてください。"
+
+msgid "Go to the optimizer"
+msgstr "最適化ツールへ移動"
+
+msgid "Output formats"
+msgstr "出力形式"
+
+msgid "WebP"
+msgstr "WebP"
+
+msgid "Supported"
+msgstr "対応"
+
+msgid "Not on this server"
+msgstr "このサーバーにはありません"
+
+msgid "Replace originals with WebP"
+msgstr "オリジナルを WebP に置き換え"
+
+msgid "Conversion engine"
+msgstr "変換エンジン"
+
+msgid "Engine"
+msgstr "エンジン"
+
+msgid "Auto (recommended)"
+msgstr "自動（推奨）"
+
+msgid "Imagick"
+msgstr "Imagick"
+
+msgid "GD"
+msgstr "GD"
+
+msgid "Available"
+msgstr "利用可能"
+
+msgid "AVIF"
+msgstr "AVIF"
+
+msgid "Not installed"
+msgstr "未インストール"
+
+msgid "Quality &amp; processing"
+msgstr "品質 &amp; 処理"
+
+msgid "Quality"
+msgstr "品質"
+
+msgid "Lossless WebP"
+msgstr "ロスレス WebP"
+
+msgid "Resize width (px)"
+msgstr "リサイズ幅（px）"
+
+msgid "Preserve EXIF metadata"
+msgstr "EXIF メタデータを保持"
+
+msgid "Bulk optimization"
+msgstr "一括最適化"
+
+msgid "Convert pending images"
+msgstr "保留中の画像を変換"
+
+msgid "Stop"
+msgstr "停止"
+
+msgid "View converted images →"
+msgstr "変換済みの画像を表示 →"
+
+msgid "Library"
+msgstr "ライブラリ"
+
+msgid "Optimized"
+msgstr "最適化済み"
+
+msgid "Pending"
+msgstr "保留中"
+
+msgid "Saved"
+msgstr "保存済み"
+
+msgid "JPG"
+msgstr "JPG"
+
+msgid "PNG"
+msgstr "PNG"
+
+msgid "GIF"
+msgstr "GIF"
+
+msgid "SVG"
+msgstr "SVG"
+
+msgid "Find &amp; replace names"
+msgstr "名前を検索 &amp; 置換"
+
+msgid "Apply all names"
+msgstr "すべての名前を適用"
+
+msgid "Loading images…"
+msgstr "画像を読み込み中…"
+
+msgid "← Prev"
+msgstr "← 前へ"
+
+msgid "Next →"
+msgstr "次へ →"
+
+msgid "Before / after"
+msgstr "ビフォー／アフター"
+
+msgid "Loading optimized images…"
+msgstr "最適化された画像を読み込み中…"
+
+msgid "Original"
+msgstr "オリジナル"
+
+msgid "Media Editor — Alt text &amp; titles"
+msgstr "メディアエディター — 代替テキスト &amp; タイトル"
+
+msgid "Title"
+msgstr "タイトル"
+
+msgid "Alt text"
+msgstr "代替テキスト"
+
+msgid "Caption"
+msgstr "キャプション"
+
+msgid "Rename file"
+msgstr "ファイル名を変更"
+
+msgid "Export / Bulk import"
+msgstr "エクスポート／一括インポート"
+
+msgid "Dateiname | Alt-Text | Titel"
+msgstr ""
+
+msgid "Download images"
+msgstr "画像をダウンロード"
+
+msgid "Export pipe list"
+msgstr "パイプリストをエクスポート"
+
+msgid "Bulk import"
+msgstr "一括インポート"
+
+msgid "Select all"
+msgstr "すべて選択"
+
+msgid "Download selected"
+msgstr "選択項目をダウンロード"
+
+msgid "Loading media…"
+msgstr "メディアを読み込み中…"
+
+msgid "New file name"
+msgstr "新しいファイル名"
+
+msgid "Rename &amp; fix references"
+msgstr "名前を変更 &amp; 参照を修正"
+
+msgid "Resize image"
+msgstr "画像をリサイズ"
+
+msgid "Width"
+msgstr "幅"
+
+msgid "px"
+msgstr ""
+
+msgid "Keep the original proportions"
+msgstr "元の縦横比を維持"
+
+msgid "Height"
+msgstr "高さ"
+
+msgid "Bulk import — pipe format"
+msgstr "一括インポート — パイプ形式"
+
+msgid "Apply to library"
+msgstr "ライブラリに適用"
+
+msgid "Close"
+msgstr "閉じる"
+
+msgid "Velox"
+msgstr "Velox"
+
+msgid "Collapse menu"
+msgstr "メニューを折りたたむ"
+
+msgid "by Sumasearch"
+msgstr "提供: Sumasearch"
+
+msgid "Which page builder do you use?"
+msgstr "どのページビルダーを使用していますか ?"
+
+msgid "Detect it for me →"
+msgstr "自動で検出する →"
+
+msgid "Builder not listed? %s"
+msgstr "ビルダーが一覧にありませんか ? %s"
+
+msgid "Request it →"
+msgstr "リクエストする →"
+
+msgid "Send"
+msgstr "送信"
+
+msgid "Skip for now"
+msgstr "今はスキップ"
+
+msgid "Next"
+msgstr "次へ"
+
+msgid "How do you want to set up"
+msgstr "どのように設定しますか"
+
+msgid "Recommended"
+msgstr "推奨"
+
+msgid "Detect &amp; recommend"
+msgstr "検出 &amp; おすすめ"
+
+msgid "I'll configure it myself"
+msgstr "自分で設定する"
+
+msgid "Back"
+msgstr "戻る"
+
+msgid "Recommended for"
+msgstr "推奨対象"
+
+msgid "your builder"
+msgstr "お使いのビルダー"
+
+msgid "Scanning…"
+msgstr "スキャン中…"
+
+msgid "Apply selected"
+msgstr "選択項目を適用"
+
+msgid "You're all set"
+msgstr "準備が整いました"
+
+msgid "Open Performance"
+msgstr "パフォーマンスを開く"
+
+msgid "Velox admin language"
+msgstr "Velox 管理言語"
+
+msgid "SEO"
+msgstr "SEO"
+
+msgid "Recommended setup"
+msgstr "推奨設定"
+
+msgid "Apply recommended setup"
+msgstr "推奨設定を適用"
+
+msgid "robots.txt"
+msgstr ""
+
+msgid "Save robots.txt"
+msgstr "robots.txt を保存"
+
+msgid "Reset to recommended"
+msgstr "推奨にリセット"
+
+msgid "View live robots.txt"
+msgstr "公開中の robots.txt を表示"
+
+msgid "Back to virtual"
+msgstr "仮想に戻す"
+
+msgid "Write to physical file"
+msgstr "物理ファイルに書き込む"
+
+msgid "Quick add:"
+msgstr "クイック追加:"
+
+msgid "Sitemap line"
+msgstr "サイトマップの行"
+
+msgid "Protect wp-admin"
+msgstr "wp-admin を保護"
+
+msgid "Block AI crawlers"
+msgstr "AI クローラーをブロック"
+
+msgid "Allow everything"
+msgstr "すべて許可"
+
+msgid "Appends a ready-made block to the editor above — review, then save."
+msgstr "既製のブロックを上のエディターに追加します。確認してから保存してください。"
+
+msgid "Live at %s"
+msgstr "%s で公開中"
+
+msgid "That \"content signals\" block is coming from Cloudflare — not Velox."
+msgstr "その「コンテンツシグナル」のブロックは Velox ではなく Cloudflare から出力されています。"
+
+msgid "AI Crawl Control"
+msgstr "AI クロール制御"
+
+msgid "Bots"
+msgstr "ボット"
+
+msgid "Content Signals Policy"
+msgstr "コンテンツシグナルポリシー"
+
+msgid "Seeing AI \"content signals\" text instead of yours?"
+msgstr "ご自身のものではなく AI の「コンテンツシグナル」テキストが表示されていますか ?"
+
+msgid "XML sitemap"
+msgstr "XML サイトマップ"
+
+msgid "URLs"
+msgstr "URL"
+
+msgid "Status"
+msgstr "ステータス"
+
+msgid "Updated"
+msgstr "更新済み"
+
+msgid "Velox SEO"
+msgstr "Velox SEO"
+
+msgid "box → \"Exclude from sitemap\")."
+msgstr "ボックス → 「サイトマップから除外」）。"
+
+msgid "Home page"
+msgstr "ホームページ"
+
+msgid "Posts"
+msgstr "投稿"
+
+msgid "Products"
+msgstr "商品"
+
+msgid "Change frequency"
+msgstr "変更頻度"
+
+msgid "Sitemap appearance"
+msgstr "サイトマップの表示"
+
+msgid "Default"
+msgstr "既定"
+
+msgid "Custom"
+msgstr "カスタム"
+
+msgid "Layout"
+msgstr "レイアウト"
+
+msgid "Spacing"
+msgstr "間隔"
+
+msgid "Show logo / name"
+msgstr "ロゴ／名前を表示"
+
+msgid "example URLs — not your real site"
+msgstr "サンプル URL — 実際のサイトではありません"
+
+msgid "Regenerate sitemap"
+msgstr "サイトマップを再生成"
+
+msgid "View sitemap"
+msgstr "サイトマップを表示"
+
+msgid "Social cards (Open Graph)"
+msgstr "ソーシャルカード（Open Graph）"
+
+msgid "og:title"
+msgstr ""
+
+msgid "og:image"
+msgstr ""
+
+msgid ".htaccess"
+msgstr ""
+
+msgid "Unlock to edit this file"
+msgstr "このファイルを編集するにはロックを解除"
+
+msgid "Unlock editing"
+msgstr "編集のロックを解除"
+
+msgid "Careful — this is your live server config."
+msgstr "注意 — これは稼働中のサーバー設定です。"
+
+msgid "No %s exists in your site root yet — saving will create one."
+msgstr "サイトのルートにはまだ %s が存在しません。保存すると作成されます。"
+
+msgid "Save .htaccess"
+msgstr ".htaccess を保存"
+
+msgid "SEO health"
+msgstr "SEO の健全性"
+
+msgid "Scan"
+msgstr "スキャン"
+
+msgid "Once Weekly"
+msgstr "週 1 回"
+
+msgid "Submission not found."
+msgstr "送信が見つかりません。"
+
+msgid "This submission has no email address to reply to."
+msgstr "この送信には返信先のメールアドレスがありません。"
+
+msgid "The reply could not be sent — check your mail settings."
+msgstr "返信を送信できませんでした。メール設定を確認してください。"
+
+msgid "Give the template a name."
+msgstr "テンプレートに名前を付けてください。"
+
+msgid "Not allowed."
+msgstr "許可されていません。"
+
+msgid "Source file not found."
+msgstr "ソースファイルが見つかりません。"
+
+msgid "Only JPG and PNG files can be converted."
+msgstr "JPG と PNG のファイルのみ変換できます。"
+
+msgid "Enable WebP output in Images settings first."
+msgstr "まず「画像」設定で WebP 出力を有効にしてください。"
+
+msgid "No output format selected — enable WebP and/or AVIF in Images settings."
+msgstr "出力形式が選択されていません。「画像」設定で WebP や AVIF を有効にしてください。"
+
+msgid "Optimize Images"
+msgstr "画像を最適化"
+
+msgid "Could not create the used-CSS folder."
+msgstr "使用済み CSS フォルダーを作成できませんでした。"
+
+msgid "No HTML came back for that path."
+msgstr "そのパスに対して HTML が返されませんでした。"
+
+msgid "No local stylesheets to trim on that page."
+msgstr "そのページに削減できるローカルのスタイルシートはありません。"
+
+msgid "Built %1$s (%2$s)"
+msgstr "ビルド日時 %1$s（%2$s）"
+
+msgid "Add your Cloudflare account ID and API token first."
+msgstr "まず Cloudflare のアカウント ID と API トークンを追加してください。"
+
+msgid "Cloudflare render failed: %s"
+msgstr "Cloudflare のレンダリングに失敗しました: %s"
+
+msgid "Cleared %d cached used-CSS file(s)."
+msgstr "キャッシュされた使用済み CSS ファイルを %d 件クリアしました。"
+
+msgid "That backup file is no longer available."
+msgstr "そのバックアップファイルはもう利用できません。"
+
+msgid "Insufficient permissions."
+msgstr "権限が不足しています。"
+
+msgid "That doesn't look like valid Velox settings JSON."
+msgstr "有効な Velox 設定 JSON ではないようです。"
+
+msgid "Settings imported."
+msgstr "設定をインポートしました。"
+
+msgid "Unknown action."
+msgstr "不明なアクションです。"
+
+msgid "Settings saved."
+msgstr "設定を保存しました。"
+
+msgid "This content is no longer available."
+msgstr "このコンテンツはもう利用できません。"
+
+msgid "Select image"
+msgstr "画像を選択"
+
+msgid "Remove"
+msgstr "削除"
+
+msgid "Add images"
+msgstr "画像を追加"
+
+msgid "Add row"
+msgstr "行を追加"
+
+msgid "Select file"
+msgstr "ファイルを選択"
+
+msgid "Yes"
+msgstr "はい"
+
+msgid "Could not read the front page to scan for fonts."
+msgstr "フォントをスキャンするためにフロントページを読み込めませんでした。"
+
+msgid "Could not create the local fonts folder. Check uploads permissions."
+msgstr "ローカルフォントフォルダーを作成できませんでした。アップロードの権限を確認してください。"
+
+msgid "Hosted %1$d font file(s) across %2$d family/families locally."
+msgstr "%2$d 個のファミリーにわたる %1$d 個のフォントファイルをローカルにホストしました。"
+
+msgid "Local fonts removed. Google Fonts will load normally again."
+msgstr "ローカルフォントを削除しました。Google Fonts は再び通常どおり読み込まれます。"
+
+msgid "Follow WordPress"
+msgstr "WordPress に従う"
+
+msgid "Feeds are disabled on this site."
+msgstr "このサイトではフィードが無効になっています。"
+
+msgid "Could not create the zip file."
+msgstr "ZIP ファイルを作成できませんでした。"
+
+msgid "Not a media item."
+msgstr "メディア項目ではありません。"
+
+msgid "Please provide a valid file name."
+msgstr "有効なファイル名を入力してください。"
+
+msgid "New name matches the current name."
+msgstr "新しい名前が現在の名前と同じです。"
+
+msgid "Could not rename %s. Check file permissions."
+msgstr "%s の名前を変更できませんでした。ファイルの権限を確認してください。"
 

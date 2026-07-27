@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.18.0 — Fixed 100+ untranslated strings across the whole admin
+- The original translation pass missed ~103 hardcoded English strings (buttons, card titles, panel headings, tooltips, the cookie-banner builder, PageSpeed labels) — so things like "Purge caches", "Edit", "Recommendations", "Mobile/Desktop" stayed English in every language. Every one of those is now wrapped and translated.
+- Regenerated the translation template with xgettext (canonical extraction) and rebuilt all 8 completed languages (German, Spanish, French, Italian, Portuguese, Dutch, Polish, Japanese) to 100% coverage of the human-readable admin UI.
+- Turkish remains an English-fallback scaffold and will be completed next.
+
 ## 3.17.3 — Language switcher actually applies now
 - Fixed the chosen language never taking effect (UI stayed English). WordPress 6.5+ loads translations just-in-time using the site locale, which bypassed the plugin_locale filter. Velox now explicitly unloads and force-loads the selected .mo up front in wp-admin, so the picked language is what renders.
 

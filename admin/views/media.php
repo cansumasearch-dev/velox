@@ -4,7 +4,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Media Editor — Alt text &amp; titles</h1>
+	<h1 class="velox-h2"><?php esc_html_e( 'Media Editor — Alt text &amp; titles', 'velox' ); ?></h1>
 	<p class="velox-sub"><?php esc_html_e('Add alt text, titles and captions to every image for SEO and accessibility, and rename files safely. File renames update every reference across your posts and Oxygen builder data automatically.', 'velox'); ?></p>
 </div>
 
@@ -22,7 +22,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 </div>
 
 <div class="velox-media-selectbar" id="velox-media-selectbar" hidden>
-	<span class="velox-hint" id="velox-media-selcount">Tick the images you want, then download. Alt text &amp; titles come along in a text file.</span>
+	<span class="velox-hint" id="velox-media-selcount"><?php esc_html_e('Tick the images you want, then download. Alt text &amp; titles come along in a text file.', 'velox'); ?></span>
 	<span class="velox-media-selectbar-actions">
 		<button class="velox-btn velox-btn--ghost velox-btn--sm" id="velox-media-selectall"><?php esc_html_e('Select all', 'velox'); ?></button>
 		<button class="velox-btn velox-btn--primary velox-btn--sm" id="velox-media-dl-go" disabled><?php esc_html_e('Download selected', 'velox'); ?></button>
@@ -46,10 +46,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 		<label class="velox-field">
 			<span class="velox-field-label"><?php esc_html_e('New file name', 'velox'); ?></span>
 			<input type="text" id="velox-rename-input" class="velox-input" placeholder="erste-hilfe-kurs-neuss-team">
-			<span class="velox-hint">No extension needed. Spaces &amp; caps become kebab-case. All thumbnail sizes and WebP twins are renamed too.</span>
+			<span class="velox-hint"><?php esc_html_e('No extension needed. Spaces &amp; caps become kebab-case. All thumbnail sizes and WebP twins are renamed too.', 'velox'); ?></span>
 		</label>
 		<div class="velox-actions">
-			<button class="velox-btn velox-btn--primary" id="velox-rename-go">Rename &amp; fix references</button>
+			<button class="velox-btn velox-btn--primary" id="velox-rename-go"><?php esc_html_e('Rename &amp; fix references', 'velox'); ?></button>
 			<button class="velox-btn velox-btn--ghost" id="velox-rename-cancel"><?php esc_html_e('Cancel', 'velox'); ?></button>
 		</div>
 	</div>
@@ -66,7 +66,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 				<span class="velox-field-label"><?php esc_html_e('Width', 'velox'); ?></span>
 				<span class="velox-resize-num"><input type="number" min="1" max="12000" id="velox-resize-w" class="velox-input"><span class="u"><?php esc_html_e('px', 'velox'); ?></span></span>
 			</label>
-			<button type="button" class="velox-resize-link is-on" id="velox-resize-lock" title="Keep the original proportions" aria-pressed="true">
+			<button type="button" class="velox-resize-link is-on" id="velox-resize-lock" title="<?php esc_attr_e('Keep the original proportions', 'velox'); ?>" aria-pressed="true">
 				<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg>
 			</button>
 			<label class="velox-field">

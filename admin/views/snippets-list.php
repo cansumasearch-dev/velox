@@ -69,7 +69,7 @@ $safe_mode = Velox_Snippets::safe_mode();
 		<div class="velox-snip-types">
 			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'php' ) ); ?>">
 				<span class="velox-snip-badge is-php"><?php esc_html_e('PHP', 'velox'); ?></span>
-				<span class="velox-snip-type-t">Functions &amp; hooks</span>
+				<span class="velox-snip-type-t"><?php esc_html_e('Functions &amp; hooks', 'velox'); ?></span>
 				<span class="velox-snip-type-d"><?php esc_html_e('Run PHP early — add_action, add_filter, custom logic. Lint-checked and crash-guarded.', 'velox'); ?></span>
 			</a>
 			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'css' ) ); ?>">
@@ -80,7 +80,7 @@ $safe_mode = Velox_Snippets::safe_mode();
 			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'js' ) ); ?>">
 				<span class="velox-snip-badge is-js"><?php esc_html_e('JS', 'velox'); ?></span>
 				<span class="velox-snip-type-t"><?php esc_html_e('Scripts', 'velox'); ?></span>
-				<span class="velox-snip-type-d">Print JavaScript before &lt;/body&gt; for the chosen location.</span>
+				<span class="velox-snip-type-d"><?php esc_html_e('Print JavaScript before &lt;/body&gt; for the chosen location.', 'velox'); ?></span>
 			</a>
 			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'html' ) ); ?>">
 				<span class="velox-snip-badge is-html"><?php esc_html_e('HTML', 'velox'); ?></span>
@@ -104,7 +104,7 @@ $safe_mode = Velox_Snippets::safe_mode();
 		<svg class="velox-snip-filter-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
 		<select class="velox-snip-type-filter velox-select" id="velox-snip-type-filter" aria-label="Filter by code type">
 			<option value=""><?php esc_html_e('All types', 'velox'); ?></option>
-			<option value="php">PHP — Functions &amp; hooks</option>
+			<option value="php"><?php esc_html_e( 'PHP — Functions &amp; hooks', 'velox' ); ?></option>
 			<option value="css"><?php esc_html_e('CSS — Styles', 'velox'); ?></option>
 			<option value="js"><?php esc_html_e('JS — Scripts', 'velox'); ?></option>
 			<option value="html"><?php esc_html_e('HTML — Markup', 'velox'); ?></option>

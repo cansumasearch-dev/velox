@@ -130,7 +130,7 @@ endif;
 
 <!-- ============ Quality & processing ============ -->
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Quality &amp; processing</h3>
+	<h3 class="velox-panel-title"><?php esc_html_e('Quality &amp; processing', 'velox'); ?></h3>
 	<div class="velox-field">
 		<span class="velox-field-label"><?php esc_html_e('Quality', 'velox'); ?> <em id="velox-q-val"><?php echo esc_html( $quality ); ?>%</em></span>
 		<div class="velox-quality-row">
@@ -210,7 +210,7 @@ endif;
 		</div>
 		<input type="search" id="velox-lib-search" class="velox-input" placeholder="Search filename or title…">
 		<div class="velox-lib-toolbar-right">
-			<button class="velox-btn velox-btn--ghost" id="velox-lib-bulk">Find &amp; replace names</button>
+			<button class="velox-btn velox-btn--ghost" id="velox-lib-bulk"><?php esc_html_e('Find &amp; replace names', 'velox'); ?></button>
 			<button class="velox-btn velox-btn--primary" id="velox-lib-apply-all" hidden><?php esc_html_e('Apply all names', 'velox'); ?></button>
 		</div>
 	</div>

@@ -15,7 +15,7 @@ if ( '' !== $tool && isset( $tools[ $tool ] ) && ! empty( $tools[ $tool ]['ready
 		echo '<nav class="velox-breadcrumb" aria-label="Breadcrumb">'
 			. '<a href="' . esc_url( admin_url( 'admin.php?page=velox' ) ) . '">Velox</a>'
 			. '<span class="velox-breadcrumb-sep">/</span>'
-			. '<a href="' . esc_url( $hub_url ) . '">Utilities</a>'
+			. '<a href="' . esc_url( $hub_url ) . '">' . esc_html__( 'Utilities', 'velox' ) . '</a>'
 			. '<span class="velox-breadcrumb-sep">/</span>'
 			. '<span class="velox-breadcrumb-cur">' . esc_html( $tool_label ) . '</span>'
 			. '</nav>';

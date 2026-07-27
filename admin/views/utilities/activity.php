@@ -44,7 +44,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=activity' );
 
 		<div class="velox-activity-list">
 			<?php if ( empty( $events ) ) : ?>
-				<p class="velox-hint" style="margin-top:14px;">Nothing logged yet<?php echo $filter ? ' for this filter' : ''; ?>.</p>
+				<p class="velox-hint" style="margin-top:14px;"><?php echo $filter ? esc_html__( 'Nothing logged yet for this filter', 'velox' ) : esc_html__( 'Nothing logged yet', 'velox' ); ?>.</p>
 			<?php else : ?>
 				<?php foreach ( $events as $e ) : ?>
 					<?php $t = isset( $tone[ $e['action'] ] ) ? $tone[ $e['action'] ] : 'neutral'; ?>

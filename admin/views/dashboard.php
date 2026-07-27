@@ -88,11 +88,11 @@ $velox_tiles = array(
 		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>"><?php esc_html_e('Tune performance', 'velox'); ?></a>
 		<a class="velox-btn velox-btn--primary" href="<?php echo esc_url( $purge_url ); ?>"><?php echo Velox_Admin::icon( 'broom', 16 ); ?> Purge caches</a>
 		<div class="velox-newwidget" id="velox-newwidget" hidden>
-			<button type="button" class="velox-btn velox-btn--ghost" id="velox-newwidget-btn"><?php echo Velox_Admin::icon( 'check', 15 ); ?>Add widget</button>
+			<button type="button" class="velox-btn velox-btn--ghost" id="velox-newwidget-btn"><?php echo Velox_Admin::icon( 'check', 15 ); ?><?php esc_html_e('Add widget', 'velox'); ?></button>
 			<div class="velox-newwidget-menu" id="velox-newwidget-menu" hidden></div>
 		</div>
 		<button type="button" class="velox-btn velox-btn--ghost" id="velox-dash-done" hidden><?php esc_html_e('Done', 'velox'); ?></button>
-		<button type="button" class="velox-btn velox-btn--ghost" id="velox-dash-edit"><?php echo Velox_Admin::icon( 'grid', 15 ); ?>Edit</button>
+		<button type="button" class="velox-btn velox-btn--ghost" id="velox-dash-edit"><?php echo Velox_Admin::icon( 'grid', 15 ); ?><?php esc_html_e('Edit', 'velox'); ?></button>
 	</div>
 </div>
 
@@ -105,7 +105,7 @@ if ( ! empty( $velox_clashes ) ) :
 			<span class="velox-clash-ic">&#9889;</span>
 			<div>
 				<h3 class="velox-panel-title" style="margin:0;"><?php esc_html_e('Turf war detected', 'velox'); ?></h3>
-				<p class="velox-hint" style="margin:2px 0 0;">These active plugins overlap features Velox already handles. Two plugins doing the same job tend to fight over the same output &mdash; keep one.</p>
+				<p class="velox-hint" style="margin:2px 0 0;"><?php esc_html_e('These active plugins overlap features Velox already handles. Two plugins doing the same job tend to fight over the same output &mdash; keep one.', 'velox'); ?></p>
 			</div>
 		</div>
 		<div class="velox-clash-list">
@@ -226,7 +226,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 			if ( $has_wrong || $has_right ) :
 				?>
 				<button type="button" class="velox-ps-detailsbtn" data-ps-details aria-expanded="false">
-					<span class="velox-ps-detailsbtn-tx"><?php echo Velox_Admin::icon( 'search', 14 ); ?>See what&rsquo;s wrong &amp; right</span>
+					<span class="velox-ps-detailsbtn-tx"><?php echo Velox_Admin::icon( 'search', 14 ); ?><?php esc_html_e('See what&rsquo;s wrong &amp; right', 'velox'); ?></span>
 					<svg class="velox-ps-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
 				</button>
 				<div class="velox-ps-details" data-ps-detailsbody hidden>
@@ -251,7 +251,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 
 			<div class="velox-ps-foot">
 				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-ps-refresh><?php esc_html_e('Refresh now', 'velox'); ?></button>
-				<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $admin->tab_url( 'pagespeed' ) ); ?>">Full report &rarr;</a>
+				<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $admin->tab_url( 'pagespeed' ) ); ?>"><?php esc_html_e('Full report &rarr;', 'velox'); ?></a>
 			</div>
 		<?php endif; ?>
 	</div>
@@ -272,7 +272,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'perf', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'perf', 4, 1 ) ); ?>" data-widget="perf" data-widget-label="Performance">
 		<?php echo $vx_wctl; ?>
-		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'bolt', 15 ); ?>Performance</div>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'bolt', 15 ); ?><?php esc_html_e('Performance', 'velox'); ?></div>
 		<div class="velox-w-ring">
 			<div class="velox-score-ring velox-score-ring--sm" style="--val:<?php echo (int) $score; ?>"><span class="velox-score-num"><?php echo (int) $score; ?></span></div>
 			<div>
@@ -284,15 +284,15 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'cache', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'cache', 4, 1 ) ); ?>" data-widget="cache" data-widget-label="Cache">
 		<?php echo $vx_wctl; ?>
-		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'broom', 15 ); ?>Cache</div>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'broom', 15 ); ?><?php esc_html_e('Cache', 'velox'); ?></div>
 		<div class="velox-w-big"><?php echo (int) $v_css['built']; ?><span class="velox-w-of">/ <?php echo (int) $v_css['pages']; ?> pages</span></div>
-		<div class="velox-w-sub">Critical CSS built &amp; cached</div>
-		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $purge_url ); ?>"><?php echo Velox_Admin::icon( 'broom', 15 ); ?>Purge caches</a>
+		<div class="velox-w-sub"><?php esc_html_e('Critical CSS built &amp; cached', 'velox'); ?></div>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $purge_url ); ?>"><?php echo Velox_Admin::icon( 'broom', 15 ); ?><?php esc_html_e('Purge caches', 'velox'); ?></a>
 	</div>
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'db', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'db', 4, 1 ) ); ?>" data-widget="db" data-widget-label="Database">
 		<?php echo $vx_wctl; ?>
-		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'db', 15 ); ?>Database</div>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'db', 15 ); ?><?php esc_html_e('Database', 'velox'); ?></div>
 		<div class="velox-w-big"><?php echo (int) $v_dbsum; ?></div>
 		<div class="velox-w-sub"><?php esc_html_e('rows of junk to clean out', 'velox'); ?></div>
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'database' ) ); ?>"><?php esc_html_e('Clean database', 'velox'); ?></a>
@@ -300,7 +300,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'traffic', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'traffic', 8, 2 ) ); ?>" data-widget="traffic" data-widget-label="Visitors">
 		<?php echo $vx_wctl; ?>
-		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'search', 15 ); ?>Visitors &middot; this week</div>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'search', 15 ); ?><?php esc_html_e('Visitors &middot; this week', 'velox'); ?></div>
 		<div class="velox-w-trtop">
 			<span class="velox-w-big"><?php echo (int) $v_tr['visitors']; ?></span>
 			<span class="velox-w-sub"><?php echo (int) $v_tr['views']; ?> views<?php if ( null !== $v_tr_trend ) : ?> &middot; <span class="<?php echo $v_tr_trend >= 0 ? 'velox-up' : 'velox-down'; ?>"><?php echo ( $v_tr_trend >= 0 ? '&#9650; ' : '&#9660; ' ) . abs( (int) $v_tr_trend ) . '%'; ?></span> vs last week<?php endif; ?></span>
@@ -341,15 +341,15 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'forms', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'forms', 4, 1 ) ); ?>" data-widget="forms" data-widget-label="Form submissions">
 		<?php echo $vx_wctl; ?>
-		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'mail', 15 ); ?>Form submissions</div>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'mail', 15 ); ?><?php esc_html_e('Form submissions', 'velox'); ?></div>
 		<div class="velox-w-big"><?php echo (int) $v_forms; ?></div>
 		<div class="velox-w-sub"><?php esc_html_e('in the last 30 days', 'velox'); ?></div>
-		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( Velox_Utilities::tool_url( 'mail' ) ); ?>">Open Mail &amp; Forms</a>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( Velox_Utilities::tool_url( 'mail' ) ); ?>"><?php esc_html_e('Open Mail &amp; Forms', 'velox'); ?></a>
 	</div>
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'images', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'images', 4, 1 ) ); ?>" data-widget="images" data-widget-label="Images">
 		<?php echo $vx_wctl; ?>
-		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'image', 15 ); ?>Images</div>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'image', 15 ); ?><?php esc_html_e('Images', 'velox'); ?></div>
 		<div class="velox-w-big"><span data-dash="done">&mdash;</span><span class="velox-w-of">/ <span data-dash="total">&mdash;</span></span></div>
 		<div class="velox-w-sub"><span data-dash="saved">&mdash;</span> saved &middot; engine <?php echo $engine ? esc_html( strtoupper( $engine ) ) : '&mdash;'; ?></div>
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'images' ) ); ?>"><?php esc_html_e('Optimize images', 'velox'); ?></a>
@@ -357,16 +357,16 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'reco', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'reco', 8, 1 ) ); ?>" data-widget="reco" data-widget-label="Recommendations">
 		<?php echo $vx_wctl; ?>
-		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'check', 15 ); ?>Recommendations</div>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'check', 15 ); ?><?php esc_html_e('Recommendations', 'velox'); ?></div>
 		<?php if ( empty( $todo ) ) : ?>
-			<div class="velox-reco-empty"><?php echo Velox_Admin::icon( 'check', 20 ); ?><span>Everything&rsquo;s tuned. Nice work &mdash; your key optimizations are all on.</span></div>
+			<div class="velox-reco-empty"><?php echo Velox_Admin::icon( 'check', 20 ); ?><span><?php esc_html_e('Everything&rsquo;s tuned. Nice work &mdash; your key optimizations are all on.', 'velox'); ?></span></div>
 		<?php else : ?>
 			<div class="velox-reco-list">
 				<?php foreach ( $todo as $c ) : ?>
 					<div class="velox-reco-row">
 						<span class="velox-reco-dot"></span>
 						<span class="velox-reco-label"><?php echo wp_kses_post( $c['todo'] ); ?></span>
-						<a class="velox-reco-go" href="<?php echo esc_url( $admin->tab_url( $c['area'] ) ); ?>">Enable &rarr;</a>
+						<a class="velox-reco-go" href="<?php echo esc_url( $admin->tab_url( $c['area'] ) ); ?>"><?php esc_html_e('Enable &rarr;', 'velox'); ?></a>
 					</div>
 				<?php endforeach; ?>
 			</div>
@@ -375,7 +375,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'fonts', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'fonts', 4, 1 ) ); ?>" data-widget="fonts" data-widget-label="Local fonts">
 		<?php echo $vx_wctl; ?>
-		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'image', 15 ); ?>Local fonts</div>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'image', 15 ); ?><?php esc_html_e('Local fonts', 'velox'); ?></div>
 		<div class="velox-w-big"><?php echo (int) ( isset( $v_fonts['files'] ) ? $v_fonts['files'] : 0 ); ?></div>
 		<div class="velox-w-sub"><?php echo ! empty( $v_fonts['active'] ) ? 'self-hosted &middot; active' : 'using Google CDN'; ?></div>
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>"><?php esc_html_e('Manage fonts', 'velox'); ?></a>

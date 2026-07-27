@@ -165,7 +165,7 @@ $ht_writable = Velox_Seo::htaccess_writable();
 <div class="velox-panel" id="velox-htaccess">
 	<div class="velox-cache-status-row">
 		<h3 class="velox-panel-title"><?php esc_html_e('.htaccess', 'velox'); ?></h3>
-		<label class="velox-inline-toggle" title="Unlock to edit this file">
+		<label class="velox-inline-toggle" title="<?php esc_attr_e('Unlock to edit this file', 'velox'); ?>">
 			<span><?php esc_html_e('Unlock editing', 'velox'); ?></span>
 			<span class="velox-switch"><input type="checkbox" id="velox-ht-unlock"<?php disabled( ! $ht_writable ); ?>><span class="velox-switch-track"></span></span>
 		</label>

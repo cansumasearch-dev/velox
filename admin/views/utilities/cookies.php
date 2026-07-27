@@ -100,7 +100,7 @@ $s  = Velox_Settings::all();
 			</div>
 
 			<div class="velox-panel velox-tool-form">
-				<h3 class="velox-panel-title">Consent &amp; tracking</h3>
+				<h3 class="velox-panel-title"><?php esc_html_e('Consent &amp; tracking', 'velox'); ?></h3>
 				<label class="velox-toggle-row">
 					<div class="velox-toggle-meta">
 						<span class="velox-toggle-label"><?php esc_html_e('Google Consent Mode v2', 'velox'); ?></span>
@@ -178,12 +178,12 @@ $s  = Velox_Settings::all();
 			</div>
 
 			<div class="velox-panel velox-tool-form">
-				<h3 class="velox-panel-title">Shape &amp; size</h3>
+				<h3 class="velox-panel-title"><?php esc_html_e('Shape &amp; size', 'velox'); ?></h3>
 				<div class="velox-grid-2">
 					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Border width (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_border_width" value="<?php echo esc_attr( (int) $s['cookie_border_width'] ); ?>"></div>
 					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Corner radius (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_radius" value="<?php echo esc_attr( (int) $s['cookie_radius'] ); ?>"></div>
 					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Edge offset (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_offset" value="<?php echo esc_attr( (int) $s['cookie_offset'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Box / modal width (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_width" value="<?php echo esc_attr( (int) $s['cookie_width'] ); ?>"><span class="velox-hint">Floating boxes &amp; modal only — bars are full width.</span></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Box / modal width (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_width" value="<?php echo esc_attr( (int) $s['cookie_width'] ); ?>"><span class="velox-hint"><?php esc_html_e( 'Floating boxes &amp; modal only — bars are full width.', 'velox' ); ?></span></div>
 					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Base font size (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_font_size" value="<?php echo esc_attr( (int) $s['cookie_font_size'] ); ?>"></div>
 				</div>
 				<div class="velox-grid-2">
@@ -203,7 +203,7 @@ $s  = Velox_Settings::all();
 			</div>
 
 			<div class="velox-panel velox-tool-form">
-				<h3 class="velox-panel-title">Typography &amp; advanced</h3>
+				<h3 class="velox-panel-title"><?php esc_html_e('Typography &amp; advanced', 'velox'); ?></h3>
 				<div class="velox-grid-2">
 					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Heading size (px)', 'velox'); ?> <span class="velox-hint velox-hint--inline"><?php esc_html_e('0 = auto', 'velox'); ?></span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_heading_size" value="<?php echo esc_attr( (int) $s['cookie_heading_size'] ); ?>"></div>
 					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Heading weight', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_heading_weight" value="<?php echo esc_attr( (int) $s['cookie_heading_weight'] ); ?>" placeholder="0 = auto"></div>
@@ -356,7 +356,7 @@ $s  = Velox_Settings::all();
 			var addBtn = document.getElementById( 'ckb-add' );
 			if ( ! dataEl || ! listEl ) { return; }
 
-			var ACTIONS = { accept: 'Accept all cookies', reject: 'Reject non-essential', preferences: 'Open preferences', save: 'Save chosen preferences', link: 'Go to a URL (link)' };
+			var ACTIONS = { accept: '<?php echo esc_js( __( 'Accept all cookies', 'velox' ) ); ?>', reject: '<?php echo esc_js( __( 'Reject non-essential', 'velox' ) ); ?>', preferences: '<?php echo esc_js( __( 'Open preferences', 'velox' ) ); ?>', save: '<?php echo esc_js( __( 'Save chosen preferences', 'velox' ) ); ?>', link: '<?php echo esc_js( __( 'Go to a URL (link)', 'velox' ) ); ?>' };
 			var VARIANTS = { primary: 'Primary', secondary: 'Secondary', ghost: 'Ghost / text', custom: 'Custom (use styles below)' };
 			var STYLE_FIELDS = [
 				[ 'bg', 'Background', 'color' ], [ 'color', 'Text colour', 'color' ],
@@ -383,7 +383,7 @@ $s  = Velox_Settings::all();
 
 			function render() {
 				listEl.innerHTML = '';
-				if ( ! list.length ) { listEl.innerHTML = '<div class="ckb-empty">No buttons. Click “Add button”.</div>'; sync(); return; }
+				if ( ! list.length ) { listEl.innerHTML = '<div class="ckb-empty"><?php echo esc_js( __( 'No buttons. Click “Add button”.', 'velox' ) ); ?></div>'; sync(); return; }
 				list.forEach( function ( b, i ) {
 					b.style = b.style || {};
 					var open = i === openIdx;
@@ -391,12 +391,12 @@ $s  = Velox_Settings::all();
 					card.className = 'ckb-item' + ( open ? ' is-open' : '' );
 					var actLabel = ACTIONS[ b.action ] || b.action;
 					var head = '<div class="ckb-row">' +
-						'<span class="ckb-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></span>' +
+						'<span class="ckb-handle" title="<?php esc_attr_e('Drag to reorder', 'velox'); ?>"><svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor"><circle cx="9" cy="6" r="1.4"/><circle cx="15" cy="6" r="1.4"/><circle cx="9" cy="12" r="1.4"/><circle cx="15" cy="12" r="1.4"/><circle cx="9" cy="18" r="1.4"/><circle cx="15" cy="18" r="1.4"/></svg></span>' +
 						'<span class="ckb-pill ckb-pill--' + esc( b.element ) + '">' + ( b.element === 'link' ? 'Link' : 'Button' ) + '</span>' +
 						'<span class="ckb-main"><span class="ckb-label">' + esc( b.label || 'Untitled' ) + '</span><span class="ckb-meta">' + esc( actLabel ) + '</span></span>' +
 						'<span class="ckb-acts">' +
-							'<button type="button" class="ckb-ic" data-act="dup" title="Duplicate"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
-							'<button type="button" class="ckb-ic ckb-del" data-act="del" title="Delete"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>' +
+							'<button type="button" class="ckb-ic" data-act="dup" title="<?php esc_attr_e('Duplicate', 'velox'); ?>"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
+							'<button type="button" class="ckb-ic ckb-del" data-act="del" title="<?php esc_attr_e('Delete', 'velox'); ?>"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>' +
 							'<button type="button" class="ckb-ic" data-act="toggle"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.7"><path d="' + ( open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6' ) + '"/></svg></button>' +
 						'</span></div>';
 					var body = '';
@@ -409,13 +409,13 @@ $s  = Velox_Settings::all();
 							return '<div class="ckb-mini"><span class="ckb-mini-l">' + f[1] + '</span><input type="number" class="velox-input velox-input--sm ckb-sf" data-sk="' + f[0] + '" value="' + esc( v ) + '"></div>';
 						} ).join( '' );
 						body = '<div class="ckb-body"><div class="ckb-grid">' +
-							'<div class="ckb-mini"><span class="ckb-mini-l">Label</span><input class="velox-input ckb-f" data-k="label" value="' + esc( b.label ) + '"></div>' +
-							'<div class="ckb-mini"><span class="ckb-mini-l">Type</span><select class="velox-select ckb-f" data-k="element"><option value="button"' + ( b.element !== 'link' ? ' selected' : '' ) + '>Button</option><option value="link"' + ( b.element === 'link' ? ' selected' : '' ) + '>Link</option></select></div>' +
-							'<div class="ckb-mini"><span class="ckb-mini-l">Action</span><select class="velox-select ckb-f" data-k="action">' + opt( ACTIONS, b.action ) + '</select></div>' +
+							'<div class="ckb-mini"><span class="ckb-mini-l"><?php echo esc_js( __( 'Label', 'velox' ) ); ?></span><input class="velox-input ckb-f" data-k="label" value="' + esc( b.label ) + '"></div>' +
+							'<div class="ckb-mini"><span class="ckb-mini-l"><?php echo esc_js( __( 'Type', 'velox' ) ); ?></span><select class="velox-select ckb-f" data-k="element"><option value="button"' + ( b.element !== 'link' ? ' selected' : '' ) + '><?php echo esc_js( __( 'Button', 'velox' ) ); ?></option><option value="link"' + ( b.element === 'link' ? ' selected' : '' ) + '><?php echo esc_js( __( 'Link', 'velox' ) ); ?></option></select></div>' +
+							'<div class="ckb-mini"><span class="ckb-mini-l"><?php echo esc_js( __( 'Action', 'velox' ) ); ?></span><select class="velox-select ckb-f" data-k="action">' + opt( ACTIONS, b.action ) + '</select></div>' +
 							'<div class="ckb-mini ckb-url"' + ( b.action === 'link' ? '' : ' hidden' ) + '><span class="ckb-mini-l">URL</span><input class="velox-input ckb-f" data-k="url" value="' + esc( b.url || '' ) + '" placeholder="https://…"></div>' +
-							'<div class="ckb-mini ckb-mini--full"><span class="ckb-mini-l">Preset style</span><select class="velox-select ckb-f" data-k="variant">' + opt( VARIANTS, b.variant ) + '</select></div>' +
+							'<div class="ckb-mini ckb-mini--full"><span class="ckb-mini-l"><?php esc_html_e('Preset style', 'velox'); ?></span><select class="velox-select ckb-f" data-k="variant">' + opt( VARIANTS, b.variant ) + '</select></div>' +
 							'</div>' +
-							'<div class="ckb-style-h">Per-button styling <span class="velox-hint" style="font-weight:400;">(leave blank to use the preset)</span></div>' +
+							'<div class="ckb-style-h"><?php echo esc_js( __( 'Per-button styling', 'velox' ) ); ?> <span class="velox-hint" style="font-weight:400;">(leave blank to use the preset)</span></div>' +
 							'<div class="ckb-grid ckb-style-grid">' + styleRows + '</div>' +
 						'</div>';
 					}

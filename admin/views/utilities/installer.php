@@ -32,7 +32,7 @@ $blueprints = Velox_Utilities::blueprints();
 
 	<div class="velox-tool-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
 		<button class="velox-btn velox-btn--primary" id="velox-installer-run"><?php esc_html_e('Install from list', 'velox'); ?></button>
-		<button class="velox-btn velox-btn--ghost" id="velox-installer-upload">Upload &amp; install ZIPs</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-installer-upload"><?php esc_html_e('Upload &amp; install ZIPs', 'velox'); ?></button>
 		<span style="flex:1;"></span>
 		<input type="text" class="velox-input" id="velox-blueprint-name" placeholder="Blueprint name (e.g. Agency base)" style="max-width:240px;">
 		<button class="velox-btn velox-btn--ghost" id="velox-blueprint-save"><?php esc_html_e('Save as blueprint', 'velox'); ?></button>

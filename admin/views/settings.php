@@ -91,7 +91,7 @@ $s = Velox_Settings::all();
 			<option value="mobile" <?php selected( $s['ps_strategy'], 'mobile' ); ?>><?php esc_html_e('Mobile', 'velox'); ?></option>
 			<option value="desktop" <?php selected( $s['ps_strategy'], 'desktop' ); ?>><?php esc_html_e('Desktop', 'velox'); ?></option>
 		</select>
-		<span class="velox-hint" style="flex-basis:100%;margin:4px 0 0;">Both devices are checked &mdash; this is just the one shown first on the dashboard.</span>
+		<span class="velox-hint" style="flex-basis:100%;margin:4px 0 0;"><?php esc_html_e('Both devices are checked &mdash; this is just the one shown first on the dashboard.', 'velox'); ?></span>
 	</label>
 	<label class="velox-field velox-field--inline">
 		<span class="velox-field-label"><?php esc_html_e('Refresh every', 'velox'); ?></span>
@@ -117,13 +117,13 @@ $s = Velox_Settings::all();
 	</div>
 	<div class="velox-actions">
 		<button type="button" class="velox-btn velox-btn--ghost" data-ps-refresh><?php esc_html_e('Run a check now', 'velox'); ?></button>
-		<span class="velox-hint" style="margin:0;align-self:center;">Save your settings first. A live check can take ~30&nbsp;seconds.</span>
+		<span class="velox-hint" style="margin:0;align-self:center;"><?php esc_html_e( 'Save your settings first. A live check can take ~30&nbsp;seconds.', 'velox' ); ?></span>
 	</div>
 </div>
 
 <div class="velox-panel">
 	<h3 class="velox-panel-title"><?php esc_html_e('Dashboard traffic', 'velox'); ?></h3>
-	<p class="velox-hint">Velox can count page views with a tiny first-party script &mdash; no cookies, no raw IP stored (visitors are de-duped with a salted daily hash), bots and logged-in admins excluded. Powers the Visitors widget on the dashboard. Turn it off and nothing is collected.</p>
+	<p class="velox-hint"><?php esc_html_e('Velox can count page views with a tiny first-party script &mdash; no cookies, no raw IP stored (visitors are de-duped with a salted daily hash), bots and logged-in admins excluded. Powers the Visitors widget on the dashboard. Turn it off and nothing is collected.', 'velox'); ?></p>
 	<?php $vx_track_on = ( ! isset( $s['traffic_tracking'] ) ) ? true : ! empty( $s['traffic_tracking'] ); ?>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
@@ -159,7 +159,7 @@ $s = Velox_Settings::all();
 				<?php if ( ! empty( $src['ready'] ) ) : ?>
 					<button class="velox-btn velox-btn--ghost velox-import-run" type="button" <?php echo $src['detected'] ? '' : 'disabled'; ?>><?php esc_html_e('Import', 'velox'); ?></button>
 				<?php else : ?>
-					<span class="velox-import-soon" title="Velox recognises this plugin — automatic migration is on the way"><?php esc_html_e('Migration coming soon', 'velox'); ?></span>
+					<span class="velox-import-soon" title="<?php esc_attr_e('Velox recognises this plugin — automatic migration is on the way', 'velox'); ?>"><?php esc_html_e('Migration coming soon', 'velox'); ?></span>
 				<?php endif; ?>
 			</div>
 		<?php endforeach; ?>
@@ -185,7 +185,7 @@ $s = Velox_Settings::all();
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
 			<span class="velox-toggle-label"><?php esc_html_e('Keep my settings if I delete Velox', 'velox'); ?></span>
-			<span class="velox-toggle-desc">By default, deleting the plugin wipes Velox&rsquo;s settings, forms, redirects and logs. Turn this on to leave everything in place so a reinstall picks up where you left off. Your media is never touched either way.</span>
+			<span class="velox-toggle-desc"><?php esc_html_e('By default, deleting the plugin wipes Velox&rsquo;s settings, forms, redirects and logs. Turn this on to leave everything in place so a reinstall picks up where you left off. Your media is never touched either way.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="keep_data_on_uninstall" <?php checked( ! empty( $s['keep_data_on_uninstall'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>

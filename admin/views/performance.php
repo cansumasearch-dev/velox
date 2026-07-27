@@ -105,7 +105,7 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 	list( $type, $label, $desc ) = $meta;
 	$opts      = $meta[3] ?? array();
 	$risky_att = $is_risky ? ' data-risky="1"' : '';
-	$badge     = $is_risky ? ' <span class="velox-risky-tag">Risky</span>' : '';
+	$badge     = $is_risky ? ' <span class="velox-risky-tag">' . esc_html__( 'Risky', 'velox' ) . '</span>' : '';
 	$info      = $desc ? ' <span class="velox-info" tabindex="0" data-tip="' . esc_attr( $desc ) . '" aria-label="' . esc_attr( $desc ) . '">i</span>' : '';
 	if ( 'switch' === $type ) {
 		?>
@@ -317,7 +317,7 @@ $sec_icons   = array(
 								<?php endif; ?>
 							</div>
 							<div class="velox-fonts-btns">
-								<button class="velox-btn velox-btn--primary" id="velox-rucss-scan">Scan &amp; build (Cloudflare/Local)</button>
+								<button class="velox-btn velox-btn--primary" id="velox-rucss-scan"><?php esc_html_e('Scan &amp; build (Cloudflare/Local)', 'velox'); ?></button>
 								<button class="velox-btn velox-btn--ghost" id="velox-clear-usedcss"><?php esc_html_e('Clear used-CSS cache', 'velox'); ?></button>
 								<button class="velox-btn velox-btn--ghost" id="velox-rucss-reset"><?php esc_html_e('Reset auto-learn', 'velox'); ?></button>
 							</div>
@@ -335,7 +335,7 @@ $sec_icons   = array(
 								<?php endif; ?>
 							</div>
 							<div class="velox-fonts-btns">
-								<button class="velox-btn velox-btn--primary" id="velox-fonts-scan">Scan &amp; download fonts</button>
+								<button class="velox-btn velox-btn--primary" id="velox-fonts-scan"><?php esc_html_e('Scan &amp; download fonts', 'velox'); ?></button>
 								<button class="velox-btn velox-btn--ghost" id="velox-fonts-clear"><?php esc_html_e('Remove local fonts', 'velox'); ?></button>
 							</div>
 							<p class="velox-hint"><?php esc_html_e('Velox loads your front page, finds the Google Fonts it uses, downloads the woff2 files into your uploads folder and serves those instead. Re-scan after you change fonts.', 'velox'); ?></p>

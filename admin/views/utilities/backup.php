@@ -20,14 +20,14 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 }
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Backup &amp; restore</h1>
+	<h1 class="velox-h2"><?php esc_html_e('Backup &amp; restore', 'velox'); ?></h1>
 	<p class="velox-sub"><?php printf( esc_html__( 'Back up your database and files, download them, restore in a click, or import a backup from another site. Backups live in a protected folder under %s.', 'velox' ), '<code>' . esc_html__( 'wp-content', 'velox' ) . '</code>' ); ?></p>
 </div>
 
 <?php if ( ! $on ) : ?>
 	<div class="velox-panel">
 		<label class="velox-inline-toggle">
-			<span><strong>Enable Backup &amp; restore</strong></span>
+			<span><strong><?php esc_html_e('Enable Backup &amp; restore', 'velox'); ?></strong></span>
 			<span class="velox-switch"><input type="checkbox" data-setting="util_backup" id="velox-backup-toggle"><span class="velox-switch-track"></span></span>
 		</label>
 		<p class="velox-hint" style="margin-top:14px;"><?php esc_html_e('Turn this on to create and manage backups. Nothing runs until you ask for it.', 'velox'); ?></p>
@@ -66,11 +66,11 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 		</div>
 
 		<div class="velox-panel velox-tool-form">
-			<h3 class="velox-panel-title">Import &amp; restore a backup</h3>
+			<h3 class="velox-panel-title"><?php esc_html_e('Import &amp; restore a backup', 'velox'); ?></h3>
 			<p class="velox-hint"><?php printf( esc_html__( 'Upload a %1$s dump or a %2$s archive made on another site and it\'s %3$s. A safety backup of the current site is taken first, so you can roll the restore back from the list below.', 'velox' ), '<code>' . esc_html__( '.sql', 'velox' ) . '</code>', '<code>' . esc_html__( '.zip', 'velox' ) . '</code>', '<strong>' . esc_html__( 'restored straight away', 'velox' ) . '</strong>' ); ?></p>
 			<div class="vbk-import-row">
 				<input type="file" id="vbk-import-file" accept=".sql,.zip" class="vbk-file">
-				<button class="velox-btn velox-btn--primary" id="vbk-import-btn">Import &amp; restore</button>
+				<button class="velox-btn velox-btn--primary" id="vbk-import-btn"><?php esc_html_e('Import &amp; restore', 'velox'); ?></button>
 			</div>
 		</div>
 	</div>
@@ -155,7 +155,7 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 								<span class="vbk-hist-detail"><?php echo esc_html( $h['detail'] ?? '' ); ?></span>
 							</td>
 							<td class="vbk-hist-x">
-								<button type="button" class="vbk-hist-del" title="Remove this entry" aria-label="Remove this entry"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
+								<button type="button" class="vbk-hist-del" title="<?php esc_attr_e('Remove this entry', 'velox'); ?>" aria-label="Remove this entry"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>
 							</td>
 						</tr>
 					<?php endforeach; ?>
@@ -180,7 +180,7 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 			<div class="velox-field">
 				<span class="velox-field-label"><?php esc_html_e('What to back up', 'velox'); ?></span>
 				<select class="velox-select" id="vbk-sched-what" data-setting="backup_schedule_what">
-					<option value="both" <?php selected( $s['backup_schedule_what'], 'both' ); ?>>Database &amp; files</option>
+					<option value="both" <?php selected( $s['backup_schedule_what'], 'both' ); ?>><?php esc_html_e('Database &amp; files', 'velox'); ?></option>
 					<option value="db" <?php selected( $s['backup_schedule_what'], 'db' ); ?>><?php esc_html_e('Database only', 'velox'); ?></option>
 					<option value="files" <?php selected( $s['backup_schedule_what'], 'files' ); ?>><?php esc_html_e('Files only', 'velox'); ?></option>
 				</select>
@@ -198,7 +198,7 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 
 	<div class="velox-panel velox-mail-disable">
 		<label class="velox-inline-toggle">
-			<span><strong>Backup &amp; restore is on</strong> <span class="velox-hint" style="display:inline;"><?php esc_html_e('— switch off to hide this tool (your stored backups are kept).', 'velox'); ?></span></span>
+			<span><strong><?php esc_html_e('Backup &amp; restore is on', 'velox'); ?></strong> <span class="velox-hint" style="display:inline;"><?php esc_html_e('— switch off to hide this tool (your stored backups are kept).', 'velox'); ?></span></span>
 			<span class="velox-switch"><input type="checkbox" data-setting="util_backup" id="velox-backup-toggle" checked><span class="velox-switch-track"></span></span>
 		</label>
 	</div>

@@ -84,10 +84,10 @@ $vx_psf_panel = function ( $device, $r, $active ) use ( $admin, $ps_metrics ) {
 						<div>
 							<h3 class="velox-psi-cardh"><?php esc_html_e('Overview', 'velox'); ?></h3>
 							<p class="velox-psi-overline">
-								<?php if ( $total_fix > 0 ) : ?><strong><?php echo (int) $total_fix; ?></strong> <?php echo 1 === $total_fix ? 'issue' : 'issues'; ?> to fix on <?php echo esc_html( $device ); ?><?php else : ?>No issues found on <?php echo esc_html( $device ); ?><?php endif; ?>
+								<?php if ( $total_fix > 0 ) : ?><strong><?php echo (int) $total_fix; ?></strong> <?php echo esc_html( 1 === $total_fix ? __( 'issue', 'velox' ) : __( 'issues', 'velox' ) ); ?> <?php printf( esc_html__( 'to fix on %s', 'velox' ), esc_html( $device ) ); ?><?php else : ?><?php printf( esc_html__( 'No issues found on %s', 'velox' ), esc_html( $device ) ); ?><?php endif; ?>
 							</p>
 						</div>
-						<?php if ( $ago ) : ?><span class="velox-psi-stamp">Checked <?php echo esc_html( $ago ); ?> ago</span><?php endif; ?>
+						<?php if ( $ago ) : ?><span class="velox-psi-stamp"><?php printf( esc_html__( 'Checked %s ago', 'velox' ), esc_html( $ago ) ); ?></span><?php endif; ?>
 					</div>
 					<div class="velox-psi-gauges">
 						<?php
@@ -158,7 +158,7 @@ $vx_psf_panel = function ( $device, $r, $active ) use ( $admin, $ps_metrics ) {
 						<?php if ( ! empty( $rest ) ) : ?>
 							<button type="button" class="velox-psi-more" data-psf-passtoggle aria-expanded="false">
 								<svg class="velox-psi-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-								<span>Passed audits (<?php echo (int) count( $rest ); ?>)</span>
+								<span><?php printf( esc_html__( 'Passed audits (%d)', 'velox' ), (int) count( $rest ) ); ?></span>
 							</button>
 							<div class="velox-psi-list velox-psi-passlist" data-psf-passbody hidden>
 								<?php foreach ( $rest as $it ) { echo $row( $it ); } // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped ?>
@@ -181,7 +181,7 @@ $vx_psf_panel = function ( $device, $r, $active ) use ( $admin, $ps_metrics ) {
 		<p class="velox-sub"><?php printf( esc_html__( 'The full Google PageSpeed Insights report for %s &mdash; every category, every check.', 'velox' ), '<code>' . esc_html( $ps_url ) . '</code>' ); ?></p>
 	</div>
 	<div class="velox-dash-actions">
-		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $ps_insights ); ?>" target="_blank" rel="noopener">Open on PageSpeed Insights &#8599;</a>
+		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $ps_insights ); ?>" target="_blank" rel="noopener"><?php esc_html_e('Open on PageSpeed Insights &#8599;', 'velox'); ?></a>
 		<?php if ( $ps_on ) : ?><button type="button" class="velox-btn velox-btn--primary" data-ps-refresh><?php esc_html_e('Refresh now', 'velox'); ?></button><?php endif; ?>
 	</div>
 </div>
@@ -193,7 +193,7 @@ $vx_psf_panel = function ( $device, $r, $active ) use ( $admin, $ps_metrics ) {
 	</div>
 <?php elseif ( ! $ps_has_any ) : ?>
 	<div class="velox-panel velox-psf-empty">
-		<p class="velox-hint" style="margin:0 0 12px;">No report yet. Running a check tests both Mobile and Desktop across all categories &mdash; it takes about a minute.</p>
+		<p class="velox-hint" style="margin:0 0 12px;"><?php esc_html_e('No report yet. Running a check tests both Mobile and Desktop across all categories &mdash; it takes about a minute.', 'velox'); ?></p>
 		<button type="button" class="velox-btn velox-btn--primary" data-ps-refresh><?php esc_html_e('Run first check', 'velox'); ?></button>
 	</div>
 <?php else : ?>

@@ -11,7 +11,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 <div class="velox-page-head">
 	<h1 class="velox-h2"><?php esc_html_e('File Manager', 'velox'); ?></h1>
-	<p class="velox-sub">Browse and edit your site's files, like SFTP or the Plesk file manager. Changes write straight to the server &mdash; there is no undo.</p>
+	<p class="velox-sub"><?php esc_html_e( "Browse and edit your site's files, like SFTP or the Plesk file manager. Changes write straight to the server &mdash; there is no undo.", 'velox' ); ?></p>
 </div>
 
 <div class="velox-alert velox-alert--warn"><strong><?php esc_html_e('Careful:', 'velox'); ?></strong> <?php printf( esc_html__( 'editing core, %1$s, or a theme\'s %2$s can take the whole site down. If you\'re unsure, make a backup first (Utilities &rarr; Backup &amp; restore).', 'velox' ), '<code>' . esc_html__( 'wp-config.php', 'velox' ) . '</code>', '<code>' . esc_html__( 'functions.php', 'velox' ) . '</code>' ); ?></div>
@@ -19,7 +19,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 <div class="velox-fm" id="velox-fm">
 	<div class="velox-fm-browser">
 		<div class="velox-fm-crumbs" id="velox-fm-crumbs"></div>
-		<div class="velox-fm-list" id="velox-fm-list"><div class="velox-loading">Loading&hellip;</div></div>
+		<div class="velox-fm-list" id="velox-fm-list"><div class="velox-loading"><?php esc_html_e('Loading&hellip;', 'velox'); ?></div></div>
 	</div>
 	<div class="velox-fm-editor" id="velox-fm-editor">
 		<div class="velox-fm-empty">

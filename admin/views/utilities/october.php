@@ -45,7 +45,7 @@ if ( ! function_exists( 'velox_oct_bytes' ) ) {
 		<div class="velox-page-head velox-page-head--row">
 			<div>
 				<a class="vmail-back-link" href="<?php echo esc_url( $hub_url ); ?>">&larr; All builds</a>
-				<h1 class="velox-h2" style="margin-top:8px;">Rename classes &amp; IDs</h1>
+				<h1 class="velox-h2" style="margin-top:8px;"><?php esc_html_e('Rename classes &amp; IDs', 'velox'); ?></h1>
 				<p class="velox-sub"><?php printf( esc_html__( 'Give the WordPress/Oxygen names something human. Every change is applied to the HTML %s the CSS together, and the preview updates as you type. When you\'re done, download a renamed version.', 'velox' ), '<em>' . esc_html__( 'and', 'velox' ) . '</em>' ); ?></p>
 			</div>
 		</div>
@@ -64,7 +64,7 @@ if ( ! function_exists( 'velox_oct_bytes' ) ) {
 			</div>
 			<div class="oct-editor-preview">
 				<span class="vxck-preview-label"><?php esc_html_e('Live preview', 'velox'); ?></span>
-				<iframe id="oct-preview" class="oct-preview-frame" title="Preview"></iframe>
+				<iframe id="oct-preview" class="oct-preview-frame" title="<?php esc_attr_e('Preview', 'velox'); ?>"></iframe>
 			</div>
 		</div>
 		<?php
@@ -86,7 +86,7 @@ if ( ! function_exists( 'velox_oct_bytes' ) ) {
 			<input type="text" class="velox-input" id="oct-name" placeholder="my-project" style="max-width:340px;">
 		</div>
 		<div class="velox-tool-actions" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-			<button class="velox-btn velox-btn--primary" id="oct-build">Scan &amp; build theme</button>
+			<button class="velox-btn velox-btn--primary" id="oct-build"><?php esc_html_e('Scan &amp; build theme', 'velox'); ?></button>
 			<button class="velox-btn velox-btn--ghost" id="oct-diag"><?php esc_html_e('Test connection', 'velox'); ?></button>
 			<span class="velox-hint" id="oct-status" style="display:none;"></span>
 		</div>
@@ -95,7 +95,7 @@ if ( ! function_exists( 'velox_oct_bytes' ) ) {
 	</div>
 
 	<?php if ( empty( $projects ) ) : ?>
-		<div class="velox-panel"><p class="velox-hint" style="padding:8px 0;"><?php printf( esc_html__( 'No builds yet. Name your theme above and hit %s.', 'velox' ), '<strong>Scan &amp; build</strong>' ); ?></p></div>
+		<div class="velox-panel"><p class="velox-hint" style="padding:8px 0;"><?php printf( esc_html__( 'No builds yet. Name your theme above and hit %s.', 'velox' ), '<strong>' . esc_html__( 'Scan &amp; build', 'velox' ) . '</strong>' ); ?></p></div>
 	<?php else : ?>
 		<?php foreach ( $projects as $proj => $versions ) :
 			$latest = $versions[0];
@@ -136,7 +136,7 @@ if ( ! function_exists( 'velox_oct_bytes' ) ) {
 								<td><?php echo esc_html( velox_oct_bytes( $b['size'] ) ); ?></td>
 								<td class="vmail-th-act oct-actions">
 									<a class="velox-btn velox-btn--primary velox-btn--sm" href="<?php echo esc_url( $dl ); ?>"><?php esc_html_e('Download theme', 'velox'); ?></a>
-									<?php if ( $nimg ) : ?><a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $dlm ); ?>" title="Unzip into storage/app/media/">Download media (<?php echo (int) $nimg; ?>)</a><?php endif; ?>
+									<?php if ( $nimg ) : ?><a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $dlm ); ?>" title="<?php esc_attr_e('Unzip into storage/app/media/', 'velox'); ?>"><?php printf( esc_html__( 'Download media (%d)', 'velox' ), (int) $nimg ); ?></a><?php endif; ?>
 									<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( admin_url( 'admin.php?page=velox-utilities&tool=october&edit=' . (int) $b['id'] ) ); ?>"><?php esc_html_e('Edit names', 'velox'); ?></a>
 									<button class="velox-btn velox-btn--ghost velox-btn--sm oct-del"><?php esc_html_e('Delete', 'velox'); ?></button>
 								</td>

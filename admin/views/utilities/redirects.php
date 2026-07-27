@@ -16,7 +16,7 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 		$out = '';
 		$mt  = isset( $r['match_type'] ) ? $r['match_type'] : 'exact';
 		if ( 'prefix' === $mt ) {
-			$out .= '<span class="velox-redir-badge">Prefix</span>';
+			$out .= '<span class="velox-redir-badge">' . esc_html__( 'Prefix', 'velox' ) . '</span>';
 		} elseif ( 'regex' === $mt ) {
 			$out .= '<span class="velox-redir-badge">Regex</span>';
 		}
@@ -24,14 +24,14 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 			$out .= '<span class="velox-redir-badge velox-redir-badge--cat">' . esc_html( $r['category'] ) . '</span>';
 		}
 		if ( isset( $r['active'] ) && ! $r['active'] ) {
-			$out .= '<span class="velox-redir-badge velox-redir-badge--off">Off</span>';
+			$out .= '<span class="velox-redir-badge velox-redir-badge--off">' . esc_html__( 'Off', 'velox' ) . '</span>';
 		}
 		return $out;
 	}
 }
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Redirects &amp; 404s</h1>
+	<h1 class="velox-h2"><?php esc_html_e('Redirects &amp; 404s', 'velox'); ?></h1>
 	<p class="velox-sub"><?php esc_html_e('Send old or moved URLs somewhere useful, and watch which missing pages your visitors actually hit so you can fix the ones that matter.', 'velox'); ?></p>
 </div>
 
@@ -82,12 +82,12 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 					</div>
 					<span class="velox-redir-type"><?php echo esc_html( $r['type'] ); ?></span>
 					<span class="velox-redir-hits"><?php echo (int) $r['hits']; ?> hits</span>
-					<label class="velox-switch velox-switch--sm velox-redir-toggle" title="Enable or disable this redirect">
+					<label class="velox-switch velox-switch--sm velox-redir-toggle" title="<?php esc_attr_e('Enable or disable this redirect', 'velox'); ?>">
 						<input type="checkbox" class="velox-redir-active" <?php checked( ! isset( $r['active'] ) || $r['active'] ); ?>>
 						<span class="velox-switch-track"></span>
 					</label>
 					<?php if ( $is_ex ) : ?>
-						<button class="velox-btn velox-btn--ghost velox-redir-visit" title="Open the source URL in a new tab to test it"><?php esc_html_e('Visit', 'velox'); ?></button>
+						<button class="velox-btn velox-btn--ghost velox-redir-visit" title="<?php esc_attr_e('Open the source URL in a new tab to test it', 'velox'); ?>"><?php esc_html_e('Visit', 'velox'); ?></button>
 					<?php endif; ?>
 					<button class="velox-btn velox-btn--ghost velox-redir-edit"><?php esc_html_e('Edit', 'velox'); ?></button>
 					<button class="velox-btn velox-btn--ghost velox-redir-del"><?php esc_html_e('Delete', 'velox'); ?></button>

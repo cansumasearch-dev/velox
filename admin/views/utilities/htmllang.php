@@ -43,7 +43,7 @@ $known   = ( '' !== $value ) && ( isset( $choices['installed'][ $value ] ) || is
 		<span class="velox-field-label"><?php esc_html_e('In your page source right now', 'velox'); ?></span>
 		<div class="vxlang-live" id="vxlang-live" data-state="loading">
 			<span class="vxlang-live-dot" aria-hidden="true"></span>
-			<code class="vxlang-live-val" id="vxlang-live-val">Reading your front page&hellip;</code>
+			<code class="vxlang-live-val" id="vxlang-live-val"><?php esc_html_e('Reading your front page&hellip;', 'velox'); ?></code>
 			<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vxlang-recheck"><?php esc_html_e('Re-check', 'velox'); ?></button>
 		</div>
 		<span class="velox-hint"><?php printf( esc_html__( 'Read from your live front page in this browser, so it shows what visitors and crawlers really get rather than what the setting claims. WordPress itself is set to %s.', 'velox' ), '<code>' . esc_html( $wp_lang ? $wp_lang : 'unknown' ) . '</code>' ); ?></span>
@@ -65,7 +65,7 @@ $known   = ( '' !== $value ) && ( isset( $choices['installed'][ $value ] ) || is
 					<option value="<?php echo esc_attr( $tag ); ?>"<?php selected( $tag === $value ); ?>><?php echo esc_html( $label . ' — ' . $tag ); ?></option>
 				<?php endforeach; ?>
 			</optgroup>
-			<option value="__custom"<?php selected( '' !== $value && ! $known ); ?>>Something else&hellip;</option>
+			<option value="__custom"<?php selected( '' !== $value && ! $known ); ?>><?php esc_html_e('Something else&hellip;', 'velox'); ?></option>
 		</select>
 		<input type="text" class="velox-input vxlang-custom" id="vxlang-custom"
 			data-setting="util_htmllang_value"
