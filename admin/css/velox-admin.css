@@ -199,9 +199,10 @@
 .velox-main { padding: 40px 56px 96px; width: 100%; max-width: none; }
 
 /* Global top bar — holds the language switcher, pinned top-right on every page */
-.velox-topbar {
+.velox-langbar {
 	display: flex; justify-content: flex-end; align-items: center;
 	margin: 0 0 6px; min-height: 24px;
+	background: transparent; padding: 0; border: 0;
 }
 .velox-langswitch {
 	display: inline-flex; align-items: center; gap: 4px;

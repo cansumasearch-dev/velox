@@ -50,11 +50,33 @@ final class Velox {
 	}
 
 	/**
-	 * Load the Velox text domain. Hooked to init so it runs after the
-	 * plugin_locale filter above is in place.
+	 * Load the Velox text domain.
+	 *
+	 * The plugin_locale filter above handles the normal path, but WordPress 6.5+
+	 * loads translations "just in time" and resolves the locale via
+	 * determine_locale() — which returns the SITE locale, so the chosen language
+	 * can be ignored and the UI stays in English. To make the choice actually
+	 * stick, when a language is picked (and we're in wp-admin) we explicitly load
+	 * that specific .mo up front. That populates the translation cache before any
+	 * just-in-time resolution happens, so our language wins. When no language is
+	 * chosen we just do the standard load and follow WordPress.
 	 */
 	public function load_textdomain() {
-		load_plugin_textdomain( 'velox', false, dirname( VELOX_BASENAME ) . '/languages' );
+		$dir    = dirname( VELOX_BASENAME ) . '/languages';
+		$choice = Velox_Settings::get( 'admin_language', '' );
+
+		if ( is_admin() && is_string( $choice ) && '' !== $choice ) {
+			// Drop anything already loaded/registered for this domain so the
+			// just-in-time loader can't win with the site locale first.
+			unload_textdomain( 'velox' );
+			$mofile = WP_PLUGIN_DIR . '/' . $dir . '/velox-' . $choice . '.mo';
+			if ( file_exists( $mofile ) ) {
+				load_textdomain( 'velox', $mofile, $choice );
+				return;
+			}
+		}
+
+		load_plugin_textdomain( 'velox', false, $dir );
 	}
 
 	public function init() {

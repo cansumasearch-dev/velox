@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.17.3 — Language switcher actually applies now
+- Fixed the chosen language never taking effect (UI stayed English). WordPress 6.5+ loads translations just-in-time using the site locale, which bypassed the plugin_locale filter. Velox now explicitly unloads and force-loads the selected .mo up front in wp-admin, so the picked language is what renders.
+
+## 3.17.2 — Language switcher background fix
+- Removed the full-width white bar behind the language switcher. It was caused by reusing an existing .velox-topbar class that had its own background; renamed to .velox-langbar so the switcher now sits transparently in the top-right with no bar behind it.
+
 ## 3.17.1 — Language switcher scope + style fix
 - Fixed the switcher changing ALL of WordPress admin instead of just Velox. Removed the determine_locale filter (which has no text domain and affected the whole admin); the language is now applied only through the domain-scoped plugin_locale filter, so it changes Velox screens and nothing else.
 - Made the top-bar language switcher smaller and removed its background and border.
