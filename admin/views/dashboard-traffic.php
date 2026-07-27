@@ -47,7 +47,7 @@ $label_every = max( 1, (int) ceil( $n / 8 ) );
 </div>
 
 <div class="velox-tr-cards">
-	<div class="velox-tr-card"><div class="k"><?php esc_html_e('Visitors', 'velox'); ?></div><div class="v"><?php echo number_format_i18n( $visitors ); ?></div><div class="s">last <?php echo (int) $range; ?> days</div></div>
+	<div class="velox-tr-card"><div class="k"><?php esc_html_e('Visitors', 'velox'); ?></div><div class="v"><?php echo number_format_i18n( $visitors ); ?></div><div class="s"><?php printf( esc_html__( 'last %d days', 'velox' ), (int) $range ); ?></div></div>
 	<div class="velox-tr-card"><div class="k"><?php esc_html_e('Page views', 'velox'); ?></div><div class="v"><?php echo number_format_i18n( $views ); ?></div><div class="s"><?php echo $visitors > 0 ? esc_html( round( $views / max( 1, $visitors ), 1 ) ) : '0'; ?> per visitor</div></div>
 	<div class="velox-tr-card"><div class="k"><?php esc_html_e('Peak day', 'velox'); ?></div><div class="v"><?php echo number_format_i18n( $peak_u ); ?></div><div class="s"><?php echo $peak_d ? esc_html( $fmt( $peak_d ) ) : '—'; ?></div></div>
 	<div class="velox-tr-card"><div class="k"><?php esc_html_e('Daily average', 'velox'); ?></div><div class="v"><?php echo esc_html( $avg ); ?></div><div class="s"><?php esc_html_e('visitors / day', 'velox'); ?></div></div>

@@ -127,6 +127,19 @@ final class Velox {
 		return $this->translate_string( $translation, $text, $domain );
 	}
 
+	/**
+	 * The active translation dictionary for use in JavaScript, or an empty array
+	 * for English. Exposed to the admin script as VELOX.i18n so JS-rendered
+	 * strings can be translated with the same source-string keys used in PHP.
+	 *
+	 * @return array<string,string>
+	 */
+	public static function js_dictionary() {
+		$inst = self::instance();
+		$dict = $inst->get_dict();
+		return is_array( $dict ) ? $dict : array();
+	}
+
 	public function init() {
 
 		// Heal any settings corrupted by the pre-1.1.1 save bug (runs once).

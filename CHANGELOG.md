@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.19.3 — Translate the sidebar, dashboard stats and action messages
+- The sidebar navigation labels and section headings (Utilities, Media Editor, Essentials, etc.) were rendered from hardcoded arrays and never translated — now wrapped and translated.
+- Dashboard stat lines (grade, "N views", "vs last week", "updated X ago", "N of M optimizations on", "/ N pages", the intro subtitle) were bare English literals — now wrapped and translated.
+- Added a JavaScript translation bridge (VELOX.i18n + a t() helper) and routed the action/confirmation toast messages through it, so those now appear in German too.
+
 ## 3.19.2 — Language actually applies everywhere + clearer switcher
 - Fixed the translation only partially applying (most of the UI stayed English). The gettext filter was caching an early "no translation" decision made before the admin language setting was readable, which locked the whole page into English. It now resolves the chosen language only once it is actually available, so the entire admin UI switches to German.
 - Removed the confusing "Follow WordPress" option — the switcher is now simply English / Deutsch.

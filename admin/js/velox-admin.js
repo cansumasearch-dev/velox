@@ -11,6 +11,24 @@
 	}
 
 	/* ----------------------------------------------------------------
+	 * i18n: translate a source string via the dictionary passed from PHP
+	 * (VELOX.i18n). Returns the source unchanged when English is active or
+	 * the string has no entry. Supports %s/%d substitution via extra args.
+	 * ------------------------------------------------------------- */
+
+	var VX_I18N = ( VELOX && VELOX.i18n ) ? VELOX.i18n : {};
+
+	function t( str ) {
+		var out = ( VX_I18N && Object.prototype.hasOwnProperty.call( VX_I18N, str ) ) ? VX_I18N[ str ] : str;
+		if ( arguments.length > 1 ) {
+			var args = Array.prototype.slice.call( arguments, 1 );
+			var i = 0;
+			out = out.replace( /%[sd]/g, function () { return args[ i++ ]; } );
+		}
+		return out;
+	}
+
+	/* ----------------------------------------------------------------
 	 * Core: ajax + helpers
 	 * ------------------------------------------------------------- */
 
@@ -357,7 +375,7 @@
 		if ( startBtn ) {
 			startBtn.addEventListener( 'click', function () {
 				if ( ! VELOX.webp_engine ) {
-					toast( 'No WebP engine available on this server.', 'error' );
+					toast( t( 'No WebP engine available on this server.' ), 'error' );
 					return;
 				}
 				runBulk();
@@ -713,7 +731,7 @@
 			btn.textContent = 'Saving…';
 			api( 'save_meta', payload )
 				.then( function () {
-					toast( 'Saved.', 'success' );
+					toast( t( 'Saved.' ), 'success' );
 				} )
 				.catch( function ( err ) {
 					toast( err.message, 'error' );
@@ -780,9 +798,9 @@
 							var a = document.createElement( 'a' );
 							a.href = r.url; a.download = r.filename || '';
 							document.body.appendChild( a ); a.click(); a.remove();
-							toast( 'Download ready — ' + ( r.count || ids.length ) + ' image' + ( ( r.count || ids.length ) === 1 ? '' : 's' ) + '.', 'success' );
+							toast( t( 'Download ready — ' ) + ( r.count || ids.length ) + ' image' + ( ( r.count || ids.length ) === 1 ? '' : 's' ) + '.', 'success' );
 						} else {
-							toast( 'Could not build the download.', 'error' );
+							toast( t( 'Could not build the download.' ), 'error' );
 						}
 					} )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
@@ -877,7 +895,7 @@
 		if ( rzGo ) {
 			rzGo.addEventListener( 'click', function () {
 				var w = parseInt( rzW.value, 10 ), h = parseInt( rzH.value, 10 );
-				if ( ! ( w > 0 && h > 0 ) ) { toast( 'Enter a width and height.', 'error' ); return; }
+				if ( ! ( w > 0 && h > 0 ) ) { toast( t( 'Enter a width and height.' ), 'error' ); return; }
 				rzGo.disabled = true;
 				rzGo.textContent = 'Resizing…';
 				api( 'media_resize', { id: rzId, w: w, h: h } )
@@ -936,8 +954,7 @@
 				renameGo.textContent = 'Renaming…';
 				api( 'rename', { id: renameId, name: renameInput.value.trim() } )
 					.then( function ( res ) {
-						toast(
-							'Renamed → ' + res.new_name + ' · ' + res.refs_updated + ' refs fixed',
+						toast( t( 'Renamed → ' ) + res.new_name + ' · ' + res.refs_updated + ' refs fixed',
 							'success'
 						);
 						closeRename();
@@ -974,7 +991,7 @@
 					a.click();
 					document.body.removeChild( a );
 					URL.revokeObjectURL( url );
-					toast( 'Exported.', 'success' );
+					toast( t( 'Exported.' ), 'success' );
 				} ).catch( function ( e ) {
 					toast( e.message, 'error' );
 				} );
@@ -1021,7 +1038,7 @@
 									( res.missing.length > 6 ? '…' : '' ) + ')';
 							}
 						}
-						toast( 'Import done — ' + msg, 'success' );
+						toast( t( 'Import done — ' ) + msg, 'success' );
 						load();
 					} )
 					.catch( function ( err ) {
@@ -1141,7 +1158,7 @@
 			cachePurge.addEventListener( 'click', function () {
 				cachePurge.disabled = true;
 				api( 'cache_purge' )
-					.then( function () { toast( 'Page cache purged.' ); } )
+					.then( function () { toast( t( 'Page cache purged.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { cachePurge.disabled = false; } );
 			} );
@@ -1152,7 +1169,7 @@
 				cachePreload.disabled = true;
 				cachePreload.textContent = 'Preloading…';
 				api( 'cache_preload' )
-					.then( function ( r ) { toast( 'Warmed ' + ( ( r && r.warmed ) || 0 ) + ' pages.' ); } )
+					.then( function ( r ) { toast( t( 'Warmed ' ) + ( ( r && r.warmed ) || 0 ) + ' pages.' ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { cachePreload.disabled = false; cachePreload.textContent = 'Preload now'; } );
 			} );
@@ -1309,7 +1326,7 @@
 					.map( function ( s ) { return s.trim(); } )
 					.filter( Boolean );
 				if ( ! paths.length ) {
-					toast( 'Add at least one page path to scan.', 'error' );
+					toast( t( 'Add at least one page path to scan.' ), 'error' );
 					return;
 				}
 				rucssScan.disabled = true;
@@ -1321,7 +1338,7 @@
 						if ( done >= paths.length ) {
 							rucssScan.disabled = false;
 							rucssScan.textContent = 'Scan & build used-CSS';
-							toast( 'Scan complete: ' + ok + ' built, ' + fail + ' failed.' );
+							toast( t( 'Scan complete: ' ) + ok + ' built, ' + fail + ' failed.' );
 							if ( rucssStatus ) {
 								rucssStatus.innerHTML = '<span class="' + ( fail ? 'velox-hint' : 'velox-fonts-ok' ) + '">' + ( fail ? '' : '✓ ' ) + escapeHtml( msgs.join( ' · ' ) ) + '</span>';
 							}
@@ -1438,7 +1455,7 @@
 			btn.textContent = 'Cleaning…';
 			api( 'db_clean', { item: item } )
 				.then( function ( res ) {
-					toast( 'Cleaned ' + res.cleaned + ' rows.', 'success' );
+					toast( t( 'Cleaned ' ) + res.cleaned + ' rows.', 'success' );
 					return refresh();
 				} )
 				.catch( function ( err ) {
@@ -1457,7 +1474,7 @@
 				allBtn.textContent = 'Cleaning…';
 				api( 'db_clean', { item: 'all' } )
 					.then( function ( res ) {
-						toast( 'Cleaned ' + res.cleaned + ' rows total.', 'success' );
+						toast( t( 'Cleaned ' ) + res.cleaned + ' rows total.', 'success' );
 						return refresh();
 					} )
 					.catch( function ( err ) {
@@ -1477,7 +1494,7 @@
 				optBtn.textContent = 'Optimizing…';
 				api( 'db_clean', { item: 'optimize_tables' } )
 					.then( function () {
-						toast( 'Tables optimized.', 'success' );
+						toast( t( 'Tables optimized.' ), 'success' );
 					} )
 					.catch( function ( err ) {
 						toast( err.message, 'error' );
@@ -1544,7 +1561,7 @@
 						out.className = 'velox-import-result is-ok';
 						out.innerHTML = html;
 						runBtn.textContent = 'Imported';
-						toast( 'Imported from ' + source + '.', 'success' );
+						toast( t( 'Imported from ' ) + source + '.', 'success' );
 					} )
 					.catch( function ( e ) {
 						out.hidden = false;
@@ -1621,7 +1638,7 @@
 					}
 					box.value = ( d && d.json ) || '';
 					box.select();
-					toast( 'Settings exported — copy the JSON.' );
+					toast( t( 'Settings exported — copy the JSON.' ) );
 				} ).catch( function ( e ) {
 					toast( e.message, 'error' );
 				} );
@@ -1972,7 +1989,7 @@
 					input.value = np.base;
 					input.setAttribute( 'data-orig', np.base );
 					input.classList.remove( 'is-dirty' );
-					toast( '→ ' + res.new_name + ' · ' + res.refs_updated + ' refs fixed', 'success' );
+					toast( t( '→ ' ) + res.new_name + ' · ' + res.refs_updated + ' refs fixed', 'success' );
 					refreshApplyAll();
 				} )
 				.catch( function ( err ) {
@@ -1999,7 +2016,7 @@
 					if ( ! ids.length ) {
 						savePending( loadPending() );
 						applyAll.disabled = false;
-						toast( 'Renamed ' + done + ( failed ? ' · ' + failed + ' failed' : '' ), failed ? 'error' : 'success' );
+						toast( t( 'Renamed ' ) + done + ( failed ? ' · ' + failed + ' failed' : '' ), failed ? 'error' : 'success' );
 						load();
 						return;
 					}
@@ -2064,7 +2081,7 @@
 					} );
 					savePending( pending );
 					refreshApplyAll();
-					toast( 'Names filled — review and Apply all.' );
+					toast( t( 'Names filled — review and Apply all.' ) );
 				} );
 			} );
 		}
@@ -2343,7 +2360,7 @@
 			busy = true;
 			var done = 0;
 			if ( ! total ) { return finish(); }
-			toast( 'Hiding ' + total + ' item' + ( 1 === total ? '' : 's' ) + ' from search…', 'info' );
+			toast( t( 'Hiding ' ) + total + ' item' + ( 1 === total ? '' : 's' ) + ' from search…', 'info' );
 			( function step() {
 				api( 'maint_seo_hide' ).then( function ( r ) {
 					done += ( r && r.done ) || 0;
@@ -2444,7 +2461,7 @@
 
 				if ( 'release' === act || 'keep' === act ) {
 					resolveAll( act, function () {
-						toast( 'release' === act ? 'Pages are visible to search engines again.' : 'Pages stay hidden.', 'success' );
+						toast( t( 'release' ) === act ? 'Pages are visible to search engines again.' : 'Pages stay hidden.', 'success' );
 						close();
 					} );
 					return;
@@ -2679,12 +2696,12 @@
 		if ( applyBtn ) {
 			applyBtn.addEventListener( 'click', function () {
 				if ( ! Object.keys( map.classes ).length && ! Object.keys( map.ids ).length ) {
-					toast( 'No renames yet — edit some names first.', 'error' ); return;
+					toast( t( 'No renames yet — edit some names first.' ), 'error' ); return;
 				}
 				applyBtn.disabled = true; applyBtn.textContent = 'Building…';
 				api( 'october_apply_renames', { id: buildId, map: JSON.stringify( map ) } )
 					.then( function ( d ) {
-						toast( 'Renamed v' + d.version + ' (' + d.renamed + ' names). Downloading…', 'success' );
+						toast( t( 'Renamed v' ) + d.version + ' (' + d.renamed + ' names). Downloading…', 'success' );
 						window.location = ajaxUrl + '?action=velox_october_download&id=' + d.id + '&_wpnonce=' + dlNonce;
 						setTimeout( function () { applyBtn.disabled = false; applyBtn.textContent = 'Download renamed'; }, 1500 );
 					} )
@@ -3334,7 +3351,7 @@
 			group.active = activeEl.checked;
 			var btn = $( '#vfg-save' ); btn.disabled = true;
 			api( 'fields_save', { group: JSON.stringify( group ) } )
-				.then( function () { toast( 'Field group saved.' ); setTimeout( function () { location.href = 'admin.php?page=velox-utilities&tool=fields'; }, 500 ); } )
+				.then( function () { toast( t( 'Field group saved.' ) ); setTimeout( function () { location.href = 'admin.php?page=velox-utilities&tool=fields'; }, 500 ); } )
 				.catch( function ( err ) { toast( err.message, 'error' ); btn.disabled = false; } );
 		} );
 
@@ -3415,10 +3432,10 @@
 						active: chk( 'vpt-active' ), 'public': chk( 'vpt-public' ), show_in_menu: chk( 'vpt-menu' ),
 						show_in_rest: chk( 'vpt-rest' ), has_archive: chk( 'vpt-archive' ), hierarchical: chk( 'vpt-hier' )
 					};
-					if ( ! pt.slug && ! pt.singular ) { toast( 'Give it at least a singular label.', 'error' ); return; }
+					if ( ! pt.slug && ! pt.singular ) { toast( t( 'Give it at least a singular label.' ), 'error' ); return; }
 					ptSave.disabled = true;
 					api( 'posttype_save', { post_type: JSON.stringify( pt ) } )
-						.then( function () { toast( 'Post type saved.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+						.then( function () { toast( t( 'Post type saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 						.catch( function ( e ) { toast( e.message, 'error' ); ptSave.disabled = false; } );
 				} );
 			}
@@ -3467,10 +3484,10 @@
 						active: chk( 'vtx-active' ), 'public': chk( 'vtx-public' ), hierarchical: chk( 'vtx-hier' ),
 						show_in_rest: chk( 'vtx-rest' ), show_admin_column: chk( 'vtx-col' )
 					};
-					if ( ! tx.slug && ! tx.singular ) { toast( 'Give it at least a singular label.', 'error' ); return; }
+					if ( ! tx.slug && ! tx.singular ) { toast( t( 'Give it at least a singular label.' ), 'error' ); return; }
 					txSave.disabled = true;
 					api( 'taxonomy_save', { taxonomy: JSON.stringify( tx ) } )
-						.then( function () { toast( 'Taxonomy saved.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+						.then( function () { toast( t( 'Taxonomy saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 						.catch( function ( e ) { toast( e.message, 'error' ); txSave.disabled = false; } );
 				} );
 			}
@@ -3537,10 +3554,10 @@
 						_old_slug: opOldSlug, slug: v( 'vop-slug' ), title: v( 'vop-title' ), menu_title: v( 'vop-menu' ),
 						parent: v( 'vop-parent' ), icon: v( 'vop-icon' ), position: v( 'vop-position' ), active: chk( 'vop-active' )
 					};
-					if ( ! op.slug && ! op.title ) { toast( 'Give it at least a title.', 'error' ); return; }
+					if ( ! op.slug && ! op.title ) { toast( t( 'Give it at least a title.' ), 'error' ); return; }
 					opSave.disabled = true;
 					api( 'optionspage_save', { option_page: JSON.stringify( op ) } )
-						.then( function () { toast( 'Options page saved.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+						.then( function () { toast( t( 'Options page saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 						.catch( function ( e ) { toast( e.message, 'error' ); opSave.disabled = false; } );
 				} );
 			}
@@ -3702,7 +3719,7 @@
 		var importFile = $( '#vbk-import-file' );
 		if ( importBtn && importFile ) {
 			importBtn.addEventListener( 'click', function () {
-				if ( ! importFile.files || ! importFile.files.length ) { toast( 'Choose a .sql or .zip file first.', 'error' ); return; }
+				if ( ! importFile.files || ! importFile.files.length ) { toast( t( 'Choose a .sql or .zip file first.' ), 'error' ); return; }
 				var fd = new FormData();
 				fd.append( 'action', 'velox' );
 				fd.append( 'do', 'backup_import' );
@@ -3722,7 +3739,7 @@
 							importBtn.disabled = false;
 						}
 					} )
-					.catch( function () { closeProgress( false ); toast( 'Import failed.', 'error' ); importBtn.disabled = false; } );
+					.catch( function () { closeProgress( false ); toast( t( 'Import failed.' ), 'error' ); importBtn.disabled = false; } );
 			} );
 		}
 
@@ -3767,7 +3784,7 @@
 					if ( ! window.confirm( 'Delete this backup permanently? Downloaded copies (if any) are not affected.' ) ) { return; }
 					btn.disabled = true;
 					api( 'backup_delete', { id: id } )
-						.then( function () { row.remove(); toast( 'Backup deleted.' ); } )
+						.then( function () { row.remove(); toast( t( 'Backup deleted.' ) ); } )
 						.catch( function ( er ) { toast( er.message, 'error' ); btn.disabled = false; } );
 					return;
 				}
@@ -3802,7 +3819,7 @@
 					.then( function () {
 						var body = row.parentNode;
 						row.remove();
-						toast( 'History entry removed.' );
+						toast( t( 'History entry removed.' ) );
 						if ( body && ! body.querySelector( 'tr' ) ) {
 							var sec = histTable.closest( '.velox-panel' );
 							var head = document.getElementById( 'vbk-hist-clear' );
@@ -3824,7 +3841,7 @@
 						if ( sec ) { sec.remove(); }
 						var head = histClear.closest( '.vbk-hist-head' );
 						if ( head ) { head.remove(); }
-						toast( 'History cleared.' );
+						toast( t( 'History cleared.' ) );
 					} )
 					.catch( function ( er ) { toast( er.message, 'error' ); histClear.disabled = false; } );
 			} );
@@ -3839,7 +3856,7 @@
 					backup_schedule_what: ( $( '#vbk-sched-what' ) || {} ).value || 'both',
 					backup_keep: ( $( '#vbk-keep' ) || {} ).value || 5
 				} )
-					.then( function () { toast( 'Schedule saved.' ); setTimeout( function () { location.reload(); }, 600 ); } )
+					.then( function () { toast( t( 'Schedule saved.' ) ); setTimeout( function () { location.reload(); }, 600 ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); schedSave.disabled = false; } );
 			} );
 		}
@@ -3917,7 +3934,7 @@
 				var row = b.closest( '.oct-row' );
 				if ( ! row || ! window.confirm( 'Delete this build and its zip?' ) ) { return; }
 				api( 'october_delete', { id: row.getAttribute( 'data-id' ) } )
-					.then( function () { row.remove(); toast( 'Build deleted.' ); } )
+					.then( function () { row.remove(); toast( t( 'Build deleted.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 		} );
@@ -4000,14 +4017,14 @@
 				if ( ! window.confirm( 'Reset the maintenance page to its default look? Your text and colours here will be cleared.' ) ) { return; }
 				resetBtn.disabled = true;
 				api( 'maint_reset' )
-					.then( function () { toast( 'Reset to default.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+					.then( function () { toast( t( 'Reset to default.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); resetBtn.disabled = false; } );
 			} );
 		}
 
 		$$( '.velox-media-pick', form ).forEach( function ( btn ) {
 			btn.addEventListener( 'click', function () {
-				if ( typeof wp === 'undefined' || ! wp.media ) { toast( 'Media library unavailable here.', 'error' ); return; }
+				if ( typeof wp === 'undefined' || ! wp.media ) { toast( t( 'Media library unavailable here.' ), 'error' ); return; }
 				var target = g( btn.getAttribute( 'data-target' ) );
 				var mt     = btn.getAttribute( 'data-mediatype' ) || 'image';
 				var lib    = ( mt === 'any' || mt === '' ) ? {} : { type: mt };
@@ -4163,7 +4180,7 @@
 				var row = btn.closest( '.vmail-trow' ) || btn.closest( '.velox-mail-formrow' );
 				if ( ! row || ! window.confirm( 'Delete this form? Its entries stay stored.' ) ) { return; }
 				api( 'form_delete', { id: row.getAttribute( 'data-id' ) } )
-					.then( function () { row.remove(); toast( 'Form deleted.' ); } )
+					.then( function () { row.remove(); toast( t( 'Form deleted.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 		} );
@@ -4179,7 +4196,7 @@
 					if ( sub ) { sub.remove(); }
 					var eb = document.getElementById( 'vmail-entries-blank' ), ew = document.getElementById( 'vmail-entries' );
 					if ( eb && ew ) { eb.hidden = !! ew.querySelector( '.vmail-entry' ); }
-					toast( 'Moved to Deleted.' );
+					toast( t( 'Moved to Deleted.' ) );
 				} )
 				.catch( function ( er ) { toast( er.message, 'error' ); } );
 		} );
@@ -4290,7 +4307,7 @@
 						if ( next ) { load( next.getAttribute( 'data-id' ), next ); }
 						else { detail.innerHTML = '<div class="vmail-inbox-empty-detail">No submissions left.</div>'; }
 					}
-					toast( 'Moved to Deleted.' );
+					toast( t( 'Moved to Deleted.' ) );
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); } );
 		}
@@ -4602,13 +4619,13 @@
 				'</div>';
 			row.querySelector( '.vmail-del-restore' ).addEventListener( 'click', function () {
 				api( 'submission_restore', { id: it.id } )
-					.then( function () { row.remove(); toast( 'Restored to inbox.' ); checkDeletedEmpty(); } )
+					.then( function () { row.remove(); toast( t( 'Restored to inbox.' ) ); checkDeletedEmpty(); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 			row.querySelector( '.vmail-del-purge' ).addEventListener( 'click', function () {
 				if ( ! window.confirm( 'Permanently delete this submission? This cannot be undone.' ) ) { return; }
 				api( 'submission_purge', { id: it.id } )
-					.then( function () { row.remove(); toast( 'Deleted permanently.' ); checkDeletedEmpty(); } )
+					.then( function () { row.remove(); toast( t( 'Deleted permanently.' ) ); checkDeletedEmpty(); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 			return row;
@@ -4722,7 +4739,7 @@
 					var sv = overlay.querySelector( '#vmail-fm-save' );
 					sv.disabled = true;
 					api( 'mail_folders_save', { folders: JSON.stringify( working ) } )
-						.then( function ( r ) { folders = ( r && r.folders ) || []; renderFolderChips(); toast( 'Folders saved.' ); closeFm(); } )
+						.then( function ( r ) { folders = ( r && r.folders ) || []; renderFolderChips(); toast( t( 'Folders saved.' ) ); closeFm(); } )
 						.catch( function ( er ) { sv.disabled = false; toast( er.message, 'error' ); } );
 				} );
 			} );
@@ -4887,7 +4904,7 @@
 					saveTpl.disabled = true;
 					api( 'mail_template_save', { name: name, subject: subj, body: body } )
 						.then( function ( r ) {
-							toast( 'Template saved.' );
+							toast( t( 'Template saved.' ) );
 							var sel = $( '#vmail-reply-tpl' );
 							var tpls = r.templates || [];
 							var last = tpls[ tpls.length - 1 ];
@@ -4908,7 +4925,7 @@
 				sendBtn.addEventListener( 'click', function () {
 					if ( ! replyFor ) { return; }
 					var bodyEl = $( '#vmail-reply-body' );
-					if ( ! bodyEl || ! bodyEl.textContent.trim() ) { toast( 'Write a reply first.', 'error' ); return; }
+					if ( ! bodyEl || ! bodyEl.textContent.trim() ) { toast( t( 'Write a reply first.' ), 'error' ); return; }
 					var payload = {
 						id: replyFor.id,
 						subject: ( $( '#vmail-reply-subject' ) || {} ).value || '',
@@ -4928,7 +4945,7 @@
 					sendBtn.disabled = true;
 					api( 'submission_reply', payload )
 						.then( function ( r ) {
-							toast( 'Reply sent to ' + ( r.to || 'recipient' ) + '.' );
+							toast( t( 'Reply sent to ' ) + ( r.to || 'recipient' ) + '.' );
 							if ( itemEl ) { itemEl.setAttribute( 'data-read', '1' ); itemEl.classList.remove( 'is-unread' ); itemEl.setAttribute( 'data-status', 'done' ); }
 							if ( current && current.id === id ) { current.status = 'done'; var dn = detail.querySelector( '[data-act="done"]' ); if ( dn ) { dn.textContent = 'Reopen'; } }
 							updateUnreadCount(); applyFilter();
@@ -5284,7 +5301,7 @@
 		if ( routeAdd ) {
 			routeAdd.addEventListener( 'click', function () {
 				collectRoutes();
-				if ( ! conns.length ) { toast( 'Add a connection first.', 'error' ); return; }
+				if ( ! conns.length ) { toast( t( 'Add a connection first.' ), 'error' ); return; }
 				var row = routeRow( { match: 'from_email', value: '', conn: conns[0].id } );
 				routeList.appendChild( row );
 			} );
@@ -5336,7 +5353,7 @@
 				collect();
 				var id = testConn ? testConn.value : ( conns[0] && conns[0].id );
 				var c = conns.filter( function ( x ) { return x.id === id; } )[0] || conns[0];
-				if ( ! c || ! c.host ) { toast( 'Add a connection with a host first.', 'error' ); return; }
+				if ( ! c || ! c.host ) { toast( t( 'Add a connection with a host first.' ), 'error' ); return; }
 				connTestBtn.disabled = true;
 				var orig = connTestBtn.textContent;
 				connTestBtn.textContent = 'Testing…';
@@ -5644,13 +5661,13 @@
 		function addField( type, atIndex ) {
 			// CAPTCHA is gated by the global Mail-settings toggle.
 			if ( type === 'captcha' && ! meta.captcha_enabled ) {
-				toast( 'CAPTCHA is switched off. Enable it under Mail settings → CAPTCHA first.', 'error' );
+				toast( t( 'CAPTCHA is switched off. Enable it under Mail settings → CAPTCHA first.' ), 'error' );
 				return;
 			}
 			// Consent and CAPTCHA are mutually exclusive — pick one spam/consent gate.
-			if ( type === 'captcha' && hasType( 'consent' ) ) { toast( 'Use either a consent box or CAPTCHA — not both. Remove the consent field first.', 'error' ); return; }
-			if ( type === 'consent' && hasType( 'captcha' ) ) { toast( 'Use either a consent box or CAPTCHA — not both. Remove the CAPTCHA field first.', 'error' ); return; }
-			if ( type === 'captcha' && hasType( 'captcha' ) ) { toast( 'There is already a CAPTCHA on this form.', 'error' ); return; }
+			if ( type === 'captcha' && hasType( 'consent' ) ) { toast( t( 'Use either a consent box or CAPTCHA — not both. Remove the consent field first.' ), 'error' ); return; }
+			if ( type === 'consent' && hasType( 'captcha' ) ) { toast( t( 'Use either a consent box or CAPTCHA — not both. Remove the CAPTCHA field first.' ), 'error' ); return; }
+			if ( type === 'captcha' && hasType( 'captcha' ) ) { toast( t( 'There is already a CAPTCHA on this form.' ), 'error' ); return; }
 			var f = normalize( { type: type, label: TYPES[ type ].label, required: false } );
 			if ( type === 'select' || type === 'radio' || type === 'multiselect' ) { f.options = 'Option one\nOption two\nOption three'; }
 			if ( type === 'name' ) { f.label = 'Name'; f.options = 'First name\nLast name'; f.width = 'full'; }
@@ -5807,10 +5824,10 @@
 							if ( ! form.fields.length ) { selected = -1; if ( inspZone ) { inspZone.classList.add( 'is-collapsed' ); } }
 						} else if ( act === 'copy' ) {
 							clipboard = JSON.parse( JSON.stringify( f ) );
-							toast( 'Field copied.' );
+							toast( t( 'Field copied.' ) );
 							return;
 						} else if ( act === 'paste' ) {
-							if ( ! clipboard ) { toast( 'Nothing to paste — copy a field first.', 'error' ); return; }
+							if ( ! clipboard ) { toast( t( 'Nothing to paste — copy a field first.' ), 'error' ); return; }
 							var pasted = JSON.parse( JSON.stringify( clipboard ) );
 							form.fields.splice( i + 1, 0, pasted ); reKey(); selected = i + 1;
 						} else if ( act === 'dup' ) {
@@ -6250,7 +6267,7 @@
 			reKey();
 			var btn = $( '#vmail-save' ); btn.disabled = true;
 			api( 'form_save', { form: JSON.stringify( form ) } )
-				.then( function () { toast( 'Form saved.' ); btn.disabled = false; } )
+				.then( function () { toast( t( 'Form saved.' ) ); btn.disabled = false; } )
 				.catch( function ( err ) { toast( err.message, 'error' ); btn.disabled = false; } );
 		}
 		// Persist silently in place — used by the Notifications toggles so a change
@@ -6261,7 +6278,7 @@
 			if ( autosaveTimer ) { clearTimeout( autosaveTimer ); }
 			autosaveTimer = setTimeout( function () {
 				api( 'form_save', { form: JSON.stringify( form ) } )
-					.then( function () { toast( 'Saved' ); } )
+					.then( function () { toast( t( 'Saved' ) ); } )
 					.catch( function ( err ) { toast( err.message, 'error' ); } );
 			}, 600 );
 		}
@@ -6274,7 +6291,7 @@
 			e.preventDefault();
 			var code = c.getAttribute( 'data-code' ) || '';
 			var done = function () {
-				toast( 'Shortcode copied.' );
+				toast( t( 'Shortcode copied.' ) );
 				c.classList.add( 'is-copied' );
 				setTimeout( function () { c.classList.remove( 'is-copied' ); }, 1200 );
 			};
@@ -6293,7 +6310,7 @@
 			var chip = e.target.closest ? e.target.closest( '.vmail-nav-sc' ) : null;
 			if ( ! chip ) { return; }
 			var code = chip.getAttribute( 'data-code' ) || '';
-			var done = function () { toast( 'Shortcode copied.' ); chip.classList.add( 'is-copied' ); setTimeout( function () { chip.classList.remove( 'is-copied' ); }, 1200 ); };
+			var done = function () { toast( t( 'Shortcode copied.' ) ); chip.classList.add( 'is-copied' ); setTimeout( function () { chip.classList.remove( 'is-copied' ); }, 1200 ); };
 			if ( navigator.clipboard && navigator.clipboard.writeText ) {
 				navigator.clipboard.writeText( code ).then( done ).catch( function () { done(); } );
 			} else {
@@ -6911,7 +6928,7 @@
 				// Persist the whole form (styles included) but STAY in the style editor.
 				var b = this; b.disabled = true;
 				api( 'form_save', { form: JSON.stringify( form ) } )
-					.then( function () { toast( 'Styles saved.' ); } )
+					.then( function () { toast( t( 'Styles saved.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { b.disabled = false; } );
 			} );
@@ -6968,7 +6985,7 @@
 		function save( btn ) {
 			btn.disabled = true;
 			api( 'scripts_save', { rules: JSON.stringify( collectRules() ) } )
-				.then( function ( r ) { toast( 'Saved ' + ( r.count || 0 ) + ' rule(s).' ); } )
+				.then( function ( r ) { toast( t( 'Saved ' ) + ( r.count || 0 ) + ' rule(s).' ); } )
 				.catch( function ( e ) { toast( e.message, 'error' ); } )
 				.then( function () { btn.disabled = false; } );
 		}
@@ -6992,7 +7009,7 @@
 						}
 						var pages = r.pages ? ( r.pages + ' page' + ( r.pages === 1 ? '' : 's' ) + ' · ' ) : '';
 						scanBtn.innerHTML = '<span class="velox-btn-spin"></span>Loading results…';
-						toast( 'Scanned ' + pages + r.scripts + ' scripts, ' + r.styles + ' styles.' );
+						toast( t( 'Scanned ' ) + pages + r.scripts + ' scripts, ' + r.styles + ' styles.' );
 						// Reload so the freshly discovered handles appear immediately.
 						setTimeout( function () { location.reload(); }, 600 );
 					} )
@@ -7231,7 +7248,7 @@
 			delBtn.disabled = true;
 			api( 'media_delete', { ids: ids } )
 				.then( function ( r ) {
-					toast( 'Deleted ' + ( r.deleted || 0 ) + ' file(s), freed ' + fmtBytes( r.freed || 0 ) + '.' );
+					toast( t( 'Deleted ' ) + ( r.deleted || 0 ) + ' file(s), freed ' + fmtBytes( r.freed || 0 ) + '.' );
 					var gone = {};
 					ids.forEach( function ( i ) { gone[ i ] = true; } );
 					mediaItems = mediaItems.filter( function ( it ) { return ! gone[ it.id ]; } );
@@ -7283,7 +7300,7 @@
 				if ( i >= jobs.length ) {
 					btn.disabled = false;
 					btn.textContent = origText;
-					toast( 'Done.' );
+					toast( t( 'Done.' ) );
 					if ( done ) { done(); }
 					return;
 				}
@@ -7306,7 +7323,7 @@
 		runBtn.addEventListener( 'click', function () {
 			var sources = parseSources();
 			if ( ! sources.length ) {
-				toast( 'Add at least one slug or link.', 'error' );
+				toast( t( 'Add at least one slug or link.' ), 'error' );
 				return;
 			}
 			var activate = actEl.checked;
@@ -7319,7 +7336,7 @@
 			uploadBtn.addEventListener( 'click', function () {
 				var files = zipEl.files ? Array.prototype.slice.call( zipEl.files ) : [];
 				if ( ! files.length ) {
-					toast( 'Choose at least one .zip file first.', 'error' );
+					toast( t( 'Choose at least one .zip file first.' ), 'error' );
 					return;
 				}
 				var activate = actEl.checked;
@@ -7332,11 +7349,11 @@
 		saveBtn.addEventListener( 'click', function () {
 			var slugs = parseSources();
 			var name  = ( nameEl.value || '' ).trim();
-			if ( ! name ) { toast( 'Name the blueprint first.', 'error' ); return; }
-			if ( ! slugs.length ) { toast( 'Add some plugins to save.', 'error' ); return; }
+			if ( ! name ) { toast( t( 'Name the blueprint first.' ), 'error' ); return; }
+			if ( ! slugs.length ) { toast( t( 'Add some plugins to save.' ), 'error' ); return; }
 			saveBtn.disabled = true;
 			api( 'blueprint_save', { name: name, slugs: slugs } )
-				.then( function () { toast( 'Blueprint saved.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+				.then( function () { toast( t( 'Blueprint saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 				.catch( function ( e ) { toast( e.message, 'error' ); saveBtn.disabled = false; } );
 		} );
 
@@ -7348,11 +7365,11 @@
 					slugsEl.value = item.getAttribute( 'data-slugs' );
 					nameEl.value  = item.getAttribute( 'data-name' );
 					slugsEl.scrollIntoView( { behavior: 'smooth', block: 'center' } );
-					toast( 'Loaded into the installer.' );
+					toast( t( 'Loaded into the installer.' ) );
 				} else if ( e.target.classList.contains( 'velox-bp-del' ) ) {
 					if ( ! window.confirm( 'Delete this blueprint?' ) ) { return; }
 					api( 'blueprint_delete', { name: item.getAttribute( 'data-name' ) } )
-						.then( function () { item.remove(); toast( 'Deleted.' ); } )
+						.then( function () { item.remove(); toast( t( 'Deleted.' ) ); } )
 						.catch( function ( e2 ) { toast( e2.message, 'error' ); } );
 				}
 			} );
@@ -7447,7 +7464,7 @@
 
 		if ( saveBtn ) {
 			saveBtn.addEventListener( 'click', function () {
-				if ( ! f.source.value.trim() ) { toast( 'Enter a source path or pattern.', 'error' ); f.source.focus(); return; }
+				if ( ! f.source.value.trim() ) { toast( t( 'Enter a source path or pattern.' ), 'error' ); f.source.focus(); return; }
 				var editing = '0' !== String( f.id.value );
 				saveBtn.disabled = true;
 				var data = {
@@ -7481,7 +7498,7 @@
 			if ( ! row ) { return; }
 			if ( e.target.classList.contains( 'velox-redir-del' ) ) {
 				api( 'redirect_delete', { id: row.getAttribute( 'data-id' ) } )
-					.then( function () { row.remove(); toast( 'Removed.' ); } )
+					.then( function () { row.remove(); toast( t( 'Removed.' ) ); } )
 					.catch( function ( er ) { toast( er.message, 'error' ); } );
 			} else if ( e.target.classList.contains( 'velox-redir-edit' ) ) {
 				editRedirect( row );
@@ -7538,7 +7555,7 @@
 					if ( f.target ) { f.target.focus(); }
 				} else if ( e.target.classList.contains( 'velox-log-forget' ) ) {
 					api( 'log_forget', { id: row.getAttribute( 'data-id' ) } )
-						.then( function () { row.remove(); toast( 'Removed.' ); } )
+						.then( function () { row.remove(); toast( t( 'Removed.' ) ); } )
 						.catch( function ( er ) { toast( er.message, 'error' ); } );
 				}
 			} );
@@ -7854,7 +7871,7 @@
 			resetBtn.addEventListener( 'click', function () {
 				resetBtn.disabled = true;
 				api( 'seo_robots_reset' )
-					.then( function ( r ) { if ( r && r.content && robots ) { robots.value = r.content; } toast( 'Reset to recommended.' ); } )
+					.then( function ( r ) { if ( r && r.content && robots ) { robots.value = r.content; } toast( t( 'Reset to recommended.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { resetBtn.disabled = false; } );
 			} );
@@ -7874,13 +7891,13 @@
 				var block = robotsSnips[ chip.getAttribute( 'data-robots-snip' ) ];
 				if ( ! block ) { return; }
 				if ( robots.value.indexOf( block.split( '\n' )[0] ) !== -1 && 'sitemap' !== chip.getAttribute( 'data-robots-snip' ) ) {
-					toast( 'That block looks like it is already there.' );
+					toast( t( 'That block looks like it is already there.' ) );
 					return;
 				}
 				robots.value = robots.value.replace( /\s*$/, '' ) + '\n\n' + block + '\n';
 				robots.focus();
 				robots.scrollTop = robots.scrollHeight;
-				toast( 'Added — review and save.' );
+				toast( t( 'Added — review and save.' ) );
 			} );
 		} );
 		var physBtn = $( '#velox-seo-robots-physical' );
@@ -7898,7 +7915,7 @@
 			virtBtn.addEventListener( 'click', function () {
 				virtBtn.disabled = true;
 				api( 'seo_robots_virtual' )
-					.then( function () { toast( 'Physical file removed — back to the virtual robots.txt.' ); setTimeout( function () { location.reload(); }, 700 ); } )
+					.then( function () { toast( t( 'Physical file removed — back to the virtual robots.txt.' ) ); setTimeout( function () { location.reload(); }, 700 ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { virtBtn.disabled = false; } );
 			} );
@@ -7934,7 +7951,7 @@
 					.then( function ( r ) {
 						var c = $( '#velox-seo-smap-count' );
 						if ( c && r ) { c.textContent = r.urls; }
-						toast( 'Sitemap regenerated — ' + ( ( r && r.urls ) || 0 ) + ' URLs.' );
+						toast( t( 'Sitemap regenerated — ' ) + ( ( r && r.urls ) || 0 ) + ' URLs.' );
 					} )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { genBtn.disabled = false; genBtn.textContent = 'Regenerate sitemap'; } );
@@ -7978,7 +7995,7 @@
 						return;
 					}
 					api( 'seo_htaccess_unlock' )
-						.then( function () { htSetLocked( false ); htArea.focus(); toast( 'Editing unlocked — snapshot saved.' ); } )
+						.then( function () { htSetLocked( false ); htArea.focus(); toast( t( 'Editing unlocked — snapshot saved.' ) ); } )
 						.catch( function ( e ) { htUnlock.checked = false; toast( e.message, 'error' ); } );
 				} else {
 					htSetLocked( true );
@@ -7987,13 +8004,13 @@
 
 			if ( htSave ) {
 				htSave.addEventListener( 'click', function () {
-					if ( ! htArea.value.trim() ) { toast( 'Refusing to save an empty .htaccess.', 'error' ); return; }
+					if ( ! htArea.value.trim() ) { toast( t( 'Refusing to save an empty .htaccess.' ), 'error' ); return; }
 					if ( ! window.confirm( 'Write this to your live .htaccess now? A wrong rule can 500 your site — you can still Reset to the snapshot afterwards.' ) ) { return; }
 					htSave.disabled = true;
 					api( 'seo_htaccess_save', { content: htArea.value } )
 						.then( function ( r ) {
 							if ( ! r.ok ) { toast( r.message || 'Could not save.', 'error' ); return; }
-							toast( '.htaccess saved.' );
+							toast( t( '.htaccess saved.' ) );
 						} )
 						.catch( function ( e ) { toast( e.message, 'error' ); } )
 						.then( function () { htSave.disabled = false; } );
@@ -8008,7 +8025,7 @@
 						.then( function ( r ) {
 							if ( ! r.ok ) { toast( r.message || 'Could not reset.', 'error' ); return; }
 							if ( typeof r.content === 'string' ) { htArea.value = r.content; }
-							toast( '.htaccess reset to snapshot.' );
+							toast( t( '.htaccess reset to snapshot.' ) );
 						} )
 						.catch( function ( e ) { toast( e.message, 'error' ); } )
 						.then( function () { htReset.disabled = false; } );
@@ -8532,7 +8549,7 @@
 					.catch( function () {
 						btn.textContent = orig; btn.disabled = false;
 						if ( w ) { w.classList.remove( 'velox-ps-refreshing' ); }
-						if ( typeof toast === 'function' ) { toast( 'PageSpeed check failed.', 'error' ); }
+						if ( typeof toast === 'function' ) { toast( t( 'PageSpeed check failed.' ), 'error' ); }
 					} );
 			} );
 		} );

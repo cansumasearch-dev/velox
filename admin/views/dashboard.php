@@ -39,10 +39,10 @@ foreach ( $checks as $c ) { $max += $c['w']; if ( $c['on'] ) { $got += $c['w']; 
 $score = $max ? (int) round( 100 * $got / $max ) : 0;
 $total = count( $checks );
 
-if ( $score >= 85 )      { $grade = 'Excellent'; $gcls = 'ok'; }
-elseif ( $score >= 65 )  { $grade = 'Good';      $gcls = 'primary'; }
-elseif ( $score >= 40 )  { $grade = 'Fair';      $gcls = 'warn'; }
-else                     { $grade = 'Needs work'; $gcls = 'bad'; }
+if ( $score >= 85 )      { $grade = __( 'Excellent', 'velox' ); $gcls = 'ok'; }
+elseif ( $score >= 65 )  { $grade = __( 'Good', 'velox' ); $gcls = 'primary'; }
+elseif ( $score >= 40 )  { $grade = __( 'Fair', 'velox' ); $gcls = 'warn'; }
+else                     { $grade = __( 'Needs work', 'velox' ); $gcls = 'bad'; }
 
 // Top recommendations = highest-weight items still off.
 $todo = array_filter( $checks, function ( $c ) { return ! $c['on']; } );
@@ -82,11 +82,11 @@ $velox_tiles = array(
 <div class="velox-page-head velox-dash-head">
 	<div>
 		<h1 class="velox-h2"><?php esc_html_e('Dashboard', 'velox'); ?></h1>
-		<p class="velox-sub">A quick read on your site&rsquo;s setup &mdash; with one-click actions to keep it fast.</p>
+		<p class="velox-sub"><?php esc_html_e( 'A quick read on your site&rsquo;s setup &mdash; with one-click actions to keep it fast.', 'velox' ); ?></p>
 	</div>
 	<div class="velox-dash-actions" id="velox-dash-actions">
 		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>"><?php esc_html_e('Tune performance', 'velox'); ?></a>
-		<a class="velox-btn velox-btn--primary" href="<?php echo esc_url( $purge_url ); ?>"><?php echo Velox_Admin::icon( 'broom', 16 ); ?> Purge caches</a>
+		<a class="velox-btn velox-btn--primary" href="<?php echo esc_url( $purge_url ); ?>"><?php echo Velox_Admin::icon( 'broom', 16 ); ?> <?php esc_html_e( 'Purge caches', 'velox' ); ?></a>
 		<div class="velox-newwidget" id="velox-newwidget" hidden>
 			<button type="button" class="velox-btn velox-btn--ghost" id="velox-newwidget-btn"><?php echo Velox_Admin::icon( 'check', 15 ); ?><?php esc_html_e('Add widget', 'velox'); ?></button>
 			<div class="velox-newwidget-menu" id="velox-newwidget-menu" hidden></div>
@@ -112,7 +112,7 @@ if ( ! empty( $velox_clashes ) ) :
 			<?php foreach ( $velox_clashes as $c ) : ?>
 				<div class="velox-clash-item">
 					<span class="velox-clash-name"><?php echo esc_html( $c['name'] ); ?></span>
-					<span class="velox-pill velox-pill--warn">overlaps <?php echo wp_kses_post( $c['label'] ); ?></span>
+					<span class="velox-pill velox-pill--warn"><?php printf( esc_html__( 'overlaps %s', 'velox' ), wp_kses_post( $c['label'] ) ); ?></span>
 				</div>
 			<?php endforeach; ?>
 		</div>
@@ -209,7 +209,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 				<div class="velox-score-ring velox-score-ring--sm velox-score-ring--<?php echo esc_attr( $gcls ); ?>" style="--val:<?php echo (int) $r['score']; ?>"><span class="velox-score-num"><?php echo (int) $r['score']; ?></span></div>
 				<div>
 					<span class="velox-pill velox-pill--<?php echo esc_attr( $gcls ); ?>"><?php echo esc_html( $grade ); ?></span>
-					<?php if ( $ago ) : ?><p class="velox-w-sub" style="margin-top:6px;">updated <?php echo esc_html( $ago ); ?> ago</p><?php endif; ?>
+					<?php if ( $ago ) : ?><p class="velox-w-sub" style="margin-top:6px;"><?php printf( esc_html__( 'updated %s ago', 'velox' ), esc_html( $ago ) ); ?></p><?php endif; ?>
 				</div>
 			</div>
 			<?php if ( $v_ps_metrics && ! empty( $r['metrics'] ) ) : ?>
@@ -277,7 +277,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 			<div class="velox-score-ring velox-score-ring--sm" style="--val:<?php echo (int) $score; ?>"><span class="velox-score-num"><?php echo (int) $score; ?></span></div>
 			<div>
 				<span class="velox-pill velox-pill--<?php echo esc_attr( $gcls ); ?>"><?php echo esc_html( $grade ); ?></span>
-				<p class="velox-w-sub" style="margin-top:6px;"><strong><?php echo (int) $on_count; ?></strong> of <?php echo (int) $total; ?> optimizations on</p>
+				<p class="velox-w-sub" style="margin-top:6px;"><?php printf( wp_kses_post( __( '<strong>%1$d</strong> of %2$d optimizations on', 'velox' ) ), (int) $on_count, (int) $total ); ?></p>
 			</div>
 		</div>
 	</div>
@@ -285,7 +285,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 	<div class="<?php echo esc_attr( $vx_wcls( 'cache', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'cache', 4, 1 ) ); ?>" data-widget="cache" data-widget-label="Cache">
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'broom', 15 ); ?><?php esc_html_e('Cache', 'velox'); ?></div>
-		<div class="velox-w-big"><?php echo (int) $v_css['built']; ?><span class="velox-w-of">/ <?php echo (int) $v_css['pages']; ?> pages</span></div>
+		<div class="velox-w-big"><?php echo (int) $v_css['built']; ?><span class="velox-w-of"><?php printf( esc_html__( '/ %d pages', 'velox' ), (int) $v_css['pages'] ); ?></span></div>
 		<div class="velox-w-sub"><?php esc_html_e('Critical CSS built &amp; cached', 'velox'); ?></div>
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $purge_url ); ?>"><?php echo Velox_Admin::icon( 'broom', 15 ); ?><?php esc_html_e('Purge caches', 'velox'); ?></a>
 	</div>
@@ -303,7 +303,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'search', 15 ); ?><?php esc_html_e('Visitors &middot; this week', 'velox'); ?></div>
 		<div class="velox-w-trtop">
 			<span class="velox-w-big"><?php echo (int) $v_tr['visitors']; ?></span>
-			<span class="velox-w-sub"><?php echo (int) $v_tr['views']; ?> views<?php if ( null !== $v_tr_trend ) : ?> &middot; <span class="<?php echo $v_tr_trend >= 0 ? 'velox-up' : 'velox-down'; ?>"><?php echo ( $v_tr_trend >= 0 ? '&#9650; ' : '&#9660; ' ) . abs( (int) $v_tr_trend ) . '%'; ?></span> vs last week<?php endif; ?></span>
+			<span class="velox-w-sub"><?php printf( esc_html__( '%d views', 'velox' ), (int) $v_tr['views'] ); ?><?php if ( null !== $v_tr_trend ) : ?> &middot; <span class="<?php echo $v_tr_trend >= 0 ? 'velox-up' : 'velox-down'; ?>"><?php echo ( $v_tr_trend >= 0 ? '&#9650; ' : '&#9660; ' ) . abs( (int) $v_tr_trend ) . '%'; ?></span> <?php esc_html_e( 'vs last week', 'velox' ); ?><?php endif; ?></span>
 		</div>
 		<div class="velox-spark-wrap">
 			<div class="velox-spark-y"><span><?php echo (int) $vx_max; ?></span><span><?php echo (int) round( $vx_max / 2 ); ?></span><span>0</span></div>

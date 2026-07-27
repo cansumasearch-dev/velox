@@ -524,6 +524,7 @@ class Velox_Admin {
 			'nonce'       => wp_create_nonce( 'velox_nonce' ),
 			'webp_engine' => Velox_Image_Optimizer::engine(),
 			'mediaUrl'    => admin_url( 'admin.php?page=' . self::SLUG . '-media' ),
+			'i18n'        => Velox::js_dictionary(),
 		) );
 	}
 

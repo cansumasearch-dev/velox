@@ -147,7 +147,7 @@ $safe_mode = Velox_Snippets::safe_mode();
 					<?php endif; ?>
 					<span class="velox-snip-meta">
 						<span class="velox-snip-pill velox-snip-pill--scope"><?php echo esc_html( $scope_labels[ $s['scope'] ] ?? $s['scope'] ); ?></span>
-						<span class="velox-snip-pill">priority <?php echo (int) $s['priority']; ?></span>
+						<span class="velox-snip-pill"><?php printf( esc_html__( 'priority %d', 'velox' ), (int) $s['priority'] ); ?></span>
 						<?php if ( ! empty( $s['type_label'] ) ) : ?>
 							<span class="velox-snip-pill"><?php echo esc_html( $s['type_label'] ); ?></span>
 						<?php else : ?>

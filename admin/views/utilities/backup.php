@@ -109,11 +109,11 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 									<?php
 									// One download button, label matches what the backup holds.
 									if ( $has_db && $has_zip ) {
-										$dl_kind = 'all'; $dl_label = 'Download';
+										$dl_kind = 'all'; $dl_label = __( 'Download', 'velox' );
 									} elseif ( $has_db ) {
 										$dl_kind = 'db'; $dl_label = 'DB download';
 									} else {
-										$dl_kind = 'zip'; $dl_label = 'Files download';
+										$dl_kind = 'zip'; $dl_label = __( 'Files download', 'velox' );
 									}
 									if ( $has_db || $has_zip ) :
 										?>

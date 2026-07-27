@@ -154,13 +154,13 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 						esc_url( $vx_url ),
 						$vx_act ? ' is-active' : '',
 						Velox_Admin::icon( $vx_icon, 18 ),
-						esc_html( $vx_lbl )
+						esc_html__( $vx_lbl, 'velox' ) // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
 					);
 				}
 				if ( '' === $vx_rows ) {
 					continue; // whole group is switched off — don't render an empty header
 				}
-				echo '<div class="velox-side-group"><div class="velox-side-grouplabel">' . esc_html( $vx_section ) . '</div>' . $vx_rows . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+				echo '<div class="velox-side-group"><div class="velox-side-grouplabel">' . esc_html__( $vx_section, 'velox' ) . '</div>' . $vx_rows . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped, WordPress.WP.I18n.NonSingularStringLiteralText
 			}
 			?>
 		</nav>
