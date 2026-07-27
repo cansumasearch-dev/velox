@@ -31,6 +31,21 @@ final class Velox {
 	}
 
 	public function init() {
+		// Let the user pick Velox's admin UI language independently of the site
+		// locale. The filter is scoped to our text domain only, so it never
+		// changes the language of WordPress core or any other plugin.
+		add_filter(
+			'plugin_locale',
+			function ( $locale, $domain ) {
+				if ( 'velox' !== $domain ) {
+					return $locale;
+				}
+				$choice = Velox_Settings::get( 'admin_language', '' );
+				return ( is_string( $choice ) && '' !== $choice ) ? $choice : $locale;
+			},
+			10,
+			2
+		);
 		load_plugin_textdomain( 'velox', false, dirname( VELOX_BASENAME ) . '/languages' );
 
 		// Heal any settings corrupted by the pre-1.1.1 save bug (runs once).

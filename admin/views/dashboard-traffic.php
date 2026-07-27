@@ -36,8 +36,8 @@ $label_every = max( 1, (int) ceil( $n / 8 ) );
 <div class="velox-page-head velox-page-head--row">
 	<div>
 		<a class="vmail-back-link" href="<?php echo esc_url( $base ); ?>">&larr; Dashboard</a>
-		<h1 class="velox-h2" style="margin-top:8px;">Traffic</h1>
-		<p class="velox-sub">First-party visitor counts, measured by Velox's own lightweight beacon — no third-party analytics.</p>
+		<h1 class="velox-h2" style="margin-top:8px;"><?php esc_html_e('Traffic', 'velox'); ?></h1>
+		<p class="velox-sub"><?php esc_html_e('First-party visitor counts, measured by Velox\'s own lightweight beacon — no third-party analytics.', 'velox'); ?></p>
 	</div>
 	<div class="velox-tr-range">
 		<?php foreach ( $allowed as $r ) : ?>
@@ -47,19 +47,19 @@ $label_every = max( 1, (int) ceil( $n / 8 ) );
 </div>
 
 <div class="velox-tr-cards">
-	<div class="velox-tr-card"><div class="k">Visitors</div><div class="v"><?php echo number_format_i18n( $visitors ); ?></div><div class="s">last <?php echo (int) $range; ?> days</div></div>
-	<div class="velox-tr-card"><div class="k">Page views</div><div class="v"><?php echo number_format_i18n( $views ); ?></div><div class="s"><?php echo $visitors > 0 ? esc_html( round( $views / max( 1, $visitors ), 1 ) ) : '0'; ?> per visitor</div></div>
-	<div class="velox-tr-card"><div class="k">Peak day</div><div class="v"><?php echo number_format_i18n( $peak_u ); ?></div><div class="s"><?php echo $peak_d ? esc_html( $fmt( $peak_d ) ) : '—'; ?></div></div>
-	<div class="velox-tr-card"><div class="k">Daily average</div><div class="v"><?php echo esc_html( $avg ); ?></div><div class="s">visitors / day</div></div>
+	<div class="velox-tr-card"><div class="k"><?php esc_html_e('Visitors', 'velox'); ?></div><div class="v"><?php echo number_format_i18n( $visitors ); ?></div><div class="s">last <?php echo (int) $range; ?> days</div></div>
+	<div class="velox-tr-card"><div class="k"><?php esc_html_e('Page views', 'velox'); ?></div><div class="v"><?php echo number_format_i18n( $views ); ?></div><div class="s"><?php echo $visitors > 0 ? esc_html( round( $views / max( 1, $visitors ), 1 ) ) : '0'; ?> per visitor</div></div>
+	<div class="velox-tr-card"><div class="k"><?php esc_html_e('Peak day', 'velox'); ?></div><div class="v"><?php echo number_format_i18n( $peak_u ); ?></div><div class="s"><?php echo $peak_d ? esc_html( $fmt( $peak_d ) ) : '—'; ?></div></div>
+	<div class="velox-tr-card"><div class="k"><?php esc_html_e('Daily average', 'velox'); ?></div><div class="v"><?php echo esc_html( $avg ); ?></div><div class="s"><?php esc_html_e('visitors / day', 'velox'); ?></div></div>
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Visitors per day</h3>
+	<h3 class="velox-panel-title"><?php esc_html_e('Visitors per day', 'velox'); ?></h3>
 	<?php if ( 0 === $visitors ) : ?>
 		<div class="velox-tr-empty">
 			<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="6"/><rect x="12" y="8" width="3" height="10"/><rect x="17" y="4" width="3" height="14"/></svg>
-			<p>No visits recorded in this range yet.</p>
-			<span class="velox-hint">Velox counts a visit the first time a real browser loads a page. Numbers will fill in as people visit your site.</span>
+			<p><?php esc_html_e('No visits recorded in this range yet.', 'velox'); ?></p>
+			<span class="velox-hint"><?php esc_html_e('Velox counts a visit the first time a real browser loads a page. Numbers will fill in as people visit your site.', 'velox'); ?></span>
 		</div>
 	<?php else : ?>
 		<div class="velox-tr-chartwrap">

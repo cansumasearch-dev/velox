@@ -25,8 +25,8 @@ if ( '' !== $tool && isset( $tools[ $tool ] ) && ! empty( $tools[ $tool ]['ready
 }
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Utilities</h1>
-	<p class="velox-sub">A toolbox of site and admin helpers. Switch on what you need — anything you enable appears under Utilities in the sidebar, ready to open.</p>
+	<h1 class="velox-h2"><?php esc_html_e('Utilities', 'velox'); ?></h1>
+	<p class="velox-sub"><?php esc_html_e('A toolbox of site and admin helpers. Switch on what you need — anything you enable appears under Utilities in the sidebar, ready to open.', 'velox'); ?></p>
 </div>
 
 <?php
@@ -36,7 +36,7 @@ $vx_modules = array(
 	array( 'id' => 'seo',         'key' => 'module_seo',         'label' => 'SEO',         'icon' => 'search', 'desc' => 'XML sitemap, meta titles & descriptions and robots.' ),
 );
 ?>
-<h2 class="velox-util-sec">Core areas</h2>
+<h2 class="velox-util-sec"><?php esc_html_e('Core areas', 'velox'); ?></h2>
 <div class="velox-util-grid">
 	<?php foreach ( $vx_modules as $mod ) :
 		$mon = (bool) Velox_Settings::get( $mod['key'], true );
@@ -52,15 +52,15 @@ $vx_modules = array(
 			<h3 class="velox-util-name"><?php echo esc_html( $mod['label'] ); ?></h3>
 			<p class="velox-util-desc"><?php echo esc_html( $mod['desc'] ); ?></p>
 			<?php if ( $mon ) : ?>
-				<a class="velox-util-open" href="<?php echo esc_url( $admin->tab_url( $mod['id'] ) ); ?>">Open<span class="velox-util-arrow">&rarr;</span></a>
+				<a class="velox-util-open" href="<?php echo esc_url( $admin->tab_url( $mod['id'] ) ); ?>"><?php esc_html_e('Open', 'velox'); ?><span class="velox-util-arrow">&rarr;</span></a>
 			<?php else : ?>
-				<span class="velox-util-hint-off">Switch on to use</span>
+				<span class="velox-util-hint-off"><?php esc_html_e('Switch on to use', 'velox'); ?></span>
 			<?php endif; ?>
 		</div>
 	<?php endforeach; ?>
 </div>
 
-<h2 class="velox-util-sec">Tools</h2>
+<h2 class="velox-util-sec"><?php esc_html_e('Tools', 'velox'); ?></h2>
 <div class="velox-util-grid">
 	<?php
 	foreach ( $tools as $id => $t ) :
@@ -84,18 +84,18 @@ $vx_modules = array(
 						<span class="velox-switch-track"></span>
 					</label>
 				<?php elseif ( ! $ready ) : ?>
-					<span class="velox-util-badge">Planned</span>
+					<span class="velox-util-badge"><?php esc_html_e('Planned', 'velox'); ?></span>
 				<?php endif; ?>
 			</div>
 			<h3 class="velox-util-name"><?php echo esc_html( $t['label'] ); ?></h3>
 			<p class="velox-util-desc"><?php echo esc_html( $t['desc'] ); ?></p>
 			<?php if ( $danger ) : ?>
-				<p class="velox-util-danger">⚠ Editing files directly can break your site. Use with care.</p>
+				<p class="velox-util-danger"><?php esc_html_e('⚠ Editing files directly can break your site. Use with care.', 'velox'); ?></p>
 			<?php endif; ?>
 			<?php if ( $ready && $has_open && $on ) : ?>
-				<a class="velox-util-open" href="<?php echo esc_url( $open_url ); ?>">Open<span class="velox-util-arrow">&rarr;</span></a>
+				<a class="velox-util-open" href="<?php echo esc_url( $open_url ); ?>"><?php esc_html_e('Open', 'velox'); ?><span class="velox-util-arrow">&rarr;</span></a>
 			<?php elseif ( $ready && $has_open && ! $on ) : ?>
-				<span class="velox-util-hint-off">Switch on to use</span>
+				<span class="velox-util-hint-off"><?php esc_html_e('Switch on to use', 'velox'); ?></span>
 			<?php endif; ?>
 		</div>
 	<?php endforeach; ?>

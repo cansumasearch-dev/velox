@@ -15,27 +15,27 @@ $tone = array(
 $base = admin_url( 'admin.php?page=velox-utilities&tool=activity' );
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Activity log</h1>
-	<p class="velox-sub">A running record of who did what — logins, content changes, plugin and theme changes, user changes and updates. Handy for client sites and shared logins.</p>
+	<h1 class="velox-h2"><?php esc_html_e('Activity log', 'velox'); ?></h1>
+	<p class="velox-sub"><?php esc_html_e('A running record of who did what — logins, content changes, plugin and theme changes, user changes and updates. Handy for client sites and shared logins.', 'velox'); ?></p>
 </div>
 
 <div class="velox-panel">
 	<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
 		<label class="velox-inline-toggle">
-			<span><strong>Record activity</strong></span>
+			<span><strong><?php esc_html_e('Record activity', 'velox'); ?></strong></span>
 			<span class="velox-switch"><input type="checkbox" data-setting="util_activity" id="velox-activity-toggle" <?php checked( $on ); ?>><span class="velox-switch-track"></span></span>
 		</label>
 		<?php if ( $on && ! empty( $events ) ) : ?>
-			<button class="velox-btn velox-btn--ghost" id="velox-activity-clear">Clear log</button>
+			<button class="velox-btn velox-btn--ghost" id="velox-activity-clear"><?php esc_html_e('Clear log', 'velox'); ?></button>
 		<?php endif; ?>
 	</div>
 
 	<?php if ( ! $on ) : ?>
-		<p class="velox-hint" style="margin-top:14px;">Logging is off. Flip it on to start recording events from this point forward.</p>
+		<p class="velox-hint" style="margin-top:14px;"><?php esc_html_e('Logging is off. Flip it on to start recording events from this point forward.', 'velox'); ?></p>
 	<?php else : ?>
 		<?php if ( ! empty( $present ) ) : ?>
 			<div class="velox-activity-filters">
-				<a class="velox-chip<?php echo '' === $filter ? ' is-active' : ''; ?>" href="<?php echo esc_url( $base ); ?>">All</a>
+				<a class="velox-chip<?php echo '' === $filter ? ' is-active' : ''; ?>" href="<?php echo esc_url( $base ); ?>"><?php esc_html_e('All', 'velox'); ?></a>
 				<?php foreach ( $present as $a ) : ?>
 					<a class="velox-chip<?php echo $filter === $a ? ' is-active' : ''; ?>" href="<?php echo esc_url( $base . '&action_filter=' . $a ); ?>"><?php echo esc_html( Velox_Activity::label( $a ) ); ?></a>
 				<?php endforeach; ?>

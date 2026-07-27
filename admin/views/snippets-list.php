@@ -33,12 +33,12 @@ $safe_mode = Velox_Snippets::safe_mode();
 
 <div class="velox-page-head velox-snip-pagehead">
 	<div>
-		<h1 class="velox-h2">Code Snippets</h1>
-		<p class="velox-sub">Add PHP, CSS, JS or HTML that runs by location and priority. A bad PHP snippet auto-disables, and Safe Mode keeps a crash from ever locking you out.</p>
+		<h1 class="velox-h2"><?php esc_html_e('Code Snippets', 'velox'); ?></h1>
+		<p class="velox-sub"><?php esc_html_e('Add PHP, CSS, JS or HTML that runs by location and priority. A bad PHP snippet auto-disables, and Safe Mode keeps a crash from ever locking you out.', 'velox'); ?></p>
 	</div>
 	<button class="velox-btn velox-btn--primary" id="velox-snip-add-btn" type="button">
 		<svg class="velox-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
-		Add snippet
+		<?php esc_html_e('Add snippet', 'velox'); ?>
 	</button>
 </div>
 
@@ -48,11 +48,11 @@ $safe_mode = Velox_Snippets::safe_mode();
 			<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
 		</div>
 		<div class="velox-snip-safe-body">
-			<strong>Safe Mode is active — PHP snippets are not running.</strong>
-			<p>Velox skipped your PHP snippets because one crashed the site (or you asked for Safe Mode). CSS, JS and HTML snippets are unaffected. Fix or switch off the offending snippet, then clear Safe Mode.</p>
+			<strong><?php esc_html_e('Safe Mode is active — PHP snippets are not running.', 'velox'); ?></strong>
+			<p><?php esc_html_e('Velox skipped your PHP snippets because one crashed the site (or you asked for Safe Mode). CSS, JS and HTML snippets are unaffected. Fix or switch off the offending snippet, then clear Safe Mode.', 'velox'); ?></p>
 			<div class="velox-snip-safe-actions">
-				<button class="velox-btn velox-btn--ghost" id="velox-snip-disable-all" type="button">Switch off all PHP snippets</button>
-				<button class="velox-btn velox-btn--primary" id="velox-snip-clear-panic" type="button">Clear Safe Mode</button>
+				<button class="velox-btn velox-btn--ghost" id="velox-snip-disable-all" type="button"><?php esc_html_e('Switch off all PHP snippets', 'velox'); ?></button>
+				<button class="velox-btn velox-btn--primary" id="velox-snip-clear-panic" type="button"><?php esc_html_e('Clear Safe Mode', 'velox'); ?></button>
 			</div>
 		</div>
 	</div>
@@ -63,29 +63,29 @@ $safe_mode = Velox_Snippets::safe_mode();
 	<div class="velox-snip-modal-backdrop" data-close></div>
 	<div class="velox-snip-modal-card" role="dialog" aria-modal="true" aria-label="Choose snippet type">
 		<div class="velox-snip-modal-head">
-			<h2>What kind of snippet?</h2>
+			<h2><?php esc_html_e('What kind of snippet?', 'velox'); ?></h2>
 			<button class="velox-snip-modal-x" type="button" data-close aria-label="Close">&times;</button>
 		</div>
 		<div class="velox-snip-types">
 			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'php' ) ); ?>">
-				<span class="velox-snip-badge is-php">PHP</span>
+				<span class="velox-snip-badge is-php"><?php esc_html_e('PHP', 'velox'); ?></span>
 				<span class="velox-snip-type-t">Functions &amp; hooks</span>
-				<span class="velox-snip-type-d">Run PHP early — add_action, add_filter, custom logic. Lint-checked and crash-guarded.</span>
+				<span class="velox-snip-type-d"><?php esc_html_e('Run PHP early — add_action, add_filter, custom logic. Lint-checked and crash-guarded.', 'velox'); ?></span>
 			</a>
 			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'css' ) ); ?>">
-				<span class="velox-snip-badge is-css">CSS</span>
-				<span class="velox-snip-type-t">Styles</span>
-				<span class="velox-snip-type-d">Inject CSS into the page head — front-end, admin, or both.</span>
+				<span class="velox-snip-badge is-css"><?php esc_html_e('CSS', 'velox'); ?></span>
+				<span class="velox-snip-type-t"><?php esc_html_e('Styles', 'velox'); ?></span>
+				<span class="velox-snip-type-d"><?php esc_html_e('Inject CSS into the page head — front-end, admin, or both.', 'velox'); ?></span>
 			</a>
 			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'js' ) ); ?>">
-				<span class="velox-snip-badge is-js">JS</span>
-				<span class="velox-snip-type-t">Scripts</span>
+				<span class="velox-snip-badge is-js"><?php esc_html_e('JS', 'velox'); ?></span>
+				<span class="velox-snip-type-t"><?php esc_html_e('Scripts', 'velox'); ?></span>
 				<span class="velox-snip-type-d">Print JavaScript before &lt;/body&gt; for the chosen location.</span>
 			</a>
 			<a class="velox-snip-type" href="<?php echo esc_url( Velox_Snippets::new_url( 'html' ) ); ?>">
-				<span class="velox-snip-badge is-html">HTML</span>
-				<span class="velox-snip-type-t">Markup</span>
-				<span class="velox-snip-type-d">Footer HTML, also embeddable with [velox_snippet id="…"].</span>
+				<span class="velox-snip-badge is-html"><?php esc_html_e('HTML', 'velox'); ?></span>
+				<span class="velox-snip-type-t"><?php esc_html_e('Markup', 'velox'); ?></span>
+				<span class="velox-snip-type-d"><?php esc_html_e('Footer HTML, also embeddable with [velox_snippet id="…"].', 'velox'); ?></span>
 			</a>
 		</div>
 	</div>
@@ -103,11 +103,11 @@ $safe_mode = Velox_Snippets::safe_mode();
 	<div class="velox-snip-filter">
 		<svg class="velox-snip-filter-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
 		<select class="velox-snip-type-filter velox-select" id="velox-snip-type-filter" aria-label="Filter by code type">
-			<option value="">All types</option>
+			<option value=""><?php esc_html_e('All types', 'velox'); ?></option>
 			<option value="php">PHP — Functions &amp; hooks</option>
-			<option value="css">CSS — Styles</option>
-			<option value="js">JS — Scripts</option>
-			<option value="html">HTML — Markup</option>
+			<option value="css"><?php esc_html_e('CSS — Styles', 'velox'); ?></option>
+			<option value="js"><?php esc_html_e('JS — Scripts', 'velox'); ?></option>
+			<option value="html"><?php esc_html_e('HTML — Markup', 'velox'); ?></option>
 		</select>
 	</div>
 	<div class="velox-snip-search">
@@ -119,8 +119,8 @@ $safe_mode = Velox_Snippets::safe_mode();
 <div class="velox-panel velox-panel--flush velox-snip-list" id="velox-snip-list">
 	<?php if ( empty( $snippets ) ) : ?>
 		<div class="velox-snip-empty">
-			<p>No snippets here yet.</p>
-			<button class="velox-btn velox-btn--primary" id="velox-snip-add-btn-2" type="button">Add your first snippet</button>
+			<p><?php esc_html_e('No snippets here yet.', 'velox'); ?></p>
+			<button class="velox-btn velox-btn--primary" id="velox-snip-add-btn-2" type="button"><?php esc_html_e('Add your first snippet', 'velox'); ?></button>
 		</div>
 	<?php else : ?>
 		<?php foreach ( $snippets as $s ) :
@@ -157,8 +157,8 @@ $safe_mode = Velox_Snippets::safe_mode();
 				</a>
 				<span class="velox-snip-actions">
 					<?php if ( $is_trash ) : ?>
-						<button class="velox-btn velox-btn--ghost velox-btn--sm velox-snip-restore" type="button">Restore</button>
-						<button class="velox-btn velox-btn--ghost velox-btn--sm velox-snip-delete" type="button">Delete forever</button>
+						<button class="velox-btn velox-btn--ghost velox-btn--sm velox-snip-restore" type="button"><?php esc_html_e('Restore', 'velox'); ?></button>
+						<button class="velox-btn velox-btn--ghost velox-btn--sm velox-snip-delete" type="button"><?php esc_html_e('Delete forever', 'velox'); ?></button>
 					<?php else : ?>
 						<button class="velox-snip-toggle-sw<?php echo $active ? ' is-on' : ''; ?> velox-snip-toggle" type="button" role="switch" aria-checked="<?php echo $active ? 'true' : 'false'; ?>" title="<?php echo $active ? 'Deactivate' : 'Activate'; ?>"><span></span></button>
 						<div class="velox-snip-menu">
@@ -166,10 +166,10 @@ $safe_mode = Velox_Snippets::safe_mode();
 								<svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
 							</button>
 							<div class="velox-snip-menu-pop" hidden>
-								<a href="<?php echo esc_url( Velox_Snippets::edit_url( $s['id'] ) ); ?>">Edit</a>
-								<button type="button" class="velox-snip-clone">Duplicate</button>
-								<a href="<?php echo esc_url( Velox_Snippets::export_url( $s['id'] ) ); ?>">Export as plugin</a>
-								<button type="button" class="velox-snip-trash velox-snip-menu-danger">Move to trash</button>
+								<a href="<?php echo esc_url( Velox_Snippets::edit_url( $s['id'] ) ); ?>"><?php esc_html_e('Edit', 'velox'); ?></a>
+								<button type="button" class="velox-snip-clone"><?php esc_html_e('Duplicate', 'velox'); ?></button>
+								<a href="<?php echo esc_url( Velox_Snippets::export_url( $s['id'] ) ); ?>"><?php esc_html_e('Export as plugin', 'velox'); ?></a>
+								<button type="button" class="velox-snip-trash velox-snip-menu-danger"><?php esc_html_e('Move to trash', 'velox'); ?></button>
 							</div>
 						</div>
 					<?php endif; ?>
@@ -177,7 +177,7 @@ $safe_mode = Velox_Snippets::safe_mode();
 			</div>
 		<?php endforeach; ?>
 		<div class="velox-snip-empty" id="velox-snip-none" hidden>
-			<p>No snippets match your filter.</p>
+			<p><?php esc_html_e('No snippets match your filter.', 'velox'); ?></p>
 		</div>
 	<?php endif; ?>
 </div>

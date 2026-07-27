@@ -6,17 +6,17 @@ $on = Velox_Settings::get( 'util_cookies', false );
 $s  = Velox_Settings::all();
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Cookie banner</h1>
-	<p class="velox-sub">A fully styleable consent banner wired to Google Consent Mode v2. Edit every colour, text and link, pick where it sits, and it stores the visitor's choice — analytics and ad tags only fire once they agree.</p>
+	<h1 class="velox-h2"><?php esc_html_e('Cookie banner', 'velox'); ?></h1>
+	<p class="velox-sub"><?php esc_html_e('A fully styleable consent banner wired to Google Consent Mode v2. Edit every colour, text and link, pick where it sits, and it stores the visitor\'s choice — analytics and ad tags only fire once they agree.', 'velox'); ?></p>
 </div>
 
 <?php if ( ! $on ) : ?>
 	<div class="velox-panel">
 		<label class="velox-inline-toggle">
-			<span><strong>Enable cookie banner</strong></span>
+			<span><strong><?php esc_html_e('Enable cookie banner', 'velox'); ?></strong></span>
 			<span class="velox-switch"><input type="checkbox" data-setting="util_cookies" id="velox-cookies-toggle"><span class="velox-switch-track"></span></span>
 		</label>
-		<p class="velox-hint" style="margin-top:14px;">Turn this on to show the consent banner on your site's front end and unlock the editor below.</p>
+		<p class="velox-hint" style="margin-top:14px;"><?php esc_html_e('Turn this on to show the consent banner on your site\'s front end and unlock the editor below.', 'velox'); ?></p>
 	</div>
 <?php else : ?>
 
@@ -24,16 +24,16 @@ $s  = Velox_Settings::all();
 		<div class="vxck-admin-controls">
 			<div class="velox-panel vxck-enable-panel">
 				<label class="vxck-enable-row">
-					<span class="vxck-enable-meta"><strong>Banner enabled</strong><span>Showing the consent banner on your site's front end.</span></span>
+					<span class="vxck-enable-meta"><strong><?php esc_html_e('Banner enabled', 'velox'); ?></strong><span><?php esc_html_e('Showing the consent banner on your site\'s front end.', 'velox'); ?></span></span>
 					<span class="velox-switch"><input type="checkbox" data-setting="util_cookies" id="velox-cookies-toggle" checked><span class="velox-switch-track"></span></span>
 				</label>
 			</div>
 			<div class="vxck-insp-body">
 
 			<div class="velox-panel velox-tool-form">
-				<h3 class="velox-panel-title">Placement</h3>
+				<h3 class="velox-panel-title"><?php esc_html_e('Placement', 'velox'); ?></h3>
 				<div class="velox-field">
-					<span class="velox-field-label">Placement (desktop)</span>
+					<span class="velox-field-label"><?php esc_html_e('Placement (desktop)', 'velox'); ?></span>
 					<div class="vxck-place-grid" role="group" aria-label="Banner placement">
 						<?php
 						$layouts = array(
@@ -65,7 +65,7 @@ $s  = Velox_Settings::all();
 					</div>
 				</div>
 				<div class="velox-field">
-					<span class="velox-field-label">Entrance animation</span>
+					<span class="velox-field-label"><?php esc_html_e('Entrance animation', 'velox'); ?></span>
 					<select class="velox-select vxck-live" data-setting="cookie_animation" id="ck-animation">
 						<?php
 						$ck_anim  = isset( $s['cookie_animation'] ) ? $s['cookie_animation'] : 'slide-up';
@@ -83,10 +83,10 @@ $s  = Velox_Settings::all();
 						}
 						?>
 					</select>
-					<span class="velox-hint">Plays when the banner first appears on the live site.</span>
+					<span class="velox-hint"><?php esc_html_e('Plays when the banner first appears on the live site.', 'velox'); ?></span>
 				</div>
 				<div class="velox-field">
-					<span class="velox-field-label">Placement (mobile)</span>
+					<span class="velox-field-label"><?php esc_html_e('Placement (mobile)', 'velox'); ?></span>
 					<select class="velox-select vxck-live" data-setting="cookie_layout_mobile" id="ck-layout-mobile">
 						<?php
 						$layouts_m = array( 'inherit' => 'Same as desktop' ) + $layouts;
@@ -95,7 +95,7 @@ $s  = Velox_Settings::all();
 						}
 						?>
 					</select>
-					<span class="velox-hint">Phones often work best as a bottom or top bar even when desktop is a floating box.</span>
+					<span class="velox-hint"><?php esc_html_e('Phones often work best as a bottom or top bar even when desktop is a floating box.', 'velox'); ?></span>
 				</div>
 			</div>
 
@@ -103,60 +103,60 @@ $s  = Velox_Settings::all();
 				<h3 class="velox-panel-title">Consent &amp; tracking</h3>
 				<label class="velox-toggle-row">
 					<div class="velox-toggle-meta">
-						<span class="velox-toggle-label">Google Consent Mode v2</span>
-						<span class="velox-toggle-desc">Sets consent to denied by default and updates Google tags when the visitor chooses. The correct way to stay compliant.</span>
+						<span class="velox-toggle-label"><?php esc_html_e('Google Consent Mode v2', 'velox'); ?></span>
+						<span class="velox-toggle-desc"><?php esc_html_e('Sets consent to denied by default and updates Google tags when the visitor chooses. The correct way to stay compliant.', 'velox'); ?></span>
 					</div>
 					<span class="velox-switch"><input type="checkbox" data-setting="cookie_consent_mode" <?php checked( ! empty( $s['cookie_consent_mode'] ) ); ?>><span class="velox-switch-track"></span></span>
 				</label>
 				<div class="velox-grid-2">
-					<div class="velox-field"><span class="velox-field-label">GA4 / GTM ID <span class="velox-hint velox-hint--inline">(optional)</span></span><input type="text" class="velox-input" data-setting="cookie_ga_id" value="<?php echo esc_attr( $s['cookie_ga_id'] ); ?>" placeholder="G-XXXXXXX or GTM-XXXXXX"></div>
-					<div class="velox-field"><span class="velox-field-label">Re-ask after (days)</span><input type="number" class="velox-input velox-input--sm" data-setting="cookie_reconsent_days" value="<?php echo esc_attr( (int) $s['cookie_reconsent_days'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('GA4 / GTM ID', 'velox'); ?> <span class="velox-hint velox-hint--inline"><?php esc_html_e('(optional)', 'velox'); ?></span></span><input type="text" class="velox-input" data-setting="cookie_ga_id" value="<?php echo esc_attr( $s['cookie_ga_id'] ); ?>" placeholder="G-XXXXXXX or GTM-XXXXXX"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Re-ask after (days)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm" data-setting="cookie_reconsent_days" value="<?php echo esc_attr( (int) $s['cookie_reconsent_days'] ); ?>"></div>
 				</div>
 				<div class="velox-grid-2">
 					<label class="velox-toggle-row">
-						<div class="velox-toggle-meta"><span class="velox-toggle-label">Offer Analytics</span></div>
+						<div class="velox-toggle-meta"><span class="velox-toggle-label"><?php esc_html_e('Offer Analytics', 'velox'); ?></span></div>
 						<span class="velox-switch"><input type="checkbox" data-setting="cookie_cat_analytics" <?php checked( ! empty( $s['cookie_cat_analytics'] ) ); ?>><span class="velox-switch-track"></span></span>
 					</label>
 					<label class="velox-toggle-row">
-						<div class="velox-toggle-meta"><span class="velox-toggle-label">Offer Marketing</span></div>
+						<div class="velox-toggle-meta"><span class="velox-toggle-label"><?php esc_html_e('Offer Marketing', 'velox'); ?></span></div>
 						<span class="velox-switch"><input type="checkbox" data-setting="cookie_cat_marketing" <?php checked( ! empty( $s['cookie_cat_marketing'] ) ); ?>><span class="velox-switch-track"></span></span>
 					</label>
 				</div>
-				<p class="velox-hint" style="margin-top:6px;">Tip: drop <code>&lt;a href="#cookie-settings"&gt;Cookie settings&lt;/a&gt;</code> anywhere (e.g. your footer) and it reopens this banner.</p>
+				<p class="velox-hint" style="margin-top:6px;"><?php printf( esc_html__( 'Tip: drop %s anywhere (e.g. your footer) and it reopens this banner.', 'velox' ), '<code>&lt;a href="#cookie-settings"&gt;Cookie settings&lt;/a&gt;</code>' ); ?></p>
 			</div>
 
 			<div class="velox-panel velox-tool-form">
-				<h3 class="velox-panel-title">Text</h3>
-				<div class="velox-field"><span class="velox-field-label">Heading</span><input type="text" class="velox-input vxck-live" data-setting="cookie_heading" value="<?php echo esc_attr( $s['cookie_heading'] ); ?>"></div>
-				<div class="velox-field"><span class="velox-field-label">Body</span><textarea class="velox-textarea vxck-live" data-setting="cookie_body" rows="3"><?php echo esc_textarea( $s['cookie_body'] ); ?></textarea></div>
-				<div class="velox-field"><span class="velox-field-label">Logo URL <span class="velox-hint velox-hint--inline">(optional)</span></span><input type="text" class="velox-input vxck-live" data-setting="cookie_logo" value="<?php echo esc_attr( $s['cookie_logo'] ); ?>" placeholder="https://…/logo.svg"></div>
-				<div class="velox-field"><span class="velox-field-label">Small print <span class="velox-hint velox-hint--inline">(optional — e.g. legal note)</span></span><textarea class="velox-textarea vxck-live" data-setting="cookie_small_text" rows="2"><?php echo esc_textarea( $s['cookie_small_text'] ); ?></textarea></div>
+				<h3 class="velox-panel-title"><?php esc_html_e('Text', 'velox'); ?></h3>
+				<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Heading', 'velox'); ?></span><input type="text" class="velox-input vxck-live" data-setting="cookie_heading" value="<?php echo esc_attr( $s['cookie_heading'] ); ?>"></div>
+				<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Body', 'velox'); ?></span><textarea class="velox-textarea vxck-live" data-setting="cookie_body" rows="3"><?php echo esc_textarea( $s['cookie_body'] ); ?></textarea></div>
+				<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Logo URL', 'velox'); ?> <span class="velox-hint velox-hint--inline"><?php esc_html_e('(optional)', 'velox'); ?></span></span><input type="text" class="velox-input vxck-live" data-setting="cookie_logo" value="<?php echo esc_attr( $s['cookie_logo'] ); ?>" placeholder="https://…/logo.svg"></div>
+				<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Small print', 'velox'); ?> <span class="velox-hint velox-hint--inline"><?php esc_html_e('(optional — e.g. legal note)', 'velox'); ?></span></span><textarea class="velox-textarea vxck-live" data-setting="cookie_small_text" rows="2"><?php echo esc_textarea( $s['cookie_small_text'] ); ?></textarea></div>
 			</div>
 
 			<div class="velox-panel velox-tool-form">
 				<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px;">
-					<h3 class="velox-panel-title" style="margin:0;">Buttons</h3>
+					<h3 class="velox-panel-title" style="margin:0;"><?php esc_html_e('Buttons', 'velox'); ?></h3>
 					<button type="button" class="velox-btn velox-btn--ghost" id="ckb-add">
-						<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:5px;"><path d="M12 5v14M5 12h14"/></svg>Add button
+						<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:5px;"><path d="M12 5v14M5 12h14"/></svg><?php esc_html_e('Add button', 'velox'); ?>
 					</button>
 				</div>
-				<p class="velox-hint" style="margin:0 0 12px;">Add, remove and reorder buttons. Each one can be a button or a link, do something (accept, reject, open preferences, save) or point to a URL, and be styled individually.</p>
+				<p class="velox-hint" style="margin:0 0 12px;"><?php esc_html_e('Add, remove and reorder buttons. Each one can be a button or a link, do something (accept, reject, open preferences, save) or point to a URL, and be styled individually.', 'velox'); ?></p>
 				<input type="hidden" data-setting="cookie_buttons" id="ckb-data" value="<?php echo esc_attr( $s['cookie_buttons'] ); ?>">
 				<div id="ckb-list" class="ckb-list"></div>
 			</div>
 
 			<div class="velox-panel velox-tool-form">
-				<h3 class="velox-panel-title">Legal links</h3>
+				<h3 class="velox-panel-title"><?php esc_html_e('Legal links', 'velox'); ?></h3>
 				<div class="velox-grid-2">
-					<div class="velox-field"><span class="velox-field-label">Link 1 label</span><input type="text" class="velox-input vxck-live" data-setting="cookie_link1_label" value="<?php echo esc_attr( $s['cookie_link1_label'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Link 1 URL</span><input type="text" class="velox-input" data-setting="cookie_link1_url" value="<?php echo esc_attr( $s['cookie_link1_url'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Link 2 label</span><input type="text" class="velox-input vxck-live" data-setting="cookie_link2_label" value="<?php echo esc_attr( $s['cookie_link2_label'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Link 2 URL</span><input type="text" class="velox-input" data-setting="cookie_link2_url" value="<?php echo esc_attr( $s['cookie_link2_url'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Link 1 label', 'velox'); ?></span><input type="text" class="velox-input vxck-live" data-setting="cookie_link1_label" value="<?php echo esc_attr( $s['cookie_link1_label'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Link 1 URL', 'velox'); ?></span><input type="text" class="velox-input" data-setting="cookie_link1_url" value="<?php echo esc_attr( $s['cookie_link1_url'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Link 2 label', 'velox'); ?></span><input type="text" class="velox-input vxck-live" data-setting="cookie_link2_label" value="<?php echo esc_attr( $s['cookie_link2_label'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Link 2 URL', 'velox'); ?></span><input type="text" class="velox-input" data-setting="cookie_link2_url" value="<?php echo esc_attr( $s['cookie_link2_url'] ); ?>"></div>
 				</div>
 			</div>
 
 			<div class="velox-panel velox-tool-form">
-				<h3 class="velox-panel-title">Colours</h3>
+				<h3 class="velox-panel-title"><?php esc_html_e('Colours', 'velox'); ?></h3>
 				<div class="vxck-colors">
 					<?php
 					$colors = array(
@@ -180,23 +180,23 @@ $s  = Velox_Settings::all();
 			<div class="velox-panel velox-tool-form">
 				<h3 class="velox-panel-title">Shape &amp; size</h3>
 				<div class="velox-grid-2">
-					<div class="velox-field"><span class="velox-field-label">Border width (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_border_width" value="<?php echo esc_attr( (int) $s['cookie_border_width'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Corner radius (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_radius" value="<?php echo esc_attr( (int) $s['cookie_radius'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Edge offset (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_offset" value="<?php echo esc_attr( (int) $s['cookie_offset'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Box / modal width (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_width" value="<?php echo esc_attr( (int) $s['cookie_width'] ); ?>"><span class="velox-hint">Floating boxes &amp; modal only — bars are full width.</span></div>
-					<div class="velox-field"><span class="velox-field-label">Base font size (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_font_size" value="<?php echo esc_attr( (int) $s['cookie_font_size'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Border width (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_border_width" value="<?php echo esc_attr( (int) $s['cookie_border_width'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Corner radius (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_radius" value="<?php echo esc_attr( (int) $s['cookie_radius'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Edge offset (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_offset" value="<?php echo esc_attr( (int) $s['cookie_offset'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Box / modal width (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_width" value="<?php echo esc_attr( (int) $s['cookie_width'] ); ?>"><span class="velox-hint">Floating boxes &amp; modal only — bars are full width.</span></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Base font size (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_font_size" value="<?php echo esc_attr( (int) $s['cookie_font_size'] ); ?>"></div>
 				</div>
 				<div class="velox-grid-2">
 					<label class="velox-toggle-row">
-						<div class="velox-toggle-meta"><span class="velox-toggle-label">Drop shadow</span></div>
+						<div class="velox-toggle-meta"><span class="velox-toggle-label"><?php esc_html_e('Drop shadow', 'velox'); ?></span></div>
 						<span class="velox-switch"><input type="checkbox" class="vxck-live" data-setting="cookie_shadow" <?php checked( ! empty( $s['cookie_shadow'] ) ); ?>><span class="velox-switch-track"></span></span>
 					</label>
 					<label class="velox-toggle-row">
-						<div class="velox-toggle-meta"><span class="velox-toggle-label">Dim background (modal)</span></div>
+						<div class="velox-toggle-meta"><span class="velox-toggle-label"><?php esc_html_e('Dim background (modal)', 'velox'); ?></span></div>
 						<span class="velox-switch"><input type="checkbox" class="vxck-live" data-setting="cookie_overlay" <?php checked( ! empty( $s['cookie_overlay'] ) ); ?>><span class="velox-switch-track"></span></span>
 					</label>
 					<label class="velox-toggle-row">
-						<div class="velox-toggle-meta"><span class="velox-toggle-label">Full-width buttons on mobile</span></div>
+						<div class="velox-toggle-meta"><span class="velox-toggle-label"><?php esc_html_e('Full-width buttons on mobile', 'velox'); ?></span></div>
 						<span class="velox-switch"><input type="checkbox" class="vxck-live" data-setting="cookie_btn_full_mobile" <?php checked( ! empty( $s['cookie_btn_full_mobile'] ) ); ?>><span class="velox-switch-track"></span></span>
 					</label>
 				</div>
@@ -205,45 +205,45 @@ $s  = Velox_Settings::all();
 			<div class="velox-panel velox-tool-form">
 				<h3 class="velox-panel-title">Typography &amp; advanced</h3>
 				<div class="velox-grid-2">
-					<div class="velox-field"><span class="velox-field-label">Heading size (px) <span class="velox-hint velox-hint--inline">0 = auto</span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_heading_size" value="<?php echo esc_attr( (int) $s['cookie_heading_size'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Heading weight</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_heading_weight" value="<?php echo esc_attr( (int) $s['cookie_heading_weight'] ); ?>" placeholder="0 = auto"></div>
-					<div class="velox-field"><span class="velox-field-label">Heading colour</span><input type="text" class="velox-input vxck-live" data-setting="cookie_heading_color" value="<?php echo esc_attr( $s['cookie_heading_color'] ); ?>" placeholder="inherit"></div>
-					<div class="velox-field"><span class="velox-field-label">Body size (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_body_size" value="<?php echo esc_attr( (int) $s['cookie_body_size'] ); ?>" placeholder="0 = auto"></div>
-					<div class="velox-field"><span class="velox-field-label">Body colour</span><input type="text" class="velox-input vxck-live" data-setting="cookie_body_color" value="<?php echo esc_attr( $s['cookie_body_color'] ); ?>" placeholder="inherit"></div>
-					<div class="velox-field"><span class="velox-field-label">Legal-link colour</span><input type="text" class="velox-input vxck-live" data-setting="cookie_link_color" value="<?php echo esc_attr( $s['cookie_link_color'] ); ?>" placeholder="inherit"></div>
-					<div class="velox-field"><span class="velox-field-label">Button gap (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_btn_gap" value="<?php echo esc_attr( (int) $s['cookie_btn_gap'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Button font size (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_btn_font_size" value="<?php echo esc_attr( (int) $s['cookie_btn_font_size'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Button font weight</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_btn_font_weight" value="<?php echo esc_attr( (int) $s['cookie_btn_font_weight'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Overlay colour</span><input type="text" class="velox-input vxck-live" data-setting="cookie_overlay_color" value="<?php echo esc_attr( $s['cookie_overlay_color'] ); ?>" placeholder="rgba(10,12,20,.45)"></div>
-					<div class="velox-field"><span class="velox-field-label">Overlay blur (px)</span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_backdrop_blur" value="<?php echo esc_attr( (int) $s['cookie_backdrop_blur'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">Max height (px) <span class="velox-hint velox-hint--inline">0 = none</span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_max_height" value="<?php echo esc_attr( (int) $s['cookie_max_height'] ); ?>"></div>
-					<div class="velox-field"><span class="velox-field-label">z-index <span class="velox-hint velox-hint--inline">0 = default</span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_z_index" value="<?php echo esc_attr( (int) $s['cookie_z_index'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Heading size (px)', 'velox'); ?> <span class="velox-hint velox-hint--inline"><?php esc_html_e('0 = auto', 'velox'); ?></span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_heading_size" value="<?php echo esc_attr( (int) $s['cookie_heading_size'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Heading weight', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_heading_weight" value="<?php echo esc_attr( (int) $s['cookie_heading_weight'] ); ?>" placeholder="0 = auto"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Heading colour', 'velox'); ?></span><input type="text" class="velox-input vxck-live" data-setting="cookie_heading_color" value="<?php echo esc_attr( $s['cookie_heading_color'] ); ?>" placeholder="inherit"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Body size (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_body_size" value="<?php echo esc_attr( (int) $s['cookie_body_size'] ); ?>" placeholder="0 = auto"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Body colour', 'velox'); ?></span><input type="text" class="velox-input vxck-live" data-setting="cookie_body_color" value="<?php echo esc_attr( $s['cookie_body_color'] ); ?>" placeholder="inherit"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Legal-link colour', 'velox'); ?></span><input type="text" class="velox-input vxck-live" data-setting="cookie_link_color" value="<?php echo esc_attr( $s['cookie_link_color'] ); ?>" placeholder="inherit"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Button gap (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_btn_gap" value="<?php echo esc_attr( (int) $s['cookie_btn_gap'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Button font size (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_btn_font_size" value="<?php echo esc_attr( (int) $s['cookie_btn_font_size'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Button font weight', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_btn_font_weight" value="<?php echo esc_attr( (int) $s['cookie_btn_font_weight'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Overlay colour', 'velox'); ?></span><input type="text" class="velox-input vxck-live" data-setting="cookie_overlay_color" value="<?php echo esc_attr( $s['cookie_overlay_color'] ); ?>" placeholder="rgba(10,12,20,.45)"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Overlay blur (px)', 'velox'); ?></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_backdrop_blur" value="<?php echo esc_attr( (int) $s['cookie_backdrop_blur'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Max height (px)', 'velox'); ?> <span class="velox-hint velox-hint--inline"><?php esc_html_e('0 = none', 'velox'); ?></span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_max_height" value="<?php echo esc_attr( (int) $s['cookie_max_height'] ); ?>"></div>
+					<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('z-index', 'velox'); ?> <span class="velox-hint velox-hint--inline"><?php esc_html_e('0 = default', 'velox'); ?></span></span><input type="number" class="velox-input velox-input--sm vxck-live" data-setting="cookie_z_index" value="<?php echo esc_attr( (int) $s['cookie_z_index'] ); ?>"></div>
 				</div>
 				<label class="velox-toggle-row" style="margin-top:6px;">
-					<div class="velox-toggle-meta"><span class="velox-toggle-label">Underline legal links</span></div>
+					<div class="velox-toggle-meta"><span class="velox-toggle-label"><?php esc_html_e('Underline legal links', 'velox'); ?></span></div>
 					<span class="velox-switch"><input type="checkbox" class="vxck-live" data-setting="cookie_link_underline" <?php checked( ! empty( $s['cookie_link_underline'] ) ); ?>><span class="velox-switch-track"></span></span>
 				</label>
 			</div>
 
 			<div class="velox-panel velox-tool-form">
-				<h3 class="velox-panel-title">Custom CSS</h3>
-				<p class="velox-hint" style="margin:0 0 10px;">Full control — target any element inside the banner. Scope your rules with <code>.vxck</code> (the banner) or <code>.vxck-b-&lt;id&gt;</code> (a specific button). Applied on top of everything above.</p>
+				<h3 class="velox-panel-title"><?php esc_html_e('Custom CSS', 'velox'); ?></h3>
+				<p class="velox-hint" style="margin:0 0 10px;"><?php printf( esc_html__( 'Full control — target any element inside the banner. Scope your rules with %1$s (the banner) or %2$s (a specific button). Applied on top of everything above.', 'velox' ), '<code>' . esc_html__( '.vxck', 'velox' ) . '</code>', '<code>.vxck-b-&lt;id&gt;</code>' ); ?></p>
 				<textarea class="velox-textarea vxck-live" data-setting="cookie_custom_css" rows="6" spellcheck="false" placeholder=".vxck{font-family:Comfortaa,sans-serif;}&#10;.vxck-b-b1:hover{transform:translateY(-2px);}"><?php echo esc_textarea( $s['cookie_custom_css'] ); ?></textarea>
 			</div>
 
 
 			</div><!-- /.vxck-insp-body -->
 			<div class="vxck-insp-foot">
-				<button class="velox-btn velox-btn--primary velox-util-save">Save settings</button>
+				<button class="velox-btn velox-btn--primary velox-util-save"><?php esc_html_e('Save settings', 'velox'); ?></button>
 			</div>
 		</div>
 
 		<aside class="vxck-admin-preview">
 			<div class="vxck-preview-bar">
-				<span class="vxck-preview-label">Live preview</span>
+				<span class="vxck-preview-label"><?php esc_html_e('Live preview', 'velox'); ?></span>
 				<div class="vxck-device-tabs">
-					<button type="button" class="vxck-device is-active" data-device="desktop">Desktop</button>
-					<button type="button" class="vxck-device" data-device="mobile">Mobile</button>
+					<button type="button" class="vxck-device is-active" data-device="desktop"><?php esc_html_e('Desktop', 'velox'); ?></button>
+					<button type="button" class="vxck-device" data-device="mobile"><?php esc_html_e('Mobile', 'velox'); ?></button>
 				</div>
 			</div>
 			<?php
@@ -262,7 +262,7 @@ $s  = Velox_Settings::all();
 					<?php echo $preview_html; // phpcs:ignore WordPress.Security.EscapeOutput ?>
 				</div>
 			</div>
-			<p class="velox-hint" style="margin-top:10px;">This is the real banner — same markup and CSS your visitors get. Switch the device tabs to check both layouts.</p>
+			<p class="velox-hint" style="margin-top:10px;"><?php esc_html_e('This is the real banner — same markup and CSS your visitors get. Switch the device tabs to check both layouts.', 'velox'); ?></p>
 		</aside>
 	</div>
 

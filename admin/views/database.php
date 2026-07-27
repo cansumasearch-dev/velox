@@ -17,16 +17,16 @@ $items = array(
 );
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Database</h1>
-	<p class="velox-sub">Counts are live. Nothing is deleted until you press a button.</p>
+	<h1 class="velox-h2"><?php esc_html_e('Database', 'velox'); ?></h1>
+	<p class="velox-sub"><?php esc_html_e('Counts are live. Nothing is deleted until you press a button.', 'velox'); ?></p>
 </div>
 
 <div class="velox-alert velox-alert--info">
-	Take a database backup in Plesk before a big cleanup the first time. After that it's routine — revisions and transients pile up fast on builder sites.
+	<?php esc_html_e('Take a database backup in Plesk before a big cleanup the first time. After that it\'s routine — revisions and transients pile up fast on builder sites.', 'velox'); ?>
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Cleanup</h3>
+	<h3 class="velox-panel-title"><?php esc_html_e('Cleanup', 'velox'); ?></h3>
 	<div class="velox-db-list" id="velox-db-list">
 		<?php foreach ( $items as $key => $meta ) : ?>
 			<div class="velox-db-row" data-item="<?php echo esc_attr( $key ); ?>">
@@ -35,22 +35,22 @@ $items = array(
 					<span class="velox-db-desc"><?php echo esc_html( $meta[1] ); ?></span>
 				</div>
 				<span class="velox-db-count" data-count="<?php echo esc_attr( $key ); ?>">—</span>
-				<button class="velox-btn velox-btn--ghost velox-db-clean" data-item="<?php echo esc_attr( $key ); ?>">Clean</button>
+				<button class="velox-btn velox-btn--ghost velox-db-clean" data-item="<?php echo esc_attr( $key ); ?>"><?php esc_html_e('Clean', 'velox'); ?></button>
 			</div>
 		<?php endforeach; ?>
 	</div>
 	<div class="velox-actions">
-		<button class="velox-btn velox-btn--primary" id="velox-db-all">Clean everything</button>
-		<button class="velox-btn velox-btn--ghost" id="velox-db-optimize">Optimize tables</button>
+		<button class="velox-btn velox-btn--primary" id="velox-db-all"><?php esc_html_e('Clean everything', 'velox'); ?></button>
+		<button class="velox-btn velox-btn--ghost" id="velox-db-optimize"><?php esc_html_e('Optimize tables', 'velox'); ?></button>
 	</div>
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Automation</h3>
+	<h3 class="velox-panel-title"><?php esc_html_e('Automation', 'velox'); ?></h3>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Weekly auto-clean</span>
-			<span class="velox-toggle-desc">Runs the cleanup (not table optimization) once a week via WP-Cron.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Weekly auto-clean', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('Runs the cleanup (not table optimization) once a week via WP-Cron.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch">
 			<input type="checkbox" data-setting="db_schedule_cleanup" id="velox-db-schedule" <?php checked( Velox_Settings::get( 'db_schedule_cleanup' ) ); ?>>
@@ -58,6 +58,6 @@ $items = array(
 		</label>
 	</div>
 	<div class="velox-actions">
-		<button class="velox-btn velox-btn--primary" id="velox-db-save-auto">Save automation</button>
+		<button class="velox-btn velox-btn--primary" id="velox-db-save-auto"><?php esc_html_e('Save automation', 'velox'); ?></button>
 	</div>
 </div>

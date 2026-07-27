@@ -5,130 +5,153 @@ if ( ! defined( 'ABSPATH' ) ) {
 $s = Velox_Settings::all();
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Settings</h1>
-	<p class="velox-sub">Set your defaults, point the auto-updater at your repo, and check your environment.</p>
+	<h1 class="velox-h2"><?php esc_html_e('Settings', 'velox'); ?></h1>
+	<p class="velox-sub"><?php esc_html_e('Set your defaults, point the auto-updater at your repo, and check your environment.', 'velox'); ?></p>
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Quick setup</h3>
-	<p class="velox-hint">Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards.</p>
+	<h3 class="velox-panel-title"><?php esc_html_e('Language', 'velox'); ?></h3>
+	<label class="velox-field velox-field--inline">
+		<span class="velox-field-label"><?php esc_html_e( 'Velox admin language', 'velox' ); ?></span>
+		<select class="velox-select" data-setting="admin_language">
+			<?php
+			$vx_current_lang = isset( $s['admin_language'] ) ? (string) $s['admin_language'] : '';
+			foreach ( Velox_Settings::admin_languages() as $vx_code => $vx_label ) {
+				printf(
+					'<option value="%1$s" %2$s>%3$s</option>',
+					esc_attr( $vx_code ),
+					selected( $vx_current_lang, $vx_code, false ),
+					esc_html( $vx_label )
+				);
+			}
+			?>
+		</select>
+		<span class="velox-hint" style="flex-basis:100%;margin:4px 0 0;">
+			<?php esc_html_e( 'Changes the language of Velox\'s own screens only — WordPress and your other plugins are unaffected. English and German are complete; other languages are being translated and fall back to English until finished.', 'velox' ); ?>
+		</span>
+	</label>
+</div>
+
+<div class="velox-panel">
+	<h3 class="velox-panel-title"><?php esc_html_e('Quick setup', 'velox'); ?></h3>
+	<p class="velox-hint"><?php esc_html_e('Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards.', 'velox'); ?></p>
 	<div class="velox-fonts-btns">
-		<button class="velox-btn velox-btn--primary" id="velox-preset-safe">Apply safe defaults</button>
-		<button class="velox-btn velox-btn--ghost" id="velox-preset-aggressive">Apply aggressive preset</button>
+		<button class="velox-btn velox-btn--primary" id="velox-preset-safe"><?php esc_html_e('Apply safe defaults', 'velox'); ?></button>
+		<button class="velox-btn velox-btn--ghost" id="velox-preset-aggressive"><?php esc_html_e('Apply aggressive preset', 'velox'); ?></button>
 	</div>
-	<p class="velox-hint"><strong>Safe</strong> turns on only the optimizations that can't break a site. <strong>Aggressive</strong> adds async CSS, unused-CSS removal (auto-learn), JS delay and bloat removal — then test and exclude anything that misbehaves. Neither touches jQuery Migrate or content-visibility (those need per-site testing).</p>
+	<p class="velox-hint"><?php printf( esc_html__( '%1$s turns on only the optimizations that can\'t break a site. %2$s adds async CSS, unused-CSS removal (auto-learn), JS delay and bloat removal — then test and exclude anything that misbehaves. Neither touches jQuery Migrate or content-visibility (those need per-site testing).', 'velox' ), '<strong>' . esc_html__( 'Safe', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'Aggressive', 'velox' ) . '</strong>' ); ?></p>
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Page builder</h3>
+	<h3 class="velox-panel-title"><?php esc_html_e('Page builder', 'velox'); ?></h3>
 	<?php $vx_b = Velox_Builders::current(); ?>
-	<p class="velox-hint">Velox tunes its performance settings to your builder. Currently configured for:
+	<p class="velox-hint"><?php esc_html_e('Velox tunes its performance settings to your builder. Currently configured for:', 'velox'); ?>
 		<strong><?php echo esc_html( $vx_b ? Velox_Builders::label( $vx_b ) : 'not set up yet' ); ?></strong>.</p>
 	<div class="velox-fonts-btns">
-		<button class="velox-btn velox-btn--primary" id="velox-open-wizard">Run setup wizard</button>
+		<button class="velox-btn velox-btn--primary" id="velox-open-wizard"><?php esc_html_e('Run setup wizard', 'velox'); ?></button>
 	</div>
-	<p class="velox-hint">Switching builders? Run this again — Velox will wipe the old performance settings and reconfigure for the new one. Your image, font and database settings are kept.</p>
+	<p class="velox-hint"><?php esc_html_e('Switching builders? Run this again — Velox will wipe the old performance settings and reconfigure for the new one. Your image, font and database settings are kept.', 'velox'); ?></p>
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Image defaults</h3>
+	<h3 class="velox-panel-title"><?php esc_html_e('Image defaults', 'velox'); ?></h3>
 	<label class="velox-field velox-field--inline">
-		<span class="velox-field-label">Default WebP quality</span>
+		<span class="velox-field-label"><?php esc_html_e('Default WebP quality', 'velox'); ?></span>
 		<input type="number" min="1" max="100" class="velox-input velox-input--sm" data-setting="webp_quality" value="<?php echo esc_attr( $s['webp_quality'] ); ?>">
 	</label>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Auto-convert new uploads</span>
-			<span class="velox-toggle-desc">Every new JPG/PNG upload is converted to WebP automatically.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Auto-convert new uploads', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('Every new JPG/PNG upload is converted to WebP automatically.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="webp_auto_convert" <?php checked( ! empty( $s['webp_auto_convert'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Convert thumbnail sizes too</span>
-			<span class="velox-toggle-desc">Also generates WebP for each registered image size (recommended for srcset).</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Convert thumbnail sizes too', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('Also generates WebP for each registered image size (recommended for srcset).', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="webp_convert_sizes" <?php checked( ! empty( $s['webp_convert_sizes'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Serve WebP on the front end</span>
-			<span class="velox-toggle-desc">Swaps every uploads image to WebP/AVIF when the browser supports it — WordPress images, Oxygen elements, CSS background-images and hard-coded links (originals stay as fallback).</span>
-			<span class="velox-toggle-note">On by default. Rewrites the page HTML on the front end. With Cloudflare Polish enabled you can leave this off.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Serve WebP on the front end', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('Swaps every uploads image to WebP/AVIF when the browser supports it — WordPress images, Oxygen elements, CSS background-images and hard-coded links (originals stay as fallback).', 'velox'); ?></span>
+			<span class="velox-toggle-note"><?php esc_html_e('On by default. Rewrites the page HTML on the front end. With Cloudflare Polish enabled you can leave this off.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="webp_serve_rewrite" <?php checked( ! empty( $s['webp_serve_rewrite'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Before/after comparator</span>
-			<span class="velox-toggle-desc">Shows the original-vs-WebP drag comparison panel on the Images tab.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Before/after comparator', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('Shows the original-vs-WebP drag comparison panel on the Images tab.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="image_comparison" <?php checked( ! empty( $s['image_comparison'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 </div>
 
 <div class="velox-panel" id="pagespeed">
-	<h3 class="velox-panel-title">Live PageSpeed</h3>
-	<p class="velox-hint">Pull a real Lighthouse score from Google PageSpeed Insights on a schedule and show it on your dashboard. A free <a href="https://developers.google.com/speed/docs/insights/v5/get-started" target="_blank" rel="noopener">PageSpeed Insights API key</a> is recommended (checks run without one, but Google rate-limits keyless requests). Your server needs outbound access to <code>googleapis.com</code> and WordPress cron running.</p>
+	<h3 class="velox-panel-title"><?php esc_html_e('Live PageSpeed', 'velox'); ?></h3>
+	<p class="velox-hint"><?php printf( esc_html__( 'Pull a real Lighthouse score from Google PageSpeed Insights on a schedule and show it on your dashboard. A free %1$s is recommended (checks run without one, but Google rate-limits keyless requests). Your server needs outbound access to %2$s and WordPress cron running.', 'velox' ), '<a href="https://developers.google.com/speed/docs/insights/v5/get-started" target="_blank" rel="noopener">' . esc_html__( 'PageSpeed Insights API key', 'velox' ) . '</a>', '<code>' . esc_html__( 'googleapis.com', 'velox' ) . '</code>' ); ?></p>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Enable PageSpeed status</span>
-			<span class="velox-toggle-desc">Runs checks on the schedule below and shows the PageSpeed widget on the dashboard.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Enable PageSpeed status', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('Runs checks on the schedule below and shows the PageSpeed widget on the dashboard.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="ps_enable" <?php checked( ! empty( $s['ps_enable'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 	<label class="velox-field velox-field--inline">
-		<span class="velox-field-label">API key</span>
+		<span class="velox-field-label"><?php esc_html_e('API key', 'velox'); ?></span>
 		<input type="text" class="velox-input" data-setting="ps_api_key" value="<?php echo esc_attr( $s['ps_api_key'] ); ?>" placeholder="Optional — paste your PSI API key" autocomplete="off" spellcheck="false">
 	</label>
 	<label class="velox-field velox-field--inline">
-		<span class="velox-field-label">URL to test</span>
+		<span class="velox-field-label"><?php esc_html_e('URL to test', 'velox'); ?></span>
 		<input type="url" class="velox-input" data-setting="ps_url" value="<?php echo esc_attr( $s['ps_url'] ); ?>" placeholder="<?php echo esc_attr( home_url( '/' ) ); ?>">
 	</label>
 	<label class="velox-field velox-field--inline">
-		<span class="velox-field-label">Default view</span>
+		<span class="velox-field-label"><?php esc_html_e('Default view', 'velox'); ?></span>
 		<select class="velox-select" data-setting="ps_strategy">
-			<option value="mobile" <?php selected( $s['ps_strategy'], 'mobile' ); ?>>Mobile</option>
-			<option value="desktop" <?php selected( $s['ps_strategy'], 'desktop' ); ?>>Desktop</option>
+			<option value="mobile" <?php selected( $s['ps_strategy'], 'mobile' ); ?>><?php esc_html_e('Mobile', 'velox'); ?></option>
+			<option value="desktop" <?php selected( $s['ps_strategy'], 'desktop' ); ?>><?php esc_html_e('Desktop', 'velox'); ?></option>
 		</select>
 		<span class="velox-hint" style="flex-basis:100%;margin:4px 0 0;">Both devices are checked &mdash; this is just the one shown first on the dashboard.</span>
 	</label>
 	<label class="velox-field velox-field--inline">
-		<span class="velox-field-label">Refresh every</span>
+		<span class="velox-field-label"><?php esc_html_e('Refresh every', 'velox'); ?></span>
 		<select class="velox-select" data-setting="ps_interval">
-			<option value="hourly" <?php selected( $s['ps_interval'], 'hourly' ); ?>>Hour</option>
-			<option value="twicedaily" <?php selected( $s['ps_interval'], 'twicedaily' ); ?>>12 hours</option>
-			<option value="daily" <?php selected( $s['ps_interval'], 'daily' ); ?>>Day</option>
+			<option value="hourly" <?php selected( $s['ps_interval'], 'hourly' ); ?>><?php esc_html_e('Hour', 'velox'); ?></option>
+			<option value="twicedaily" <?php selected( $s['ps_interval'], 'twicedaily' ); ?>><?php esc_html_e('12 hours', 'velox'); ?></option>
+			<option value="daily" <?php selected( $s['ps_interval'], 'daily' ); ?>><?php esc_html_e('Day', 'velox'); ?></option>
 		</select>
 	</label>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Show Core Web Vitals</span>
-			<span class="velox-toggle-desc">Display the LCP / CLS / TBT metric chips on the widget.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Show Core Web Vitals', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('Display the LCP / CLS / TBT metric chips on the widget.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="ps_show_metrics" <?php checked( ! empty( $s['ps_show_metrics'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Show what to fix</span>
-			<span class="velox-toggle-desc">List the top opportunities Lighthouse found, biggest time-savings first.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Show what to fix', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('List the top opportunities Lighthouse found, biggest time-savings first.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="ps_show_issues" <?php checked( ! empty( $s['ps_show_issues'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 	<div class="velox-actions">
-		<button type="button" class="velox-btn velox-btn--ghost" data-ps-refresh>Run a check now</button>
+		<button type="button" class="velox-btn velox-btn--ghost" data-ps-refresh><?php esc_html_e('Run a check now', 'velox'); ?></button>
 		<span class="velox-hint" style="margin:0;align-self:center;">Save your settings first. A live check can take ~30&nbsp;seconds.</span>
 	</div>
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Dashboard traffic</h3>
+	<h3 class="velox-panel-title"><?php esc_html_e('Dashboard traffic', 'velox'); ?></h3>
 	<p class="velox-hint">Velox can count page views with a tiny first-party script &mdash; no cookies, no raw IP stored (visitors are de-duped with a salted daily hash), bots and logged-in admins excluded. Powers the Visitors widget on the dashboard. Turn it off and nothing is collected.</p>
 	<?php $vx_track_on = ( ! isset( $s['traffic_tracking'] ) ) ? true : ! empty( $s['traffic_tracking'] ); ?>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Count visitors</span>
-			<span class="velox-toggle-desc">First-party, aggregate only. Mention it in your privacy policy.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Count visitors', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('First-party, aggregate only. Mention it in your privacy policy.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch">
 			<input type="checkbox" data-setting="traffic_tracking" <?php checked( $vx_track_on ); ?>>
@@ -138,8 +161,8 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Migrate from another plugin</h3>
-	<p class="velox-hint">Switching to Velox? Pull your existing configuration straight from these plugins. Velox only reads them — nothing in the other plugin is changed, and your current Velox values aren&rsquo;t overwritten where one already exists. Plugins marked <em>Migration coming soon</em> are recognised, but their one-click import isn&rsquo;t built yet — <a href="https://www.sumasearch.de/" target="_blank" rel="noopener">tell us</a> which you need next.</p>
+	<h3 class="velox-panel-title"><?php esc_html_e('Migrate from another plugin', 'velox'); ?></h3>
+	<p class="velox-hint">Switching to Velox? Pull your existing configuration straight from these plugins. Velox only reads them — nothing in the other plugin is changed, and your current Velox values aren&rsquo;t overwritten where one already exists. Plugins marked <em><?php esc_html_e('Migration coming soon', 'velox'); ?></em> are recognised, but their one-click import isn&rsquo;t built yet — <a href="https://www.sumasearch.de/" target="_blank" rel="noopener"><?php esc_html_e('tell us', 'velox'); ?></a> <?php esc_html_e('which you need next.', 'velox'); ?></p>
 	<div class="velox-import-sources">
 		<?php foreach ( Velox_Import::sources() as $key => $src ) : ?>
 			<div class="velox-import-src" data-source="<?php echo esc_attr( $key ); ?>">
@@ -147,9 +170,9 @@ $s = Velox_Settings::all();
 					<div class="velox-import-src-head">
 						<strong><?php echo esc_html( $src['label'] ); ?></strong>
 						<?php if ( $src['detected'] ) : ?>
-							<span class="velox-pill velox-pill--ok">Detected</span>
+							<span class="velox-pill velox-pill--ok"><?php esc_html_e('Detected', 'velox'); ?></span>
 						<?php else : ?>
-							<span class="velox-pill">Not found</span>
+							<span class="velox-pill"><?php esc_html_e('Not found', 'velox'); ?></span>
 						<?php endif; ?>
 						<span class="velox-import-into">→ <?php echo esc_html( $src['into'] ); ?></span>
 					</div>
@@ -157,9 +180,9 @@ $s = Velox_Settings::all();
 					<div class="velox-import-result" hidden></div>
 				</div>
 				<?php if ( ! empty( $src['ready'] ) ) : ?>
-					<button class="velox-btn velox-btn--ghost velox-import-run" type="button" <?php echo $src['detected'] ? '' : 'disabled'; ?>>Import</button>
+					<button class="velox-btn velox-btn--ghost velox-import-run" type="button" <?php echo $src['detected'] ? '' : 'disabled'; ?>><?php esc_html_e('Import', 'velox'); ?></button>
 				<?php else : ?>
-					<span class="velox-import-soon" title="Velox recognises this plugin — automatic migration is on the way">Migration coming soon</span>
+					<span class="velox-import-soon" title="Velox recognises this plugin — automatic migration is on the way"><?php esc_html_e('Migration coming soon', 'velox'); ?></span>
 				<?php endif; ?>
 			</div>
 		<?php endforeach; ?>
@@ -167,24 +190,24 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Import / Export</h3>
-	<p class="velox-hint">Copy your whole Velox config to another site. Export gives you a JSON blob; paste one in and hit Import to apply it.</p>
+	<h3 class="velox-panel-title"><?php esc_html_e('Import / Export', 'velox'); ?></h3>
+	<p class="velox-hint"><?php esc_html_e('Copy your whole Velox config to another site. Export gives you a JSON blob; paste one in and hit Import to apply it.', 'velox'); ?></p>
 	<div class="velox-actions">
-		<button class="velox-btn velox-btn--ghost" id="velox-export">Export settings</button>
-		<button class="velox-btn velox-btn--ghost" id="velox-import-open">Import settings</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-export"><?php esc_html_e('Export settings', 'velox'); ?></button>
+		<button class="velox-btn velox-btn--ghost" id="velox-import-open"><?php esc_html_e('Import settings', 'velox'); ?></button>
 	</div>
 	<textarea id="velox-import-box" class="velox-textarea" rows="4" placeholder="Exported JSON appears here — or paste a config to import." hidden></textarea>
 	<div class="velox-actions" id="velox-import-actions" hidden>
-		<button class="velox-btn velox-btn--primary" id="velox-import-apply">Apply imported settings</button>
-		<button class="velox-btn velox-btn--ghost" id="velox-import-cancel">Cancel</button>
+		<button class="velox-btn velox-btn--primary" id="velox-import-apply"><?php esc_html_e('Apply imported settings', 'velox'); ?></button>
+		<button class="velox-btn velox-btn--ghost" id="velox-import-cancel"><?php esc_html_e('Cancel', 'velox'); ?></button>
 	</div>
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Housekeeping</h3>
+	<h3 class="velox-panel-title"><?php esc_html_e('Housekeeping', 'velox'); ?></h3>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Keep my settings if I delete Velox</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Keep my settings if I delete Velox', 'velox'); ?></span>
 			<span class="velox-toggle-desc">By default, deleting the plugin wipes Velox&rsquo;s settings, forms, redirects and logs. Turn this on to leave everything in place so a reinstall picks up where you left off. Your media is never touched either way.</span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" data-setting="keep_data_on_uninstall" <?php checked( ! empty( $s['keep_data_on_uninstall'] ) ); ?>><span class="velox-switch-track"></span></label>
@@ -192,8 +215,8 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">System status</h3>
-	<p class="velox-hint">A quick read on the environment Velox is running in — handy when debugging or filing a support note.</p>
+	<h3 class="velox-panel-title"><?php esc_html_e('System status', 'velox'); ?></h3>
+	<p class="velox-hint"><?php esc_html_e('A quick read on the environment Velox is running in — handy when debugging or filing a support note.', 'velox'); ?></p>
 	<?php
 	$vx_cache_dir  = defined( 'WP_CONTENT_DIR' ) ? WP_CONTENT_DIR . '/cache' : '';
 	$vx_cache_ok   = $vx_cache_dir && ( is_writable( $vx_cache_dir ) || ( ! file_exists( $vx_cache_dir ) && is_writable( dirname( $vx_cache_dir ) ) ) );
@@ -222,14 +245,14 @@ $s = Velox_Settings::all();
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Updates</h3>
-	<p class="velox-hint">Velox updates straight from GitHub releases, so it never appears in the public plugin directory. When a new version is released it shows up like any other plugin update.</p>
+	<h3 class="velox-panel-title"><?php esc_html_e('Updates', 'velox'); ?></h3>
+	<p class="velox-hint"><?php esc_html_e('Velox updates straight from GitHub releases, so it never appears in the public plugin directory. When a new version is released it shows up like any other plugin update.', 'velox'); ?></p>
 	<div class="velox-actions">
-		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'update-core.php?force-check=1' ) ); ?>">Check for updates</a>
-		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'plugins.php' ) ); ?>">Open plugins page</a>
+		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'update-core.php?force-check=1' ) ); ?>"><?php esc_html_e('Check for updates', 'velox'); ?></a>
+		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'plugins.php' ) ); ?>"><?php esc_html_e('Open plugins page', 'velox'); ?></a>
 	</div>
 </div>
 
 <div class="velox-actions velox-actions--sticky">
-	<p class="velox-hint velox-autosave-note">Changes save automatically as you make them.</p>
+	<p class="velox-hint velox-autosave-note"><?php esc_html_e('Changes save automatically as you make them.', 'velox'); ?></p>
 </div>

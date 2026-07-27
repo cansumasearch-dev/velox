@@ -11,7 +11,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 <?php if ( ! $on ) : ?>
 	<div class="velox-page-head">
 		<h1 class="velox-h2">Mail &amp; forms</h1>
-		<p class="velox-sub">Build forms, route submissions to styled notification emails (to you and to the customer), and send everything reliably over SMTP.</p>
+		<p class="velox-sub"><?php esc_html_e('Build forms, route submissions to styled notification emails (to you and to the customer), and send everything reliably over SMTP.', 'velox'); ?></p>
 	</div>
 
 	<div class="velox-panel">
@@ -19,7 +19,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			<span><strong>Enable Mail &amp; forms</strong></span>
 			<span class="velox-switch"><input type="checkbox" data-setting="util_mail" id="velox-mail-toggle"><span class="velox-switch-track"></span></span>
 		</label>
-		<p class="velox-hint" style="margin-top:14px;">Turn this on to create forms and configure SMTP. Embed any form with <code>[velox_form id="1"]</code> — including inside an Oxygen Shortcode element.</p>
+		<p class="velox-hint" style="margin-top:14px;"><?php printf( esc_html__( 'Turn this on to create forms and configure SMTP. Embed any form with %s — including inside an Oxygen Shortcode element.', 'velox' ), '<code>' . esc_html__( '[velox_form id="1"]', 'velox' ) . '</code>' ); ?></p>
 	</div>
 
 <?php elseif ( '' !== $edit ) :
@@ -39,7 +39,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		<div class="vmail-nav">
 			<div class="vmail-nav-left">
 				<a class="vmail-nav-back" href="<?php echo esc_url( $base ); ?>" title="All forms"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
-				<div class="vmail-nav-crumb">Utilities <span>/</span> <b>Mail &amp; forms</b></div>
+				<div class="vmail-nav-crumb"><?php esc_html_e('Utilities', 'velox'); ?> <span>/</span> <b>Mail &amp; forms</b></div>
 				<div class="vmail-nav-vsep"></div>
 				<input type="text" class="velox-input vmail-title-input" id="vmail-title" value="<?php echo esc_attr( $form['title'] ); ?>" placeholder="Form name">
 				<label class="vmail-nav-switch" title="Turn this form on or off">
@@ -48,19 +48,19 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				</label>
 				<span class="vmail-nav-onoff" id="vmail-onoff-label"><?php echo ( ! isset( $form['enabled'] ) || ! empty( $form['enabled'] ) ) ? 'On' : 'Off'; ?></span>
 				<button type="button" class="vmail-nav-sc" data-code='[velox_form id="<?php echo (int) $form['id']; ?>"]' title="Form shortcode — click to copy">
-					<span class="vmail-nav-sc-tag">Shortcode</span>
+					<span class="vmail-nav-sc-tag"><?php esc_html_e('Shortcode', 'velox'); ?></span>
 					<code>[velox_form id="<?php echo (int) $form['id']; ?>"]</code>
 				</button>
 			</div>
 			<div class="vmail-nav-mode">
-				<button type="button" class="vmail-tab vmail-modebtn is-active" data-tab="build"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M3 12h18M3 19h12"/></svg> Build</button>
-				<button type="button" class="vmail-modebtn" id="vmail-style-btn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Style</button>
-				<button type="button" class="vmail-modebtn" id="vmail-preview-btn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Preview</button>
+				<button type="button" class="vmail-tab vmail-modebtn is-active" data-tab="build"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M3 12h18M3 19h12"/></svg> <?php esc_html_e('Build', 'velox'); ?></button>
+				<button type="button" class="vmail-modebtn" id="vmail-style-btn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> <?php esc_html_e('Style', 'velox'); ?></button>
+				<button type="button" class="vmail-modebtn" id="vmail-preview-btn"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> <?php esc_html_e('Preview', 'velox'); ?></button>
 			</div>
 			<div class="vmail-nav-right">
-				<button type="button" class="vmail-tab vmail-nav-ghost" data-tab="notify"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg> Notifications</button>
-				<button type="button" class="vmail-tab vmail-nav-ghost" data-tab="settings"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> Settings</button>
-				<button class="velox-btn velox-btn--primary" id="vmail-save">Save form</button>
+				<button type="button" class="vmail-tab vmail-nav-ghost" data-tab="notify"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/></svg> <?php esc_html_e('Notifications', 'velox'); ?></button>
+				<button type="button" class="vmail-tab vmail-nav-ghost" data-tab="settings"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> <?php esc_html_e('Settings', 'velox'); ?></button>
+				<button class="velox-btn velox-btn--primary" id="vmail-save"><?php esc_html_e('Save form', 'velox'); ?></button>
 			</div>
 		</div>
 
@@ -68,7 +68,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			<div class="vmail-sb-body">
 				<!-- zone 1: palette -->
 				<div class="vmail-sb-zone vmail-sb-zone--pal">
-					<div class="vmail-sb-zhead"><span class="t">Add field</span></div>
+					<div class="vmail-sb-zhead"><span class="t"><?php esc_html_e('Add field', 'velox'); ?></span></div>
 					<div class="vmail-sb-search">
 						<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
 						<input type="text" class="vmail-palette-search-input" id="vmail-palette-search" placeholder="Search fields…">
@@ -77,7 +77,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				</div>
 				<!-- zone 2: canvas -->
 				<div class="vmail-sb-zone vmail-sb-zone--canvas">
-					<div class="vmail-sb-zhead"><span class="t">Form canvas</span><span class="t vmail-sb-zhint">drag to reorder</span></div>
+					<div class="vmail-sb-zhead"><span class="t"><?php esc_html_e('Form canvas', 'velox'); ?></span><span class="t vmail-sb-zhint"><?php esc_html_e('drag to reorder', 'velox'); ?></span></div>
 					<div class="vmail-canvas-wrap">
 						<div class="vmail-canvas" id="vmail-canvas"></div>
 					</div>
@@ -90,30 +90,30 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		</div>
 
 		<div class="vmail-panel" data-panel="notify" hidden>
-			<p class="velox-hint" style="margin-bottom:14px;">Notifications are sent when the form is submitted. Use the <strong>Insert field</strong> menu to drop in merge tags like <code>{inputs.email}</code>, or <code>{all_fields}</code> for the whole submission.</p>
+			<p class="velox-hint" style="margin-bottom:14px;"><?php printf( esc_html__( 'Notifications are sent when the form is submitted. Use the %1$s menu to drop in merge tags like %2$s, or %3$s for the whole submission.', 'velox' ), '<strong>' . esc_html__( 'Insert field', 'velox' ) . '</strong>', '<code>{inputs.email}</code>', '<code>{all_fields}</code>' ); ?></p>
 			<div id="vmail-emails"></div>
 		</div>
 
 		<div class="vmail-panel" data-panel="settings" hidden>
 			<div class="velox-panel">
-				<div class="vmail-set-sec">Appearance</div>
+				<div class="vmail-set-sec"><?php esc_html_e('Appearance', 'velox'); ?></div>
 				<label class="velox-toggle-row">
 					<div class="velox-toggle-meta">
-						<span class="velox-toggle-label">Show form title</span>
-						<span class="velox-toggle-desc">Displays the form name as a heading above the fields, on the site and in the style preview.</span>
+						<span class="velox-toggle-label"><?php esc_html_e('Show form title', 'velox'); ?></span>
+						<span class="velox-toggle-desc"><?php esc_html_e('Displays the form name as a heading above the fields, on the site and in the style preview.', 'velox'); ?></span>
 					</div>
 					<span class="velox-switch"><input type="checkbox" id="vmail-show-title" <?php checked( ! empty( $form['show_title'] ) ); ?>><span class="velox-switch-track"></span></span>
 				</label>
 
-				<div class="vmail-set-sec">After submitting</div>
+				<div class="vmail-set-sec"><?php esc_html_e('After submitting', 'velox'); ?></div>
 				<div class="velox-field">
-					<span class="velox-field-label">Success message</span>
+					<span class="velox-field-label"><?php esc_html_e('Success message', 'velox'); ?></span>
 					<input type="text" class="velox-input" id="vmail-success" value="<?php echo esc_attr( $form['success'] ); ?>">
-					<span class="velox-hint">Shown after the form is submitted successfully.</span>
+					<span class="velox-hint"><?php esc_html_e('Shown after the form is submitted successfully.', 'velox'); ?></span>
 				</div>
-				<p class="velox-hint" style="margin:2px 0 0;">The submit button text, colours and full styling live on the <strong>form canvas</strong> — click the button there, or open the <strong>Style editor</strong>.</p>
+				<p class="velox-hint" style="margin:2px 0 0;"><?php printf( esc_html__( 'The submit button text, colours and full styling live on the %1$s — click the button there, or open the %2$s.', 'velox' ), '<strong>' . esc_html__( 'form canvas', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'Style editor', 'velox' ) . '</strong>' ); ?></p>
 
-				<div class="vmail-set-sec">Spam protection</div>
+				<div class="vmail-set-sec"><?php esc_html_e('Spam protection', 'velox'); ?></div>
 				<?php
 				$captcha_gate = Velox_Forms::captcha_enabled();
 				$captcha_desc = ! $captcha_gate
@@ -128,11 +128,11 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					<span class="velox-switch"><input type="checkbox" id="vmail-captcha" <?php checked( ! empty( $form['captcha'] ) && $captcha_gate ); ?> <?php disabled( ! $captcha_gate ); ?>><span class="velox-switch-track"></span></span>
 				</label>
 				<?php if ( 'new' !== $edit ) : ?>
-					<div class="vmail-set-sec">Embed</div>
+					<div class="vmail-set-sec"><?php esc_html_e('Embed', 'velox'); ?></div>
 					<div class="velox-field">
-						<span class="velox-field-label">Shortcode</span>
+						<span class="velox-field-label"><?php esc_html_e('Shortcode', 'velox'); ?></span>
 						<code class="velox-mail-shortcode">[velox_form id="<?php echo (int) $form['id']; ?>"]</code>
-						<span class="velox-hint">Paste this into any page, widget or Oxygen Shortcode element.</span>
+						<span class="velox-hint"><?php esc_html_e('Paste this into any page, widget or Oxygen Shortcode element.', 'velox'); ?></span>
 					</div>
 				<?php endif; ?>
 			</div>
@@ -144,7 +144,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		<div class="vmail-nav vmail-nav--vse">
 			<div class="vmail-nav-left">
 				<a class="vmail-nav-back" id="vse-back" title="Back to Build" style="cursor:pointer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>
-				<div class="vmail-nav-crumb">Utilities <span>/</span> <b>Mail &amp; forms</b></div>
+				<div class="vmail-nav-crumb"><?php esc_html_e('Utilities', 'velox'); ?> <span>/</span> <b>Mail &amp; forms</b></div>
 				<div class="vmail-nav-vsep"></div>
 				<span class="vmail-nav-title vmail-nav-title--static"><?php echo esc_html( $form['title'] ); ?></span>
 				<label class="vmail-nav-switch" title="Turn this form on or off">
@@ -153,22 +153,22 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				</label>
 				<span class="vmail-nav-onoff" id="vse-onoff-label"><?php echo ( ! isset( $form['enabled'] ) || ! empty( $form['enabled'] ) ) ? 'On' : 'Off'; ?></span>
 				<button type="button" class="vmail-nav-sc" data-code='[velox_form id="<?php echo (int) $form['id']; ?>"]' title="Form shortcode — click to copy">
-					<span class="vmail-nav-sc-tag">Shortcode</span>
+					<span class="vmail-nav-sc-tag"><?php esc_html_e('Shortcode', 'velox'); ?></span>
 					<code>[velox_form id="<?php echo (int) $form['id']; ?>"]</code>
 				</button>
 			</div>
 			<div class="vmail-nav-mode">
-				<button type="button" class="vmail-modebtn" id="vse-to-build"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M3 12h18M3 19h12"/></svg> Build</button>
-				<button type="button" class="vmail-modebtn is-active"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> Style</button>
-				<button type="button" class="vmail-modebtn" id="vse-to-preview"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> Preview</button>
+				<button type="button" class="vmail-modebtn" id="vse-to-build"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M3 12h18M3 19h12"/></svg> <?php esc_html_e('Build', 'velox'); ?></button>
+				<button type="button" class="vmail-modebtn is-active"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg> <?php esc_html_e('Style', 'velox'); ?></button>
+				<button type="button" class="vmail-modebtn" id="vse-to-preview"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg> <?php esc_html_e('Preview', 'velox'); ?></button>
 			</div>
 			<div class="vmail-nav-right">
 				<div class="vmail-nav-devs" id="vse-device">
 					<button class="is-on" data-dev="desktop" title="Desktop"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="2" y="4" width="20" height="13" rx="2"/><path d="M8 21h8"/></svg></button>
 					<button data-dev="mobile" title="Mobile"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="7" y="2" width="10" height="20" rx="2.5"/></svg></button>
 				</div>
-				<button class="vmail-nav-ghost" id="vse-reset" type="button"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5"/></svg> Reset</button>
-				<button class="velox-btn velox-btn--primary" id="vse-save" type="button">Save styles</button>
+				<button class="vmail-nav-ghost" id="vse-reset" type="button"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M3 12a9 9 0 1 0 3-6.7L3 8m0-5v5h5"/></svg> <?php esc_html_e('Reset', 'velox'); ?></button>
+				<button class="velox-btn velox-btn--primary" id="vse-save" type="button"><?php esc_html_e('Save styles', 'velox'); ?></button>
 			</div>
 		</div>
 		<div class="vse-body">
@@ -180,7 +180,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<div class="vse-controls" id="vse-controls"></div>
 			</div>
 			<div class="vse-stage">
-				<div class="vse-live"><span class="vse-pulse"></span> Live preview</div>
+				<div class="vse-live"><span class="vse-pulse"></span> <?php esc_html_e('Live preview', 'velox'); ?></div>
 				<div class="vse-canvas" id="vse-canvas"><div class="vse-form" id="vse-form"></div></div>
 			</div>
 		</div>
@@ -204,7 +204,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		<div class="velox-page-head velox-page-head--row">
 			<div>
 				<a class="vmail-back-link" href="<?php echo esc_url( $base ); ?>">&larr; All forms</a>
-				<h1 class="velox-h2" style="margin-top:8px;"><?php echo esc_html( $ititle ); ?> <span class="vmail-head-sub">— entries</span></h1>
+				<h1 class="velox-h2" style="margin-top:8px;"><?php echo esc_html( $ititle ); ?> <span class="vmail-head-sub"><?php esc_html_e('— entries', 'velox'); ?></span></h1>
 				<p class="velox-sub"><?php echo count( $subs ); ?> submission<?php echo 1 === count( $subs ) ? '' : 's'; ?> received through this form.<?php
 					$vx_fdel = Velox_Forms::submission_count_deleted( $entries_for );
 					if ( $vx_fdel ) {
@@ -216,9 +216,9 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<?php if ( ! empty( $subs ) ) :
 					$export_url = wp_nonce_url( admin_url( 'admin-post.php?action=velox_form_export&form=' . $entries_for ), 'velox_form_export_' . $entries_for );
 					?>
-					<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $export_url ); ?>">Export CSV</a>
+					<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $export_url ); ?>"><?php esc_html_e('Export CSV', 'velox'); ?></a>
 				<?php endif; ?>
-				<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $base . '&form=' . $entries_for ); ?>">Edit form</a>
+				<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $base . '&form=' . $entries_for ); ?>"><?php esc_html_e('Edit form', 'velox'); ?></a>
 			</div>
 		</div>
 
@@ -250,15 +250,15 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 								</dl>
 								<div class="vmail-entry-foot">
 									<span class="vmail-entry-meta">#<?php echo (int) $sub['id']; ?><?php echo ! empty( $sub['ip'] ) ? ' · IP ' . esc_html( $sub['ip'] ) : ''; ?></span>
-									<button class="velox-btn velox-btn--ghost velox-mail-sub-del" data-id="<?php echo (int) $sub['id']; ?>">Delete entry</button>
+									<button class="velox-btn velox-btn--ghost velox-mail-sub-del" data-id="<?php echo (int) $sub['id']; ?>"><?php esc_html_e('Delete entry', 'velox'); ?></button>
 								</div>
 							</div>
 						</details>
 					<?php endforeach; ?>
 					<div class="vmail-entries-blank" id="vmail-entries-blank"<?php echo empty( $subs ) ? '' : ' hidden'; ?>>
 						<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg>
-						<span class="t">No entries yet</span>
-						<span class="s">Submissions through this form show up here as they arrive.</span>
+						<span class="t"><?php esc_html_e('No entries yet', 'velox'); ?></span>
+						<span class="s"><?php esc_html_e('Submissions through this form show up here as they arrive.', 'velox'); ?></span>
 					</div>
 				</div>
 		</div>
@@ -273,16 +273,16 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		<div class="velox-page-head velox-page-head--row">
 			<div>
 				<h1 class="velox-h2">Mail &amp; forms</h1>
-				<p class="velox-sub">Build forms, route submissions to styled notification emails, and send reliably over SMTP.</p>
+				<p class="velox-sub"><?php esc_html_e('Build forms, route submissions to styled notification emails, and send reliably over SMTP.', 'velox'); ?></p>
 			</div>
-			<a class="velox-btn velox-btn--primary" href="<?php echo esc_url( $base . '&form=new' ); ?>">+ New form</a>
+			<a class="velox-btn velox-btn--primary" href="<?php echo esc_url( $base . '&form=new' ); ?>"><?php esc_html_e('+ New form', 'velox'); ?></a>
 		</div>
 
 		<div class="vmail-stats">
-			<div class="vmail-stat"><span class="vmail-stat-n"><?php echo count( $forms ); ?></span><span class="vmail-stat-l">Forms</span></div>
-			<div class="vmail-stat"><span class="vmail-stat-n"><?php echo (int) $total_entries; ?></span><span class="vmail-stat-l">Total entries</span></div>
-			<div class="vmail-stat"><span class="vmail-stat-n"><?php echo (int) $recent; ?></span><span class="vmail-stat-l">Last 7 days</span></div>
-			<div class="vmail-stat vmail-stat--muted"><span class="vmail-stat-n"><?php echo (int) $deleted_count; ?></span><span class="vmail-stat-l">Deleted</span></div>
+			<div class="vmail-stat"><span class="vmail-stat-n"><?php echo count( $forms ); ?></span><span class="vmail-stat-l"><?php esc_html_e('Forms', 'velox'); ?></span></div>
+			<div class="vmail-stat"><span class="vmail-stat-n"><?php echo (int) $total_entries; ?></span><span class="vmail-stat-l"><?php esc_html_e('Total entries', 'velox'); ?></span></div>
+			<div class="vmail-stat"><span class="vmail-stat-n"><?php echo (int) $recent; ?></span><span class="vmail-stat-l"><?php esc_html_e('Last 7 days', 'velox'); ?></span></div>
+			<div class="vmail-stat vmail-stat--muted"><span class="vmail-stat-n"><?php echo (int) $deleted_count; ?></span><span class="vmail-stat-l"><?php esc_html_e('Deleted', 'velox'); ?></span></div>
 		</div>
 
 		<?php
@@ -299,7 +299,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		$vx_unread = 0;
 		foreach ( $inbox as $r ) { if ( empty( $r['read'] ) ) { $vx_unread++; } }
 		?>
-		<div class="velox-section-title">Inbox</div>
+		<div class="velox-section-title"><?php esc_html_e('Inbox', 'velox'); ?></div>
 		<div class="velox-panel velox-panel--flush vmail-inbox" id="vmail-inbox">
 			<div class="vmail-inbox-filters" role="tablist" aria-label="Filter submissions">
 					<button type="button" class="vmail-filter is-on" data-filter="all">
@@ -312,42 +312,42 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					</button>
 					<button type="button" class="vmail-filter" data-filter="pinned">
 						<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4v6l-2 4h10l-2-4V4M12 14v6M8 4h8"/></svg>
-						Pinned
+						<?php esc_html_e('Pinned', 'velox'); ?>
 					</button>
 					<button type="button" class="vmail-filter" data-filter="done">
 						<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/></svg>
-						Done
+						<?php esc_html_e('Done', 'velox'); ?>
 					</button>
 				</div>
 				<script type="application/json" id="vmail-folders-data"><?php echo wp_json_encode( Velox_Forms::folders() ); ?></script>
 				<div class="vmail-bulkbar" id="vmail-bulkbar" hidden>
 					<label class="vmail-bulk-all" title="Select all shown"><input type="checkbox" id="vmail-check-all"></label>
-					<span class="vmail-bulk-count" id="vmail-bulk-count">0 selected</span>
+					<span class="vmail-bulk-count" id="vmail-bulk-count"><?php esc_html_e('0 selected', 'velox'); ?></span>
 					<div class="vmail-bulk-acts">
-						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-bulk="read">Mark read</button>
-						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-bulk="done">Mark done</button>
-						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-bulk="delete">Delete</button>
+						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-bulk="read"><?php esc_html_e('Mark read', 'velox'); ?></button>
+						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-bulk="done"><?php esc_html_e('Mark done', 'velox'); ?></button>
+						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-bulk="delete"><?php esc_html_e('Delete', 'velox'); ?></button>
 					</div>
-					<button type="button" class="vmail-bulk-clear" id="vmail-bulk-clear">Clear</button>
+					<button type="button" class="vmail-bulk-clear" id="vmail-bulk-clear"><?php esc_html_e('Clear', 'velox'); ?></button>
 				</div>
 				<div class="vmail-inbox-split">
 					<nav class="vmail-rail" aria-label="Folders">
 						<button type="button" class="vmail-filter vmail-rail-item is-on" data-rail="inbox" data-filter="all">
 							<span class="ic"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/></svg></span>
-							<span class="lb">Inbox</span>
+							<span class="lb"><?php esc_html_e('Inbox', 'velox'); ?></span>
 							<span class="ct"><?php echo count( $inbox ); ?></span>
 						</button>
-						<div class="vmail-rail-sec">Folders</div>
+						<div class="vmail-rail-sec"><?php esc_html_e('Folders', 'velox'); ?></div>
 						<div class="vmail-folder-chips" id="vmail-folder-chips"></div>
 						<button type="button" class="vmail-rail-add" id="vmail-folder-manage" title="Manage folders">
 							<span class="ic"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span>
-							New folder
+							<?php esc_html_e('New folder', 'velox'); ?>
 						</button>
 						<div class="vmail-rail-space"></div>
 						<div class="vmail-rail-foot">
 							<button type="button" class="vmail-filter vmail-rail-item vmail-rail-item--del" data-rail="deleted" data-filter="deleted" title="Deleted submissions">
 								<span class="ic"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></span>
-								<span class="lb">Deleted</span>
+								<span class="lb"><?php esc_html_e('Deleted', 'velox'); ?></span>
 							</button>
 						</div>
 					</nav>
@@ -393,17 +393,17 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 							</div>
 							</div>
 						<?php endforeach; ?>
-						<div class="vmail-inbox-nomatch" hidden>Nothing here.</div>
+						<div class="vmail-inbox-nomatch" hidden><?php esc_html_e('Nothing here.', 'velox'); ?></div>
 						<?php if ( empty( $inbox ) ) : ?>
 							<div class="vmail-inbox-blank" id="vmail-inbox-blank">
 								<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/></svg>
-								<span class="t">No submissions yet</span>
-								<span class="s">Messages sent through your forms land here.</span>
+								<span class="t"><?php esc_html_e('No submissions yet', 'velox'); ?></span>
+								<span class="s"><?php esc_html_e('Messages sent through your forms land here.', 'velox'); ?></span>
 							</div>
 						<?php endif; ?>
 					</div>
 					<div class="vmail-inbox-detail" id="vmail-inbox-detail" aria-live="polite">
-						<div class="vmail-inbox-empty-detail">Select a submission to read it.</div>
+						<div class="vmail-inbox-empty-detail"><?php esc_html_e('Select a submission to read it.', 'velox'); ?></div>
 					</div>
 				</div>
 		</div>
@@ -423,7 +423,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					<div class="vmail-modal-head-l">
 						<span class="vmail-avatar" id="vmail-reply-avatar" aria-hidden="true">?</span>
 						<div>
-							<div class="vmail-modal-title" id="vmail-reply-title">Reply</div>
+							<div class="vmail-modal-title" id="vmail-reply-title"><?php esc_html_e('Reply', 'velox'); ?></div>
 							<div class="vmail-modal-sub" id="vmail-reply-sub"></div>
 						</div>
 					</div>
@@ -433,34 +433,34 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				</div>
 				<div class="vmail-modal-body">
 					<div class="vmail-rrow">
-						<label class="vmail-rlabel">From</label>
+						<label class="vmail-rlabel"><?php esc_html_e('From', 'velox'); ?></label>
 						<select class="velox-select" id="vmail-reply-from">
 							<option value="account" data-email="<?php echo esc_attr( $vx_reply_email ); ?>" data-name="<?php echo esc_attr( $vx_reply_name ); ?>">Your account — <?php echo esc_html( $vx_reply_email ); ?></option>
-							<option value="custom">Custom address…</option>
+							<option value="custom"><?php esc_html_e('Custom address…', 'velox'); ?></option>
 						</select>
 					</div>
 					<div class="vmail-rrow" id="vmail-reply-customrow" hidden>
 						<label class="vmail-rlabel"></label>
 						<input type="email" class="velox-input" id="vmail-reply-fromcustom" placeholder="name@yourdomain.com">
-						<span class="velox-hint" style="flex:none;margin:0;">shown as the sender</span>
+						<span class="velox-hint" style="flex:none;margin:0;"><?php esc_html_e('shown as the sender', 'velox'); ?></span>
 					</div>
 					<div class="vmail-rrow">
-						<label class="vmail-rlabel">To</label>
+						<label class="vmail-rlabel"><?php esc_html_e('To', 'velox'); ?></label>
 						<input type="text" class="velox-input" id="vmail-reply-to" readonly>
 					</div>
 					<div class="vmail-rrow">
-						<label class="vmail-rlabel">Subject</label>
+						<label class="vmail-rlabel"><?php esc_html_e('Subject', 'velox'); ?></label>
 						<input type="text" class="velox-input" id="vmail-reply-subject">
 					</div>
 					<div class="vmail-rrow vmail-rrow--tpl">
-						<label class="vmail-rlabel">Template</label>
+						<label class="vmail-rlabel"><?php esc_html_e('Template', 'velox'); ?></label>
 						<select class="velox-select" id="vmail-reply-tpl">
-							<option value="">Start blank</option>
+							<option value=""><?php esc_html_e('Start blank', 'velox'); ?></option>
 							<?php foreach ( $vx_reply_tpls as $t ) : ?>
 								<option value="<?php echo esc_attr( $t['id'] ); ?>" data-subject="<?php echo esc_attr( $t['subject'] ); ?>" data-body="<?php echo esc_attr( $t['body'] ); ?>"><?php echo esc_html( $t['name'] ); ?></option>
 							<?php endforeach; ?>
 						</select>
-						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-reply-savetpl">Save as template</button>
+						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-reply-savetpl"><?php esc_html_e('Save as template', 'velox'); ?></button>
 					</div>
 					<div class="vmail-editor">
 						<div class="vmail-editor-tb">
@@ -488,22 +488,22 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					</div>
 				</div>
 				<div class="vmail-modal-foot">
-					<span class="velox-hint" style="margin:0;">Sends through your SMTP + sender identity.</span>
+					<span class="velox-hint" style="margin:0;"><?php esc_html_e('Sends through your SMTP + sender identity.', 'velox'); ?></span>
 					<div class="vmail-modal-foot-btns">
-						<button type="button" class="velox-btn velox-btn--ghost" id="vmail-reply-cancel">Cancel</button>
-						<button type="button" class="velox-btn velox-btn--primary" id="vmail-reply-send">Send reply</button>
+						<button type="button" class="velox-btn velox-btn--ghost" id="vmail-reply-cancel"><?php esc_html_e('Cancel', 'velox'); ?></button>
+						<button type="button" class="velox-btn velox-btn--primary" id="vmail-reply-send"><?php esc_html_e('Send reply', 'velox'); ?></button>
 					</div>
 				</div>
 			</div>
 		</div>
 
-		<div class="velox-section-title">Forms</div>
+		<div class="velox-section-title"><?php esc_html_e('Forms', 'velox'); ?></div>
 		<div class="velox-panel velox-panel--flush">
 			<?php if ( empty( $forms ) ) : ?>
-				<p class="velox-hint" style="padding:26px;">No forms yet. Hit <strong>New form</strong> to create one — you'll get a <code>[velox_form]</code> shortcode to embed anywhere, including an Oxygen Shortcode element.</p>
+				<p class="velox-hint" style="padding:26px;"><?php printf( esc_html__( 'No forms yet. Hit %1$s to create one — you\'ll get a %2$s shortcode to embed anywhere, including an Oxygen Shortcode element.', 'velox' ), '<strong>' . esc_html__( 'New form', 'velox' ) . '</strong>', '<code>' . esc_html__( '[velox_form]', 'velox' ) . '</code>' ); ?></p>
 			<?php else : ?>
 				<table class="vmail-table">
-					<thead><tr><th>Form</th><th>Shortcode</th><th class="vmail-th-num">Entries</th><th class="vmail-th-act"></th></tr></thead>
+					<thead><tr><th><?php esc_html_e('Form', 'velox'); ?></th><th><?php esc_html_e('Shortcode', 'velox'); ?></th><th class="vmail-th-num"><?php esc_html_e('Entries', 'velox'); ?></th><th class="vmail-th-act"></th></tr></thead>
 					<tbody>
 						<?php foreach ( $forms as $f ) :
 							$fc = Velox_Forms::submission_count( (int) $f['id'] );
@@ -537,36 +537,36 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		$vx_fallback = Velox_Mail::fallback_id();
 		?>
 		<div class="velox-panel velox-tool-form">
-			<h3 class="velox-panel-title" style="margin:0 0 4px;">Sender identity</h3>
-			<p class="velox-hint" style="margin:0 0 16px;">By default WordPress sends mail as <code>WordPress &lt;wordpress@yourdomain&gt;</code>. Set your own name and address here and every mail Velox sends uses it instead.</p>
+			<h3 class="velox-panel-title" style="margin:0 0 4px;"><?php esc_html_e('Sender identity', 'velox'); ?></h3>
+			<p class="velox-hint" style="margin:0 0 16px;"><?php printf( esc_html__( 'By default WordPress sends mail as %s. Set your own name and address here and every mail Velox sends uses it instead.', 'velox' ), '<code>WordPress &lt;wordpress@yourdomain&gt;</code>' ); ?></p>
 			<div class="velox-grid-2">
 				<div class="velox-field">
-					<span class="velox-field-label">From name</span>
+					<span class="velox-field-label"><?php esc_html_e('From name', 'velox'); ?></span>
 					<input type="text" class="velox-input" data-setting="mail_from_name" value="<?php echo esc_attr( $s['mail_from_name'] ); ?>" placeholder="<?php echo esc_attr( get_bloginfo( 'name' ) ); ?>">
-					<span class="velox-hint">Shown as the sender name, e.g. your company.</span>
+					<span class="velox-hint"><?php esc_html_e('Shown as the sender name, e.g. your company.', 'velox'); ?></span>
 				</div>
 				<div class="velox-field">
-					<span class="velox-field-label">From email</span>
+					<span class="velox-field-label"><?php esc_html_e('From email', 'velox'); ?></span>
 					<input type="email" class="velox-input" data-setting="mail_from_email" value="<?php echo esc_attr( $s['mail_from_email'] ); ?>" placeholder="<?php echo esc_attr( 'info@' . wp_parse_url( home_url(), PHP_URL_HOST ) ); ?>">
-					<span class="velox-hint">Use an address on your own domain so it isn't marked as spam.</span>
+					<span class="velox-hint"><?php esc_html_e('Use an address on your own domain so it isn\'t marked as spam.', 'velox'); ?></span>
 				</div>
 			</div>
 		</div>
 		<div class="velox-panel velox-tool-form">
 			<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
 				<div>
-					<h3 class="velox-panel-title" style="margin:0 0 4px;">Deliverability check</h3>
-					<p class="velox-hint" style="margin:0;">Mail not reaching Gmail or Microsoft? Run this to see exactly which authentication record your domain is missing.</p>
+					<h3 class="velox-panel-title" style="margin:0 0 4px;"><?php esc_html_e('Deliverability check', 'velox'); ?></h3>
+					<p class="velox-hint" style="margin:0;"><?php esc_html_e('Mail not reaching Gmail or Microsoft? Run this to see exactly which authentication record your domain is missing.', 'velox'); ?></p>
 				</div>
-				<button type="button" class="velox-btn velox-btn--primary" id="vmail-deliv-btn">Check deliverability</button>
+				<button type="button" class="velox-btn velox-btn--primary" id="vmail-deliv-btn"><?php esc_html_e('Check deliverability', 'velox'); ?></button>
 			</div>
 			<div class="vmail-deliv" id="vmail-deliv" hidden></div>
 		</div>
 		<div class="velox-panel velox-tool-form" id="vmail-smtp" data-base="<?php echo esc_attr( $base ); ?>">
 			<div class="vmail-smtp-head">
 				<div>
-					<h3 class="velox-panel-title" style="margin:0;">SMTP connections</h3>
-					<p class="velox-hint" style="margin:4px 0 0;">Add one or more sending connections, then route mail to them by the From address. If a send fails, Velox retries through your fallback.</p>
+					<h3 class="velox-panel-title" style="margin:0;"><?php esc_html_e('SMTP connections', 'velox'); ?></h3>
+					<p class="velox-hint" style="margin:4px 0 0;"><?php esc_html_e('Add one or more sending connections, then route mail to them by the From address. If a send fails, Velox retries through your fallback.', 'velox'); ?></p>
 				</div>
 				<label class="velox-switch velox-switch--inline" title="Send through SMTP">
 					<input type="checkbox" data-setting="mail_smtp_enabled" id="vmail-smtp-enabled" <?php checked( ! empty( $s['mail_smtp_enabled'] ) ); ?>>
@@ -576,47 +576,47 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 
 			<div id="vmail-conn-list" class="vmail-conn-list"></div>
 			<div class="vmail-conn-addrow">
-				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-conn-add">+ Add connection</button>
-				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-conn-guide">Setup guide</button>
+				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-conn-add"><?php esc_html_e('+ Add connection', 'velox'); ?></button>
+				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-conn-guide"><?php esc_html_e('Setup guide', 'velox'); ?></button>
 			</div>
 
 			<div class="vmail-routing" id="vmail-routing" hidden>
 				<div class="vmail-routing-grid">
 					<div class="velox-field">
-						<span class="velox-field-label">Primary connection</span>
+						<span class="velox-field-label"><?php esc_html_e('Primary connection', 'velox'); ?></span>
 						<select class="velox-select" id="vmail-primary"></select>
-						<span class="velox-hint">Used for any mail that doesn't match a route below.</span>
+						<span class="velox-hint"><?php esc_html_e('Used for any mail that doesn\'t match a route below.', 'velox'); ?></span>
 					</div>
 					<div class="velox-field">
-						<span class="velox-field-label">Fallback connection</span>
+						<span class="velox-field-label"><?php esc_html_e('Fallback connection', 'velox'); ?></span>
 						<select class="velox-select" id="vmail-fallback"></select>
-						<span class="velox-hint">Tried automatically if the primary send fails. Optional.</span>
+						<span class="velox-hint"><?php esc_html_e('Tried automatically if the primary send fails. Optional.', 'velox'); ?></span>
 					</div>
 				</div>
 
 				<div class="vmail-routes-head">
-					<span class="velox-field-label" style="margin:0;">Routing rules</span>
-					<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-route-add">+ Add rule</button>
+					<span class="velox-field-label" style="margin:0;"><?php esc_html_e('Routing rules', 'velox'); ?></span>
+					<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-route-add"><?php esc_html_e('+ Add rule', 'velox'); ?></button>
 				</div>
-				<p class="velox-hint" style="margin:0 0 8px;">Send mail from a specific address or name through a chosen connection — e.g. route <code>billing@…</code> through a transactional provider and newsletters through another.</p>
+				<p class="velox-hint" style="margin:0 0 8px;"><?php printf( esc_html__( 'Send mail from a specific address or name through a chosen connection — e.g. route %s through a transactional provider and newsletters through another.', 'velox' ), '<code>' . esc_html__( 'billing@…', 'velox' ) . '</code>' ); ?></p>
 				<div id="vmail-route-list" class="vmail-route-list"></div>
 			</div>
 
 			<div class="vmail-smtp-foot">
-				<button class="velox-btn velox-btn--primary" id="vmail-smtp-save">Save connections</button>
-				<span class="velox-hint vmail-smtp-foot-hint">Changes apply to new mail once saved.</span>
+				<button class="velox-btn velox-btn--primary" id="vmail-smtp-save"><?php esc_html_e('Save connections', 'velox'); ?></button>
+				<span class="velox-hint vmail-smtp-foot-hint"><?php esc_html_e('Changes apply to new mail once saved.', 'velox'); ?></span>
 			</div>
 
 			<div class="vmail-smtp-testcard">
 				<div class="vmail-smtp-testcard-head">
-					<span class="vmail-smtp-testcard-title">Test your setup</span>
-					<span class="velox-hint" style="margin:0;">Check a connection, or send yourself a real email to confirm delivery.</span>
+					<span class="vmail-smtp-testcard-title"><?php esc_html_e('Test your setup', 'velox'); ?></span>
+					<span class="velox-hint" style="margin:0;"><?php esc_html_e('Check a connection, or send yourself a real email to confirm delivery.', 'velox'); ?></span>
 				</div>
 				<div class="vmail-smtp-testrow">
 					<select class="velox-select vmail-smtp-testctl" id="vmail-test-conn" title="Which connection to test"></select>
-					<button class="velox-btn velox-btn--ghost vmail-smtp-testctl" id="vmail-conn-test" title="Check the connection without sending an email">Test connection</button>
+					<button class="velox-btn velox-btn--ghost vmail-smtp-testctl" id="vmail-conn-test" title="Check the connection without sending an email"><?php esc_html_e('Test connection', 'velox'); ?></button>
 					<input type="email" class="velox-input vmail-smtp-testctl" id="vmail-test-to" placeholder="you@example.com">
-					<button class="velox-btn velox-btn--primary vmail-smtp-testctl" id="vmail-test">Send test</button>
+					<button class="velox-btn velox-btn--primary vmail-smtp-testctl" id="vmail-test"><?php esc_html_e('Send test', 'velox'); ?></button>
 				</div>
 			</div>
 		</div>
@@ -631,8 +631,8 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 		<div class="velox-panel velox-tool-form">
 			<div class="vmail-captcha-head">
 				<div>
-					<h3 class="velox-panel-title" style="margin:0;">CAPTCHA</h3>
-					<p class="velox-hint" style="margin:4px 0 0;">When this is off, the “Require CAPTCHA” switch is locked on every form. Turn it on and add your keys to allow forms to use it.</p>
+					<h3 class="velox-panel-title" style="margin:0;"><?php esc_html_e('CAPTCHA', 'velox'); ?></h3>
+					<p class="velox-hint" style="margin:4px 0 0;"><?php esc_html_e('When this is off, the “Require CAPTCHA” switch is locked on every form. Turn it on and add your keys to allow forms to use it.', 'velox'); ?></p>
 				</div>
 				<label class="velox-switch velox-switch--inline" title="Allow forms to use CAPTCHA">
 					<input type="checkbox" data-setting="mail_captcha_enabled" id="vmail-captcha-enabled" <?php checked( ! empty( $s['mail_captcha_enabled'] ) ); ?>>
@@ -641,29 +641,29 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 			</div>
 			<div class="vmail-captcha-body<?php echo empty( $s['mail_captcha_enabled'] ) ? ' is-locked' : ''; ?>" id="vmail-captcha-body">
 			<div class="velox-field">
-				<span class="velox-field-label">Provider</span>
+				<span class="velox-field-label"><?php esc_html_e('Provider', 'velox'); ?></span>
 				<select class="velox-select" data-setting="mail_captcha_provider">
-					<option value="turnstile" <?php selected( $s['mail_captcha_provider'], 'turnstile' ); ?>>Cloudflare Turnstile (free)</option>
-					<option value="recaptcha" <?php selected( $s['mail_captcha_provider'], 'recaptcha' ); ?>>Google reCAPTCHA</option>
+					<option value="turnstile" <?php selected( $s['mail_captcha_provider'], 'turnstile' ); ?>><?php esc_html_e('Cloudflare Turnstile (free)', 'velox'); ?></option>
+					<option value="recaptcha" <?php selected( $s['mail_captcha_provider'], 'recaptcha' ); ?>><?php esc_html_e('Google reCAPTCHA', 'velox'); ?></option>
 				</select>
-				<span class="velox-hint">Get keys from your provider, paste them below, then switch on “Require CAPTCHA” per form. No keys = the option stays unusable.</span>
+				<span class="velox-hint"><?php esc_html_e('Get keys from your provider, paste them below, then switch on “Require CAPTCHA” per form. No keys = the option stays unusable.', 'velox'); ?></span>
 			</div>
 			<div class="velox-grid-2">
-				<div class="velox-field"><span class="velox-field-label">Site key</span><input type="text" class="velox-input" data-setting="mail_captcha_site" value="<?php echo esc_attr( $s['mail_captcha_site'] ); ?>"></div>
-				<div class="velox-field"><span class="velox-field-label">Secret key</span><input type="text" class="velox-input" data-setting="mail_captcha_secret" value="<?php echo esc_attr( $s['mail_captcha_secret'] ); ?>"></div>
+				<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Site key', 'velox'); ?></span><input type="text" class="velox-input" data-setting="mail_captcha_site" value="<?php echo esc_attr( $s['mail_captcha_site'] ); ?>"></div>
+				<div class="velox-field"><span class="velox-field-label"><?php esc_html_e('Secret key', 'velox'); ?></span><input type="text" class="velox-input" data-setting="mail_captcha_secret" value="<?php echo esc_attr( $s['mail_captcha_secret'] ); ?>"></div>
 			</div>
 			</div>
-			<div class="velox-tool-actions"><button class="velox-btn velox-btn--primary velox-util-save">Save settings</button></div>
+			<div class="velox-tool-actions"><button class="velox-btn velox-btn--primary velox-util-save"><?php esc_html_e('Save settings', 'velox'); ?></button></div>
 		</div>
 
 		<div class="velox-panel">
 			<div style="display:flex;align-items:center;justify-content:space-between;">
-				<h3 class="velox-panel-title" style="margin:0;">Send log <span class="velox-count"><?php echo count( $log ); ?></span></h3>
-				<?php if ( ! empty( $log ) ) : ?><button class="velox-btn velox-btn--ghost" id="vmail-log-clear">Clear log</button><?php endif; ?>
+				<h3 class="velox-panel-title" style="margin:0;"><?php esc_html_e('Send log', 'velox'); ?> <span class="velox-count"><?php echo count( $log ); ?></span></h3>
+				<?php if ( ! empty( $log ) ) : ?><button class="velox-btn velox-btn--ghost" id="vmail-log-clear"><?php esc_html_e('Clear log', 'velox'); ?></button><?php endif; ?>
 			</div>
 			<div class="velox-mail-log">
 				<?php if ( empty( $log ) ) : ?>
-					<p class="velox-hint" style="margin-top:10px;">Nothing sent yet.</p>
+					<p class="velox-hint" style="margin-top:10px;"><?php esc_html_e('Nothing sent yet.', 'velox'); ?></p>
 				<?php else : ?>
 					<?php foreach ( $log as $l ) :
 						$is_sent = ( 'sent' === $l['status'] );
@@ -675,7 +675,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 							<span class="velox-mail-log-sub"><?php echo esc_html( $l['subject'] ); ?></span>
 							<?php if ( '' !== $conn ) : ?><span class="velox-mail-log-conn"><?php echo esc_html( $conn ); ?></span><?php endif; ?>
 							<span class="velox-mail-log-when"><?php echo esc_html( $l['created'] ); ?></span>
-							<button class="velox-btn velox-btn--ghost velox-btn--sm velox-mail-resend" data-id="<?php echo (int) $l['id']; ?>" title="Send this message again">Resend</button>
+							<button class="velox-btn velox-btn--ghost velox-btn--sm velox-mail-resend" data-id="<?php echo (int) $l['id']; ?>" title="Send this message again"><?php esc_html_e('Resend', 'velox'); ?></button>
 						</div>
 					<?php endforeach; ?>
 				<?php endif; ?>
@@ -684,7 +684,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 
 		<div class="velox-panel velox-mail-disable">
 			<label class="velox-inline-toggle">
-				<span><strong>Mail &amp; forms is on</strong> <span class="velox-hint" style="display:inline;">— switch off to disable forms and SMTP.</span></span>
+				<span><strong>Mail &amp; forms is on</strong> <span class="velox-hint" style="display:inline;"><?php esc_html_e('— switch off to disable forms and SMTP.', 'velox'); ?></span></span>
 				<span class="velox-switch"><input type="checkbox" data-setting="util_mail" id="velox-mail-toggle" checked><span class="velox-switch-track"></span></span>
 			</label>
 		</div>

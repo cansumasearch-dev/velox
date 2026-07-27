@@ -81,17 +81,17 @@ $velox_tiles = array(
 ?>
 <div class="velox-page-head velox-dash-head">
 	<div>
-		<h1 class="velox-h2">Dashboard</h1>
+		<h1 class="velox-h2"><?php esc_html_e('Dashboard', 'velox'); ?></h1>
 		<p class="velox-sub">A quick read on your site&rsquo;s setup &mdash; with one-click actions to keep it fast.</p>
 	</div>
 	<div class="velox-dash-actions" id="velox-dash-actions">
-		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">Tune performance</a>
+		<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>"><?php esc_html_e('Tune performance', 'velox'); ?></a>
 		<a class="velox-btn velox-btn--primary" href="<?php echo esc_url( $purge_url ); ?>"><?php echo Velox_Admin::icon( 'broom', 16 ); ?> Purge caches</a>
 		<div class="velox-newwidget" id="velox-newwidget" hidden>
 			<button type="button" class="velox-btn velox-btn--ghost" id="velox-newwidget-btn"><?php echo Velox_Admin::icon( 'check', 15 ); ?>Add widget</button>
 			<div class="velox-newwidget-menu" id="velox-newwidget-menu" hidden></div>
 		</div>
-		<button type="button" class="velox-btn velox-btn--ghost" id="velox-dash-done" hidden>Done</button>
+		<button type="button" class="velox-btn velox-btn--ghost" id="velox-dash-done" hidden><?php esc_html_e('Done', 'velox'); ?></button>
 		<button type="button" class="velox-btn velox-btn--ghost" id="velox-dash-edit"><?php echo Velox_Admin::icon( 'grid', 15 ); ?>Edit</button>
 	</div>
 </div>
@@ -104,7 +104,7 @@ if ( ! empty( $velox_clashes ) ) :
 		<div class="velox-clash-head">
 			<span class="velox-clash-ic">&#9889;</span>
 			<div>
-				<h3 class="velox-panel-title" style="margin:0;">Turf war detected</h3>
+				<h3 class="velox-panel-title" style="margin:0;"><?php esc_html_e('Turf war detected', 'velox'); ?></h3>
 				<p class="velox-hint" style="margin:2px 0 0;">These active plugins overlap features Velox already handles. Two plugins doing the same job tend to fight over the same output &mdash; keep one.</p>
 			</div>
 		</div>
@@ -202,7 +202,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 		<?php if ( ! $has ) : ?>
 			<div class="velox-ps-empty">
 				<p class="velox-w-sub" style="margin:0;"><?php echo ! empty( $r['error'] ) ? esc_html( $r['error'] ) : 'No ' . esc_html( $device ) . ' score yet — run the first check.'; ?></p>
-				<button type="button" class="velox-btn velox-btn--primary velox-btn--sm velox-w-act" data-ps-refresh>Refresh now</button>
+				<button type="button" class="velox-btn velox-btn--primary velox-btn--sm velox-w-act" data-ps-refresh><?php esc_html_e('Refresh now', 'velox'); ?></button>
 			</div>
 		<?php else : ?>
 			<div class="velox-ps-top">
@@ -250,7 +250,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 			<?php endif; ?>
 
 			<div class="velox-ps-foot">
-				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-ps-refresh>Refresh now</button>
+				<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-ps-refresh><?php esc_html_e('Refresh now', 'velox'); ?></button>
 				<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( $admin->tab_url( 'pagespeed' ) ); ?>">Full report &rarr;</a>
 			</div>
 		<?php endif; ?>
@@ -261,10 +261,10 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 ?>
 
 <div class="velox-batchbar" id="velox-batchbar" hidden>
-	<span><b id="velox-batch-count">0</b> <span id="velox-batch-word">widgets</span> selected</span>
+	<span><b id="velox-batch-count">0</b> <span id="velox-batch-word"><?php esc_html_e('widgets', 'velox'); ?></span> <?php esc_html_e('selected', 'velox'); ?></span>
 	<span class="velox-batchbar-sp">
-		<button type="button" class="velox-btn velox-btn--sm" id="velox-batch-cancel">Clear</button>
-		<button type="button" class="velox-btn velox-btn--sm velox-batch-remove" id="velox-batch-remove">Remove selected</button>
+		<button type="button" class="velox-btn velox-btn--sm" id="velox-batch-cancel"><?php esc_html_e('Clear', 'velox'); ?></button>
+		<button type="button" class="velox-btn velox-btn--sm velox-batch-remove" id="velox-batch-remove"><?php esc_html_e('Remove selected', 'velox'); ?></button>
 	</span>
 </div>
 
@@ -294,8 +294,8 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'db', 15 ); ?>Database</div>
 		<div class="velox-w-big"><?php echo (int) $v_dbsum; ?></div>
-		<div class="velox-w-sub">rows of junk to clean out</div>
-		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'database' ) ); ?>">Clean database</a>
+		<div class="velox-w-sub"><?php esc_html_e('rows of junk to clean out', 'velox'); ?></div>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'database' ) ); ?>"><?php esc_html_e('Clean database', 'velox'); ?></a>
 	</div>
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'traffic', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'traffic', 8, 2 ) ); ?>" data-widget="traffic" data-widget-label="Visitors">
@@ -310,7 +310,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 			<div class="velox-spark"><?php echo $v_tr_spark; ?></div>
 		</div>
 		<div class="velox-spark-axis"><span><?php echo esc_html( $vx_axis[0] ); ?></span><span><?php echo esc_html( $vx_axis[1] ); ?></span><span><?php echo esc_html( $vx_axis[2] ); ?></span></div>
-		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'dashboard' ) . '&traffic=1' ); ?>">View traffic</a>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'dashboard' ) . '&traffic=1' ); ?>"><?php esc_html_e('View traffic', 'velox'); ?></a>
 	</div>
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'pagespeed', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'pagespeed', 8, 2 ) ); ?>" data-widget="pagespeed" data-widget-label="PageSpeed">
@@ -319,15 +319,15 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 			<span><?php echo Velox_Admin::icon( 'bolt', 15 ); ?>PageSpeed</span>
 			<?php if ( $v_ps_on ) : ?>
 				<div class="velox-ps-seg" role="tablist" aria-label="Device">
-					<button type="button" class="velox-ps-seg-btn<?php echo 'mobile' === $v_ps_def ? ' is-active' : ''; ?>" data-ps-view="mobile" role="tab" aria-selected="<?php echo 'mobile' === $v_ps_def ? 'true' : 'false'; ?>">Mobile</button>
-					<button type="button" class="velox-ps-seg-btn<?php echo 'desktop' === $v_ps_def ? ' is-active' : ''; ?>" data-ps-view="desktop" role="tab" aria-selected="<?php echo 'desktop' === $v_ps_def ? 'true' : 'false'; ?>">Desktop</button>
+					<button type="button" class="velox-ps-seg-btn<?php echo 'mobile' === $v_ps_def ? ' is-active' : ''; ?>" data-ps-view="mobile" role="tab" aria-selected="<?php echo 'mobile' === $v_ps_def ? 'true' : 'false'; ?>"><?php esc_html_e('Mobile', 'velox'); ?></button>
+					<button type="button" class="velox-ps-seg-btn<?php echo 'desktop' === $v_ps_def ? ' is-active' : ''; ?>" data-ps-view="desktop" role="tab" aria-selected="<?php echo 'desktop' === $v_ps_def ? 'true' : 'false'; ?>"><?php esc_html_e('Desktop', 'velox'); ?></button>
 				</div>
 			<?php endif; ?>
 		</div>
 		<?php if ( ! $v_ps_on ) : ?>
 			<div class="velox-ps-empty">
-				<p class="velox-w-sub" style="margin:0;">Real Lighthouse scores from Google PageSpeed Insights, right on your dashboard.</p>
-				<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'settings' ) . '#pagespeed' ); ?>">Turn on in Settings</a>
+				<p class="velox-w-sub" style="margin:0;"><?php esc_html_e('Real Lighthouse scores from Google PageSpeed Insights, right on your dashboard.', 'velox'); ?></p>
+				<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'settings' ) . '#pagespeed' ); ?>"><?php esc_html_e('Turn on in Settings', 'velox'); ?></a>
 			</div>
 		<?php else : ?>
 			<div class="velox-ps-body">
@@ -343,7 +343,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'mail', 15 ); ?>Form submissions</div>
 		<div class="velox-w-big"><?php echo (int) $v_forms; ?></div>
-		<div class="velox-w-sub">in the last 30 days</div>
+		<div class="velox-w-sub"><?php esc_html_e('in the last 30 days', 'velox'); ?></div>
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( Velox_Utilities::tool_url( 'mail' ) ); ?>">Open Mail &amp; Forms</a>
 	</div>
 
@@ -352,7 +352,7 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'image', 15 ); ?>Images</div>
 		<div class="velox-w-big"><span data-dash="done">&mdash;</span><span class="velox-w-of">/ <span data-dash="total">&mdash;</span></span></div>
 		<div class="velox-w-sub"><span data-dash="saved">&mdash;</span> saved &middot; engine <?php echo $engine ? esc_html( strtoupper( $engine ) ) : '&mdash;'; ?></div>
-		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'images' ) ); ?>">Optimize images</a>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'images' ) ); ?>"><?php esc_html_e('Optimize images', 'velox'); ?></a>
 	</div>
 
 	<div class="<?php echo esc_attr( $vx_wcls( 'reco', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'reco', 8, 1 ) ); ?>" data-widget="reco" data-widget-label="Recommendations">
@@ -378,12 +378,12 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'image', 15 ); ?>Local fonts</div>
 		<div class="velox-w-big"><?php echo (int) ( isset( $v_fonts['files'] ) ? $v_fonts['files'] : 0 ); ?></div>
 		<div class="velox-w-sub"><?php echo ! empty( $v_fonts['active'] ) ? 'self-hosted &middot; active' : 'using Google CDN'; ?></div>
-		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>">Manage fonts</a>
+		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'performance' ) ); ?>"><?php esc_html_e('Manage fonts', 'velox'); ?></a>
 	</div>
 
 </div>
 
-<div class="velox-dash-sec"><h2>Everything in Velox</h2><span class="velox-dash-sec-line"></span></div>
+<div class="velox-dash-sec"><h2><?php esc_html_e('Everything in Velox', 'velox'); ?></h2><span class="velox-dash-sec-line"></span></div>
 <div class="velox-cat">
 	<?php
 	foreach ( $velox_tiles as $vt ) {

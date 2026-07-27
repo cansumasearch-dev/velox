@@ -1,0 +1,3680 @@
+# Velox translation template
+msgid ""
+msgstr ""
+"Project-Id-Version: Velox\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: \n"
+
+#: performance.php:233 performance.php:240
+msgid "\"Cloudflare plugin not active.\""
+msgstr ""
+
+#: performance.php:250
+msgid "%1$s tab → %2$s."
+msgstr ""
+
+#: settings.php:42
+msgid "%1$s turns on only the optimizations that can't break a site. %2$s adds async CSS, unused-CSS removal (auto-learn), JS delay and bloat removal — then test and exclude anything that misbehaves. Neither touches jQuery Migrate or content-visibility (those need per-site testing)."
+msgstr ""
+
+#: fields.php:165
+msgid "(dashicons-… or image URL)"
+msgstr ""
+
+#: fields.php:163
+msgid "(lowercase, max 20 chars — this is the post type key)"
+msgstr ""
+
+#: fields.php:229
+msgid "(lowercase, max 32 chars)"
+msgstr ""
+
+#: fields.php:282
+msgid "(lowercase, max 32)"
+msgstr ""
+
+#: october.php:85
+msgid "(optional — defaults to your domain)"
+msgstr ""
+
+#: cookies.php:133
+msgid "(optional — e.g. legal note)"
+msgstr ""
+
+#: cookies.php:112 cookies.php:132 fields.php:279 maintenance.php:50 maintenance.php:66 maintenance.php:107
+msgid "(optional)"
+msgstr ""
+
+#: fields.php:296
+msgid "(top-level only)"
+msgstr ""
+
+#: mail.php:579
+msgid "+ Add connection"
+msgstr ""
+
+#: mail.php:599
+msgid "+ Add rule"
+msgstr ""
+
+#: fields.php:74
+msgid "+ Add rule group"
+msgstr ""
+
+#: mail.php:278
+msgid "+ New form"
+msgstr ""
+
+#: seo.php:167 seo.php:177 seo.php:179
+msgid ".htaccess"
+msgstr ""
+
+#: october.php:27
+msgid ".htm"
+msgstr ""
+
+#: maintenance.php:103
+msgid ".json"
+msgstr ""
+
+#: maintenance.php:103
+msgid ".lottie"
+msgstr ""
+
+#: backup.php:70
+msgid ".sql"
+msgstr ""
+
+#: cookies.php:230
+msgid ".vxck"
+msgstr ""
+
+#: backup.php:70 installer.php:16 installer.php:22
+msgid ".zip"
+msgstr ""
+
+#: redirects.php:98
+msgid "/new"
+msgstr ""
+
+#: loginurl.php:30
+msgid "/wp-admin"
+msgstr ""
+
+#: loginurl.php:10 loginurl.php:30
+msgid "/wp-login.php"
+msgstr ""
+
+#: cookies.php:208
+msgid "0 = auto"
+msgstr ""
+
+#: cookies.php:220
+msgid "0 = default"
+msgstr ""
+
+#: cookies.php:219
+msgid "0 = none"
+msgstr ""
+
+#: mail.php:325
+msgid "0 selected"
+msgstr ""
+
+#: settings.php:123
+msgid "12 hours"
+msgstr ""
+
+#: redirects.php:103
+msgid "404 log"
+msgstr ""
+
+#: redirects.php:98
+msgid "410 Gone"
+msgstr ""
+
+#: seo.php:174
+msgid "A bad rule here can take the whole site down with a 500 error. Unlocking takes a snapshot first, so %s can always put it back exactly as it was when you unlocked."
+msgstr ""
+
+#: performance.php:144
+msgid "A complete performance toolkit — page cache, asset optimization, fonts, preloading and more. Velox works standalone, and plays nicely with Cloudflare and Oxygen. Flip one setting at a time and re-test PageSpeed."
+msgstr ""
+
+#: cookies.php:10
+msgid "A fully styleable consent banner wired to Google Consent Mode v2. Edit every colour, text and link, pick where it sits, and it stores the visitor's choice — analytics and ad tags only fire once they agree."
+msgstr ""
+
+#: seo.php:37
+msgid "A physical %s exists in your site root and is being served directly. The editor keeps it in sync on save. This is the most reliable setup behind Nginx or a CDN — use \"Back to virtual\" to remove it."
+msgstr ""
+
+#: settings.php:219
+msgid "A quick read on the environment Velox is running in — handy when debugging or filing a support note."
+msgstr ""
+
+#: activity.php:19
+msgid "A running record of who did what — logins, content changes, plugin and theme changes, user changes and updates. Handy for client sites and shared logins."
+msgstr ""
+
+#: utilities.php:29
+msgid "A toolbox of site and admin helpers. Switch on what you need — anything you enable appears under Utilities in the sidebar, ready to open."
+msgstr ""
+
+#: seo.php:61
+msgid "AI Crawl Control"
+msgstr ""
+
+#: performance.php:260
+msgid "API Token"
+msgstr ""
+
+#: performance.php:250
+msgid "API Tokens"
+msgstr ""
+
+#: settings.php:104
+msgid "API key"
+msgstr ""
+
+#: performance.php:241
+msgid "API token"
+msgstr ""
+
+#: images.php:120
+msgid "AVIF"
+msgstr ""
+
+#: seo.php:116 maintenance.php:80
+msgid "Accent"
+msgstr ""
+
+#: performance.php:254
+msgid "Account"
+msgstr ""
+
+#: installer.php:27
+msgid "Activate after install"
+msgstr ""
+
+#: fields.php:187 fields.php:239 fields.php:305 redirects.php:182
+msgid "Active"
+msgstr ""
+
+#: redirects.php:40
+msgid "Active redirects"
+msgstr ""
+
+#: activity.php:18
+msgid "Activity log"
+msgstr ""
+
+#: snippets-list.php:37
+msgid "Add PHP, CSS, JS or HTML that runs by location and priority. A bad PHP snippet auto-disables, and Safe Mode keeps a crash from ever locking you out."
+msgstr ""
+
+#: media.php:8
+msgid "Add alt text, titles and captions to every image for SEO and accessibility, and rename files safely. File renames update every reference across your posts and Oxygen builder data automatically."
+msgstr ""
+
+#: cookies.php:140
+msgid "Add button"
+msgstr ""
+
+#: fields.php:22
+msgid "Add custom fields to posts, pages and any post type — ACF-style field groups with location rules and a %s API."
+msgstr ""
+
+#: fields.php:61 mail.php:71
+msgid "Add field"
+msgstr ""
+
+#: class-velox-fields.php:721
+msgid "Add images"
+msgstr ""
+
+#: mail.php:569
+msgid "Add one or more sending connections, then route mail to them by the From address. If a send fails, Velox retries through your fallback."
+msgstr ""
+
+#: fields.php:254 fields.php:276
+msgid "Add options page"
+msgstr ""
+
+#: fields.php:137 fields.php:158
+msgid "Add post type"
+msgstr ""
+
+#: redirects.php:42
+msgid "Add redirect"
+msgstr ""
+
+#: class-velox-fields.php:738 class-velox-fields.php:762
+msgid "Add row"
+msgstr ""
+
+#: snippets-list.php:41
+msgid "Add snippet"
+msgstr ""
+
+#: fields.php:203 fields.php:224
+msgid "Add taxonomy"
+msgstr ""
+
+#: class-velox-css.php:294
+msgid "Add your Cloudflare account ID and API token first."
+msgstr ""
+
+#: snippets-list.php:123
+msgid "Add your first snippet"
+msgstr ""
+
+#: cookies.php:143
+msgid "Add, remove and reorder buttons. Each one can be a button or a link, do something (accept, reject, open preferences, save) or point to a URL, and be styled individually."
+msgstr ""
+
+#: htmllang.php:85
+msgid "After saving"
+msgstr ""
+
+#: mail.php:108
+msgid "After submitting"
+msgstr ""
+
+#: settings.php:42
+msgid "Aggressive"
+msgstr ""
+
+#: images.php:204 activity.php:38
+msgid "All"
+msgstr ""
+
+#: snippets-edit.php:54
+msgid "All snippets"
+msgstr ""
+
+#: snippets-list.php:106
+msgid "All types"
+msgstr ""
+
+#: seo.php:55
+msgid "Allow everything"
+msgstr ""
+
+#: settings.php:72
+msgid "Also generates WebP for each registered image size (recommended for srcset)."
+msgstr ""
+
+#: media.php:12
+msgid "Alt text"
+msgstr ""
+
+#: images.php:87
+msgid "An extra AVIF twin, usually 15–30% smaller again. Capable browsers get AVIF, everyone else falls back to WebP, then the original. Slower to encode."
+msgstr ""
+
+#: mail.php:99
+msgid "Appearance"
+msgstr ""
+
+#: seo.php:56
+msgid "Appends a ready-made block to the editor above — review, then save."
+msgstr ""
+
+#: seo.php:22
+msgid "Applies the standard robots.txt, switches on the sitemap and generates it right now — everything wired in one click."
+msgstr ""
+
+#: settings.php:40
+msgid "Apply aggressive preset"
+msgstr ""
+
+#: images.php:214
+msgid "Apply all names"
+msgstr ""
+
+#: settings.php:201
+msgid "Apply imported settings"
+msgstr ""
+
+#: seo.php:24
+msgid "Apply recommended setup"
+msgstr ""
+
+#: settings.php:39
+msgid "Apply safe defaults"
+msgstr ""
+
+#: header.php:254
+msgid "Apply selected"
+msgstr ""
+
+#: media.php:98
+msgid "Apply to library"
+msgstr ""
+
+#: fields.php:178
+msgid "Attach taxonomies"
+msgstr ""
+
+#: fields.php:231
+msgid "Attach to post types"
+msgstr ""
+
+#: performance.php:260
+msgid "Authentication Mode → %s."
+msgstr ""
+
+#: images.php:106
+msgid "Auto (recommended)"
+msgstr ""
+
+#: images.php:110
+msgid "Auto picks the best available engine. Force one only if you have a reason to."
+msgstr ""
+
+#: settings.php:64
+msgid "Auto-convert new uploads"
+msgstr ""
+
+#: performance.php:316
+msgid "Auto-learn builds itself from real traffic — no setup needed. Cloudflare/Local can be scanned manually below."
+msgstr ""
+
+#: class-velox-css.php:579
+msgid "Auto-learn data and cached CSS cleared. Learning will restart from your next visitors."
+msgstr ""
+
+#: performance.php:324
+msgid "Auto-learn needs no action — it optimizes each page after a few visits and keeps improving. Use Scan only for the Cloudflare or Local engines. Clear/Reset after a design change or if something looks off."
+msgstr ""
+
+#: database.php:49
+msgid "Automation"
+msgstr ""
+
+#: images.php:118
+msgid "Available"
+msgstr ""
+
+#: header.php:240 header.php:253
+msgid "Back"
+msgstr ""
+
+#: seo.php:45
+msgid "Back to virtual"
+msgstr ""
+
+#: backup.php:24
+msgid "Back up your database and files, download them, restore in a click, or import a backup from another site. Backups live in a protected folder under %s."
+msgstr ""
+
+#: seo.php:114 maintenance.php:78
+msgid "Background"
+msgstr ""
+
+#: maintenance.php:66
+msgid "Background image"
+msgstr ""
+
+#: backup.php:86 backup.php:141
+msgid "Backup"
+msgstr ""
+
+#: backup.php:47
+msgid "Backups"
+msgstr ""
+
+#: cookies.php:27
+msgid "Banner enabled"
+msgstr ""
+
+#: cookies.php:187
+msgid "Base font size (px)"
+msgstr ""
+
+#: images.php:231
+msgid "Before / after"
+msgstr ""
+
+#: settings.php:86
+msgid "Before/after comparator"
+msgstr ""
+
+#: performance.php:344
+msgid "Block"
+msgstr ""
+
+#: seo.php:54
+msgid "Block AI crawlers"
+msgstr ""
+
+#: cookies.php:131
+msgid "Body"
+msgstr ""
+
+#: cookies.php:212
+msgid "Body colour"
+msgstr ""
+
+#: cookies.php:211
+msgid "Body size (px)"
+msgstr ""
+
+#: loginurl.php:23
+msgid "Bookmark your always-works recovery URL:"
+msgstr ""
+
+#: loginurl.php:30
+msgid "Bookmark your login URL before leaving this page."
+msgstr ""
+
+#: cookies.php:183
+msgid "Border width (px)"
+msgstr ""
+
+#: seo.php:61
+msgid "Bots"
+msgstr ""
+
+#: cookies.php:186
+msgid "Box / modal width (px)"
+msgstr ""
+
+#: mail.php:56 mail.php:161
+msgid "Build"
+msgstr ""
+
+#: october.php:83
+msgid "Build a theme"
+msgstr ""
+
+#: mail.php:14
+msgid "Build forms, route submissions to styled notification emails (to you and to the customer), and send everything reliably over SMTP."
+msgstr ""
+
+#: mail.php:276
+msgid "Build forms, route submissions to styled notification emails, and send reliably over SMTP."
+msgstr ""
+
+#: header.php:211
+msgid "Builder not listed? %s"
+msgstr ""
+
+#: october.php:117
+msgid "Built"
+msgstr ""
+
+#: class-velox-css.php:283
+msgid "Built %1$s (%2$s)"
+msgstr ""
+
+#: media.php:20
+msgid "Bulk import"
+msgstr ""
+
+#: media.php:94
+msgid "Bulk import — pipe format"
+msgstr ""
+
+#: installer.php:8
+msgid "Bulk installer"
+msgstr ""
+
+#: images.php:169
+msgid "Bulk optimization"
+msgstr ""
+
+#: maintenance.php:107
+msgid "Button"
+msgstr ""
+
+#: cookies.php:215
+msgid "Button font size (px)"
+msgstr ""
+
+#: cookies.php:216
+msgid "Button font weight"
+msgstr ""
+
+#: cookies.php:214
+msgid "Button gap (px)"
+msgstr ""
+
+#: cookies.php:138
+msgid "Buttons"
+msgstr ""
+
+#: mail.php:541
+msgid "By default WordPress sends mail as %s. Set your own name and address here and every mail Velox sends uses it instead."
+msgstr ""
+
+#: mail.php:634
+msgid "CAPTCHA"
+msgstr ""
+
+#: snippets-list.php:76
+msgid "CSS"
+msgstr ""
+
+#: snippets-list.php:108
+msgid "CSS — Styles"
+msgstr ""
+
+#: performance.php:192
+msgid "Cached on disk"
+msgstr ""
+
+#: media.php:29 media.php:53 media.php:87 settings.php:202 backup.php:232 fields.php:195 fields.php:246 fields.php:307 mail.php:493 redirects.php:200
+msgid "Cancel"
+msgstr ""
+
+#: media.php:12
+msgid "Caption"
+msgstr ""
+
+#: seo.php:174
+msgid "Careful — this is your live server config."
+msgstr ""
+
+#: filemanager.php:17
+msgid "Careful:"
+msgstr ""
+
+#: redirects.php:172
+msgid "Category"
+msgstr ""
+
+#: seo.php:87
+msgid "Change frequency"
+msgstr ""
+
+#: mail.php:607
+msgid "Changes apply to new mail once saved."
+msgstr ""
+
+#: settings.php:257
+msgid "Changes save automatically as you make them."
+msgstr ""
+
+#: settings.php:30
+msgid "Changes the language of Velox's own screens only — WordPress and your other plugins are unaffected. English and German are complete; other languages are being translated and fall back to English until finished."
+msgstr ""
+
+#: mail.php:613
+msgid "Check a connection, or send yourself a real email to confirm delivery."
+msgstr ""
+
+#: mail.php:561
+msgid "Check deliverability"
+msgstr ""
+
+#: settings.php:251
+msgid "Check for updates"
+msgstr ""
+
+#: seo.php:193
+msgid "Checks every published page for the things that quietly cost you traffic."
+msgstr ""
+
+#: maintenance.php:59 maintenance.php:69 maintenance.php:100
+msgid "Choose"
+msgstr ""
+
+#: fields.php:365
+msgid "Choose a menu icon"
+msgstr ""
+
+#: fields.php:298
+msgid "Choose icon"
+msgstr ""
+
+#: backup.php:57
+msgid "Choose what to include. Large sites can take a minute — a progress box will keep you posted."
+msgstr ""
+
+#: october.php:57
+msgid "Classes"
+msgstr ""
+
+#: database.php:38
+msgid "Clean"
+msgstr ""
+
+#: dashboard.php:298
+msgid "Clean database"
+msgstr ""
+
+#: database.php:43
+msgid "Clean everything"
+msgstr ""
+
+#: database.php:29
+msgid "Cleanup"
+msgstr ""
+
+#: dashboard.php:266 mail.php:331 maintenance.php:70 maintenance.php:101
+msgid "Clear"
+msgstr ""
+
+#: snippets-list.php:55
+msgid "Clear Safe Mode"
+msgstr ""
+
+#: performance.php:154 performance.php:223
+msgid "Clear all caches"
+msgstr ""
+
+#: performance.php:220
+msgid "Clear cache"
+msgstr ""
+
+#: backup.php:137
+msgid "Clear history"
+msgstr ""
+
+#: activity.php:29 mail.php:662 redirects.php:109
+msgid "Clear log"
+msgstr ""
+
+#: performance.php:321
+msgid "Clear used-CSS cache"
+msgstr ""
+
+#: class-velox-css.php:594
+msgid "Cleared %d cached used-CSS file(s)."
+msgstr ""
+
+#: media.php:99
+msgid "Close"
+msgstr ""
+
+#: performance.php:226 performance.php:231 performance.php:233 performance.php:244 seo.php:64
+msgid "Cloudflare"
+msgstr ""
+
+#: mail.php:646
+msgid "Cloudflare Turnstile (free)"
+msgstr ""
+
+#: performance.php:241
+msgid "Cloudflare account ID"
+msgstr ""
+
+#: performance.php:231
+msgid "Cloudflare connected."
+msgstr ""
+
+#: class-velox-css.php:313
+msgid "Cloudflare daily browser limit reached (10 min/day on the free plan). Try again tomorrow or upgrade to Workers Paid."
+msgstr ""
+
+#: performance.php:233
+msgid "Cloudflare needs a one-time setup."
+msgstr ""
+
+#: class-velox-css.php:318
+msgid "Cloudflare render failed: %s"
+msgstr ""
+
+#: performance.php:244
+msgid "Cloudflare, Inc."
+msgstr ""
+
+#: snippets-edit.php:71
+msgid "Code"
+msgstr ""
+
+#: snippets-list.php:36
+msgid "Code Snippets"
+msgstr ""
+
+#: cookies.php:159 maintenance.php:76
+msgid "Colours"
+msgstr ""
+
+#: performance.php:265
+msgid "Come back here — this note should turn green (\"Cloudflare connected\") and the Cloudflare button should report \"Cloudflare purged.\""
+msgstr ""
+
+#: seo.php:61
+msgid "Content Signals Policy"
+msgstr ""
+
+#: backup.php:86
+msgid "Contents"
+msgstr ""
+
+#: performance.php:252
+msgid "Continue to summary → %1$s → %2$s (shown only once) and store it safely."
+msgstr ""
+
+#: images.php:102
+msgid "Conversion engine"
+msgstr ""
+
+#: class-velox-image-optimizer.php:172 class-velox-image-optimizer.php:293
+msgid "Conversion failed. Check that GD or Imagick supports WebP on this server."
+msgstr ""
+
+#: images.php:170
+msgid "Convert every JPG and PNG in your library to the formats selected above. Safe to stop and resume anytime."
+msgstr ""
+
+#: images.php:176
+msgid "Convert pending images"
+msgstr ""
+
+#: settings.php:71
+msgid "Convert thumbnail sizes too"
+msgstr ""
+
+#: images.php:25
+msgid "Converted images"
+msgstr ""
+
+#: cookies.php:9
+msgid "Cookie banner"
+msgstr ""
+
+#: settings.php:194
+msgid "Copy your whole Velox config to another site. Export gives you a JSON blob; paste one in and hit Import to apply it."
+msgstr ""
+
+#: utilities.php:39
+msgid "Core areas"
+msgstr ""
+
+#: cookies.php:184
+msgid "Corner radius (px)"
+msgstr ""
+
+#: class-velox-fonts.php:95
+msgid "Could not create the local fonts folder. Check uploads permissions."
+msgstr ""
+
+#: class-velox-css.php:261
+msgid "Could not create the used-CSS folder."
+msgstr ""
+
+#: class-velox-snippets.php:700
+msgid "Could not create the zip file."
+msgstr ""
+
+#: class-velox-fonts.php:82
+msgid "Could not read the front page to scan for fonts."
+msgstr ""
+
+#: class-velox-media-manager.php:210
+msgid "Could not rename %s. Check file permissions."
+msgstr ""
+
+#: settings.php:153
+msgid "Count visitors"
+msgstr ""
+
+#: database.php:21
+msgid "Counts are live. Nothing is deleted until you press a button."
+msgstr ""
+
+#: performance.php:250 performance.php:252
+msgid "Create Token"
+msgstr ""
+
+#: backup.php:56
+msgid "Create a backup"
+msgstr ""
+
+#: backup.php:64
+msgid "Create backup"
+msgstr ""
+
+#: fields.php:124
+msgid "Create custom post types and taxonomies, then attach field groups to them — all without code."
+msgstr ""
+
+#: fields.php:324
+msgid "Create field group"
+msgstr ""
+
+#: fields.php:323
+msgid "Create your first field group to start adding custom fields."
+msgstr ""
+
+#: seo.php:113
+msgid "Custom"
+msgstr ""
+
+#: cookies.php:229
+msgid "Custom CSS"
+msgstr ""
+
+#: mail.php:439
+msgid "Custom address…"
+msgstr ""
+
+#: fields.php:21 fields.php:123
+msgid "Custom fields"
+msgstr ""
+
+#: fields.php:356
+msgid "Custom fields is on"
+msgstr ""
+
+#: loginurl.php:9
+msgid "Custom login URL"
+msgstr ""
+
+#: fields.php:136
+msgid "Custom post types appear in the admin sidebar next to Posts and Pages."
+msgstr ""
+
+#: dashboard-traffic.php:53
+msgid "Daily average"
+msgstr ""
+
+#: dashboard.php:84
+msgid "Dashboard"
+msgstr ""
+
+#: settings.php:148
+msgid "Dashboard traffic"
+msgstr ""
+
+#: database.php:20
+msgid "Database"
+msgstr ""
+
+#: backup.php:184
+msgid "Database only"
+msgstr ""
+
+#: media.php:12 media.php:95
+msgid "Dateiname | Alt-Text | Titel"
+msgstr ""
+
+#: settings.php:124
+msgid "Day"
+msgstr ""
+
+#: seo.php:107
+msgid "Default"
+msgstr ""
+
+#: settings.php:59
+msgid "Default WebP quality"
+msgstr ""
+
+#: settings.php:112
+msgid "Default view"
+msgstr ""
+
+#: backup.php:123 installer.php:58 mail.php:329 october.php:141 redirects.php:93
+msgid "Delete"
+msgstr ""
+
+#: mail.php:253
+msgid "Delete entry"
+msgstr ""
+
+#: snippets-list.php:161
+msgid "Delete forever"
+msgstr ""
+
+#: unusedmedia.php:18
+msgid "Delete selected"
+msgstr ""
+
+#: mail.php:285 mail.php:350
+msgid "Deleted"
+msgstr ""
+
+#: mail.php:558
+msgid "Deliverability check"
+msgstr ""
+
+#: snippets-edit.php:84 redirects.php:177
+msgid "Description"
+msgstr ""
+
+#: dashboard.php:323 pagespeed.php:203 settings.php:115 cookies.php:245
+msgid "Desktop"
+msgstr ""
+
+#: performance.php:346
+msgid "Detect fonts"
+msgstr ""
+
+#: header.php:202
+msgid "Detect it for me →"
+msgstr ""
+
+#: header.php:207 settings.php:173
+msgid "Detected"
+msgstr ""
+
+#: performance.php:344
+msgid "Detects every font your site loads. For each one: %1$s starts it loading immediately (only worth it for the 1–2 fonts visible above the fold), and %2$s stops a Google-hosted font from loading at all. Local/builder fonts can be preloaded but not blocked."
+msgstr ""
+
+#: cookies.php:195
+msgid "Dim background (modal)"
+msgstr ""
+
+#: settings.php:130
+msgid "Display the LCP / CLS / TBT metric chips on the widget."
+msgstr ""
+
+#: mail.php:103
+msgid "Displays the form name as a heading above the fields, on the site and in the style preview."
+msgstr ""
+
+#: performance.php:270
+msgid "Don't run a second full-page cache plugin (WP Rocket, W3 Total Cache) alongside it — Cloudflare recommends turning those off. Velox's own page cache is fine."
+msgstr ""
+
+#: dashboard.php:94 header.php:265 mail.php:319
+msgid "Done"
+msgstr ""
+
+#: media.php:18
+msgid "Download images"
+msgstr ""
+
+#: october.php:61
+msgid "Download renamed"
+msgstr ""
+
+#: media.php:28
+msgid "Download selected"
+msgstr ""
+
+#: october.php:138
+msgid "Download theme"
+msgstr ""
+
+#: fields.php:58
+msgid "Drag the handle to reorder"
+msgstr ""
+
+#: images.php:143
+msgid "Drag the slider or type an exact value. 80% is a good balance; lossless mode below ignores this."
+msgstr ""
+
+#: cookies.php:191
+msgid "Drop shadow"
+msgstr ""
+
+#: snippets-list.php:170
+msgid "Duplicate"
+msgstr ""
+
+#: october.php:117
+msgid "Duration"
+msgstr ""
+
+#: cookies.php:185
+msgid "Edge offset (px)"
+msgstr ""
+
+#: snippets-list.php:169 redirects.php:92
+msgid "Edit"
+msgstr ""
+
+#: mail.php:221
+msgid "Edit form"
+msgstr ""
+
+#: october.php:140
+msgid "Edit names"
+msgstr ""
+
+#: media.php:12
+msgid "Edit the %1$s, %2$s and %3$s on any image below, then hit %4$s. Use %5$s to change the actual filename without breaking links. For bulk work, use %6$s with the %7$s format."
+msgstr ""
+
+#: seo.php:14
+msgid "Edit your robots.txt, control how each page appears in Google, and keep an XML sitemap in sync — the essentials, without a second heavyweight SEO plugin."
+msgstr ""
+
+#: mail.php:131
+msgid "Embed"
+msgstr ""
+
+#: fields.php:26
+msgid "Enable Custom fields"
+msgstr ""
+
+#: october.php:33
+msgid "Enable OctoberCMS theme builder"
+msgstr ""
+
+#: settings.php:98
+msgid "Enable PageSpeed status"
+msgstr ""
+
+#: scripts.php:45
+msgid "Enable Script Manager"
+msgstr ""
+
+#: class-velox-image-optimizer.php:165
+msgid "Enable WebP output in Images settings first."
+msgstr ""
+
+#: cookies.php:16
+msgid "Enable cookie banner"
+msgstr ""
+
+#: maintenance.php:17
+msgid "Enable maintenance mode"
+msgstr ""
+
+#: images.php:104
+msgid "Engine"
+msgstr ""
+
+#: performance.php:261
+msgid "Enter your Cloudflare account email + paste the token → %s."
+msgstr ""
+
+#: cookies.php:68
+msgid "Entrance animation"
+msgstr ""
+
+#: mail.php:506
+msgid "Entries"
+msgstr ""
+
+#: settings.php:65
+msgid "Every new JPG/PNG upload is converted to WebP automatically."
+msgstr ""
+
+#: maintenance.php:25
+msgid "Every page and post is set to noindex, nofollow, and anything you create or duplicate meanwhile starts hidden too. Pages you had already set to noindex are left alone. When you switch maintenance back off, Velox asks what to do with them."
+msgstr ""
+
+#: dashboard.php:386
+msgid "Everything in Velox"
+msgstr ""
+
+#: pagespeed.php:152
+msgid "Everything in this category passed."
+msgstr ""
+
+#: media.php:12
+msgid "Export / Bulk import"
+msgstr ""
+
+#: mail.php:219
+msgid "Export CSV"
+msgstr ""
+
+#: backup.php:61
+msgid "Export DB"
+msgstr ""
+
+#: backup.php:60
+msgid "Export all"
+msgstr ""
+
+#: snippets-list.php:171
+msgid "Export as plugin"
+msgstr ""
+
+#: backup.php:62
+msgid "Export files"
+msgstr ""
+
+#: media.php:19
+msgid "Export pipe list"
+msgstr ""
+
+#: settings.php:196
+msgid "Export settings"
+msgstr ""
+
+#: backup.php:153
+msgid "Failed"
+msgstr ""
+
+#: mail.php:591
+msgid "Fallback connection"
+msgstr ""
+
+#: class-velox-performance.php:263
+msgid "Feeds are disabled on this site."
+msgstr ""
+
+#: fields.php:128
+msgid "Field groups"
+msgstr ""
+
+#: fields.php:314
+msgid "Field groups attach custom fields to your content based on location rules."
+msgstr ""
+
+#: fields.php:58
+msgid "Fields"
+msgstr ""
+
+#: filemanager.php:13
+msgid "File Manager"
+msgstr ""
+
+#: backup.php:185
+msgid "Files only"
+msgstr ""
+
+#: performance.php:251
+msgid "Find %1$s in the templates → %2$s (sets the right permissions automatically)."
+msgstr ""
+
+#: unusedmedia.php:8
+msgid "Finds images nothing in your content or page-builder data points at. It's deliberately cautious — it won't list a file that looks referenced anywhere — but always eyeball the list before deleting, since some references (external CSS, exports) can't be detected."
+msgstr ""
+
+#: dashboard-traffic.php:40
+msgid "First-party visitor counts, measured by Velox's own lightweight beacon — no third-party analytics."
+msgstr ""
+
+#: settings.php:154
+msgid "First-party, aggregate only. Mention it in your privacy policy."
+msgstr ""
+
+#: mail.php:340
+msgid "Folders"
+msgstr ""
+
+#: class-velox-settings.php:31
+msgid "Follow WordPress"
+msgstr ""
+
+#: performance.php:344
+msgid "Font manager"
+msgstr ""
+
+#: snippets-list.php:88
+msgid "Footer HTML, also embeddable with [velox_snippet id=\"…\"]."
+msgstr ""
+
+#: maintenance.php:50
+msgid "Footer text"
+msgstr ""
+
+#: performance.php:254
+msgid "For agency/company accounts, prefer an %s token so it survives staff changes."
+msgstr ""
+
+#: redirects.php:121
+msgid "Forget"
+msgstr ""
+
+#: mail.php:506
+msgid "Form"
+msgstr ""
+
+#: mail.php:80
+msgid "Form canvas"
+msgstr ""
+
+#: mail.php:282 mail.php:500
+msgid "Forms"
+msgstr ""
+
+#: class-velox-fonts.php:149
+msgid "Found the Google Fonts CSS but could not download any font files. The server may be blocking outbound requests to fonts.gstatic.com."
+msgstr ""
+
+#: backup.php:173
+msgid "Frequency"
+msgstr ""
+
+#: mail.php:436 redirects.php:140
+msgid "From"
+msgstr ""
+
+#: mail.php:549
+msgid "From email"
+msgstr ""
+
+#: mail.php:544
+msgid "From name"
+msgstr ""
+
+#: maintenance.php:18
+msgid "Front end shows the holding page to everyone except logged-in admins."
+msgstr ""
+
+#: cookies.php:230
+msgid "Full control — target any element inside the banner. Scope your rules with %1$s (the banner) or %2$s (a specific button). Applied on top of everything above."
+msgstr ""
+
+#: cookies.php:199
+msgid "Full-width buttons on mobile"
+msgstr ""
+
+#: cookies.php:112
+msgid "GA4 / GTM ID"
+msgstr ""
+
+#: images.php:108
+msgid "GD"
+msgstr ""
+
+#: images.php:208
+msgid "GIF"
+msgstr ""
+
+#: mail.php:649
+msgid "Get keys from your provider, paste them below, then switch on “Require CAPTCHA” per form. No keys = the option stays unusable."
+msgstr ""
+
+#: october.php:49
+msgid "Give the WordPress/Oxygen names something human. Every change is applied to the HTML %s the CSS together, and the preview updates as you type. When you're done, download a renamed version."
+msgstr ""
+
+#: class-velox-forms.php:1461
+msgid "Give the template a name."
+msgstr ""
+
+#: images.php:32
+msgid "Go to the optimizer"
+msgstr ""
+
+#: performance.php:267
+msgid "Good to know"
+msgstr ""
+
+#: cookies.php:106
+msgid "Google Consent Mode v2"
+msgstr ""
+
+#: mail.php:647
+msgid "Google reCAPTCHA"
+msgstr ""
+
+#: snippets-list.php:86
+msgid "HTML"
+msgstr ""
+
+#: htmllang.php:23
+msgid "HTML lang switcher"
+msgstr ""
+
+#: snippets-list.php:110
+msgid "HTML — Markup"
+msgstr ""
+
+#: redirects.php:149
+msgid "HTTP status"
+msgstr ""
+
+#: fields.php:191
+msgid "Has archive page"
+msgstr ""
+
+#: seo.php:127 cookies.php:130 maintenance.php:39
+msgid "Heading"
+msgstr ""
+
+#: cookies.php:210
+msgid "Heading colour"
+msgstr ""
+
+#: cookies.php:208
+msgid "Heading size (px)"
+msgstr ""
+
+#: cookies.php:209
+msgid "Heading weight"
+msgstr ""
+
+#: media.php:73
+msgid "Height"
+msgstr ""
+
+#: fields.php:241
+msgid "Hierarchical (category-like)"
+msgstr ""
+
+#: fields.php:192
+msgid "Hierarchical (page-like)"
+msgstr ""
+
+#: redirects.php:169
+msgid "Higher numbers are checked first."
+msgstr ""
+
+#: seo.php:83
+msgid "Home page"
+msgstr ""
+
+#: seo.php:79
+msgid "Home page first, then your chosen post types (A–Z). Exclude any single page from its editor (the"
+msgstr ""
+
+#: class-velox-fonts.php:167
+msgid "Hosted %1$d font file(s) across %2$d family/families locally."
+msgstr ""
+
+#: settings.php:122
+msgid "Hour"
+msgstr ""
+
+#: settings.php:207
+msgid "Housekeeping"
+msgstr ""
+
+#: header.php:226
+msgid "How do you want to set up"
+msgstr ""
+
+#: header.php:235
+msgid "I'll configure it myself"
+msgstr ""
+
+#: october.php:58
+msgid "IDs"
+msgstr ""
+
+#: performance.php:271
+msgid "If the site is ever compromised, revoke the token in Cloudflare (My Profile → API Tokens) and issue a new one."
+msgstr ""
+
+#: redirects.php:186
+msgid "Ignore case"
+msgstr ""
+
+#: redirects.php:190
+msgid "Ignore query parameters"
+msgstr ""
+
+#: redirects.php:194
+msgid "Ignore trailing slash"
+msgstr ""
+
+#: settings.php:57
+msgid "Image defaults"
+msgstr ""
+
+#: maintenance.php:62
+msgid "Image, GIF, or Lottie (.json / .lottie) URL. Leave empty to use the default Velox mark."
+msgstr ""
+
+#: images.php:24 images.php:59
+msgid "Images"
+msgstr ""
+
+#: images.php:155
+msgid "Images wider than this are scaled down to it; the height follows automatically to keep the aspect ratio. Images already narrower are left at their own size (never upscaled). 0 = never resize."
+msgstr ""
+
+#: images.php:107 images.php:147
+msgid "Imagick"
+msgstr ""
+
+#: settings.php:183
+msgid "Import"
+msgstr ""
+
+#: settings.php:193
+msgid "Import / Export"
+msgstr ""
+
+#: settings.php:197
+msgid "Import settings"
+msgstr ""
+
+#: unusedmedia.php:16
+msgid "In use"
+msgstr ""
+
+#: htmllang.php:43
+msgid "In your page source right now"
+msgstr ""
+
+#: mail.php:302 mail.php:337
+msgid "Inbox"
+msgstr ""
+
+#: snippets-list.php:78
+msgid "Inject CSS into the page head — front-end, admin, or both."
+msgstr ""
+
+#: mail.php:93
+msgid "Insert field"
+msgstr ""
+
+#: installer.php:9
+msgid "Install a whole stack at once — paste wordpress.org slugs or links, or upload plugin ZIPs straight from your computer. Save a list as a blueprint to re-apply on the next site."
+msgstr ""
+
+#: installer.php:34
+msgid "Install from list"
+msgstr ""
+
+#: class-velox-ajax.php:18
+msgid "Insufficient permissions."
+msgstr ""
+
+#: images.php:205
+msgid "JPG"
+msgstr ""
+
+#: snippets-list.php:81
+msgid "JS"
+msgstr ""
+
+#: snippets-list.php:109
+msgid "JS — Scripts"
+msgstr ""
+
+#: settings.php:210
+msgid "Keep my settings if I delete Velox"
+msgstr ""
+
+#: backup.php:189
+msgid "Keep newest"
+msgstr ""
+
+#: fields.php:85
+msgid "Label placement"
+msgstr ""
+
+#: settings.php:13
+msgid "Language"
+msgstr ""
+
+#: mail.php:284
+msgid "Last 7 days"
+msgstr ""
+
+#: october.php:128
+msgid "Latest"
+msgstr ""
+
+#: seo.php:117
+msgid "Layout"
+msgstr ""
+
+#: loginurl.php:17
+msgid "Leave empty to keep the default wp-login. With a slug set, your login lives at:"
+msgstr ""
+
+#: htmllang.php:55
+msgid "Leave unchanged"
+msgstr ""
+
+#: fields.php:88
+msgid "Left"
+msgstr ""
+
+#: cookies.php:149
+msgid "Legal links"
+msgstr ""
+
+#: cookies.php:213
+msgid "Legal-link colour"
+msgstr ""
+
+#: images.php:184
+msgid "Library"
+msgstr ""
+
+#: cookies.php:152
+msgid "Link 1 URL"
+msgstr ""
+
+#: cookies.php:151
+msgid "Link 1 label"
+msgstr ""
+
+#: cookies.php:154
+msgid "Link 2 URL"
+msgstr ""
+
+#: cookies.php:153
+msgid "Link 2 label"
+msgstr ""
+
+#: settings.php:137
+msgid "List the top opportunities Lighthouse found, biggest time-savings first."
+msgstr ""
+
+#: settings.php:94
+msgid "Live PageSpeed"
+msgstr ""
+
+#: pagespeed.php:191
+msgid "Live PageSpeed is switched off. Turn it on to pull real Lighthouse reports for this site."
+msgstr ""
+
+#: seo.php:59
+msgid "Live at %s"
+msgstr ""
+
+#: seo.php:131 cookies.php:243 mail.php:183 maintenance.php:122 october.php:66
+msgid "Live preview"
+msgstr ""
+
+#: installer.php:57
+msgid "Load"
+msgstr ""
+
+#: maintenance.php:85 maintenance.php:103
+msgid "Loading animation"
+msgstr ""
+
+#: images.php:218
+msgid "Loading images…"
+msgstr ""
+
+#: media.php:33
+msgid "Loading media…"
+msgstr ""
+
+#: images.php:233
+msgid "Loading optimized images…"
+msgstr ""
+
+#: october.php:63
+msgid "Loading…"
+msgstr ""
+
+#: class-velox-fonts.php:183
+msgid "Local fonts removed. Google Fonts will load normally again."
+msgstr ""
+
+#: snippets-edit.php:96
+msgid "Location"
+msgstr ""
+
+#: fields.php:69
+msgid "Location rules"
+msgstr ""
+
+#: redirects.php:106
+msgid "Log 404s"
+msgstr ""
+
+#: performance.php:248
+msgid "Log in at %s."
+msgstr ""
+
+#: activity.php:34
+msgid "Logging is off. Flip it on to start recording events from this point forward."
+msgstr ""
+
+#: loginurl.php:15
+msgid "Login slug"
+msgstr ""
+
+#: maintenance.php:56
+msgid "Logo"
+msgstr ""
+
+#: cookies.php:132
+msgid "Logo URL"
+msgstr ""
+
+#: images.php:147
+msgid "Lossless WebP"
+msgstr ""
+
+#: maintenance.php:103
+msgid "Lottie animation"
+msgstr ""
+
+#: maintenance.php:97
+msgid "Lottie animation file"
+msgstr ""
+
+#: mail.php:559
+msgid "Mail not reaching Gmail or Microsoft? Run this to see exactly which authentication record your domain is missing."
+msgstr ""
+
+#: maintenance.php:9
+msgid "Maintenance mode"
+msgstr ""
+
+#: dashboard.php:381
+msgid "Manage fonts"
+msgstr ""
+
+#: mail.php:328
+msgid "Mark done"
+msgstr ""
+
+#: mail.php:327
+msgid "Mark read"
+msgstr ""
+
+#: snippets-list.php:87
+msgid "Markup"
+msgstr ""
+
+#: redirects.php:157
+msgid "Match type"
+msgstr ""
+
+#: cookies.php:219
+msgid "Max height (px)"
+msgstr ""
+
+#: october.php:117
+msgid "Media"
+msgstr ""
+
+#: fields.php:165 fields.php:296
+msgid "Menu icon"
+msgstr ""
+
+#: fields.php:166 fields.php:303
+msgid "Menu position"
+msgstr ""
+
+#: fields.php:279
+msgid "Menu title"
+msgstr ""
+
+#: maintenance.php:44
+msgid "Message"
+msgstr ""
+
+#: mail.php:401
+msgid "Messages sent through your forms land here."
+msgstr ""
+
+#: pagespeed.php:115
+msgid "Metrics"
+msgstr ""
+
+#: settings.php:164
+msgid "Migrate from another plugin"
+msgstr ""
+
+#: settings.php:165 settings.php:185
+msgid "Migration coming soon"
+msgstr ""
+
+#: performance.php:224
+msgid "Minified CSS/JS"
+msgstr ""
+
+#: dashboard.php:322 pagespeed.php:202 settings.php:114 cookies.php:246
+msgid "Mobile"
+msgstr ""
+
+#: snippets-list.php:172
+msgid "Move to trash"
+msgstr ""
+
+#: loginurl.php:10
+msgid "Moves the login page off the default %s to a path only you know — most brute-force bots hammer wp-login, so this quietly cuts that traffic."
+msgstr ""
+
+#: performance.php:249
+msgid "My Profile"
+msgstr ""
+
+#: snippets-edit.php:80
+msgid "Name"
+msgstr ""
+
+#: fields.php:316
+msgid "New field group"
+msgstr ""
+
+#: media.php:47
+msgid "New file name"
+msgstr ""
+
+#: mail.php:344
+msgid "New folder"
+msgstr ""
+
+#: mail.php:503
+msgid "New form"
+msgstr ""
+
+#: class-velox-media-manager.php:162
+msgid "New name matches the current name."
+msgstr ""
+
+#: redirects.php:132
+msgid "New redirect"
+msgstr ""
+
+#: backup.php:49
+msgid "Newest"
+msgstr ""
+
+#: header.php:220 header.php:241
+msgid "Next"
+msgstr ""
+
+#: images.php:223 media.php:38
+msgid "Next →"
+msgstr ""
+
+#: seo.php:179
+msgid "No %s exists in your site root yet — saving will create one."
+msgstr ""
+
+#: class-velox-fonts.php:438
+msgid "No CSS found to scan. If your host blocks loopback, Velox reads the builder CSS cache instead — open your site once so it gets generated, then try again."
+msgstr ""
+
+#: class-velox-fonts.php:89
+msgid "No Google Fonts were found on the front page. If your fonts load elsewhere, link a page that uses them."
+msgstr ""
+
+#: class-velox-css.php:275
+msgid "No HTML came back for that path."
+msgstr ""
+
+#: scripts.php:60
+msgid "No assets discovered yet. Click %s above, or visit a few pages of your site, then reload this screen."
+msgstr ""
+
+#: backup.php:83
+msgid "No backups yet. Create one above, import one, or set up a schedule below."
+msgstr ""
+
+#: installer.php:48
+msgid "No blueprints yet. Save a slug list above to create one."
+msgstr ""
+
+#: october.php:98
+msgid "No builds yet. Name your theme above and hit %s."
+msgstr ""
+
+#: fields.php:141
+msgid "No custom post types yet. Add one and it shows up in the sidebar straight away."
+msgstr ""
+
+#: fields.php:207
+msgid "No custom taxonomies yet."
+msgstr ""
+
+#: mail.php:260
+msgid "No entries yet"
+msgstr ""
+
+#: fields.php:322
+msgid "No field groups yet"
+msgstr ""
+
+#: performance.php:334
+msgid "No fonts hosted locally yet. Enable the toggle, then scan."
+msgstr ""
+
+#: mail.php:503
+msgid "No forms yet. Hit %1$s to create one — you'll get a %2$s shortcode to embed anywhere, including an Oxygen Shortcode element."
+msgstr ""
+
+#: images.php:64
+msgid "No image engine (Imagick or GD with WebP) was found on this server. Conversion is disabled until one is enabled in your PHP settings — see the compatibility list below."
+msgstr ""
+
+#: class-velox-css.php:280
+msgid "No local stylesheets to trim on that page."
+msgstr ""
+
+#: fields.php:258
+msgid "No options pages yet."
+msgstr ""
+
+#: class-velox-image-optimizer.php:262
+msgid "No output format selected — enable WebP and/or AVIF in Images settings."
+msgstr ""
+
+#: redirects.php:47
+msgid "No redirects yet. Add one to send an old URL somewhere useful."
+msgstr ""
+
+#: snippets-list.php:122
+msgid "No snippets here yet."
+msgstr ""
+
+#: snippets-list.php:180
+msgid "No snippets match your filter."
+msgstr ""
+
+#: mail.php:400
+msgid "No submissions yet"
+msgstr ""
+
+#: dashboard-traffic.php:61
+msgid "No visits recorded in this range yet."
+msgstr ""
+
+#: fields.php:94
+msgid "Normal"
+msgstr ""
+
+#: class-velox-media-manager.php:107
+msgid "Not a media item."
+msgstr ""
+
+#: class-velox-admin.php:311 class-velox-backup.php:55 class-velox-forms.php:1532 class-velox-snippets.php:686
+msgid "Not allowed."
+msgstr ""
+
+#: settings.php:175
+msgid "Not found"
+msgstr ""
+
+#: unusedmedia.php:15
+msgid "Not in use"
+msgstr ""
+
+#: images.php:122
+msgid "Not installed"
+msgstr ""
+
+#: images.php:84
+msgid "Not on this server"
+msgstr ""
+
+#: settings.php:37
+msgid "Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards."
+msgstr ""
+
+#: images.php:31
+msgid "Nothing converted yet. Run a bulk optimization to fill this up."
+msgstr ""
+
+#: mail.php:396
+msgid "Nothing here."
+msgstr ""
+
+#: mail.php:666
+msgid "Nothing sent yet."
+msgstr ""
+
+#: mail.php:61
+msgid "Notifications"
+msgstr ""
+
+#: mail.php:93
+msgid "Notifications are sent when the form is submitted. Use the %1$s menu to drop in merge tags like %2$s, or %3$s for the whole submission."
+msgstr ""
+
+#: htmllang.php:80
+msgid "Now"
+msgstr ""
+
+#: october.php:152
+msgid "OctoberCMS builder is on"
+msgstr ""
+
+#: october.php:26
+msgid "OctoberCMS theme"
+msgstr ""
+
+#: images.php:160
+msgid "Off (default) strips camera, date and GPS data for smaller, more private files. On keeps it."
+msgstr ""
+
+#: cookies.php:117
+msgid "Offer Analytics"
+msgstr ""
+
+#: cookies.php:121
+msgid "Offer Marketing"
+msgstr ""
+
+#: images.php:94
+msgid "On (recommended): the JPG/PNG becomes a WebP right in your media library, at its real smaller size. Off: keeps the original and serves a WebP copy only on the front-end."
+msgstr ""
+
+#: settings.php:80
+msgid "On by default. Rewrites the page HTML on the front end. With Cloudflare Polish enabled you can leave this off."
+msgstr ""
+
+#: class-velox-database.php:25
+msgid "Once Weekly"
+msgstr ""
+
+#: loginurl.php:30
+msgid "Once enabled, %1$s and %2$s redirect away for logged-out visitors. If you ever lock yourself out, clear the %3$s value (or deactivate Velox) via your hosting file manager to restore the default login."
+msgstr ""
+
+#: fields.php:29
+msgid "Once on, build field groups here and they'll appear on the matching post edit screens. Read values on the front end with %1$s or the %2$s merge tag."
+msgstr ""
+
+#: installer.php:16
+msgid "One per line. Accepts a plain slug (%1$s), a wordpress.org link, or a direct %2$s download URL."
+msgstr ""
+
+#: media.php:95
+msgid "One row per image: %s. Filenames are matched to your library; a header row is ignored."
+msgstr ""
+
+#: class-velox-image-optimizer.php:146
+msgid "Only JPG and PNG files can be converted."
+msgstr ""
+
+#: utilities.php:55 utilities.php:96
+msgid "Open"
+msgstr ""
+
+#: header.php:264
+msgid "Open Performance"
+msgstr ""
+
+#: settings.php:252
+msgid "Open plugins page"
+msgstr ""
+
+#: performance.php:191
+msgid "Optimizations on"
+msgstr ""
+
+#: class-velox-image-optimizer.php:616 class-velox-image-optimizer.php:617
+msgid "Optimize Images"
+msgstr ""
+
+#: dashboard.php:355
+msgid "Optimize images"
+msgstr ""
+
+#: database.php:44
+msgid "Optimize tables"
+msgstr ""
+
+#: images.php:186
+msgid "Optimized"
+msgstr ""
+
+#: fields.php:131
+msgid "Options pages"
+msgstr ""
+
+#: fields.php:253
+msgid "Options pages are admin screens for global settings (read with %s). Target one from a field group's location rule."
+msgstr ""
+
+#: installer.php:20
+msgid "Or upload plugin ZIPs"
+msgstr ""
+
+#: fields.php:99
+msgid "Order number"
+msgstr ""
+
+#: images.php:241 media.php:80
+msgid "Original"
+msgstr ""
+
+#: images.php:70
+msgid "Output formats"
+msgstr ""
+
+#: cookies.php:218
+msgid "Overlay blur (px)"
+msgstr ""
+
+#: cookies.php:217
+msgid "Overlay colour"
+msgstr ""
+
+#: htmllang.php:33
+msgid "Override the lang attribute"
+msgstr ""
+
+#: pagespeed.php:85
+msgid "Overview"
+msgstr ""
+
+#: snippets-list.php:71
+msgid "PHP"
+msgstr ""
+
+#: class-velox-snippets.php:693
+msgid "PHP-zip is not available on this server, so the plugin zip cannot be built. Ask your host to enable the php-zip extension."
+msgstr ""
+
+#: backup.php:43
+msgid "PHP-zip isn't available on this server, so %1$s backups can't be created or restored — database backups still work. Ask your host to enable the %2$s extension."
+msgstr ""
+
+#: images.php:206
+msgid "PNG"
+msgstr ""
+
+#: settings.php:46
+msgid "Page builder"
+msgstr ""
+
+#: performance.php:188
+msgid "Page cache"
+msgstr ""
+
+#: performance.php:286
+msgid "Page cache status"
+msgstr ""
+
+#: fields.php:278
+msgid "Page title"
+msgstr ""
+
+#: dashboard-traffic.php:51
+msgid "Page views"
+msgstr ""
+
+#: pagespeed.php:180
+msgid "PageSpeed"
+msgstr ""
+
+#: settings.php:95
+msgid "PageSpeed Insights API key"
+msgstr ""
+
+#: seo.php:85 october.php:117
+msgid "Pages"
+msgstr ""
+
+#: maintenance.php:34
+msgid "Pages that were already set to noindex before you switched this on were left alone, so their own setting is untouched."
+msgstr ""
+
+#: snippets-edit.php:105
+msgid "Paragraph number"
+msgstr ""
+
+#: fields.php:283
+msgid "Parent menu"
+msgstr ""
+
+#: mail.php:135
+msgid "Paste this into any page, widget or Oxygen Shortcode element."
+msgstr ""
+
+#: dashboard-traffic.php:52
+msgid "Peak day"
+msgstr ""
+
+#: images.php:187
+msgid "Pending"
+msgstr ""
+
+#: images.php:148
+msgid "Perfect quality with no compression loss — larger files. Great for graphics and screenshots, overkill for photos."
+msgstr ""
+
+#: performance.php:143
+msgid "Performance"
+msgstr ""
+
+#: cookies.php:98
+msgid "Phones often work best as a bottom or top bar even when desktop is a floating box."
+msgstr ""
+
+#: fields.php:301
+msgid "Pick a Bootstrap icon, or type a %s class or image URL."
+msgstr ""
+
+#: filemanager.php:27
+msgid "Pick a file on the left to open it here."
+msgstr ""
+
+#: installer.php:22
+msgid "Pick one or more %s plugin files from your computer and install them directly."
+msgstr ""
+
+#: header.php:227
+msgid "Pick the recommended path and Velox scans your plugins and tunes everything for you — or configure it yourself."
+msgstr ""
+
+#: header.php:202
+msgid "Pick yours below — every builder needs different speed settings. Not sure? %s"
+msgstr ""
+
+#: mail.php:315
+msgid "Pinned"
+msgstr ""
+
+#: cookies.php:34
+msgid "Placement"
+msgstr ""
+
+#: cookies.php:36
+msgid "Placement (desktop)"
+msgstr ""
+
+#: cookies.php:89
+msgid "Placement (mobile)"
+msgstr ""
+
+#: utilities.php:87
+msgid "Planned"
+msgstr ""
+
+#: cookies.php:86
+msgid "Plays when the banner first appears on the live site."
+msgstr ""
+
+#: backup.php:212
+msgid "Please keep this tab open."
+msgstr ""
+
+#: class-velox-media-manager.php:153
+msgid "Please provide a valid file name."
+msgstr ""
+
+#: installer.php:14
+msgid "Plugins — slugs or links"
+msgstr ""
+
+#: performance.php:244
+msgid "Plugins → Add New → search %1$s → install &amp; activate the one by %2$s (listed as \"Cloudflare – CDN &amp; Edge Caching\"). Don't confuse it with \"WP Cloudflare Super Page Cache.\""
+msgstr ""
+
+#: fields.php:161 fields.php:227
+msgid "Plural label"
+msgstr ""
+
+#: fields.php:92
+msgid "Position"
+msgstr ""
+
+#: fields.php:129
+msgid "Post types"
+msgstr ""
+
+#: seo.php:84
+msgid "Posts"
+msgstr ""
+
+#: performance.php:344
+msgid "Preload"
+msgstr ""
+
+#: performance.php:299
+msgid "Preload now"
+msgstr ""
+
+#: fields.php:81
+msgid "Presentation"
+msgstr ""
+
+#: images.php:159
+msgid "Preserve EXIF metadata"
+msgstr ""
+
+#: mail.php:58 mail.php:163
+msgid "Preview"
+msgstr ""
+
+#: mail.php:586
+msgid "Primary connection"
+msgstr ""
+
+#: seo.php:94 snippets-edit.php:110 redirects.php:167
+msgid "Priority"
+msgstr ""
+
+#: seo.php:86
+msgid "Products"
+msgstr ""
+
+#: performance.php:249
+msgid "Profile icon (top right) → %s."
+msgstr ""
+
+#: seo.php:53
+msgid "Protect wp-admin"
+msgstr ""
+
+#: mail.php:644
+msgid "Provider"
+msgstr ""
+
+#: fields.php:188 fields.php:240
+msgid "Public"
+msgstr ""
+
+#: settings.php:95
+msgid "Pull a real Lighthouse score from Google PageSpeed Insights on a schedule and show it on your dashboard. A free %1$s is recommended (checks run without one, but Google rate-limits keyless requests). Your server needs outbound access to %2$s and WordPress cron running."
+msgstr ""
+
+#: performance.php:221
+msgid "Purge caches across your whole stack in one click. Velox clears its own page cache, WP Fastest Cache and Oxygen directly. Cloudflare is cleared through the official Cloudflare plugin (see the note below)."
+msgstr ""
+
+#: performance.php:298
+msgid "Purge page cache"
+msgstr ""
+
+#: images.php:135
+msgid "Quality"
+msgstr ""
+
+#: seo.php:51
+msgid "Quick add:"
+msgstr ""
+
+#: settings.php:36
+msgid "Quick setup"
+msgstr ""
+
+#: performance.php:234
+msgid "Quick setup: %1$s install the %2$s plugin, %3$s create a Cloudflare API token, %4$s connect it. Full steps below."
+msgstr ""
+
+#: cookies.php:113
+msgid "Re-ask after (days)"
+msgstr ""
+
+#: htmllang.php:47
+msgid "Re-check"
+msgstr ""
+
+#: htmllang.php:49
+msgid "Read from your live front page in this browser, so it shows what visitors and crawlers really get rather than what the setting claims. WordPress itself is set to %s."
+msgstr ""
+
+#: dashboard.php:329
+msgid "Real Lighthouse scores from Google PageSpeed Insights, right on your dashboard."
+msgstr ""
+
+#: header.php:230
+msgid "Recommended"
+msgstr ""
+
+#: header.php:247
+msgid "Recommended for"
+msgstr ""
+
+#: seo.php:21
+msgid "Recommended setup"
+msgstr ""
+
+#: activity.php:25
+msgid "Record activity"
+msgstr ""
+
+#: settings.php:120
+msgid "Refresh every"
+msgstr ""
+
+#: dashboard.php:205 dashboard.php:253 pagespeed.php:185
+msgid "Refresh now"
+msgstr ""
+
+#: performance.php:225
+msgid "Regenerate Oxygen CSS"
+msgstr ""
+
+#: seo.php:142
+msgid "Regenerate sitemap"
+msgstr ""
+
+#: class-velox-fields.php:709 class-velox-fields.php:776 class-velox-fields.php:972
+msgid "Remove"
+msgstr ""
+
+#: performance.php:339
+msgid "Remove local fonts"
+msgstr ""
+
+#: dashboard.php:267
+msgid "Remove selected"
+msgstr ""
+
+#: media.php:12 media.php:44
+msgid "Rename file"
+msgstr ""
+
+#: images.php:93
+msgid "Replace originals with WebP"
+msgstr ""
+
+#: mail.php:426
+msgid "Reply"
+msgstr ""
+
+#: header.php:211
+msgid "Request it →"
+msgstr ""
+
+#: mail.php:678
+msgid "Resend"
+msgstr ""
+
+#: mail.php:170 maintenance.php:60
+msgid "Reset"
+msgstr ""
+
+#: performance.php:322
+msgid "Reset auto-learn"
+msgstr ""
+
+#: scripts.php:80
+msgid "Reset discovered list"
+msgstr ""
+
+#: seo.php:174 seo.php:184 maintenance.php:117
+msgid "Reset to default"
+msgstr ""
+
+#: seo.php:42
+msgid "Reset to recommended"
+msgstr ""
+
+#: media.php:61 media.php:86
+msgid "Resize image"
+msgstr ""
+
+#: images.php:153
+msgid "Resize width (px)"
+msgstr ""
+
+#: snippets-list.php:160 backup.php:122
+msgid "Restore"
+msgstr ""
+
+#: backup.php:136
+msgid "Restore history"
+msgstr ""
+
+#: backup.php:233
+msgid "Restore now"
+msgstr ""
+
+#: backup.php:222
+msgid "Restore this backup?"
+msgstr ""
+
+#: backup.php:50
+msgid "Restores run"
+msgstr ""
+
+#: backup.php:141
+msgid "Result"
+msgstr ""
+
+#: performance.php:150
+msgid "Reveal aggressive settings"
+msgstr ""
+
+#: october.php:128
+msgid "Revert point"
+msgstr ""
+
+#: performance.php:149
+msgid "Risky mode"
+msgstr ""
+
+#: mail.php:598
+msgid "Routing rules"
+msgstr ""
+
+#: snippets-list.php:73
+msgid "Run PHP early — add_action, add_filter, custom logic. Lint-checked and crash-guarded."
+msgstr ""
+
+#: settings.php:142
+msgid "Run a check now"
+msgstr ""
+
+#: backup.php:170
+msgid "Run backups automatically via WP-Cron. Older backups beyond your keep-count are pruned after each scheduled run."
+msgstr ""
+
+#: pagespeed.php:70
+msgid "Run check now"
+msgstr ""
+
+#: pagespeed.php:197
+msgid "Run first check"
+msgstr ""
+
+#: settings.php:51
+msgid "Run setup wizard"
+msgstr ""
+
+#: settings.php:99
+msgid "Runs checks on the schedule below and shows the PageSpeed widget on the dashboard."
+msgstr ""
+
+#: database.php:53
+msgid "Runs the cleanup (not table optimization) once a week via WP-Cron."
+msgstr ""
+
+#: seo.php:13
+msgid "SEO"
+msgstr ""
+
+#: seo.php:192
+msgid "SEO health"
+msgstr ""
+
+#: mail.php:568
+msgid "SMTP connections"
+msgstr ""
+
+#: images.php:209
+msgid "SVG"
+msgstr ""
+
+#: settings.php:42
+msgid "Safe"
+msgstr ""
+
+#: snippets-list.php:51
+msgid "Safe Mode is active — PHP snippets are not running."
+msgstr ""
+
+#: media.php:12 htmllang.php:93 loginurl.php:34 maintenance.php:116
+msgid "Save"
+msgstr ""
+
+#: seo.php:183
+msgid "Save .htaccess"
+msgstr ""
+
+#: performance.php:261
+msgid "Save API Credentials"
+msgstr ""
+
+#: installer.php:38
+msgid "Save as blueprint"
+msgstr ""
+
+#: mail.php:463
+msgid "Save as template"
+msgstr ""
+
+#: database.php:61
+msgid "Save automation"
+msgstr ""
+
+#: scripts.php:51 scripts.php:62 scripts.php:79
+msgid "Save changes"
+msgstr ""
+
+#: mail.php:606
+msgid "Save connections"
+msgstr ""
+
+#: mail.php:63
+msgid "Save form"
+msgstr ""
+
+#: fields.php:53
+msgid "Save group"
+msgstr ""
+
+#: snippets-edit.php:61
+msgid "Save only"
+msgstr ""
+
+#: fields.php:308
+msgid "Save options page"
+msgstr ""
+
+#: performance.php:359
+msgid "Save performance settings"
+msgstr ""
+
+#: fields.php:196
+msgid "Save post type"
+msgstr ""
+
+#: redirects.php:201
+msgid "Save redirect"
+msgstr ""
+
+#: seo.php:41
+msgid "Save robots.txt"
+msgstr ""
+
+#: backup.php:194
+msgid "Save schedule"
+msgstr ""
+
+#: cookies.php:237 mail.php:656
+msgid "Save settings"
+msgstr ""
+
+#: mail.php:171
+msgid "Save styles"
+msgstr ""
+
+#: fields.php:247
+msgid "Save taxonomy"
+msgstr ""
+
+#: images.php:188
+msgid "Saved"
+msgstr ""
+
+#: installer.php:45
+msgid "Saved blueprints"
+msgstr ""
+
+#: backup.php:227
+msgid "Saves your %s database (a small DB-only backup) so you can undo this restore. It's the small one labelled “safety”."
+msgstr ""
+
+#: seo.php:197
+msgid "Scan"
+msgstr ""
+
+#: unusedmedia.php:13
+msgid "Scan media library"
+msgstr ""
+
+#: scripts.php:50 scripts.php:57 scripts.php:60
+msgid "Scan site"
+msgstr ""
+
+#: october.php:27
+msgid "Scan the whole site and export it as an importable OctoberCMS theme: every published page becomes a %s page, the shared header/footer are lifted into partials, the CSS is converted into the theme's SCSS structure, and the media you actually use (and have in the library) is bundled in. Builds are versioned — re-scan to pick up new pages, and keep older versions to revert to."
+msgstr ""
+
+#: header.php:251
+msgid "Scanning…"
+msgstr ""
+
+#: backup.php:168
+msgid "Schedule"
+msgstr ""
+
+#: scripts.php:38
+msgid "Script Manager"
+msgstr ""
+
+#: snippets-list.php:82
+msgid "Scripts"
+msgstr ""
+
+#: scripts.php:72
+msgid "Scripts (JS)"
+msgstr ""
+
+#: mail.php:653
+msgid "Secret key"
+msgstr ""
+
+#: seo.php:64
+msgid "Seeing AI \"content signals\" text instead of yours?"
+msgstr ""
+
+#: mail.php:406
+msgid "Select a submission to read it."
+msgstr ""
+
+#: media.php:27
+msgid "Select all"
+msgstr ""
+
+#: class-velox-fields.php:775 class-velox-fields.php:971
+msgid "Select file"
+msgstr ""
+
+#: class-velox-fields.php:708 class-velox-fields.php:971
+msgid "Select image"
+msgstr ""
+
+#: header.php:215
+msgid "Send"
+msgstr ""
+
+#: mail.php:661
+msgid "Send log"
+msgstr ""
+
+#: mail.php:601
+msgid "Send mail from a specific address or name through a chosen connection — e.g. route %s through a transactional provider and newsletters through another."
+msgstr ""
+
+#: redirects.php:35
+msgid "Send old or moved URLs somewhere useful, and watch which missing pages your visitors actually hit so you can fix the ones that matter."
+msgstr ""
+
+#: mail.php:494
+msgid "Send reply"
+msgstr ""
+
+#: mail.php:619
+msgid "Send test"
+msgstr ""
+
+#: mail.php:540
+msgid "Sender identity"
+msgstr ""
+
+#: mail.php:491
+msgid "Sends through your SMTP + sender identity."
+msgstr ""
+
+#: settings.php:78
+msgid "Serve WebP on the front end"
+msgstr ""
+
+#: seo.php:186
+msgid "Served by Apache / LiteSpeed from your site root. Has no effect on a pure-Nginx server."
+msgstr ""
+
+#: seo.php:35
+msgid "Served by WordPress at %s. Edit freely — the Sitemap line should point at your sitemap.xml."
+msgstr ""
+
+#: settings.php:9
+msgid "Set your defaults, point the auto-updater at your repo, and check your environment."
+msgstr ""
+
+#: cookies.php:107
+msgid "Sets consent to denied by default and updates Google tags when the visitor chooses. The correct way to stay compliant."
+msgstr ""
+
+#: htmllang.php:24
+msgid "Sets the %1$s attribute on the %2$s tag. Handy when a theme or builder hard-codes it and the WordPress site language never actually reaches the page — screen readers and search engines both read this attribute to decide what language the page is in."
+msgstr ""
+
+#: class-velox-admin.php:532 settings.php:8 mail.php:62
+msgid "Settings"
+msgstr ""
+
+#: class-velox-ajax.php:989
+msgid "Settings imported."
+msgstr ""
+
+#: class-velox-ajax.php:1069
+msgid "Settings saved."
+msgstr ""
+
+#: performance.php:258
+msgid "Settings → Cloudflare (or the plugin's Settings link)."
+msgstr ""
+
+#: mail.php:580
+msgid "Setup guide"
+msgstr ""
+
+#: performance.php:238
+msgid "Setup guide: clear Cloudflare cache from Velox"
+msgstr ""
+
+#: mail.php:51 mail.php:133 mail.php:156 mail.php:506
+msgid "Shortcode"
+msgstr ""
+
+#: settings.php:129
+msgid "Show Core Web Vitals"
+msgstr ""
+
+#: fields.php:243
+msgid "Show admin column"
+msgstr ""
+
+#: mail.php:102
+msgid "Show form title"
+msgstr ""
+
+#: fields.php:190 fields.php:242
+msgid "Show in REST (Gutenberg)"
+msgstr ""
+
+#: fields.php:189
+msgid "Show in sidebar menu"
+msgstr ""
+
+#: seo.php:128
+msgid "Show logo / name"
+msgstr ""
+
+#: fields.php:72
+msgid "Show this group where %1$s rules in a box match, or %2$s box matches."
+msgstr ""
+
+#: settings.php:136
+msgid "Show what to fix"
+msgstr ""
+
+#: cookies.php:27
+msgid "Showing the consent banner on your site's front end."
+msgstr ""
+
+#: mail.php:112
+msgid "Shown after the form is submitted successfully."
+msgstr ""
+
+#: mail.php:546
+msgid "Shown as the sender name, e.g. your company."
+msgstr ""
+
+#: maintenance.php:112
+msgid "Shown only when both a label and a link are set."
+msgstr ""
+
+#: maintenance.php:46
+msgid "Shown under the heading. Line breaks are kept."
+msgstr ""
+
+#: settings.php:87
+msgid "Shows the original-vs-WebP drag comparison panel on the Images tab."
+msgstr ""
+
+#: maintenance.php:10
+msgid "Shows visitors a branded holding page while you work. You and any other admins keep seeing the live site, and wp-admin stays reachable. Sends a 503 so search engines know it's temporary."
+msgstr ""
+
+#: fields.php:95
+msgid "Side"
+msgstr ""
+
+#: performance.php:259
+msgid "Sign in with an existing account."
+msgstr ""
+
+#: fields.php:160 fields.php:226
+msgid "Singular label"
+msgstr ""
+
+#: mail.php:652
+msgid "Site key"
+msgstr ""
+
+#: seo.php:101
+msgid "Sitemap appearance"
+msgstr ""
+
+#: seo.php:52
+msgid "Sitemap line"
+msgstr ""
+
+#: maintenance.php:72
+msgid "Sits behind a tint of your background colour so text stays readable."
+msgstr ""
+
+#: backup.php:86 october.php:117
+msgid "Size"
+msgstr ""
+
+#: header.php:219
+msgid "Skip for now"
+msgstr ""
+
+#: header.php:236
+msgid "Skip the automatic tuning and head straight to Settings → Performance to set everything by hand."
+msgstr ""
+
+#: fields.php:163 fields.php:229 fields.php:282
+msgid "Slug"
+msgstr ""
+
+#: maintenance.php:52
+msgid "Small line at the very bottom. Empty = nothing shown (no site name forced in)."
+msgstr ""
+
+#: cookies.php:133
+msgid "Small print"
+msgstr ""
+
+#: seo.php:152
+msgid "Social cards (Open Graph)"
+msgstr ""
+
+#: class-velox-image-optimizer.php:136 class-velox-image-optimizer.php:475 class-velox-media-manager.php:142
+msgid "Source file not found."
+msgstr ""
+
+#: redirects.php:98
+msgid "Source is a path on this site. Target can be a path (%1$s) or a full URL. Choose %2$s to tell search engines a page is permanently removed."
+msgstr ""
+
+#: seo.php:122
+msgid "Spacing"
+msgstr ""
+
+#: mail.php:116
+msgid "Spam protection"
+msgstr ""
+
+#: mail.php:458
+msgid "Start blank"
+msgstr ""
+
+#: seo.php:76
+msgid "Status"
+msgstr ""
+
+#: performance.php:243
+msgid "Step 1 — Install the official plugin"
+msgstr ""
+
+#: performance.php:246
+msgid "Step 2 — Create a Cloudflare API token"
+msgstr ""
+
+#: performance.php:256
+msgid "Step 3 — Connect the plugin"
+msgstr ""
+
+#: images.php:177
+msgid "Stop"
+msgstr ""
+
+#: scripts.php:39
+msgid "Stop plugins from loading CSS/JS where it isn't needed — the classic example is keeping Contact Form 7 off every page except your contact page. Pages are matched by ID, slug, %1$s (homepage), %2$s, %3$s, %4$s, or a whole post type with %5$s, %6$s, etc."
+msgstr ""
+
+#: mail.php:57 mail.php:162
+msgid "Style"
+msgstr ""
+
+#: mail.php:114
+msgid "Style editor"
+msgstr ""
+
+#: snippets-list.php:77
+msgid "Styles"
+msgstr ""
+
+#: scripts.php:65
+msgid "Styles (CSS)"
+msgstr ""
+
+#: mail.php:452
+msgid "Subject"
+msgstr ""
+
+#: class-velox-forms.php:1415
+msgid "Submission not found."
+msgstr ""
+
+#: mail.php:261
+msgid "Submissions through this form show up here as they arrive."
+msgstr ""
+
+#: backup.php:151
+msgid "Success"
+msgstr ""
+
+#: mail.php:110
+msgid "Success message"
+msgstr ""
+
+#: images.php:82
+msgid "Supported"
+msgstr ""
+
+#: fields.php:169
+msgid "Supports"
+msgstr ""
+
+#: settings.php:79
+msgid "Swaps every uploads image to WebP/AVIF when the browser supports it — WordPress images, Oxygen elements, CSS background-images and hard-coded links (originals stay as fallback)."
+msgstr ""
+
+#: snippets-list.php:54
+msgid "Switch off all PHP snippets"
+msgstr ""
+
+#: utilities.php:57 utilities.php:98
+msgid "Switch on to use"
+msgstr ""
+
+#: htmllang.php:53
+msgid "Switch to"
+msgstr ""
+
+#: settings.php:53
+msgid "Switching builders? Run this again — Velox will wipe the old performance settings and reconfigure for the new one. Your image, font and database settings are kept."
+msgstr ""
+
+#: settings.php:218
+msgid "System status"
+msgstr ""
+
+#: database.php:25
+msgid "Take a database backup in Plesk before a big cleanup the first time. After that it's routine — revisions and transients pile up fast on builder sites."
+msgstr ""
+
+#: backup.php:226
+msgid "Take a safety snapshot first"
+msgstr ""
+
+#: fields.php:130
+msgid "Taxonomies"
+msgstr ""
+
+#: fields.php:202
+msgid "Taxonomies group your content — like Categories (hierarchical) or Tags (flat)."
+msgstr ""
+
+#: mail.php:456
+msgid "Template"
+msgstr ""
+
+#: mail.php:617 october.php:90 october.php:94
+msgid "Test connection"
+msgstr ""
+
+#: mail.php:612
+msgid "Test your setup"
+msgstr ""
+
+#: seo.php:115 cookies.php:129 maintenance.php:79
+msgid "Text"
+msgstr ""
+
+#: seo.php:61
+msgid "That \"content signals\" block is coming from Cloudflare — not Velox."
+msgstr ""
+
+#: class-velox-backup.php:63 class-velox-backup.php:81
+msgid "That backup file is no longer available."
+msgstr ""
+
+#: class-velox-ajax.php:972
+msgid "That doesn't look like valid Velox settings JSON."
+msgstr ""
+
+#: seo.php:64
+msgid "That's %1$s serving its own robots.txt at the edge, which overrides this. Fix it in your Cloudflare dashboard: %2$s. Writing a physical file here also helps, since Cloudflare only injects when your origin has no robots.txt."
+msgstr ""
+
+#: performance.php:241
+msgid "The %1$s / %2$s fields under Performance → CSS are a separate feature (the used-CSS engine) and aren't used for cache clearing."
+msgstr ""
+
+#: performance.php:233
+msgid "The %1$s button clears your edge cache through the %2$s — Velox asks that plugin to purge, so it must be installed and connected to your account. Until then the button reports %3$s"
+msgstr ""
+
+#: seo.php:177
+msgid "The %s file isn't writable by WordPress, so editing is disabled. Adjust file permissions on the server to enable it."
+msgstr ""
+
+#: performance.php:269
+msgid "The Cloudflare plugin already auto-purges on publish/edit; this button is for an on-demand whole-site purge."
+msgstr ""
+
+#: media.php:84
+msgid "The file is replaced in place and its thumbnails are rebuilt, so the filename and every link to it stay exactly as they are. This cannot be undone."
+msgstr ""
+
+#: pagespeed.php:181
+msgid "The full Google PageSpeed Insights report for %s &mdash; every category, every check."
+msgstr ""
+
+#: scripts.php:62
+msgid "The list grows as more of your site is visited. Set a rule, then %s. Disabling a handle also removes anything that depends on it, so re-test the page afterwards."
+msgstr ""
+
+#: images.php:74
+msgid "The modern baseline — typically 25–35% smaller than JPG/PNG with wide browser support."
+msgstr ""
+
+#: performance.php:231
+msgid "The official Cloudflare plugin is active, so the %s button above purges your edge cache."
+msgstr ""
+
+#: htmllang.php:90
+msgid "The override is switched off, so saving stores the choice without changing the page yet."
+msgstr ""
+
+#: class-velox-forms.php:1441
+msgid "The reply could not be sent — check your mail settings."
+msgstr ""
+
+#: mail.php:114
+msgid "The submit button text, colours and full styling live on the %1$s — click the button there, or open the %2$s."
+msgstr ""
+
+#: october.php:85
+msgid "Theme name"
+msgstr ""
+
+#: class-velox-redirects.php:115
+msgid "This content is no longer available."
+msgstr ""
+
+#: october.php:94
+msgid "This crawls every published page over HTTP, so a large site can take a minute. If you're behind Cloudflare, run %s first — the builder falls back to your origin server automatically, but a strict WAF can still block it."
+msgstr ""
+
+#: cookies.php:265
+msgid "This is the real banner — same markup and CSS your visitors get. Switch the device tabs to check both layouts."
+msgstr ""
+
+#: loginurl.php:25
+msgid "This one hits the real login file directly, so it works even if the pretty URL above is blocked by your server or a CDN. If you ever can't reach the pretty URL, use this."
+msgstr ""
+
+#: backup.php:223
+msgid "This replaces your current site with the contents of this backup."
+msgstr ""
+
+#: class-velox-forms.php:1419
+msgid "This submission has no email address to reply to."
+msgstr ""
+
+#: cookies.php:125
+msgid "Tip: drop %s anywhere (e.g. your footer) and it reopens this banner."
+msgstr ""
+
+#: media.php:12
+msgid "Title"
+msgstr ""
+
+#: mail.php:448 redirects.php:144
+msgid "To"
+msgstr ""
+
+#: backup.php:141
+msgid "Took"
+msgstr ""
+
+#: utilities.php:63
+msgid "Tools"
+msgstr ""
+
+#: fields.php:87
+msgid "Top"
+msgstr ""
+
+#: fields.php:285
+msgid "Top-level menu"
+msgstr ""
+
+#: mail.php:283
+msgid "Total entries"
+msgstr ""
+
+#: backup.php:48
+msgid "Total size"
+msgstr ""
+
+#: dashboard-traffic.php:39
+msgid "Traffic"
+msgstr ""
+
+#: mail.php:593
+msgid "Tried automatically if the primary send fails. Optional."
+msgstr ""
+
+#: dashboard.php:88
+msgid "Tune performance"
+msgstr ""
+
+#: dashboard.php:107
+msgid "Turf war detected"
+msgstr ""
+
+#: installer.php:28
+msgid "Turn each plugin on as soon as it's installed."
+msgstr ""
+
+#: scripts.php:57
+msgid "Turn it on, then hit %s (or just browse your site) so Velox can learn which handles load. You'll then be able to switch any of them off here."
+msgstr ""
+
+#: fields.php:305
+msgid "Turn off to hide this page from the admin menu without deleting it."
+msgstr ""
+
+#: dashboard.php:330 pagespeed.php:192
+msgid "Turn on in Settings"
+msgstr ""
+
+#: backup.php:33
+msgid "Turn this on to create and manage backups. Nothing runs until you ask for it."
+msgstr ""
+
+#: mail.php:22
+msgid "Turn this on to create forms and configure SMTP. Embed any form with %s — including inside an Oxygen Shortcode element."
+msgstr ""
+
+#: october.php:36
+msgid "Turn this on to scan your site and generate themes. Nothing is changed on your live site — it only reads the rendered pages."
+msgstr ""
+
+#: cookies.php:19
+msgid "Turn this on to show the consent banner on your site's front end and unlock the editor below."
+msgstr ""
+
+#: snippets-edit.php:88
+msgid "Type"
+msgstr ""
+
+#: images.php:225
+msgid "Typed names are saved in your browser — reload safely, they'll still be here until you apply them. Renaming updates every reference in posts and Oxygen automatically."
+msgstr ""
+
+#: settings.php:108
+msgid "URL to test"
+msgstr ""
+
+#: seo.php:75
+msgid "URLs"
+msgstr ""
+
+#: fields.php:288
+msgid "Under Appearance"
+msgstr ""
+
+#: fields.php:291
+msgid "Under Media"
+msgstr ""
+
+#: fields.php:290
+msgid "Under Posts"
+msgstr ""
+
+#: fields.php:287
+msgid "Under Settings"
+msgstr ""
+
+#: fields.php:289
+msgid "Under Tools"
+msgstr ""
+
+#: fields.php:286
+msgid "Under Velox"
+msgstr ""
+
+#: cookies.php:223
+msgid "Underline legal links"
+msgstr ""
+
+#: class-velox-ajax.php:998
+msgid "Unknown action."
+msgstr ""
+
+#: seo.php:169
+msgid "Unlock editing"
+msgstr ""
+
+#: unusedmedia.php:7
+msgid "Unused media"
+msgstr ""
+
+#: seo.php:77
+msgid "Updated"
+msgstr ""
+
+#: settings.php:248
+msgid "Updates"
+msgstr ""
+
+#: maintenance.php:131
+msgid "Updates as you type. Admins still see the live site."
+msgstr ""
+
+#: backup.php:70
+msgid "Upload a %1$s dump or a %2$s archive made on another site and it's %3$s. A safety backup of the current site is taken first, so you can roll the restore back from the list below."
+msgstr ""
+
+#: mail.php:551
+msgid "Use an address on your own domain so it isn't marked as spam."
+msgstr ""
+
+#: performance.php:251
+msgid "Use template"
+msgstr ""
+
+#: htmllang.php:75
+msgid "Use the short region form, like %1$s or %2$s. Underscores are converted to hyphens for you."
+msgstr ""
+
+#: mail.php:588
+msgid "Used for any mail that doesn't match a route below."
+msgstr ""
+
+#: maintenance.php:103
+msgid "Used when %1$s is set to %2$s. Upload a %3$s or %4$s from your media library, or paste a link (e.g. from LottieFiles)."
+msgstr ""
+
+#: utilities.php:28 mail.php:42 mail.php:147
+msgid "Utilities"
+msgstr ""
+
+#: header.php:76 header.php:226
+msgid "Velox"
+msgstr ""
+
+#: seo.php:79
+msgid "Velox SEO"
+msgstr ""
+
+#: settings.php:15
+msgid "Velox admin language"
+msgstr ""
+
+#: dashboard-traffic.php:62
+msgid "Velox counts a visit the first time a real browser loads a page. Numbers will fill in as people visit your site."
+msgstr ""
+
+#: performance.php:240
+msgid "Velox doesn't talk to Cloudflare directly — when you clear the Cloudflare cache, Velox asks the %1$s to purge everything. So it only works once that plugin is installed and connected; otherwise you get %2$s Your Velox page cache still clears fine without it."
+msgstr ""
+
+#: seo.php:61
+msgid "Velox is serving the clean robots.txt shown in the editor above. Cloudflare adds the signals block at the edge, so no WordPress plugin can remove it. To turn it off: open your Cloudflare dashboard → select this domain → %1$s (older accounts: %2$s) → switch off %3$s / managed robots.txt, then come back and click %4$s again."
+msgstr ""
+
+#: performance.php:341
+msgid "Velox loads your front page, finds the Google Fonts it uses, downloads the woff2 files into your uploads folder and serves those instead. Re-scan after you change fonts."
+msgstr ""
+
+#: header.php:232
+msgid "Velox scans your builder and installed plugins, then shows tuned settings you can review and tweak before applying."
+msgstr ""
+
+#: snippets-list.php:52
+msgid "Velox skipped your PHP snippets because one crashed the site (or you asked for Safe Mode). CSS, JS and HTML snippets are unaffected. Fix or switch off the offending snippet, then clear Safe Mode."
+msgstr ""
+
+#: settings.php:48
+msgid "Velox tunes its performance settings to your builder. Currently configured for:"
+msgstr ""
+
+#: settings.php:249
+msgid "Velox updates straight from GitHub releases, so it never appears in the public plugin directory. When a new version is released it shows up like any other plugin update."
+msgstr ""
+
+#: fields.php:29
+msgid "Velox_Fields::get_field('name')"
+msgstr ""
+
+#: fields.php:253
+msgid "Velox_Fields::get_field('name','option')"
+msgstr ""
+
+#: performance.php:264
+msgid "Verify"
+msgstr ""
+
+#: october.php:117
+msgid "Version"
+msgstr ""
+
+#: images.php:178
+msgid "View converted images →"
+msgstr ""
+
+#: seo.php:43 seo.php:61
+msgid "View live robots.txt"
+msgstr ""
+
+#: seo.php:143
+msgid "View sitemap"
+msgstr ""
+
+#: dashboard.php:313
+msgid "View traffic"
+msgstr ""
+
+#: redirects.php:90
+msgid "Visit"
+msgstr ""
+
+#: dashboard-traffic.php:50
+msgid "Visitors"
+msgstr ""
+
+#: dashboard-traffic.php:57
+msgid "Visitors per day"
+msgstr ""
+
+#: backup.php:195
+msgid "WP-Cron runs on traffic — quiet sites may back up a little late."
+msgstr ""
+
+#: images.php:73 images.php:119 images.php:207 images.php:242
+msgid "WebP"
+msgstr ""
+
+#: database.php:52
+msgid "Weekly auto-clean"
+msgstr ""
+
+#: backup.php:141
+msgid "What"
+msgstr ""
+
+#: snippets-list.php:66
+msgid "What kind of snippet?"
+msgstr ""
+
+#: performance.php:240
+msgid "What the button does."
+msgstr ""
+
+#: backup.php:181
+msgid "What to back up"
+msgstr ""
+
+#: backup.php:86 backup.php:141
+msgid "When"
+msgstr ""
+
+#: mail.php:635
+msgid "When this is off, the “Require CAPTCHA” switch is locked on every form. Turn it on and add your keys to allow forms to use it."
+msgstr ""
+
+#: header.php:201
+msgid "Which page builder do you use?"
+msgstr ""
+
+#: maintenance.php:24
+msgid "While maintenance is on, everything is hidden from search."
+msgstr ""
+
+#: htmllang.php:34
+msgid "While this is off, the page keeps whatever WordPress and your theme produce."
+msgstr ""
+
+#: media.php:66
+msgid "Width"
+msgstr ""
+
+#: performance.php:251
+msgid "WordPress"
+msgstr ""
+
+#: backup.php:211
+msgid "Working…"
+msgstr ""
+
+#: seo.php:47
+msgid "Write to physical file"
+msgstr ""
+
+#: seo.php:71
+msgid "XML sitemap"
+msgstr ""
+
+#: class-velox-fields.php:951
+msgid "Yes"
+msgstr ""
+
+#: header.php:261
+msgid "You're all set"
+msgstr ""
+
+#: backup.php:79
+msgid "Your backups"
+msgstr ""
+
+#: images.php:60
+msgid "Your image optimization center — pick formats and quality, then convert your whole library. With replace mode on, images become WebP right in your media library; the resize width sets a max (height follows automatically, smaller images are left untouched)."
+msgstr ""
+
+#: mail.php:22
+msgid "[velox_form id=\"1\"]"
+msgstr ""
+
+#: mail.php:503
+msgid "[velox_form]"
+msgstr ""
+
+#: fields.php:72
+msgid "all"
+msgstr ""
+
+#: october.php:49
+msgid "and"
+msgstr ""
+
+#: fields.php:72
+msgid "any"
+msgstr ""
+
+#: scripts.php:39
+msgid "archive"
+msgstr ""
+
+#: mail.php:601
+msgid "billing@…"
+msgstr ""
+
+#: scripts.php:39
+msgid "blog"
+msgstr ""
+
+#: seo.php:79
+msgid "box → \"Exclude from sitemap\")."
+msgstr ""
+
+#: header.php:171
+msgid "by Sumasearch"
+msgstr ""
+
+#: performance.php:252
+msgid "copy it now"
+msgstr ""
+
+#: backup.php:227
+msgid "current"
+msgstr ""
+
+#: performance.php:248
+msgid "dash.cloudflare.com"
+msgstr ""
+
+#: fields.php:301
+msgid "dashicons-…"
+msgstr ""
+
+#: htmllang.php:75
+msgid "de-DE"
+msgstr ""
+
+#: mail.php:80
+msgid "drag to reorder"
+msgstr ""
+
+#: filemanager.php:17
+msgid "editing core, %1$s, or a theme's %2$s can take the whole site down. If you're unsure, make a backup first (Utilities &rarr; Backup &amp; restore)."
+msgstr ""
+
+#: htmllang.php:75
+msgid "en-GB"
+msgstr ""
+
+#: seo.php:131
+msgid "example URLs — not your real site"
+msgstr ""
+
+#: backup.php:43
+msgid "file"
+msgstr ""
+
+#: mail.php:114
+msgid "form canvas"
+msgstr ""
+
+#: scripts.php:39
+msgid "front"
+msgstr ""
+
+#: filemanager.php:17
+msgid "functions.php"
+msgstr ""
+
+#: fields.php:22
+msgid "get_field()"
+msgstr ""
+
+#: settings.php:95
+msgid "googleapis.com"
+msgstr ""
+
+#: backup.php:102
+msgid "imported"
+msgstr ""
+
+#: dashboard.php:346
+msgid "in the last 30 days"
+msgstr ""
+
+#: htmllang.php:24
+msgid "lang"
+msgstr ""
+
+#: performance.php:233 performance.php:240
+msgid "official Cloudflare plugin"
+msgstr ""
+
+#: seo.php:153
+msgid "og:image"
+msgstr ""
+
+#: seo.php:153
+msgid "og:title"
+msgstr ""
+
+#: snippets-edit.php:84
+msgid "optional"
+msgstr ""
+
+#: backup.php:43
+msgid "php-zip"
+msgstr ""
+
+#: media.php:67 media.php:74
+msgid "px"
+msgstr ""
+
+#: backup.php:70
+msgid "restored straight away"
+msgstr ""
+
+#: seo.php:32 seo.php:37
+msgid "robots.txt"
+msgstr ""
+
+#: dashboard.php:297
+msgid "rows of junk to clean out"
+msgstr ""
+
+#: backup.php:101
+msgid "safety"
+msgstr ""
+
+#: dashboard.php:264
+msgid "selected"
+msgstr ""
+
+#: scripts.php:39
+msgid "shop"
+msgstr ""
+
+#: mail.php:445
+msgid "shown as the sender"
+msgstr ""
+
+#: settings.php:165
+msgid "tell us"
+msgstr ""
+
+#: scripts.php:39
+msgid "type:post"
+msgstr ""
+
+#: scripts.php:39
+msgid "type:product"
+msgstr ""
+
+#: loginurl.php:30
+msgid "util_login_slug"
+msgstr ""
+
+#: dashboard-traffic.php:53
+msgid "visitors / day"
+msgstr ""
+
+#: settings.php:165
+msgid "which you need next."
+msgstr ""
+
+#: dashboard.php:264
+msgid "widgets"
+msgstr ""
+
+#: filemanager.php:17
+msgid "wp-config.php"
+msgstr ""
+
+#: backup.php:24
+msgid "wp-content"
+msgstr ""
+
+#: installer.php:16
+msgid "wp-fastest-cache"
+msgstr ""
+
+#: header.php:247
+msgid "your builder"
+msgstr ""
+
+#: seo.php:64
+msgid "your zone → AI Crawl Control / Bots → uncheck \"Display Content Signals Policy\" / managed robots.txt"
+msgstr ""
+
+#: cookies.php:220
+msgid "z-index"
+msgstr ""
+
+#: mail.php:207
+msgid "— entries"
+msgstr ""
+
+#: seo.php:101
+msgid "— how sitemap.xml looks when opened in a browser. Search engines still read the plain XML."
+msgstr ""
+
+#: mail.php:687
+msgid "— switch off to disable forms and SMTP."
+msgstr ""
+
+#: fields.php:356
+msgid "— switch off to disable."
+msgstr ""
+
+#: october.php:152
+msgid "— switch off to hide it."
+msgstr ""
+
+#: backup.php:201
+msgid "— switch off to hide this tool (your stored backups are kept)."
+msgstr ""
+
+#: fields.php:26
+msgid "— switch on to create field groups."
+msgstr ""
+
+#: performance.php:234
+msgid "“Cloudflare”"
+msgstr ""
+
+#: seo.php:153
+msgid "…) so links shared to Facebook, LinkedIn, WhatsApp and X show a rich preview. Turn off if another tool already handles them."
+msgstr ""
+
+#: images.php:221 media.php:36
+msgid "← Prev"
+msgstr ""
+
+#: october.php:113
+msgid "↻ Re-scan website"
+msgstr ""
+
+#: utilities.php:93
+msgid "⚠ Editing files directly can break your site. Use with care."
+msgstr ""
+
+#: october.php:111
+msgid "⤓ Download all"
+msgstr ""
+

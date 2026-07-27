@@ -1,0 +1,2763 @@
+# Velox — German (de_DE, formal Sie)
+msgid ""
+msgstr ""
+"Project-Id-Version: Velox\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Language: de_DE\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+msgid "\"Cloudflare plugin not active.\""
+msgstr "„Cloudflare-Plugin nicht aktiv.“"
+
+msgid "%1$s tab → %2$s."
+msgstr ""
+
+msgid "%1$s turns on only the optimizations that can't break a site. %2$s adds async CSS, unused-CSS removal (auto-learn), JS delay and bloat removal — then test and exclude anything that misbehaves. Neither touches jQuery Migrate or content-visibility (those need per-site testing)."
+msgstr ""
+
+msgid "(dashicons-… or image URL)"
+msgstr "(dashicons-… oder Bild-URL)"
+
+msgid "(lowercase, max 20 chars — this is the post type key)"
+msgstr "(Kleinbuchstaben, max. 20 Zeichen — dies ist der Beitragstyp-Schlüssel)"
+
+msgid "(lowercase, max 32 chars)"
+msgstr "(Kleinbuchstaben, max. 32 Zeichen)"
+
+msgid "(lowercase, max 32)"
+msgstr "(Kleinbuchstaben, max. 32)"
+
+msgid "(optional — defaults to your domain)"
+msgstr "(optional — standardmäßig Ihre Domain)"
+
+msgid "(optional — e.g. legal note)"
+msgstr "(optional — z. B. rechtlicher Hinweis)"
+
+msgid "(optional)"
+msgstr "(optional)"
+
+msgid "(top-level only)"
+msgstr "(nur oberste Ebene)"
+
+msgid "+ Add connection"
+msgstr "+ Verbindung hinzufügen"
+
+msgid "+ Add rule"
+msgstr "+ Regel hinzufügen"
+
+msgid "+ Add rule group"
+msgstr "+ Regelgruppe hinzufügen"
+
+msgid "+ New form"
+msgstr "+ Neues Formular"
+
+msgid ".htaccess"
+msgstr ""
+
+msgid ".htm"
+msgstr ""
+
+msgid ".json"
+msgstr ""
+
+msgid ".lottie"
+msgstr ""
+
+msgid ".sql"
+msgstr ""
+
+msgid ".vxck"
+msgstr ""
+
+msgid ".zip"
+msgstr ""
+
+msgid "/new"
+msgstr ""
+
+msgid "/wp-admin"
+msgstr ""
+
+msgid "/wp-login.php"
+msgstr ""
+
+msgid "0 = auto"
+msgstr "0 = automatisch"
+
+msgid "0 = default"
+msgstr "0 = Standard"
+
+msgid "0 = none"
+msgstr "0 = keine"
+
+msgid "0 selected"
+msgstr "0 ausgewählt"
+
+msgid "12 hours"
+msgstr "12 Stunden"
+
+msgid "404 log"
+msgstr "404-Protokoll"
+
+msgid "410 Gone"
+msgstr "410 Gone"
+
+msgid "A bad rule here can take the whole site down with a 500 error. Unlocking takes a snapshot first, so %s can always put it back exactly as it was when you unlocked."
+msgstr "Eine fehlerhafte Regel kann hier die gesamte Website mit einem 500-Fehler lahmlegen. Beim Entsperren wird zuerst eine Sicherungskopie erstellt, sodass %s sie jederzeit exakt in den Zustand vor dem Entsperren zurückversetzen kann."
+
+msgid "A complete performance toolkit — page cache, asset optimization, fonts, preloading and more. Velox works standalone, and plays nicely with Cloudflare and Oxygen. Flip one setting at a time and re-test PageSpeed."
+msgstr "Ein komplettes Performance-Toolkit — Seiten-Cache, Asset-Optimierung, Schriftarten, Preloading und mehr. Velox funktioniert eigenständig und arbeitet reibungslos mit Cloudflare und Oxygen zusammen. Ändern Sie eine Einstellung nach der anderen und testen Sie PageSpeed erneut."
+
+msgid "A fully styleable consent banner wired to Google Consent Mode v2. Edit every colour, text and link, pick where it sits, and it stores the visitor's choice — analytics and ad tags only fire once they agree."
+msgstr "Ein vollständig gestaltbares Einwilligungs-Banner, angebunden an Google Consent Mode v2. Bearbeiten Sie jede Farbe, jeden Text und Link, wählen Sie die Position, und die Auswahl des Besuchers wird gespeichert — Analyse- und Werbe-Tags werden erst nach der Zustimmung ausgelöst."
+
+msgid "A physical %s exists in your site root and is being served directly. The editor keeps it in sync on save. This is the most reliable setup behind Nginx or a CDN — use \"Back to virtual\" to remove it."
+msgstr "Eine physische %s existiert in Ihrem Website-Stammverzeichnis und wird direkt ausgeliefert. Der Editor hält sie beim Speichern synchron. Dies ist die zuverlässigste Einrichtung hinter Nginx oder einem CDN — verwenden Sie „Zurück zu virtuell“, um sie zu entfernen."
+
+msgid "A quick read on the environment Velox is running in — handy when debugging or filing a support note."
+msgstr "Ein schneller Überblick über die Umgebung, in der Velox läuft — praktisch bei der Fehlersuche oder für eine Support-Anfrage."
+
+msgid "A running record of who did what — logins, content changes, plugin and theme changes, user changes and updates. Handy for client sites and shared logins."
+msgstr "Eine fortlaufende Aufzeichnung, wer was getan hat — Anmeldungen, Inhaltsänderungen, Plugin- und Theme-Änderungen, Benutzeränderungen und Updates. Praktisch für Kundenseiten und gemeinsam genutzte Zugänge."
+
+msgid "A toolbox of site and admin helpers. Switch on what you need — anything you enable appears under Utilities in the sidebar, ready to open."
+msgstr "Ein Werkzeugkasten mit Helfern für Website und Administration. Aktivieren Sie, was Sie brauchen — alles Aktivierte erscheint unter „Werkzeuge“ in der Seitenleiste, bereit zum Öffnen."
+
+msgid "AI Crawl Control"
+msgstr "KI-Crawl-Steuerung"
+
+msgid "API Token"
+msgstr "API-Token"
+
+msgid "API Tokens"
+msgstr "API-Token"
+
+msgid "API key"
+msgstr "API-Schlüssel"
+
+msgid "API token"
+msgstr "API-Token"
+
+msgid "AVIF"
+msgstr "AVIF"
+
+msgid "Accent"
+msgstr "Akzent"
+
+msgid "Account"
+msgstr "Konto"
+
+msgid "Activate after install"
+msgstr "Nach der Installation aktivieren"
+
+msgid "Active"
+msgstr "Aktiv"
+
+msgid "Active redirects"
+msgstr "Aktive Weiterleitungen"
+
+msgid "Activity log"
+msgstr "Aktivitätsprotokoll"
+
+msgid "Add PHP, CSS, JS or HTML that runs by location and priority. A bad PHP snippet auto-disables, and Safe Mode keeps a crash from ever locking you out."
+msgstr "Fügen Sie PHP, CSS, JS oder HTML hinzu, das nach Position und Priorität ausgeführt wird. Ein fehlerhaftes PHP-Snippet wird automatisch deaktiviert, und der abgesicherte Modus verhindert, dass ein Absturz Sie jemals aussperrt."
+
+msgid "Add alt text, titles and captions to every image for SEO and accessibility, and rename files safely. File renames update every reference across your posts and Oxygen builder data automatically."
+msgstr "Fügen Sie jedem Bild Alt-Text, Titel und Bildunterschriften für SEO und Barrierefreiheit hinzu und benennen Sie Dateien sicher um. Umbenennungen aktualisieren automatisch jede Referenz in Ihren Beiträgen und Oxygen-Builder-Daten."
+
+msgid "Add button"
+msgstr "Schaltfläche hinzufügen"
+
+msgid "Add custom fields to posts, pages and any post type — ACF-style field groups with location rules and a %s API."
+msgstr "Fügen Sie Beiträgen, Seiten und jedem Beitragstyp benutzerdefinierte Felder hinzu — Feldgruppen im ACF-Stil mit Positionsregeln und einer %s-API."
+
+msgid "Add field"
+msgstr "Feld hinzufügen"
+
+msgid "Add images"
+msgstr "Bilder hinzufügen"
+
+msgid "Add one or more sending connections, then route mail to them by the From address. If a send fails, Velox retries through your fallback."
+msgstr "Fügen Sie eine oder mehrere Versandverbindungen hinzu und leiten Sie E-Mails anhand der Absenderadresse an sie weiter. Schlägt ein Versand fehl, versucht Velox es erneut über Ihre Ausweichverbindung."
+
+msgid "Add options page"
+msgstr "Optionsseite hinzufügen"
+
+msgid "Add post type"
+msgstr "Beitragstyp hinzufügen"
+
+msgid "Add redirect"
+msgstr "Weiterleitung hinzufügen"
+
+msgid "Add row"
+msgstr "Zeile hinzufügen"
+
+msgid "Add snippet"
+msgstr "Snippet hinzufügen"
+
+msgid "Add taxonomy"
+msgstr "Taxonomie hinzufügen"
+
+msgid "Add your Cloudflare account ID and API token first."
+msgstr "Fügen Sie zuerst Ihre Cloudflare-Konto-ID und Ihr API-Token hinzu."
+
+msgid "Add your first snippet"
+msgstr "Fügen Sie Ihr erstes Snippet hinzu"
+
+msgid "Add, remove and reorder buttons. Each one can be a button or a link, do something (accept, reject, open preferences, save) or point to a URL, and be styled individually."
+msgstr "Schaltflächen hinzufügen, entfernen und neu anordnen. Jede kann eine Schaltfläche oder ein Link sein, eine Aktion ausführen (Annehmen, Ablehnen, Einstellungen öffnen, Speichern) oder auf eine URL verweisen und individuell gestaltet werden."
+
+msgid "After saving"
+msgstr "Nach dem Speichern"
+
+msgid "After submitting"
+msgstr "Nach dem Absenden"
+
+msgid "Aggressive"
+msgstr "Aggressiv"
+
+msgid "All"
+msgstr "Alle"
+
+msgid "All snippets"
+msgstr "Alle Snippets"
+
+msgid "All types"
+msgstr "Alle Typen"
+
+msgid "Allow everything"
+msgstr "Alles zulassen"
+
+msgid "Also generates WebP for each registered image size (recommended for srcset)."
+msgstr "Erzeugt zusätzlich WebP für jede registrierte Bildgröße (empfohlen für srcset)."
+
+msgid "Alt text"
+msgstr "Alt-Text"
+
+msgid "An extra AVIF twin, usually 15–30% smaller again. Capable browsers get AVIF, everyone else falls back to WebP, then the original. Slower to encode."
+msgstr "Ein zusätzliches AVIF-Gegenstück, meist nochmals 15–30 % kleiner. Fähige Browser erhalten AVIF, alle anderen greifen auf WebP und dann auf das Original zurück. Langsamer zu kodieren."
+
+msgid "Appearance"
+msgstr "Design"
+
+msgid "Appends a ready-made block to the editor above — review, then save."
+msgstr "Fügt dem Editor oben einen fertigen Block hinzu — prüfen, dann speichern."
+
+msgid "Applies the standard robots.txt, switches on the sitemap and generates it right now — everything wired in one click."
+msgstr "Wendet die Standard-robots.txt an, aktiviert die Sitemap und generiert sie sofort — alles mit einem Klick eingerichtet."
+
+msgid "Apply aggressive preset"
+msgstr "Aggressive Voreinstellung anwenden"
+
+msgid "Apply all names"
+msgstr "Alle Namen anwenden"
+
+msgid "Apply imported settings"
+msgstr "Importierte Einstellungen anwenden"
+
+msgid "Apply recommended setup"
+msgstr "Empfohlene Einrichtung anwenden"
+
+msgid "Apply safe defaults"
+msgstr "Sichere Standardwerte anwenden"
+
+msgid "Apply selected"
+msgstr "Auswahl anwenden"
+
+msgid "Apply to library"
+msgstr "Auf Mediathek anwenden"
+
+msgid "Attach taxonomies"
+msgstr "Taxonomien zuordnen"
+
+msgid "Attach to post types"
+msgstr "Beitragstypen zuordnen"
+
+msgid "Authentication Mode → %s."
+msgstr "Authentifizierungsmodus → %s."
+
+msgid "Auto (recommended)"
+msgstr "Automatisch (empfohlen)"
+
+msgid "Auto picks the best available engine. Force one only if you have a reason to."
+msgstr "Automatisch wählt die beste verfügbare Engine. Erzwingen Sie eine nur, wenn Sie einen Grund dazu haben."
+
+msgid "Auto-convert new uploads"
+msgstr "Neue Uploads automatisch konvertieren"
+
+msgid "Auto-learn builds itself from real traffic — no setup needed. Cloudflare/Local can be scanned manually below."
+msgstr "Auto-Lernen baut sich aus echtem Traffic auf — keine Einrichtung nötig. Cloudflare/Lokal können unten manuell gescannt werden."
+
+msgid "Auto-learn data and cached CSS cleared. Learning will restart from your next visitors."
+msgstr "Auto-Lern-Daten und zwischengespeichertes CSS geleert. Das Lernen beginnt mit Ihren nächsten Besuchern neu."
+
+msgid "Auto-learn needs no action — it optimizes each page after a few visits and keeps improving. Use Scan only for the Cloudflare or Local engines. Clear/Reset after a design change or if something looks off."
+msgstr "Auto-Lernen erfordert keine Aktion — es optimiert jede Seite nach einigen Besuchen und verbessert sich fortlaufend. Verwenden Sie „Scannen“ nur für die Cloudflare- oder Lokal-Engine. Leeren/Zurücksetzen nach einer Designänderung oder wenn etwas nicht stimmt."
+
+msgid "Automation"
+msgstr "Automatisierung"
+
+msgid "Available"
+msgstr "Verfügbar"
+
+msgid "Back"
+msgstr "Zurück"
+
+msgid "Back to virtual"
+msgstr "Zurück zu virtuell"
+
+msgid "Back up your database and files, download them, restore in a click, or import a backup from another site. Backups live in a protected folder under %s."
+msgstr "Sichern Sie Ihre Datenbank und Dateien, laden Sie sie herunter, stellen Sie sie mit einem Klick wieder her oder importieren Sie eine Sicherung von einer anderen Website. Sicherungen liegen in einem geschützten Ordner unter %s."
+
+msgid "Background"
+msgstr "Hintergrund"
+
+msgid "Background image"
+msgstr "Hintergrundbild"
+
+msgid "Backup"
+msgstr "Sicherung"
+
+msgid "Backups"
+msgstr "Sicherungen"
+
+msgid "Banner enabled"
+msgstr "Banner aktiviert"
+
+msgid "Base font size (px)"
+msgstr "Basis-Schriftgröße (px)"
+
+msgid "Before / after"
+msgstr "Vorher / Nachher"
+
+msgid "Before/after comparator"
+msgstr "Vorher/Nachher-Vergleich"
+
+msgid "Block"
+msgstr "Blockieren"
+
+msgid "Block AI crawlers"
+msgstr "KI-Crawler blockieren"
+
+msgid "Body"
+msgstr "Text"
+
+msgid "Body colour"
+msgstr "Textfarbe"
+
+msgid "Body size (px)"
+msgstr "Textgröße (px)"
+
+msgid "Bookmark your always-works recovery URL:"
+msgstr "Setzen Sie ein Lesezeichen für Ihre immer funktionierende Wiederherstellungs-URL:"
+
+msgid "Bookmark your login URL before leaving this page."
+msgstr "Setzen Sie ein Lesezeichen für Ihre Anmelde-URL, bevor Sie diese Seite verlassen."
+
+msgid "Border width (px)"
+msgstr "Rahmenbreite (px)"
+
+msgid "Bots"
+msgstr "Bots"
+
+msgid "Box / modal width (px)"
+msgstr "Box-/Modal-Breite (px)"
+
+msgid "Build"
+msgstr "Erstellen"
+
+msgid "Build a theme"
+msgstr "Theme erstellen"
+
+msgid "Build forms, route submissions to styled notification emails (to you and to the customer), and send everything reliably over SMTP."
+msgstr "Erstellen Sie Formulare, leiten Sie Einsendungen an gestaltete Benachrichtigungs-E-Mails weiter (an Sie und an den Kunden) und versenden Sie alles zuverlässig über SMTP."
+
+msgid "Build forms, route submissions to styled notification emails, and send reliably over SMTP."
+msgstr "Erstellen Sie Formulare, leiten Sie Einsendungen an gestaltete Benachrichtigungs-E-Mails weiter und versenden Sie zuverlässig über SMTP."
+
+msgid "Builder not listed? %s"
+msgstr "Builder nicht aufgeführt? %s"
+
+msgid "Built"
+msgstr "Erstellt"
+
+msgid "Built %1$s (%2$s)"
+msgstr "Erstellt %1$s (%2$s)"
+
+msgid "Bulk import"
+msgstr "Massenimport"
+
+msgid "Bulk import — pipe format"
+msgstr "Massenimport — Pipe-Format"
+
+msgid "Bulk installer"
+msgstr "Massen-Installer"
+
+msgid "Bulk optimization"
+msgstr "Massenoptimierung"
+
+msgid "Button"
+msgstr "Schaltfläche"
+
+msgid "Button font size (px)"
+msgstr "Schaltflächen-Schriftgröße (px)"
+
+msgid "Button font weight"
+msgstr "Schaltflächen-Schriftstärke"
+
+msgid "Button gap (px)"
+msgstr "Schaltflächen-Abstand (px)"
+
+msgid "Buttons"
+msgstr "Schaltflächen"
+
+msgid "By default WordPress sends mail as %s. Set your own name and address here and every mail Velox sends uses it instead."
+msgstr "Standardmäßig versendet WordPress E-Mails als %s. Legen Sie hier Ihren eigenen Namen und Ihre Adresse fest, und jede von Velox gesendete E-Mail verwendet diese stattdessen."
+
+msgid "CAPTCHA"
+msgstr "CAPTCHA"
+
+msgid "CSS"
+msgstr "CSS"
+
+msgid "CSS — Styles"
+msgstr "CSS — Stile"
+
+msgid "Cached on disk"
+msgstr "Auf Festplatte zwischengespeichert"
+
+msgid "Cancel"
+msgstr "Abbrechen"
+
+msgid "Caption"
+msgstr "Bildunterschrift"
+
+msgid "Careful — this is your live server config."
+msgstr "Vorsicht — dies ist Ihre Live-Serverkonfiguration."
+
+msgid "Careful:"
+msgstr "Vorsicht:"
+
+msgid "Category"
+msgstr "Kategorie"
+
+msgid "Change frequency"
+msgstr "Änderungshäufigkeit"
+
+msgid "Changes apply to new mail once saved."
+msgstr "Änderungen gelten nach dem Speichern für neue E-Mails."
+
+msgid "Changes save automatically as you make them."
+msgstr "Änderungen werden automatisch gespeichert, während Sie sie vornehmen."
+
+msgid "Changes the language of Velox's own screens only — WordPress and your other plugins are unaffected. English and German are complete; other languages are being translated and fall back to English until finished."
+msgstr "Ändert nur die Sprache der Velox-eigenen Bildschirme — WordPress und Ihre anderen Plugins sind nicht betroffen. Englisch und Deutsch sind vollständig; andere Sprachen werden übersetzt und greifen bis zur Fertigstellung auf Englisch zurück."
+
+msgid "Check a connection, or send yourself a real email to confirm delivery."
+msgstr "Prüfen Sie eine Verbindung oder senden Sie sich selbst eine echte E-Mail, um die Zustellung zu bestätigen."
+
+msgid "Check deliverability"
+msgstr "Zustellbarkeit prüfen"
+
+msgid "Check for updates"
+msgstr "Nach Updates suchen"
+
+msgid "Checks every published page for the things that quietly cost you traffic."
+msgstr "Prüft jede veröffentlichte Seite auf Dinge, die Sie unbemerkt Traffic kosten."
+
+msgid "Choose"
+msgstr "Auswählen"
+
+msgid "Choose a menu icon"
+msgstr "Menü-Symbol auswählen"
+
+msgid "Choose icon"
+msgstr "Symbol auswählen"
+
+msgid "Choose what to include. Large sites can take a minute — a progress box will keep you posted."
+msgstr "Wählen Sie aus, was einbezogen werden soll. Bei großen Websites kann es eine Minute dauern — ein Fortschrittsfenster hält Sie auf dem Laufenden."
+
+msgid "Classes"
+msgstr "Klassen"
+
+msgid "Clean"
+msgstr "Bereinigen"
+
+msgid "Clean database"
+msgstr "Datenbank bereinigen"
+
+msgid "Clean everything"
+msgstr "Alles bereinigen"
+
+msgid "Cleanup"
+msgstr "Bereinigung"
+
+msgid "Clear"
+msgstr "Leeren"
+
+msgid "Clear Safe Mode"
+msgstr "Abgesicherten Modus beenden"
+
+msgid "Clear all caches"
+msgstr "Alle Caches leeren"
+
+msgid "Clear cache"
+msgstr "Cache leeren"
+
+msgid "Clear history"
+msgstr "Verlauf löschen"
+
+msgid "Clear log"
+msgstr "Protokoll löschen"
+
+msgid "Clear used-CSS cache"
+msgstr "Used-CSS-Cache leeren"
+
+msgid "Cleared %d cached used-CSS file(s)."
+msgstr "%d zwischengespeicherte Used-CSS-Datei(en) geleert."
+
+msgid "Close"
+msgstr "Schließen"
+
+msgid "Cloudflare"
+msgstr "Cloudflare"
+
+msgid "Cloudflare Turnstile (free)"
+msgstr "Cloudflare Turnstile (kostenlos)"
+
+msgid "Cloudflare account ID"
+msgstr "Cloudflare-Konto-ID"
+
+msgid "Cloudflare connected."
+msgstr "Cloudflare verbunden."
+
+msgid "Cloudflare daily browser limit reached (10 min/day on the free plan). Try again tomorrow or upgrade to Workers Paid."
+msgstr "Tägliches Cloudflare-Browser-Limit erreicht (10 Min./Tag im kostenlosen Tarif). Versuchen Sie es morgen erneut oder wechseln Sie zu Workers Paid."
+
+msgid "Cloudflare needs a one-time setup."
+msgstr "Cloudflare erfordert eine einmalige Einrichtung."
+
+msgid "Cloudflare render failed: %s"
+msgstr "Cloudflare-Rendering fehlgeschlagen: %s"
+
+msgid "Cloudflare, Inc."
+msgstr "Cloudflare, Inc."
+
+msgid "Code"
+msgstr "Code"
+
+msgid "Code Snippets"
+msgstr "Code-Snippets"
+
+msgid "Colours"
+msgstr "Farben"
+
+msgid "Come back here — this note should turn green (\"Cloudflare connected\") and the Cloudflare button should report \"Cloudflare purged.\""
+msgstr "Kommen Sie hierher zurück — dieser Hinweis sollte grün werden („Cloudflare verbunden“), und die Cloudflare-Schaltfläche sollte „Cloudflare geleert“ melden."
+
+msgid "Content Signals Policy"
+msgstr "Content-Signals-Richtlinie"
+
+msgid "Contents"
+msgstr "Inhalt"
+
+msgid "Continue to summary → %1$s → %2$s (shown only once) and store it safely."
+msgstr "Weiter zur Zusammenfassung → %1$s → %2$s (wird nur einmal angezeigt) und bewahren Sie es sicher auf."
+
+msgid "Conversion engine"
+msgstr "Konvertierungs-Engine"
+
+msgid "Conversion failed. Check that GD or Imagick supports WebP on this server."
+msgstr "Konvertierung fehlgeschlagen. Prüfen Sie, ob GD oder Imagick auf diesem Server WebP unterstützt."
+
+msgid "Convert every JPG and PNG in your library to the formats selected above. Safe to stop and resume anytime."
+msgstr "Konvertieren Sie jedes JPG und PNG in Ihrer Mediathek in die oben ausgewählten Formate. Kann jederzeit gefahrlos angehalten und fortgesetzt werden."
+
+msgid "Convert pending images"
+msgstr "Ausstehende Bilder konvertieren"
+
+msgid "Convert thumbnail sizes too"
+msgstr "Auch Thumbnail-Größen konvertieren"
+
+msgid "Converted images"
+msgstr "Konvertierte Bilder"
+
+msgid "Cookie banner"
+msgstr "Cookie-Banner"
+
+msgid "Copy your whole Velox config to another site. Export gives you a JSON blob; paste one in and hit Import to apply it."
+msgstr "Kopieren Sie Ihre gesamte Velox-Konfiguration auf eine andere Website. Der Export liefert einen JSON-Block; fügen Sie einen ein und klicken Sie auf „Importieren“, um ihn anzuwenden."
+
+msgid "Core areas"
+msgstr "Kernbereiche"
+
+msgid "Corner radius (px)"
+msgstr "Eckenradius (px)"
+
+msgid "Could not create the local fonts folder. Check uploads permissions."
+msgstr "Der lokale Schriftarten-Ordner konnte nicht erstellt werden. Prüfen Sie die Upload-Berechtigungen."
+
+msgid "Could not create the used-CSS folder."
+msgstr "Der Used-CSS-Ordner konnte nicht erstellt werden."
+
+msgid "Could not create the zip file."
+msgstr "Die ZIP-Datei konnte nicht erstellt werden."
+
+msgid "Could not read the front page to scan for fonts."
+msgstr "Die Startseite konnte nicht gelesen werden, um nach Schriftarten zu suchen."
+
+msgid "Could not rename %s. Check file permissions."
+msgstr "%s konnte nicht umbenannt werden. Prüfen Sie die Dateiberechtigungen."
+
+msgid "Count visitors"
+msgstr "Besucher zählen"
+
+msgid "Counts are live. Nothing is deleted until you press a button."
+msgstr "Die Zählungen sind live. Es wird nichts gelöscht, bis Sie eine Schaltfläche drücken."
+
+msgid "Create Token"
+msgstr "Token erstellen"
+
+msgid "Create a backup"
+msgstr "Sicherung erstellen"
+
+msgid "Create backup"
+msgstr "Sicherung erstellen"
+
+msgid "Create custom post types and taxonomies, then attach field groups to them — all without code."
+msgstr "Erstellen Sie eigene Beitragstypen und Taxonomien und ordnen Sie ihnen Feldgruppen zu — ganz ohne Code."
+
+msgid "Create field group"
+msgstr "Feldgruppe erstellen"
+
+msgid "Create your first field group to start adding custom fields."
+msgstr "Erstellen Sie Ihre erste Feldgruppe, um benutzerdefinierte Felder hinzuzufügen."
+
+msgid "Custom"
+msgstr "Benutzerdefiniert"
+
+msgid "Custom CSS"
+msgstr "Benutzerdefiniertes CSS"
+
+msgid "Custom address…"
+msgstr "Benutzerdefinierte Adresse…"
+
+msgid "Custom fields"
+msgstr "Benutzerdefinierte Felder"
+
+msgid "Custom fields is on"
+msgstr "Benutzerdefinierte Felder sind aktiv"
+
+msgid "Custom login URL"
+msgstr "Benutzerdefinierte Anmelde-URL"
+
+msgid "Custom post types appear in the admin sidebar next to Posts and Pages."
+msgstr "Benutzerdefinierte Beitragstypen erscheinen in der Admin-Seitenleiste neben Beiträgen und Seiten."
+
+msgid "Daily average"
+msgstr "Tagesdurchschnitt"
+
+msgid "Dashboard"
+msgstr "Dashboard"
+
+msgid "Dashboard traffic"
+msgstr "Dashboard-Traffic"
+
+msgid "Database"
+msgstr "Datenbank"
+
+msgid "Database only"
+msgstr "Nur Datenbank"
+
+msgid "Dateiname | Alt-Text | Titel"
+msgstr ""
+
+msgid "Day"
+msgstr "Tag"
+
+msgid "Default"
+msgstr "Standard"
+
+msgid "Default WebP quality"
+msgstr "Standard-WebP-Qualität"
+
+msgid "Default view"
+msgstr "Standardansicht"
+
+msgid "Delete"
+msgstr "Löschen"
+
+msgid "Delete entry"
+msgstr "Eintrag löschen"
+
+msgid "Delete forever"
+msgstr "Endgültig löschen"
+
+msgid "Delete selected"
+msgstr "Auswahl löschen"
+
+msgid "Deleted"
+msgstr "Gelöscht"
+
+msgid "Deliverability check"
+msgstr "Zustellbarkeitsprüfung"
+
+msgid "Description"
+msgstr "Beschreibung"
+
+msgid "Desktop"
+msgstr "Desktop"
+
+msgid "Detect fonts"
+msgstr "Schriftarten erkennen"
+
+msgid "Detect it for me →"
+msgstr "Für mich erkennen →"
+
+msgid "Detected"
+msgstr "Erkannt"
+
+msgid "Detects every font your site loads. For each one: %1$s starts it loading immediately (only worth it for the 1–2 fonts visible above the fold), and %2$s stops a Google-hosted font from loading at all. Local/builder fonts can be preloaded but not blocked."
+msgstr "Erkennt jede Schriftart, die Ihre Website lädt. Für jede einzelne: %1$s startet das Laden sofort (nur für die 1–2 Schriftarten oberhalb des Falzes lohnenswert), und %2$s verhindert das Laden einer Google-gehosteten Schriftart vollständig. Lokale/Builder-Schriftarten können vorgeladen, aber nicht blockiert werden."
+
+msgid "Dim background (modal)"
+msgstr "Hintergrund abdunkeln (Modal)"
+
+msgid "Display the LCP / CLS / TBT metric chips on the widget."
+msgstr "Zeigt die Metrik-Chips LCP / CLS / TBT im Widget an."
+
+msgid "Displays the form name as a heading above the fields, on the site and in the style preview."
+msgstr "Zeigt den Formularnamen als Überschrift über den Feldern an — auf der Website und in der Stil-Vorschau."
+
+msgid "Don't run a second full-page cache plugin (WP Rocket, W3 Total Cache) alongside it — Cloudflare recommends turning those off. Velox's own page cache is fine."
+msgstr "Betreiben Sie kein zweites Full-Page-Cache-Plugin (WP Rocket, W3 Total Cache) daneben — Cloudflare empfiehlt, diese zu deaktivieren. Velox’ eigener Seiten-Cache ist unproblematisch."
+
+msgid "Done"
+msgstr "Fertig"
+
+msgid "Download images"
+msgstr "Bilder herunterladen"
+
+msgid "Download renamed"
+msgstr "Umbenannte herunterladen"
+
+msgid "Download selected"
+msgstr "Auswahl herunterladen"
+
+msgid "Download theme"
+msgstr "Theme herunterladen"
+
+msgid "Drag the handle to reorder"
+msgstr "Ziehen Sie den Griff zum Neuordnen"
+
+msgid "Drag the slider or type an exact value. 80% is a good balance; lossless mode below ignores this."
+msgstr "Ziehen Sie den Schieberegler oder geben Sie einen genauen Wert ein. 80 % sind ein guter Kompromiss; der verlustfreie Modus unten ignoriert diesen Wert."
+
+msgid "Drop shadow"
+msgstr "Schlagschatten"
+
+msgid "Duplicate"
+msgstr "Duplizieren"
+
+msgid "Duration"
+msgstr "Dauer"
+
+msgid "Edge offset (px)"
+msgstr "Randabstand (px)"
+
+msgid "Edit"
+msgstr "Bearbeiten"
+
+msgid "Edit form"
+msgstr "Formular bearbeiten"
+
+msgid "Edit names"
+msgstr "Namen bearbeiten"
+
+msgid "Edit the %1$s, %2$s and %3$s on any image below, then hit %4$s. Use %5$s to change the actual filename without breaking links. For bulk work, use %6$s with the %7$s format."
+msgstr "Bearbeiten Sie %1$s, %2$s und %3$s bei jedem Bild unten und klicken Sie dann auf %4$s. Verwenden Sie %5$s, um den tatsächlichen Dateinamen zu ändern, ohne Links zu beschädigen. Für Massenbearbeitung verwenden Sie %6$s mit dem Format %7$s."
+
+msgid "Edit your robots.txt, control how each page appears in Google, and keep an XML sitemap in sync — the essentials, without a second heavyweight SEO plugin."
+msgstr "Bearbeiten Sie Ihre robots.txt, steuern Sie, wie jede Seite in Google erscheint, und halten Sie eine XML-Sitemap synchron — das Wesentliche, ohne ein zweites schwergewichtiges SEO-Plugin."
+
+msgid "Embed"
+msgstr "Einbetten"
+
+msgid "Enable Custom fields"
+msgstr "Benutzerdefinierte Felder aktivieren"
+
+msgid "Enable OctoberCMS theme builder"
+msgstr "OctoberCMS-Theme-Builder aktivieren"
+
+msgid "Enable PageSpeed status"
+msgstr "PageSpeed-Status aktivieren"
+
+msgid "Enable Script Manager"
+msgstr "Script-Manager aktivieren"
+
+msgid "Enable WebP output in Images settings first."
+msgstr "Aktivieren Sie zuerst die WebP-Ausgabe in den Bild-Einstellungen."
+
+msgid "Enable cookie banner"
+msgstr "Cookie-Banner aktivieren"
+
+msgid "Enable maintenance mode"
+msgstr "Wartungsmodus aktivieren"
+
+msgid "Engine"
+msgstr "Engine"
+
+msgid "Enter your Cloudflare account email + paste the token → %s."
+msgstr "Geben Sie die E-Mail Ihres Cloudflare-Kontos ein + fügen Sie das Token ein → %s."
+
+msgid "Entrance animation"
+msgstr "Eingangsanimation"
+
+msgid "Entries"
+msgstr "Einträge"
+
+msgid "Every new JPG/PNG upload is converted to WebP automatically."
+msgstr "Jeder neue JPG-/PNG-Upload wird automatisch in WebP konvertiert."
+
+msgid "Every page and post is set to noindex, nofollow, and anything you create or duplicate meanwhile starts hidden too. Pages you had already set to noindex are left alone. When you switch maintenance back off, Velox asks what to do with them."
+msgstr "Jede Seite und jeder Beitrag wird auf noindex, nofollow gesetzt, und alles, was Sie währenddessen erstellen oder duplizieren, beginnt ebenfalls verborgen. Seiten, die Sie bereits auf noindex gesetzt hatten, bleiben unberührt. Wenn Sie den Wartungsmodus wieder deaktivieren, fragt Velox, was damit geschehen soll."
+
+msgid "Everything in Velox"
+msgstr "Alles in Velox"
+
+msgid "Everything in this category passed."
+msgstr "Alles in dieser Kategorie wurde bestanden."
+
+msgid "Export / Bulk import"
+msgstr "Export / Massenimport"
+
+msgid "Export CSV"
+msgstr "CSV exportieren"
+
+msgid "Export DB"
+msgstr "Datenbank exportieren"
+
+msgid "Export all"
+msgstr "Alles exportieren"
+
+msgid "Export as plugin"
+msgstr "Als Plugin exportieren"
+
+msgid "Export files"
+msgstr "Dateien exportieren"
+
+msgid "Export pipe list"
+msgstr "Pipe-Liste exportieren"
+
+msgid "Export settings"
+msgstr "Einstellungen exportieren"
+
+msgid "Failed"
+msgstr "Fehlgeschlagen"
+
+msgid "Fallback connection"
+msgstr "Ausweichverbindung"
+
+msgid "Feeds are disabled on this site."
+msgstr "Feeds sind auf dieser Website deaktiviert."
+
+msgid "Field groups"
+msgstr "Feldgruppen"
+
+msgid "Field groups attach custom fields to your content based on location rules."
+msgstr "Feldgruppen ordnen Ihrem Inhalt anhand von Positionsregeln benutzerdefinierte Felder zu."
+
+msgid "Fields"
+msgstr "Felder"
+
+msgid "File Manager"
+msgstr "Dateimanager"
+
+msgid "Files only"
+msgstr "Nur Dateien"
+
+msgid "Find %1$s in the templates → %2$s (sets the right permissions automatically)."
+msgstr "Suchen Sie %1$s in den Vorlagen → %2$s (setzt automatisch die richtigen Berechtigungen)."
+
+msgid "Finds images nothing in your content or page-builder data points at. It's deliberately cautious — it won't list a file that looks referenced anywhere — but always eyeball the list before deleting, since some references (external CSS, exports) can't be detected."
+msgstr "Findet Bilder, auf die nichts in Ihren Inhalten oder Page-Builder-Daten verweist. Es geht bewusst vorsichtig vor — es listet keine Datei auf, die irgendwo referenziert scheint — prüfen Sie die Liste dennoch immer vor dem Löschen, da manche Referenzen (externes CSS, Exporte) nicht erkannt werden können."
+
+msgid "First-party visitor counts, measured by Velox's own lightweight beacon — no third-party analytics."
+msgstr "First-Party-Besucherzählung, gemessen durch Velox’ eigenen leichtgewichtigen Beacon — keine Drittanbieter-Analyse."
+
+msgid "First-party, aggregate only. Mention it in your privacy policy."
+msgstr "First-Party, nur aggregiert. Erwähnen Sie es in Ihrer Datenschutzerklärung."
+
+msgid "Folders"
+msgstr "Ordner"
+
+msgid "Follow WordPress"
+msgstr "WordPress folgen"
+
+msgid "Font manager"
+msgstr "Schriftarten-Manager"
+
+msgid "Footer HTML, also embeddable with [velox_snippet id=\"…\"]."
+msgstr ""
+
+msgid "Footer text"
+msgstr "Fußzeilentext"
+
+msgid "For agency/company accounts, prefer an %s token so it survives staff changes."
+msgstr "Für Agentur-/Unternehmenskonten bevorzugen Sie ein %s-Token, damit es Personalwechsel übersteht."
+
+msgid "Forget"
+msgstr "Verwerfen"
+
+msgid "Form"
+msgstr "Formular"
+
+msgid "Form canvas"
+msgstr "Formular-Arbeitsfläche"
+
+msgid "Forms"
+msgstr "Formulare"
+
+msgid "Found the Google Fonts CSS but could not download any font files. The server may be blocking outbound requests to fonts.gstatic.com."
+msgstr "Das Google-Fonts-CSS wurde gefunden, aber es konnten keine Schriftdateien heruntergeladen werden. Der Server blockiert möglicherweise ausgehende Anfragen an fonts.gstatic.com."
+
+msgid "Frequency"
+msgstr "Häufigkeit"
+
+msgid "From"
+msgstr "Von"
+
+msgid "From email"
+msgstr "Absender-E-Mail"
+
+msgid "From name"
+msgstr "Absendername"
+
+msgid "Front end shows the holding page to everyone except logged-in admins."
+msgstr "Das Frontend zeigt allen außer angemeldeten Administratoren die Platzhalterseite."
+
+msgid "Full control — target any element inside the banner. Scope your rules with %1$s (the banner) or %2$s (a specific button). Applied on top of everything above."
+msgstr "Volle Kontrolle — sprechen Sie jedes Element innerhalb des Banners an. Begrenzen Sie Ihre Regeln mit %1$s (dem Banner) oder %2$s (einer bestimmten Schaltfläche). Wird zusätzlich zu allem oben Genannten angewendet."
+
+msgid "Full-width buttons on mobile"
+msgstr "Schaltflächen in voller Breite auf Mobilgeräten"
+
+msgid "GA4 / GTM ID"
+msgstr "GA4-/GTM-ID"
+
+msgid "GD"
+msgstr "GD"
+
+msgid "GIF"
+msgstr "GIF"
+
+msgid "Get keys from your provider, paste them below, then switch on “Require CAPTCHA” per form. No keys = the option stays unusable."
+msgstr "Holen Sie sich die Schlüssel von Ihrem Anbieter, fügen Sie sie unten ein und aktivieren Sie dann „CAPTCHA erforderlich“ pro Formular. Keine Schlüssel = die Option bleibt unbenutzbar."
+
+msgid "Give the WordPress/Oxygen names something human. Every change is applied to the HTML %s the CSS together, and the preview updates as you type. When you're done, download a renamed version."
+msgstr "Geben Sie den WordPress-/Oxygen-Namen etwas Menschliches. Jede Änderung wird auf das HTML %s das CSS gemeinsam angewendet, und die Vorschau aktualisiert sich während der Eingabe. Wenn Sie fertig sind, laden Sie eine umbenannte Version herunter."
+
+msgid "Give the template a name."
+msgstr "Geben Sie der Vorlage einen Namen."
+
+msgid "Go to the optimizer"
+msgstr "Zum Optimierer"
+
+msgid "Good to know"
+msgstr "Gut zu wissen"
+
+msgid "Google Consent Mode v2"
+msgstr "Google Consent Mode v2"
+
+msgid "Google reCAPTCHA"
+msgstr "Google reCAPTCHA"
+
+msgid "HTML"
+msgstr "HTML"
+
+msgid "HTML lang switcher"
+msgstr "HTML-Sprachumschalter"
+
+msgid "HTML — Markup"
+msgstr "HTML — Markup"
+
+msgid "HTTP status"
+msgstr "HTTP-Status"
+
+msgid "Has archive page"
+msgstr "Hat Archivseite"
+
+msgid "Heading"
+msgstr "Überschrift"
+
+msgid "Heading colour"
+msgstr "Überschriftfarbe"
+
+msgid "Heading size (px)"
+msgstr "Überschriftgröße (px)"
+
+msgid "Heading weight"
+msgstr "Überschriftstärke"
+
+msgid "Height"
+msgstr "Höhe"
+
+msgid "Hierarchical (category-like)"
+msgstr "Hierarchisch (kategorieartig)"
+
+msgid "Hierarchical (page-like)"
+msgstr "Hierarchisch (seitenartig)"
+
+msgid "Higher numbers are checked first."
+msgstr "Höhere Zahlen werden zuerst geprüft."
+
+msgid "Home page"
+msgstr "Startseite"
+
+msgid "Home page first, then your chosen post types (A–Z). Exclude any single page from its editor (the"
+msgstr "Zuerst die Startseite, dann Ihre gewählten Beitragstypen (A–Z). Schließen Sie eine einzelne Seite aus ihrem Editor aus (das"
+
+msgid "Hosted %1$d font file(s) across %2$d family/families locally."
+msgstr "%1$d Schriftdatei(en) aus %2$d Familie(n) lokal gehostet."
+
+msgid "Hour"
+msgstr "Stunde"
+
+msgid "Housekeeping"
+msgstr "Aufräumen"
+
+msgid "How do you want to set up"
+msgstr "Wie möchten Sie einrichten"
+
+msgid "I'll configure it myself"
+msgstr "Ich konfiguriere es selbst"
+
+msgid "IDs"
+msgstr "IDs"
+
+msgid "If the site is ever compromised, revoke the token in Cloudflare (My Profile → API Tokens) and issue a new one."
+msgstr "Falls die Website jemals kompromittiert wird, widerrufen Sie das Token in Cloudflare (Mein Profil → API-Token) und stellen Sie ein neues aus."
+
+msgid "Ignore case"
+msgstr "Groß-/Kleinschreibung ignorieren"
+
+msgid "Ignore query parameters"
+msgstr "Query-Parameter ignorieren"
+
+msgid "Ignore trailing slash"
+msgstr "Abschließenden Schrägstrich ignorieren"
+
+msgid "Image defaults"
+msgstr "Bild-Standardwerte"
+
+msgid "Image, GIF, or Lottie (.json / .lottie) URL. Leave empty to use the default Velox mark."
+msgstr "Bild-, GIF- oder Lottie-URL (.json / .lottie). Leer lassen, um das Standard-Velox-Zeichen zu verwenden."
+
+msgid "Images"
+msgstr "Bilder"
+
+msgid "Images wider than this are scaled down to it; the height follows automatically to keep the aspect ratio. Images already narrower are left at their own size (never upscaled). 0 = never resize."
+msgstr "Bilder, die breiter sind, werden darauf verkleinert; die Höhe folgt automatisch, um das Seitenverhältnis zu wahren. Bereits schmalere Bilder behalten ihre eigene Größe (nie hochskaliert). 0 = nie skalieren."
+
+msgid "Imagick"
+msgstr "Imagick"
+
+msgid "Import"
+msgstr "Importieren"
+
+msgid "Import / Export"
+msgstr "Import / Export"
+
+msgid "Import settings"
+msgstr "Einstellungen importieren"
+
+msgid "In use"
+msgstr "In Verwendung"
+
+msgid "In your page source right now"
+msgstr "Aktuell in Ihrem Seitenquelltext"
+
+msgid "Inbox"
+msgstr "Posteingang"
+
+msgid "Inject CSS into the page head — front-end, admin, or both."
+msgstr "Fügen Sie CSS in den Seitenkopf ein — Frontend, Administration oder beides."
+
+msgid "Insert field"
+msgstr "Feld einfügen"
+
+msgid "Install a whole stack at once — paste wordpress.org slugs or links, or upload plugin ZIPs straight from your computer. Save a list as a blueprint to re-apply on the next site."
+msgstr "Installieren Sie einen ganzen Stack auf einmal — fügen Sie wordpress.org-Slugs oder -Links ein oder laden Sie Plugin-ZIPs direkt von Ihrem Computer hoch. Speichern Sie eine Liste als Blueprint, um sie auf der nächsten Website erneut anzuwenden."
+
+msgid "Install from list"
+msgstr "Aus Liste installieren"
+
+msgid "Insufficient permissions."
+msgstr "Unzureichende Berechtigungen."
+
+msgid "JPG"
+msgstr "JPG"
+
+msgid "JS"
+msgstr "JS"
+
+msgid "JS — Scripts"
+msgstr "JS — Skripte"
+
+msgid "Keep my settings if I delete Velox"
+msgstr "Meine Einstellungen behalten, wenn ich Velox lösche"
+
+msgid "Keep newest"
+msgstr "Neueste behalten"
+
+msgid "Label placement"
+msgstr "Beschriftungsposition"
+
+msgid "Language"
+msgstr "Sprache"
+
+msgid "Last 7 days"
+msgstr "Letzte 7 Tage"
+
+msgid "Latest"
+msgstr "Neueste"
+
+msgid "Layout"
+msgstr "Layout"
+
+msgid "Leave empty to keep the default wp-login. With a slug set, your login lives at:"
+msgstr "Leer lassen, um das Standard-wp-login beizubehalten. Mit gesetztem Slug befindet sich Ihre Anmeldung unter:"
+
+msgid "Leave unchanged"
+msgstr "Unverändert lassen"
+
+msgid "Left"
+msgstr "Links"
+
+msgid "Legal links"
+msgstr "Rechtliche Links"
+
+msgid "Legal-link colour"
+msgstr "Farbe der rechtlichen Links"
+
+msgid "Library"
+msgstr "Mediathek"
+
+msgid "Link 1 URL"
+msgstr "Link-1-URL"
+
+msgid "Link 1 label"
+msgstr "Link-1-Beschriftung"
+
+msgid "Link 2 URL"
+msgstr "Link-2-URL"
+
+msgid "Link 2 label"
+msgstr "Link-2-Beschriftung"
+
+msgid "List the top opportunities Lighthouse found, biggest time-savings first."
+msgstr "Listet die wichtigsten von Lighthouse gefundenen Optimierungen auf, die größten Zeitersparnisse zuerst."
+
+msgid "Live PageSpeed"
+msgstr "Live-PageSpeed"
+
+msgid "Live PageSpeed is switched off. Turn it on to pull real Lighthouse reports for this site."
+msgstr "Live-PageSpeed ist ausgeschaltet. Aktivieren Sie es, um echte Lighthouse-Berichte für diese Website abzurufen."
+
+msgid "Live at %s"
+msgstr "Live unter %s"
+
+msgid "Live preview"
+msgstr "Live-Vorschau"
+
+msgid "Load"
+msgstr "Laden"
+
+msgid "Loading animation"
+msgstr "Ladeanimation"
+
+msgid "Loading images…"
+msgstr "Bilder werden geladen…"
+
+msgid "Loading media…"
+msgstr "Medien werden geladen…"
+
+msgid "Loading optimized images…"
+msgstr "Optimierte Bilder werden geladen…"
+
+msgid "Loading…"
+msgstr "Wird geladen…"
+
+msgid "Local fonts removed. Google Fonts will load normally again."
+msgstr "Lokale Schriftarten entfernt. Google Fonts werden wieder normal geladen."
+
+msgid "Location"
+msgstr "Position"
+
+msgid "Location rules"
+msgstr "Positionsregeln"
+
+msgid "Log 404s"
+msgstr "404-Fehler protokollieren"
+
+msgid "Log in at %s."
+msgstr "Melden Sie sich an unter %s."
+
+msgid "Logging is off. Flip it on to start recording events from this point forward."
+msgstr "Die Protokollierung ist aus. Aktivieren Sie sie, um ab diesem Zeitpunkt Ereignisse aufzuzeichnen."
+
+msgid "Login slug"
+msgstr "Anmelde-Slug"
+
+msgid "Logo"
+msgstr "Logo"
+
+msgid "Logo URL"
+msgstr "Logo-URL"
+
+msgid "Lossless WebP"
+msgstr "Verlustfreies WebP"
+
+msgid "Lottie animation"
+msgstr "Lottie-Animation"
+
+msgid "Lottie animation file"
+msgstr "Lottie-Animationsdatei"
+
+msgid "Mail not reaching Gmail or Microsoft? Run this to see exactly which authentication record your domain is missing."
+msgstr "E-Mails erreichen Gmail oder Microsoft nicht? Führen Sie dies aus, um genau zu sehen, welcher Authentifizierungseintrag Ihrer Domain fehlt."
+
+msgid "Maintenance mode"
+msgstr "Wartungsmodus"
+
+msgid "Manage fonts"
+msgstr "Schriftarten verwalten"
+
+msgid "Mark done"
+msgstr "Als erledigt markieren"
+
+msgid "Mark read"
+msgstr "Als gelesen markieren"
+
+msgid "Markup"
+msgstr "Markup"
+
+msgid "Match type"
+msgstr "Übereinstimmungstyp"
+
+msgid "Max height (px)"
+msgstr "Maximale Höhe (px)"
+
+msgid "Media"
+msgstr "Medien"
+
+msgid "Menu icon"
+msgstr "Menü-Symbol"
+
+msgid "Menu position"
+msgstr "Menü-Position"
+
+msgid "Menu title"
+msgstr "Menü-Titel"
+
+msgid "Message"
+msgstr "Nachricht"
+
+msgid "Messages sent through your forms land here."
+msgstr "Über Ihre Formulare gesendete Nachrichten landen hier."
+
+msgid "Metrics"
+msgstr "Metriken"
+
+msgid "Migrate from another plugin"
+msgstr "Von einem anderen Plugin migrieren"
+
+msgid "Migration coming soon"
+msgstr "Migration folgt in Kürze"
+
+msgid "Minified CSS/JS"
+msgstr "Minifiziertes CSS/JS"
+
+msgid "Mobile"
+msgstr "Mobil"
+
+msgid "Move to trash"
+msgstr "In den Papierkorb verschieben"
+
+msgid "Moves the login page off the default %s to a path only you know — most brute-force bots hammer wp-login, so this quietly cuts that traffic."
+msgstr "Verschiebt die Anmeldeseite vom Standard %s auf einen Pfad, den nur Sie kennen — die meisten Brute-Force-Bots hämmern auf wp-login, sodass dies diesen Traffic unauffällig reduziert."
+
+msgid "My Profile"
+msgstr "Mein Profil"
+
+msgid "Name"
+msgstr "Name"
+
+msgid "New field group"
+msgstr "Neue Feldgruppe"
+
+msgid "New file name"
+msgstr "Neuer Dateiname"
+
+msgid "New folder"
+msgstr "Neuer Ordner"
+
+msgid "New form"
+msgstr "Neues Formular"
+
+msgid "New name matches the current name."
+msgstr "Der neue Name entspricht dem aktuellen Namen."
+
+msgid "New redirect"
+msgstr "Neue Weiterleitung"
+
+msgid "Newest"
+msgstr "Neueste"
+
+msgid "Next"
+msgstr "Weiter"
+
+msgid "Next →"
+msgstr "Weiter →"
+
+msgid "No %s exists in your site root yet — saving will create one."
+msgstr "In Ihrem Website-Stammverzeichnis existiert noch keine %s — beim Speichern wird eine erstellt."
+
+msgid "No CSS found to scan. If your host blocks loopback, Velox reads the builder CSS cache instead — open your site once so it gets generated, then try again."
+msgstr "Kein CSS zum Scannen gefunden. Wenn Ihr Host Loopback blockiert, liest Velox stattdessen den Builder-CSS-Cache — öffnen Sie Ihre Website einmal, damit er generiert wird, und versuchen Sie es dann erneut."
+
+msgid "No Google Fonts were found on the front page. If your fonts load elsewhere, link a page that uses them."
+msgstr "Auf der Startseite wurden keine Google Fonts gefunden. Wenn Ihre Schriftarten anderswo geladen werden, verlinken Sie eine Seite, die sie verwendet."
+
+msgid "No HTML came back for that path."
+msgstr "Für diesen Pfad kam kein HTML zurück."
+
+msgid "No assets discovered yet. Click %s above, or visit a few pages of your site, then reload this screen."
+msgstr "Noch keine Assets erkannt. Klicken Sie oben auf %s oder besuchen Sie einige Seiten Ihrer Website und laden Sie diesen Bildschirm dann neu."
+
+msgid "No backups yet. Create one above, import one, or set up a schedule below."
+msgstr "Noch keine Sicherungen. Erstellen Sie oben eine, importieren Sie eine oder richten Sie unten einen Zeitplan ein."
+
+msgid "No blueprints yet. Save a slug list above to create one."
+msgstr "Noch keine Blueprints. Speichern Sie oben eine Slug-Liste, um einen zu erstellen."
+
+msgid "No builds yet. Name your theme above and hit %s."
+msgstr "Noch keine Builds. Benennen Sie oben Ihr Theme und klicken Sie auf %s."
+
+msgid "No custom post types yet. Add one and it shows up in the sidebar straight away."
+msgstr "Noch keine benutzerdefinierten Beitragstypen. Fügen Sie einen hinzu, und er erscheint sofort in der Seitenleiste."
+
+msgid "No custom taxonomies yet."
+msgstr "Noch keine benutzerdefinierten Taxonomien."
+
+msgid "No entries yet"
+msgstr "Noch keine Einträge"
+
+msgid "No field groups yet"
+msgstr "Noch keine Feldgruppen"
+
+msgid "No fonts hosted locally yet. Enable the toggle, then scan."
+msgstr "Noch keine Schriftarten lokal gehostet. Aktivieren Sie den Schalter und scannen Sie dann."
+
+msgid "No forms yet. Hit %1$s to create one — you'll get a %2$s shortcode to embed anywhere, including an Oxygen Shortcode element."
+msgstr "Noch keine Formulare. Klicken Sie auf %1$s, um eines zu erstellen — Sie erhalten einen %2$s-Shortcode zum Einbetten an beliebiger Stelle, auch in einem Oxygen-Shortcode-Element."
+
+msgid "No image engine (Imagick or GD with WebP) was found on this server. Conversion is disabled until one is enabled in your PHP settings — see the compatibility list below."
+msgstr "Auf diesem Server wurde keine Bild-Engine (Imagick oder GD mit WebP) gefunden. Die Konvertierung ist deaktiviert, bis eine in Ihren PHP-Einstellungen aktiviert ist — siehe die Kompatibilitätsliste unten."
+
+msgid "No local stylesheets to trim on that page."
+msgstr "Auf dieser Seite gibt es keine lokalen Stylesheets zum Kürzen."
+
+msgid "No options pages yet."
+msgstr "Noch keine Optionsseiten."
+
+msgid "No output format selected — enable WebP and/or AVIF in Images settings."
+msgstr "Kein Ausgabeformat ausgewählt — aktivieren Sie WebP und/oder AVIF in den Bild-Einstellungen."
+
+msgid "No redirects yet. Add one to send an old URL somewhere useful."
+msgstr "Noch keine Weiterleitungen. Fügen Sie eine hinzu, um eine alte URL an ein sinnvolles Ziel zu leiten."
+
+msgid "No snippets here yet."
+msgstr "Noch keine Snippets vorhanden."
+
+msgid "No snippets match your filter."
+msgstr "Keine Snippets entsprechen Ihrem Filter."
+
+msgid "No submissions yet"
+msgstr "Noch keine Einsendungen"
+
+msgid "No visits recorded in this range yet."
+msgstr "In diesem Zeitraum noch keine Besuche erfasst."
+
+msgid "Normal"
+msgstr "Normal"
+
+msgid "Not a media item."
+msgstr "Kein Medienelement."
+
+msgid "Not allowed."
+msgstr "Nicht erlaubt."
+
+msgid "Not found"
+msgstr "Nicht gefunden"
+
+msgid "Not in use"
+msgstr "Nicht in Verwendung"
+
+msgid "Not installed"
+msgstr "Nicht installiert"
+
+msgid "Not on this server"
+msgstr "Nicht auf diesem Server"
+
+msgid "Not sure what to toggle? Pick a starting point — you can fine-tune everything afterwards."
+msgstr "Nicht sicher, was Sie umschalten sollen? Wählen Sie einen Ausgangspunkt — alles Weitere können Sie danach feinjustieren."
+
+msgid "Nothing converted yet. Run a bulk optimization to fill this up."
+msgstr "Noch nichts konvertiert. Führen Sie eine Massenoptimierung aus, um dies zu füllen."
+
+msgid "Nothing here."
+msgstr "Nichts vorhanden."
+
+msgid "Nothing sent yet."
+msgstr "Noch nichts gesendet."
+
+msgid "Notifications"
+msgstr "Benachrichtigungen"
+
+msgid "Notifications are sent when the form is submitted. Use the %1$s menu to drop in merge tags like %2$s, or %3$s for the whole submission."
+msgstr "Benachrichtigungen werden gesendet, wenn das Formular abgesendet wird. Verwenden Sie das Menü %1$s, um Merge-Tags wie %2$s einzufügen, oder %3$s für die gesamte Einsendung."
+
+msgid "Now"
+msgstr "Jetzt"
+
+msgid "OctoberCMS builder is on"
+msgstr "OctoberCMS-Builder ist aktiv"
+
+msgid "OctoberCMS theme"
+msgstr "OctoberCMS-Theme"
+
+msgid "Off (default) strips camera, date and GPS data for smaller, more private files. On keeps it."
+msgstr "Aus (Standard) entfernt Kamera-, Datums- und GPS-Daten für kleinere, privatere Dateien. Ein behält sie."
+
+msgid "Offer Analytics"
+msgstr "Analyse anbieten"
+
+msgid "Offer Marketing"
+msgstr "Marketing anbieten"
+
+msgid "On (recommended): the JPG/PNG becomes a WebP right in your media library, at its real smaller size. Off: keeps the original and serves a WebP copy only on the front-end."
+msgstr "Ein (empfohlen): Das JPG/PNG wird direkt in Ihrer Mediathek zu einem WebP in seiner tatsächlich kleineren Größe. Aus: behält das Original und liefert nur im Frontend eine WebP-Kopie aus."
+
+msgid "On by default. Rewrites the page HTML on the front end. With Cloudflare Polish enabled you can leave this off."
+msgstr "Standardmäßig aktiv. Schreibt das Seiten-HTML im Frontend um. Mit aktiviertem Cloudflare Polish können Sie dies deaktiviert lassen."
+
+msgid "Once Weekly"
+msgstr "Einmal wöchentlich"
+
+msgid "Once enabled, %1$s and %2$s redirect away for logged-out visitors. If you ever lock yourself out, clear the %3$s value (or deactivate Velox) via your hosting file manager to restore the default login."
+msgstr "Nach der Aktivierung leiten %1$s und %2$s abgemeldete Besucher weg. Falls Sie sich jemals aussperren, löschen Sie den Wert %3$s (oder deaktivieren Sie Velox) über den Dateimanager Ihres Hosters, um die Standardanmeldung wiederherzustellen."
+
+msgid "Once on, build field groups here and they'll appear on the matching post edit screens. Read values on the front end with %1$s or the %2$s merge tag."
+msgstr "Sobald aktiviert, erstellen Sie hier Feldgruppen, und sie erscheinen auf den passenden Beitragsbearbeitungs-Bildschirmen. Lesen Sie Werte im Frontend mit %1$s oder dem Merge-Tag %2$s."
+
+msgid "One per line. Accepts a plain slug (%1$s), a wordpress.org link, or a direct %2$s download URL."
+msgstr "Eine pro Zeile. Akzeptiert einen einfachen Slug (%1$s), einen wordpress.org-Link oder eine direkte %2$s-Download-URL."
+
+msgid "One row per image: %s. Filenames are matched to your library; a header row is ignored."
+msgstr "Eine Zeile pro Bild: %s. Dateinamen werden mit Ihrer Mediathek abgeglichen; eine Kopfzeile wird ignoriert."
+
+msgid "Only JPG and PNG files can be converted."
+msgstr "Nur JPG- und PNG-Dateien können konvertiert werden."
+
+msgid "Open"
+msgstr "Öffnen"
+
+msgid "Open Performance"
+msgstr "Performance öffnen"
+
+msgid "Open plugins page"
+msgstr "Plugin-Seite öffnen"
+
+msgid "Optimizations on"
+msgstr "Optimierungen aktiv"
+
+msgid "Optimize Images"
+msgstr "Bilder optimieren"
+
+msgid "Optimize images"
+msgstr "Bilder optimieren"
+
+msgid "Optimize tables"
+msgstr "Tabellen optimieren"
+
+msgid "Optimized"
+msgstr "Optimiert"
+
+msgid "Options pages"
+msgstr "Optionsseiten"
+
+msgid "Options pages are admin screens for global settings (read with %s). Target one from a field group's location rule."
+msgstr "Optionsseiten sind Admin-Bildschirme für globale Einstellungen (auslesbar mit %s). Sprechen Sie eine über die Positionsregel einer Feldgruppe an."
+
+msgid "Or upload plugin ZIPs"
+msgstr "Oder laden Sie Plugin-ZIPs hoch"
+
+msgid "Order number"
+msgstr "Reihenfolgenummer"
+
+msgid "Original"
+msgstr "Original"
+
+msgid "Output formats"
+msgstr "Ausgabeformate"
+
+msgid "Overlay blur (px)"
+msgstr "Overlay-Unschärfe (px)"
+
+msgid "Overlay colour"
+msgstr "Overlay-Farbe"
+
+msgid "Override the lang attribute"
+msgstr "lang-Attribut überschreiben"
+
+msgid "Overview"
+msgstr "Übersicht"
+
+msgid "PHP"
+msgstr "PHP"
+
+msgid "PHP-zip is not available on this server, so the plugin zip cannot be built. Ask your host to enable the php-zip extension."
+msgstr "PHP-zip ist auf diesem Server nicht verfügbar, sodass das Plugin-ZIP nicht erstellt werden kann. Bitten Sie Ihren Hoster, die php-zip-Erweiterung zu aktivieren."
+
+msgid "PHP-zip isn't available on this server, so %1$s backups can't be created or restored — database backups still work. Ask your host to enable the %2$s extension."
+msgstr "PHP-zip ist auf diesem Server nicht verfügbar, sodass %1$s-Sicherungen nicht erstellt oder wiederhergestellt werden können — Datenbanksicherungen funktionieren weiterhin. Bitten Sie Ihren Hoster, die %2$s-Erweiterung zu aktivieren."
+
+msgid "PNG"
+msgstr "PNG"
+
+msgid "Page builder"
+msgstr "Page-Builder"
+
+msgid "Page cache"
+msgstr "Seiten-Cache"
+
+msgid "Page cache status"
+msgstr "Seiten-Cache-Status"
+
+msgid "Page title"
+msgstr "Seitentitel"
+
+msgid "Page views"
+msgstr "Seitenaufrufe"
+
+msgid "PageSpeed"
+msgstr "PageSpeed"
+
+msgid "PageSpeed Insights API key"
+msgstr "PageSpeed-Insights-API-Schlüssel"
+
+msgid "Pages"
+msgstr "Seiten"
+
+msgid "Pages that were already set to noindex before you switched this on were left alone, so their own setting is untouched."
+msgstr "Seiten, die bereits auf noindex gesetzt waren, bevor Sie dies aktiviert haben, wurden unberührt gelassen, sodass ihre eigene Einstellung unverändert bleibt."
+
+msgid "Paragraph number"
+msgstr "Absatznummer"
+
+msgid "Parent menu"
+msgstr "Übergeordnetes Menü"
+
+msgid "Paste this into any page, widget or Oxygen Shortcode element."
+msgstr "Fügen Sie dies in eine beliebige Seite, ein Widget oder ein Oxygen-Shortcode-Element ein."
+
+msgid "Peak day"
+msgstr "Spitzentag"
+
+msgid "Pending"
+msgstr "Ausstehend"
+
+msgid "Perfect quality with no compression loss — larger files. Great for graphics and screenshots, overkill for photos."
+msgstr "Perfekte Qualität ohne Kompressionsverlust — größere Dateien. Ideal für Grafiken und Screenshots, übertrieben für Fotos."
+
+msgid "Performance"
+msgstr "Performance"
+
+msgid "Phones often work best as a bottom or top bar even when desktop is a floating box."
+msgstr "Auf Telefonen funktioniert oft eine untere oder obere Leiste am besten, selbst wenn der Desktop eine schwebende Box ist."
+
+msgid "Pick a Bootstrap icon, or type a %s class or image URL."
+msgstr "Wählen Sie ein Bootstrap-Symbol oder geben Sie eine %s-Klasse oder Bild-URL ein."
+
+msgid "Pick a file on the left to open it here."
+msgstr "Wählen Sie links eine Datei aus, um sie hier zu öffnen."
+
+msgid "Pick one or more %s plugin files from your computer and install them directly."
+msgstr "Wählen Sie eine oder mehrere %s-Plugin-Dateien von Ihrem Computer und installieren Sie sie direkt."
+
+msgid "Pick the recommended path and Velox scans your plugins and tunes everything for you — or configure it yourself."
+msgstr "Wählen Sie den empfohlenen Weg, und Velox scannt Ihre Plugins und stimmt alles für Sie ab — oder konfigurieren Sie es selbst."
+
+msgid "Pick yours below — every builder needs different speed settings. Not sure? %s"
+msgstr "Wählen Sie Ihren unten — jeder Builder benötigt andere Geschwindigkeitseinstellungen. Nicht sicher? %s"
+
+msgid "Pinned"
+msgstr "Angeheftet"
+
+msgid "Placement"
+msgstr "Platzierung"
+
+msgid "Placement (desktop)"
+msgstr "Platzierung (Desktop)"
+
+msgid "Placement (mobile)"
+msgstr "Platzierung (Mobil)"
+
+msgid "Planned"
+msgstr "Geplant"
+
+msgid "Plays when the banner first appears on the live site."
+msgstr "Wird abgespielt, wenn das Banner zum ersten Mal auf der Live-Website erscheint."
+
+msgid "Please keep this tab open."
+msgstr "Bitte lassen Sie diesen Tab geöffnet."
+
+msgid "Please provide a valid file name."
+msgstr "Bitte geben Sie einen gültigen Dateinamen an."
+
+msgid "Plugins — slugs or links"
+msgstr "Plugins — Slugs oder Links"
+
+msgid "Plugins → Add New → search %1$s → install &amp; activate the one by %2$s (listed as \"Cloudflare – CDN &amp; Edge Caching\"). Don't confuse it with \"WP Cloudflare Super Page Cache.\""
+msgstr "Plugins → Installieren → suchen Sie %1$s → installieren und aktivieren Sie das von %2$s (aufgeführt als „Cloudflare – CDN &amp; Edge Caching“). Verwechseln Sie es nicht mit „WP Cloudflare Super Page Cache“."
+
+msgid "Plural label"
+msgstr "Pluralbezeichnung"
+
+msgid "Position"
+msgstr "Position"
+
+msgid "Post types"
+msgstr "Beitragstypen"
+
+msgid "Posts"
+msgstr "Beiträge"
+
+msgid "Preload"
+msgstr "Vorladen"
+
+msgid "Preload now"
+msgstr "Jetzt vorladen"
+
+msgid "Presentation"
+msgstr "Darstellung"
+
+msgid "Preserve EXIF metadata"
+msgstr "EXIF-Metadaten beibehalten"
+
+msgid "Preview"
+msgstr "Vorschau"
+
+msgid "Primary connection"
+msgstr "Primäre Verbindung"
+
+msgid "Priority"
+msgstr "Priorität"
+
+msgid "Products"
+msgstr "Produkte"
+
+msgid "Profile icon (top right) → %s."
+msgstr "Profilsymbol (oben rechts) → %s."
+
+msgid "Protect wp-admin"
+msgstr "wp-admin schützen"
+
+msgid "Provider"
+msgstr "Anbieter"
+
+msgid "Public"
+msgstr "Öffentlich"
+
+msgid "Pull a real Lighthouse score from Google PageSpeed Insights on a schedule and show it on your dashboard. A free %1$s is recommended (checks run without one, but Google rate-limits keyless requests). Your server needs outbound access to %2$s and WordPress cron running."
+msgstr "Rufen Sie einen echten Lighthouse-Wert von Google PageSpeed Insights planmäßig ab und zeigen Sie ihn in Ihrem Dashboard an. Ein kostenloser %1$s wird empfohlen (Prüfungen laufen auch ohne, aber Google drosselt schlüssellose Anfragen). Ihr Server benötigt ausgehenden Zugriff auf %2$s und einen laufenden WordPress-Cron."
+
+msgid "Purge caches across your whole stack in one click. Velox clears its own page cache, WP Fastest Cache and Oxygen directly. Cloudflare is cleared through the official Cloudflare plugin (see the note below)."
+msgstr "Leeren Sie Caches über Ihren gesamten Stack mit einem Klick. Velox leert seinen eigenen Seiten-Cache, WP Fastest Cache und Oxygen direkt. Cloudflare wird über das offizielle Cloudflare-Plugin geleert (siehe Hinweis unten)."
+
+msgid "Purge page cache"
+msgstr "Seiten-Cache leeren"
+
+msgid "Quality"
+msgstr "Qualität"
+
+msgid "Quick add:"
+msgstr "Schnell hinzufügen:"
+
+msgid "Quick setup"
+msgstr "Schnelleinrichtung"
+
+msgid "Quick setup: %1$s install the %2$s plugin, %3$s create a Cloudflare API token, %4$s connect it. Full steps below."
+msgstr "Schnelleinrichtung: %1$s installieren Sie das %2$s-Plugin, %3$s erstellen Sie ein Cloudflare-API-Token, %4$s verbinden Sie es. Vollständige Schritte unten."
+
+msgid "Re-ask after (days)"
+msgstr "Erneut fragen nach (Tagen)"
+
+msgid "Re-check"
+msgstr "Erneut prüfen"
+
+msgid "Read from your live front page in this browser, so it shows what visitors and crawlers really get rather than what the setting claims. WordPress itself is set to %s."
+msgstr "Wird in diesem Browser von Ihrer Live-Startseite gelesen, sodass angezeigt wird, was Besucher und Crawler wirklich erhalten, statt was die Einstellung behauptet. WordPress selbst ist auf %s eingestellt."
+
+msgid "Real Lighthouse scores from Google PageSpeed Insights, right on your dashboard."
+msgstr "Echte Lighthouse-Werte von Google PageSpeed Insights, direkt in Ihrem Dashboard."
+
+msgid "Recommended"
+msgstr "Empfohlen"
+
+msgid "Recommended for"
+msgstr "Empfohlen für"
+
+msgid "Recommended setup"
+msgstr "Empfohlene Einrichtung"
+
+msgid "Record activity"
+msgstr "Aktivität aufzeichnen"
+
+msgid "Refresh every"
+msgstr "Aktualisieren alle"
+
+msgid "Refresh now"
+msgstr "Jetzt aktualisieren"
+
+msgid "Regenerate Oxygen CSS"
+msgstr "Oxygen-CSS neu generieren"
+
+msgid "Regenerate sitemap"
+msgstr "Sitemap neu generieren"
+
+msgid "Remove"
+msgstr "Entfernen"
+
+msgid "Remove local fonts"
+msgstr "Lokale Schriftarten entfernen"
+
+msgid "Remove selected"
+msgstr "Auswahl entfernen"
+
+msgid "Rename file"
+msgstr "Datei umbenennen"
+
+msgid "Replace originals with WebP"
+msgstr "Originale durch WebP ersetzen"
+
+msgid "Reply"
+msgstr "Antworten"
+
+msgid "Request it →"
+msgstr "Anfordern →"
+
+msgid "Resend"
+msgstr "Erneut senden"
+
+msgid "Reset"
+msgstr "Zurücksetzen"
+
+msgid "Reset auto-learn"
+msgstr "Auto-Lernen zurücksetzen"
+
+msgid "Reset discovered list"
+msgstr "Erkannte Liste zurücksetzen"
+
+msgid "Reset to default"
+msgstr "Auf Standard zurücksetzen"
+
+msgid "Reset to recommended"
+msgstr "Auf empfohlen zurücksetzen"
+
+msgid "Resize image"
+msgstr "Bild skalieren"
+
+msgid "Resize width (px)"
+msgstr "Skalierungsbreite (px)"
+
+msgid "Restore"
+msgstr "Wiederherstellen"
+
+msgid "Restore history"
+msgstr "Verlauf wiederherstellen"
+
+msgid "Restore now"
+msgstr "Jetzt wiederherstellen"
+
+msgid "Restore this backup?"
+msgstr "Diese Sicherung wiederherstellen?"
+
+msgid "Restores run"
+msgstr "Wiederherstellungen laufen"
+
+msgid "Result"
+msgstr "Ergebnis"
+
+msgid "Reveal aggressive settings"
+msgstr "Aggressive Einstellungen anzeigen"
+
+msgid "Revert point"
+msgstr "Wiederherstellungspunkt"
+
+msgid "Risky mode"
+msgstr "Risiko-Modus"
+
+msgid "Routing rules"
+msgstr "Routing-Regeln"
+
+msgid "Run PHP early — add_action, add_filter, custom logic. Lint-checked and crash-guarded."
+msgstr "Führen Sie PHP früh aus — add_action, add_filter, eigene Logik. Syntaxgeprüft und absturzgesichert."
+
+msgid "Run a check now"
+msgstr "Jetzt eine Prüfung ausführen"
+
+msgid "Run backups automatically via WP-Cron. Older backups beyond your keep-count are pruned after each scheduled run."
+msgstr "Führen Sie Sicherungen automatisch über WP-Cron aus. Ältere Sicherungen jenseits Ihrer Aufbewahrungsanzahl werden nach jedem geplanten Lauf entfernt."
+
+msgid "Run check now"
+msgstr "Prüfung jetzt ausführen"
+
+msgid "Run first check"
+msgstr "Erste Prüfung ausführen"
+
+msgid "Run setup wizard"
+msgstr "Einrichtungsassistenten ausführen"
+
+msgid "Runs checks on the schedule below and shows the PageSpeed widget on the dashboard."
+msgstr "Führt Prüfungen nach dem untenstehenden Zeitplan aus und zeigt das PageSpeed-Widget im Dashboard an."
+
+msgid "Runs the cleanup (not table optimization) once a week via WP-Cron."
+msgstr "Führt die Bereinigung (nicht die Tabellenoptimierung) einmal wöchentlich über WP-Cron aus."
+
+msgid "SEO"
+msgstr "SEO"
+
+msgid "SEO health"
+msgstr "SEO-Zustand"
+
+msgid "SMTP connections"
+msgstr "SMTP-Verbindungen"
+
+msgid "SVG"
+msgstr "SVG"
+
+msgid "Safe"
+msgstr "Sicher"
+
+msgid "Safe Mode is active — PHP snippets are not running."
+msgstr "Der abgesicherte Modus ist aktiv — PHP-Snippets werden nicht ausgeführt."
+
+msgid "Save"
+msgstr "Speichern"
+
+msgid "Save .htaccess"
+msgstr ".htaccess speichern"
+
+msgid "Save API Credentials"
+msgstr "API-Zugangsdaten speichern"
+
+msgid "Save as blueprint"
+msgstr "Als Blueprint speichern"
+
+msgid "Save as template"
+msgstr "Als Vorlage speichern"
+
+msgid "Save automation"
+msgstr "Automatisierung speichern"
+
+msgid "Save changes"
+msgstr "Änderungen speichern"
+
+msgid "Save connections"
+msgstr "Verbindungen speichern"
+
+msgid "Save form"
+msgstr "Formular speichern"
+
+msgid "Save group"
+msgstr "Gruppe speichern"
+
+msgid "Save only"
+msgstr "Nur speichern"
+
+msgid "Save options page"
+msgstr "Optionsseite speichern"
+
+msgid "Save performance settings"
+msgstr "Performance-Einstellungen speichern"
+
+msgid "Save post type"
+msgstr "Beitragstyp speichern"
+
+msgid "Save redirect"
+msgstr "Weiterleitung speichern"
+
+msgid "Save robots.txt"
+msgstr "robots.txt speichern"
+
+msgid "Save schedule"
+msgstr "Zeitplan speichern"
+
+msgid "Save settings"
+msgstr "Einstellungen speichern"
+
+msgid "Save styles"
+msgstr "Stile speichern"
+
+msgid "Save taxonomy"
+msgstr "Taxonomie speichern"
+
+msgid "Saved"
+msgstr "Gespeichert"
+
+msgid "Saved blueprints"
+msgstr "Gespeicherte Blueprints"
+
+msgid "Saves your %s database (a small DB-only backup) so you can undo this restore. It's the small one labelled “safety”."
+msgstr "Speichert Ihre %s Datenbank (eine kleine reine DB-Sicherung), damit Sie diese Wiederherstellung rückgängig machen können. Es ist die kleine mit der Bezeichnung „Sicherheit“."
+
+msgid "Scan"
+msgstr "Scannen"
+
+msgid "Scan media library"
+msgstr "Mediathek scannen"
+
+msgid "Scan site"
+msgstr "Website scannen"
+
+msgid "Scan the whole site and export it as an importable OctoberCMS theme: every published page becomes a %s page, the shared header/footer are lifted into partials, the CSS is converted into the theme's SCSS structure, and the media you actually use (and have in the library) is bundled in. Builds are versioned — re-scan to pick up new pages, and keep older versions to revert to."
+msgstr "Scannen Sie die gesamte Website und exportieren Sie sie als importierbares OctoberCMS-Theme: Jede veröffentlichte Seite wird zu einer %s-Seite, der gemeinsame Header/Footer wird in Partials ausgelagert, das CSS wird in die SCSS-Struktur des Themes umgewandelt, und die tatsächlich verwendeten Medien (die in der Mediathek vorhanden sind) werden eingebunden. Builds sind versioniert — scannen Sie erneut, um neue Seiten zu erfassen, und behalten Sie ältere Versionen zum Zurückkehren."
+
+msgid "Scanning…"
+msgstr "Wird gescannt…"
+
+msgid "Schedule"
+msgstr "Zeitplan"
+
+msgid "Script Manager"
+msgstr "Script-Manager"
+
+msgid "Scripts"
+msgstr "Skripte"
+
+msgid "Scripts (JS)"
+msgstr "Skripte (JS)"
+
+msgid "Secret key"
+msgstr "Geheimer Schlüssel"
+
+msgid "Seeing AI \"content signals\" text instead of yours?"
+msgstr "Sehen Sie KI-„Content-Signals“-Text statt Ihrem eigenen?"
+
+msgid "Select a submission to read it."
+msgstr "Wählen Sie eine Einsendung aus, um sie zu lesen."
+
+msgid "Select all"
+msgstr "Alle auswählen"
+
+msgid "Select file"
+msgstr "Datei auswählen"
+
+msgid "Select image"
+msgstr "Bild auswählen"
+
+msgid "Send"
+msgstr "Senden"
+
+msgid "Send log"
+msgstr "Sendeprotokoll"
+
+msgid "Send mail from a specific address or name through a chosen connection — e.g. route %s through a transactional provider and newsletters through another."
+msgstr "Versenden Sie E-Mails von einer bestimmten Adresse oder einem Namen über eine gewählte Verbindung — leiten Sie z. B. %s über einen Transaktionsanbieter und Newsletter über einen anderen."
+
+msgid "Send old or moved URLs somewhere useful, and watch which missing pages your visitors actually hit so you can fix the ones that matter."
+msgstr "Leiten Sie alte oder verschobene URLs an ein sinnvolles Ziel und beobachten Sie, welche fehlenden Seiten Ihre Besucher tatsächlich aufrufen, damit Sie die wichtigen beheben können."
+
+msgid "Send reply"
+msgstr "Antwort senden"
+
+msgid "Send test"
+msgstr "Test senden"
+
+msgid "Sender identity"
+msgstr "Absenderidentität"
+
+msgid "Sends through your SMTP + sender identity."
+msgstr "Versendet über Ihr SMTP + Ihre Absenderidentität."
+
+msgid "Serve WebP on the front end"
+msgstr "WebP im Frontend ausliefern"
+
+msgid "Served by Apache / LiteSpeed from your site root. Has no effect on a pure-Nginx server."
+msgstr "Wird von Apache / LiteSpeed aus Ihrem Website-Stammverzeichnis ausgeliefert. Hat auf einem reinen Nginx-Server keine Wirkung."
+
+msgid "Served by WordPress at %s. Edit freely — the Sitemap line should point at your sitemap.xml."
+msgstr "Wird von WordPress unter %s ausgeliefert. Frei bearbeitbar — die Sitemap-Zeile sollte auf Ihre sitemap.xml verweisen."
+
+msgid "Set your defaults, point the auto-updater at your repo, and check your environment."
+msgstr "Legen Sie Ihre Standardwerte fest, richten Sie den Auto-Updater auf Ihr Repository und prüfen Sie Ihre Umgebung."
+
+msgid "Sets consent to denied by default and updates Google tags when the visitor chooses. The correct way to stay compliant."
+msgstr "Setzt die Einwilligung standardmäßig auf abgelehnt und aktualisiert Google-Tags, wenn der Besucher wählt. Der korrekte Weg, konform zu bleiben."
+
+msgid "Sets the %1$s attribute on the %2$s tag. Handy when a theme or builder hard-codes it and the WordPress site language never actually reaches the page — screen readers and search engines both read this attribute to decide what language the page is in."
+msgstr "Setzt das Attribut %1$s am Tag %2$s. Praktisch, wenn ein Theme oder Builder es fest verdrahtet und die WordPress-Sprache die Seite nie tatsächlich erreicht — Screenreader und Suchmaschinen lesen beide dieses Attribut, um die Sprache der Seite zu bestimmen."
+
+msgid "Settings"
+msgstr "Einstellungen"
+
+msgid "Settings imported."
+msgstr "Einstellungen importiert."
+
+msgid "Settings saved."
+msgstr "Einstellungen gespeichert."
+
+msgid "Settings → Cloudflare (or the plugin's Settings link)."
+msgstr "Einstellungen → Cloudflare (oder der Einstellungs-Link des Plugins)."
+
+msgid "Setup guide"
+msgstr "Einrichtungsanleitung"
+
+msgid "Setup guide: clear Cloudflare cache from Velox"
+msgstr "Einrichtungsanleitung: Cloudflare-Cache aus Velox leeren"
+
+msgid "Shortcode"
+msgstr "Shortcode"
+
+msgid "Show Core Web Vitals"
+msgstr "Core Web Vitals anzeigen"
+
+msgid "Show admin column"
+msgstr "Admin-Spalte anzeigen"
+
+msgid "Show form title"
+msgstr "Formulartitel anzeigen"
+
+msgid "Show in REST (Gutenberg)"
+msgstr "In REST anzeigen (Gutenberg)"
+
+msgid "Show in sidebar menu"
+msgstr "Im Seitenleisten-Menü anzeigen"
+
+msgid "Show logo / name"
+msgstr "Logo / Name anzeigen"
+
+msgid "Show this group where %1$s rules in a box match, or %2$s box matches."
+msgstr "Diese Gruppe anzeigen, wenn %1$s Regeln in einem Kasten übereinstimmen, oder %2$s Kasten übereinstimmt."
+
+msgid "Show what to fix"
+msgstr "Anzeigen, was zu beheben ist"
+
+msgid "Showing the consent banner on your site's front end."
+msgstr "Das Einwilligungs-Banner wird im Frontend Ihrer Website angezeigt."
+
+msgid "Shown after the form is submitted successfully."
+msgstr "Wird angezeigt, nachdem das Formular erfolgreich abgesendet wurde."
+
+msgid "Shown as the sender name, e.g. your company."
+msgstr "Wird als Absendername angezeigt, z. B. Ihr Unternehmen."
+
+msgid "Shown only when both a label and a link are set."
+msgstr "Wird nur angezeigt, wenn sowohl eine Beschriftung als auch ein Link gesetzt sind."
+
+msgid "Shown under the heading. Line breaks are kept."
+msgstr "Wird unter der Überschrift angezeigt. Zeilenumbrüche bleiben erhalten."
+
+msgid "Shows the original-vs-WebP drag comparison panel on the Images tab."
+msgstr "Zeigt das Vergleichs-Panel Original-vs-WebP zum Ziehen im Tab „Bilder“ an."
+
+msgid "Shows visitors a branded holding page while you work. You and any other admins keep seeing the live site, and wp-admin stays reachable. Sends a 503 so search engines know it's temporary."
+msgstr "Zeigt Besuchern eine gebrandete Platzhalterseite, während Sie arbeiten. Sie und andere Administratoren sehen weiterhin die Live-Website, und wp-admin bleibt erreichbar. Sendet einen 503, damit Suchmaschinen wissen, dass es vorübergehend ist."
+
+msgid "Side"
+msgstr "Seite"
+
+msgid "Sign in with an existing account."
+msgstr "Melden Sie sich mit einem bestehenden Konto an."
+
+msgid "Singular label"
+msgstr "Singularbezeichnung"
+
+msgid "Site key"
+msgstr "Site-Schlüssel"
+
+msgid "Sitemap appearance"
+msgstr "Sitemap-Erscheinungsbild"
+
+msgid "Sitemap line"
+msgstr "Sitemap-Zeile"
+
+msgid "Sits behind a tint of your background colour so text stays readable."
+msgstr "Liegt hinter einer Tönung Ihrer Hintergrundfarbe, damit der Text lesbar bleibt."
+
+msgid "Size"
+msgstr "Größe"
+
+msgid "Skip for now"
+msgstr "Vorerst überspringen"
+
+msgid "Skip the automatic tuning and head straight to Settings → Performance to set everything by hand."
+msgstr "Überspringen Sie die automatische Abstimmung und gehen Sie direkt zu Einstellungen → Performance, um alles von Hand einzustellen."
+
+msgid "Slug"
+msgstr "Slug"
+
+msgid "Small line at the very bottom. Empty = nothing shown (no site name forced in)."
+msgstr "Kleine Zeile ganz unten. Leer = nichts angezeigt (kein Website-Name erzwungen)."
+
+msgid "Small print"
+msgstr "Kleingedrucktes"
+
+msgid "Social cards (Open Graph)"
+msgstr "Social Cards (Open Graph)"
+
+msgid "Source file not found."
+msgstr "Quelldatei nicht gefunden."
+
+msgid "Source is a path on this site. Target can be a path (%1$s) or a full URL. Choose %2$s to tell search engines a page is permanently removed."
+msgstr "Die Quelle ist ein Pfad auf dieser Website. Das Ziel kann ein Pfad (%1$s) oder eine vollständige URL sein. Wählen Sie %2$s, um Suchmaschinen mitzuteilen, dass eine Seite dauerhaft entfernt wurde."
+
+msgid "Spacing"
+msgstr "Abstand"
+
+msgid "Spam protection"
+msgstr "Spam-Schutz"
+
+msgid "Start blank"
+msgstr "Leer beginnen"
+
+msgid "Status"
+msgstr "Status"
+
+msgid "Step 1 — Install the official plugin"
+msgstr "Schritt 1 — Offizielles Plugin installieren"
+
+msgid "Step 2 — Create a Cloudflare API token"
+msgstr "Schritt 2 — Ein Cloudflare-API-Token erstellen"
+
+msgid "Step 3 — Connect the plugin"
+msgstr "Schritt 3 — Plugin verbinden"
+
+msgid "Stop"
+msgstr "Stopp"
+
+msgid "Stop plugins from loading CSS/JS where it isn't needed — the classic example is keeping Contact Form 7 off every page except your contact page. Pages are matched by ID, slug, %1$s (homepage), %2$s, %3$s, %4$s, or a whole post type with %5$s, %6$s, etc."
+msgstr "Hindern Sie Plugins daran, CSS/JS dort zu laden, wo es nicht benötigt wird — das klassische Beispiel ist, Contact Form 7 auf jeder Seite außer Ihrer Kontaktseite fernzuhalten. Seiten werden nach ID, Slug, %1$s (Startseite), %2$s, %3$s, %4$s oder einem ganzen Beitragstyp mit %5$s, %6$s usw. abgeglichen."
+
+msgid "Style"
+msgstr "Stil"
+
+msgid "Style editor"
+msgstr "Stil-Editor"
+
+msgid "Styles"
+msgstr "Stile"
+
+msgid "Styles (CSS)"
+msgstr "Stile (CSS)"
+
+msgid "Subject"
+msgstr "Betreff"
+
+msgid "Submission not found."
+msgstr "Einsendung nicht gefunden."
+
+msgid "Submissions through this form show up here as they arrive."
+msgstr "Einsendungen über dieses Formular erscheinen hier, sobald sie eintreffen."
+
+msgid "Success"
+msgstr "Erfolg"
+
+msgid "Success message"
+msgstr "Erfolgsmeldung"
+
+msgid "Supported"
+msgstr "Unterstützt"
+
+msgid "Supports"
+msgstr "Unterstützt"
+
+msgid "Swaps every uploads image to WebP/AVIF when the browser supports it — WordPress images, Oxygen elements, CSS background-images and hard-coded links (originals stay as fallback)."
+msgstr "Ersetzt jedes Upload-Bild durch WebP/AVIF, wenn der Browser es unterstützt — WordPress-Bilder, Oxygen-Elemente, CSS-Hintergrundbilder und fest verdrahtete Links (Originale bleiben als Fallback)."
+
+msgid "Switch off all PHP snippets"
+msgstr "Alle PHP-Snippets ausschalten"
+
+msgid "Switch on to use"
+msgstr "Aktivieren, um zu verwenden"
+
+msgid "Switch to"
+msgstr "Wechseln zu"
+
+msgid "Switching builders? Run this again — Velox will wipe the old performance settings and reconfigure for the new one. Your image, font and database settings are kept."
+msgstr "Builder wechseln? Führen Sie dies erneut aus — Velox löscht die alten Performance-Einstellungen und konfiguriert sie für den neuen neu. Ihre Bild-, Schriftarten- und Datenbank-Einstellungen bleiben erhalten."
+
+msgid "System status"
+msgstr "Systemstatus"
+
+msgid "Take a database backup in Plesk before a big cleanup the first time. After that it's routine — revisions and transients pile up fast on builder sites."
+msgstr "Erstellen Sie vor einer großen Bereinigung beim ersten Mal eine Datenbanksicherung in Plesk. Danach ist es Routine — Revisionen und Transients häufen sich auf Builder-Websites schnell an."
+
+msgid "Take a safety snapshot first"
+msgstr "Erstellen Sie zuerst eine Sicherungskopie"
+
+msgid "Taxonomies"
+msgstr "Taxonomien"
+
+msgid "Taxonomies group your content — like Categories (hierarchical) or Tags (flat)."
+msgstr "Taxonomien gruppieren Ihre Inhalte — wie Kategorien (hierarchisch) oder Schlagwörter (flach)."
+
+msgid "Template"
+msgstr "Vorlage"
+
+msgid "Test connection"
+msgstr "Verbindung testen"
+
+msgid "Test your setup"
+msgstr "Ihre Einrichtung testen"
+
+msgid "Text"
+msgstr "Text"
+
+msgid "That \"content signals\" block is coming from Cloudflare — not Velox."
+msgstr "Dieser „Content Signals“-Block stammt von Cloudflare — nicht von Velox."
+
+msgid "That backup file is no longer available."
+msgstr "Diese Sicherungsdatei ist nicht mehr verfügbar."
+
+msgid "That doesn't look like valid Velox settings JSON."
+msgstr "Das sieht nicht nach gültigem Velox-Einstellungs-JSON aus."
+
+msgid "That's %1$s serving its own robots.txt at the edge, which overrides this. Fix it in your Cloudflare dashboard: %2$s. Writing a physical file here also helps, since Cloudflare only injects when your origin has no robots.txt."
+msgstr ""
+
+msgid "The %1$s / %2$s fields under Performance → CSS are a separate feature (the used-CSS engine) and aren't used for cache clearing."
+msgstr "Die Felder %1$s / %2$s unter Performance → CSS sind eine separate Funktion (die Used-CSS-Engine) und werden nicht zum Leeren des Caches verwendet."
+
+msgid "The %1$s button clears your edge cache through the %2$s — Velox asks that plugin to purge, so it must be installed and connected to your account. Until then the button reports %3$s"
+msgstr "Die Schaltfläche %1$s leert Ihren Edge-Cache über das %2$s — Velox bittet dieses Plugin zu leeren, daher muss es installiert und mit Ihrem Konto verbunden sein. Bis dahin meldet die Schaltfläche %3$s"
+
+msgid "The %s file isn't writable by WordPress, so editing is disabled. Adjust file permissions on the server to enable it."
+msgstr "Die Datei %s ist für WordPress nicht beschreibbar, daher ist die Bearbeitung deaktiviert. Passen Sie die Dateiberechtigungen auf dem Server an, um sie zu aktivieren."
+
+msgid "The Cloudflare plugin already auto-purges on publish/edit; this button is for an on-demand whole-site purge."
+msgstr "Das Cloudflare-Plugin leert den Cache bereits automatisch beim Veröffentlichen/Bearbeiten; diese Schaltfläche ist für eine bedarfsgesteuerte Leerung der gesamten Website."
+
+msgid "The file is replaced in place and its thumbnails are rebuilt, so the filename and every link to it stay exactly as they are. This cannot be undone."
+msgstr "Die Datei wird an Ort und Stelle ersetzt und ihre Thumbnails werden neu erstellt, sodass der Dateiname und jeder Link darauf exakt erhalten bleiben. Dies kann nicht rückgängig gemacht werden."
+
+msgid "The full Google PageSpeed Insights report for %s &mdash; every category, every check."
+msgstr "Der vollständige Google-PageSpeed-Insights-Bericht für %s &mdash; jede Kategorie, jede Prüfung."
+
+msgid "The list grows as more of your site is visited. Set a rule, then %s. Disabling a handle also removes anything that depends on it, so re-test the page afterwards."
+msgstr "Die Liste wächst, je mehr Ihrer Website besucht wird. Legen Sie eine Regel fest, dann %s. Das Deaktivieren eines Handles entfernt auch alles, was davon abhängt, testen Sie die Seite also anschließend erneut."
+
+msgid "The modern baseline — typically 25–35% smaller than JPG/PNG with wide browser support."
+msgstr "Der moderne Standard — typischerweise 25–35 % kleiner als JPG/PNG bei breiter Browser-Unterstützung."
+
+msgid "The official Cloudflare plugin is active, so the %s button above purges your edge cache."
+msgstr "Das offizielle Cloudflare-Plugin ist aktiv, sodass die Schaltfläche %s oben Ihren Edge-Cache leert."
+
+msgid "The override is switched off, so saving stores the choice without changing the page yet."
+msgstr "Die Überschreibung ist ausgeschaltet, sodass beim Speichern die Auswahl gespeichert wird, ohne die Seite bereits zu ändern."
+
+msgid "The reply could not be sent — check your mail settings."
+msgstr "Die Antwort konnte nicht gesendet werden — prüfen Sie Ihre E-Mail-Einstellungen."
+
+msgid "The submit button text, colours and full styling live on the %1$s — click the button there, or open the %2$s."
+msgstr "Der Text, die Farben und die vollständige Gestaltung der Absende-Schaltfläche befinden sich auf %1$s — klicken Sie dort auf die Schaltfläche oder öffnen Sie %2$s."
+
+msgid "Theme name"
+msgstr "Theme-Name"
+
+msgid "This content is no longer available."
+msgstr "Dieser Inhalt ist nicht mehr verfügbar."
+
+msgid "This crawls every published page over HTTP, so a large site can take a minute. If you're behind Cloudflare, run %s first — the builder falls back to your origin server automatically, but a strict WAF can still block it."
+msgstr "Dies durchsucht jede veröffentlichte Seite über HTTP, sodass eine große Website eine Minute dauern kann. Wenn Sie hinter Cloudflare sind, führen Sie zuerst %s aus — der Builder greift automatisch auf Ihren Ursprungsserver zurück, aber eine strikte WAF kann ihn dennoch blockieren."
+
+msgid "This is the real banner — same markup and CSS your visitors get. Switch the device tabs to check both layouts."
+msgstr "Dies ist das echte Banner — dasselbe Markup und CSS, das Ihre Besucher erhalten. Wechseln Sie die Geräte-Tabs, um beide Layouts zu prüfen."
+
+msgid "This one hits the real login file directly, so it works even if the pretty URL above is blocked by your server or a CDN. If you ever can't reach the pretty URL, use this."
+msgstr "Dieser greift direkt auf die echte Anmeldedatei zu, sodass er auch funktioniert, wenn die schöne URL oben von Ihrem Server oder einem CDN blockiert wird. Falls Sie die schöne URL einmal nicht erreichen, verwenden Sie diesen."
+
+msgid "This replaces your current site with the contents of this backup."
+msgstr "Dies ersetzt Ihre aktuelle Website durch den Inhalt dieser Sicherung."
+
+msgid "This submission has no email address to reply to."
+msgstr "Diese Einsendung hat keine E-Mail-Adresse, an die geantwortet werden kann."
+
+msgid "Tip: drop %s anywhere (e.g. your footer) and it reopens this banner."
+msgstr "Tipp: Platzieren Sie %s an beliebiger Stelle (z. B. in Ihrer Fußzeile), und es öffnet dieses Banner erneut."
+
+msgid "Title"
+msgstr "Titel"
+
+msgid "To"
+msgstr "An"
+
+msgid "Took"
+msgstr "Dauerte"
+
+msgid "Tools"
+msgstr "Werkzeuge"
+
+msgid "Top"
+msgstr "Oben"
+
+msgid "Top-level menu"
+msgstr "Hauptmenü"
+
+msgid "Total entries"
+msgstr "Einträge gesamt"
+
+msgid "Total size"
+msgstr "Gesamtgröße"
+
+msgid "Traffic"
+msgstr "Traffic"
+
+msgid "Tried automatically if the primary send fails. Optional."
+msgstr "Wird automatisch versucht, wenn der primäre Versand fehlschlägt. Optional."
+
+msgid "Tune performance"
+msgstr "Performance abstimmen"
+
+msgid "Turf war detected"
+msgstr "Revierkonflikt erkannt"
+
+msgid "Turn each plugin on as soon as it's installed."
+msgstr "Aktivieren Sie jedes Plugin, sobald es installiert ist."
+
+msgid "Turn it on, then hit %s (or just browse your site) so Velox can learn which handles load. You'll then be able to switch any of them off here."
+msgstr "Aktivieren Sie es und klicken Sie dann auf %s (oder durchstöbern Sie einfach Ihre Website), damit Velox lernen kann, welche Handles geladen werden. Anschließend können Sie hier jedes davon abschalten."
+
+msgid "Turn off to hide this page from the admin menu without deleting it."
+msgstr "Deaktivieren Sie dies, um diese Seite aus dem Admin-Menü auszublenden, ohne sie zu löschen."
+
+msgid "Turn on in Settings"
+msgstr "In den Einstellungen aktivieren"
+
+msgid "Turn this on to create and manage backups. Nothing runs until you ask for it."
+msgstr "Aktivieren Sie dies, um Sicherungen zu erstellen und zu verwalten. Es wird nichts ausgeführt, bis Sie es anfordern."
+
+msgid "Turn this on to create forms and configure SMTP. Embed any form with %s — including inside an Oxygen Shortcode element."
+msgstr "Aktivieren Sie dies, um Formulare zu erstellen und SMTP zu konfigurieren. Betten Sie ein beliebiges Formular mit %s ein — auch innerhalb eines Oxygen-Shortcode-Elements."
+
+msgid "Turn this on to scan your site and generate themes. Nothing is changed on your live site — it only reads the rendered pages."
+msgstr "Aktivieren Sie dies, um Ihre Website zu scannen und Themes zu generieren. An Ihrer Live-Website wird nichts geändert — es werden nur die gerenderten Seiten gelesen."
+
+msgid "Turn this on to show the consent banner on your site's front end and unlock the editor below."
+msgstr "Aktivieren Sie dies, um das Einwilligungs-Banner im Frontend Ihrer Website anzuzeigen und den Editor unten freizuschalten."
+
+msgid "Type"
+msgstr "Typ"
+
+msgid "Typed names are saved in your browser — reload safely, they'll still be here until you apply them. Renaming updates every reference in posts and Oxygen automatically."
+msgstr "Eingegebene Namen werden in Ihrem Browser gespeichert — Sie können gefahrlos neu laden, sie bleiben erhalten, bis Sie sie anwenden. Das Umbenennen aktualisiert automatisch jede Referenz in Beiträgen und Oxygen."
+
+msgid "URL to test"
+msgstr "Zu testende URL"
+
+msgid "URLs"
+msgstr "URLs"
+
+msgid "Under Appearance"
+msgstr "Unter Design"
+
+msgid "Under Media"
+msgstr "Unter Medien"
+
+msgid "Under Posts"
+msgstr "Unter Beiträge"
+
+msgid "Under Settings"
+msgstr "Unter Einstellungen"
+
+msgid "Under Tools"
+msgstr "Unter Werkzeuge"
+
+msgid "Under Velox"
+msgstr "Unter Velox"
+
+msgid "Underline legal links"
+msgstr "Rechtliche Links unterstreichen"
+
+msgid "Unknown action."
+msgstr "Unbekannte Aktion."
+
+msgid "Unlock editing"
+msgstr "Bearbeitung freischalten"
+
+msgid "Unused media"
+msgstr "Ungenutzte Medien"
+
+msgid "Updated"
+msgstr "Aktualisiert"
+
+msgid "Updates"
+msgstr "Updates"
+
+msgid "Updates as you type. Admins still see the live site."
+msgstr "Aktualisiert während der Eingabe. Administratoren sehen weiterhin die Live-Website."
+
+msgid "Upload a %1$s dump or a %2$s archive made on another site and it's %3$s. A safety backup of the current site is taken first, so you can roll the restore back from the list below."
+msgstr "Laden Sie einen %1$s-Dump oder ein %2$s-Archiv hoch, das auf einer anderen Website erstellt wurde, und es wird %3$s. Zuerst wird eine Sicherheitskopie der aktuellen Website erstellt, sodass Sie die Wiederherstellung über die Liste unten rückgängig machen können."
+
+msgid "Use an address on your own domain so it isn't marked as spam."
+msgstr "Verwenden Sie eine Adresse auf Ihrer eigenen Domain, damit sie nicht als Spam markiert wird."
+
+msgid "Use template"
+msgstr "Vorlage verwenden"
+
+msgid "Use the short region form, like %1$s or %2$s. Underscores are converted to hyphens for you."
+msgstr "Verwenden Sie die kurze Regionsform, wie %1$s oder %2$s. Unterstriche werden für Sie in Bindestriche umgewandelt."
+
+msgid "Used for any mail that doesn't match a route below."
+msgstr "Wird für jede E-Mail verwendet, die keiner Route unten entspricht."
+
+msgid "Used when %1$s is set to %2$s. Upload a %3$s or %4$s from your media library, or paste a link (e.g. from LottieFiles)."
+msgstr "Wird verwendet, wenn %1$s auf %2$s gesetzt ist. Laden Sie eine %3$s oder %4$s aus Ihrer Mediathek hoch oder fügen Sie einen Link ein (z. B. von LottieFiles)."
+
+msgid "Utilities"
+msgstr "Werkzeuge"
+
+msgid "Velox"
+msgstr "Velox"
+
+msgid "Velox SEO"
+msgstr "Velox SEO"
+
+msgid "Velox admin language"
+msgstr "Velox-Administrationssprache"
+
+msgid "Velox counts a visit the first time a real browser loads a page. Numbers will fill in as people visit your site."
+msgstr "Velox zählt einen Besuch, wenn ein echter Browser eine Seite zum ersten Mal lädt. Die Zahlen füllen sich, während Menschen Ihre Website besuchen."
+
+msgid "Velox doesn't talk to Cloudflare directly — when you clear the Cloudflare cache, Velox asks the %1$s to purge everything. So it only works once that plugin is installed and connected; otherwise you get %2$s Your Velox page cache still clears fine without it."
+msgstr "Velox kommuniziert nicht direkt mit Cloudflare — wenn Sie den Cloudflare-Cache leeren, bittet Velox das %1$s, alles zu leeren. Es funktioniert also erst, sobald dieses Plugin installiert und verbunden ist; andernfalls erhalten Sie %2$s Ihr Velox-Seiten-Cache lässt sich auch ohne dies problemlos leeren."
+
+msgid "Velox is serving the clean robots.txt shown in the editor above. Cloudflare adds the signals block at the edge, so no WordPress plugin can remove it. To turn it off: open your Cloudflare dashboard → select this domain → %1$s (older accounts: %2$s) → switch off %3$s / managed robots.txt, then come back and click %4$s again."
+msgstr ""
+
+msgid "Velox loads your front page, finds the Google Fonts it uses, downloads the woff2 files into your uploads folder and serves those instead. Re-scan after you change fonts."
+msgstr "Velox lädt Ihre Startseite, findet die verwendeten Google Fonts, lädt die woff2-Dateien in Ihren Uploads-Ordner herunter und liefert diese stattdessen aus. Scannen Sie nach einer Schriftartenänderung erneut."
+
+msgid "Velox scans your builder and installed plugins, then shows tuned settings you can review and tweak before applying."
+msgstr "Velox scannt Ihren Builder und die installierten Plugins und zeigt dann abgestimmte Einstellungen, die Sie vor dem Anwenden prüfen und anpassen können."
+
+msgid "Velox skipped your PHP snippets because one crashed the site (or you asked for Safe Mode). CSS, JS and HTML snippets are unaffected. Fix or switch off the offending snippet, then clear Safe Mode."
+msgstr "Velox hat Ihre PHP-Snippets übersprungen, weil eines die Website zum Absturz gebracht hat (oder Sie den abgesicherten Modus angefordert haben). CSS-, JS- und HTML-Snippets sind nicht betroffen. Beheben oder deaktivieren Sie das betreffende Snippet und beenden Sie dann den abgesicherten Modus."
+
+msgid "Velox tunes its performance settings to your builder. Currently configured for:"
+msgstr "Velox stimmt seine Performance-Einstellungen auf Ihren Builder ab. Aktuell konfiguriert für:"
+
+msgid "Velox updates straight from GitHub releases, so it never appears in the public plugin directory. When a new version is released it shows up like any other plugin update."
+msgstr "Velox aktualisiert direkt aus GitHub-Releases, sodass es nie im öffentlichen Plugin-Verzeichnis erscheint. Wenn eine neue Version veröffentlicht wird, erscheint sie wie jedes andere Plugin-Update."
+
+msgid "Velox_Fields::get_field('name')"
+msgstr ""
+
+msgid "Velox_Fields::get_field('name','option')"
+msgstr ""
+
+msgid "Verify"
+msgstr "Verifizieren"
+
+msgid "Version"
+msgstr "Version"
+
+msgid "View converted images →"
+msgstr "Konvertierte Bilder ansehen →"
+
+msgid "View live robots.txt"
+msgstr "Live-robots.txt ansehen"
+
+msgid "View sitemap"
+msgstr "Sitemap ansehen"
+
+msgid "View traffic"
+msgstr "Traffic ansehen"
+
+msgid "Visit"
+msgstr "Besuchen"
+
+msgid "Visitors"
+msgstr "Besucher"
+
+msgid "Visitors per day"
+msgstr "Besucher pro Tag"
+
+msgid "WP-Cron runs on traffic — quiet sites may back up a little late."
+msgstr "WP-Cron läuft durch Traffic — bei ruhigen Websites kann die Sicherung etwas verspätet erfolgen."
+
+msgid "WebP"
+msgstr "WebP"
+
+msgid "Weekly auto-clean"
+msgstr "Wöchentliche automatische Bereinigung"
+
+msgid "What"
+msgstr "Was"
+
+msgid "What kind of snippet?"
+msgstr "Welche Art von Snippet?"
+
+msgid "What the button does."
+msgstr "Was die Schaltfläche tut."
+
+msgid "What to back up"
+msgstr "Was gesichert werden soll"
+
+msgid "When"
+msgstr "Wann"
+
+msgid "When this is off, the “Require CAPTCHA” switch is locked on every form. Turn it on and add your keys to allow forms to use it."
+msgstr "Wenn dies aus ist, ist der Schalter „CAPTCHA erforderlich“ bei jedem Formular gesperrt. Aktivieren Sie es und fügen Sie Ihre Schlüssel hinzu, damit Formulare es verwenden können."
+
+msgid "Which page builder do you use?"
+msgstr "Welchen Page-Builder verwenden Sie?"
+
+msgid "While maintenance is on, everything is hidden from search."
+msgstr "Während der Wartungsmodus aktiv ist, wird alles vor der Suche verborgen."
+
+msgid "While this is off, the page keeps whatever WordPress and your theme produce."
+msgstr "Solange dies aus ist, behält die Seite das bei, was WordPress und Ihr Theme erzeugen."
+
+msgid "Width"
+msgstr "Breite"
+
+msgid "WordPress"
+msgstr "WordPress"
+
+msgid "Working…"
+msgstr "Wird ausgeführt…"
+
+msgid "Write to physical file"
+msgstr "In physische Datei schreiben"
+
+msgid "XML sitemap"
+msgstr "XML-Sitemap"
+
+msgid "Yes"
+msgstr "Ja"
+
+msgid "You're all set"
+msgstr "Alles eingerichtet"
+
+msgid "Your backups"
+msgstr "Ihre Sicherungen"
+
+msgid "Your image optimization center — pick formats and quality, then convert your whole library. With replace mode on, images become WebP right in your media library; the resize width sets a max (height follows automatically, smaller images are left untouched)."
+msgstr "Ihr Zentrum für Bildoptimierung — wählen Sie Formate und Qualität und konvertieren Sie dann Ihre gesamte Mediathek. Mit aktiviertem Ersetzungsmodus werden Bilder direkt in Ihrer Mediathek zu WebP; die Skalierungsbreite legt ein Maximum fest (die Höhe folgt automatisch, kleinere Bilder bleiben unberührt)."
+
+msgid "[velox_form id=\"1\"]"
+msgstr ""
+
+msgid "[velox_form]"
+msgstr ""
+
+msgid "all"
+msgstr "alle"
+
+msgid "and"
+msgstr "und"
+
+msgid "any"
+msgstr "beliebig"
+
+msgid "archive"
+msgstr "Archiv"
+
+msgid "billing@…"
+msgstr ""
+
+msgid "blog"
+msgstr "Blog"
+
+msgid "box → \"Exclude from sitemap\")."
+msgstr "Kasten → „Von Sitemap ausschließen“)."
+
+msgid "by Sumasearch"
+msgstr "von Sumasearch"
+
+msgid "copy it now"
+msgstr "jetzt kopieren"
+
+msgid "current"
+msgstr "aktuell"
+
+msgid "dash.cloudflare.com"
+msgstr ""
+
+msgid "dashicons-…"
+msgstr ""
+
+msgid "de-DE"
+msgstr ""
+
+msgid "drag to reorder"
+msgstr "zum Neuordnen ziehen"
+
+msgid "editing core, %1$s, or a theme's %2$s can take the whole site down. If you're unsure, make a backup first (Utilities &rarr; Backup &amp; restore)."
+msgstr "Das Bearbeiten von Kern-Dateien, %1$s oder der %2$s eines Themes kann die gesamte Website lahmlegen. Wenn Sie unsicher sind, erstellen Sie zuerst eine Sicherung (Werkzeuge &rarr; Sicherung &amp; Wiederherstellung)."
+
+msgid "en-GB"
+msgstr ""
+
+msgid "example URLs — not your real site"
+msgstr "Beispiel-URLs — nicht Ihre echte Website"
+
+msgid "file"
+msgstr "Datei"
+
+msgid "form canvas"
+msgstr "Formular-Arbeitsfläche"
+
+msgid "front"
+msgstr "Startseite"
+
+msgid "functions.php"
+msgstr ""
+
+msgid "get_field()"
+msgstr ""
+
+msgid "googleapis.com"
+msgstr ""
+
+msgid "imported"
+msgstr "importiert"
+
+msgid "in the last 30 days"
+msgstr "in den letzten 30 Tagen"
+
+msgid "lang"
+msgstr ""
+
+msgid "official Cloudflare plugin"
+msgstr "offizielle Cloudflare-Plugin"
+
+msgid "og:image"
+msgstr ""
+
+msgid "og:title"
+msgstr ""
+
+msgid "optional"
+msgstr "optional"
+
+msgid "php-zip"
+msgstr "php-zip"
+
+msgid "px"
+msgstr ""
+
+msgid "restored straight away"
+msgstr "sofort wiederhergestellt"
+
+msgid "robots.txt"
+msgstr ""
+
+msgid "rows of junk to clean out"
+msgstr "Zeilen an Datenmüll zum Bereinigen"
+
+msgid "safety"
+msgstr "Sicherheit"
+
+msgid "selected"
+msgstr "ausgewählt"
+
+msgid "shop"
+msgstr "Shop"
+
+msgid "shown as the sender"
+msgstr "als Absender angezeigt"
+
+msgid "tell us"
+msgstr "kontaktieren Sie uns"
+
+msgid "type:post"
+msgstr ""
+
+msgid "type:product"
+msgstr ""
+
+msgid "util_login_slug"
+msgstr "util_login_slug"
+
+msgid "visitors / day"
+msgstr "Besucher / Tag"
+
+msgid "which you need next."
+msgstr "welches Sie als Nächstes benötigen."
+
+msgid "widgets"
+msgstr "Widgets"
+
+msgid "wp-config.php"
+msgstr ""
+
+msgid "wp-content"
+msgstr ""
+
+msgid "wp-fastest-cache"
+msgstr ""
+
+msgid "your builder"
+msgstr "Ihren Builder"
+
+msgid "your zone → AI Crawl Control / Bots → uncheck \"Display Content Signals Policy\" / managed robots.txt"
+msgstr ""
+
+msgid "z-index"
+msgstr ""
+
+msgid "— entries"
+msgstr "— Einträge"
+
+msgid "— how sitemap.xml looks when opened in a browser. Search engines still read the plain XML."
+msgstr "— wie sitemap.xml aussieht, wenn sie in einem Browser geöffnet wird. Suchmaschinen lesen weiterhin das reine XML."
+
+msgid "— switch off to disable forms and SMTP."
+msgstr "— ausschalten, um Formulare und SMTP zu deaktivieren."
+
+msgid "— switch off to disable."
+msgstr "— ausschalten, um zu deaktivieren."
+
+msgid "— switch off to hide it."
+msgstr "— ausschalten, um es auszublenden."
+
+msgid "— switch off to hide this tool (your stored backups are kept)."
+msgstr "— ausschalten, um dieses Werkzeug auszublenden (Ihre gespeicherten Sicherungen bleiben erhalten)."
+
+msgid "— switch on to create field groups."
+msgstr "— einschalten, um Feldgruppen zu erstellen."
+
+msgid "“Cloudflare”"
+msgstr "„Cloudflare“"
+
+msgid "…) so links shared to Facebook, LinkedIn, WhatsApp and X show a rich preview. Turn off if another tool already handles them."
+msgstr "…), damit auf Facebook, LinkedIn, WhatsApp und X geteilte Links eine Rich-Vorschau zeigen. Ausschalten, wenn ein anderes Werkzeug dies bereits übernimmt."
+
+msgid "← Prev"
+msgstr "← Zurück"
+
+msgid "↻ Re-scan website"
+msgstr "↻ Website erneut scannen"
+
+msgid "⚠ Editing files directly can break your site. Use with care."
+msgstr "⚠ Das direkte Bearbeiten von Dateien kann Ihre Website beschädigen. Mit Vorsicht verwenden."
+
+msgid "⤓ Download all"
+msgstr "⤓ Alle herunterladen"
+

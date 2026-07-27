@@ -32,19 +32,19 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 ?>
 <div class="velox-page-head">
 	<h1 class="velox-h2">Redirects &amp; 404s</h1>
-	<p class="velox-sub">Send old or moved URLs somewhere useful, and watch which missing pages your visitors actually hit so you can fix the ones that matter.</p>
+	<p class="velox-sub"><?php esc_html_e('Send old or moved URLs somewhere useful, and watch which missing pages your visitors actually hit so you can fix the ones that matter.', 'velox'); ?></p>
 </div>
 
 <div class="velox-panel">
 	<div class="velox-redir-head">
-		<h3 class="velox-panel-title" style="margin:0;">Active redirects <span class="velox-count"><?php echo count( $redirects ); ?></span></h3>
+		<h3 class="velox-panel-title" style="margin:0;"><?php esc_html_e('Active redirects', 'velox'); ?> <span class="velox-count"><?php echo count( $redirects ); ?></span></h3>
 		<button class="velox-btn velox-btn--primary" id="velox-redir-open">
-			<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:5px;"><path d="M12 5v14M5 12h14"/></svg>Add redirect
+			<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="margin-right:5px;"><path d="M12 5v14M5 12h14"/></svg><?php esc_html_e('Add redirect', 'velox'); ?>
 		</button>
 	</div>
 	<div id="velox-redir-list" class="velox-redir-list">
 		<?php if ( empty( $redirects ) ) : ?>
-			<p class="velox-hint" id="velox-redir-empty">No redirects yet. Add one to send an old URL somewhere useful.</p>
+			<p class="velox-hint" id="velox-redir-empty"><?php esc_html_e('No redirects yet. Add one to send an old URL somewhere useful.', 'velox'); ?></p>
 		<?php else : ?>
 			<?php foreach ( $redirects as $r ) :
 				$mt    = isset( $r['match_type'] ) ? $r['match_type'] : 'exact';
@@ -87,26 +87,26 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 						<span class="velox-switch-track"></span>
 					</label>
 					<?php if ( $is_ex ) : ?>
-						<button class="velox-btn velox-btn--ghost velox-redir-visit" title="Open the source URL in a new tab to test it">Visit</button>
+						<button class="velox-btn velox-btn--ghost velox-redir-visit" title="Open the source URL in a new tab to test it"><?php esc_html_e('Visit', 'velox'); ?></button>
 					<?php endif; ?>
-					<button class="velox-btn velox-btn--ghost velox-redir-edit">Edit</button>
-					<button class="velox-btn velox-btn--ghost velox-redir-del">Delete</button>
+					<button class="velox-btn velox-btn--ghost velox-redir-edit"><?php esc_html_e('Edit', 'velox'); ?></button>
+					<button class="velox-btn velox-btn--ghost velox-redir-del"><?php esc_html_e('Delete', 'velox'); ?></button>
 				</div>
 			<?php endforeach; ?>
 		<?php endif; ?>
 	</div>
-	<span class="velox-hint">Source is a path on this site. Target can be a path (<code>/new</code>) or a full URL. Choose <strong>410 Gone</strong> to tell search engines a page is permanently removed.</span>
+	<span class="velox-hint"><?php printf( esc_html__( 'Source is a path on this site. Target can be a path (%1$s) or a full URL. Choose %2$s to tell search engines a page is permanently removed.', 'velox' ), '<code>' . esc_html__( '/new', 'velox' ) . '</code>', '<strong>' . esc_html__( '410 Gone', 'velox' ) . '</strong>' ); ?></span>
 </div>
 
 <div class="velox-panel">
 	<div class="velox-redir-head">
-		<h3 class="velox-panel-title" style="margin:0;">404 log <span class="velox-count"><?php echo count( $logs ); ?></span></h3>
+		<h3 class="velox-panel-title" style="margin:0;"><?php esc_html_e('404 log', 'velox'); ?> <span class="velox-count"><?php echo count( $logs ); ?></span></h3>
 		<div class="velox-redir-head-actions">
 			<label class="velox-inline-toggle">
-				<span>Log 404s</span>
+				<span><?php esc_html_e('Log 404s', 'velox'); ?></span>
 				<span class="velox-switch"><input type="checkbox" data-setting="util_redirects_log_404" id="velox-log-toggle" <?php checked( $log_on ); ?>><span class="velox-switch-track"></span></span>
 			</label>
-			<button class="velox-btn velox-btn--ghost" id="velox-log-clear"<?php echo empty( $logs ) ? ' hidden' : ''; ?>>Clear log</button>
+			<button class="velox-btn velox-btn--ghost" id="velox-log-clear"<?php echo empty( $logs ) ? ' hidden' : ''; ?>><?php esc_html_e('Clear log', 'velox'); ?></button>
 		</div>
 	</div>
 	<div id="velox-log-list" class="velox-log-list">
@@ -118,7 +118,7 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 					<span class="velox-log-path"><?php echo esc_html( $l['path'] ); ?></span>
 					<span class="velox-log-hits"><?php echo (int) $l['hits']; ?> hits</span>
 					<button class="velox-btn velox-btn--ghost velox-log-fix">&rarr; Redirect</button>
-					<button class="velox-btn velox-btn--ghost velox-log-forget">Forget</button>
+					<button class="velox-btn velox-btn--ghost velox-log-forget"><?php esc_html_e('Forget', 'velox'); ?></button>
 				</div>
 			<?php endforeach; ?>
 		<?php endif; ?>
@@ -129,7 +129,7 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 <div class="velox-modal" id="velox-redir-modal" hidden>
 	<div class="velox-modal-box velox-modal-box--lg" role="dialog" aria-modal="true" aria-label="Redirect">
 		<div class="velox-modal-head">
-			<h3 class="velox-modal-title" id="velox-redir-modal-title">New redirect</h3>
+			<h3 class="velox-modal-title" id="velox-redir-modal-title"><?php esc_html_e('New redirect', 'velox'); ?></h3>
 			<button type="button" class="velox-modal-x" data-redir-close aria-label="Close">
 				<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
 			</button>
@@ -137,16 +137,16 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 		<div class="velox-modal-body">
 			<input type="hidden" id="velox-redir-id" value="0">
 			<div class="velox-field">
-				<label class="velox-field-label" for="velox-redir-source">From</label>
+				<label class="velox-field-label" for="velox-redir-source"><?php esc_html_e('From', 'velox'); ?></label>
 				<input type="text" class="velox-input" id="velox-redir-source" placeholder="/old-page">
 			</div>
 			<div class="velox-field" id="velox-redir-target-field">
-				<label class="velox-field-label" for="velox-redir-target">To</label>
+				<label class="velox-field-label" for="velox-redir-target"><?php esc_html_e('To', 'velox'); ?></label>
 				<input type="text" class="velox-input" id="velox-redir-target" placeholder="/new-page or https://…">
 			</div>
 			<div class="velox-grid-2">
 				<div class="velox-field">
-					<label class="velox-field-label" for="velox-redir-type">HTTP status</label>
+					<label class="velox-field-label" for="velox-redir-type"><?php esc_html_e('HTTP status', 'velox'); ?></label>
 					<select class="velox-select" id="velox-redir-type">
 						<?php foreach ( $types as $code => $label ) : ?>
 							<option value="<?php echo esc_attr( $code ); ?>"><?php echo esc_html( $label ); ?></option>
@@ -154,7 +154,7 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 					</select>
 				</div>
 				<div class="velox-field">
-					<label class="velox-field-label" for="velox-redir-match">Match type</label>
+					<label class="velox-field-label" for="velox-redir-match"><?php esc_html_e('Match type', 'velox'); ?></label>
 					<select class="velox-select" id="velox-redir-match">
 						<?php foreach ( $matches as $mk => $mlabel ) : ?>
 							<option value="<?php echo esc_attr( $mk ); ?>"><?php echo esc_html( $mlabel ); ?></option>
@@ -164,41 +164,41 @@ if ( ! function_exists( 'velox_redir_badges' ) ) {
 			</div>
 			<div class="velox-grid-2">
 				<div class="velox-field">
-					<label class="velox-field-label" for="velox-redir-priority">Priority</label>
+					<label class="velox-field-label" for="velox-redir-priority"><?php esc_html_e('Priority', 'velox'); ?></label>
 					<input type="number" class="velox-input" id="velox-redir-priority" value="0">
-					<span class="velox-hint">Higher numbers are checked first.</span>
+					<span class="velox-hint"><?php esc_html_e('Higher numbers are checked first.', 'velox'); ?></span>
 				</div>
 				<div class="velox-field">
-					<label class="velox-field-label" for="velox-redir-category">Category</label>
+					<label class="velox-field-label" for="velox-redir-category"><?php esc_html_e('Category', 'velox'); ?></label>
 					<input type="text" class="velox-input" id="velox-redir-category" placeholder="e.g. Blog, Shop">
 				</div>
 			</div>
 			<div class="velox-field">
-				<label class="velox-field-label" for="velox-redir-desc">Description</label>
+				<label class="velox-field-label" for="velox-redir-desc"><?php esc_html_e('Description', 'velox'); ?></label>
 				<input type="text" class="velox-input" id="velox-redir-desc" placeholder="Optional note for your team">
 			</div>
 			<div class="velox-redir-flags">
 				<label class="velox-toggle-row">
-					<div class="velox-toggle-meta"><span class="velox-toggle-label">Active</span></div>
+					<div class="velox-toggle-meta"><span class="velox-toggle-label"><?php esc_html_e('Active', 'velox'); ?></span></div>
 					<span class="velox-switch"><input type="checkbox" id="velox-redir-active" checked><span class="velox-switch-track"></span></span>
 				</label>
 				<label class="velox-toggle-row">
-					<div class="velox-toggle-meta"><span class="velox-toggle-label">Ignore case</span></div>
+					<div class="velox-toggle-meta"><span class="velox-toggle-label"><?php esc_html_e('Ignore case', 'velox'); ?></span></div>
 					<span class="velox-switch"><input type="checkbox" id="velox-redir-ic" checked><span class="velox-switch-track"></span></span>
 				</label>
 				<label class="velox-toggle-row">
-					<div class="velox-toggle-meta"><span class="velox-toggle-label">Ignore query parameters</span></div>
+					<div class="velox-toggle-meta"><span class="velox-toggle-label"><?php esc_html_e('Ignore query parameters', 'velox'); ?></span></div>
 					<span class="velox-switch"><input type="checkbox" id="velox-redir-iq" checked><span class="velox-switch-track"></span></span>
 				</label>
 				<label class="velox-toggle-row">
-					<div class="velox-toggle-meta"><span class="velox-toggle-label">Ignore trailing slash</span></div>
+					<div class="velox-toggle-meta"><span class="velox-toggle-label"><?php esc_html_e('Ignore trailing slash', 'velox'); ?></span></div>
 					<span class="velox-switch"><input type="checkbox" id="velox-redir-is" checked><span class="velox-switch-track"></span></span>
 				</label>
 			</div>
 		</div>
 		<div class="velox-modal-foot">
-			<button type="button" class="velox-btn velox-btn--ghost" data-redir-close>Cancel</button>
-			<button type="button" class="velox-btn velox-btn--primary" id="velox-redir-save">Save redirect</button>
+			<button type="button" class="velox-btn velox-btn--ghost" data-redir-close><?php esc_html_e('Cancel', 'velox'); ?></button>
+			<button type="button" class="velox-btn velox-btn--primary" id="velox-redir-save"><?php esc_html_e('Save redirect', 'velox'); ?></button>
 		</div>
 	</div>
 </div>

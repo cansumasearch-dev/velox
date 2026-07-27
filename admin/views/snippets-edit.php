@@ -51,14 +51,14 @@ $scope_opts = array(
 	<div class="velox-snip-edbar">
 		<a class="velox-snip-back" href="<?php echo esc_url( Velox_Snippets::list_url() ); ?>">
 			<svg class="velox-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
-			All snippets
+			<?php esc_html_e('All snippets', 'velox'); ?>
 		</a>
 		<span class="velox-snip-edbar-title">
 			<span class="velox-snip-badge is-<?php echo esc_attr( $type ); ?>" id="velox-snip-edbadge"><?php echo esc_html( strtoupper( $type ) ); ?></span>
 			<?php echo $snippet ? 'Edit snippet' : 'New snippet'; ?>
 		</span>
 		<div class="velox-snip-edbar-actions">
-			<button class="velox-btn velox-btn--ghost" id="velox-snip-save-only" type="button">Save only</button>
+			<button class="velox-btn velox-btn--ghost" id="velox-snip-save-only" type="button"><?php esc_html_e('Save only', 'velox'); ?></button>
 			<button class="velox-btn velox-btn--primary" id="velox-snip-save-activate" type="button">
 				<?php echo $active ? 'Save & deactivate' : 'Save & activate'; ?>
 			</button>
@@ -68,7 +68,7 @@ $scope_opts = array(
 	<div class="velox-snip-edgrid">
 		<div class="velox-panel velox-snip-code-panel">
 			<div class="velox-field" style="margin:0;">
-				<label class="velox-label" for="velox-snip-code">Code</label>
+				<label class="velox-label" for="velox-snip-code"><?php esc_html_e('Code', 'velox'); ?></label>
 				<textarea id="velox-snip-code" class="velox-snip-code" spellcheck="false"><?php echo esc_textarea( $code ); ?></textarea>
 				<span class="velox-hint" id="velox-snip-codehint"></span>
 			</div>
@@ -77,15 +77,15 @@ $scope_opts = array(
 		<aside class="velox-snip-edside">
 			<div class="velox-panel">
 				<div class="velox-field">
-					<label class="velox-label" for="velox-snip-name">Name</label>
+					<label class="velox-label" for="velox-snip-name"><?php esc_html_e('Name', 'velox'); ?></label>
 					<input type="text" class="velox-input" id="velox-snip-name" value="<?php echo esc_attr( $name ); ?>" placeholder="What does this snippet do?">
 				</div>
 				<div class="velox-field">
-					<label class="velox-label" for="velox-snip-desc">Description <span class="velox-opt">optional</span></label>
+					<label class="velox-label" for="velox-snip-desc"><?php esc_html_e('Description', 'velox'); ?> <span class="velox-opt"><?php esc_html_e('optional', 'velox'); ?></span></label>
 					<input type="text" class="velox-input" id="velox-snip-desc" value="<?php echo esc_attr( $desc ); ?>" placeholder="A short note for future you">
 				</div>
 				<div class="velox-field">
-					<label class="velox-label" for="velox-snip-type">Type</label>
+					<label class="velox-label" for="velox-snip-type"><?php esc_html_e('Type', 'velox'); ?></label>
 					<select class="velox-select" id="velox-snip-type">
 						<?php foreach ( $type_opts as $val => $label ) : ?>
 							<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $type, $val ); ?>><?php echo esc_html( $label ); ?></option>
@@ -93,7 +93,7 @@ $scope_opts = array(
 					</select>
 				</div>
 				<div class="velox-field">
-					<label class="velox-label" for="velox-snip-scope">Location</label>
+					<label class="velox-label" for="velox-snip-scope"><?php esc_html_e('Location', 'velox'); ?></label>
 					<select class="velox-select" id="velox-snip-scope">
 						<?php foreach ( $loc_opts as $val => $label ) : ?>
 							<option value="<?php echo esc_attr( $val ); ?>" <?php selected( $cur_loc, $val ); ?>><?php echo esc_html( $label ); ?></option>
@@ -102,12 +102,12 @@ $scope_opts = array(
 					<span class="velox-hint" id="velox-snip-loc-hint" style="margin-top:6px;"></span>
 				</div>
 				<div class="velox-field velox-field--narrow" id="velox-snip-locnum-wrap"<?php echo Velox_Snippets::location_needs_num( $cur_loc ) ? '' : ' hidden'; ?>>
-					<label class="velox-label" for="velox-snip-locnum">Paragraph number</label>
+					<label class="velox-label" for="velox-snip-locnum"><?php esc_html_e('Paragraph number', 'velox'); ?></label>
 					<input type="number" class="velox-input" id="velox-snip-locnum" value="<?php echo esc_attr( $loc_num ); ?>" min="1" max="999">
 				</div>
 				<script type="application/json" id="velox-snip-locmap"><?php echo wp_json_encode( $loc_map ); ?></script>
 				<div class="velox-field velox-field--narrow">
-					<label class="velox-label" for="velox-snip-prio">Priority</label>
+					<label class="velox-label" for="velox-snip-prio"><?php esc_html_e('Priority', 'velox'); ?></label>
 					<input type="number" class="velox-input" id="velox-snip-prio" value="<?php echo esc_attr( $priority ); ?>" min="1" max="999">
 				</div>
 			</div>

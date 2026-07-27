@@ -21,15 +21,15 @@ if ( 'converted' === $velox_view ) :
 	foreach ( $converted as $c ) { $total_saved += max( 0, $c['orig'] - $c['webp'] ); }
 	?>
 	<div class="velox-page-head velox-page-head--back">
-		<a class="velox-back" href="<?php echo esc_url( $back_url ); ?>"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> Images</a>
-		<h1 class="velox-h2">Converted images</h1>
+		<a class="velox-back" href="<?php echo esc_url( $back_url ); ?>"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> <?php esc_html_e('Images', 'velox'); ?></a>
+		<h1 class="velox-h2"><?php esc_html_e('Converted images', 'velox'); ?></h1>
 		<p class="velox-sub"><?php echo count( $converted ); ?> image<?php echo 1 === count( $converted ) ? '' : 's'; ?> converted to WebP<?php echo $total_saved > 0 ? ' &middot; ' . esc_html( size_format( $total_saved, 1 ) ) . ' saved' : ''; ?>.</p>
 	</div>
 
 	<?php if ( empty( $converted ) ) : ?>
 		<div class="velox-panel">
-			<p class="velox-hint" style="margin:0 0 12px;">Nothing converted yet. Run a bulk optimization to fill this up.</p>
-			<a class="velox-btn velox-btn--primary" href="<?php echo esc_url( $back_url ); ?>">Go to the optimizer</a>
+			<p class="velox-hint" style="margin:0 0 12px;"><?php esc_html_e('Nothing converted yet. Run a bulk optimization to fill this up.', 'velox'); ?></p>
+			<a class="velox-btn velox-btn--primary" href="<?php echo esc_url( $back_url ); ?>"><?php esc_html_e('Go to the optimizer', 'velox'); ?></a>
 		</div>
 	<?php else : ?>
 		<div class="velox-conv-grid">
@@ -56,22 +56,22 @@ if ( 'converted' === $velox_view ) :
 endif;
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Images</h1>
-	<p class="velox-sub">Your image optimization center — pick formats and quality, then convert your whole library. With replace mode on, images become WebP right in your media library; the resize width sets a max (height follows automatically, smaller images are left untouched).</p>
+	<h1 class="velox-h2"><?php esc_html_e('Images', 'velox'); ?></h1>
+	<p class="velox-sub"><?php esc_html_e('Your image optimization center — pick formats and quality, then convert your whole library. With replace mode on, images become WebP right in your media library; the resize width sets a max (height follows automatically, smaller images are left untouched).', 'velox'); ?></p>
 </div>
 
 <?php if ( ! $engine ) : ?>
-	<div class="velox-alert velox-alert--warn">No image engine (Imagick or GD with WebP) was found on this server. Conversion is disabled until one is enabled in your PHP settings — see the compatibility list below.</div>
+	<div class="velox-alert velox-alert--warn"><?php esc_html_e('No image engine (Imagick or GD with WebP) was found on this server. Conversion is disabled until one is enabled in your PHP settings — see the compatibility list below.', 'velox'); ?></div>
 <?php endif; ?>
 
 <!-- ============ Output & engine ============ -->
 <div class="velox-grid-2">
 	<div class="velox-panel">
-		<h3 class="velox-panel-title">Output formats</h3>
+		<h3 class="velox-panel-title"><?php esc_html_e('Output formats', 'velox'); ?></h3>
 		<div class="velox-toggle-row">
 			<div class="velox-toggle-meta">
-				<span class="velox-toggle-label">WebP</span>
-				<span class="velox-toggle-desc">The modern baseline — typically 25–35% smaller than JPG/PNG with wide browser support.</span>
+				<span class="velox-toggle-label"><?php esc_html_e('WebP', 'velox'); ?></span>
+				<span class="velox-toggle-desc"><?php esc_html_e('The modern baseline — typically 25–35% smaller than JPG/PNG with wide browser support.', 'velox'); ?></span>
 			</div>
 			<label class="velox-switch"><input type="checkbox" id="velox-webp" data-setting="image_webp" <?php checked( ! empty( $s['image_webp'] ) ); ?>><span class="velox-switch-track"></span></label>
 		</div>
@@ -79,19 +79,19 @@ endif;
 			<div class="velox-toggle-meta">
 				<span class="velox-toggle-label">AVIF
 					<?php if ( $avif_engine ) : ?>
-						<span class="velox-tag velox-tag--ok">Supported</span>
+						<span class="velox-tag velox-tag--ok"><?php esc_html_e('Supported', 'velox'); ?></span>
 					<?php else : ?>
-						<span class="velox-tag velox-tag--muted">Not on this server</span>
+						<span class="velox-tag velox-tag--muted"><?php esc_html_e('Not on this server', 'velox'); ?></span>
 					<?php endif; ?>
 				</span>
-				<span class="velox-toggle-desc">An extra AVIF twin, usually 15–30% smaller again. Capable browsers get AVIF, everyone else falls back to WebP, then the original. Slower to encode.</span>
+				<span class="velox-toggle-desc"><?php esc_html_e('An extra AVIF twin, usually 15–30% smaller again. Capable browsers get AVIF, everyone else falls back to WebP, then the original. Slower to encode.', 'velox'); ?></span>
 			</div>
 			<label class="velox-switch"><input type="checkbox" id="velox-avif" data-setting="image_avif" <?php checked( ! empty( $s['image_avif'] ) ); ?> <?php disabled( ! $avif_engine ); ?>><span class="velox-switch-track"></span></label>
 		</div>
 		<div class="velox-toggle-row">
 			<div class="velox-toggle-meta">
-				<span class="velox-toggle-label">Replace originals with WebP</span>
-				<span class="velox-toggle-desc">On (recommended): the JPG/PNG becomes a WebP right in your media library, at its real smaller size. Off: keeps the original and serves a WebP copy only on the front-end.</span>
+				<span class="velox-toggle-label"><?php esc_html_e('Replace originals with WebP', 'velox'); ?></span>
+				<span class="velox-toggle-desc"><?php esc_html_e('On (recommended): the JPG/PNG becomes a WebP right in your media library, at its real smaller size. Off: keeps the original and serves a WebP copy only on the front-end.', 'velox'); ?></span>
 			</div>
 			<label class="velox-switch"><input type="checkbox" id="velox-replace" data-setting="image_replace" <?php checked( ! empty( $s['image_replace'] ) ); ?>><span class="velox-switch-track"></span></label>
 		</div>
@@ -99,15 +99,15 @@ endif;
 	</div>
 
 	<div class="velox-panel">
-		<h3 class="velox-panel-title">Conversion engine</h3>
+		<h3 class="velox-panel-title"><?php esc_html_e('Conversion engine', 'velox'); ?></h3>
 		<div class="velox-field">
-			<span class="velox-field-label">Engine</span>
+			<span class="velox-field-label"><?php esc_html_e('Engine', 'velox'); ?></span>
 			<select class="velox-select" id="velox-engine" data-setting="image_engine">
-				<option value="auto" <?php selected( $s['image_engine'], 'auto' ); ?>>Auto (recommended)</option>
-				<option value="imagick" <?php selected( $s['image_engine'], 'imagick' ); ?>>Imagick</option>
-				<option value="gd" <?php selected( $s['image_engine'], 'gd' ); ?>>GD</option>
+				<option value="auto" <?php selected( $s['image_engine'], 'auto' ); ?>><?php esc_html_e('Auto (recommended)', 'velox'); ?></option>
+				<option value="imagick" <?php selected( $s['image_engine'], 'imagick' ); ?>><?php esc_html_e('Imagick', 'velox'); ?></option>
+				<option value="gd" <?php selected( $s['image_engine'], 'gd' ); ?>><?php esc_html_e('GD', 'velox'); ?></option>
 			</select>
-			<span class="velox-hint">Auto picks the best available engine. Force one only if you have a reason to.</span>
+			<span class="velox-hint"><?php esc_html_e('Auto picks the best available engine. Force one only if you have a reason to.', 'velox'); ?></span>
 		</div>
 		<div class="velox-engine-compat">
 			<?php foreach ( $caps as $cap ) : ?>
@@ -115,11 +115,11 @@ endif;
 					<span class="velox-engine-name"><?php echo esc_html( $cap['label'] ); ?></span>
 					<span class="velox-engine-badges">
 						<?php if ( $cap['available'] ) : ?>
-							<span class="velox-tag velox-tag--ok">Available</span>
-							<span class="velox-tag <?php echo $cap['webp'] ? 'velox-tag--ok' : 'velox-tag--muted'; ?>">WebP</span>
-							<span class="velox-tag <?php echo $cap['avif'] ? 'velox-tag--ok' : 'velox-tag--muted'; ?>">AVIF</span>
+							<span class="velox-tag velox-tag--ok"><?php esc_html_e('Available', 'velox'); ?></span>
+							<span class="velox-tag <?php echo $cap['webp'] ? 'velox-tag--ok' : 'velox-tag--muted'; ?>"><?php esc_html_e('WebP', 'velox'); ?></span>
+							<span class="velox-tag <?php echo $cap['avif'] ? 'velox-tag--ok' : 'velox-tag--muted'; ?>"><?php esc_html_e('AVIF', 'velox'); ?></span>
 						<?php else : ?>
-							<span class="velox-tag velox-tag--muted">Not installed</span>
+							<span class="velox-tag velox-tag--muted"><?php esc_html_e('Not installed', 'velox'); ?></span>
 						<?php endif; ?>
 					</span>
 				</div>
@@ -132,7 +132,7 @@ endif;
 <div class="velox-panel">
 	<h3 class="velox-panel-title">Quality &amp; processing</h3>
 	<div class="velox-field">
-		<span class="velox-field-label">Quality <em id="velox-q-val"><?php echo esc_html( $quality ); ?>%</em></span>
+		<span class="velox-field-label"><?php esc_html_e('Quality', 'velox'); ?> <em id="velox-q-val"><?php echo esc_html( $quality ); ?>%</em></span>
 		<div class="velox-quality-row">
 			<input type="range" id="velox-quality" min="40" max="100" step="1" value="<?php echo esc_attr( $quality ); ?>" class="velox-range">
 			<div class="velox-quality-num">
@@ -140,24 +140,24 @@ endif;
 				<span class="velox-quality-pct">%</span>
 			</div>
 		</div>
-		<span class="velox-hint">Drag the slider or type an exact value. 80% is a good balance; lossless mode below ignores this.</span>
+		<span class="velox-hint"><?php esc_html_e('Drag the slider or type an exact value. 80% is a good balance; lossless mode below ignores this.', 'velox'); ?></span>
 	</div>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Lossless WebP <span class="velox-tag velox-tag--muted">Imagick</span></span>
-			<span class="velox-toggle-desc">Perfect quality with no compression loss — larger files. Great for graphics and screenshots, overkill for photos.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Lossless WebP', 'velox'); ?> <span class="velox-tag velox-tag--muted"><?php esc_html_e('Imagick', 'velox'); ?></span></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('Perfect quality with no compression loss — larger files. Great for graphics and screenshots, overkill for photos.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" id="velox-lossless" data-setting="image_lossless" <?php checked( ! empty( $s['image_lossless'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
 	<div class="velox-field">
-		<span class="velox-field-label">Resize width (px)</span>
+		<span class="velox-field-label"><?php esc_html_e('Resize width (px)', 'velox'); ?></span>
 		<input type="number" class="velox-input velox-input--sm" id="velox-max-width" data-setting="image_max_width" value="<?php echo esc_attr( (int) $s['image_max_width'] ); ?>" min="0" step="10">
-		<span class="velox-hint">Images wider than this are scaled down to it; the height follows automatically to keep the aspect ratio. Images already narrower are left at their own size (never upscaled). 0 = never resize.</span>
+		<span class="velox-hint"><?php esc_html_e('Images wider than this are scaled down to it; the height follows automatically to keep the aspect ratio. Images already narrower are left at their own size (never upscaled). 0 = never resize.', 'velox'); ?></span>
 	</div>
 	<div class="velox-toggle-row">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Preserve EXIF metadata</span>
-			<span class="velox-toggle-desc">Off (default) strips camera, date and GPS data for smaller, more private files. On keeps it.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Preserve EXIF metadata', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('Off (default) strips camera, date and GPS data for smaller, more private files. On keeps it.', 'velox'); ?></span>
 		</div>
 		<label class="velox-switch"><input type="checkbox" id="velox-keep-exif" data-setting="image_keep_exif" <?php checked( ! empty( $s['image_keep_exif'] ) ); ?>><span class="velox-switch-track"></span></label>
 	</div>
@@ -166,26 +166,26 @@ endif;
 <!-- ============ Bulk optimization ============ -->
 <div class="velox-grid-2">
 	<div class="velox-panel">
-		<h3 class="velox-panel-title">Bulk optimization</h3>
-		<p class="velox-hint">Convert every JPG and PNG in your library to the formats selected above. Safe to stop and resume anytime.</p>
+		<h3 class="velox-panel-title"><?php esc_html_e('Bulk optimization', 'velox'); ?></h3>
+		<p class="velox-hint"><?php esc_html_e('Convert every JPG and PNG in your library to the formats selected above. Safe to stop and resume anytime.', 'velox'); ?></p>
 		<div class="velox-progress-wrap" id="velox-bulk-progress" hidden>
 			<div class="velox-progress"><div class="velox-progress-bar" id="velox-bulk-bar"></div></div>
 			<span class="velox-progress-text" id="velox-bulk-text">0 / 0</span>
 		</div>
 		<div class="velox-actions">
-			<button class="velox-btn velox-btn--primary" id="velox-bulk-start" <?php disabled( ! $engine ); ?>>Convert pending images</button>
-			<button class="velox-btn velox-btn--ghost" id="velox-bulk-stop" hidden>Stop</button>
-			<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=velox-images&view=converted' ) ); ?>">View converted images →</a>
+			<button class="velox-btn velox-btn--primary" id="velox-bulk-start" <?php disabled( ! $engine ); ?>><?php esc_html_e('Convert pending images', 'velox'); ?></button>
+			<button class="velox-btn velox-btn--ghost" id="velox-bulk-stop" hidden><?php esc_html_e('Stop', 'velox'); ?></button>
+			<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=velox-images&view=converted' ) ); ?>"><?php esc_html_e('View converted images →', 'velox'); ?></a>
 		</div>
 		<p class="velox-hint" id="velox-bulk-summary"></p>
 	</div>
 
 	<div class="velox-panel">
-		<h3 class="velox-panel-title">Library</h3>
+		<h3 class="velox-panel-title"><?php esc_html_e('Library', 'velox'); ?></h3>
 		<div class="velox-mini-stats" id="velox-img-stats">
-			<div><span data-mini="done">—</span><small>Optimized</small></div>
-			<div><span data-mini="pending">—</span><small>Pending</small></div>
-			<div><span data-mini="saved">—</span><small>Saved</small></div>
+			<div><span data-mini="done">—</span><small><?php esc_html_e('Optimized', 'velox'); ?></small></div>
+			<div><span data-mini="pending">—</span><small><?php esc_html_e('Pending', 'velox'); ?></small></div>
+			<div><span data-mini="saved">—</span><small><?php esc_html_e('Saved', 'velox'); ?></small></div>
 		</div>
 		<div class="velox-ring-wrap">
 			<svg class="velox-ring" viewBox="0 0 120 120">
@@ -201,36 +201,36 @@ endif;
 <div class="velox-panel">
 	<div class="velox-lib-toolbar">
 		<div class="velox-chips" id="velox-lib-filters">
-			<button type="button" class="velox-chip is-active" data-filter="all">All</button>
-			<button type="button" class="velox-chip" data-filter="jpg">JPG</button>
-			<button type="button" class="velox-chip" data-filter="png">PNG</button>
-			<button type="button" class="velox-chip" data-filter="webp">WebP</button>
-			<button type="button" class="velox-chip" data-filter="gif">GIF</button>
-			<button type="button" class="velox-chip" data-filter="svg">SVG</button>
+			<button type="button" class="velox-chip is-active" data-filter="all"><?php esc_html_e('All', 'velox'); ?></button>
+			<button type="button" class="velox-chip" data-filter="jpg"><?php esc_html_e('JPG', 'velox'); ?></button>
+			<button type="button" class="velox-chip" data-filter="png"><?php esc_html_e('PNG', 'velox'); ?></button>
+			<button type="button" class="velox-chip" data-filter="webp"><?php esc_html_e('WebP', 'velox'); ?></button>
+			<button type="button" class="velox-chip" data-filter="gif"><?php esc_html_e('GIF', 'velox'); ?></button>
+			<button type="button" class="velox-chip" data-filter="svg"><?php esc_html_e('SVG', 'velox'); ?></button>
 		</div>
 		<input type="search" id="velox-lib-search" class="velox-input" placeholder="Search filename or title…">
 		<div class="velox-lib-toolbar-right">
 			<button class="velox-btn velox-btn--ghost" id="velox-lib-bulk">Find &amp; replace names</button>
-			<button class="velox-btn velox-btn--primary" id="velox-lib-apply-all" hidden>Apply all names</button>
+			<button class="velox-btn velox-btn--primary" id="velox-lib-apply-all" hidden><?php esc_html_e('Apply all names', 'velox'); ?></button>
 		</div>
 	</div>
 
-	<div class="velox-lib-grid" id="velox-lib-grid"><div class="velox-loading">Loading images…</div></div>
+	<div class="velox-lib-grid" id="velox-lib-grid"><div class="velox-loading"><?php esc_html_e('Loading images…', 'velox'); ?></div></div>
 
 	<div class="velox-pager">
-		<button class="velox-btn velox-btn--ghost" id="velox-lib-prev" disabled>← Prev</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-lib-prev" disabled><?php esc_html_e('← Prev', 'velox'); ?></button>
 		<span id="velox-lib-pageinfo" class="velox-hint">—</span>
-		<button class="velox-btn velox-btn--ghost" id="velox-lib-next" disabled>Next →</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-lib-next" disabled><?php esc_html_e('Next →', 'velox'); ?></button>
 	</div>
-	<p class="velox-hint">Typed names are saved in your browser — reload safely, they'll still be here until you apply them. Renaming updates every reference in posts and Oxygen automatically.</p>
+	<p class="velox-hint"><?php esc_html_e('Typed names are saved in your browser — reload safely, they\'ll still be here until you apply them. Renaming updates every reference in posts and Oxygen automatically.', 'velox'); ?></p>
 </div>
 
 <?php if ( $show_cmp ) : ?>
 <!-- ============ Comparator ============ -->
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Before / after</h3>
+	<h3 class="velox-panel-title"><?php esc_html_e('Before / after', 'velox'); ?></h3>
 	<div class="velox-compare-toolbar">
-		<select id="velox-compare-select" class="velox-select"><option value="">Loading optimized images…</option></select>
+		<select id="velox-compare-select" class="velox-select"><option value=""><?php esc_html_e('Loading optimized images…', 'velox'); ?></option></select>
 	</div>
 	<div class="velox-compare" id="velox-compare" hidden>
 		<div class="velox-compare-stage" id="velox-compare-stage">
@@ -238,8 +238,8 @@ endif;
 			<div class="velox-compare-top" id="velox-compare-top">
 				<img id="velox-compare-orig" alt="Original version" class="velox-compare-img">
 			</div>
-			<span class="velox-compare-tag velox-compare-tag--l">Original</span>
-			<span class="velox-compare-tag velox-compare-tag--r">WebP</span>
+			<span class="velox-compare-tag velox-compare-tag--l"><?php esc_html_e('Original', 'velox'); ?></span>
+			<span class="velox-compare-tag velox-compare-tag--r"><?php esc_html_e('WebP', 'velox'); ?></span>
 			<div class="velox-compare-handle" id="velox-compare-handle"><span></span></div>
 		</div>
 		<div class="velox-compare-stats" id="velox-compare-stats"></div>

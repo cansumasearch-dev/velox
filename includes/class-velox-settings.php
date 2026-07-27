@@ -18,8 +18,35 @@ class Velox_Settings {
 	 * OFF by default so a fresh install is invisible until the user opts in. A few
 	 * zero-risk cleanups (emoji script, head junk) default ON.
 	 */
+	/**
+	 * Languages Velox's admin UI can be shown in.
+	 * Keys are WordPress locale codes (matching the .mo files in /languages/);
+	 * values are the native language names shown in the switcher.
+	 * '' = follow whatever the WordPress site language is set to.
+	 * English and German ship complete; the rest fall back to English until
+	 * their translation files are filled in.
+	 */
+	public static function admin_languages() {
+		return array(
+			''      => __( 'Follow WordPress', 'velox' ),
+			'en_US' => 'English',
+			'de_DE' => 'Deutsch',
+			'es_ES' => 'Español',
+			'fr_FR' => 'Français',
+			'it_IT' => 'Italiano',
+			'pt_BR' => 'Português (Brasil)',
+			'nl_NL' => 'Nederlands',
+			'pl_PL' => 'Polski',
+			'ja'    => '日本語',
+			'tr_TR' => 'Türkçe',
+		);
+	}
+
 	public static function defaults() {
 		return array(
+			// ---- Admin UI language ('' = follow the WordPress site language) ----
+			'admin_language'     => '',
+
 			// ---- Master module switches (all on by default) ----
 			'module_images'      => true,
 			'module_media'       => true,

@@ -5,47 +5,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 $blueprints = Velox_Utilities::blueprints();
 ?>
 <div class="velox-page-head">
-	<h1 class="velox-h2">Bulk installer</h1>
-	<p class="velox-sub">Install a whole stack at once — paste wordpress.org slugs or links, or upload plugin ZIPs straight from your computer. Save a list as a blueprint to re-apply on the next site.</p>
+	<h1 class="velox-h2"><?php esc_html_e('Bulk installer', 'velox'); ?></h1>
+	<p class="velox-sub"><?php esc_html_e('Install a whole stack at once — paste wordpress.org slugs or links, or upload plugin ZIPs straight from your computer. Save a list as a blueprint to re-apply on the next site.', 'velox'); ?></p>
 </div>
 
 <div class="velox-panel velox-tool-form">
 	<div class="velox-field">
-		<span class="velox-field-label">Plugins — slugs or links</span>
+		<span class="velox-field-label"><?php esc_html_e('Plugins — slugs or links', 'velox'); ?></span>
 		<textarea class="velox-textarea" id="velox-installer-slugs" rows="6" placeholder="wp-fastest-cache&#10;https://wordpress.org/plugins/wordfence/&#10;https://example.com/my-plugin.zip"></textarea>
-		<span class="velox-hint">One per line. Accepts a plain slug (<code>wp-fastest-cache</code>), a wordpress.org link, or a direct <code>.zip</code> download URL.</span>
+		<span class="velox-hint"><?php printf( esc_html__( 'One per line. Accepts a plain slug (%1$s), a wordpress.org link, or a direct %2$s download URL.', 'velox' ), '<code>' . esc_html__( 'wp-fastest-cache', 'velox' ) . '</code>', '<code>' . esc_html__( '.zip', 'velox' ) . '</code>' ); ?></span>
 	</div>
 
 	<div class="velox-field">
-		<span class="velox-field-label">Or upload plugin ZIPs</span>
+		<span class="velox-field-label"><?php esc_html_e('Or upload plugin ZIPs', 'velox'); ?></span>
 		<input type="file" class="velox-file" id="velox-installer-zip" accept=".zip,application/zip" multiple>
-		<span class="velox-hint">Pick one or more <code>.zip</code> plugin files from your computer and install them directly.</span>
+		<span class="velox-hint"><?php printf( esc_html__( 'Pick one or more %s plugin files from your computer and install them directly.', 'velox' ), '<code>' . esc_html__( '.zip', 'velox' ) . '</code>' ); ?></span>
 	</div>
 
 	<label class="velox-toggle-row" style="cursor:pointer;">
 		<div class="velox-toggle-meta">
-			<span class="velox-toggle-label">Activate after install</span>
-			<span class="velox-toggle-desc">Turn each plugin on as soon as it's installed.</span>
+			<span class="velox-toggle-label"><?php esc_html_e('Activate after install', 'velox'); ?></span>
+			<span class="velox-toggle-desc"><?php esc_html_e('Turn each plugin on as soon as it\'s installed.', 'velox'); ?></span>
 		</div>
 		<span class="velox-switch"><input type="checkbox" id="velox-installer-activate" checked><span class="velox-switch-track"></span></span>
 	</label>
 
 	<div class="velox-tool-actions" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
-		<button class="velox-btn velox-btn--primary" id="velox-installer-run">Install from list</button>
+		<button class="velox-btn velox-btn--primary" id="velox-installer-run"><?php esc_html_e('Install from list', 'velox'); ?></button>
 		<button class="velox-btn velox-btn--ghost" id="velox-installer-upload">Upload &amp; install ZIPs</button>
 		<span style="flex:1;"></span>
 		<input type="text" class="velox-input" id="velox-blueprint-name" placeholder="Blueprint name (e.g. Agency base)" style="max-width:240px;">
-		<button class="velox-btn velox-btn--ghost" id="velox-blueprint-save">Save as blueprint</button>
+		<button class="velox-btn velox-btn--ghost" id="velox-blueprint-save"><?php esc_html_e('Save as blueprint', 'velox'); ?></button>
 	</div>
 
 	<div id="velox-installer-log" class="velox-install-log" hidden></div>
 </div>
 
 <div class="velox-panel">
-	<h3 class="velox-panel-title">Saved blueprints</h3>
+	<h3 class="velox-panel-title"><?php esc_html_e('Saved blueprints', 'velox'); ?></h3>
 	<div id="velox-blueprint-list" class="velox-bp-list">
 		<?php if ( empty( $blueprints ) ) : ?>
-			<p class="velox-hint" id="velox-bp-empty">No blueprints yet. Save a slug list above to create one.</p>
+			<p class="velox-hint" id="velox-bp-empty"><?php esc_html_e('No blueprints yet. Save a slug list above to create one.', 'velox'); ?></p>
 		<?php else : ?>
 			<?php foreach ( $blueprints as $name => $slugs ) : ?>
 				<div class="velox-bp-item" data-name="<?php echo esc_attr( $name ); ?>" data-slugs="<?php echo esc_attr( implode( "\n", (array) $slugs ) ); ?>">
@@ -54,8 +54,8 @@ $blueprints = Velox_Utilities::blueprints();
 						<span class="velox-bp-count"><?php echo count( (array) $slugs ); ?> plugins</span>
 					</div>
 					<div class="velox-bp-actions">
-						<button class="velox-btn velox-btn--ghost velox-bp-load">Load</button>
-						<button class="velox-btn velox-btn--ghost velox-bp-del">Delete</button>
+						<button class="velox-btn velox-btn--ghost velox-bp-load"><?php esc_html_e('Load', 'velox'); ?></button>
+						<button class="velox-btn velox-btn--ghost velox-bp-del"><?php esc_html_e('Delete', 'velox'); ?></button>
 					</div>
 				</div>
 			<?php endforeach; ?>

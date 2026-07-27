@@ -4,6 +4,39 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.16.9 — Japanese complete
+- Japanese (ja) now covers 100% of the human-readable admin UI — every label, button, message, hint and long description, including all reconstructed sentences with placeholders. Uses WordPress-JP terminology (ダッシュボード, 投稿, 外観, 固定ページ) and consistent polite keigo (です/ます). Only literal code tokens stay untranslated.
+
+## 3.16.8 — Polish complete
+- Polish (pl_PL) now covers 100% of the human-readable admin UI — every label, button, message, hint and long description, including all reconstructed sentences with placeholders. Uses WordPress-PL terminology (Kokpit, Wpisy, Wygląd) and the correct 3-form plural rule. Only literal code tokens stay untranslated.
+
+## 3.16.7 — Dutch complete
+- Dutch (nl_NL, formal "u") now covers 100% of the human-readable admin UI — every label, button, message, hint and long description, including all reconstructed sentences with placeholders. Only literal code tokens stay untranslated.
+
+## 3.16.6 — Brazilian Portuguese complete
+- Brazilian Portuguese (pt_BR) now covers 100% of the human-readable admin UI — every label, button, message, hint and long description, including all reconstructed sentences with placeholders. Only literal code tokens stay untranslated.
+
+## 3.16.5 — Italian complete
+- Italian (formal "Lei") now covers 100% of the human-readable admin UI — every label, button, message, hint and long description, including all reconstructed sentences with placeholders. Only literal code tokens stay untranslated.
+
+## 3.16.4 — French complete
+- French (formal "vous") now covers 100% of the human-readable admin UI — every label, button, message, hint and long description, including all reconstructed sentences with placeholders. Only literal code tokens stay untranslated.
+
+## 3.16.3 — Spanish complete
+- Spanish (formal "usted") now covers 100% of the human-readable admin UI — every label, button, message, hint and long description, including all reconstructed sentences with placeholders. Only literal code tokens (robots.txt, type:post, etc.) stay untranslated.
+
+## 3.16.2 — German 100% + sentence reconstruction
+- Reconstructed 70 split sentence-fragments across all admin views into whole translatable strings (printf with placeholders for inline code/links), so long help text no longer mixes languages.
+- German (formal "Sie") now covers 100% of the human-readable admin UI — every label, button, message, hint and long description. Only literal code tokens (dashicons, type:post, .htaccess, etc.) remain untranslated, as they must.
+
+## 3.16.1 — German translation expanded
+- German (formal "Sie") now covers 96% of the admin UI, including all the longer descriptions and hints. The remaining few are short sentence-fragments that will be completed in a later pass.
+
+## 3.16.0 — Velox speaks your language
+- New Language switcher in Settings: choose which language Velox's own admin screens are shown in, independent of your WordPress site language. WordPress and your other plugins are unaffected.
+- English and German (formal "Sie") ship complete. Spanish, French, Italian, Portuguese (BR), Dutch, Polish, Japanese and Turkish are scaffolded and fall back to English until their translations are filled in.
+- The entire admin UI — every screen, panel, label, button and hint — is now translatable, wired through the standard WordPress translation system.
+
 ## 3.15.2 — Snippets never silently deactivate themselves
 - Velox no longer switches a PHP snippet off on its own. Previously a snippet could quietly flip to inactive after a runtime error, a leftover "execution breadcrumb" from an earlier request, or a shutdown-time fatal — often with nothing written to the error log, so it looked like the snippet "deactivated itself" for no reason. All three of those paths now log a clear `[Velox]` line (naming the snippet, the message, and the file/line) and leave the snippet active. You stay in control of what's on.
 - Fixed the crash guard referencing an undefined `E_COMPILE` constant, which made the guard itself fatal instead of doing its job.

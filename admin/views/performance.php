@@ -140,18 +140,18 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 ?>
 <div class="velox-page-head velox-page-head--row">
 	<div>
-		<h1 class="velox-h2">Performance</h1>
-		<p class="velox-sub">A complete performance toolkit — page cache, asset optimization, fonts, preloading and more. Velox works standalone, and plays nicely with Cloudflare and Oxygen. Flip one setting at a time and re-test PageSpeed.</p>
+		<h1 class="velox-h2"><?php esc_html_e('Performance', 'velox'); ?></h1>
+		<p class="velox-sub"><?php esc_html_e('A complete performance toolkit — page cache, asset optimization, fonts, preloading and more. Velox works standalone, and plays nicely with Cloudflare and Oxygen. Flip one setting at a time and re-test PageSpeed.', 'velox'); ?></p>
 	</div>
 	<div class="velox-pf-headactions">
 		<label class="velox-risky-switch">
 			<span class="velox-risky-switch-text">
-				<span class="velox-risky-switch-label">Risky mode</span>
-				<span class="velox-risky-switch-sub">Reveal aggressive settings</span>
+				<span class="velox-risky-switch-label"><?php esc_html_e('Risky mode', 'velox'); ?></span>
+				<span class="velox-risky-switch-sub"><?php esc_html_e('Reveal aggressive settings', 'velox'); ?></span>
 			</span>
 			<span class="velox-switch"><input type="checkbox" id="velox-risky-toggle" data-setting="perf_risky_mode" <?php checked( ! empty( $s['perf_risky_mode'] ) ); ?>><span class="velox-switch-track"></span></span>
 		</label>
-		<button class="velox-btn velox-btn--primary velox-cache-btn" data-which="all">Clear all caches</button>
+		<button class="velox-btn velox-btn--primary velox-cache-btn" data-which="all"><?php esc_html_e('Clear all caches', 'velox'); ?></button>
 	</div>
 </div>
 
@@ -185,11 +185,11 @@ $sec_icons   = array(
 ?>
 <div class="velox-pf-status">
 	<div class="velox-pf-stat">
-		<span class="k">Page cache</span>
+		<span class="k"><?php esc_html_e('Page cache', 'velox'); ?></span>
 		<span class="v"><span class="velox-pf-dot velox-pf-dot--<?php echo $pf_cache_on ? 'ok' : 'off'; ?>"></span><?php echo $pf_cache_on ? ( $pf_stats['dropin_active'] ? 'Active · early serve' : 'Active' ) : 'Off'; ?></span>
 	</div>
-	<div class="velox-pf-stat"><span class="k">Optimizations on</span><span class="v"><?php echo (int) $opt_total; ?></span></div>
-	<div class="velox-pf-stat"><span class="k">Cached on disk</span><span class="v"><?php echo (int) $pf_stats['pages']; ?> pages · <?php echo esc_html( size_format( $pf_stats['bytes'] ) ); ?></span></div>
+	<div class="velox-pf-stat"><span class="k"><?php esc_html_e('Optimizations on', 'velox'); ?></span><span class="v"><?php echo (int) $opt_total; ?></span></div>
+	<div class="velox-pf-stat"><span class="k"><?php esc_html_e('Cached on disk', 'velox'); ?></span><span class="v"><?php echo (int) $pf_stats['pages']; ?> pages · <?php echo esc_html( size_format( $pf_stats['bytes'] ) ); ?></span></div>
 </div>
 
 <div class="velox-perf">
@@ -217,58 +217,58 @@ $sec_icons   = array(
 			<section class="velox-perf-panel<?php echo $first ? ' is-active' : ''; ?>" data-section="<?php echo esc_attr( $id ); ?>">
 				<?php if ( 'general' === $id ) : ?>
 					<div class="velox-panel velox-cache-panel">
-						<h3 class="velox-panel-title">Clear cache</h3>
-						<p class="velox-hint">Purge caches across your whole stack in one click. Velox clears its own page cache, WP Fastest Cache and Oxygen directly. Cloudflare is cleared through the official Cloudflare plugin (see the note below).</p>
+						<h3 class="velox-panel-title"><?php esc_html_e('Clear cache', 'velox'); ?></h3>
+						<p class="velox-hint"><?php esc_html_e('Purge caches across your whole stack in one click. Velox clears its own page cache, WP Fastest Cache and Oxygen directly. Cloudflare is cleared through the official Cloudflare plugin (see the note below).', 'velox'); ?></p>
 						<div class="velox-cache-btns">
-							<button class="velox-btn velox-btn--primary velox-cache-btn" data-which="all">Clear all caches</button>
-							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="minified">Minified CSS/JS</button>
-							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="oxygen">Regenerate Oxygen CSS</button>
-							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="cloudflare">Cloudflare</button>
+							<button class="velox-btn velox-btn--primary velox-cache-btn" data-which="all"><?php esc_html_e('Clear all caches', 'velox'); ?></button>
+							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="minified"><?php esc_html_e('Minified CSS/JS', 'velox'); ?></button>
+							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="oxygen"><?php esc_html_e('Regenerate Oxygen CSS', 'velox'); ?></button>
+							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="cloudflare"><?php esc_html_e('Cloudflare', 'velox'); ?></button>
 						</div>
 						<?php $vx_cf_ready = has_action( 'cloudflare_purge_everything' ); ?>
 						<div class="velox-cf-note <?php echo $vx_cf_ready ? 'is-ready' : 'is-missing'; ?>">
 							<?php if ( $vx_cf_ready ) : ?>
-								<strong>Cloudflare connected.</strong> The official Cloudflare plugin is active, so the <em>Cloudflare</em> button above purges your edge cache.
+								<strong><?php esc_html_e('Cloudflare connected.', 'velox'); ?></strong> <?php printf( esc_html__( 'The official Cloudflare plugin is active, so the %s button above purges your edge cache.', 'velox' ), '<em>' . esc_html__( 'Cloudflare', 'velox' ) . '</em>' ); ?>
 							<?php else : ?>
-								<strong>Cloudflare needs a one-time setup.</strong> The <em>Cloudflare</em> button clears your edge cache through the <strong>official Cloudflare plugin</strong> — Velox asks that plugin to purge, so it must be installed and connected to your account. Until then the button reports <em>"Cloudflare plugin not active."</em>
-								<span class="velox-cf-steps">Quick setup: <strong>1)</strong> install the <strong>“Cloudflare”</strong> plugin, <strong>2)</strong> create a Cloudflare API token, <strong>3)</strong> connect it. Full steps below.</span>
+								<strong><?php esc_html_e('Cloudflare needs a one-time setup.', 'velox'); ?></strong> <?php printf( esc_html__( 'The %1$s button clears your edge cache through the %2$s — Velox asks that plugin to purge, so it must be installed and connected to your account. Until then the button reports %3$s', 'velox' ), '<em>' . esc_html__( 'Cloudflare', 'velox' ) . '</em>', '<strong>' . esc_html__( 'official Cloudflare plugin', 'velox' ) . '</strong>', '<em>' . esc_html__( '"Cloudflare plugin not active."', 'velox' ) . '</em>' ); ?>
+								<span class="velox-cf-steps"><?php printf( esc_html__( 'Quick setup: %1$s install the %2$s plugin, %3$s create a Cloudflare API token, %4$s connect it. Full steps below.', 'velox' ), '<strong>1)</strong>', '<strong>' . esc_html__( '“Cloudflare”', 'velox' ) . '</strong>', '<strong>2)</strong>', '<strong>3)</strong>' ); ?></span>
 							<?php endif; ?>
 						</div>
 						<details class="velox-cf-guide">
-							<summary>Setup guide: clear Cloudflare cache from Velox</summary>
+							<summary><?php esc_html_e('Setup guide: clear Cloudflare cache from Velox', 'velox'); ?></summary>
 							<div class="velox-cf-guide-body">
-								<p><strong>What the button does.</strong> Velox doesn't talk to Cloudflare directly — when you clear the Cloudflare cache, Velox asks the <strong>official Cloudflare plugin</strong> to purge everything. So it only works once that plugin is installed and connected; otherwise you get <em>"Cloudflare plugin not active."</em> Your Velox page cache still clears fine without it.</p>
-								<p class="velox-hint" style="margin:0 0 4px;">The <code>Cloudflare account ID</code> / <code>API token</code> fields under Performance → CSS are a separate feature (the used-CSS engine) and aren't used for cache clearing.</p>
+								<p><strong><?php esc_html_e('What the button does.', 'velox'); ?></strong> <?php printf( esc_html__( 'Velox doesn\'t talk to Cloudflare directly — when you clear the Cloudflare cache, Velox asks the %1$s to purge everything. So it only works once that plugin is installed and connected; otherwise you get %2$s Your Velox page cache still clears fine without it.', 'velox' ), '<strong>' . esc_html__( 'official Cloudflare plugin', 'velox' ) . '</strong>', '<em>' . esc_html__( '"Cloudflare plugin not active."', 'velox' ) . '</em>' ); ?></p>
+								<p class="velox-hint" style="margin:0 0 4px;"><?php printf( esc_html__( 'The %1$s / %2$s fields under Performance → CSS are a separate feature (the used-CSS engine) and aren\'t used for cache clearing.', 'velox' ), '<code>' . esc_html__( 'Cloudflare account ID', 'velox' ) . '</code>', '<code>' . esc_html__( 'API token', 'velox' ) . '</code>' ); ?></p>
 
-								<h4>Step 1 — Install the official plugin</h4>
-								<p>Plugins → Add New → search <strong>Cloudflare</strong> → install &amp; activate the one by <strong>Cloudflare, Inc.</strong> (listed as "Cloudflare – CDN &amp; Edge Caching"). Don't confuse it with "WP Cloudflare Super Page Cache."</p>
+								<h4><?php esc_html_e('Step 1 — Install the official plugin', 'velox'); ?></h4>
+								<p><?php printf( esc_html__( 'Plugins → Add New → search %1$s → install &amp; activate the one by %2$s (listed as "Cloudflare – CDN &amp; Edge Caching"). Don\'t confuse it with "WP Cloudflare Super Page Cache."', 'velox' ), '<strong>' . esc_html__( 'Cloudflare', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'Cloudflare, Inc.', 'velox' ) . '</strong>' ); ?></p>
 
-								<h4>Step 2 — Create a Cloudflare API token</h4>
+								<h4><?php esc_html_e('Step 2 — Create a Cloudflare API token', 'velox'); ?></h4>
 								<ol>
-									<li>Log in at <code>dash.cloudflare.com</code>.</li>
-									<li>Profile icon (top right) → <strong>My Profile</strong>.</li>
-									<li><strong>API Tokens</strong> tab → <strong>Create Token</strong>.</li>
-									<li>Find <strong>WordPress</strong> in the templates → <strong>Use template</strong> (sets the right permissions automatically).</li>
-									<li>Continue to summary → <strong>Create Token</strong> → <strong>copy it now</strong> (shown only once) and store it safely.</li>
+									<li><?php printf( esc_html__( 'Log in at %s.', 'velox' ), '<code>' . esc_html__( 'dash.cloudflare.com', 'velox' ) . '</code>' ); ?></li>
+									<li><?php printf( esc_html__( 'Profile icon (top right) → %s.', 'velox' ), '<strong>' . esc_html__( 'My Profile', 'velox' ) . '</strong>' ); ?></li>
+									<li><?php printf( esc_html__( '%1$s tab → %2$s.', 'velox' ), '<strong>' . esc_html__( 'API Tokens', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'Create Token', 'velox' ) . '</strong>' ); ?></li>
+									<li><?php printf( esc_html__( 'Find %1$s in the templates → %2$s (sets the right permissions automatically).', 'velox' ), '<strong>' . esc_html__( 'WordPress', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'Use template', 'velox' ) . '</strong>' ); ?></li>
+									<li><?php printf( esc_html__( 'Continue to summary → %1$s → %2$s (shown only once) and store it safely.', 'velox' ), '<strong>' . esc_html__( 'Create Token', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'copy it now', 'velox' ) . '</strong>' ); ?></li>
 								</ol>
-								<p class="velox-hint" style="margin:0;">For agency/company accounts, prefer an <em>Account</em> token so it survives staff changes.</p>
+								<p class="velox-hint" style="margin:0;"><?php printf( esc_html__( 'For agency/company accounts, prefer an %s token so it survives staff changes.', 'velox' ), '<em>' . esc_html__( 'Account', 'velox' ) . '</em>' ); ?></p>
 
-								<h4>Step 3 — Connect the plugin</h4>
+								<h4><?php esc_html_e('Step 3 — Connect the plugin', 'velox'); ?></h4>
 								<ol>
-									<li>Settings → Cloudflare (or the plugin's Settings link).</li>
-									<li>Sign in with an existing account.</li>
-									<li>Authentication Mode → <strong>API Token</strong>.</li>
-									<li>Enter your Cloudflare account email + paste the token → <strong>Save API Credentials</strong>.</li>
+									<li><?php esc_html_e('Settings → Cloudflare (or the plugin\'s Settings link).', 'velox'); ?></li>
+									<li><?php esc_html_e('Sign in with an existing account.', 'velox'); ?></li>
+									<li><?php printf( esc_html__( 'Authentication Mode → %s.', 'velox' ), '<strong>' . esc_html__( 'API Token', 'velox' ) . '</strong>' ); ?></li>
+									<li><?php printf( esc_html__( 'Enter your Cloudflare account email + paste the token → %s.', 'velox' ), '<strong>' . esc_html__( 'Save API Credentials', 'velox' ) . '</strong>' ); ?></li>
 								</ol>
 
-								<h4>Verify</h4>
-								<p>Come back here — this note should turn green ("Cloudflare connected") and the Cloudflare button should report "Cloudflare purged."</p>
+								<h4><?php esc_html_e('Verify', 'velox'); ?></h4>
+								<p><?php esc_html_e('Come back here — this note should turn green ("Cloudflare connected") and the Cloudflare button should report "Cloudflare purged."', 'velox'); ?></p>
 
-								<h4>Good to know</h4>
+								<h4><?php esc_html_e('Good to know', 'velox'); ?></h4>
 								<ul>
-									<li>The Cloudflare plugin already auto-purges on publish/edit; this button is for an on-demand whole-site purge.</li>
-									<li>Don't run a second full-page cache plugin (WP Rocket, W3 Total Cache) alongside it — Cloudflare recommends turning those off. Velox's own page cache is fine.</li>
-									<li>If the site is ever compromised, revoke the token in Cloudflare (My Profile → API Tokens) and issue a new one.</li>
+									<li><?php esc_html_e('The Cloudflare plugin already auto-purges on publish/edit; this button is for an on-demand whole-site purge.', 'velox'); ?></li>
+									<li><?php esc_html_e('Don\'t run a second full-page cache plugin (WP Rocket, W3 Total Cache) alongside it — Cloudflare recommends turning those off. Velox\'s own page cache is fine.', 'velox'); ?></li>
+									<li><?php esc_html_e('If the site is ever compromised, revoke the token in Cloudflare (My Profile → API Tokens) and issue a new one.', 'velox'); ?></li>
 								</ul>
 							</div>
 						</details>
@@ -283,7 +283,7 @@ $sec_icons   = array(
 					<div class="velox-panel velox-cache-status">
 						<div class="velox-cache-status-row">
 							<div>
-								<h3 class="velox-panel-title">Page cache status</h3>
+								<h3 class="velox-panel-title"><?php esc_html_e('Page cache status', 'velox'); ?></h3>
 								<p class="velox-hint" id="velox-cache-summary">
 									<?php if ( $cache_on ) : ?>
 										<?php echo (int) $cache_stats['pages']; ?> pages cached · <?php echo esc_html( size_format( $cache_stats['bytes'] ) ); ?> on disk
@@ -295,8 +295,8 @@ $sec_icons   = array(
 							<span class="velox-pill velox-pill--<?php echo esc_attr( $pill_cls ); ?>" id="velox-cache-pill"><?php echo esc_html( $pill_txt ); ?></span>
 						</div>
 						<div class="velox-cache-btns">
-							<button class="velox-btn velox-btn--ghost" id="velox-cache-purge">Purge page cache</button>
-							<button class="velox-btn velox-btn--ghost" id="velox-cache-preload">Preload now</button>
+							<button class="velox-btn velox-btn--ghost" id="velox-cache-purge"><?php esc_html_e('Purge page cache', 'velox'); ?></button>
+							<button class="velox-btn velox-btn--ghost" id="velox-cache-preload"><?php esc_html_e('Preload now', 'velox'); ?></button>
 						</div>
 						<div class="velox-alert velox-alert--warn velox-cache-note" id="velox-cache-note" hidden></div>
 					</div>
@@ -313,15 +313,15 @@ $sec_icons   = array(
 								<?php if ( 'auto' === $s['perf_rucss_engine'] && $learn['pages'] > 0 ) : ?>
 									<span class="velox-fonts-ok">✓ Auto-learn: <?php echo (int) $learn['built']; ?> of <?php echo (int) $learn['pages']; ?> tracked page(s) optimized from real visitors</span>
 								<?php else : ?>
-									<span class="velox-hint">Auto-learn builds itself from real traffic — no setup needed. Cloudflare/Local can be scanned manually below.</span>
+									<span class="velox-hint"><?php esc_html_e('Auto-learn builds itself from real traffic — no setup needed. Cloudflare/Local can be scanned manually below.', 'velox'); ?></span>
 								<?php endif; ?>
 							</div>
 							<div class="velox-fonts-btns">
 								<button class="velox-btn velox-btn--primary" id="velox-rucss-scan">Scan &amp; build (Cloudflare/Local)</button>
-								<button class="velox-btn velox-btn--ghost" id="velox-clear-usedcss">Clear used-CSS cache</button>
-								<button class="velox-btn velox-btn--ghost" id="velox-rucss-reset">Reset auto-learn</button>
+								<button class="velox-btn velox-btn--ghost" id="velox-clear-usedcss"><?php esc_html_e('Clear used-CSS cache', 'velox'); ?></button>
+								<button class="velox-btn velox-btn--ghost" id="velox-rucss-reset"><?php esc_html_e('Reset auto-learn', 'velox'); ?></button>
 							</div>
-							<p class="velox-hint">Auto-learn needs no action — it optimizes each page after a few visits and keeps improving. Use Scan only for the Cloudflare or Local engines. Clear/Reset after a design change or if something looks off.</p>
+							<p class="velox-hint"><?php esc_html_e('Auto-learn needs no action — it optimizes each page after a few visits and keeps improving. Use Scan only for the Cloudflare or Local engines. Clear/Reset after a design change or if something looks off.', 'velox'); ?></p>
 						</div>
 					<?php endif; ?>
 					<?php if ( 'fonts' === $id ) :
@@ -331,19 +331,19 @@ $sec_icons   = array(
 								<?php if ( ! empty( $font_status['active'] ) ) : ?>
 									<span class="velox-fonts-ok">✓ <?php echo (int) $font_status['files']; ?> font file(s) hosted locally<?php echo ! empty( $font_status['families'] ) ? ' — ' . esc_html( implode( ', ', $font_status['families'] ) ) : ''; ?></span>
 								<?php else : ?>
-									<span class="velox-hint">No fonts hosted locally yet. Enable the toggle, then scan.</span>
+									<span class="velox-hint"><?php esc_html_e('No fonts hosted locally yet. Enable the toggle, then scan.', 'velox'); ?></span>
 								<?php endif; ?>
 							</div>
 							<div class="velox-fonts-btns">
 								<button class="velox-btn velox-btn--primary" id="velox-fonts-scan">Scan &amp; download fonts</button>
-								<button class="velox-btn velox-btn--ghost" id="velox-fonts-clear">Remove local fonts</button>
+								<button class="velox-btn velox-btn--ghost" id="velox-fonts-clear"><?php esc_html_e('Remove local fonts', 'velox'); ?></button>
 							</div>
-							<p class="velox-hint">Velox loads your front page, finds the Google Fonts it uses, downloads the woff2 files into your uploads folder and serves those instead. Re-scan after you change fonts.</p>
+							<p class="velox-hint"><?php esc_html_e('Velox loads your front page, finds the Google Fonts it uses, downloads the woff2 files into your uploads folder and serves those instead. Re-scan after you change fonts.', 'velox'); ?></p>
 						</div>
 						<div class="velox-fonts-tool">
-							<div class="velox-fonts-status"><strong style="font-size:13px;">Font manager</strong><br><span class="velox-hint">Detects every font your site loads. For each one: <strong>Preload</strong> starts it loading immediately (only worth it for the 1&ndash;2 fonts visible above the fold), and <strong>Block</strong> stops a Google-hosted font from loading at all. Local/builder fonts can be preloaded but not blocked.</span></div>
+							<div class="velox-fonts-status"><strong style="font-size:13px;"><?php esc_html_e('Font manager', 'velox'); ?></strong><br><span class="velox-hint"><?php printf( esc_html__( 'Detects every font your site loads. For each one: %1$s starts it loading immediately (only worth it for the 1–2 fonts visible above the fold), and %2$s stops a Google-hosted font from loading at all. Local/builder fonts can be preloaded but not blocked.', 'velox' ), '<strong>' . esc_html__( 'Preload', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'Block', 'velox' ) . '</strong>' ); ?></span></div>
 							<div class="velox-fonts-btns">
-								<button class="velox-btn velox-btn--primary" id="velox-font-detect">Detect fonts</button>
+								<button class="velox-btn velox-btn--primary" id="velox-font-detect"><?php esc_html_e('Detect fonts', 'velox'); ?></button>
 							</div>
 							<input type="hidden" data-setting="perf_font_block" id="velox-font-block-data" value="<?php echo esc_attr( $s['perf_font_block'] ); ?>">
 							<div id="velox-font-detect-list" class="velox-font-detect-list" hidden></div>
@@ -356,5 +356,5 @@ $sec_icons   = array(
 </div>
 
 <div class="velox-actions velox-actions--sticky">
-	<button class="velox-btn velox-btn--primary" id="velox-perf-save">Save performance settings</button>
+	<button class="velox-btn velox-btn--primary" id="velox-perf-save"><?php esc_html_e('Save performance settings', 'velox'); ?></button>
 </div>
