@@ -18,7 +18,7 @@
 
 	var VX_I18N = ( VELOX && VELOX.i18n ) ? VELOX.i18n : {};
 
-	function t( str ) {
+	function vxT( str ) {
 		var out = ( VX_I18N && Object.prototype.hasOwnProperty.call( VX_I18N, str ) ) ? VX_I18N[ str ] : str;
 		if ( arguments.length > 1 ) {
 			var args = Array.prototype.slice.call( arguments, 1 );
@@ -54,7 +54,7 @@
 				if ( ! json || ! json.success ) {
 					var msg = json && json.data && json.data.message
 						? json.data.message
-						: 'Something went wrong.';
+						: vxT( 'Something went wrong.' );
 					throw new Error( msg );
 				}
 				return json.data;
@@ -120,6 +120,35 @@
 		toastTimer = setTimeout( function () {
 			el.className = 'velox-toast';
 		}, 3200 );
+	}
+
+	/* Error Logger — clear all + dismiss one - */
+
+	function initErrorLog() {
+		var clearBtn = document.getElementById( 'velox-errorlog-clear' );
+		if ( clearBtn ) {
+			clearBtn.addEventListener( 'click', function () {
+				if ( ! window.confirm( vxT( 'Clear the entire error log?' ) ) ) { return; }
+				clearBtn.disabled = true;
+				api( 'errorlog_clear', {} )
+					.then( function () { window.location.reload(); } )
+					.catch( function () { clearBtn.disabled = false; toast( vxT( 'Could not clear.' ), 'error' ); } );
+			} );
+		}
+		document.querySelectorAll( '.velox-errlog-del' ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function ( e ) {
+				e.preventDefault();
+				var fp = btn.getAttribute( 'data-fp' ) || '';
+				btn.disabled = true;
+				api( 'errorlog_delete', { fp: fp } )
+					.then( function () {
+						var item = btn.closest( '.velox-errlog-item' );
+						if ( item ) { item.remove(); }
+						toast( vxT( 'Entry removed.' ), 'success' );
+					} )
+					.catch( function () { btn.disabled = false; toast( vxT( 'Could not remove.' ), 'error' ); } );
+			} );
+		} );
 	}
 
 	/* Global language switcher (custom dropdown, top-right on every Velox page) - */
@@ -203,7 +232,7 @@
 	function saveSettings( payload, okMsg ) {
 		return api( 'save_settings', payload )
 			.then( function () {
-				toast( okMsg || 'Saved.', 'success' );
+				toast( okMsg || vxT( 'Saved.' ), 'success' );
 			} )
 			.catch( function ( e ) {
 				toast( e.message, 'error' );
@@ -300,26 +329,26 @@
 		}
 		if ( qNum ) {
 			qNum.addEventListener( 'input', function () { setQuality( qNum.value, 'num' ); } );
-			qNum.addEventListener( 'change', function () { saveSettings( { webp_quality: setQuality( qNum.value, 'num' ) }, 'Quality saved.' ); } );
+			qNum.addEventListener( 'change', function () { saveSettings( { webp_quality: setQuality( qNum.value, 'num' ) }, vxT( 'Quality saved.' ) ); } );
 		}
 
 		/* persist EXIF + max-width the moment they change */
 		var keepExif = $( '#velox-keep-exif' );
 		if ( keepExif ) {
 			keepExif.addEventListener( 'change', function () {
-				saveSettings( { image_keep_exif: keepExif.checked ? 1 : 0 }, 'Saved.' );
+				saveSettings( { image_keep_exif: keepExif.checked ? 1 : 0 }, vxT( 'Saved.' ) );
 			} );
 		}
 		var maxWidth = $( '#velox-max-width' );
 		if ( maxWidth ) {
 			maxWidth.addEventListener( 'change', function () {
-				saveSettings( { image_max_width: maxWidth.value }, 'Saved.' );
+				saveSettings( { image_max_width: maxWidth.value }, vxT( 'Saved.' ) );
 			} );
 		}
 		var avif = $( '#velox-avif' );
 		if ( avif ) {
 			avif.addEventListener( 'change', function () {
-				saveSettings( { image_avif: avif.checked ? 1 : 0 }, avif.checked ? 'AVIF on — reconvert images to build the twins.' : 'AVIF off.' );
+				saveSettings( { image_avif: avif.checked ? 1 : 0 }, avif.checked ? vxT( 'AVIF on — reconvert images to build the twins.' ) : vxT( 'AVIF off.' ) );
 			} );
 		}
 
@@ -327,9 +356,9 @@
 		function paintStats( s ) {
 			if ( grid ) {
 				grid.innerHTML = [
-					miniStat( s.done + ' / ' + s.total, 'Optimized' ),
-					miniStat( s.pending, 'Pending' ),
-					miniStat( bytes( s.saved_bytes ), 'Saved' ),
+					miniStat( s.done + ' / ' + s.total, vxT( 'Optimized' ) ),
+					miniStat( s.pending, vxT( 'Pending' ) ),
+					miniStat( bytes( s.saved_bytes ), vxT( 'Saved' ) ),
 				].join( '' );
 			}
 			var pct = s.total ? Math.round( ( s.done / s.total ) * 100 ) : 0;
@@ -375,7 +404,7 @@
 		if ( startBtn ) {
 			startBtn.addEventListener( 'click', function () {
 				if ( ! VELOX.webp_engine ) {
-					toast( t( 'No WebP engine available on this server.' ), 'error' );
+					toast( vxT( 'No WebP engine available on this server.' ), 'error' );
 					return;
 				}
 				runBulk();
@@ -385,7 +414,7 @@
 			stopBtn.addEventListener( 'click', function () {
 				stopFlag = true;
 				stopBtn.disabled = true;
-				stopBtn.textContent = 'Stopping…';
+				stopBtn.textContent = vxT( 'Stopping…' );
 			} );
 		}
 
@@ -393,11 +422,11 @@
 			stopFlag = false;
 			var quality = root ? root.value : 80;
 			startBtn.disabled = true;
-			startBtn.textContent = 'Working…';
+			startBtn.textContent = vxT( 'Working…' );
 			if ( stopBtn ) {
 				stopBtn.hidden = false;
 				stopBtn.disabled = false;
-				stopBtn.textContent = 'Stop';
+				stopBtn.textContent = vxT( 'Stop' );
 			}
 			if ( summary ) {
 				summary.textContent = '';
@@ -408,7 +437,7 @@
 					var ids = d.ids || [];
 					var total = ids.length;
 					if ( ! total ) {
-						finish( 0, 0, 'Everything is already optimized. ✨' );
+						finish( 0, 0, vxT( 'Everything is already optimized. ✨' ) );
 						return;
 					}
 					if ( progWrap ) {
@@ -421,7 +450,7 @@
 
 					function next() {
 						if ( stopFlag || ! ids.length ) {
-							finish( done, saved, stopFlag ? 'Stopped.' : null, failed, lastErr );
+							finish( done, saved, stopFlag ? vxT( 'Stopped.' ) : null, failed, lastErr );
 							return;
 						}
 						var id = ids.shift();
@@ -462,20 +491,20 @@
 				if ( customMsg ) {
 					summary.textContent = customMsg;
 				} else if ( failed ) {
-					summary.textContent = 'Done — ' + done + ' converted, ' + failed + ' failed. ' + (
+					summary.textContent = vxT( 'Done — ' ) + done + ' converted, ' + failed + ' failed. ' + (
 						done === 0
 							? 'Your server could not encode any images to WebP — ask your host to enable WebP support in GD or Imagick.'
-							: ( lastErr || 'Some images could not be converted.' )
+							: ( lastErr || vxT( 'Some images could not be converted.' ) )
 					);
 				} else {
-					summary.textContent = 'Done — ' + done + ' images, ' + bytes( saved ) + ' saved.';
+					summary.textContent = vxT( 'Done — ' ) + done + ' images, ' + bytes( saved ) + ' saved.';
 				}
 			}
 			refreshStats().then( loadCompareOptions );
 		}
 		function resetBulkButtons() {
 			startBtn.disabled = false;
-			startBtn.textContent = 'Convert pending images';
+			startBtn.textContent = vxT( 'Convert pending images' );
 			if ( stopBtn ) {
 				stopBtn.hidden = true;
 			}
@@ -512,7 +541,7 @@
 								'<option value="' +
 								it.id +
 								'">' +
-								escapeHtml( it.filename || ( 'Image #' + it.id ) ) +
+								escapeHtml( it.filename || ( vxT( 'Image #' ) + it.id ) ) +
 								'</option>'
 							);
 						} )
@@ -626,7 +655,7 @@
 					render( d.items || [] );
 					if ( pageInfo ) {
 						pageInfo.textContent =
-							'Page ' + d.page + ' / ' + state.pages + ' · ' + d.total + ' images';
+							vxT( 'Page ' ) + d.page + ' / ' + state.pages + ' · ' + d.total + ' images';
 					}
 					if ( prev ) {
 						prev.disabled = d.page <= 1;
@@ -655,10 +684,10 @@
 						'" data-full="' + escapeHtml( it.full || it.thumb || '' ) +
 						'" data-name="' + escapeHtml( it.filename || '' ) + '">' +
 						'<div class="velox-media-thumb">' +
-						'<input type="checkbox" class="velox-media-select" value="' + it.id + '" aria-label="Select image">' +
+						'<input type="checkbox" class="velox-media-select" value="' + it.id + '" aria-label=vxT( "Select image" )>' +
 						'<img src="' +
 						escapeHtml( it.thumb || it.full ) +
-						'" alt="" loading="lazy" class="velox-media-open" title="Click to resize">' +
+						'" alt="" loading="lazy" class="velox-media-open" title=vxT( "Click to resize" )>' +
 						'<span class="velox-media-dims">' + ( it.width ? it.width + ' × ' + it.height : '' ) + '</span>' +
 						( it.webp
 							? '<span class="velox-media-badge">WebP</span>'
@@ -668,9 +697,9 @@
 						'<code class="velox-media-name">' +
 						escapeHtml( it.filename ) +
 						'</code>' +
-						field( 'title', 'Title', it.title ) +
-						field( 'alt', 'Alt text', it.alt ) +
-						field( 'caption', 'Caption', it.caption ) +
+						field( 'title', vxT( 'Title' ), it.title ) +
+						field( 'alt', vxT( 'Alt text' ), it.alt ) +
+						field( 'caption', vxT( 'Caption' ), it.caption ) +
 						'<div class="velox-media-actions">' +
 						'<button class="velox-btn velox-btn--primary velox-media-save">Save</button>' +
 						'<button class="velox-btn velox-btn--ghost velox-media-rename" data-name="' +
@@ -728,17 +757,17 @@
 				payload[ inp.getAttribute( 'data-field' ) ] = inp.value;
 			} );
 			btn.disabled = true;
-			btn.textContent = 'Saving…';
+			btn.textContent = vxT( 'Saving…' );
 			api( 'save_meta', payload )
 				.then( function () {
-					toast( t( 'Saved.' ), 'success' );
+					toast( vxT( 'Saved.' ), 'success' );
 				} )
 				.catch( function ( err ) {
 					toast( err.message, 'error' );
 				} )
 				.then( function () {
 					btn.disabled = false;
-					btn.textContent = 'Save';
+					btn.textContent = vxT( 'Save' );
 				} );
 		}
 
@@ -754,11 +783,11 @@
 		function selectedIds() { return $$( '.velox-media-select:checked', gridEl ).map( function ( c ) { return c.value; } ); }
 		function updateSel() {
 			var n = selectedIds().length;
-			if ( dlGo ) { dlGo.disabled = n === 0; dlGo.textContent = 'Download selected' + ( n ? ' (' + n + ')' : '' ); }
-			if ( selCount ) { selCount.textContent = n ? ( n + ' image' + ( n === 1 ? '' : 's' ) + ' selected · alt text & titles come along in a text file' ) : 'Tick the images you want, then download. Alt text & titles come along in a text file.'; }
+			if ( dlGo ) { dlGo.disabled = n === 0; dlGo.textContent = vxT( 'Download selected' ) + ( n ? ' (' + n + ')' : '' ); }
+			if ( selCount ) { selCount.textContent = n ? ( n + ' image' + ( n === 1 ? '' : 's' ) + ' selected · alt text & titles come along in a text file' ) : vxT( 'Tick the images you want, then download. Alt text & titles come along in a text file.' ); }
 			if ( selAllBtn ) {
 				var boxes = $$( '.velox-media-select', gridEl );
-				selAllBtn.textContent = ( boxes.length && boxes.every( function ( b ) { return b.checked; } ) ) ? 'Deselect all' : 'Select all';
+				selAllBtn.textContent = ( boxes.length && boxes.every( function ( b ) { return b.checked; } ) ) ? vxT( 'Deselect all' ) : vxT( 'Select all' );
 			}
 		}
 		function enterSelect() { selecting = true; gridEl.classList.add( 'is-selecting' ); if ( selBar ) { selBar.hidden = false; } if ( dlBtn ) { dlBtn.hidden = true; } updateSel(); }
@@ -791,16 +820,16 @@
 				if ( ! ids.length ) { return; }
 				dlGo.disabled = true;
 				var orig = dlGo.textContent;
-				dlGo.textContent = 'Preparing…';
+				dlGo.textContent = vxT( 'Preparing…' );
 				api( 'media_zip', { ids: ids } )
 					.then( function ( r ) {
 						if ( r && r.url ) {
 							var a = document.createElement( 'a' );
 							a.href = r.url; a.download = r.filename || '';
 							document.body.appendChild( a ); a.click(); a.remove();
-							toast( t( 'Download ready — ' ) + ( r.count || ids.length ) + ' image' + ( ( r.count || ids.length ) === 1 ? '' : 's' ) + '.', 'success' );
+							toast( vxT( 'Download ready — ' ) + ( r.count || ids.length ) + ' image' + ( ( r.count || ids.length ) === 1 ? '' : 's' ) + '.', 'success' );
 						} else {
-							toast( t( 'Could not build the download.' ), 'error' );
+							toast( vxT( 'Could not build the download.' ), 'error' );
 						}
 					} )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
@@ -895,17 +924,17 @@
 		if ( rzGo ) {
 			rzGo.addEventListener( 'click', function () {
 				var w = parseInt( rzW.value, 10 ), h = parseInt( rzH.value, 10 );
-				if ( ! ( w > 0 && h > 0 ) ) { toast( t( 'Enter a width and height.' ), 'error' ); return; }
+				if ( ! ( w > 0 && h > 0 ) ) { toast( vxT( 'Enter a width and height.' ), 'error' ); return; }
 				rzGo.disabled = true;
-				rzGo.textContent = 'Resizing…';
+				rzGo.textContent = vxT( 'Resizing…' );
 				api( 'media_resize', { id: rzId, w: w, h: h } )
 					.then( function ( r ) {
-						toast( r.unchanged ? 'Already that size.' : 'Resized to ' + r.width + ' × ' + r.height + '.' );
+						toast( r.unchanged ? vxT( 'Already that size.' ) : vxT( 'Resized to ' ) + r.width + ' × ' + r.height + '.' );
 						rzModal.hidden = true;
 						loadMedia();
 					} )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
-					.then( function () { rzGo.disabled = false; rzGo.textContent = 'Resize image'; } );
+					.then( function () { rzGo.disabled = false; rzGo.textContent = vxT( 'Resize image' ); } );
 			} );
 		}
 
@@ -919,7 +948,7 @@
 		function openRename( id, name ) {
 			renameId = id;
 			if ( renameCurrent ) {
-				renameCurrent.textContent = 'Current: ' + name;
+				renameCurrent.textContent = vxT( 'Current: ' ) + name;
 			}
 			if ( renameInput ) {
 				// strip extension for the editable base
@@ -951,10 +980,10 @@
 					return;
 				}
 				renameGo.disabled = true;
-				renameGo.textContent = 'Renaming…';
+				renameGo.textContent = vxT( 'Renaming…' );
 				api( 'rename', { id: renameId, name: renameInput.value.trim() } )
 					.then( function ( res ) {
-						toast( t( 'Renamed → ' ) + res.new_name + ' · ' + res.refs_updated + ' refs fixed',
+						toast( vxT( 'Renamed → ' ) + res.new_name + ' · ' + res.refs_updated + ' refs fixed',
 							'success'
 						);
 						closeRename();
@@ -965,7 +994,7 @@
 					} )
 					.then( function () {
 						renameGo.disabled = false;
-						renameGo.textContent = 'Rename & fix references';
+						renameGo.textContent = vxT( 'Rename & fix references' );
 					} );
 			} );
 		}
@@ -991,7 +1020,7 @@
 					a.click();
 					document.body.removeChild( a );
 					URL.revokeObjectURL( url );
-					toast( t( 'Exported.' ), 'success' );
+					toast( vxT( 'Exported.' ), 'success' );
 				} ).catch( function ( e ) {
 					toast( e.message, 'error' );
 				} );
@@ -1022,7 +1051,7 @@
 		if ( pipeApply ) {
 			pipeApply.addEventListener( 'click', function () {
 				pipeApply.disabled = true;
-				pipeApply.textContent = 'Applying…';
+				pipeApply.textContent = vxT( 'Applying…' );
 				api( 'import_pipe', { text: pipeText ? pipeText.value : '' } )
 					.then( function ( res ) {
 						var msg =
@@ -1038,7 +1067,7 @@
 									( res.missing.length > 6 ? '…' : '' ) + ')';
 							}
 						}
-						toast( t( 'Import done — ' ) + msg, 'success' );
+						toast( vxT( 'Import done — ' ) + msg, 'success' );
 						load();
 					} )
 					.catch( function ( err ) {
@@ -1046,7 +1075,7 @@
 					} )
 					.then( function () {
 						pipeApply.disabled = false;
-						pipeApply.textContent = 'Apply to library';
+						pipeApply.textContent = vxT( 'Apply to library' );
 					} );
 			} );
 		}
@@ -1101,13 +1130,13 @@
 				var which = cb.getAttribute( 'data-which' ) || 'all';
 				var orig = cb.textContent;
 				cb.disabled = true;
-				cb.textContent = 'Clearing…';
+				cb.textContent = vxT( 'Clearing…' );
 				api( 'clear_cache', { which: which } )
 					.then( function ( d ) {
-						toast( ( d && d.message ) || 'Cache purged.' );
+						toast( ( d && d.message ) || vxT( 'Cache purged.' ) );
 					} )
 					.catch( function ( e ) {
-						toast( e.message || 'Error clearing cache.', 'error' );
+						toast( e.message || vxT( 'Error clearing cache.' ), 'error' );
 					} )
 					.then( function () {
 						cb.disabled = false;
@@ -1123,18 +1152,18 @@
 		function cachePillSet( on, r ) {
 			if ( ! cachePill ) { return; }
 			if ( ! on ) {
-				cachePill.textContent = 'Off';
+				cachePill.textContent = vxT( 'Off' );
 				cachePill.className = 'velox-pill velox-pill--muted';
 				if ( cacheNote ) { cacheNote.hidden = true; }
 				return;
 			}
 			// Enabled = active. The drop-in just makes it serve even earlier.
 			if ( r && r.dropin && r.wp_cache ) {
-				cachePill.textContent = 'Active · early serve';
+				cachePill.textContent = vxT( 'Active · early serve' );
 				cachePill.className = 'velox-pill velox-pill--ok';
 				if ( cacheNote ) { cacheNote.hidden = true; }
 			} else {
-				cachePill.textContent = 'Active';
+				cachePill.textContent = vxT( 'Active' );
 				cachePill.className = 'velox-pill velox-pill--ok';
 				if ( cacheNote ) {
 					cacheNote.hidden = false;
@@ -1149,7 +1178,7 @@
 				if ( cachePill ) { cachePill.textContent = '…'; }
 				saveSettings( { cache_enable: on ? 1 : 0 } )
 					.then( function () { return api( 'cache_setup' ); } )
-					.then( function ( r ) { cachePillSet( on, r ); toast( on ? 'Page cache on.' : 'Page cache off.' ); } )
+					.then( function ( r ) { cachePillSet( on, r ); toast( on ? vxT( 'Page cache on.' ) : vxT( 'Page cache off.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 		}
@@ -1158,7 +1187,7 @@
 			cachePurge.addEventListener( 'click', function () {
 				cachePurge.disabled = true;
 				api( 'cache_purge' )
-					.then( function () { toast( t( 'Page cache purged.' ) ); } )
+					.then( function () { toast( vxT( 'Page cache purged.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { cachePurge.disabled = false; } );
 			} );
@@ -1167,11 +1196,11 @@
 		if ( cachePreload ) {
 			cachePreload.addEventListener( 'click', function () {
 				cachePreload.disabled = true;
-				cachePreload.textContent = 'Preloading…';
+				cachePreload.textContent = vxT( 'Preloading…' );
 				api( 'cache_preload' )
-					.then( function ( r ) { toast( t( 'Warmed ' ) + ( ( r && r.warmed ) || 0 ) + ' pages.' ); } )
+					.then( function ( r ) { toast( vxT( 'Warmed ' ) + ( ( r && r.warmed ) || 0 ) + ' pages.' ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
-					.then( function () { cachePreload.disabled = false; cachePreload.textContent = 'Preload now'; } );
+					.then( function () { cachePreload.disabled = false; cachePreload.textContent = vxT( 'Preload now' ); } );
 			} );
 		}
 
@@ -1182,13 +1211,13 @@
 		if ( fScan ) {
 			fScan.addEventListener( 'click', function () {
 				fScan.disabled = true;
-				fScan.textContent = 'Scanning…';
+				fScan.textContent = vxT( 'Scanning…' );
 				if ( fStatus ) {
 					fStatus.innerHTML = '<span class="velox-hint">Loading your front page and downloading fonts…</span>';
 				}
 				api( 'localize_fonts', {} )
 					.then( function ( d ) {
-						toast( ( d && d.message ) || 'Fonts hosted locally.' );
+						toast( ( d && d.message ) || vxT( 'Fonts hosted locally.' ) );
 						if ( fStatus ) {
 							var fam = d && d.families && d.families.length ? ' — ' + d.families.join( ', ' ) : '';
 							fStatus.innerHTML = '<span class="velox-fonts-ok">✓ ' + ( ( d && d.files ) || 0 ) + ' font file(s) hosted locally' + escapeHtml( fam ) + '</span>';
@@ -1202,7 +1231,7 @@
 					} )
 					.then( function () {
 						fScan.disabled = false;
-						fScan.textContent = 'Scan & download fonts';
+						fScan.textContent = vxT( 'Scan & download fonts' );
 					} );
 			} );
 		}
@@ -1211,7 +1240,7 @@
 				fClear.disabled = true;
 				api( 'clear_local_fonts', {} )
 					.then( function ( d ) {
-						toast( ( d && d.message ) || 'Local fonts removed.' );
+						toast( ( d && d.message ) || vxT( 'Local fonts removed.' ) );
 						if ( fStatus ) {
 							fStatus.innerHTML = '<span class="velox-hint">No fonts hosted locally yet. Enable the toggle, then scan.</span>';
 						}
@@ -1249,7 +1278,7 @@
 		if ( fDetect && fDList ) {
 			fDetect.addEventListener( 'click', function () {
 				fDetect.disabled = true;
-				fDetect.textContent = 'Scanning…';
+				fDetect.textContent = vxT( 'Scanning…' );
 				api( 'detect_fonts', {} )
 					.then( function ( d ) {
 						var fonts = ( d && d.fonts ) || [];
@@ -1277,7 +1306,7 @@
 								'<span class="velox-font-meta">' + escapeHtml( meta ) + ' · ' + escapeHtml( file ) + '</span></div>' +
 								'<div class="velox-font-acts">' +
 									'<label class="velox-font-pre-lbl" title="Preload this font so it starts loading immediately — use only for fonts visible above the fold"><span>Preload</span><span class="velox-switch"><input type="checkbox" class="velox-font-pre" data-url="' + escapeHtml( f.url ) + '"' + ( on ? ' checked' : '' ) + '><span class="velox-switch-track"></span></span></label>' +
-									'<button type="button" class="velox-font-block' + ( isBlk ? ' is-on' : '' ) + '" data-fam="' + escapeHtml( f.family ) + '" title="Stop this font from loading at all">' + ( isBlk ? 'Blocked' : 'Block' ) + '</button>' +
+									'<button type="button" class="velox-font-block' + ( isBlk ? ' is-on' : '' ) + '" data-fam="' + escapeHtml( f.family ) + '" title=vxT( "Stop this font from loading at all" )>' + ( isBlk ? vxT( 'Blocked' ) : vxT( 'Block' ) ) + '</button>' +
 								'</div>' +
 								'</div>';
 						} );
@@ -1290,7 +1319,7 @@
 								if ( cb.checked && -1 === i ) { urls.push( u ); }
 								else if ( ! cb.checked && -1 !== i ) { urls.splice( i, 1 ); }
 								setFontPreload( urls );
-								toast( cb.checked ? 'Added to preload.' : 'Removed from preload.' );
+								toast( cb.checked ? vxT( 'Added to preload.' ) : vxT( 'Removed from preload.' ) );
 							} );
 						} );
 						$$( '.velox-font-block', fDList ).forEach( function ( bb ) {
@@ -1303,15 +1332,15 @@
 								else { fams.splice( idx, 1 ); nowBlocked = false; }
 								setFontBlock( fams );
 								bb.classList.toggle( 'is-on', nowBlocked );
-								bb.textContent = nowBlocked ? 'Blocked' : 'Block';
+								bb.textContent = nowBlocked ? vxT( 'Blocked' ) : vxT( 'Block' );
 								var row = bb.closest( '.velox-font-row' );
 								if ( row ) { row.classList.toggle( 'is-blocked', nowBlocked ); }
-								toast( nowBlocked ? 'Font blocked — it won\u2019t load on the site.' : 'Font unblocked.' );
+								toast( nowBlocked ? 'Font blocked — it won\u2019t load on the site.' : vxT( 'Font unblocked.' ) );
 							} );
 						} );
 					} )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
-					.then( function () { fDetect.disabled = false; fDetect.textContent = 'Detect fonts'; } );
+					.then( function () { fDetect.disabled = false; fDetect.textContent = vxT( 'Detect fonts' ); } );
 			} );
 		}
 
@@ -1326,26 +1355,26 @@
 					.map( function ( s ) { return s.trim(); } )
 					.filter( Boolean );
 				if ( ! paths.length ) {
-					toast( t( 'Add at least one page path to scan.' ), 'error' );
+					toast( vxT( 'Add at least one page path to scan.' ), 'error' );
 					return;
 				}
 				rucssScan.disabled = true;
-				rucssScan.textContent = 'Saving…';
+				rucssScan.textContent = vxT( 'Saving…' );
 				// Persist current settings (engine, token, urls, safelist) before rendering.
 				saveSettings( collectSettings( document.querySelector( '.velox-main' ) || document ), null ).then( function () {
 					var done = 0, ok = 0, fail = 0, msgs = [];
 					function step() {
 						if ( done >= paths.length ) {
 							rucssScan.disabled = false;
-							rucssScan.textContent = 'Scan & build used-CSS';
-							toast( t( 'Scan complete: ' ) + ok + ' built, ' + fail + ' failed.' );
+							rucssScan.textContent = vxT( 'Scan & build used-CSS' );
+							toast( vxT( 'Scan complete: ' ) + ok + ' built, ' + fail + ' failed.' );
 							if ( rucssStatus ) {
 								rucssStatus.innerHTML = '<span class="' + ( fail ? 'velox-hint' : 'velox-fonts-ok' ) + '">' + ( fail ? '' : '✓ ' ) + escapeHtml( msgs.join( ' · ' ) ) + '</span>';
 							}
 							return;
 						}
 						var path = paths[ done ];
-						rucssScan.textContent = 'Scanning ' + ( done + 1 ) + '/' + paths.length + '…';
+						rucssScan.textContent = vxT( 'Scanning ' ) + ( done + 1 ) + '/' + paths.length + '…';
 						api( 'rucss_scan_one', { path: path } )
 							.then( function ( d ) {
 								ok++;
@@ -1372,7 +1401,7 @@
 				rsBtn.disabled = true;
 				api( 'rucss_reset_learn', {} )
 					.then( function ( d ) {
-						toast( ( d && d.message ) || 'Auto-learn reset.' );
+						toast( ( d && d.message ) || vxT( 'Auto-learn reset.' ) );
 					} )
 					.catch( function ( e ) {
 						toast( e.message, 'error' );
@@ -1390,7 +1419,7 @@
 				ucBtn.disabled = true;
 				api( 'clear_used_css', {} )
 					.then( function ( d ) {
-						toast( ( d && d.message ) || 'Used-CSS cache cleared.' );
+						toast( ( d && d.message ) || vxT( 'Used-CSS cache cleared.' ) );
 					} )
 					.catch( function ( e ) {
 						toast( e.message, 'error' );
@@ -1407,13 +1436,13 @@
 		}
 		btn.addEventListener( 'click', function () {
 			btn.disabled = true;
-			btn.textContent = 'Saving…';
+			btn.textContent = vxT( 'Saving…' );
 			saveSettings(
 				collectSettings( document.querySelector( '.velox-main' ) || document ),
-				'Performance settings saved.'
+				vxT( 'Performance settings saved.' )
 			).then( function () {
 				btn.disabled = false;
-				btn.textContent = 'Save performance settings';
+				btn.textContent = vxT( 'Save performance settings' );
 			} );
 		} );
 	}
@@ -1452,10 +1481,10 @@
 			}
 			var item = btn.getAttribute( 'data-item' );
 			btn.disabled = true;
-			btn.textContent = 'Cleaning…';
+			btn.textContent = vxT( 'Cleaning…' );
 			api( 'db_clean', { item: item } )
 				.then( function ( res ) {
-					toast( t( 'Cleaned ' ) + res.cleaned + ' rows.', 'success' );
+					toast( vxT( 'Cleaned ' ) + res.cleaned + ' rows.', 'success' );
 					return refresh();
 				} )
 				.catch( function ( err ) {
@@ -1463,7 +1492,7 @@
 				} )
 				.then( function () {
 					btn.disabled = false;
-					btn.textContent = 'Clean';
+					btn.textContent = vxT( 'Clean' );
 				} );
 		} );
 
@@ -1471,10 +1500,10 @@
 		if ( allBtn ) {
 			allBtn.addEventListener( 'click', function () {
 				allBtn.disabled = true;
-				allBtn.textContent = 'Cleaning…';
+				allBtn.textContent = vxT( 'Cleaning…' );
 				api( 'db_clean', { item: 'all' } )
 					.then( function ( res ) {
-						toast( t( 'Cleaned ' ) + res.cleaned + ' rows total.', 'success' );
+						toast( vxT( 'Cleaned ' ) + res.cleaned + ' rows total.', 'success' );
 						return refresh();
 					} )
 					.catch( function ( err ) {
@@ -1482,7 +1511,7 @@
 					} )
 					.then( function () {
 						allBtn.disabled = false;
-						allBtn.textContent = 'Clean everything';
+						allBtn.textContent = vxT( 'Clean everything' );
 					} );
 			} );
 		}
@@ -1491,17 +1520,17 @@
 		if ( optBtn ) {
 			optBtn.addEventListener( 'click', function () {
 				optBtn.disabled = true;
-				optBtn.textContent = 'Optimizing…';
+				optBtn.textContent = vxT( 'Optimizing…' );
 				api( 'db_clean', { item: 'optimize_tables' } )
 					.then( function () {
-						toast( t( 'Tables optimized.' ), 'success' );
+						toast( vxT( 'Tables optimized.' ), 'success' );
 					} )
 					.catch( function ( err ) {
 						toast( err.message, 'error' );
 					} )
 					.then( function () {
 						optBtn.disabled = false;
-						optBtn.textContent = 'Optimize tables';
+						optBtn.textContent = vxT( 'Optimize tables' );
 					} );
 			} );
 		}
@@ -1511,13 +1540,13 @@
 			saveAuto.addEventListener( 'click', function () {
 				var sched = $( '#velox-db-schedule' );
 				saveAuto.disabled = true;
-				saveAuto.textContent = 'Saving…';
+				saveAuto.textContent = vxT( 'Saving…' );
 				saveSettings(
 					{ db_schedule_cleanup: sched && sched.checked ? 1 : 0 },
-					'Automation saved.'
+					vxT( 'Automation saved.' )
 				).then( function () {
 					saveAuto.disabled = false;
-					saveAuto.textContent = 'Save automation';
+					saveAuto.textContent = vxT( 'Save automation' );
 				} );
 			} );
 		}
@@ -1543,13 +1572,13 @@
 				var out = card.querySelector( '.velox-import-result' );
 				runBtn.disabled = true;
 				var label = runBtn.textContent;
-				runBtn.textContent = 'Importing…';
+				runBtn.textContent = vxT( 'Importing…' );
 				api( 'velox_import', { source: source } )
 					.then( function ( r ) {
 						out.hidden = false;
 						if ( ! r || ! r.ok ) {
 							out.className = 'velox-import-result is-err';
-							out.textContent = ( r && r.message ) || 'Nothing to import.';
+							out.textContent = ( r && r.message ) || vxT( 'Nothing to import.' );
 							runBtn.disabled = false; runBtn.textContent = label;
 							return;
 						}
@@ -1560,8 +1589,8 @@
 						if ( r.note ) { html += '<em>' + escapeHtml( r.note ) + '</em>'; }
 						out.className = 'velox-import-result is-ok';
 						out.innerHTML = html;
-						runBtn.textContent = 'Imported';
-						toast( t( 'Imported from ' ) + source + '.', 'success' );
+						runBtn.textContent = vxT( 'Imported' );
+						toast( vxT( 'Imported from ' ) + source + '.', 'success' );
 					} )
 					.catch( function ( e ) {
 						out.hidden = false;
@@ -1583,7 +1612,7 @@
 			payload[ key ] = val;
 			api( 'save_settings', payload )
 				.then( flashSaved )
-				.catch( function ( e ) { toast( ( e && e.message ) || 'Could not save', 'error' ); } );
+				.catch( function ( e ) { toast( ( e && e.message ) || vxT( 'Could not save' ), 'error' ); } );
 		}
 		sroot.addEventListener( 'change', function ( e ) {
 			var el = e.target.closest ? e.target.closest( '[data-setting]' ) : null;
@@ -1610,16 +1639,16 @@
 					return;
 				}
 				pb.disabled = true;
-				pb.textContent = 'Applying…';
+				pb.textContent = vxT( 'Applying…' );
 				api( 'apply_preset', { preset: name } )
 					.then( function ( d ) {
-						toast( ( d && d.message ) || 'Preset applied.' );
+						toast( ( d && d.message ) || vxT( 'Preset applied.' ) );
 						setTimeout( function () { location.reload(); }, 600 );
 					} )
 					.catch( function ( e ) {
 						toast( e.message, 'error' );
 						pb.disabled = false;
-						pb.textContent = name === 'safe' ? 'Apply safe defaults' : 'Apply aggressive preset';
+						pb.textContent = name === 'safe' ? vxT( 'Apply safe defaults' ) : vxT( 'Apply aggressive preset' );
 					} );
 			} );
 		} );
@@ -1638,7 +1667,7 @@
 					}
 					box.value = ( d && d.json ) || '';
 					box.select();
-					toast( t( 'Settings exported — copy the JSON.' ) );
+					toast( vxT( 'Settings exported — copy the JSON.' ) );
 				} ).catch( function ( e ) {
 					toast( e.message, 'error' );
 				} );
@@ -1648,7 +1677,7 @@
 			importOpen.addEventListener( 'click', function () {
 				box.hidden = false;
 				box.value = '';
-				box.placeholder = 'Paste a Velox settings JSON here…';
+				box.placeholder = vxT( 'Paste a Velox settings JSON here…' );
 				box.focus();
 				if ( importActions ) {
 					importActions.hidden = false;
@@ -1661,7 +1690,7 @@
 				importApply.disabled = true;
 				api( 'import_settings', { json: box.value } )
 					.then( function ( d ) {
-						toast( ( d && d.message ) || 'Imported.' );
+						toast( ( d && d.message ) || vxT( 'Imported.' ) );
 						setTimeout( function () {
 							window.location.reload();
 						}, 700 );
@@ -1787,7 +1816,7 @@
 			}
 			var n = Object.keys( loadPending() ).length;
 			applyAll.hidden = n === 0;
-			applyAll.textContent = 'Apply all names (' + n + ')';
+			applyAll.textContent = vxT( 'Apply all names (' ) + n + ')';
 		}
 
 		function load() {
@@ -1797,7 +1826,7 @@
 					state.pages = d.total_pages || 1;
 					render( d.items || [] );
 					if ( pageInfo ) {
-						pageInfo.textContent = 'Page ' + d.page + ' / ' + state.pages + ' · ' + d.total + ' images';
+						pageInfo.textContent = vxT( 'Page ' ) + d.page + ' / ' + state.pages + ' · ' + d.total + ' images';
 					}
 					if ( prev ) {
 						prev.disabled = d.page <= 1;
@@ -1955,17 +1984,17 @@
 			}
 			btn.disabled = true;
 			var orig = btn.textContent;
-			btn.textContent = 'Converting…';
+			btn.textContent = vxT( 'Converting…' );
 			// No quality passed → the endpoint uses your saved WebP quality (same as bulk).
 			api( 'convert_one', { id: id } )
 				.then( function ( res ) {
 					var saved = res && res.original_bytes ? ( res.original_bytes - ( res.webp_bytes || 0 ) ) : 0;
-					toast( saved > 0 ? 'Converted · ' + bytes( saved ) + ' saved' : 'Converted to WebP', 'success' );
+					toast( saved > 0 ? vxT( 'Converted · ' ) + bytes( saved ) + ' saved' : vxT( 'Converted to WebP' ), 'success' );
 					document.dispatchEvent( new CustomEvent( 'velox:refresh-stats' ) );
 					load(); // re-fetch the grid so this image now shows as WebP, no manual refresh
 				} )
 				.catch( function ( err ) {
-					toast( ( err && err.message ) || 'Conversion failed', 'error' );
+					toast( ( err && err.message ) || vxT( 'Conversion failed' ), 'error' );
 					btn.disabled = false;
 					btn.textContent = orig;
 				} );
@@ -1989,7 +2018,7 @@
 					input.value = np.base;
 					input.setAttribute( 'data-orig', np.base );
 					input.classList.remove( 'is-dirty' );
-					toast( t( '→ ' ) + res.new_name + ' · ' + res.refs_updated + ' refs fixed', 'success' );
+					toast( vxT( '→ ' ) + res.new_name + ' · ' + res.refs_updated + ' refs fixed', 'success' );
 					refreshApplyAll();
 				} )
 				.catch( function ( err ) {
@@ -1997,7 +2026,7 @@
 				} )
 				.then( function () {
 					btn.disabled = false;
-					btn.textContent = 'Apply';
+					btn.textContent = vxT( 'Apply' );
 				} );
 		}
 
@@ -2016,7 +2045,7 @@
 					if ( ! ids.length ) {
 						savePending( loadPending() );
 						applyAll.disabled = false;
-						toast( t( 'Renamed ' ) + done + ( failed ? ' · ' + failed + ' failed' : '' ), failed ? 'error' : 'success' );
+						toast( vxT( 'Renamed ' ) + done + ( failed ? ' · ' + failed + ' failed' : '' ), failed ? 'error' : 'success' );
 						load();
 						return;
 					}
@@ -2032,7 +2061,7 @@
 							failed++;
 						} )
 						.then( function () {
-							applyAll.textContent = 'Applying… ' + done;
+							applyAll.textContent = vxT( 'Applying… ' ) + done;
 							step();
 						} );
 				}
@@ -2081,7 +2110,7 @@
 					} );
 					savePending( pending );
 					refreshApplyAll();
-					toast( t( 'Names filled — review and Apply all.' ) );
+					toast( vxT( 'Names filled — review and Apply all.' ) );
 				} );
 			} );
 		}
@@ -2172,15 +2201,15 @@
 		} );
 		on( '#velox-wiz-detect', 'click', function ( e ) {
 			e.preventDefault();
-			var link = this; link.textContent = 'Detecting…';
+			var link = this; link.textContent = vxT( 'Detecting…' );
 			api( 'builder_detect', {} )
 				.then( function ( d ) {
 					var btn = overlay.querySelector( '.velox-wiz-builder[data-builder="' + d.builder + '"]' );
 					if ( btn ) { selectBuilder( btn ); btn.scrollIntoView( { block: 'nearest' } ); }
-					toast( d.is_default ? 'No builder detected — picked the safe default.' : ( 'Detected ' + d.label + '.' ) );
+					toast( d.is_default ? vxT( 'No builder detected — picked the safe default.' ) : ( vxT( 'Detected ' ) + d.label + '.' ) );
 				} )
 				.catch( function ( e2 ) { toast( e2.message, 'error' ); } )
-				.then( function () { link.textContent = 'Detect it for me →'; } );
+				.then( function () { link.textContent = vxT( 'Detect it for me →' ); } );
 		} );
 		on( '#velox-wiz-to-path', 'click', function () {
 			if ( ! picked ) { return; }
@@ -2233,7 +2262,7 @@
 					}
 					// toggleable recommendations
 					box.innerHTML = ( d.items || [] ).map( function ( it ) {
-						var val = it.is_bool ? ( it.on ? 'On' : 'Off' ) : esc( String( it.value ).replace( /\n/g, ', ' ) );
+						var val = it.is_bool ? ( it.on ? vxT( 'On' ) : vxT( 'Off' ) ) : esc( String( it.value ).replace( /\n/g, ', ' ) );
 						return '<label class="velox-wiz-rec">' +
 							'<span class="velox-switch"><input type="checkbox" data-key="' + esc( it.key ) + '" checked><span class="velox-switch-track"></span></span>' +
 							'<span class="velox-wiz-rec-body"><span class="velox-wiz-rec-t">' + esc( it.label ) + '</span>' +
@@ -2245,18 +2274,18 @@
 		}
 		on( '#velox-wiz-back-path', 'click', function () { show( 'path' ); } );
 		on( '#velox-wizard-apply', 'click', function () {
-			var btn = this; btn.disabled = true; btn.textContent = 'Applying…';
+			var btn = this; btn.disabled = true; btn.textContent = vxT( 'Applying…' );
 			var keep = [];
 			$$( '#velox-wiz-review input[type="checkbox"]', overlay ).forEach( function ( c ) {
 				if ( c.checked ) { keep.push( c.getAttribute( 'data-key' ) ); }
 			} );
 			api( 'builder_apply', { builder: picked, keep: JSON.stringify( keep ) } )
 				.then( function ( d ) {
-					var msg = $( '#velox-wizard-donemsg' ); if ( msg ) { msg.textContent = d.message || 'Configured.'; }
+					var msg = $( '#velox-wizard-donemsg' ); if ( msg ) { msg.textContent = d.message || vxT( 'Configured.' ); }
 					show( 'done' );
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); } )
-				.then( function () { btn.disabled = false; btn.textContent = 'Apply selected'; } );
+				.then( function () { btn.disabled = false; btn.textContent = vxT( 'Apply selected' ); } );
 		} );
 
 		/* ---- Step 4: done ---- */
@@ -2267,7 +2296,7 @@
 		on( '#velox-wizard-req-send', 'click', function () {
 			var input = $( '#velox-wizard-req-name' ); var btn = this; btn.disabled = true;
 			api( 'builder_request', { name: input ? input.value : '' } )
-				.then( function ( d ) { toast( d.message || 'Sent.' ); if ( input ) { input.value = ''; } } )
+				.then( function ( d ) { toast( d.message || vxT( 'Sent.' ) ); if ( input ) { input.value = ''; } } )
 				.catch( function ( e ) { toast( e.message, 'error' ); } )
 				.then( function () { btn.disabled = false; } );
 		} );
@@ -2279,7 +2308,7 @@
 				box.disabled = true;
 				api( 'util_toggle', { key: box.getAttribute( 'data-key' ), on: on ? '1' : 'false' } )
 					.then( function () {
-						toast( on ? 'Turned on — added to the sidebar.' : 'Turned off.' );
+						toast( on ? vxT( 'Turned on — added to the sidebar.' ) : vxT( 'Turned off.' ) );
 						setTimeout( function () { location.reload(); }, 450 );
 					} )
 					.catch( function ( e ) { box.checked = ! on; box.disabled = false; toast( e.message, 'error' ); } );
@@ -2309,7 +2338,7 @@
 			btn.addEventListener( 'click', function () {
 				var scope = btn.closest( '.velox-tool-form' ) || document;
 				btn.disabled = true;
-				saveSettings( collectSettings( scope ), 'Saved.' )
+				saveSettings( collectSettings( scope ), vxT( 'Saved.' ) )
 					.then( function () { setTimeout( function () { location.reload(); }, 500 ); } )
 					.catch( function () {} )
 					.then( function () { btn.disabled = false; } );
@@ -2360,7 +2389,7 @@
 			busy = true;
 			var done = 0;
 			if ( ! total ) { return finish(); }
-			toast( t( 'Hiding ' ) + total + ' item' + ( 1 === total ? '' : 's' ) + ' from search…', 'info' );
+			toast( vxT( 'Hiding ' ) + total + ' item' + ( 1 === total ? '' : 's' ) + ' from search…', 'info' );
 			( function step() {
 				api( 'maint_seo_hide' ).then( function ( r ) {
 					done += ( r && r.done ) || 0;
@@ -2382,7 +2411,7 @@
 				'<div class="velox-modal-box velox-modal-box--lg">' +
 					'<div class="velox-modal-head">' +
 						'<h2 class="velox-modal-title">Maintenance is off — what about search engines?</h2>' +
-						'<button type="button" class="velox-modal-x" data-act="later" aria-label="Decide later">&times;</button>' +
+						'<button type="button" class="velox-modal-x" data-act="later" aria-label=vxT( "Decide later" )>&times;</button>' +
 					'</div>' +
 					'<p class="velox-sub vxms-lead"></p>' +
 					'<div class="vxms-choices">' +
@@ -2461,7 +2490,7 @@
 
 				if ( 'release' === act || 'keep' === act ) {
 					resolveAll( act, function () {
-						toast( t( 'release' ) === act ? 'Pages are visible to search engines again.' : 'Pages stay hidden.', 'success' );
+						toast( 'release' === act ? vxT( 'Pages are visible to search engines again.' ) : vxT( 'Pages stay hidden.' ), 'success' );
 						close();
 					} );
 					return;
@@ -2472,7 +2501,7 @@
 					btn.disabled = true;
 					api( 'maint_seo_list' ).then( function ( d ) {
 						var rows = ( d && d.rows ) || [];
-						if ( ! rows.length ) { list.textContent = 'Nothing to show.'; return; }
+						if ( ! rows.length ) { list.textContent = vxT( 'Nothing to show.' ); return; }
 						list.innerHTML = rows.map( function ( r ) {
 							return '<label class="vxms-row">' +
 								'<input type="checkbox" value="' + r.id + '">' +
@@ -2487,7 +2516,7 @@
 						} );
 						list.removeAttribute( 'aria-busy' );
 						refreshCount();
-					} ).catch( function () { list.textContent = 'Could not load the list.'; } );
+					} ).catch( function () { list.textContent = vxT( 'Could not load the list.' ); } );
 					return;
 				}
 
@@ -2551,14 +2580,14 @@
 		}
 
 		function read() {
-			setLive( 'loading', 'Reading your front page…' );
+			setLive( 'loading', vxT( 'Reading your front page…' ) );
 			// Cache-bust, or the browser can hand back a copy from before the
 			// last save and the readout quietly lies.
 			var url = root.getAttribute( 'data-home' );
 			url += ( url.indexOf( '?' ) === -1 ? '?' : '&' ) + 'velox_lang_check=' + Date.now();
 			fetch( url, { credentials: 'same-origin' } )
 				.then( function ( r ) {
-					if ( ! r.ok ) { throw new Error( 'HTTP ' + r.status ); }
+					if ( ! r.ok ) { throw new Error( vxT( 'HTTP ' ) + r.status ); }
 					return r.text();
 				} )
 				.then( function ( html ) {
@@ -2575,7 +2604,7 @@
 				} )
 				.catch( function ( err ) {
 					current = '';
-					setLive( 'error', 'Could not read the front page (' + err.message + ')' );
+					setLive( 'error', vxT( 'Could not read the front page (' ) + err.message + ')' );
 					paint();
 				} );
 		}
@@ -2696,17 +2725,17 @@
 		if ( applyBtn ) {
 			applyBtn.addEventListener( 'click', function () {
 				if ( ! Object.keys( map.classes ).length && ! Object.keys( map.ids ).length ) {
-					toast( t( 'No renames yet — edit some names first.' ), 'error' ); return;
+					toast( vxT( 'No renames yet — edit some names first.' ), 'error' ); return;
 				}
-				applyBtn.disabled = true; applyBtn.textContent = 'Building…';
+				applyBtn.disabled = true; applyBtn.textContent = vxT( 'Building…' );
 				api( 'october_apply_renames', { id: buildId, map: JSON.stringify( map ) } )
 					.then( function ( d ) {
-						toast( t( 'Renamed v' ) + d.version + ' (' + d.renamed + ' names). Downloading…', 'success' );
+						toast( vxT( 'Renamed v' ) + d.version + ' (' + d.renamed + ' names). Downloading…', 'success' );
 						window.location = ajaxUrl + '?action=velox_october_download&id=' + d.id + '&_wpnonce=' + dlNonce;
-						setTimeout( function () { applyBtn.disabled = false; applyBtn.textContent = 'Download renamed'; }, 1500 );
+						setTimeout( function () { applyBtn.disabled = false; applyBtn.textContent = vxT( 'Download renamed' ); }, 1500 );
 					} )
 					.catch( function ( e ) {
-						toast( e.message, 'error' ); applyBtn.disabled = false; applyBtn.textContent = 'Download renamed';
+						toast( e.message, 'error' ); applyBtn.disabled = false; applyBtn.textContent = vxT( 'Download renamed' );
 					} );
 			} );
 		}
@@ -2725,12 +2754,12 @@
 
 	/* ---- Field-type registry: categories, icons, descriptions (ACF-style picker) ---- */
 	var VFX_CATS = [
-		{ id: 'basic', label: 'Basic' },
-		{ id: 'content', label: 'Content' },
-		{ id: 'choice', label: 'Choice' },
-		{ id: 'relational', label: 'Relational' },
-		{ id: 'picker', label: 'Pickers' },
-		{ id: 'layout', label: 'Layout' }
+		{ id: 'basic', label: vxT( 'Basic' ) },
+		{ id: 'content', label: vxT( 'Content' ) },
+		{ id: 'choice', label: vxT( 'Choice' ) },
+		{ id: 'relational', label: vxT( 'Relational' ) },
+		{ id: 'picker', label: vxT( 'Pickers' ) },
+		{ id: 'layout', label: vxT( 'Layout' ) }
 	];
 	var VFX_ICONS = {
 		text: '<path d="M4 7V5h16v2M9 19h6M12 5v14"/>',
@@ -2767,37 +2796,37 @@
 		return '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>';
 	}
 	var VFX_META = {
-		text: { cat: 'basic', icon: 'text', label: 'Text', desc: 'A single line of text.' },
-		textarea: { cat: 'basic', icon: 'lines', label: 'Text Area', desc: 'Multiple lines of plain text.' },
-		number: { cat: 'basic', icon: 'hash', label: 'Number', desc: 'A numeric value.' },
-		range: { cat: 'basic', icon: 'slider', label: 'Range', desc: 'A slider between min and max.' },
-		email: { cat: 'basic', icon: 'at', label: 'Email', desc: 'An email address.' },
-		url: { cat: 'basic', icon: 'link', label: 'URL', desc: 'A web address.' },
-		password: { cat: 'basic', icon: 'lock', label: 'Password', desc: 'A masked password input.' },
-		image: { cat: 'content', icon: 'image', label: 'Image', desc: 'Pick an image from the media library.' },
-		gallery: { cat: 'content', icon: 'images', label: 'Gallery', desc: 'A collection of images.' },
-		file: { cat: 'content', icon: 'file', label: 'File', desc: 'Pick any file from the library.' },
-		wysiwyg: { cat: 'content', icon: 'edit', label: 'WYSIWYG', desc: 'A rich, visual text editor.' },
-		oembed: { cat: 'content', icon: 'play', label: 'oEmbed', desc: 'Embed a video or media URL.' },
-		select: { cat: 'choice', icon: 'chevrons', label: 'Select', desc: 'A dropdown of choices.' },
-		checkbox: { cat: 'choice', icon: 'checksquare', label: 'Checkbox', desc: 'Tick one or more choices.' },
-		radio: { cat: 'choice', icon: 'radio', label: 'Radio', desc: 'Pick one of several choices.' },
-		button_group: { cat: 'choice', icon: 'buttons', label: 'Button Group', desc: 'Pick one, shown as buttons.' },
+		text: { cat: 'basic', icon: 'text', label: vxT( 'Text' ), desc: vxT( 'A single line of text.' ) },
+		textarea: { cat: 'basic', icon: 'lines', label: vxT( 'Text Area' ), desc: vxT( 'Multiple lines of plain text.' ) },
+		number: { cat: 'basic', icon: 'hash', label: vxT( 'Number' ), desc: vxT( 'A numeric value.' ) },
+		range: { cat: 'basic', icon: 'slider', label: vxT( 'Range' ), desc: vxT( 'A slider between min and max.' ) },
+		email: { cat: 'basic', icon: 'at', label: vxT( 'Email' ), desc: vxT( 'An email address.' ) },
+		url: { cat: 'basic', icon: 'link', label: 'URL', desc: vxT( 'A web address.' ) },
+		password: { cat: 'basic', icon: 'lock', label: vxT( 'Password' ), desc: vxT( 'A masked password input.' ) },
+		image: { cat: 'content', icon: 'image', label: vxT( 'Image' ), desc: vxT( 'Pick an image from the media library.' ) },
+		gallery: { cat: 'content', icon: 'images', label: vxT( 'Gallery' ), desc: vxT( 'A collection of images.' ) },
+		file: { cat: 'content', icon: 'file', label: vxT( 'File' ), desc: vxT( 'Pick any file from the library.' ) },
+		wysiwyg: { cat: 'content', icon: 'edit', label: vxT( 'WYSIWYG' ), desc: vxT( 'A rich, visual text editor.' ) },
+		oembed: { cat: 'content', icon: 'play', label: 'oEmbed', desc: vxT( 'Embed a video or media URL.' ) },
+		select: { cat: 'choice', icon: 'chevrons', label: vxT( 'Select' ), desc: vxT( 'A dropdown of choices.' ) },
+		checkbox: { cat: 'choice', icon: 'checksquare', label: vxT( 'Checkbox' ), desc: vxT( 'Tick one or more choices.' ) },
+		radio: { cat: 'choice', icon: 'radio', label: vxT( 'Radio' ), desc: vxT( 'Pick one of several choices.' ) },
+		button_group: { cat: 'choice', icon: 'buttons', label: vxT( 'Button Group' ), desc: vxT( 'Pick one, shown as buttons.' ) },
 		truefalse: { cat: 'choice', icon: 'toggle', label: 'True / False', desc: 'A yes / no toggle.' },
-		link: { cat: 'relational', icon: 'link', label: 'Link', desc: 'A link: URL, text and target.' },
-		post_object: { cat: 'relational', icon: 'post', label: 'Post Object', desc: 'Select a post or page.' },
-		page_link: { cat: 'relational', icon: 'link', label: 'Page Link', desc: 'Select a post; use its permalink.' },
-		relationship: { cat: 'relational', icon: 'posts', label: 'Relationship', desc: 'Select multiple posts/pages.' },
-		taxonomy: { cat: 'relational', icon: 'tag', label: 'Taxonomy', desc: 'Select a taxonomy term.' },
-		user: { cat: 'relational', icon: 'user', label: 'User', desc: 'Select a user.' },
-		date: { cat: 'picker', icon: 'calendar', label: 'Date Picker', desc: 'Pick a date.' },
-		datetime: { cat: 'picker', icon: 'calendar', label: 'Date & Time', desc: 'Pick a date and time.' },
-		time: { cat: 'picker', icon: 'clock', label: 'Time Picker', desc: 'Pick a time.' },
-		color: { cat: 'picker', icon: 'swatch', label: 'Color Picker', desc: 'Pick a color.' },
-		message: { cat: 'layout', icon: 'message', label: 'Message', desc: 'Show a note to editors (no value).' },
-		group: { cat: 'layout', icon: 'group', label: 'Group', desc: 'Bundle sub-fields into one block.' },
-		repeater: { cat: 'layout', icon: 'rows', label: 'Repeater', desc: 'Repeatable rows of sub-fields.' },
-		flexible: { cat: 'layout', icon: 'layers', label: 'Flexible Content', desc: 'Stack rows of chosen layouts.' }
+		link: { cat: 'relational', icon: 'link', label: vxT( 'Link' ), desc: vxT( 'A link: URL, text and target.' ) },
+		post_object: { cat: 'relational', icon: 'post', label: vxT( 'Post Object' ), desc: vxT( 'Select a post or page.' ) },
+		page_link: { cat: 'relational', icon: 'link', label: vxT( 'Page Link' ), desc: vxT( 'Select a post; use its permalink.' ) },
+		relationship: { cat: 'relational', icon: 'posts', label: vxT( 'Relationship' ), desc: 'Select multiple posts/pages.' },
+		taxonomy: { cat: 'relational', icon: 'tag', label: vxT( 'Taxonomy' ), desc: vxT( 'Select a taxonomy term.' ) },
+		user: { cat: 'relational', icon: 'user', label: vxT( 'User' ), desc: vxT( 'Select a user.' ) },
+		date: { cat: 'picker', icon: 'calendar', label: vxT( 'Date Picker' ), desc: vxT( 'Pick a date.' ) },
+		datetime: { cat: 'picker', icon: 'calendar', label: vxT( 'Date & Time' ), desc: vxT( 'Pick a date and time.' ) },
+		time: { cat: 'picker', icon: 'clock', label: vxT( 'Time Picker' ), desc: vxT( 'Pick a time.' ) },
+		color: { cat: 'picker', icon: 'swatch', label: vxT( 'Color Picker' ), desc: vxT( 'Pick a color.' ) },
+		message: { cat: 'layout', icon: 'message', label: vxT( 'Message' ), desc: vxT( 'Show a note to editors (no value).' ) },
+		group: { cat: 'layout', icon: 'group', label: vxT( 'Group' ), desc: vxT( 'Bundle sub-fields into one block.' ) },
+		repeater: { cat: 'layout', icon: 'rows', label: vxT( 'Repeater' ), desc: vxT( 'Repeatable rows of sub-fields.' ) },
+		flexible: { cat: 'layout', icon: 'layers', label: vxT( 'Flexible Content' ), desc: vxT( 'Stack rows of chosen layouts.' ) }
 	};
 	function vfxMeta( t ) { return VFX_META[ t ] || { cat: 'basic', icon: 'text', label: t, desc: '' }; }
 
@@ -2855,14 +2884,14 @@
 				var meta = '<code>' + escapeHtml( f.name || slugify( f.label ) ) + '</code>' + ( f.required ? ' · required' : '' ) + ( f.active === false ? ' · off' : '' );
 				var head =
 					'<div class="vfg-field-row">' +
-						'<span class="vfg-handle" title="Drag to reorder"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>' +
+						'<span class="vfg-handle" title=vxT( "Drag to reorder" )><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>' +
 						'<span class="vfg-type-pill">' + typeIcon() + ' ' + ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + '</span>' +
-						'<span class="vfg-field-main"><span class="vfg-field-label">' + escapeHtml( f.label || 'Untitled' ) + '</span><span class="vfg-field-meta">' + meta + '</span></span>' +
+						'<span class="vfg-field-main"><span class="vfg-field-label">' + escapeHtml( f.label || vxT( 'Untitled' ) ) + '</span><span class="vfg-field-meta">' + meta + '</span></span>' +
 						'<span class="vfg-field-acts">' +
-							'<label class="vfg-field-onoff velox-switch" title="Enable or disable this field"><input type="checkbox" data-act="active"' + ( f.active === false ? '' : ' checked' ) + '><span class="velox-switch-track"></span></label>' +
-							'<button type="button" class="vfg-iconbtn" data-act="dup" title="Duplicate"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
+							'<label class="vfg-field-onoff velox-switch" title=vxT( "Enable or disable this field" )><input type="checkbox" data-act="active"' + ( f.active === false ? '' : ' checked' ) + '><span class="velox-switch-track"></span></label>' +
+							'<button type="button" class="vfg-iconbtn" data-act="dup" title=vxT( "Duplicate" )><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
 							'<button type="button" class="vfg-iconbtn vfg-del" data-act="del" title="Delete"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>' +
-							'<button type="button" class="vfg-iconbtn" data-act="toggle" title="' + ( open ? 'Collapse' : 'Expand' ) + '"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><path d="' + ( open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6' ) + '"/></svg></button>' +
+							'<button type="button" class="vfg-iconbtn" data-act="toggle" title="' + ( open ? vxT( 'Collapse' ) : vxT( 'Expand' ) ) + '"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><path d="' + ( open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6' ) + '"/></svg></button>' +
 						'</span>' +
 					'</div>';
 				var body = '';
@@ -2870,22 +2899,22 @@
 					var hasOpts = TYPES[ f.type ] && TYPES[ f.type ].opts;
 					var tMeta = vfxMeta( f.type );
 					var generalGrid = '<div class="vfg-fbody-grid">' +
-						mini( 'Field label', '<input class="velox-input" data-fk="label" value="' + escapeHtml( f.label || '' ) + '">' ) +
-						mini( 'Field name', '<input class="velox-input vfg-mono" data-fk="name" value="' + escapeHtml( f.name || '' ) + '">' ) +
-						mini( 'Field type', '<button type="button" class="vfg-typepick" data-typepick><span class="vfg-typepick-ic">' + vfxIcon( tMeta.icon ) + '</span><span class="vfg-typepick-tx">' + escapeHtml( tMeta.label ) + '</span><svg class="vfg-typepick-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>' ) +
-						mini( 'Default value', '<input class="velox-input" data-fk="default" value="' + escapeHtml( f['default'] || '' ) + '">' ) +
+						mini( vxT( 'Field label' ), '<input class="velox-input" data-fk="label" value="' + escapeHtml( f.label || '' ) + '">' ) +
+						mini( vxT( 'Field name' ), '<input class="velox-input vfg-mono" data-fk="name" value="' + escapeHtml( f.name || '' ) + '">' ) +
+						mini( vxT( 'Field type' ), '<button type="button" class="vfg-typepick" data-typepick><span class="vfg-typepick-ic">' + vfxIcon( tMeta.icon ) + '</span><span class="vfg-typepick-tx">' + escapeHtml( tMeta.label ) + '</span><svg class="vfg-typepick-chev" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 9l6 6 6-6"/></svg></button>' ) +
+						mini( vxT( 'Default value' ), '<input class="velox-input" data-fk="default" value="' + escapeHtml( f['default'] || '' ) + '">' ) +
 						typeSettingsUi( f ) +
-						( hasOpts ? minifull( 'Choices (one per line)', '<textarea class="velox-textarea" rows="3" data-fk="options">' + escapeHtml( f.options || '' ) + '</textarea>' ) : '' ) +
-						minifull( 'Placeholder', '<input class="velox-input" data-fk="placeholder" value="' + escapeHtml( f.placeholder || '' ) + '">' ) +
-						minifull( 'Instructions', '<input class="velox-input" data-fk="instructions" value="' + escapeHtml( f.instructions || '' ) + '" placeholder="Shown to editors below the field">' ) +
+						( hasOpts ? minifull( vxT( 'Choices (one per line)' ), '<textarea class="velox-textarea" rows="3" data-fk="options">' + escapeHtml( f.options || '' ) + '</textarea>' ) : '' ) +
+						minifull( vxT( 'Placeholder' ), '<input class="velox-input" data-fk="placeholder" value="' + escapeHtml( f.placeholder || '' ) + '">' ) +
+						minifull( vxT( 'Instructions' ), '<input class="velox-input" data-fk="instructions" value="' + escapeHtml( f.instructions || '' ) + '" placeholder=vxT( "Shown to editors below the field" )>' ) +
 						'<label class="vfg-check"><input type="checkbox" data-fk="required"' + ( f.required ? ' checked' : '' ) + '> Required field</label>' +
 					'</div>';
 					var structural = ( f.type === 'repeater' || f.type === 'group' ) ? subFieldsUi( f ) : ( f.type === 'flexible' ? flexibleUi( f ) : '' );
 					var curW = f.wrapper_width ? parseInt( f.wrapper_width, 10 ) : 100;
 					var widthOpts = [ 100, 75, 66, 50, 33, 25 ].map( function ( w ) { return '<option value="' + w + '"' + ( curW === w ? ' selected' : '' ) + '>' + w + '%</option>'; } ).join( '' );
 					var presGrid = '<div class="vfg-fbody-grid">' +
-						mini( 'Field width', '<select class="velox-select" data-fk="wrapper_width">' + widthOpts + '</select>' ) +
-						minifull( 'Wrapper CSS class', '<input class="velox-input vfg-mono" data-fk="wrapper_class" value="' + escapeHtml( f.wrapper_class || '' ) + '" placeholder="optional">' ) +
+						mini( vxT( 'Field width' ), '<select class="velox-select" data-fk="wrapper_width">' + widthOpts + '</select>' ) +
+						minifull( vxT( 'Wrapper CSS class' ), '<input class="velox-input vfg-mono" data-fk="wrapper_class" value="' + escapeHtml( f.wrapper_class || '' ) + '" placeholder="optional">' ) +
 					'</div>';
 					body = '<div class="vfg-field-body">' +
 						'<div class="vfg-ftabs">' +
@@ -2956,7 +2985,7 @@
 						// Label / name / required update the card header IN PLACE so the
 						// input is never torn out from under you mid-type (focus stays put).
 						var lblEl = card.querySelector( '.vfg-field-label' );
-						if ( lblEl ) { lblEl.textContent = f.label || 'Untitled'; }
+						if ( lblEl ) { lblEl.textContent = f.label || vxT( 'Untitled' ); }
 						var metaEl = card.querySelector( '.vfg-field-meta' );
 						if ( metaEl ) { metaEl.innerHTML = '<code>' + escapeHtml( f.name || slugify( f.label ) ) + '</code>' + ( f.required ? ' · required' : '' ); }
 						if ( k === 'label' && ! f._lockName ) {
@@ -2988,7 +3017,7 @@
 				if ( subAdd ) {
 					subAdd.addEventListener( 'click', function ( e ) {
 						e.stopPropagation();
-						f.sub_fields.push( { label: 'Sub field', name: '', type: 'text', options: '' } );
+						f.sub_fields.push( { label: vxT( 'Sub field' ), name: '', type: 'text', options: '' } );
 						renderFields();
 					} );
 				}
@@ -3013,7 +3042,7 @@
 						e.stopPropagation();
 						var li = parseInt( b.getAttribute( 'data-li' ), 10 );
 						f.layouts[ li ].sub_fields = f.layouts[ li ].sub_fields || [];
-						f.layouts[ li ].sub_fields.push( { label: 'Sub field', name: '', type: 'text', options: '' } );
+						f.layouts[ li ].sub_fields.push( { label: vxT( 'Sub field' ), name: '', type: 'text', options: '' } );
 						renderFields();
 					} );
 				} );
@@ -3037,7 +3066,7 @@
 				if ( layAdd ) {
 					layAdd.addEventListener( 'click', function ( e ) {
 						e.stopPropagation();
-						f.layouts.push( { name: '', label: 'New layout', sub_fields: [] } );
+						f.layouts.push( { name: '', label: vxT( 'New layout' ), sub_fields: [] } );
 						renderFields();
 					} );
 				}
@@ -3112,28 +3141,28 @@
 			function txt( k, label, ph ) {
 				return mini( label, '<input class="velox-input" data-fk="' + k + '" value="' + escapeHtml( f[ k ] || '' ) + '"' + ( ph ? ' placeholder="' + ph + '"' : '' ) + '>' );
 			}
-			var addons = txt( 'prepend', 'Prepend', 'e.g. $' ) + txt( 'append', 'Append', 'e.g. px' );
-			if ( t === 'number' || t === 'range' ) { return num( 'min', 'Minimum value' ) + num( 'max', 'Maximum value' ) + num( 'step', 'Step' ) + addons + chk( 'readonly', 'Read-only' ); }
-			if ( t === 'textarea' ) { return num( 'rows', 'Rows', '4' ) + num( 'maxlength', 'Character limit' ) + chk( 'readonly', 'Read-only' ); }
-			if ( t === 'text' || t === 'email' || t === 'url' || t === 'password' ) { return num( 'maxlength', 'Character limit' ) + addons + chk( 'readonly', 'Read-only' ); }
-			if ( t === 'select' ) { return chk( 'multiple', 'Allow multiple selections' ) + chk( 'allow_null', 'Allow null (empty choice)', true ); }
-			if ( t === 'checkbox' || t === 'radio' ) { return pick( 'layout', 'Layout', [ [ 'vertical', 'Vertical' ], [ 'horizontal', 'Horizontal' ] ] ); }
-			if ( t === 'button_group' ) { return pick( 'layout', 'Layout', [ [ 'horizontal', 'Horizontal' ], [ 'vertical', 'Vertical' ] ] ); }
-			if ( t === 'wysiwyg' ) { return pick( 'toolbar', 'Toolbar', [ [ 'full', 'Full' ], [ 'basic', 'Basic' ] ] ) + num( 'rows', 'Editor rows', '8' ) + chk( 'media_upload', 'Show media-upload button', true ); }
-			if ( t === 'image' || t === 'file' ) { return pick( 'return_format', 'Return format', [ [ 'id', t === 'file' ? 'Attachment ID' : 'Image ID' ], [ 'url', 'File URL' ], [ 'array', 'Attachment array' ] ] ); }
-			if ( t === 'date' || t === 'datetime' || t === 'time' ) { return txt( 'return_format', 'Return format (PHP date)', t === 'time' ? 'e.g. g:i a' : 'e.g. F j, Y' ); }
+			var addons = txt( 'prepend', vxT( 'Prepend' ), 'e.g. $' ) + txt( 'append', vxT( 'Append' ), 'e.g. px' );
+			if ( t === 'number' || t === 'range' ) { return num( 'min', vxT( 'Minimum value' ) ) + num( 'max', vxT( 'Maximum value' ) ) + num( 'step', vxT( 'Step' ) ) + addons + chk( 'readonly', vxT( 'Read-only' ) ); }
+			if ( t === 'textarea' ) { return num( 'rows', vxT( 'Rows' ), '4' ) + num( 'maxlength', vxT( 'Character limit' ) ) + chk( 'readonly', vxT( 'Read-only' ) ); }
+			if ( t === 'text' || t === 'email' || t === 'url' || t === 'password' ) { return num( 'maxlength', vxT( 'Character limit' ) ) + addons + chk( 'readonly', vxT( 'Read-only' ) ); }
+			if ( t === 'select' ) { return chk( 'multiple', vxT( 'Allow multiple selections' ) ) + chk( 'allow_null', vxT( 'Allow null (empty choice)' ), true ); }
+			if ( t === 'checkbox' || t === 'radio' ) { return pick( 'layout', vxT( 'Layout' ), [ [ 'vertical', vxT( 'Vertical' ) ], [ 'horizontal', vxT( 'Horizontal' ) ] ] ); }
+			if ( t === 'button_group' ) { return pick( 'layout', vxT( 'Layout' ), [ [ 'horizontal', vxT( 'Horizontal' ) ], [ 'vertical', vxT( 'Vertical' ) ] ] ); }
+			if ( t === 'wysiwyg' ) { return pick( 'toolbar', vxT( 'Toolbar' ), [ [ 'full', vxT( 'Full' ) ], [ 'basic', vxT( 'Basic' ) ] ] ) + num( 'rows', vxT( 'Editor rows' ), '8' ) + chk( 'media_upload', vxT( 'Show media-upload button' ), true ); }
+			if ( t === 'image' || t === 'file' ) { return pick( 'return_format', vxT( 'Return format' ), [ [ 'id', t === 'file' ? vxT( 'Attachment ID' ) : vxT( 'Image ID' ) ], [ 'url', vxT( 'File URL' ) ], [ 'array', vxT( 'Attachment array' ) ] ] ); }
+			if ( t === 'date' || t === 'datetime' || t === 'time' ) { return txt( 'return_format', vxT( 'Return format (PHP date)' ), t === 'time' ? 'e.g. g:i a' : 'e.g. F j, Y' ); }
 			return '';
 		}
 		function subFieldsUi( f ) {
-			var subTypes = { text: 'Text', textarea: 'Text area', number: 'Number', email: 'Email', url: 'URL', image: 'Image', file: 'File', truefalse: 'True / False', color: 'Color', date: 'Date' };
+			var subTypes = { text: vxT( 'Text' ), textarea: vxT( 'Text area' ), number: vxT( 'Number' ), email: vxT( 'Email' ), url: 'URL', image: vxT( 'Image' ), file: vxT( 'File' ), truefalse: 'True / False', color: vxT( 'Color' ), date: vxT( 'Date' ) };
 			var subs = f.sub_fields || [];
 			var rows = subs.map( function ( s, si ) {
 				var topts = Object.keys( subTypes ).map( function ( t ) { return '<option value="' + t + '"' + ( t === s.type ? ' selected' : '' ) + '>' + subTypes[ t ] + '</option>'; } ).join( '' );
 				return '<div class="vfg-sub-row">' +
-					'<input class="velox-input vfg-sub-in" data-si="' + si + '" data-sk="label" value="' + escapeHtml( s.label || '' ) + '" placeholder="Label">' +
+					'<input class="velox-input vfg-sub-in" data-si="' + si + '" data-sk="label" value="' + escapeHtml( s.label || '' ) + '" placeholder=vxT( "Label" )>' +
 					'<input class="velox-input vfg-sub-in vfg-mono" data-si="' + si + '" data-sk="name" value="' + escapeHtml( s.name || '' ) + '" placeholder="name (auto)">' +
 					'<select class="velox-select vfg-sub-in" data-si="' + si + '" data-sk="type">' + topts + '</select>' +
-					'<button type="button" class="vfg-sub-del" data-si="' + si + '" title="Remove sub-field"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+					'<button type="button" class="vfg-sub-del" data-si="' + si + '" title=vxT( "Remove sub-field" )><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
 				'</div>';
 			} ).join( '' );
 			return '<div class="vfg-subfields"><div class="vfg-sub-h">Sub-fields</div>' +
@@ -3141,24 +3170,24 @@
 				'<button type="button" class="vfg-sub-add">+ Add sub-field</button></div>';
 		}
 		function flexibleUi( f ) {
-			var subTypes = { text: 'Text', textarea: 'Text area', number: 'Number', email: 'Email', url: 'URL', image: 'Image', file: 'File', truefalse: 'True / False', color: 'Color', date: 'Date' };
+			var subTypes = { text: vxT( 'Text' ), textarea: vxT( 'Text area' ), number: vxT( 'Number' ), email: vxT( 'Email' ), url: 'URL', image: vxT( 'Image' ), file: vxT( 'File' ), truefalse: 'True / False', color: vxT( 'Color' ), date: vxT( 'Date' ) };
 			f.layouts = f.layouts || [];
 			var layoutsHtml = f.layouts.map( function ( L, li ) {
 				L.sub_fields = L.sub_fields || [];
 				var subRows = L.sub_fields.map( function ( s, si ) {
 					var topts = Object.keys( subTypes ).map( function ( t ) { return '<option value="' + t + '"' + ( t === s.type ? ' selected' : '' ) + '>' + subTypes[ t ] + '</option>'; } ).join( '' );
 					return '<div class="vfg-sub-row">' +
-						'<input class="velox-input vfg-flex-in" data-li="' + li + '" data-si="' + si + '" data-sk="label" value="' + escapeHtml( s.label || '' ) + '" placeholder="Label">' +
+						'<input class="velox-input vfg-flex-in" data-li="' + li + '" data-si="' + si + '" data-sk="label" value="' + escapeHtml( s.label || '' ) + '" placeholder=vxT( "Label" )>' +
 						'<input class="velox-input vfg-flex-in vfg-mono" data-li="' + li + '" data-si="' + si + '" data-sk="name" value="' + escapeHtml( s.name || '' ) + '" placeholder="name (auto)">' +
 						'<select class="velox-select vfg-flex-in" data-li="' + li + '" data-si="' + si + '" data-sk="type">' + topts + '</select>' +
-						'<button type="button" class="vfg-sub-del vfg-flex-subdel" data-li="' + li + '" data-si="' + si + '" title="Remove sub-field"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+						'<button type="button" class="vfg-sub-del vfg-flex-subdel" data-li="' + li + '" data-si="' + si + '" title=vxT( "Remove sub-field" )><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
 					'</div>';
 				} ).join( '' );
 				return '<div class="vfg-layout">' +
 					'<div class="vfg-layout-head">' +
-						'<input class="velox-input vfg-flex-lin" data-li="' + li + '" data-lk="label" value="' + escapeHtml( L.label || '' ) + '" placeholder="Layout label">' +
+						'<input class="velox-input vfg-flex-lin" data-li="' + li + '" data-lk="label" value="' + escapeHtml( L.label || '' ) + '" placeholder=vxT( "Layout label" )>' +
 						'<input class="velox-input vfg-mono vfg-flex-lin" data-li="' + li + '" data-lk="name" value="' + escapeHtml( L.name || '' ) + '" placeholder="name (auto)">' +
-						'<button type="button" class="vfg-layout-del" data-li="' + li + '" title="Remove layout"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+						'<button type="button" class="vfg-layout-del" data-li="' + li + '" title=vxT( "Remove layout" )><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
 					'</div>' +
 					'<div class="vfg-layout-subs">' + ( subRows || '<div class="vfg-sub-empty">No sub-fields.</div>' ) + '<button type="button" class="vfg-sub-add vfg-flex-subadd" data-li="' + li + '">+ Add sub-field</button></div>' +
 				'</div>';
@@ -3182,7 +3211,7 @@
 					'<select class="velox-select vfg-cond-in" data-ri="' + ri + '" data-ck="field"><option value="">— field —</option>' + fopts + '</select>' +
 					'<select class="velox-select vfg-cond-in" data-ri="' + ri + '" data-ck="operator">' + oopts + '</select>' +
 					'<input class="velox-input vfg-cond-in" data-ri="' + ri + '" data-ck="value" value="' + escapeHtml( r.value || '' ) + '" placeholder="value">' +
-					'<button type="button" class="vfg-sub-del vfg-cond-del" data-ri="' + ri + '" title="Remove rule"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+					'<button type="button" class="vfg-sub-del vfg-cond-del" data-ri="' + ri + '" title=vxT( "Remove rule" )><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
 				'</div>';
 			} ).join( '' );
 			return head + '<div class="vfg-cond-rules">' + ( rows || '<div class="vfg-sub-empty">No rules yet.</div>' ) +
@@ -3219,9 +3248,9 @@
 			typeModalEl.className = 'vfx-typemodal';
 			typeModalEl.innerHTML =
 				'<div class="vfx-modal-overlay" data-close></div>' +
-				'<div class="vfx-modal" role="dialog" aria-modal="true" aria-label="Select a field type">' +
+				'<div class="vfx-modal" role="dialog" aria-modal="true" aria-label=vxT( "Select a field type" )>' +
 					'<div class="vfx-modal-head"><div class="vfx-modal-title">Select a field type</div>' +
-						'<button type="button" class="vfx-modal-x" data-close aria-label="Close"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>' +
+						'<button type="button" class="vfx-modal-x" data-close aria-label=vxT( "Close" )><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>' +
 					'<div class="vfx-modal-search"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg><input type="search" class="vfx-tsearch" placeholder="Search fields\u2026"></div>' +
 					'<div class="vfx-modal-body"><div class="vfx-tcats"></div><div class="vfx-tgrid"></div></div>' +
 				'</div>';
@@ -3281,7 +3310,7 @@
 					row.innerHTML =
 						'<div class="vfg-rule-top">' +
 							'<select class="velox-select" data-r="param">' + paramOpts + '</select>' +
-							'<button type="button" class="vfg-rule-del" title="Remove rule"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+							'<button type="button" class="vfg-rule-del" title=vxT( "Remove rule" )><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
 						'</div>' +
 						'<div class="vfg-rule-bot">' +
 							'<select class="velox-select" data-r="operator"><option value="is"' + ( rule.operator !== 'is_not' ? ' selected' : '' ) + '>is</option><option value="is_not"' + ( rule.operator === 'is_not' ? ' selected' : '' ) + '>is not</option></select>' +
@@ -3338,12 +3367,12 @@
 		var activeEl = $( '#vfg-active' );
 		activeEl.addEventListener( 'change', function () {
 			group.active = activeEl.checked;
-			$( '#vfg-active-label' ).textContent = activeEl.checked ? 'Active' : 'Inactive';
+			$( '#vfg-active-label' ).textContent = activeEl.checked ? vxT( 'Active' ) : vxT( 'Inactive' );
 		} );
 
 		// ---- add field + save ----
 		$( '#vfg-addfield' ).addEventListener( 'click', function () {
-			group.fields.push( { key: '', label: 'New field', name: '', type: 'text', required: false, instructions: '', 'default': '', options: '', placeholder: '' } );
+			group.fields.push( { key: '', label: vxT( 'New field' ), name: '', type: 'text', required: false, instructions: '', 'default': '', options: '', placeholder: '' } );
 			openIdx = group.fields.length - 1; renderFields();
 		} );
 		$( '#vfg-save' ).addEventListener( 'click', function () {
@@ -3351,7 +3380,7 @@
 			group.active = activeEl.checked;
 			var btn = $( '#vfg-save' ); btn.disabled = true;
 			api( 'fields_save', { group: JSON.stringify( group ) } )
-				.then( function () { toast( t( 'Field group saved.' ) ); setTimeout( function () { location.href = 'admin.php?page=velox-utilities&tool=fields'; }, 500 ); } )
+				.then( function () { toast( vxT( 'Field group saved.' ) ); setTimeout( function () { location.href = 'admin.php?page=velox-utilities&tool=fields'; }, 500 ); } )
 				.catch( function ( err ) { toast( err.message, 'error' ); btn.disabled = false; } );
 		} );
 
@@ -3363,7 +3392,7 @@
 	function initFieldsList() {
 		$$( '.vfg-list-del' ).forEach( function ( btn ) {
 			btn.addEventListener( 'click', function () {
-				if ( ! window.confirm( 'Delete the field group “' + btn.getAttribute( 'data-title' ) + '”? This cannot be undone.' ) ) { return; }
+				if ( ! window.confirm( vxT( 'Delete the field group “' ) + btn.getAttribute( 'data-title' ) + '”? This cannot be undone.' ) ) { return; }
 				api( 'fields_delete', { id: btn.getAttribute( 'data-id' ) } )
 					.then( function () { location.reload(); } )
 					.catch( function ( err ) { toast( err.message, 'error' ); } );
@@ -3390,7 +3419,7 @@
 			var ptOldSlug = '';
 			function ptShow( pt ) {
 				ptOldSlug = pt ? ( pt.slug || '' ) : '';
-				$( '#vpt-editor-title' ).textContent = pt ? 'Edit post type' : 'Add post type';
+				$( '#vpt-editor-title' ).textContent = pt ? vxT( 'Edit post type' ) : vxT( 'Add post type' );
 				set( 'vpt-singular', pt ? pt.singular : '' );
 				set( 'vpt-plural', pt ? pt.plural : '' );
 				set( 'vpt-slug', pt ? pt.slug : '' );
@@ -3418,7 +3447,7 @@
 			var ptCancel = $( '#vpt-cancel' ); if ( ptCancel ) { ptCancel.addEventListener( 'click', function () { ptEditor.hidden = true; } ); }
 			$$( '.vpt-del' ).forEach( function ( b ) {
 				b.addEventListener( 'click', function () {
-					if ( ! window.confirm( 'Delete this post type? Its content stays in the database but will no longer be registered.' ) ) { return; }
+					if ( ! window.confirm( vxT( 'Delete this post type? Its content stays in the database but will no longer be registered.' ) ) ) { return; }
 					api( 'posttype_delete', { slug: b.getAttribute( 'data-slug' ) } ).then( function () { location.reload(); } ).catch( function ( e ) { toast( e.message, 'error' ); } );
 				} );
 			} );
@@ -3432,10 +3461,10 @@
 						active: chk( 'vpt-active' ), 'public': chk( 'vpt-public' ), show_in_menu: chk( 'vpt-menu' ),
 						show_in_rest: chk( 'vpt-rest' ), has_archive: chk( 'vpt-archive' ), hierarchical: chk( 'vpt-hier' )
 					};
-					if ( ! pt.slug && ! pt.singular ) { toast( t( 'Give it at least a singular label.' ), 'error' ); return; }
+					if ( ! pt.slug && ! pt.singular ) { toast( vxT( 'Give it at least a singular label.' ), 'error' ); return; }
 					ptSave.disabled = true;
 					api( 'posttype_save', { post_type: JSON.stringify( pt ) } )
-						.then( function () { toast( t( 'Post type saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
+						.then( function () { toast( vxT( 'Post type saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 						.catch( function ( e ) { toast( e.message, 'error' ); ptSave.disabled = false; } );
 				} );
 			}
@@ -3447,7 +3476,7 @@
 			var txOldSlug = '';
 			function txShow( tx ) {
 				txOldSlug = tx ? ( tx.slug || '' ) : '';
-				$( '#vtx-editor-title' ).textContent = tx ? 'Edit taxonomy' : 'Add taxonomy';
+				$( '#vtx-editor-title' ).textContent = tx ? vxT( 'Edit taxonomy' ) : vxT( 'Add taxonomy' );
 				set( 'vtx-singular', tx ? tx.singular : '' );
 				set( 'vtx-plural', tx ? tx.plural : '' );
 				set( 'vtx-slug', tx ? tx.slug : '' );
@@ -3471,7 +3500,7 @@
 			var txCancel = $( '#vtx-cancel' ); if ( txCancel ) { txCancel.addEventListener( 'click', function () { txEditor.hidden = true; } ); }
 			$$( '.vtx-del' ).forEach( function ( b ) {
 				b.addEventListener( 'click', function () {
-					if ( ! window.confirm( 'Delete this taxonomy? Its terms stay in the database but will no longer be registered.' ) ) { return; }
+					if ( ! window.confirm( vxT( 'Delete this taxonomy? Its terms stay in the database but will no longer be registered.' ) ) ) { return; }
 					api( 'taxonomy_delete', { slug: b.getAttribute( 'data-slug' ) } ).then( function () { location.reload(); } ).catch( function ( e ) { toast( e.message, 'error' ); } );
 				} );
 			} );
@@ -3484,10 +3513,10 @@
 						active: chk( 'vtx-active' ), 'public': chk( 'vtx-public' ), hierarchical: chk( 'vtx-hier' ),
 						show_in_rest: chk( 'vtx-rest' ), show_admin_column: chk( 'vtx-col' )
 					};
-					if ( ! tx.slug && ! tx.singular ) { toast( t( 'Give it at least a singular label.' ), 'error' ); return; }
+					if ( ! tx.slug && ! tx.singular ) { toast( vxT( 'Give it at least a singular label.' ), 'error' ); return; }
 					txSave.disabled = true;
 					api( 'taxonomy_save', { taxonomy: JSON.stringify( tx ) } )
-						.then( function () { toast( t( 'Taxonomy saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
+						.then( function () { toast( vxT( 'Taxonomy saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 						.catch( function ( e ) { toast( e.message, 'error' ); txSave.disabled = false; } );
 				} );
 			}
@@ -3499,11 +3528,11 @@
 			if ( ! tgl || ! e.target.matches( 'input[type="checkbox"]' ) ) { return; }
 			var vtype = tgl.getAttribute( 'data-vtype' ), vid = tgl.getAttribute( 'data-id' ), on = e.target.checked;
 			var statusEl = tgl.parentNode ? tgl.parentNode.querySelector( '.vfx-row-status, .vfg-list-status' ) : null;
-			function paint( active ) { if ( statusEl ) { statusEl.textContent = active ? 'Active' : 'Inactive'; statusEl.classList.toggle( 'is-active', active ); } }
+			function paint( active ) { if ( statusEl ) { statusEl.textContent = active ? vxT( 'Active' ) : vxT( 'Inactive' ); statusEl.classList.toggle( 'is-active', active ); } }
 			paint( on );
 			api( 'vfx_toggle', { vtype: vtype, id: vid, active: on ? 1 : 0 } )
-				.then( function () { toast( on ? 'Activated.' : 'Deactivated.' ); } )
-				.catch( function ( err ) { toast( err.message || 'Could not update.', 'error' ); e.target.checked = ! on; paint( ! on ); } );
+				.then( function () { toast( on ? vxT( 'Activated.' ) : vxT( 'Deactivated.' ) ); } )
+				.catch( function ( err ) { toast( err.message || vxT( 'Could not update.' ), 'error' ); e.target.checked = ! on; paint( ! on ); } );
 		} );
 
 		/* ---- Options pages ---- */
@@ -3515,7 +3544,7 @@
 			function opShow( op ) {
 				opOldSlug = op ? ( op.slug || '' ) : '';
 				opSlugLocked = !! ( op && op.slug );
-				$( '#vop-editor-title' ).textContent = op ? 'Edit options page' : 'Add options page';
+				$( '#vop-editor-title' ).textContent = op ? vxT( 'Edit options page' ) : vxT( 'Add options page' );
 				set( 'vop-title', op ? op.title : '' );
 				set( 'vop-menu', op ? op.menu_title : '' );
 				set( 'vop-slug', op ? op.slug : '' );
@@ -3543,7 +3572,7 @@
 			var opCancel = $( '#vop-cancel' ); if ( opCancel ) { opCancel.addEventListener( 'click', function () { opEditor.hidden = true; } ); }
 			$$( '.vop-del' ).forEach( function ( b ) {
 				b.addEventListener( 'click', function () {
-					if ( ! window.confirm( 'Delete this options page? Saved option values stay in the database.' ) ) { return; }
+					if ( ! window.confirm( vxT( 'Delete this options page? Saved option values stay in the database.' ) ) ) { return; }
 					api( 'optionspage_delete', { slug: b.getAttribute( 'data-slug' ) } ).then( function () { location.reload(); } ).catch( function ( e ) { toast( e.message, 'error' ); } );
 				} );
 			} );
@@ -3554,10 +3583,10 @@
 						_old_slug: opOldSlug, slug: v( 'vop-slug' ), title: v( 'vop-title' ), menu_title: v( 'vop-menu' ),
 						parent: v( 'vop-parent' ), icon: v( 'vop-icon' ), position: v( 'vop-position' ), active: chk( 'vop-active' )
 					};
-					if ( ! op.slug && ! op.title ) { toast( t( 'Give it at least a title.' ), 'error' ); return; }
+					if ( ! op.slug && ! op.title ) { toast( vxT( 'Give it at least a title.' ), 'error' ); return; }
 					opSave.disabled = true;
 					api( 'optionspage_save', { option_page: JSON.stringify( op ) } )
-						.then( function () { toast( t( 'Options page saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
+						.then( function () { toast( vxT( 'Options page saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 						.catch( function ( e ) { toast( e.message, 'error' ); opSave.disabled = false; } );
 				} );
 			}
@@ -3630,7 +3659,7 @@
 		var t = $( '#velox-cookies-toggle' );
 		if ( ! t ) { return; }
 		t.addEventListener( 'change', function () {
-			saveSettings( { util_cookies: t.checked ? 1 : 0 }, t.checked ? 'Cookie banner on.' : 'Cookie banner off.' )
+			saveSettings( { util_cookies: t.checked ? 1 : 0 }, t.checked ? vxT( 'Cookie banner on.' ) : vxT( 'Cookie banner off.' ) )
 				.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
 		} );
 	}
@@ -3639,7 +3668,7 @@
 		var toggle = $( '#velox-backup-toggle' );
 		if ( toggle ) {
 			toggle.addEventListener( 'change', function () {
-				saveSettings( { util_backup: toggle.checked ? 1 : 0 }, toggle.checked ? 'Backup on.' : 'Backup off.' )
+				saveSettings( { util_backup: toggle.checked ? 1 : 0 }, toggle.checked ? vxT( 'Backup on.' ) : vxT( 'Backup off.' ) )
 					.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
 			} );
 		}
@@ -3659,7 +3688,7 @@
 			if ( titleEl ) { titleEl.textContent = title; }
 			if ( msgEl ) { msgEl.textContent = msg; }
 			if ( fill ) { fill.style.width = '4%'; }
-			if ( etaEl ) { etaEl.textContent = 'Estimated ~' + progEstimate + 's. Keep this tab open.'; }
+			if ( etaEl ) { etaEl.textContent = vxT( 'Estimated ~' ) + progEstimate + 's. Keep this tab open.'; }
 			modal.hidden = false;
 			clearInterval( progTimer );
 			progTimer = setInterval( function () {
@@ -3670,8 +3699,8 @@
 				var remain = Math.max( 0, progEstimate - elapsed );
 				if ( etaEl ) {
 					etaEl.textContent = elapsed < progEstimate
-						? 'About ' + Math.ceil( remain ) + 's left. Keep this tab open.'
-						: 'Almost done — finishing up…';
+						? vxT( 'About ' ) + Math.ceil( remain ) + 's left. Keep this tab open.'
+						: vxT( 'Almost done — finishing up…' );
 				}
 			}, 300 );
 		}
@@ -3699,11 +3728,11 @@
 			createBtn.addEventListener( 'click', function () {
 				createBtn.disabled = true;
 				var est = chosenWhat === 'db' ? 12 : ( chosenWhat === 'files' ? 35 : 45 );
-				openProgress( 'Creating backup…', 'Packing up your ' + ( chosenWhat === 'both' ? 'database and files' : chosenWhat ) + '.', est );
+				openProgress( vxT( 'Creating backup…' ), vxT( 'Packing up your ' ) + ( chosenWhat === 'both' ? 'database and files' : chosenWhat ) + '.', est );
 				api( 'backup_create', { what: chosenWhat } )
 					.then( function ( r ) {
 						closeProgress( true );
-						toast( r && r.message ? r.message : 'Backup created.', r && r.partial ? 'warn' : 'success' );
+						toast( r && r.message ? r.message : vxT( 'Backup created.' ), r && r.partial ? 'warn' : 'success' );
 						setTimeout( function () { location.reload(); }, 700 );
 					} )
 					.catch( function ( e ) {
@@ -3719,27 +3748,27 @@
 		var importFile = $( '#vbk-import-file' );
 		if ( importBtn && importFile ) {
 			importBtn.addEventListener( 'click', function () {
-				if ( ! importFile.files || ! importFile.files.length ) { toast( t( 'Choose a .sql or .zip file first.' ), 'error' ); return; }
+				if ( ! importFile.files || ! importFile.files.length ) { toast( vxT( 'Choose a .sql or .zip file first.' ), 'error' ); return; }
 				var fd = new FormData();
 				fd.append( 'action', 'velox' );
 				fd.append( 'do', 'backup_import' );
 				fd.append( 'nonce', VELOX.nonce );
 				fd.append( 'file', importFile.files[0] );
 				importBtn.disabled = true;
-				openProgress( 'Importing & restoring backup…', 'Uploading the file, then restoring it onto this site.', 20 );
+				openProgress( vxT( 'Importing & restoring backup…' ), vxT( 'Uploading the file, then restoring it onto this site.' ), 20 );
 				fetch( VELOX.ajaxurl, { method: 'POST', credentials: 'same-origin', body: fd } )
 					.then( function ( r ) { return r.json(); } )
 					.then( function ( j ) {
 						closeProgress( true );
 						if ( j && j.success ) {
-							toast( ( j.data && j.data.message ) || 'Backup imported.' );
+							toast( ( j.data && j.data.message ) || vxT( 'Backup imported.' ) );
 							setTimeout( function () { location.reload(); }, 800 );
 						} else {
-							toast( ( j && j.data && j.data.message ) || 'Import failed.', 'error' );
+							toast( ( j && j.data && j.data.message ) || vxT( 'Import failed.' ), 'error' );
 							importBtn.disabled = false;
 						}
 					} )
-					.catch( function () { closeProgress( false ); toast( t( 'Import failed.' ), 'error' ); importBtn.disabled = false; } );
+					.catch( function () { closeProgress( false ); toast( vxT( 'Import failed.' ), 'error' ); importBtn.disabled = false; } );
 			} );
 		}
 
@@ -3760,11 +3789,11 @@
 				if ( ! pendingRow ) { return; }
 				var id = pendingRow.getAttribute( 'data-id' );
 				restoreModal.hidden = true;
-				openProgress( 'Restoring…', 'Putting your site back to this backup.', 40 );
+				openProgress( vxT( 'Restoring…' ), vxT( 'Putting your site back to this backup.' ), 40 );
 				api( 'backup_restore', { id: id, what: 'both', safety: rmSafety && rmSafety.checked ? 1 : 0 } )
 					.then( function ( r ) {
 						closeProgress( true );
-						toast( ( r && r.message ? r.message : 'Restored.' ) + ( r && r.duration ? ' (' + r.duration + 's)' : '' ), 'success' );
+						toast( ( r && r.message ? r.message : vxT( 'Restored.' ) ) + ( r && r.duration ? ' (' + r.duration + 's)' : '' ), 'success' );
 						setTimeout( function () { location.reload(); }, 1200 );
 					} )
 					.catch( function ( er ) { closeProgress( false ); toast( er.message, 'error' ); } );
@@ -3781,10 +3810,10 @@
 				var id = row.getAttribute( 'data-id' );
 
 				if ( btn.classList.contains( 'vbk-delete' ) ) {
-					if ( ! window.confirm( 'Delete this backup permanently? Downloaded copies (if any) are not affected.' ) ) { return; }
+					if ( ! window.confirm( vxT( 'Delete this backup permanently? Downloaded copies (if any) are not affected.' ) ) ) { return; }
 					btn.disabled = true;
 					api( 'backup_delete', { id: id } )
-						.then( function () { row.remove(); toast( t( 'Backup deleted.' ) ); } )
+						.then( function () { row.remove(); toast( vxT( 'Backup deleted.' ) ); } )
 						.catch( function ( er ) { toast( er.message, 'error' ); btn.disabled = false; } );
 					return;
 				}
@@ -3795,7 +3824,7 @@
 					var parts = [];
 					if ( hasDb ) { parts.push( 'the database' ); }
 					if ( hasZip ) { parts.push( 'your files (wp-content)' ); }
-					if ( rmMsg ) { rmMsg.textContent = 'This replaces ' + parts.join( ' and ' ) + ' with the contents of this backup.'; }
+					if ( rmMsg ) { rmMsg.textContent = vxT( 'This replaces ' ) + parts.join( ' and ' ) + ' with the contents of this backup.'; }
 					// DB-less backups can't take a DB safety snapshot — hide the option.
 					var safetyRow = rmSafety ? rmSafety.closest( '.velox-toggle-row' ) : null;
 					if ( safetyRow ) { safetyRow.style.display = hasDb ? '' : 'none'; }
@@ -3819,7 +3848,7 @@
 					.then( function () {
 						var body = row.parentNode;
 						row.remove();
-						toast( t( 'History entry removed.' ) );
+						toast( vxT( 'History entry removed.' ) );
 						if ( body && ! body.querySelector( 'tr' ) ) {
 							var sec = histTable.closest( '.velox-panel' );
 							var head = document.getElementById( 'vbk-hist-clear' );
@@ -3833,7 +3862,7 @@
 		var histClear = $( '#vbk-hist-clear' );
 		if ( histClear ) {
 			histClear.addEventListener( 'click', function () {
-				if ( ! window.confirm( 'Clear the entire restore history? This does not delete any backups.' ) ) { return; }
+				if ( ! window.confirm( vxT( 'Clear the entire restore history? This does not delete any backups.' ) ) ) { return; }
 				histClear.disabled = true;
 				api( 'backup_history_clear', {} )
 					.then( function () {
@@ -3841,7 +3870,7 @@
 						if ( sec ) { sec.remove(); }
 						var head = histClear.closest( '.vbk-hist-head' );
 						if ( head ) { head.remove(); }
-						toast( t( 'History cleared.' ) );
+						toast( vxT( 'History cleared.' ) );
 					} )
 					.catch( function ( er ) { toast( er.message, 'error' ); histClear.disabled = false; } );
 			} );
@@ -3856,7 +3885,7 @@
 					backup_schedule_what: ( $( '#vbk-sched-what' ) || {} ).value || 'both',
 					backup_keep: ( $( '#vbk-keep' ) || {} ).value || 5
 				} )
-					.then( function () { toast( t( 'Schedule saved.' ) ); setTimeout( function () { location.reload(); }, 600 ); } )
+					.then( function () { toast( vxT( 'Schedule saved.' ) ); setTimeout( function () { location.reload(); }, 600 ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); schedSave.disabled = false; } );
 			} );
 		}
@@ -3866,7 +3895,7 @@
 		var toggle = $( '#velox-october-toggle' );
 		if ( toggle ) {
 			toggle.addEventListener( 'change', function () {
-				saveSettings( { util_october: toggle.checked ? 1 : 0 }, toggle.checked ? 'Builder on.' : 'Builder off.' )
+				saveSettings( { util_october: toggle.checked ? 1 : 0 }, toggle.checked ? vxT( 'Builder on.' ) : vxT( 'Builder off.' ) )
 					.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
 			} );
 		}
@@ -3878,14 +3907,14 @@
 			document.querySelectorAll( '.oct-rescan' ).forEach( function ( b ) { b.disabled = true; } );
 			return api( action, data )
 				.then( function ( d ) {
-					var css = d.css_bytes ? ( Math.round( d.css_bytes / 1024 ) + 'KB CSS' ) : 'no CSS found';
-					var msg = 'Built v' + d.version + ' · ' + d.pages + ' pages · ' + ( d.images != null ? d.images : 0 ) + ' images · ' + css;
-					if ( d.is_rescan ) { msg = ( d.new_pages && d.new_pages.length ) ? ( d.new_pages.length + ' new page(s) — v' + d.version ) : ( 'Re-scanned — v' + d.version + ' (' + d.pages + ' pages, ' + css + ')' ); }
+					var css = d.css_bytes ? ( Math.round( d.css_bytes / 1024 ) + vxT( 'KB CSS' ) ) : 'no CSS found';
+					var msg = vxT( 'Built v' ) + d.version + ' · ' + d.pages + ' pages · ' + ( d.images != null ? d.images : 0 ) + ' images · ' + css;
+					if ( d.is_rescan ) { msg = ( d.new_pages && d.new_pages.length ) ? ( d.new_pages.length + ' new page(s) — v' + d.version ) : ( vxT( 'Re-scanned — v' ) + d.version + ' (' + d.pages + ' pages, ' + css + ')' ); }
 					toast( msg, 'success' );
 					setTimeout( function () { location.reload(); }, 900 );
 				} )
 				.catch( function ( e ) {
-					toast( e.message || 'Build failed.', 'error' );
+					toast( e.message || vxT( 'Build failed.' ), 'error' );
 					if ( build ) { build.disabled = false; }
 					if ( status ) { status.style.display = 'none'; }
 					document.querySelectorAll( '.oct-rescan' ).forEach( function ( b ) { b.disabled = false; } );
@@ -3894,16 +3923,16 @@
 		if ( build ) {
 			build.addEventListener( 'click', function () {
 				var name = ( $( '#oct-name' ) || {} ).value || '';
-				run( 'october_build', { name: name }, 'Scanning the site… this can take a minute.' );
+				run( 'october_build', { name: name }, vxT( 'Scanning the site… this can take a minute.' ) );
 			} );
 		}
 		var diag = $( '#oct-diag' );
 		if ( diag ) {
 			diag.addEventListener( 'click', function () {
 				var out = $( '#oct-diag-out' );
-				diag.disabled = true; diag.textContent = 'Testing…';
+				diag.disabled = true; diag.textContent = vxT( 'Testing…' );
 				api( 'october_diag', {} ).then( function ( d ) {
-					diag.disabled = false; diag.textContent = 'Test connection';
+					diag.disabled = false; diag.textContent = vxT( 'Test connection' );
 					if ( out ) {
 						out.style.display = '';
 						out.innerHTML =
@@ -3919,22 +3948,22 @@
 							'<div><span>PHP Zip</span><b>' + escapeHtml( d.zip ) + '</b></div>';
 					}
 				} ).catch( function ( e ) {
-					diag.disabled = false; diag.textContent = 'Test connection';
+					diag.disabled = false; diag.textContent = vxT( 'Test connection' );
 					toast( e.message, 'error' );
 				} );
 			} );
 		}
 		$$( '.oct-rescan' ).forEach( function ( b ) {
 			b.addEventListener( 'click', function () {
-				run( 'october_rescan', { project: b.getAttribute( 'data-project' ) }, 'Re-scanning…' );
+				run( 'october_rescan', { project: b.getAttribute( 'data-project' ) }, vxT( 'Re-scanning…' ) );
 			} );
 		} );
 		$$( '.oct-del' ).forEach( function ( b ) {
 			b.addEventListener( 'click', function () {
 				var row = b.closest( '.oct-row' );
-				if ( ! row || ! window.confirm( 'Delete this build and its zip?' ) ) { return; }
+				if ( ! row || ! window.confirm( vxT( 'Delete this build and its zip?' ) ) ) { return; }
 				api( 'october_delete', { id: row.getAttribute( 'data-id' ) } )
-					.then( function () { row.remove(); toast( t( 'Build deleted.' ) ); } )
+					.then( function () { row.remove(); toast( vxT( 'Build deleted.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 		} );
@@ -3986,14 +4015,14 @@
 			if ( /\.(json|lottie)(\?|$)/i.test( logoVal ) ) {
 				pvLogo.style.display = 'none';
 				if ( ! prev.querySelector( '.vmp-a-lottie-logo' ) ) {
-					var ph = document.createElement( 'div' ); ph.className = 'vmp-a-lottie vmp-a-lottie-logo'; ph.textContent = 'Lottie animation'; pvLogo.parentNode.insertBefore( ph, pvLogo );
+					var ph = document.createElement( 'div' ); ph.className = 'vmp-a-lottie vmp-a-lottie-logo'; ph.textContent = vxT( 'Lottie animation' ); pvLogo.parentNode.insertBefore( ph, pvLogo );
 				}
 			} else {
 				var ex = prev.querySelector( '.vmp-a-lottie-logo' ); if ( ex ) { ex.remove(); }
 				pvLogo.style.display = 'block'; pvLogo.src = logoVal;
 			}
-			pvTitle.textContent = elTitle.value || "We'll be right back";
-			pvMsg.textContent = elMsg.value || 'The site is undergoing maintenance. Please check back soon.';
+			pvTitle.textContent = elTitle.value || vxT( "We'll be right back" );
+			pvMsg.textContent = elMsg.value || vxT( 'The site is undergoing maintenance. Please check back soon.' );
 			pvMsg.style.color = hexa( text, 0.62 );
 			if ( pvAnim ) { pvAnim.innerHTML = animHtml( elAnim ? elAnim.value : 'bar', accent ); }
 			if ( pvBrand ) {
@@ -4017,18 +4046,18 @@
 				if ( ! window.confirm( 'Reset the maintenance page to its default look? Your text and colours here will be cleared.' ) ) { return; }
 				resetBtn.disabled = true;
 				api( 'maint_reset' )
-					.then( function () { toast( t( 'Reset to default.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
+					.then( function () { toast( vxT( 'Reset to default.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); resetBtn.disabled = false; } );
 			} );
 		}
 
 		$$( '.velox-media-pick', form ).forEach( function ( btn ) {
 			btn.addEventListener( 'click', function () {
-				if ( typeof wp === 'undefined' || ! wp.media ) { toast( t( 'Media library unavailable here.' ), 'error' ); return; }
+				if ( typeof wp === 'undefined' || ! wp.media ) { toast( vxT( 'Media library unavailable here.' ), 'error' ); return; }
 				var target = g( btn.getAttribute( 'data-target' ) );
 				var mt     = btn.getAttribute( 'data-mediatype' ) || 'image';
 				var lib    = ( mt === 'any' || mt === '' ) ? {} : { type: mt };
-				var frame = wp.media( { title: 'Choose file', button: { text: 'Use file' }, multiple: false, library: lib } );
+				var frame = wp.media( { title: vxT( 'Choose file' ), button: { text: vxT( 'Use file' ) }, multiple: false, library: lib } );
 				frame.on( 'select', function () {
 					var att = frame.state().get( 'selection' ).first().toJSON();
 					target.value = att.url; render();
@@ -4076,7 +4105,7 @@
 			listEl.innerHTML = '<div class="velox-loading">Loading…</div>';
 			api( 'fm_list', { path: path } )
 				.then( function ( r ) {
-					if ( ! r || ! r.ok ) { listEl.innerHTML = '<div class="velox-fm-msg">' + escapeHtml( ( r && r.message ) || 'Could not open folder.' ) + '</div>'; return; }
+					if ( ! r || ! r.ok ) { listEl.innerHTML = '<div class="velox-fm-msg">' + escapeHtml( ( r && r.message ) || vxT( 'Could not open folder.' ) ) + '</div>'; return; }
 					renderCrumbs( r.path );
 					var html = '';
 					if ( null !== r.parent ) {
@@ -4098,7 +4127,7 @@
 			editor.innerHTML = '<div class="velox-loading">Opening…</div>';
 			api( 'fm_read', { path: path } )
 				.then( function ( r ) {
-					if ( ! r || ! r.ok ) { editor.innerHTML = '<div class="velox-fm-empty">' + escapeHtml( ( r && r.message ) || 'Could not open file.' ) + '</div>'; return; }
+					if ( ! r || ! r.ok ) { editor.innerHTML = '<div class="velox-fm-empty">' + escapeHtml( ( r && r.message ) || vxT( 'Could not open file.' ) ) + '</div>'; return; }
 					editor.innerHTML =
 						'<div class="velox-fm-edhead">' +
 							'<span class="velox-fm-edname">' + escapeHtml( r.rel ) + '</span>' +
@@ -4111,11 +4140,11 @@
 					if ( saveBtn ) {
 						saveBtn.addEventListener( 'click', function () {
 							saveBtn.disabled = true;
-							saveBtn.textContent = 'Saving…';
+							saveBtn.textContent = vxT( 'Saving…' );
 							api( 'fm_save', { path: r.rel, content: ta.value } )
-								.then( function ( s ) { toast( ( s && s.ok ) ? 'Saved.' : ( ( s && s.message ) || 'Save failed' ), ( s && s.ok ) ? 'success' : 'error' ); } )
+								.then( function ( s ) { toast( ( s && s.ok ) ? vxT( 'Saved.' ) : ( ( s && s.message ) || vxT( 'Save failed' ) ), ( s && s.ok ) ? 'success' : 'error' ); } )
 								.catch( function ( e ) { toast( e.message, 'error' ); } )
-								.then( function () { saveBtn.disabled = false; saveBtn.textContent = 'Save'; } );
+								.then( function () { saveBtn.disabled = false; saveBtn.textContent = vxT( 'Save' ); } );
 						} );
 					}
 				} )
@@ -4142,7 +4171,7 @@
 			delivBtn.addEventListener( 'click', function () {
 				delivBtn.disabled = true;
 				var prev = delivBtn.textContent;
-				delivBtn.textContent = 'Checking…';
+				delivBtn.textContent = vxT( 'Checking…' );
 				api( 'mail_deliverability' )
 					.then( function ( r ) {
 						var icon = { pass: '✓', warn: '!', fail: '✕', unknown: '?' };
@@ -4165,22 +4194,22 @@
 			el.addEventListener( 'change', function () {
 				var p = {};
 				p[ el.getAttribute( 'data-setting' ) ] = el.value;
-				saveSettings( p, 'Sender saved.' );
+				saveSettings( p, vxT( 'Sender saved.' ) );
 			} );
 		} );
 		var toggle = $( '#velox-mail-toggle' );
 		if ( toggle ) {
 			toggle.addEventListener( 'change', function () {
-				saveSettings( { util_mail: toggle.checked ? 1 : 0 }, toggle.checked ? 'Mail & forms on.' : 'Mail & forms off.' )
+				saveSettings( { util_mail: toggle.checked ? 1 : 0 }, toggle.checked ? vxT( 'Mail & forms on.' ) : vxT( 'Mail & forms off.' ) )
 					.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
 			} );
 		}
 		$$( '.velox-mail-formdel' ).forEach( function ( btn ) {
 			btn.addEventListener( 'click', function () {
 				var row = btn.closest( '.vmail-trow' ) || btn.closest( '.velox-mail-formrow' );
-				if ( ! row || ! window.confirm( 'Delete this form? Its entries stay stored.' ) ) { return; }
+				if ( ! row || ! window.confirm( vxT( 'Delete this form? Its entries stay stored.' ) ) ) { return; }
 				api( 'form_delete', { id: row.getAttribute( 'data-id' ) } )
-					.then( function () { row.remove(); toast( t( 'Form deleted.' ) ); } )
+					.then( function () { row.remove(); toast( vxT( 'Form deleted.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 		} );
@@ -4190,13 +4219,13 @@
 			e.preventDefault();
 			var sub = btn.closest( '.vmail-entry' ) || btn.closest( '.velox-mail-sub' );
 			var id  = btn.getAttribute( 'data-id' ) || ( sub && sub.getAttribute( 'data-id' ) );
-			if ( ! window.confirm( 'Move this entry to Deleted? You can restore it from the inbox.' ) ) { return; }
+			if ( ! window.confirm( vxT( 'Move this entry to Deleted? You can restore it from the inbox.' ) ) ) { return; }
 			api( 'submission_delete', { id: id } )
 				.then( function () {
 					if ( sub ) { sub.remove(); }
 					var eb = document.getElementById( 'vmail-entries-blank' ), ew = document.getElementById( 'vmail-entries' );
 					if ( eb && ew ) { eb.hidden = !! ew.querySelector( '.vmail-entry' ); }
-					toast( t( 'Moved to Deleted.' ) );
+					toast( vxT( 'Moved to Deleted.' ) );
 				} )
 				.catch( function ( er ) { toast( er.message, 'error' ); } );
 		} );
@@ -4215,7 +4244,7 @@
 			btn.addEventListener( 'click', function () {
 				btn.disabled = true;
 				var prev = btn.textContent;
-				btn.textContent = 'Sending…';
+				btn.textContent = vxT( 'Sending…' );
 				api( 'mail_resend', { id: btn.getAttribute( 'data-id' ) } )
 					.then( function ( r ) { toast( r.message, r.ok ? 'success' : 'error' ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
@@ -4295,7 +4324,7 @@
 		if ( ! list || ! detail ) { return; }
 
 		function deleteSubmission( id, itemEl ) {
-			if ( ! window.confirm( 'Move this submission to Deleted? You can restore it later.' ) ) { return; }
+			if ( ! window.confirm( vxT( 'Move this submission to Deleted? You can restore it later.' ) ) ) { return; }
 			api( 'submission_delete', { id: id } )
 				.then( function () {
 					var item = itemEl || list.querySelector( '.vmail-inbox-item[data-id="' + id + '"]' );
@@ -4307,7 +4336,7 @@
 						if ( next ) { load( next.getAttribute( 'data-id' ), next ); }
 						else { detail.innerHTML = '<div class="vmail-inbox-empty-detail">No submissions left.</div>'; }
 					}
-					toast( t( 'Moved to Deleted.' ) );
+					toast( vxT( 'Moved to Deleted.' ) );
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); } );
 		}
@@ -4336,7 +4365,7 @@
 			var meta = [];
 			if ( sub.form_title ) { meta.push( escapeHtml( sub.form_title ) ); }
 			if ( sub.created ) { meta.push( escapeHtml( sub.created ) ); }
-			if ( sub.ip ) { meta.push( 'IP ' + escapeHtml( sub.ip ) ); }
+			if ( sub.ip ) { meta.push( vxT( 'IP ' ) + escapeHtml( sub.ip ) ); }
 			var email = sub.email || '';
 			var pinned = !! sub.pinned;
 			var done = sub.status === 'done';
@@ -4346,17 +4375,17 @@
 				'<div class="vmail-d-head">' +
 					'<span class="vmail-avatar vmail-avatar--lg" aria-hidden="true">' + escapeHtml( initials( sub.who ) ) + '</span>' +
 					'<div style="flex:1;min-width:0">' +
-						'<div class="vmail-d-who">' + escapeHtml( sub.who || 'Submission' ) + '</div>' +
+						'<div class="vmail-d-who">' + escapeHtml( sub.who || vxT( 'Submission' ) ) + '</div>' +
 						( email ? '<a class="vmail-d-email" href="mailto:' + escapeHtml( email ) + '">' + escapeHtml( email ) + '</a>' : '' ) +
 						'<div class="vmail-d-meta">' + meta.join( '  ·  ' ) + '</div>' +
 					'</div>' +
 				'</div>' +
 				'<div class="vmail-d-actions">' +
-					'<button type="button" class="velox-btn velox-btn--primary vmail-act" data-act="reply"' + ( canReply ? '' : ' disabled title="No email address to reply to"' ) + '>Reply</button>' +
-					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="pin">' + ( pinned ? 'Unpin' : 'Pin' ) + '</button>' +
-					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="done">' + ( done ? 'Reopen' : 'Mark done' ) + '</button>' +
+					'<button type="button" class="velox-btn velox-btn--primary vmail-act" data-act="reply"' + ( canReply ? '' : ' disabled title=vxT( "No email address to reply to" )' ) + '>Reply</button>' +
+					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="pin">' + ( pinned ? vxT( 'Unpin' ) : vxT( 'Pin' ) ) + '</button>' +
+					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="done">' + ( done ? vxT( 'Reopen' ) : vxT( 'Mark done' ) ) + '</button>' +
 					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="delete">Delete</button>' +
-					( folders.length ? '<select class="velox-select velox-select--sm vmail-d-folder" title="Move to folder">' + folderOptions( sub.folder || '' ) + '</select>' : '' ) +
+					( folders.length ? '<select class="velox-select velox-select--sm vmail-d-folder" title=vxT( "Move to folder" )>' + folderOptions( sub.folder || '' ) + '</select>' : '' ) +
 				'</div>' +
 				'<dl class="vmail-d-dl">' + rows + '</dl>';
 		}
@@ -4443,12 +4472,12 @@
 					item.classList.toggle( 'is-pinned', pon );
 					if ( pon ) { list.insertBefore( item, list.firstChild ); }
 					api( 'submission_flag', { id: id, flag: 'pinned', on: pon ? '1' : '0' } ).catch( function () {} );
-					toast( pon ? 'Pinned.' : 'Unpinned.' );
+					toast( pon ? vxT( 'Pinned.' ) : vxT( 'Unpinned.' ) );
 				} else if ( 'done' === kind ) {
 					var don = 'done' !== item.getAttribute( 'data-status' );
 					item.setAttribute( 'data-status', don ? 'done' : 'open' );
 					api( 'submission_flag', { id: id, flag: 'done', on: don ? '1' : '0' } ).catch( function () {} );
-					toast( don ? 'Marked done.' : 'Reopened.' );
+					toast( don ? vxT( 'Marked done.' ) : vxT( 'Reopened.' ) );
 				} else if ( 'read' === kind ) {
 					var ron = '1' !== item.getAttribute( 'data-read' );
 					item.setAttribute( 'data-read', ron ? '1' : '0' );
@@ -4483,11 +4512,11 @@
 					'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg></button>';
 			}
 			row.innerHTML =
-				'<label class="vmail-inbox-check" title="Select"><input type="checkbox" class="vmail-check" data-id="' + it.id + '"></label>' +
-				'<button type="button" class="vmail-inbox-open" aria-label="Open submission">' +
+				'<label class="vmail-inbox-check" title=vxT( "Select" )><input type="checkbox" class="vmail-check" data-id="' + it.id + '"></label>' +
+				'<button type="button" class="vmail-inbox-open" aria-label=vxT( "Open submission" )>' +
 					'<span class="vmail-avatar" aria-hidden="true">' + escapeHtml( initials( it.who ) ) + '</span>' +
 					'<span class="vmail-inbox-body">' +
-						'<span class="vmail-inbox-line1"><span class="vmail-inbox-who">' + escapeHtml( it.who || 'Anonymous' ) + '</span>' +
+						'<span class="vmail-inbox-line1"><span class="vmail-inbox-who">' + escapeHtml( it.who || vxT( 'Anonymous' ) ) + '</span>' +
 						'<span class="vmail-inbox-when">' + escapeHtml( fmtWhen( it.created ) ) + '</span></span>' +
 						'<span class="vmail-inbox-form">' + escapeHtml( it.form_title || '' ) + '</span>' +
 						'<span class="vmail-inbox-prev">' + escapeHtml( it.preview || '' ) + '</span>' +
@@ -4498,10 +4527,10 @@
 					'</span>' +
 				'</button>' +
 				'<div class="vmail-inbox-acts">' +
-					actBtn( 'pin', 'Pin to top', '<path d="M9 4v6l-2 4h10l-2-4V4M12 14v6M8 4h8"/>' ) +
-					actBtn( 'done', 'Mark as done', '<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>' ) +
-					actBtn( 'read', 'Mark read or unread', '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/>' ) +
-					'<button type="button" class="vmail-act vmail-act--del vmail-inbox-del" data-id="' + it.id + '" title="Move to Deleted" aria-label="Move to Deleted">' +
+					actBtn( 'pin', vxT( 'Pin to top' ), '<path d="M9 4v6l-2 4h10l-2-4V4M12 14v6M8 4h8"/>' ) +
+					actBtn( 'done', vxT( 'Mark as done' ), '<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>' ) +
+					actBtn( 'read', vxT( 'Mark read or unread' ), '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/>' ) +
+					'<button type="button" class="vmail-act vmail-act--del vmail-inbox-del" data-id="' + it.id + '" title=vxT( "Move to Deleted" ) aria-label=vxT( "Move to Deleted" )>' +
 						'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>' +
 					'</button>' +
 				'</div>';
@@ -4551,13 +4580,13 @@
 				openReplyModal( current );
 			} else if ( 'pin' === act ) {
 				var pon = ! current.pinned; current.pinned = pon;
-				b.textContent = pon ? 'Unpin' : 'Pin';
+				b.textContent = pon ? vxT( 'Unpin' ) : vxT( 'Pin' );
 				if ( itemEl ) { itemEl.setAttribute( 'data-pinned', pon ? '1' : '0' ); itemEl.classList.toggle( 'is-pinned', pon ); if ( pon ) { list.insertBefore( itemEl, list.firstChild ); } }
 				api( 'submission_flag', { id: id, flag: 'pinned', on: pon ? '1' : '0' } ).catch( function () {} );
 				applyFilter();
 			} else if ( 'done' === act ) {
 				var don = current.status !== 'done'; current.status = don ? 'done' : 'open';
-				b.textContent = don ? 'Reopen' : 'Mark done';
+				b.textContent = don ? vxT( 'Reopen' ) : vxT( 'Mark done' );
 				if ( itemEl ) { itemEl.setAttribute( 'data-status', current.status ); }
 				api( 'submission_flag', { id: id, flag: 'done', on: don ? '1' : '0' } ).catch( function () {} );
 				applyFilter();
@@ -4594,7 +4623,7 @@
 			if ( ! list.querySelector( '.vmail-del-row' ) ) {
 				var empty = document.createElement( 'div' );
 				empty.className = 'vmail-del-row vmail-del-empty';
-				empty.textContent = 'Nothing in the deleted bin.';
+				empty.textContent = vxT( 'Nothing in the deleted bin.' );
 				list.appendChild( empty );
 			}
 		}
@@ -4607,25 +4636,25 @@
 				'<div class="vmail-inbox-open" style="cursor:default">' +
 					'<span class="vmail-avatar" aria-hidden="true">' + escapeHtml( initials( it.who ) ) + '</span>' +
 					'<span class="vmail-inbox-body">' +
-						'<span class="vmail-inbox-line1"><span class="vmail-inbox-who">' + escapeHtml( it.who || 'Anonymous' ) + '</span><span class="vmail-inbox-when">' + escapeHtml( it.form_title || '' ) + '</span></span>' +
+						'<span class="vmail-inbox-line1"><span class="vmail-inbox-who">' + escapeHtml( it.who || vxT( 'Anonymous' ) ) + '</span><span class="vmail-inbox-when">' + escapeHtml( it.form_title || '' ) + '</span></span>' +
 						'<span class="vmail-inbox-prev">' + escapeHtml( it.preview || '' ) + '</span>' +
 					'</span>' +
 				'</div>' +
 				'<div class="vmail-del-acts">' +
-					'<button type="button" class="vmail-iact vmail-del-restore" title="Restore to inbox" aria-label="Restore to inbox">' +
+					'<button type="button" class="vmail-iact vmail-del-restore" title=vxT( "Restore to inbox" ) aria-label=vxT( "Restore to inbox" )>' +
 						'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v6"/></svg></button>' +
-					'<button type="button" class="vmail-iact vmail-iact--del vmail-del-purge" title="Delete permanently" aria-label="Delete permanently">' +
+					'<button type="button" class="vmail-iact vmail-iact--del vmail-del-purge" title=vxT( "Delete permanently" ) aria-label=vxT( "Delete permanently" )>' +
 						'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>' +
 				'</div>';
 			row.querySelector( '.vmail-del-restore' ).addEventListener( 'click', function () {
 				api( 'submission_restore', { id: it.id } )
-					.then( function () { row.remove(); toast( t( 'Restored to inbox.' ) ); checkDeletedEmpty(); } )
+					.then( function () { row.remove(); toast( vxT( 'Restored to inbox.' ) ); checkDeletedEmpty(); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 			row.querySelector( '.vmail-del-purge' ).addEventListener( 'click', function () {
-				if ( ! window.confirm( 'Permanently delete this submission? This cannot be undone.' ) ) { return; }
+				if ( ! window.confirm( vxT( 'Permanently delete this submission? This cannot be undone.' ) ) ) { return; }
 				api( 'submission_purge', { id: it.id } )
-					.then( function () { row.remove(); toast( t( 'Deleted permanently.' ) ); checkDeletedEmpty(); } )
+					.then( function () { row.remove(); toast( vxT( 'Deleted permanently.' ) ); checkDeletedEmpty(); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
 			} );
 			return row;
@@ -4639,7 +4668,7 @@
 			list.querySelectorAll( '.vmail-del-row' ).forEach( function ( r ) { r.remove(); } );
 			var loading = document.createElement( 'div' );
 			loading.className = 'vmail-del-row vmail-del-empty';
-			loading.textContent = 'Loading deleted…';
+			loading.textContent = vxT( 'Loading deleted…' );
 			list.appendChild( loading );
 			detail.innerHTML = '<div class="vmail-inbox-empty-detail">Deleted submissions live here. Restore any to send it back to the inbox, or delete it forever.</div>';
 			api( 'submission_deleted_list', {} )
@@ -4688,7 +4717,7 @@
 					'<div class="vmail-fm">' +
 						'<div class="vmail-fm-head">' +
 							'<div><strong>Folders</strong><span class="vmail-fm-sub">Colour-code submissions in your inbox.</span></div>' +
-							'<button type="button" class="vmail-fm-x" aria-label="Close">' +
+							'<button type="button" class="vmail-fm-x" aria-label=vxT( "Close" )>' +
 								'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
 							'</button>' +
 						'</div>' +
@@ -4716,9 +4745,9 @@
 						row.className = 'vmail-fm-row';
 						row.innerHTML =
 							'<span class="vmail-fm-sw" style="background:' + escapeHtml( f.color || '#2ab7f1' ) + '">' +
-								'<input type="color" class="vmail-fm-color" value="' + escapeHtml( f.color || '#2ab7f1' ) + '" aria-label="Folder colour"></span>' +
+								'<input type="color" class="vmail-fm-color" value="' + escapeHtml( f.color || '#2ab7f1' ) + '" aria-label=vxT( "Folder colour" )></span>' +
 							'<input type="text" class="vmail-fm-name" value="' + escapeHtml( f.name || '' ) + '" placeholder="Folder ' + ( idx + 1 ) + '">' +
-							'<button type="button" class="vmail-fm-del" title="Remove folder" aria-label="Remove folder">' +
+							'<button type="button" class="vmail-fm-del" title=vxT( "Remove folder" ) aria-label=vxT( "Remove folder" )>' +
 								'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
 						row.querySelector( '.vmail-fm-color' ).addEventListener( 'input', function () {
 							working[ idx ].color = this.value;
@@ -4739,7 +4768,7 @@
 					var sv = overlay.querySelector( '#vmail-fm-save' );
 					sv.disabled = true;
 					api( 'mail_folders_save', { folders: JSON.stringify( working ) } )
-						.then( function ( r ) { folders = ( r && r.folders ) || []; renderFolderChips(); toast( t( 'Folders saved.' ) ); closeFm(); } )
+						.then( function ( r ) { folders = ( r && r.folders ) || []; renderFolderChips(); toast( vxT( 'Folders saved.' ) ); closeFm(); } )
 						.catch( function ( er ) { sv.disabled = false; toast( er.message, 'error' ); } );
 				} );
 			} );
@@ -4755,7 +4784,7 @@
 					current.folder = fid;
 					var it = list.querySelector( '.vmail-inbox-item[data-id="' + current.id + '"]' );
 					if ( it ) { it.setAttribute( 'data-folder', fid ); }
-					toast( fid ? 'Moved to folder.' : 'Removed from folder.' );
+					toast( fid ? vxT( 'Moved to folder.' ) : vxT( 'Removed from folder.' ) );
 				} )
 				.catch( function ( er ) { toast( er.message, 'error' ); } );
 		} );
@@ -4800,7 +4829,7 @@
 				var action = b.getAttribute( 'data-bulk' );
 				var ids = checkedIds();
 				if ( ! ids.length ) { return; }
-				if ( 'delete' === action && ! window.confirm( 'Move ' + ids.length + ' submission(s) to Deleted?' ) ) { return; }
+				if ( 'delete' === action && ! window.confirm( vxT( 'Move ' ) + ids.length + ' submission(s) to Deleted?' ) ) { return; }
 				api( 'submission_bulk', { ids: JSON.stringify( ids ), bulk: action } )
 					.then( function ( r ) {
 						ids.forEach( function ( id ) {
@@ -4826,11 +4855,11 @@
 		function openReplyModal( sub ) {
 			if ( ! replyModal ) { return; }
 			replyFor = sub;
-			var t = $( '#vmail-reply-title' ); if ( t ) { t.textContent = 'Reply to ' + ( sub.who || 'submission' ); }
+			var t = $( '#vmail-reply-title' ); if ( t ) { t.textContent = vxT( 'Reply to ' ) + ( sub.who || 'submission' ); }
 			var s = $( '#vmail-reply-sub' ); if ( s ) { s.textContent = ( sub.form_title || '' ) + ( sub.email ? '  ·  ' + sub.email : '' ); }
 			var av = $( '#vmail-reply-avatar' ); if ( av ) { av.textContent = initials( sub.who ); }
 			var to = $( '#vmail-reply-to' ); if ( to ) { to.value = sub.email || ''; }
-			var subj = $( '#vmail-reply-subject' ); if ( subj ) { subj.value = 'Re: ' + ( sub.form_title || '' ); }
+			var subj = $( '#vmail-reply-subject' ); if ( subj ) { subj.value = vxT( 'Re: ' ) + ( sub.form_title || '' ); }
 			var body = $( '#vmail-reply-body' ); if ( body ) { body.innerHTML = ''; }
 			var tpl = $( '#vmail-reply-tpl' ); if ( tpl ) { tpl.value = ''; }
 			var from = $( '#vmail-reply-from' ); if ( from ) { from.value = 'account'; }
@@ -4842,7 +4871,7 @@
 		function insertReplyImage() {
 			var body = $( '#vmail-reply-body' );
 			if ( window.wp && window.wp.media ) {
-				var frame = window.wp.media( { title: 'Insert image', multiple: false, library: { type: 'image' }, button: { text: 'Insert' } } );
+				var frame = window.wp.media( { title: vxT( 'Insert image' ), multiple: false, library: { type: 'image' }, button: { text: vxT( 'Insert' ) } } );
 				frame.on( 'select', function () {
 					var att = frame.state().get( 'selection' ).first().toJSON();
 					var url = ( att.sizes && att.sizes.large ) ? att.sizes.large.url : att.url;
@@ -4850,7 +4879,7 @@
 				} );
 				frame.open();
 			} else {
-				var url = window.prompt( 'Image URL (must be publicly accessible)' );
+				var url = window.prompt( vxT( 'Image URL (must be publicly accessible)' ) );
 				if ( url && body ) { body.focus(); document.execCommand( 'insertImage', false, url ); }
 			}
 		}
@@ -4861,7 +4890,7 @@
 					var cmd = btn.getAttribute( 'data-cmd' );
 					var body = $( '#vmail-reply-body' ); if ( body ) { body.focus(); }
 					if ( 'createLink' === cmd ) {
-						var url = window.prompt( 'Link URL' ); if ( url ) { document.execCommand( 'createLink', false, url ); }
+						var url = window.prompt( vxT( 'Link URL' ) ); if ( url ) { document.execCommand( 'createLink', false, url ); }
 					} else if ( 'insertImage' === cmd ) {
 						insertReplyImage();
 					} else {
@@ -4898,13 +4927,13 @@
 			var saveTpl = $( '#vmail-reply-savetpl' );
 			if ( saveTpl ) {
 				saveTpl.addEventListener( 'click', function () {
-					var name = window.prompt( 'Template name' ); if ( ! name ) { return; }
+					var name = window.prompt( vxT( 'Template name' ) ); if ( ! name ) { return; }
 					var subj = ( $( '#vmail-reply-subject' ) || {} ).value || '';
 					var body = ( $( '#vmail-reply-body' ) || {} ).innerHTML || '';
 					saveTpl.disabled = true;
 					api( 'mail_template_save', { name: name, subject: subj, body: body } )
 						.then( function ( r ) {
-							toast( t( 'Template saved.' ) );
+							toast( vxT( 'Template saved.' ) );
 							var sel = $( '#vmail-reply-tpl' );
 							var tpls = r.templates || [];
 							var last = tpls[ tpls.length - 1 ];
@@ -4925,7 +4954,7 @@
 				sendBtn.addEventListener( 'click', function () {
 					if ( ! replyFor ) { return; }
 					var bodyEl = $( '#vmail-reply-body' );
-					if ( ! bodyEl || ! bodyEl.textContent.trim() ) { toast( t( 'Write a reply first.' ), 'error' ); return; }
+					if ( ! bodyEl || ! bodyEl.textContent.trim() ) { toast( vxT( 'Write a reply first.' ), 'error' ); return; }
 					var payload = {
 						id: replyFor.id,
 						subject: ( $( '#vmail-reply-subject' ) || {} ).value || '',
@@ -4945,9 +4974,9 @@
 					sendBtn.disabled = true;
 					api( 'submission_reply', payload )
 						.then( function ( r ) {
-							toast( t( 'Reply sent to ' ) + ( r.to || 'recipient' ) + '.' );
+							toast( vxT( 'Reply sent to ' ) + ( r.to || 'recipient' ) + '.' );
 							if ( itemEl ) { itemEl.setAttribute( 'data-read', '1' ); itemEl.classList.remove( 'is-unread' ); itemEl.setAttribute( 'data-status', 'done' ); }
-							if ( current && current.id === id ) { current.status = 'done'; var dn = detail.querySelector( '[data-act="done"]' ); if ( dn ) { dn.textContent = 'Reopen'; } }
+							if ( current && current.id === id ) { current.status = 'done'; var dn = detail.querySelector( '[data-act="done"]' ); if ( dn ) { dn.textContent = vxT( 'Reopen' ); } }
 							updateUnreadCount(); applyFilter();
 							closeReplyModal();
 						} )
@@ -4998,21 +5027,21 @@
 
 		function uid() { return 'conn_' + Math.random().toString( 36 ).slice( 2, 10 ); }
 
-		var SECURE = { tls: 'TLS', ssl: 'SSL', none: 'None' };
+		var SECURE = { tls: vxT( 'TLS' ), ssl: vxT( 'SSL' ), none: vxT( 'None' ) };
 
 		// Provider presets — pick one to fill host/port/encryption (FluentSMTP-style).
 		var SMTP_PRESETS = {
-			'':         { label: 'Custom / other host', hint: 'Enter the SMTP host, username and password your mail provider gave you.' },
-			ionos:      { label: 'IONOS',                 host: 'smtp.ionos.de',                        port: 587, secure: 'tls', hint: 'Username = your full IONOS mailbox address, password = that mailbox\u2019s password.' },
+			'':         { label: 'Custom / other host', hint: vxT( 'Enter the SMTP host, username and password your mail provider gave you.' ) },
+			ionos:      { label: vxT( 'IONOS' ),                 host: 'smtp.ionos.de',                        port: 587, secure: 'tls', hint: 'Username = your full IONOS mailbox address, password = that mailbox\u2019s password.' },
 			gmail:      { label: 'Gmail / Google Workspace', host: 'smtp.gmail.com',                    port: 587, secure: 'tls', hint: 'Username = your Gmail address, password = a Google App Password (not your normal login) with 2FA on.' },
-			outlook:    { label: 'Outlook / Office 365',  host: 'smtp.office365.com',                   port: 587, secure: 'tls', hint: 'Username = your email address, password = your account or app password.' },
-			sendgrid:   { label: 'SendGrid',              host: 'smtp.sendgrid.net',                    port: 587, secure: 'tls', hint: 'Username = the literal word "apikey", password = your SendGrid API key.' },
-			mailgun:    { label: 'Mailgun',               host: 'smtp.mailgun.org',                     port: 587, secure: 'tls', hint: 'Username = your Mailgun SMTP login, password = its SMTP password (from Domain settings).' },
-			ses:        { label: 'Amazon SES (eu-central-1)', host: 'email-smtp.eu-central-1.amazonaws.com', port: 587, secure: 'tls', hint: 'Username & password = your SES SMTP credentials (not your AWS keys). Change the region in the host if needed.' },
-			brevo:      { label: 'Brevo (Sendinblue)',    host: 'smtp-relay.brevo.com',                 port: 587, secure: 'tls', hint: 'Username = your Brevo account email, password = your SMTP key (SMTP & API settings).' },
-			postmark:   { label: 'Postmark',              host: 'smtp.postmarkapp.com',                 port: 587, secure: 'tls', hint: 'Username and password are both your Postmark Server API token.' },
-			zoho:       { label: 'Zoho Mail',             host: 'smtp.zoho.com',                        port: 587, secure: 'tls', hint: 'Username = your Zoho email, password = an app-specific password.' },
-			gmx:        { label: 'GMX',                   host: 'mail.gmx.net',                         port: 587, secure: 'tls', hint: 'First enable POP3/IMAP in GMX settings (Home \u2192 Settings \u2192 POP3/IMAP). Then: username = your full GMX address, password = your normal GMX password.' },
+			outlook:    { label: 'Outlook / Office 365',  host: 'smtp.office365.com',                   port: 587, secure: 'tls', hint: vxT( 'Username = your email address, password = your account or app password.' ) },
+			sendgrid:   { label: vxT( 'SendGrid' ),              host: 'smtp.sendgrid.net',                    port: 587, secure: 'tls', hint: 'Username = the literal word "apikey", password = your SendGrid API key.' },
+			mailgun:    { label: vxT( 'Mailgun' ),               host: 'smtp.mailgun.org',                     port: 587, secure: 'tls', hint: vxT( 'Username = your Mailgun SMTP login, password = its SMTP password (from Domain settings).' ) },
+			ses:        { label: vxT( 'Amazon SES (eu-central-1)' ), host: 'email-smtp.eu-central-1.amazonaws.com', port: 587, secure: 'tls', hint: 'Username & password = your SES SMTP credentials (not your AWS keys). Change the region in the host if needed.' },
+			brevo:      { label: vxT( 'Brevo (Sendinblue)' ),    host: 'smtp-relay.brevo.com',                 port: 587, secure: 'tls', hint: vxT( 'Username = your Brevo account email, password = your SMTP key (SMTP & API settings).' ) },
+			postmark:   { label: vxT( 'Postmark' ),              host: 'smtp.postmarkapp.com',                 port: 587, secure: 'tls', hint: vxT( 'Username and password are both your Postmark Server API token.' ) },
+			zoho:       { label: vxT( 'Zoho Mail' ),             host: 'smtp.zoho.com',                        port: 587, secure: 'tls', hint: vxT( 'Username = your Zoho email, password = an app-specific password.' ) },
+			gmx:        { label: vxT( 'GMX' ),                   host: 'mail.gmx.net',                         port: 587, secure: 'tls', hint: 'First enable POP3/IMAP in GMX settings (Home \u2192 Settings \u2192 POP3/IMAP). Then: username = your full GMX address, password = your normal GMX password.' },
 			webde:      { label: 'web.de',                host: 'smtp.web.de',                          port: 587, secure: 'tls', hint: 'First enable POP3/IMAP in web.de settings. Then: username = your full web.de address, password = your normal password.' }
 		};
 		function providerFor( host ) {
@@ -5027,91 +5056,91 @@
 			gmail: { title: 'Gmail / Google Workspace', note: 'Gmail needs an App Password, not your normal login. Free Gmail sends roughly 500 emails/day.', steps: [
 				'Turn on 2-Step Verification: myaccount.google.com/security \u2192 2-Step Verification.',
 				'Open myaccount.google.com/apppasswords and create an app password (name it "Velox").',
-				'Copy the 16-character code Google gives you.',
-				'Here, set Provider = Gmail (fills smtp.gmail.com, port 587, TLS).',
-				'Username = your full Gmail address.',
-				'Password = that 16-character App Password (spaces are fine).',
-				'From address = the same Gmail address (Gmail forces the sender to match).',
-				'Save connections, then Test connection, then Send test.'
+				vxT( 'Copy the 16-character code Google gives you.' ),
+				vxT( 'Here, set Provider = Gmail (fills smtp.gmail.com, port 587, TLS).' ),
+				vxT( 'Username = your full Gmail address.' ),
+				vxT( 'Password = that 16-character App Password (spaces are fine).' ),
+				vxT( 'From address = the same Gmail address (Gmail forces the sender to match).' ),
+				vxT( 'Save connections, then Test connection, then Send test.' )
 			] },
-			gmx: { title: 'GMX', note: 'GMX works with your normal password once IMAP/POP is enabled.', steps: [
+			gmx: { title: vxT( 'GMX' ), note: 'GMX works with your normal password once IMAP/POP is enabled.', steps: [
 				'Log in to GMX webmail \u2192 Home \u2192 Settings \u2192 POP3/IMAP.',
 				'Turn on POP3/IMAP access and save.',
-				'Here, set Provider = GMX (fills mail.gmx.net, port 587, TLS).',
-				'Username = your full GMX address. Password = your normal GMX password.',
-				'From address = your GMX address.',
-				'Save connections, then Test connection, then Send test.'
+				vxT( 'Here, set Provider = GMX (fills mail.gmx.net, port 587, TLS).' ),
+				vxT( 'Username = your full GMX address. Password = your normal GMX password.' ),
+				vxT( 'From address = your GMX address.' ),
+				vxT( 'Save connections, then Test connection, then Send test.' )
 			] },
 			webde: { title: 'web.de', note: 'web.de works with your normal password once IMAP/POP is enabled.', steps: [
 				'Log in to web.de \u2192 Settings \u2192 enable POP3/IMAP access.',
-				'Here, set Provider = web.de (fills smtp.web.de, port 587, TLS).',
-				'Username = your full web.de address. Password = your normal password.',
-				'From address = your web.de address.',
-				'Save connections, then Test connection, then Send test.'
+				vxT( 'Here, set Provider = web.de (fills smtp.web.de, port 587, TLS).' ),
+				vxT( 'Username = your full web.de address. Password = your normal password.' ),
+				vxT( 'From address = your web.de address.' ),
+				vxT( 'Save connections, then Test connection, then Send test.' )
 			] },
-			ionos: { title: 'IONOS', note: 'Uses the mailbox password directly.', steps: [
-				'Make sure the mailbox exists in your IONOS control panel.',
-				'Here, set Provider = IONOS (fills smtp.ionos.de, port 587, TLS).',
+			ionos: { title: vxT( 'IONOS' ), note: vxT( 'Uses the mailbox password directly.' ), steps: [
+				vxT( 'Make sure the mailbox exists in your IONOS control panel.' ),
+				vxT( 'Here, set Provider = IONOS (fills smtp.ionos.de, port 587, TLS).' ),
 				'Username = your full IONOS mailbox address. Password = that mailbox\u2019s password.',
-				'From address = the same mailbox address.',
-				'Save connections, then Test connection, then Send test.'
+				vxT( 'From address = the same mailbox address.' ),
+				vxT( 'Save connections, then Test connection, then Send test.' )
 			] },
-			outlook: { title: 'Outlook / Hotmail (personal)', note: 'Not supported.', steps: [
+			outlook: { title: 'Outlook / Hotmail (personal)', note: vxT( 'Not supported.' ), steps: [
 				'Microsoft has retired plain SMTP (basic auth) for personal Outlook.com accounts \u2014 even app passwords no longer work; it needs OAuth, which Velox does not do.',
 				'Use Gmail, GMX or web.de instead, or a free sending service like Brevo (300/day) which also lets you send from your own domain.'
 			] },
-			sendgrid: { title: 'SendGrid', note: 'Free tier available; verify a sender first.', steps: [
-				'Create a SendGrid account and verify a Single Sender or your domain.',
-				'Settings \u2192 API Keys \u2192 Create API Key with "Mail Send" permission. Copy it.',
-				'Here, set Provider = SendGrid (fills smtp.sendgrid.net, port 587, TLS).',
-				'Username = the literal word apikey. Password = your API key.',
-				'From address = your verified sender.',
-				'Save, then Test connection, then Send test.'
+			sendgrid: { title: vxT( 'SendGrid' ), note: vxT( 'Free tier available; verify a sender first.' ), steps: [
+				vxT( 'Create a SendGrid account and verify a Single Sender or your domain.' ),
+				'Settings \u2192 API Keys \u2192 Create API Key with vxT( "Mail Send" ) permission. Copy it.',
+				vxT( 'Here, set Provider = SendGrid (fills smtp.sendgrid.net, port 587, TLS).' ),
+				vxT( 'Username = the literal word apikey. Password = your API key.' ),
+				vxT( 'From address = your verified sender.' ),
+				vxT( 'Save, then Test connection, then Send test.' )
 			] },
-			mailgun: { title: 'Mailgun', note: 'Requires a verified domain.', steps: [
-				'Add and verify your sending domain in Mailgun (DNS records).',
+			mailgun: { title: vxT( 'Mailgun' ), note: vxT( 'Requires a verified domain.' ), steps: [
+				vxT( 'Add and verify your sending domain in Mailgun (DNS records).' ),
 				'Open the domain \u2192 SMTP credentials to get the SMTP login + password.',
-				'Here, set Provider = Mailgun (fills smtp.mailgun.org, port 587, TLS).',
+				vxT( 'Here, set Provider = Mailgun (fills smtp.mailgun.org, port 587, TLS).' ),
 				'Username = the SMTP login (postmaster@your-domain). Password = its SMTP password.',
-				'From address = an address on the verified domain.',
-				'Save, then Test connection, then Send test.'
+				vxT( 'From address = an address on the verified domain.' ),
+				vxT( 'Save, then Test connection, then Send test.' )
 			] },
-			ses: { title: 'Amazon SES', note: 'Use SES SMTP credentials, not your AWS keys.', steps: [
-				'Verify a domain or email in SES and request production access (out of sandbox).',
+			ses: { title: vxT( 'Amazon SES' ), note: vxT( 'Use SES SMTP credentials, not your AWS keys.' ), steps: [
+				vxT( 'Verify a domain or email in SES and request production access (out of sandbox).' ),
 				'SES \u2192 SMTP settings \u2192 Create SMTP credentials \u2192 copy the username + password.',
 				'Here, set Provider = Amazon SES, and change the region in the host if you are not on eu-central-1.',
-				'Username + Password = the SES SMTP credentials you just created.',
-				'From address = your verified sender.',
-				'Save, then Test connection, then Send test.'
+				vxT( 'Username + Password = the SES SMTP credentials you just created.' ),
+				vxT( 'From address = your verified sender.' ),
+				vxT( 'Save, then Test connection, then Send test.' )
 			] },
-			brevo: { title: 'Brevo (Sendinblue)', note: 'Free 300 emails/day; good for client sites.', steps: [
-				'Create a Brevo account.',
+			brevo: { title: vxT( 'Brevo (Sendinblue)' ), note: 'Free 300 emails/day; good for client sites.', steps: [
+				vxT( 'Create a Brevo account.' ),
 				'SMTP & API \u2192 SMTP tab \u2192 note your login email and generate an SMTP key.',
-				'Here, set Provider = Brevo (fills smtp-relay.brevo.com, port 587, TLS).',
-				'Username = your Brevo account email. Password = the SMTP key.',
-				'From address = a verified sender (verify your domain for best delivery).',
-				'Save, then Test connection, then Send test.'
+				vxT( 'Here, set Provider = Brevo (fills smtp-relay.brevo.com, port 587, TLS).' ),
+				vxT( 'Username = your Brevo account email. Password = the SMTP key.' ),
+				vxT( 'From address = a verified sender (verify your domain for best delivery).' ),
+				vxT( 'Save, then Test connection, then Send test.' )
 			] },
-			postmark: { title: 'Postmark', note: 'Token is used for both username and password.', steps: [
-				'Create a Postmark server and verify a Sender Signature or domain.',
-				'Copy the Server API Token.',
-				'Here, set Provider = Postmark (fills smtp.postmarkapp.com, port 587, TLS).',
-				'Username AND Password = your Server API Token (the same value in both).',
-				'From address = your verified signature.',
-				'Save, then Test connection, then Send test.'
+			postmark: { title: vxT( 'Postmark' ), note: vxT( 'Token is used for both username and password.' ), steps: [
+				vxT( 'Create a Postmark server and verify a Sender Signature or domain.' ),
+				vxT( 'Copy the Server API Token.' ),
+				vxT( 'Here, set Provider = Postmark (fills smtp.postmarkapp.com, port 587, TLS).' ),
+				vxT( 'Username AND Password = your Server API Token (the same value in both).' ),
+				vxT( 'From address = your verified signature.' ),
+				vxT( 'Save, then Test connection, then Send test.' )
 			] },
-			zoho: { title: 'Zoho Mail', note: 'Uses an app-specific password.', steps: [
+			zoho: { title: vxT( 'Zoho Mail' ), note: vxT( 'Uses an app-specific password.' ), steps: [
 				'Enable IMAP/SMTP access in Zoho Mail settings.',
-				'Generate an app-specific password in your Zoho account security settings.',
-				'Here, set Provider = Zoho (fills smtp.zoho.com, port 587, TLS).',
-				'Username = your Zoho email. Password = the app-specific password.',
-				'Save, then Test connection, then Send test.'
+				vxT( 'Generate an app-specific password in your Zoho account security settings.' ),
+				vxT( 'Here, set Provider = Zoho (fills smtp.zoho.com, port 587, TLS).' ),
+				vxT( 'Username = your Zoho email. Password = the app-specific password.' ),
+				vxT( 'Save, then Test connection, then Send test.' )
 			] },
 			'': { title: 'Custom / other host', note: '', steps: [
-				'Get the SMTP host, port, username and password from your mail provider or hosting panel.',
-				'Port 587 = TLS (STARTTLS), port 465 = SSL. Pick the matching Encryption.',
+				vxT( 'Get the SMTP host, port, username and password from your mail provider or hosting panel.' ),
+				vxT( 'Port 587 = TLS (STARTTLS), port 465 = SSL. Pick the matching Encryption.' ),
 				'Username is usually your full email address; password is that mailbox\u2019s password.',
-				'From address = an address on the same account or domain.',
+				vxT( 'From address = an address on the same account or domain.' ),
 				'Save, then Test connection, then Send test \u2014 the test message tells you exactly what is wrong if it fails.'
 			] }
 		};
@@ -5129,9 +5158,9 @@
 			} ).join( '' );
 			card.innerHTML =
 				'<div class="vmail-conn-top">' +
-					'<select class="velox-select vmail-c-provider" title="Pick your provider to fill the server settings">' + provOpts + '</select>' +
-					'<input type="text" class="velox-input vmail-c-label" value="' + escapeHtml( c.label || '' ) + '" placeholder="Connection name (e.g. Transactional)">' +
-					'<button type="button" class="vmail-conn-del" title="Remove connection" aria-label="Remove connection">&times;</button>' +
+					'<select class="velox-select vmail-c-provider" title=vxT( "Pick your provider to fill the server settings" )>' + provOpts + '</select>' +
+					'<input type="text" class="velox-input vmail-c-label" value="' + escapeHtml( c.label || '' ) + '" placeholder=vxT( "Connection name (e.g. Transactional)" )>' +
+					'<button type="button" class="vmail-conn-del" title=vxT( "Remove connection" ) aria-label=vxT( "Remove connection" )>&times;</button>' +
 				'</div>' +
 				'<div class="vmail-conn-grid">' +
 					'<label class="vmail-cf vmail-cf--host"><span>Host</span><input type="text" class="velox-input vmail-c-host" value="' + escapeHtml( c.host || '' ) + '" placeholder="smtp.example.com"></label>' +
@@ -5173,14 +5202,14 @@
 		function routeRow( r ) {
 			var row = document.createElement( 'div' );
 			row.className = 'vmail-route';
-			var matchOpts = [ [ 'from_email', 'From address is' ], [ 'from_name', 'From name is' ], [ 'all', 'All other mail' ] ]
+			var matchOpts = [ [ 'from_email', vxT( 'From address is' ) ], [ 'from_name', vxT( 'From name is' ) ], [ 'all', vxT( 'All other mail' ) ] ]
 				.map( function ( m ) { return '<option value="' + m[0] + '"' + ( r.match === m[0] ? ' selected' : '' ) + '>' + m[1] + '</option>'; } ).join( '' );
 			row.innerHTML =
 				'<select class="velox-select velox-select--sm vmail-r-match">' + matchOpts + '</select>' +
 				'<input type="text" class="velox-input vmail-r-value" value="' + escapeHtml( r.value || '' ) + '" placeholder="value">' +
 				'<span class="vmail-r-arrow">→</span>' +
 				'<select class="velox-select velox-select--sm vmail-r-conn"></select>' +
-				'<button type="button" class="vmail-route-del" title="Remove rule" aria-label="Remove rule">&times;</button>';
+				'<button type="button" class="vmail-route-del" title=vxT( "Remove rule" ) aria-label=vxT( "Remove rule" )>&times;</button>';
 			fillConnSelect( row.querySelector( '.vmail-r-conn' ), r.conn );
 			var matchSel = row.querySelector( '.vmail-r-match' );
 			var valInput = row.querySelector( '.vmail-r-value' );
@@ -5277,7 +5306,7 @@
 				} ).join( '' );
 				overlay.innerHTML =
 					'<div class="vmail-fm vmail-guide">' +
-						'<div class="vmail-fm-head"><strong>SMTP setup guide</strong><button type="button" class="vmail-fm-x" aria-label="Close">&times;</button></div>' +
+						'<div class="vmail-fm-head"><strong>SMTP setup guide</strong><button type="button" class="vmail-fm-x" aria-label=vxT( "Close" )>&times;</button></div>' +
 						'<select class="velox-select vmail-guide-sel">' + provOpts + '</select>' +
 						'<div class="vmail-guide-body"></div>' +
 					'</div>';
@@ -5301,7 +5330,7 @@
 		if ( routeAdd ) {
 			routeAdd.addEventListener( 'click', function () {
 				collectRoutes();
-				if ( ! conns.length ) { toast( t( 'Add a connection first.' ), 'error' ); return; }
+				if ( ! conns.length ) { toast( vxT( 'Add a connection first.' ), 'error' ); return; }
 				var row = routeRow( { match: 'from_email', value: '', conn: conns[0].id } );
 				routeList.appendChild( row );
 			} );
@@ -5324,7 +5353,7 @@
 				fallback:    fallback
 			} )
 				.then( function ( r ) {
-					toast( r.message || 'Saved.', 'success' );
+					toast( r.message || vxT( 'Saved.' ), 'success' );
 					if ( r.connections ) { conns = r.connections; }
 					if ( r.routes ) { routes = r.routes; }
 					primary = r.primary || ''; fallback = r.fallback || '';
@@ -5353,10 +5382,10 @@
 				collect();
 				var id = testConn ? testConn.value : ( conns[0] && conns[0].id );
 				var c = conns.filter( function ( x ) { return x.id === id; } )[0] || conns[0];
-				if ( ! c || ! c.host ) { toast( t( 'Add a connection with a host first.' ), 'error' ); return; }
+				if ( ! c || ! c.host ) { toast( vxT( 'Add a connection with a host first.' ), 'error' ); return; }
 				connTestBtn.disabled = true;
 				var orig = connTestBtn.textContent;
-				connTestBtn.textContent = 'Testing…';
+				connTestBtn.textContent = vxT( 'Testing…' );
 				api( 'mail_conn_test', { host: c.host, port: c.port, secure: c.secure, user: c.user, pass: c.pass } )
 					.then( function ( r ) { toast( r.message, r.ok ? 'success' : 'error' ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
@@ -5376,7 +5405,7 @@
 				var val = ( 'checkbox' === el.type ) ? ( el.checked ? 1 : 0 ) : el.value;
 				var p = {};
 				p[ key ] = val;
-				api( 'save_settings', p ).then( flashSaved ).catch( function ( er ) { toast( ( er && er.message ) || 'Could not save', 'error' ); } );
+				api( 'save_settings', p ).then( flashSaved ).catch( function ( er ) { toast( ( er && er.message ) || vxT( 'Could not save' ), 'error' ); } );
 			}
 			mailPage.addEventListener( 'change', function ( e ) {
 				var el = e.target.closest ? e.target.closest( '[data-setting]' ) : null;
@@ -5410,29 +5439,29 @@
 
 		function svgIcon( p ) { return '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">' + p + '</svg>'; }
 		var TYPES = {
-			text:        { label: 'Single line', short: 'Text', icon: svgIcon('<path d="M4 7h16M4 12h11M4 17h7"/>'), opts: false, cat: 'general' },
-			email:       { label: 'Email',       icon: svgIcon('<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 7l9 6 9-6"/>'), opts: false, cat: 'general' },
-			tel:         { label: 'Phone',       icon: svgIcon('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>'), opts: false, cat: 'general' },
-			number:      { label: 'Number',      icon: svgIcon('<path d="M4 9h16M4 15h16M9 4l-2 16M17 4l-2 16"/>'), opts: false, cat: 'general' },
-			textarea:    { label: 'Paragraph', short: 'Textarea',   icon: svgIcon('<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/>'), opts: false, cat: 'general' },
-			select:      { label: 'Dropdown', short: 'Dropdown',    icon: svgIcon('<path d="M6 9l6 6 6-6"/>'), opts: true,  cat: 'general' },
-			radio:       { label: 'Radio',       icon: svgIcon('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/>'), opts: true,  cat: 'general' },
-			checkbox:    { label: 'Checkbox', short: 'Checkbox',    icon: svgIcon('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 5-5"/>'), opts: false, cat: 'general' },
-			name:        { label: 'Name',        icon: svgIcon('<circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/>'), opts: false, cat: 'advanced' },
-			multiselect: { label: 'Multi-select', short: 'Multi',icon: svgIcon('<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>'), opts: true,  cat: 'advanced' },
-			country:     { label: 'Country',     icon: svgIcon('<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/>'), opts: false, cat: 'advanced' },
-			url:         { label: 'Website URL', short: 'URL', icon: svgIcon('<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>'), opts: false, cat: 'advanced' },
-			date:        { label: 'Date',        icon: svgIcon('<rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M16 3v4M8 3v4M3.5 10h17"/>'), opts: false, cat: 'advanced' },
-			time:        { label: 'Time',        icon: svgIcon('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'), opts: false, cat: 'advanced' },
-			range:       { label: 'Slider', short: 'Slider', icon: svgIcon('<path d="M3 12h18"/><circle cx="9" cy="12" r="3.2" fill="currentColor" stroke="none"/>'), opts: false, cat: 'advanced' },
-			rating:      { label: 'Star rating', short: 'Rating', icon: svgIcon('<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/>'), opts: false, cat: 'advanced' },
-			address:     { label: 'Address',     icon: svgIcon('<path d="M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'), opts: false, cat: 'advanced' },
-			file:        { label: 'File upload', short: 'File', icon: svgIcon('<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M12 11v6M9.5 13.5 12 11l2.5 2.5"/>'), opts: false, cat: 'advanced' },
-			consent:     { label: 'Consent',     icon: svgIcon('<path d="M9 12l2 2 4-4"/><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'), opts: false, cat: 'advanced' },
-			heading:     { label: 'Section heading', short: 'Heading', icon: svgIcon('<path d="M6 4v16M18 4v16M6 12h12"/>'), opts: false, cat: 'layout' },
+			text:        { label: vxT( 'Single line' ), short: vxT( 'Text' ), icon: svgIcon('<path d="M4 7h16M4 12h11M4 17h7"/>'), opts: false, cat: 'general' },
+			email:       { label: vxT( 'Email' ),       icon: svgIcon('<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M3 7l9 6 9-6"/>'), opts: false, cat: 'general' },
+			tel:         { label: vxT( 'Phone' ),       icon: svgIcon('<path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L16 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/>'), opts: false, cat: 'general' },
+			number:      { label: vxT( 'Number' ),      icon: svgIcon('<path d="M4 9h16M4 15h16M9 4l-2 16M17 4l-2 16"/>'), opts: false, cat: 'general' },
+			textarea:    { label: vxT( 'Paragraph' ), short: vxT( 'Textarea' ),   icon: svgIcon('<rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18"/>'), opts: false, cat: 'general' },
+			select:      { label: vxT( 'Dropdown' ), short: vxT( 'Dropdown' ),    icon: svgIcon('<path d="M6 9l6 6 6-6"/>'), opts: true,  cat: 'general' },
+			radio:       { label: vxT( 'Radio' ),       icon: svgIcon('<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3.2" fill="currentColor" stroke="none"/>'), opts: true,  cat: 'general' },
+			checkbox:    { label: vxT( 'Checkbox' ), short: vxT( 'Checkbox' ),    icon: svgIcon('<rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8.5 12l2.5 2.5 5-5"/>'), opts: false, cat: 'general' },
+			name:        { label: vxT( 'Name' ),        icon: svgIcon('<circle cx="12" cy="8" r="4"/><path d="M5 21a7 7 0 0 1 14 0"/>'), opts: false, cat: 'advanced' },
+			multiselect: { label: vxT( 'Multi-select' ), short: vxT( 'Multi' ),icon: svgIcon('<path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/>'), opts: true,  cat: 'advanced' },
+			country:     { label: vxT( 'Country' ),     icon: svgIcon('<circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><path d="M12 3a14 14 0 0 1 0 18a14 14 0 0 1 0-18z"/>'), opts: false, cat: 'advanced' },
+			url:         { label: vxT( 'Website URL' ), short: 'URL', icon: svgIcon('<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>'), opts: false, cat: 'advanced' },
+			date:        { label: vxT( 'Date' ),        icon: svgIcon('<rect x="3.5" y="5" width="17" height="16" rx="3"/><path d="M16 3v4M8 3v4M3.5 10h17"/>'), opts: false, cat: 'advanced' },
+			time:        { label: vxT( 'Time' ),        icon: svgIcon('<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>'), opts: false, cat: 'advanced' },
+			range:       { label: vxT( 'Slider' ), short: vxT( 'Slider' ), icon: svgIcon('<path d="M3 12h18"/><circle cx="9" cy="12" r="3.2" fill="currentColor" stroke="none"/>'), opts: false, cat: 'advanced' },
+			rating:      { label: vxT( 'Star rating' ), short: vxT( 'Rating' ), icon: svgIcon('<path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.8 6.1 20.5l1.2-6.5L2.5 9.4l6.6-.9z"/>'), opts: false, cat: 'advanced' },
+			address:     { label: vxT( 'Address' ),     icon: svgIcon('<path d="M12 21s7-6 7-11a7 7 0 1 0-14 0c0 5 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/>'), opts: false, cat: 'advanced' },
+			file:        { label: vxT( 'File upload' ), short: vxT( 'File' ), icon: svgIcon('<path d="M14 3v4a1 1 0 0 0 1 1h4"/><path d="M17 21H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2z"/><path d="M12 11v6M9.5 13.5 12 11l2.5 2.5"/>'), opts: false, cat: 'advanced' },
+			consent:     { label: vxT( 'Consent' ),     icon: svgIcon('<path d="M9 12l2 2 4-4"/><path d="M21 11.5V19a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>'), opts: false, cat: 'advanced' },
+			heading:     { label: vxT( 'Section heading' ), short: vxT( 'Heading' ), icon: svgIcon('<path d="M6 4v16M18 4v16M6 12h12"/>'), opts: false, cat: 'layout' },
 			captcha:     { label: 'CAPTCHA',     icon: svgIcon('<path d="M12 3l8 4v5c0 5-3.5 8-8 9c-4.5-1-8-4-8-9V7z"/><path d="M9 12l2 2 4-4"/>'), opts: false, cat: 'advanced' }
 		};
-		var CATS = { general: 'General fields', advanced: 'Advanced fields', layout: 'Layout' };
+		var CATS = { general: vxT( 'General fields' ), advanced: vxT( 'Advanced fields' ), layout: vxT( 'Layout' ) };
 
 		var canvas     = $( '#vmail-canvas' );
 		var palette    = $( '#vmail-palette' );
@@ -5499,7 +5528,7 @@
 			if ( f.type === 'textarea' ) {
 				inner = '<textarea class="vse-pf-input ta" data-fkey="' + key + '" placeholder="' + ph + '"></textarea>';
 			} else if ( f.type === 'select' || f.type === 'country' ) {
-				var os = f.type === 'country' ? [ 'Germany', 'Switzerland', 'Austria' ] : optList( f );
+				var os = f.type === 'country' ? [ vxT( 'Germany' ), vxT( 'Switzerland' ), vxT( 'Austria' ) ] : optList( f );
 				inner = '<select class="vse-pf-input" data-fkey="' + key + '"><option value="">' + ( f.type === 'country' ? 'Select a country\u2026' : '\u2014' ) + '</option>' +
 					os.map( function ( o ) { return '<option>' + escapeHtml( o ) + '</option>'; } ).join( '' ) + '</select>';
 			} else if ( f.type === 'radio' || f.type === 'multiselect' ) {
@@ -5510,7 +5539,7 @@
 				} ).join( '' ) + '</div>';
 			} else if ( f.type === 'name' ) {
 				var ol = optList( f );
-				inner = '<div class="vse-pf-name" data-fkey="' + key + '"><input class="vse-pf-input" placeholder="' + escapeHtml( ol[0] || 'First name' ) + '"><input class="vse-pf-input" placeholder="' + escapeHtml( ol[1] || 'Last name' ) + '"></div>';
+				inner = '<div class="vse-pf-name" data-fkey="' + key + '"><input class="vse-pf-input" placeholder="' + escapeHtml( ol[0] || vxT( 'First name' ) ) + '"><input class="vse-pf-input" placeholder="' + escapeHtml( ol[1] || vxT( 'Last name' ) ) + '"></div>';
 			} else {
 				inner = '<input class="vse-pf-input" type="' + pfTypeAttr( f.type ) + '" data-fkey="' + key + '" placeholder="' + ph + '" value="' + escapeHtml( f['default'] || '' ) + '">';
 			}
@@ -5528,7 +5557,7 @@
 				: '';
 			return header +
 				rows +
-				'<div class="vse-pf-submit-wrap"><button type="button" class="vse-pf-submit">' + escapeHtml( form.submit_label || 'Submit' ) + '</button></div>';
+				'<div class="vse-pf-submit-wrap"><button type="button" class="vse-pf-submit">' + escapeHtml( form.submit_label || vxT( 'Submit' ) ) + '</button></div>';
 		}
 
 		/* ---- CSS generation (front-end-accurate, incl. per-field overrides) ---- */
@@ -5635,7 +5664,7 @@
 					var b = document.createElement( 'button' );
 					b.type = 'button'; b.className = 'vmail-pal-item';
 					var locked = ( t === 'captcha' && ! meta.captcha_enabled );
-					if ( locked ) { b.className += ' is-locked'; b.title = 'CAPTCHA is switched off in Mail settings'; }
+					if ( locked ) { b.className += ' is-locked'; b.title = vxT( 'CAPTCHA is switched off in Mail settings' ); }
 					b.innerHTML = '<span class="vmail-pal-ic">' + TYPES[ t ].icon + '</span><span class="vmail-pal-lbl">' + ( TYPES[ t ].short || TYPES[ t ].label ) + ( locked ? ' \uD83D\uDD12' : '' ) + '</span>';
 					b.addEventListener( 'click', function () { addField( t ); } );
 					if ( ! locked ) {
@@ -5661,27 +5690,27 @@
 		function addField( type, atIndex ) {
 			// CAPTCHA is gated by the global Mail-settings toggle.
 			if ( type === 'captcha' && ! meta.captcha_enabled ) {
-				toast( t( 'CAPTCHA is switched off. Enable it under Mail settings → CAPTCHA first.' ), 'error' );
+				toast( vxT( 'CAPTCHA is switched off. Enable it under Mail settings → CAPTCHA first.' ), 'error' );
 				return;
 			}
 			// Consent and CAPTCHA are mutually exclusive — pick one spam/consent gate.
-			if ( type === 'captcha' && hasType( 'consent' ) ) { toast( t( 'Use either a consent box or CAPTCHA — not both. Remove the consent field first.' ), 'error' ); return; }
-			if ( type === 'consent' && hasType( 'captcha' ) ) { toast( t( 'Use either a consent box or CAPTCHA — not both. Remove the CAPTCHA field first.' ), 'error' ); return; }
-			if ( type === 'captcha' && hasType( 'captcha' ) ) { toast( t( 'There is already a CAPTCHA on this form.' ), 'error' ); return; }
+			if ( type === 'captcha' && hasType( 'consent' ) ) { toast( vxT( 'Use either a consent box or CAPTCHA — not both. Remove the consent field first.' ), 'error' ); return; }
+			if ( type === 'consent' && hasType( 'captcha' ) ) { toast( vxT( 'Use either a consent box or CAPTCHA — not both. Remove the CAPTCHA field first.' ), 'error' ); return; }
+			if ( type === 'captcha' && hasType( 'captcha' ) ) { toast( vxT( 'There is already a CAPTCHA on this form.' ), 'error' ); return; }
 			var f = normalize( { type: type, label: TYPES[ type ].label, required: false } );
 			if ( type === 'select' || type === 'radio' || type === 'multiselect' ) { f.options = 'Option one\nOption two\nOption three'; }
-			if ( type === 'name' ) { f.label = 'Name'; f.options = 'First name\nLast name'; f.width = 'full'; }
-			if ( type === 'consent' ) { f.label = 'I accept the privacy policy.'; f.required = true; }
+			if ( type === 'name' ) { f.label = vxT( 'Name' ); f.options = 'First name\nLast name'; f.width = 'full'; }
+			if ( type === 'consent' ) { f.label = vxT( 'I accept the privacy policy.' ); f.required = true; }
 			if ( type === 'captcha' ) { f.label = ''; f.required = false; }
 			if ( type === 'html' ) { f.label = ''; f.content = '<p>Your custom HTML here.</p>'; }
-			if ( type === 'step' ) { f.label = 'Step ' + ( form.fields.filter( function ( x ) { return x.type === 'step'; } ).length + 1 ); f.width = 'full'; }
-			if ( type === 'calc' ) { f.label = 'Total'; f.calc = ''; f.width = 'full'; }
-			if ( type === 'time' ) { f.label = 'Time'; }
-			if ( type === 'range' ) { f.label = 'Choose a value'; f.min = '0'; f.max = '100'; f.step = '1'; f['default'] = '50'; }
-			if ( type === 'rating' ) { f.label = 'Your rating'; f.max = '5'; }
-			if ( type === 'address' ) { f.label = 'Address'; f.width = 'full'; }
-			if ( type === 'file' ) { f.label = 'Upload a file'; f.accept = 'images,pdf,docs'; f.maxsize = '5'; f.width = 'full'; }
-			if ( type === 'heading' ) { f.label = 'Section title'; f.help = 'Optional description for this section.'; f.width = 'full'; }
+			if ( type === 'step' ) { f.label = vxT( 'Step ' ) + ( form.fields.filter( function ( x ) { return x.type === 'step'; } ).length + 1 ); f.width = 'full'; }
+			if ( type === 'calc' ) { f.label = vxT( 'Total' ); f.calc = ''; f.width = 'full'; }
+			if ( type === 'time' ) { f.label = vxT( 'Time' ); }
+			if ( type === 'range' ) { f.label = vxT( 'Choose a value' ); f.min = '0'; f.max = '100'; f.step = '1'; f['default'] = '50'; }
+			if ( type === 'rating' ) { f.label = vxT( 'Your rating' ); f.max = '5'; }
+			if ( type === 'address' ) { f.label = vxT( 'Address' ); f.width = 'full'; }
+			if ( type === 'file' ) { f.label = vxT( 'Upload a file' ); f.accept = 'images,pdf,docs'; f.maxsize = '5'; f.width = 'full'; }
+			if ( type === 'heading' ) { f.label = vxT( 'Section title' ); f.help = vxT( 'Optional description for this section.' ); f.width = 'full'; }
 			if ( atIndex == null || atIndex < 0 || atIndex > form.fields.length ) { atIndex = form.fields.length; }
 			form.fields.splice( atIndex, 0, f );
 			reKey();
@@ -5761,7 +5790,7 @@
 			}
 			if ( f.type === 'name' ) {
 				var ol = optList( f );
-				return lbl + '<div class="velox-form-name-row"><input disabled placeholder="' + escapeHtml( ol[0] || 'First name' ) + '"><input disabled placeholder="' + escapeHtml( ol[1] || 'Last name' ) + '"></div>' + help;
+				return lbl + '<div class="velox-form-name-row"><input disabled placeholder="' + escapeHtml( ol[0] || vxT( 'First name' ) ) + '"><input disabled placeholder="' + escapeHtml( ol[1] || vxT( 'Last name' ) ) + '"></div>' + help;
 			}
 			if ( f.type === 'textarea' ) { return lbl + '<textarea rows="3" disabled placeholder="' + escapeHtml( f.placeholder || '' ) + '">' + escapeHtml( f['default'] || '' ) + '</textarea>' + help; }
 			if ( f.type === 'select' || f.type === 'country' ) {
@@ -5772,7 +5801,7 @@
 				return lbl + '<div class="vmail-file-prev"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 11v6M9.5 13.5 12 11l2.5 2.5"/><path d="M20 16.7V19a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2v-2.3"/></svg><span>Click to upload or drag a file</span></div>' + help;
 			}
 			if ( f.type === 'heading' ) {
-				return '<div class="vmail-heading-prev"><strong>' + escapeHtml( f.label || 'Section heading' ) + '</strong>' + ( f.help ? '<span>' + escapeHtml( f.help ) + '</span>' : '' ) + '</div>';
+				return '<div class="vmail-heading-prev"><strong>' + escapeHtml( f.label || vxT( 'Section heading' ) ) + '</strong>' + ( f.help ? '<span>' + escapeHtml( f.help ) + '</span>' : '' ) + '</div>';
 			}
 			if ( f.type === 'rating' ) {
 				var rmax = parseInt( f.max, 10 ) || 5; var stars = '';
@@ -5780,7 +5809,7 @@
 				return lbl + '<div class="vmail-rating-prev">' + stars + '</div>' + help;
 			}
 			if ( f.type === 'address' ) {
-				return lbl + '<div class="vmail-addr-prev"><input disabled placeholder="Street address"><input disabled placeholder="City"><input disabled placeholder="ZIP / Postal code"><input disabled placeholder="Country"></div>' + help;
+				return lbl + '<div class="vmail-addr-prev"><input disabled placeholder=vxT( "Street address" )><input disabled placeholder=vxT( "City" )><input disabled placeholder="ZIP / Postal code"><input disabled placeholder=vxT( "Country" )></div>' + help;
 			}
 			if ( f.type === 'range' ) {
 				return lbl + '<div class="vmail-range-prev"><input type="range" disabled><span class="vmail-range-val">' + escapeHtml( f['default'] || f.min || '0' ) + '</span></div>' + help;
@@ -5802,12 +5831,12 @@
 				card.innerHTML =
 					'<div class="vmail-fcard-body">' + fieldPreview( f ) + '</div>' +
 					'<div class="vmail-fcard-toolbar">' +
-						'<button type="button" class="vmail-ft" data-act="up" title="Move up">' + ico('<path d="M12 19V5M5 12l7-7 7 7"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="down" title="Move down">' + ico('<path d="M12 5v14M19 12l-7 7-7-7"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="edit" title="Edit">' + ico('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="copy" title="Copy">' + ico('<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="paste" title="Paste after">' + ico('<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><rect x="5" y="6" width="14" height="15" rx="2.5"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="dup" title="Duplicate">' + ico('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="up" title=vxT( "Move up" )>' + ico('<path d="M12 19V5M5 12l7-7 7 7"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="down" title=vxT( "Move down" )>' + ico('<path d="M12 5v14M19 12l-7 7-7-7"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="edit" title=vxT( "Edit" )>' + ico('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="copy" title=vxT( "Copy" )>' + ico('<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="paste" title=vxT( "Paste after" )>' + ico('<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><rect x="5" y="6" width="14" height="15" rx="2.5"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="dup" title=vxT( "Duplicate" )>' + ico('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>') + '</button>' +
 						'<button type="button" class="vmail-ft vmail-ft-del" data-act="del" title="Delete">' + ico('<path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/>') + '</button>' +
 					'</div>';
 				card.addEventListener( 'click', function ( e ) {
@@ -5824,10 +5853,10 @@
 							if ( ! form.fields.length ) { selected = -1; if ( inspZone ) { inspZone.classList.add( 'is-collapsed' ); } }
 						} else if ( act === 'copy' ) {
 							clipboard = JSON.parse( JSON.stringify( f ) );
-							toast( t( 'Field copied.' ) );
+							toast( vxT( 'Field copied.' ) );
 							return;
 						} else if ( act === 'paste' ) {
-							if ( ! clipboard ) { toast( t( 'Nothing to paste — copy a field first.' ), 'error' ); return; }
+							if ( ! clipboard ) { toast( vxT( 'Nothing to paste — copy a field first.' ), 'error' ); return; }
 							var pasted = JSON.parse( JSON.stringify( clipboard ) );
 							form.fields.splice( i + 1, 0, pasted ); reKey(); selected = i + 1;
 						} else if ( act === 'dup' ) {
@@ -5851,7 +5880,7 @@
 			// Submit button as a real, selectable element (only shows when fields exist).
 			var sub = document.createElement( 'div' );
 			sub.className = 'vmail-sb-submit' + ( selected === 'submit' ? ' is-selected' : '' );
-			sub.innerHTML = '<button type="button" class="vmail-sb-submit-btn">' + escapeHtml( form.submit_label || 'Submit' ) + '</button>' +
+			sub.innerHTML = '<button type="button" class="vmail-sb-submit-btn">' + escapeHtml( form.submit_label || vxT( 'Submit' ) ) + '</button>' +
 				'<span class="vmail-sb-submit-tag">Submit button · click to edit</span>';
 			sub.addEventListener( 'click', function () { selected = 'submit'; openInspector(); renderCanvas(); renderInspector(); } );
 			canvas.appendChild( sub );
@@ -5891,7 +5920,7 @@
 				rows += '<div class="velox-field"><span class="velox-field-label">Pattern (regex)</span>' +
 					'<input type="text" class="velox-input velox-mono" data-k="pattern" value="' + escapeHtml( f.pattern || '' ) + '" placeholder="e.g. [0-9]{5}">' +
 					'<span class="velox-hint">Whole value must match. Leave blank for none.</span></div>';
-				rows += inspText( 'Pattern error message', 'pattern_msg', f.pattern_msg, 'Shown when the pattern doesn\'t match.' );
+				rows += inspText( vxT( 'Pattern error message' ), 'pattern_msg', f.pattern_msg, 'Shown when the pattern doesn\'t match.' );
 			}
 			return rows;
 		}
@@ -5933,7 +5962,7 @@
 					'<select class="velox-select velox-select--sm" data-cr="field">' + condFieldOptions( f.key, r.field ) + '</select>' +
 					'<select class="velox-select velox-select--sm" data-cr="op">' + COND_OPS.map( function ( o ) { return '<option value="' + o[0] + '"' + ( r.op === o[0] ? ' selected' : '' ) + '>' + o[1] + '</option>'; } ).join( '' ) + '</select>' +
 					'<input type="text" class="velox-input vmail-cond-val" data-cr="value" value="' + escapeHtml( r.value || '' ) + '" placeholder="value"' + ( needsVal ? '' : ' style="visibility:hidden"' ) + '>' +
-					'<button type="button" class="vmail-cond-del" data-i="' + i + '" title="Remove rule" aria-label="Remove rule">&times;</button>' +
+					'<button type="button" class="vmail-cond-del" data-i="' + i + '" title=vxT( "Remove rule" ) aria-label=vxT( "Remove rule" )>&times;</button>' +
 				'</div>';
 			} );
 			rows += '</div>';
@@ -5992,9 +6021,9 @@
 
 		function renderInspector() {
 			if ( selected === 'submit' ) {
-				var srows = inspText( 'Button text', 'submit_label', form.submit_label || 'Submit' );
+				var srows = inspText( vxT( 'Button text' ), 'submit_label', form.submit_label || vxT( 'Submit' ) );
 				srows += '<div class="vmail-insp-note">Want to fully style this button — colours, padding, alignment, shadow? Open the <strong>Style editor</strong> from the top bar.</div>';
-				inspector.innerHTML = '<div class="vmail-insp-head"><span>Submit button</span><button type="button" class="vmail-sb-insp-x" id="vmail-insp-close" title="Close"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="vmail-insp-body">' + srows + '</div>';
+				inspector.innerHTML = '<div class="vmail-insp-head"><span>Submit button</span><button type="button" class="vmail-sb-insp-x" id="vmail-insp-close" title=vxT( "Close" )><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="vmail-insp-body">' + srows + '</div>';
 				var sx = $( '#vmail-insp-close', inspector ); if ( sx ) { sx.addEventListener( 'click', closeInspector ); }
 				var sl = $( '[data-k="submit_label"]', inspector );
 				if ( sl ) { sl.addEventListener( 'input', function () { form.submit_label = sl.value; renderCanvas(); } ); }
@@ -6012,11 +6041,11 @@
 			var rows = '';
 
 			if ( t === 'step' ) {
-				rows += inspText( 'Step title', 'label', f.label, 'Shown in the progress bar. The first page break titles step 1.' );
+				rows += inspText( vxT( 'Step title' ), 'label', f.label, vxT( 'Shown in the progress bar. The first page break titles step 1.' ) );
 				rows += '<div class="vmail-insp-note">A page break splits the form into steps. Visitors get Next / Back buttons and a progress bar. Add more page breaks for more steps.</div>';
 			} else if ( t === 'calc' ) {
-				rows += inspText( 'Label', 'label', f.label );
-				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
+				rows += inspText( vxT( 'Label' ), 'label', f.label );
+				rows += inspText( vxT( 'Field key' ), 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
 				rows += '<div class="velox-field"><span class="velox-field-label">Formula</span>' +
 					'<textarea class="velox-textarea velox-mono" rows="2" data-k="calc" placeholder="{quantity} * {price}">' + escapeHtml( f.calc || '' ) + '</textarea>' +
 					'<span class="velox-hint">Reference fields with <code>{field_key}</code>. Use + - * / and ( ). Example: <code>{quantity} * {price}</code></span></div>';
@@ -6024,12 +6053,12 @@
 					'<input type="text" class="velox-input" data-k="calc_prefix" value="' + escapeHtml( f.calc_prefix || '' ) + '" placeholder="e.g. €">' +
 					'<input type="text" class="velox-input" data-k="calc_suffix" value="' + escapeHtml( f.calc_suffix || '' ) + '" placeholder="e.g. /mo">' +
 				'</div></div>';
-				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
+				rows += widthSelect( f ) + inspText( vxT( 'CSS class' ), 'css', f.css );
 				rows += conditionalRows( f );
 			} else if ( t === 'file' ) {
 				rows += '<div class="vmail-insp-sub">Basics</div>';
-				rows += inspText( 'Label', 'label', f.label );
-				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
+				rows += inspText( vxT( 'Label' ), 'label', f.label );
+				rows += inspText( vxT( 'Field key' ), 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
 				rows += '<label class="vmail-insp-check"><input type="checkbox" data-k="required"' + ( f.required ? ' checked' : '' ) + '> Required field</label>';
 				rows += '<div class="velox-field"><span class="velox-field-label">Allowed file types</span><select class="velox-select" data-k="accept">' +
 					'<option value="images,pdf,docs"' + ( f.accept === 'images,pdf,docs' ? ' selected' : '' ) + '>Images, PDF &amp; documents</option>' +
@@ -6038,36 +6067,36 @@
 					'<option value="docs"' + ( f.accept === 'docs' ? ' selected' : '' ) + '>Documents (PDF, Word, text)</option>' +
 					'</select></div>';
 				rows += '<div class="velox-field"><span class="velox-field-label">Max size (MB)</span><input type="number" class="velox-input" data-k="maxsize" min="1" max="64" value="' + escapeHtml( f.maxsize || '5' ) + '"></div>';
-				rows += inspText( 'Help text', 'help', f.help );
+				rows += inspText( vxT( 'Help text' ), 'help', f.help );
 				rows += '<div class="vmail-insp-sub">Advanced</div>';
-				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
+				rows += widthSelect( f ) + inspText( vxT( 'CSS class' ), 'css', f.css );
 				rows += conditionalRows( f );
 			} else if ( t === 'html' ) {
-				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
+				rows += inspText( vxT( 'Field key' ), 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
 				rows += '<div class="velox-field"><span class="velox-field-label">HTML content</span><textarea class="velox-textarea velox-mono" rows="6" data-k="content">' + escapeHtml( f.content || '' ) + '</textarea><span class="velox-hint">Rendered as-is in the form. Basic HTML is allowed.</span></div>';
-				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
+				rows += widthSelect( f ) + inspText( vxT( 'CSS class' ), 'css', f.css );
 				rows += conditionalRows( f );
 			} else if ( t === 'captcha' ) {
 				rows += '<div class="vmail-insp-note">This drops your CAPTCHA widget into the form. Configure the provider and keys under <strong>Mail &amp; forms \u2192 CAPTCHA</strong>. A form uses either a consent box or CAPTCHA \u2014 not both.</div>';
-				rows += widthSelect( f ) + inspText( 'CSS class', 'css', f.css );
+				rows += widthSelect( f ) + inspText( vxT( 'CSS class' ), 'css', f.css );
 				rows += conditionalRows( f );
 			} else {
 				rows += '<div class="vmail-insp-sub">Basics</div>';
-				rows += inspText( 'Label', 'label', f.label );
-				rows += inspText( 'Field key', 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
+				rows += inspText( vxT( 'Label' ), 'label', f.label );
+				rows += inspText( vxT( 'Field key' ), 'key', f.key, 'Merge tag: {inputs.' + escapeHtml( f.key ) + '}' );
 				rows += '<label class="vmail-insp-check"><input type="checkbox" data-k="required"' + ( f.required ? ' checked' : '' ) + '> Required field</label>';
-				if ( noPlaceholder.indexOf( t ) === -1 ) { rows += inspText( 'Placeholder', 'placeholder', f.placeholder ); }
-				if ( t === 'name' ) { rows += inspArea( 'Sub-labels (first line = first name, second = last name)', 'options', f.options ); }
-				else if ( hasOpts ) { rows += inspArea( 'Options (one per line)', 'options', f.options ); }
-				if ( noDefault.indexOf( t ) === -1 ) { rows += inspText( 'Default value', 'default', f['default'] ); }
-				rows += inspText( 'Help text', 'help', f.help );
+				if ( noPlaceholder.indexOf( t ) === -1 ) { rows += inspText( vxT( 'Placeholder' ), 'placeholder', f.placeholder ); }
+				if ( t === 'name' ) { rows += inspArea( vxT( 'Sub-labels (first line = first name, second = last name)' ), 'options', f.options ); }
+				else if ( hasOpts ) { rows += inspArea( vxT( 'Options (one per line)' ), 'options', f.options ); }
+				if ( noDefault.indexOf( t ) === -1 ) { rows += inspText( vxT( 'Default value' ), 'default', f['default'] ); }
+				rows += inspText( vxT( 'Help text' ), 'help', f.help );
 				rows += validationRows( f, t );
 				rows += '<div class="vmail-insp-sub">Advanced</div>';
 				rows += widthSelect( f );
-				rows += inspText( 'CSS class', 'css', f.css );
+				rows += inspText( vxT( 'CSS class' ), 'css', f.css );
 			}
 			rows += conditionalRows( f );
-			inspector.innerHTML = '<div class="vmail-insp-head"><span>' + ( TYPES[ t ] ? TYPES[ t ].label : t ) + ' field</span><button type="button" class="vmail-sb-insp-x" id="vmail-insp-close" title="Close"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="vmail-insp-body">' + rows + '</div>';
+			inspector.innerHTML = '<div class="vmail-insp-head"><span>' + ( TYPES[ t ] ? TYPES[ t ].label : t ) + ' field</span><button type="button" class="vmail-sb-insp-x" id="vmail-insp-close" title=vxT( "Close" )><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="vmail-insp-body">' + rows + '</div>';
 			var ix = $( '#vmail-insp-close', inspector ); if ( ix ) { ix.addEventListener( 'click', closeInspector ); }
 
 			$$( '[data-k]', inspector ).forEach( function ( el ) {
@@ -6096,9 +6125,9 @@
 			var tags = form.fields.filter( function ( f ) { return ! skip[ f.type ]; } ).map( function ( f ) {
 				return { tag: '{inputs.' + f.key + '}', label: f.label || f.key };
 			} );
-			tags.push( { tag: '{all_fields}', label: 'All fields' } );
-			tags.push( { tag: '{site_name}', label: 'Site name' } );
-			tags.push( { tag: '{date}', label: 'Date' } );
+			tags.push( { tag: '{all_fields}', label: vxT( 'All fields' ) } );
+			tags.push( { tag: '{site_name}', label: vxT( 'Site name' ) } );
+			tags.push( { tag: '{date}', label: vxT( 'Date' ) } );
 			return tags;
 		}
 		function emailFieldOptions( sel ) {
@@ -6138,24 +6167,24 @@
 		}
 		function renderEmails() {
 			emailsWrap.innerHTML = '';
-			[ { kind: 'admin', title: 'Admin notification', desc: 'Sent to your team when someone submits.' },
-			  { kind: 'customer', title: 'Auto-reply to customer', desc: 'A confirmation sent back to the person who submitted.' } ].forEach( function ( cfg ) {
+			[ { kind: 'admin', title: vxT( 'Admin notification' ), desc: vxT( 'Sent to your team when someone submits.' ) },
+			  { kind: 'customer', title: vxT( 'Auto-reply to customer' ), desc: vxT( 'A confirmation sent back to the person who submitted.' ) } ].forEach( function ( cfg ) {
 				var e = getEmail( cfg.kind );
 				var block = document.createElement( 'div' );
 				block.className = 'vmail-email'; block.setAttribute( 'data-type', cfg.kind );
 				var toRow = cfg.kind === 'admin'
-					? field2( 'Send to', '<input type="text" class="velox-input" data-e="to" value="' + escapeHtml( e.to ) + '" placeholder="you@agency.com, team@agency.com">' )
-					: field2( 'Send to the value of', '<select class="velox-select" data-e="to_field">' + emailFieldOptions( e.to_field ) + '</select>' );
+					? field2( vxT( 'Send to' ), '<input type="text" class="velox-input" data-e="to" value="' + escapeHtml( e.to ) + '" placeholder="you@agency.com, team@agency.com">' )
+					: field2( vxT( 'Send to the value of' ), '<select class="velox-select" data-e="to_field">' + emailFieldOptions( e.to_field ) + '</select>' );
 				block.innerHTML =
 					'<div class="vmail-email-bar">' +
 						'<div class="vmail-email-titlewrap"><span class="vmail-email-title">' + cfg.title + '</span><span class="vmail-email-sub">' + cfg.desc + '</span></div>' +
-						'<label class="vmail-email-switch"><span class="vmail-email-state">' + ( e.enabled ? 'Enabled' : 'Off' ) + '</span>' +
+						'<label class="vmail-email-switch"><span class="vmail-email-state">' + ( e.enabled ? vxT( 'Enabled' ) : vxT( 'Off' ) ) + '</span>' +
 						'<span class="velox-switch"><input type="checkbox" data-e="enabled"' + ( e.enabled ? ' checked' : '' ) + '><span class="velox-switch-track"></span></span></label>' +
 					'</div>' +
 					'<div class="vmail-email-body">' +
 						toRow +
-						field2( 'Subject', '<div class="vmail-mergewrap"><input type="text" class="velox-input" data-e="subject" value="' + escapeHtml( e.subject ) + '">' + mergeBtn() + '</div>' ) +
-						field2( 'Email body', '<div class="vmail-mergewrap"><textarea class="velox-textarea" rows="6" data-e="body">' + escapeHtml( e.body ) + '</textarea>' + mergeBtn() + '</div>' ) +
+						field2( vxT( 'Subject' ), '<div class="vmail-mergewrap"><input type="text" class="velox-input" data-e="subject" value="' + escapeHtml( e.subject ) + '">' + mergeBtn() + '</div>' ) +
+						field2( vxT( 'Email body' ), '<div class="vmail-mergewrap"><textarea class="velox-textarea" rows="6" data-e="body">' + escapeHtml( e.body ) + '</textarea>' + mergeBtn() + '</div>' ) +
 						'<div class="vmail-email-adv">' +
 							'<button type="button" class="vmail-email-adv-toggle" aria-expanded="false">' +
 								'<svg class="vmail-email-adv-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9l6 6 6-6"/></svg>' +
@@ -6163,11 +6192,11 @@
 							'</button>' +
 							'<div class="vmail-email-adv-body" hidden>' +
 								'<div class="vmail-email-grid">' +
-									field2( 'From name', '<input type="text" class="velox-input" data-e="from_name" value="' + escapeHtml( e.from_name ) + '" placeholder="' + escapeHtml( meta.site_name || '' ) + '">' ) +
-									field2( 'From email', '<input type="text" class="velox-input" data-e="from_email" value="' + escapeHtml( e.from_email ) + '" placeholder="blank = site default">' ) +
-									field2( 'Reply-To', '<input type="text" class="velox-input" data-e="reply_to" value="' + escapeHtml( e.reply_to ) + '" placeholder="e.g. {inputs.email}">' ) +
-									field2( 'CC', '<input type="text" class="velox-input" data-e="cc" value="' + escapeHtml( e.cc ) + '" placeholder="comma,separated">' ) +
-									field2( 'BCC', '<input type="text" class="velox-input" data-e="bcc" value="' + escapeHtml( e.bcc ) + '" placeholder="comma,separated">' ) +
+									field2( vxT( 'From name' ), '<input type="text" class="velox-input" data-e="from_name" value="' + escapeHtml( e.from_name ) + '" placeholder="' + escapeHtml( meta.site_name || '' ) + '">' ) +
+									field2( vxT( 'From email' ), '<input type="text" class="velox-input" data-e="from_email" value="' + escapeHtml( e.from_email ) + '" placeholder="blank = site default">' ) +
+									field2( vxT( 'Reply-To' ), '<input type="text" class="velox-input" data-e="reply_to" value="' + escapeHtml( e.reply_to ) + '" placeholder="e.g. {inputs.email}">' ) +
+									field2( vxT( 'CC' ), '<input type="text" class="velox-input" data-e="cc" value="' + escapeHtml( e.cc ) + '" placeholder="comma,separated">' ) +
+									field2( vxT( 'BCC' ), '<input type="text" class="velox-input" data-e="bcc" value="' + escapeHtml( e.bcc ) + '" placeholder="comma,separated">' ) +
 								'</div>' +
 							'</div>' +
 						'</div>' +
@@ -6188,7 +6217,7 @@
 				var sw = block.querySelector( '[data-e="enabled"]' );
 				var stateEl = block.querySelector( '.vmail-email-state' );
 				function syncState() {
-					if ( stateEl ) { stateEl.textContent = sw.checked ? 'Enabled' : 'Off'; }
+					if ( stateEl ) { stateEl.textContent = sw.checked ? vxT( 'Enabled' ) : vxT( 'Off' ); }
 					block.classList.toggle( 'is-off', ! sw.checked );
 				}
 				if ( sw ) { sw.addEventListener( 'change', syncState ); syncState(); }
@@ -6231,8 +6260,8 @@
 			// Per-form on/off toggle (7a): reflects in the label + persists immediately.
 			var en = $( '#vmail-enabled' ), enLbl = $( '#vmail-onoff-label' );
 			if ( en ) {
-				var syncEnabled = function () { form.enabled = en.checked; if ( enLbl ) { enLbl.textContent = en.checked ? 'On' : 'Off'; enLbl.classList.toggle( 'is-on', en.checked ); } };
-				en.addEventListener( 'change', function () { syncEnabled(); autosave(); toast( en.checked ? 'Form is on.' : 'Form is off — hidden from visitors.' ); } );
+				var syncEnabled = function () { form.enabled = en.checked; if ( enLbl ) { enLbl.textContent = en.checked ? vxT( 'On' ) : vxT( 'Off' ); enLbl.classList.toggle( 'is-on', en.checked ); } };
+				en.addEventListener( 'change', function () { syncEnabled(); autosave(); toast( en.checked ? vxT( 'Form is on.' ) : vxT( 'Form is off — hidden from visitors.' ) ); } );
 				syncEnabled();
 			}
 			// Mode switcher (Build / Style / Preview) active-state highlight — scoped to
@@ -6267,7 +6296,7 @@
 			reKey();
 			var btn = $( '#vmail-save' ); btn.disabled = true;
 			api( 'form_save', { form: JSON.stringify( form ) } )
-				.then( function () { toast( t( 'Form saved.' ) ); btn.disabled = false; } )
+				.then( function () { toast( vxT( 'Form saved.' ) ); btn.disabled = false; } )
 				.catch( function ( err ) { toast( err.message, 'error' ); btn.disabled = false; } );
 		}
 		// Persist silently in place — used by the Notifications toggles so a change
@@ -6278,7 +6307,7 @@
 			if ( autosaveTimer ) { clearTimeout( autosaveTimer ); }
 			autosaveTimer = setTimeout( function () {
 				api( 'form_save', { form: JSON.stringify( form ) } )
-					.then( function () { toast( t( 'Saved' ) ); } )
+					.then( function () { toast( vxT( 'Saved' ) ); } )
 					.catch( function ( err ) { toast( err.message, 'error' ); } );
 			}, 600 );
 		}
@@ -6291,7 +6320,7 @@
 			e.preventDefault();
 			var code = c.getAttribute( 'data-code' ) || '';
 			var done = function () {
-				toast( t( 'Shortcode copied.' ) );
+				toast( vxT( 'Shortcode copied.' ) );
 				c.classList.add( 'is-copied' );
 				setTimeout( function () { c.classList.remove( 'is-copied' ); }, 1200 );
 			};
@@ -6310,7 +6339,7 @@
 			var chip = e.target.closest ? e.target.closest( '.vmail-nav-sc' ) : null;
 			if ( ! chip ) { return; }
 			var code = chip.getAttribute( 'data-code' ) || '';
-			var done = function () { toast( t( 'Shortcode copied.' ) ); chip.classList.add( 'is-copied' ); setTimeout( function () { chip.classList.remove( 'is-copied' ); }, 1200 ); };
+			var done = function () { toast( vxT( 'Shortcode copied.' ) ); chip.classList.add( 'is-copied' ); setTimeout( function () { chip.classList.remove( 'is-copied' ); }, 1200 ); };
 			if ( navigator.clipboard && navigator.clipboard.writeText ) {
 				navigator.clipboard.writeText( code ).then( done ).catch( function () { done(); } );
 			} else {
@@ -6344,13 +6373,13 @@
 				overlay.innerHTML =
 					'<div class="vmail-nav vmail-nav--vmp">' +
 						'<div class="vmail-nav-left">' +
-							'<a class="vmail-nav-back" id="vmp-back" title="Back to Build" style="cursor:pointer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>' +
+							'<a class="vmail-nav-back" id="vmp-back" title=vxT( "Back to Build" ) style="cursor:pointer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>' +
 							'<div class="vmail-nav-crumb">Utilities <span>/</span> <b>Mail &amp; forms</b></div>' +
 							'<div class="vmail-nav-vsep"></div>' +
-							'<span class="vmail-nav-title vmail-nav-title--static">' + escapeHtml( form.title || 'Form' ) + '</span>' +
-							'<label class="vmail-nav-switch" title="Turn this form on or off"><input type="checkbox" id="vmp-enabled"' + ( form.enabled !== false ? ' checked' : '' ) + '><span class="vmail-switch-track"></span></label>' +
-							'<span class="vmail-nav-onoff' + ( form.enabled !== false ? ' is-on' : '' ) + '" id="vmp-onoff-label">' + ( form.enabled !== false ? 'On' : 'Off' ) + '</span>' +
-							'<button type="button" class="vmail-nav-sc" data-code=\'[velox_form id="' + form.id + '"]\' title="Form shortcode — click to copy"><span class="vmail-nav-sc-tag">Shortcode</span><code>[velox_form id="' + form.id + '"]</code></button>' +
+							'<span class="vmail-nav-title vmail-nav-title--static">' + escapeHtml( form.title || vxT( 'Form' ) ) + '</span>' +
+							'<label class="vmail-nav-switch" title=vxT( "Turn this form on or off" )><input type="checkbox" id="vmp-enabled"' + ( form.enabled !== false ? ' checked' : '' ) + '><span class="vmail-switch-track"></span></label>' +
+							'<span class="vmail-nav-onoff' + ( form.enabled !== false ? ' is-on' : '' ) + '" id="vmp-onoff-label">' + ( form.enabled !== false ? vxT( 'On' ) : vxT( 'Off' ) ) + '</span>' +
+							'<button type="button" class="vmail-nav-sc" data-code=\'[velox_form id="' + form.id + '"]\' title=vxT( "Form shortcode — click to copy" )><span class="vmail-nav-sc-tag">Shortcode</span><code>[velox_form id="' + form.id + '"]</code></button>' +
 						'</div>' +
 						'<div class="vmail-nav-mode">' +
 							'<button type="button" class="vmail-modebtn" id="vmp-to-build"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M3 12h18M3 19h12"/></svg> Build</button>' +
@@ -6375,11 +6404,11 @@
 				if ( pEn ) {
 					pEn.addEventListener( 'change', function () {
 						form.enabled = pEn.checked;
-						if ( pEnLbl ) { pEnLbl.textContent = pEn.checked ? 'On' : 'Off'; pEnLbl.classList.toggle( 'is-on', pEn.checked ); }
+						if ( pEnLbl ) { pEnLbl.textContent = pEn.checked ? vxT( 'On' ) : vxT( 'Off' ); pEnLbl.classList.toggle( 'is-on', pEn.checked ); }
 						var ben = $( '#vmail-enabled' ), benLbl = $( '#vmail-onoff-label' );
 						if ( ben ) { ben.checked = pEn.checked; }
-						if ( benLbl ) { benLbl.textContent = pEn.checked ? 'On' : 'Off'; benLbl.classList.toggle( 'is-on', pEn.checked ); }
-						autosave(); toast( pEn.checked ? 'Form is on.' : 'Form is off — hidden from visitors.' );
+						if ( benLbl ) { benLbl.textContent = pEn.checked ? vxT( 'On' ) : vxT( 'Off' ); benLbl.classList.toggle( 'is-on', pEn.checked ); }
+						autosave(); toast( pEn.checked ? vxT( 'Form is on.' ) : vxT( 'Form is off — hidden from visitors.' ) );
 					} );
 				}
 				$( '#vmp-form', overlay ).addEventListener( 'submit', function ( e ) { e.preventDefault(); } );
@@ -6426,8 +6455,8 @@
 				submit: '<rect x="3" y="8.5" width="18" height="7" rx="3.5"/><path d="M12 19v2"/>'
 			};
 			var TARGETS = [
-				{ k: 'form', n: 'Form' }, { k: 'header', n: 'Title' }, { k: 'labels', n: 'Labels' },
-				{ k: 'inputs', n: 'Inputs' }, { k: 'submit', n: 'Button' }
+				{ k: 'form', n: vxT( 'Form' ) }, { k: 'header', n: vxT( 'Title' ) }, { k: 'labels', n: vxT( 'Labels' ) },
+				{ k: 'inputs', n: vxT( 'Inputs' ) }, { k: 'submit', n: vxT( 'Button' ) }
 			];
 			// curTarget = which kind of thing is being styled; curScope = '' for all of
 			// them, or a single field key. `current` is the resulting style bucket.
@@ -6537,8 +6566,8 @@
 				return '<div class="vse-row"><span class="vse-rk">' + label + '</span><span class="vse-rc">' +
 					'<span class="vse-sw' + ( has ? '' : ' is-inherit' ) + '"' + ( has ? ' style="background:' + escapeHtml( v ) + '"' : '' ) + '>' +
 					'<input type="color" data-t="' + target + '" data-k="' + key + '" data-color="1" value="' + ( hexOk ? v : '#2ab7f1' ) + '"></span>' +
-					'<input class="vse-hex' + ( has ? '' : ' is-inherit' ) + '" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( v ) + '" placeholder="Inherit">' +
-					'<button type="button" class="vse-revert' + ( has ? '' : ' is-hidden' ) + '" data-t="' + target + '" data-k="' + key + '" title="Reset to inherit">' + svgi( REVERT, 13, 1.8 ) + '</button>' +
+					'<input class="vse-hex' + ( has ? '' : ' is-inherit' ) + '" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( v ) + '" placeholder=vxT( "Inherit" )>' +
+					'<button type="button" class="vse-revert' + ( has ? '' : ' is-hidden' ) + '" data-t="' + target + '" data-k="' + key + '" title=vxT( "Reset to inherit" )>' + svgi( REVERT, 13, 1.8 ) + '</button>' +
 					'</span></div>';
 			}
 			function ctrlToggle( label, target, key, on ) {
@@ -6565,10 +6594,10 @@
 					return x == null ? '' : x;
 				}
 				return '<div class="vse-two">' +
-					ctrlNum( 'Top', target, prefix + 't', pick( prefix + 't', prefix + 'tb' ) ) +
-					ctrlNum( 'Right', target, prefix + 'r', pick( prefix + 'r', prefix + 'lr' ) ) +
-					ctrlNum( 'Bottom', target, prefix + 'b', pick( prefix + 'b', prefix + 'tb' ) ) +
-					ctrlNum( 'Left', target, prefix + 'l', pick( prefix + 'l', prefix + 'lr' ) ) +
+					ctrlNum( vxT( 'Top' ), target, prefix + 't', pick( prefix + 't', prefix + 'tb' ) ) +
+					ctrlNum( vxT( 'Right' ), target, prefix + 'r', pick( prefix + 'r', prefix + 'lr' ) ) +
+					ctrlNum( vxT( 'Bottom' ), target, prefix + 'b', pick( prefix + 'b', prefix + 'tb' ) ) +
+					ctrlNum( vxT( 'Left' ), target, prefix + 'l', pick( prefix + 'l', prefix + 'lr' ) ) +
 					'</div>';
 			}
 			function grp( key, title, inner ) {
@@ -6578,10 +6607,10 @@
 					'<div class="vse-grp-b">' + inner + '</div></div>';
 			}
 
-			var WEIGHTS = [ { v: '', l: 'Inherit' }, { v: '400', l: 'Regular' }, { v: '500', l: 'Medium' },
-				{ v: '600', l: 'Semibold' }, { v: '700', l: 'Bold' } ];
-			var SHADOWS = [ { v: 'none', l: 'None' }, { v: 'soft', l: 'Soft' }, { v: 'medium', l: 'Med' },
-				{ v: 'strong', l: 'Strong' }, { v: 'custom', l: 'Custom' } ];
+			var WEIGHTS = [ { v: '', l: vxT( 'Inherit' ) }, { v: '400', l: vxT( 'Regular' ) }, { v: '500', l: vxT( 'Medium' ) },
+				{ v: '600', l: vxT( 'Semibold' ) }, { v: '700', l: vxT( 'Bold' ) } ];
+			var SHADOWS = [ { v: 'none', l: vxT( 'None' ) }, { v: 'soft', l: vxT( 'Soft' ) }, { v: 'medium', l: vxT( 'Med' ) },
+				{ v: 'strong', l: vxT( 'Strong' ) }, { v: 'custom', l: vxT( 'Custom' ) } ];
 			var DIM = [ 'px', 'rem', 'em', '%', 'auto' ];
 			var PLAIN = [ 'px', 'rem', 'em', '%' ];
 
@@ -6590,49 +6619,49 @@
 				var inner = '';
 				if ( rich ) {
 					inner += '<span class="vse-seg vse-seg--full">' +
-						[ [ 'color', 'Colour' ], [ 'gradient', 'Gradient' ], [ 'image', 'Image' ] ].map( function ( m ) {
+						[ [ 'color', vxT( 'Colour' ) ], [ 'gradient', vxT( 'Gradient' ) ], [ 'image', vxT( 'Image' ) ] ].map( function ( m ) {
 							return '<button type="button" data-t="' + t + '" data-k="bgMode" data-v="' + m[0] + '"' +
 								( mode === m[0] ? ' class="is-on"' : '' ) + '>' + m[1] + '</button>';
 						} ).join( '' ) + '</span>';
 				}
 				if ( ! rich || 'color' === mode ) {
-					inner += ctrlColor( 'Fill', t, 'bg', o.bg );
+					inner += ctrlColor( vxT( 'Fill' ), t, 'bg', o.bg );
 				} else if ( 'gradient' === mode ) {
 					inner += '<div class="vse-gradbar" style="background:' + gradCss( o ) + '"></div>';
 					inner += '<div class="vse-two">' +
-						ctrlSelect( 'Type', t, 'gradType', o.gradType || 'linear', [ { v: 'linear', l: 'Linear' }, { v: 'radial', l: 'Radial' } ] ) +
-						ctrlNum( 'Angle', t, 'gradAngle', o.gradAngle, [ 'deg' ] ) + '</div>';
-					inner += ctrlColor( 'From', t, 'gradFrom', o.gradFrom ) + ctrlColor( 'To', t, 'gradTo', o.gradTo );
+						ctrlSelect( vxT( 'Type' ), t, 'gradType', o.gradType || 'linear', [ { v: 'linear', l: vxT( 'Linear' ) }, { v: 'radial', l: vxT( 'Radial' ) } ] ) +
+						ctrlNum( vxT( 'Angle' ), t, 'gradAngle', o.gradAngle, [ 'deg' ] ) + '</div>';
+					inner += ctrlColor( vxT( 'From' ), t, 'gradFrom', o.gradFrom ) + ctrlColor( vxT( 'To' ), t, 'gradTo', o.gradTo );
 				} else {
-					inner += ctrlUrl( 'Image URL', t, 'imgUrl', o.imgUrl );
+					inner += ctrlUrl( vxT( 'Image URL' ), t, 'imgUrl', o.imgUrl );
 					inner += '<div class="vse-two">' +
-						ctrlSelect( 'Size', t, 'imgSize', o.imgSize || 'cover', [ { v: 'cover', l: 'Cover' }, { v: 'contain', l: 'Contain' }, { v: 'auto', l: 'Auto' } ] ) +
-						ctrlSelect( 'Position', t, 'imgPos', o.imgPos || 'center', [ { v: 'center', l: 'Center' }, { v: 'top', l: 'Top' }, { v: 'bottom', l: 'Bottom' }, { v: 'left', l: 'Left' }, { v: 'right', l: 'Right' } ] ) + '</div>';
+						ctrlSelect( vxT( 'Size' ), t, 'imgSize', o.imgSize || 'cover', [ { v: 'cover', l: vxT( 'Cover' ) }, { v: 'contain', l: vxT( 'Contain' ) }, { v: 'auto', l: vxT( 'Auto' ) } ] ) +
+						ctrlSelect( vxT( 'Position' ), t, 'imgPos', o.imgPos || 'center', [ { v: 'center', l: vxT( 'Center' ) }, { v: 'top', l: vxT( 'Top' ) }, { v: 'bottom', l: vxT( 'Bottom' ) }, { v: 'left', l: vxT( 'Left' ) }, { v: 'right', l: vxT( 'Right' ) } ] ) + '</div>';
 					inner += '<div class="vse-two">' +
-						ctrlSelect( 'Repeat', t, 'imgRepeat', o.imgRepeat || 'no-repeat', [ { v: 'no-repeat', l: 'No repeat' }, { v: 'repeat', l: 'Tile' }, { v: 'repeat-x', l: 'Tile X' }, { v: 'repeat-y', l: 'Tile Y' } ] ) +
+						ctrlSelect( vxT( 'Repeat' ), t, 'imgRepeat', o.imgRepeat || 'no-repeat', [ { v: 'no-repeat', l: vxT( 'No repeat' ) }, { v: 'repeat', l: vxT( 'Tile' ) }, { v: 'repeat-x', l: vxT( 'Tile X' ) }, { v: 'repeat-y', l: vxT( 'Tile Y' ) } ] ) +
 						'</div>';
-					inner += ctrlColor( 'Behind image', t, 'bg', o.bg );
+					inner += ctrlColor( vxT( 'Behind image' ), t, 'bg', o.bg );
 				}
-				return grp( 'colour', 'Background', inner );
+				return grp( 'colour', vxT( 'Background' ), inner );
 			}
 			function grpSize( t, o ) {
-				return grp( 'size', 'Size', '<div class="vse-two">' + ctrlNum( 'Width', t, 'w', o.w, DIM ) + ctrlNum( 'Height', t, 'h', o.h, DIM ) + '</div>' +
-					'<div class="vse-two">' + ctrlNum( 'Min height', t, 'minh', o.minh, DIM ) + ctrlNum( 'Max width', t, 'maxw', o.maxw, DIM ) + '</div>' );
+				return grp( 'size', vxT( 'Size' ), '<div class="vse-two">' + ctrlNum( vxT( 'Width' ), t, 'w', o.w, DIM ) + ctrlNum( vxT( 'Height' ), t, 'h', o.h, DIM ) + '</div>' +
+					'<div class="vse-two">' + ctrlNum( vxT( 'Min height' ), t, 'minh', o.minh, DIM ) + ctrlNum( vxT( 'Max width' ), t, 'maxw', o.maxw, DIM ) + '</div>' );
 			}
 			function grpText( t, o, withColor ) {
-				var inner = '<div class="vse-two">' + ctrlNum( 'Size', t, 'fs', o.fs, PLAIN ) + ctrlSelect( 'Weight', t, 'fw', o.fw, WEIGHTS ) + '</div>' +
-					'<div class="vse-two">' + ctrlNum( 'Line height', t, 'lh', o.lh, [ '', 'px', 'rem', 'em' ] ) + ctrlNum( 'Letter spacing', t, 'ls', o.ls, PLAIN ) + '</div>';
-				if ( withColor ) { inner += ctrlColor( 'Colour', t, 'color', o.color ); }
-				return grp( 'text', 'Text', inner );
+				var inner = '<div class="vse-two">' + ctrlNum( vxT( 'Size' ), t, 'fs', o.fs, PLAIN ) + ctrlSelect( vxT( 'Weight' ), t, 'fw', o.fw, WEIGHTS ) + '</div>' +
+					'<div class="vse-two">' + ctrlNum( vxT( 'Line height' ), t, 'lh', o.lh, [ '', 'px', 'rem', 'em' ] ) + ctrlNum( vxT( 'Letter spacing' ), t, 'ls', o.ls, PLAIN ) + '</div>';
+				if ( withColor ) { inner += ctrlColor( vxT( 'Colour' ), t, 'color', o.color ); }
+				return grp( 'text', vxT( 'Text' ), inner );
 			}
 			function grpShape( t, o ) {
-				return grp( 'shape', 'Shape', '<div class="vse-two">' + ctrlNum( 'Corner', t, 'radius', o.radius, PLAIN ) +
-					ctrlNum( 'Border', t, 'border', o.border, PLAIN ) + '</div>' + ctrlColor( 'Border colour', t, 'borderColor', o.borderColor ) );
+				return grp( 'shape', vxT( 'Shape' ), '<div class="vse-two">' + ctrlNum( vxT( 'Corner' ), t, 'radius', o.radius, PLAIN ) +
+					ctrlNum( vxT( 'Border' ), t, 'border', o.border, PLAIN ) + '</div>' + ctrlColor( vxT( 'Border colour' ), t, 'borderColor', o.borderColor ) );
 			}
 			function grpSpacing( t, both ) {
 				var inner = '<div class="vse-sk">Padding</div>' + ctrlSides( t, 'p' );
 				if ( both ) { inner += '<div class="vse-sk">Margin</div>' + ctrlSides( t, 'm' ); }
-				return grp( 'spacing', 'Spacing', inner );
+				return grp( 'spacing', vxT( 'Spacing' ), inner );
 			}
 			function grpShadow( t, o ) {
 				var inner = ctrlSeg( '', t, 'shadow', o.shadow || 'none', SHADOWS );
@@ -6641,11 +6670,11 @@
 						( o.shX || 0 ) + 'px ' + ( o.shY || 0 ) + 'px ' + ( o.shBlur || 0 ) + 'px ' + ( o.shSpread || 0 ) + 'px ' +
 						( o.shColor || 'rgba(16,24,40,.22)' ) + '"></div>';
 					inner += '<div class="vse-two">' + ctrlNum( 'X', t, 'shX', o.shX, PLAIN ) + ctrlNum( 'Y', t, 'shY', o.shY, PLAIN ) + '</div>';
-					inner += '<div class="vse-two">' + ctrlNum( 'Blur', t, 'shBlur', o.shBlur, PLAIN ) + ctrlNum( 'Spread', t, 'shSpread', o.shSpread, PLAIN ) + '</div>';
-					inner += ctrlColor( 'Colour', t, 'shColor', o.shColor );
-					inner += ctrlToggle( 'Inset', t, 'shInset', !! o.shInset );
+					inner += '<div class="vse-two">' + ctrlNum( vxT( 'Blur' ), t, 'shBlur', o.shBlur, PLAIN ) + ctrlNum( vxT( 'Spread' ), t, 'shSpread', o.shSpread, PLAIN ) + '</div>';
+					inner += ctrlColor( vxT( 'Colour' ), t, 'shColor', o.shColor );
+					inner += ctrlToggle( vxT( 'Inset' ), t, 'shInset', !! o.shInset );
 				}
-				return grp( 'shadow', 'Shadow', inner );
+				return grp( 'shadow', vxT( 'Shadow' ), inner );
 			}
 
 			function renderControls() {
@@ -6653,11 +6682,11 @@
 				var bucket = current;
 
 				if ( 'submit' === t ) {
-					body += grp( 'content', 'Content', ctrlText( 'Button text', 'submit', 'text', form.submit_label || 'Submit' ) +
-						ctrlSeg( 'Alignment', 'submit', 'align', o.align || 'center',
-							[ { v: 'left', l: 'Left' }, { v: 'center', l: 'Center' }, { v: 'right', l: 'Right' }, { v: 'full', l: 'Full' } ] ) );
+					body += grp( 'content', vxT( 'Content' ), ctrlText( vxT( 'Button text' ), 'submit', 'text', form.submit_label || vxT( 'Submit' ) ) +
+						ctrlSeg( vxT( 'Alignment' ), 'submit', 'align', o.align || 'center',
+							[ { v: 'left', l: vxT( 'Left' ) }, { v: 'center', l: vxT( 'Center' ) }, { v: 'right', l: vxT( 'Right' ) }, { v: 'full', l: vxT( 'Full' ) } ] ) );
 					body += grpBackground( 'submit', o, true );
-					body += grp( 'hover', 'Hover', ctrlColor( 'Hover fill', 'submit', 'hoverBg', o.hoverBg ) );
+					body += grp( 'hover', vxT( 'Hover' ), ctrlColor( vxT( 'Hover fill' ), 'submit', 'hoverBg', o.hoverBg ) );
 					body += grpSize( 'submit', o );
 					body += grpText( 'submit', o, true );
 					body += grpShape( 'submit', o );
@@ -6676,11 +6705,11 @@
 					var kc = curScope ? 'labelColor' : 'color';
 					var ks = curScope ? 'labelFs' : 'fs';
 					var kw = curScope ? 'labelFw' : 'fw';
-					body += grp( 'colour', 'Colour', ctrlColor( 'Text', bucket, kc, o[ kc ] ) );
-					body += grp( 'text', 'Text', '<div class="vse-two">' + ctrlNum( 'Size', bucket, ks, o[ ks ], PLAIN ) +
-						ctrlSelect( 'Weight', bucket, kw, o[ kw ], WEIGHTS ) + '</div>' +
-						( curScope ? '' : '<div class="vse-two">' + ctrlNum( 'Line height', 'labels', 'lh', o.lh, [ '', 'px', 'rem', 'em' ] ) +
-							ctrlNum( 'Letter spacing', 'labels', 'ls', o.ls, PLAIN ) + '</div>' ) );
+					body += grp( 'colour', vxT( 'Colour' ), ctrlColor( vxT( 'Text' ), bucket, kc, o[ kc ] ) );
+					body += grp( 'text', vxT( 'Text' ), '<div class="vse-two">' + ctrlNum( vxT( 'Size' ), bucket, ks, o[ ks ], PLAIN ) +
+						ctrlSelect( vxT( 'Weight' ), bucket, kw, o[ kw ], WEIGHTS ) + '</div>' +
+						( curScope ? '' : '<div class="vse-two">' + ctrlNum( vxT( 'Line height' ), 'labels', 'lh', o.lh, [ '', 'px', 'rem', 'em' ] ) +
+							ctrlNum( vxT( 'Letter spacing' ), 'labels', 'ls', o.ls, PLAIN ) + '</div>' ) );
 					if ( ! curScope ) { body += grpSpacing( 'labels', true ); }
 				} else {
 					body += grpBackground( bucket, o, false );
@@ -6840,7 +6869,7 @@
 				} );
 			}
 			function scopeLabel() {
-				if ( ! curScope ) { return 'inputs' === curTarget ? 'All inputs' : 'All labels'; }
+				if ( ! curScope ) { return 'inputs' === curTarget ? vxT( 'All inputs' ) : vxT( 'All labels' ); }
 				var f = fieldByKey( curScope );
 				return ( f && f.label ) ? f.label : curScope;
 			}
@@ -6849,7 +6878,7 @@
 				if ( ! el ) { return; }
 				if ( ! scopeable( curTarget ) ) { el.hidden = true; el.innerHTML = ''; return; }
 				el.hidden = false;
-				var all = 'inputs' === curTarget ? 'All inputs' : 'All labels';
+				var all = 'inputs' === curTarget ? vxT( 'All inputs' ) : vxT( 'All labels' );
 				var fields = styleableFields();
 				var items = '<div class="vse-scope-sec">Everything</div>' +
 					'<button type="button" class="vse-scope-i' + ( curScope ? '' : ' is-on' ) + '" data-key="">' +
@@ -6899,7 +6928,7 @@
 			function open() {
 				syncCurrent(); buildPreview(); renderStrip(); renderScope(); renderControls(); applyLive();
 				var ven = $( '#vse-enabled' ), venLbl = $( '#vse-onoff-label' );
-				if ( ven ) { ven.checked = ( form.enabled !== false ); if ( venLbl ) { venLbl.textContent = ven.checked ? 'On' : 'Off'; venLbl.classList.toggle( 'is-on', ven.checked ); } }
+				if ( ven ) { ven.checked = ( form.enabled !== false ); if ( venLbl ) { venLbl.textContent = ven.checked ? vxT( 'On' ) : vxT( 'Off' ); venLbl.classList.toggle( 'is-on', ven.checked ); } }
 				root.hidden = false; document.body.style.overflow = 'hidden';
 			}
 			function close() { root.hidden = true; document.body.style.overflow = ''; if ( window.veloxMailHighlightBuild ) { window.veloxMailHighlightBuild(); } }
@@ -6914,11 +6943,11 @@
 			if ( ven ) {
 				ven.addEventListener( 'change', function () {
 					form.enabled = ven.checked;
-					if ( venLbl ) { venLbl.textContent = ven.checked ? 'On' : 'Off'; venLbl.classList.toggle( 'is-on', ven.checked ); }
+					if ( venLbl ) { venLbl.textContent = ven.checked ? vxT( 'On' ) : vxT( 'Off' ); venLbl.classList.toggle( 'is-on', ven.checked ); }
 					var ben = $( '#vmail-enabled' ), benLbl = $( '#vmail-onoff-label' );
 					if ( ben ) { ben.checked = ven.checked; }
-					if ( benLbl ) { benLbl.textContent = ven.checked ? 'On' : 'Off'; benLbl.classList.toggle( 'is-on', ven.checked ); }
-					autosave(); toast( ven.checked ? 'Form is on.' : 'Form is off — hidden from visitors.' );
+					if ( benLbl ) { benLbl.textContent = ven.checked ? vxT( 'On' ) : vxT( 'Off' ); benLbl.classList.toggle( 'is-on', ven.checked ); }
+					autosave(); toast( ven.checked ? vxT( 'Form is on.' ) : vxT( 'Form is off — hidden from visitors.' ) );
 				} );
 				if ( venLbl ) { venLbl.classList.toggle( 'is-on', ven.checked ); }
 			}
@@ -6928,7 +6957,7 @@
 				// Persist the whole form (styles included) but STAY in the style editor.
 				var b = this; b.disabled = true;
 				api( 'form_save', { form: JSON.stringify( form ) } )
-					.then( function () { toast( t( 'Styles saved.' ) ); } )
+					.then( function () { toast( vxT( 'Styles saved.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { b.disabled = false; } );
 			} );
@@ -6948,7 +6977,7 @@
 		var toggle = $( '#velox-sm-toggle' );
 		if ( toggle ) {
 			toggle.addEventListener( 'change', function () {
-				saveSettings( { util_scripts: toggle.checked ? 1 : 0 }, toggle.checked ? 'Script Manager on.' : 'Script Manager off.' )
+				saveSettings( { util_scripts: toggle.checked ? 1 : 0 }, toggle.checked ? vxT( 'Script Manager on.' ) : vxT( 'Script Manager off.' ) )
 					.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
 			} );
 		}
@@ -6985,7 +7014,7 @@
 		function save( btn ) {
 			btn.disabled = true;
 			api( 'scripts_save', { rules: JSON.stringify( collectRules() ) } )
-				.then( function ( r ) { toast( t( 'Saved ' ) + ( r.count || 0 ) + ' rule(s).' ); } )
+				.then( function ( r ) { toast( vxT( 'Saved ' ) + ( r.count || 0 ) + ' rule(s).' ); } )
 				.catch( function ( e ) { toast( e.message, 'error' ); } )
 				.then( function () { btn.disabled = false; } );
 		}
@@ -7002,21 +7031,21 @@
 				api( 'scripts_scan', {} )
 					.then( function ( r ) {
 						if ( ! r.ok ) {
-							toast( r.message || 'Scan failed.', 'error' );
+							toast( r.message || vxT( 'Scan failed.' ), 'error' );
 							scanBtn.disabled = false;
-							scanBtn.textContent = 'Scan site';
+							scanBtn.textContent = vxT( 'Scan site' );
 							return;
 						}
 						var pages = r.pages ? ( r.pages + ' page' + ( r.pages === 1 ? '' : 's' ) + ' · ' ) : '';
 						scanBtn.innerHTML = '<span class="velox-btn-spin"></span>Loading results…';
-						toast( t( 'Scanned ' ) + pages + r.scripts + ' scripts, ' + r.styles + ' styles.' );
+						toast( vxT( 'Scanned ' ) + pages + r.scripts + ' scripts, ' + r.styles + ' styles.' );
 						// Reload so the freshly discovered handles appear immediately.
 						setTimeout( function () { location.reload(); }, 600 );
 					} )
 					.catch( function ( e ) {
 						toast( e.message, 'error' );
 						scanBtn.disabled = false;
-						scanBtn.textContent = 'Scan site';
+						scanBtn.textContent = vxT( 'Scan site' );
 					} );
 			} );
 		}
@@ -7024,7 +7053,7 @@
 		var clearBtn = $( '#velox-sm-clear' );
 		if ( clearBtn ) {
 			clearBtn.addEventListener( 'click', function () {
-				if ( ! window.confirm( 'Clear the discovered handle list? Your rules stay saved.' ) ) { return; }
+				if ( ! window.confirm( vxT( 'Clear the discovered handle list? Your rules stay saved.' ) ) ) { return; }
 				api( 'scripts_clear', {} )
 					.then( function () { location.reload(); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
@@ -7036,14 +7065,14 @@
 		var toggle = $( '#velox-activity-toggle' );
 		if ( toggle ) {
 			toggle.addEventListener( 'change', function () {
-				saveSettings( { util_activity: toggle.checked ? 1 : 0 }, toggle.checked ? 'Recording activity.' : 'Stopped recording.' )
+				saveSettings( { util_activity: toggle.checked ? 1 : 0 }, toggle.checked ? vxT( 'Recording activity.' ) : vxT( 'Stopped recording.' ) )
 					.then( function () { setTimeout( function () { location.reload(); }, 400 ); } );
 			} );
 		}
 		var clearBtn = $( '#velox-activity-clear' );
 		if ( clearBtn ) {
 			clearBtn.addEventListener( 'click', function () {
-				if ( ! window.confirm( 'Clear the entire activity log?' ) ) { return; }
+				if ( ! window.confirm( vxT( 'Clear the entire activity log?' ) ) ) { return; }
 				api( 'activity_clear', {} )
 					.then( function () { location.reload(); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
@@ -7069,7 +7098,7 @@
 			if ( ! lb ) {
 				lb = document.createElement( 'div' );
 				lb.className = 'velox-lightbox';
-				lb.innerHTML = '<div class="velox-lightbox-inner"><button type="button" class="velox-lightbox-x" aria-label="Close">&times;</button><img alt=""><div class="velox-lightbox-cap"></div></div>';
+				lb.innerHTML = '<div class="velox-lightbox-inner"><button type="button" class="velox-lightbox-x" aria-label=vxT( "Close" )>&times;</button><img alt=""><div class="velox-lightbox-cap"></div></div>';
 				lb.addEventListener( 'click', function ( e ) {
 					if ( e.target === lb || e.target.classList.contains( 'velox-lightbox-x' ) ) { lb.classList.remove( 'is-open' ); }
 				} );
@@ -7089,7 +7118,7 @@
 		function refreshSelection() {
 			var checked = $$( '.velox-media-pick:checked', results );
 			delBtn.hidden = checked.length === 0;
-			delBtn.textContent = 'Delete selected (' + checked.length + ')';
+			delBtn.textContent = vxT( 'Delete selected (' ) + checked.length + ')';
 		}
 
 		function renderMedia() {
@@ -7145,7 +7174,7 @@
 		function scanProgress( pct, label ) {
 			results.innerHTML =
 				'<div class="velox-scan">' +
-					'<div class="velox-scan-label">' + escapeHtml( label || 'Scanning…' ) + '</div>' +
+					'<div class="velox-scan-label">' + escapeHtml( label || vxT( 'Scanning…' ) ) + '</div>' +
 					'<div class="velox-scan-bar"><span style="width:' + pct + '%"></span></div>' +
 					'<div class="velox-scan-pct">' + pct + '%</div>' +
 				'</div>';
@@ -7199,7 +7228,7 @@
 				if ( i >= total ) { return api( 'media_crawl_done', { pages: total } ); }
 				var url = urls[ i++ ];
 				var label = url.replace( window.location.origin, '' ) || '/';
-				scanProgress( 70 + Math.floor( ( i / total ) * 13 ), 'Reading page ' + i + ' of ' + total );
+				scanProgress( 70 + Math.floor( ( i / total ) * 13 ), vxT( 'Reading page ' ) + i + ' of ' + total );
 				return crawlOne( url ).then( function ( paths ) {
 					if ( ! paths.length ) { return null; }
 					return api( 'media_crawl_report', { paths: JSON.stringify( paths ), label: label } );
@@ -7219,9 +7248,9 @@
 		}
 		scanBtn.addEventListener( 'click', function () {
 			scanBtn.disabled = true;
-			scanBtn.textContent = 'Scanning…';
+			scanBtn.textContent = vxT( 'Scanning…' );
 			summary.textContent = '';
-			scanProgress( 1, 'Starting…' );
+			scanProgress( 1, vxT( 'Starting…' ) );
 			api( 'media_scan_start', {} )
 				.then( runScan )
 				.then( function () { return api( 'media_scan_results', { filter: 'all' } ); } )
@@ -7237,18 +7266,18 @@
 					renderMedia();
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); results.innerHTML = ''; } )
-				.then( function () { scanBtn.disabled = false; scanBtn.textContent = 'Scan media library'; } );
+				.then( function () { scanBtn.disabled = false; scanBtn.textContent = vxT( 'Scan media library' ); } );
 		} );
 
 		delBtn.addEventListener( 'click', function () {
 			var ids = $$( '.velox-media-pick:checked', results ).map( function ( c ) { return c.value; } );
-			if ( ! ids.length || ! window.confirm( 'Permanently delete ' + ids.length + ' file(s)? This cannot be undone.' ) ) {
+			if ( ! ids.length || ! window.confirm( vxT( 'Permanently delete ' ) + ids.length + ' file(s)? This cannot be undone.' ) ) {
 				return;
 			}
 			delBtn.disabled = true;
 			api( 'media_delete', { ids: ids } )
 				.then( function ( r ) {
-					toast( t( 'Deleted ' ) + ( r.deleted || 0 ) + ' file(s), freed ' + fmtBytes( r.freed || 0 ) + '.' );
+					toast( vxT( 'Deleted ' ) + ( r.deleted || 0 ) + ' file(s), freed ' + fmtBytes( r.freed || 0 ) + '.' );
 					var gone = {};
 					ids.forEach( function ( i ) { gone[ i ] = true; } );
 					mediaItems = mediaItems.filter( function ( it ) { return ! gone[ it.id ]; } );
@@ -7294,26 +7323,26 @@
 			log.innerHTML = '';
 			btn.disabled = true;
 			var origText = btn.textContent;
-			btn.textContent = 'Working…';
+			btn.textContent = vxT( 'Working…' );
 			var i = 0;
 			function next() {
 				if ( i >= jobs.length ) {
 					btn.disabled = false;
 					btn.textContent = origText;
-					toast( t( 'Done.' ) );
+					toast( vxT( 'Done.' ) );
 					if ( done ) { done(); }
 					return;
 				}
 				var job = jobs[ i++ ];
-				var row = logLine( job.label, 'pending', 'Working…' );
+				var row = logLine( job.label, 'pending', vxT( 'Working…' ) );
 				job.send()
 					.then( function ( r ) {
 						row.className = 'velox-install-row is-' + ( r.ok ? 'ok' : 'fail' );
-						row.querySelector( '.velox-install-msg' ).textContent = r.message || ( r.ok ? 'Done.' : 'Failed.' );
+						row.querySelector( '.velox-install-msg' ).textContent = r.message || ( r.ok ? vxT( 'Done.' ) : vxT( 'Failed.' ) );
 					} )
 					.catch( function ( e ) {
 						row.className = 'velox-install-row is-fail';
-						row.querySelector( '.velox-install-msg' ).textContent = e.message || 'Failed.';
+						row.querySelector( '.velox-install-msg' ).textContent = e.message || vxT( 'Failed.' );
 					} )
 					.then( next );
 			}
@@ -7323,7 +7352,7 @@
 		runBtn.addEventListener( 'click', function () {
 			var sources = parseSources();
 			if ( ! sources.length ) {
-				toast( t( 'Add at least one slug or link.' ), 'error' );
+				toast( vxT( 'Add at least one slug or link.' ), 'error' );
 				return;
 			}
 			var activate = actEl.checked;
@@ -7336,7 +7365,7 @@
 			uploadBtn.addEventListener( 'click', function () {
 				var files = zipEl.files ? Array.prototype.slice.call( zipEl.files ) : [];
 				if ( ! files.length ) {
-					toast( t( 'Choose at least one .zip file first.' ), 'error' );
+					toast( vxT( 'Choose at least one .zip file first.' ), 'error' );
 					return;
 				}
 				var activate = actEl.checked;
@@ -7349,11 +7378,11 @@
 		saveBtn.addEventListener( 'click', function () {
 			var slugs = parseSources();
 			var name  = ( nameEl.value || '' ).trim();
-			if ( ! name ) { toast( t( 'Name the blueprint first.' ), 'error' ); return; }
-			if ( ! slugs.length ) { toast( t( 'Add some plugins to save.' ), 'error' ); return; }
+			if ( ! name ) { toast( vxT( 'Name the blueprint first.' ), 'error' ); return; }
+			if ( ! slugs.length ) { toast( vxT( 'Add some plugins to save.' ), 'error' ); return; }
 			saveBtn.disabled = true;
 			api( 'blueprint_save', { name: name, slugs: slugs } )
-				.then( function () { toast( t( 'Blueprint saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
+				.then( function () { toast( vxT( 'Blueprint saved.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 				.catch( function ( e ) { toast( e.message, 'error' ); saveBtn.disabled = false; } );
 		} );
 
@@ -7365,11 +7394,11 @@
 					slugsEl.value = item.getAttribute( 'data-slugs' );
 					nameEl.value  = item.getAttribute( 'data-name' );
 					slugsEl.scrollIntoView( { behavior: 'smooth', block: 'center' } );
-					toast( t( 'Loaded into the installer.' ) );
+					toast( vxT( 'Loaded into the installer.' ) );
 				} else if ( e.target.classList.contains( 'velox-bp-del' ) ) {
-					if ( ! window.confirm( 'Delete this blueprint?' ) ) { return; }
+					if ( ! window.confirm( vxT( 'Delete this blueprint?' ) ) ) { return; }
 					api( 'blueprint_delete', { name: item.getAttribute( 'data-name' ) } )
-						.then( function () { item.remove(); toast( t( 'Deleted.' ) ); } )
+						.then( function () { item.remove(); toast( vxT( 'Deleted.' ) ); } )
 						.catch( function ( e2 ) { toast( e2.message, 'error' ); } );
 				}
 			} );
@@ -7430,7 +7459,7 @@
 			f.type.value = '301'; f.match.value = 'exact';
 			f.priority.value = '0'; f.category.value = ''; f.desc.value = '';
 			f.active.checked = true; f.ic.checked = true; f.iq.checked = true; f.is.checked = true;
-			if ( titleEl ) { titleEl.textContent = 'New redirect'; }
+			if ( titleEl ) { titleEl.textContent = vxT( 'New redirect' ); }
 			syncTargetVisibility();
 			openModal();
 		}
@@ -7447,7 +7476,7 @@
 			f.ic.checked = '0' !== row.getAttribute( 'data-ignore-case' );
 			f.iq.checked = '0' !== row.getAttribute( 'data-ignore-query' );
 			f.is.checked = '0' !== row.getAttribute( 'data-ignore-slash' );
-			if ( titleEl ) { titleEl.textContent = 'Edit redirect'; }
+			if ( titleEl ) { titleEl.textContent = vxT( 'Edit redirect' ); }
 			syncTargetVisibility();
 			openModal();
 		}
@@ -7464,7 +7493,7 @@
 
 		if ( saveBtn ) {
 			saveBtn.addEventListener( 'click', function () {
-				if ( ! f.source.value.trim() ) { toast( t( 'Enter a source path or pattern.' ), 'error' ); f.source.focus(); return; }
+				if ( ! f.source.value.trim() ) { toast( vxT( 'Enter a source path or pattern.' ), 'error' ); f.source.focus(); return; }
 				var editing = '0' !== String( f.id.value );
 				saveBtn.disabled = true;
 				var data = {
@@ -7483,8 +7512,8 @@
 				if ( editing ) { data.id = f.id.value; }
 				api( editing ? 'redirect_update' : 'redirect_add', data )
 					.then( function ( r ) {
-						if ( ! r.ok ) { toast( r.message || 'Could not save.', 'error' ); return; }
-						toast( editing ? 'Redirect updated.' : 'Redirect added.' );
+						if ( ! r.ok ) { toast( r.message || vxT( 'Could not save.' ), 'error' ); return; }
+						toast( editing ? vxT( 'Redirect updated.' ) : vxT( 'Redirect added.' ) );
 						closeModal();
 						setTimeout( function () { location.reload(); }, 400 );
 					} )
@@ -7498,7 +7527,7 @@
 			if ( ! row ) { return; }
 			if ( e.target.classList.contains( 'velox-redir-del' ) ) {
 				api( 'redirect_delete', { id: row.getAttribute( 'data-id' ) } )
-					.then( function () { row.remove(); toast( t( 'Removed.' ) ); } )
+					.then( function () { row.remove(); toast( vxT( 'Removed.' ) ); } )
 					.catch( function ( er ) { toast( er.message, 'error' ); } );
 			} else if ( e.target.classList.contains( 'velox-redir-edit' ) ) {
 				editRedirect( row );
@@ -7517,7 +7546,7 @@
 			row.classList.toggle( 'is-off', ! on );
 			row.setAttribute( 'data-active', on ? '1' : '0' );
 			api( 'redirect_toggle', { id: row.getAttribute( 'data-id' ), on: on ? '1' : '0' } )
-				.then( function () { toast( on ? 'Redirect enabled.' : 'Redirect disabled.' ); } )
+				.then( function () { toast( on ? vxT( 'Redirect enabled.' ) : vxT( 'Redirect disabled.' ) ); } )
 				.catch( function ( er ) {
 					toast( er.message, 'error' );
 					e.target.checked = ! on; // revert on failure
@@ -7529,7 +7558,7 @@
 		var logToggle = $( '#velox-log-toggle' );
 		if ( logToggle ) {
 			logToggle.addEventListener( 'change', function () {
-				saveSettings( { util_redirects_log_404: logToggle.checked ? 1 : 0 }, logToggle.checked ? 'Logging 404s.' : 'Stopped logging.' )
+				saveSettings( { util_redirects_log_404: logToggle.checked ? 1 : 0 }, logToggle.checked ? vxT( 'Logging 404s.' ) : vxT( 'Stopped logging.' ) )
 					.then( function () { setTimeout( function () { location.reload(); }, 350 ); } );
 			} );
 		}
@@ -7537,7 +7566,7 @@
 		var clearBtn = $( '#velox-log-clear' );
 		if ( clearBtn ) {
 			clearBtn.addEventListener( 'click', function () {
-				if ( ! window.confirm( 'Clear the whole 404 log?' ) ) { return; }
+				if ( ! window.confirm( vxT( 'Clear the whole 404 log?' ) ) ) { return; }
 				api( 'log_clear', {} )
 					.then( function () { location.reload(); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } );
@@ -7555,7 +7584,7 @@
 					if ( f.target ) { f.target.focus(); }
 				} else if ( e.target.classList.contains( 'velox-log-forget' ) ) {
 					api( 'log_forget', { id: row.getAttribute( 'data-id' ) } )
-						.then( function () { row.remove(); toast( t( 'Removed.' ) ); } )
+						.then( function () { row.remove(); toast( vxT( 'Removed.' ) ); } )
 						.catch( function ( er ) { toast( er.message, 'error' ); } );
 				}
 			} );
@@ -7578,7 +7607,7 @@
 				'<div class="l">' + escapeHtml( label ) + '</div></div>';
 		}
 		function pageRow( r, goto ) {
-			var open = r.url ? '<a class="velox-btn velox-btn--ghost velox-btn--sm" href="' + escapeHtml( r.url ) + '" target="_blank" rel="noopener" title="Open page">' +
+			var open = r.url ? '<a class="velox-btn velox-btn--ghost velox-btn--sm" href="' + escapeHtml( r.url ) + '" target="_blank" rel="noopener" title=vxT( "Open page" )>' +
 				'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></svg></a>' : '';
 			var edit = '';
 			if ( 'media' === goto ) {
@@ -7596,11 +7625,11 @@
 			var st = data.stats || {};
 			tilesEl.hidden = false;
 			tilesEl.innerHTML =
-				tile( st.total || 0, 'Pages checked', '' ) +
-				tile( st.indexable || 0, 'Indexable', 'g' ) +
-				tile( st.noindex || 0, 'Set to noindex', st.noindex ? 'a' : '' ) +
-				tile( st.with_seo || 0, 'With SEO set', 'g' ) +
-				tile( st.no_seo || 0, 'No SEO at all', st.no_seo ? 'r' : '' );
+				tile( st.total || 0, vxT( 'Pages checked' ), '' ) +
+				tile( st.indexable || 0, vxT( 'Indexable' ), 'g' ) +
+				tile( st.noindex || 0, vxT( 'Set to noindex' ), st.noindex ? 'a' : '' ) +
+				tile( st.with_seo || 0, vxT( 'With SEO set' ), 'g' ) +
+				tile( st.no_seo || 0, vxT( 'No SEO at all' ), st.no_seo ? 'r' : '' );
 
 			issuesEl.innerHTML = ( data.issues || [] ).map( function ( is ) {
 				var isOpen = ( openKey === is.key && is.count > 0 );
@@ -7609,7 +7638,7 @@
 					'<span class="grow"><span class="nm">' + escapeHtml( is.label ) + '</span>' +
 					'<span class="ds">' + escapeHtml( is.desc ) + '</span></span>' +
 					( is.count
-						? '<span class="velox-seoh-view">' + ( isOpen ? 'Hide' : 'View pages' ) +
+						? '<span class="velox-seoh-view">' + ( isOpen ? vxT( 'Hide' ) : vxT( 'View pages' ) ) +
 							'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"' +
 							( isOpen ? ' style="transform:rotate(180deg)"' : '' ) + '><path d="m6 9 6 6 6-6"/></svg></span>'
 						: '<span class="velox-seoh-clear">Clear</span>' ) +
@@ -7633,7 +7662,7 @@
 
 		function run() {
 			scanBtn.disabled = true;
-			subEl.textContent = 'Scanning…';
+			subEl.textContent = vxT( 'Scanning…' );
 			api( 'seo_health', {} )
 				.then( function ( d ) {
 					data = d;
@@ -7667,13 +7696,13 @@
 		var sitemapEnable = $( '#velox-seo-sitemap-enable' );
 		if ( sitemapEnable ) {
 			sitemapEnable.addEventListener( 'change', function () {
-				saveSettings( { seo_sitemap_enable: sitemapEnable.checked ? 1 : 0 }, sitemapEnable.checked ? 'Sitemap enabled.' : 'Sitemap disabled.' );
+				saveSettings( { seo_sitemap_enable: sitemapEnable.checked ? 1 : 0 }, sitemapEnable.checked ? vxT( 'Sitemap enabled.' ) : vxT( 'Sitemap disabled.' ) );
 			} );
 		}
 		var ogEnable = $( '#velox-seo-og-enable' );
 		if ( ogEnable ) {
 			ogEnable.addEventListener( 'change', function () {
-				saveSettings( { seo_og_enable: ogEnable.checked ? 1 : 0 }, ogEnable.checked ? 'Social cards on.' : 'Social cards off.' );
+				saveSettings( { seo_og_enable: ogEnable.checked ? 1 : 0 }, ogEnable.checked ? vxT( 'Social cards on.' ) : vxT( 'Social cards off.' ) );
 			} );
 		}
 
@@ -7727,7 +7756,7 @@
 					var key = elc.getAttribute( 'data-setting' );
 					var val = 'checkbox' === elc.type ? ( elc.checked ? 1 : 0 ) : elc.value;
 					var p = {}; p[ key ] = val;
-					saveSettings( p, 'Sitemap settings saved.' ).then( loadSmapEntries );
+					saveSettings( p, vxT( 'Sitemap settings saved.' ) ).then( loadSmapEntries );
 				} );
 				if ( 'checkbox' !== elc.type ) { elc.addEventListener( 'input', function () { updateSmapView(); } ); }
 			} );
@@ -7763,7 +7792,7 @@
 			function renderStyledPreview( style ) {
 				if ( ! smapStyled ) { return; }
 				var p = styledPalette( style );
-				var heading = ( document.getElementById( 'velox-smap-heading' ) || {} ).value || 'XML Sitemap';
+				var heading = ( document.getElementById( 'velox-smap-heading' ) || {} ).value || vxT( 'XML Sitemap' );
 				var list = smapList();
 				var total = ( null !== smapEntries ) ? smapTotal : list.length;
 				var font = p.mono ? 'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace' : '-apple-system,Segoe UI,Roboto,sans-serif';
@@ -7787,12 +7816,12 @@
 					bodyHtml = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;padding:16px;">' + list.map( function ( e ) {
 						return '<div style="background:' + p.card + ';border:1px solid ' + p.border + ';border-radius:12px;padding:14px;">' +
 							'<a href="' + escapeHtml( e.loc ) + '" style="color:' + p.link + ';text-decoration:none;font-size:13px;font-weight:500;word-break:break-all;display:block;margin-bottom:10px;">' + escapeHtml( e.loc ) + '</a>' +
-							'<div style="display:flex;gap:5px;flex-wrap:wrap;">' + tag( e.priority ? 'P ' + e.priority : '' ) + tag( e.changefreq ) + tag( ( e.lastmod || '' ).slice( 0, 10 ) ) + '</div></div>';
+							'<div style="display:flex;gap:5px;flex-wrap:wrap;">' + tag( e.priority ? vxT( 'P ' ) + e.priority : '' ) + tag( e.changefreq ) + tag( ( e.lastmod || '' ).slice( 0, 10 ) ) + '</div></div>';
 					} ).join( '' ) + '</div>';
 				} else if ( p.layout === 'list' ) {
 					bodyHtml = '<div style="padding:0 16px;">' + list.map( function ( e ) {
 						var meta = [];
-						if ( e.priority ) { meta.push( 'Priority ' + e.priority ); }
+						if ( e.priority ) { meta.push( vxT( 'Priority ' ) + e.priority ); }
 						if ( e.changefreq ) { meta.push( e.changefreq ); }
 						if ( e.lastmod ) { meta.push( ( e.lastmod || '' ).slice( 0, 10 ) ); }
 						return '<div style="padding:14px 2px;border-bottom:1px solid ' + p.border + ';">' +
@@ -7834,7 +7863,7 @@
 					card.classList.add( 'is-active' );
 					currentStyle = card.getAttribute( 'data-style' );
 					if ( customBox ) { customBox.hidden = ( 'custom' !== currentStyle ); }
-					saveSettings( { seo_sitemap_style: currentStyle }, 'Sitemap style saved.' )
+					saveSettings( { seo_sitemap_style: currentStyle }, vxT( 'Sitemap style saved.' ) )
 						.then( function () { api( 'seo_sitemap_generate', {} ).catch( function () {} ); } );
 					updateSmapView();
 				} );
@@ -7846,7 +7875,7 @@
 					var key = el.getAttribute( 'data-setting' );
 					var val = 'checkbox' === el.type ? ( el.checked ? 1 : 0 ) : el.value;
 					var p = {}; p[ key ] = val;
-					saveSettings( p, 'Sitemap style saved.' ).then( function () { api( 'seo_sitemap_generate', {} ).catch( function () {} ); } );
+					saveSettings( p, vxT( 'Sitemap style saved.' ) ).then( function () { api( 'seo_sitemap_generate', {} ).catch( function () {} ); } );
 					updateSmapView();
 				};
 				el.addEventListener( 'change', handler );
@@ -7861,7 +7890,7 @@
 			saveBtn.addEventListener( 'click', function () {
 				saveBtn.disabled = true;
 				api( 'seo_robots_save', { content: robots.value } )
-					.then( function ( r ) { toast( r && r.physical ? 'Saved — but a physical robots.txt still overrides this.' : 'robots.txt saved.', r && r.physical ? 'warn' : undefined ); } )
+					.then( function ( r ) { toast( r && r.physical ? vxT( 'Saved — but a physical robots.txt still overrides this.' ) : 'robots.txt saved.', r && r.physical ? 'warn' : undefined ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { saveBtn.disabled = false; } );
 			} );
@@ -7871,7 +7900,7 @@
 			resetBtn.addEventListener( 'click', function () {
 				resetBtn.disabled = true;
 				api( 'seo_robots_reset' )
-					.then( function ( r ) { if ( r && r.content && robots ) { robots.value = r.content; } toast( t( 'Reset to recommended.' ) ); } )
+					.then( function ( r ) { if ( r && r.content && robots ) { robots.value = r.content; } toast( vxT( 'Reset to recommended.' ) ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { resetBtn.disabled = false; } );
 			} );
@@ -7880,7 +7909,7 @@
 		// Quick-add snippet chips.
 		var robotsHome = ( window.location.origin || '' );
 		var robotsSnips = {
-			sitemap: 'Sitemap: ' + robotsHome + '/sitemap.xml',
+			sitemap: vxT( 'Sitemap: ' ) + robotsHome + '/sitemap.xml',
 			admin: 'User-agent: *\nDisallow: /wp-admin/\nAllow: /wp-admin/admin-ajax.php',
 			ai: '# Block common AI crawlers\nUser-agent: GPTBot\nUser-agent: ChatGPT-User\nUser-agent: CCBot\nUser-agent: ClaudeBot\nUser-agent: anthropic-ai\nUser-agent: Google-Extended\nUser-agent: PerplexityBot\nDisallow: /',
 			allow: 'User-agent: *\nDisallow:'
@@ -7891,13 +7920,13 @@
 				var block = robotsSnips[ chip.getAttribute( 'data-robots-snip' ) ];
 				if ( ! block ) { return; }
 				if ( robots.value.indexOf( block.split( '\n' )[0] ) !== -1 && 'sitemap' !== chip.getAttribute( 'data-robots-snip' ) ) {
-					toast( t( 'That block looks like it is already there.' ) );
+					toast( vxT( 'That block looks like it is already there.' ) );
 					return;
 				}
 				robots.value = robots.value.replace( /\s*$/, '' ) + '\n\n' + block + '\n';
 				robots.focus();
 				robots.scrollTop = robots.scrollHeight;
-				toast( t( 'Added — review and save.' ) );
+				toast( vxT( 'Added — review and save.' ) );
 			} );
 		} );
 		var physBtn = $( '#velox-seo-robots-physical' );
@@ -7905,7 +7934,7 @@
 			physBtn.addEventListener( 'click', function () {
 				physBtn.disabled = true;
 				api( 'seo_robots_physical', { content: robots ? robots.value : '' } )
-					.then( function ( r ) { toast( ( r && r.physical ) ? 'Written to physical robots.txt — most reliable behind a CDN.' : 'Could not write the file (permissions?).', ( r && r.physical ) ? undefined : 'error' ); if ( r && r.physical ) { setTimeout( function () { location.reload(); }, 700 ); } } )
+					.then( function ( r ) { toast( ( r && r.physical ) ? vxT( 'Written to physical robots.txt — most reliable behind a CDN.' ) : vxT( 'Could not write the file (permissions?).' ), ( r && r.physical ) ? undefined : 'error' ); if ( r && r.physical ) { setTimeout( function () { location.reload(); }, 700 ); } } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { physBtn.disabled = false; } );
 			} );
@@ -7915,7 +7944,7 @@
 			virtBtn.addEventListener( 'click', function () {
 				virtBtn.disabled = true;
 				api( 'seo_robots_virtual' )
-					.then( function () { toast( t( 'Physical file removed — back to the virtual robots.txt.' ) ); setTimeout( function () { location.reload(); }, 700 ); } )
+					.then( function () { toast( vxT( 'Physical file removed — back to the virtual robots.txt.' ) ); setTimeout( function () { location.reload(); }, 700 ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
 					.then( function () { virtBtn.disabled = false; } );
 			} );
@@ -7927,7 +7956,7 @@
 				window.open( url, '_blank', 'noopener' ); // open the real /robots.txt
 				var box = $( '#velox-seo-robots-live' ), out = $( '#velox-seo-live-out' ),
 					badge = $( '#velox-seo-live-badge' ), cf = $( '#velox-seo-live-cf' );
-				viewBtn.disabled = true; box.hidden = false; out.textContent = 'Fetching…'; badge.textContent = ''; cf.hidden = true;
+				viewBtn.disabled = true; box.hidden = false; out.textContent = vxT( 'Fetching…' ); badge.textContent = ''; cf.hidden = true;
 				fetch( url + '?_=' + Date.now(), { credentials: 'omit', cache: 'no-store' } )
 					.then( function ( r ) { return r.text(); } )
 					.then( function ( txt ) {
@@ -7946,31 +7975,31 @@
 		if ( genBtn ) {
 			genBtn.addEventListener( 'click', function () {
 				genBtn.disabled = true;
-				genBtn.textContent = 'Generating…';
+				genBtn.textContent = vxT( 'Generating…' );
 				api( 'seo_sitemap_generate' )
 					.then( function ( r ) {
 						var c = $( '#velox-seo-smap-count' );
 						if ( c && r ) { c.textContent = r.urls; }
-						toast( t( 'Sitemap regenerated — ' ) + ( ( r && r.urls ) || 0 ) + ' URLs.' );
+						toast( vxT( 'Sitemap regenerated — ' ) + ( ( r && r.urls ) || 0 ) + ' URLs.' );
 					} )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
-					.then( function () { genBtn.disabled = false; genBtn.textContent = 'Regenerate sitemap'; } );
+					.then( function () { genBtn.disabled = false; genBtn.textContent = vxT( 'Regenerate sitemap' ); } );
 			} );
 		}
 		if ( applyBtn ) {
 			applyBtn.addEventListener( 'click', function () {
 				applyBtn.disabled = true;
-				applyBtn.textContent = 'Applying…';
+				applyBtn.textContent = vxT( 'Applying…' );
 				api( 'seo_apply_recommended' )
 					.then( function ( r ) {
 						if ( r && r.content && robots ) { robots.value = r.content; }
 						var en = $( '#velox-seo-robots-enable' ), se = $( '#velox-seo-sitemap-enable' );
 						if ( en ) { en.checked = true; }
 						if ( se ) { se.checked = true; }
-						toast( ( r && r.physical_robots ) ? 'Applied — heads up: a physical robots.txt still overrides the virtual one.' : 'Recommended SEO setup applied.', ( r && r.physical_robots ) ? 'warn' : undefined );
+						toast( ( r && r.physical_robots ) ? vxT( 'Applied — heads up: a physical robots.txt still overrides the virtual one.' ) : vxT( 'Recommended SEO setup applied.' ), ( r && r.physical_robots ) ? 'warn' : undefined );
 					} )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
-					.then( function () { applyBtn.disabled = false; applyBtn.textContent = 'Apply recommended setup'; } );
+					.then( function () { applyBtn.disabled = false; applyBtn.textContent = vxT( 'Apply recommended setup' ); } );
 			} );
 		}
 
@@ -7995,7 +8024,7 @@
 						return;
 					}
 					api( 'seo_htaccess_unlock' )
-						.then( function () { htSetLocked( false ); htArea.focus(); toast( t( 'Editing unlocked — snapshot saved.' ) ); } )
+						.then( function () { htSetLocked( false ); htArea.focus(); toast( vxT( 'Editing unlocked — snapshot saved.' ) ); } )
 						.catch( function ( e ) { htUnlock.checked = false; toast( e.message, 'error' ); } );
 				} else {
 					htSetLocked( true );
@@ -8004,13 +8033,13 @@
 
 			if ( htSave ) {
 				htSave.addEventListener( 'click', function () {
-					if ( ! htArea.value.trim() ) { toast( t( 'Refusing to save an empty .htaccess.' ), 'error' ); return; }
+					if ( ! htArea.value.trim() ) { toast( vxT( 'Refusing to save an empty .htaccess.' ), 'error' ); return; }
 					if ( ! window.confirm( 'Write this to your live .htaccess now? A wrong rule can 500 your site — you can still Reset to the snapshot afterwards.' ) ) { return; }
 					htSave.disabled = true;
 					api( 'seo_htaccess_save', { content: htArea.value } )
 						.then( function ( r ) {
-							if ( ! r.ok ) { toast( r.message || 'Could not save.', 'error' ); return; }
-							toast( t( '.htaccess saved.' ) );
+							if ( ! r.ok ) { toast( r.message || vxT( 'Could not save.' ), 'error' ); return; }
+							toast( vxT( '.htaccess saved.' ) );
 						} )
 						.catch( function ( e ) { toast( e.message, 'error' ); } )
 						.then( function () { htSave.disabled = false; } );
@@ -8019,13 +8048,13 @@
 
 			if ( htReset ) {
 				htReset.addEventListener( 'click', function () {
-					if ( ! window.confirm( 'Reset .htaccess to the snapshot taken when you unlocked?' ) ) { return; }
+					if ( ! window.confirm( vxT( 'Reset .htaccess to the snapshot taken when you unlocked?' ) ) ) { return; }
 					htReset.disabled = true;
 					api( 'seo_htaccess_reset' )
 						.then( function ( r ) {
-							if ( ! r.ok ) { toast( r.message || 'Could not reset.', 'error' ); return; }
+							if ( ! r.ok ) { toast( r.message || vxT( 'Could not reset.' ), 'error' ); return; }
 							if ( typeof r.content === 'string' ) { htArea.value = r.content; }
-							toast( t( '.htaccess reset to snapshot.' ) );
+							toast( vxT( '.htaccess reset to snapshot.' ) );
 						} )
 						.catch( function ( e ) { toast( e.message, 'error' ); } )
 						.then( function () { htReset.disabled = false; } );
@@ -8051,6 +8080,7 @@
 
 	function veloxInit() {
 		initLangSwitch();
+		initErrorLog();
 		initSidebar();
 		initWizard();
 		initUtilities();
@@ -8289,9 +8319,9 @@
 		pop.innerHTML =
 			'<h4>Grid size</h4>' +
 			'<div class="velox-wsize-row"><span>Width</span><span class="velox-wsize-step" data-axis="c">' +
-				'<button type="button" data-d="-1" aria-label="Narrower">\u2212</button><b>' + z.c + '</b><button type="button" data-d="1" aria-label="Wider">+</button></span></div>' +
+				'<button type="button" data-d="-1" aria-label=vxT( "Narrower" )>\u2212</button><b>' + z.c + '</b><button type="button" data-d="1" aria-label=vxT( "Wider" )>+</button></span></div>' +
 			'<div class="velox-wsize-row"><span>Height</span><span class="velox-wsize-step" data-axis="r">' +
-				'<button type="button" data-d="-1" aria-label="Shorter">\u2212</button><b>' + z.r + '</b><button type="button" data-d="1" aria-label="Taller">+</button></span></div>';
+				'<button type="button" data-d="-1" aria-label=vxT( "Shorter" )>\u2212</button><b>' + z.r + '</b><button type="button" data-d="1" aria-label=vxT( "Taller" )>+</button></span></div>';
 		document.body.appendChild( pop );
 		positionPop( btn );
 		function refresh() {
@@ -8321,7 +8351,7 @@
 		if ( ! hidden.length ) {
 			var e = document.createElement( 'div' );
 			e.className = 'velox-newwidget-empty';
-			e.textContent = 'All widgets are on the dashboard.';
+			e.textContent = vxT( 'All widgets are on the dashboard.' );
 			newMenu.appendChild( e );
 			return;
 		}
@@ -8495,7 +8525,7 @@
 				body.hidden = ! open;
 				btn.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
 				var tx = btn.querySelector( '.velox-ps-detailsbtn-tx' );
-				if ( tx ) { tx.lastChild.textContent = open ? 'Hide details' : 'See what\u2019s wrong & right'; }
+				if ( tx ) { tx.lastChild.textContent = open ? vxT( 'Hide details' ) : 'See what\u2019s wrong & right'; }
 			} );
 		} );
 		// Full report — per-audit accordion rows.
@@ -8509,7 +8539,7 @@
 				head.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
 			} );
 		} );
-		// Full report — "Passed audits" disclosure per category.
+		// Full report — vxT( "Passed audits" ) disclosure per category.
 		Array.prototype.forEach.call( document.querySelectorAll( '[data-psf-passtoggle]' ), function ( btn ) {
 			btn.addEventListener( 'click', function () {
 				var sec = btn.closest ? btn.closest( '.velox-psi-cat, .velox-psi-section, .velox-psf-sec' ) : null;
@@ -8544,12 +8574,12 @@
 						if ( j && j.success ) { location.reload(); return; }
 						btn.textContent = orig; btn.disabled = false;
 						if ( w ) { w.classList.remove( 'velox-ps-refreshing' ); }
-						if ( typeof toast === 'function' ) { toast( ( j && j.data && j.data.message ) || 'PageSpeed check failed.', 'error' ); }
+						if ( typeof toast === 'function' ) { toast( ( j && j.data && j.data.message ) || vxT( 'PageSpeed check failed.' ), 'error' ); }
 					} )
 					.catch( function () {
 						btn.textContent = orig; btn.disabled = false;
 						if ( w ) { w.classList.remove( 'velox-ps-refreshing' ); }
-						if ( typeof toast === 'function' ) { toast( t( 'PageSpeed check failed.' ), 'error' ); }
+						if ( typeof toast === 'function' ) { toast( vxT( 'PageSpeed check failed.' ), 'error' ); }
 					} );
 			} );
 		} );

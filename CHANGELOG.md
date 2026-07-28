@@ -4,6 +4,16 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.21.0 — Error Logger, and SEO moves into Utilities
+- New Error Logger utility: catches every PHP error, fatal and failed API/HTTP request as it happens, grouped into clean accordions by type (fatal / PHP warnings / API & HTTP). Each error shows where it happened, how often, and — in plain English — what it means and how to fix it, from a built-in knowledge base of common WordPress issues. Switch it on under Utilities; clear all or dismiss errors one at a time.
+- PageSpeed is now a switch under Utilities like every other tool — turn it on or off whenever you want, and it appears in the sidebar under Essentials only when enabled. Its page is unchanged.
+
+## 3.20.0 — Full German coverage across the entire plugin (PHP + JavaScript)
+- Completed German translation of everything the user sees. Every PHP admin string (1035) and every JavaScript-rendered string (723) now has a German entry — 1727 total.
+- Wrapped all the JavaScript UI that a PHP filter can never reach: toasts, the Custom Fields editor and field types, the Mail/SMTP setup, the block-editor SEO panel, the media picker, the snippets manager, and the dashboard. Each admin script now shares one translation dictionary through a small helper.
+- Added bin/check-i18n.php, a regression guard that scans all PHP and JS for any translatable string missing a German entry, so future features can be checked before shipping.
+- Fixed two translation-wrapping bugs found during the sweep: a local variable that shadowed the translate helper, and a value used in a comparison that must not be translated.
+
 ## 3.19.4 — Translate the "Everything in Velox" cards
 - The catalog grid tiles on the dashboard (Custom Fields / Field groups, Media Editor / Alt text & files, etc.) were rendered from a hardcoded array with plain escaping, so both the names and descriptions stayed English. Both are now wrapped and translated.
 

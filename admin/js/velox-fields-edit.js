@@ -6,6 +6,11 @@
 	'use strict';
 	if ( typeof window.wp === 'undefined' || ! window.wp.media ) { return; }
 
+	var VX_I18N = window.VeloxFieldsI18n || {};
+	function vxT( s ) {
+		return Object.prototype.hasOwnProperty.call( VX_I18N, s ) ? VX_I18N[ s ] : s;
+	}
+
 	/* ---- single image / file picker ---- */
 	$( document ).on( 'click', '.velox-fld-media-pick', function () {
 		var btn    = $( this );
@@ -13,10 +18,10 @@
 		var input  = wrap.find( '.velox-fld-media-input' );
 		var isFile = btn.attr( 'data-file' ) === '1';
 		var frame  = wp.media( {
-			title: btn.attr( 'data-title' ) || 'Select',
+			title: btn.attr( 'data-title' ) || vxT( 'Select' ),
 			multiple: false,
 			library: isFile ? {} : { type: 'image' },
-			button: { text: 'Use this' }
+			button: { text: vxT( 'Use this' ) }
 		} );
 		frame.on( 'select', function () {
 			var a = frame.state().get( 'selection' ).first().toJSON();
@@ -45,7 +50,7 @@
 		var wrap  = $( this ).closest( '.velox-fld-gallery' );
 		var input = wrap.find( '.velox-fld-gallery-input' );
 		var list  = wrap.find( '.velox-fld-gallery-list' );
-		var frame = wp.media( { title: 'Add images', multiple: true, library: { type: 'image' }, button: { text: 'Add to gallery' } } );
+		var frame = wp.media( { title: vxT( 'Add images' ), multiple: true, library: { type: 'image' }, button: { text: vxT( 'Add to gallery' ) } } );
 		frame.on( 'select', function () {
 			var ids = input.val() ? input.val().split( ',' ).filter( Boolean ) : [];
 			frame.state().get( 'selection' ).each( function ( m ) {
@@ -54,7 +59,7 @@
 				if ( ids.indexOf( id ) === -1 ) {
 					ids.push( id );
 					var url = ( a.sizes && a.sizes.thumbnail ) ? a.sizes.thumbnail.url : a.url;
-					list.append( '<li class="velox-fld-gallery-item" data-id="' + id + '"><img src="' + url + '"><button type="button" class="velox-fld-gallery-rm" aria-label="Remove">&times;</button></li>' );
+					list.append( '<li class="velox-fld-gallery-item" data-id="' + id + '"><img src="' + url + '"><button type="button" class="velox-fld-gallery-rm" aria-label=vxT( "Remove" )>&times;</button></li>' );
 				}
 			} );
 			input.val( ids.join( ',' ) );

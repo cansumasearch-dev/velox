@@ -526,6 +526,15 @@ class Velox_Admin {
 			'mediaUrl'    => admin_url( 'admin.php?page=' . self::SLUG . '-media' ),
 			'i18n'        => Velox::js_dictionary(),
 		) );
+		// Shared translation helper for every Velox admin script (main + the
+		// standalone editors). Reads the same dictionary and falls back to the
+		// source string, so English is always safe.
+		$dict_json = wp_json_encode( Velox::js_dictionary() );
+		wp_add_inline_script(
+			'velox-admin',
+			'window.VELOX_I18N=' . $dict_json . ';window.veloxT=function(s){return (window.VELOX_I18N&&Object.prototype.hasOwnProperty.call(window.VELOX_I18N,s))?window.VELOX_I18N[s]:s;};',
+			'before'
+		);
 	}
 
 	public function action_links( $links ) {
@@ -624,6 +633,7 @@ class Velox_Admin {
 			'folder' => '<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>',
 			'pin' => '<path d="M12 17v5"/> <path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>',
 			'trash' => '<path d="M10 11v6"/> <path d="M14 11v6"/> <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/> <path d="M3 6h18"/> <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
+			'warning' => '<path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/> <line x1="12" y1="9" x2="12" y2="13"/> <line x1="12" y1="17" x2="12.01" y2="17"/>',
 		);
 		$p = isset( $paths[ $name ] ) ? $paths[ $name ] : '';
 		return '<svg class="velox-ic" width="' . $size . '" height="' . $size . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' . $p . '</svg>';

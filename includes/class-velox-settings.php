@@ -99,6 +99,7 @@ class Velox_Settings {
 			'util_snippets'            => false,
 			'util_cookies'             => false,
 			'util_october'             => false,
+			'util_errorlog'            => false,
 			'util_backup'              => false,
 			'backup_schedule'          => 'off',    // off | daily | weekly | monthly
 			'backup_schedule_what'     => 'both',   // db | files | both

@@ -8,6 +8,13 @@
 		return;
 	}
 
+	// Translation helper — reads the dictionary shipped with VeloxSeoData.i18n,
+	// falls back to the English source string.
+	var VX_I18N = ( window.VeloxSeoData && window.VeloxSeoData.i18n ) ? window.VeloxSeoData.i18n : {};
+	function vxT( s ) {
+		return ( VX_I18N && Object.prototype.hasOwnProperty.call( VX_I18N, s ) ) ? VX_I18N[ s ] : s;
+	}
+
 	var el       = wp.element.createElement;
 	var Fragment = wp.element.Fragment;
 	var useState = wp.element.useState;
@@ -204,25 +211,25 @@
 
 		// Status pills: the checklist compressed to one scannable row.
 		var pills = [];
-		pills.push( noindex ? { s: 'r', t: 'Noindex' } : { s: 'g', t: 'Indexed' } );
-		pills.push( exclude ? { s: 'a', t: 'Not in sitemap' } : { s: 'g', t: 'In sitemap' } );
+		pills.push( noindex ? { s: 'r', t: vxT( 'Noindex' ) } : { s: 'g', t: vxT( 'Indexed' ) } );
+		pills.push( exclude ? { s: 'a', t: vxT( 'Not in sitemap' ) } : { s: 'g', t: vxT( 'In sitemap' ) } );
 		pills.push( ! seoTitle
-			? { s: 'r', t: 'No title' }
-			: ( seoTitle.length > 60 ? { s: 'a', t: 'Title too long' } : { s: 'g', t: 'Title set' } ) );
+			? { s: 'r', t: vxT( 'No title' ) }
+			: ( seoTitle.length > 60 ? { s: 'a', t: vxT( 'Title too long' ) } : { s: 'g', t: vxT( 'Title set' ) } ) );
 		pills.push( ! seoDesc
-			? { s: 'r', t: 'No description' }
-			: ( seoDesc.length > 160 ? { s: 'a', t: 'Description too long' } : { s: 'g', t: 'Description set' } ) );
+			? { s: 'r', t: vxT( 'No description' ) }
+			: ( seoDesc.length > 160 ? { s: 'a', t: vxT( 'Description too long' ) } : { s: 'g', t: vxT( 'Description set' ) } ) );
 		pills.push( ! kwLower
-			? { s: 'a', t: 'No focus keyword' }
+			? { s: 'a', t: vxT( 'No focus keyword' ) }
 			: ( effTitle.toLowerCase().indexOf( kwLower ) !== -1
-				? { s: 'g', t: 'Keyword in title' }
-				: { s: 'a', t: 'Keyword not in title' } ) );
+				? { s: 'g', t: vxT( 'Keyword in title' ) }
+				: { s: 'a', t: vxT( 'Keyword not in title' ) } ) );
 		if ( hasBlocks ) {
-			pills.push( hasH1 ? { s: 'g', t: 'Has H1' } : { s: 'a', t: 'No H1' } );
+			pills.push( hasH1 ? { s: 'g', t: vxT( 'Has H1' ) } : { s: 'a', t: vxT( 'No H1' ) } );
 			if ( imgs.length ) {
 				pills.push( imgsNoAlt
 					? { s: 'a', t: imgsNoAlt + ' image' + ( 1 === imgsNoAlt ? '' : 's' ) + ' without alt' }
-					: { s: 'g', t: 'All images have alt' } );
+					: { s: 'g', t: vxT( 'All images have alt' ) } );
 			}
 		}
 
@@ -326,7 +333,7 @@
 					crumb ? el( 'div', { className: 'velox-gseo-crumb' }, '\u203a ' + crumb ) : null
 				)
 			),
-			el( 'div', { className: 'velox-gseo-title' }, effTitle || 'Page title' ),
+			el( 'div', { className: 'velox-gseo-title' }, effTitle || vxT( 'Page title' ) ),
 			el( 'div', { className: 'velox-gseo-desc' + ( seoDesc ? '' : ' is-empty' ) },
 				shownDesc || 'No description yet \u2014 Google will pick a sentence from the page.' )
 		);
@@ -334,19 +341,19 @@
 		// ── panel ────────────────────────────────────────────────────────────
 		var body = el( 'div', { className: 'velox-gseo' },
 			el( 'div', { className: 'velox-gseo-top' },
-				seg( [ { v: 'desktop', t: 'Desktop' }, { v: 'mobile', t: 'Mobile' } ], device, setDevice, false )
+				seg( [ { v: 'desktop', t: vxT( 'Desktop' ) }, { v: 'mobile', t: vxT( 'Mobile' ) } ], device, setDevice, false )
 			),
 			el( 'div', { className: 'velox-gseo-pills' },
 				pills.map( function ( p, i ) {
 					return el( 'span', { key: 'p' + i, className: 'velox-gseo-pill ' + p.s }, p.t );
 				} )
 			),
-			section( 'Preview', preview ),
-			section( 'Search appearance',
-				field( 'Title',
-					text( seoTitle, postTitle ? 'Using the page title: \u201c' + postTitle + '\u201d' : 'Using the page title', '_velox_seo_title' ),
+			section( vxT( 'Preview' ), preview ),
+			section( vxT( 'Search appearance' ),
+				field( vxT( 'Title' ),
+					text( seoTitle, postTitle ? 'Using the page title: \u201c' + postTitle + '\u201d' : vxT( 'Using the page title' ), '_velox_seo_title' ),
 					null, seoTitle.length, 60 ),
-				field( 'Description',
+				field( vxT( 'Description' ),
 					el( 'textarea', {
 						className: 'velox-gseo-area',
 						value: seoDesc,
@@ -355,51 +362,51 @@
 					} ),
 					null, seoDesc.length, 160 )
 			),
-			section( 'Search engines',
+			section( vxT( 'Search engines' ),
 				el( 'div', { className: 'velox-gseo-ctl' },
-					el( 'span', {}, 'Indexing' ),
-					seg( [ { v: 'index', t: 'Index' }, { v: 'noindex', t: 'Noindex' } ],
+					el( 'span', {}, vxT( 'Indexing' ) ),
+					seg( [ { v: 'index', t: vxT( 'Index' ) }, { v: 'noindex', t: vxT( 'Noindex' ) } ],
 						noindex ? 'noindex' : 'index',
 						function ( v ) { setMeta( '_velox_seo_noindex', 'noindex' === v ? '1' : '0' ); }, true )
 				),
 				el( 'div', { className: 'velox-gseo-ctl' },
-					el( 'span', {}, 'Links' ),
-					seg( [ { v: 'follow', t: 'Follow' }, { v: 'nofollow', t: 'Nofollow' } ],
+					el( 'span', {}, vxT( 'Links' ) ),
+					seg( [ { v: 'follow', t: vxT( 'Follow' ) }, { v: 'nofollow', t: vxT( 'Nofollow' ) } ],
 						nofollow ? 'nofollow' : 'follow',
 						function ( v ) { setMeta( '_velox_seo_nofollow', 'nofollow' === v ? '1' : '0' ); }, true )
 				),
 				el( 'div', { className: 'velox-gseo-row' },
-					el( 'span', {}, 'Include in sitemap' ),
+					el( 'span', {}, vxT( 'Include in sitemap' ) ),
 					sw( ! exclude, function ( on ) { setMeta( 'sitemap_exclude', on ? '0' : '1' ); } )
 				),
 				el( 'p', { className: 'velox-gseo-out' },
-					'Crawlers are told ',
+					vxT( 'Crawlers are told ' ),
 					el( 'b', {}, ( noindex ? 'noindex' : 'index' ) + ', ' + ( nofollow ? 'nofollow' : 'follow' ) ),
 					noindex ? ' \u2014 this page will not appear in search.' : ' \u2014 this page can appear in search.'
 				)
 			),
-			collapsible( 'Social preview',
-				( ogTitle || ogDesc || ogImage ) ? 'Customised' : 'Using page defaults',
+			collapsible( vxT( 'Social preview' ),
+				( ogTitle || ogDesc || ogImage ) ? vxT( 'Customised' ) : vxT( 'Using page defaults' ),
 				socialState,
 				el( Fragment, {},
-					field( 'Social title', text( ogTitle, 'Falls back to the search title', '_velox_seo_og_title' ),
-						'Shown when shared on Facebook, LinkedIn or X.' ),
-					field( 'Social description',
+					field( vxT( 'Social title' ), text( ogTitle, vxT( 'Falls back to the search title' ), '_velox_seo_og_title' ),
+						vxT( 'Shown when shared on Facebook, LinkedIn or X.' ) ),
+					field( vxT( 'Social description' ),
 						el( 'textarea', {
 							className: 'velox-gseo-area',
 							value: ogDesc,
-							placeholder: 'Falls back to the meta description',
+							placeholder: vxT( 'Falls back to the meta description' ),
 							onChange: function ( e ) { setMeta( '_velox_seo_og_desc', e.target.value ); }
 						} ) ),
-					field( 'Social image URL', text( ogImage, 'Defaults to the featured image', '_velox_seo_og_image' ),
+					field( vxT( 'Social image URL' ), text( ogImage, vxT( 'Defaults to the featured image' ), '_velox_seo_og_image' ),
 						'Recommended size 1200\u00d7630.' )
 				)
 			),
-			collapsible( 'Advanced', 'Canonical, focus keyword', advState,
+			collapsible( vxT( 'Advanced' ), vxT( 'Canonical, focus keyword' ), advState,
 				el( Fragment, {},
-					field( 'Focus keyword', text( focusKw, '', '_velox_seo_focus_kw' ),
-						'The phrase this page should rank for.' ),
-					field( 'Canonical URL', text( canonical, '', '_velox_seo_canonical' ),
+					field( vxT( 'Focus keyword' ), text( focusKw, '', '_velox_seo_focus_kw' ),
+						vxT( 'The phrase this page should rank for.' ) ),
+					field( vxT( 'Canonical URL' ), text( canonical, '', '_velox_seo_canonical' ),
 						'Leave empty to use this page\u2019s own URL.' )
 				)
 			)
@@ -586,7 +593,7 @@
 				handle.className = 'velox-seo-resizer';
 				handle.setAttribute( 'role', 'separator' );
 				handle.setAttribute( 'aria-orientation', 'vertical' );
-				handle.setAttribute( 'title', 'Drag to resize — double-click to reset' );
+				handle.setAttribute( 'title', vxT( 'Drag to resize — double-click to reset' ) );
 				handle.addEventListener( 'pointerdown', startDrag );
 				handle.addEventListener( 'dblclick', function () {
 					try { window.localStorage.removeItem( KEY ); } catch ( e ) {}

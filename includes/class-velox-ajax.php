@@ -994,6 +994,18 @@ class Velox_Ajax {
 				$this->save_settings();
 				break;
 
+			/* -------- Error Logger -------- */
+			case 'errorlog_clear':
+				Velox_Error_Logger::clear();
+				wp_send_json_success( array( 'message' => __( 'Error log cleared.', 'velox' ) ) );
+				break;
+
+			case 'errorlog_delete':
+				$fp = isset( $_POST['fp'] ) ? sanitize_text_field( wp_unslash( $_POST['fp'] ) ) : '';
+				Velox_Error_Logger::delete_one( $fp );
+				wp_send_json_success( array( 'message' => __( 'Entry removed.', 'velox' ) ) );
+				break;
+
 			default:
 				wp_send_json_error( array( 'message' => __( 'Unknown action.', 'velox' ) ), 400 );
 		}

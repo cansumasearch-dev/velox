@@ -32,6 +32,8 @@ class Velox_Utilities {
 			'snippets'   => array( 'label' => 'Code Snippets',       'icon' => 'code',     'ready' => true,  'enable' => 'util_snippets', 'setting' => 'util_snippets', 'link' => 'snippets', 'desc' => 'Add PHP, CSS, JS or HTML snippets with run-location and priority. They get their own Snippets menu below Velox.' ),
 			'htmllang'   => array( 'label' => 'HTML lang switcher',  'icon' => 'globe',    'ready' => true,  'enable' => 'util_htmllang', 'page' => true, 'desc' => 'Set the lang attribute on the <html> tag when the theme or builder hard-codes it and the WordPress site language never reaches the page.' ),
 			'filemanager'=> array( 'label' => 'File Manager',        'icon' => 'folder',   'ready' => true,  'enable' => 'util_filemanager', 'page' => true, 'dangerous' => true, 'desc' => 'Browse and edit your site files directly from the dashboard — like SFTP or the Plesk file manager. Powerful for debugging, but a wrong edit to the wrong file can take the whole site down.' ),
+			'errorlog'   => array( 'label' => 'Error Logger',        'icon' => 'warning',  'ready' => true,  'enable' => 'util_errorlog', 'page' => true, 'desc' => 'Catch every PHP error, fatal and failed API request as it happens — grouped by type, each with a plain-English explanation and how to fix it.' ),
+			'pagespeed'  => array( 'label' => 'PageSpeed',           'icon' => 'search',   'ready' => true,  'enable' => 'ps_enable', 'link' => 'pagespeed', 'desc' => 'Run Google PageSpeed Insights on your pages and show the score, Core Web Vitals and what to improve — right in the dashboard.' ),
 		);
 	}
 

@@ -170,6 +170,7 @@ final class Velox {
 		Velox_Pagespeed::init();
 		Velox_Cookies::init();
 		Velox_Backup::init();
+		Velox_Error_Logger::init();
 		if ( Velox_Settings::get( 'util_october', false ) ) {
 			Velox_October::maybe_install();
 			Velox_October::init();

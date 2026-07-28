@@ -99,6 +99,7 @@ class Velox_Seo {
 		wp_localize_script( 'velox-seo-editor', 'VeloxSeoData', array(
 			'icon'      => VELOX_URL . 'assets/menu-icon.png',
 			'postTypes' => array_values( self::POST_TYPES ),
+			'i18n'      => Velox::js_dictionary(),
 		) );
 	}
 

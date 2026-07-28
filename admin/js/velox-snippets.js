@@ -4,6 +4,11 @@
 
 	var V = window.VELOX || {};
 
+	var VX_I18N = V.i18n || {};
+	function vxT( s ) {
+		return Object.prototype.hasOwnProperty.call( VX_I18N, s ) ? VX_I18N[ s ] : s;
+	}
+
 	function $( sel, root ) { return ( root || document ).querySelector( sel ); }
 
 	function api( doAction, data ) {
@@ -16,7 +21,7 @@
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( j ) {
 				if ( ! j || ! j.success ) {
-					throw new Error( ( j && j.data && j.data.message ) || 'Request failed.' );
+					throw new Error( ( j && j.data && j.data.message ) || vxT( 'Request failed.' ) );
 				}
 				return j.data;
 			} );
@@ -119,7 +124,7 @@
 		} );
 
 		function relabel() {
-			saveAct.textContent = editor.getAttribute( 'data-active' ) === '1' ? 'Save and Deactivate' : 'Save and Activate';
+			saveAct.textContent = editor.getAttribute( 'data-active' ) === '1' ? vxT( 'Save and Deactivate' ) : vxT( 'Save and Activate' );
 		}
 
 		function gather( activeVal ) {
@@ -149,7 +154,7 @@
 					if ( wasNew && window.history && history.replaceState ) {
 						history.replaceState( {}, '', 'admin.php?page=velox-snippets&action=edit&id=' + r.id );
 					}
-					toast( activeVal ? 'Saved & active.' : 'Saved.' );
+					toast( activeVal ? vxT( 'Saved & active.' ) : vxT( 'Saved.' ) );
 				} )
 				.catch( function ( e ) { toast( e.message, 'error' ); } )
 				.then( function () { btn.disabled = false; } );
@@ -260,7 +265,7 @@
 			clearPanic.addEventListener( 'click', function () {
 				clearPanic.disabled = true;
 				api( 'snippet_clear_panic', {} )
-					.then( function () { toast( 'Safe Mode cleared.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+					.then( function () { toast( vxT( 'Safe Mode cleared.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); clearPanic.disabled = false; } );
 			} );
 		}
@@ -270,7 +275,7 @@
 				if ( ! window.confirm( 'Switch off every PHP snippet? Your CSS/JS/HTML snippets stay as they are.' ) ) { return; }
 				disableAll.disabled = true;
 				api( 'snippet_disable_all', {} )
-					.then( function () { toast( 'All PHP snippets switched off.' ); setTimeout( function () { location.reload(); }, 500 ); } )
+					.then( function () { toast( vxT( 'All PHP snippets switched off.' ) ); setTimeout( function () { location.reload(); }, 500 ); } )
 					.catch( function ( e ) { toast( e.message, 'error' ); disableAll.disabled = false; } );
 			} );
 		}
@@ -290,26 +295,26 @@
 				api( turnOn ? 'snippet_activate' : 'snippet_deactivate', { id: id } )
 					.then( function ( r ) {
 						if ( ! r.ok ) { toast( r.message || 'Could not change.', 'error' ); btn.disabled = false; return; }
-						toast( turnOn ? 'Activated.' : 'Deactivated.' );
+						toast( turnOn ? vxT( 'Activated.' ) : vxT( 'Deactivated.' ) );
 						reload();
 					} )
 					.catch( function ( er ) { toast( er.message, 'error' ); btn.disabled = false; } );
 			} else if ( btn.classList.contains( 'velox-snip-clone' ) ) {
 				api( 'snippet_duplicate', { id: id } )
-					.then( function ( r ) { if ( ! r.ok ) { toast( r.message || 'Could not clone.', 'error' ); return; } toast( 'Cloned.' ); reload(); } )
+					.then( function ( r ) { if ( ! r.ok ) { toast( r.message || 'Could not clone.', 'error' ); return; } toast( vxT( 'Cloned.' ) ); reload(); } )
 					.catch( function ( er ) { toast( er.message, 'error' ); } );
 			} else if ( btn.classList.contains( 'velox-snip-trash' ) ) {
 				api( 'snippet_trash', { id: id } )
-					.then( function () { toast( 'Moved to trash.' ); reload(); } )
+					.then( function () { toast( vxT( 'Moved to trash.' ) ); reload(); } )
 					.catch( function ( er ) { toast( er.message, 'error' ); } );
 			} else if ( btn.classList.contains( 'velox-snip-restore' ) ) {
 				api( 'snippet_restore', { id: id } )
-					.then( function () { toast( 'Restored.' ); reload(); } )
+					.then( function () { toast( vxT( 'Restored.' ) ); reload(); } )
 					.catch( function ( er ) { toast( er.message, 'error' ); } );
 			} else if ( btn.classList.contains( 'velox-snip-delete' ) ) {
 				if ( ! window.confirm( 'Delete this snippet forever? This cannot be undone.' ) ) { return; }
 				api( 'snippet_delete', { id: id } )
-					.then( function () { row.remove(); toast( 'Removed.' ); } )
+					.then( function () { row.remove(); toast( vxT( 'Removed.' ) ); } )
 					.catch( function ( er ) { toast( er.message, 'error' ); } );
 			}
 		} );

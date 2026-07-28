@@ -301,6 +301,7 @@ class Velox_Fields {
 		wp_enqueue_media();
 		wp_enqueue_style( 'velox-fields-edit', VELOX_ASSETS . 'css/velox-fields-edit.css', array(), VELOX_VERSION );
 		wp_enqueue_script( 'velox-fields-edit', VELOX_ASSETS . 'js/velox-fields-edit.js', array( 'jquery' ), VELOX_VERSION, true );
+		wp_localize_script( 'velox-fields-edit', 'VeloxFieldsI18n', Velox::js_dictionary() );
 	}
 
 	/* ------------------------------------------------------------------ *
