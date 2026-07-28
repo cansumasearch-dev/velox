@@ -115,6 +115,7 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 					array( 'util', 'installer', 'Bulk Installer', 'plug' ),
 					array( 'util', 'october', 'OctoberCMS Theme', 'package' ),
 					array( 'util', 'filemanager', 'File Manager', 'folder' ),
+					array( 'util', 'errorlog', 'Error Logger', 'warning' ),
 				),
 			);
 			$vx_cat = Velox_Utilities::catalog();

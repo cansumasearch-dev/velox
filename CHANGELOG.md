@@ -5,7 +5,7 @@ up both on the GitHub release and in the WordPress "View details" → Changelog 
 Add a new section at the top for each release.
 
 ## 3.21.0 — Error Logger, and SEO moves into Utilities
-- New Error Logger utility: catches every PHP error, fatal and failed API/HTTP request as it happens, grouped into clean accordions by type (fatal / PHP warnings / API & HTTP). Each error shows where it happened, how often, and — in plain English — what it means and how to fix it, from a built-in knowledge base of common WordPress issues. Switch it on under Utilities; clear all or dismiss errors one at a time.
+- New Error Logger utility: catches every PHP error, fatal and failed API/HTTP request as it happens, grouped into clean accordions by type (fatal / PHP warnings / API & HTTP). Each error shows where it happened, how often, and — in plain English — what it means and how to fix it, from a built-in knowledge base of common WordPress issues. Switch it on under Utilities; clear all or dismiss errors one at a time. Appears in the Velox sidebar and off-canvas menu under System when switched on.
 - PageSpeed is now a switch under Utilities like every other tool — turn it on or off whenever you want, and it appears in the sidebar under Essentials only when enabled. Its page is unchanged.
 
 ## 3.20.0 — Full German coverage across the entire plugin (PHP + JavaScript)
