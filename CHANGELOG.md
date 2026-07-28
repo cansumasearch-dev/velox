@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.19.4 — Translate the "Everything in Velox" cards
+- The catalog grid tiles on the dashboard (Custom Fields / Field groups, Media Editor / Alt text & files, etc.) were rendered from a hardcoded array with plain escaping, so both the names and descriptions stayed English. Both are now wrapped and translated.
+
 ## 3.19.3 — Translate the sidebar, dashboard stats and action messages
 - The sidebar navigation labels and section headings (Utilities, Media Editor, Essentials, etc.) were rendered from hardcoded arrays and never translated — now wrapped and translated.
 - Dashboard stat lines (grade, "N views", "vs last week", "updated X ago", "N of M optimizations on", "/ N pages", the intro subtitle) were bare English literals — now wrapped and translated.

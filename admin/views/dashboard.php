@@ -397,8 +397,8 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 			'<a class="velox-tile" href="%s"><span class="velox-tile-ic">%s</span><span class="velox-tile-tx"><span class="velox-tile-name">%s</span><span class="velox-tile-sub">%s</span></span></a>',
 			esc_url( $vurl ),
 			Velox_Admin::icon( $vicon, 18 ),
-			esc_html( $vlabel ),
-			esc_html( $vsub )
+			esc_html__( $vlabel, 'velox' ), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+			esc_html__( $vsub, 'velox' ) // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
 		);
 	}
 	?>
