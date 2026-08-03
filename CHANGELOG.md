@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.24.3 — Fix Duplicate not copying page-builder content
+- Duplicating a page built with Elementor, Oxygen, Bricks, WPBakery or similar produced a blank copy. The meta-copy step ran maybe_unserialize() on each value before add_post_meta(), which stripped the escaped slashes out of builder JSON blobs (e.g. Elementor's _elementor_data) and corrupted them. Meta values are now copied raw with correct slashing, so PHP-serialized arrays AND builder JSON round-trip byte-for-byte. Gutenberg/classic pages were unaffected (their content lives in post_content, which was always copied correctly).
+
 ## 3.24.2 — Properly fix SEO flag save error (boolean meta)
 - The 3.24.1 string-coercion approach did not fully fix the "Der Metawert von _velox_seo_noindex konnte in der Datenbank nicht aktualisiert werden" publish error. Root cause: the noindex / nofollow / sitemap-exclude toggles were registered as string meta, but the block editor and duplicate plugins send real booleans, and WordPress's REST round-trip comparison mismatched string vs boolean. These three flags are now registered as proper boolean meta (the standard Gutenberg toggle pattern) and the editor sends/reads real booleans. Existing '1'/'0' values still read correctly, so no data migration is needed.
 

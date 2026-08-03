@@ -613,14 +613,22 @@ class Velox_Utilities {
 				wp_set_object_terms( $new_id, $terms, $tax );
 			}
 		}
-		// Meta (skip internals)
+		// Meta. get_post_meta( $id ) returns every value as its RAW stored string
+		// (WordPress does not unserialize in this mode). The old code ran
+		// maybe_unserialize() on each value before add_post_meta() — but
+		// add_post_meta() serialises again, which double-handles page-builder blobs
+		// (Elementor's JSON _elementor_data, Oxygen's ct_builder_shortcodes, etc.)
+		// and left the copy with empty/corrupt builder content. The correct pattern
+		// is to hand the raw value straight to add_post_meta(), wp_slash()'d so
+		// WordPress's own unslash-on-store round-trips it byte-for-byte.
+		$skip_meta = array( '_edit_lock', '_edit_last', '_wp_old_slug' );
 		$meta = get_post_meta( $id );
 		foreach ( $meta as $key => $values ) {
-			if ( '_edit_lock' === $key || '_edit_last' === $key || '_wp_old_slug' === $key ) {
+			if ( in_array( $key, $skip_meta, true ) ) {
 				continue;
 			}
 			foreach ( $values as $v ) {
-				add_post_meta( $new_id, $key, maybe_unserialize( $v ) );
+				add_post_meta( $new_id, $key, wp_slash( $v ) );
 			}
 		}
 
