@@ -389,8 +389,8 @@ class Velox_Backup {
 		}
 		$name = isset( $file['name'] ) ? (string) $file['name'] : '';
 		$ext  = strtolower( pathinfo( $name, PATHINFO_EXTENSION ) );
-		if ( ! in_array( $ext, array( 'sql', 'zip' ), true ) ) {
-			return array( 'ok' => false, 'message' => 'Please upload a .sql database dump or a .zip file archive.' );
+		if ( ! in_array( $ext, array( 'sql', 'zip', 'wpress' ), true ) ) {
+			return array( 'ok' => false, 'message' => 'Please upload a .sql database dump, a .zip file archive, or an All-in-One .wpress backup.' );
 		}
 
 		$dir     = self::dir();
@@ -403,6 +403,42 @@ class Velox_Backup {
 			'tables' => 0, 'files' => 0, 'imported' => true,
 			'wp_version' => get_bloginfo( 'version' ), 'site_url' => home_url(),
 		);
+
+		// ---- All-in-One WP Migration (.wpress) ----
+		if ( 'wpress' === $ext ) {
+			// Move the upload somewhere readable first (import() streams from a path).
+			$staged = $dir . '/wpress-upload-' . $id . '.wpress';
+			if ( ! @move_uploaded_file( $file['tmp_name'], $staged ) ) {
+				return array( 'ok' => false, 'message' => 'Could not save the uploaded .wpress file (folder permissions?).' );
+			}
+			$res = Velox_Wpress::import( $staged, $dir, $id );
+			@unlink( $staged );
+			if ( empty( $res['ok'] ) ) {
+				return array( 'ok' => false, 'message' => isset( $res['message'] ) ? $res['message'] : 'The .wpress backup could not be imported.' );
+			}
+			$entry['db_file']  = isset( $res['db_file'] ) ? $res['db_file'] : '';
+			$entry['db_size']  = isset( $res['db_size'] ) ? (int) $res['db_size'] : 0;
+			$entry['tables']   = isset( $res['tables'] ) ? (int) $res['tables'] : 0;
+			$entry['zip_file'] = isset( $res['zip_file'] ) ? $res['zip_file'] : '';
+			$entry['zip_size'] = isset( $res['zip_size'] ) ? (int) $res['zip_size'] : 0;
+			$entry['files']    = isset( $res['files'] ) ? (int) $res['files'] : 0;
+			$have_db    = '' !== $entry['db_file'];
+			$have_files = '' !== $entry['zip_file'];
+			if ( ! $have_db && ! $have_files ) {
+				return array( 'ok' => false, 'message' => 'The .wpress backup did not contain anything restorable.' );
+			}
+			$entry['what'] = ( $have_db && $have_files ) ? 'both' : ( $have_db ? 'db' : 'files' );
+			if ( ! empty( $res['source_url'] ) ) {
+				$entry['note'] .= ' (from ' . esc_url_raw( $res['source_url'] ) . ')';
+			}
+			self::record( $entry );
+			return array(
+				'ok'      => true,
+				'id'      => $id,
+				'entry'   => $entry,
+				'message' => 'All-in-One backup imported and converted to this site’s URL. Restore it like any other Velox backup.',
+			);
+		}
 
 		if ( 'sql' === $ext ) {
 			$dest = $dir . '/velox-db-' . $id . '.sql';

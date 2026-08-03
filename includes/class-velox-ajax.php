@@ -916,6 +916,32 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'ok' => $ok, 'physical' => Velox_Seo::physical_robots_exists() ) );
 				break;
 
+			case 'seo_llms_preview':
+				wp_send_json_success( array( 'content' => Velox_Ai::generate_llms() ) );
+				break;
+
+			case 'seo_llms_save':
+				$content = isset( $_POST['content'] ) ? wp_unslash( $_POST['content'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+				Velox_Settings::save( array( 'seo_llms_content' => $content ) );
+				wp_send_json_success( array( 'ok' => true ) );
+				break;
+
+			case 'seo_llms_reset':
+				Velox_Settings::save( array( 'seo_llms_content' => '' ) );
+				wp_send_json_success( array( 'ok' => true, 'content' => Velox_Ai::generate_llms() ) );
+				break;
+
+			case 'seo_llms_flush':
+				// Called after the llms toggle changes so /llms.txt starts/stops resolving.
+				// Register the rule inline first so a just-enabled toggle flushes with the
+				// rule present in this same request.
+				if ( Velox_Settings::get( 'seo_llms_enable', false ) ) {
+					Velox_Ai::add_rewrite();
+				}
+				flush_rewrite_rules( false );
+				wp_send_json_success( array( 'ok' => true ) );
+				break;
+
 			case 'seo_htaccess_unlock':
 				wp_send_json_success( Velox_Seo::htaccess_unlock() );
 				break;

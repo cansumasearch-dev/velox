@@ -661,7 +661,12 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 				<h3 class="velox-panel-title" style="margin:0;"><?php esc_html_e('Send log', 'velox'); ?> <span class="velox-count"><?php echo count( $log ); ?></span></h3>
 				<?php if ( ! empty( $log ) ) : ?><button class="velox-btn velox-btn--ghost" id="vmail-log-clear"><?php esc_html_e('Clear log', 'velox'); ?></button><?php endif; ?>
 			</div>
-			<div class="velox-mail-log">
+			<p class="velox-hint" style="margin:4px 0 0;"><?php esc_html_e('Every email your site sends is logged here — contact forms, password resets, new-user notices, WooCommerce receipts and anything other plugins send — so you can see what went out and what failed.', 'velox'); ?></p>
+			<label class="velox-inline-toggle" style="margin-top:12px;">
+				<span><strong><?php esc_html_e('Alert me when a send fails', 'velox'); ?></strong> <span class="velox-hint" style="display:inline;"><?php esc_html_e('— emails the site admin (at most once per hour).', 'velox'); ?></span></span>
+				<span class="velox-switch"><input type="checkbox" data-setting="mail_fail_alert" <?php checked( Velox_Settings::get( 'mail_fail_alert', false ) ); ?>><span class="velox-switch-track"></span></span>
+			</label>
+			<div class="velox-mail-log" style="margin-top:12px;">
 				<?php if ( empty( $log ) ) : ?>
 					<p class="velox-hint" style="margin-top:10px;"><?php esc_html_e('Nothing sent yet.', 'velox'); ?></p>
 				<?php else : ?>

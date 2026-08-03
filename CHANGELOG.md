@@ -4,6 +4,21 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.24.1 — Fix "meta value could not be updated" on SEO flags
+- Publishing a page (often a duplicated one) could fail with "Der Metawert von _velox_seo_noindex konnte in der Datenbank nicht aktualisiert werden." The noindex / nofollow / sitemap-exclude flags are registered as string meta, but a duplicate plugin or REST client can send a real boolean, which the strict schema rejected. Their sanitize now coerces any value (boolean, int, '1'/'0', 'true'/'false', 'on'/'yes') to a clean '1'/'0', so the save always succeeds. No data migration needed — existing values keep working.
+
+## 3.24.0 — Import All-in-One WP Migration (.wpress) backups
+- Backup & Restore now accepts All-in-One WP Migration .wpress files alongside Velox’s own .sql/.zip. Velox unpacks the .wpress container, extracts the database and wp-content files, and — the important part — rewrites the old site’s URL to this domain in a serialization-safe way (PHP-serialized option/widget values keep their correct byte lengths, so nothing corrupts). The result registers as a normal Velox backup and restores through the same path, with a safety backup taken first.
+- Large files are streamed in chunks during unpack, so memory stays flat.
+
+## 3.23.0 — AI crawler control & llms.txt (SEO)
+- New AI crawlers panel in SEO: allow or block AI bots by what they do — training crawlers (GPTBot, ClaudeBot, CCBot, Google-Extended…), AI-search crawlers (OAI-SearchBot, PerplexityBot…) and on-demand fetchers (ChatGPT-User, Perplexity-User…). Your choices are added to robots.txt automatically, per group, with no hand-editing. Nothing is added when everything is allowed, so robots.txt stays clean.
+- New llms.txt: an optional virtual /llms.txt, auto-generated from your pages (title, tagline, key pages and posts as Markdown links) and fully editable. It is served like the virtual robots.txt. Note: Google has said it ignores llms.txt, so this is for the AI systems that do read it, not a Google-ranking boost.
+
+## 3.22.0 — Email log now captures every email, plus failure alerts
+- The Mail & forms send log now records EVERY email your site sends — password resets, new-user notices, WooCommerce receipts and anything other plugins send — not just Velox contact-form and test emails. If an email goes missing, you can finally see whether it was even attempted and whether it failed.
+- New "Alert me when a send fails" switch: emails the site admin when an outgoing email fails (rate-limited to once per hour so a burst can’t flood your inbox). The alert itself is never logged or looped.
+
 ## 3.21.1 — Error Logger in the sidebar & off-canvas
 - The Error Logger now shows in the Velox sidebar and off-canvas menu under System once switched on, matching every other utility — it was reachable only from the Utilities hub before.
 

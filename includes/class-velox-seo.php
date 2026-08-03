@@ -60,21 +60,47 @@ class Velox_Seo {
 		if ( ! Velox_Settings::get( 'module_seo', true ) ) {
 			return;
 		}
-		$keys = array(
-			'_velox_seo_title', '_velox_seo_desc', '_velox_seo_noindex', '_velox_seo_nofollow', 'sitemap_exclude',
+		// String meta: titles, descriptions, URLs, keyword.
+		$string_keys = array(
+			'_velox_seo_title', '_velox_seo_desc',
 			'_velox_seo_canonical', '_velox_seo_focus_kw',
 			'_velox_seo_og_title', '_velox_seo_og_desc', '_velox_seo_og_image',
 		);
+		// Flag meta: stored as the string '1' or '0'. The editor and the classic
+		// save both speak strings, but a duplicate plugin (or a REST client) can
+		// send a real boolean, which a strict 'string' schema rejects with
+		// "could not be updated in the database". So we register these as strings
+		// but coerce ANY incoming value (bool, int, '1'/'0', 'true'/'false',
+		// 'on'/'yes') to a clean '1'/'0' in the sanitize callback.
+		$flag_keys = array( '_velox_seo_noindex', '_velox_seo_nofollow', 'sitemap_exclude' );
+
+		$auth = function () {
+			return current_user_can( 'edit_posts' );
+		};
+		$flag_sanitize = function ( $v ) {
+			if ( is_bool( $v ) ) {
+				return $v ? '1' : '0';
+			}
+			$v = strtolower( trim( (string) $v ) );
+			return in_array( $v, array( '1', 'true', 'on', 'yes' ), true ) ? '1' : '0';
+		};
 		foreach ( self::POST_TYPES as $pt ) {
-			foreach ( $keys as $key ) {
+			foreach ( $string_keys as $key ) {
 				register_post_meta( $pt, $key, array(
 					'type'              => 'string',
 					'single'            => true,
 					'show_in_rest'      => true,
 					'sanitize_callback' => 'sanitize_text_field',
-					'auth_callback'     => function () {
-						return current_user_can( 'edit_posts' );
-					},
+					'auth_callback'     => $auth,
+				) );
+			}
+			foreach ( $flag_keys as $key ) {
+				register_post_meta( $pt, $key, array(
+					'type'              => 'string',
+					'single'            => true,
+					'show_in_rest'      => true,
+					'sanitize_callback' => $flag_sanitize,
+					'auth_callback'     => $auth,
 				) );
 			}
 		}

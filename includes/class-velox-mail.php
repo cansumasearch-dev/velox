@@ -73,7 +73,107 @@ class Velox_Mail {
 		// Replace the default "WordPress <wordpress@domain>" sender site-wide.
 		add_filter( 'wp_mail_from', array( __CLASS__, 'filter_from_email' ), 20 );
 		add_filter( 'wp_mail_from_name', array( __CLASS__, 'filter_from_name' ), 20 );
+
+		// Log EVERY email the site sends — not just Velox forms/test sends. Password
+		// resets, new-user notices, WooCommerce receipts and other plugins all flow
+		// through wp_mail(), so we capture the attempt here and record the outcome
+		// via wp_mail_succeeded / wp_mail_failed.
+		if ( Velox_Settings::get( 'mail_log', true ) ) {
+			add_filter( 'wp_mail', array( __CLASS__, 'capture_wp_mail' ), 9 );
+			add_action( 'wp_mail_succeeded', array( __CLASS__, 'on_wp_mail_succeeded' ) );
+			add_action( 'wp_mail_failed', array( __CLASS__, 'on_wp_mail_failed' ) );
+		}
 	}
+
+	/** Per-request stash of the email currently being sent through wp_mail(). */
+	protected static $pending = null;
+
+	/**
+	 * Capture a wp_mail() call without changing it. Skips messages Velox itself
+	 * sends (those log via send()), so nothing is logged twice.
+	 *
+	 * @param array $atts wp_mail arguments (to, subject, message, headers, attachments).
+	 * @return array Unmodified.
+	 */
+	public static function capture_wp_mail( $atts ) {
+		if ( self::$sending_own ) {
+			return $atts; // Velox's own send() already logs this one.
+		}
+		$to      = isset( $atts['to'] ) ? $atts['to'] : '';
+		$headers = isset( $atts['headers'] ) ? $atts['headers'] : array();
+		self::$pending = array(
+			'to'      => is_array( $to ) ? implode( ', ', $to ) : (string) $to,
+			'subject' => isset( $atts['subject'] ) ? (string) $atts['subject'] : '',
+			'body'    => isset( $atts['message'] ) ? ( is_array( $atts['message'] ) ? implode( "\n", $atts['message'] ) : (string) $atts['message'] ) : '',
+			'headers' => is_array( $headers ) ? implode( "\n", $headers ) : (string) $headers,
+			'from'    => self::header_from( $headers ),
+		);
+		return $atts;
+	}
+
+	/** wp_mail() reported success for the captured message. */
+	public static function on_wp_mail_succeeded( $info = null ) {
+		if ( null === self::$pending ) {
+			return;
+		}
+		$p = self::$pending;
+		self::$pending = null;
+		self::write_log( $p['to'], $p['subject'], $p['body'], $p['headers'], true, self::current_conn_label(), $p['from'], 0, '' );
+	}
+
+	/** wp_mail() reported failure for the captured message. */
+	public static function on_wp_mail_failed( $wp_error ) {
+		if ( null === self::$pending ) {
+			return;
+		}
+		$p = self::$pending;
+		self::$pending = null;
+		$err = is_wp_error( $wp_error ) ? $wp_error->get_error_message() : (string) $wp_error;
+		self::write_log( $p['to'], $p['subject'], $p['body'], $p['headers'], false, self::current_conn_label(), $p['from'], 0, $err );
+		self::maybe_alert_failure( $p['to'], $p['subject'], $err );
+	}
+
+	/** Label for the connection currently in play (or the default mailer). */
+	protected static function current_conn_label() {
+		if ( is_array( self::$active_conn ) ) {
+			return self::conn_label( self::$active_conn );
+		}
+		return Velox_Settings::get( 'mail_smtp_enabled', false ) ? 'SMTP' : __( 'WordPress default', 'velox' );
+	}
+
+	/**
+	 * Email the admin when a send fails, if the failure alert is switched on.
+	 * Rate-limited to one alert per hour so a burst of failures can't flood the
+	 * inbox, and marked so the alert itself is never captured/looped.
+	 */
+	protected static function maybe_alert_failure( $to, $subject, $err ) {
+		if ( ! Velox_Settings::get( 'mail_fail_alert', false ) ) {
+			return;
+		}
+		$last = (int) get_option( 'velox_mail_alert_last', 0 );
+		if ( time() - $last < HOUR_IN_SECONDS ) {
+			return;
+		}
+		$admin = get_option( 'admin_email' );
+		if ( ! is_email( $admin ) ) {
+			return;
+		}
+		update_option( 'velox_mail_alert_last', time(), false );
+		$site = wp_parse_url( home_url(), PHP_URL_HOST );
+		/* translators: %s is the site host. */
+		$subj = sprintf( __( '[%s] An email failed to send', 'velox' ), $site );
+		$body = __( 'Velox detected that an outgoing email failed to send.', 'velox' ) . "\n\n"
+			. __( 'To', 'velox' ) . ': ' . $to . "\n"
+			. __( 'Subject', 'velox' ) . ': ' . $subject . "\n"
+			. __( 'Error', 'velox' ) . ': ' . $err . "\n\n"
+			. __( 'See the full email log under Velox → Mail & forms.', 'velox' );
+		self::$sending_own = true; // don't capture/loop on our own alert
+		wp_mail( $admin, $subj, $body );
+		self::$sending_own = false;
+	}
+
+	/** True while Velox is sending its own message (so global capture skips it). */
+	protected static $sending_own = false;
 
 	/** Sender address override (falls back to WordPress's default when unset/invalid). */
 	public static function filter_from_email( $email ) {
@@ -192,6 +292,7 @@ class Velox_Mail {
 
 		$from_email = self::header_from( $headers );
 		self::$current_from = $from_email;
+		self::$sending_own  = true; // this send logs explicitly below; skip global capture
 
 		$smtp_on  = Velox_Settings::get( 'mail_smtp_enabled', false ) && self::connections();
 		$primary  = $smtp_on ? self::connection( self::pick_connection( $from_email ) ) : null;
@@ -217,8 +318,13 @@ class Velox_Mail {
 
 		self::$active_conn  = null;
 		self::$current_from = '';
+		self::$sending_own  = false;
+		self::$pending      = null; // discard any capture stashed during our own send
 
 		self::write_log( $to, $subject, $body, $headers, $ok, $used, $from_email, $retried, $err );
+		if ( ! $ok ) {
+			self::maybe_alert_failure( is_array( $to ) ? implode( ', ', $to ) : (string) $to, $subject, $err );
+		}
 		return $ok;
 	}
 

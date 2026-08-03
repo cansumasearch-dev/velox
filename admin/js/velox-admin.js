@@ -3748,7 +3748,7 @@
 		var importFile = $( '#vbk-import-file' );
 		if ( importBtn && importFile ) {
 			importBtn.addEventListener( 'click', function () {
-				if ( ! importFile.files || ! importFile.files.length ) { toast( vxT( 'Choose a .sql or .zip file first.' ), 'error' ); return; }
+				if ( ! importFile.files || ! importFile.files.length ) { toast( vxT( 'Choose a .sql, .zip or .wpress file first.' ), 'error' ); return; }
 				var fd = new FormData();
 				fd.append( 'action', 'velox' );
 				fd.append( 'do', 'backup_import' );
@@ -8060,6 +8060,60 @@
 						.then( function () { htReset.disabled = false; } );
 				} );
 			}
+		}
+
+		// ---- AI crawler group toggles: update the Allowed/Blocked label live ----
+		$$( '.velox-ai-toggle' ).forEach( function ( cb ) {
+			cb.addEventListener( 'change', function () {
+				var wrap = cb.closest( '.velox-ai-group-toggle' );
+				var lbl  = wrap ? wrap.querySelector( '.velox-ai-group-state' ) : null;
+				if ( lbl ) { lbl.textContent = cb.checked ? vxT( 'Blocked' ) : vxT( 'Allowed' ); }
+				// saveSettings is already bound globally to [data-setting]; just toast.
+				toast( cb.checked ? vxT( 'AI group blocked.' ) : vxT( 'AI group allowed.' ) );
+			} );
+		} );
+
+		// ---- llms.txt ----
+		var llmsEnable = $( '#velox-seo-llms-enable' );
+		var llmsBody   = $( '.velox-llms-body' );
+		var llmsArea   = $( '#velox-seo-llms' );
+		if ( llmsEnable ) {
+			llmsEnable.addEventListener( 'change', function () {
+				var on = llmsEnable.checked;
+				if ( llmsBody ) { llmsBody.hidden = ! on; }
+				saveSettings( { seo_llms_enable: on ? 1 : 0 }, on ? vxT( 'llms.txt enabled.' ) : vxT( 'llms.txt disabled.' ) );
+				// Flush rewrites so /llms.txt starts (or stops) resolving right away.
+				api( 'seo_llms_flush', {} );
+			} );
+		}
+		var llmsSave = $( '#velox-seo-llms-save' );
+		if ( llmsSave && llmsArea ) {
+			llmsSave.addEventListener( 'click', function () {
+				llmsSave.disabled = true;
+				api( 'seo_llms_save', { content: llmsArea.value } )
+					.then( function () { toast( vxT( 'llms.txt saved.' ) ); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { llmsSave.disabled = false; } );
+			} );
+		}
+		var llmsGen = $( '#velox-seo-llms-generate' );
+		if ( llmsGen && llmsArea ) {
+			llmsGen.addEventListener( 'click', function () {
+				llmsGen.disabled = true;
+				api( 'seo_llms_reset', {} )
+					.then( function ( r ) {
+						if ( r && typeof r.content === 'string' ) { llmsArea.value = r.content; }
+						toast( vxT( 'Regenerated from your pages.' ) );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { llmsGen.disabled = false; } );
+			} );
+		}
+		var llmsView = $( '#velox-seo-llms-view' );
+		if ( llmsView ) {
+			llmsView.addEventListener( 'click', function () {
+				window.open( llmsView.getAttribute( 'data-url' ), '_blank' );
+			} );
 		}
 	}
 

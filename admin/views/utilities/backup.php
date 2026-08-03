@@ -68,8 +68,9 @@ if ( ! function_exists( 'velox_backup_size' ) ) {
 		<div class="velox-panel velox-tool-form">
 			<h3 class="velox-panel-title"><?php esc_html_e('Import &amp; restore a backup', 'velox'); ?></h3>
 			<p class="velox-hint"><?php printf( esc_html__( 'Upload a %1$s dump or a %2$s archive made on another site and it\'s %3$s. A safety backup of the current site is taken first, so you can roll the restore back from the list below.', 'velox' ), '<code>' . esc_html__( '.sql', 'velox' ) . '</code>', '<code>' . esc_html__( '.zip', 'velox' ) . '</code>', '<strong>' . esc_html__( 'restored straight away', 'velox' ) . '</strong>' ); ?></p>
+			<p class="velox-hint"><?php printf( esc_html__( 'You can also upload an %1$s backup (%2$s). Velox unpacks it and rewrites the old site’s address to this one automatically, so it works on this domain.', 'velox' ), '<strong>' . esc_html__( 'All-in-One WP Migration', 'velox' ) . '</strong>', '<code>' . esc_html__( '.wpress', 'velox' ) . '</code>' ); ?></p>
 			<div class="vbk-import-row">
-				<input type="file" id="vbk-import-file" accept=".sql,.zip" class="vbk-file">
+				<input type="file" id="vbk-import-file" accept=".sql,.zip,.wpress" class="vbk-file">
 				<button class="velox-btn velox-btn--primary" id="vbk-import-btn"><?php esc_html_e('Import &amp; restore', 'velox'); ?></button>
 			</div>
 		</div>

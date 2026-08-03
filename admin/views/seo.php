@@ -65,6 +65,47 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 		</div>
 	</div>
 
+	<!-- ============ AI crawlers ============ -->
+	<div class="velox-panel">
+		<div class="velox-panel-head">
+			<h3 class="velox-panel-title"><?php esc_html_e('AI crawlers', 'velox'); ?></h3>
+		</div>
+		<p class="velox-hint"><?php esc_html_e('Decide which AI bots may crawl your site. Choices here are added to your robots.txt automatically — no need to hand-edit the block above. Well-behaved crawlers honour these rules; they are a request, not a hard block.', 'velox'); ?></p>
+		<div class="velox-ai-groups">
+			<?php foreach ( Velox_Ai::bot_groups() as $gid => $g ) : ?>
+				<div class="velox-ai-group">
+					<div class="velox-ai-group-main">
+						<span class="velox-ai-group-label"><?php echo esc_html( $g['label'] ); ?></span>
+						<span class="velox-ai-group-blurb"><?php echo esc_html( $g['blurb'] ); ?></span>
+						<span class="velox-ai-group-agents"><?php echo esc_html( implode( ', ', array_slice( $g['agents'], 0, 6 ) ) ); ?><?php echo count( $g['agents'] ) > 6 ? '…' : ''; ?></span>
+					</div>
+					<label class="velox-ai-group-toggle" title="<?php esc_attr_e('Block this group', 'velox'); ?>">
+						<span class="velox-ai-group-state"><?php echo ! empty( $s[ $g['setting'] ] ) ? esc_html__( 'Blocked', 'velox' ) : esc_html__( 'Allowed', 'velox' ); ?></span>
+						<span class="velox-switch velox-switch--danger"><input type="checkbox" data-setting="<?php echo esc_attr( $g['setting'] ); ?>" class="velox-ai-toggle" <?php checked( ! empty( $s[ $g['setting'] ] ) ); ?>><span class="velox-switch-track"></span></span>
+					</label>
+				</div>
+			<?php endforeach; ?>
+		</div>
+		<p class="velox-hint" style="margin-top:10px;"><?php esc_html_e('Tip: most sites allow AI search crawlers (visibility in AI answers) but may block training crawlers. Blocking on-demand fetchers can stop your pages being summarised when someone shares your link.', 'velox'); ?></p>
+	</div>
+
+	<!-- ============ llms.txt ============ -->
+	<div class="velox-panel">
+		<div class="velox-panel-head">
+			<h3 class="velox-panel-title">llms.txt</h3>
+			<label class="velox-switch"><input type="checkbox" id="velox-seo-llms-enable" data-setting="seo_llms_enable" data-llms-flush="1" <?php checked( ! empty( $s['seo_llms_enable'] ) ); ?>><span class="velox-switch-track"></span></label>
+		</div>
+		<p class="velox-hint"><?php printf( esc_html__( 'Serves a %s — a plain-text map of your key pages that AI tools can read to understand your site. Auto-generated from your pages; edit it if you want. Note: Google has said it ignores llms.txt, so this is for the AI systems that do read it, not a Google-ranking boost.', 'velox' ), '<code>' . esc_html( home_url( '/llms.txt' ) ) . '</code>' ); ?></p>
+		<div class="velox-llms-body"<?php echo empty( $s['seo_llms_enable'] ) ? ' hidden' : ''; ?>>
+			<textarea class="velox-textarea velox-mono" id="velox-seo-llms" rows="12" placeholder="<?php esc_attr_e('Leave blank to auto-generate from your pages…', 'velox'); ?>"><?php echo esc_textarea( (string) $s['seo_llms_content'] ); ?></textarea>
+			<div class="velox-tool-actions">
+				<button class="velox-btn velox-btn--primary" id="velox-seo-llms-save"><?php esc_html_e('Save llms.txt', 'velox'); ?></button>
+				<button class="velox-btn velox-btn--ghost" id="velox-seo-llms-generate"><?php esc_html_e('Regenerate from pages', 'velox'); ?></button>
+				<button class="velox-btn velox-btn--ghost" id="velox-seo-llms-view" data-url="<?php echo esc_url( home_url( '/llms.txt' ) ); ?>"><?php esc_html_e('View live llms.txt', 'velox'); ?></button>
+			</div>
+		</div>
+	</div>
+
 	<!-- ============ Sitemap ============ -->
 	<div class="velox-panel">
 		<div class="velox-cache-status-row">

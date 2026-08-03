@@ -49,6 +49,12 @@ class Velox_Settings {
 			'seo_robots_enable'  => true,
 			'seo_og_enable'      => true,
 			'seo_robots_content' => '', // empty = use the recommended default template
+			// ---- AI crawlers + llms.txt ----
+			'seo_ai_block_training'   => false, // block AI training crawlers (GPTBot, ClaudeBot, CCBot…)
+			'seo_ai_block_search'     => false, // block AI-search crawlers (OAI-SearchBot, PerplexityBot…)
+			'seo_ai_block_assistants' => false, // block on-demand fetchers (ChatGPT-User, Perplexity-User…)
+			'seo_llms_enable'         => false, // serve a virtual /llms.txt
+			'seo_llms_content'        => '',    // empty = auto-generate from the site
 			'seo_sitemap_enable' => true,
 			'seo_sitemap_home'      => true,
 			'seo_sitemap_posts'     => true,
@@ -202,6 +208,7 @@ class Velox_Settings {
 			'mail_captcha_site'   => '',
 			'mail_captcha_secret' => '',
 			'mail_log'            => true,
+			'mail_fail_alert'     => false,
 
 			// ---- Image optimizer / WebP ----
 			'webp_quality'       => 80,
