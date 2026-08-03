@@ -66,23 +66,15 @@ class Velox_Seo {
 			'_velox_seo_canonical', '_velox_seo_focus_kw',
 			'_velox_seo_og_title', '_velox_seo_og_desc', '_velox_seo_og_image',
 		);
-		// Flag meta: stored as the string '1' or '0'. The editor and the classic
-		// save both speak strings, but a duplicate plugin (or a REST client) can
-		// send a real boolean, which a strict 'string' schema rejects with
-		// "could not be updated in the database". So we register these as strings
-		// but coerce ANY incoming value (bool, int, '1'/'0', 'true'/'false',
-		// 'on'/'yes') to a clean '1'/'0' in the sanitize callback.
-		$flag_keys = array( '_velox_seo_noindex', '_velox_seo_nofollow', 'sitemap_exclude' );
+		// Flag meta: on/off toggles. Registered as real booleans — the Gutenberg
+		// pattern for a toggle. Registering these as 'string' caused publishing to
+		// fail ("Der Metawert … konnte in der Datenbank nicht aktualisiert werden")
+		// whenever a boolean value came through (block editor / duplicate plugins),
+		// because the REST round-trip comparison mismatched string vs boolean.
+		$bool_keys = array( '_velox_seo_noindex', '_velox_seo_nofollow', 'sitemap_exclude' );
 
 		$auth = function () {
 			return current_user_can( 'edit_posts' );
-		};
-		$flag_sanitize = function ( $v ) {
-			if ( is_bool( $v ) ) {
-				return $v ? '1' : '0';
-			}
-			$v = strtolower( trim( (string) $v ) );
-			return in_array( $v, array( '1', 'true', 'on', 'yes' ), true ) ? '1' : '0';
 		};
 		foreach ( self::POST_TYPES as $pt ) {
 			foreach ( $string_keys as $key ) {
@@ -94,12 +86,12 @@ class Velox_Seo {
 					'auth_callback'     => $auth,
 				) );
 			}
-			foreach ( $flag_keys as $key ) {
+			foreach ( $bool_keys as $key ) {
 				register_post_meta( $pt, $key, array(
-					'type'              => 'string',
+					'type'              => 'boolean',
 					'single'            => true,
 					'show_in_rest'      => true,
-					'sanitize_callback' => $flag_sanitize,
+					'sanitize_callback' => 'rest_sanitize_boolean',
 					'auth_callback'     => $auth,
 				) );
 			}
@@ -449,9 +441,9 @@ class Velox_Seo {
 		// Segmented index/follow controls (fall back to the legacy checkbox if present).
 		$noindex  = isset( $_POST['velox_seo_index'] ) ? ( 'noindex' === $_POST['velox_seo_index'] ) : isset( $_POST['velox_seo_noindex'] );
 		$nofollow = isset( $_POST['velox_seo_follow'] ) && 'nofollow' === $_POST['velox_seo_follow'];
-		update_post_meta( $post_id, '_velox_seo_noindex', $noindex ? '1' : '0' );
-		update_post_meta( $post_id, '_velox_seo_nofollow', $nofollow ? '1' : '0' );
-		update_post_meta( $post_id, 'sitemap_exclude', isset( $_POST['sitemap_exclude'] ) ? '1' : '0' );
+		update_post_meta( $post_id, '_velox_seo_noindex', (bool) $noindex );
+		update_post_meta( $post_id, '_velox_seo_nofollow', (bool) $nofollow );
+		update_post_meta( $post_id, 'sitemap_exclude', isset( $_POST['sitemap_exclude'] ) );
 		update_post_meta( $post_id, '_velox_seo_canonical', esc_url_raw( wp_unslash( $_POST['velox_seo_canonical'] ?? '' ) ) );
 		update_post_meta( $post_id, '_velox_seo_focus_kw', sanitize_text_field( wp_unslash( $_POST['velox_seo_focus_kw'] ?? '' ) ) );
 		update_post_meta( $post_id, '_velox_seo_og_title', sanitize_text_field( wp_unslash( $_POST['velox_seo_og_title'] ?? '' ) ) );

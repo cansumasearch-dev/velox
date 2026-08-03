@@ -180,9 +180,9 @@
 
 		var seoTitle  = meta._velox_seo_title || '';
 		var seoDesc   = meta._velox_seo_desc || '';
-		var noindex   = meta._velox_seo_noindex === '1';
-		var nofollow  = meta._velox_seo_nofollow === '1';
-		var exclude   = meta.sitemap_exclude === '1';
+		var noindex   = meta._velox_seo_noindex === true || meta._velox_seo_noindex === '1';
+		var nofollow  = meta._velox_seo_nofollow === true || meta._velox_seo_nofollow === '1';
+		var exclude   = meta.sitemap_exclude === true || meta.sitemap_exclude === '1';
 		var canonical = meta._velox_seo_canonical || '';
 		var focusKw   = meta._velox_seo_focus_kw || '';
 		var ogTitle   = meta._velox_seo_og_title || '';
@@ -367,17 +367,17 @@
 					el( 'span', {}, vxT( 'Indexing' ) ),
 					seg( [ { v: 'index', t: vxT( 'Index' ) }, { v: 'noindex', t: vxT( 'Noindex' ) } ],
 						noindex ? 'noindex' : 'index',
-						function ( v ) { setMeta( '_velox_seo_noindex', 'noindex' === v ? '1' : '0' ); }, true )
+						function ( v ) { setMeta( '_velox_seo_noindex', 'noindex' === v ); }, true )
 				),
 				el( 'div', { className: 'velox-gseo-ctl' },
 					el( 'span', {}, vxT( 'Links' ) ),
 					seg( [ { v: 'follow', t: vxT( 'Follow' ) }, { v: 'nofollow', t: vxT( 'Nofollow' ) } ],
 						nofollow ? 'nofollow' : 'follow',
-						function ( v ) { setMeta( '_velox_seo_nofollow', 'nofollow' === v ? '1' : '0' ); }, true )
+						function ( v ) { setMeta( '_velox_seo_nofollow', 'nofollow' === v ); }, true )
 				),
 				el( 'div', { className: 'velox-gseo-row' },
 					el( 'span', {}, vxT( 'Include in sitemap' ) ),
-					sw( ! exclude, function ( on ) { setMeta( 'sitemap_exclude', on ? '0' : '1' ); } )
+					sw( ! exclude, function ( on ) { setMeta( 'sitemap_exclude', ! on ); } )
 				),
 				el( 'p', { className: 'velox-gseo-out' },
 					vxT( 'Crawlers are told ' ),

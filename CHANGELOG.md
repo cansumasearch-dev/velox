@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.24.2 — Properly fix SEO flag save error (boolean meta)
+- The 3.24.1 string-coercion approach did not fully fix the "Der Metawert von _velox_seo_noindex konnte in der Datenbank nicht aktualisiert werden" publish error. Root cause: the noindex / nofollow / sitemap-exclude toggles were registered as string meta, but the block editor and duplicate plugins send real booleans, and WordPress's REST round-trip comparison mismatched string vs boolean. These three flags are now registered as proper boolean meta (the standard Gutenberg toggle pattern) and the editor sends/reads real booleans. Existing '1'/'0' values still read correctly, so no data migration is needed.
+
 ## 3.24.1 — Fix "meta value could not be updated" on SEO flags
 - Publishing a page (often a duplicated one) could fail with "Der Metawert von _velox_seo_noindex konnte in der Datenbank nicht aktualisiert werden." The noindex / nofollow / sitemap-exclude flags are registered as string meta, but a duplicate plugin or REST client can send a real boolean, which the strict schema rejected. Their sanitize now coerces any value (boolean, int, '1'/'0', 'true'/'false', 'on'/'yes') to a clean '1'/'0', so the save always succeeds. No data migration needed — existing values keep working.
 
