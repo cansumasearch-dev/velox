@@ -43,6 +43,13 @@ class Velox_Seo {
 
 		// Block editor: REST-exposed meta + the Velox SEO sidebar panel.
 		add_action( 'init', array( __CLASS__, 'register_meta' ) );
+		// Guard against the REST "meta value could not be updated" error. When the
+		// block editor saves a boolean SEO flag whose value already matches what's
+		// stored (e.g. a freshly-duplicated noindex page saved without toggling),
+		// update_metadata() returns false because no row changes — and the REST
+		// layer surfaces that false as a database error. This short-circuits the
+		// no-op write to a success so the publish goes through.
+		add_filter( 'update_post_metadata', array( __CLASS__, 'shortcircuit_flag_meta' ), 10, 5 );
 		add_action( 'enqueue_block_editor_assets', array( __CLASS__, 'editor_assets' ) );
 		// The REST flow writes meta after save_post, so refresh the sitemap once the
 		// editor save has fully landed (otherwise sitemap_exclude/noindex lag a save).
@@ -56,6 +63,43 @@ class Velox_Seo {
 	}
 
 	/** Expose the SEO meta to the REST API so the Gutenberg panel can read/write it. */
+	/**
+	 * Treat a no-op boolean-flag meta save as success instead of a DB error.
+	 *
+	 * WordPress's REST meta controller reports update_metadata()'s "false" (which
+	 * it returns when nothing changed) as "the meta value could not be updated in
+	 * the database". For our three boolean SEO flags, when the value the editor
+	 * sends already equals what's stored (canonically compared), we return true to
+	 * short-circuit the write as a success. Any real change is left to WordPress.
+	 *
+	 * @param null|bool $check    Short-circuit value (null lets WP proceed).
+	 * @param int       $obj_id   Post ID.
+	 * @param string    $meta_key Meta key.
+	 * @param mixed     $value    Incoming value.
+	 * @return null|bool
+	 */
+	public static function shortcircuit_flag_meta( $check, $obj_id, $meta_key, $value ) {
+		if ( ! in_array( $meta_key, array( '_velox_seo_noindex', '_velox_seo_nofollow', 'sitemap_exclude' ), true ) ) {
+			return $check;
+		}
+		$incoming = self::flag_truthy( $value );
+		$stored   = self::flag_truthy( get_post_meta( $obj_id, $meta_key, true ) );
+		if ( $incoming === $stored ) {
+			// Value is unchanged — report success so REST doesn't raise a DB error.
+			return true;
+		}
+		return $check;
+	}
+
+	/** Canonical truthiness for a flag value in any stored/incoming form. */
+	private static function flag_truthy( $v ) {
+		if ( is_bool( $v ) ) {
+			return $v;
+		}
+		$v = strtolower( trim( (string) $v ) );
+		return in_array( $v, array( '1', 'true', 'on', 'yes' ), true );
+	}
+
 	public static function register_meta() {
 		if ( ! Velox_Settings::get( 'module_seo', true ) ) {
 			return;

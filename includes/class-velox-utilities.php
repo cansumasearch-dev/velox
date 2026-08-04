@@ -622,9 +622,31 @@ class Velox_Utilities {
 		// is to hand the raw value straight to add_post_meta(), wp_slash()'d so
 		// WordPress's own unslash-on-store round-trips it byte-for-byte.
 		$skip_meta = array( '_edit_lock', '_edit_last', '_wp_old_slug' );
+		// These are registered as boolean meta (SEO flags). WordPress stores boolean
+		// true as '1' and false as an absent row. If we copy a stale '0' / legacy
+		// string here, the first block-editor save can hit rest_meta_database_error
+		// (the editor sends a real boolean that "equals" the stored value, so
+		// update_metadata() writes nothing and the REST round-trip check fails).
+		// Normalise them: copy a real '1' only when truthy, and skip the row entirely
+		// when falsey — matching exactly what boolean meta expects.
+		$bool_meta = array( '_velox_seo_noindex', '_velox_seo_nofollow', 'sitemap_exclude' );
 		$meta = get_post_meta( $id );
 		foreach ( $meta as $key => $values ) {
 			if ( in_array( $key, $skip_meta, true ) ) {
+				continue;
+			}
+			if ( in_array( $key, $bool_meta, true ) ) {
+				$truthy = false;
+				foreach ( $values as $v ) {
+					if ( '1' === (string) $v || 'true' === strtolower( (string) $v ) ) {
+						$truthy = true;
+						break;
+					}
+				}
+				if ( $truthy ) {
+					add_post_meta( $new_id, $key, '1' );
+				}
+				// falsey → leave the row off entirely (canonical boolean-false storage)
 				continue;
 			}
 			foreach ( $values as $v ) {
