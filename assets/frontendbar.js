@@ -60,10 +60,11 @@
 			var next = ! barRow.classList.contains( 'is-on' );
 			post( 'fb_admin_bar', { on: next ? 1 : 0 }, barRow, function () {
 				setPill( barRow, next );
-				toast( ( t.adminBar || 'Admin bar' ) + ': ' + ( next ? ( t.on || 'On' ) : ( t.off || 'Off' ) ) );
-				var ab = document.getElementById( 'wpadminbar' );
-				if ( ab && ! next ) { ab.style.display = 'none'; document.documentElement.style.marginTop = '0'; }
-				else if ( ! ab && next ) { location.reload(); }
+				// Reload so WordPress renders the correct state from scratch — with the
+				// bar it re-adds the html margin-top; without it the page reclaims that
+				// space. The old client-side hide left a white gap and couldn't bring the
+				// bar back, so a reload is the reliable path (same as the WP setting).
+				location.reload();
 			} );
 		} );
 		wrap.appendChild( barRow );
