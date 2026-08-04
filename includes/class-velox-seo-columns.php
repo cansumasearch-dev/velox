@@ -42,7 +42,7 @@ class Velox_Seo_Columns {
 			'velox_seo_title' => __( 'SEO Title', 'velox' ),
 			'velox_seo_desc'  => __( 'SEO Description', 'velox' ),
 			'velox_seo_kw'    => __( 'Focus keyword', 'velox' ),
-			'velox_seo_index' => __( 'Index', 'velox' ),
+			'velox_seo_index' => __( 'Index & Links', 'velox' ),
 			'velox_seo_map'   => __( 'Sitemap', 'velox' ),
 		);
 		$out = array();
@@ -116,25 +116,35 @@ class Velox_Seo_Columns {
 		echo '<span class="velox-seo-kw">' . esc_html( $kw ) . '</span>';
 	}
 
-	/** Index / Noindex status badge — display only. */
+	/** Index + Follow status — clickable toggles that save inline. */
 	private static function render_index_cell( $post_id ) {
-		$noindex = '1' === (string) get_post_meta( $post_id, '_velox_seo_noindex', true );
-		if ( $noindex ) {
-			echo '<span class="velox-seo-badge is-warn" title="' . esc_attr__( 'This page is set to noindex — search engines are told not to list it.', 'velox' ) . '">' . esc_html__( 'Noindex', 'velox' ) . '</span>';
-		} else {
-			echo '<span class="velox-seo-badge is-ok">' . esc_html__( 'Index', 'velox' ) . '</span>';
-		}
+		$noindex  = '1' === (string) get_post_meta( $post_id, '_velox_seo_noindex', true );
+		$nofollow = '1' === (string) get_post_meta( $post_id, '_velox_seo_nofollow', true );
+		echo '<span class="velox-seo-idx" data-post="' . (int) $post_id . '">';
+		printf(
+			'<button type="button" class="velox-seo-toggle %1$s" data-flag="noindex" data-on="%2$d" title="%3$s">%4$s</button>',
+			$noindex ? 'is-off' : 'is-on',
+			$noindex ? 0 : 1,
+			esc_attr__( 'Click to toggle indexing', 'velox' ),
+			$noindex ? esc_html__( 'Noindex', 'velox' ) : esc_html__( 'Index', 'velox' )
+		);
+		printf(
+			'<button type="button" class="velox-seo-toggle %1$s" data-flag="nofollow" data-on="%2$d" title="%3$s">%4$s</button>',
+			$nofollow ? 'is-off' : 'is-on',
+			$nofollow ? 0 : 1,
+			esc_attr__( 'Click to toggle link following', 'velox' ),
+			$nofollow ? esc_html__( 'Nofollow', 'velox' ) : esc_html__( 'Follow', 'velox' )
+		);
+		echo '</span>';
 	}
 
 	/** Sitemap in/excluded badge — display only. */
 	private static function render_sitemap_cell( $post_id ) {
 		$excluded = '1' === (string) get_post_meta( $post_id, 'sitemap_exclude', true );
-		// A noindex page never makes the sitemap either — reflect that honestly.
-		$noindex = '1' === (string) get_post_meta( $post_id, '_velox_seo_noindex', true );
+		// Sitemap inclusion is controlled ONLY by the exclude toggle — noindex has
+		// no effect, so a noindex page still shows "In sitemap" unless excluded.
 		if ( $excluded ) {
 			echo '<span class="velox-seo-badge is-muted" title="' . esc_attr__( 'Excluded from the sitemap in this page’s Velox panel.', 'velox' ) . '">' . esc_html__( 'Excluded', 'velox' ) . '</span>';
-		} elseif ( $noindex ) {
-			echo '<span class="velox-seo-badge is-muted" title="' . esc_attr__( 'Left out because the page is noindex.', 'velox' ) . '">' . esc_html__( 'Not listed', 'velox' ) . '</span>';
 		} else {
 			echo '<span class="velox-seo-badge is-ok">' . esc_html__( 'In sitemap', 'velox' ) . '</span>';
 		}
@@ -228,11 +238,15 @@ class Velox_Seo_Columns {
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'velox_nonce' ),
 			'i18n'    => array(
-				'add'     => __( '— add —', 'velox' ),
-				'saving'  => __( 'Saving…', 'velox' ),
-				'saved'   => __( 'Saved', 'velox' ),
-				'failed'  => __( 'Save failed', 'velox' ),
-				'hint'    => __( 'Enter to save · Esc to cancel', 'velox' ),
+				'add'      => __( '— add —', 'velox' ),
+				'saving'   => __( 'Saving…', 'velox' ),
+				'saved'    => __( 'Saved', 'velox' ),
+				'failed'   => __( 'Save failed', 'velox' ),
+				'hint'     => __( 'Enter to save · Esc to cancel', 'velox' ),
+				'index'    => __( 'Index', 'velox' ),
+				'noindex'  => __( 'Noindex', 'velox' ),
+				'follow'   => __( 'Follow', 'velox' ),
+				'nofollow' => __( 'Nofollow', 'velox' ),
 			),
 		) );
 	}
@@ -256,5 +270,24 @@ class Velox_Seo_Columns {
 			wp_send_json_error( array( 'message' => __( 'Unknown field.', 'velox' ) ), 400 );
 		}
 		wp_send_json_success( array( 'value' => $clean ) );
+	}
+
+	/** AJAX: toggle the noindex or nofollow flag from the list. */
+	public static function ajax_toggle_flag() {
+		$post_id = isset( $_POST['post'] ) ? (int) $_POST['post'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$flag    = isset( $_POST['flag'] ) ? sanitize_key( $_POST['flag'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$on      = ! empty( $_POST['on'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+
+		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
+			wp_send_json_error( array( 'message' => __( 'Not allowed.', 'velox' ) ), 403 );
+		}
+		$key = 'noindex' === $flag ? '_velox_seo_noindex' : ( 'nofollow' === $flag ? '_velox_seo_nofollow' : '' );
+		if ( '' === $key ) {
+			wp_send_json_error( array( 'message' => __( 'Unknown field.', 'velox' ) ), 400 );
+		}
+		// Meta is boolean-registered; store canonical '1'/'0'. "on" here means the
+		// flag is ACTIVE (noindex/nofollow). The button sends the target state.
+		update_post_meta( $post_id, $key, $on ? '1' : '0' );
+		wp_send_json_success( array( 'flag' => $flag, 'on' => $on ) );
 	}
 }

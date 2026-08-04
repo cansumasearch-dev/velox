@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.30.0 — Editable Index & Links column, resizable SEO sidebar, sitemap independent of noindex
+- The "Index" column in the Posts/Pages list is now "Index & Links" and is clickable: toggle Index/Noindex and Follow/Nofollow straight from the list, saved instantly, badges update live.
+- The Velox SEO panel in the page editor is now horizontally resizable — drag its left edge to make it wider or narrower; the width is remembered per browser.
+- Sitemap inclusion is now controlled ONLY by the "Exclude from sitemap" toggle. noindex / nofollow no longer affect whether a page is in the sitemap — a noindex page stays in the sitemap unless explicitly excluded. The sitemap column reflects this (a noindex page shows "In sitemap").
+
 ## 3.29.0 — More SEO columns in the Posts/Pages lists
 - Added three columns and a length indicator to the Posts/Pages list (all shown only when the SEO module is on, toggled from Screen Options like the others):
   - Focus keyword — shows each page’s focus keyword (or "— none —").

@@ -82,3 +82,21 @@
 .column-velox_seo_index,
 .column-velox_seo_map  { width: 90px; }
 .column-velox_seo_kw   { width: 12%; }
+
+/* Index & Links clickable toggles */
+.velox-seo-idx { display: inline-flex; flex-direction: column; gap: 3px; }
+.velox-seo-toggle {
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 999px;
+	border: 1px solid transparent;
+	cursor: pointer;
+	white-space: nowrap;
+	line-height: 1.4;
+}
+.velox-seo-toggle.is-on  { background: rgba(42,183,241,.15); color: #1489b8; }
+.velox-seo-toggle.is-off { background: rgba(239,68,68,.14);  color: #c0392b; }
+.velox-seo-toggle:hover  { border-color: currentColor; }
+.velox-seo-toggle:disabled { opacity: .5; cursor: default; }
+.column-velox_seo_index { width: 110px; }

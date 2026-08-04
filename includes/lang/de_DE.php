@@ -1882,4 +1882,7 @@ return array(
 	'Not listed' => 'Nicht gelistet',
 	'Aim for 30–60 characters. Google truncates longer titles.' => 'Ziel: 30–60 Zeichen. Google kürzt längere Titel ab.',
 	'Aim for 120–160 characters. Google truncates longer descriptions.' => 'Ziel: 120–160 Zeichen. Google kürzt längere Beschreibungen ab.',
+	'Index & Links' => 'Index & Links',
+	'Click to toggle indexing' => 'Klicken zum Umschalten der Indexierung',
+	'Click to toggle link following' => 'Klicken zum Umschalten der Linkverfolgung',
 );

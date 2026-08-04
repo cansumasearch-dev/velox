@@ -653,7 +653,9 @@ class Velox_Seo {
 					$url = trailingslashit( get_permalink() );
 					if ( $url === $homepage_url ) { continue; }
 					if ( '1' === (string) get_post_meta( $pid, 'sitemap_exclude', true ) ) { continue; }
-					if ( '1' === (string) get_post_meta( $pid, '_velox_seo_noindex', true ) ) { continue; }
+					// Note: noindex/nofollow deliberately do NOT affect sitemap inclusion.
+					// A page stays in the sitemap unless "Exclude from sitemap" is ticked,
+					// even when it's set to noindex.
 					$entries[] = array( 'loc' => $url, 'lastmod' => (string) get_the_modified_date( 'c' ), 'priority' => $priority, 'changefreq' => $changefreq );
 				}
 				wp_reset_postdata();

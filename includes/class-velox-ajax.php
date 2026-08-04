@@ -30,6 +30,10 @@ class Velox_Ajax {
 				Velox_Seo_Columns::ajax_save();
 				break;
 
+			case 'seocol_flag':
+				Velox_Seo_Columns::ajax_toggle_flag();
+				break;
+
 			/* -------- Frontend admin bar (quick panel) -------- */
 			case 'fb_admin_bar':
 				Velox_Frontend_Bar::ajax_toggle_admin_bar();

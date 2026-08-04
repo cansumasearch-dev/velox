@@ -130,3 +130,47 @@
 		};
 	}
 } )();
+
+/* ---------------- Index & Links clickable toggles ---------------- */
+( function () {
+	var D = window.VELOX_SEOCOL;
+	if ( ! D ) { return; }
+	var t = D.i18n || {};
+
+	document.addEventListener( 'click', function ( e ) {
+		var btn = e.target.closest( '.velox-seo-toggle' );
+		if ( ! btn ) { return; }
+		var wrap = btn.closest( '.velox-seo-idx' );
+		if ( ! wrap ) { return; }
+		var post = wrap.getAttribute( 'data-post' );
+		var flag = btn.getAttribute( 'data-flag' );        // noindex | nofollow
+		var target = btn.getAttribute( 'data-on' ) === '1' ? 1 : 0; // 1 = set the flag ON (noindex/nofollow)
+
+		btn.disabled = true;
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' );
+		body.set( 'do', 'seocol_flag' );
+		body.set( 'nonce', D.nonce );
+		body.set( 'post', post );
+		body.set( 'flag', flag );
+		body.set( 'on', target );
+		fetch( D.ajaxUrl, { method: 'POST', credentials: 'same-origin', headers: { 'Content-Type': 'application/x-www-form-urlencoded' }, body: body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( j ) {
+				if ( j && j.success ) {
+					var nowOn = target === 1; // flag is now active (noindex/nofollow)
+					if ( flag === 'noindex' ) {
+						btn.textContent = nowOn ? ( t.noindex || 'Noindex' ) : ( t.index || 'Index' );
+					} else {
+						btn.textContent = nowOn ? ( t.nofollow || 'Nofollow' ) : ( t.follow || 'Follow' );
+					}
+					btn.classList.toggle( 'is-off', nowOn );
+					btn.classList.toggle( 'is-on', ! nowOn );
+					// flip the data-on so the next click toggles back
+					btn.setAttribute( 'data-on', nowOn ? '0' : '1' );
+				}
+			} )
+			.catch( function () {} )
+			.then( function () { btn.disabled = false; } );
+	} );
+} )();

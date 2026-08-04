@@ -624,3 +624,102 @@
 			boot();
 		}
 	}() );
+
+	/* ---- Make the Velox SEO sidebar horizontally resizable ----
+	   Gutenberg's plugin sidebar is a fixed ~280px. We add a drag handle on its
+	   left edge and override the width, persisting the chosen width per browser.
+	   This overrides core layout, so it's defensive: it only acts when the Velox
+	   panel is the active sidebar, and cleans up when it closes. */
+	( function () {
+		var KEY = 'veloxSeoSidebarWidth';
+		var MIN = 280, MAX = 720;
+		var handle = null;
+
+		function stored() {
+			var v = parseInt( window.localStorage.getItem( KEY ), 10 );
+			return ( v && v >= MIN && v <= MAX ) ? v : 0;
+		}
+
+		// The region that holds the active plugin sidebar.
+		function region() {
+			// Works across WP versions: the complementary area on the right.
+			return document.querySelector( '.interface-interface-skeleton__sidebar[aria-label], .interface-complementary-area' )
+				? document.querySelector( '.interface-interface-skeleton__sidebar' )
+				: null;
+		}
+
+		function veloxOpen() {
+			// The Velox panel renders a .velox-gseo inside the sidebar when active.
+			return !! document.querySelector( '.interface-interface-skeleton__sidebar .velox-gseo' );
+		}
+
+		function apply( px ) {
+			var sb = region();
+			if ( ! sb ) { return; }
+			sb.style.width = px + 'px';
+			sb.style.flexBasis = px + 'px';
+			sb.style.maxWidth = 'none';
+		}
+		function reset() {
+			var sb = region();
+			if ( sb ) { sb.style.width = ''; sb.style.flexBasis = ''; sb.style.maxWidth = ''; }
+		}
+
+		function ensureHandle() {
+			var sb = region();
+			if ( ! sb || ! veloxOpen() ) {
+				if ( handle && handle.parentNode ) { handle.parentNode.removeChild( handle ); handle = null; reset(); }
+				return;
+			}
+			if ( stored() ) { apply( stored() ); }
+			if ( handle && handle.isConnected ) { return; }
+
+			handle = document.createElement( 'div' );
+			handle.className = 'velox-sb-resize';
+			handle.title = 'Drag to resize';
+			handle.style.cssText = 'position:absolute;left:0;top:0;width:6px;height:100%;cursor:ew-resize;z-index:100;background:transparent;';
+			handle.addEventListener( 'mouseenter', function () { handle.style.background = 'rgba(42,183,241,.35)'; } );
+			handle.addEventListener( 'mouseleave', function () { if ( ! dragging ) { handle.style.background = 'transparent'; } } );
+
+			// The sidebar needs position for the absolute handle.
+			if ( getComputedStyle( sb ).position === 'static' ) { sb.style.position = 'relative'; }
+			sb.appendChild( handle );
+
+			var dragging = false, startX = 0, startW = 0;
+			handle.addEventListener( 'mousedown', function ( e ) {
+				dragging = true;
+				startX = e.clientX;
+				startW = sb.getBoundingClientRect().width;
+				document.body.style.userSelect = 'none';
+				document.body.style.cursor = 'ew-resize';
+				e.preventDefault();
+			} );
+			document.addEventListener( 'mousemove', function ( e ) {
+				if ( ! dragging ) { return; }
+				// dragging left edge: moving left grows the (right-docked) sidebar
+				var w = Math.round( startW + ( startX - e.clientX ) );
+				w = Math.max( MIN, Math.min( MAX, w ) );
+				apply( w );
+			} );
+			document.addEventListener( 'mouseup', function () {
+				if ( ! dragging ) { return; }
+				dragging = false;
+				document.body.style.userSelect = '';
+				document.body.style.cursor = '';
+				handle.style.background = 'transparent';
+				var sb2 = region();
+				if ( sb2 ) { window.localStorage.setItem( KEY, String( Math.round( sb2.getBoundingClientRect().width ) ) ); }
+			} );
+		}
+
+		function tick() { try { ensureHandle(); } catch ( e ) {} }
+		if ( 'loading' === document.readyState ) {
+			document.addEventListener( 'DOMContentLoaded', function () {
+				new window.MutationObserver( tick ).observe( document.body, { childList: true, subtree: true } );
+				tick();
+			} );
+		} else {
+			new window.MutationObserver( tick ).observe( document.body, { childList: true, subtree: true } );
+			tick();
+		}
+	}() );
