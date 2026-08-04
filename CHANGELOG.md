@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.25.0 — Frontend admin tools (quick panel)
+- New utility: a small arrow pinned to the bottom-left of the FRONT END, visible to admins only. Click it to open a quick-action panel and click again (or Esc / click away) to hide it.
+- Panel actions: toggle the WP admin bar on/off (remembered per admin), purge the Velox cache, toggle maintenance mode, edit this page, open the Oxygen editor and Oxygen settings (shown only when Oxygen is active), open WordPress settings, and "View as visitor" which opens the current page rendered as a logged-out guest in a new tab (a signed guest render — it never touches your real login session).
+- It is its own on/off utility (Utilities → Frontend admin tools), off by default.
+
 ## 3.24.4 — Fix "meta value could not be updated" when saving an unchanged SEO flag
 - Publishing a page (typically a freshly-duplicated noindex/nofollow one) failed with the _velox_seo_noindex database error on the FIRST save when the flag was left as-is. Cause: when the value the editor sends already equals what is stored, WordPress's update_metadata() returns false (nothing changed), and the REST layer reports that as a database error. Toggling the flag made it a real change, which is why switching to index/follow and back "fixed" it. Two fixes: (1) duplicated pages now store the SEO flags in canonical boolean form, and (2) an update_post_metadata guard treats an unchanged flag save as success so the publish always goes through.
 

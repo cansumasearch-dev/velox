@@ -165,6 +165,7 @@ final class Velox {
 		$this->ajax    = new Velox_Ajax();
 		$this->updater = new Velox_Updater();
 		Velox_Utilities::init();
+		Velox_Frontend_Bar::init();
 		Velox_Snippets::init();
 		Velox_Stats::init();
 		Velox_Pagespeed::init();

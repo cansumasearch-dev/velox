@@ -1,0 +1,123 @@
+/* Velox frontend admin quick-panel — bottom-left, admins only. */
+#velox-fb, #velox-fb * { box-sizing: border-box; }
+
+.velox-fb {
+	position: fixed;
+	left: 16px;
+	bottom: 16px;
+	z-index: 99998; /* under the WP admin bar (99999) but above the site */
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+	line-height: 1.4;
+}
+
+/* The arrow / launcher button */
+.velox-fb-toggle {
+	width: 40px;
+	height: 40px;
+	border-radius: 10px;
+	border: none;
+	background: #2ab7f1;
+	color: #fff;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	cursor: pointer;
+	box-shadow: 0 4px 14px rgba(17, 24, 39, 0.22);
+	transition: transform .18s ease, background .18s ease;
+	padding: 0;
+}
+.velox-fb-toggle:hover { background: #1aa5df; }
+.velox-fb-toggle svg { width: 20px; height: 20px; display: block; transition: transform .2s ease; }
+.velox-fb.is-open .velox-fb-toggle svg { transform: rotate(180deg); }
+
+/* The panel */
+.velox-fb-panel {
+	position: absolute;
+	left: 0;
+	bottom: 48px;
+	width: 250px;
+	background: #fff;
+	border: 1px solid #e5e7eb;
+	border-radius: 14px;
+	box-shadow: 0 12px 34px rgba(17, 24, 39, 0.20);
+	padding: 8px;
+	opacity: 0;
+	transform: translateY(8px);
+	pointer-events: none;
+	transition: opacity .16s ease, transform .16s ease;
+}
+.velox-fb.is-open .velox-fb-panel {
+	opacity: 1;
+	transform: translateY(0);
+	pointer-events: auto;
+}
+
+.velox-fb-head {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	padding: 6px 8px 8px;
+	margin-bottom: 4px;
+	border-bottom: 1px solid #f1f3f5;
+}
+.velox-fb-title { font-size: 12px; font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: #6b7280; }
+.velox-fb-badge { width: 18px; height: 18px; }
+
+/* Rows */
+.velox-fb-row {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	padding: 9px 8px;
+	border: none;
+	background: none;
+	border-radius: 8px;
+	cursor: pointer;
+	font-size: 13px;
+	color: #111827;
+	text-align: left;
+	text-decoration: none;
+	transition: background .12s ease;
+}
+.velox-fb-row:hover { background: #f3f4f6; }
+.velox-fb-row .velox-fb-ico { width: 18px; height: 18px; flex: 0 0 18px; color: #6b7280; }
+.velox-fb-row .velox-fb-label { flex: 1 1 auto; }
+
+/* Toggle rows show an on/off pill */
+.velox-fb-pill {
+	flex: 0 0 auto;
+	font-size: 11px;
+	font-weight: 700;
+	padding: 2px 8px;
+	border-radius: 999px;
+	background: #e5e7eb;
+	color: #6b7280;
+}
+.velox-fb-row.is-on .velox-fb-pill { background: rgba(42, 183, 241, .15); color: #1489b8; }
+.velox-fb-row.is-danger.is-on .velox-fb-pill { background: rgba(239, 68, 68, .14); color: #c0392b; }
+
+.velox-fb-sep { height: 1px; background: #f1f3f5; margin: 4px 6px; }
+
+.velox-fb-row.is-busy { opacity: .6; pointer-events: none; }
+
+/* Small toast under the panel */
+.velox-fb-toast {
+	position: absolute;
+	left: 0;
+	bottom: 48px;
+	background: #111827;
+	color: #fff;
+	font-size: 12px;
+	padding: 7px 11px;
+	border-radius: 8px;
+	opacity: 0;
+	transform: translateY(6px);
+	transition: opacity .16s ease, transform .16s ease;
+	pointer-events: none;
+	white-space: nowrap;
+}
+.velox-fb-toast.is-show { opacity: 1; transform: translateY(0); }
+
+/* Nudge above the WP admin bar when it's showing on the front end */
+body.admin-bar .velox-fb { bottom: 16px; }

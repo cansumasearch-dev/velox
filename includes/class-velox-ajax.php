@@ -25,6 +25,19 @@ class Velox_Ajax {
 		$do = isset( $_POST['do'] ) ? sanitize_key( $_POST['do'] ) : '';
 
 		switch ( $do ) {
+			/* -------- Frontend admin bar (quick panel) -------- */
+			case 'fb_admin_bar':
+				Velox_Frontend_Bar::ajax_toggle_admin_bar();
+				break;
+
+			case 'fb_maint':
+				Velox_Frontend_Bar::ajax_toggle_maintenance();
+				break;
+
+			case 'fb_purge':
+				Velox_Frontend_Bar::ajax_purge();
+				break;
+
 			/* -------- Images -------- */
 			case 'convert_one':
 				$id    = (int) ( $_POST['id'] ?? 0 );

@@ -79,6 +79,7 @@ class Velox_Settings {
 			'util_svg_upload'    => false,
 			'util_duplicate'     => false,
 			'util_maintenance'         => false,
+			'util_frontendbar'         => false,
 			'util_maintenance_title'   => 'We\'ll be right back',
 			'util_maintenance_message' => 'The site is undergoing a little maintenance. Please check back shortly.',
 			'util_maintenance_logo'    => '',          // empty → bundled Velox mark
