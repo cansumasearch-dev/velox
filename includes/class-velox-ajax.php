@@ -977,6 +977,10 @@ class Velox_Ajax {
 				$ok = Velox_Seo::generate_sitemap();
 				wp_send_json_success( Velox_Seo::sitemap_stats() + array( 'generated' => $ok ) );
 
+			case 'seo_sitemap_repair':
+				wp_send_json_success( Velox_Seo::repair_sitemap_include_all() );
+				break;
+
 			case 'seo_sitemap_preview':
 				$all = Velox_Seo::sitemap_entries( 200 );
 				wp_send_json_success( array(

@@ -1867,4 +1867,10 @@ return array(
 	'Unknown field.' => 'Unbekanntes Feld.',
 	'Turn optimizations off just for this page if something looks wrong.' => 'Optimierungen nur für diese Seite deaktivieren, falls etwas nicht stimmt.',
 	'Exclude this page from the sitemap' => 'Diese Seite aus der Sitemap ausschließen',
+	'Force-include all pages' => 'Alle Seiten erzwingen',
+	'Only your homepage showing up? Click "Force-include all pages" — it clears any leftover exclude/noindex flags from every published page and post, switches the sitemap types on, and rebuilds. Use this if pages went missing after maintenance mode or a bulk edit.' => 'Nur Ihre Startseite wird angezeigt? Klicken Sie auf "Alle Seiten erzwingen" — dadurch werden übrig gebliebene Ausschluss-/noindex-Markierungen von jeder veröffentlichten Seite und jedem Beitrag entfernt, die Sitemap-Typen aktiviert und alles neu aufgebaut. Verwenden Sie dies, wenn Seiten nach dem Wartungsmodus oder einer Massenbearbeitung verschwunden sind.',
+	'Fixing…' => 'Wird repariert…',
+	' URLs in the sitemap.' => ' URLs in der Sitemap.',
+	'Cleared ' => 'Entfernt: ',
+	' hidden flag(s).' => ' versteckte Markierung(en).',
 );

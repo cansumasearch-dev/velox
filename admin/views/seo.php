@@ -182,7 +182,9 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 		<div class="velox-actions">
 			<button class="velox-btn velox-btn--primary" id="velox-seo-smap-gen"><?php esc_html_e('Regenerate sitemap', 'velox'); ?></button>
 			<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( home_url( '/sitemap.xml' ) ); ?>" target="_blank" rel="noopener"><?php esc_html_e('View sitemap', 'velox'); ?></a>
+			<button class="velox-btn velox-btn--ghost" id="velox-seo-smap-repair"><?php esc_html_e('Force-include all pages', 'velox'); ?></button>
 		</div>
+		<p class="velox-hint" style="margin-top:8px;"><?php esc_html_e('Only your homepage showing up? Click "Force-include all pages" — it clears any leftover exclude/noindex flags from every published page and post, switches the sitemap types on, and rebuilds. Use this if pages went missing after maintenance mode or a bulk edit.', 'velox'); ?></p>
 	</div>
 </div>
 

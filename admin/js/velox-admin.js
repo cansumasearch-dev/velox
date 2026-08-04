@@ -7986,6 +7986,30 @@
 					.then( function () { genBtn.disabled = false; genBtn.textContent = vxT( 'Regenerate sitemap' ); } );
 			} );
 		}
+		var repairBtn = $( '#velox-seo-smap-repair' );
+		if ( repairBtn ) {
+			repairBtn.addEventListener( 'click', function () {
+				repairBtn.disabled = true;
+				repairBtn.textContent = vxT( 'Fixing…' );
+				api( 'seo_sitemap_repair' )
+					.then( function ( r ) {
+						var c = $( '#velox-seo-smap-count' );
+						if ( c && r ) { c.textContent = r.urls; }
+						var msg = vxT( 'Done — ' ) + ( ( r && r.urls ) || 0 ) + vxT( ' URLs in the sitemap.' );
+						if ( r && ( r.cleared_exclude || r.cleared_noindex ) ) {
+							msg += ' ' + vxT( 'Cleared ' ) + ( r.cleared_exclude + r.cleared_noindex ) + vxT( ' hidden flag(s).' );
+						}
+						toast( msg );
+						// reflect any settings that got switched on
+						[ 'velox-smap-posts', 'velox-smap-pages', 'velox-smap-products' ].forEach( function ( id ) {
+							var el = document.getElementById( id );
+							if ( el ) { el.checked = true; }
+						} );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { repairBtn.disabled = false; repairBtn.textContent = vxT( 'Force-include all pages' ); } );
+			} );
+		}
 		if ( applyBtn ) {
 			applyBtn.addEventListener( 'click', function () {
 				applyBtn.disabled = true;

@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.28.0 — "Force-include all pages" sitemap repair
+- New button in SEO → XML sitemap: "Force-include all pages". If your sitemap only shows the homepage, this clears any leftover sitemap_exclude / noindex flags from every published page and post (including stuck maintenance-mode markers), switches the sitemap post types on, and regenerates. It reports how many hidden flags it cleared and how many URLs ended up in the sitemap.
+- Hardened the sitemap query with suppress_filters + ignore_sticky_posts so another plugin's query filters can no longer accidentally empty it.
+
 ## 3.27.0 — "Exclude from sitemap" moved to the Velox page panel + maintenance safety
 - The "Exclude this page from the sitemap" checkbox now lives in the Velox panel in the page editor (with the per-page optimization overrides), and has been removed from the SEO panel so there is only one control writing the flag — no more conflicting saves. The SEO panel still shows an "In sitemap / Not in sitemap" status indicator.
 - Fixed the root cause of "sitemap only contains the homepage": Velox maintenance mode noindexes all pages while the site is under construction, and toggling maintenance off from the frontend quick-panel did not release them, leaving pages stuck noindexed and out of the sitemap. Turning maintenance off from the quick-panel now automatically releases every page it had hidden. (The Maintenance page still offers the deliberate keep/release choice.)

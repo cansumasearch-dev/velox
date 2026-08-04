@@ -498,6 +498,57 @@ class Velox_Seo {
 	/* ------------------------------------------------------------- sitemap */
 
 	/** Mirrors the agency's custom generator: home first, then post/page/product. */
+	/**
+	 * Force every published post/page/product back INTO the sitemap by clearing any
+	 * sitemap_exclude / noindex flags that are hiding them, then regenerating. This
+	 * is the "why is only my homepage in the sitemap" escape hatch: whatever set
+	 * those flags (a stuck maintenance hide, a bad bulk edit, a meta-type glitch),
+	 * this wipes them and rebuilds. Returns counts so the UI can report what it did.
+	 */
+	public static function repair_sitemap_include_all() {
+		$cleared_exclude = 0;
+		$cleared_noindex = 0;
+		$q = new WP_Query( array(
+			'post_type'        => array_values( self::POST_TYPES ),
+			'post_status'      => 'publish',
+			'posts_per_page'   => -1,
+			'fields'           => 'ids',
+			'no_found_rows'    => true,
+			'suppress_filters' => true,
+		) );
+		foreach ( (array) $q->posts as $pid ) {
+			$pid = (int) $pid;
+			if ( '1' === (string) get_post_meta( $pid, 'sitemap_exclude', true ) ) {
+				update_post_meta( $pid, 'sitemap_exclude', '0' );
+				$cleared_exclude++;
+			}
+			if ( '1' === (string) get_post_meta( $pid, '_velox_seo_noindex', true ) ) {
+				update_post_meta( $pid, '_velox_seo_noindex', '0' );
+				// Drop the maintenance marker too, so it isn't re-hidden later.
+				delete_post_meta( $pid, '_velox_maint_marked' );
+				$cleared_noindex++;
+			}
+		}
+		// Make sure the sitemap type toggles are on, or the query would skip them.
+		$all = Velox_Settings::all();
+		$all['module_seo']          = true;
+		$all['seo_sitemap_enable']  = true;
+		$all['seo_sitemap_pages']   = true;
+		$all['seo_sitemap_posts']   = true;
+		$all['seo_sitemap_products'] = true;
+		Velox_Settings::save( $all );
+
+		$generated = self::generate_sitemap();
+		$stats     = self::sitemap_stats();
+		return array(
+			'generated'       => (bool) $generated,
+			'cleared_exclude' => $cleared_exclude,
+			'cleared_noindex' => $cleared_noindex,
+			'found'           => is_array( $q->posts ) ? count( $q->posts ) : 0,
+			'urls'            => isset( $stats['urls'] ) ? (int) $stats['urls'] : 0,
+		);
+	}
+
 	public static function generate_sitemap() {
 		if ( ! Velox_Settings::get( 'module_seo', true ) || ! Velox_Settings::get( 'seo_sitemap_enable', true ) ) {
 			return false;
@@ -555,12 +606,14 @@ class Velox_Seo {
 		}
 		if ( ! empty( $types ) ) {
 			$q = new WP_Query( array(
-				'post_type'      => $types,
-				'posts_per_page' => $limit > 0 ? (int) $limit : -1,
-				'post_status'    => 'publish',
-				'orderby'        => 'title',
-				'order'          => 'ASC',
-				'no_found_rows'  => true,
+				'post_type'        => $types,
+				'posts_per_page'   => $limit > 0 ? (int) $limit : -1,
+				'post_status'      => 'publish',
+				'orderby'          => 'title',
+				'order'            => 'ASC',
+				'no_found_rows'    => true,
+				'suppress_filters' => true,  // don't let another plugin's pre_get_posts empty this
+				'ignore_sticky_posts' => true,
 			) );
 			if ( $q->have_posts() ) {
 				while ( $q->have_posts() ) {
