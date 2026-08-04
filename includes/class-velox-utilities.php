@@ -356,6 +356,29 @@ class Velox_Utilities {
 		return count( $ids );
 	}
 
+	/**
+	 * Release EVERY page the maintenance SEO-hide had noindexed — in batches, so a
+	 * site with many posts doesn't time out. Used by the quick frontend toggle so
+	 * turning maintenance off never leaves content stranded (noindexed / out of the
+	 * sitemap). Returns the number of pages put back.
+	 */
+	public static function maintenance_seo_release_all() {
+		$total = 0;
+		$guard = 0;
+		do {
+			$ids = self::maintenance_seo_batch( 'marked', 100 );
+			if ( empty( $ids ) ) {
+				break;
+			}
+			$total += self::maintenance_seo_release( $ids );
+			$guard++;
+		} while ( $guard < 200 ); // hard cap: up to 20k posts
+		if ( ! self::maintenance_seo_count( 'marked' ) ) {
+			self::maintenance_seo_clear_pending();
+		}
+		return $total;
+	}
+
 	/** Put a batch back to index, follow and drop the marker. */
 	public static function maintenance_seo_release( array $ids ) {
 		foreach ( $ids as $id ) {

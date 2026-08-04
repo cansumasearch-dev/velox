@@ -375,10 +375,6 @@
 						nofollow ? 'nofollow' : 'follow',
 						function ( v ) { setMeta( '_velox_seo_nofollow', 'nofollow' === v ); }, true )
 				),
-				el( 'div', { className: 'velox-gseo-row' },
-					el( 'span', {}, vxT( 'Include in sitemap' ) ),
-					sw( ! exclude, function ( on ) { setMeta( 'sitemap_exclude', ! on ); } )
-				),
 				el( 'p', { className: 'velox-gseo-out' },
 					vxT( 'Crawlers are told ' ),
 					el( 'b', {}, ( noindex ? 'noindex' : 'index' ) + ', ' + ( nofollow ? 'nofollow' : 'follow' ) ),

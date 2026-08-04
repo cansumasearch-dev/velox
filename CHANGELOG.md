@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.27.0 — "Exclude from sitemap" moved to the Velox page panel + maintenance safety
+- The "Exclude this page from the sitemap" checkbox now lives in the Velox panel in the page editor (with the per-page optimization overrides), and has been removed from the SEO panel so there is only one control writing the flag — no more conflicting saves. The SEO panel still shows an "In sitemap / Not in sitemap" status indicator.
+- Fixed the root cause of "sitemap only contains the homepage": Velox maintenance mode noindexes all pages while the site is under construction, and toggling maintenance off from the frontend quick-panel did not release them, leaving pages stuck noindexed and out of the sitemap. Turning maintenance off from the quick-panel now automatically releases every page it had hidden. (The Maintenance page still offers the deliberate keep/release choice.)
+
 ## 3.26.0 — SEO title & description columns in Posts/Pages lists
 - The Posts and Pages list tables now show "SEO Title" and "SEO Description" columns (only when the SEO module is on). Toggle them from Screen Options ("Ansicht anpassen") like any column. Empty values show a clear "— add —" placeholder so you can see at a glance what still needs writing.
 - Edit them two ways without opening each page: WordPress Quick Edit (the SEO fields are added there and pre-filled), or click a cell to edit it inline and save instantly (Enter to save, Esc to cancel; Ctrl/Cmd+Enter for the description).

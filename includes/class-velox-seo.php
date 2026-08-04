@@ -388,7 +388,6 @@ class Velox_Seo {
 						<label class="<?php echo $nofollow ? 'is-on' : ''; ?>"><input type="radio" name="velox_seo_follow" value="nofollow" <?php checked( $nofollow ); ?>> Nofollow</label>
 					</div>
 				</div>
-				<label class="velox-seo-exclude"><input type="checkbox" name="sitemap_exclude" value="1" <?php checked( '1', (string) $exclude ); ?>> Exclude this page from the sitemap</label>
 				<p class="velox-seo-robots-out">Search engines will be told: <code id="velox-seo-robots-out">index, follow</code></p>
 			</div>
 			<?php
@@ -487,7 +486,6 @@ class Velox_Seo {
 		$nofollow = isset( $_POST['velox_seo_follow'] ) && 'nofollow' === $_POST['velox_seo_follow'];
 		update_post_meta( $post_id, '_velox_seo_noindex', (bool) $noindex );
 		update_post_meta( $post_id, '_velox_seo_nofollow', (bool) $nofollow );
-		update_post_meta( $post_id, 'sitemap_exclude', isset( $_POST['sitemap_exclude'] ) );
 		update_post_meta( $post_id, '_velox_seo_canonical', esc_url_raw( wp_unslash( $_POST['velox_seo_canonical'] ?? '' ) ) );
 		update_post_meta( $post_id, '_velox_seo_focus_kw', sanitize_text_field( wp_unslash( $_POST['velox_seo_focus_kw'] ?? '' ) ) );
 		update_post_meta( $post_id, '_velox_seo_og_title', sanitize_text_field( wp_unslash( $_POST['velox_seo_og_title'] ?? '' ) ) );

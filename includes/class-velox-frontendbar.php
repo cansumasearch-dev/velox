@@ -211,6 +211,15 @@ class Velox_Frontend_Bar {
 	public static function ajax_toggle_maintenance() {
 		$on = ! empty( $_POST['on'] ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		Velox_Settings::set( 'util_maintenance', $on );
+		// When turning maintenance OFF from here, immediately release any pages the
+		// maintenance SEO-hide had noindexed, so content isn't left stranded out of
+		// the sitemap / stuck noindexed. (The full deliberate flow on the Maintenance
+		// page still offers the keep/release choice; this quick toggle just never
+		// leaves things hidden behind your back.)
+		if ( ! $on && class_exists( 'Velox_Utilities' ) && method_exists( 'Velox_Utilities', 'maintenance_seo_release_all' ) ) {
+			$released = Velox_Utilities::maintenance_seo_release_all();
+			wp_send_json_success( array( 'on' => $on, 'released' => $released ) );
+		}
 		wp_send_json_success( array( 'on' => $on ) );
 	}
 

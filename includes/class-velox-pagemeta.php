@@ -93,13 +93,25 @@ class Velox_PageMeta {
 		$ov = get_post_meta( $post->ID, self::META, true );
 		$ov = is_array( $ov ) ? $ov : array();
 		wp_nonce_field( 'velox_overrides', 'velox_overrides_nonce' );
-		echo '<p style="margin:0 0 8px;color:#666">Turn optimizations off just for this page if something looks wrong.</p>';
+		echo '<p style="margin:0 0 8px;color:#666">' . esc_html__( 'Turn optimizations off just for this page if something looks wrong.', 'velox' ) . '</p>';
 		foreach ( $this->fields() as $key => $label ) {
 			printf(
 				'<p style="margin:6px 0"><label><input type="checkbox" name="velox_ov[%1$s]" value="1" %2$s> %3$s</label></p>',
 				esc_attr( $key ),
 				checked( ! empty( $ov[ $key ] ), true, false ),
 				esc_html( $label )
+			);
+		}
+		// SEO: exclude this page from the XML sitemap. Writes the same sitemap_exclude
+		// meta the SEO sitemap generator already reads, so it takes effect on the next
+		// sitemap regenerate. Only shown when the SEO module is on.
+		if ( class_exists( 'Velox_Settings' ) && Velox_Settings::get( 'module_seo', true ) ) {
+			$excluded = '1' === (string) get_post_meta( $post->ID, 'sitemap_exclude', true );
+			echo '<hr style="margin:12px 0;border:0;border-top:1px solid #e0e0e0">';
+			printf(
+				'<p style="margin:6px 0"><label><input type="checkbox" name="velox_sitemap_exclude" value="1" %1$s> %2$s</label></p>',
+				checked( $excluded, true, false ),
+				esc_html__( 'Exclude this page from the sitemap', 'velox' )
 			);
 		}
 	}
@@ -125,6 +137,16 @@ class Velox_PageMeta {
 			update_post_meta( $post_id, self::META, $out );
 		} else {
 			delete_post_meta( $post_id, self::META );
+		}
+
+		// SEO: exclude-from-sitemap flag (separate meta the sitemap generator reads).
+		// Only touch it when the SEO module is on, so we don't clobber it otherwise.
+		if ( class_exists( 'Velox_Settings' ) && Velox_Settings::get( 'module_seo', true ) ) {
+			if ( ! empty( $_POST['velox_sitemap_exclude'] ) ) {
+				update_post_meta( $post_id, 'sitemap_exclude', '1' );
+			} else {
+				update_post_meta( $post_id, 'sitemap_exclude', '0' );
+			}
 		}
 	}
 }

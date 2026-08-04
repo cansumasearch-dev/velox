@@ -1865,4 +1865,6 @@ return array(
 	'— add —' => '— hinzufügen —',
 	'Enter to save · Esc to cancel' => 'Enter zum Speichern · Esc zum Abbrechen',
 	'Unknown field.' => 'Unbekanntes Feld.',
+	'Turn optimizations off just for this page if something looks wrong.' => 'Optimierungen nur für diese Seite deaktivieren, falls etwas nicht stimmt.',
+	'Exclude this page from the sitemap' => 'Diese Seite aus der Sitemap ausschließen',
 );
