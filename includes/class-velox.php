@@ -186,6 +186,7 @@ final class Velox {
 		if ( Velox_Settings::get( 'module_seo', false ) ) {
 			Velox_Seo::init();
 			Velox_Ai::init();
+			Velox_Seo_Columns::init();
 		}
 		if ( Velox_Settings::get( 'util_mail' ) ) {
 			Velox_Mail::maybe_install();

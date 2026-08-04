@@ -1859,4 +1859,10 @@ return array(
 	'Oxygen settings' => 'Oxygen-Einstellungen',
 	'WordPress settings' => 'WordPress-Einstellungen',
 	'View as visitor' => 'Als Besucher ansehen',
+	'SEO Title' => 'SEO-Titel',
+	'SEO Description' => 'SEO-Beschreibung',
+	'Click to edit' => 'Zum Bearbeiten klicken',
+	'— add —' => '— hinzufügen —',
+	'Enter to save · Esc to cancel' => 'Enter zum Speichern · Esc zum Abbrechen',
+	'Unknown field.' => 'Unbekanntes Feld.',
 );

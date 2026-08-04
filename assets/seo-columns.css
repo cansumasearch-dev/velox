@@ -1,0 +1,47 @@
+/* Velox SEO columns in the posts/pages list table. */
+.column-velox_seo_title,
+.column-velox_seo_desc { width: 18%; }
+
+.velox-seocol {
+	display: inline-block;
+	max-width: 100%;
+	cursor: text;
+	padding: 2px 4px;
+	margin: -2px -4px;
+	border-radius: 4px;
+	line-height: 1.4;
+	color: #1d2327;
+}
+.velox-seocol:hover { background: #f0f6fc; box-shadow: inset 0 0 0 1px #c3c4c7; }
+.velox-seocol:focus { outline: 2px solid #2ab7f1; outline-offset: 1px; }
+.velox-seocol.is-empty { color: #a7aaad; font-style: italic; }
+
+/* The inline editor that replaces the cell text */
+.velox-seocol-edit {
+	width: 100%;
+	box-sizing: border-box;
+	font-size: 13px;
+	padding: 4px 6px;
+	border: 1px solid #2ab7f1;
+	border-radius: 4px;
+	box-shadow: 0 0 0 2px rgba(42, 183, 241, .18);
+	resize: vertical;
+}
+.velox-seocol-hint {
+	display: block;
+	margin-top: 3px;
+	font-size: 11px;
+	color: #787c82;
+}
+.velox-seocol-cell.is-saving { opacity: .55; }
+.velox-seocol-flash {
+	display: inline-block;
+	margin-left: 6px;
+	font-size: 11px;
+	font-weight: 600;
+	color: #1489b8;
+	opacity: 0;
+	transition: opacity .15s ease;
+}
+.velox-seocol-flash.is-show { opacity: 1; }
+.velox-seocol-flash.is-error { color: #c0392b; }

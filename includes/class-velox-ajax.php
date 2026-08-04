@@ -25,6 +25,11 @@ class Velox_Ajax {
 		$do = isset( $_POST['do'] ) ? sanitize_key( $_POST['do'] ) : '';
 
 		switch ( $do ) {
+			/* -------- SEO list-table columns (inline edit) -------- */
+			case 'seocol_save':
+				Velox_Seo_Columns::ajax_save();
+				break;
+
 			/* -------- Frontend admin bar (quick panel) -------- */
 			case 'fb_admin_bar':
 				Velox_Frontend_Bar::ajax_toggle_admin_bar();

@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.26.0 — SEO title & description columns in Posts/Pages lists
+- The Posts and Pages list tables now show "SEO Title" and "SEO Description" columns (only when the SEO module is on). Toggle them from Screen Options ("Ansicht anpassen") like any column. Empty values show a clear "— add —" placeholder so you can see at a glance what still needs writing.
+- Edit them two ways without opening each page: WordPress Quick Edit (the SEO fields are added there and pre-filled), or click a cell to edit it inline and save instantly (Enter to save, Esc to cancel; Ctrl/Cmd+Enter for the description).
+- Also folds in the frontend admin bar fixes: the panel now renders reliably regardless of script load order, and the admin-bar toggle reloads so the page correctly reclaims/re-adds the reserved space and re-activates cleanly.
+
 ## 3.25.0 — Frontend admin tools (quick panel)
 - New utility: a small arrow pinned to the bottom-left of the FRONT END, visible to admins only. Click it to open a quick-action panel and click again (or Esc / click away) to hide it.
 - Panel actions: toggle the WP admin bar on/off (remembered per admin), purge the Velox cache, toggle maintenance mode, edit this page, open the Oxygen editor and Oxygen settings (shown only when Oxygen is active), open WordPress settings, and "View as visitor" which opens the current page rendered as a logged-out guest in a new tab (a signed guest render — it never touches your real login session).
