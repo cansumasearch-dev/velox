@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.28.1 — Sitemap updates instantly when you exclude/include a page
+- Ticking "Exclude from sitemap" on a page now removes it from the sitemap immediately on save, and unticking adds it back — no manual Regenerate click needed. The bug: the sitemap was being rebuilt at the same moment the exclude value was written (same save_post priority), so it used the old value and lagged one save behind. The rebuild now runs late (priority 99), after every panel has saved its meta, so it always reflects the final state.
+- Removed a now-redundant early sitemap rebuild that regenerated with stale values.
+
 ## 3.28.0 — "Force-include all pages" sitemap repair
 - New button in SEO → XML sitemap: "Force-include all pages". If your sitemap only shows the homepage, this clears any leftover sitemap_exclude / noindex flags from every published page and post (including stuck maintenance-mode markers), switches the sitemap post types on, and regenerates. It reports how many hidden flags it cleared and how many URLs ended up in the sitemap.
 - Hardened the sitemap query with suppress_filters + ignore_sticky_posts so another plugin's query filters can no longer accidentally empty it.

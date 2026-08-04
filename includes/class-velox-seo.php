@@ -40,6 +40,11 @@ class Velox_Seo {
 		// Editor meta box + save.
 		add_action( 'add_meta_boxes', array( __CLASS__, 'add_meta_box' ) );
 		add_action( 'save_post', array( __CLASS__, 'save_meta' ), 10, 1 );
+		// Regenerate the sitemap LATE (priority 99), after every panel — SEO, the
+		// per-page optimization/exclude panel, etc. — has written its meta on this
+		// same save_post. Running it at the default priority regenerated with stale
+		// values (e.g. an exclude toggle wouldn't take effect until the next save).
+		add_action( 'save_post', array( __CLASS__, 'regen_on_save' ), 99, 2 );
 
 		// Block editor: REST-exposed meta + the Velox SEO sidebar panel.
 		add_action( 'init', array( __CLASS__, 'register_meta' ) );
@@ -59,6 +64,32 @@ class Velox_Seo {
 	}
 
 	public static function rest_synced() {
+		self::generate_sitemap();
+	}
+
+	/**
+	 * Regenerate the sitemap after a post is saved — runs late (priority 99) so it
+	 * sees the final sitemap_exclude / noindex values written by every panel on this
+	 * same save. Guarded so it only fires for real, public saves of the post types
+	 * the sitemap actually covers. This is what makes ticking "exclude from sitemap"
+	 * drop a page immediately, and unticking it add the page back, with no manual
+	 * Regenerate click.
+	 */
+	public static function regen_on_save( $post_id, $post = null ) {
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return;
+		}
+		if ( wp_is_post_revision( $post_id ) || wp_is_post_autosave( $post_id ) ) {
+			return;
+		}
+		$type = $post ? $post->post_type : get_post_type( $post_id );
+		if ( ! in_array( $type, self::POST_TYPES, true ) ) {
+			return;
+		}
+		// Only bother when the sitemap module is actually on.
+		if ( ! Velox_Settings::get( 'module_seo', true ) || ! Velox_Settings::get( 'seo_sitemap_enable', true ) ) {
+			return;
+		}
 		self::generate_sitemap();
 	}
 
@@ -491,8 +522,8 @@ class Velox_Seo {
 		update_post_meta( $post_id, '_velox_seo_og_title', sanitize_text_field( wp_unslash( $_POST['velox_seo_og_title'] ?? '' ) ) );
 		update_post_meta( $post_id, '_velox_seo_og_desc', sanitize_textarea_field( wp_unslash( $_POST['velox_seo_og_desc'] ?? '' ) ) );
 		update_post_meta( $post_id, '_velox_seo_og_image', esc_url_raw( wp_unslash( $_POST['velox_seo_og_image'] ?? '' ) ) );
-
-		self::generate_sitemap();
+		// (Sitemap regeneration happens on the late priority-99 save_post hook, after
+		// every panel has written its meta — so it isn't done here with stale values.)
 	}
 
 	/* ------------------------------------------------------------- sitemap */
