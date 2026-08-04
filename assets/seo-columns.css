@@ -45,3 +45,40 @@
 }
 .velox-seocol-flash.is-show { opacity: 1; }
 .velox-seocol-flash.is-error { color: #c0392b; }
+
+/* Length badge next to the SEO title/description */
+.velox-seolen {
+	display: inline-block;
+	margin-left: 6px;
+	font-size: 11px;
+	font-weight: 600;
+	padding: 1px 6px;
+	border-radius: 999px;
+	vertical-align: middle;
+	background: #e5e7eb;
+	color: #6b7280;
+}
+.velox-seolen.is-good { background: rgba(34,197,94,.15); color: #15803d; }
+.velox-seolen.is-warn { background: rgba(234,179,8,.18);  color: #a16207; }
+.velox-seolen.is-bad  { background: rgba(239,68,68,.15);  color: #b91c1c; }
+
+/* Status badges (index / sitemap) */
+.velox-seo-badge {
+	display: inline-block;
+	font-size: 11px;
+	font-weight: 600;
+	padding: 2px 8px;
+	border-radius: 999px;
+	white-space: nowrap;
+}
+.velox-seo-badge.is-ok    { background: rgba(42,183,241,.15); color: #1489b8; }
+.velox-seo-badge.is-warn  { background: rgba(239,68,68,.14);  color: #c0392b; }
+.velox-seo-badge.is-muted { background: #eef0f2; color: #6b7280; }
+
+.velox-seo-kw { font-size: 13px; color: #1d2327; }
+.velox-seocol-muted { color: #a7aaad; font-style: italic; }
+
+/* Keep the new columns compact */
+.column-velox_seo_index,
+.column-velox_seo_map  { width: 90px; }
+.column-velox_seo_kw   { width: 12%; }

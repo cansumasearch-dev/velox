@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.29.0 — More SEO columns in the Posts/Pages lists
+- Added three columns and a length indicator to the Posts/Pages list (all shown only when the SEO module is on, toggled from Screen Options like the others):
+  - Focus keyword — shows each page’s focus keyword (or "— none —").
+  - Index — an Index / Noindex badge so you can spot pages accidentally hidden from search at a glance.
+  - Sitemap — In sitemap / Excluded / Not listed (honest: a noindex page shows "Not listed" since it never reaches the sitemap).
+  - Length badges on the SEO Title and Description columns: a colour-coded character count (green = good length, orange = short/long, red = way off) so bad-length meta stands out. Titles target 30–60 chars, descriptions 120–160.
+- The three new columns are display-only; the SEO Title and Description remain click-to-edit inline.
+
 ## 3.28.1 — Sitemap updates instantly when you exclude/include a page
 - Ticking "Exclude from sitemap" on a page now removes it from the sitemap immediately on save, and unticking adds it back — no manual Regenerate click needed. The bug: the sitemap was being rebuilt at the same moment the exclude value was written (same save_post priority), so it used the old value and lagged one save behind. The rebuild now runs late (priority 99), after every panel has saved its meta, so it always reflects the final state.
 - Removed a now-redundant early sitemap rebuild that regenerated with stale values.

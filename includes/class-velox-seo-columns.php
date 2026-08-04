@@ -38,39 +38,126 @@ class Velox_Seo_Columns {
 
 	public static function columns( $cols ) {
 		// Insert after the title column so they read naturally.
+		$new = array(
+			'velox_seo_title' => __( 'SEO Title', 'velox' ),
+			'velox_seo_desc'  => __( 'SEO Description', 'velox' ),
+			'velox_seo_kw'    => __( 'Focus keyword', 'velox' ),
+			'velox_seo_index' => __( 'Index', 'velox' ),
+			'velox_seo_map'   => __( 'Sitemap', 'velox' ),
+		);
 		$out = array();
 		foreach ( $cols as $key => $label ) {
 			$out[ $key ] = $label;
 			if ( 'title' === $key ) {
-				$out['velox_seo_title'] = __( 'SEO Title', 'velox' );
-				$out['velox_seo_desc']  = __( 'SEO Description', 'velox' );
+				$out += $new;
 			}
 		}
 		// If for some reason there was no title column, append.
 		if ( ! isset( $out['velox_seo_title'] ) ) {
-			$out['velox_seo_title'] = __( 'SEO Title', 'velox' );
-			$out['velox_seo_desc']  = __( 'SEO Description', 'velox' );
+			$out += $new;
 		}
 		return $out;
 	}
 
 	public static function render_column( $column, $post_id ) {
-		if ( 'velox_seo_title' !== $column && 'velox_seo_desc' !== $column ) {
-			return;
+		switch ( $column ) {
+			case 'velox_seo_title':
+			case 'velox_seo_desc':
+				self::render_meta_cell( $column, $post_id );
+				break;
+			case 'velox_seo_kw':
+				self::render_keyword_cell( $post_id );
+				break;
+			case 'velox_seo_index':
+				self::render_index_cell( $post_id );
+				break;
+			case 'velox_seo_map':
+				self::render_sitemap_cell( $post_id );
+				break;
 		}
-		$key   = 'velox_seo_title' === $column ? '_velox_seo_title' : '_velox_seo_desc';
-		$value = (string) get_post_meta( $post_id, $key, true );
-		$empty = '' === trim( $value );
+	}
+
+	/** Editable SEO title / description cell, now with a length badge. */
+	private static function render_meta_cell( $column, $post_id ) {
+		$is_title = ( 'velox_seo_title' === $column );
+		$key      = $is_title ? '_velox_seo_title' : '_velox_seo_desc';
+		$value    = (string) get_post_meta( $post_id, $key, true );
+		$empty    = '' === trim( $value );
 
 		printf(
 			'<span class="velox-seocol %1$s" data-post="%2$d" data-key="%3$s" data-value="%4$s" tabindex="0" role="button" title="%5$s">%6$s</span>',
 			$empty ? 'is-empty' : '',
 			(int) $post_id,
-			esc_attr( 'velox_seo_title' === $column ? 'title' : 'desc' ),
+			esc_attr( $is_title ? 'title' : 'desc' ),
 			esc_attr( $value ),
 			esc_attr__( 'Click to edit', 'velox' ),
 			$empty ? esc_html__( '— add —', 'velox' ) : esc_html( $value )
 		);
+
+		if ( ! $empty ) {
+			$len   = function_exists( 'mb_strlen' ) ? mb_strlen( $value ) : strlen( $value );
+			$grade = self::length_grade( $is_title ? 'title' : 'desc', $len );
+			printf(
+				'<span class="velox-seolen is-%1$s" title="%3$s">%2$d</span>',
+				esc_attr( $grade ),
+				(int) $len,
+				esc_attr( self::length_hint( $is_title ? 'title' : 'desc' ) )
+			);
+		}
+	}
+
+	/** Focus keyword — display only. */
+	private static function render_keyword_cell( $post_id ) {
+		$kw = (string) get_post_meta( $post_id, '_velox_seo_focus_kw', true );
+		if ( '' === trim( $kw ) ) {
+			echo '<span class="velox-seocol-muted">' . esc_html__( '— none —', 'velox' ) . '</span>';
+			return;
+		}
+		echo '<span class="velox-seo-kw">' . esc_html( $kw ) . '</span>';
+	}
+
+	/** Index / Noindex status badge — display only. */
+	private static function render_index_cell( $post_id ) {
+		$noindex = '1' === (string) get_post_meta( $post_id, '_velox_seo_noindex', true );
+		if ( $noindex ) {
+			echo '<span class="velox-seo-badge is-warn" title="' . esc_attr__( 'This page is set to noindex — search engines are told not to list it.', 'velox' ) . '">' . esc_html__( 'Noindex', 'velox' ) . '</span>';
+		} else {
+			echo '<span class="velox-seo-badge is-ok">' . esc_html__( 'Index', 'velox' ) . '</span>';
+		}
+	}
+
+	/** Sitemap in/excluded badge — display only. */
+	private static function render_sitemap_cell( $post_id ) {
+		$excluded = '1' === (string) get_post_meta( $post_id, 'sitemap_exclude', true );
+		// A noindex page never makes the sitemap either — reflect that honestly.
+		$noindex = '1' === (string) get_post_meta( $post_id, '_velox_seo_noindex', true );
+		if ( $excluded ) {
+			echo '<span class="velox-seo-badge is-muted" title="' . esc_attr__( 'Excluded from the sitemap in this page’s Velox panel.', 'velox' ) . '">' . esc_html__( 'Excluded', 'velox' ) . '</span>';
+		} elseif ( $noindex ) {
+			echo '<span class="velox-seo-badge is-muted" title="' . esc_attr__( 'Left out because the page is noindex.', 'velox' ) . '">' . esc_html__( 'Not listed', 'velox' ) . '</span>';
+		} else {
+			echo '<span class="velox-seo-badge is-ok">' . esc_html__( 'In sitemap', 'velox' ) . '</span>';
+		}
+	}
+
+	/* ---- length grading ---- */
+
+	private static function length_grade( $field, $len ) {
+		if ( 'title' === $field ) {
+			if ( $len >= 30 && $len <= 60 ) { return 'good'; }
+			if ( $len > 70 ) { return 'bad'; }
+			return 'warn'; // <30 or 60–70
+		}
+		// description
+		if ( $len >= 120 && $len <= 160 ) { return 'good'; }
+		if ( $len > 180 || $len < 70 ) { return 'bad'; }
+		return 'warn'; // 70–120 or 160–180
+	}
+
+	private static function length_hint( $field ) {
+		return 'title' === $field
+			? __( 'Aim for 30–60 characters. Google truncates longer titles.', 'velox' )
+			: __( 'Aim for 120–160 characters. Google truncates longer descriptions.', 'velox' );
 	}
 
 	/* ------------------------------------------------------------ quick edit */

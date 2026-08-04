@@ -1873,4 +1873,13 @@ return array(
 	' URLs in the sitemap.' => ' URLs in der Sitemap.',
 	'Cleared ' => 'Entfernt: ',
 	' hidden flag(s).' => ' versteckte Markierung(en).',
+	'Sitemap' => 'Sitemap',
+	'— none —' => '— keins —',
+	'This page is set to noindex — search engines are told not to list it.' => 'Diese Seite ist auf noindex gesetzt — Suchmaschinen wird mitgeteilt, sie nicht zu listen.',
+	'Excluded from the sitemap in this page’s Velox panel.' => 'Im Velox-Panel dieser Seite von der Sitemap ausgeschlossen.',
+	'Excluded' => 'Ausgeschlossen',
+	'Left out because the page is noindex.' => 'Ausgelassen, weil die Seite auf noindex steht.',
+	'Not listed' => 'Nicht gelistet',
+	'Aim for 30–60 characters. Google truncates longer titles.' => 'Ziel: 30–60 Zeichen. Google kürzt längere Titel ab.',
+	'Aim for 120–160 characters. Google truncates longer descriptions.' => 'Ziel: 120–160 Zeichen. Google kürzt längere Beschreibungen ab.',
 );
