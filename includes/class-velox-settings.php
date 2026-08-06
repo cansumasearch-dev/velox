@@ -54,6 +54,13 @@ class Velox_Settings {
 			'seo_ai_block_search'     => false, // block AI-search crawlers (OAI-SearchBot, PerplexityBot…)
 			'seo_ai_block_assistants' => false, // block on-demand fetchers (ChatGPT-User, Perplexity-User…)
 			'seo_llms_enable'         => false, // serve a virtual /llms.txt
+			// Webmaster / site-verification meta tags (store the token or full tag; we extract the token).
+			'seo_verify_google'       => '',
+			'seo_verify_bing'         => '',
+			'seo_verify_baidu'        => '',
+			'seo_verify_yandex'       => '',
+			'seo_verify_pinterest'    => '',
+			'seo_verify_norton'       => '',
 			'seo_llms_content'        => '',    // empty = auto-generate from the site
 			'seo_sitemap_enable' => true,
 			'seo_sitemap_home'      => true,
@@ -105,6 +112,7 @@ class Velox_Settings {
 			'util_loginurl'            => false,
 			'util_snippets'            => false,
 			'util_cookies'             => false,
+			'util_reviews'             => false,
 			'util_october'             => false,
 			'util_errorlog'            => false,
 			'util_backup'              => false,

@@ -985,6 +985,46 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Seo::repair_sitemap_include_all() );
 				break;
 
+			case 'settings_export':
+				$this->settings_export();
+				break;
+
+			/* -------- Google Reviews -------- */
+			case 'reviews_save_conn':
+				wp_send_json_success( Velox_Reviews::save_connection( wp_unslash( $_POST ) ) + array() );
+				break;
+
+			case 'reviews_del_conn':
+				Velox_Reviews::delete_connection( isset( $_POST['id'] ) ? sanitize_key( $_POST['id'] ) : '' );
+				wp_send_json_success( array( 'ok' => true ) );
+				break;
+
+			case 'reviews_save_preset':
+				$style = isset( $_POST['style'] ) ? json_decode( wp_unslash( $_POST['style'] ), true ) : array();
+				wp_send_json_success( Velox_Reviews::save_preset( array(
+					'id'    => isset( $_POST['id'] ) ? sanitize_key( $_POST['id'] ) : '',
+					'name'  => isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '',
+					'type'  => isset( $_POST['type'] ) ? sanitize_key( $_POST['type'] ) : 'slider',
+					'style' => is_array( $style ) ? $style : array(),
+				) ) );
+				break;
+
+			case 'reviews_del_preset':
+				Velox_Reviews::delete_preset( isset( $_POST['id'] ) ? sanitize_key( $_POST['id'] ) : '' );
+				wp_send_json_success( array( 'ok' => true ) );
+				break;
+
+			case 'reviews_test':
+				$id = isset( $_POST['id'] ) ? sanitize_key( $_POST['id'] ) : '';
+				$rv = Velox_Reviews::get_reviews( $id, true );
+				wp_send_json_success( array( 'count' => count( $rv ), 'sample' => array_slice( $rv, 0, 6 ) ) );
+				break;
+
+
+			case 'settings_import':
+				$this->settings_import();
+				break;
+
 			case 'seo_sitemap_preview':
 				$all = Velox_Seo::sitemap_entries( 200 );
 				wp_send_json_success( array(
@@ -1079,6 +1119,66 @@ class Velox_Ajax {
 		$up   = wp_upload_dir();
 		$path = str_replace( $up['baseurl'], $up['basedir'], $webp );
 		return file_exists( $path ) ? $webp : '';
+	}
+
+	/**
+	 * Export all Velox settings as a downloadable JSON payload. The JS turns the
+	 * returned json into a file. Includes a version + timestamp so an import can
+	 * sanity-check it.
+	 */
+	private function settings_export() {
+		$data = array(
+			'_velox_export' => true,
+			'version'       => defined( 'VELOX_VERSION' ) ? VELOX_VERSION : '',
+			'exported_at'   => gmdate( 'c' ),
+			'site'          => home_url(),
+			'settings'      => Velox_Settings::all(),
+		);
+		wp_send_json_success( array(
+			'filename' => 'velox-settings-' . gmdate( 'Y-m-d' ) . '.json',
+			'json'     => wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ),
+		) );
+	}
+
+	/**
+	 * Import settings from a pasted/uploaded JSON export. Only keys that exist in
+	 * the current defaults are applied (so a stale or hand-edited file can't inject
+	 * junk), each coerced to the type of its default. Returns how many were applied.
+	 */
+	private function settings_import() {
+		$raw = isset( $_POST['json'] ) ? wp_unslash( $_POST['json'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing,WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( '' === trim( (string) $raw ) ) {
+			wp_send_json_error( array( 'message' => __( 'No import data provided.', 'velox' ) ), 400 );
+		}
+		$parsed = json_decode( $raw, true );
+		if ( ! is_array( $parsed ) ) {
+			wp_send_json_error( array( 'message' => __( 'That doesn’t look like a valid Velox settings file.', 'velox' ) ), 400 );
+		}
+		$incoming = ( isset( $parsed['settings'] ) && is_array( $parsed['settings'] ) ) ? $parsed['settings'] : $parsed;
+		if ( empty( $incoming ) ) {
+			wp_send_json_error( array( 'message' => __( 'No settings found in that file.', 'velox' ) ), 400 );
+		}
+		$defaults = Velox_Settings::defaults();
+		$clean    = Velox_Settings::all();
+		$applied  = 0;
+		foreach ( $defaults as $key => $default ) {
+			if ( ! array_key_exists( $key, $incoming ) ) {
+				continue;
+			}
+			$val = $incoming[ $key ];
+			if ( is_bool( $default ) ) {
+				$clean[ $key ] = (bool) $val;
+			} elseif ( is_int( $default ) ) {
+				$clean[ $key ] = (int) $val;
+			} elseif ( is_array( $default ) ) {
+				$clean[ $key ] = is_array( $val ) ? $val : $default;
+			} else {
+				$clean[ $key ] = is_scalar( $val ) ? sanitize_textarea_field( (string) $val ) : $default;
+			}
+			$applied++;
+		}
+		Velox_Settings::save( $clean );
+		wp_send_json_success( array( 'applied' => $applied ) );
 	}
 
 	private function save_settings() {

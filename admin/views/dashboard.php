@@ -73,6 +73,9 @@ $velox_tiles = array(
 	array( 'util','installer',   'Bulk Installer',   'plug',     'Plugin stacks' ),
 	array( 'util','october',     'OctoberCMS',       'package',  'Theme export' ),
 	array( 'util','backup',      'Backup & Restore', 'package',  'DB & files' ),
+	array( 'util','errorlog',    'Error Logger',     'warning',  'PHP error log' ),
+	array( 'util','frontendbar', 'Frontend Tools',   'bolt',     'Admin quick-panel' ),
+	array( 'tab', 'pagespeed',   'PageSpeed',        'bolt',     'Live scores' ),
 	array( 'tab', 'seo',         'SEO',              'search',   'Meta & sitemaps' ),
 	array( 'tab', 'settings',    'Settings',         'gear',     'Modules & config' ),
 );
@@ -388,16 +391,18 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 	<?php
 	foreach ( $velox_tiles as $vt ) {
 		list( $vk, $vid, $vlabel, $vicon, $vsub ) = $vt;
-		// Only show utilities that are actually switched on (always-on tools stay).
-		if ( 'util' === $vk && ! Velox_Utilities::is_available( $vid ) ) {
-			continue;
-		}
+		// Show every utility — but mark the ones that are switched off, so the grid
+		// is a true catalog of everything Velox offers instead of hiding disabled
+		// tools. Clicking a disabled one still takes you to where you can enable it.
+		$voff = ( 'util' === $vk && ! Velox_Utilities::is_available( $vid ) );
 		$vurl = ( 'tab' === $vk ) ? $admin->tab_url( $vid ) : Velox_Utilities::tool_url( $vid );
 		printf(
-			'<a class="velox-tile" href="%s"><span class="velox-tile-ic">%s</span><span class="velox-tile-tx"><span class="velox-tile-name">%s</span><span class="velox-tile-sub">%s</span></span></a>',
+			'<a class="velox-tile%s" href="%s"><span class="velox-tile-ic">%s</span><span class="velox-tile-tx"><span class="velox-tile-name">%s%s</span><span class="velox-tile-sub">%s</span></span></a>',
+			$voff ? ' is-off' : '',
 			esc_url( $vurl ),
 			Velox_Admin::icon( $vicon, 18 ),
 			esc_html__( $vlabel, 'velox' ), // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
+			$voff ? ' <span class="velox-tile-off">' . esc_html__( 'Off', 'velox' ) . '</span>' : '',
 			esc_html__( $vsub, 'velox' ) // phpcs:ignore WordPress.WP.I18n.NonSingularStringLiteralText
 		);
 	}

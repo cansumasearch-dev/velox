@@ -653,16 +653,45 @@
 			return !! document.querySelector( '.interface-interface-skeleton__sidebar .velox-gseo' );
 		}
 
+		// All the nested width-constrained wrappers Gutenberg uses inside the
+		// sidebar. Widening only the outer shell leaves the content pinned at ~280px
+		// (the empty-gap bug), so we stretch each inner wrapper to fill too.
+		function innerParts( sb ) {
+			if ( ! sb ) { return []; }
+			var sel = [
+				'.interface-complementary-area',
+				'.editor-sidebar',
+				'.edit-post-sidebar',
+				'.components-panel',
+				'.interface-complementary-area__fill',
+				'.velox-gseo'
+			];
+			var out = [];
+			sel.forEach( function ( s ) {
+				sb.querySelectorAll( s ).forEach( function ( el ) { out.push( el ); } );
+			} );
+			return out;
+		}
+
 		function apply( px ) {
 			var sb = region();
 			if ( ! sb ) { return; }
 			sb.style.width = px + 'px';
 			sb.style.flexBasis = px + 'px';
 			sb.style.maxWidth = 'none';
+			innerParts( sb ).forEach( function ( el ) {
+				el.style.width = '100%';
+				el.style.maxWidth = '100%';
+				el.style.boxSizing = 'border-box';
+			} );
 		}
 		function reset() {
 			var sb = region();
-			if ( sb ) { sb.style.width = ''; sb.style.flexBasis = ''; sb.style.maxWidth = ''; }
+			if ( ! sb ) { return; }
+			sb.style.width = ''; sb.style.flexBasis = ''; sb.style.maxWidth = '';
+			innerParts( sb ).forEach( function ( el ) {
+				el.style.width = ''; el.style.maxWidth = ''; el.style.boxSizing = '';
+			} );
 		}
 
 		function ensureHandle() {

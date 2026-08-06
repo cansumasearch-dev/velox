@@ -158,15 +158,22 @@
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( j ) {
 				if ( j && j.success ) {
-					var nowOn = target === 1; // flag is now active (noindex/nofollow)
+					var nowOn = target === 1; // for noindex/nofollow: flag active; for sitemap: excluded
 					if ( flag === 'noindex' ) {
 						btn.textContent = nowOn ? ( t.noindex || 'Noindex' ) : ( t.index || 'Index' );
-					} else {
+						btn.classList.toggle( 'is-off', nowOn );
+						btn.classList.toggle( 'is-on', ! nowOn );
+					} else if ( flag === 'nofollow' ) {
 						btn.textContent = nowOn ? ( t.nofollow || 'Nofollow' ) : ( t.follow || 'Follow' );
+						btn.classList.toggle( 'is-off', nowOn );
+						btn.classList.toggle( 'is-on', ! nowOn );
+					} else if ( flag === 'sitemap' ) {
+						// nowOn === excluded. Excluded = red (is-off), Included = blue (is-on).
+						btn.textContent = nowOn ? ( t.excluded || 'Excluded' ) : ( t.included || 'Included' );
+						btn.classList.toggle( 'is-off', nowOn );
+						btn.classList.toggle( 'is-on', ! nowOn );
 					}
-					btn.classList.toggle( 'is-off', nowOn );
-					btn.classList.toggle( 'is-on', ! nowOn );
-					// flip the data-on so the next click toggles back
+					// flip data-on so the next click toggles back
 					btn.setAttribute( 'data-on', nowOn ? '0' : '1' );
 				}
 			} )

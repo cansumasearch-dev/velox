@@ -1,0 +1,66 @@
+/* Velox Google Reviews — front-end. All colours/sizes come from CSS vars set
+   inline on the wrapper by the render engine, so presets fully control the look. */
+.velox-reviews { --vxr-cols: 3; width: 100%; }
+.velox-reviews * { box-sizing: border-box; }
+
+/* Static grid */
+.velox-reviews.is-static .velox-reviews-track {
+	display: grid;
+	grid-template-columns: repeat(var(--vxr-cols), 1fr);
+	gap: var(--vxr-gap, 16px);
+}
+@media (max-width: 900px) { .velox-reviews.is-static .velox-reviews-track { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 560px) { .velox-reviews.is-static .velox-reviews-track { grid-template-columns: 1fr; } }
+
+/* Slider */
+.velox-reviews.is-slider { overflow: hidden; position: relative; }
+.velox-reviews.is-slider .velox-reviews-track {
+	display: flex;
+	gap: var(--vxr-gap, 16px);
+	transition: transform .5s ease;
+	will-change: transform;
+}
+.velox-reviews.is-slider .vxr-card { flex: 0 0 auto; }
+
+/* Card */
+.vxr-card {
+	background: var(--vxr-card-bg, #fff);
+	border-radius: var(--vxr-radius, 12px);
+	padding: var(--vxr-pad, 20px);
+	box-shadow: var(--vxr-shadow, 0 2px 10px rgba(17,24,39,.08));
+	color: var(--vxr-text, #1d2327);
+	display: flex;
+	flex-direction: column;
+	gap: 10px;
+}
+.vxr-head { display: flex; align-items: center; gap: 12px; }
+.vxr-avatar {
+	width: var(--vxr-avatar, 44px);
+	height: var(--vxr-avatar, 44px);
+	border-radius: 50%;
+	object-fit: cover;
+	flex: 0 0 auto;
+}
+.vxr-avatar--ph {
+	display: inline-flex; align-items: center; justify-content: center;
+	background: #e5e7eb; color: #6b7280; font-weight: 700; text-transform: uppercase;
+}
+.vxr-who { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.vxr-name { font-weight: 700; font-size: var(--vxr-name-size, 15px); }
+.vxr-date { font-size: 12px; color: var(--vxr-meta, #6b7280); }
+.vxr-g {
+	margin-left: auto; flex: 0 0 auto;
+	width: 22px; height: 22px; border-radius: 50%;
+	display: inline-flex; align-items: center; justify-content: center;
+	font-weight: 700; font-family: Arial, sans-serif; color: #4285f4;
+	background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.15); font-size: 13px;
+}
+.vxr-stars { display: flex; gap: 2px; }
+.vxr-star { color: #d1d5db; font-size: 15px; line-height: 1; }
+.vxr-star.is-on { color: var(--vxr-star, #fbbf24); }
+.vxr-text { font-size: var(--vxr-text-size, 14px); color: var(--vxr-text, #1d2327); line-height: 1.55; }
+
+/* Slider dots */
+.velox-reviews-dots { display: flex; justify-content: center; gap: 6px; margin-top: 14px; }
+.velox-reviews-dot { width: 8px; height: 8px; border-radius: 50%; background: #d1d5db; border: none; cursor: pointer; padding: 0; }
+.velox-reviews-dot.is-active { background: var(--vxr-star, #fbbf24); }

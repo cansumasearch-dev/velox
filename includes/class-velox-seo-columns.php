@@ -28,7 +28,10 @@ class Velox_Seo_Columns {
 		foreach ( self::TYPES as $pt ) {
 			add_filter( "manage_{$pt}_posts_columns", array( __CLASS__, 'columns' ) );
 			add_action( "manage_{$pt}_posts_custom_column", array( __CLASS__, 'render_column' ), 10, 2 );
+			add_filter( "bulk_actions-edit-{$pt}", array( __CLASS__, 'bulk_actions' ) );
+			add_filter( "handle_bulk_actions-edit-{$pt}", array( __CLASS__, 'handle_bulk' ), 10, 3 );
 		}
+		add_action( 'admin_notices', array( __CLASS__, 'bulk_notice' ) );
 		add_action( 'quick_edit_custom_box', array( __CLASS__, 'quick_edit_box' ), 10, 2 );
 		add_action( 'save_post', array( __CLASS__, 'save_quick_edit' ), 10, 1 );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
@@ -42,8 +45,7 @@ class Velox_Seo_Columns {
 			'velox_seo_title' => __( 'SEO Title', 'velox' ),
 			'velox_seo_desc'  => __( 'SEO Description', 'velox' ),
 			'velox_seo_kw'    => __( 'Focus keyword', 'velox' ),
-			'velox_seo_index' => __( 'Index & Links', 'velox' ),
-			'velox_seo_map'   => __( 'Sitemap', 'velox' ),
+			'velox_seo_index' => __( 'Index, Links & Sitemap', 'velox' ),
 		);
 		$out = array();
 		foreach ( $cols as $key => $label ) {
@@ -70,9 +72,6 @@ class Velox_Seo_Columns {
 				break;
 			case 'velox_seo_index':
 				self::render_index_cell( $post_id );
-				break;
-			case 'velox_seo_map':
-				self::render_sitemap_cell( $post_id );
 				break;
 		}
 	}
@@ -116,10 +115,11 @@ class Velox_Seo_Columns {
 		echo '<span class="velox-seo-kw">' . esc_html( $kw ) . '</span>';
 	}
 
-	/** Index + Follow status — clickable toggles that save inline. */
+	/** Index + Follow + Sitemap status — clickable toggles that save inline. */
 	private static function render_index_cell( $post_id ) {
 		$noindex  = '1' === (string) get_post_meta( $post_id, '_velox_seo_noindex', true );
 		$nofollow = '1' === (string) get_post_meta( $post_id, '_velox_seo_nofollow', true );
+		$excluded = '1' === (string) get_post_meta( $post_id, 'sitemap_exclude', true );
 		echo '<span class="velox-seo-idx" data-post="' . (int) $post_id . '">';
 		printf(
 			'<button type="button" class="velox-seo-toggle %1$s" data-flag="noindex" data-on="%2$d" title="%3$s">%4$s</button>',
@@ -134,6 +134,13 @@ class Velox_Seo_Columns {
 			$nofollow ? 0 : 1,
 			esc_attr__( 'Click to toggle link following', 'velox' ),
 			$nofollow ? esc_html__( 'Nofollow', 'velox' ) : esc_html__( 'Follow', 'velox' )
+		);
+		printf(
+			'<button type="button" class="velox-seo-toggle %1$s" data-flag="sitemap" data-on="%2$d" title="%3$s">%4$s</button>',
+			$excluded ? 'is-off' : 'is-on',
+			$excluded ? 0 : 1,
+			esc_attr__( 'Click to include or exclude this page from the sitemap', 'velox' ),
+			$excluded ? esc_html__( 'Excluded', 'velox' ) : esc_html__( 'Included', 'velox' )
 		);
 		echo '</span>';
 	}
@@ -168,6 +175,76 @@ class Velox_Seo_Columns {
 		return 'title' === $field
 			? __( 'Aim for 30–60 characters. Google truncates longer titles.', 'velox' )
 			: __( 'Aim for 120–160 characters. Google truncates longer descriptions.', 'velox' );
+	}
+
+	/* ------------------------------------------------------ bulk actions */
+
+	/** Add Velox SEO options to the list-table Bulk Actions dropdown. */
+	public static function bulk_actions( $actions ) {
+		$actions['velox_seo_noindex']   = __( 'Velox: set Noindex', 'velox' );
+		$actions['velox_seo_index']     = __( 'Velox: set Index', 'velox' );
+		$actions['velox_seo_nofollow']  = __( 'Velox: set Nofollow', 'velox' );
+		$actions['velox_seo_follow']    = __( 'Velox: set Follow', 'velox' );
+		$actions['velox_seo_smap_out']  = __( 'Velox: exclude from sitemap', 'velox' );
+		$actions['velox_seo_smap_in']   = __( 'Velox: include in sitemap', 'velox' );
+		return $actions;
+	}
+
+	/** Apply the chosen Velox bulk action to the selected posts. */
+	public static function handle_bulk( $redirect, $action, $ids ) {
+		$map = array(
+			'velox_seo_noindex'  => array( '_velox_seo_noindex', '1' ),
+			'velox_seo_index'    => array( '_velox_seo_noindex', '0' ),
+			'velox_seo_nofollow' => array( '_velox_seo_nofollow', '1' ),
+			'velox_seo_follow'   => array( '_velox_seo_nofollow', '0' ),
+			'velox_seo_smap_out' => array( 'sitemap_exclude', '1' ),
+			'velox_seo_smap_in'  => array( 'sitemap_exclude', '0' ),
+		);
+		if ( ! isset( $map[ $action ] ) ) {
+			return $redirect;
+		}
+		list( $key, $value ) = $map[ $action ];
+		$done = 0;
+		foreach ( (array) $ids as $id ) {
+			$id = (int) $id;
+			if ( ! current_user_can( 'edit_post', $id ) ) {
+				continue;
+			}
+			update_post_meta( $id, $key, $value );
+			$done++;
+		}
+		// If we touched the sitemap flag, rebuild once at the end.
+		if ( 'sitemap_exclude' === $key && class_exists( 'Velox_Seo' ) && method_exists( 'Velox_Seo', 'generate_sitemap' ) ) {
+			Velox_Seo::generate_sitemap();
+		}
+		return add_query_arg( array( 'velox_bulk' => $action, 'velox_bulk_n' => $done ), $redirect );
+	}
+
+	/** Confirmation notice after a Velox bulk action. */
+	public static function bulk_notice() {
+		if ( empty( $_GET['velox_bulk'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+		$n = isset( $_GET['velox_bulk_n'] ) ? (int) $_GET['velox_bulk_n'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$labels = array(
+			'velox_seo_noindex'  => __( 'set to Noindex', 'velox' ),
+			'velox_seo_index'    => __( 'set to Index', 'velox' ),
+			'velox_seo_nofollow' => __( 'set to Nofollow', 'velox' ),
+			'velox_seo_follow'   => __( 'set to Follow', 'velox' ),
+			'velox_seo_smap_out' => __( 'excluded from the sitemap', 'velox' ),
+			'velox_seo_smap_in'  => __( 'included in the sitemap', 'velox' ),
+		);
+		$action = sanitize_key( wp_unslash( $_GET['velox_bulk'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$what   = isset( $labels[ $action ] ) ? $labels[ $action ] : __( 'updated', 'velox' );
+		printf(
+			'<div class="notice notice-success is-dismissible"><p>%s</p></div>',
+			esc_html( sprintf(
+				/* translators: 1: number of items, 2: what was done */
+				_n( '%1$d item %2$s.', '%1$d items %2$s.', $n, 'velox' ),
+				$n,
+				$what
+			) )
+		);
 	}
 
 	/* ------------------------------------------------------------ quick edit */
@@ -247,6 +324,8 @@ class Velox_Seo_Columns {
 				'noindex'  => __( 'Noindex', 'velox' ),
 				'follow'   => __( 'Follow', 'velox' ),
 				'nofollow' => __( 'Nofollow', 'velox' ),
+				'included' => __( 'Included', 'velox' ),
+				'excluded' => __( 'Excluded', 'velox' ),
 			),
 		) );
 	}
@@ -272,7 +351,7 @@ class Velox_Seo_Columns {
 		wp_send_json_success( array( 'value' => $clean ) );
 	}
 
-	/** AJAX: toggle the noindex or nofollow flag from the list. */
+	/** AJAX: toggle the noindex, nofollow, or sitemap flag from the list. */
 	public static function ajax_toggle_flag() {
 		$post_id = isset( $_POST['post'] ) ? (int) $_POST['post'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$flag    = isset( $_POST['flag'] ) ? sanitize_key( $_POST['flag'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
@@ -280,6 +359,15 @@ class Velox_Seo_Columns {
 
 		if ( ! $post_id || ! current_user_can( 'edit_post', $post_id ) ) {
 			wp_send_json_error( array( 'message' => __( 'Not allowed.', 'velox' ) ), 403 );
+		}
+		if ( 'sitemap' === $flag ) {
+			// Sitemap is inverted: "on" from the button means EXCLUDE the page.
+			update_post_meta( $post_id, 'sitemap_exclude', $on ? '1' : '0' );
+			// Refresh the sitemap immediately so the change reflects without a save.
+			if ( class_exists( 'Velox_Seo' ) && method_exists( 'Velox_Seo', 'generate_sitemap' ) ) {
+				Velox_Seo::generate_sitemap();
+			}
+			wp_send_json_success( array( 'flag' => $flag, 'on' => $on ) );
 		}
 		$key = 'noindex' === $flag ? '_velox_seo_noindex' : ( 'nofollow' === $flag ? '_velox_seo_nofollow' : '' );
 		if ( '' === $key ) {

@@ -181,6 +181,8 @@ final class Velox {
 		}
 		Velox_Redirects::maybe_install();
 		Velox_Redirects::init();
+		Velox_Reviews::init();
+		Velox_Reviews_Oxygen::init();
 		Velox_Scripts::init();
 		Velox_Cache::init();
 		if ( Velox_Settings::get( 'module_seo', false ) ) {

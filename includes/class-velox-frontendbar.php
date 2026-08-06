@@ -44,7 +44,66 @@ class Velox_Frontend_Bar {
 		return ! is_admin()
 			&& is_user_logged_in()
 			&& current_user_can( 'manage_options' )
-			&& ! self::is_guest_view();
+			&& ! self::is_guest_view()
+			&& ! self::is_builder_editing();
+	}
+
+	/**
+	 * True when the current front-end request is actually a page builder's editor
+	 * or its live preview/iframe — in which case the Velox frontend bar must not
+	 * show. Covers Oxygen, Bricks, Elementor, Divi, Beaver Builder, Brizy, WPBakery,
+	 * Cornerstone/Pro, Fusion (Avada), Thrive, Zion/Gant, Breakdance, and the generic
+	 * customize preview. Detection is by the query params / constants each builder
+	 * sets when it loads a page inside its editor, so new builders that follow the
+	 * same "?builder=1 / preview" convention are largely covered too.
+	 */
+	protected static function is_builder_editing() {
+		// Customizer preview.
+		if ( function_exists( 'is_customize_preview' ) && is_customize_preview() ) {
+			return true;
+		}
+		// Constants some builders define while rendering their editor.
+		$const_flags = array( 'ELEMENTOR_EDIT_MODE', 'ET_BUILDER_PLUGIN_ACTIVE_EDIT' );
+		foreach ( $const_flags as $c ) {
+			if ( defined( $c ) && constant( $c ) ) {
+				return true;
+			}
+		}
+		// Query-param signatures each builder sets on its editor / preview request.
+		// Keyed by param name => value to match ('*' = any value present).
+		$params = array(
+			'ct_builder'        => '*',   // Oxygen
+			'oxygen_iframe'     => '*',   // Oxygen iframe
+			'bricks'            => 'run', // Bricks (?bricks=run)
+			'brizy-edit'        => '*',   // Brizy
+			'brizy-edit-iframe' => '*',
+			'elementor-preview' => '*',   // Elementor
+			'et_fb'             => '*',   // Divi front-end builder
+			'et_pb_preview'     => '*',
+			'fl_builder'        => '*',   // Beaver Builder
+			'vcv-action'        => '*',   // Visual Composer (new)
+			'vc_editable'       => '*',   // WPBakery
+			'vc_action'         => '*',
+			'cs_preview_state'  => '*',   // Cornerstone / X / Pro
+			'fb-edit'           => '*',   // Fusion Builder (Avada)
+			'builder'           => 'true',// Fusion / generic
+			'tve'               => '*',   // Thrive
+			'zionbuilder-preview' => '*', // Zion
+			'breakdance'        => '*',   // Breakdance
+			'breakdance_iframe' => '*',
+		);
+		foreach ( $params as $key => $want ) {
+			if ( isset( $_GET[ $key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				if ( '*' === $want || (string) $want === (string) $_GET[ $key ] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+					return true;
+				}
+			}
+		}
+		// Oxygen also sets this global while its builder renders.
+		if ( defined( 'SHOW_CT_BUILDER' ) && SHOW_CT_BUILDER ) {
+			return true;
+		}
+		return false;
 	}
 
 	/* ------------------------------------------------------- admin-bar pref */

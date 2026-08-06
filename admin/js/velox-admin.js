@@ -2356,6 +2356,7 @@
 		initFieldsEditor();
 		initFieldsList();
 		initCookies();
+		initReviews();
 		initOctober();
 		initBackup();
 		initHtmlLang();
@@ -3652,6 +3653,135 @@
 			}
 			if ( iconInput ) { iconInput.addEventListener( 'input', updateIconPreview ); }
 			updateIconPreview();
+		}
+	}
+
+	function initReviews() {
+		var admin = $( '#velox-reviews-admin' );
+		if ( ! admin ) { return; }
+
+		/* ---- connection provider field toggle ---- */
+		var provider = $( '#vxr-conn-provider' );
+		function syncProvider() {
+			var g = provider && provider.value === 'google';
+			admin.querySelectorAll( '.vxr-p-google' ).forEach( function ( el ) { el.hidden = ! g; } );
+			admin.querySelectorAll( '.vxr-p-featurable' ).forEach( function ( el ) { el.hidden = g; } );
+		}
+		if ( provider ) { provider.addEventListener( 'change', syncProvider ); syncProvider(); }
+
+		/* ---- save connection ---- */
+		var connSave = $( '#vxr-conn-save' );
+		if ( connSave ) {
+			connSave.addEventListener( 'click', function () {
+				var name = ( $( '#vxr-conn-name' ) || {} ).value || '';
+				if ( ! name.trim() ) { toast( vxT( 'Please name this connection.' ), 'error' ); return; }
+				connSave.disabled = true;
+				api( 'reviews_save_conn', {
+					name: name,
+					provider: provider ? provider.value : 'featurable',
+					widget_id: ( $( '#vxr-conn-widget' ) || {} ).value || '',
+					api_key: ( $( '#vxr-conn-key' ) || {} ).value || '',
+					place_id: ( $( '#vxr-conn-place' ) || {} ).value || ''
+				} )
+					.then( function ( r ) {
+						if ( r && r.ok === false ) { toast( r.error || vxT( 'Could not save.' ), 'error' ); return; }
+						toast( vxT( 'Connection saved.' ), 'success' );
+						setTimeout( function () { location.reload(); }, 700 );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { connSave.disabled = false; } );
+			} );
+		}
+
+		/* ---- delete / test connection (event delegation) ---- */
+		admin.addEventListener( 'click', function ( e ) {
+			var del = e.target.closest( '.velox-conn-del' );
+			if ( del ) {
+				if ( ! window.confirm( vxT( 'Delete this connection?' ) ) ) { return; }
+				api( 'reviews_del_conn', { id: del.getAttribute( 'data-id' ) } )
+					.then( function () { location.reload(); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+				return;
+			}
+			var test = e.target.closest( '.velox-conn-test' );
+			if ( test ) {
+				test.disabled = true;
+				var orig = test.textContent;
+				test.textContent = vxT( 'Testing…' );
+				api( 'reviews_test', { id: test.getAttribute( 'data-id' ) } )
+					.then( function ( r ) {
+						toast( vxT( 'Fetched ' ) + ( ( r && r.count ) || 0 ) + vxT( ' reviews.' ), ( r && r.count ) ? 'success' : 'error' );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { test.disabled = false; test.textContent = orig; } );
+				return;
+			}
+			var pedit = e.target.closest( '.velox-preset-edit' );
+			if ( pedit ) { loadPreset( pedit.getAttribute( 'data-id' ) ); return; }
+			var pdel = e.target.closest( '.velox-preset-del' );
+			if ( pdel ) {
+				if ( ! window.confirm( vxT( 'Delete this preset?' ) ) ) { return; }
+				api( 'reviews_del_preset', { id: pdel.getAttribute( 'data-id' ) } )
+					.then( function () { location.reload(); } )
+					.catch( function ( e ) { toast( e.message, 'error' ); } );
+				return;
+			}
+		} );
+
+		/* ---- preset builder ---- */
+		function collectStyle() {
+			var style = {};
+			admin.querySelectorAll( '[data-style]' ).forEach( function ( el ) {
+				var k = el.getAttribute( 'data-style' );
+				if ( el.type === 'checkbox' ) { style[ k ] = el.checked ? 1 : 0; }
+				else { style[ k ] = el.value; }
+			} );
+			return style;
+		}
+		var PRESETS = window.VELOX_REVIEWS_PRESETS || {};
+		function loadPreset( id ) {
+			var p = PRESETS[ id ];
+			if ( ! p ) { return; }
+			( $( '#vxr-preset-id' ) || {} ).value = id;
+			( $( '#vxr-preset-name' ) || {} ).value = p.name || '';
+			( $( '#vxr-preset-type' ) || {} ).value = p.type || 'slider';
+			var st = p.style || {};
+			admin.querySelectorAll( '[data-style]' ).forEach( function ( el ) {
+				var k = el.getAttribute( 'data-style' );
+				if ( ! ( k in st ) ) { return; }
+				if ( el.type === 'checkbox' ) { el.checked = !! ( st[ k ] === true || st[ k ] === 1 || st[ k ] === '1' ); }
+				else { el.value = st[ k ]; }
+			} );
+			admin.scrollIntoView && $( '#velox-preset-builder' ).scrollIntoView( { behavior: 'smooth' } );
+		}
+
+		var presetSave = $( '#vxr-preset-save' );
+		if ( presetSave ) {
+			presetSave.addEventListener( 'click', function () {
+				var name = ( $( '#vxr-preset-name' ) || {} ).value || '';
+				if ( ! name.trim() ) { toast( vxT( 'Please name this preset.' ), 'error' ); return; }
+				presetSave.disabled = true;
+				api( 'reviews_save_preset', {
+					id: ( $( '#vxr-preset-id' ) || {} ).value || '',
+					name: name,
+					type: ( $( '#vxr-preset-type' ) || {} ).value || 'slider',
+					style: JSON.stringify( collectStyle() )
+				} )
+					.then( function ( r ) {
+						if ( r && r.ok === false ) { toast( r.error || vxT( 'Could not save.' ), 'error' ); return; }
+						toast( vxT( 'Preset saved.' ), 'success' );
+						setTimeout( function () { location.reload(); }, 700 );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { presetSave.disabled = false; } );
+			} );
+		}
+		var presetReset = $( '#vxr-preset-reset' );
+		if ( presetReset ) {
+			presetReset.addEventListener( 'click', function () {
+				( $( '#vxr-preset-id' ) || {} ).value = '';
+				( $( '#vxr-preset-name' ) || {} ).value = '';
+			} );
 		}
 	}
 
@@ -7683,6 +7813,68 @@
 			return;
 		}
 		var genBtn = $( '#velox-seo-smap-gen' );
+
+		// Settings import / export.
+		var exportBtn = $( '#velox-settings-export' );
+		if ( exportBtn ) {
+			exportBtn.addEventListener( 'click', function () {
+				exportBtn.disabled = true;
+				api( 'settings_export' )
+					.then( function ( r ) {
+						var blob = new Blob( [ r.json ], { type: 'application/json' } );
+						var url = URL.createObjectURL( blob );
+						var a = document.createElement( 'a' );
+						a.href = url; a.download = r.filename || 'velox-settings.json';
+						document.body.appendChild( a ); a.click(); a.remove();
+						URL.revokeObjectURL( url );
+						toast( vxT( 'Settings exported.' ), 'success' );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { exportBtn.disabled = false; } );
+			} );
+		}
+		var importPick = $( '#velox-settings-import-pick' );
+		var importFile = $( '#velox-settings-import-file' );
+		var importNote = $( '.velox-settings-import-note' );
+		if ( importPick && importFile ) {
+			importPick.addEventListener( 'click', function () { importFile.click(); } );
+			importFile.addEventListener( 'change', function () {
+				var f = importFile.files && importFile.files[0];
+				if ( ! f ) { return; }
+				var reader = new FileReader();
+				reader.onload = function () {
+					api( 'settings_import', { json: String( reader.result ) } )
+						.then( function ( r ) {
+							if ( importNote ) {
+								importNote.hidden = false;
+								importNote.textContent = vxT( 'Imported ' ) + ( ( r && r.applied ) || 0 ) + vxT( ' settings. Reloading…' );
+							}
+							toast( vxT( 'Settings imported.' ), 'success' );
+							setTimeout( function () { location.reload(); }, 1200 );
+						} )
+						.catch( function ( e ) { toast( e.message, 'error' ); } );
+				};
+				reader.readAsText( f );
+				importFile.value = '';
+			} );
+		}
+
+		// Save all webmaster-verification fields together.
+		var verifyBtn = $( '#velox-seo-verify-save' );
+		if ( verifyBtn ) {
+			verifyBtn.addEventListener( 'click', function () {
+				var payload = {};
+				[ 'seo_verify_google', 'seo_verify_bing', 'seo_verify_baidu', 'seo_verify_yandex', 'seo_verify_pinterest', 'seo_verify_norton' ].forEach( function ( k ) {
+					var el = document.querySelector( '[data-setting="' + k + '"]' );
+					if ( el ) { payload[ k ] = el.value; }
+				} );
+				verifyBtn.disabled = true;
+				saveSettings( payload, vxT( 'Verification tags saved.' ) )
+					.then( function () {} )
+					.catch( function () {} )
+					.then( function () { verifyBtn.disabled = false; } );
+			} );
+		}
 
 		// Persist the robots.txt + sitemap enable toggles the moment they change.
 		// (Previously these had data-setting but no handler, so they never saved

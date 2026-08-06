@@ -33,6 +33,8 @@ class Velox_Seo {
 		add_action( 'wp_head', array( __CLASS__, 'buffer_title_start' ), -1 );
 		add_action( 'wp_head', array( __CLASS__, 'buffer_title_end' ), 999 );
 		add_action( 'wp_head', array( __CLASS__, 'head_tags' ), 1 );
+		// Site-verification meta tags (Google/Bing/etc.) — on every page, near the top.
+		add_action( 'wp_head', array( __CLASS__, 'verification_tags' ), 2 );
 		// Own the robots directives through WP's native filter so there's exactly one
 		// robots tag, and so index,follow is emitted explicitly (not just left implicit).
 		add_filter( 'wp_robots', array( __CLASS__, 'filter_wp_robots' ), 20 );
@@ -280,6 +282,48 @@ class Velox_Seo {
 			$html = preg_replace( '/<title\b[^>]*>.*?<\/title>/is', '<title>' . esc_html( $custom ) . '</title>', $html, 1 );
 		}
 		echo $html; // phpcs:ignore WordPress.Security.EscapingOutput -- pre-rendered head HTML; injected title is escaped above.
+	}
+
+	/**
+	 * Output search-engine / webmaster site-verification meta tags in <head>.
+	 * Each setting may hold just the token, or the full <meta> tag pasted from the
+	 * provider — we extract the token from the content="..." either way, so the
+	 * user can paste whatever the provider gives them.
+	 */
+	public static function verification_tags() {
+		if ( ! Velox_Settings::get( 'module_seo', true ) ) {
+			return;
+		}
+		$map = array(
+			'seo_verify_google'    => 'google-site-verification',
+			'seo_verify_bing'      => 'msvalidate.01',
+			'seo_verify_baidu'     => 'baidu-site-verification',
+			'seo_verify_yandex'    => 'yandex-verification',
+			'seo_verify_pinterest' => 'p:domain_verify',
+			'seo_verify_norton'    => 'norton-safeweb-site-verification',
+		);
+		foreach ( $map as $setting => $meta_name ) {
+			$raw = trim( (string) Velox_Settings::get( $setting, '' ) );
+			if ( '' === $raw ) {
+				continue;
+			}
+			$token = self::extract_verification_token( $raw );
+			if ( '' === $token ) {
+				continue;
+			}
+			echo '<meta name="' . esc_attr( $meta_name ) . '" content="' . esc_attr( $token ) . '">' . "\n";
+		}
+	}
+
+	/** Pull the bare token out of either a raw token or a pasted <meta> tag. */
+	private static function extract_verification_token( $raw ) {
+		$raw = trim( $raw );
+		// If they pasted a full tag, grab the content="..." value.
+		if ( false !== stripos( $raw, '<meta' ) && preg_match( '/content=("|\')(.*?)\1/i', $raw, $m ) ) {
+			return trim( $m[2] );
+		}
+		// Otherwise it's the bare token — strip any stray quotes/tag chars.
+		return trim( preg_replace( '/[<>"\']/', '', $raw ) );
 	}
 
 	public static function head_tags() {

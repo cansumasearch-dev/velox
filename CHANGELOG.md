@@ -4,6 +4,31 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.35.0 — Google Reviews: Oxygen builder element
+- Added a "Velox Reviews" element to the Oxygen builder. Drop it on a page, pick a Connection and a Preset from two dropdowns, and it renders your reviews live in the builder — the same output as the shortcode, so styling stays driven by the preset (one source of truth).
+- The integration is defensive: it only loads inside Oxygen, and if the Oxygen element API differs on your version it degrades gracefully rather than breaking the builder — the [velox_reviews] shortcode always remains as a fallback.
+
+## 3.34.0 — Google Reviews utility
+- New utility: Google Reviews. Show your Google reviews on the front end as a styleable slider or static grid.
+- Connect via Featurable (free, caches many reviews) or the Google Places API (official, max 5). Every connection must be named before it can be saved.
+- Build reusable design presets (slider or static grid) with full control: number of reviews, minimum rating, columns, slides per breakpoint, autoplay + speed, card background/radius/padding/gap/shadow, text/meta/star colours, name/text/avatar sizes, and toggles for avatar, date and stars.
+- Embed anywhere with a shortcode: [velox_reviews connection="…" preset="…"]. Reviews are cached for 6 hours so page loads never hit the API.
+- Note: an Oxygen editor tab for placing reviews visually is coming in a follow-up; for now use the shortcode.
+
+## 3.33.0 — Bulk SEO actions in the Posts/Pages lists
+- Select any number of posts or pages and apply a Velox SEO change to all of them at once from the native Bulk Actions dropdown: set Noindex / Index, set Nofollow / Follow, and exclude from / include in the sitemap. A confirmation notice reports how many items changed, and the sitemap is rebuilt automatically after a bulk sitemap change.
+
+## 3.32.0 — Webmaster verification + settings import/export
+- New SEO panel: Webmaster verification. Add site-verification tags for Google Search Console, Bing, Baidu, Yandex, Pinterest and Norton Safe Web. Paste either the bare token or the full <meta> tag the provider gives you — Velox extracts the token and outputs a clean tag in your <head> on every page.
+- New SEO panel: Import / Export settings. Export all your Velox settings to a JSON file and import it on another site to replicate a setup in one go. Imports are whitelisted against known settings and type-checked, so a stale or hand-edited file can’t inject junk.
+
+## 3.31.0 — Resize fix, risky-row spacing, builder-aware frontend bar, sitemap toggle, full dashboard catalog
+- Resizable SEO sidebar: the content inside now stretches to fill the new width instead of staying pinned at ~280px (no more empty gap).
+- Performance risky mode: fields and toggles no longer sit flush on the yellow warning line — added proper padding so nothing overlaps it.
+- Frontend admin tools now hide while you are editing a page in ANY builder (Oxygen, Bricks, Elementor, Divi, Beaver, Brizy, WPBakery, Cornerstone/Pro, Fusion/Avada, Thrive, Zion, Breakdance) and in the customizer preview.
+- Posts/Pages list: the Index column is now "Index, Links & Sitemap" with a third toggle to include/exclude a page from the sitemap right from the list (blue "Included" / red "Excluded"), saved instantly and the sitemap rebuilt on the spot. The separate Sitemap column was merged into this.
+- Dashboard "Everything in Velox" catalog now shows every utility — including Error Logger, Frontend Tools and PageSpeed — and displays switched-off utilities dimmed with an "Off" tag instead of hiding them.
+
 ## 3.30.0 — Editable Index & Links column, resizable SEO sidebar, sitemap independent of noindex
 - The "Index" column in the Posts/Pages list is now "Index & Links" and is clickable: toggle Index/Noindex and Follow/Nofollow straight from the list, saved instantly, badges update live.
 - The Velox SEO panel in the page editor is now horizontally resizable — drag its left edge to make it wider or narrower; the width is remembered per browser.

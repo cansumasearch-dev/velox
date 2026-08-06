@@ -106,6 +106,50 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 		</div>
 	</div>
 
+	<!-- ============ Webmaster / site verification ============ -->
+	<div class="velox-panel">
+		<div class="velox-panel-head">
+			<h3 class="velox-panel-title"><?php esc_html_e('Webmaster verification', 'velox'); ?></h3>
+		</div>
+		<p class="velox-hint"><?php esc_html_e('Verify site ownership with search engines and other tools. Paste either the verification ID/token or the full <meta> tag they give you — Velox extracts the token and outputs a clean tag in your site’s <head>.', 'velox'); ?></p>
+		<?php
+		$vx_verify_fields = array(
+			'seo_verify_google'    => array( 'Google Search Console', 'https://search.google.com/search-console', '<meta name="google-site-verification" content="…" />' ),
+			'seo_verify_bing'      => array( 'Bing Webmaster Tools', 'https://www.bing.com/webmasters', '<meta name="msvalidate.01" content="…" />' ),
+			'seo_verify_baidu'     => array( 'Baidu Webmaster Tools', 'https://ziyuan.baidu.com', '<meta name="baidu-site-verification" content="…" />' ),
+			'seo_verify_yandex'    => array( 'Yandex', 'https://webmaster.yandex.com', '<meta name="yandex-verification" content="…" />' ),
+			'seo_verify_pinterest' => array( 'Pinterest', 'https://www.pinterest.com/settings/claim', '<meta name="p:domain_verify" content="…" />' ),
+			'seo_verify_norton'    => array( 'Norton Safe Web', 'https://safeweb.norton.com', '<meta name="norton-safeweb-site-verification" content="…" />' ),
+		);
+		foreach ( $vx_verify_fields as $vx_vk => $vx_vm ) :
+			?>
+			<div class="velox-field velox-verify-field">
+				<span class="velox-field-label"><?php echo esc_html( $vx_vm[0] ); ?></span>
+				<input type="text" class="velox-input velox-mono" data-setting="<?php echo esc_attr( $vx_vk ); ?>" value="<?php echo esc_attr( (string) $s[ $vx_vk ] ); ?>" placeholder="<?php echo esc_attr( $vx_vm[2] ); ?>">
+				<span class="velox-hint velox-verify-hint"><?php printf( esc_html__( 'Get your token at %s', 'velox' ), '<a href="' . esc_url( $vx_vm[1] ) . '" target="_blank" rel="noopener">' . esc_html( wp_parse_url( $vx_vm[1], PHP_URL_HOST ) ) . '</a>' ); // phpcs:ignore ?></span>
+			</div>
+			<?php
+		endforeach;
+		?>
+		<div class="velox-actions">
+			<button class="velox-btn velox-btn--primary" id="velox-seo-verify-save"><?php esc_html_e('Save verification tags', 'velox'); ?></button>
+		</div>
+	</div>
+
+	<!-- ============ Import / Export settings ============ -->
+	<div class="velox-panel">
+		<div class="velox-panel-head">
+			<h3 class="velox-panel-title"><?php esc_html_e('Import / Export settings', 'velox'); ?></h3>
+		</div>
+		<p class="velox-hint"><?php esc_html_e('Export all your Velox settings to a file, then import it on another site to replicate your setup. Only recognised settings are applied on import — anything unknown is ignored.', 'velox'); ?></p>
+		<div class="velox-actions">
+			<button class="velox-btn velox-btn--primary" id="velox-settings-export"><?php esc_html_e('Export settings', 'velox'); ?></button>
+			<button class="velox-btn velox-btn--ghost" id="velox-settings-import-pick"><?php esc_html_e('Import from file…', 'velox'); ?></button>
+			<input type="file" id="velox-settings-import-file" accept="application/json,.json" hidden>
+		</div>
+		<p class="velox-hint velox-settings-import-note" hidden></p>
+	</div>
+
 	<!-- ============ Sitemap ============ -->
 	<div class="velox-panel">
 		<div class="velox-cache-status-row">
