@@ -214,6 +214,9 @@ final class Velox {
 		if ( Velox_Builder::is_enabled() ) {
 			Velox_Builder::maybe_upgrade();
 			Velox_Builder::instance();
+			// Front-end rendering runs on the public side too, so it lives outside
+			// the is_admin() block below.
+			Velox_Builder_Render::init();
 		}
 	}
 }

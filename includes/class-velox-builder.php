@@ -265,4 +265,86 @@ class Velox_Builder {
 		}
 		return $url;
 	}
+
+	/* --------------------------------------------------------- persistence */
+
+	/**
+	 * Save a document. The editor posts the full store JSON (tree + classes +
+	 * content). We validate it's decodable, compute the CSS size for the list
+	 * views, and upsert the row. Creating a new doc returns its fresh id so the
+	 * editor can switch from "new" to "editing #id".
+	 */
+	public static function ajax_save() {
+		global $wpdb;
+		$id    = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : __( 'Untitled', 'velox' );
+		$kind  = isset( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : 'page';
+
+		// The document model arrives as a JSON string. Keep it as text but verify
+		// it decodes so we never store a broken blob.
+		$raw = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : '';
+		$model = json_decode( $raw, true );
+		if ( null === $model || ! is_array( $model ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid document data.', 'velox' ) ), 400 );
+		}
+		$data     = wp_json_encode( $model );
+		$css_size = isset( $_POST['css_size'] ) ? absint( $_POST['css_size'] ) : 0;
+		$now      = current_time( 'mysql' );
+		$t        = self::table();
+
+		if ( $id ) {
+			$wpdb->update(
+				$t,
+				array( 'title' => $title, 'kind' => $kind, 'data' => $data, 'css_size' => $css_size, 'updated' => $now ),
+				array( 'id' => $id ),
+				array( '%s', '%s', '%s', '%d', '%s' ),
+				array( '%d' )
+			);
+		} else {
+			$wpdb->insert(
+				$t,
+				array( 'title' => $title, 'kind' => $kind, 'data' => $data, 'css_size' => $css_size, 'status' => 'draft', 'updated' => $now, 'created' => $now ),
+				array( '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
+			);
+			$id = (int) $wpdb->insert_id;
+		}
+
+		// Regenerate the page's static CSS file so the front end reflects the save.
+		if ( class_exists( 'Velox_Builder_Render' ) ) {
+			Velox_Builder_Render::write_css_for( $id );
+		}
+
+		wp_send_json_success( array( 'id' => $id, 'title' => $title, 'saved' => $now ) );
+	}
+
+	/** Load a document's model for the editor. */
+	public static function ajax_load() {
+		global $wpdb;
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'No document specified.', 'velox' ) ), 400 );
+		}
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, title, kind, data FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A );
+		if ( ! $row ) {
+			wp_send_json_error( array( 'message' => __( 'Document not found.', 'velox' ) ), 404 );
+		}
+		wp_send_json_success(
+			array(
+				'id'    => (int) $row['id'],
+				'title' => $row['title'],
+				'kind'  => $row['kind'],
+				'model' => json_decode( $row['data'], true ),
+			)
+		);
+	}
+
+	/** List documents for the admin section (Overview / lists). */
+	public static function list_docs( $kind = null, $limit = 50 ) {
+		global $wpdb;
+		$t = self::table();
+		if ( $kind ) {
+			return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, css_size, updated FROM {$t} WHERE kind = %s ORDER BY updated DESC LIMIT %d", $kind, $limit ), ARRAY_A );
+		}
+		return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, css_size, updated FROM {$t} ORDER BY updated DESC LIMIT %d", $limit ), ARRAY_A );
+	}
 }

@@ -30,6 +30,15 @@ class Velox_Ajax {
 				Velox_Seo_Columns::ajax_save();
 				break;
 
+			/* -------- Velox Builder: documents -------- */
+			case 'builder_save':
+				Velox_Builder::ajax_save();
+				break;
+
+			case 'builder_load':
+				Velox_Builder::ajax_load();
+				break;
+
 			case 'seocol_flag':
 				Velox_Seo_Columns::ajax_toggle_flag();
 				break;

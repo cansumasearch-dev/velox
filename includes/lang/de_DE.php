@@ -2011,4 +2011,7 @@ return array(
 	'Editor' => 'Editor',
 	'Loading builder…' => 'Builder wird geladen…',
 	'The editor could not start. Make sure the module is enabled.' => 'Der Editor konnte nicht gestartet werden. Stellen Sie sicher, dass das Modul aktiviert ist.',
+	'Invalid document data.' => 'Ungültige Dokumentdaten.',
+	'No document specified.' => 'Kein Dokument angegeben.',
+	'Document not found.' => 'Dokument nicht gefunden.',
 );

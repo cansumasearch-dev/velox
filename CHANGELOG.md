@@ -4,6 +4,23 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.40.0 — Velox Builder: front-end rendering
+- Saved Velox Builder pages now render on the live site. When a page is bound to a published builder document, Velox outputs its own standalone document — clean semantic HTML, no theme wrapper — via template_include.
+- **Only-used CSS, as a static file:** the page CSS is compiled from the document and written to uploads/velox/builder/doc-{id}.css, content-hashed for cache-busting, and rewritten on every save. If the uploads dir is not writable it falls back to a single inline style block. Either way, only the CSS the page actually uses ships — keeping Core Web Vitals green.
+- The PHP renderer produces byte-for-byte the same HTML and CSS (including responsive media queries) that the editor shows, so what you build is exactly what visitors get. Only known CSS properties reach the output and all values are sanitised, so the document model can never inject arbitrary CSS.
+
+## 3.39.0 — Velox Builder: insert & save
+- **Add elements:** the Add button (top bar and layers panel) now opens a picker — Section, Div, Heading, Text, Button, Image, Columns — and inserts into the current container or after the selection. New elements render on the canvas immediately and seed a starter class.
+- **Duplicate & delete:** every selected element has duplicate and delete actions in the inspector header (Delete/Backspace works too); both are fully undoable.
+- **Save & load:** documents persist to the database. Save (button or ⌘S) writes the full document — tree, classes and content — and the editor reopens it on the same route. Save state is shown live in the top bar.
+
+## 3.38.0 — Velox Builder: the editing engine
+- The Velox Builder editor is now live and functional. Opening the editor mounts a real three-pane workspace — layers spine, live canvas, and a class-first inspector — driven by a central store.
+- **Live styling:** changing a value in the inspector regenerates and injects CSS into the canvas instantly (no reload), the way a modern builder should feel.
+- **Class-first cascade:** the inspector computes where each style comes from — set on the active class (blue), inherited from a base/combo/wider breakpoint (orange), or an element-only override (pink) — matching Webflow-style resolution. Switching the active class re-points every indicator live.
+- **Responsive:** per-breakpoint editing (Desktop / Tablet ≤991 / Mobile ≤767) writes real media queries, desktop-first.
+- Undo/redo across the whole document. Element insertion, persistence (save/load) and front-end rendering are the next passes.
+
 ## 3.37.0 — Velox Builder (foundation)
 - New opt-in module: **Velox Builder**, a clean class-first visual page builder. This release lays the foundation — enable it under Utilities and a dedicated "Velox Builder" section appears in the menu (Overview, Templates, Reusables, Classes, Global styles, Fonts & icons, Settings), and the full-screen editor opens on its own route with no WordPress chrome.
 - The builder renders its own standalone document and is being built to ship only the CSS each page actually uses, keeping Core Web Vitals green. The editing engine and front-end rendering land in the next releases.
