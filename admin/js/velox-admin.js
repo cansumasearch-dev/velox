@@ -641,15 +641,43 @@
 			return;
 		}
 
-		var state = { page: 1, pages: 1, search: '' };
+		var state = { page: 1, pages: 1, search: '', perPage: 20 };
 		var prev = $( '#velox-media-prev' );
 		var next = $( '#velox-media-next' );
 		var pageInfo = $( '#velox-media-pageinfo' );
 		var searchEl = $( '#velox-media-search' );
+		var ppBtns = $$( '.velox-pp-btn' );
+		var ppCustom = $( '#velox-media-perpage-custom' );
+
+		function setPerPage( val, fromCustom ) {
+			state.perPage = val;
+			state.page = 1;
+			// reflect active preset button (or clear if a custom number is used)
+			ppBtns.forEach( function ( b ) {
+				b.classList.toggle( 'is-active', ! fromCustom && parseInt( b.getAttribute( 'data-pp' ), 10 ) === val );
+			} );
+			if ( ! fromCustom && ppCustom ) { ppCustom.value = ''; }
+			load();
+		}
+		ppBtns.forEach( function ( b ) {
+			b.addEventListener( 'click', function () {
+				setPerPage( parseInt( b.getAttribute( 'data-pp' ), 10 ), false );
+			} );
+		} );
+		if ( ppCustom ) {
+			var ppDeb;
+			ppCustom.addEventListener( 'input', function () {
+				clearTimeout( ppDeb );
+				ppDeb = setTimeout( function () {
+					var n = parseInt( ppCustom.value, 10 );
+					if ( n > 0 ) { setPerPage( Math.min( 500, n ), true ); }
+				}, 400 );
+			} );
+		}
 
 		function load() {
 			gridEl.innerHTML = '<div class="velox-loading">Loading media…</div>';
-			api( 'list_media', { page: state.page, s: state.search } )
+			api( 'list_media', { page: state.page, search: state.search, per_page: state.perPage } )
 				.then( function ( d ) {
 					state.pages = d.total_pages || 1;
 					render( d.items || [] );

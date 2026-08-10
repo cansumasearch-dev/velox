@@ -3549,3 +3549,10 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 	border-radius: 6px; background: none; cursor: pointer;
 }
 .velox-switch--sm { transform: scale(.85); transform-origin: left center; }
+
+/* Media editor: per-page count control */
+.velox-media-perpage { display: flex; align-items: center; gap: 8px; }
+.velox-media-perpage-label { font-size: 12.5px; font-weight: 600; color: #50575e; }
+.velox-media-perpage-btns { display: inline-flex; gap: 4px; }
+.velox-pp-btn.is-active { background: #2ab7f1; color: #fff; border-color: #2ab7f1; }
+.velox-media-perpage .velox-input--sm { width: 64px; }

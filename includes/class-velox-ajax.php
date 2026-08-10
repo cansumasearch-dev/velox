@@ -144,7 +144,16 @@ class Velox_Ajax {
 				$page = max( 1, (int) ( $_POST['page'] ?? 1 ) );
 				$s    = sanitize_text_field( $_POST['search'] ?? '' );
 				$type = sanitize_key( $_POST['type'] ?? 'all' );
-				wp_send_json_success( $mm->list_media( $page, 40, $s, $type ) );
+				// How many per page: a preset (20/50/100), a custom number, or -1 for
+				// every image. Clamp custom numbers to something sane so a typo can't
+				// try to render 999999 cards at once (still allow "all" via -1).
+				$per = isset( $_POST['per_page'] ) ? (int) $_POST['per_page'] : 40;
+				if ( $per <= 0 ) {
+					$per = -1; // all
+				} else {
+					$per = max( 1, min( 500, $per ) );
+				}
+				wp_send_json_success( $mm->list_media( $page, $per, $s, $type ) );
 				break;
 
 			case 'media_zip':

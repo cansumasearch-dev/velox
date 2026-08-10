@@ -1982,4 +1982,6 @@ return array(
 	'Connection' => 'Verbindung',
 	'Preset' => 'Vorlage',
 	'Velox Reviews — pick a connection (and preset) in the element settings.' => 'Velox Reviews — wählen Sie eine Verbindung (und Vorlage) in den Element-Einstellungen.',
+	'Show' => 'Zeigen',
+	'Custom number of images' => 'Eigene Anzahl an Bildern',
 );

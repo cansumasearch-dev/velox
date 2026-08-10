@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.36.0 — Media Editor: choose how many images to show
+- The Media Editor (Alt text & titles) now has a "Show" control: pick 20, 50, 100, or All, or type a custom number. "All" loads every image in the library on one page instead of the old fixed 40-per-page cap.
+- Fixed: search on the Media Editor page was sending the wrong parameter name and being ignored — it now filters correctly.
+
 ## 3.35.0 — Google Reviews: Oxygen builder element
 - Added a "Velox Reviews" element to the Oxygen builder. Drop it on a page, pick a Connection and a Preset from two dropdowns, and it renders your reviews live in the builder — the same output as the shortcode, so styling stays driven by the preset (one source of truth).
 - The integration is defensive: it only loads inside Oxygen, and if the Oxygen element API differs on your version it degrades gracefully rather than breaking the builder — the [velox_reviews] shortcode always remains as a fallback.

@@ -14,6 +14,16 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 <div class="velox-toolbar">
 	<input type="search" id="velox-media-search" class="velox-input" placeholder="Search filename or title…">
+	<div class="velox-media-perpage">
+		<span class="velox-media-perpage-label"><?php esc_html_e('Show', 'velox'); ?></span>
+		<div class="velox-media-perpage-btns" role="group">
+			<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm velox-pp-btn is-active" data-pp="20">20</button>
+			<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm velox-pp-btn" data-pp="50">50</button>
+			<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm velox-pp-btn" data-pp="100">100</button>
+			<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm velox-pp-btn" data-pp="-1"><?php esc_html_e('All', 'velox'); ?></button>
+		</div>
+		<input type="number" id="velox-media-perpage-custom" class="velox-input velox-input--sm" min="1" max="500" placeholder="<?php esc_attr_e('#', 'velox'); ?>" aria-label="<?php esc_attr_e('Custom number of images', 'velox'); ?>">
+	</div>
 	<div class="velox-toolbar-right">
 		<button class="velox-btn velox-btn--ghost" id="velox-media-download"><?php esc_html_e('Download images', 'velox'); ?></button>
 		<button class="velox-btn velox-btn--ghost" id="velox-pipe-export"><?php esc_html_e('Export pipe list', 'velox'); ?></button>
