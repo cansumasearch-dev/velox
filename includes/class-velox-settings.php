@@ -41,6 +41,7 @@ class Velox_Settings {
 			// ---- Master module switches (all on by default) ----
 			'module_images'      => true,
 			'module_media'       => true,
+			'module_builder'     => false,
 			'module_performance' => true,
 			'module_database'    => true,
 			'module_seo'         => true,

@@ -1,0 +1,82 @@
+/* ============================================================
+   Velox Builder — admin section + editor shell styling.
+   Dark, full-screen, matching the builder design language.
+   Scoped under #velox-builder-admin (admin section) and
+   .velox-builder-body (standalone editor) so nothing leaks
+   into the rest of wp-admin.
+   ============================================================ */
+
+:root{
+	--vbb-void:#0a0a0c;--vbb-panel:#121216;--vbb-panel-2:#17171d;
+	--vbb-raised:#1d1d24;--vbb-raised-2:#26262f;--vbb-active:#2e2e39;
+	--vbb-line:rgba(255,255,255,.07);--vbb-line-2:rgba(255,255,255,.11);
+	--vbb-text:#f4f4f6;--vbb-text-2:#9d9da8;--vbb-text-3:#606069;
+	--vbb-accent:#2ab7f1;--vbb-accent-2:#a06bff;
+	--vbb-accent-soft:rgba(42,183,241,.14);
+	--vbb-green:#43d17f;--vbb-orange:#f5a742;--vbb-red:#f56a5c;
+	--vbb-r-xl:18px;--vbb-r-lg:13px;--vbb-r-md:9px;
+	--vbb-font:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,sans-serif;
+	--vbb-mono:ui-monospace,"SF Mono",Menlo,monospace;
+}
+
+/* ---- take over the admin content area for the Builder section ---- */
+#velox-builder-admin{
+	position:absolute;top:0;left:0;right:0;bottom:0;
+	background:
+		radial-gradient(1200px 600px at 78% -10%, rgba(42,183,241,.05), transparent 60%),
+		radial-gradient(900px 500px at 10% 110%, rgba(160,107,255,.05), transparent 55%),
+		var(--vbb-void);
+	color:var(--vbb-text);font-family:var(--vbb-font);font-size:13px;line-height:1.5;
+	overflow-y:auto;-webkit-font-smoothing:antialiased;letter-spacing:-.008em;z-index:1;
+}
+/* WordPress wraps admin content in #wpcontent/#wpbody — push our panel over it */
+#velox-builder-admin *{box-sizing:border-box}
+
+.vba-shell{max-width:1100px;margin:0 auto;padding:34px 30px 60px}
+.vba-head{display:flex;align-items:flex-start;gap:16px;margin-bottom:24px}
+.vba-head h1{font-size:24px;font-weight:750;letter-spacing:-.5px;color:var(--vbb-text);margin:0;padding:0}
+.vba-head p{font-size:13px;color:var(--vbb-text-3);margin:3px 0 0}
+.vba-head-actions{margin-left:auto;display:flex;gap:10px}
+
+.vba-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:var(--vbb-r-md);
+	font-size:13px;font-weight:600;text-decoration:none;transition:.13s;cursor:pointer;border:none;line-height:1}
+.vba-btn svg{width:15px;height:15px}
+.vba-btn-primary{background:linear-gradient(180deg,#218ec4,#1a789f);color:#eef7fc;
+	box-shadow:0 2px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08)}
+.vba-btn-primary:hover{background:linear-gradient(180deg,#2597ce,#1d82ab);color:#fff}
+.vba-btn-ghost{background:var(--vbb-panel);border:1px solid var(--vbb-line);color:var(--vbb-text-2)}
+.vba-btn-ghost:hover{border-color:var(--vbb-line-2);color:var(--vbb-text)}
+.vba-btn-sm{padding:6px 12px;font-size:12px}
+
+.vba-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px}
+.vba-stat{background:var(--vbb-panel);border:1px solid var(--vbb-line);border-radius:var(--vbb-r-lg);padding:18px;
+	display:flex;flex-direction:column;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.vba-stat-ic{width:36px;height:36px;border-radius:10px;background:var(--vbb-accent-soft);color:var(--vbb-accent);
+	display:grid;place-items:center;margin-bottom:14px}
+.vba-stat-v{font-size:27px;font-weight:750;letter-spacing:-1px}
+.vba-stat-l{font-size:12px;color:var(--vbb-text-3);margin-top:2px}
+
+.vba-card{background:var(--vbb-panel);border:1px solid var(--vbb-line);border-radius:var(--vbb-r-xl);
+	box-shadow:0 2px 10px rgba(0,0,0,.25);overflow:hidden;margin-bottom:14px}
+.vba-card-h{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:18px 20px}
+.vba-card-h h2{font-size:15px;font-weight:650;margin:0}
+.vba-card-h p{font-size:12px;color:var(--vbb-text-3);margin:3px 0 0}
+
+.vba-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;
+	padding:52px 30px;text-align:center}
+.vba-empty-ic{width:56px;height:56px;border-radius:16px;background:var(--vbb-void);
+	display:grid;place-items:center;color:var(--vbb-text-3)}
+.vba-empty b{font-size:14px;font-weight:650;color:var(--vbb-text-2)}
+.vba-empty p{font-size:12.5px;color:var(--vbb-text-3);max-width:34ch;margin:0}
+.vba-empty .vba-btn{margin-top:6px}
+
+/* ---- standalone editor boot screen ---- */
+.velox-builder-body{margin:0;background:var(--vbb-void);color:var(--vbb-text);font-family:var(--vbb-font)}
+#velox-builder-root{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+.vb-boot{display:flex;flex-direction:column;align-items:center;gap:16px}
+.vb-boot-mark{width:52px;height:52px;border-radius:15px;
+	background:linear-gradient(140deg,var(--vbb-accent),var(--vbb-accent-2));
+	display:grid;place-items:center;color:#fff;font-weight:800;font-size:24px;
+	box-shadow:0 6px 24px rgba(42,183,241,.4);animation:vbBootPulse 1.4s ease-in-out infinite}
+.vb-boot-text{font-size:13px;color:var(--vbb-text-3)}
+@keyframes vbBootPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.94);opacity:.75}}

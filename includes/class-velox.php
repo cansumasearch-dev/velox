@@ -208,5 +208,12 @@ final class Velox {
 		if ( is_admin() ) {
 			new Velox_PageMeta();
 		}
+
+		// Velox Builder — the visual page builder module (opt-in). Boots its own
+		// admin section + standalone editor; upgrades its table if the schema moved.
+		if ( Velox_Builder::is_enabled() ) {
+			Velox_Builder::maybe_upgrade();
+			Velox_Builder::instance();
+		}
 	}
 }

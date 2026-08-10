@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.37.0 — Velox Builder (foundation)
+- New opt-in module: **Velox Builder**, a clean class-first visual page builder. This release lays the foundation — enable it under Utilities and a dedicated "Velox Builder" section appears in the menu (Overview, Templates, Reusables, Classes, Global styles, Fonts & icons, Settings), and the full-screen editor opens on its own route with no WordPress chrome.
+- The builder renders its own standalone document and is being built to ship only the CSS each page actually uses, keeping Core Web Vitals green. The editing engine and front-end rendering land in the next releases.
+
 ## 3.36.0 — Media Editor: choose how many images to show
 - The Media Editor (Alt text & titles) now has a "Show" control: pick 20, 50, 100, or All, or type a custom number. "All" loads every image in the library on one page instead of the old fixed 40-per-page cap.
 - Fixed: search on the Media Editor page was sending the wrong parameter name and being ignored — it now filters correctly.
