@@ -4,6 +4,30 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.45.0 — Velox Builder: image element
+- The Image element is now real. Double-click it on the canvas (or use "Choose image" in the inspector) to open the WordPress media library, pick an image, and it renders in place — stored as its URL and shipped as a plain, lazy-friendly <img> on the front end.
+- The standalone editor now loads the WordPress media library (wp.media) into its own document so the picker works inside the full-screen builder.
+- Empty images show a clear placeholder in the editor and simply output nothing on the live page until set.
+
+## 3.44.0 — Velox Builder: hover & focus states
+- Every element can now be styled per interaction state. A Normal / :hover / :focus switcher sits under the class chips; pick a state and any property you set applies only in that state, falling back to Normal otherwise — exactly like a hand-written stylesheet.
+- States compose with the class cascade and breakpoints, so you can have (for example) a different button hover colour on mobile. The front-end renderer emits the matching :hover / :focus selectors, so states work identically on the live page — verified byte-for-byte against the editor output.
+- Backward compatible: existing documents (which only had normal-state rules) load and render unchanged.
+
+## 3.43.0 — Velox Builder: full style controls
+- The inspector now covers a real styling surface — six sections: Layout (flex/grid, wrap, justify, align, gap, grid columns), Size (width/height, max-width, min-height), Spacing (all paddings & margins), Typography (size, weight, line-height, letter-spacing, align, transform, decoration, colour), Background & effects (background, opacity, box-shadow), and Border (width, style, colour, radius).
+- Sections collapse to keep the panel calm; the first three stay open by default.
+- Every property runs through the same cascade resolver (blue/orange/pink source dots) and the same static-CSS output, so all of it is class-first, responsive, and ships only-used CSS. The renderer whitelist and value sanitiser were extended to match — only known properties reach the page and values still cannot break out of a rule.
+
+## 3.42.0 — Velox Builder: canvas text editing & drag-reorder
+- **Edit text on the canvas:** double-click any text element (heading, text, button) to edit it inline, right where it sits. Enter commits, Escape cancels — and it flows straight into the document like any other change (undoable, saved, published).
+- **Drag to reorder & renest:** drag any layer in the Layers panel to move it — drop above/below a sibling to reorder, or onto a container to nest inside it. Drop indicators show exactly where it will land, and a node moves with its whole subtree.
+
+## 3.41.0 — Velox Builder: publish flow
+- **Publish** now takes a page live end to end. Hitting Publish saves the latest edits, binds the document to a WordPress page (creating one on first publish), flips it to published, and writes the static CSS — so the front-end renderer immediately serves it.
+- The editor reflects live state: a green "Published" button and a **View page** link straight to the live URL. Reopening a published document restores that state.
+- **Unpublish** reverts the page to draft; visitors fall back to the normal theme. The bound page is tagged so Velox-built pages stay identifiable.
+
 ## 3.40.0 — Velox Builder: front-end rendering
 - Saved Velox Builder pages now render on the live site. When a page is bound to a published builder document, Velox outputs its own standalone document — clean semantic HTML, no theme wrapper — via template_include.
 - **Only-used CSS, as a static file:** the page CSS is compiled from the document and written to uploads/velox/builder/doc-{id}.css, content-hashed for cache-busting, and rewritten on every save. If the uploads dir is not writable it falls back to a single inline style block. Either way, only the CSS the page actually uses ships — keeping Core Web Vitals green.

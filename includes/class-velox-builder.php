@@ -189,6 +189,10 @@ class Velox_Builder {
 			'backUrl' => admin_url( 'admin.php?page=' . self::SLUG ),
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
 		);
+
+		// The editor lives in its own document, so the WordPress media library
+		// (wp.media) has to be enqueued and printed by hand here.
+		wp_enqueue_media();
 		?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -198,6 +202,11 @@ class Velox_Builder {
 	<title><?php echo esc_html( $title ); ?> — Velox Builder</title>
 	<link rel="stylesheet" href="<?php echo esc_url( $css_url ); ?>">
 	<script>window.VELOX_BUILDER = <?php echo wp_json_encode( $boot ); ?>;</script>
+	<?php
+	// Print the media library styles + core scripts (jQuery, wp.media) into the head.
+	wp_print_styles( array( 'media-views', 'imgareaselect' ) );
+	wp_print_scripts( array( 'jquery', 'media-editor', 'media-views' ) );
+	?>
 </head>
 <body class="velox-builder-body">
 	<div id="velox-builder-root">
@@ -206,6 +215,12 @@ class Velox_Builder {
 			<div class="vb-boot-text"><?php esc_html_e( 'Loading builder…', 'velox' ); ?></div>
 		</div>
 	</div>
+	<?php
+	// Media modal Backbone templates live in the admin footer normally; print them here.
+	if ( function_exists( 'wp_print_media_templates' ) ) {
+		wp_print_media_templates();
+	}
+	?>
 	<script src="<?php echo esc_url( $js_url ); ?>"></script>
 </body>
 </html>
@@ -324,16 +339,18 @@ class Velox_Builder {
 		if ( ! $id ) {
 			wp_send_json_error( array( 'message' => __( 'No document specified.', 'velox' ) ), 400 );
 		}
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, title, kind, data FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, title, kind, status, post_id, data FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A );
 		if ( ! $row ) {
 			wp_send_json_error( array( 'message' => __( 'Document not found.', 'velox' ) ), 404 );
 		}
 		wp_send_json_success(
 			array(
-				'id'    => (int) $row['id'],
-				'title' => $row['title'],
-				'kind'  => $row['kind'],
-				'model' => json_decode( $row['data'], true ),
+				'id'     => (int) $row['id'],
+				'title'  => $row['title'],
+				'kind'   => $row['kind'],
+				'status' => $row['status'],
+				'url'    => $row['post_id'] ? get_permalink( (int) $row['post_id'] ) : '',
+				'model'  => json_decode( $row['data'], true ),
 			)
 		);
 	}
@@ -346,5 +363,86 @@ class Velox_Builder {
 			return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, css_size, updated FROM {$t} WHERE kind = %s ORDER BY updated DESC LIMIT %d", $kind, $limit ), ARRAY_A );
 		}
 		return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, css_size, updated FROM {$t} ORDER BY updated DESC LIMIT %d", $limit ), ARRAY_A );
+	}
+
+	/* ------------------------------------------------------------ publish */
+
+	/**
+	 * Publish a document: ensure it's bound to a WordPress page, flip it to
+	 * published, write the CSS file, and return the live URL. Creating the page
+	 * on first publish means the visitor-facing URL exists and the front-end
+	 * renderer (which keys off post_id + status='published') can serve it.
+	 */
+	public static function ajax_publish() {
+		global $wpdb;
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'Save the page before publishing.', 'velox' ) ), 400 );
+		}
+		$t   = self::table();
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, post_id FROM {$t} WHERE id = %d", $id ), ARRAY_A );
+		if ( ! $row ) {
+			wp_send_json_error( array( 'message' => __( 'Document not found.', 'velox' ) ), 404 );
+		}
+
+		$title   = $row['title'] ? $row['title'] : __( 'Velox Page', 'velox' );
+		$post_id = (int) $row['post_id'];
+
+		// Bind to a WP page — create one on first publish, else keep it in sync.
+		if ( $post_id && get_post( $post_id ) ) {
+			wp_update_post( array( 'ID' => $post_id, 'post_title' => $title, 'post_status' => 'publish' ) );
+		} else {
+			$post_id = wp_insert_post(
+				array(
+					'post_title'   => $title,
+					'post_status'  => 'publish',
+					'post_type'    => 'page',
+					'post_content' => '',
+				),
+				true
+			);
+			if ( is_wp_error( $post_id ) ) {
+				wp_send_json_error( array( 'message' => $post_id->get_error_message() ), 500 );
+			}
+			// Mark the page as Velox-built so it's identifiable later.
+			update_post_meta( $post_id, '_velox_builder_doc', $id );
+		}
+
+		$wpdb->update(
+			$t,
+			array( 'post_id' => $post_id, 'status' => 'published', 'updated' => current_time( 'mysql' ) ),
+			array( 'id' => $id ),
+			array( '%d', '%s', '%s' ),
+			array( '%d' )
+		);
+
+		if ( class_exists( 'Velox_Builder_Render' ) ) {
+			Velox_Builder_Render::write_css_for( $id );
+		}
+
+		wp_send_json_success(
+			array(
+				'id'      => $id,
+				'post_id' => $post_id,
+				'url'     => get_permalink( $post_id ),
+				'status'  => 'published',
+			)
+		);
+	}
+
+	/** Revert a document to draft — visitors fall back to the theme. */
+	public static function ajax_unpublish() {
+		global $wpdb;
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'No document specified.', 'velox' ) ), 400 );
+		}
+		$t       = self::table();
+		$post_id = (int) $wpdb->get_var( $wpdb->prepare( "SELECT post_id FROM {$t} WHERE id = %d", $id ) );
+		if ( $post_id && get_post( $post_id ) ) {
+			wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
+		}
+		$wpdb->update( $t, array( 'status' => 'draft' ), array( 'id' => $id ), array( '%s' ), array( '%d' ) );
+		wp_send_json_success( array( 'id' => $id, 'status' => 'draft' ) );
 	}
 }

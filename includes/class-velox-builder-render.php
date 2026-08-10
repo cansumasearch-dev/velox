@@ -23,13 +23,16 @@ class Velox_Builder_Render {
 
 	/** camelCase model keys → real CSS properties (mirrors the editor). */
 	private static $CSS_PROP = array(
-		'display' => 'display', 'flexDirection' => 'flex-direction', 'alignItems' => 'align-items', 'gap' => 'gap',
+		'display' => 'display', 'flexDirection' => 'flex-direction', 'flexWrap' => 'flex-wrap', 'alignItems' => 'align-items', 'justifyContent' => 'justify-content', 'gap' => 'gap',
 		'paddingTop' => 'padding-top', 'paddingRight' => 'padding-right', 'paddingBottom' => 'padding-bottom', 'paddingLeft' => 'padding-left',
 		'marginTop' => 'margin-top', 'marginRight' => 'margin-right', 'marginBottom' => 'margin-bottom', 'marginLeft' => 'margin-left',
-		'fontSize' => 'font-size', 'fontWeight' => 'font-weight', 'color' => 'color', 'background' => 'background',
-		'borderRadius' => 'border-radius', 'gridTemplateColumns' => 'grid-template-columns',
+		'width' => 'width', 'maxWidth' => 'max-width', 'height' => 'height', 'minHeight' => 'min-height',
+		'fontSize' => 'font-size', 'fontWeight' => 'font-weight', 'lineHeight' => 'line-height', 'letterSpacing' => 'letter-spacing', 'textAlign' => 'text-align', 'textDecoration' => 'text-decoration', 'textTransform' => 'text-transform',
+		'color' => 'color', 'background' => 'background', 'opacity' => 'opacity',
+		'borderWidth' => 'border-width', 'borderStyle' => 'border-style', 'borderColor' => 'border-color', 'borderRadius' => 'border-radius',
+		'boxShadow' => 'box-shadow', 'gridTemplateColumns' => 'grid-template-columns',
 	);
-	private static $UNIT = array( 'gap', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'fontSize', 'borderRadius' );
+	private static $UNIT = array( 'gap', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'width', 'maxWidth', 'height', 'minHeight', 'fontSize', 'letterSpacing', 'borderWidth', 'borderRadius' );
 	private static $BP = array(
 		'base'   => null,
 		'tablet' => '(max-width: 991px)',
@@ -125,15 +128,21 @@ class Velox_Builder_Render {
 		foreach ( (array) ( $node['classes'] ?? array() ) as $c ) {
 			$classes[] = sanitize_html_class( ltrim( $c, '.' ) );
 		}
-		$id      = sanitize_html_class( $node['id'] ?? '' );
-		$content = isset( $doc['content'][ $node['id'] ] ) ? wp_kses_post( $doc['content'][ $node['id'] ] ) : '';
-		$kids    = self::render_tree( $node['children'] ?? array(), $doc );
-
+		$id   = sanitize_html_class( $node['id'] ?? '' );
 		$attr = ' id="' . esc_attr( $id ) . '"';
 		if ( $classes ) {
 			$attr .= ' class="' . esc_attr( implode( ' ', $classes ) ) . '"';
 		}
-		// Anchors need an href to be valid; default to a no-op if none stored.
+
+		// Image element: emit a real <img> from the stored URL (empty = nothing).
+		if ( isset( $node['el'] ) && 'Image' === $node['el'] ) {
+			$src = isset( $doc['content'][ $node['id'] ] ) ? esc_url( $doc['content'][ $node['id'] ] ) : '';
+			$img = $src ? '<img src="' . $src . '" alt="" style="display:block;max-width:100%;height:auto">' : '';
+			return '<div' . $attr . '>' . $img . '</div>';
+		}
+
+		$content = isset( $doc['content'][ $node['id'] ] ) ? wp_kses_post( $doc['content'][ $node['id'] ] ) : '';
+		$kids    = self::render_tree( $node['children'] ?? array(), $doc );
 		if ( 'a' === $tag ) {
 			$href  = isset( $node['href'] ) ? esc_url( $node['href'] ) : '#';
 			$attr .= ' href="' . $href . '"';
@@ -147,24 +156,28 @@ class Velox_Builder_Render {
 	public static function generate_css( $doc ) {
 		$out     = '';
 		$classes = isset( $doc['classes'] ) && is_array( $doc['classes'] ) ? $doc['classes'] : array();
+		$states  = array( 'normal', 'hover', 'focus' );
 
 		foreach ( self::$BP as $bp => $mq ) {
 			$body = '';
-			foreach ( $classes as $cls => $byBp ) {
-				if ( empty( $byBp[ $bp ] ) || ! is_array( $byBp[ $bp ] ) ) {
-					continue;
-				}
-				$body .= self::escape_selector( $cls ) . '{' . self::decls( $byBp[ $bp ] ) . '}';
-			}
-			// element-level overrides
-			self::walk(
-				$doc['tree'] ?? array(),
-				function ( $node ) use ( &$body, $bp ) {
-					if ( ! empty( $node['overrides'][ $bp ] ) && is_array( $node['overrides'][ $bp ] ) ) {
-						$body .= '#' . sanitize_html_class( $node['id'] ) . '{' . self::decls( $node['overrides'][ $bp ] ) . '}';
+			foreach ( $states as $state ) {
+				$key    = 'normal' === $state ? $bp : $bp . ':' . $state;
+				$pseudo = 'normal' === $state ? '' : ':' . $state;
+				foreach ( $classes as $cls => $byKey ) {
+					if ( empty( $byKey[ $key ] ) || ! is_array( $byKey[ $key ] ) ) {
+						continue;
 					}
+					$body .= self::escape_selector( $cls ) . $pseudo . '{' . self::decls( $byKey[ $key ] ) . '}';
 				}
-			);
+				self::walk(
+					$doc['tree'] ?? array(),
+					function ( $node ) use ( &$body, $key, $pseudo ) {
+						if ( ! empty( $node['overrides'][ $key ] ) && is_array( $node['overrides'][ $key ] ) ) {
+							$body .= '#' . sanitize_html_class( $node['id'] ) . $pseudo . '{' . self::decls( $node['overrides'][ $key ] ) . '}';
+						}
+					}
+				);
+			}
 			if ( '' === $body ) {
 				continue;
 			}
@@ -195,10 +208,9 @@ class Velox_Builder_Render {
 	/** Values are model-authored but still scrubbed of anything that could break out. */
 	private static function sanitize_value( $v ) {
 		$v = trim( $v );
-		// kill braces, semicolons at the end, angle brackets, url()/expression
-		$v = preg_replace( '/[{}<>]/', '', $v );
-		$v = preg_replace( '/;+$/', '', $v );
-		if ( preg_match( '/(expression|javascript:|@import)/i', $v ) ) {
+		// Strip anything that could break out of the declaration/rule.
+		$v = preg_replace( '/[{}<>;]/', '', $v );
+		if ( preg_match( '/(expression|javascript:|@import|url\s*\()/i', $v ) ) {
 			return '';
 		}
 		return $v;

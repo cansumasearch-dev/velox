@@ -2014,4 +2014,6 @@ return array(
 	'Invalid document data.' => 'Ungültige Dokumentdaten.',
 	'No document specified.' => 'Kein Dokument angegeben.',
 	'Document not found.' => 'Dokument nicht gefunden.',
+	'Save the page before publishing.' => 'Speichern Sie die Seite vor dem Veröffentlichen.',
+	'Velox Page' => 'Velox-Seite',
 );

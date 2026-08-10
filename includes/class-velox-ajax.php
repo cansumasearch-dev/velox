@@ -39,6 +39,14 @@ class Velox_Ajax {
 				Velox_Builder::ajax_load();
 				break;
 
+			case 'builder_publish':
+				Velox_Builder::ajax_publish();
+				break;
+
+			case 'builder_unpublish':
+				Velox_Builder::ajax_unpublish();
+				break;
+
 			case 'seocol_flag':
 				Velox_Seo_Columns::ajax_toggle_flag();
 				break;
