@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.49.1 — Velox Builder: editor full-width fix
+- Fixed the editor not filling the screen — the canvas column was collapsing to content width, leaving a large empty area on the right. The three panes (layers, canvas, inspector) now span the full viewport.
+
 ## 3.49.0 — Velox Builder: name your pages
 - Added an editable title field in the editor top bar. Pages, templates and reusables can now be named (and renamed) instead of all saving as "Untitled" — the name is stored with the document and shows in every list.
 

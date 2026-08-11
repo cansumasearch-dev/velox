@@ -812,7 +812,7 @@
 			'.vb-am-i:hover{background:#26262f;color:#f4f4f6}',
 			'.vb-am-ic{width:28px;height:28px;border-radius:8px;background:#0a0a0c;display:grid;place-items:center;color:#9d9da8}',
 			'.vb-am-i:hover .vb-am-ic{color:#2ab7f1}',
-			'.vb-body{flex:1;display:grid;grid-template-columns:220px 1fr 306px;min-height:0}',
+			'.vb-body{flex:1;display:grid;grid-template-columns:220px minmax(0,1fr) 306px;min-height:0;width:100%}',
 			'.vb-spine{background:#121216;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;min-height:0}',
 			'.vb-spine-top{padding:12px}',
 			'.vb-add-big{width:100%;padding:11px;border-radius:11px;background:linear-gradient(180deg,#218ec4,#1a789f);color:#eef7fc;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer}',
