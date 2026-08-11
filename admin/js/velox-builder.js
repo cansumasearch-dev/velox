@@ -49,6 +49,7 @@
 		link:'<path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/>',
 		list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
 		x:'<path d="M18 6 6 18M6 6l12 12"/>',
+		clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
 		droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>'
 	};
 	function svg( name, size ) {
@@ -684,8 +685,12 @@
 				'<button class="vb-ic" id="vb-undo" title="Undo">' + svg( 'undo', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-redo" title="Redo">' + svg( 'redo', 16 ) + '</button>' +
 			'</div>' +
-			// RIGHT: exit + view + save/publish state buttons
+			// RIGHT: search/code/history + exit + view + save/publish state buttons
 			'<div class="vb-tbc">' +
+				'<button class="vb-ic" id="vb-search" title="' + T( 'Search' ) + '">' + svg( 'search', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-code" title="' + T( 'Page CSS / JS' ) + '">' + svg( 'code', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-history" title="' + T( 'History' ) + '">' + svg( 'clock', 16 ) + '</button>' +
+				'<div class="vb-tsep"></div>' +
 				'<a class="vb-view" id="vb-view" href="#" target="_blank" rel="noopener" style="display:none">' + T( 'View page' ) + '</a>' +
 				'<a class="vb-exit" href="' + ( CFG.backUrl || '#' ) + '">' + T( 'Exit' ) + '</a>' +
 				'<div class="vb-tsep"></div>' +
@@ -850,6 +855,9 @@
 			if ( e.target.closest( '[data-dup]' ) ) { duplicateNode( store.state.selection ); return; }
 			if ( e.target.closest( '[data-del]' ) ) { deleteNode( store.state.selection ); return; }
 			var pick = e.target.closest( '[data-pickimg]' ); if ( pick ) { openMediaPicker( pick.getAttribute( 'data-pickimg' ) ); return; }
+			if ( e.target.closest( '#vb-code' ) ) { cssShown = ! cssShown; renderCSSPanel(); return; }
+			if ( e.target.closest( '#vb-search' ) ) { toggleSwitcher(); e.stopPropagation(); return; }
+			if ( e.target.closest( '#vb-history' ) ) { alert( T( 'Version history is coming soon.' ) ); return; }
 			if ( e.target.closest( '#vb-save' ) ) { saveDoc(); return; }
 			if ( e.target.closest( '#vb-publish' ) ) { publishDoc(); return; }
 			if ( e.target.closest( '#vb-pp-caret' ) || e.target.id === 'vb-title' && false ) { toggleSwitcher(); e.stopPropagation(); return; }
@@ -1033,7 +1041,7 @@
 		var css = [
 			'.vb-app{position:fixed;inset:0;display:flex;flex-direction:column;background:#0a0a0c;color:#f4f4f6;font-size:12.5px}',
 			'.vb-app svg{display:block}',
-			'.vb-top{height:54px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;background:#121216;border-bottom:1px solid rgba(255,255,255,.07);position:relative}',
+			'.vb-top{width:100%;height:54px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;background:#121216;border-bottom:1px solid rgba(255,255,255,.07);position:relative;box-sizing:border-box}',
 			'.vb-tbc{display:flex;align-items:center;gap:8px}',
 			'.vb-tbc-center{position:absolute;left:50%;transform:translateX(-50%);background:#121216;padding:0 10px}',
 			'.vb-brand{width:36px;height:34px;border-radius:9px;background:#1d1d24;border:1px solid rgba(255,255,255,.07);display:grid;place-items:center;cursor:pointer;padding:0}',

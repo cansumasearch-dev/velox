@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.55.0 — Velox Builder: topbar full-width + missing icons
+- Fixed the top bar collapsing to a centred cluster — it now spans the full width, with the three zones (logo/title, breakpoints/undo-redo, actions) pushed to left/centre/right as designed.
+- Added the search, code (page CSS/JS) and history icons to the top bar right zone (they were in the design but missing from the build). Code toggles the live-CSS panel; search opens the page switcher.
+
 ## 3.54.0 — Velox Builder: Google Reviews + WordPress elements render live (waves 3–4)
 - The Google Reviews element now renders your real reviews on published pages, using the connection and preset you pick in the element Settings (via the [velox_reviews] shortcode). In the editor it shows a labelled placeholder.
 - WordPress-data elements now pull live data: Post title, Post content, Featured image and Menu/Nav render from the current post on the front end, with labelled placeholders in the editor.
