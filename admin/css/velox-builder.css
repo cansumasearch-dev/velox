@@ -19,14 +19,23 @@
 	--vbb-mono:ui-monospace,"SF Mono",Menlo,monospace;
 }
 
-/* ---- Velox Builder admin section: dark surface inside the wp-admin content
-   area. We do NOT absolutely-position (that broke out of the admin layout);
-   instead we style in the normal flow and pull the panel to the edges with
-   negative margins so it meets the WordPress sidebar cleanly. ---- */
+/* ---- Velox Builder admin section: full-bleed dark surface.
+   The .velox-builder-fullbleed body class (added in PHP) lets us strip the
+   wp-admin content padding and any leftover notice/footer chrome so the panel
+   truly fills the area to the right of the WordPress menu. ---- */
+body.velox-builder-fullbleed #wpcontent{ padding-left:0 !important; }
+body.velox-builder-fullbleed #wpbody-content{ padding-bottom:0 !important; }
+body.velox-builder-fullbleed #wpbody-content > .wrap,
+body.velox-builder-fullbleed #wpbody-content > h1,
+body.velox-builder-fullbleed .update-nag,
+body.velox-builder-fullbleed .notice,
+body.velox-builder-fullbleed #wpfooter{ display:none !important; }
+body.velox-builder-fullbleed #wpbody-content{ float:none; }
+
 #velox-builder-admin{
 	position:relative;
 	min-height:calc(100vh - 32px);      /* fill below the admin bar */
-	margin:0 0 -65px -20px;             /* cancel #wpcontent padding + footer gap */
+	margin:0;
 	padding:0;
 	background:
 		radial-gradient(1200px 600px at 78% -10%, rgba(42,183,241,.05), transparent 60%),
@@ -35,10 +44,9 @@
 	color:var(--vbb-text);font-family:var(--vbb-font);font-size:13px;line-height:1.5;
 	-webkit-font-smoothing:antialiased;letter-spacing:-.008em;
 }
-/* WordPress prints an <h1>/notices above our container on some screens; hide the
-   stray wrap chrome only within our page. */
-.toplevel_page_velox-builder #wpbody-content > .wrap,
-[class*="velox-builder"] #wpbody-content > .notice{ }
+@media screen and (max-width:782px){
+	#velox-builder-admin{ min-height:calc(100vh - 46px); }
+}
 #velox-builder-admin *{box-sizing:border-box}
 
 .vba-shell{max-width:1100px;margin:0 auto;padding:34px 30px 60px}
@@ -78,6 +86,16 @@
 .vba-empty b{font-size:14px;font-weight:650;color:var(--vbb-text-2)}
 .vba-empty p{font-size:12.5px;color:var(--vbb-text-3);max-width:34ch;margin:0}
 .vba-empty .vba-btn{margin-top:6px}
+
+.vba-doclist{padding:6px}
+.vba-docrow{display:flex;align-items:center;gap:12px;padding:13px 14px;border-radius:11px;text-decoration:none;color:var(--vbb-text);transition:.1s}
+.vba-docrow:hover{background:var(--vbb-raised-2)}
+.vba-doc-ic{width:32px;height:32px;border-radius:9px;background:var(--vbb-void);display:grid;place-items:center;color:var(--vbb-accent);flex:0 0 auto}
+.vba-doc-title{flex:1;font-size:13px;font-weight:600;color:var(--vbb-text)}
+.vba-doc-status{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;padding:3px 9px;border-radius:6px}
+.vba-status-published{background:rgba(67,209,127,.14);color:var(--vbb-green)}
+.vba-status-draft{background:var(--vbb-raised);color:var(--vbb-text-3)}
+.vba-doc-meta{font-size:11px;color:var(--vbb-text-3);min-width:74px;text-align:right}
 
 /* ---- standalone editor boot screen ---- */
 .velox-builder-body{margin:0;background:var(--vbb-void);color:var(--vbb-text);font-family:var(--vbb-font)}

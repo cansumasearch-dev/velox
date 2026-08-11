@@ -2017,4 +2017,10 @@ return array(
 	'Save the page before publishing.' => 'Speichern Sie die Seite vor dem Veröffentlichen.',
 	'Velox Page' => 'Velox-Seite',
 	'Edit with Velox' => 'Mit Velox bearbeiten',
+	'Your pages' => 'Ihre Seiten',
+	'Pages you have built with Velox Builder.' => 'Seiten, die Sie mit Velox Builder erstellt haben.',
+	'Create a new page, or open any page and choose “Edit with Velox”.' => 'Erstellen Sie eine neue Seite oder öffnen Sie eine Seite und wählen Sie „Mit Velox bearbeiten“.',
+	'Published' => 'Veröffentlicht',
+	'Draft' => 'Entwurf',
+	'ago' => 'her',
 );

@@ -64,30 +64,12 @@
 		emit:function () { for ( var i = 0; i < this.listeners.length; i++ ) { this.listeners[ i ]( this.state ); } }
 	};
 
+	/* A new page starts empty — no demo content. */
 	var initialDoc = {
-		selection:'hero', activeClass:'.hero', breakpoint:'base', state:'normal',
-		tree:[
-			{ id:'hero', el:'Section', tag:'section', classes:[ '.hero', '.is-dark' ], overrides:{}, children:[
-				{ id:'title', el:'Heading', tag:'h1', classes:[ '.title' ], overrides:{}, children:[] },
-				{ id:'sub', el:'Text', tag:'p', classes:[ '.sub' ], overrides:{}, children:[] },
-				{ id:'cta', el:'Button', tag:'a', classes:[ '.btn', '.btn--primary' ], overrides:{}, children:[] }
-			] },
-			{ id:'feats', el:'Section', tag:'section', classes:[ '.features' ], overrides:{}, children:[
-				{ id:'card1', el:'Div', tag:'div', classes:[ '.card' ], overrides:{}, children:[] },
-				{ id:'card2', el:'Div', tag:'div', classes:[ '.card' ], overrides:{}, children:[] }
-			] }
-		],
-		classes:{
-			'.hero':{ base:{ display:'flex', flexDirection:'column', alignItems:'stretch', paddingTop:'64', paddingBottom:'64', paddingLeft:'52', paddingRight:'52', gap:'18', color:'#ffffff' }, tablet:{ paddingLeft:'32', paddingRight:'32' }, mobile:{ paddingTop:'40', paddingBottom:'40', paddingLeft:'20', paddingRight:'20' } },
-			'.is-dark':{ base:{ background:'#0e1622' } },
-			'.title':{ base:{ fontSize:'44', fontWeight:'800', color:'#ffffff', marginBottom:'14' }, mobile:{ fontSize:'30' } },
-			'.sub':{ base:{ fontSize:'17', color:'#aeb9c6', marginBottom:'26' } },
-			'.btn':{ base:{ display:'inline-block', paddingTop:'13', paddingBottom:'13', paddingLeft:'22', paddingRight:'22', borderRadius:'10', fontWeight:'600' } },
-			'.btn--primary':{ base:{ background:'#2ab7f1', color:'#04222f' } },
-			'.features':{ base:{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20', paddingTop:'44', paddingBottom:'44', paddingLeft:'52', paddingRight:'52', background:'#ffffff' } },
-			'.card':{ base:{ paddingTop:'24', paddingBottom:'24', paddingLeft:'24', paddingRight:'24', borderRadius:'14', background:'#f7f9fb', color:'#12151a' } }
-		},
-		content:{ title:'Build fast sites without the bloat.', sub:'Only the CSS your page needs — nothing more.', cta:'Start building', card1:'Only-used CSS', card2:'Class-first styling' }
+		selection: null, activeClass: null, breakpoint: 'base', state: 'normal',
+		tree: [],
+		classes: {},
+		content: {}
 	};
 
 	var CSS_PROP = {
@@ -199,7 +181,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}</style><style id="vb-style"></style></head><body></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}</style><style id="vb-style"></style></head><body></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -207,6 +189,10 @@
 	function injectCanvas() {
 		var doc = ensureCanvasDoc(); if ( ! doc || ! doc.body ) { return; }
 		var html = genHTML();
+		// Empty page → friendly prompt instead of a blank white void.
+		if ( ! store.state.tree.length ) {
+			html = '<div class="vb-empty-canvas"><div class="vb-ec-inner"><b>' + T( 'Empty page' ) + '</b><p>' + T( 'Click “Add element” to start building.' ) + '</p></div></div>';
+		}
 		if ( doc.body.getAttribute( 'data-html' ) !== html ) {
 			doc.body.innerHTML = html; doc.body.setAttribute( 'data-html', html );
 			doc.addEventListener( 'click', function ( e ) {

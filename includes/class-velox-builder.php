@@ -39,10 +39,43 @@ class Velox_Builder {
 		// The standalone editor takes over the whole screen before WP admin renders.
 		add_action( 'current_screen', array( $this, 'maybe_launch_editor' ) );
 
+		// On our own admin section: strip every notice (WordPress core nags, other
+		// plugins, and Velox's own) and mark the body so the panel goes full-bleed.
+		add_action( 'in_admin_header', array( $this, 'silence_notices' ), 1000 );
+		add_filter( 'admin_body_class', array( $this, 'body_class' ) );
+
 		// "Edit with Velox" entry points on ordinary pages/posts.
 		add_filter( 'page_row_actions', array( $this, 'row_action' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'row_action' ), 10, 2 );
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar_link' ), 90 );
+	}
+
+	/** Are we on a Velox Builder admin screen? */
+	private function is_builder_screen() {
+		if ( ! function_exists( 'get_current_screen' ) ) {
+			return false;
+		}
+		$s = get_current_screen();
+		return $s && false !== strpos( (string) $s->id, self::SLUG );
+	}
+
+	/** Remove all admin notices on our screens — nothing but Velox shows here. */
+	public function silence_notices() {
+		if ( ! $this->is_builder_screen() ) {
+			return;
+		}
+		remove_all_actions( 'admin_notices' );
+		remove_all_actions( 'all_admin_notices' );
+		remove_all_actions( 'network_admin_notices' );
+		remove_all_actions( 'user_admin_notices' );
+	}
+
+	/** Full-bleed body flag for our screens. */
+	public function body_class( $classes ) {
+		if ( $this->is_builder_screen() ) {
+			$classes .= ' velox-builder-fullbleed';
+		}
+		return $classes;
 	}
 
 	/**
@@ -155,7 +188,8 @@ class Velox_Builder {
 			return;
 		}
 
-		// Top-level "Velox Builder" section, sitting just under the Velox menu.
+		// Top-level "Velox Builder" section. Only Overview is a real screen right
+		// now; the editor opens from there and from "Edit with Velox" on pages.
 		add_menu_page(
 			__( 'Velox Builder', 'velox' ),
 			__( 'Velox Builder', 'velox' ),
@@ -165,26 +199,6 @@ class Velox_Builder {
 			$this->menu_icon(),
 			100.8
 		);
-
-		$subs = array(
-			'overview'  => __( 'Overview', 'velox' ),
-			'templates' => __( 'Templates', 'velox' ),
-			'reusables' => __( 'Reusables', 'velox' ),
-			'classes'   => __( 'Classes', 'velox' ),
-			'styles'    => __( 'Global styles', 'velox' ),
-			'fonts'     => __( 'Fonts & icons', 'velox' ),
-			'settings'  => __( 'Settings', 'velox' ),
-		);
-		foreach ( $subs as $key => $label ) {
-			add_submenu_page(
-				self::SLUG,
-				'Velox Builder — ' . $label,
-				$label,
-				'manage_options',
-				'overview' === $key ? self::SLUG : self::SLUG . '-' . $key,
-				array( $this, 'render_admin' )
-			);
-		}
 
 		// The editor route is registered but hidden from the menu (null parent).
 		add_submenu_page(

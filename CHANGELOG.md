@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.46.0 — Velox Builder: full-bleed admin, blank canvas, honest menu
+- The Velox Builder admin section is now full-bleed: WordPress update nags, other plugins' notices, Velox's own notices and the footer are all hidden on Builder screens, and the panel fills the whole content area.
+- New pages open on a blank canvas (no demo content). Empty pages show a clear "Add element" prompt instead of a white void.
+- Removed the placeholder Templates / Reusables / Classes / Global styles / Fonts / Settings menu items — these were non-functional stubs and should not have been shown. The menu now surfaces only what works: the Overview (which lists your real built pages) and the editor.
+- Overview lists your actual Velox Builder pages with their draft/published status; "New page" and "Edit with Velox" are the ways in.
+
 ## 3.45.1 — Velox Builder: admin layout fix + edit entry points
 - Fixed the Velox Builder admin section rendering as a blank white area — the panel was absolutely positioned and collapsed out of the wp-admin layout; it now sits correctly in the content area.
 - Added "Edit with Velox" entry points: a row action in the Pages and Posts list tables, and an admin-bar link when viewing or editing a page. Opening one binds (or creates) a builder document for that page so publishing updates the real page.
