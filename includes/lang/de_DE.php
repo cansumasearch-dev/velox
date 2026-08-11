@@ -2068,4 +2068,5 @@ return array(
 	'Header' => 'Kopfzeile',
 	'Footer' => 'Fußzeile',
 	'Invalid role.' => 'Ungültige Rolle.',
+	'(no title)' => '(ohne Titel)',
 );

@@ -200,6 +200,23 @@ class Velox_Builder_Render {
 			return '<div' . $attr . '>' . $img . '</div>';
 		}
 
+		// Google Reviews: render the plugin's real reviews via its shortcode,
+		// using the connection + preset chosen in the element settings.
+		if ( isset( $node['el'] ) && 'Reviews' === $node['el'] ) {
+			$conn   = isset( $node['conn'] ) ? sanitize_key( $node['conn'] ) : '';
+			$preset = isset( $node['preset'] ) ? sanitize_key( $node['preset'] ) : '';
+			if ( ! $conn || ! shortcode_exists( 'velox_reviews' ) ) {
+				return '<div' . $attr . '></div>';
+			}
+			$sc = '[velox_reviews connection="' . esc_attr( $conn ) . '" preset="' . esc_attr( $preset ) . '"]';
+			return '<div' . $attr . '>' . do_shortcode( $sc ) . '</div>';
+		}
+
+		// WordPress-data elements: pull live data from the bound/current post.
+		if ( isset( $node['el'] ) && 'WP' === $node['el'] ) {
+			return self::render_wp_node( $node, $attr, $tag );
+		}
+
 		$content = isset( $doc['content'][ $node['id'] ] ) ? wp_kses_post( $doc['content'][ $node['id'] ] ) : '';
 		$kids    = self::render_tree( $node['children'] ?? array(), $doc );
 		if ( 'a' === $tag ) {
@@ -207,6 +224,26 @@ class Velox_Builder_Render {
 			$attr .= ' href="' . $href . '"';
 		}
 		return '<' . $tag . $attr . '>' . $content . $kids . '</' . $tag . '>';
+	}
+
+	/** Render a WordPress-data element (post title / content / featured / menu). */
+	private static function render_wp_node( $node, $attr, $tag ) {
+		$kind = isset( $node['wp'] ) ? $node['wp'] : '';
+		$pid  = get_the_ID();
+		switch ( $kind ) {
+			case 'title':
+				return '<' . $tag . $attr . '>' . esc_html( get_the_title( $pid ) ) . '</' . $tag . '>';
+			case 'content':
+				return '<div' . $attr . '>' . apply_filters( 'the_content', get_post_field( 'post_content', $pid ) ) . '</div>';
+			case 'featured':
+				$img = $pid ? get_the_post_thumbnail( $pid, 'large', array( 'style' => 'display:block;max-width:100%;height:auto' ) ) : '';
+				return '<div' . $attr . '>' . $img . '</div>';
+			case 'menu':
+				$nav = wp_nav_menu( array( 'echo' => false, 'container' => false, 'fallback_cb' => false ) );
+				return '<nav' . $attr . '>' . ( $nav ? $nav : '' ) . '</nav>';
+			default:
+				return '<' . $tag . $attr . '></' . $tag . '>';
+		}
 	}
 
 	/* -------------------------------------------------- CSS generation */

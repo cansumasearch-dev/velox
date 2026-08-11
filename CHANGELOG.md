@@ -4,6 +4,24 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.54.0 — Velox Builder: Google Reviews + WordPress elements render live (waves 3–4)
+- The Google Reviews element now renders your real reviews on published pages, using the connection and preset you pick in the element Settings (via the [velox_reviews] shortcode). In the editor it shows a labelled placeholder.
+- WordPress-data elements now pull live data: Post title, Post content, Featured image and Menu/Nav render from the current post on the front end, with labelled placeholders in the editor.
+
+## 3.53.0 — Velox Builder: inspector tabs (wave)
+- The inspector now has Essentials / All styles / Settings tabs: Essentials shows the common controls, All styles shows everything, Settings holds element-level options.
+- Class chips can be removed with an × and new classes added with “+ class”.
+- Settings tab: pick the heading level (H1–H6), set a link URL for buttons/links, and (for the Google Reviews element) choose a reviews connection and design preset from your Velox Reviews setup.
+
+## 3.52.0 — Velox Builder: page switcher (wave 2)
+- Click the caret next to the page title to open a switcher: search across pages, posts and reusables, filter by All / Pages / Posts / Templates / Reusables, and see your Velox documents with status badges.
+- The switcher also lists WordPress pages and posts that aren’t built with Velox yet, each with a "Build →" action to open them in the builder.
+
+## 3.51.0 — Velox Builder: new add-element panel (wave 1)
+- Replaced the old flat add-element list with a searchable, categorized accordion panel that opens on the left: Containers, Text, Links, Media, WordPress and Velox categories, each collapsible with icon element cards.
+- Many more elements: Grid, Spacer, Divider, List, Quote, Text link, Video, Icon, plus WordPress-data placeholders (post title/content/featured image/menu) and a Velox “Google Reviews” element.
+- Type-to-filter search across all elements. (Note: Video, Icon, WordPress-data and Google Reviews elements insert now; their live rendering lands in the next waves.)
+
 ## 3.50.0 — Velox Builder: editor chrome overhaul (wave 1)
 - Rebuilt the editor top bar into three zones: left = Velox logo (with a menu: Builder settings / Back to WordPress) + editable page title; center = breakpoints + undo/redo; right = Exit, View page, and the save/publish actions.
 - Save/Publish behaviour: a brand-new page shows a single Publish button; once a page has been published it shows both Save (admin-only draft) and Publish (live for everyone).

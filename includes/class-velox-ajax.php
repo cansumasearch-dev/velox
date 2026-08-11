@@ -75,6 +75,10 @@ class Velox_Ajax {
 				Velox_Builder::ajax_template_role();
 				break;
 
+			case 'builder_switcher_list':
+				Velox_Builder::ajax_switcher_list();
+				break;
+
 			case 'seocol_flag':
 				Velox_Seo_Columns::ajax_toggle_flag();
 				break;

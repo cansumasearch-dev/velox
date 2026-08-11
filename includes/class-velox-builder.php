@@ -277,6 +277,8 @@ class Velox_Builder {
 			'backUrl' => admin_url( 'admin.php?page=' . self::SLUG ),
 			'settingsUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-settings' ),
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
+			'reviewConnections' => self::review_connections(),
+			'reviewPresets' => self::review_presets(),
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
 		);
 
@@ -718,8 +720,7 @@ class Velox_Builder {
 	}
 
 	/** Set (or clear) a template's role as the site header or footer. */
-	public static function ajax_template_role() {
-		$id   = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+	public static function ajax_template_role() {		$id   = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
 		$role = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
 		if ( ! in_array( $role, array( 'header', 'footer', 'none' ), true ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid role.', 'velox' ) ), 400 );
@@ -738,7 +739,74 @@ class Velox_Builder {
 		wp_send_json_success( array( 'roles' => $roles ) );
 	}
 
-	/* ------------------------------------------------------------ publish */
+	/** Reviews connections + presets for the builder's Reviews element pickers. */
+	public static function review_connections() {
+		if ( ! class_exists( 'Velox_Reviews' ) ) {
+			return array();
+		}
+		$store = Velox_Reviews::store();
+		$out   = array();
+		foreach ( (array) ( $store['connections'] ?? array() ) as $c ) {
+			$out[] = array( 'id' => $c['id'], 'name' => $c['name'] );
+		}
+		return $out;
+	}
+	public static function review_presets() {
+		if ( ! class_exists( 'Velox_Reviews' ) ) {
+			return array();
+		}
+		$store = Velox_Reviews::store();
+		$out   = array();
+		foreach ( (array) ( $store['presets'] ?? array() ) as $p ) {
+			$out[] = array( 'id' => $p['id'], 'name' => $p['name'] );
+		}
+		return $out;
+	}
+
+	/**
+	 * Page-switcher data: every Velox document (page / template / reusable) plus
+	 * WordPress pages and posts that aren't built with Velox yet (so you can jump
+	 * in and start building one). Grouped and ready for the editor dropdown.
+	 */
+	public static function ajax_switcher_list() {
+		global $wpdb;
+		$out  = array( 'velox' => array(), 'wp' => array() );
+		$docs = self::list_docs( null, 200 );
+		$bound = array(); // post_ids already built, to exclude from the WP list
+		foreach ( (array) $docs as $d ) {
+			$out['velox'][] = array(
+				'id'     => (int) $d['id'],
+				'title'  => $d['title'] ? $d['title'] : __( 'Untitled', 'velox' ),
+				'kind'   => $d['kind'],
+				'status' => $d['status'],
+				'url'    => self::edit_url( (int) $d['id'], $d['kind'] ),
+			);
+		}
+		// map bound post ids
+		$rows = $wpdb->get_col( 'SELECT post_id FROM ' . self::table() . ' WHERE post_id > 0' );
+		foreach ( (array) $rows as $pid ) {
+			$bound[ (int) $pid ] = true;
+		}
+		$posts = get_posts( array(
+			'post_type'      => array( 'page', 'post' ),
+			'post_status'    => array( 'publish', 'draft' ),
+			'posts_per_page' => 40,
+			'orderby'        => 'modified',
+			'order'          => 'DESC',
+		) );
+		foreach ( (array) $posts as $p ) {
+			if ( isset( $bound[ $p->ID ] ) ) {
+				continue;
+			}
+			$out['wp'][] = array(
+				'id'    => $p->ID,
+				'title' => $p->post_title ? $p->post_title : __( '(no title)', 'velox' ),
+				'type'  => $p->post_type,
+				'url'   => add_query_arg( 'post', $p->ID, self::edit_url() ),
+			);
+		}
+		wp_send_json_success( $out );
+	}
 
 	/**
 	 * Publish a document: ensure it's bound to a WordPress page, flip it to
