@@ -138,13 +138,23 @@
 	function genCSS() {
 		var S = store.state, out = '';
 		var STATES = [ 'normal', 'hover', 'focus' ];
+		// Merge in classes from any reusables referenced on the page, so they
+		// display styled in the canvas exactly as they will on the front end.
+		var merged = {};
+		for ( var c0 in S.classes ) { if ( S.classes.hasOwnProperty( c0 ) ) { merged[ c0 ] = S.classes[ c0 ]; } }
+		( function collectReuse( nodes ) {
+			nodes.forEach( function ( n ) {
+				if ( n.el === 'Reusable' ) { var r = reusableById( n.ref ); if ( r && r.classes ) { for ( var rc in r.classes ) { if ( r.classes.hasOwnProperty( rc ) && ! merged[ rc ] ) { merged[ rc ] = r.classes[ rc ]; } } } }
+				if ( n.children ) { collectReuse( n.children ); }
+			} );
+		}( S.tree ) );
 		for ( var i = 0; i < BP_ORDER.length; i++ ) {
 			var bp = BP_ORDER[ i ], meta = BP_META[ bp ], body = '';
 			for ( var si = 0; si < STATES.length; si++ ) {
 				var st = STATES[ si ], key = st === 'normal' ? bp : bp + ':' + st, pseudo = st === 'normal' ? '' : ':' + st;
-				for ( var cls in S.classes ) {
-					if ( ! S.classes.hasOwnProperty( cls ) ) { continue; }
-					var rules = S.classes[ cls ][ key ];
+				for ( var cls in merged ) {
+					if ( ! merged.hasOwnProperty( cls ) ) { continue; }
+					var rules = merged[ cls ][ key ];
 					if ( rules && Object.keys( rules ).length ) { body += cls + pseudo + ' {\n' + declBlock( rules ) + '}\n'; }
 				}
 				walkTree( S.tree, function ( node ) {
@@ -161,14 +171,32 @@
 	}
 	function genHTML() {
 		var S = store.state;
+		function renderReuseTree( nodes, r ) {
+			return nodes.map( function ( n ) {
+				var cls = ( n.classes || [] ).map( function ( c ) { return c.slice( 1 ); } ).join( ' ' );
+				var kids = ( n.children || [] ).length ? renderReuseTree( n.children, r ) : '';
+				if ( n.el === 'Image' ) {
+					var s = ( r.content || {} )[ n.id ] || '';
+					return '<div id="' + n.id + '" class="' + cls + '">' + ( s ? '<img src="' + s + '" alt="" style="display:block;max-width:100%;height:auto">' : '' ) + '</div>';
+				}
+				var t = ( r.content || {} )[ n.id ] || '';
+				return '<' + n.tag + ' id="' + n.id + '" class="' + cls + '">' + t + kids + '</' + n.tag + '>';
+			} ).join( '' );
+		}
 		function render( node ) {
 			var cls = node.classes.map( function ( c ) { return c.slice( 1 ); } ).join( ' ' );
 			var kids = node.children.map( render ).join( '' );
+			// Reusable: render the referenced block inline, framed + non-interactive.
+			if ( node.el === 'Reusable' ) {
+				var r = reusableById( node.ref );
+				var inner = r ? renderReuseTree( r.tree || [], r ) : '<span class="vb-img-ph">' + T( 'Missing reusable' ) + '</span>';
+				return '<div id="' + node.id + '" class="' + cls + ' vb-reuse" data-node="' + node.id + '" data-reuse="' + node.ref + '"><span class="vb-reuse-tag">' + escapeHtml( r ? r.title : '?' ) + '</span>' + inner + '</div>';
+			}
 			// Image element: render a real <img> when a src is stored, else a placeholder.
 			if ( node.el === 'Image' ) {
 				var src = S.content[ node.id ] || '';
-				var inner = src ? '<img src="' + src + '" alt="" style="display:block;max-width:100%;height:auto">' : '<span class="vb-img-ph">' + T( 'Double-click to choose an image' ) + '</span>';
-				return '<div id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '">' + inner + '</div>';
+				var inner2 = src ? '<img src="' + src + '" alt="" style="display:block;max-width:100%;height:auto">' : '<span class="vb-img-ph">' + T( 'Double-click to choose an image' ) + '</span>';
+				return '<div id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '">' + inner2 + '</div>';
 			}
 			var txt = S.content[ node.id ] || '';
 			return '<' + node.tag + ' id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '">' + txt + kids + '</' + node.tag + '>';
@@ -181,7 +209,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}</style><style id="vb-style"></style></head><body></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}</style><style id="vb-style"></style></head><body></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -323,6 +351,23 @@
 		} );
 	}
 	function isContainer( n ) { return n.el === 'Section' || n.el === 'Div' || n.el === 'Columns'; }
+	/* Insert a reference to a reusable — its content renders inline and updates
+	   everywhere the reusable is used. */
+	function insertReusable( refId ) {
+		var r = reusableById( refId ); if ( ! r ) { return; }
+		store.commit( function ( s ) {
+			var id = uid( 'reuse' );
+			var node = { id:id, el:'Reusable', tag:'div', ref:refId, classes:[], overrides:{}, children:[] };
+			var sel = findNode( s.tree, s.selection );
+			if ( sel && isContainer( sel ) ) { sel.children.push( node ); }
+			else {
+				var parent = findParent( s.tree, s.selection );
+				if ( parent ) { var i = parent.children.indexOf( sel ); parent.children.splice( i + 1, 0, node ); }
+				else { var ri = s.tree.map( function ( n ) { return n.id; } ).indexOf( s.selection ); s.tree.splice( ri < 0 ? s.tree.length : ri + 1, 0, node ); }
+			}
+			s.selection = id; resetActiveClass( s );
+		} );
+	}
 	function findParent( nodes, id, parent ) {
 		for ( var i = 0; i < nodes.length; i++ ) {
 			if ( nodes[ i ].id === id ) { return parent || null; }
@@ -383,13 +428,13 @@
 	}
 
 	/* ---------- persistence (save / load via AJAX) ---------- */
-	var docId = CFG.docId || 0, docTitle = 'Untitled', saving = false, postId = CFG.postId || 0;
+	var docId = CFG.docId || 0, docTitle = 'Untitled', saving = false, postId = CFG.postId || 0, docKind = CFG.kind || 'page';
 	function saveDoc( silent ) {
 		if ( saving || ! CFG.ajaxurl ) { return; }
 		saving = true; setSaveState( 'saving' );
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_save' ); body.set( 'nonce', CFG.nonce || '' );
-		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', 'page' );
+		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', docKind );
 		body.set( 'data', JSON.stringify( store.state ) );
 		body.set( 'css_size', String( new Blob( [ genCSS() ] ).size ) ); if ( postId ) { body.set( 'post_id', postId ); }
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
@@ -436,7 +481,7 @@
 		saving = true; setSaveState( 'saving' );
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_save' ); body.set( 'nonce', CFG.nonce || '' );
-		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', 'page' );
+		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', docKind );
 		body.set( 'data', JSON.stringify( store.state ) ); body.set( 'css_size', String( new Blob( [ genCSS() ] ).size ) ); if ( postId ) { body.set( 'post_id', postId ); }
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
@@ -632,6 +677,7 @@
 		document.addEventListener( 'click', function ( e ) {
 			if ( e.target.closest( '[data-add]' ) ) { toggleAddMenu( e.target.closest( '[data-add]' ) ); return; }
 			var ins = e.target.closest( '[data-insert]' ); if ( ins ) { insertNode( ins.getAttribute( 'data-insert' ) ); closeAddMenu(); return; }
+			var insr = e.target.closest( '[data-insert-reuse]' ); if ( insr ) { insertReusable( +insr.getAttribute( 'data-insert-reuse' ) ); closeAddMenu(); return; }
 			if ( e.target.closest( '[data-dup]' ) ) { duplicateNode( store.state.selection ); return; }
 			if ( e.target.closest( '[data-del]' ) ) { deleteNode( store.state.selection ); return; }
 			var pick = e.target.closest( '[data-pickimg]' ); if ( pick ) { openMediaPicker( pick.getAttribute( 'data-pickimg' ) ); return; }
@@ -664,14 +710,23 @@
 	function toggleAddMenu( anchor ) {
 		var m = document.getElementById( 'vb-addmenu' );
 		if ( m.classList.contains( 'open' ) ) { closeAddMenu(); return; }
-		m.innerHTML = '<div class="vb-am-h">' + T( 'Add element' ) + '</div>' + CATALOG.map( function ( c ) {
+		var html = '<div class="vb-am-h">' + T( 'Add element' ) + '</div>' + CATALOG.map( function ( c ) {
 			return '<button class="vb-am-i" data-insert="' + c.key + '"><span class="vb-am-ic">' + svg( elIcon( c.el ), 15 ) + '</span>' + c.label + '</button>';
 		} ).join( '' );
+		var reuse = CFG.reusables || [];
+		if ( reuse.length ) {
+			html += '<div class="vb-am-h">' + T( 'Reusables' ) + '</div>' + reuse.map( function ( r ) {
+				return '<button class="vb-am-i" data-insert-reuse="' + r.id + '"><span class="vb-am-ic">' + svg( 'copy', 15 ) + '</span>' + escapeHtml( r.title ) + '</button>';
+			} ).join( '' );
+		}
+		m.innerHTML = html;
 		var r = anchor.getBoundingClientRect();
 		m.style.left = Math.min( r.left, window.innerWidth - 240 ) + 'px';
 		m.style.top = ( r.bottom + 6 ) + 'px';
 		m.classList.add( 'open' );
 	}
+	function escapeHtml( s ) { return String( s ).replace( /[&<>"]/g, function ( c ) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ c ]; } ); }
+	function reusableById( id ) { return ( CFG.reusables || [] ).filter( function ( r ) { return r.id === +id; } )[ 0 ] || null; }
 	function closeAddMenu() { var m = document.getElementById( 'vb-addmenu' ); if ( m ) { m.classList.remove( 'open' ); } }
 
 	/* ---------- drag-and-drop wiring for the layers tree ---------- */

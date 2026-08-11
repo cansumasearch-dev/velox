@@ -83,11 +83,20 @@ class Velox_Builder_Render {
 
 	/** Print the full standalone HTML document. */
 	private static function output_page( $doc ) {
-		$css_url = self::ensure_css_file( $doc );
-		$body    = self::render_tree( $doc['tree'], $doc );
+		$roles  = class_exists( 'Velox_Builder' ) ? Velox_Builder::roles() : array( 'header' => 0, 'footer' => 0 );
+		$header = $roles['header'] ? Velox_Builder::doc_model( $roles['header'] ) : null;
+		$footer = $roles['footer'] ? Velox_Builder::doc_model( $roles['footer'] ) : null;
 
-		// Own document — wp_head/wp_footer kept for plugin compatibility, but no
-		// theme header/footer, so markup stays shallow and only-used CSS ships.
+		// Build the effective CSS from the page + any reusables it references +
+		// the active header/footer templates, so every class the visitor can see
+		// is covered by exactly one stylesheet.
+		$css_url = self::ensure_css_file( $doc, array( $header, $footer ) );
+
+		$body  = '';
+		$body .= $header ? '<header class="velox-template-header">' . self::render_tree( $header['tree'], $header ) . '</header>' : '';
+		$body .= self::render_tree( $doc['tree'], $doc );
+		$body .= $footer ? '<footer class="velox-template-footer">' . self::render_tree( $footer['tree'], $footer ) . '</footer>' : '';
+
 		header( 'Content-Type: text/html; charset=' . get_bloginfo( 'charset' ) );
 		?>
 <!DOCTYPE html>
@@ -98,6 +107,7 @@ class Velox_Builder_Render {
 	<?php if ( $css_url ) : ?>
 		<link rel="stylesheet" id="velox-builder-css" href="<?php echo esc_url( $css_url ); ?>">
 	<?php endif; ?>
+	<?php self::print_global_head(); ?>
 	<?php wp_head(); ?>
 </head>
 <body <?php body_class( 'velox-built' ); ?>>
@@ -106,6 +116,41 @@ class Velox_Builder_Render {
 </body>
 </html>
 		<?php
+	}
+
+	/** Global design tokens (as CSS variables) + registered fonts, in <head>. */
+	public static function print_global_head() {
+		if ( ! class_exists( 'Velox_Builder' ) ) {
+			return;
+		}
+		foreach ( Velox_Builder::fonts() as $f ) {
+			if ( 'google' === $f['type'] && ! empty( $f['name'] ) ) {
+				$fam = str_replace( ' ', '+', $f['name'] );
+				echo '<link rel="stylesheet" href="' . esc_url( 'https://fonts.googleapis.com/css2?family=' . $fam . ':wght@400;600;700;800&display=swap' ) . '">' . "\n";
+			} elseif ( 'url' === $f['type'] && ! empty( $f['url'] ) ) {
+				echo '<link rel="stylesheet" href="' . esc_url( $f['url'] ) . '">' . "\n";
+			}
+		}
+		$tokens = Velox_Builder::tokens();
+		$vars   = '';
+		foreach ( (array) ( $tokens['colors'] ?? array() ) as $c ) {
+			$name = preg_replace( '/[^a-z0-9\-]/', '', strtolower( $c['name'] ) );
+			$val  = self::sanitize_value( (string) $c['value'] );
+			if ( $name && '' !== $val ) {
+				$vars .= '--' . $name . ':' . $val . ';';
+			}
+		}
+		$i = 0;
+		foreach ( (array) ( $tokens['spacing'] ?? array() ) as $s ) {
+			$s = preg_replace( '/[^0-9.]/', '', (string) $s );
+			if ( '' !== $s ) {
+				$vars .= '--space-' . $i . ':' . $s . 'px;';
+				$i++;
+			}
+		}
+		if ( '' !== $vars ) {
+			echo '<style id="velox-builder-tokens">:root{' . $vars . '}</style>' . "\n"; // phpcs:ignore
+		}
 	}
 
 	/* -------------------------------------------------- HTML generation */
@@ -134,6 +179,20 @@ class Velox_Builder_Render {
 			$attr .= ' class="' . esc_attr( implode( ' ', $classes ) ) . '"';
 		}
 
+		// Reusable element: pull the referenced reusable document and render its
+		// tree inline (by reference — editing the reusable updates every page).
+		if ( isset( $node['el'] ) && 'Reusable' === $node['el'] ) {
+			$ref = isset( $node['ref'] ) ? (int) $node['ref'] : 0;
+			if ( ! $ref || ! class_exists( 'Velox_Builder' ) ) {
+				return '';
+			}
+			$reuse = Velox_Builder::doc_model( $ref );
+			if ( ! $reuse || empty( $reuse['tree'] ) ) {
+				return '';
+			}
+			return '<div' . $attr . ' data-velox-reusable="' . $ref . '">' . self::render_tree( $reuse['tree'], $reuse ) . '</div>';
+		}
+
 		// Image element: emit a real <img> from the stored URL (empty = nothing).
 		if ( isset( $node['el'] ) && 'Image' === $node['el'] ) {
 			$src = isset( $doc['content'][ $node['id'] ] ) ? esc_url( $doc['content'][ $node['id'] ] ) : '';
@@ -152,12 +211,54 @@ class Velox_Builder_Render {
 
 	/* -------------------------------------------------- CSS generation */
 
-	/** Compile the document's class rules + overrides into a CSS string. */
-	public static function generate_css( $doc ) {
-		$out     = '';
-		$classes = isset( $doc['classes'] ) && is_array( $doc['classes'] ) ? $doc['classes'] : array();
-		$states  = array( 'normal', 'hover', 'focus' );
+	/** Compile CSS for the page plus any referenced reusables and extra models
+	 *  (e.g. header/footer templates), so one stylesheet covers everything the
+	 *  visitor sees. $extra is an array of additional decoded models (or nulls). */
+	public static function generate_css( $doc, $extra = array() ) {
+		// Gather every contributing model: the page, the reusables it references,
+		// and any extra models passed in (header/footer templates).
+		$models = array( $doc );
+		foreach ( self::collect_reusable_ids( $doc['tree'] ?? array() ) as $rid ) {
+			if ( class_exists( 'Velox_Builder' ) ) {
+				$rm = Velox_Builder::doc_model( $rid );
+				if ( $rm ) {
+					$models[] = $rm;
+				}
+			}
+		}
+		foreach ( (array) $extra as $em ) {
+			if ( is_array( $em ) ) {
+				$models[] = $em;
+				foreach ( self::collect_reusable_ids( $em['tree'] ?? array() ) as $rid2 ) {
+					if ( class_exists( 'Velox_Builder' ) ) {
+						$rm2 = Velox_Builder::doc_model( $rid2 );
+						if ( $rm2 ) {
+							$models[] = $rm2;
+						}
+					}
+				}
+			}
+		}
 
+		// Merge class maps (later models don't override earlier same-named classes;
+		// first definition wins, which keeps the page authoritative).
+		$classes = array();
+		$trees   = array();
+		foreach ( $models as $m ) {
+			if ( ! empty( $m['classes'] ) && is_array( $m['classes'] ) ) {
+				foreach ( $m['classes'] as $cls => $rules ) {
+					if ( ! isset( $classes[ $cls ] ) ) {
+						$classes[ $cls ] = $rules;
+					}
+				}
+			}
+			if ( ! empty( $m['tree'] ) ) {
+				$trees[] = $m['tree'];
+			}
+		}
+
+		$out    = '';
+		$states = array( 'normal', 'hover', 'focus' );
 		foreach ( self::$BP as $bp => $mq ) {
 			$body = '';
 			foreach ( $states as $state ) {
@@ -169,14 +270,16 @@ class Velox_Builder_Render {
 					}
 					$body .= self::escape_selector( $cls ) . $pseudo . '{' . self::decls( $byKey[ $key ] ) . '}';
 				}
-				self::walk(
-					$doc['tree'] ?? array(),
-					function ( $node ) use ( &$body, $key, $pseudo ) {
-						if ( ! empty( $node['overrides'][ $key ] ) && is_array( $node['overrides'][ $key ] ) ) {
-							$body .= '#' . sanitize_html_class( $node['id'] ) . $pseudo . '{' . self::decls( $node['overrides'][ $key ] ) . '}';
+				foreach ( $trees as $tree ) {
+					self::walk(
+						$tree,
+						function ( $node ) use ( &$body, $key, $pseudo ) {
+							if ( ! empty( $node['overrides'][ $key ] ) && is_array( $node['overrides'][ $key ] ) ) {
+								$body .= '#' . sanitize_html_class( $node['id'] ) . $pseudo . '{' . self::decls( $node['overrides'][ $key ] ) . '}';
+							}
 						}
-					}
-				);
+					);
+				}
 			}
 			if ( '' === $body ) {
 				continue;
@@ -184,6 +287,20 @@ class Velox_Builder_Render {
 			$out .= $mq ? '@media ' . $mq . '{' . $body . '}' : $body;
 		}
 		return $out;
+	}
+
+	/** Collect the ids of every reusable referenced anywhere in a tree. */
+	private static function collect_reusable_ids( $nodes ) {
+		$ids = array();
+		self::walk(
+			$nodes,
+			function ( $node ) use ( &$ids ) {
+				if ( isset( $node['el'] ) && 'Reusable' === $node['el'] && ! empty( $node['ref'] ) ) {
+					$ids[] = (int) $node['ref'];
+				}
+			}
+		);
+		return array_unique( $ids );
 	}
 
 	private static function decls( $rules ) {
@@ -239,8 +356,8 @@ class Velox_Builder_Render {
 	 * a query arg for cache-busting). Falls back to inline if the dir isn't
 	 * writable.
 	 */
-	public static function ensure_css_file( $doc ) {
-		$css = self::generate_css( $doc );
+	public static function ensure_css_file( $doc, $extra = array() ) {
+		$css = self::generate_css( $doc, $extra );
 		$up  = wp_upload_dir();
 		if ( ! empty( $up['error'] ) ) {
 			return self::inline_fallback( $css );

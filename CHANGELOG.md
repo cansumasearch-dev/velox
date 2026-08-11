@@ -4,6 +4,19 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.48.0 — Velox Builder: reusables & template apply-rules, working
+- **Reusables now insert into pages.** The editor Add menu lists your reusable blocks; pick one and it drops in as a live reference — it renders inline (styled) in the canvas and on the front end. Editing the reusable updates every page that uses it.
+- **Templates now apply as headers/footers.** On the Templates screen, set any template as the site header or footer. Built pages are wrapped with them automatically, and all their CSS is merged into the page's single stylesheet.
+- The renderer compiles one only-used stylesheet covering the page, every reusable it references, and the active header/footer templates — so nothing is missing and nothing is duplicated.
+
+## 3.47.0 — Velox Builder: all admin sections, working
+- Restored the full Velox Builder menu — Overview, Templates, Reusables, Classes, Global styles, Fonts & icons, Settings — and built each one for real (no placeholders).
+- **Classes:** a real manager listing every class used across your pages with usage counts; rename or delete a class site-wide (rewrites every page that uses it and regenerates their CSS).
+- **Templates / Reusables:** create, list, open and delete template and reusable documents (stored by kind); the editor now tracks which kind it is building.
+- **Global styles:** define colour tokens and a spacing scale that output as CSS custom properties (:root variables) on every built page.
+- **Fonts & icons:** register font families (Google Fonts by name or a self-hosted CSS URL) that load on every built page.
+- **Settings:** choose static-file vs inline CSS output, toggle minification, set the default container width — all persisted.
+
 ## 3.46.0 — Velox Builder: full-bleed admin, blank canvas, honest menu
 - The Velox Builder admin section is now full-bleed: WordPress update nags, other plugins' notices, Velox's own notices and the footer are all hidden on Builder screens, and the panel fills the whole content area.
 - New pages open on a blank canvas (no demo content). Empty pages show a clear "Add element" prompt instead of a white void.

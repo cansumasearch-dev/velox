@@ -47,6 +47,34 @@ class Velox_Ajax {
 				Velox_Builder::ajax_unpublish();
 				break;
 
+			case 'builder_tokens_save':
+				Velox_Builder::ajax_tokens_save();
+				break;
+
+			case 'builder_fonts_save':
+				Velox_Builder::ajax_fonts_save();
+				break;
+
+			case 'builder_settings_save':
+				Velox_Builder::ajax_settings_save();
+				break;
+
+			case 'builder_class_rename':
+				Velox_Builder::ajax_class_rename();
+				break;
+
+			case 'builder_class_delete':
+				Velox_Builder::ajax_class_delete();
+				break;
+
+			case 'builder_doc_delete':
+				Velox_Builder::ajax_doc_delete();
+				break;
+
+			case 'builder_template_role':
+				Velox_Builder::ajax_template_role();
+				break;
+
 			case 'seocol_flag':
 				Velox_Seo_Columns::ajax_toggle_flag();
 				break;

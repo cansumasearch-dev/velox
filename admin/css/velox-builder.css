@@ -107,3 +107,54 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 	box-shadow:0 6px 24px rgba(42,183,241,.4);animation:vbBootPulse 1.4s ease-in-out infinite}
 .vb-boot-text{font-size:13px;color:var(--vbb-text-3)}
 @keyframes vbBootPulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(.94);opacity:.75}}
+
+/* ---- doc rows: delete button + non-link title ---- */
+.vba-docrow a.vba-doc-title{ text-decoration:none; color:var(--vbb-text); }
+.vba-docrow a.vba-doc-title:hover{ color:var(--vbb-accent); }
+.vba-doc-del{ background:none;border:none;cursor:pointer;color:var(--vbb-text-3);width:28px;height:28px;border-radius:7px;display:grid;place-items:center;flex:0 0 auto; }
+.vba-doc-del:hover{ background:rgba(245,106,92,.15);color:var(--vbb-red); }
+
+/* ---- classes manager ---- */
+.vba-classlist{ padding:6px; }
+.vba-class-head{ display:grid;grid-template-columns:1fr 120px 90px 160px;gap:12px;padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--vbb-text-3); }
+.vba-class-row{ display:grid;grid-template-columns:1fr 120px 90px 160px;gap:12px;align-items:center;padding:12px 14px;border-radius:10px; }
+.vba-class-row:hover{ background:var(--vbb-raised-2); }
+.vba-class-name{ font-family:var(--vbb-mono);font-size:13px;color:var(--vbb-accent);font-weight:600; }
+.vba-class-meta{ font-size:12px;color:var(--vbb-text-2); }
+.vba-class-actions{ display:flex;gap:6px;justify-content:flex-end; }
+.vba-mini{ padding:6px 11px;border-radius:7px;background:var(--vbb-raised);border:1px solid var(--vbb-line);color:var(--vbb-text-2);font-size:11.5px;font-weight:600;cursor:pointer; }
+.vba-mini:hover{ background:var(--vbb-raised-2);color:var(--vbb-text); }
+.vba-mini-del:hover{ background:rgba(245,106,92,.15);color:var(--vbb-red);border-color:transparent; }
+
+/* ---- tokens / fonts rows ---- */
+.vba-tokens{ padding:6px 14px 16px; }
+.vba-token-row{ display:flex;align-items:center;gap:10px;padding:8px 0; }
+.vba-token-swatch{ width:34px;height:34px;border-radius:9px;border:1px solid var(--vbb-line-2);cursor:pointer;padding:0;background:none;flex:0 0 auto; }
+.vba-token-var{ font-family:var(--vbb-mono);color:var(--vbb-text-3);font-size:13px; }
+.vba-token-name,.vba-token-val,.vba-font-name,.vba-font-url{ background:var(--vbb-void);border:1px solid var(--vbb-line);border-radius:8px;padding:8px 11px;color:var(--vbb-text);font-size:12.5px;outline:none; }
+.vba-token-name{ width:150px;font-family:var(--vbb-mono); }
+.vba-token-val{ width:120px;font-family:var(--vbb-mono); }
+.vba-font-name{ width:180px; }
+.vba-font-url{ flex:1; }
+.vba-font-type{ background:var(--vbb-void);border:1px solid var(--vbb-line);border-radius:8px;padding:8px 10px;color:var(--vbb-text);font-size:12.5px; }
+.vba-token-name:focus,.vba-token-val:focus,.vba-font-name:focus,.vba-font-url:focus{ border-color:var(--vbb-accent); }
+.vba-input-wide{ width:100%;background:var(--vbb-void);border:1px solid var(--vbb-line);border-radius:9px;padding:10px 12px;color:var(--vbb-text);font-family:var(--vbb-mono);font-size:13px;outline:none; }
+.vba-input-wide:focus{ border-color:var(--vbb-accent); }
+
+/* ---- settings rows ---- */
+.vba-setting{ display:flex;align-items:center;justify-content:space-between;gap:20px;padding:18px 20px;border-bottom:1px solid var(--vbb-line); }
+.vba-setting:last-child{ border-bottom:none; }
+.vba-setting-tx b{ display:block;font-size:13px;font-weight:600; }
+.vba-setting-tx span{ font-size:12px;color:var(--vbb-text-3); }
+.vba-setting-ctrl{ background:var(--vbb-void);border:1px solid var(--vbb-line);border-radius:8px;padding:9px 12px;color:var(--vbb-text);font-size:13px;min-width:160px; }
+.vba-switch{ position:relative;display:inline-block;width:44px;height:26px;flex:0 0 auto; }
+.vba-switch input{ opacity:0;width:0;height:0; }
+.vba-switch span{ position:absolute;inset:0;background:var(--vbb-raised);border-radius:20px;transition:.15s;cursor:pointer; }
+.vba-switch span::before{ content:"";position:absolute;width:20px;height:20px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.15s; }
+.vba-switch input:checked + span{ background:var(--vbb-accent); }
+.vba-switch input:checked + span::before{ transform:translateX(18px); }
+
+/* ---- template role buttons ---- */
+.vba-tpl-roles{ display:flex;gap:5px; }
+.vba-mini.is-on{ background:var(--vbb-accent);color:#04222f;border-color:transparent; }
+.vba-mini.is-on:hover{ background:var(--vbb-accent);color:#04222f; }

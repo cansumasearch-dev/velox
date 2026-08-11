@@ -188,8 +188,7 @@ class Velox_Builder {
 			return;
 		}
 
-		// Top-level "Velox Builder" section. Only Overview is a real screen right
-		// now; the editor opens from there and from "Edit with Velox" on pages.
+		// Top-level "Velox Builder" section.
 		add_menu_page(
 			__( 'Velox Builder', 'velox' ),
 			__( 'Velox Builder', 'velox' ),
@@ -199,6 +198,26 @@ class Velox_Builder {
 			$this->menu_icon(),
 			100.8
 		);
+
+		$subs = array(
+			'overview'  => __( 'Overview', 'velox' ),
+			'templates' => __( 'Templates', 'velox' ),
+			'reusables' => __( 'Reusables', 'velox' ),
+			'classes'   => __( 'Classes', 'velox' ),
+			'styles'    => __( 'Global styles', 'velox' ),
+			'fonts'     => __( 'Fonts & icons', 'velox' ),
+			'settings'  => __( 'Settings', 'velox' ),
+		);
+		foreach ( $subs as $key => $label ) {
+			add_submenu_page(
+				self::SLUG,
+				'Velox Builder — ' . $label,
+				$label,
+				'manage_options',
+				'overview' === $key ? self::SLUG : self::SLUG . '-' . $key,
+				array( $this, 'render_admin' )
+			);
+		}
 
 		// The editor route is registered but hidden from the menu (null parent).
 		add_submenu_page(
@@ -253,6 +272,8 @@ class Velox_Builder {
 			'nonce'   => wp_create_nonce( 'velox_nonce' ),
 			'docId'   => $doc_id,
 			'postId'  => isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0,
+			'kind'    => isset( $_GET['kind'] ) ? sanitize_key( wp_unslash( $_GET['kind'] ) ) : 'page',
+			'reusables' => self::reusables_payload(),
 			'backUrl' => admin_url( 'admin.php?page=' . self::SLUG ),
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
 		);
@@ -340,10 +361,13 @@ class Velox_Builder {
 	}
 
 	/** URL to open the editor for a given document. */
-	public static function edit_url( $doc_id = 0 ) {
+	public static function edit_url( $doc_id = 0, $kind = '' ) {
 		$url = admin_url( 'admin.php?page=' . self::EDIT_SLUG );
 		if ( $doc_id ) {
 			$url = add_query_arg( 'doc', (int) $doc_id, $url );
+		}
+		if ( $kind && 'page' !== $kind ) {
+			$url = add_query_arg( 'kind', sanitize_key( $kind ), $url );
 		}
 		return $url;
 	}
@@ -434,6 +458,282 @@ class Velox_Builder {
 			return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, css_size, updated FROM {$t} WHERE kind = %s ORDER BY updated DESC LIMIT %d", $kind, $limit ), ARRAY_A );
 		}
 		return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, css_size, updated FROM {$t} ORDER BY updated DESC LIMIT %d", $limit ), ARRAY_A );
+	}
+
+	/* =====================================================================
+	   GLOBAL STYLES (design tokens) — stored as a single option, output as
+	   CSS custom properties on every built page.
+	   ===================================================================== */
+	const OPT_TOKENS   = 'velox_builder_tokens';
+	const OPT_FONTS    = 'velox_builder_fonts';
+	const OPT_SETTINGS = 'velox_builder_settings';
+
+	public static function tokens() {
+		$t = get_option( self::OPT_TOKENS, null );
+		if ( ! is_array( $t ) ) {
+			$t = array(
+				'colors'  => array(
+					array( 'name' => 'primary', 'value' => '#2ab7f1' ),
+					array( 'name' => 'ink', 'value' => '#12151a' ),
+					array( 'name' => 'muted', 'value' => '#5b6673' ),
+				),
+				'spacing' => array( '4', '8', '16', '24', '48', '80' ),
+			);
+		}
+		return $t;
+	}
+
+	public static function fonts() {
+		$f = get_option( self::OPT_FONTS, null );
+		return is_array( $f ) ? $f : array();
+	}
+
+	public static function settings() {
+		$s = get_option( self::OPT_SETTINGS, null );
+		$d = array( 'css_mode' => 'file', 'minify' => 1, 'container' => '1140' );
+		return is_array( $s ) ? array_merge( $d, $s ) : $d;
+	}
+
+	public static function ajax_tokens_save() {
+		$raw    = isset( $_POST['tokens'] ) ? wp_unslash( $_POST['tokens'] ) : '';
+		$tokens = json_decode( $raw, true );
+		if ( ! is_array( $tokens ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
+		}
+		// sanitise
+		$clean = array( 'colors' => array(), 'spacing' => array() );
+		foreach ( (array) ( $tokens['colors'] ?? array() ) as $c ) {
+			$name = sanitize_key( $c['name'] ?? '' );
+			$val  = sanitize_text_field( $c['value'] ?? '' );
+			if ( $name && $val ) {
+				$clean['colors'][] = array( 'name' => $name, 'value' => $val );
+			}
+		}
+		foreach ( (array) ( $tokens['spacing'] ?? array() ) as $s ) {
+			$s = preg_replace( '/[^0-9.]/', '', (string) $s );
+			if ( '' !== $s ) {
+				$clean['spacing'][] = $s;
+			}
+		}
+		update_option( self::OPT_TOKENS, $clean );
+		wp_send_json_success( array( 'tokens' => $clean ) );
+	}
+
+	public static function ajax_fonts_save() {
+		$raw   = isset( $_POST['fonts'] ) ? wp_unslash( $_POST['fonts'] ) : '';
+		$fonts = json_decode( $raw, true );
+		if ( ! is_array( $fonts ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
+		}
+		$clean = array();
+		foreach ( $fonts as $f ) {
+			$name = sanitize_text_field( $f['name'] ?? '' );
+			$src  = esc_url_raw( $f['url'] ?? '' );
+			$type = in_array( ( $f['type'] ?? 'google' ), array( 'google', 'url' ), true ) ? $f['type'] : 'google';
+			if ( $name ) {
+				$clean[] = array( 'name' => $name, 'type' => $type, 'url' => $src );
+			}
+		}
+		update_option( self::OPT_FONTS, $clean );
+		wp_send_json_success( array( 'fonts' => $clean ) );
+	}
+
+	public static function ajax_settings_save() {
+		$css_mode  = isset( $_POST['css_mode'] ) && 'inline' === $_POST['css_mode'] ? 'inline' : 'file';
+		$minify    = isset( $_POST['minify'] ) && $_POST['minify'] ? 1 : 0;
+		$container = isset( $_POST['container'] ) ? preg_replace( '/[^0-9]/', '', wp_unslash( $_POST['container'] ) ) : '1140';
+		update_option( self::OPT_SETTINGS, array( 'css_mode' => $css_mode, 'minify' => $minify, 'container' => $container ) );
+		wp_send_json_success( array( 'saved' => true ) );
+	}
+
+	/* =====================================================================
+	   CLASSES — aggregate every class used across all documents, with usage
+	   counts; rename or delete across the whole site.
+	   ===================================================================== */
+	public static function all_classes() {
+		global $wpdb;
+		$rows  = $wpdb->get_results( 'SELECT id, title, data FROM ' . self::table(), ARRAY_A );
+		$index = array(); // class => array( count, docs[] )
+		foreach ( (array) $rows as $row ) {
+			$model = json_decode( $row['data'], true );
+			if ( ! is_array( $model ) || empty( $model['classes'] ) ) {
+				continue;
+			}
+			foreach ( array_keys( $model['classes'] ) as $cls ) {
+				if ( ! isset( $index[ $cls ] ) ) {
+					$index[ $cls ] = array( 'count' => 0, 'props' => 0 );
+				}
+				$index[ $cls ]['count']++;
+				// count declared props at base for a quick "size" hint
+				$base = $model['classes'][ $cls ]['base'] ?? array();
+				$index[ $cls ]['props'] += is_array( $base ) ? count( $base ) : 0;
+			}
+		}
+		ksort( $index );
+		return $index;
+	}
+
+	public static function ajax_class_rename() {
+		global $wpdb;
+		$from = isset( $_POST['from'] ) ? sanitize_text_field( wp_unslash( $_POST['from'] ) ) : '';
+		$to   = isset( $_POST['to'] ) ? sanitize_text_field( wp_unslash( $_POST['to'] ) ) : '';
+		$to   = '.' . sanitize_html_class( ltrim( $to, '.' ) );
+		if ( ! $from || '.' === $to ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid class name.', 'velox' ) ), 400 );
+		}
+		$changed = self::rewrite_class( $from, $to );
+		wp_send_json_success( array( 'from' => $from, 'to' => $to, 'docs' => $changed ) );
+	}
+
+	public static function ajax_class_delete() {
+		$cls = isset( $_POST['class'] ) ? sanitize_text_field( wp_unslash( $_POST['class'] ) ) : '';
+		if ( ! $cls ) {
+			wp_send_json_error( array( 'message' => __( 'No class specified.', 'velox' ) ), 400 );
+		}
+		$changed = self::rewrite_class( $cls, null );
+		wp_send_json_success( array( 'class' => $cls, 'docs' => $changed ) );
+	}
+
+	/** Rename ($to string) or delete ($to null) a class across every document. */
+	private static function rewrite_class( $from, $to ) {
+		global $wpdb;
+		$t       = self::table();
+		$rows    = $wpdb->get_results( "SELECT id, data FROM {$t}", ARRAY_A );
+		$changed = 0;
+		foreach ( (array) $rows as $row ) {
+			$model = json_decode( $row['data'], true );
+			if ( ! is_array( $model ) || empty( $model['classes'] ) || ! isset( $model['classes'][ $from ] ) ) {
+				continue;
+			}
+			// rules map
+			if ( null === $to ) {
+				unset( $model['classes'][ $from ] );
+			} else {
+				$model['classes'][ $to ] = $model['classes'][ $from ];
+				unset( $model['classes'][ $from ] );
+			}
+			// node class references
+			self::walk_ref(
+				$model['tree'],
+				function ( &$node ) use ( $from, $to ) {
+					if ( empty( $node['classes'] ) ) {
+						return;
+					}
+					$out = array();
+					foreach ( $node['classes'] as $c ) {
+						if ( $c === $from ) {
+							if ( null !== $to ) {
+								$out[] = $to;
+							}
+						} else {
+							$out[] = $c;
+						}
+					}
+					$node['classes'] = $out;
+				}
+			);
+			$wpdb->update( $t, array( 'data' => wp_json_encode( $model ), 'updated' => current_time( 'mysql' ) ), array( 'id' => $row['id'] ), array( '%s', '%s' ), array( '%d' ) );
+			if ( class_exists( 'Velox_Builder_Render' ) ) {
+				Velox_Builder_Render::write_css_for( (int) $row['id'] );
+			}
+			$changed++;
+		}
+		return $changed;
+	}
+
+	/** walk the tree by reference so mutations stick. */
+	private static function walk_ref( &$nodes, $fn ) {
+		foreach ( $nodes as &$node ) {
+			$fn( $node );
+			if ( ! empty( $node['children'] ) ) {
+				self::walk_ref( $node['children'], $fn );
+			}
+		}
+		unset( $node );
+	}
+
+	public static function ajax_doc_delete() {
+		global $wpdb;
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'No document specified.', 'velox' ) ), 400 );
+		}
+		$wpdb->delete( self::table(), array( 'id' => $id ), array( '%d' ) );
+		wp_send_json_success( array( 'id' => $id ) );
+	}
+
+	/* =====================================================================
+	   REUSABLES (by reference) + TEMPLATE ROLES (header/footer)
+	   ===================================================================== */
+	const OPT_ROLES = 'velox_builder_roles';
+
+	/** Full decoded model for one document (tree + classes + content). */
+	public static function doc_model( $id ) {
+		global $wpdb;
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, title, kind, data FROM ' . self::table() . ' WHERE id = %d', (int) $id ), ARRAY_A );
+		if ( ! $row ) {
+			return null;
+		}
+		$model = json_decode( $row['data'], true );
+		if ( ! is_array( $model ) ) {
+			return null;
+		}
+		$model['__id']    = (int) $row['id'];
+		$model['__title'] = $row['title'];
+		$model['__kind']  = $row['kind'];
+		return $model;
+	}
+
+	/**
+	 * Reusables packaged for the editor: id, title and their model, so the
+	 * editor can render an inserted reusable inline (by reference) and keep it
+	 * in sync everywhere it is used.
+	 */
+	public static function reusables_payload() {
+		global $wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, data FROM ' . self::table() . ' WHERE kind = %s ORDER BY title ASC', 'reusable' ), ARRAY_A );
+		$out  = array();
+		foreach ( (array) $rows as $row ) {
+			$model = json_decode( $row['data'], true );
+			if ( ! is_array( $model ) ) {
+				continue;
+			}
+			$out[] = array(
+				'id'      => (int) $row['id'],
+				'title'   => $row['title'] ? $row['title'] : __( 'Untitled', 'velox' ),
+				'tree'    => $model['tree'] ?? array(),
+				'classes' => $model['classes'] ?? array(),
+				'content' => $model['content'] ?? array(),
+			);
+		}
+		return $out;
+	}
+
+	/** Which template is the active header / footer. */
+	public static function roles() {
+		$r = get_option( self::OPT_ROLES, array() );
+		return is_array( $r ) ? array_merge( array( 'header' => 0, 'footer' => 0 ), $r ) : array( 'header' => 0, 'footer' => 0 );
+	}
+
+	/** Set (or clear) a template's role as the site header or footer. */
+	public static function ajax_template_role() {
+		$id   = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$role = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
+		if ( ! in_array( $role, array( 'header', 'footer', 'none' ), true ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid role.', 'velox' ) ), 400 );
+		}
+		$roles = self::roles();
+		// A template can hold at most one role; clear it from any other slot first.
+		foreach ( array( 'header', 'footer' ) as $slot ) {
+			if ( (int) $roles[ $slot ] === $id ) {
+				$roles[ $slot ] = 0;
+			}
+		}
+		if ( 'none' !== $role ) {
+			$roles[ $role ] = $id;
+		}
+		update_option( self::OPT_ROLES, $roles );
+		wp_send_json_success( array( 'roles' => $roles ) );
 	}
 
 	/* ------------------------------------------------------------ publish */
