@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.45.1 — Velox Builder: admin layout fix + edit entry points
+- Fixed the Velox Builder admin section rendering as a blank white area — the panel was absolutely positioned and collapsed out of the wp-admin layout; it now sits correctly in the content area.
+- Added "Edit with Velox" entry points: a row action in the Pages and Posts list tables, and an admin-bar link when viewing or editing a page. Opening one binds (or creates) a builder document for that page so publishing updates the real page.
+
 ## 3.45.0 — Velox Builder: image element
 - The Image element is now real. Double-click it on the canvas (or use "Choose image" in the inspector) to open the WordPress media library, pick an image, and it renders in place — stored as its URL and shipped as a plain, lazy-friendly <img> on the front end.
 - The standalone editor now loads the WordPress media library (wp.media) into its own document so the picker works inside the full-screen builder.

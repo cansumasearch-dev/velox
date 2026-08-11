@@ -397,7 +397,7 @@
 	}
 
 	/* ---------- persistence (save / load via AJAX) ---------- */
-	var docId = CFG.docId || 0, docTitle = 'Untitled', saving = false;
+	var docId = CFG.docId || 0, docTitle = 'Untitled', saving = false, postId = CFG.postId || 0;
 	function saveDoc( silent ) {
 		if ( saving || ! CFG.ajaxurl ) { return; }
 		saving = true; setSaveState( 'saving' );
@@ -405,7 +405,7 @@
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_save' ); body.set( 'nonce', CFG.nonce || '' );
 		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', 'page' );
 		body.set( 'data', JSON.stringify( store.state ) );
-		body.set( 'css_size', String( new Blob( [ genCSS() ] ).size ) );
+		body.set( 'css_size', String( new Blob( [ genCSS() ] ).size ) ); if ( postId ) { body.set( 'post_id', postId ); }
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) { saving = false; if ( res && res.success ) { docId = res.data.id; setSaveState( 'saved' ); } else { setSaveState( 'error' ); } } )
@@ -451,7 +451,7 @@
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_save' ); body.set( 'nonce', CFG.nonce || '' );
 		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', 'page' );
-		body.set( 'data', JSON.stringify( store.state ) ); body.set( 'css_size', String( new Blob( [ genCSS() ] ).size ) );
+		body.set( 'data', JSON.stringify( store.state ) ); body.set( 'css_size', String( new Blob( [ genCSS() ] ).size ) ); if ( postId ) { body.set( 'post_id', postId ); }
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) { saving = false; if ( res && res.success ) { docId = res.data.id; setSaveState( 'saved' ); } cb(); } )

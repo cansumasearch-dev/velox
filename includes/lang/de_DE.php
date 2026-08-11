@@ -2016,4 +2016,5 @@ return array(
 	'Document not found.' => 'Dokument nicht gefunden.',
 	'Save the page before publishing.' => 'Speichern Sie die Seite vor dem Veröffentlichen.',
 	'Velox Page' => 'Velox-Seite',
+	'Edit with Velox' => 'Mit Velox bearbeiten',
 );

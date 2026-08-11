@@ -38,6 +38,58 @@ class Velox_Builder {
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
 		// The standalone editor takes over the whole screen before WP admin renders.
 		add_action( 'current_screen', array( $this, 'maybe_launch_editor' ) );
+
+		// "Edit with Velox" entry points on ordinary pages/posts.
+		add_filter( 'page_row_actions', array( $this, 'row_action' ), 10, 2 );
+		add_filter( 'post_row_actions', array( $this, 'row_action' ), 10, 2 );
+		add_action( 'admin_bar_menu', array( $this, 'admin_bar_link' ), 90 );
+	}
+
+	/**
+	 * Open (or create) the builder document for a given WordPress post, then
+	 * return the editor URL. If the post already has a bound doc we reuse it;
+	 * otherwise a fresh doc is created and linked so edits round-trip.
+	 */
+	public static function edit_url_for_post( $post_id ) {
+		global $wpdb;
+		$post_id = (int) $post_id;
+		$t       = self::table();
+		$doc_id  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t} WHERE post_id = %d LIMIT 1", $post_id ) );
+		if ( ! $doc_id ) {
+			$doc_id = (int) get_post_meta( $post_id, '_velox_builder_doc', true );
+		}
+		return self::edit_url( $doc_id ) . ( $doc_id ? '' : '&post=' . $post_id );
+	}
+
+	/** Add an "Edit with Velox" row action in the Pages/Posts list tables. */
+	public function row_action( $actions, $post ) {
+		if ( current_user_can( 'edit_post', $post->ID ) && in_array( $post->post_type, array( 'page', 'post' ), true ) ) {
+			$url                    = self::edit_url_for_post( $post->ID );
+			$actions['velox_edit']  = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Edit with Velox', 'velox' ) . '</a>';
+		}
+		return $actions;
+	}
+
+	/** Add "Edit with Velox" to the admin bar when viewing/editing a singular page. */
+	public function admin_bar_link( $bar ) {
+		$post_id = 0;
+		if ( is_admin() ) {
+			$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+			if ( $screen && 'post' === $screen->base && isset( $_GET['post'] ) ) {
+				$post_id = absint( $_GET['post'] );
+			}
+		} elseif ( is_singular() ) {
+			$post_id = get_queried_object_id();
+		}
+		if ( $post_id && current_user_can( 'edit_post', $post_id ) ) {
+			$bar->add_node(
+				array(
+					'id'    => 'velox-builder-edit',
+					'title' => '⚡ ' . __( 'Edit with Velox', 'velox' ),
+					'href'  => self::edit_url_for_post( $post_id ),
+				)
+			);
+		}
 	}
 
 	/* --------------------------------------------------------------- enabled */
@@ -186,6 +238,7 @@ class Velox_Builder {
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'velox_nonce' ),
 			'docId'   => $doc_id,
+			'postId'  => isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0,
 			'backUrl' => admin_url( 'admin.php?page=' . self::SLUG ),
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
 		);
@@ -304,24 +357,28 @@ class Velox_Builder {
 		}
 		$data     = wp_json_encode( $model );
 		$css_size = isset( $_POST['css_size'] ) ? absint( $_POST['css_size'] ) : 0;
+		$post_id  = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 		$now      = current_time( 'mysql' );
 		$t        = self::table();
 
 		if ( $id ) {
-			$wpdb->update(
-				$t,
-				array( 'title' => $title, 'kind' => $kind, 'data' => $data, 'css_size' => $css_size, 'updated' => $now ),
-				array( 'id' => $id ),
-				array( '%s', '%s', '%s', '%d', '%s' ),
-				array( '%d' )
-			);
+			$fields  = array( 'title' => $title, 'kind' => $kind, 'data' => $data, 'css_size' => $css_size, 'updated' => $now );
+			$formats = array( '%s', '%s', '%s', '%d', '%s' );
+			if ( $post_id ) {
+				$fields['post_id'] = $post_id;
+				$formats[]         = '%d';
+			}
+			$wpdb->update( $t, $fields, array( 'id' => $id ), $formats, array( '%d' ) );
 		} else {
 			$wpdb->insert(
 				$t,
-				array( 'title' => $title, 'kind' => $kind, 'data' => $data, 'css_size' => $css_size, 'status' => 'draft', 'updated' => $now, 'created' => $now ),
-				array( '%s', '%s', '%s', '%d', '%s', '%s', '%s' )
+				array( 'title' => $title, 'kind' => $kind, 'data' => $data, 'css_size' => $css_size, 'status' => 'draft', 'post_id' => $post_id ? $post_id : null, 'updated' => $now, 'created' => $now ),
+				array( '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s' )
 			);
 			$id = (int) $wpdb->insert_id;
+			if ( $post_id ) {
+				update_post_meta( $post_id, '_velox_builder_doc', $id );
+			}
 		}
 
 		// Regenerate the page's static CSS file so the front end reflects the save.

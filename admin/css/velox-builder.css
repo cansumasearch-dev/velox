@@ -19,17 +19,26 @@
 	--vbb-mono:ui-monospace,"SF Mono",Menlo,monospace;
 }
 
-/* ---- take over the admin content area for the Builder section ---- */
+/* ---- Velox Builder admin section: dark surface inside the wp-admin content
+   area. We do NOT absolutely-position (that broke out of the admin layout);
+   instead we style in the normal flow and pull the panel to the edges with
+   negative margins so it meets the WordPress sidebar cleanly. ---- */
 #velox-builder-admin{
-	position:absolute;top:0;left:0;right:0;bottom:0;
+	position:relative;
+	min-height:calc(100vh - 32px);      /* fill below the admin bar */
+	margin:0 0 -65px -20px;             /* cancel #wpcontent padding + footer gap */
+	padding:0;
 	background:
 		radial-gradient(1200px 600px at 78% -10%, rgba(42,183,241,.05), transparent 60%),
 		radial-gradient(900px 500px at 10% 110%, rgba(160,107,255,.05), transparent 55%),
 		var(--vbb-void);
 	color:var(--vbb-text);font-family:var(--vbb-font);font-size:13px;line-height:1.5;
-	overflow-y:auto;-webkit-font-smoothing:antialiased;letter-spacing:-.008em;z-index:1;
+	-webkit-font-smoothing:antialiased;letter-spacing:-.008em;
 }
-/* WordPress wraps admin content in #wpcontent/#wpbody — push our panel over it */
+/* WordPress prints an <h1>/notices above our container on some screens; hide the
+   stray wrap chrome only within our page. */
+.toplevel_page_velox-builder #wpbody-content > .wrap,
+[class*="velox-builder"] #wpbody-content > .notice{ }
 #velox-builder-admin *{box-sizing:border-box}
 
 .vba-shell{max-width:1100px;margin:0 auto;padding:34px 30px 60px}
