@@ -448,7 +448,7 @@
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_load' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'id', id );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { if ( res && res.success && res.data.model ) { docId = res.data.id; docTitle = res.data.title || 'Untitled'; pubStatus = res.data.status || 'draft'; pubUrl = res.data.url || ''; store.init( res.data.model ); setTimeout( function () { setPubState( 'idle' ); }, 30 ); } } );
+			.then( function ( res ) { if ( res && res.success && res.data.model ) { docId = res.data.id; docTitle = res.data.title || 'Untitled'; pubStatus = res.data.status || 'draft'; pubUrl = res.data.url || ''; var ti = document.getElementById( 'vb-title' ); if ( ti ) { ti.value = docTitle; } store.init( res.data.model ); setTimeout( function () { setPubState( 'idle' ); }, 30 ); } } );
 	}
 	function setSaveState( state ) {
 		var el = document.getElementById( 'vb-save' ); if ( ! el ) { return; }
@@ -575,6 +575,7 @@
 	function topbarHTML() {
 		return '<div class="vb-top">' +
 			'<div class="vb-brand"><span class="vb-brand-m">V</span></div>' +
+			'<input id="vb-title" class="vb-title" type="text" value="' + escapeHtml( docTitle ) + '" placeholder="' + T( 'Untitled' ) + '" spellcheck="false">' +
 			'<button class="vb-ic" data-add title="' + T( 'Add element' ) + '">' + svg( 'plus', 17 ) + '</button>' +
 			'<div class="vb-sep"></div>' +
 			'<div class="vb-bp" id="vb-bp">' +
@@ -692,6 +693,7 @@
 			if ( ! e.target.closest( '.vb-addmenu' ) ) { closeAddMenu(); }
 		} );
 		document.addEventListener( 'input', function ( e ) {
+			if ( e.target.id === 'vb-title' ) { docTitle = e.target.value.trim() || 'Untitled'; setSaveState( 'idle' ); return; }
 			var n = e.target.closest( '[data-setnum]' );
 			if ( n ) { var v = e.target.value.trim(); clearTimeout( dbTimer ); dbTimer = setTimeout( function () { if ( v === '' ) { removeProp( n.getAttribute( 'data-setnum' ) ); } else { setProp( n.getAttribute( 'data-setnum' ), v ); } }, 150 ); return; }
 			var c = e.target.closest( '[data-setcolor]' ); if ( c ) { setProp( c.getAttribute( 'data-setcolor' ), e.target.value ); return; }
@@ -784,6 +786,10 @@
 			'.vb-bp button{width:32px;height:26px;border-radius:6px;color:#606069;display:grid;place-items:center;background:none;border:none;cursor:pointer}',
 			'.vb-bp button.on{background:#1d1d24;color:#2ab7f1}',
 			'.vb-editing{display:flex;flex-direction:column;justify-content:center;padding:0 10px}',
+			'.vb-title{background:transparent;border:1px solid transparent;border-radius:8px;color:#f4f4f6;font-size:13px;font-weight:600;padding:7px 11px;width:190px;outline:none;transition:.1s;font-family:inherit}',
+			'.vb-title:hover{background:#1d1d24}',
+			'.vb-title:focus{background:#1d1d24;border-color:#2ab7f1;width:230px}',
+			'.vb-title::placeholder{color:#606069;font-weight:500}',
 			'.vb-editing small{font-size:9px;color:#606069;line-height:1}.vb-editing b{font-size:12px;font-weight:600}',
 			'.vb-spring{flex:1}',
 			'.vb-exit{color:#9d9da8;text-decoration:none;font-weight:600;padding:8px 13px;border-radius:9px}',

@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.49.0 — Velox Builder: name your pages
+- Added an editable title field in the editor top bar. Pages, templates and reusables can now be named (and renamed) instead of all saving as "Untitled" — the name is stored with the document and shows in every list.
+
 ## 3.48.0 — Velox Builder: reusables & template apply-rules, working
 - **Reusables now insert into pages.** The editor Add menu lists your reusable blocks; pick one and it drops in as a live reference — it renders inline (styled) in the canvas and on the front end. Editing the reusable updates every page that uses it.
 - **Templates now apply as headers/footers.** On the Templates screen, set any template as the site header or footer. Built pages are wrapped with them automatically, and all their CSS is merged into the page's single stylesheet.
