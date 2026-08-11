@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.50.0 — Velox Builder: editor chrome overhaul (wave 1)
+- Rebuilt the editor top bar into three zones: left = Velox logo (with a menu: Builder settings / Back to WordPress) + editable page title; center = breakpoints + undo/redo; right = Exit, View page, and the save/publish actions.
+- Save/Publish behaviour: a brand-new page shows a single Publish button; once a page has been published it shows both Save (admin-only draft) and Publish (live for everyone).
+- Left panel now has Add element, Reusables and Settings buttons plus a "Find layer" search that filters the layer tree.
+- Bigger editor canvas (up to 1200px) with tighter padding.
+
 ## 3.49.1 — Velox Builder: editor full-width fix
 - Fixed the editor not filling the screen — the canvas column was collapsing to content width, leaving a large empty area on the right. The three panes (layers, canvas, inspector) now span the full viewport.
 

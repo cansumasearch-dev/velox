@@ -42,6 +42,8 @@
 		copy:'<rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
 		trash:'<path d="M10 11v6"/><path d="M14 11v6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>',
 		chevron:'<path d="m6 9 6 6 6-6"/>',
+		home:'<path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/>',
+		gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 8 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H2a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 3.6 8a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H8a1.65 1.65 0 0 0 1-1.51V2a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V8a1.65 1.65 0 0 0 1.51 1H22a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>',
 		droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>'
 	};
 	function svg( name, size ) {
@@ -448,20 +450,15 @@
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_load' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'id', id );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { if ( res && res.success && res.data.model ) { docId = res.data.id; docTitle = res.data.title || 'Untitled'; pubStatus = res.data.status || 'draft'; pubUrl = res.data.url || ''; var ti = document.getElementById( 'vb-title' ); if ( ti ) { ti.value = docTitle; } store.init( res.data.model ); setTimeout( function () { setPubState( 'idle' ); }, 30 ); } } );
+			.then( function ( res ) { if ( res && res.success && res.data.model ) { docId = res.data.id; docTitle = res.data.title || 'Untitled'; pubStatus = res.data.status || 'draft'; pubUrl = res.data.url || ''; everPublished = ( pubStatus === 'published' ); dirty = false; var ti = document.getElementById( 'vb-title' ); if ( ti ) { ti.value = docTitle; } store.init( res.data.model ); setTimeout( function () { renderActions(); }, 30 ); } } );
 	}
-	function setSaveState( state ) {
-		var el = document.getElementById( 'vb-save' ); if ( ! el ) { return; }
-		var map = { saving:T( 'Saving…' ), saved:T( 'Saved' ), error:T( 'Save failed' ), idle:T( 'Save' ) };
-		el.textContent = map[ state ] || map.idle;
-		el.className = 'vb-save vb-save--' + state;
-	}
-
-	/* ---------- publish ---------- */
-	var pubStatus = 'draft', pubUrl = '';
+	/* ---------- Save / Publish action buttons (state-aware) ----------
+	   New page (never published): a single Publish button. After first publish
+	   the page "exists", so we show two buttons — Save (admin-only draft) and
+	   Publish (pushes live for everyone). Save state shows on the Save button. */
+	var everPublished = false, dirty = false, pubStatus = 'draft', pubUrl = '';
 	function publishDoc() {
 		if ( ! CFG.ajaxurl ) { return; }
-		// Save first so the published page reflects the latest edits, then publish.
 		var afterSave = function () {
 			var body = new URLSearchParams();
 			body.set( 'action', 'velox' ); body.set( 'do', 'builder_publish' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'id', docId );
@@ -470,12 +467,38 @@
 				.then( function ( r ) { return r.json(); } )
 				.then( function ( res ) {
 					if ( res && res.success ) { pubStatus = 'published'; pubUrl = res.data.url || ''; setPubState( 'published' ); }
-					else { setPubState( 'error' ); alert( ( res && res.data && res.data.message ) || T( 'Publish failed' ) ); }
+					else { renderActions(); alert( ( res && res.data && res.data.message ) || T( 'Publish failed' ) ); }
 				} )
-				.catch( function () { setPubState( 'error' ); } );
+				.catch( function () { renderActions(); } );
 		};
 		saveThen( afterSave );
 	}
+	function renderActions() {
+		var host = document.getElementById( 'vb-actions' ); if ( ! host ) { return; }
+		if ( ! everPublished ) {
+			host.innerHTML = '<button class="vb-btn-publish" id="vb-publish">' + ( saving ? T( 'Publishing…' ) : T( 'Publish' ) ) + '</button>';
+		} else {
+			host.innerHTML =
+				'<button class="vb-btn-save" id="vb-save">' + saveLabel() + '</button>' +
+				'<button class="vb-btn-publish" id="vb-publish">' + ( pubStatus === 'published' && ! dirty ? T( 'Published' ) : T( 'Publish' ) ) + '</button>';
+			var pb = document.getElementById( 'vb-publish' );
+			if ( pubStatus === 'published' && ! dirty ) { pb.classList.add( 'is-live' ); }
+		}
+	}
+	var _saveState = 'idle';
+	function saveLabel() { return { idle:T( 'Save' ), saving:T( 'Saving…' ), saved:T( 'Saved' ), error:T( 'Save failed' ) }[ _saveState ] || T( 'Save' ); }
+	function setSaveState( s ) { _saveState = s; var el = document.getElementById( 'vb-save' ); if ( el ) { el.textContent = saveLabel(); el.className = 'vb-btn-save vb-save--' + s; } }
+	function setPubState( state ) {
+		var view = document.getElementById( 'vb-view' );
+		if ( state === 'published' ) { everPublished = true; dirty = false; }
+		renderActions();
+		if ( view && pubUrl ) { view.href = pubUrl; view.style.display = ''; }
+		var pb = document.getElementById( 'vb-publish' );
+		if ( pb && state === 'publishing' ) { pb.textContent = T( 'Publishing…' ); pb.disabled = true; }
+	}
+	function markDirty() { dirty = true; if ( everPublished ) { renderActions(); } }
+
+	/* ---------- publish ---------- */
 	function saveThen( cb ) {
 		if ( saving || ! CFG.ajaxurl ) { cb(); return; }
 		saving = true; setSaveState( 'saving' );
@@ -487,16 +510,6 @@
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) { saving = false; if ( res && res.success ) { docId = res.data.id; setSaveState( 'saved' ); } cb(); } )
 			.catch( function () { saving = false; setSaveState( 'error' ); cb(); } );
-	}
-	function setPubState( state ) {
-		var btn = document.getElementById( 'vb-publish' ), view = document.getElementById( 'vb-view' );
-		if ( ! btn ) { return; }
-		if ( state === 'publishing' ) { btn.textContent = T( 'Publishing…' ); btn.disabled = true; }
-		else if ( state === 'published' ) {
-			btn.textContent = T( 'Published' ); btn.disabled = false; btn.classList.add( 'is-live' );
-			if ( view && pubUrl ) { view.href = pubUrl; view.style.display = ''; }
-		} else if ( state === 'error' ) { btn.textContent = T( 'Publish' ); btn.disabled = false; }
-		else { btn.textContent = pubStatus === 'published' ? T( 'Published' ) : T( 'Publish' ); btn.disabled = false; btn.classList.toggle( 'is-live', pubStatus === 'published' ); if ( view && pubUrl ) { view.href = pubUrl; view.style.display = ''; } }
 	}
 
 	/* ============================================================
@@ -564,6 +577,8 @@
 		injectStyles();
 		wireEvents();
 		store.subscribe( renderAll );
+		store.subscribe( markDirty );
+		renderActions();
 		var fr = document.getElementById( 'vb-canvas' );
 		fr.addEventListener( 'load', function () { canvasReady = true; if ( ! store.state ) { boot(); } else { injectCanvas(); } } );
 		setTimeout( function () { if ( ! store.state ) { boot(); } }, 60 );
@@ -574,29 +589,55 @@
 	}
 	function topbarHTML() {
 		return '<div class="vb-top">' +
-			'<div class="vb-brand"><span class="vb-brand-m">V</span></div>' +
-			'<input id="vb-title" class="vb-title" type="text" value="' + escapeHtml( docTitle ) + '" placeholder="' + T( 'Untitled' ) + '" spellcheck="false">' +
-			'<button class="vb-ic" data-add title="' + T( 'Add element' ) + '">' + svg( 'plus', 17 ) + '</button>' +
-			'<div class="vb-sep"></div>' +
-			'<div class="vb-bp" id="vb-bp">' +
-				'<button data-bp="base" class="on" title="Desktop">' + svg( 'monitor', 15 ) + '</button>' +
-				'<button data-bp="tablet" title="Tablet">' + svg( 'tablet', 14 ) + '</button>' +
-				'<button data-bp="mobile" title="Mobile">' + svg( 'smartphone', 14 ) + '</button>' +
+			// LEFT: logo (menu) + page-title picker
+			'<div class="vb-tbc">' +
+				'<button class="vb-brand" id="vb-brand" title="Velox">' + veloxLogo() + '</button>' +
+				'<div class="vb-tsep"></div>' +
+				'<div class="vb-pagepick" id="vb-pagepick">' +
+					'<small>' + T( 'Editing' ) + '</small>' +
+					'<b><input id="vb-title" class="vb-title" type="text" value="' + escapeHtml( docTitle ) + '" placeholder="' + T( 'Untitled' ) + '" spellcheck="false">' +
+					'<button class="vb-pp-caret" id="vb-pp-caret" title="' + T( 'Switch page' ) + '">' + svg( 'chevron', 12 ) + '</button></b>' +
+				'</div>' +
 			'</div>' +
-			'<div class="vb-editing"><small>' + T( 'Editing' ) + '</small><b id="vb-bplabel">Desktop</b></div>' +
-			'<button class="vb-ic" id="vb-undo" title="Undo">' + svg( 'undo', 16 ) + '</button>' +
-			'<button class="vb-ic" id="vb-redo" title="Redo">' + svg( 'redo', 16 ) + '</button>' +
-			'<div class="vb-spring"></div>' +
-			'<button class="vb-save vb-save--idle" id="vb-save">' + T( 'Save' ) + '</button>' +
-			'<a class="vb-exit" href="' + ( CFG.backUrl || '#' ) + '">' + T( 'Exit' ) + '</a>' +
-			'<a class="vb-view" id="vb-view" href="#" target="_blank" rel="noopener" style="display:none">' + T( 'View page' ) + '</a>' +
-			'<button class="vb-publish" id="vb-publish">' + T( 'Publish' ) + '</button>' +
+			// CENTER: breakpoints + undo/redo
+			'<div class="vb-tbc vb-tbc-center">' +
+				'<div class="vb-bp" id="vb-bp">' +
+					'<button data-bp="base" class="on" title="Desktop">' + svg( 'monitor', 15 ) + '</button>' +
+					'<button data-bp="tablet" title="Tablet">' + svg( 'tablet', 14 ) + '</button>' +
+					'<button data-bp="mobile" title="Mobile">' + svg( 'smartphone', 14 ) + '</button>' +
+				'</div>' +
+				'<div class="vb-tsep"></div>' +
+				'<button class="vb-ic" id="vb-undo" title="Undo">' + svg( 'undo', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-redo" title="Redo">' + svg( 'redo', 16 ) + '</button>' +
+			'</div>' +
+			// RIGHT: exit + view + save/publish state buttons
+			'<div class="vb-tbc">' +
+				'<a class="vb-view" id="vb-view" href="#" target="_blank" rel="noopener" style="display:none">' + T( 'View page' ) + '</a>' +
+				'<a class="vb-exit" href="' + ( CFG.backUrl || '#' ) + '">' + T( 'Exit' ) + '</a>' +
+				'<div class="vb-tsep"></div>' +
+				'<span id="vb-actions"></span>' +
+			'</div>' +
+			// logo dropdown (hidden until brand clicked)
+			'<div class="vb-brandmenu" id="vb-brandmenu">' +
+				'<a class="vb-bm-i" href="' + ( CFG.settingsUrl || '#' ) + '">' + svg( 'gear', 15 ) + ' ' + T( 'Velox Builder settings' ) + '</a>' +
+				'<a class="vb-bm-i" href="' + ( CFG.backUrl || '#' ) + '">' + svg( 'home', 15 ) + ' ' + T( 'Back to WordPress' ) + '</a>' +
+			'</div>' +
 		'</div>';
+	}
+	function veloxLogo() {
+		return '<svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M4 6l8 18 8-18h-4.2L12 16.5 8.2 6H4z" fill="#2ab7f1"/><path d="M20 6l-3.4 7.6L20.7 24 28 6h-8z" fill="#a06bff"/></svg>';
 	}
 	function spineHTML() {
 		return '<aside class="vb-spine">' +
-			'<div class="vb-spine-top"><button class="vb-add-big" data-add>' + svg( 'plus', 17 ) + ' ' + T( 'Add element' ) + '</button></div>' +
-			'<div class="vb-spine-h">' + T( 'Layers' ) + '</div>' +
+			'<div class="vb-spine-top">' +
+				'<button class="vb-add-big" data-add>' + svg( 'plus', 17 ) + ' ' + T( 'Add element' ) + '</button>' +
+				'<div class="vb-quick">' +
+					'<a class="vb-qt" href="' + ( CFG.reusablesUrl || '#' ) + '">' + svg( 'copy', 15 ) + ' ' + T( 'Reusables' ) + '</a>' +
+					'<a class="vb-qt" href="' + ( CFG.settingsUrl || '#' ) + '">' + svg( 'gear', 15 ) + ' ' + T( 'Settings' ) + '</a>' +
+				'</div>' +
+			'</div>' +
+			'<div class="vb-spine-h"><span>' + T( 'Layers' ) + '</span></div>' +
+			'<div class="vb-spine-search"><span class="vb-ss-ic">' + svg( 'search', 13 ) + '</span><input id="vb-layer-search" placeholder="' + T( 'Find layer…' ) + '"></div>' +
 			'<div class="vb-tree" id="vb-tree"></div>' +
 		'</aside>';
 	}
@@ -608,7 +649,7 @@
 	function renderTopbar( state ) {
 		var b = document.querySelectorAll( '#vb-bp button' );
 		for ( var i = 0; i < b.length; i++ ) { b[ i ].classList.toggle( 'on', b[ i ].getAttribute( 'data-bp' ) === state.breakpoint ); }
-		document.getElementById( 'vb-bplabel' ).textContent = BP_META[ state.breakpoint ].label;
+		var bpl = document.getElementById( 'vb-bplabel' ); if ( bpl ) { bpl.textContent = BP_META[ state.breakpoint ].label; }
 		document.getElementById( 'vb-undo' ).style.opacity = store.history.length > 1 ? 1 : 0.4;
 		document.getElementById( 'vb-redo' ).style.opacity = store.future.length ? 1 : 0.4;
 	}
@@ -684,6 +725,8 @@
 			var pick = e.target.closest( '[data-pickimg]' ); if ( pick ) { openMediaPicker( pick.getAttribute( 'data-pickimg' ) ); return; }
 			if ( e.target.closest( '#vb-save' ) ) { saveDoc(); return; }
 			if ( e.target.closest( '#vb-publish' ) ) { publishDoc(); return; }
+			if ( e.target.closest( '#vb-brand' ) ) { document.getElementById( 'vb-brandmenu' ).classList.toggle( 'open' ); e.stopPropagation(); return; }
+			if ( ! e.target.closest( '#vb-brandmenu' ) ) { var bm = document.getElementById( 'vb-brandmenu' ); if ( bm ) { bm.classList.remove( 'open' ); } }
 			var tn = e.target.closest( '.vb-tn' ); if ( tn ) { store.commit( function ( s ) { s.selection = tn.getAttribute( 'data-node' ); resetActiveClass( s ); } ); return; }
 			var chip = e.target.closest( '.vb-chip' ); if ( chip ) { store.commit( function ( s ) { s.activeClass = chip.getAttribute( 'data-cls' ); } ); return; }
 			var blk = e.target.closest( '[data-block]' ); if ( blk ) { blk.parentElement.classList.toggle( 'closed' ); return; }
@@ -693,7 +736,8 @@
 			if ( ! e.target.closest( '.vb-addmenu' ) ) { closeAddMenu(); }
 		} );
 		document.addEventListener( 'input', function ( e ) {
-			if ( e.target.id === 'vb-title' ) { docTitle = e.target.value.trim() || 'Untitled'; setSaveState( 'idle' ); return; }
+			if ( e.target.id === 'vb-title' ) { docTitle = e.target.value.trim() || 'Untitled'; markDirty(); if ( everPublished ) { setSaveState( 'idle' ); } return; }
+			if ( e.target.id === 'vb-layer-search' ) { filterLayers( e.target.value.trim().toLowerCase() ); return; }
 			var n = e.target.closest( '[data-setnum]' );
 			if ( n ) { var v = e.target.value.trim(); clearTimeout( dbTimer ); dbTimer = setTimeout( function () { if ( v === '' ) { removeProp( n.getAttribute( 'data-setnum' ) ); } else { setProp( n.getAttribute( 'data-setnum' ), v ); } }, 150 ); return; }
 			var c = e.target.closest( '[data-setcolor]' ); if ( c ) { setProp( c.getAttribute( 'data-setcolor' ), e.target.value ); return; }
@@ -730,6 +774,13 @@
 	function escapeHtml( s ) { return String( s ).replace( /[&<>"]/g, function ( c ) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ c ]; } ); }
 	function reusableById( id ) { return ( CFG.reusables || [] ).filter( function ( r ) { return r.id === +id; } )[ 0 ] || null; }
 	function closeAddMenu() { var m = document.getElementById( 'vb-addmenu' ); if ( m ) { m.classList.remove( 'open' ); } }
+	function filterLayers( q ) {
+		var rows = document.querySelectorAll( '#vb-tree .vb-tn' );
+		for ( var i = 0; i < rows.length; i++ ) {
+			var txt = rows[ i ].textContent.toLowerCase();
+			rows[ i ].style.display = ( ! q || txt.indexOf( q ) > -1 ) ? '' : 'none';
+		}
+	}
 
 	/* ---------- drag-and-drop wiring for the layers tree ---------- */
 	var dragId = null;
@@ -777,8 +828,35 @@
 		var css = [
 			'.vb-app{position:fixed;inset:0;display:flex;flex-direction:column;background:#0a0a0c;color:#f4f4f6;font-size:12.5px}',
 			'.vb-app svg{display:block}',
-			'.vb-top{height:52px;display:flex;align-items:center;gap:8px;padding:0 12px;background:#121216;border-bottom:1px solid rgba(255,255,255,.07)}',
-			'.vb-brand-m{width:28px;height:28px;border-radius:8px;background:linear-gradient(140deg,#2ab7f1,#a06bff);display:grid;place-items:center;color:#fff;font-weight:800;font-size:13px}',
+			'.vb-top{height:54px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;background:#121216;border-bottom:1px solid rgba(255,255,255,.07);position:relative}',
+			'.vb-tbc{display:flex;align-items:center;gap:8px}',
+			'.vb-tbc-center{position:absolute;left:50%;transform:translateX(-50%);background:#121216;padding:0 10px}',
+			'.vb-brand{width:36px;height:34px;border-radius:9px;background:#1d1d24;border:1px solid rgba(255,255,255,.07);display:grid;place-items:center;cursor:pointer;padding:0}',
+			'.vb-brand:hover{background:#26262f}',
+			'.vb-tsep{width:1px;height:22px;background:rgba(255,255,255,.11);margin:0 3px}',
+			'.vb-pagepick{display:flex;flex-direction:column;justify-content:center;padding:0 4px}',
+			'.vb-pagepick small{font-size:9px;color:#606069;line-height:1;text-transform:uppercase;letter-spacing:.5px;padding-left:11px}',
+			'.vb-pagepick b{display:flex;align-items:center;gap:2px}',
+			'.vb-title{background:transparent;border:1px solid transparent;border-radius:8px;color:#f4f4f6;font-size:14px;font-weight:700;padding:5px 11px;width:180px;outline:none;transition:.1s;font-family:inherit}',
+			'.vb-title:hover{background:#1d1d24}.vb-title:focus{background:#1d1d24;border-color:#2ab7f1}',
+			'.vb-title::placeholder{color:#606069;font-weight:500}',
+			'.vb-pp-caret{background:none;border:none;color:#606069;cursor:pointer;padding:4px;border-radius:6px;display:grid;place-items:center}',
+			'.vb-pp-caret:hover{background:#26262f;color:#f4f4f6}',
+			'.vb-bp{display:flex;gap:2px;background:#0a0a0c;padding:3px;border-radius:9px}',
+			'.vb-brandmenu{position:absolute;top:50px;left:14px;width:230px;background:#17171d;border:1px solid rgba(255,255,255,.11);border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.6);padding:6px;z-index:300;display:none}',
+			'.vb-brandmenu.open{display:block}',
+			'.vb-bm-i{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:9px;color:#9d9da8;font-size:13px;font-weight:500;text-decoration:none}',
+			'.vb-bm-i:hover{background:#26262f;color:#f4f4f6}',
+			'.vb-exit{color:#9d9da8;text-decoration:none;font-weight:600;padding:8px 13px;border-radius:9px}',
+			'.vb-exit:hover{background:#26262f;color:#f4f4f6}',
+			'.vb-view{color:#43d17f;text-decoration:none;font-weight:600;padding:8px 12px;border-radius:9px;border:1px solid rgba(67,209,127,.3)}',
+			'.vb-view:hover{background:rgba(67,209,127,.12)}',
+			'.vb-btn-publish{padding:9px 18px;border-radius:9px;background:linear-gradient(180deg,#218ec4,#1a789f);color:#eef7fc;font-weight:700;border:none;cursor:pointer;font-size:13px}',
+			'.vb-btn-publish:hover{filter:brightness(1.08)}',
+			'.vb-btn-publish.is-live{background:linear-gradient(180deg,#3aa96a,#2d8b55);color:#eafaf0}',
+			'.vb-btn-save{padding:9px 15px;border-radius:9px;background:#1d1d24;color:#c9c9d1;font-weight:600;border:1px solid rgba(255,255,255,.09);cursor:pointer;font-size:13px;margin-right:6px}',
+			'.vb-btn-save:hover{background:#26262f;color:#f4f4f6}',
+			'.vb-save--saving{color:#f5a742}.vb-save--saved{color:#43d17f}.vb-save--error{color:#f56a5c}',
 			'.vb-ic{width:32px;height:32px;border-radius:8px;color:#9d9da8;display:grid;place-items:center;background:none;border:none;cursor:pointer}',
 			'.vb-ic:hover{background:#26262f;color:#f4f4f6}',
 			'.vb-sep{width:1px;height:22px;background:rgba(255,255,255,.11);margin:0 3px}',
@@ -815,6 +893,13 @@
 			'.vb-body{flex:1;display:grid;grid-template-columns:220px minmax(0,1fr) 306px;min-height:0;width:100%}',
 			'.vb-spine{background:#121216;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;min-height:0}',
 			'.vb-spine-top{padding:12px}',
+			'.vb-quick{display:flex;gap:6px;margin-top:8px}',
+			'.vb-qt{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:8px;background:#1d1d24;border:1px solid rgba(255,255,255,.06);color:#9d9da8;font-size:11.5px;font-weight:600;text-decoration:none}',
+			'.vb-qt:hover{background:#26262f;color:#f4f4f6}',
+			'.vb-spine-search{display:flex;align-items:center;gap:7px;margin:0 12px 8px;padding:7px 10px;background:#0a0a0c;border:1px solid rgba(255,255,255,.06);border-radius:9px}',
+			'.vb-ss-ic{color:#606069;display:grid;place-items:center}',
+			'.vb-spine-search input{flex:1;background:none;border:none;outline:none;color:#f4f4f6;font-size:12px}',
+			'.vb-spine-search input::placeholder{color:#606069}',
 			'.vb-add-big{width:100%;padding:11px;border-radius:11px;background:linear-gradient(180deg,#218ec4,#1a789f);color:#eef7fc;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer}',
 			'.vb-add-big:hover{background:linear-gradient(180deg,#2597ce,#1d82ab)}',
 			'.vb-spine-h{padding:6px 14px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#606069}',
@@ -828,8 +913,8 @@
 			'.vb-tn.drop-before{box-shadow:inset 0 2px 0 #2ab7f1}',
 			'.vb-tn.drop-after{box-shadow:inset 0 -2px 0 #2ab7f1}',
 			'.vb-tn.drop-inside{background:rgba(42,183,241,.14);box-shadow:inset 0 0 0 1px rgba(42,183,241,.5)}',
-			'.vb-stage{background:#16161b;display:flex;flex-direction:column;align-items:center;min-height:0;overflow:auto;padding:22px}',
-			'#vb-canvas{width:100%;max-width:1000px;min-height:70vh;background:#fff;border:none;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:max-width .25s}',
+			'.vb-stage{background:#16161b;display:flex;flex-direction:column;align-items:center;min-height:0;overflow:auto;padding:16px}',
+			'#vb-canvas{width:100%;max-width:1200px;min-height:78vh;background:#fff;border:none;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:max-width .25s}',
 			'.vb-css{width:100%;max-width:1000px;margin-top:12px;background:#121216;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden}',
 			'.vb-css-h{display:flex;justify-content:space-between;padding:9px 12px;font-size:10.5px;color:#606069;border-bottom:1px solid rgba(255,255,255,.07)}',
 			'.vb-live{color:#43d17f;display:flex;align-items:center;gap:6px}',

@@ -275,6 +275,8 @@ class Velox_Builder {
 			'kind'    => isset( $_GET['kind'] ) ? sanitize_key( wp_unslash( $_GET['kind'] ) ) : 'page',
 			'reusables' => self::reusables_payload(),
 			'backUrl' => admin_url( 'admin.php?page=' . self::SLUG ),
+			'settingsUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-settings' ),
+			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
 		);
 
