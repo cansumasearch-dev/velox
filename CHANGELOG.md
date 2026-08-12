@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.56.0 — Velox Builder: entry/exit fixes + Edit-with-Velox meta box
+- Opening a page with Velox now inherits that page’s title instead of resetting to “Untitled”, and Exit returns you to that page’s WordPress editor (not the builder home).
+- Added an “Edit with Velox” meta box on the page/post editor (like Oxygen’s), showing Build or Edit depending on whether the page already has a Velox layout.
+- The page switcher loads the chosen document into the editor and updates the current title.
+
 ## 3.55.0 — Velox Builder: topbar full-width + missing icons
 - Fixed the top bar collapsing to a centred cluster — it now spans the full width, with the three zones (logo/title, breakpoints/undo-redo, actions) pushed to left/centre/right as designed.
 - Added the search, code (page CSS/JS) and history icons to the top bar right zone (they were in the design but missing from the build). Code toggles the live-CSS panel; search opens the page switcher.

@@ -505,7 +505,7 @@
 	}
 
 	/* ---------- persistence (save / load via AJAX) ---------- */
-	var docId = CFG.docId || 0, docTitle = 'Untitled', saving = false, postId = CFG.postId || 0, docKind = CFG.kind || 'page';
+	var docId = CFG.docId || 0, docTitle = ( CFG.seedTitle || 'Untitled' ), saving = false, postId = CFG.postId || 0, docKind = CFG.kind || 'page';
 	function saveDoc( silent ) {
 		if ( saving || ! CFG.ajaxurl ) { return; }
 		saving = true; setSaveState( 'saving' );

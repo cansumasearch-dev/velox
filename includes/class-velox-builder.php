@@ -48,6 +48,33 @@ class Velox_Builder {
 		add_filter( 'page_row_actions', array( $this, 'row_action' ), 10, 2 );
 		add_filter( 'post_row_actions', array( $this, 'row_action' ), 10, 2 );
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar_link' ), 90 );
+		add_action( 'add_meta_boxes', array( $this, 'add_edit_metabox' ) );
+	}
+
+	/** "Edit with Velox" meta box on the page/post editor (like Oxygen's). */
+	public function add_edit_metabox() {
+		foreach ( array( 'page', 'post' ) as $type ) {
+			add_meta_box(
+				'velox-builder-edit',
+				__( 'Velox Builder', 'velox' ),
+				array( $this, 'render_edit_metabox' ),
+				$type,
+				'normal',
+				'high'
+			);
+		}
+	}
+
+	public function render_edit_metabox( $post ) {
+		$url   = self::edit_url_for_post( $post->ID );
+		$built = (bool) self::doc_id_for_post( $post->ID );
+		echo '<div style="text-align:center;padding:18px 0">';
+		echo '<a href="' . esc_url( $url ) . '" class="button button-primary button-hero" style="background:linear-gradient(180deg,#2ea9e6,#1f88bd);border:none;text-shadow:none;box-shadow:none">';
+		echo '<span style="vertical-align:middle">' . ( $built ? esc_html__( 'Edit with Velox', 'velox' ) : esc_html__( 'Build with Velox', 'velox' ) ) . '</span></a>';
+		echo '<p style="color:#787c82;margin:12px 0 0">' . ( $built
+			? esc_html__( 'This page has a Velox Builder layout. Opening the builder loads it.', 'velox' )
+			: esc_html__( 'Design this page visually with Velox Builder. Your current content stays until you publish a Velox layout.', 'velox' ) ) . '</p>';
+		echo '</div>';
 	}
 
 	/** Are we on a Velox Builder admin screen? */
@@ -83,14 +110,19 @@ class Velox_Builder {
 	 * return the editor URL. If the post already has a bound doc we reuse it;
 	 * otherwise a fresh doc is created and linked so edits round-trip.
 	 */
-	public static function edit_url_for_post( $post_id ) {
+	public static function doc_id_for_post( $post_id ) {
 		global $wpdb;
 		$post_id = (int) $post_id;
-		$t       = self::table();
-		$doc_id  = (int) $wpdb->get_var( $wpdb->prepare( "SELECT id FROM {$t} WHERE post_id = %d LIMIT 1", $post_id ) );
+		$doc_id  = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . self::table() . ' WHERE post_id = %d LIMIT 1', $post_id ) );
 		if ( ! $doc_id ) {
 			$doc_id = (int) get_post_meta( $post_id, '_velox_builder_doc', true );
 		}
+		return $doc_id;
+	}
+
+	public static function edit_url_for_post( $post_id ) {
+		$post_id = (int) $post_id;
+		$doc_id  = self::doc_id_for_post( $post_id );
 		return self::edit_url( $doc_id ) . ( $doc_id ? '' : '&post=' . $post_id );
 	}
 
@@ -267,14 +299,27 @@ class Velox_Builder {
 	private function render_editor_shell( $doc_id, $title ) {
 		$css_url = VELOX_ASSETS . 'css/velox-builder.css?v=' . VELOX_VERSION;
 		$js_url  = VELOX_ASSETS . 'js/velox-builder.js?v=' . VELOX_VERSION;
-		$boot    = array(
+		$post_id  = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
+		// When entering from a WP page/post, inherit its title and make Exit return
+		// to that post's editor (not the builder home).
+		$seed_title = '';
+		$back_url   = admin_url( 'admin.php?page=' . self::SLUG );
+		if ( $post_id ) {
+			$p = get_post( $post_id );
+			if ( $p ) {
+				$seed_title = $p->post_title;
+				$back_url   = get_edit_post_link( $post_id, 'raw' );
+			}
+		}
+		$boot = array(
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'velox_nonce' ),
 			'docId'   => $doc_id,
-			'postId'  => isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0,
+			'postId'  => $post_id,
+			'seedTitle' => $seed_title,
 			'kind'    => isset( $_GET['kind'] ) ? sanitize_key( wp_unslash( $_GET['kind'] ) ) : 'page',
 			'reusables' => self::reusables_payload(),
-			'backUrl' => admin_url( 'admin.php?page=' . self::SLUG ),
+			'backUrl' => $back_url,
 			'settingsUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-settings' ),
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'reviewConnections' => self::review_connections(),
