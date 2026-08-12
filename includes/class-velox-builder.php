@@ -49,6 +49,21 @@ class Velox_Builder {
 		add_filter( 'post_row_actions', array( $this, 'row_action' ), 10, 2 );
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar_link' ), 90 );
 		add_action( 'add_meta_boxes', array( $this, 'add_edit_metabox' ) );
+
+		// Two-way delete sync: deleting/trashing a WP post removes its Velox doc.
+		add_action( 'before_delete_post', array( __CLASS__, 'on_post_deleted' ) );
+		add_action( 'wp_trash_post', array( __CLASS__, 'on_post_deleted' ) );
+	}
+
+	/** When a WP page/post is deleted or trashed, drop its bound Velox document. */
+	public static function on_post_deleted( $post_id ) {
+		global $wpdb;
+		$post_id = (int) $post_id;
+		if ( ! $post_id ) {
+			return;
+		}
+		$wpdb->delete( self::table(), array( 'post_id' => $post_id ), array( '%d' ) );
+		delete_post_meta( $post_id, '_velox_builder_doc' );
 	}
 
 	/** "Edit with Velox" meta box on the page/post editor (like Oxygen's). */
@@ -500,14 +515,27 @@ class Velox_Builder {
 		);
 	}
 
+	/** Delete doc rows bound to a WP post that no longer exists (self-heal for #11). */
+	public static function purge_orphans() {
+		global $wpdb;
+		$t    = self::table();
+		$rows = $wpdb->get_results( "SELECT id, post_id FROM {$t} WHERE post_id > 0", ARRAY_A );
+		foreach ( (array) $rows as $r ) {
+			if ( ! get_post( (int) $r['post_id'] ) ) {
+				$wpdb->delete( $t, array( 'id' => (int) $r['id'] ), array( '%d' ) );
+			}
+		}
+	}
+
 	/** List documents for the admin section (Overview / lists). */
 	public static function list_docs( $kind = null, $limit = 50 ) {
 		global $wpdb;
+		self::purge_orphans();
 		$t = self::table();
 		if ( $kind ) {
-			return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, css_size, updated FROM {$t} WHERE kind = %s ORDER BY updated DESC LIMIT %d", $kind, $limit ), ARRAY_A );
+			return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, post_id, css_size, updated FROM {$t} WHERE kind = %s ORDER BY updated DESC LIMIT %d", $kind, $limit ), ARRAY_A );
 		}
-		return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, css_size, updated FROM {$t} ORDER BY updated DESC LIMIT %d", $limit ), ARRAY_A );
+		return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, post_id, css_size, updated FROM {$t} ORDER BY updated DESC LIMIT %d", $limit ), ARRAY_A );
 	}
 
 	/* =====================================================================
@@ -746,8 +774,16 @@ class Velox_Builder {
 		if ( ! $id ) {
 			wp_send_json_error( array( 'message' => __( 'No document specified.', 'velox' ) ), 400 );
 		}
+		// If this doc is bound to a WP page/post, trash that post too (recoverable).
+		$post_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . self::table() . ' WHERE id = %d', $id ) );
 		$wpdb->delete( self::table(), array( 'id' => $id ), array( '%d' ) );
-		wp_send_json_success( array( 'id' => $id ) );
+		if ( $post_id ) {
+			// Detach our hook first so trashing doesn't recurse back here.
+			remove_action( 'wp_trash_post', array( 'Velox_Builder', 'on_post_deleted' ) );
+			wp_trash_post( $post_id );
+			delete_post_meta( $post_id, '_velox_builder_doc' );
+		}
+		wp_send_json_success( array( 'id' => $id, 'trashed_post' => $post_id ) );
 	}
 
 	/* =====================================================================

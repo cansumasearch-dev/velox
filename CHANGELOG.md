@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.59.0 — Velox Builder: undo/redo + revert fixes, structure panel, delete sync (wave A)
+- Fixed the top-bar undo/redo arrows — they now step one change at a time instead of jumping two or doing nothing. Selecting elements no longer pollutes the history.
+- Fixed session-history revert: reverting to a point now restores exactly that state instead of wiping the page.
+- Added a Structure button in the top bar that opens a collapsible outline of the whole page; click a node to select it, click the caret to collapse/expand.
+- Only one panel (add element, CSS, history, structure, page switcher) can be open at a time now — opening one closes the others.
+- Overview no longer shows pages whose WordPress post was deleted, and delete now syncs both ways: deleting a page in the Velox overview trashes the bound WordPress page, and trashing/deleting a WordPress page removes its Velox document.
+
 ## 3.58.0 — Velox Builder: session history
 - The history (clock) button opens a session history panel: it starts empty when you open a page, lists each edit you make (add, delete, style, class, text…) newest-first, and lets you click any point to revert to it.
 - History is in-memory only — it clears when you close the editor, so nothing is stored on the server.

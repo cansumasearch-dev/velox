@@ -50,6 +50,7 @@
 		list:'<path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/>',
 		x:'<path d="M18 6 6 18M6 6l12 12"/>',
 		clock:'<circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>',
+		structure:'<path d="M3 3h7v7H3zM14 3h7v4h-7zM14 10h7v4h-7zM14 17h7v4h-7z"/><path d="M10 6h4M10 12h4M10 19h4"/>',
 		droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>'
 	};
 	function svg( name, size ) {
@@ -64,12 +65,15 @@
 	var store = {
 		state:null, history:[], future:[], listeners:[], log:[], logListeners:[],
 		init:function ( d ) { this.state = d; this.history = [ JSON.stringify( d ) ]; this.log = []; this.future = []; this.emitLog(); this.emit(); },
-		snapshot:function () { this.history.push( JSON.stringify( this.state ) ); if ( this.history.length > 120 ) { this.history.shift(); } this.future = []; },
-		commit:function ( fn, label ) { this.snapshot(); fn( this.state ); if ( label ) { this.log.push( { label:label, at:Date.now(), idx:this.history.length } ); if ( this.log.length > 120 ) { this.log.shift(); } this.emitLog(); } this.emit(); },
+		snapshot:function () { var snap = JSON.stringify( this.state ); if ( this.history[ this.history.length - 1 ] === snap ) { return false; } this.history.push( snap ); if ( this.history.length > 120 ) { this.history.shift(); } this.future = []; return true; },
+		/* commit: fn mutates state; snapshot the RESULT so history holds real edit
+		   states. quiet=true (selection, hover) doesn't record history/log. */
+		commit:function ( fn, label ) { fn( this.state ); if ( label !== false ) { var pushed = this.snapshot(); if ( pushed && label ) { this.log.push( { label:label, at:Date.now(), idx:this.history.length } ); if ( this.log.length > 120 ) { this.log.shift(); } this.emitLog(); } } this.emit(); },
 		undo:function () { if ( this.history.length <= 1 ) { return; } this.future.push( this.history.pop() ); this.state = JSON.parse( this.history[ this.history.length - 1 ] ); this.emit(); },
 		redo:function () { if ( ! this.future.length ) { return; } var s = this.future.pop(); this.history.push( s ); this.state = JSON.parse( s ); this.emit(); },
-		/* Revert to a specific point in history (session history panel). */
-		revertTo:function ( idx ) { if ( idx < 1 || idx > this.history.length ) { return; } this.history = this.history.slice( 0, idx ); this.state = JSON.parse( this.history[ this.history.length - 1 ] ); this.future = []; this.log = this.log.filter( function ( l ) { return l.idx <= idx; } ); this.emitLog(); this.emit(); },
+		/* Revert to a specific snapshot (session history). idx = history length at
+		   that point, so history[idx-1] is that state. */
+		revertTo:function ( idx ) { if ( idx < 1 || idx > this.history.length ) { return; } this.state = JSON.parse( this.history[ idx - 1 ] ); this.history = this.history.slice( 0, idx ); this.future = []; this.log = this.log.filter( function ( l ) { return l.idx <= idx; } ); this.emitLog(); this.emit(); },
 		subscribe:function ( fn ) { this.listeners.push( fn ); },
 		subscribeLog:function ( fn ) { this.logListeners.push( fn ); },
 		emit:function () { for ( var i = 0; i < this.listeners.length; i++ ) { this.listeners[ i ]( this.state ); } },
@@ -249,7 +253,7 @@
 			doc.addEventListener( 'click', function ( e ) {
 				if ( e.target.isContentEditable ) { return; }
 				var n = e.target.closest ? e.target.closest( '[data-node]' ) : null;
-				if ( n ) { e.preventDefault(); store.commit( function ( s ) { s.selection = n.getAttribute( 'data-node' ); resetActiveClass( s ); } ); }
+				if ( n ) { e.preventDefault(); store.commit( function ( s ) { s.selection = n.getAttribute( 'data-node' ); resetActiveClass( s ); }, false ); }
 			} );
 			// Double-click a text-bearing element to edit its text right on the canvas.
 			doc.addEventListener( 'dblclick', function ( e ) {
@@ -656,6 +660,7 @@
 			'</div>' +
 			'<div class="vb-csspanel" id="vb-css"></div>' +
 			'<div class="vb-histpanel" id="vb-hist"></div>' +
+			'<div class="vb-structpanel" id="vb-struct"></div>' +
 			'<div class="vb-addmenu" id="vb-addmenu"></div>';
 		injectStyles();
 		wireEvents();
@@ -696,6 +701,7 @@
 			'</div>' +
 			// RIGHT: search/code/history + exit + view + save/publish state buttons
 			'<div class="vb-tbc">' +
+				'<button class="vb-ic" id="vb-structure" title="' + T( 'Structure' ) + '">' + svg( 'structure', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-search" title="' + T( 'Search' ) + '">' + svg( 'search', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-code" title="' + T( 'Page CSS / JS' ) + '">' + svg( 'code', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-history" title="' + T( 'History' ) + '">' + svg( 'clock', 16 ) + '</button>' +
@@ -744,6 +750,7 @@
 
 	function renderAll( state ) {
 		renderTree( state ); renderInspector( state ); renderTopbar( state ); renderCSSPanel();
+		if ( structShown ) { renderStructPanel(); }
 		injectCanvas();
 	}
 	function renderTopbar( state ) {
@@ -887,6 +894,30 @@
 	}
 	function scheduleCssSave() { clearTimeout( cssSaveTimer ); cssSaveTimer = setTimeout( saveGlobalCss, 700 ); injectGlobalCss(); }
 
+	/* ---------- Structure panel (collapsible full-page outline) ---------- */
+	var structShown = false, structCollapsed = {};
+	function renderStructPanel() {
+		var box = document.getElementById( 'vb-struct' ); if ( ! box ) { return; }
+		if ( ! structShown ) { box.style.display = 'none'; return; }
+		box.style.display = 'flex';
+		var sel = store.state ? store.state.selection : null;
+		function row( node, depth ) {
+			var kids = node.children || [];
+			var hasKids = kids.length > 0;
+			var collapsed = !! structCollapsed[ node.id ];
+			var name = ( node.el || 'El' ) + ( node.classes && node.classes[ 0 ] ? ' · ' + node.classes[ 0 ] : '' );
+			var caret = hasKids ? '<span class="vb-st-caret' + ( collapsed ? ' closed' : '' ) + '" data-stcaret="' + node.id + '">' + svg( 'chevron', 11 ) + '</span>' : '<span class="vb-st-spacer"></span>';
+			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + '" data-stnode="' + node.id + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px">' + caret + '<span class="vb-st-ic">' + svg( elIcon( node.el ), 13 ) + '</span><span class="vb-st-l">' + escapeHtml( name ) + '</span></div>';
+			if ( hasKids && ! collapsed ) { html += kids.map( function ( k ) { return row( k, depth + 1 ); } ).join( '' ); }
+			return html;
+		}
+		var tree = store.state ? store.state.tree : [];
+		var body = tree.length ? tree.map( function ( n ) { return row( n, 0 ); } ).join( '' ) : '<div class="vb-hist-empty">' + T( 'Nothing on the page yet.' ) + '</div>';
+		box.innerHTML =
+			'<div class="vb-hist-top"><b>' + T( 'Structure' ) + '</b><button class="vb-css-x" id="vb-struct-close">' + svg( 'x', 14 ) + '</button></div>' +
+			'<div class="vb-st-tree">' + body + '</div>';
+	}
+
 	/* ---------- Session history (in-memory, cleared on close) ---------- */
 	var historyShown = false;
 	function timeAgo( ts ) {
@@ -921,13 +952,17 @@
 			if ( e.target.closest( '[data-dup]' ) ) { duplicateNode( store.state.selection ); return; }
 			if ( e.target.closest( '[data-del]' ) ) { deleteNode( store.state.selection ); return; }
 			var pick = e.target.closest( '[data-pickimg]' ); if ( pick ) { openMediaPicker( pick.getAttribute( 'data-pickimg' ) ); return; }
-			if ( e.target.closest( '#vb-code' ) ) { cssShown = ! cssShown; renderCSSPanel(); return; }
+			if ( e.target.closest( '#vb-code' ) ) { cssShown = ! cssShown; if ( cssShown ) { closeAllPanels( 'css' ); } renderCSSPanel(); return; }
 			if ( e.target.closest( '#vb-css-close' ) ) { cssShown = false; renderCSSPanel(); return; }
 			if ( e.target.closest( '#vb-css-new' ) ) { cssFiles.push( { name:'file-' + ( cssFiles.length + 1 ) + '.css', css:'' } ); cssActive = cssFiles.length - 1; renderCSSPanel(); saveGlobalCss(); return; }
 			if ( e.target.closest( '#vb-css-del' ) ) { if ( cssFiles.length > 1 && confirm( T( 'Delete this CSS file?' ) ) ) { cssFiles.splice( cssActive, 1 ); cssActive = 0; renderCSSPanel(); scheduleCssSave(); } return; }
 			var cf = e.target.closest( '[data-cssfile]' ); if ( cf ) { cssActive = +cf.getAttribute( 'data-cssfile' ); renderCSSPanel(); return; }
 			if ( e.target.closest( '#vb-search' ) ) { toggleSwitcher(); e.stopPropagation(); return; }
-			if ( e.target.closest( '#vb-history' ) ) { historyShown = ! historyShown; renderHistoryPanel(); return; }
+			if ( e.target.closest( '#vb-structure' ) ) { structShown = ! structShown; if ( structShown ) { closeAllPanels( 'struct' ); } renderStructPanel(); return; }
+			if ( e.target.closest( '#vb-struct-close' ) ) { structShown = false; renderStructPanel(); return; }
+			var stc = e.target.closest( '[data-stcaret]' ); if ( stc ) { var sid = stc.getAttribute( 'data-stcaret' ); structCollapsed[ sid ] = ! structCollapsed[ sid ]; renderStructPanel(); e.stopPropagation(); return; }
+			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) { store.commit( function ( s ) { s.selection = stn.getAttribute( 'data-stnode' ); resetActiveClass( s ); }, false ); return; }
+			if ( e.target.closest( '#vb-history' ) ) { historyShown = ! historyShown; if ( historyShown ) { closeAllPanels( 'hist' ); } renderHistoryPanel(); return; }
 			if ( e.target.closest( '#vb-hist-close' ) ) { historyShown = false; renderHistoryPanel(); return; }
 			var hr = e.target.closest( '[data-revert]' ); if ( hr ) { store.revertTo( +hr.getAttribute( 'data-revert' ) ); return; }
 			if ( e.target.closest( '#vb-save' ) ) { saveDoc(); return; }
@@ -935,18 +970,18 @@
 			if ( e.target.closest( '#vb-pp-caret' ) || e.target.id === 'vb-title' && false ) { toggleSwitcher(); e.stopPropagation(); return; }
 			var psf = e.target.closest( '.vb-ps-f' ); if ( psf ) { switcherFilter = psf.getAttribute( 'data-filter' ); document.querySelectorAll( '.vb-ps-f' ).forEach( function ( x ) { x.classList.remove( 'on' ); } ); psf.classList.add( 'on' ); renderSwitcher(); e.stopPropagation(); return; }
 			if ( ! e.target.closest( '#vb-pageswitch' ) && ! e.target.closest( '#vb-pp-caret' ) ) { var ps = document.getElementById( 'vb-pageswitch' ); if ( ps ) { ps.classList.remove( 'open' ); } }
-			if ( e.target.closest( '#vb-brand' ) ) { document.getElementById( 'vb-brandmenu' ).classList.toggle( 'open' ); e.stopPropagation(); return; }
+			if ( e.target.closest( '#vb-brand' ) ) { var wasOpen = document.getElementById( 'vb-brandmenu' ).classList.contains( 'open' ); closeAllPanels( 'brand' ); if ( ! wasOpen ) { document.getElementById( 'vb-brandmenu' ).classList.add( 'open' ); } e.stopPropagation(); return; }
 			if ( ! e.target.closest( '#vb-brandmenu' ) ) { var bm = document.getElementById( 'vb-brandmenu' ); if ( bm ) { bm.classList.remove( 'open' ); } }
-			var tn = e.target.closest( '.vb-tn' ); if ( tn ) { store.commit( function ( s ) { s.selection = tn.getAttribute( 'data-node' ); resetActiveClass( s ); } ); return; }
+			var tn = e.target.closest( '.vb-tn' ); if ( tn ) { store.commit( function ( s ) { s.selection = tn.getAttribute( 'data-node' ); resetActiveClass( s ); }, false ); return; }
 			var tabBtn = e.target.closest( '[data-tab]' ); if ( tabBtn ) { inspTab = tabBtn.getAttribute( 'data-tab' ); renderInspector( store.state ); return; }
 			var delchip = e.target.closest( '[data-delchip]' ); if ( delchip ) { e.stopPropagation(); removeClassFromNode( delchip.getAttribute( 'data-delchip' ) ); return; }
 			if ( e.target.closest( '[data-addclass]' ) ) { addClassToSelected(); return; }
 			var settag = e.target.closest( '[data-settag]' ); if ( settag ) { setNodeTag( settag.getAttribute( 'data-settag' ) ); return; }
-			var chip = e.target.closest( '.vb-chip' ); if ( chip && ! chip.classList.contains( 'vb-chip-add' ) ) { store.commit( function ( s ) { s.activeClass = chip.getAttribute( 'data-cls' ); } ); return; }
+			var chip = e.target.closest( '.vb-chip' ); if ( chip && ! chip.classList.contains( 'vb-chip-add' ) ) { store.commit( function ( s ) { s.activeClass = chip.getAttribute( 'data-cls' ); }, false ); return; }
 			var blk = e.target.closest( '[data-block]' ); if ( blk ) { blk.parentElement.classList.toggle( 'closed' ); return; }
-			var stbtn = e.target.closest( '[data-state]' ); if ( stbtn ) { store.commit( function ( s ) { s.state = stbtn.getAttribute( 'data-state' ); } ); return; }
+			var stbtn = e.target.closest( '[data-state]' ); if ( stbtn ) { store.commit( function ( s ) { s.state = stbtn.getAttribute( 'data-state' ); }, false ); return; }
 			var seg = e.target.closest( '[data-set][data-val]' ); if ( seg ) { setProp( seg.getAttribute( 'data-set' ), seg.getAttribute( 'data-val' ) ); return; }
-			var bp = e.target.closest( '#vb-bp button' ); if ( bp ) { store.commit( function ( s ) { s.breakpoint = bp.getAttribute( 'data-bp' ); } ); resizeCanvas( bp.getAttribute( 'data-bp' ) ); return; }
+			var bp = e.target.closest( '#vb-bp button' ); if ( bp ) { store.commit( function ( s ) { s.breakpoint = bp.getAttribute( 'data-bp' ); }, false ); resizeCanvas( bp.getAttribute( 'data-bp' ) ); return; }
 			if ( ! e.target.closest( '.vb-addmenu' ) ) { closeAddMenu(); }
 		} );
 		document.addEventListener( 'input', function ( e ) {
@@ -977,6 +1012,7 @@
 	function toggleAddMenu( anchor ) {
 		var m = document.getElementById( 'vb-addmenu' );
 		if ( m.classList.contains( 'open' ) ) { closeAddMenu(); return; }
+		closeAllPanels( 'add' );
 		renderAddPanel( '' );
 		m.classList.add( 'open' );
 		var si = document.getElementById( 'vb-ap-search' ); if ( si ) { si.focus(); }
@@ -1013,12 +1049,22 @@
 	function escapeHtml( s ) { return String( s ).replace( /[&<>"]/g, function ( c ) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ c ]; } ); }
 	function reusableById( id ) { return ( CFG.reusables || [] ).filter( function ( r ) { return r.id === +id; } )[ 0 ] || null; }
 	function closeAddMenu() { var m = document.getElementById( 'vb-addmenu' ); if ( m ) { m.classList.remove( 'open' ); } }
+	/* Only one side panel / dropdown open at a time. */
+	function closeAllPanels( except ) {
+		if ( except !== 'add' ) { var a = document.getElementById( 'vb-addmenu' ); if ( a ) { a.classList.remove( 'open' ); } }
+		if ( except !== 'css' ) { cssShown = false; var c = document.getElementById( 'vb-css' ); if ( c ) { c.style.display = 'none'; } }
+		if ( except !== 'hist' ) { historyShown = false; var h = document.getElementById( 'vb-hist' ); if ( h ) { h.style.display = 'none'; } }
+		if ( except !== 'struct' ) { structShown = false; var st = document.getElementById( 'vb-struct' ); if ( st ) { st.style.display = 'none'; } }
+		if ( except !== 'brand' ) { var bm = document.getElementById( 'vb-brandmenu' ); if ( bm ) { bm.classList.remove( 'open' ); } }
+		if ( except !== 'switch' ) { var ps = document.getElementById( 'vb-pageswitch' ); if ( ps ) { ps.classList.remove( 'open' ); } }
+	}
 
 	/* ---------- page switcher ---------- */
 	var switcherData = null, switcherFilter = 'all', switcherQuery = '';
 	function toggleSwitcher() {
 		var d = document.getElementById( 'vb-pageswitch' );
 		if ( d.classList.contains( 'open' ) ) { d.classList.remove( 'open' ); return; }
+		closeAllPanels( 'switch' );
 		d.classList.add( 'open' );
 		var si = document.getElementById( 'vb-ps-search' ); if ( si ) { si.focus(); }
 		if ( ! switcherData ) { fetchSwitcher(); } else { renderSwitcher(); }
@@ -1251,6 +1297,14 @@
 			'.vb-hist-dot{width:7px;height:7px;border-radius:50%;background:#2ab7f1;flex:0 0 auto}',
 			'.vb-hist-l{flex:1;font-size:12.5px}',
 			'.vb-hist-t{font-size:10.5px;color:#606069}',
+			'.vb-structpanel{position:absolute;top:54px;left:0;bottom:0;width:300px;background:#121216;border-right:1px solid rgba(255,255,255,.12);box-shadow:8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
+			'.vb-st-tree{flex:1;overflow:auto;padding:6px}',
+			'.vb-st-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;cursor:pointer;color:#c9c9d1}',
+			'.vb-st-row:hover{background:#26262f}.vb-st-row.sel{background:rgba(42,183,241,.14);color:#f4f4f6}',
+			'.vb-st-caret{display:grid;place-items:center;color:#606069;cursor:pointer;transition:transform .12s;width:14px}.vb-st-caret.closed{transform:rotate(-90deg)}',
+			'.vb-st-spacer{width:14px;flex:0 0 auto}',
+			'.vb-st-ic{color:#8a8a94;display:grid;place-items:center}.vb-st-row.sel .vb-st-ic{color:#2ab7f1}',
+			'.vb-st-l{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
 			'.vb-live{color:#43d17f;display:flex;align-items:center;gap:6px}',
 			'.vb-live::before{content:"";width:6px;height:6px;border-radius:50%;background:#43d17f;box-shadow:0 0 8px #43d17f}',
 			'.vb-css pre{margin:0;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#9d9da8;white-space:pre;overflow:auto;max-height:220px}',
