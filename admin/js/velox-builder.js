@@ -62,14 +62,18 @@
 	   1. STORE
 	   ============================================================ */
 	var store = {
-		state:null, history:[], future:[], listeners:[],
-		init:function ( d ) { this.state = d; this.history = [ JSON.stringify( d ) ]; this.emit(); },
+		state:null, history:[], future:[], listeners:[], log:[], logListeners:[],
+		init:function ( d ) { this.state = d; this.history = [ JSON.stringify( d ) ]; this.log = []; this.future = []; this.emitLog(); this.emit(); },
 		snapshot:function () { this.history.push( JSON.stringify( this.state ) ); if ( this.history.length > 120 ) { this.history.shift(); } this.future = []; },
-		commit:function ( fn ) { this.snapshot(); fn( this.state ); this.emit(); },
+		commit:function ( fn, label ) { this.snapshot(); fn( this.state ); if ( label ) { this.log.push( { label:label, at:Date.now(), idx:this.history.length } ); if ( this.log.length > 120 ) { this.log.shift(); } this.emitLog(); } this.emit(); },
 		undo:function () { if ( this.history.length <= 1 ) { return; } this.future.push( this.history.pop() ); this.state = JSON.parse( this.history[ this.history.length - 1 ] ); this.emit(); },
 		redo:function () { if ( ! this.future.length ) { return; } var s = this.future.pop(); this.history.push( s ); this.state = JSON.parse( s ); this.emit(); },
+		/* Revert to a specific point in history (session history panel). */
+		revertTo:function ( idx ) { if ( idx < 1 || idx > this.history.length ) { return; } this.history = this.history.slice( 0, idx ); this.state = JSON.parse( this.history[ this.history.length - 1 ] ); this.future = []; this.log = this.log.filter( function ( l ) { return l.idx <= idx; } ); this.emitLog(); this.emit(); },
 		subscribe:function ( fn ) { this.listeners.push( fn ); },
-		emit:function () { for ( var i = 0; i < this.listeners.length; i++ ) { this.listeners[ i ]( this.state ); } }
+		subscribeLog:function ( fn ) { this.logListeners.push( fn ); },
+		emit:function () { for ( var i = 0; i < this.listeners.length; i++ ) { this.listeners[ i ]( this.state ); } },
+		emitLog:function () { for ( var i = 0; i < this.logListeners.length; i++ ) { this.logListeners[ i ]( this.log ); } }
 	};
 
 	/* A new page starts empty — no demo content. */
@@ -292,7 +296,7 @@
 		elNode.removeAttribute( 'contenteditable' ); elNode.style.outline = '';
 		elNode.removeEventListener( 'keydown', inlineKey ); elNode.removeEventListener( 'blur', commitInlineEdit );
 		var prev = editing; editing = null;
-		if ( store.state.content[ id ] !== text ) { store.commit( function ( s ) { s.content[ id ] = text; } ); }
+		if ( store.state.content[ id ] !== text ) { store.commit( function ( s ) { s.content[ id ] = text; }, T( 'Edit text' ) ); }
 	}
 	function cancelInlineEdit() {
 		if ( ! editing ) { return; }
@@ -325,7 +329,7 @@
 			var node = findNode( s.tree, s.selection ), key = ruleKey( s.breakpoint, s.state );
 			if ( elementOverride ) { node.overrides[ key ] = node.overrides[ key ] || {}; node.overrides[ key ][ prop ] = value; }
 			else { var c = s.activeClass; s.classes[ c ] = s.classes[ c ] || {}; s.classes[ c ][ key ] = s.classes[ c ][ key ] || {}; s.classes[ c ][ key ][ prop ] = value; }
-		} );
+		}, T( 'Style' ) + ': ' + prop );
 	}
 	function removeProp( prop ) { store.commit( function ( s ) { var c = s.activeClass, key = ruleKey( s.breakpoint, s.state ); if ( s.classes[ c ] && s.classes[ c ][ key ] ) { delete s.classes[ c ][ key ][ prop ]; } } ); }
 	/* rules for the "normal" state live under the plain breakpoint key (back-compat);
@@ -398,7 +402,7 @@
 				}
 			}
 			s.selection = id; resetActiveClass( s );
-		} );
+		}, T( 'Add' ) + ' ' + cat.label );
 	}
 	function isContainer( n ) { return n.el === 'Section' || n.el === 'Div' || n.el === 'Columns'; }
 	/* Add a class to the selected node (creating the class if new). */
@@ -413,7 +417,7 @@
 			n.classes.push( name );
 			if ( ! s.classes[ name ] ) { s.classes[ name ] = { base:{} }; }
 			s.activeClass = name;
-		} );
+		}, T( 'Add class' ) + ' ' + name );
 	}
 	/* Remove a class from the selected node (keeps the class definition around). */
 	function removeClassFromNode( cls ) {
@@ -422,7 +426,7 @@
 			var i = n.classes.indexOf( cls ); if ( i < 0 ) { return; }
 			n.classes.splice( i, 1 );
 			if ( s.activeClass === cls ) { s.activeClass = n.classes[ 0 ] || null; }
-		} );
+		}, T( 'Remove class' ) + ' ' + cls );
 	}
 	/* Change the HTML tag of the selected node (e.g. heading level). */
 	function setNodeTag( tag ) {
@@ -443,7 +447,7 @@
 				else { var ri = s.tree.map( function ( n ) { return n.id; } ).indexOf( s.selection ); s.tree.splice( ri < 0 ? s.tree.length : ri + 1, 0, node ); }
 			}
 			s.selection = id; resetActiveClass( s );
-		} );
+		}, T( 'Add reusable' ) );
 	}
 	function findParent( nodes, id, parent ) {
 		for ( var i = 0; i < nodes.length; i++ ) {
@@ -462,7 +466,7 @@
 			if ( parent ) { var i = parent.children.indexOf( node ); parent.children.splice( i + 1, 0, copy ); }
 			else { var ri = s.tree.indexOf( node ); s.tree.splice( ri + 1, 0, copy ); }
 			s.selection = copy.id; resetActiveClass( s );
-		} );
+		}, T( 'Duplicate' ) + ' ' + ( node.el || 'element' ) );
 	}
 	function cloneWithNewIds( node, s ) {
 		var nid = uid( node.el.toLowerCase() );
@@ -470,12 +474,14 @@
 		return { id:nid, el:node.el, tag:node.tag, classes:node.classes.slice(), overrides:JSON.parse( JSON.stringify( node.overrides || {} ) ), children:( node.children || [] ).map( function ( c ) { return cloneWithNewIds( c, s ); } ) };
 	}
 	function deleteNode( id ) {
+		var delNode = findNode( store.state.tree, id );
+		var delLabel = T( 'Delete' ) + ' ' + ( ( delNode || {} ).el || 'element' );
 		store.commit( function ( s ) {
 			var parent = findParent( s.tree, id ), node = findNode( s.tree, id );
 			if ( parent ) { parent.children.splice( parent.children.indexOf( node ), 1 ); s.selection = parent.id; }
 			else { var i = s.tree.indexOf( node ); if ( i >= 0 ) { s.tree.splice( i, 1 ); } s.selection = s.tree.length ? s.tree[ Math.max( 0, i - 1 ) ].id : null; }
 			if ( s.selection ) { resetActiveClass( s ); }
-		} );
+		}, delLabel );
 	}
 
 	/* ---------- drag-reorder (layers panel) ---------- */
@@ -645,17 +651,20 @@
 		root.innerHTML =
 			topbarHTML() +
 			'<div class="vb-body">' + spineHTML() +
-				'<main class="vb-stage"><iframe id="vb-canvas" title="Canvas"></iframe><div class="vb-css" id="vb-css"></div></main>' +
+				'<main class="vb-stage"><iframe id="vb-canvas" title="Canvas"></iframe></main>' +
 				'<aside class="vb-inspector" id="vb-inspector"></aside>' +
 			'</div>' +
+			'<div class="vb-csspanel" id="vb-css"></div>' +
+			'<div class="vb-histpanel" id="vb-hist"></div>' +
 			'<div class="vb-addmenu" id="vb-addmenu"></div>';
 		injectStyles();
 		wireEvents();
 		store.subscribe( renderAll );
 		store.subscribe( markDirty );
+		store.subscribeLog( function () { if ( historyShown ) { renderHistoryPanel(); } } );
 		renderActions();
 		var fr = document.getElementById( 'vb-canvas' );
-		fr.addEventListener( 'load', function () { canvasReady = true; if ( ! store.state ) { boot(); } else { injectCanvas(); } } );
+		fr.addEventListener( 'load', function () { canvasReady = true; if ( ! store.state ) { boot(); } else { injectCanvas(); } injectGlobalCss(); } );
 		setTimeout( function () { if ( ! store.state ) { boot(); } }, 60 );
 	}
 	function boot() {
@@ -839,11 +848,68 @@
 		s += '</div>';
 		return s;
 	}
+	/* ---------- Global CSS files editor (right-side panel) ---------- */
+	var cssFiles = ( CFG.globalCss && CFG.globalCss.length ) ? CFG.globalCss.slice() : [ { name:'global.css', css:'' } ];
+	var cssActive = 0, cssSaveTimer;
 	function renderCSSPanel() {
 		var box = document.getElementById( 'vb-css' ); if ( ! box ) { return; }
-		if ( ! cssShown ) { box.style.display = 'none'; return; }
-		box.style.display = 'block';
-		box.innerHTML = '<div class="vb-css-h"><span class="vb-live">' + T( 'live CSS' ) + '</span><span>' + ( new Blob( [ genCSS() ] ).size ) + ' bytes</span></div><pre>' + genCSS().replace( /&/g, '&amp;' ).replace( /</g, '&lt;' ) + '</pre>';
+		if ( ! cssShown ) { box.style.display = 'none'; injectGlobalCss(); return; }
+		box.style.display = 'flex';
+		var f = cssFiles[ cssActive ] || cssFiles[ 0 ];
+		box.innerHTML =
+			'<div class="vb-css-top"><b>' + T( 'Global CSS' ) + '</b><button class="vb-css-x" id="vb-css-close">' + svg( 'x', 14 ) + '</button></div>' +
+			'<div class="vb-css-files">' +
+				cssFiles.map( function ( fl, i ) { return '<button class="vb-css-file' + ( i === cssActive ? ' on' : '' ) + '" data-cssfile="' + i + '">' + svg( 'code', 12 ) + '<span>' + escapeHtml( fl.name ) + '</span></button>'; } ).join( '' ) +
+				'<button class="vb-css-new" id="vb-css-new">' + svg( 'plus', 13 ) + ' ' + T( 'New file' ) + '</button>' +
+			'</div>' +
+			'<div class="vb-css-name"><input id="vb-css-name" value="' + escapeHtml( f.name ) + '" spellcheck="false">' +
+				( cssFiles.length > 1 ? '<button class="vb-css-del" id="vb-css-del" title="' + T( 'Delete file' ) + '">' + svg( 'trash', 13 ) + '</button>' : '' ) + '</div>' +
+			'<textarea id="vb-css-code" class="vb-css-code" spellcheck="false" placeholder="/* ' + T( 'Global CSS — applies to every page' ) + ' */">' + escapeHtml( f.css ) + '</textarea>' +
+			'<div class="vb-css-foot"><span id="vb-css-status">' + T( 'Applies to every Velox page' ) + '</span></div>';
+	}
+	/* Inject the concatenated global CSS live into the canvas iframe. */
+	function injectGlobalCss() {
+		var doc = document.getElementById( 'vb-canvas' ); doc = doc && doc.contentDocument; if ( ! doc ) { return; }
+		var tag = doc.getElementById( 'vb-global-css' );
+		if ( ! tag ) { tag = doc.createElement( 'style' ); tag.id = 'vb-global-css'; doc.head.appendChild( tag ); }
+		tag.textContent = cssFiles.map( function ( f ) { return f.css || ''; } ).join( '\n' );
+	}
+	function saveGlobalCss() {
+		if ( ! CFG.ajaxurl ) { return; }
+		var st = document.getElementById( 'vb-css-status' ); if ( st ) { st.textContent = T( 'Saving…' ); }
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_css_save' ); body.set( 'nonce', CFG.nonce || '' );
+		body.set( 'files', JSON.stringify( cssFiles ) );
+		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) { var s = document.getElementById( 'vb-css-status' ); if ( s ) { s.textContent = res && res.success ? T( 'Saved — applies to every page' ) : T( 'Save failed' ); } } )
+			.catch( function () { var s = document.getElementById( 'vb-css-status' ); if ( s ) { s.textContent = T( 'Save failed' ); } } );
+	}
+	function scheduleCssSave() { clearTimeout( cssSaveTimer ); cssSaveTimer = setTimeout( saveGlobalCss, 700 ); injectGlobalCss(); }
+
+	/* ---------- Session history (in-memory, cleared on close) ---------- */
+	var historyShown = false;
+	function timeAgo( ts ) {
+		var s = Math.floor( ( Date.now() - ts ) / 1000 );
+		if ( s < 5 ) { return T( 'just now' ); }
+		if ( s < 60 ) { return s + 's ' + T( 'ago' ); }
+		if ( s < 3600 ) { return Math.floor( s / 60 ) + 'm ' + T( 'ago' ); }
+		return Math.floor( s / 3600 ) + 'h ' + T( 'ago' );
+	}
+	function renderHistoryPanel() {
+		var box = document.getElementById( 'vb-hist' ); if ( ! box ) { return; }
+		if ( ! historyShown ) { box.style.display = 'none'; return; }
+		box.style.display = 'flex';
+		var log = store.log;
+		var items = log.length
+			? log.slice().reverse().map( function ( l ) {
+				return '<button class="vb-hist-i" data-revert="' + l.idx + '"><span class="vb-hist-dot"></span><span class="vb-hist-l">' + escapeHtml( l.label ) + '</span><span class="vb-hist-t">' + timeAgo( l.at ) + '</span></button>';
+			} ).join( '' )
+			: '<div class="vb-hist-empty">' + T( 'No changes yet. Your edits this session will appear here.' ) + '</div>';
+		box.innerHTML =
+			'<div class="vb-hist-top"><b>' + T( 'History' ) + '</b><button class="vb-css-x" id="vb-hist-close">' + svg( 'x', 14 ) + '</button></div>' +
+			'<div class="vb-hist-note">' + T( 'This session only — cleared when you close the editor.' ) + '</div>' +
+			'<div class="vb-hist-list">' + items + '</div>';
 	}
 
 	function wireEvents() {
@@ -856,8 +922,14 @@
 			if ( e.target.closest( '[data-del]' ) ) { deleteNode( store.state.selection ); return; }
 			var pick = e.target.closest( '[data-pickimg]' ); if ( pick ) { openMediaPicker( pick.getAttribute( 'data-pickimg' ) ); return; }
 			if ( e.target.closest( '#vb-code' ) ) { cssShown = ! cssShown; renderCSSPanel(); return; }
+			if ( e.target.closest( '#vb-css-close' ) ) { cssShown = false; renderCSSPanel(); return; }
+			if ( e.target.closest( '#vb-css-new' ) ) { cssFiles.push( { name:'file-' + ( cssFiles.length + 1 ) + '.css', css:'' } ); cssActive = cssFiles.length - 1; renderCSSPanel(); saveGlobalCss(); return; }
+			if ( e.target.closest( '#vb-css-del' ) ) { if ( cssFiles.length > 1 && confirm( T( 'Delete this CSS file?' ) ) ) { cssFiles.splice( cssActive, 1 ); cssActive = 0; renderCSSPanel(); scheduleCssSave(); } return; }
+			var cf = e.target.closest( '[data-cssfile]' ); if ( cf ) { cssActive = +cf.getAttribute( 'data-cssfile' ); renderCSSPanel(); return; }
 			if ( e.target.closest( '#vb-search' ) ) { toggleSwitcher(); e.stopPropagation(); return; }
-			if ( e.target.closest( '#vb-history' ) ) { alert( T( 'Version history is coming soon.' ) ); return; }
+			if ( e.target.closest( '#vb-history' ) ) { historyShown = ! historyShown; renderHistoryPanel(); return; }
+			if ( e.target.closest( '#vb-hist-close' ) ) { historyShown = false; renderHistoryPanel(); return; }
+			var hr = e.target.closest( '[data-revert]' ); if ( hr ) { store.revertTo( +hr.getAttribute( 'data-revert' ) ); return; }
 			if ( e.target.closest( '#vb-save' ) ) { saveDoc(); return; }
 			if ( e.target.closest( '#vb-publish' ) ) { publishDoc(); return; }
 			if ( e.target.closest( '#vb-pp-caret' ) || e.target.id === 'vb-title' && false ) { toggleSwitcher(); e.stopPropagation(); return; }
@@ -882,6 +954,8 @@
 			if ( e.target.id === 'vb-layer-search' ) { filterLayers( e.target.value.trim().toLowerCase() ); return; }
 			if ( e.target.id === 'vb-ap-search' ) { renderAddBody( e.target.value ); return; }
 			if ( e.target.id === 'vb-ps-search' ) { switcherQuery = e.target.value.trim(); renderSwitcher(); return; }
+			if ( e.target.id === 'vb-css-code' ) { if ( cssFiles[ cssActive ] ) { cssFiles[ cssActive ].css = e.target.value; scheduleCssSave(); } return; }
+			if ( e.target.id === 'vb-css-name' ) { if ( cssFiles[ cssActive ] ) { cssFiles[ cssActive ].name = e.target.value; var tab = document.querySelector( '.vb-css-file.on span' ); if ( tab ) { tab.textContent = e.target.value; } scheduleCssSave(); } return; }
 			if ( e.target.hasAttribute( 'data-sethref' ) ) { var hv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.href = hv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setconn' ) ) { var cv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.conn = cv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setpreset' ) ) { var pv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.preset = pv; } } ); return; }
@@ -1155,8 +1229,28 @@
 			'.vb-tn.drop-inside{background:rgba(42,183,241,.14);box-shadow:inset 0 0 0 1px rgba(42,183,241,.5)}',
 			'.vb-stage{background:#16161b;display:flex;flex-direction:column;align-items:center;min-height:0;overflow:auto;padding:16px}',
 			'#vb-canvas{width:100%;max-width:1200px;min-height:78vh;background:#fff;border:none;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:max-width .25s}',
-			'.vb-css{width:100%;max-width:1000px;margin-top:12px;background:#121216;border:1px solid rgba(255,255,255,.07);border-radius:12px;overflow:hidden}',
-			'.vb-css-h{display:flex;justify-content:space-between;padding:9px 12px;font-size:10.5px;color:#606069;border-bottom:1px solid rgba(255,255,255,.07)}',
+			'.vb-csspanel{position:absolute;top:54px;right:0;bottom:0;width:380px;background:#121216;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
+			'.vb-css-top{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07)}.vb-css-top b{font-size:13px}',
+			'.vb-css-x{background:none;border:none;color:#606069;cursor:pointer;display:grid;place-items:center;padding:4px;border-radius:6px}.vb-css-x:hover{background:#26262f;color:#f4f4f6}',
+			'.vb-css-files{display:flex;flex-wrap:wrap;gap:5px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.07)}',
+			'.vb-css-file{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;background:#1d1d24;border:1px solid rgba(255,255,255,.06);color:#9d9da8;font-size:11.5px;cursor:pointer;font-family:ui-monospace,Menlo,monospace}',
+			'.vb-css-file.on{background:rgba(42,183,241,.14);color:#2ab7f1;border-color:transparent}',
+			'.vb-css-new{display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:7px;background:none;border:1px dashed rgba(255,255,255,.14);color:#8a8a94;font-size:11.5px;cursor:pointer}.vb-css-new:hover{color:#f4f4f6}',
+			'.vb-css-name{display:flex;gap:6px;padding:10px 12px}',
+			'.vb-css-name input{flex:1;background:#0a0a0c;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:8px 11px;color:#f4f4f6;font-family:ui-monospace,Menlo,monospace;font-size:12px;outline:none}.vb-css-name input:focus{border-color:#2ab7f1}',
+			'.vb-css-del{background:#1d1d24;border:1px solid rgba(255,255,255,.07);border-radius:8px;color:#8a8a94;cursor:pointer;width:34px;display:grid;place-items:center}.vb-css-del:hover{background:rgba(245,106,92,.15);color:#f56a5c}',
+			'.vb-css-code{flex:1;margin:0 12px;background:#0a0a0c;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:12px;color:#e6f7ff;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.6;resize:none;outline:none}.vb-css-code:focus{border-color:#2ab7f1}',
+			'.vb-css-foot{padding:10px 14px;font-size:11px;color:#606069}',
+			'.vb-histpanel{position:absolute;top:54px;right:0;bottom:0;width:320px;background:#121216;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
+			'.vb-hist-top{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07)}.vb-hist-top b{font-size:13px}',
+			'.vb-hist-note{padding:10px 14px;font-size:11px;color:#606069;border-bottom:1px solid rgba(255,255,255,.07)}',
+			'.vb-hist-list{flex:1;overflow:auto;padding:6px}',
+			'.vb-hist-empty{color:#606069;font-size:12px;text-align:center;padding:30px 20px;line-height:1.6}',
+			'.vb-hist-i{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;border-radius:9px;background:none;border:none;color:#c9c9d1;cursor:pointer;text-align:left}',
+			'.vb-hist-i:hover{background:#26262f}',
+			'.vb-hist-dot{width:7px;height:7px;border-radius:50%;background:#2ab7f1;flex:0 0 auto}',
+			'.vb-hist-l{flex:1;font-size:12.5px}',
+			'.vb-hist-t{font-size:10.5px;color:#606069}',
 			'.vb-live{color:#43d17f;display:flex;align-items:center;gap:6px}',
 			'.vb-live::before{content:"";width:6px;height:6px;border-radius:50%;background:#43d17f;box-shadow:0 0 8px #43d17f}',
 			'.vb-css pre{margin:0;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#9d9da8;white-space:pre;overflow:auto;max-height:220px}',

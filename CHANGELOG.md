@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.58.0 — Velox Builder: session history
+- The history (clock) button opens a session history panel: it starts empty when you open a page, lists each edit you make (add, delete, style, class, text…) newest-first, and lets you click any point to revert to it.
+- History is in-memory only — it clears when you close the editor, so nothing is stored on the server.
+
+## 3.57.0 — Velox Builder: global CSS files editor
+- The code (</>) button now opens a right-side Global CSS panel where you create named CSS files and write CSS that applies to every Velox page.
+- Changes apply live in the editor canvas and save automatically; the concatenated global CSS is output on every built page. Basic sanitising strips any </style> or <script> breakout attempts.
+
 ## 3.56.0 — Velox Builder: entry/exit fixes + Edit-with-Velox meta box
 - Opening a page with Velox now inherits that page’s title instead of resetting to “Untitled”, and Exit returns you to that page’s WordPress editor (not the builder home).
 - Added an “Edit with Velox” meta box on the page/post editor (like Oxygen’s), showing Build or Edit depending on whether the page already has a Velox layout.

@@ -324,6 +324,7 @@ class Velox_Builder {
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'reviewConnections' => self::review_connections(),
 			'reviewPresets' => self::review_presets(),
+			'globalCss' => self::global_css_files(),
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
 		);
 
@@ -516,6 +517,44 @@ class Velox_Builder {
 	const OPT_TOKENS   = 'velox_builder_tokens';
 	const OPT_FONTS    = 'velox_builder_fonts';
 	const OPT_SETTINGS = 'velox_builder_settings';
+	const OPT_CSS      = 'velox_builder_global_css';
+
+	/** Global CSS files: [ ['name'=>..,'css'=>..], ... ] applied on every page. */
+	public static function global_css_files() {
+		$f = get_option( self::OPT_CSS, null );
+		return is_array( $f ) ? $f : array();
+	}
+
+	/** Concatenated global CSS for output. */
+	public static function global_css() {
+		$out = '';
+		foreach ( self::global_css_files() as $f ) {
+			if ( ! empty( $f['css'] ) ) {
+				$out .= "\n/* " . ( isset( $f['name'] ) ? $f['name'] : 'global' ) . " */\n" . $f['css'];
+			}
+		}
+		return $out;
+	}
+
+	public static function ajax_css_save() {
+		$raw   = isset( $_POST['files'] ) ? wp_unslash( $_POST['files'] ) : '';
+		$files = json_decode( $raw, true );
+		if ( ! is_array( $files ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
+		}
+		$clean = array();
+		foreach ( $files as $f ) {
+			$name = sanitize_text_field( $f['name'] ?? '' );
+			$css  = isset( $f['css'] ) ? (string) $f['css'] : '';
+			// strip anything that could break out of a <style> block
+			$css  = str_ireplace( array( '</style', '<script' ), '', $css );
+			if ( '' !== $name || '' !== trim( $css ) ) {
+				$clean[] = array( 'name' => $name ? $name : 'global.css', 'css' => $css );
+			}
+		}
+		update_option( self::OPT_CSS, $clean );
+		wp_send_json_success( array( 'files' => $clean ) );
+	}
 
 	public static function tokens() {
 		$t = get_option( self::OPT_TOKENS, null );

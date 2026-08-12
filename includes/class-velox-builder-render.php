@@ -151,6 +151,11 @@ class Velox_Builder_Render {
 		if ( '' !== $vars ) {
 			echo '<style id="velox-builder-tokens">:root{' . $vars . '}</style>' . "\n"; // phpcs:ignore
 		}
+		// Global CSS files (apply to every Velox page).
+		$gcss = Velox_Builder::global_css();
+		if ( '' !== trim( $gcss ) ) {
+			echo '<style id="velox-builder-global-css">' . $gcss . '</style>' . "\n"; // phpcs:ignore
+		}
 	}
 
 	/* -------------------------------------------------- HTML generation */
