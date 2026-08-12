@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.63.0 — Velox Builder: rich text toolbar + Insert Dynamic Data (wave D, #1)
+- Text elements now get a formatting toolbar in the left panel: bold, italic, underline, strikethrough, align left/center/right and link. Formatting is kept when you save.
+- New "Insert Data" picker with the full dynamic-data list (Post, Featured Image, Author, Current User, Blog Info, Archive, Advanced). Inserting a field drops a token into the text that renders the real WordPress value on the front end (post title/content/excerpt/date, author, site info, custom fields, etc.).
+- For safety, the "PHP Function Return value" token is inserted as a placeholder and is not executed on the front end.
+
 ## 3.62.0 — Velox Builder: real element settings (wave D, #5)
 - Elements with their own settings now surface them properly. Selecting a Google Reviews element jumps straight to its Settings, showing a prominent Connection + Design preset picker (with a hint to set up a source under Velox → Utilities → Google Reviews if none exist).
 - WordPress-data elements get a "Show which field" picker (post title / content / featured image / menu). Links/buttons get a URL field plus an Open-in-same/new-tab choice that is honoured on the front end.

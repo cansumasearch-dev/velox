@@ -54,6 +54,14 @@
 		exit:'<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5M21 12H9"/>',
 		external:'<path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/>',
 		eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/>',
+		bold:'<path d="M6 4h8a4 4 0 0 1 0 8H6zM6 12h9a4 4 0 0 1 0 8H6z"/>',
+		italic:'<path d="M19 4h-9M14 20H5M15 4 9 20"/>',
+		underline:'<path d="M6 4v6a6 6 0 0 0 12 0V4M4 21h16"/>',
+		strike:'<path d="M17.3 5A4 4 0 0 0 8 8M8.5 15A4 4 0 0 0 16 14M4 12h16"/>',
+		alignleft:'<path d="M3 6h18M3 12h12M3 18h15"/>',
+		aligncenter:'<path d="M3 6h18M6 12h12M4 18h16"/>',
+		alignright:'<path d="M3 6h18M9 12h12M6 18h15"/>',
+		database:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>',
 		droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>'
 	};
 	function svg( name, size ) {
@@ -239,7 +247,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}</style><style id="vb-style"></style></head><body></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}</style><style id="vb-style"></style></head><body></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -299,16 +307,43 @@
 	function commitInlineEdit() {
 		if ( ! editing ) { return; }
 		var elNode = editing.el, id = editing.id;
-		var text = elNode.textContent.trim();
+		var html = sanitizeInlineHTML( elNode.innerHTML );
 		elNode.removeAttribute( 'contenteditable' ); elNode.style.outline = '';
 		elNode.removeEventListener( 'keydown', inlineKey ); elNode.removeEventListener( 'blur', commitInlineEdit );
-		var prev = editing; editing = null;
-		if ( store.state.content[ id ] !== text ) { store.commit( function ( s ) { s.content[ id ] = text; }, T( 'Edit text' ) ); }
+		editing = null;
+		if ( store.state.content[ id ] !== html ) { store.commit( function ( s ) { s.content[ id ] = html; }, T( 'Edit text' ) ); }
+	}
+	/* Keep only the formatting tags we allow from contenteditable output. */
+	function sanitizeInlineHTML( html ) {
+		var tmp = document.createElement( 'div' ); tmp.innerHTML = html;
+		var allowed = { STRONG:1, B:1, EM:1, I:1, U:1, S:1, STRIKE:1, A:1, BR:1, SPAN:1 };
+		( function walk( node ) {
+			var kids = Array.prototype.slice.call( node.childNodes );
+			kids.forEach( function ( c ) {
+				if ( c.nodeType === 1 ) {
+					walk( c );
+					if ( ! allowed[ c.tagName ] ) {
+						// unwrap disallowed element, keeping its text/children
+						while ( c.firstChild ) { node.insertBefore( c.firstChild, c ); }
+						node.removeChild( c );
+					} else if ( c.tagName === 'SPAN' && ! c.getAttribute( 'data-vx' ) ) {
+						while ( c.firstChild ) { node.insertBefore( c.firstChild, c ); }
+						node.removeChild( c );
+					} else {
+						// strip style/class except our dynamic-token spans + link href
+						if ( c.tagName === 'A' ) { var h = c.getAttribute( 'href' ); c.removeAttribute( 'style' ); if ( h ) { c.setAttribute( 'href', h ); } }
+						else if ( c.getAttribute( 'data-vx' ) ) { /* keep token span */ }
+						else { c.removeAttribute( 'style' ); c.removeAttribute( 'class' ); }
+					}
+				}
+			} );
+		}( tmp ) );
+		return tmp.innerHTML;
 	}
 	function cancelInlineEdit() {
 		if ( ! editing ) { return; }
 		var elNode = editing.el;
-		elNode.textContent = store.state.content[ editing.id ] || '';
+		elNode.innerHTML = store.state.content[ editing.id ] || '';
 		elNode.removeAttribute( 'contenteditable' ); elNode.style.outline = '';
 		elNode.removeEventListener( 'keydown', inlineKey ); elNode.removeEventListener( 'blur', commitInlineEdit );
 		editing = null;
@@ -665,6 +700,7 @@
 			'<div class="vb-csspanel" id="vb-css"></div>' +
 			'<div class="vb-histpanel" id="vb-hist"></div>' +
 			'<div class="vb-structpanel" id="vb-struct"></div>' +
+			'<div id="vb-dyndata-host"></div>' +
 			'<div class="vb-addmenu" id="vb-addmenu"></div>';
 		injectStyles();
 		wireEvents();
@@ -869,6 +905,7 @@
 					[ 'normal', 'hover', 'focus' ].map( function ( s2 ) { return '<button class="vb-state' + ( st === s2 ? ' on' : '' ) + '" data-state="' + s2 + '">' + ( s2 === 'normal' ? T( 'Normal' ) : ':' + s2 ) + '</button>'; } ).join( '' ) +
 				'</div>' +
 				'<div class="vb-bp-note">' + ( st !== 'normal' ? T( 'Editing' ) + ' :' + st + ' — ' + T( 'falls back to normal' ) : ( bp === 'base' ? T( 'Editing at desktop' ) : T( 'Editing at' ) + ' ' + bp ) ) + '</div></div>' +
+			textToolbarHTML( node ) +
 			'<div class="vb-tabs">' +
 				'<button class="vb-tab' + ( tab === 'ess' ? ' on' : '' ) + '" data-tab="ess">' + T( 'Essentials' ) + '</button>' +
 				'<button class="vb-tab' + ( tab === 'all' ? ' on' : '' ) + '" data-tab="all">' + T( 'All styles' ) + '</button>' +
@@ -876,6 +913,108 @@
 			'</div>' +
 			imgBtn +
 			'<div class="vb-controls">' + body + '</div>';
+	}
+	/* Ensure the selected text element is in inline-edit mode, then return its node. */
+	function ensureEditingSelected() {
+		if ( editing ) { return editing.el; }
+		var id = store.state.selection, node = findNode( store.state.tree, id );
+		if ( ! isTextEl( node ) ) { return null; }
+		var doc = document.getElementById( 'vb-canvas' ); doc = doc && doc.contentDocument;
+		var elNode = doc && doc.getElementById( id );
+		if ( ! elNode ) { return null; }
+		startInlineEdit( elNode, id );
+		return elNode;
+	}
+	function applyFormat( cmd ) {
+		var elNode = ensureEditingSelected(); if ( ! elNode ) { return; }
+		var doc = elNode.ownerDocument;
+		elNode.focus();
+		if ( cmd === 'createLink' ) {
+			var url = prompt( T( 'Link URL:' ), 'https://' ); if ( ! url ) { return; }
+			doc.execCommand( 'createLink', false, url );
+		} else {
+			doc.execCommand( cmd, false, null );
+		}
+	}
+	/* Insert a dynamic-data token span at the caret of the editing text element. */
+	function insertDynamicToken( token, arg ) {
+		var elNode = ensureEditingSelected(); if ( ! elNode ) { return; }
+		var doc = elNode.ownerDocument;
+		var argVal = '';
+		if ( arg ) { argVal = prompt( T( 'Enter the' ) + ' ' + arg + ':', '' ) || ''; }
+		var full = arg && argVal ? token + ':' + argVal : token;
+		var label = full.replace( /^post\.|^site\.|^author\.|^user\.|^featured\.|^archive\.|^php\./, '' );
+		elNode.focus();
+		var span = doc.createElement( 'span' );
+		span.setAttribute( 'data-vx', full );
+		span.setAttribute( 'contenteditable', 'false' );
+		span.className = 'vx-token';
+		span.textContent = '{' + label + '}';
+		var sel = doc.defaultView.getSelection();
+		if ( sel && sel.rangeCount ) {
+			var range = sel.getRangeAt( 0 ); range.deleteContents(); range.insertNode( span );
+			range.setStartAfter( span ); range.collapse( true ); sel.removeAllRanges(); sel.addRange( range );
+		} else {
+			elNode.appendChild( span );
+		}
+		var dd = document.getElementById( 'vb-dyndata' ); if ( dd ) { dd.classList.remove( 'open' ); }
+	}
+	function isTextEl( node ) { return node && ( node.el === 'Heading' || node.el === 'Text' || node.el === 'Button' ); }
+	/* Dynamic-data sources for the Insert Data picker (Oxygen-style full list).
+	   `live:true` = resolved on the front end now; `live:false` = inserted as a
+	   labelled placeholder token (needs extra config / not yet resolved). */
+	var DATA_GROUPS = [
+		{ name:'Post', items:[
+			{ t:'post.title', l:'Title', live:true }, { t:'post.content', l:'Content', live:true }, { t:'post.excerpt', l:'Excerpt', live:true },
+			{ t:'post.date', l:'Date', live:true }, { t:'post.terms', l:'Categories, Tags, Taxonomies', live:true }, { t:'post.meta', l:'Custom Field/Meta', live:true, arg:'field' }, { t:'post.comments', l:'Comments Number', live:true } ] },
+		{ name:'Featured Image', items:[
+			{ t:'featured.title', l:'Title', live:true }, { t:'featured.caption', l:'Caption', live:true }, { t:'featured.alt', l:'Alt', live:true } ] },
+		{ name:'Author', items:[
+			{ t:'author.name', l:'Display Name', live:true }, { t:'author.bio', l:'Bio', live:true }, { t:'author.meta', l:'Meta / Custom Field', live:true, arg:'field' } ] },
+		{ name:'Current User', items:[
+			{ t:'user.name', l:'Display Name', live:true }, { t:'user.bio', l:'Bio', live:true }, { t:'user.meta', l:'Meta / Custom Field', live:true, arg:'field' } ] },
+		{ name:'Blog Info', items:[
+			{ t:'site.title', l:'Site Title', live:true }, { t:'site.tagline', l:'Site Tagline', live:true }, { t:'site.other', l:'Other', live:true, arg:'key' } ] },
+		{ name:'Archive', items:[
+			{ t:'archive.title', l:'Archive Title', live:true }, { t:'archive.description', l:'Archive Description', live:true } ] },
+		{ name:'Advanced', items:[
+			{ t:'php.return', l:'PHP Function Return value', live:false, arg:'fn' }, { t:'post.id', l:'Post ID', live:true }, { t:'post.type', l:'Post Type', live:true }, { t:'post.taxterms', l:'Taxonomy Terms', live:true, arg:'taxonomy' } ] }
+	];
+	function toggleDynData() {
+		var host = document.getElementById( 'vb-dyndata-host' ); if ( ! host ) { return; }
+		var existing = document.getElementById( 'vb-dyndata' );
+		if ( existing && existing.classList.contains( 'open' ) ) { existing.classList.remove( 'open' ); return; }
+		host.innerHTML = dynDataPanelHTML();
+		var dd = document.getElementById( 'vb-dyndata' ); if ( dd ) { dd.classList.add( 'open' ); }
+	}
+	function dynDataPanelHTML() {
+		var groups = DATA_GROUPS.map( function ( g ) {
+			var chips = g.items.map( function ( it ) {
+				var badge = it.live ? '' : '<span class="vb-dd-soon" title="' + T( 'Inserted as placeholder' ) + '">•</span>';
+				return '<button class="vb-dd-chip" data-dd="' + it.t + '"' + ( it.arg ? ' data-arg="' + it.arg + '"' : '' ) + '>' + escapeHtml( it.l ) + badge + '</button>';
+			} ).join( '' );
+			return '<div class="vb-dd-g"><div class="vb-dd-gh">' + g.name + '</div><div class="vb-dd-chips">' + chips + '</div></div>';
+		} ).join( '' );
+		return '<div class="vb-dyndata" id="vb-dyndata">' +
+			'<div class="vb-dd-top"><b>' + T( 'Insert Dynamic Data' ) + '</b><button class="vb-css-x" id="vb-dd-close">' + svg( 'x', 14 ) + '</button></div>' +
+			'<div class="vb-dd-note">' + T( 'Inserts a live value that renders on the front end. Items marked • are inserted as a placeholder for now.' ) + '</div>' +
+			'<div class="vb-dd-body">' + groups + '</div>' +
+		'</div>';
+	}
+	/* Rich-text toolbar (left panel) for text elements: format + Insert Data. */
+	function textToolbarHTML( node ) {
+		if ( ! isTextEl( node ) ) { return ''; }
+		function b( cmd, icon, title ) { return '<button class="vb-tt-b" data-fmt="' + cmd + '" title="' + title + '">' + svg( icon, 15 ) + '</button>'; }
+		return '<div class="vb-texttool">' +
+			'<div class="vb-tt-row">' +
+				b( 'bold', 'bold', T( 'Bold' ) ) + b( 'italic', 'italic', T( 'Italic' ) ) + b( 'underline', 'underline', T( 'Underline' ) ) + b( 'strikeThrough', 'strike', T( 'Strikethrough' ) ) +
+				'<div class="vb-tt-sep"></div>' +
+				b( 'justifyLeft', 'alignleft', T( 'Align left' ) ) + b( 'justifyCenter', 'aligncenter', T( 'Align center' ) ) + b( 'justifyRight', 'alignright', T( 'Align right' ) ) +
+				'<div class="vb-tt-sep"></div>' +
+				'<button class="vb-tt-b" data-fmt="createLink" title="' + T( 'Link' ) + '">' + svg( 'link', 15 ) + '</button>' +
+			'</div>' +
+			'<button class="vb-tt-data" id="vb-insertdata">' + svg( 'database', 14 ) + ' ' + T( 'Insert Data' ) + '</button>' +
+		'</div>';
 	}
 	/* Settings tab: element tag, link href, custom ID, and (for Reviews) the
 	   connection + preset pickers. */
@@ -1048,6 +1187,10 @@
 			var tabBtn = e.target.closest( '[data-tab]' ); if ( tabBtn ) { inspTab = tabBtn.getAttribute( 'data-tab' ); renderInspector( store.state ); return; }
 			var delchip = e.target.closest( '[data-delchip]' ); if ( delchip ) { e.stopPropagation(); removeClassFromNode( delchip.getAttribute( 'data-delchip' ) ); return; }
 			if ( e.target.closest( '[data-addclass]' ) ) { addClassToSelected(); return; }
+			var fmt = e.target.closest( '[data-fmt]' ); if ( fmt ) { applyFormat( fmt.getAttribute( 'data-fmt' ) ); return; }
+			if ( e.target.closest( '#vb-insertdata' ) ) { toggleDynData(); return; }
+			if ( e.target.closest( '#vb-dd-close' ) ) { var dd2 = document.getElementById( 'vb-dyndata' ); if ( dd2 ) { dd2.classList.remove( 'open' ); } return; }
+			var ddc = e.target.closest( '[data-dd]' ); if ( ddc ) { insertDynamicToken( ddc.getAttribute( 'data-dd' ), ddc.getAttribute( 'data-arg' ) ); return; }
 			var settag = e.target.closest( '[data-settag]' ); if ( settag ) { setNodeTag( settag.getAttribute( 'data-settag' ) ); return; }
 			var settarget = e.target.closest( '[data-settarget]' ); if ( settarget ) { var tv = settarget.getAttribute( 'data-settarget' ); store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.target = tv; } } ); return; }
 			var chip = e.target.closest( '.vb-chip' ); if ( chip && ! chip.classList.contains( 'vb-chip-add' ) ) { store.commit( function ( s ) { s.activeClass = chip.getAttribute( 'data-cls' ); }, false ); return; }
@@ -1390,6 +1533,20 @@
 			'.vb-insp-tx small{font-size:10.5px;color:#606069;font-family:ui-monospace,Menlo,monospace}',
 			'.vb-classbar{margin:0 12px 4px;padding:13px;background:linear-gradient(180deg,#2a2c32,#1a1b20);border:1px solid rgba(255,255,255,.07);border-radius:13px}',
 			'.vb-tabs{display:flex;gap:3px;margin:6px 12px 10px;padding:3px;background:#1a1b20;border-radius:9px}',
+			'.vb-texttool{margin:0 12px 8px;padding:8px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:11px}',
+			'.vb-tt-row{display:flex;align-items:center;gap:2px;flex-wrap:wrap}',
+			'.vb-tt-b{width:30px;height:30px;border-radius:7px;background:none;border:none;color:#c9c9d1;cursor:pointer;display:grid;place-items:center}.vb-tt-b:hover{background:#313339;color:#f4f4f6}',
+			'.vb-tt-sep{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px}',
+			'.vb-tt-data{width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px;border-radius:8px;background:#2a2c32;border:1px solid rgba(255,255,255,.09);color:#c9c9d1;font-size:12px;font-weight:600;cursor:pointer}.vb-tt-data:hover{background:#313339;color:#f4f4f6}.vb-tt-data svg{color:#2ab7f1}',
+			'.vb-dyndata{position:absolute;top:54px;left:220px;bottom:0;width:340px;background:#232429;border-right:1px solid rgba(255,255,255,.12);box-shadow:8px 0 40px rgba(0,0,0,.5);z-index:140;display:none;flex-direction:column}',
+			'.vb-dyndata.open{display:flex}',
+			'.vb-dd-top{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07)}.vb-dd-top b{font-size:13px}',
+			'.vb-dd-note{padding:10px 14px;font-size:11px;color:#8a8a94;line-height:1.5;border-bottom:1px solid rgba(255,255,255,.07)}',
+			'.vb-dd-body{flex:1;overflow:auto;padding:10px 12px}',
+			'.vb-dd-g{margin-bottom:14px}.vb-dd-gh{font-size:11px;font-weight:700;color:#f4f4f6;margin-bottom:7px}',
+			'.vb-dd-chips{display:flex;flex-wrap:wrap;gap:5px}',
+			'.vb-dd-chip{display:inline-flex;align-items:center;gap:4px;padding:6px 10px;border-radius:7px;background:#1a1b20;border:1px solid rgba(255,255,255,.09);color:#c9c9d1;font-size:11.5px;cursor:pointer}.vb-dd-chip:hover{background:#2ab7f1;color:#08222e;border-color:transparent}',
+			'.vb-dd-soon{color:#f5b74c;font-size:14px;line-height:1}',
 			'.vb-tab{flex:1;padding:7px;border-radius:6px;border:none;background:none;color:#8a8a94;font-size:12px;font-weight:600;cursor:pointer}',
 			'.vb-tab.on{background:#313339;color:#f4f4f6}',
 			'.vb-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border-radius:7px;font-family:ui-monospace,Menlo,monospace;font-size:11px;cursor:pointer}',

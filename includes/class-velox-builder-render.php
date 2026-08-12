@@ -222,7 +222,7 @@ class Velox_Builder_Render {
 			return self::render_wp_node( $node, $attr, $tag );
 		}
 
-		$content = isset( $doc['content'][ $node['id'] ] ) ? wp_kses_post( $doc['content'][ $node['id'] ] ) : '';
+		$content = isset( $doc['content'][ $node['id'] ] ) ? wp_kses_post( self::resolve_tokens( $doc['content'][ $node['id'] ] ) ) : '';
 		$kids    = self::render_tree( $node['children'] ?? array(), $doc );
 		if ( 'a' === $tag ) {
 			$href  = isset( $node['href'] ) ? esc_url( $node['href'] ) : '#';
@@ -232,6 +232,60 @@ class Velox_Builder_Render {
 			}
 		}
 		return '<' . $tag . $attr . '>' . $content . $kids . '</' . $tag . '>';
+	}
+
+	/**
+	 * Replace dynamic-data token spans (<span data-vx="post.title">…</span>) with
+	 * live WordPress values. Unknown/unsupported tokens are left blank.
+	 */
+	public static function resolve_tokens( $html ) {
+		if ( false === strpos( $html, 'data-vx' ) ) {
+			return $html;
+		}
+		return preg_replace_callback(
+			'/<span[^>]*data-vx="([^"]+)"[^>]*>.*?<\/span>/is',
+			function ( $m ) {
+				return self::token_value( html_entity_decode( $m[1] ) );
+			},
+			$html
+		);
+	}
+
+	private static function token_value( $token ) {
+		$arg = '';
+		if ( false !== strpos( $token, ':' ) ) {
+			list( $token, $arg ) = array_pad( explode( ':', $token, 2 ), 2, '' );
+		}
+		$pid = get_the_ID();
+		switch ( $token ) {
+			case 'post.title':    return esc_html( get_the_title( $pid ) );
+			case 'post.content':  return apply_filters( 'the_content', get_post_field( 'post_content', $pid ) );
+			case 'post.excerpt':  return esc_html( get_the_excerpt( $pid ) );
+			case 'post.date':     return esc_html( get_the_date( '', $pid ) );
+			case 'post.id':       return (string) $pid;
+			case 'post.type':     return esc_html( get_post_type( $pid ) );
+			case 'post.comments': return (string) get_comments_number( $pid );
+			case 'post.meta':     return $arg ? esc_html( get_post_meta( $pid, $arg, true ) ) : '';
+			case 'post.terms':    $t = get_the_category_list( ', ', '', $pid ); return $t ? $t : '';
+			case 'post.taxterms': return $arg ? strip_tags( get_the_term_list( $pid, $arg, '', ', ' ) ) : '';
+			case 'featured.title':   return esc_html( get_the_title( get_post_thumbnail_id( $pid ) ) );
+			case 'featured.caption': return esc_html( wp_get_attachment_caption( get_post_thumbnail_id( $pid ) ) );
+			case 'featured.alt':     return esc_html( get_post_meta( get_post_thumbnail_id( $pid ), '_wp_attachment_image_alt', true ) );
+			case 'author.name':   return esc_html( get_the_author_meta( 'display_name', (int) get_post_field( 'post_author', $pid ) ) );
+			case 'author.bio':    return esc_html( get_the_author_meta( 'description', (int) get_post_field( 'post_author', $pid ) ) );
+			case 'author.meta':   return $arg ? esc_html( get_the_author_meta( $arg, (int) get_post_field( 'post_author', $pid ) ) ) : '';
+			case 'user.name':     $u = wp_get_current_user(); return $u ? esc_html( $u->display_name ) : '';
+			case 'user.bio':      $u = wp_get_current_user(); return $u ? esc_html( $u->description ) : '';
+			case 'user.meta':     $u = wp_get_current_user(); return ( $u && $arg ) ? esc_html( get_user_meta( $u->ID, $arg, true ) ) : '';
+			case 'site.title':    return esc_html( get_bloginfo( 'name' ) );
+			case 'site.tagline':  return esc_html( get_bloginfo( 'description' ) );
+			case 'site.other':    return $arg ? esc_html( get_bloginfo( $arg ) ) : '';
+			case 'archive.title':       return esc_html( wp_strip_all_tags( get_the_archive_title() ) );
+			case 'archive.description': return wp_kses_post( get_the_archive_description() );
+			// Advanced / not resolved server-side (security): leave a visible marker.
+			case 'php.return': return '';
+			default:           return '';
+		}
 	}
 
 	/** Render a WordPress-data element (post title / content / featured / menu). */
