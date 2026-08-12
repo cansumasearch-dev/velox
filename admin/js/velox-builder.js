@@ -785,9 +785,23 @@
 		walk( state.tree, 0 );
 		document.getElementById( 'vb-tree' ).innerHTML = html;
 	}
+	function elementHasSettings( node ) { return node && ( node.el === 'Reviews' || node.el === 'WP' || node.el === 'Heading' || node.el === 'Button' || node.tag === 'a' ); }
+	function elementNeedsSetup( node ) {
+		if ( ! node ) { return false; }
+		if ( node.el === 'Reviews' ) { return ! node.conn; }
+		return false;
+	}
+	var lastInspNode = null;
 	function renderInspector( state ) {
 		var node = findNode( state.tree, state.selection ), insp = document.getElementById( 'vb-inspector' );
-		if ( ! node ) { insp.innerHTML = '<div class="vb-insp-empty">' + T( 'Select an element to style it.' ) + '</div>'; return; }
+		if ( ! node ) { insp.innerHTML = '<div class="vb-insp-empty">' + T( 'Select an element to style it.' ) + '</div>'; lastInspNode = null; return; }
+		// On selecting a NEW element that still needs setup (e.g. a Reviews element
+		// with no connection yet), jump straight to its Settings so the real
+		// options are visible instead of only style controls.
+		if ( node.id !== lastInspNode ) {
+			lastInspNode = node.id;
+			if ( elementNeedsSetup( node ) ) { inspTab = 'set'; }
+		}
 		var ac = state.activeClass, bp = state.breakpoint, st = state.state || 'normal';
 		var tab = inspTab; // 'ess' | 'all' | 'set'
 		var chips = node.classes.map( function ( c, i ) {
@@ -867,25 +881,47 @@
 	   connection + preset pickers. */
 	function settingsTabHTML( node ) {
 		var s = '<div class="vb-setwrap">';
-		// Heading level
-		if ( node.el === 'Heading' ) {
-			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Heading level' ) + '</div><div class="vb-seg">' +
-				[ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].map( function ( t ) { return '<button class="' + ( node.tag === t ? 'on' : '' ) + '" data-settag="' + t + '">' + t.toUpperCase() + '</button>'; } ).join( '' ) + '</div></div>';
-		}
-		// Link href
-		if ( node.el === 'Button' || node.tag === 'a' ) {
-			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Link URL' ) + '</div><div class="vb-row"><input class="vb-inp" data-sethref value="' + ( node.href ? String( node.href ).replace( /"/g, '&quot;' ) : '' ) + '" placeholder="https://"></div></div>';
-		}
-		// Reviews connection + preset (wave 3 wiring — dropdowns from plugin data)
+		var hasEl = false;
+
+		// ---- element-specific settings, shown prominently at the top ----
 		if ( node.el === 'Reviews' ) {
+			hasEl = true;
 			var conns = CFG.reviewConnections || [], presets = CFG.reviewPresets || [];
-			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Reviews connection' ) + '</div><div class="vb-row"><select class="vb-inp" data-setconn>' +
-				'<option value="">' + T( '— choose —' ) + '</option>' + conns.map( function ( c ) { return '<option value="' + c.id + '"' + ( node.conn === c.id ? ' selected' : '' ) + '>' + escapeHtml( c.name ) + '</option>'; } ).join( '' ) + '</select></div></div>';
+			s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'star', 14 ) + ' ' + T( 'Google Reviews' ) + '</div>';
+			if ( ! conns.length ) {
+				s += '<div class="vb-setnote">' + T( 'No review sources yet. Add one under Velox → Utilities → Google Reviews, then pick it here.' ) + '</div>';
+			}
+			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Connection' ) + '</div><div class="vb-row"><select class="vb-inp" data-setconn>' +
+				'<option value="">' + T( '— choose a source —' ) + '</option>' + conns.map( function ( c ) { return '<option value="' + c.id + '"' + ( node.conn === c.id ? ' selected' : '' ) + '>' + escapeHtml( c.name ) + '</option>'; } ).join( '' ) + '</select></div></div>';
 			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Design preset' ) + '</div><div class="vb-row"><select class="vb-inp" data-setpreset>' +
-				'<option value="">' + T( '— choose —' ) + '</option>' + presets.map( function ( p ) { return '<option value="' + p.id + '"' + ( node.preset === p.id ? ' selected' : '' ) + '>' + escapeHtml( p.name ) + '</option>'; } ).join( '' ) + '</select></div></div>';
+				'<option value="">' + T( '— default —' ) + '</option>' + presets.map( function ( p ) { return '<option value="' + p.id + '"' + ( node.preset === p.id ? ' selected' : '' ) + '>' + escapeHtml( p.name ) + '</option>'; } ).join( '' ) + '</select></div></div>';
+			s += '</div>';
 		}
-		// Custom ID note
-		s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Element ID' ) + '</div><div class="vb-row"><input class="vb-inp" value="' + node.id + '" readonly style="opacity:.6"></div></div>';
+		if ( node.el === 'WP' ) {
+			hasEl = true;
+			var wpfields = [ [ 'title', T( 'Post title' ) ], [ 'content', T( 'Post content' ) ], [ 'featured', T( 'Featured image' ) ], [ 'menu', T( 'Menu / Nav' ) ] ];
+			s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'wp', 14 ) + ' ' + T( 'WordPress data' ) + '</div>';
+			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Show which field' ) + '</div><div class="vb-row"><select class="vb-inp" data-setwp>' +
+				wpfields.map( function ( f ) { return '<option value="' + f[ 0 ] + '"' + ( node.wp === f[ 0 ] ? ' selected' : '' ) + '>' + f[ 1 ] + '</option>'; } ).join( '' ) + '</select></div></div>';
+			s += '<div class="vb-setnote">' + T( 'Pulls live from the current page/post on the front end.' ) + '</div></div>';
+		}
+		if ( node.el === 'Heading' ) {
+			hasEl = true;
+			s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'type', 14 ) + ' ' + T( 'Heading' ) + '</div>';
+			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Heading level' ) + '</div><div class="vb-seg">' +
+				[ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].map( function ( t ) { return '<button class="' + ( node.tag === t ? 'on' : '' ) + '" data-settag="' + t + '">' + t.toUpperCase() + '</button>'; } ).join( '' ) + '</div></div></div>';
+		}
+		if ( node.el === 'Button' || node.tag === 'a' ) {
+			hasEl = true;
+			s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'link', 14 ) + ' ' + T( 'Link' ) + '</div>';
+			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Link URL' ) + '</div><div class="vb-row"><input class="vb-inp" data-sethref value="' + ( node.href ? String( node.href ).replace( /"/g, '&quot;' ) : '' ) + '" placeholder="https://"></div></div>';
+			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Open in' ) + '</div><div class="vb-seg">' +
+				[ [ '', T( 'Same tab' ) ], [ '_blank', T( 'New tab' ) ] ].map( function ( o ) { return '<button class="' + ( ( node.target || '' ) === o[ 0 ] ? 'on' : '' ) + '" data-settarget="' + o[ 0 ] + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div></div></div>';
+		}
+
+		// ---- generic, always-present ----
+		s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'gear', 14 ) + ' ' + T( 'General' ) + '</div>';
+		s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Element ID' ) + '</div><div class="vb-row"><input class="vb-inp" value="' + node.id + '" readonly style="opacity:.6"></div></div></div>';
 		s += '</div>';
 		return s;
 	}
@@ -1013,6 +1049,7 @@
 			var delchip = e.target.closest( '[data-delchip]' ); if ( delchip ) { e.stopPropagation(); removeClassFromNode( delchip.getAttribute( 'data-delchip' ) ); return; }
 			if ( e.target.closest( '[data-addclass]' ) ) { addClassToSelected(); return; }
 			var settag = e.target.closest( '[data-settag]' ); if ( settag ) { setNodeTag( settag.getAttribute( 'data-settag' ) ); return; }
+			var settarget = e.target.closest( '[data-settarget]' ); if ( settarget ) { var tv = settarget.getAttribute( 'data-settarget' ); store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.target = tv; } } ); return; }
 			var chip = e.target.closest( '.vb-chip' ); if ( chip && ! chip.classList.contains( 'vb-chip-add' ) ) { store.commit( function ( s ) { s.activeClass = chip.getAttribute( 'data-cls' ); }, false ); return; }
 			var blk = e.target.closest( '[data-block]' ); if ( blk ) { blk.parentElement.classList.toggle( 'closed' ); return; }
 			var stbtn = e.target.closest( '[data-state]' ); if ( stbtn ) { store.commit( function ( s ) { s.state = stbtn.getAttribute( 'data-state' ); }, false ); return; }
@@ -1030,6 +1067,7 @@
 			if ( e.target.hasAttribute( 'data-sethref' ) ) { var hv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.href = hv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setconn' ) ) { var cv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.conn = cv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setpreset' ) ) { var pv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.preset = pv; } } ); return; }
+			if ( e.target.hasAttribute( 'data-setwp' ) ) { var wv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.wp = wv; } } ); return; }
 			var n = e.target.closest( '[data-setnum]' );
 			if ( n ) { var v = e.target.value.trim(); clearTimeout( dbTimer ); dbTimer = setTimeout( function () { if ( v === '' ) { removeProp( n.getAttribute( 'data-setnum' ) ); } else { setProp( n.getAttribute( 'data-setnum' ), v ); } }, 150 ); return; }
 			var c = e.target.closest( '[data-setcolor]' ); if ( c ) { setProp( c.getAttribute( 'data-setcolor' ), e.target.value ); return; }
@@ -1360,6 +1398,9 @@
 			'.vb-chip-x{opacity:.5;display:grid;place-items:center;border-radius:4px}.vb-chip-x:hover{opacity:1;background:rgba(255,255,255,.12)}',
 			'.vb-chip-add{background:#313339;color:#8a8a94;border:1px dashed rgba(255,255,255,.14)}.vb-chip-add:hover{color:#f4f4f6}',
 			'.vb-setwrap{padding:2px 0}',
+			'.vb-setsec{margin:0 12px 12px;padding:12px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:11px}',
+			'.vb-setsec-h{display:flex;align-items:center;gap:7px;font-size:12px;font-weight:700;color:#f4f4f6;margin-bottom:10px}.vb-setsec-h svg{color:#2ab7f1}',
+			'.vb-setnote{font-size:11px;color:#8a8a94;line-height:1.5;margin:2px 0 10px}',
 			'.vb-imgbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 24px);margin:8px 12px 0;padding:10px;border-radius:10px;background:#313339;border:1px solid rgba(255,255,255,.07);color:#f4f4f6;font-size:12.5px;font-weight:600;cursor:pointer}',
 			'.vb-imgbtn:hover{background:#3c3e46}',
 			'.vb-cb-l{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#606069;margin-bottom:9px}',

@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.62.0 — Velox Builder: real element settings (wave D, #5)
+- Elements with their own settings now surface them properly. Selecting a Google Reviews element jumps straight to its Settings, showing a prominent Connection + Design preset picker (with a hint to set up a source under Velox → Utilities → Google Reviews if none exist).
+- WordPress-data elements get a "Show which field" picker (post title / content / featured image / menu). Links/buttons get a URL field plus an Open-in-same/new-tab choice that is honoured on the front end.
+- Element settings are grouped into clear sections instead of being mixed in with style controls.
+
 ## 3.61.0 — Velox Builder: element-specific inspector (wave C)
 - The inspector now adapts to the selected element: each element type shows its style groups in an order that fits it, and picks sensible Essentials.
 - Text and headings lead with Typography; sections/divs/columns lead with Layout; buttons foreground Typography + Background; images and video lead with Size. No more Display-first on a text element.

@@ -227,6 +227,9 @@ class Velox_Builder_Render {
 		if ( 'a' === $tag ) {
 			$href  = isset( $node['href'] ) ? esc_url( $node['href'] ) : '#';
 			$attr .= ' href="' . $href . '"';
+			if ( ! empty( $node['target'] ) && '_blank' === $node['target'] ) {
+				$attr .= ' target="_blank" rel="noopener"';
+			}
 		}
 		return '<' . $tag . $attr . '>' . $content . $kids . '</' . $tag . '>';
 	}
