@@ -319,11 +319,15 @@ class Velox_Builder {
 		// to that post's editor (not the builder home).
 		$seed_title = '';
 		$back_url   = admin_url( 'admin.php?page=' . self::SLUG );
+		$front_url  = '';
+		$preview_url = '';
 		if ( $post_id ) {
 			$p = get_post( $post_id );
 			if ( $p ) {
-				$seed_title = $p->post_title;
-				$back_url   = get_edit_post_link( $post_id, 'raw' );
+				$seed_title  = $p->post_title;
+				$back_url    = get_edit_post_link( $post_id, 'raw' );
+				$front_url   = get_permalink( $post_id );
+				$preview_url = get_preview_post_link( $post_id );
 			}
 		}
 		$boot = array(
@@ -335,6 +339,8 @@ class Velox_Builder {
 			'kind'    => isset( $_GET['kind'] ) ? sanitize_key( wp_unslash( $_GET['kind'] ) ) : 'page',
 			'reusables' => self::reusables_payload(),
 			'backUrl' => $back_url,
+			'frontUrl' => $front_url,
+			'previewUrl' => $preview_url,
 			'settingsUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-settings' ),
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'reviewConnections' => self::review_connections(),

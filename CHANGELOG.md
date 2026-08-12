@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.60.0 — Velox Builder: layout + chrome rework (wave B)
+- Moved all working panels to the left: the Add element / Layers spine and the element inspector now sit side by side on the left, with the canvas filling the rest.
+- The Structure panel now opens on the right.
+- Brightened the whole editor a step and unified every button to one consistent style (no more mixed colours/gradients).
+- Reworked the top-bar right side: tool icons, then Publish and View page, then an Exit icon on the far right. The Exit icon opens a menu: Open frontend, Go to backend (WordPress editor), or View page in a new tab.
+
 ## 3.59.0 — Velox Builder: undo/redo + revert fixes, structure panel, delete sync (wave A)
 - Fixed the top-bar undo/redo arrows — they now step one change at a time instead of jumping two or doing nothing. Selecting elements no longer pollutes the history.
 - Fixed session-history revert: reverting to a point now restores exactly that state instead of wiping the page.
