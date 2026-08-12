@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.61.0 — Velox Builder: element-specific inspector (wave C)
+- The inspector now adapts to the selected element: each element type shows its style groups in an order that fits it, and picks sensible Essentials.
+- Text and headings lead with Typography; sections/divs/columns lead with Layout; buttons foreground Typography + Background; images and video lead with Size. No more Display-first on a text element.
+
 ## 3.60.0 — Velox Builder: layout + chrome rework (wave B)
 - Moved all working panels to the left: the Add element / Layers spine and the element inspector now sit side by side on the left, with the canvas filling the rest.
 - The Structure panel now opens on the right.

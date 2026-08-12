@@ -797,14 +797,36 @@
 		var acKind = node.classes.indexOf( ac ) === 0 ? 'base' : 'combo';
 		var imgBtn = node.el === 'Image' ? '<button class="vb-imgbtn" data-pickimg="' + node.id + '">' + svg( 'image', 15 ) + ' ' + ( store.state.content[ node.id ] ? T( 'Replace image' ) : T( 'Choose image' ) ) + '</button>' : '';
 
-		var ESSENTIALS = { 'Layout':1, 'Spacing':1, 'Typography':1, 'Background & effects':1 };
+		// Per-element inspector profiles: the ORDER groups appear in, and which of
+		// them count as "Essentials" for this element type. Text-like elements lead
+		// with Typography; containers lead with Layout; media with Size; etc.
+		var PROFILES = {
+			Heading:  { order:[ 'Typography', 'Spacing', 'Background & effects', 'Layout', 'Size', 'Border' ], ess:[ 'Typography', 'Spacing', 'Background & effects' ] },
+			Text:     { order:[ 'Typography', 'Spacing', 'Background & effects', 'Layout', 'Size', 'Border' ], ess:[ 'Typography', 'Spacing', 'Background & effects' ] },
+			Button:   { order:[ 'Typography', 'Background & effects', 'Spacing', 'Border', 'Layout', 'Size' ], ess:[ 'Typography', 'Background & effects', 'Spacing', 'Border' ] },
+			Image:    { order:[ 'Size', 'Spacing', 'Border', 'Background & effects', 'Layout' ], ess:[ 'Size', 'Spacing', 'Border' ] },
+			Video:    { order:[ 'Size', 'Spacing', 'Border', 'Background & effects', 'Layout' ], ess:[ 'Size', 'Spacing', 'Border' ] },
+			Icon:     { order:[ 'Typography', 'Size', 'Spacing', 'Background & effects', 'Layout' ], ess:[ 'Typography', 'Size', 'Spacing' ] },
+			Section:  { order:[ 'Layout', 'Spacing', 'Size', 'Background & effects', 'Border', 'Typography' ], ess:[ 'Layout', 'Spacing', 'Background & effects' ] },
+			Columns:  { order:[ 'Layout', 'Spacing', 'Size', 'Background & effects', 'Border', 'Typography' ], ess:[ 'Layout', 'Spacing', 'Background & effects' ] },
+			Div:      { order:[ 'Layout', 'Spacing', 'Size', 'Background & effects', 'Border', 'Typography' ], ess:[ 'Layout', 'Spacing', 'Background & effects' ] },
+			Reviews:  { order:[ 'Spacing', 'Size', 'Background & effects', 'Border', 'Layout' ], ess:[ 'Spacing', 'Size' ] },
+			WP:       { order:[ 'Typography', 'Spacing', 'Layout', 'Size', 'Background & effects', 'Border' ], ess:[ 'Typography', 'Spacing' ] }
+		};
+		var DEFAULT_PROFILE = { order:[ 'Layout', 'Size', 'Spacing', 'Typography', 'Background & effects', 'Border' ], ess:[ 'Layout', 'Spacing', 'Typography', 'Background & effects' ] };
+		var profile = PROFILES[ node.el ] || DEFAULT_PROFILE;
+		var essSet = {}; profile.ess.forEach( function ( g ) { essSet[ g ] = 1; } );
+		// build the ordered, filtered group list for this element
+		var byName = {}; CONTROLS.forEach( function ( g ) { byName[ g.group ] = g; } );
+		var ordered = profile.order.map( function ( n ) { return byName[ n ]; } ).filter( Boolean );
+
 		var body = '';
 		if ( tab === 'set' ) {
 			body = settingsTabHTML( node );
 		} else {
-			var groups = CONTROLS.filter( function ( g ) { return tab === 'all' ? true : ESSENTIALS[ g.group ]; } );
+			var groups = ordered.filter( function ( g ) { return tab === 'all' ? true : essSet[ g.group ]; } );
 			groups.forEach( function ( g, gi ) {
-				var closed = gi > 2 ? ' closed' : '';
+				var closed = gi > 1 ? ' closed' : '';
 				body += '<div class="vb-block' + closed + '"><div class="vb-block-h" data-block><span class="vb-block-ic">' + svg( g.icon, 15 ) + '</span><b>' + g.group + '</b><span class="vb-block-cv">' + svg( 'chevron', 12 ) + '</span></div><div class="vb-block-b">';
 				g.items.forEach( function ( it ) {
 					var res = resolveProperty( node, bp, it.prop, st ), dot = dotFor( res, ac, bp ), val = res.value, ctrl = '';
