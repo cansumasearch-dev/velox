@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.65.0 — Velox Builder: states, spine cleanup, styled inputs (wave F)
+- State selector now includes :active out of the box plus a + button to add any custom pseudo-class (:visited, :nth-child(2), etc.); the generated CSS renders whatever states you use.
+- Removed the separate Layers list from the left spine — element editing lives in the inspector and the full tree is in the Structure panel (reachable from the spine or the top bar).
+- Styled the settings/inputs properly: focus ring, hover states, custom dropdown chevron, and clearer read-only fields. Inspector is wider for more room.
+
 ## 3.64.0 — Velox Builder: exit fix, contrast, duplicate, shortcuts + right-click (wave E)
 - Fixed the Exit menu: Open frontend / Go to backend / View page now resolve to real URLs even when you opened the builder by document (they were dead when no post was bound).
 - Right-click any element (in the canvas, layer tree or structure) for a context menu: Copy, Paste, Duplicate, Make reusable, Remove.
