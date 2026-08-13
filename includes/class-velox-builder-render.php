@@ -87,8 +87,27 @@ class Velox_Builder_Render {
 	/** Find a published document bound to this post, if any. */
 	private static function doc_for_post( $post_id ) {
 		global $wpdb;
-		$t   = Velox_Builder::table();
+		$t = Velox_Builder::table();
+		// Previewing a revision hands us the revision id, not the page's — the
+		// document is bound to the parent, so resolve that first.
+		$parent = wp_is_post_revision( $post_id );
+		if ( $parent ) {
+			$post_id = (int) $parent;
+		}
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, data FROM {$t} WHERE post_id = %d AND status = 'published' LIMIT 1", $post_id ), ARRAY_A );
+		// Fall back to the binding stored on the post itself. The two can drift
+		// apart (a doc duplicated, a page restored from trash), and without this
+		// the visitor silently gets the theme with no clue why.
+		if ( ! $row ) {
+			$meta_doc = (int) get_post_meta( $post_id, '_velox_builder_doc', true );
+			if ( $meta_doc ) {
+				$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, data FROM {$t} WHERE id = %d AND status = 'published' LIMIT 1", $meta_doc ), ARRAY_A );
+			}
+		}
+		// Logged-in editors previewing an unpublished layout should see it.
+		if ( ! $row && is_preview() && current_user_can( 'edit_post', $post_id ) ) {
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, data FROM {$t} WHERE post_id = %d LIMIT 1", $post_id ), ARRAY_A );
+		}
 		if ( ! $row ) {
 			return null;
 		}
@@ -99,6 +118,35 @@ class Velox_Builder_Render {
 		$model['__id']    = (int) $row['id'];
 		$model['__title'] = $row['title'];
 		return $model;
+	}
+
+
+	/**
+	 * Why is (or isn't) this post served by Velox? Returns a short human answer
+	 * for the page editor, so a blank front end stops being a guessing game.
+	 *
+	 * @return array{live:bool,reason:string}
+	 */
+	public static function render_status( $post_id ) {
+		global $wpdb;
+		$t   = Velox_Builder::table();
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, status, post_id, kind FROM {$t} WHERE post_id = %d LIMIT 1", (int) $post_id ), ARRAY_A );
+		if ( ! $row ) {
+			$meta_doc = (int) get_post_meta( $post_id, '_velox_builder_doc', true );
+			if ( $meta_doc ) {
+				$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, status, post_id, kind FROM {$t} WHERE id = %d LIMIT 1", $meta_doc ), ARRAY_A );
+			}
+		}
+		if ( ! $row ) {
+			return array( 'live' => false, 'reason' => __( 'No Velox layout is attached to this page yet, so WordPress renders it with your theme.', 'velox' ) );
+		}
+		if ( 'published' !== $row['status'] ) {
+			return array( 'live' => false, 'reason' => __( 'This page has a Velox layout but it is still a draft. Open the builder and press Publish to put it live — until then visitors see the theme.', 'velox' ) );
+		}
+		if ( 'page' !== $row['kind'] ) {
+			return array( 'live' => false, 'reason' => __( 'The document attached to this page is saved as a Template or Reusable, not a Page, so it is not served at this URL. Change its type on the Velox Builder overview.', 'velox' ) );
+		}
+		return array( 'live' => true, 'reason' => __( 'Velox is serving this page — your theme is bypassed entirely.', 'velox' ) );
 	}
 
 	/** Print the full standalone HTML document. */

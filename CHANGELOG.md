@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.72.1 — View page opens the homepage for templates
+- A template has no URL of its own, so **"View page" now opens the site homepage** while you are editing one, instead of doing nothing. The same applies to the View and Open frontend entries in the exit menu.
+
+## 3.72.0 — Template previews, Inner Content rules, and a front-end diagnosis
+- **The page editor now tells you whether Velox is actually serving the page**, and if not, exactly why: no layout attached, still a draft, or the document is saved as a Template/Reusable rather than a Page.
+- **Front-end lookup made more forgiving**: it now also finds the layout through the binding stored on the page itself, resolves revision IDs when previewing, and lets logged-in editors preview an unpublished layout.
+- **"View as" for templates**: pick any built page from the top bar and its content appears inside the template's Inner Content slot, so you can see how a real page sits in the frame. Preview only — nothing is saved.
+- **Inner Content is now template-only** — it no longer appears in the element list for pages or reusables, it can only sit at the top level (never inside a section or div, including by dragging), and a template can only have one.
+- **Open panels now dim the editor behind them** instead of letting it show through. Pinned panels do not dim, since they own their own space. Clicking the dimmed area closes the panel.
+- **"Go to backend" returns where you came from**: the WordPress editor if you opened the page there, the Templates or Reusables list for those, and the Velox overview otherwise.
+
 ## 3.71.0 — Three fixes, including a white-screen crash
 - **Fixed: a page could return a 500 error.** If a document was used as its own template, the Inner Content slot kept inserting the page into itself until PHP ran out of memory. The slot is now filled once and nested repeats are ignored.
 - **Fixed: typing a unit into a number field produced values like "24%px".** Half-typed units are ignored until they are complete, so typing "px" over an existing "%" now lands on 24px instead of garbage.

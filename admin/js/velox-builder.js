@@ -247,6 +247,11 @@
 			// Inner Content: the slot a template drops each page's own layout into.
 			// Editor shows it as a labelled well; the front end replaces it with the page.
 			if ( node.el === 'InnerContent' ) {
+				// With "View as" active, show that page's real content in the slot.
+				if ( viewAsDoc && viewAsDoc.tree ) {
+					var borrowed = renderReuseTree( viewAsDoc.tree, viewAsDoc );
+					return '<div id="' + node.id + '" class="' + cls + ' vb-inner-live" data-node="' + node.id + '"><span class="vb-inner-tag">' + T( 'Preview content' ) + '</span>' + borrowed + '</div>';
+				}
 				return '<div id="' + node.id + '" class="' + cls + ' vb-ph-el vb-ph-inner" data-node="' + node.id + '"><span class="vb-ph-ic">' + svg( 'layout', 22 ) + '</span><span class="vb-ph-l">' + T( 'Inner Content' ) + '</span><span class="vb-ph-s">' + T( 'Each page using this template renders its own layout here.' ) + '</span></div>';
 			}
 			// WordPress-data: labeled placeholder in the editor (live data renders on the front end).
@@ -271,7 +276,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}</style><style id="vb-style"></style></head><body></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}</style><style id="vb-style"></style></head><body></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -510,8 +515,28 @@
 	// flat lookup used by insertNode
 	var CATALOG = ( function () { var a = []; CAT_GROUPS.forEach( function ( g ) { a = a.concat( g.items ); } ); return a; }() );
 
+	function hasInnerContent() {
+		if ( ! store.state ) { return false; }
+		var found = false;
+		walkTree( store.state.tree, function ( n ) { if ( 'InnerContent' === n.el ) { found = true; } } );
+		return found;
+	}
 	function insertNode( catKey ) {
 		var cat = CATALOG.filter( function ( c ) { return c.key === catKey; } )[ 0 ] || CATALOG[ 0 ];
+		// Inner Content marks where a whole page is dropped in, so it belongs at
+		// the top level of a template — never nested inside a section or div, and
+		// never twice.
+		if ( 'InnerContent' === cat.el ) {
+			if ( 'template' !== docKind ) { toast( T( 'Inner Content can only be used in a template.' ) ); return; }
+			if ( hasInnerContent() ) { toast( T( 'This template already has an Inner Content element.' ) ); return; }
+			store.commit( function ( s ) {
+				var id = uid( cat.key );
+				if ( ! s.classes[ cat.cls ] ) { s.classes[ cat.cls ] = { base: Object.assign( {}, cat.rules ) }; }
+				s.tree.push( { id:id, el:cat.el, tag:cat.tag, classes:[ cat.cls ], overrides:{}, children:[] } );
+				s.selection = id; resetActiveClass( s );
+			}, T( 'Add' ) + ' ' + cat.label );
+			return;
+		}
 		store.commit( function ( s ) {
 			var id = uid( cat.key );
 			var node = { id:id, el:cat.el, tag:cat.tag, classes:[ cat.cls ], overrides:{}, children:[] };
@@ -630,6 +655,8 @@
 			if ( dp ) { dp.children.splice( dp.children.indexOf( node ), 1 ); }
 			else { s.tree.splice( s.tree.indexOf( node ), 1 ); }
 			// re-attach
+			// Inner Content must stay at page level wherever it is moved.
+			if ( 'InnerContent' === node.el ) { position = 'after'; }
 			if ( position === 'inside' && isContainer( target ) ) {
 				target.children.push( node );
 			} else {
@@ -817,6 +844,10 @@
 		if ( lt ) { lt.classList.toggle( 'on', ! leftCollapsed ); lt.setAttribute( 'title', leftCollapsed ? T( 'Show left panels' ) : T( 'Hide left panels' ) ); }
 		var rt = document.getElementById( 'vb-tgl-right' );
 		if ( rt ) { rt.classList.toggle( 'on', !! right ); rt.setAttribute( 'title', right ? T( 'Hide right panel' ) : T( 'Show right panel' ) ); }
+		// An unpinned panel floats OVER the editor, so dim what's behind it —
+		// otherwise the inspector shows through and the two read as one surface.
+		var scrim = document.getElementById( 'vb-scrim' );
+		if ( scrim ) { scrim.classList.toggle( 'on', ! panelsPinned && ( !! right || addMenuOpen() ) ); }
 		var pins = document.querySelectorAll( '.vb-pinbtn' );
 		for ( var i = 0; i < pins.length; i++ ) {
 			pins[ i ].classList.toggle( 'on', panelsPinned );
@@ -853,7 +884,8 @@
 			'<div class="vb-histpanel" id="vb-hist"></div>' +
 			'<div class="vb-structpanel" id="vb-struct"></div>' +
 			'<div id="vb-dyndata-host"></div>' +
-			'<div class="vb-addmenu" id="vb-addmenu"></div>';
+			'<div class="vb-addmenu" id="vb-addmenu"></div>' +
+			'<div class="vb-scrim" id="vb-scrim"></div>';
 		injectStyles();
 		wireEvents();
 		applyDock();
@@ -905,6 +937,7 @@
 			'</div>' +
 			// RIGHT: tool icons · [Save Publish View] · Exit-icon (with menu)
 			'<div class="vb-tbc">' +
+				'<select class="vb-kind vb-viewas" id="vb-viewas" title="' + T( 'Preview this template with a page\'s content' ) + '"><option value="">' + T( 'View as…' ) + '</option></select>' +
 				'<button class="vb-ic" id="vb-structure" title="' + T( 'Structure' ) + '">' + svg( 'structure', 16 ) + '</button>' +
 				'<a class="vb-ic" id="vb-reusables" href="' + ( CFG.reusablesUrl || '#' ) + '" title="' + T( 'Reusables' ) + '">' + svg( 'copy', 16 ) + '</a>' +
 				'<button class="vb-ic" id="vb-search" title="' + T( 'Search' ) + '">' + svg( 'search', 16 ) + '</button>' +
@@ -960,6 +993,7 @@
 		for ( var i = 0; i < b.length; i++ ) { b[ i ].classList.toggle( 'on', b[ i ].getAttribute( 'data-bp' ) === state.breakpoint ); }
 		var bpl = document.getElementById( 'vb-bplabel' ); if ( bpl ) { bpl.textContent = BP_META[ state.breakpoint ].label; }
 		var ks = document.getElementById( 'vb-kind' ); if ( ks && ks.value !== docKind ) { ks.value = docKind; }
+		refreshViewAs();
 		document.getElementById( 'vb-undo' ).style.opacity = store.history.length > 1 ? 1 : 0.4;
 		document.getElementById( 'vb-redo' ).style.opacity = store.future.length ? 1 : 0.4;
 	}
@@ -1442,6 +1476,7 @@
 			var pick = e.target.closest( '[data-pickimg]' ); if ( pick ) { openMediaPicker( pick.getAttribute( 'data-pickimg' ) ); return; }
 			var bm = e.target.closest( '[data-boxmode]' );
 			if ( bm ) { boxMode[ bm.getAttribute( 'data-boxmode' ) ] = bm.getAttribute( 'data-mode' ); saveBoxMode(); renderInspector( store.state ); return; }
+			if ( e.target.id === 'vb-scrim' ) { closeAllPanels(); renderCSSPanel(); renderHistoryPanel(); renderStructPanel(); return; }
 			if ( e.target.closest( '[data-pin]' ) ) { togglePin(); return; }
 			if ( e.target.closest( '#vb-tgl-left' ) ) { toggleLeftStack(); return; }
 			if ( e.target.closest( '#vb-tgl-right' ) ) { toggleRightStack(); return; }
@@ -1551,8 +1586,16 @@
 				setBoxAll( bk, inp ? inp.value.trim() : '', e.target.value );
 				return;
 			}
+			if ( e.target.id === 'vb-viewas' ) { setViewAs( e.target.value ); return; }
 			if ( e.target.id === 'vb-kind' ) {
 				docKind = e.target.value;
+				// Changing the type isn't a state commit, so nothing re-renders on
+				// its own — refresh the bits that depend on it by hand.
+				var vs = document.getElementById( 'vb-viewas' );
+				if ( vs ) { vs.removeAttribute( 'data-filled' ); }
+				refreshViewAs();
+				setNavUrls();
+				if ( 'template' !== docKind ) { viewAsId = 0; viewAsDoc = null; injectCanvas(); }
 				saveDoc();
 				toast( docKind === 'template' ? T( 'Saved as a template — pages can now use it.' ) : T( 'Document type changed.' ) );
 			}
@@ -1597,7 +1640,12 @@
 		var si = document.getElementById( 'vb-ap-search' ); if ( si ) { si.focus(); }
 	}
 	function accGroups() {
-		var groups = CAT_GROUPS.slice();
+		// Inner Content only means anything inside a template, so don't offer it
+		// anywhere else — and never more than one per template.
+		var groups = CAT_GROUPS.filter( function ( g ) {
+			if ( 'Template' !== g.name ) { return true; }
+			return 'template' === docKind && ! hasInnerContent();
+		} );
 		var reuse = CFG.reusables || [];
 		if ( reuse.length ) { groups = groups.concat( [ { name:'Reusables', icon:'copy', reuse:true, items:reuse.map( function ( r ) { return { key:'reuse-' + r.id, label:r.title, el:'Reusable', reuseId:r.id }; } ) } ] ); }
 		return groups;
@@ -1630,6 +1678,12 @@
 	/* Populate the View button + exit-menu destinations from the boot config. */
 	function setNavUrls() {
 		var front = CFG.frontUrl || '', preview = CFG.previewUrl || CFG.frontUrl || '', back = CFG.backUrl || '#';
+		// A template isn't served at a URL of its own, so point View page at the
+		// homepage rather than hiding the button or sending you nowhere.
+		if ( 'template' === docKind ) {
+			front = CFG.homeUrl || front;
+			preview = CFG.homeUrl || preview;
+		}
 		function set( id, href, hide ) { var el = document.getElementById( id ); if ( ! el ) { return; } if ( href ) { el.href = href; el.style.display = ''; } else if ( hide ) { el.style.display = 'none'; } }
 		set( 'vb-view', preview, true );
 		set( 'vb-exit-front', front, false );
@@ -1816,6 +1870,40 @@
 		applyDock();
 	}
 
+	/* ---------- "View as": fill a template's Inner Content with a real page ----------
+	 * Templates render as a navbar/footer around an empty slot, which tells you
+	 * nothing about how a real page will sit inside. Pick any built page and its
+	 * content is dropped into the slot for preview only — never saved. */
+	var viewAsId = 0, viewAsDoc = null;
+	function refreshViewAs() {
+		var sel = document.getElementById( 'vb-viewas' );
+		if ( ! sel ) { return; }
+		var show = ( 'template' === docKind );
+		sel.style.display = show ? '' : 'none';
+		if ( ! show || sel.getAttribute( 'data-filled' ) ) { return; }
+		if ( ! switcherData ) { fetchSwitcher(); return; }
+		var pages = ( switcherData.velox || [] ).filter( function ( d ) { return 'page' === d.kind; } );
+		sel.innerHTML = '<option value="">' + T( 'View as…' ) + '</option>' +
+			pages.map( function ( d ) { return '<option value="' + d.id + '">' + escapeHtml( d.title ) + '</option>'; } ).join( '' );
+		sel.setAttribute( 'data-filled', '1' );
+		if ( viewAsId ) { sel.value = String( viewAsId ); }
+	}
+	function setViewAs( id ) {
+		viewAsId = +id || 0;
+		if ( ! viewAsId ) { viewAsDoc = null; injectCanvas(); return; }
+		if ( ! CFG.ajaxurl ) { return; }
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_load' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'id', viewAsId );
+		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) {
+				viewAsDoc = ( res && res.success && res.data && res.data.model ) ? res.data.model : null;
+				injectCanvas();
+				toast( viewAsDoc ? T( 'Previewing with that page — nothing is saved.' ) : T( 'Could not load that page.' ) );
+			} )
+			.catch( function () { viewAsDoc = null; } );
+	}
+
 	/* ---------- page switcher ---------- */
 	var switcherData = null, switcherFilter = 'all', switcherQuery = '';
 	function toggleSwitcher() {
@@ -1832,7 +1920,7 @@
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_switcher_list' ); body.set( 'nonce', CFG.nonce || '' );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { switcherData = res && res.success ? res.data : { velox:[], wp:[] }; renderSwitcher(); } )
+			.then( function ( res ) { switcherData = res && res.success ? res.data : { velox:[], wp:[] }; renderSwitcher(); refreshViewAs(); } )
 			.catch( function () { switcherData = { velox:[], wp:[] }; renderSwitcher(); } );
 	}
 	function renderSwitcher() {
@@ -2054,6 +2142,11 @@
 			// read as "floating on top", which is exactly what pinning undoes.
 			'.vb-app.vb-pin .vb-csspanel,.vb-app.vb-pin .vb-histpanel,.vb-app.vb-pin .vb-structpanel{box-shadow:none;border-left-color:rgba(255,255,255,.07)}',
 			'.vb-app.vb-pin .vb-addmenu{box-shadow:none;border-right-color:rgba(255,255,255,.07)}',
+			// Scrim only appears for UNPINNED panels — a pinned panel owns its own
+			// space, so dimming the canvas there would be wrong.
+			'.vb-scrim{position:absolute;top:54px;left:0;right:0;bottom:0;background:rgba(12,13,16,.55);z-index:110;opacity:0;pointer-events:none;transition:opacity .16s}',
+			'.vb-scrim.on{opacity:1;pointer-events:auto}',
+			'.vb-viewas{max-width:150px;text-overflow:ellipsis}',
 			'.vb-p-acts{display:flex;align-items:center;gap:2px}',
 			'.vb-pinbtn.on{color:#2ab7f1;background:rgba(42,183,241,.14)}',
 			'.vb-pinbtn.on:hover{background:rgba(42,183,241,.22);color:#2ab7f1}',

@@ -90,6 +90,16 @@ class Velox_Builder {
 		echo '<p style="color:#787c82;margin:12px 0 0">' . ( $built
 			? esc_html__( 'This page has a Velox Builder layout. Opening the builder loads it.', 'velox' )
 			: esc_html__( 'Design this page visually with Velox Builder. Your current content stays until you publish a Velox layout.', 'velox' ) ) . '</p>';
+		// Say plainly whether visitors are getting the Velox layout or the theme.
+		if ( class_exists( 'Velox_Builder_Render' ) ) {
+			$st = Velox_Builder_Render::render_status( $post->ID );
+			$bg = $st['live'] ? '#edfaf1' : '#fff8e5';
+			$bd = $st['live'] ? '#7ad39b' : '#f0c36d';
+			echo '<p style="margin:0 0 4px;padding:10px 12px;background:' . esc_attr( $bg ) . ';border-left:3px solid ' . esc_attr( $bd ) . ';border-radius:4px">';
+			echo '<strong>' . esc_html( $st['live'] ? __( 'Live with Velox', 'velox' ) : __( 'Not live with Velox', 'velox' ) ) . '</strong><br>';
+			echo esc_html( $st['reason'] );
+			echo '</p>';
+		}
 		echo '</div>';
 
 		// ---- Render page using template ----
@@ -389,14 +399,33 @@ class Velox_Builder {
 		// When entering from a WP page/post, inherit its title and make Exit return
 		// to that post's editor (not the builder home).
 		$seed_title = '';
-		$back_url   = admin_url( 'edit.php?post_type=page' ); // fallback: WP Pages list
+		// Where "Go to backend" should land. Coming in from a WP page editor should
+		// return there; a template belongs in the Templates list, a reusable in
+		// Reusables, and anything opened from the Velox side goes to the overview.
+		$kind_now = isset( $_GET['kind'] ) ? sanitize_key( wp_unslash( $_GET['kind'] ) ) : '';
+		if ( ! $kind_now && $doc_id ) {
+			global $wpdb;
+			$kind_now = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT kind FROM ' . self::table() . ' WHERE id = %d', $doc_id ) );
+		}
+		$came_from_wp = isset( $_GET['post'] ) && absint( $_GET['post'] );
+		if ( 'template' === $kind_now ) {
+			$back_url = admin_url( 'admin.php?page=' . self::SLUG . '-templates' );
+		} elseif ( 'reusable' === $kind_now ) {
+			$back_url = admin_url( 'admin.php?page=' . self::SLUG . '-reusables' );
+		} elseif ( $came_from_wp ) {
+			$back_url = admin_url( 'edit.php?post_type=page' ); // refined to the post below
+		} else {
+			$back_url = admin_url( 'admin.php?page=' . self::SLUG );
+		}
 		$front_url  = home_url( '/' );                        // fallback: site home
 		$preview_url = '';
 		if ( $post_id ) {
 			$p = get_post( $post_id );
 			if ( $p ) {
 				$seed_title  = $p->post_title;
-				$back_url    = get_edit_post_link( $post_id, 'raw' );
+				if ( $came_from_wp ) {
+					$back_url = get_edit_post_link( $post_id, 'raw' );
+				}
 				$front_url   = get_permalink( $post_id );
 				$preview_url = get_preview_post_link( $post_id );
 			}
@@ -412,6 +441,9 @@ class Velox_Builder {
 			'reusables' => self::reusables_payload(),
 			'backUrl' => $back_url,
 			'frontUrl' => $front_url,
+			// Templates have no URL of their own, so "View page" sends you to the
+			// site homepage — the nearest thing to seeing the template in the wild.
+			'homeUrl'  => home_url( '/' ),
 			'previewUrl' => $preview_url,
 			'settingsUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-settings' ),
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
