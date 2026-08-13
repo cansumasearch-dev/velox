@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.71.0 — Three fixes, including a white-screen crash
+- **Fixed: a page could return a 500 error.** If a document was used as its own template, the Inner Content slot kept inserting the page into itself until PHP ran out of memory. The slot is now filled once and nested repeats are ignored.
+- **Fixed: typing a unit into a number field produced values like "24%px".** Half-typed units are ignored until they are complete, so typing "px" over an existing "%" now lands on 24px instead of garbage.
+- **Fixed: Backspace sometimes deleted the element you were styling.** Every keystroke rebuilt the style panel, which threw away the field you were typing in — the next Backspace then hit the delete-element shortcut. The panel now keeps your field and cursor position, and Backspace no longer deletes elements at all (Delete still does).
+- **Change a document between Page, Template and Reusable straight from the overview**, without opening the editor.
+- When no templates exist, the page editor now links straight to creating one and explains that an existing page can simply be converted.
+
 ## 3.70.0 — Inspector rework, drag-to-move, and a real page & class manager
 **Editor**
 - **Padding and margin now sit side by side** in a box layout, each with an **All / Individual** switch — one field for all four sides, or one per side. Your choice is remembered.

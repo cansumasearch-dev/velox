@@ -103,7 +103,16 @@ class Velox_Builder {
 		echo '<p style="margin:0 0 8px"><label for="velox-template" style="font-weight:600">' . esc_html__( 'Render page using template', 'velox' ) . '</label></p>';
 
 		if ( ! $templates ) {
-			echo '<p style="color:#787c82;margin:0">' . esc_html__( 'No templates yet. Create one in Velox Builder → Templates, add an Inner Content element where the page content belongs, and it becomes the default for every page.', 'velox' ) . '</p>';
+			// Two ways to end up with a template, and the old copy mentioned
+			// neither by link — nor that an existing page can simply be converted.
+			$tpl_new  = self::edit_url( 0, 'template' );
+			$tpl_list = admin_url( 'admin.php?page=' . self::SLUG . '-templates' );
+			echo '<p style="color:#787c82;margin:0 0 10px">' . esc_html__( 'No templates exist yet. A template holds the navbar, footer and anything else shared between pages, with an Inner Content element marking where each page drops in. The first one you make becomes the default for every page automatically.', 'velox' ) . '</p>';
+			echo '<p style="margin:0">';
+			echo '<a class="button button-secondary" href="' . esc_url( $tpl_new ) . '">' . esc_html__( 'Create a template', 'velox' ) . '</a> ';
+			echo '<a class="button button-secondary" href="' . esc_url( $tpl_list ) . '">' . esc_html__( 'All templates', 'velox' ) . '</a>';
+			echo '</p>';
+			echo '<p style="color:#787c82;margin:10px 0 0;font-size:12px">' . esc_html__( 'Already built the layout as a normal page? Open it in Velox Builder and switch the type dropdown beside the title from Page to Template — or change its type on the Velox Builder overview.', 'velox' ) . '</p>';
 		} else {
 			$default_label = '';
 			foreach ( $templates as $t ) {
@@ -843,6 +852,25 @@ class Velox_Builder {
 			'reusables' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE kind = 'reusable'" ),
 			'classes'   => count( self::all_classes() ),
 		);
+	}
+
+	/**
+	 * Change a document's type without opening the editor. This is the step that
+	 * was previously only reachable from inside the builder, which made "I made a
+	 * template but nothing sees it" very easy to hit.
+	 */
+	public static function ajax_doc_kind() {
+		global $wpdb;
+		$id   = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$kind = isset( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : '';
+		if ( ! $id || ! in_array( $kind, array( 'page', 'template', 'reusable' ), true ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid document type.', 'velox' ) ), 400 );
+		}
+		$wpdb->update( self::table(), array( 'kind' => $kind, 'updated' => current_time( 'mysql' ) ), array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
+		if ( 'template' === $kind && ! self::default_template() ) {
+			update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
+		}
+		wp_send_json_success( array( 'id' => $id, 'kind' => $kind ) );
 	}
 
 	/** Rename a document (title only — never touches the bound WP post slug). */

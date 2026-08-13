@@ -90,7 +90,15 @@ $type_icon = array( 'page' => 'file', 'template' => 'grid', 'reusable' => 'globe
 						data-title="<?php echo esc_attr( strtolower( $d['title'] ) ); ?>">
 						<span class="vba-doc-ic"><?php echo Velox_Admin::icon( $type_icon[ $d['type'] ], 15 ); // phpcs:ignore ?></span>
 						<a class="vba-doc-title" href="<?php echo esc_url( $d['edit'] ); ?>"><?php echo esc_html( $d['title'] ); ?></a>
-						<span class="vba-doc-type vba-type-<?php echo esc_attr( $d['type'] ); ?>"><?php echo esc_html( $type_label[ $d['type'] ] ); ?></span>
+						<?php if ( $d['doc_id'] ) : ?>
+							<select class="vba-doc-kind vba-type-<?php echo esc_attr( $d['type'] ); ?>" data-doc-kind="<?php echo (int) $d['doc_id']; ?>" title="<?php esc_attr_e( 'Change document type', 'velox' ); ?>">
+								<option value="page"<?php selected( 'page', $d['type'] ); ?>><?php esc_html_e( 'Page', 'velox' ); ?></option>
+								<option value="template"<?php selected( 'template', $d['type'] ); ?>><?php esc_html_e( 'Template', 'velox' ); ?></option>
+								<option value="reusable"<?php selected( 'reusable', $d['type'] ); ?>><?php esc_html_e( 'Reusable', 'velox' ); ?></option>
+							</select>
+						<?php else : ?>
+							<span class="vba-doc-type vba-type-legacy"><?php echo esc_html( $type_label[ $d['type'] ] ); ?></span>
+						<?php endif; ?>
 						<span class="vba-doc-status vba-status-<?php echo esc_attr( $d['status'] ); ?>"><?php echo esc_html( ucfirst( $d['status'] ) ); ?></span>
 						<span class="vba-doc-meta"><?php echo esc_html( human_time_diff( strtotime( $d['updated'] ), current_time( 'timestamp' ) ) ); ?> <?php esc_html_e( 'ago', 'velox' ); ?></span>
 						<span class="vba-doc-actions">
@@ -175,6 +183,13 @@ $type_icon = array( 'page' => 'file', 'template' => 'grid', 'reusable' => 'globe
 				if ( res && res.success ) { location.reload(); } else { alert( 'Delete failed' ); }
 			} );
 		}
+	} );
+	document.addEventListener( 'change', function ( e ) {
+		var k = e.target.closest( '[data-doc-kind]' );
+		if ( ! k ) { return; }
+		post( 'builder_doc_kind', { id:k.getAttribute( 'data-doc-kind' ), kind:k.value }, function ( res ) {
+			if ( res && res.success ) { location.reload(); } else { alert( ( res && res.data && res.data.message ) || 'Could not change type' ); }
+		} );
 	} );
 	var s = document.getElementById( 'vba-page-search' );
 	if ( s ) { s.addEventListener( 'input', applyFilter ); }

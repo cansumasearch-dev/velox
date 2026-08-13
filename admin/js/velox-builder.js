@@ -415,9 +415,16 @@
 		v = ( v == null ? '' : String( v ) ).trim();
 		if ( '' === v ) { return { num:'', unit:fallback || 'px' }; }
 		if ( 'auto' === v ) { return { num:'', unit:'auto' }; }
-		var m = v.match( /^(-?[\d.]+)\s*(px|%|em|rem|vh|vw)?$/ );
-		if ( ! m ) { return { num:v, unit:fallback || 'px' }; }
-		return { num:m[ 1 ], unit:m[ 2 ] || fallback || 'px' };
+		// Split into leading number + trailing suffix. The suffix is only honoured
+		// when it's a COMPLETE unit: typing "px" into the number field passes
+		// through "24p" on the way, and treating that as the number produced
+		// values like "24p%". A half-typed unit keeps the current one instead.
+		var m = v.match( /^(-?[\d.]+)\s*(.*)$/ );
+		if ( ! m ) { return { num:'', unit:fallback || 'px' }; }
+		var num = m[ 1 ], suffix = ( m[ 2 ] || '' ).trim().toLowerCase();
+		if ( '' === suffix ) { return { num:num, unit:fallback || 'px' }; }
+		if ( UNITS.indexOf( suffix ) > -1 ) { return { num:num, unit:suffix }; }
+		return { num:num, unit:fallback || 'px', partial:true };
 	}
 	function joinVal( num, unit ) {
 		if ( 'auto' === unit ) { return 'auto'; }
@@ -1051,6 +1058,36 @@
 		}, T( 'Style' ) + ': ' + key );
 	}
 	var lastInspNode = null;
+	/* renderInspector rebuilds the panel with innerHTML on every commit, which
+	 * destroys the field you are typing in: focus falls back to <body>, so the
+	 * next Backspace hits the "delete element" shortcut instead of the input.
+	 * Remember which control had focus and where the caret was, and put it back. */
+	function captureFocus() {
+		var el = document.activeElement;
+		if ( ! el || ! el.closest || ! el.closest( '#vb-inspector' ) ) { return null; }
+		var key = el.getAttribute( 'data-setnum' ) || el.getAttribute( 'data-set' ) ||
+			el.getAttribute( 'data-setbox' ) || el.getAttribute( 'data-setunit' ) ||
+			el.getAttribute( 'data-setboxunit' ) || el.id;
+		if ( ! key ) { return null; }
+		var attr = el.hasAttribute( 'data-setnum' ) ? 'data-setnum' :
+			el.hasAttribute( 'data-setbox' ) ? 'data-setbox' :
+			el.hasAttribute( 'data-setunit' ) ? 'data-setunit' :
+			el.hasAttribute( 'data-setboxunit' ) ? 'data-setboxunit' :
+			el.hasAttribute( 'data-set' ) ? 'data-set' : 'id';
+		var pos = null;
+		try { pos = el.selectionStart; } catch ( e ) {}
+		return { attr:attr, key:key, pos:pos };
+	}
+	function restoreFocus( f ) {
+		if ( ! f ) { return; }
+		var sel = 'id' === f.attr ? '#' + f.key : '[' + f.attr + '="' + f.key + '"]';
+		var el = document.querySelector( '#vb-inspector ' + sel );
+		if ( ! el ) { return; }
+		el.focus();
+		if ( null !== f.pos && el.setSelectionRange ) {
+			try { el.setSelectionRange( f.pos, f.pos ); } catch ( e ) {}
+		}
+	}
 	function renderInspector( state ) {
 		var node = findNode( state.tree, state.selection ), insp = document.getElementById( 'vb-inspector' );
 		if ( ! node ) { insp.innerHTML = ''; lastInspNode = null; return; }
@@ -1126,6 +1163,7 @@
 				body += '</div></div>';
 			} );
 		}
+		var keepFocus = captureFocus();
 		insp.innerHTML =
 			'<div class="vb-insp-head"><span class="vb-insp-ic">' + svg( elIcon( node.el ), 16 ) + '</span><div class="vb-insp-tx"><b>' + node.el + '</b><small>#' + node.id + ' · ' + node.tag + '</small></div>' +
 				'<span class="vb-insp-acts"><button class="vb-ia" data-dup title="' + T( 'Duplicate' ) + '">' + svg( 'copy', 14 ) + '</button><button class="vb-ia vb-ia-del" data-del title="' + T( 'Delete' ) + '">' + svg( 'trash', 14 ) + '</button></span></div>' +
@@ -1150,6 +1188,7 @@
 			'</div>' +
 			imgBtn +
 			'<div class="vb-controls">' + body + '</div>';
+		restoreFocus( keepFocus );
 	}
 	/* Ensure the selected text element is in inline-edit mode, then return its node. */
 	function ensureEditingSelected() {
@@ -1531,7 +1570,10 @@
 			if ( mod && ( e.key === 'd' || e.key === 'D' ) && ! typing && store.state && store.state.selection ) { e.preventDefault(); duplicateNode( store.state.selection ); }
 			if ( mod && e.key === '\\' ) { e.preventDefault(); if ( e.shiftKey ) { toggleRightStack(); } else { toggleLeftStack(); } }
 			if ( e.key === 'Escape' ) { closeAddMenu(); closeContextMenu(); }
-			if ( ( e.key === 'Delete' || e.key === 'Backspace' ) && ! typing && e.target === document.body && store.state && store.state.selection ) { e.preventDefault(); deleteNode( store.state.selection ); }
+			// Deleting the selected element is destructive, so it needs a deliberate
+			// keypress — not one that lands on <body> because a field just re-rendered
+			// under the cursor. Backspace no longer deletes; Delete does.
+			if ( e.key === 'Delete' && ! typing && e.target === document.body && store.state && store.state.selection ) { e.preventDefault(); deleteNode( store.state.selection ); }
 		} );
 		wireDrag();
 		// Right-click context menu on layer tree + structure panel rows.

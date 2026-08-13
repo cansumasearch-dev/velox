@@ -129,6 +129,7 @@ class Velox_Builder_Render {
 		if ( $template && ! empty( $template['tree'] ) ) {
 			self::$inner_doc = $doc;
 			self::$inner_used = false;
+			self::$inner_depth = 0;
 			$body .= self::render_tree( $template['tree'], $template );
 			if ( ! self::$inner_used ) {
 				$body .= self::render_tree( $doc['tree'], $doc );
@@ -213,6 +214,7 @@ class Velox_Builder_Render {
 
 	private static $inner_doc = null;
 	private static $inner_used = false;
+	private static $inner_depth = 0;
 
 	private static function render_node( $node, $doc ) {
 		// Elements hidden in the builder stay in the document but are never output
@@ -225,13 +227,21 @@ class Velox_Builder_Render {
 			if ( ! self::$inner_doc ) {
 				return ''; // Rendering a template on its own — nothing to inject.
 			}
+			// A document can end up being its own template (easy to do by flipping
+			// a page's type). Injecting it into itself would recurse until PHP runs
+			// out of memory and the page 500s, so the slot is consumed on first use.
+			if ( self::$inner_depth > 0 ) {
+				return '';
+			}
 			self::$inner_used = true;
 			$classes = array();
 			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) {
 				$classes[] = sanitize_html_class( ltrim( $c, '.' ) );
 			}
 			$classes[] = 'velox-inner-content';
+			self::$inner_depth++;
 			$inner = self::render_tree( self::$inner_doc['tree'], self::$inner_doc );
+			self::$inner_depth--;
 			return '<div id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( implode( ' ', array_filter( $classes ) ) ) . '">' . $inner . '</div>';
 		}
 		$tag = preg_replace( '/[^a-z0-9]/', '', strtolower( $node['tag'] ?? 'div' ) );

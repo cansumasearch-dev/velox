@@ -59,6 +59,10 @@ class Velox_Ajax {
 				Velox_Builder::ajax_settings_save();
 				break;
 
+			case 'builder_doc_kind':
+				Velox_Builder::ajax_doc_kind();
+				break;
+
 			case 'builder_doc_rename':
 				Velox_Builder::ajax_doc_rename();
 				break;

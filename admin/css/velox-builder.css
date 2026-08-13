@@ -208,3 +208,10 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-modal-msg{flex:1;font-size:12.5px;color:var(--vx-text-2,#6b7280)}
 
 .vba-class-actions{display:flex;align-items:center;gap:4px;justify-content:flex-end}
+
+.vba-doc-kind{font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;border:1px solid transparent;cursor:pointer;
+  -webkit-appearance:none;appearance:none;font-family:inherit;outline:none;background:var(--vbb-surface-2,#1b1c21);color:var(--vbb-text-2,#9aa0a6)}
+.vba-doc-kind:hover{border-color:var(--vbb-line,rgba(255,255,255,.14))}
+.vba-doc-kind:focus{border-color:#2ab7f1}
+.vba-doc-kind.vba-type-template{background:rgba(160,107,255,.14);color:#b98bff}
+.vba-doc-kind.vba-type-reusable{background:rgba(42,183,241,.14);color:#5cc9f5}
