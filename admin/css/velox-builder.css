@@ -413,3 +413,8 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-gs-row{display:flex;align-items:flex-start;gap:14px;padding:12px 18px 0;border-top:1px solid var(--vbb-line)}
 .vba-gs-row .vba-gs-grid{flex:1;padding:0 0 14px}
 .vba-gs-tag{flex:0 0 62px;padding-top:22px;font-family:var(--vbb-mono);font-size:12px;font-weight:700;color:var(--vbb-accent)}
+
+/* Where a reusable is actually used — the thing you need before deleting one. */
+.vba-used{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;flex:0 0 auto;
+	background:rgba(42,183,241,.12);color:var(--vbb-accent);cursor:help}
+.vba-used-none{background:var(--vbb-raised,#1d1d24);color:var(--vbb-text-3);cursor:default}

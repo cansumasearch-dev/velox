@@ -267,6 +267,11 @@ class Velox_Builder_Render {
 <body <?php body_class( 'velox-built' ); ?>>
 	<?php echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped — built from sanitized model ?>
 	<?php self::print_aos(); ?>
+	<?php
+	if ( ! empty( self::$page_settings['js'] ) ) {
+		echo "\n<script id=\"velox-page-js\">\n" . str_ireplace( '</script', '<\\/script', (string) self::$page_settings['js'] ) . "\n</script>\n"; // phpcs:ignore
+	}
+	?>
 	<?php if ( method_exists( 'Velox_Builder', 'print_global_js' ) ) { Velox_Builder::print_global_js( 'footer' ); } ?>
 	<?php wp_footer(); ?>
 </body>
@@ -372,6 +377,13 @@ class Velox_Builder_Render {
 				$page_css .= '@media (min-width:' . $min . 'px){' . $rule . '}';
 			}
 		}
+		if ( ! empty( self::$page_settings['background'] ) ) {
+			$page_css .= 'body.velox-built{background:' . self::sanitize_value( self::$page_settings['background'] ) . ';}';
+		}
+		// Raw per-page CSS goes last so it beats everything Velox generated.
+		if ( ! empty( self::$page_settings['css'] ) ) {
+			$page_css .= str_ireplace( array( '</style', '<script' ), '', (string) self::$page_settings['css'] );
+		}
 		$gs = self::global_styles_css() . $page_css;
 		if ( '' !== $gs ) {
 			echo '<style id="velox-builder-global-styles">' . $gs . '</style>' . "\n"; // phpcs:ignore
@@ -457,10 +469,10 @@ class Velox_Builder_Render {
 			return;
 		}
 		$a        = Velox_Builder::global_styles()['aos'] ?? array();
-		$duration = (int) ( $a['duration'] ?? 600 );
+		$duration = (int) ( ( '' !== ( self::$page_settings['aosDuration'] ?? '' ) ) ? self::$page_settings['aosDuration'] : ( $a['duration'] ?? 600 ) );
 		$easing   = $a['easing'] ?? 'ease';
 		$offset   = (int) ( $a['offset'] ?? 120 );
-		$delay    = (int) ( $a['delay'] ?? 0 );
+		$delay    = (int) ( ( '' !== ( self::$page_settings['aosDelay'] ?? '' ) ) ? self::$page_settings['aosDelay'] : ( $a['delay'] ?? 0 ) );
 		$once     = ! empty( $a['once'] );
 		$disable  = $a['disable'] ?? '';
 		$bp       = Velox_Builder::breakpoints();
@@ -607,7 +619,10 @@ class Velox_Builder_Render {
 		$aos_attr = '';
 		$g_aos    = class_exists( 'Velox_Builder' ) ? ( Velox_Builder::global_styles()['aos'] ?? array() ) : array();
 		$n_aos    = $node['aos'] ?? array();
-		$a_type   = $n_aos['type'] ?? ( $g_aos['type'] ?? '' );
+		// Precedence: element, then this page, then the site default.
+		$p_type   = self::$page_settings['aosType'] ?? '';
+		$base     = ( '' !== $p_type ) ? ( 'none' === $p_type ? '' : $p_type ) : ( $g_aos['type'] ?? '' );
+		$a_type   = $n_aos['type'] ?? $base;
 		if ( 'none' === ( $n_aos['type'] ?? '' ) ) {
 			$a_type = '';
 		}
@@ -898,9 +913,28 @@ class Velox_Builder_Render {
 	 * a query arg for cache-busting). Falls back to inline if the dir isn't
 	 * writable.
 	 */
+
+	/** Strip whitespace and comments from generated CSS. */
+	public static function minify_css( $css ) {
+		$css = preg_replace( '#/\*.*?\*/#s', '', (string) $css );
+		$css = preg_replace( '/\s*([{}:;,>])\s*/', '$1', $css );
+		$css = preg_replace( '/;}/', '}', $css );
+		return trim( preg_replace( '/\s+/', ' ', $css ) );
+	}
+
 	public static function ensure_css_file( $doc, $extra = array() ) {
 		$css = self::generate_css( $doc, $extra );
-		$up  = wp_upload_dir();
+		$set = class_exists( 'Velox_Builder' ) ? Velox_Builder::settings() : array();
+
+		// These three settings existed on the Settings screen but were never read
+		// by anything — set them and nothing happened. Now they do.
+		if ( ! empty( $set['minify'] ) ) {
+			$css = self::minify_css( $css );
+		}
+		if ( 'inline' === ( $set['css_mode'] ?? 'file' ) ) {
+			return self::inline_fallback( $css );
+		}
+		$up = wp_upload_dir();
 		if ( ! empty( $up['error'] ) ) {
 			return self::inline_fallback( $css );
 		}

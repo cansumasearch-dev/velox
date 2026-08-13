@@ -125,6 +125,9 @@ $type_icon = array( 'page' => 'file', 'template' => 'grid', 'reusable' => 'globe
 							<?php if ( $d['wp_edit'] ) : ?>
 								<a class="vba-mini" href="<?php echo esc_url( $d['wp_edit'] ); ?>"><?php esc_html_e( 'WP', 'velox' ); ?></a>
 							<?php endif; ?>
+							<?php if ( $d['doc_id'] && 'published' === $d['status'] ) : ?>
+								<button class="vba-mini" data-doc-unpublish="<?php echo (int) $d['doc_id']; ?>"><?php esc_html_e( 'Unpublish', 'velox' ); ?></button>
+							<?php endif; ?>
 							<?php if ( $d['doc_id'] ) : ?>
 								<button class="vba-mini vba-mini-del" data-doc-delete="<?php echo (int) $d['doc_id']; ?>"><?php esc_html_e( 'Delete', 'velox' ); ?></button>
 							<?php endif; ?>
@@ -183,6 +186,14 @@ $type_icon = array( 'page' => 'file', 'template' => 'grid', 'reusable' => 'globe
 		if ( dp ) {
 			post( 'builder_doc_duplicate', { id:dp.getAttribute( 'data-doc-duplicate' ) }, function ( res ) {
 				if ( res && res.success ) { location.reload(); } else { alert( 'Duplicate failed' ); }
+			} );
+			return;
+		}
+		var up = e.target.closest( '[data-doc-unpublish]' );
+		if ( up ) {
+			if ( ! confirm( 'Take this page off your site? The layout is kept and can be published again.' ) ) { return; }
+			post( 'builder_unpublish', { id:up.getAttribute( 'data-doc-unpublish' ) }, function ( res ) {
+				if ( res && res.success ) { location.reload(); } else { alert( 'Unpublish failed' ); }
 			} );
 			return;
 		}

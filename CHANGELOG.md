@@ -4,6 +4,38 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.89.0 — Colours are editable again
+- **Fixed a regression: there was no way to edit your colours.** Rebuilding the Global styles screen in 3.82.0 dropped the colour and spacing editors, and nothing replaced them — the in-editor Colors page only listed them. Both are now editable in Settings → Global styles, with add, rename, recolour and remove.
+- **Spacing scale** is editable there too, available as var(--space-0), var(--space-1) and so on.
+- **Unpublish is now reachable.** A published page could only be taken off the site by deleting it, even though the ability to unpublish already existed with no button attached. It also clears the cache, which it previously did not — the page would have stayed visible to logged-out visitors.
+- Removed the leftover header/footer role endpoint; its interface was retired in 3.80.0.
+
+## 3.88.0 — The Settings screen now does something
+- **Fixed: every setting on the Builder Settings screen was ignored.** CSS output, Minify CSS and Default container width were all saved to the database and read by nothing — changing them had no effect whatsoever.
+- **CSS output** now works: "Inline" puts the page CSS in the head instead of writing a static file.
+- **Minify CSS** now works: comments and whitespace are stripped from the generated stylesheet.
+- **Default container width is gone**, because page width already lives in Global styles and two controls for one value is worse than one. The Settings screen shows the current value and links to it, and any width previously saved here is carried over.
+- Saving these settings clears the page cache, so a change to CSS output takes effect immediately.
+
+## 3.87.0 — Reusables show where they are used
+- **Each reusable now says how many pages it appears on**, and hovering lists them. Templates count too.
+- **Deleting a reusable that is in use warns you first** and says how many pages will lose the block, instead of asking a blank "are you sure".
+- Reusables get the same row actions as pages and templates: Edit, Rename, Duplicate, Delete.
+- A clearer empty state pointing at "Make re-usable" in the builder's right-click menu, which is how most reusables actually get created.
+
+## 3.86.0 — Page settings gains real depth
+- **Page background** colour, per page.
+- **Animate On Scroll per page**: override the site-wide animation, its duration and delay — or switch animation off for this page alone. Precedence runs element, then page, then site.
+- **Scripts per page**: CSS and JavaScript that apply to this page only. The CSS is written after everything Velox generates, so it wins; the JavaScript runs in the footer of the published page.
+- Both sit behind their own entries under Page settings, matching the rest of the settings navigation.
+
+## 3.85.0 — Global styles in the editor, and pinning per side
+- **Global styles now live inside the builder**, not on a separate admin screen. Settings → Global styles opens Colors, Fonts, Headings, Body Text, Links, Width & Breakpoints, Sections & Columns and Animate On Scroll, each on its own page. Changes save as you type, through the same store the admin screen uses, so the two can never disagree.
+- **The pin button is now per side.** One pin for both stacks meant you could never dock the inspector while leaving a panel floating. Left and right are remembered separately.
+- **An unpinned panel now properly hides what is behind it.** The dimming was too light, so the inspector stayed legible through it and the two panels read as one.
+- Settings navigation rows are all the same width; the longest label used to stretch its own row.
+- Clearer icons in the settings navigation.
+
 ## 3.84.0 — Settings inside the builder
 - **A Settings button in the top bar** opens a panel with three areas: Page settings, Editor settings, and a link to Global styles.
 - **Page settings** — page width and overlay header — apply to the document you are editing and are saved with it. Overlay lets the header sit on top of the first section instead of pushing it down, always or only from tablet or desktop up.

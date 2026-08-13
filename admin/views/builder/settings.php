@@ -26,8 +26,16 @@ $s = Velox_Builder::settings();
 			<label class="vba-switch"><input type="checkbox" id="vba-minify" <?php checked( $s['minify'], 1 ); ?>><span></span></label>
 		</div>
 		<div class="vba-setting">
-			<div class="vba-setting-tx"><b><?php esc_html_e( 'Default container width', 'velox' ); ?></b><span><?php esc_html_e( 'Max width, in pixels, for centered content.', 'velox' ); ?></span></div>
-			<input type="number" id="vba-container" class="vba-setting-ctrl" value="<?php echo esc_attr( $s['container'] ); ?>">
+			<div class="vba-setting-tx"><b><?php esc_html_e( 'Page width', 'velox' ); ?></b><span><?php
+				/* One setting, one home: page width belongs with the other global styles. */
+				esc_html_e( 'Max width for centred content. This lives with the rest of your global styles.', 'velox' );
+			?></span></div>
+			<a class="vba-btn vba-btn-ghost vba-btn-sm" href="<?php echo esc_url( admin_url( 'admin.php?page=' . Velox_Builder::SLUG . '-styles' ) ); ?>">
+				<?php
+				$gw = Velox_Builder::global_styles()['width']['page'];
+				echo esc_html( $gw ? sprintf( __( 'Currently %spx — edit', 'velox' ), $gw ) : __( 'Set it in Global styles', 'velox' ) );
+				?>
+			</a>
 		</div>
 	</div>
 </div>
@@ -40,7 +48,6 @@ $s = Velox_Builder::settings();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_settings_save' ); body.set( 'nonce', CFG.nonce || '' );
 		body.set( 'css_mode', document.getElementById( 'vba-css-mode' ).value );
 		body.set( 'minify', document.getElementById( 'vba-minify' ).checked ? '1' : '' );
-		body.set( 'container', document.getElementById( 'vba-container' ).value );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) { btn.textContent = res && res.success ? 'Saved' : 'Save failed'; setTimeout( function () { btn.textContent = 'Save changes'; }, 1500 ); } )

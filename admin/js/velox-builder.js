@@ -852,19 +852,24 @@
 	 *    brings the same one back.
 	 * Widths below MUST match the panel widths in injectStyles(). */
 	var PANEL_W = { add:300, css:380, hist:320, struct:300, settings:340 };
-	var panelsPinned = false, leftCollapsed = false, lastRightPanel = 'struct';
+	// Pinning is per side: the left stack and the right stack are different
+	// working areas and one pin for both meant you could never have one docked
+	// and the other floating.
+	var pinned = { left:false, right:false }, leftCollapsed = false, lastRightPanel = 'struct';
 	function loadUiPrefs() {
 		try {
 			var raw = window.localStorage.getItem( 'velox_builder_ui' );
 			if ( ! raw ) { return; }
 			var p = JSON.parse( raw );
-			panelsPinned = !! p.pinned;
+			// Older builds stored one boolean for both sides.
+			if ( p.pinned && 'object' === typeof p.pinned ) { pinned = { left: !! p.pinned.left, right: !! p.pinned.right }; }
+			else { pinned = { left: !! p.pinned, right: !! p.pinned }; }
 			leftCollapsed = !! p.lcol;
 			if ( p.lastRight ) { lastRightPanel = p.lastRight; }
 		} catch ( e ) {}
 	}
 	function saveUiPrefs() {
-		try { window.localStorage.setItem( 'velox_builder_ui', JSON.stringify( { pinned:panelsPinned, lcol:leftCollapsed, lastRight:lastRightPanel } ) ); } catch ( e ) {}
+		try { window.localStorage.setItem( 'velox_builder_ui', JSON.stringify( { pinned:pinned, lcol:leftCollapsed, lastRight:lastRightPanel } ) ); } catch ( e ) {}
 	}
 	function addMenuOpen() { var m = document.getElementById( 'vb-addmenu' ); return !! ( m && m.classList.contains( 'open' ) ); }
 	function openRightPanel() { return cssShown ? 'css' : ( historyShown ? 'hist' : ( structShown ? 'struct' : ( setShown ? 'settings' : null ) ) ); }
@@ -872,12 +877,13 @@
 	 * panel re-render, so it's safe to call from inside one. */
 	function applyDock() {
 		var app = document.querySelector( '.vb-app' ); if ( ! app ) { return; }
-		app.classList.toggle( 'vb-pin', panelsPinned );
+		app.classList.toggle( 'vb-pin-left', pinned.left );
+		app.classList.toggle( 'vb-pin-right', pinned.right );
 		app.classList.toggle( 'vb-lcol', leftCollapsed );
 		app.classList.toggle( 'vb-nosel', ! ( store.state && store.state.selection ) );
 		var right = openRightPanel();
-		app.style.setProperty( '--vb-rw', ( panelsPinned && right ? PANEL_W[ right ] : 0 ) + 'px' );
-		app.style.setProperty( '--vb-lw', ( panelsPinned && addMenuOpen() ? PANEL_W.add : 0 ) + 'px' );
+		app.style.setProperty( '--vb-rw', ( pinned.right && right ? PANEL_W[ right ] : 0 ) + 'px' );
+		app.style.setProperty( '--vb-lw', ( pinned.left && addMenuOpen() ? PANEL_W.add : 0 ) + 'px' );
 		var lt = document.getElementById( 'vb-tgl-left' );
 		if ( lt ) { lt.classList.toggle( 'on', ! leftCollapsed ); lt.setAttribute( 'title', leftCollapsed ? T( 'Show left panels' ) : T( 'Hide left panels' ) ); }
 		var rt = document.getElementById( 'vb-tgl-right' );
@@ -885,14 +891,16 @@
 		// An unpinned panel floats OVER the editor, so dim what's behind it —
 		// otherwise the inspector shows through and the two read as one surface.
 		var scrim = document.getElementById( 'vb-scrim' );
-		if ( scrim ) { scrim.classList.toggle( 'on', ! panelsPinned && ( !! right || addMenuOpen() ) ); }
+		if ( scrim ) { scrim.classList.toggle( 'on', ( !! right && ! pinned.right ) || ( addMenuOpen() && ! pinned.left ) ); }
 		var pins = document.querySelectorAll( '.vb-pinbtn' );
 		for ( var i = 0; i < pins.length; i++ ) {
-			pins[ i ].classList.toggle( 'on', panelsPinned );
-			pins[ i ].setAttribute( 'title', panelsPinned ? T( 'Unpin — let panels overlay the canvas' ) : T( 'Pin — panels push the canvas instead of covering it' ) );
+			var side = pins[ i ].getAttribute( 'data-pin' ) || 'right';
+			var on = !! pinned[ side ];
+			pins[ i ].classList.toggle( 'on', on );
+			pins[ i ].setAttribute( 'title', on ? T( 'Unpin — let this panel overlay the canvas' ) : T( 'Pin — this panel pushes the canvas instead of covering it' ) );
 		}
 	}
-	function togglePin() { panelsPinned = ! panelsPinned; saveUiPrefs(); applyDock(); }
+	function togglePin( side ) { pinned[ side ] = ! pinned[ side ]; saveUiPrefs(); applyDock(); }
 	function toggleLeftStack() { leftCollapsed = ! leftCollapsed; saveUiPrefs(); applyDock(); }
 	/* Right toggle = slide the whole right stack off / bring the last one back. */
 	function toggleRightStack() {
@@ -905,7 +913,7 @@
 		renderCSSPanel(); renderHistoryPanel(); renderStructPanel();
 	}
 	/* Shared pin control for every panel header. */
-	function pinBtnHTML() { return '<button class="vb-css-x vb-pinbtn" data-pin>' + svg( 'pin', 14 ) + '</button>'; }
+	function pinBtnHTML( side ) { return '<button class="vb-css-x vb-pinbtn" data-pin="' + ( side || 'right' ) + '">' + svg( 'pin', 14 ) + '</button>'; }
 
 	function mount() {
 		var root = document.getElementById( 'velox-builder-root' );
@@ -1596,23 +1604,67 @@
 		var body = '';
 		if ( 'root' === setView ) {
 			body = '<div class="vb-set-body">' +
-				'<button class="vb-set-nav" data-setview="page">' + svg( 'layout', 16 ) + '<span>' + T( 'Page settings' ) + '</span>' + svg( 'chevron', 12 ) + '</button>' +
-				'<button class="vb-set-nav" data-setview="editor">' + svg( 'gear', 16 ) + '<span>' + T( 'Editor settings' ) + '</span>' + svg( 'chevron', 12 ) + '</button>' +
-				'<a class="vb-set-nav" href="' + ( CFG.stylesUrl || '#' ) + '">' + svg( 'droplet', 16 ) + '<span>' + T( 'Global styles' ) + '</span>' + svg( 'external', 12 ) + '</a>' +
+				'<button class="vb-set-nav" data-setview="page">' + svg( 'monitor', 15 ) + '<span>' + T( 'Page settings' ) + '</span>' + svg( 'chevron', 12 ) + '</button>' +
+				'<button class="vb-set-nav" data-setview="editor">' + svg( 'gear', 15 ) + '<span>' + T( 'Editor settings' ) + '</span>' + svg( 'chevron', 12 ) + '</button>' +
+				'<button class="vb-set-nav" data-setview="global">' + svg( 'droplet', 15 ) + '<span>' + T( 'Global styles' ) + '</span>' + svg( 'chevron', 12 ) + '</button>' +
 				'<div class="vb-setnote" style="padding:12px 4px 0">' + T( 'Page settings apply to this document. Global styles apply to every page on the site.' ) + '</div>' +
 			'</div>';
 		} else if ( 'page' === setView ) {
 			var ps = pageSettings();
 			body = crumb( T( 'Page settings' ) ) + '<div class="vb-set-body">' +
 				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Page width' ) + '</div><div class="vb-row">' +
-					'<input class="vb-inp num" data-setpage="width" value="' + ( ps.width || '' ) + '" placeholder="' + T( 'site default' ) + '"><span class="vb-unit-static">px</span></div></div>' +
+					'<input class="vb-inp num" data-setpage="width" value="' + escapeHtml( ps.width || '' ) + '" placeholder="' + T( 'site default' ) + '"><span class="vb-unit-static">px</span></div></div>' +
 				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Overlay header' ) + '</div>' +
 					'<select class="vb-inp" data-setpage="overlay">' +
 						[ [ '', T( 'Never' ) ], [ 'always', T( 'Always' ) ], [ 'tablet', T( 'Tablet and up' ) ], [ 'desktop', T( 'Desktop only' ) ] ].map( function ( o ) {
 							return '<option value="' + o[ 0 ] + '"' + ( ( ps.overlay || '' ) === o[ 0 ] ? ' selected' : '' ) + '>' + o[ 1 ] + '</option>';
 						} ).join( '' ) + '</select></div>' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Page background' ) + '</div><div class="vb-row">' +
+					'<input type="color" class="vb-swatch" data-pageswatch="background" value="' + ( /^#[0-9a-f]{6}$/i.test( ps.background || '' ) ? ps.background : '#ffffff' ) + '">' +
+					'<input class="vb-inp" data-setpage="background" value="' + escapeHtml( ps.background || '' ) + '" placeholder="' + T( 'theme default' ) + '"></div></div>' +
+				'<button class="vb-set-nav" data-setview="page-aos">' + svg( 'bolt', 15 ) + '<span>' + T( 'Animate On Scroll' ) + '</span>' + svg( 'chevron', 12 ) + '</button>' +
+				'<button class="vb-set-nav" data-setview="page-scripts">' + svg( 'code', 15 ) + '<span>' + T( 'Scripts' ) + '</span>' + svg( 'chevron', 12 ) + '</button>' +
 				'<div class="vb-setnote">' + T( 'Overlay lets the header sit on top of the first section instead of pushing it down.' ) + '</div>' +
 			'</div>';
+		} else if ( 'page-aos' === setView ) {
+			// A page can override the site-wide animation without touching it.
+			var pa = pageSettings();
+			var types = [ [ '', T( 'Use site default' ) ], [ 'none', T( 'No animation on this page' ) ] ];
+			Object.keys( CFG.aosTypes || {} ).forEach( function ( k ) { types.push( [ k, CFG.aosTypes[ k ] ] ); } );
+			body = '<div class="vb-set-crumb"><button class="vb-set-back" data-setview="page">' + svg( 'chevron', 12 ) + '</button>' +
+					'<span>' + T( 'Page settings' ) + '</span><i>/</i><b>' + T( 'Animate On Scroll' ) + '</b></div>' +
+				'<div class="vb-set-body">' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Animation' ) + '</div><select class="vb-inp" data-setpage="aosType">' +
+					types.map( function ( o ) { return '<option value="' + o[ 0 ] + '"' + ( ( pa.aosType || '' ) === o[ 0 ] ? ' selected' : '' ) + '>' + o[ 1 ] + '</option>'; } ).join( '' ) + '</select></div>' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Duration' ) + '</div><div class="vb-row">' +
+					'<input class="vb-inp num" data-setpage="aosDuration" value="' + escapeHtml( pa.aosDuration || '' ) + '" placeholder="' + T( 'site default' ) + '"><span class="vb-unit-static">ms</span></div></div>' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Delay' ) + '</div><div class="vb-row">' +
+					'<input class="vb-inp num" data-setpage="aosDelay" value="' + escapeHtml( pa.aosDelay || '' ) + '" placeholder="' + T( 'site default' ) + '"><span class="vb-unit-static">ms</span></div></div>' +
+				'<div class="vb-setnote">' + T( 'Individual elements can still override this from their Settings tab.' ) + '</div>' +
+			'</div>';
+		} else if ( 'page-scripts' === setView ) {
+			var pj = pageSettings();
+			body = '<div class="vb-set-crumb"><button class="vb-set-back" data-setview="page">' + svg( 'chevron', 12 ) + '</button>' +
+					'<span>' + T( 'Page settings' ) + '</span><i>/</i><b>' + T( 'Scripts' ) + '</b></div>' +
+				'<div class="vb-set-body">' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'CSS for this page only' ) + '</div>' +
+					'<textarea class="vb-css-code vb-page-code" data-setpage="css" spellcheck="false" placeholder="/* ' + T( 'this page only' ) + ' */">' + escapeHtml( pj.css || '' ) + '</textarea></div>' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'JavaScript for this page only' ) + '</div>' +
+					'<textarea class="vb-css-code vb-page-code" data-setpage="js" spellcheck="false" placeholder="// ' + T( 'runs in the footer' ) + '">' + escapeHtml( pj.js || '' ) + '</textarea></div>' +
+				'<div class="vb-setnote">' + T( 'Runs on the published page only — not inside the editor.' ) + '</div>' +
+			'</div>';
+		} else if ( 'global' === setView ) {
+			body = crumb( T( 'Global styles' ) ) + '<div class="vb-set-body">' +
+				GS_VIEWS.map( function ( v ) {
+					return '<button class="vb-set-nav" data-setview="' + v[ 0 ] + '">' + svg( v[ 2 ], 15 ) + '<span>' + T( v[ 1 ] ) + '</span>' + svg( 'chevron', 12 ) + '</button>';
+				} ).join( '' ) +
+				'<div class="vb-setnote" style="padding:12px 4px 0">' + T( 'These apply to every page on the site and save as you type.' ) + '</div>' +
+			'</div>';
+		} else if ( 0 === setView.indexOf( 'gs-' ) ) {
+			var meta = GS_VIEWS.filter( function ( v ) { return v[ 0 ] === setView; } )[ 0 ];
+			body = '<div class="vb-set-crumb"><button class="vb-set-back" data-setview="global">' + svg( 'chevron', 12 ) + '</button>' +
+				'<span>' + T( 'Global styles' ) + '</span><i>/</i><b>' + T( meta ? meta[ 1 ] : '' ) + '</b></div>' +
+				'<div class="vb-set-body">' + gsViewHTML( setView ) + '</div>';
 		} else {
 			body = crumb( T( 'Editor settings' ) ) + '<div class="vb-set-body">' +
 				'<label class="vb-set-check"><input type="checkbox" data-setpref="indicateParents"' + ( editorPrefs.indicateParents ? ' checked' : '' ) + '><span>' + T( 'Indicate parent elements on hover' ) + '</span></label>' +
@@ -1623,6 +1675,162 @@
 		}
 		box.innerHTML = head + body;
 		applyDock();
+	}
+
+
+
+	/* ---------- design tokens (colours + spacing) ----------
+	 * These used to be editable on the Global styles admin screen. When that
+	 * screen was rebuilt they were dropped by mistake, leaving no way to edit a
+	 * colour at all — so they live here now, next to everything else global. */
+	var TOKENS = CFG.tokens ? JSON.parse( JSON.stringify( CFG.tokens ) ) : { colors:[], spacing:[] };
+	if ( ! TOKENS.colors ) { TOKENS.colors = []; }
+	if ( ! TOKENS.spacing ) { TOKENS.spacing = []; }
+	var tokenTimer;
+	function tokenRowsHTML() {
+		if ( ! TOKENS.colors.length ) { return '<div class="vb-setnote">' + T( 'No colours yet.' ) + '</div>'; }
+		return TOKENS.colors.map( function ( c, i ) {
+			var hex = /^#[0-9a-f]{6}$/i.test( c.value || '' ) ? c.value : '#000000';
+			return '<div class="vb-token-row">' +
+				'<input type="color" class="vb-swatch" data-tokenswatch="' + i + '" value="' + hex + '">' +
+				'<input class="vb-inp vb-token-name" data-tokenname="' + i + '" value="' + escapeHtml( c.name || '' ) + '" placeholder="' + T( 'name' ) + '">' +
+				'<input class="vb-inp vb-token-val" data-tokenval="' + i + '" value="' + escapeHtml( c.value || '' ) + '" placeholder="#000000">' +
+				'<button class="vb-css-del" data-tokendel="' + i + '" title="' + T( 'Remove' ) + '">' + svg( 'trash', 12 ) + '</button>' +
+			'</div>';
+		} ).join( '' );
+	}
+	function saveTokens() {
+		if ( ! CFG.ajaxurl ) { return; }
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_tokens_save' ); body.set( 'nonce', CFG.nonce || '' );
+		body.set( 'tokens', JSON.stringify( TOKENS ) );
+		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) { if ( res && res.success ) { toast( T( 'Colours saved.' ) ); injectGlobalCss(); } } )
+			.catch( function () {} );
+	}
+	function scheduleTokenSave() { clearTimeout( tokenTimer ); tokenTimer = setTimeout( saveTokens, 600 ); }
+
+	/* ---------- Global styles, inside the editor ----------
+	 * The same model the admin screen edits, saved through the same endpoint, so
+	 * the two can never drift apart. */
+	var GS = CFG.globalStyles ? JSON.parse( JSON.stringify( CFG.globalStyles ) ) : null;
+	var gsSaveTimer;
+	var GS_VIEWS = [
+		[ 'gs-colors',   'Colors',            'droplet' ],
+		[ 'gs-spacing',  'Spacing scale',     'move' ],
+		[ 'gs-fonts',    'Fonts',             'type' ],
+		[ 'gs-headings', 'Headings',          'heading' ],
+		[ 'gs-body',     'Body Text',         'text' ],
+		[ 'gs-links',    'Links',             'link' ],
+		[ 'gs-width',    'Width & Breakpoints', 'monitor' ],
+		[ 'gs-sections', 'Sections & Columns', 'columns' ],
+		[ 'gs-aos',      'Animate On Scroll', 'bolt' ]
+	];
+	function gsGet( path ) {
+		var p = path.split( '.' ), r = GS;
+		for ( var i = 0; i < p.length; i++ ) { if ( ! r ) { return ''; } r = r[ p[ i ] ]; }
+		return ( r === undefined || r === null ) ? '' : r;
+	}
+	function gsSet( path, val ) {
+		if ( ! GS ) { return; }
+		var p = path.split( '.' ), r = GS;
+		for ( var i = 0; i < p.length - 1; i++ ) { r[ p[ i ] ] = r[ p[ i ] ] || {}; r = r[ p[ i ] ]; }
+		r[ p[ p.length - 1 ] ] = val;
+		clearTimeout( gsSaveTimer );
+		gsSaveTimer = setTimeout( saveGlobalStyles, 500 );
+	}
+	function saveGlobalStyles() {
+		if ( ! CFG.ajaxurl || ! GS ) { return; }
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_global_styles_save' ); body.set( 'nonce', CFG.nonce || '' );
+		body.set( 'styles', JSON.stringify( GS ) );
+		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) { if ( res && res.success ) { toast( T( 'Global styles saved.' ) ); } } )
+			.catch( function () {} );
+	}
+	function gsNum( path, label, unit ) {
+		return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><div class="vb-row">' +
+			'<input class="vb-inp num" data-gsx="' + path + '" value="' + escapeHtml( gsGet( path ) ) + '" placeholder="—">' +
+			( false === unit ? '' : '<span class="vb-unit-static">' + ( unit || 'px' ) + '</span>' ) + '</div></div>';
+	}
+	function gsColor( path, label ) {
+		var v = gsGet( path );
+		return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><div class="vb-row">' +
+			'<input type="color" class="vb-swatch" data-gsswatch="' + path + '" value="' + ( /^#[0-9a-f]{6}$/i.test( v ) ? v : '#000000' ) + '">' +
+			'<input class="vb-inp" data-gsx="' + path + '" value="' + escapeHtml( v ) + '" placeholder="' + T( 'inherit' ) + '"></div></div>';
+	}
+	function gsSelect( path, label, opts ) {
+		var v = String( gsGet( path ) );
+		return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div>' +
+			'<select class="vb-inp" data-gsx="' + path + '">' + opts.map( function ( o ) {
+				return '<option value="' + o[ 0 ] + '"' + ( v === String( o[ 0 ] ) ? ' selected' : '' ) + '>' + T( o[ 1 ] ) + '</option>';
+			} ).join( '' ) + '</select></div>';
+	}
+	function gsWeight( path ) {
+		var o = [ [ '', 'inherit' ] ];
+		[ 100, 200, 300, 400, 500, 600, 700, 800, 900 ].forEach( function ( w ) { o.push( [ String( w ), String( w ) ] ); } );
+		return gsSelect( path, 'Weight', o );
+	}
+	function gsFont( path, label ) {
+		var o = [ [ '', 'Theme default' ] ];
+		( CFG.fontNames || [] ).forEach( function ( n ) { o.push( [ n, n ] ); } );
+		return gsSelect( path, label, o );
+	}
+	function gsViewHTML( view ) {
+		if ( ! GS ) { return '<div class="vb-setnote">' + T( 'Global styles are unavailable.' ) + '</div>'; }
+		if ( 'gs-colors' === view ) {
+			return '<div class="vb-setnote">' + T( 'Each colour is available anywhere as var(--name).' ) + '</div>' +
+				'<div id="vb-tokenlist">' + tokenRowsHTML() + '</div>' +
+				'<button class="vb-set-nav" id="vb-token-add" style="justify-content:center">' + svg( 'plus', 14 ) + '<span style="flex:0 0 auto">' + T( 'Add colour' ) + '</span></button>';
+		}
+		if ( 'gs-spacing' === view ) {
+			return '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Spacing scale' ) + '</div>' +
+				'<input class="vb-inp" id="vb-token-spacing" value="' + escapeHtml( ( TOKENS.spacing || [] ).join( ', ' ) ) + '" placeholder="4, 8, 16, 24, 48"></div>' +
+				'<div class="vb-setnote">' + T( 'Comma-separated pixel steps, available as var(--space-0), var(--space-1) and so on.' ) + '</div>';
+		}
+		if ( 'gs-fonts' === view ) { return gsFont( 'body.font', 'Text font' ) + gsFont( 'headings.font', 'Display font' ); }
+		if ( 'gs-body' === view ) {
+			return gsFont( 'body.font', 'Font family' ) + gsNum( 'body.size', 'Font size' ) + gsWeight( 'body.weight' ) +
+				gsNum( 'body.lineHeight', 'Line height', false ) + gsColor( 'body.color', 'Colour' );
+		}
+		if ( 'gs-headings' === view ) {
+			var out = gsFont( 'headings.font', 'Heading font' );
+			[ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].forEach( function ( h ) {
+				out += '<div class="vb-gs-group"><div class="vb-gs-grouph">' + h.toUpperCase() + '</div>' +
+					gsNum( 'headings.' + h + '.size', 'Size' ) + gsWeight( 'headings.' + h + '.weight' ) +
+					gsNum( 'headings.' + h + '.lineHeight', 'Line height', false ) + gsColor( 'headings.' + h + '.color', 'Colour' ) + '</div>';
+			} );
+			return out;
+		}
+		if ( 'gs-links' === view ) {
+			return gsColor( 'links.color', 'Colour' ) + gsColor( 'links.hover', 'Hover colour' ) +
+				gsSelect( 'links.decoration', 'Underline', [ [ 'none', 'No underline' ], [ 'underline', 'Underlined' ] ] ) + gsWeight( 'links.weight' );
+		}
+		if ( 'gs-width' === view ) {
+			return gsNum( 'width.page', 'Page width' ) + gsNum( 'width.tablet', 'Tablet at' ) +
+				gsNum( 'width.landscape', 'Landscape at' ) + gsNum( 'width.portrait', 'Portrait at' ) +
+				'<div class="vb-setnote">' + T( 'Breakpoints apply to this preview and the front end together. Reload the editor after changing them.' ) + '</div>';
+		}
+		if ( 'gs-sections' === view ) {
+			var o2 = '<div class="vb-gs-group"><div class="vb-gs-grouph">' + T( 'Section padding' ) + '</div>';
+			[ 'top', 'right', 'bottom', 'left' ].forEach( function ( sd ) { o2 += gsNum( 'sections.' + sd, sd.charAt( 0 ).toUpperCase() + sd.slice( 1 ) ); } );
+			o2 += '</div><div class="vb-gs-group"><div class="vb-gs-grouph">' + T( 'Columns padding' ) + '</div>';
+			[ 'top', 'right', 'bottom', 'left' ].forEach( function ( sd ) { o2 += gsNum( 'columns.' + sd, sd.charAt( 0 ).toUpperCase() + sd.slice( 1 ) ); } );
+			return o2 + '</div>';
+		}
+		if ( 'gs-aos' === view ) {
+			var types = [ [ '', 'None' ] ];
+			Object.keys( CFG.aosTypes || {} ).forEach( function ( k ) { types.push( [ k, CFG.aosTypes[ k ] ] ); } );
+			return gsSelect( 'aos.type', 'Animation type', types ) +
+				gsNum( 'aos.duration', 'Duration', 'ms' ) +
+				gsSelect( 'aos.easing', 'Easing', [ [ 'ease', 'ease' ], [ 'ease-in', 'ease-in' ], [ 'ease-out', 'ease-out' ], [ 'ease-in-out', 'ease-in-out' ], [ 'linear', 'linear' ] ] ) +
+				gsNum( 'aos.offset', 'Trigger offset' ) + gsNum( 'aos.delay', 'Delay', 'ms' ) +
+				gsSelect( 'aos.once', 'Animate only once', [ [ '1', 'Yes' ], [ '', 'No' ] ] ) +
+				gsSelect( 'aos.disable', 'Disable on', [ [ '', 'Nothing' ], [ 'mobile', 'Mobile' ], [ 'tablet', 'Tablet and below' ] ] );
+		}
+		return '';
 	}
 
 	/* ---------- Structure panel (collapsible full-page outline) ---------- */
@@ -1689,7 +1897,8 @@
 			if ( bm ) { boxMode[ bm.getAttribute( 'data-boxmode' ) ] = bm.getAttribute( 'data-mode' ); saveBoxMode(); renderInspector( store.state ); return; }
 			if ( e.target.closest( '#vb-viewas-clear' ) ) { var vsel = document.getElementById( 'vb-viewas' ); if ( vsel ) { vsel.value = ''; } clearViewAs(); return; }
 			if ( e.target.id === 'vb-scrim' ) { closeAllPanels(); renderCSSPanel(); renderHistoryPanel(); renderStructPanel(); return; }
-			if ( e.target.closest( '[data-pin]' ) ) { togglePin(); return; }
+			var pb = e.target.closest( '[data-pin]' );
+			if ( pb ) { togglePin( pb.getAttribute( 'data-pin' ) || 'right' ); return; }
 			if ( e.target.closest( '#vb-tgl-left' ) ) { toggleLeftStack(); return; }
 			if ( e.target.closest( '#vb-tgl-right' ) ) { toggleRightStack(); return; }
 			if ( e.target.closest( '#vb-code' ) ) { cssShown = ! cssShown; if ( cssShown ) { closeAllPanels( 'css' ); } renderCSSPanel(); return; }
@@ -1717,6 +1926,15 @@
 			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) { store.commit( function ( s ) { s.selection = stn.getAttribute( 'data-stnode' ); resetActiveClass( s ); }, false ); return; }
 			if ( e.target.closest( '#vb-settings' ) ) { setShown = ! setShown; if ( setShown ) { closeAllPanels( 'settings' ); setView = 'root'; } renderSettingsPanel(); return; }
 			if ( e.target.closest( '#vb-set-close' ) ) { setShown = false; renderSettingsPanel(); return; }
+			if ( e.target.closest( '#vb-token-add' ) ) {
+				TOKENS.colors.push( { name:'colour-' + ( TOKENS.colors.length + 1 ), value:'#2ab7f1' } );
+				document.getElementById( 'vb-tokenlist' ).innerHTML = tokenRowsHTML(); saveTokens(); return;
+			}
+			var tdl = e.target.closest( '[data-tokendel]' );
+			if ( tdl ) {
+				TOKENS.colors.splice( +tdl.getAttribute( 'data-tokendel' ), 1 );
+				document.getElementById( 'vb-tokenlist' ).innerHTML = tokenRowsHTML(); saveTokens(); return;
+			}
 			var sv = e.target.closest( '[data-setview]' ); if ( sv ) { setView = sv.getAttribute( 'data-setview' ); renderSettingsPanel(); return; }
 			if ( e.target.closest( '#vb-history' ) ) { historyShown = ! historyShown; if ( historyShown ) { closeAllPanels( 'hist' ); } renderHistoryPanel(); return; }
 			if ( e.target.closest( '#vb-hist-close' ) ) { historyShown = false; renderHistoryPanel(); return; }
@@ -1780,6 +1998,37 @@
 			if ( e.target.id === 'vb-js-code' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].js = e.target.value; scheduleJsSave(); } return; }
 			if ( e.target.id === 'vb-js-name' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].name = e.target.value; var jt = document.querySelector( '.vb-css-file.on span' ); if ( jt ) { jt.textContent = e.target.value; } scheduleJsSave(); } return; }
 			if ( e.target.id === 'vb-css-name' ) { if ( cssFiles[ cssActive ] ) { cssFiles[ cssActive ].name = e.target.value; var tab = document.querySelector( '.vb-css-file.on span' ); if ( tab ) { tab.textContent = e.target.value; } scheduleCssSave(); } return; }
+			var tsw = e.target.closest( '[data-tokenswatch]' );
+			if ( tsw ) {
+				var ti = +tsw.getAttribute( 'data-tokenswatch' );
+				TOKENS.colors[ ti ].value = e.target.value;
+				var vf = tsw.parentElement.querySelector( '[data-tokenval]' ); if ( vf ) { vf.value = e.target.value; }
+				scheduleTokenSave(); return;
+			}
+			var tnm = e.target.closest( '[data-tokenname]' );
+			if ( tnm ) { TOKENS.colors[ +tnm.getAttribute( 'data-tokenname' ) ].name = e.target.value.trim(); scheduleTokenSave(); return; }
+			var tvl = e.target.closest( '[data-tokenval]' );
+			if ( tvl ) { TOKENS.colors[ +tvl.getAttribute( 'data-tokenval' ) ].value = e.target.value.trim(); scheduleTokenSave(); return; }
+			if ( e.target.id === 'vb-token-spacing' ) {
+				TOKENS.spacing = e.target.value.split( ',' ).map( function ( x ) { return x.trim(); } ).filter( Boolean );
+				scheduleTokenSave(); return;
+			}
+			var psw = e.target.closest( '[data-pageswatch]' );
+			if ( psw ) {
+				var pt = psw.parentElement.querySelector( '[data-setpage]' );
+				if ( pt ) { pt.value = e.target.value; }
+				setPageSetting( psw.getAttribute( 'data-pageswatch' ), e.target.value ); return;
+			}
+			var pta = e.target.closest( 'textarea[data-setpage]' );
+			if ( pta ) { var tv2 = e.target.value; clearTimeout( dbTimer ); dbTimer = setTimeout( function () { setPageSetting( pta.getAttribute( 'data-setpage' ), tv2 ); }, 400 ); return; }
+			var gsw = e.target.closest( '[data-gsswatch]' );
+			if ( gsw ) {
+				var tgt = gsw.parentElement.querySelector( '[data-gsx]' );
+				if ( tgt ) { tgt.value = e.target.value; }
+				gsSet( gsw.getAttribute( 'data-gsswatch' ), e.target.value ); return;
+			}
+			var gsi = e.target.closest( 'input[data-gsx]' );
+			if ( gsi ) { gsSet( gsi.getAttribute( 'data-gsx' ), e.target.value.trim() ); return; }
 			var pgi = e.target.closest( 'input[data-setpage]' );
 			if ( pgi ) { var pv2 = e.target.value.trim(); clearTimeout( dbTimer ); dbTimer = setTimeout( function () { setPageSetting( pgi.getAttribute( 'data-setpage' ), pv2 ); }, 250 ); return; }
 			var aoi = e.target.closest( 'input[data-setaos]' );
@@ -1827,6 +2076,8 @@
 			if ( e.target.id === 'vb-js-where' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].where = e.target.value; saveGlobalJs(); } return; }
 			if ( e.target.id === 'vb-js-load' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].load = e.target.value; saveGlobalJs(); } return; }
 			if ( e.target.id === 'vb-js-on' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].on = e.target.checked ? 1 : 0; renderCSSPanel(); saveGlobalJs(); } return; }
+			var gsel = e.target.closest( 'select[data-gsx]' );
+			if ( gsel ) { gsSet( gsel.getAttribute( 'data-gsx' ), e.target.value ); return; }
 			var sp2 = e.target.closest( 'select[data-setpage]' );
 			if ( sp2 ) { setPageSetting( sp2.getAttribute( 'data-setpage' ), e.target.value ); return; }
 			var pf = e.target.closest( '[data-setpref]' );
@@ -2106,8 +2357,8 @@
 	 * other just loses the user's place. */
 	function closeAllPanels( except ) {
 		var sides = { add:'left', css:'right', hist:'right', struct:'right', settings:'right' };
-		var keepSide = panelsPinned && sides[ except ] ? sides[ except ] : null;
-		function spare( key ) { return keepSide && sides[ key ] && sides[ key ] !== keepSide; }
+		var keepSide = ( sides[ except ] && pinned[ sides[ except ] ] ) ? sides[ except ] : null;
+		function spare( key ) { return keepSide && sides[ key ] && sides[ key ] !== keepSide && pinned[ sides[ key ] ]; }
 		if ( except !== 'add' && ! spare( 'add' ) ) { var a = document.getElementById( 'vb-addmenu' ); if ( a ) { a.classList.remove( 'open' ); } }
 		if ( except !== 'css' && ! spare( 'css' ) ) { cssShown = false; var c = document.getElementById( 'vb-css' ); if ( c ) { c.style.display = 'none'; } }
 		if ( except !== 'hist' && ! spare( 'hist' ) ) { historyShown = false; var h = document.getElementById( 'vb-hist' ); if ( h ) { h.style.display = 'none'; } }
@@ -2437,11 +2688,11 @@
 			'.vb-app.vb-lcol .vb-dyndata,.vb-app.vb-nosel .vb-dyndata{left:0}',
 			// Pinned panels sit flush against the canvas — the overlay shadow would
 			// read as "floating on top", which is exactly what pinning undoes.
-			'.vb-app.vb-pin .vb-csspanel,.vb-app.vb-pin .vb-histpanel,.vb-app.vb-pin .vb-structpanel{box-shadow:none;border-left-color:rgba(255,255,255,.07)}',
-			'.vb-app.vb-pin .vb-addmenu{box-shadow:none;border-right-color:rgba(255,255,255,.07)}',
+			'.vb-app.vb-pin-right .vb-csspanel,.vb-app.vb-pin-right .vb-histpanel,.vb-app.vb-pin-right .vb-structpanel,.vb-app.vb-pin-right .vb-setpanel{box-shadow:none;border-left-color:rgba(255,255,255,.07)}',
+			'.vb-app.vb-pin-left .vb-addmenu{box-shadow:none;border-right-color:rgba(255,255,255,.07)}',
 			// Scrim only appears for UNPINNED panels — a pinned panel owns its own
 			// space, so dimming the canvas there would be wrong.
-			'.vb-scrim{position:absolute;top:54px;left:0;right:0;bottom:0;background:rgba(12,13,16,.55);z-index:110;opacity:0;pointer-events:none;transition:opacity .16s}',
+			'.vb-scrim{position:absolute;top:54px;left:0;right:0;bottom:0;background:rgba(10,11,14,.86);z-index:110;opacity:0;pointer-events:none;transition:opacity .16s}',
 			'.vb-scrim.on{opacity:1;pointer-events:auto}',
 			'.vb-setpanel{position:absolute;top:54px;right:0;bottom:0;width:340px;background:#232429;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
 			'.vb-set-body{flex:1;overflow:auto;padding:12px 14px}',
@@ -2451,7 +2702,22 @@
 			'.vb-set-crumb b{color:#f4f4f6;font-weight:600}.vb-set-crumb i{font-style:normal;color:#4d4f57}',
 			'.vb-set-back{background:#2a2c32;border:none;border-radius:6px;color:#dcdce2;cursor:pointer;display:grid;place-items:center;padding:4px;transform:rotate(90deg)}',
 			'.vb-set-back:hover{background:#3c3e46}',
-			'.vb-set-check{display:flex;align-items:center;gap:9px;padding:9px 0;font-size:12.5px;color:#dcdce2;cursor:pointer}',
+			// The nav rows were sized by their content, so the longest label made one
+			// button wider than the rest.
+			'.vb-set-nav{box-sizing:border-box;min-width:0}',
+			'.vb-set-nav span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+			'.vb-set-nav svg{flex:0 0 auto}',
+			'.vb-page-code{width:100%;box-sizing:border-box;min-height:120px;margin:0}',
+						'.vb-gs-group{margin:14px 0 0;padding:12px;background:#1a1b20;border:1px solid rgba(255,255,255,.06);border-radius:11px}',
+			'.vb-gs-grouph{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6d6f78;margin-bottom:10px}',
+			'.vb-token-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}',
+			'.vb-token-row .vb-token-name{flex:1;min-width:0}',
+			'.vb-token-row .vb-token-val{flex:0 0 92px;font-family:ui-monospace,Menlo,monospace;font-size:11px}',
+						'.vb-gs-swatchrow{display:flex;align-items:center;gap:9px;padding:8px 0;font-size:12px}',
+			'.vb-gs-swatchrow b{flex:1;color:#dcdce2;font-weight:600}',
+			'.vb-gs-swatchrow i{font-style:normal;color:#6d6f78;font-family:ui-monospace,Menlo,monospace;font-size:11px}',
+			'.vb-gs-dot{width:22px;height:22px;border-radius:6px;border:1px solid rgba(255,255,255,.14)}',
+						'.vb-set-check{display:flex;align-items:center;gap:9px;padding:9px 0;font-size:12.5px;color:#dcdce2;cursor:pointer}',
 			'.vb-set-check input{accent-color:#2ab7f1;width:15px;height:15px;cursor:pointer}',
 						'.vb-unit-static{display:grid;place-items:center;min-width:34px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;color:#8b8d96;font-size:10.5px}',
 			'.vb-setnote{font-size:11px;color:#6d6f78;line-height:1.5;margin-top:8px}',

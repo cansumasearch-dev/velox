@@ -489,6 +489,9 @@ class Velox_Builder {
 			'previewUrl' => $preview_url,
 			'settingsUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-settings' ),
 			'stylesUrl'   => admin_url( 'admin.php?page=' . self::SLUG . '-styles' ),
+			'globalStyles' => self::global_styles(),
+			'aosTypes'    => self::aos_types(),
+			'fontNames'   => wp_list_pluck( self::fonts(), 'name' ),
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'reviewConnections' => self::review_connections(),
 			'reviewPresets' => self::review_presets(),
@@ -859,7 +862,7 @@ class Velox_Builder {
 
 	public static function settings() {
 		$s = get_option( self::OPT_SETTINGS, null );
-		$d = array( 'css_mode' => 'file', 'minify' => 1, 'container' => '1140' );
+		$d = array( 'css_mode' => 'file', 'minify' => 1 );
 		return is_array( $s ) ? array_merge( $d, $s ) : $d;
 	}
 
@@ -1076,8 +1079,16 @@ class Velox_Builder {
 	public static function ajax_settings_save() {
 		$css_mode  = isset( $_POST['css_mode'] ) && 'inline' === $_POST['css_mode'] ? 'inline' : 'file';
 		$minify    = isset( $_POST['minify'] ) && $_POST['minify'] ? 1 : 0;
-		$container = isset( $_POST['container'] ) ? preg_replace( '/[^0-9]/', '', wp_unslash( $_POST['container'] ) ) : '1140';
-		update_option( self::OPT_SETTINGS, array( 'css_mode' => $css_mode, 'minify' => $minify, 'container' => $container ) );
+		// 'container' used to be stored here and read by nothing. Page width now
+		// lives in Global styles, so this writes there instead of shadowing it.
+		$container = isset( $_POST['container'] ) ? preg_replace( '/[^0-9]/', '', wp_unslash( $_POST['container'] ) ) : '';
+		update_option( self::OPT_SETTINGS, array( 'css_mode' => $css_mode, 'minify' => $minify ) );
+		if ( '' !== $container ) {
+			$gs = self::global_styles();
+			$gs['width']['page'] = $container;
+			update_option( self::OPT_GLOBAL_STYLES, $gs );
+		}
+		self::purge_cache_for();
 		wp_send_json_success( array( 'saved' => true ) );
 	}
 
@@ -1608,6 +1619,45 @@ class Velox_Builder {
 	 * editor can render an inserted reusable inline (by reference) and keep it
 	 * in sync everywhere it is used.
 	 */
+	/**
+	 * Where each reusable is used: [ reusable_id => [ ['id'=>doc, 'title'=>…], … ] ].
+	 * Deleting a reusable that is live on six pages should not be a blind click.
+	 */
+	public static function reusable_usage() {
+		global $wpdb;
+		$rows = $wpdb->get_results( 'SELECT id, title, kind, data FROM ' . self::table(), ARRAY_A );
+		$out  = array();
+		foreach ( (array) $rows as $row ) {
+			if ( 'reusable' === $row['kind'] ) {
+				continue; // a reusable referencing itself is not "usage"
+			}
+			$model = json_decode( $row['data'], true );
+			if ( ! is_array( $model ) || empty( $model['tree'] ) ) {
+				continue;
+			}
+			$found = array();
+			$walk  = function ( $nodes ) use ( &$walk, &$found ) {
+				foreach ( (array) $nodes as $n ) {
+					if ( isset( $n['el'] ) && 'Reusable' === $n['el'] && ! empty( $n['ref'] ) ) {
+						$found[ (int) $n['ref'] ] = true;
+					}
+					if ( ! empty( $n['children'] ) ) {
+						$walk( $n['children'] );
+					}
+				}
+			};
+			$walk( $model['tree'] );
+			foreach ( array_keys( $found ) as $ref ) {
+				$out[ $ref ][] = array(
+					'id'    => (int) $row['id'],
+					'title' => $row['title'] ? $row['title'] : __( 'Untitled', 'velox' ),
+					'kind'  => $row['kind'],
+				);
+			}
+		}
+		return $out;
+	}
+
 	public static function reusables_payload() {
 		global $wpdb;
 		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, data FROM ' . self::table() . ' WHERE kind = %s ORDER BY title ASC', 'reusable' ), ARRAY_A );
@@ -2084,6 +2134,8 @@ class Velox_Builder {
 			wp_update_post( array( 'ID' => $post_id, 'post_status' => 'draft' ) );
 		}
 		$wpdb->update( $t, array( 'status' => 'draft' ), array( 'id' => $id ), array( '%s' ), array( '%d' ) );
+		// Without this the page stays in the cache and visitors keep seeing it.
+		self::purge_cache_for( $post_id );
 		wp_send_json_success( array( 'id' => $id, 'status' => 'draft' ) );
 	}
 }

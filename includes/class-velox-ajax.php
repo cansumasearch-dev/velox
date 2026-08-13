@@ -91,10 +91,6 @@ class Velox_Ajax {
 				Velox_Builder::ajax_doc_delete();
 				break;
 
-			case 'builder_template_role':
-				Velox_Builder::ajax_template_role();
-				break;
-
 			case 'builder_wrap_legacy_save':
 				Velox_Builder::ajax_wrap_legacy_save();
 				break;
