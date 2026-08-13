@@ -162,10 +162,6 @@ class Velox_Builder {
 					echo '<p style="margin:12px 0 0;padding:10px 12px;background:#fff8e5;border-left:3px solid #f0c36d;border-radius:4px">';
 					echo esc_html__( 'The template has no Inner Content element, so there is nowhere to put this page\'s content. Add one to the template and this page will render inside it.', 'velox' );
 					echo '</p>';
-				} else {
-					echo '<p style="margin:12px 0 0;padding:10px 12px;background:#edfaf1;border-left:3px solid #7ad39b;border-radius:4px">';
-					echo esc_html__( 'This page has no Velox layout of its own, but the template wraps it and its WordPress content is placed in the Inner Content slot.', 'velox' );
-					echo '</p>';
 				}
 				?>
 				<script>
@@ -749,6 +745,7 @@ class Velox_Builder {
 			}
 		}
 		update_option( self::OPT_CSS, $clean );
+		self::purge_cache_for();
 		wp_send_json_success( array( 'files' => $clean ) );
 	}
 
@@ -817,6 +814,7 @@ class Velox_Builder {
 			}
 		}
 		update_option( self::OPT_JS, $clean );
+		self::purge_cache_for();
 		wp_send_json_success( array( 'files' => $clean ) );
 	}
 
@@ -1600,6 +1598,7 @@ class Velox_Builder {
 		}
 		$on = ! empty( $_POST['on'] ) && 'false' !== $_POST['on'];
 		update_option( self::OPT_WRAP_LEGACY, $on ? 1 : 0 );
+		self::purge_cache_for();
 		wp_send_json_success( array( 'on' => $on ? 1 : 0 ) );
 	}
 
@@ -1709,6 +1708,24 @@ class Velox_Builder {
 	 * on first publish means the visitor-facing URL exists and the front-end
 	 * renderer (which keys off post_id + status='published') can serve it.
 	 */
+	/**
+	 * Drop cached HTML after a Velox change. Without this, logged-out visitors
+	 * keep being served the pre-Velox page from cache — which reads exactly like
+	 * "my changes aren't on the front end", because for them they aren't.
+	 */
+	public static function purge_cache_for( $post_id = 0 ) {
+		if ( ! class_exists( 'Velox_Cache' ) ) {
+			return;
+		}
+		// A template or a global change can affect any page, so clear the lot;
+		// a single page only needs its own entry dropped.
+		if ( $post_id ) {
+			Velox_Cache::purge_post( (int) $post_id );
+			return;
+		}
+		Velox_Cache::purge_all();
+	}
+
 	public static function ajax_publish() {
 		global $wpdb;
 		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
@@ -1728,6 +1745,7 @@ class Velox_Builder {
 			if ( 'template' === $row['kind'] && ! self::default_template() ) {
 				update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
 			}
+			self::purge_cache_for();
 			wp_send_json_success( array( 'id' => $id, 'url' => '', 'kind' => $row['kind'] ) );
 		}
 
@@ -1765,6 +1783,7 @@ class Velox_Builder {
 		if ( class_exists( 'Velox_Builder_Render' ) ) {
 			Velox_Builder_Render::write_css_for( $id );
 		}
+		self::purge_cache_for( $post_id );
 
 		wp_send_json_success(
 			array(

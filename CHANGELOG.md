@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.77.1 — Cache purging, and a status that cannot lie
+- **Fixed: publishing never cleared the page cache.** Logged-in users bypass the cache, so changes looked fine to you while logged-out visitors kept being served the old page indefinitely. Publishing a page, publishing a template, changing global CSS or JavaScript, and switching the catch-all option now all clear the cache.
+- **Fixed: the page editor could show two contradictory statuses at once** — "No Velox layout is attached" alongside a message saying the template wraps the page. The status now runs the same code the front end runs, so the two cannot disagree.
+
 ## 3.77.0 — Templates can now wrap pages you never built in Velox
 - **New catch-all option.** Turn it on and your default template also wraps pages that have no Velox layout — their normal WordPress content is placed in the template's Inner Content slot. That is how you get one shared navbar and footer across an existing site without rebuilding every page.
 - **Off by default, deliberately.** Switching it on makes Velox render every page on the site, which is not something to do silently — WooCommerce checkout and cart pages included. The switch lives in the Velox Builder box on any page editor.

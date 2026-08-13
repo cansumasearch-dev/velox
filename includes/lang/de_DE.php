@@ -1099,6 +1099,8 @@ return array(
 	'Give it at least a title.' => 'Geben Sie ihm mindestens einen Titel.',
 	'Hiding ' => 'Wird ausgeblendet ',
 	'History cleared.' => 'Verlauf gelöscht.',
+	'Velox is serving this page: your default template wraps it and the page content sits in the Inner Content slot.' => 'Velox liefert diese Seite aus: Ihre Standardvorlage umschließt sie und der Seiteninhalt sitzt im Element „Innerer Inhalt“.',
+	'No Velox layout on this page, and templates are not set to wrap pages without one — so WordPress renders it with your theme.' => 'Kein Velox-Layout auf dieser Seite, und Vorlagen sind nicht so eingestellt, dass sie Seiten ohne Layout umschließen — daher rendert WordPress sie mit Ihrem Theme.',
 	'This template is not being applied yet.' => 'Diese Vorlage wird noch nicht angewendet.',
 	'Templates only wrap pages that Velox renders. This page has no Velox layout, so WordPress is still drawing it with your theme.' => 'Vorlagen umschließen nur Seiten, die Velox rendert. Diese Seite hat kein Velox-Layout, daher zeichnet WordPress sie weiterhin mit Ihrem Theme.',
 	'Also apply the default template to pages without a Velox layout (their content goes in the Inner Content slot)' => 'Standardvorlage auch auf Seiten ohne Velox-Layout anwenden (ihr Inhalt landet im Element „Innerer Inhalt“)',

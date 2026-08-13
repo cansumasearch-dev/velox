@@ -146,6 +146,15 @@ class Velox_Builder_Render {
 			}
 		}
 		if ( ! $row ) {
+			// No layout of its own — but catch-all may still be wrapping it. Ask the
+			// SAME function the front end uses, so this can never disagree with what
+			// a visitor actually gets.
+			if ( self::legacy_doc_for_post( $post_id ) ) {
+				return array( 'live' => true, 'reason' => __( 'Velox is serving this page: your default template wraps it and the page content sits in the Inner Content slot.', 'velox' ) );
+			}
+			if ( class_exists( 'Velox_Builder' ) && ! Velox_Builder::wrap_legacy() ) {
+				return array( 'live' => false, 'reason' => __( 'No Velox layout on this page, and templates are not set to wrap pages without one — so WordPress renders it with your theme.', 'velox' ) );
+			}
 			return array( 'live' => false, 'reason' => __( 'No Velox layout is attached to this page yet, so WordPress renders it with your theme.', 'velox' ) );
 		}
 		if ( 'published' !== $row['status'] ) {
