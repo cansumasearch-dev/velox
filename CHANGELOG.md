@@ -4,6 +4,40 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.70.0 — Inspector rework, drag-to-move, and a real page & class manager
+**Editor**
+- **Padding and margin now sit side by side** in a box layout, each with an **All / Individual** switch — one field for all four sides, or one per side. Your choice is remembered.
+- Width, min-width and max-width share a row; height does the same. The style panel is wider.
+- **The class area was rebuilt.** The active class used to be printed twice — once in a card, once as a chip — and nothing told you that editing a class changes every element using it. Now it says so, and the state picker is its own panel.
+- **Drag elements anywhere in the page structure**: drop above, below, inside a container, or into empty space to pull something back out to page level.
+- Elements can no longer be dropped into their own children.
+- The "Add element" button is now flat text-and-icon rather than a filled block.
+
+**Fixes**
+- **Fixed: dragging in the page structure did nothing.** It was still wired to the old sidebar that was removed in 3.67.0.
+- **Fixed: min-width and max-height were silently thrown away** — neither was registered in the style engine, so any value you typed vanished.
+- **Fixed: choosing a unit before typing a number** snapped back to px.
+- **Fixed: opening the Add panel closed a pinned Structure panel** even though they sit on opposite sides.
+
+**Pages overview**
+- Shows **every page on the site**, including ones never touched by Velox, with a Build button to start one.
+- Filter by All / Velox pages / Templates / Reusables / Without Velox, plus search.
+- **Rename, Duplicate, View, Delete and open in WordPress** straight from each row.
+- **Fixed: the counters at the top always read zero.** They were hardcoded.
+
+**Classes**
+- Filter between **your own classes and the ones Velox creates** for new elements.
+- **Edit** opens the class's full CSS — including :hover states and media queries — as editable text, and you can rename it in the same window.
+- Anything unsafe or unrecognised in the CSS is dropped on save rather than stored.
+
+## 3.69.0 — Units you can pick, and two template/reusable fixes
+- **Units are now a dropdown.** Click the "px" next to any size field and switch to %, em, rem, vh, vw or auto. Typing a unit straight into the number field works too — enter "100%" and the % moves onto the chip by itself.
+- **Ctrl/Cmd + D duplicates** the selected element.
+- **Fixed: reusables lost their text.** Saved reusables only stored the structure and styling, so pasting one gave you correctly-styled empty boxes. They now carry their content, and a reusable you just created is insertable immediately instead of after a reload.
+- **Fixed: a document could not be turned into a template.** The type was only ever set from the URL, so anything started via "New page" was stuck as a page. There is now a Page / Template / Reusable picker beside the title in the builder.
+- Publishing a template or reusable no longer creates a stray WordPress page for it.
+- Switching a document to "Template" makes it the site default if no default is set yet.
+
 ## 3.68.0 — Templates that actually wrap your pages
 - **New "Inner Content" element.** Drop it into a template to mark where each page's own layout belongs. A template can now be a real navbar + content + footer instead of just a header and footer with a gap between them.
 - **"Render page using template"** now appears on every page and post editor, under the Velox Builder box. Pick a specific template, opt this page out entirely, or leave it following the site default.

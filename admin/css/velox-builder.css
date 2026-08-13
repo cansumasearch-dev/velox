@@ -116,8 +116,8 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 
 /* ---- classes manager ---- */
 .vba-classlist{ padding:6px; }
-.vba-class-head{ display:grid;grid-template-columns:1fr 120px 90px 160px;gap:12px;padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--vbb-text-3); }
-.vba-class-row{ display:grid;grid-template-columns:1fr 120px 90px 160px;gap:12px;align-items:center;padding:12px 14px;border-radius:10px; }
+.vba-class-head{ display:grid;grid-template-columns:1fr 92px 96px 90px 150px;gap:12px;padding:10px 14px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--vbb-text-3); }
+.vba-class-row{ display:grid;grid-template-columns:1fr 92px 96px 90px 150px;gap:12px;align-items:center;padding:12px 14px;border-radius:10px; }
 .vba-class-row:hover{ background:var(--vbb-raised-2); }
 .vba-class-name{ font-family:var(--vbb-mono);font-size:13px;color:var(--vbb-accent);font-weight:600; }
 .vba-class-meta{ font-size:12px;color:var(--vbb-text-2); }
@@ -158,3 +158,53 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-tpl-roles{ display:flex;gap:5px; }
 .vba-mini.is-on{ background:var(--vbb-accent);color:#04222f;border-color:transparent; }
 .vba-mini.is-on:hover{ background:var(--vbb-accent);color:#04222f; }
+
+/* ---- Builder Overview + Classes: toolbar, filters, row actions, modal ---- */
+.vba-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:0 0 14px}
+.vba-filters{display:flex;gap:4px;flex-wrap:wrap}
+.vba-filter{display:flex;align-items:center;gap:6px;padding:6px 11px;border-radius:8px;border:1px solid var(--vx-line-2,#e3e4e8);
+  background:transparent;color:var(--vx-text-2,#6b7280);font-size:12.5px;font-weight:600;cursor:pointer}
+.vba-filter:hover{background:var(--vx-surface-2,#f4f5f7);color:var(--vx-text,#1f2329)}
+.vba-filter.on{background:var(--vx-text,#1f2329);border-color:var(--vx-text,#1f2329);color:#fff}
+.vba-filter-n{font-size:10.5px;font-weight:700;padding:1px 6px;border-radius:20px;background:rgba(0,0,0,.08)}
+.vba-filter.on .vba-filter-n{background:rgba(255,255,255,.2)}
+.vba-search{display:flex;align-items:center;gap:7px;padding:7px 11px;border:1px solid var(--vx-line-2,#e3e4e8);border-radius:8px;min-width:220px}
+.vba-search svg{color:var(--vx-text-3,#9aa0a6);flex:0 0 auto}
+.vba-search input{border:none;outline:none;background:none;font-size:13px;width:100%;font-family:inherit}
+.vba-doc-type{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--vx-surface-2,#f4f5f7);color:var(--vx-text-2,#6b7280)}
+.vba-type-template{background:rgba(160,107,255,.12);color:#7c4ddb}
+.vba-type-reusable{background:rgba(42,183,241,.12);color:#0e7fb3}
+.vba-type-legacy{background:transparent;color:var(--vx-text-3,#9aa0a6);border:1px dashed var(--vx-line-2,#e3e4e8)}
+/* Always visible: the whole point of this screen is having the buttons there.
+   Muted by default, full contrast on row hover. */
+.vba-doc-actions{display:flex;align-items:center;gap:4px;margin-left:auto;opacity:.62;transition:opacity .12s}
+.vba-docrow:hover .vba-doc-actions,.vba-docrow:focus-within .vba-doc-actions{opacity:1}
+.vba-docrow{align-items:center}
+.vba-doc-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vba-nores{padding:26px;text-align:center;color:var(--vx-text-3,#9aa0a6);font-size:13px}
+.vba-origin{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+.vba-origin-mine{background:rgba(42,183,241,.12);color:#0e7fb3}
+.vba-origin-default{background:var(--vx-surface-2,#f4f5f7);color:var(--vx-text-3,#9aa0a6)}
+/* modal */
+.vba-modal{position:fixed;inset:0;z-index:100000;display:grid;place-items:center}
+.vba-modal[hidden]{display:none}
+.vba-modal-back{position:absolute;inset:0;background:rgba(15,17,21,.55)}
+.vba-modal-box{position:relative;width:min(680px,92vw);max-height:88vh;display:flex;flex-direction:column;
+  background:#fff;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.3);overflow:hidden}
+.vba-modal-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--vx-line-2,#e3e4e8)}
+.vba-modal-h b{font-size:15px;font-family:ui-monospace,Menlo,monospace}
+.vba-modal-x{background:none;border:none;font-size:22px;line-height:1;color:var(--vx-text-3,#9aa0a6);cursor:pointer;padding:0 4px}
+.vba-modal-x:hover{color:var(--vx-text,#1f2329)}
+.vba-modal-b{padding:18px 20px;overflow:auto;flex:1}
+.vba-fl{display:block;font-size:12px;font-weight:600;color:var(--vx-text-2,#6b7280);margin:0 0 6px}
+.vba-modal-b .vba-input{width:100%;padding:10px 13px;border:1px solid var(--vx-line-2,#e3e4e8);border-radius:8px;font-size:14px;
+  font-family:ui-monospace,Menlo,monospace;margin-bottom:16px;box-sizing:border-box}
+.vba-modal-b .vba-input:focus{border-color:var(--vx-primary,#2ab7f1);outline:none}
+.vba-code{width:100%;box-sizing:border-box;padding:14px;border:1px solid var(--vx-line-2,#e3e4e8);border-radius:10px;
+  background:#0f1115;color:#e6f7ff;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.7;resize:vertical;outline:none}
+.vba-code:focus{border-color:var(--vx-primary,#2ab7f1)}
+.vba-hint{font-size:12px;color:var(--vx-text-3,#9aa0a6);margin:10px 0 0}
+.vba-modal-f{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--vx-line-2,#e3e4e8);background:var(--vx-surface-2,#f8f9fb)}
+.vba-modal-msg{flex:1;font-size:12.5px;color:var(--vx-text-2,#6b7280)}
+
+.vba-class-actions{display:flex;align-items:center;gap:4px;justify-content:flex-end}

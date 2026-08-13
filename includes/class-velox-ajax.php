@@ -59,6 +59,22 @@ class Velox_Ajax {
 				Velox_Builder::ajax_settings_save();
 				break;
 
+			case 'builder_doc_rename':
+				Velox_Builder::ajax_doc_rename();
+				break;
+
+			case 'builder_doc_duplicate':
+				Velox_Builder::ajax_doc_duplicate();
+				break;
+
+			case 'builder_class_css':
+				Velox_Builder::ajax_class_css();
+				break;
+
+			case 'builder_class_css_save':
+				Velox_Builder::ajax_class_css_save();
+				break;
+
 			case 'builder_class_rename':
 				Velox_Builder::ajax_class_rename();
 				break;

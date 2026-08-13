@@ -26,18 +26,38 @@ class Velox_Builder_Render {
 		'display' => 'display', 'flexDirection' => 'flex-direction', 'flexWrap' => 'flex-wrap', 'alignItems' => 'align-items', 'justifyContent' => 'justify-content', 'gap' => 'gap',
 		'paddingTop' => 'padding-top', 'paddingRight' => 'padding-right', 'paddingBottom' => 'padding-bottom', 'paddingLeft' => 'padding-left',
 		'marginTop' => 'margin-top', 'marginRight' => 'margin-right', 'marginBottom' => 'margin-bottom', 'marginLeft' => 'margin-left',
-		'width' => 'width', 'maxWidth' => 'max-width', 'height' => 'height', 'minHeight' => 'min-height',
+		'width' => 'width', 'minWidth' => 'min-width', 'maxWidth' => 'max-width', 'height' => 'height', 'minHeight' => 'min-height', 'maxHeight' => 'max-height',
 		'fontSize' => 'font-size', 'fontWeight' => 'font-weight', 'lineHeight' => 'line-height', 'letterSpacing' => 'letter-spacing', 'textAlign' => 'text-align', 'textDecoration' => 'text-decoration', 'textTransform' => 'text-transform',
 		'color' => 'color', 'background' => 'background', 'opacity' => 'opacity',
 		'borderWidth' => 'border-width', 'borderStyle' => 'border-style', 'borderColor' => 'border-color', 'borderRadius' => 'border-radius',
 		'boxShadow' => 'box-shadow', 'gridTemplateColumns' => 'grid-template-columns',
 	);
-	private static $UNIT = array( 'gap', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'width', 'maxWidth', 'height', 'minHeight', 'fontSize', 'letterSpacing', 'borderWidth', 'borderRadius' );
+	private static $UNIT = array( 'gap', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'fontSize', 'letterSpacing', 'borderWidth', 'borderRadius' );
 	private static $BP = array(
 		'base'   => null,
 		'tablet' => '(max-width: 991px)',
 		'mobile' => '(max-width: 767px)',
 	);
+
+	/** camelCase model key → CSS property name (used by the class editor). */
+	public static function css_prop_name( $key ) {
+		return self::$CSS_PROP[ $key ] ?? '';
+	}
+
+	/** CSS property name → camelCase model key (the reverse lookup). */
+	public static function model_prop_name( $css ) {
+		$flip = array_flip( self::$CSS_PROP );
+		return $flip[ strtolower( trim( $css ) ) ] ?? '';
+	}
+
+	/** Value as it should appear in CSS text (adds px to bare numbers). */
+	public static function css_value( $key, $value ) {
+		$v = (string) $value;
+		if ( in_array( $key, self::$UNIT, true ) && preg_match( '/^-?\\d+(\\.\\d+)?$/', $v ) ) {
+			$v .= 'px';
+		}
+		return $v;
+	}
 
 	public static function init() {
 		add_action( 'template_include', array( __CLASS__, 'maybe_render' ), 99 );

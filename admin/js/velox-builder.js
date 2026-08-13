@@ -111,7 +111,7 @@
 		display:'display', flexDirection:'flex-direction', flexWrap:'flex-wrap', alignItems:'align-items', justifyContent:'justify-content', gap:'gap',
 		paddingTop:'padding-top', paddingRight:'padding-right', paddingBottom:'padding-bottom', paddingLeft:'padding-left',
 		marginTop:'margin-top', marginRight:'margin-right', marginBottom:'margin-bottom', marginLeft:'margin-left',
-		width:'width', maxWidth:'max-width', height:'height', minHeight:'min-height',
+		width:'width', minWidth:'min-width', maxWidth:'max-width', height:'height', minHeight:'min-height', maxHeight:'max-height',
 		fontSize:'font-size', fontWeight:'font-weight', lineHeight:'line-height', letterSpacing:'letter-spacing', textAlign:'text-align', textDecoration:'text-decoration', textTransform:'text-transform',
 		color:'color', background:'background', opacity:'opacity',
 		borderWidth:'border-width', borderStyle:'border-style', borderColor:'border-color', borderRadius:'border-radius',
@@ -119,7 +119,7 @@
 	};
 	var UNIT_PROPS = {
 		gap:1, paddingTop:1, paddingRight:1, paddingBottom:1, paddingLeft:1, marginTop:1, marginRight:1, marginBottom:1, marginLeft:1,
-		width:1, maxWidth:1, height:1, minHeight:1, fontSize:1, letterSpacing:1, borderWidth:1, borderRadius:1
+		width:1, minWidth:1, maxWidth:1, height:1, minHeight:1, maxHeight:1, fontSize:1, letterSpacing:1, borderWidth:1, borderRadius:1
 	};
 	var BP_ORDER = [ 'base', 'tablet', 'mobile' ];
 	var BP_META = { base:{ label:'Desktop', mq:null }, tablet:{ label:'Tablet ≤991', mq:'(max-width: 991px)' }, mobile:{ label:'Mobile ≤767', mq:'(max-width: 767px)' } };
@@ -405,6 +405,48 @@
 			if ( elementOverride ) { node.overrides[ key ] = node.overrides[ key ] || {}; node.overrides[ key ][ prop ] = value; }
 			else { var c = s.activeClass; s.classes[ c ] = s.classes[ c ] || {}; s.classes[ c ][ key ] = s.classes[ c ][ key ] || {}; s.classes[ c ][ key ][ prop ] = value; }
 		}, T( 'Style' ) + ': ' + prop );
+	}
+	/* ---------- value + unit ----------
+	 * Stored values keep their unit inline ("24px", "100%", "auto"). The input
+	 * shows the number, the chip beside it shows the unit and is a real picker —
+	 * and typing "100%" straight into the field moves the % onto the chip. */
+	var UNITS = [ 'px', '%', 'em', 'rem', 'vh', 'vw', 'auto' ];
+	function splitVal( v, fallback ) {
+		v = ( v == null ? '' : String( v ) ).trim();
+		if ( '' === v ) { return { num:'', unit:fallback || 'px' }; }
+		if ( 'auto' === v ) { return { num:'', unit:'auto' }; }
+		var m = v.match( /^(-?[\d.]+)\s*(px|%|em|rem|vh|vw)?$/ );
+		if ( ! m ) { return { num:v, unit:fallback || 'px' }; }
+		return { num:m[ 1 ], unit:m[ 2 ] || fallback || 'px' };
+	}
+	function joinVal( num, unit ) {
+		if ( 'auto' === unit ) { return 'auto'; }
+		num = String( num == null ? '' : num ).trim();
+		return '' === num ? '' : num + unit;
+	}
+	/* Picking a unit on an EMPTY field stores nothing, so the choice would be
+	 * lost on the next render and snap back to px. Remember it until a number
+	 * arrives. Cleared whenever the selection changes. */
+	var pendingUnit = {};
+	function unitSelectHTML( prop, unit ) {
+		if ( pendingUnit[ prop ] ) { unit = pendingUnit[ prop ]; }
+		return '<select class="vb-unit" data-setunit="' + prop + '">' + UNITS.map( function ( u ) {
+			return '<option value="' + u + '"' + ( u === unit ? ' selected' : '' ) + '>' + u + '</option>';
+		} ).join( '' ) + '</select>';
+	}
+	/* Changing the unit keeps the number already typed. */
+	function setUnit( prop, unit ) {
+		var node = findNode( store.state.tree, store.state.selection );
+		var res = resolveProperty( node, store.state.breakpoint, prop, store.state.state || 'normal' );
+		var cur = splitVal( res.value, 'px' );
+		var next = joinVal( cur.num, unit );
+		if ( '' === next ) {
+			pendingUnit[ prop ] = unit;
+			if ( 'auto' === unit ) { setProp( prop, 'auto' ); } else { removeProp( prop ); }
+			return;
+		}
+		delete pendingUnit[ prop ];
+		setProp( prop, next );
 	}
 	function removeProp( prop ) { store.commit( function ( s ) { var c = s.activeClass, key = ruleKey( s.breakpoint, s.state ); if ( s.classes[ c ] && s.classes[ c ][ key ] ) { delete s.classes[ c ][ key ][ prop ]; } } ); }
 	/* rules for the "normal" state live under the plain breakpoint key (back-compat);
@@ -835,6 +877,13 @@
 					'<b><input id="vb-title" class="vb-title" type="text" value="' + escapeHtml( docTitle ) + '" placeholder="' + T( 'Untitled' ) + '" spellcheck="false">' +
 					'<button class="vb-pp-caret" id="vb-pp-caret" title="' + T( 'Switch page' ) + '">' + svg( 'chevron', 12 ) + '</button></b>' +
 				'</div>' +
+				// What this document IS. Previously only settable from the URL, so
+				// anything made via "New page" was stuck as a page forever.
+				'<select class="vb-kind" id="vb-kind" title="' + T( 'Document type' ) + '">' +
+					'<option value="page">' + T( 'Page' ) + '</option>' +
+					'<option value="template">' + T( 'Template' ) + '</option>' +
+					'<option value="reusable">' + T( 'Reusable' ) + '</option>' +
+				'</select>' +
 			'</div>' +
 			// CENTER: breakpoints + undo/redo
 			'<div class="vb-tbc vb-tbc-center">' +
@@ -903,6 +952,7 @@
 		var b = document.querySelectorAll( '#vb-bp button' );
 		for ( var i = 0; i < b.length; i++ ) { b[ i ].classList.toggle( 'on', b[ i ].getAttribute( 'data-bp' ) === state.breakpoint ); }
 		var bpl = document.getElementById( 'vb-bplabel' ); if ( bpl ) { bpl.textContent = BP_META[ state.breakpoint ].label; }
+		var ks = document.getElementById( 'vb-kind' ); if ( ks && ks.value !== docKind ) { ks.value = docKind; }
 		document.getElementById( 'vb-undo' ).style.opacity = store.history.length > 1 ? 1 : 0.4;
 		document.getElementById( 'vb-redo' ).style.opacity = store.future.length ? 1 : 0.4;
 	}
@@ -925,6 +975,81 @@
 		if ( node.el === 'Reviews' ) { return ! node.conn; }
 		return false;
 	}
+	/* ---------- paired box controls (padding / margin / radius) ----------
+	 * "All" writes one value to all four sides; "Individual" exposes each side.
+	 * The mode is a working preference, so it sticks per group for the session
+	 * rather than resetting every time a different element is selected. */
+	var BOX_SIDES = {
+		padding: { label:'Padding', props:[ 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft' ] },
+		margin:  { label:'Margin',  props:[ 'marginTop', 'marginRight', 'marginBottom', 'marginLeft' ] }
+	};
+	var boxMode = { padding:'individual', margin:'individual' };
+	try {
+		var _bm = JSON.parse( window.localStorage.getItem( 'velox_builder_boxmode' ) || 'null' );
+		if ( _bm && _bm.padding && _bm.margin ) { boxMode = _bm; }
+	} catch ( e ) {}
+	function saveBoxMode() { try { window.localStorage.setItem( 'velox_builder_boxmode', JSON.stringify( boxMode ) ); } catch ( e ) {} }
+
+	function boxInput( prop, node, bp, st, ac, ph ) {
+		var res = resolveProperty( node, bp, prop, st ), dot = dotFor( res, ac, bp );
+		var sv = splitVal( res.value, 'px' );
+		return '<span class="vb-bx-i" title="' + ( ph || prop ) + '">' +
+			'<span class="vb-src ' + dot.cls + '" title="' + dot.tip + '"></span>' +
+			'<input data-setnum="' + prop + '" value="' + sv.num + '" placeholder="' + ( ph || '—' ) + '">' +
+			unitSelectHTML( prop, sv.unit ) + '</span>';
+	}
+	/* In "All" mode the first side drives the others, so the value shown is the
+	 * top side and writing it fans out to all four. */
+	function boxFieldset( key, node, bp, st, ac ) {
+		var cfg = BOX_SIDES[ key ], mode = boxMode[ key ];
+		var seg = '<span class="vb-bx-seg">' +
+			'<button class="' + ( mode === 'all' ? 'on' : '' ) + '" data-boxmode="' + key + '" data-mode="all">' + T( 'All' ) + '</button>' +
+			'<button class="' + ( mode !== 'all' ? 'on' : '' ) + '" data-boxmode="' + key + '" data-mode="individual">' + T( 'Individual' ) + '</button>' +
+			'</span>';
+		var inner;
+		if ( 'all' === mode ) {
+			var res = resolveProperty( node, bp, cfg.props[ 0 ], st ), dot = dotFor( res, ac, bp );
+			var sv = splitVal( res.value, 'px' );
+			inner = '<div class="vb-bx"><span class="vb-bx-i vb-bx-all">' +
+				'<span class="vb-src ' + dot.cls + '" title="' + dot.tip + '"></span>' +
+				'<input data-setbox="' + key + '" value="' + sv.num + '" placeholder="' + T( 'all sides' ) + '">' +
+				'<select class="vb-unit" data-setboxunit="' + key + '">' + UNITS.map( function ( u ) {
+					return '<option value="' + u + '"' + ( u === sv.unit ? ' selected' : '' ) + '>' + u + '</option>';
+				} ).join( '' ) + '</select></span></div>';
+		} else {
+			inner = '<div class="vb-bx">' +
+				boxInput( cfg.props[ 0 ], node, bp, st, ac, T( 'top' ) ) +
+				'<span class="vb-bx-r">' + boxInput( cfg.props[ 3 ], node, bp, st, ac, T( 'left' ) ) + boxInput( cfg.props[ 1 ], node, bp, st, ac, T( 'right' ) ) + '</span>' +
+				boxInput( cfg.props[ 2 ], node, bp, st, ac, T( 'bottom' ) ) +
+			'</div>';
+		}
+		return '<div class="vb-bx-fs"><div class="vb-bx-h"><b>' + T( cfg.label ) + '</b>' + seg + '</div>' + inner + '</div>';
+	}
+	function spacingBlockHTML( node, bp, st, ac ) {
+		return '<div class="vb-bx-pair">' + boxFieldset( 'padding', node, bp, st, ac ) + boxFieldset( 'margin', node, bp, st, ac ) + '</div>';
+	}
+	/* Width / min / max on one line, height on the next. */
+	function sizeBlockHTML( node, bp, st, ac ) {
+		function tri( label, props, labels ) {
+			return '<span class="vb-bx-lab">' + T( label ) + '</span><div class="vb-bx-tri">' +
+				props.map( function ( pr, i ) { return boxInput( pr, node, bp, st, ac, labels[ i ] ); } ).join( '' ) + '</div>';
+		}
+		return tri( 'Width', [ 'width', 'minWidth', 'maxWidth' ], [ T( 'width' ), T( 'min' ), T( 'max' ) ] ) +
+			'<div class="vb-bx-gap"></div>' +
+			tri( 'Height', [ 'height', 'minHeight', 'maxHeight' ], [ T( 'height' ), T( 'min' ), T( 'max' ) ] );
+	}
+	/* Writing one value to all four sides of a box group. */
+	function setBoxAll( key, num, unit ) {
+		var props = BOX_SIDES[ key ].props, val = joinVal( num, unit );
+		store.commit( function ( s ) {
+			var node = findNode( s.tree, s.selection ), rk = ruleKey( s.breakpoint, s.state );
+			var c = s.activeClass;
+			s.classes[ c ] = s.classes[ c ] || {}; s.classes[ c ][ rk ] = s.classes[ c ][ rk ] || {};
+			props.forEach( function ( pr ) {
+				if ( '' === val ) { delete s.classes[ c ][ rk ][ pr ]; } else { s.classes[ c ][ rk ][ pr ] = val; }
+			} );
+		}, T( 'Style' ) + ': ' + key );
+	}
 	var lastInspNode = null;
 	function renderInspector( state ) {
 		var node = findNode( state.tree, state.selection ), insp = document.getElementById( 'vb-inspector' );
@@ -934,12 +1059,15 @@
 		// options are visible instead of only style controls.
 		if ( node.id !== lastInspNode ) {
 			lastInspNode = node.id;
+			pendingUnit = {};
 			if ( elementNeedsSetup( node ) ) { inspTab = 'set'; }
 		}
 		var ac = state.activeClass, bp = state.breakpoint, st = state.state || 'normal';
 		var tab = inspTab; // 'ess' | 'all' | 'set'
 		var chips = node.classes.map( function ( c, i ) {
-			return '<span class="vb-chip ' + ( i === 0 ? 'base' : 'combo' ) + ' ' + ( c === ac ? 'active' : '' ) + '" data-cls="' + c + '">' + c + '<span class="vb-chip-x" data-delchip="' + c + '">' + svg( 'x', 11 ) + '</span></span>';
+			return '<span class="vb-chip ' + ( i === 0 ? 'base' : 'combo' ) + ' ' + ( c === ac ? 'active' : '' ) + '" data-cls="' + c + '">' + c +
+				'<span class="vb-chip-tag">' + ( i === 0 ? T( 'BASE' ) : T( 'COMBO' ) ) + '</span>' +
+				'<span class="vb-chip-x" data-delchip="' + c + '">' + svg( 'x', 11 ) + '</span></span>';
 		} ).join( '' );
 		chips += '<span class="vb-chip vb-chip-add" data-addclass>+ ' + T( 'class' ) + '</span>';
 		var acKind = node.classes.indexOf( ac ) === 0 ? 'base' : 'combo';
@@ -976,12 +1104,17 @@
 			groups.forEach( function ( g, gi ) {
 				var closed = gi > 1 ? ' closed' : '';
 				body += '<div class="vb-block' + closed + '"><div class="vb-block-h" data-block><span class="vb-block-ic">' + svg( g.icon, 15 ) + '</span><b>' + g.group + '</b><span class="vb-block-cv">' + svg( 'chevron', 12 ) + '</span></div><div class="vb-block-b">';
+				// Spacing and Size read as paired boxes rather than a stack of
+				// single fields — padding beside margin, width/min/max on a row.
+				if ( 'Spacing' === g.group ) { body += spacingBlockHTML( node, bp, st, ac ) + '</div></div>'; return; }
+				if ( 'Size' === g.group ) { body += sizeBlockHTML( node, bp, st, ac ) + '</div></div>'; return; }
 				g.items.forEach( function ( it ) {
 					var res = resolveProperty( node, bp, it.prop, st ), dot = dotFor( res, ac, bp ), val = res.value, ctrl = '';
 					if ( it.type === 'seg' ) {
 						ctrl = '<div class="vb-seg">' + it.opts.map( function ( o ) { return '<button class="' + ( val === o ? 'on' : '' ) + '" data-set="' + it.prop + '" data-val="' + o + '">' + o.replace( 'flex-', '' ).replace( 'space-', '' ) + '</button>'; } ).join( '' ) + '</div>';
 					} else if ( it.type === 'num' ) {
-						ctrl = '<div class="vb-row"><input class="vb-inp num" data-setnum="' + it.prop + '" value="' + ( val != null ? val : '' ) + '" placeholder="—"><span class="vb-unit">' + it.unit + '</span></div>';
+						var sv = splitVal( val, it.unit );
+						ctrl = '<div class="vb-row"><input class="vb-inp num" data-setnum="' + it.prop + '" value="' + sv.num + '" placeholder="—">' + unitSelectHTML( it.prop, sv.unit ) + '</div>';
 					} else if ( it.type === 'text' ) {
 						ctrl = '<div class="vb-row"><input class="vb-inp" data-set="' + it.prop + '" value="' + ( val != null ? String( val ).replace( /"/g, '&quot;' ) : '' ) + '" placeholder="' + ( it.ph || '' ) + '"></div>';
 					} else if ( it.type === 'color' ) {
@@ -996,14 +1129,19 @@
 		insp.innerHTML =
 			'<div class="vb-insp-head"><span class="vb-insp-ic">' + svg( elIcon( node.el ), 16 ) + '</span><div class="vb-insp-tx"><b>' + node.el + '</b><small>#' + node.id + ' · ' + node.tag + '</small></div>' +
 				'<span class="vb-insp-acts"><button class="vb-ia" data-dup title="' + T( 'Duplicate' ) + '">' + svg( 'copy', 14 ) + '</button><button class="vb-ia vb-ia-del" data-del title="' + T( 'Delete' ) + '">' + svg( 'trash', 14 ) + '</button></span></div>' +
-			'<div class="vb-classbar"><div class="vb-cb-l">' + T( 'Styling class' ) + '</div>' +
-				'<div class="vb-active-class ' + acKind + '"><span class="vb-ac-dot"></span><span class="vb-ac-name">' + ac + '</span><span class="vb-ac-kind">' + ( acKind === 'base' ? 'Base' : 'Combo' ) + '</span></div>' +
-				'<div class="vb-chips">' + chips + '</div>' +
+			// Classes and state are two separate concerns, so they get two cards.
+			// The old layout printed the active class twice (a big card AND a chip)
+			// and never said that editing a class hits every element using it.
+			'<div class="vb-classbar"><div class="vb-chips">' + chips + '</div>' +
+				'<div class="vb-cb-say">' + T( 'Any change below rewrites' ) + ' <b>' + ac + '</b> ' + T( 'everywhere it is used.' ) + '</div>' +
+			'</div>' +
+			'<div class="vb-statebar"><div class="vb-cb-l">' + T( 'State' ) + '</div>' +
 				'<div class="vb-states">' +
-					[ 'normal', 'hover', 'focus', 'active' ].concat( customStates ).map( function ( s2 ) { return '<button class="vb-state' + ( st === s2 ? ' on' : '' ) + '" data-state="' + s2 + '">' + ( s2 === 'normal' ? T( 'Normal' ) : ':' + s2 ) + '</button>'; } ).join( '' ) +
+					[ 'normal', 'hover', 'focus', 'active' ].concat( customStates ).map( function ( s2 ) { return '<button class="vb-state' + ( st === s2 ? ' on' : '' ) + '" data-state="' + s2 + '">' + ( s2 === 'normal' ? T( 'normal' ) : ':' + s2 ) + '</button>'; } ).join( '' ) +
 					'<button class="vb-state vb-state-add" id="vb-addstate" title="' + T( 'Add custom state' ) + '">' + svg( 'plus', 12 ) + '</button>' +
 				'</div>' +
-				'<div class="vb-bp-note">' + ( st !== 'normal' ? T( 'Editing' ) + ' :' + st + ' — ' + T( 'falls back to normal' ) : ( bp === 'base' ? T( 'Editing at desktop' ) : T( 'Editing at' ) + ' ' + bp ) ) + '</div></div>' +
+				'<div class="vb-bp-note">' + ( st !== 'normal' ? T( 'Editing' ) + ' :' + st + ' — ' + T( 'falls back to normal' ) : ( bp === 'base' ? T( 'Editing at desktop' ) : T( 'Editing at' ) + ' ' + bp ) ) + '</div>' +
+			'</div>' +
 			textToolbarHTML( node ) +
 			'<div class="vb-tabs">' +
 				'<button class="vb-tab' + ( tab === 'ess' ? ' on' : '' ) + '" data-tab="ess">' + T( 'Essentials' ) + '</button>' +
@@ -1216,7 +1354,7 @@
 			var collapsed = !! structCollapsed[ node.id ];
 			var name = ( node.name || node.el || 'El' ) + ( node.classes && node.classes[ 0 ] ? ' · ' + node.classes[ 0 ] : '' );
 			var caret = hasKids ? '<span class="vb-st-caret' + ( collapsed ? ' closed' : '' ) + '" data-stcaret="' + node.id + '">' + svg( 'chevron', 11 ) + '</span>' : '<span class="vb-st-spacer"></span>';
-			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( node.hidden ? ' hid' : '' ) + '" data-stnode="' + node.id + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px">' + caret + '<span class="vb-st-ic">' + svg( elIcon( node.el ), 13 ) + '</span><span class="vb-st-l">' + escapeHtml( name ) + '</span></div>';
+			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( node.hidden ? ' hid' : '' ) + '" data-stnode="' + node.id + '" draggable="true" style="padding-left:' + ( 8 + depth * 15 ) + 'px">' + caret + '<span class="vb-st-ic">' + svg( elIcon( node.el ), 13 ) + '</span><span class="vb-st-l">' + escapeHtml( name ) + '</span></div>';
 			if ( hasKids && ! collapsed ) { html += kids.map( function ( k ) { return row( k, depth + 1 ); } ).join( '' ); }
 			return html;
 		}
@@ -1263,6 +1401,8 @@
 			if ( e.target.closest( '[data-dup]' ) ) { duplicateNode( store.state.selection ); return; }
 			if ( e.target.closest( '[data-del]' ) ) { deleteNode( store.state.selection ); return; }
 			var pick = e.target.closest( '[data-pickimg]' ); if ( pick ) { openMediaPicker( pick.getAttribute( 'data-pickimg' ) ); return; }
+			var bm = e.target.closest( '[data-boxmode]' );
+			if ( bm ) { boxMode[ bm.getAttribute( 'data-boxmode' ) ] = bm.getAttribute( 'data-mode' ); saveBoxMode(); renderInspector( store.state ); return; }
 			if ( e.target.closest( '[data-pin]' ) ) { togglePin(); return; }
 			if ( e.target.closest( '#vb-tgl-left' ) ) { toggleLeftStack(); return; }
 			if ( e.target.closest( '#vb-tgl-right' ) ) { toggleRightStack(); return; }
@@ -1336,10 +1476,47 @@
 			if ( e.target.hasAttribute( 'data-setconn' ) ) { var cv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.conn = cv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setpreset' ) ) { var pv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.preset = pv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setwp' ) ) { var wv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.wp = wv; } } ); return; }
+			var bx = e.target.closest( '[data-setbox]' );
+			if ( bx ) {
+				var bkey = bx.getAttribute( 'data-setbox' );
+				var bsel = bx.parentElement ? bx.parentElement.querySelector( '[data-setboxunit]' ) : null;
+				var bt = splitVal( e.target.value.trim(), bsel ? bsel.value : 'px' );
+				clearTimeout( dbTimer );
+				dbTimer = setTimeout( function () { setBoxAll( bkey, bt.num, bt.unit ); }, 150 );
+				return;
+			}
 			var n = e.target.closest( '[data-setnum]' );
-			if ( n ) { var v = e.target.value.trim(); clearTimeout( dbTimer ); dbTimer = setTimeout( function () { if ( v === '' ) { removeProp( n.getAttribute( 'data-setnum' ) ); } else { setProp( n.getAttribute( 'data-setnum' ), v ); } }, 150 ); return; }
+			if ( n ) {
+				var v = e.target.value.trim();
+				// A unit typed into the number field wins and moves onto the chip;
+				// otherwise keep whatever the chip is currently showing.
+				var usel = n.parentElement ? n.parentElement.querySelector( '[data-setunit]' ) : null;
+				var pkey = n.getAttribute( 'data-setnum' );
+				var typed = splitVal( v, usel ? usel.value : ( pendingUnit[ pkey ] || 'px' ) );
+				var out = joinVal( typed.num, typed.unit );
+				if ( '' !== out ) { delete pendingUnit[ pkey ]; }
+				clearTimeout( dbTimer );
+				dbTimer = setTimeout( function () { if ( out === '' ) { removeProp( n.getAttribute( 'data-setnum' ) ); } else { setProp( n.getAttribute( 'data-setnum' ), out ); } }, 150 );
+				return;
+			}
 			var c = e.target.closest( '[data-setcolor]' ); if ( c ) { setProp( c.getAttribute( 'data-setcolor' ), e.target.value ); return; }
 			var t = e.target.closest( 'input.vb-inp[data-set]' ); if ( t ) { clearTimeout( dbTimer ); dbTimer = setTimeout( function () { setProp( t.getAttribute( 'data-set' ), e.target.value ); }, 150 ); return; }
+		} );
+		document.addEventListener( 'change', function ( e ) {
+			var u = e.target.closest( '[data-setunit]' );
+			if ( u ) { setUnit( u.getAttribute( 'data-setunit' ), e.target.value ); return; }
+			var bu = e.target.closest( '[data-setboxunit]' );
+			if ( bu ) {
+				var bk = bu.getAttribute( 'data-setboxunit' );
+				var inp = bu.parentElement.querySelector( '[data-setbox]' );
+				setBoxAll( bk, inp ? inp.value.trim() : '', e.target.value );
+				return;
+			}
+			if ( e.target.id === 'vb-kind' ) {
+				docKind = e.target.value;
+				saveDoc();
+				toast( docKind === 'template' ? T( 'Saved as a template — pages can now use it.' ) : T( 'Document type changed.' ) );
+			}
 		} );
 		document.getElementById( 'vb-undo' ).addEventListener( 'click', function () { store.undo(); } );
 		document.getElementById( 'vb-redo' ).addEventListener( 'click', function () { store.redo(); } );
@@ -1351,6 +1528,7 @@
 			if ( mod && ( e.key === 'p' || e.key === 'P' ) ) { e.preventDefault(); publishDoc(); }
 			if ( mod && e.key === 'c' && ! typing && store.state && store.state.selection ) { e.preventDefault(); copyNode( store.state.selection ); toast( T( 'Copied.' ) ); }
 			if ( mod && e.key === 'v' && ! typing && clipboardNode ) { e.preventDefault(); pasteNode( ctxHoverId || store.state.selection ); }
+			if ( mod && ( e.key === 'd' || e.key === 'D' ) && ! typing && store.state && store.state.selection ) { e.preventDefault(); duplicateNode( store.state.selection ); }
 			if ( mod && e.key === '\\' ) { e.preventDefault(); if ( e.shiftKey ) { toggleRightStack(); } else { toggleLeftStack(); } }
 			if ( e.key === 'Escape' ) { closeAddMenu(); closeContextMenu(); }
 			if ( ( e.key === 'Delete' || e.key === 'Backspace' ) && ! typing && e.target === document.body && store.state && store.state.selection ) { e.preventDefault(); deleteNode( store.state.selection ); }
@@ -1444,12 +1622,31 @@
 		if ( CFG.ajaxurl ) {
 			var body = new URLSearchParams();
 			body.set( 'action', 'velox' ); body.set( 'do', 'builder_make_reusable' ); body.set( 'nonce', CFG.nonce || '' );
-			body.set( 'title', name ); body.set( 'node', JSON.stringify( n ) ); body.set( 'classes', JSON.stringify( collectClassesFor( n ) ) );
+			body.set( 'title', name ); body.set( 'node', JSON.stringify( n ) ); body.set( 'classes', JSON.stringify( collectClassesFor( n ) ) ); body.set( 'content', JSON.stringify( collectContentFor( n ) ) );
 			fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 				.then( function ( r ) { return r.json(); } )
-				.then( function ( res ) { if ( res && res.success && res.data ) { CFG.reusables = CFG.reusables || []; CFG.reusables.push( res.data ); toast( T( 'Saved as reusable.' ) ); } } )
+				.then( function ( res ) {
+					if ( res && res.success && res.data ) {
+						// Carry the tree/classes/content locally as well, so the reusable is
+						// insertable straight away instead of only after a reload.
+						CFG.reusables = CFG.reusables || [];
+						CFG.reusables.push( { id:res.data.id, title:res.data.title, tree:[ JSON.parse( JSON.stringify( n ) ) ], classes:collectClassesFor( n ), content:collectContentFor( n ) } );
+						renderAddBody( '' );
+						toast( T( 'Saved as reusable.' ) );
+					}
+				} )
 				.catch( function () {} );
 		}
+	}
+	/* Text/image content is stored per node id outside the tree, so a reusable
+	 * that doesn't carry it comes back as empty boxes. */
+	function collectContentFor( node ) {
+		var out = {}, s = store.state;
+		( function walk( n ) {
+			if ( s.content && Object.prototype.hasOwnProperty.call( s.content, n.id ) ) { out[ n.id ] = s.content[ n.id ]; }
+			( n.children || [] ).forEach( walk );
+		}( node ) );
+		return out;
 	}
 	function collectClassesFor( node ) {
 		var out = {}, s = store.state;
@@ -1560,12 +1757,18 @@
 		document.body.appendChild( t ); setTimeout( function () { t.classList.add( 'show' ); }, 10 );
 		setTimeout( function () { t.classList.remove( 'show' ); setTimeout( function () { t.remove(); }, 300 ); }, 2200 );
 	}
-	/* Only one side panel / dropdown open at a time. */
+	/* One side panel at a time — EXCEPT when panels are pinned. Pinned panels
+	 * reserve their own space and the add panel lives on the opposite side to
+	 * structure/history/CSS, so there is room for one of each and closing the
+	 * other just loses the user's place. */
 	function closeAllPanels( except ) {
-		if ( except !== 'add' ) { var a = document.getElementById( 'vb-addmenu' ); if ( a ) { a.classList.remove( 'open' ); } }
-		if ( except !== 'css' ) { cssShown = false; var c = document.getElementById( 'vb-css' ); if ( c ) { c.style.display = 'none'; } }
-		if ( except !== 'hist' ) { historyShown = false; var h = document.getElementById( 'vb-hist' ); if ( h ) { h.style.display = 'none'; } }
-		if ( except !== 'struct' ) { structShown = false; var st = document.getElementById( 'vb-struct' ); if ( st ) { st.style.display = 'none'; } }
+		var sides = { add:'left', css:'right', hist:'right', struct:'right' };
+		var keepSide = panelsPinned && sides[ except ] ? sides[ except ] : null;
+		function spare( key ) { return keepSide && sides[ key ] && sides[ key ] !== keepSide; }
+		if ( except !== 'add' && ! spare( 'add' ) ) { var a = document.getElementById( 'vb-addmenu' ); if ( a ) { a.classList.remove( 'open' ); } }
+		if ( except !== 'css' && ! spare( 'css' ) ) { cssShown = false; var c = document.getElementById( 'vb-css' ); if ( c ) { c.style.display = 'none'; } }
+		if ( except !== 'hist' && ! spare( 'hist' ) ) { historyShown = false; var h = document.getElementById( 'vb-hist' ); if ( h ) { h.style.display = 'none'; } }
+		if ( except !== 'struct' && ! spare( 'struct' ) ) { structShown = false; var st = document.getElementById( 'vb-struct' ); if ( st ) { st.style.display = 'none'; } }
 		if ( except !== 'brand' ) { var bm = document.getElementById( 'vb-brandmenu' ); if ( bm ) { bm.classList.remove( 'open' ); } }
 		if ( except !== 'switch' ) { var ps = document.getElementById( 'vb-pageswitch' ); if ( ps ) { ps.classList.remove( 'open' ); } }
 		applyDock();
@@ -1629,43 +1832,82 @@
 
 	/* ---------- drag-and-drop wiring for the layers tree ---------- */
 	var dragId = null;
+	/* ---------- drag-to-move in the Structure panel ----------
+	 * This used to bind to the spine's layer tree (#vb-tree), which no longer
+	 * exists — so dragging was silently dead. It now works off the Structure
+	 * panel rows, delegated on document because the panel re-renders constantly.
+	 * Drop zones: top 28% = before, bottom 28% = after, middle = inside (only
+	 * when the target can hold children). Dropping below the last row moves the
+	 * element out to the end of the root, which is how you get something back
+	 * out of a container. */
 	function wireDrag() {
-		var tree = document.getElementById( 'vb-tree' );
-		if ( ! tree ) { return; }
-		tree.addEventListener( 'dragstart', function ( e ) {
-			var tn = e.target.closest( '.vb-tn' ); if ( ! tn ) { return; }
-			dragId = tn.getAttribute( 'data-node' );
+		document.addEventListener( 'dragstart', function ( e ) {
+			var row = e.target.closest( '[data-stnode]' ); if ( ! row ) { return; }
+			dragId = row.getAttribute( 'data-stnode' );
 			e.dataTransfer.effectAllowed = 'move';
 			try { e.dataTransfer.setData( 'text/plain', dragId ); } catch ( err ) {}
-			setTimeout( function () { tn.classList.add( 'dragging' ); }, 0 );
+			setTimeout( function () { row.classList.add( 'dragging' ); }, 0 );
 		} );
-		tree.addEventListener( 'dragend', function () {
+		document.addEventListener( 'dragend', function () {
 			dragId = null;
 			clearDropMarks();
-			var d = tree.querySelector( '.dragging' ); if ( d ) { d.classList.remove( 'dragging' ); }
+			var d = document.querySelector( '.vb-st-row.dragging' ); if ( d ) { d.classList.remove( 'dragging' ); }
+			var t = document.querySelector( '.vb-st-tree.drop-root' ); if ( t ) { t.classList.remove( 'drop-root' ); }
 		} );
-		tree.addEventListener( 'dragover', function ( e ) {
-			var tn = e.target.closest( '.vb-tn' ); if ( ! tn || ! dragId ) { return; }
-			e.preventDefault();
-			clearDropMarks();
-			var r = tn.getBoundingClientRect(), y = e.clientY - r.top, h = r.height;
-			var pos = y < h * 0.28 ? 'before' : ( y > h * 0.72 ? 'after' : 'inside' );
-			tn.classList.add( 'drop-' + pos );
+		document.addEventListener( 'dragover', function ( e ) {
+			if ( ! dragId ) { return; }
+			var row = e.target.closest( '[data-stnode]' );
+			if ( row ) {
+				e.preventDefault();
+				clearDropMarks();
+				row.classList.add( 'drop-' + dropPosFor( row, e.clientY ) );
+				return;
+			}
+			// Empty space under the last row = move to the end of the page.
+			var tree = e.target.closest( '.vb-st-tree' );
+			if ( tree ) { e.preventDefault(); clearDropMarks(); tree.classList.add( 'drop-root' ); }
 		} );
-		tree.addEventListener( 'drop', function ( e ) {
-			var tn = e.target.closest( '.vb-tn' ); if ( ! tn || ! dragId ) { return; }
-			e.preventDefault();
-			var r = tn.getBoundingClientRect(), y = e.clientY - r.top, h = r.height;
-			var pos = y < h * 0.28 ? 'before' : ( y > h * 0.72 ? 'after' : 'inside' );
-			var target = tn.getAttribute( 'data-node' );
-			clearDropMarks();
-			moveNode( dragId, target, pos );
-			dragId = null;
+		document.addEventListener( 'drop', function ( e ) {
+			if ( ! dragId ) { return; }
+			var row = e.target.closest( '[data-stnode]' );
+			if ( row ) {
+				e.preventDefault();
+				var pos = dropPosFor( row, e.clientY );
+				var target = row.getAttribute( 'data-stnode' );
+				clearDropMarks();
+				moveNode( dragId, target, pos );
+				dragId = null;
+				return;
+			}
+			if ( e.target.closest( '.vb-st-tree' ) ) {
+				e.preventDefault();
+				clearDropMarks();
+				moveToRootEnd( dragId );
+				dragId = null;
+			}
 		} );
 	}
+	/* "inside" only makes sense for something that can actually hold children. */
+	function dropPosFor( row, clientY ) {
+		var r = row.getBoundingClientRect(), y = clientY - r.top, h = r.height;
+		var node = findNode( store.state.tree, row.getAttribute( 'data-stnode' ) );
+		if ( ! isContainer( node ) ) { return y < h * 0.5 ? 'before' : 'after'; }
+		return y < h * 0.28 ? 'before' : ( y > h * 0.72 ? 'after' : 'inside' );
+	}
+	/* Pull an element out of whatever contains it and drop it at page level. */
+	function moveToRootEnd( id ) {
+		store.commit( function ( s ) {
+			var node = findNode( s.tree, id ); if ( ! node ) { return; }
+			var p = findParent( s.tree, id );
+			if ( p ) { p.children.splice( p.children.indexOf( node ), 1 ); }
+			else { s.tree.splice( s.tree.indexOf( node ), 1 ); }
+			s.tree.push( node );
+			s.selection = id; resetActiveClass( s );
+		}, T( 'Move element' ) );
+	}
 	function clearDropMarks() {
-		var marks = document.querySelectorAll( '.drop-before,.drop-after,.drop-inside' );
-		for ( var i = 0; i < marks.length; i++ ) { marks[ i ].classList.remove( 'drop-before', 'drop-after', 'drop-inside' ); }
+		var marks = document.querySelectorAll( '.drop-before,.drop-after,.drop-inside,.drop-root' );
+		for ( var i = 0; i < marks.length; i++ ) { marks[ i ].classList.remove( 'drop-before', 'drop-after', 'drop-inside', 'drop-root' ); }
 	}
 	function resizeCanvas( bp ) { var fr = document.getElementById( 'vb-canvas' ); fr.style.maxWidth = bp === 'mobile' ? '390px' : bp === 'tablet' ? '768px' : ''; }
 
@@ -1683,6 +1925,8 @@
 			'.vb-pagepick{display:flex;flex-direction:column;justify-content:center;padding:0 4px}',
 			'.vb-pagepick small{font-size:9px;color:#8b8d96;line-height:1;text-transform:uppercase;letter-spacing:.5px;padding-left:11px}',
 			'.vb-pagepick b{display:flex;align-items:center;gap:2px}',
+			'.vb-kind{background:#313339;border:1px solid rgba(255,255,255,.07);border-radius:8px;color:#aeb0b8;font-size:11px;font-weight:600;padding:5px 8px;cursor:pointer;-webkit-appearance:none;appearance:none;font-family:inherit;outline:none}',
+			'.vb-kind:hover{background:#3c3e46;color:#f4f4f6}.vb-kind:focus{border-color:#2ab7f1}',
 			'.vb-title{background:transparent;border:1px solid transparent;border-radius:8px;color:#f4f4f6;font-size:14px;font-weight:700;padding:5px 11px;width:180px;outline:none;transition:.1s;font-family:inherit}',
 			'.vb-title:hover{background:#313339}.vb-title:focus{background:#313339;border-color:#2ab7f1}',
 			'.vb-title::placeholder{color:#8b8d96;font-weight:500}',
@@ -1757,7 +2001,7 @@
 			// Pinned panels reserve their width via padding on the grid; collapsing
 			// the left stack folds its two columns to zero. --vb-lw/--vb-rw are set
 			// by applyDock() and are 0 whenever nothing is pinned+open.
-			'.vb-body{flex:1;display:grid;grid-template-columns:320px minmax(0,1fr);min-height:0;width:100%;box-sizing:border-box;padding-left:var(--vb-lw,0);padding-right:var(--vb-rw,0);transition:padding .16s ease,grid-template-columns .16s ease}',
+			'.vb-body{flex:1;display:grid;grid-template-columns:372px minmax(0,1fr);min-height:0;width:100%;box-sizing:border-box;padding-left:var(--vb-lw,0);padding-right:var(--vb-rw,0);transition:padding .16s ease,grid-template-columns .16s ease}',
 			'.vb-app.vb-lcol .vb-body{grid-template-columns:0 minmax(0,1fr)}',
 			// Nothing selected means the inspector has nothing to say, so it gives its
 			// column back to the canvas instead of sitting there empty.
@@ -1819,6 +2063,11 @@
 			'.vb-st-tree{flex:1;overflow:auto;padding:6px}',
 			'.vb-st-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;cursor:pointer;color:#dcdce2}',
 			'.vb-st-row:hover{background:#3c3e46}.vb-st-row.sel{background:rgba(42,183,241,.14);color:#f4f4f6}',
+			'.vb-st-row.dragging{opacity:.4}',
+			'.vb-st-row.drop-before{box-shadow:inset 0 2px 0 #2ab7f1}',
+			'.vb-st-row.drop-after{box-shadow:inset 0 -2px 0 #2ab7f1}',
+			'.vb-st-row.drop-inside{background:rgba(42,183,241,.16);box-shadow:inset 0 0 0 1px rgba(42,183,241,.55)}',
+			'.vb-st-tree.drop-root{box-shadow:inset 0 0 0 2px rgba(42,183,241,.4);border-radius:8px}',
 			'.vb-st-row.hid{opacity:.45}.vb-st-row.hid .vb-st-l{text-decoration:line-through}',
 			'.vb-st-caret{display:grid;place-items:center;color:#8b8d96;cursor:pointer;transition:transform .12s;width:14px}.vb-st-caret.closed{transform:rotate(-90deg)}',
 			'.vb-st-spacer{width:14px;flex:0 0 auto}',
@@ -1869,6 +2118,33 @@
 			'.vb-active-class.base .vb-ac-name{color:#2ab7f1}.vb-active-class.combo .vb-ac-name{color:#a06bff}',
 			'.vb-ac-kind{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:6px}',
 			'.vb-active-class.base .vb-ac-kind{background:rgba(42,183,241,.14);color:#2ab7f1}.vb-active-class.combo .vb-ac-kind{background:rgba(160,107,255,.15);color:#a06bff}',
+			// ---- Concept C: classes card + separate state card ----
+			'.vb-cb-say{margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#8b8d96;line-height:1.5}',
+			'.vb-cb-say b{color:#dcdce2;font-family:ui-monospace,Menlo,monospace;font-weight:600}',
+			'.vb-statebar{margin:0 12px 10px;padding:11px 13px;background:linear-gradient(180deg,#2a2c32,#1a1b20);border:1px solid rgba(255,255,255,.07);border-radius:13px}',
+			'.vb-chip-tag{font:700 8.5px/1 -apple-system,sans-serif;letter-spacing:.4px;padding:2px 5px;border-radius:4px;background:rgba(255,255,255,.08);color:#8b8d96}',
+			'.vb-chip.active .vb-chip-tag{background:rgba(42,183,241,.22);color:#7fd3f7}',
+			// ---- paired box controls ----
+			'.vb-bx-pair{display:grid;grid-template-columns:1fr 1fr;gap:13px}',
+			'.vb-bx-fs{min-width:0}',
+			'.vb-bx-h{display:flex;align-items:center;justify-content:space-between;gap:5px;margin-bottom:7px}',
+			'.vb-bx-h b{font-size:11.5px;font-weight:600;color:#dcdce2}',
+			'.vb-bx-seg{display:flex;padding:2px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:7px}',
+			'.vb-bx-seg button{padding:3px 6px;border:none;background:none;border-radius:5px;color:#8b8d96;font:600 9.5px/1 inherit;cursor:pointer;font-family:inherit}',
+			'.vb-bx-seg button:hover{color:#dcdce2}.vb-bx-seg button.on{background:#3c3e46;color:#f4f4f6}',
+			'.vb-bx{display:flex;flex-direction:column;gap:5px}',
+			'.vb-bx-r{display:flex;gap:5px;min-width:0}',
+			'.vb-bx-i{position:relative;display:flex;flex:1;min-width:0;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;overflow:hidden}',
+			'.vb-bx-i:focus-within{border-color:#2ab7f1}',
+			'.vb-bx-i input{flex:1;min-width:0;background:none;border:none;outline:none;color:#f4f4f6;font-size:12px;padding:8px 6px 8px 15px;font-family:inherit}',
+			'.vb-bx-i input::placeholder{color:#5f626b;font-size:11px}',
+			// the source dot sits inside the field so each side still shows where its value comes from
+			'.vb-bx-i .vb-src{position:absolute;left:6px;top:50%;transform:translateY(-50%);z-index:1}',
+			'.vb-bx-i .vb-unit{min-width:30px;width:30px;border:none;border-left:1px solid rgba(255,255,255,.07);border-radius:0;padding:0 2px;font-size:9.5px}',
+			'.vb-bx-all input{padding-left:15px}',
+			'.vb-bx-tri{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}',
+			'.vb-bx-lab{display:block;font-size:10.5px;color:#8b8d96;margin-bottom:6px}',
+			'.vb-bx-gap{height:12px}',
 			'.vb-chips{display:flex;flex-wrap:wrap;gap:5px}',
 			'.vb-states{display:flex;gap:3px;margin-top:10px;padding:3px;background:#1a1b20;border-radius:9px;flex-wrap:wrap}',
 			'.vb-state-add{padding:5px 8px!important;color:#2ab7f1!important}',
@@ -1903,7 +2179,8 @@
 			'select.vb-inp option{background:#232429;color:#f4f4f6}',
 			'.vb-inp[readonly]{opacity:.55;cursor:default;font-family:ui-monospace,Menlo,monospace;font-size:11px}',
 			'.vb-inp:focus{border-color:#2ab7f1}.vb-inp.num{max-width:70px;font-family:ui-monospace,Menlo,monospace;text-align:center}',
-			'.vb-unit{background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:0 8px;display:grid;place-items:center;color:#8b8d96;font-size:10px}',
+			'.vb-unit{background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:0 6px;color:#aeb0b8;font-size:10.5px;cursor:pointer;-webkit-appearance:none;appearance:none;text-align:center;min-width:44px;font-family:inherit;outline:none}',
+			'.vb-unit:hover{background:#313339;color:#f4f4f6}.vb-unit:focus{border-color:#2ab7f1;color:#f4f4f6}',
 			'.vb-swatch{width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.11);cursor:pointer;padding:0;background:none}',
 			'.vb-ctx{position:fixed;z-index:9999;min-width:212px;background:#232429;border:1px solid rgba(255,255,255,.1);border-radius:10px;box-shadow:0 16px 44px rgba(0,0,0,.55);padding:5px}',
 			'.vb-ctx-i{display:flex;align-items:center;gap:9px;width:100%;padding:7px 9px;border:none;background:none;color:#dcdce2;font-size:12.5px;cursor:pointer;border-radius:6px;text-align:left;font-family:inherit;box-sizing:border-box}',

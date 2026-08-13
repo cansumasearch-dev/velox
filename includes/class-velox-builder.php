@@ -541,6 +541,11 @@ class Velox_Builder {
 				$formats[]         = '%d';
 			}
 			$wpdb->update( $t, $fields, array( 'id' => $id ), $formats, array( '%d' ) );
+			// Switching an existing document to "template" should behave the same
+			// as creating one: if there's no site default yet, this becomes it.
+			if ( 'template' === $kind && ! self::default_template() ) {
+				update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
+			}
 		} else {
 			$wpdb->insert(
 				$t,
@@ -762,6 +767,281 @@ class Velox_Builder {
 		}
 		ksort( $index );
 		return $index;
+	}
+
+
+	/* ------------------------------------------------ overview + classes API */
+
+	/**
+	 * Every page/post on the site, Velox-built or not, in one list so the
+	 * Overview can show the whole inventory instead of only Velox documents.
+	 *
+	 * @return array<int,array<string,mixed>>
+	 */
+	public static function page_inventory() {
+		global $wpdb;
+		$t    = self::table();
+		$docs = $wpdb->get_results( "SELECT id, title, kind, status, post_id, updated FROM {$t} ORDER BY updated DESC", ARRAY_A );
+		$out  = array();
+		$bound = array();
+
+		foreach ( (array) $docs as $d ) {
+			$pid = (int) $d['post_id'];
+			if ( $pid ) {
+				$bound[ $pid ] = true;
+			}
+			$out[] = array(
+				'type'    => $d['kind'],                 // page | template | reusable
+				'source'  => 'velox',
+				'doc_id'  => (int) $d['id'],
+				'post_id' => $pid,
+				'title'   => $d['title'] ? $d['title'] : __( 'Untitled', 'velox' ),
+				'status'  => $d['status'],
+				'updated' => $d['updated'],
+				'edit'    => self::edit_url( (int) $d['id'], $d['kind'] ),
+				'view'    => $pid ? get_permalink( $pid ) : '',
+				'wp_edit' => $pid ? get_edit_post_link( $pid, 'raw' ) : '',
+			);
+		}
+
+		// Everything WordPress knows about that Velox has never touched.
+		$posts = get_posts( array(
+			'post_type'      => array( 'page', 'post' ),
+			'post_status'    => array( 'publish', 'draft', 'pending', 'private', 'future' ),
+			'numberposts'    => 300,
+			'orderby'        => 'modified',
+			'order'          => 'DESC',
+			'suppress_filters' => false,
+		) );
+		foreach ( (array) $posts as $p ) {
+			if ( isset( $bound[ $p->ID ] ) ) {
+				continue;
+			}
+			$out[] = array(
+				'type'    => 'legacy',
+				'source'  => 'wp',
+				'doc_id'  => 0,
+				'post_id' => $p->ID,
+				'title'   => $p->post_title ? $p->post_title : __( '(no title)', 'velox' ),
+				'status'  => $p->post_status,
+				'updated' => $p->post_modified,
+				'edit'    => self::edit_url_for_post( $p->ID ),
+				'view'    => get_permalink( $p->ID ),
+				'wp_edit' => get_edit_post_link( $p->ID, 'raw' ),
+			);
+		}
+		return $out;
+	}
+
+	/** Counts for the Overview stat row (these used to be hardcoded zeros). */
+	public static function stats() {
+		global $wpdb;
+		$t = self::table();
+		return array(
+			'pages'     => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE kind = 'page'" ),
+			'templates' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE kind = 'template'" ),
+			'reusables' => (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$t} WHERE kind = 'reusable'" ),
+			'classes'   => count( self::all_classes() ),
+		);
+	}
+
+	/** Rename a document (title only — never touches the bound WP post slug). */
+	public static function ajax_doc_rename() {
+		global $wpdb;
+		$id    = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		if ( ! $id || '' === $title ) {
+			wp_send_json_error( array( 'message' => __( 'A name is required.', 'velox' ) ), 400 );
+		}
+		$wpdb->update( self::table(), array( 'title' => $title, 'updated' => current_time( 'mysql' ) ), array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
+		$post_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . self::table() . ' WHERE id = %d', $id ) );
+		if ( $post_id && get_post( $post_id ) ) {
+			wp_update_post( array( 'ID' => $post_id, 'post_title' => $title ) );
+		}
+		wp_send_json_success( array( 'id' => $id, 'title' => $title ) );
+	}
+
+	/** Copy a document. The copy is always an unbound draft. */
+	public static function ajax_doc_duplicate() {
+		global $wpdb;
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$row = $id ? $wpdb->get_row( $wpdb->prepare( 'SELECT title, kind, data, css_size FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A ) : null;
+		if ( ! $row ) {
+			wp_send_json_error( array( 'message' => __( 'Document not found.', 'velox' ) ), 404 );
+		}
+		$now = current_time( 'mysql' );
+		$wpdb->insert( self::table(), array(
+			'kind'     => $row['kind'],
+			'title'    => sprintf( __( '%s (copy)', 'velox' ), $row['title'] ),
+			'data'     => $row['data'],
+			'css_size' => (int) $row['css_size'],
+			'status'   => 'draft',
+			'post_id'  => null,
+			'updated'  => $now,
+			'created'  => $now,
+		), array( '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' ) );
+		$new = (int) $wpdb->insert_id;
+		wp_send_json_success( array( 'id' => $new, 'url' => self::edit_url( $new, $row['kind'] ) ) );
+	}
+
+	/**
+	 * Class names Velox itself creates when you insert an element, as opposed to
+	 * ones you named. Mirrors the editor's CATALOG `cls` values.
+	 *
+	 * @return array<int,string>
+	 */
+	public static function starter_class_names() {
+		return array(
+			'.section', '.div', '.columns', '.grid', '.spacer', '.divider',
+			'.heading', '.text', '.list', '.quote', '.button', '.textlink',
+			'.image', '.video', '.icon', '.reviews', '.inner-content',
+			'.wp-title', '.wp-content', '.wp-featured', '.wp-menu',
+		);
+	}
+
+	/** The stored rules for one class, as editable CSS text (AJAX). */
+	public static function ajax_class_css() {
+		$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+		if ( '' === $name ) {
+			wp_send_json_error( array( 'message' => __( 'Missing class name.', 'velox' ) ), 400 );
+		}
+		wp_send_json_success( array( 'name' => $name, 'css' => self::class_css( $name ) ) );
+	}
+
+	/** The stored rules for one class, as editable CSS text. */
+	public static function class_css( $name ) {
+		global $wpdb;
+		$rows = $wpdb->get_results( 'SELECT data FROM ' . self::table(), ARRAY_A );
+		foreach ( (array) $rows as $row ) {
+			$model = json_decode( $row['data'], true );
+			if ( ! is_array( $model ) || empty( $model['classes'][ $name ] ) ) {
+				continue;
+			}
+			return self::rules_to_css( $name, $model['classes'][ $name ] );
+		}
+		return '';
+	}
+
+	/** Model rules → readable CSS text (one block per breakpoint/state key). */
+	private static function rules_to_css( $name, $rules ) {
+		$out = '';
+		foreach ( (array) $rules as $key => $props ) {
+			if ( ! is_array( $props ) || ! $props ) {
+				continue;
+			}
+			$parts = explode( ':', $key );
+			$bp    = $parts[0];
+			$state = isset( $parts[1] ) ? ':' . $parts[1] : '';
+			$sel   = $name . $state;
+			$body  = '';
+			foreach ( $props as $p => $v ) {
+				$css = Velox_Builder_Render::css_prop_name( $p );
+				if ( ! $css ) {
+					continue;
+				}
+				$body .= "\t" . $css . ': ' . Velox_Builder_Render::css_value( $p, $v ) . ";\n";
+			}
+			if ( '' === $body ) {
+				continue;
+			}
+			if ( 'base' !== $bp ) {
+				$mq   = 'tablet' === $bp ? '(max-width: 991px)' : '(max-width: 767px)';
+				$out .= '@media ' . $mq . " {\n" . $sel . " {\n" . $body . "}\n}\n\n";
+			} else {
+				$out .= $sel . " {\n" . $body . "}\n\n";
+			}
+		}
+		return rtrim( $out );
+	}
+
+	/** Parse edited CSS text back into the model shape, then store it everywhere. */
+	public static function ajax_class_css_save() {
+		global $wpdb;
+		$name = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+		$css  = isset( $_POST['css'] ) ? wp_unslash( $_POST['css'] ) : '';
+		if ( '' === $name ) {
+			wp_send_json_error( array( 'message' => __( 'Missing class name.', 'velox' ) ), 400 );
+		}
+		$rules = self::css_to_rules( $name, (string) $css );
+		$t     = self::table();
+		$rows  = $wpdb->get_results( "SELECT id, data FROM {$t}", ARRAY_A );
+		$hit   = 0;
+		foreach ( (array) $rows as $row ) {
+			$model = json_decode( $row['data'], true );
+			if ( ! is_array( $model ) || ! isset( $model['classes'][ $name ] ) ) {
+				continue;
+			}
+			$model['classes'][ $name ] = $rules;
+			$wpdb->update( $t, array( 'data' => wp_json_encode( $model ), 'updated' => current_time( 'mysql' ) ), array( 'id' => (int) $row['id'] ), array( '%s', '%s' ), array( '%d' ) );
+			$hit++;
+		}
+		wp_send_json_success( array( 'name' => $name, 'docs' => $hit ) );
+	}
+
+	/**
+	 * Turn edited CSS text back into model rules. Deliberately small: it reads
+	 * `selector { prop: value; }` blocks and optional @media wrappers, which is
+	 * exactly what rules_to_css() emits. Anything it can't map is dropped rather
+	 * than stored as junk that the renderer would ignore anyway.
+	 */
+	public static function css_to_rules( $name, $css ) {
+		$rules = array();
+		$css   = preg_replace( '#/\*.*?\*/#s', '', (string) $css );
+
+		// Pull @media blocks out first, remembering which breakpoint they map to.
+		$scoped = array();
+		// One level of nesting: @media { ... { ... } ... }. A lazy `.*?\n\}` would
+		// stop at the INNER rule's closing brace and hand back an unbalanced chunk.
+		if ( preg_match_all( '/@media([^{]+)\{((?:[^{}]|\{[^{}]*\})*)\}/s', $css, $m, PREG_SET_ORDER ) ) {
+			foreach ( $m as $mm ) {
+				$bp = ( false !== strpos( $mm[1], '991' ) ) ? 'tablet' : ( ( false !== strpos( $mm[1], '767' ) ) ? 'mobile' : '' );
+				if ( $bp ) {
+					$scoped[] = array( $bp, $mm[2] );
+				}
+				$css = str_replace( $mm[0], '', $css );
+			}
+		}
+		$scoped[] = array( 'base', $css );
+
+		foreach ( $scoped as $pair ) {
+			list( $bp, $chunk ) = $pair;
+			if ( ! preg_match_all( '/([^{}]+)\{([^{}]*)\}/s', $chunk, $blocks, PREG_SET_ORDER ) ) {
+				continue;
+			}
+			foreach ( $blocks as $b ) {
+				$sel = trim( $b[1] );
+				// Only rules for THIS class are kept; the editor owns nothing else.
+				if ( 0 !== strpos( $sel, $name ) ) {
+					continue;
+				}
+				$state = trim( substr( $sel, strlen( $name ) ) );
+				$key   = ( '' === $state ) ? $bp : $bp . ':' . ltrim( $state, ':' );
+				$props = array();
+				foreach ( explode( ';', $b[2] ) as $decl ) {
+					if ( false === strpos( $decl, ':' ) ) {
+						continue;
+					}
+					list( $p, $v ) = array_map( 'trim', explode( ':', $decl, 2 ) );
+					$model_key = Velox_Builder_Render::model_prop_name( $p );
+					if ( $model_key && '' !== $v ) {
+						$props[ $model_key ] = self::sanitize_css_value( $v );
+					}
+				}
+				if ( $props ) {
+					$rules[ $key ] = $props;
+				}
+			}
+		}
+		return $rules;
+	}
+
+	/** Strip anything that could break out of a declaration. */
+	private static function sanitize_css_value( $v ) {
+		$v = str_replace( array( '}', '{', '<', '>' ), '', (string) $v );
+		if ( preg_match( '/(expression\s*\(|javascript\s*:|@import|behaviou?r\s*:)/i', $v ) ) {
+			return '';
+		}
+		return trim( $v );
 	}
 
 	public static function ajax_class_rename() {
@@ -998,10 +1278,17 @@ class Velox_Builder {
 		$title   = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : __( 'Reusable', 'velox' );
 		$node    = isset( $_POST['node'] ) ? json_decode( wp_unslash( $_POST['node'] ), true ) : null;
 		$classes = isset( $_POST['classes'] ) ? json_decode( wp_unslash( $_POST['classes'] ), true ) : array();
+		// Text and image content lives outside the tree, keyed by node id. Without
+		// it a saved reusable comes back as correctly-styled but empty boxes.
+		$content = isset( $_POST['content'] ) ? json_decode( wp_unslash( $_POST['content'] ), true ) : array();
 		if ( ! is_array( $node ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid element.', 'velox' ) ), 400 );
 		}
-		$data = wp_json_encode( array( 'tree' => array( $node ), 'classes' => is_array( $classes ) ? $classes : array(), 'content' => array() ) );
+		$data = wp_json_encode( array(
+			'tree'    => array( $node ),
+			'classes' => is_array( $classes ) ? $classes : array(),
+			'content' => is_array( $content ) ? $content : array(),
+		) );
 		$wpdb->insert( self::table(), array(
 			'kind'    => 'reusable',
 			'title'   => $title,
@@ -1096,9 +1383,19 @@ class Velox_Builder {
 			wp_send_json_error( array( 'message' => __( 'Save the page before publishing.', 'velox' ) ), 400 );
 		}
 		$t   = self::table();
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, post_id FROM {$t} WHERE id = %d", $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, post_id, kind FROM {$t} WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			wp_send_json_error( array( 'message' => __( 'Document not found.', 'velox' ) ), 404 );
+		}
+
+		// Only pages live at a URL. Templates and reusables are building blocks —
+		// publishing one must never create a WP page for it.
+		if ( isset( $row['kind'] ) && 'page' !== $row['kind'] ) {
+			$wpdb->update( $t, array( 'status' => 'published', 'updated' => current_time( 'mysql' ) ), array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
+			if ( 'template' === $row['kind'] && ! self::default_template() ) {
+				update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
+			}
+			wp_send_json_success( array( 'id' => $id, 'url' => '', 'kind' => $row['kind'] ) );
 		}
 
 		$title   = $row['title'] ? $row['title'] : __( 'Velox Page', 'velox' );
