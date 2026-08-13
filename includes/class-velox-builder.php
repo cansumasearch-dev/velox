@@ -450,6 +450,7 @@ class Velox_Builder {
 			'reviewConnections' => self::review_connections(),
 			'reviewPresets' => self::review_presets(),
 			'globalCss' => self::global_css_files(),
+			'globalJs'  => self::global_js_files(),
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
 		);
 
@@ -702,6 +703,74 @@ class Velox_Builder {
 			}
 		}
 		update_option( self::OPT_CSS, $clean );
+		wp_send_json_success( array( 'files' => $clean ) );
+	}
+
+	const OPT_JS       = 'velox_builder_global_js';
+
+	/**
+	 * Global JS files: [ ['name'=>..,'js'=>..,'where'=>'head|footer','load'=>'normal|defer|async','on'=>1], ... ]
+	 * Output on every Velox-rendered page. Kept deliberately separate from CSS
+	 * because the loading controls only make sense for scripts.
+	 */
+	public static function global_js_files() {
+		$f = get_option( self::OPT_JS, null );
+		return is_array( $f ) ? $f : array();
+	}
+
+	/** Print the enabled scripts for one position ('head' or 'footer'). */
+	public static function print_global_js( $where ) {
+		foreach ( self::global_js_files() as $f ) {
+			if ( empty( $f['on'] ) || empty( $f['js'] ) ) {
+				continue;
+			}
+			if ( ( $f['where'] ?? 'footer' ) !== $where ) {
+				continue;
+			}
+			// defer/async are attributes of EXTERNAL scripts; on an inline block the
+			// browser ignores them, so an inline "defer" is emulated by deferring
+			// execution to DOMContentLoaded instead of silently doing nothing.
+			$load = $f['load'] ?? 'normal';
+			$code = $f['js'];
+			if ( 'defer' === $load ) {
+				$code = "document.addEventListener('DOMContentLoaded',function(){\n" . $code . "\n});";
+			} elseif ( 'async' === $load ) {
+				$code = "setTimeout(function(){\n" . $code . "\n},0);";
+			}
+			echo "\n<script id=\"velox-global-js-" . esc_attr( sanitize_title( $f['name'] ?? 'js' ) ) . "\">\n" . $code . "\n</script>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
+	}
+
+	public static function ajax_js_save() {
+		if ( ! current_user_can( 'unfiltered_html' ) && ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not allowed to add scripts.', 'velox' ) ), 403 );
+		}
+		$raw   = isset( $_POST['files'] ) ? wp_unslash( $_POST['files'] ) : '';
+		$files = json_decode( $raw, true );
+		if ( ! is_array( $files ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
+		}
+		$allowed_where = array( 'head', 'footer' );
+		$allowed_load  = array( 'normal', 'defer', 'async' );
+		$clean = array();
+		foreach ( $files as $f ) {
+			$name = sanitize_text_field( $f['name'] ?? '' );
+			$js   = isset( $f['js'] ) ? (string) $f['js'] : '';
+			// Never let the block terminate its own <script> tag.
+			$js    = str_ireplace( '</script', '<\/script', $js );
+			$where = in_array( $f['where'] ?? '', $allowed_where, true ) ? $f['where'] : 'footer';
+			$load  = in_array( $f['load'] ?? '', $allowed_load, true ) ? $f['load'] : 'normal';
+			if ( '' !== $name || '' !== trim( $js ) ) {
+				$clean[] = array(
+					'name'  => $name ? $name : 'global.js',
+					'js'    => $js,
+					'where' => $where,
+					'load'  => $load,
+					'on'    => empty( $f['on'] ) ? 0 : 1,
+				);
+			}
+		}
+		update_option( self::OPT_JS, $clean );
 		wp_send_json_success( array( 'files' => $clean ) );
 	}
 

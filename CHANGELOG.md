@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.74.0 — Global JavaScript
+- **New Global JavaScript manager**, alongside the existing Global CSS files. The code button in the builder now has CSS and JavaScript tabs.
+- Each script can be named, switched on or off without deleting it, and set to load **in the head or the footer**, either immediately, after the page loads, or without blocking.
+- Scripts run on every Velox-rendered page. They deliberately do not run inside the editor — a global script that rewrites the page would fight the builder — so test them on the published page.
+- Only users who are allowed to post unfiltered HTML can save scripts.
+
+## 3.73.0 — Three long-standing annoyances
+- **Fixed: style sections closed themselves while you were typing.** The style panel rebuilds on every keystroke, and each rebuild reset which sections were open — so a section could collapse under your cursor mid-edit. Your open and closed sections are now remembered.
+- **Fixed: two navbars when a template and a header/footer template were both set.** The older header/footer roles and the newer template system were both wrapping the page. A template now takes precedence; header/footer roles still work on their own when no template applies.
+- **Fixed: the Insert Data panel opened in the wrong place**, offset to a position left over from the old sidebar that was removed in 3.67.0.
+
 ## 3.72.1 — View page opens the homepage for templates
 - A template has no URL of its own, so **"View page" now opens the site homepage** while you are editing one, instead of doing nothing. The same applies to the View and Open frontend entries in the exit menu.
 

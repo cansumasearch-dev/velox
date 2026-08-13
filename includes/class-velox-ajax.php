@@ -99,6 +99,10 @@ class Velox_Ajax {
 				Velox_Builder::ajax_switcher_list();
 				break;
 
+			case 'builder_js_save':
+				Velox_Builder::ajax_js_save();
+				break;
+
 			case 'builder_css_save':
 				Velox_Builder::ajax_css_save();
 				break;

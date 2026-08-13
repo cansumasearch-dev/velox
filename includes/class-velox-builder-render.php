@@ -151,10 +151,6 @@ class Velox_Builder_Render {
 
 	/** Print the full standalone HTML document. */
 	private static function output_page( $doc ) {
-		$roles  = class_exists( 'Velox_Builder' ) ? Velox_Builder::roles() : array( 'header' => 0, 'footer' => 0 );
-		$header = $roles['header'] ? Velox_Builder::doc_model( $roles['header'] ) : null;
-		$footer = $roles['footer'] ? Velox_Builder::doc_model( $roles['footer'] ) : null;
-
 		// A template wraps the page: we render the TEMPLATE's tree, and wherever it
 		// contains an Inner Content element we drop this page's own tree in. If the
 		// template has no Inner Content the page would vanish, so we fall back to
@@ -165,6 +161,17 @@ class Velox_Builder_Render {
 			if ( $tpl_id ) {
 				$template = Velox_Builder::doc_model( $tpl_id );
 			}
+		}
+
+		// The older header/footer "roles" and the newer template system both wrap
+		// the page. Running both gives you two navbars, so a template wins and the
+		// roles stand down for this request.
+		$header = null;
+		$footer = null;
+		if ( ! $template && class_exists( 'Velox_Builder' ) ) {
+			$roles  = Velox_Builder::roles();
+			$header = $roles['header'] ? Velox_Builder::doc_model( $roles['header'] ) : null;
+			$footer = $roles['footer'] ? Velox_Builder::doc_model( $roles['footer'] ) : null;
 		}
 
 		// Build the effective CSS from the page + any reusables it references +
@@ -203,6 +210,7 @@ class Velox_Builder_Render {
 </head>
 <body <?php body_class( 'velox-built' ); ?>>
 	<?php echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped — built from sanitized model ?>
+	<?php if ( method_exists( 'Velox_Builder', 'print_global_js' ) ) { Velox_Builder::print_global_js( 'footer' ); } ?>
 	<?php wp_footer(); ?>
 </body>
 </html>
@@ -246,6 +254,10 @@ class Velox_Builder_Render {
 		$gcss = Velox_Builder::global_css();
 		if ( '' !== trim( $gcss ) ) {
 			echo '<style id="velox-builder-global-css">' . $gcss . '</style>' . "\n"; // phpcs:ignore
+		}
+		// Global JS set to load in the head.
+		if ( method_exists( 'Velox_Builder', 'print_global_js' ) ) {
+			Velox_Builder::print_global_js( 'head' );
 		}
 	}
 

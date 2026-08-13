@@ -1091,7 +1091,7 @@
 			} );
 		}, T( 'Style' ) + ': ' + key );
 	}
-	var lastInspNode = null;
+	var lastInspNode = null, blockOpen = {};
 	/* renderInspector rebuilds the panel with innerHTML on every commit, which
 	 * destroys the field you are typing in: focus falls back to <body>, so the
 	 * next Backspace hits the "delete element" shortcut instead of the input.
@@ -1173,7 +1173,11 @@
 		} else {
 			var groups = ordered.filter( function ( g ) { return tab === 'all' ? true : essSet[ g.group ]; } );
 			groups.forEach( function ( g, gi ) {
-				var closed = gi > 1 ? ' closed' : '';
+				// The panel rebuilds on every keystroke, so a group's open/closed state
+				// has to be remembered — otherwise typing in a field snaps its own
+				// section shut underneath you.
+				var open = Object.prototype.hasOwnProperty.call( blockOpen, g.group ) ? blockOpen[ g.group ] : ( gi <= 1 );
+				var closed = open ? '' : ' closed';
 				body += '<div class="vb-block' + closed + '"><div class="vb-block-h" data-block><span class="vb-block-ic">' + svg( g.icon, 15 ) + '</span><b>' + g.group + '</b><span class="vb-block-cv">' + svg( 'chevron', 12 ) + '</span></div><div class="vb-block-b">';
 				// Spacing and Size read as paired boxes rather than a stack of
 				// single fields — padding beside margin, width/min/max on a row.
@@ -1381,9 +1385,16 @@
 		var box = document.getElementById( 'vb-css' ); if ( ! box ) { return; }
 		if ( ! cssShown ) { box.style.display = 'none'; injectGlobalCss(); applyDock(); return; }
 		box.style.display = 'flex';
+		var tabs = '<div class="vb-code-tabs">' +
+			'<button class="vb-code-tab' + ( 'css' === codeTab ? ' on' : '' ) + '" data-codetab="css">' + T( 'CSS' ) + '</button>' +
+			'<button class="vb-code-tab' + ( 'js' === codeTab ? ' on' : '' ) + '" data-codetab="js">' + T( 'JavaScript' ) + '</button>' +
+		'</div>';
+		var head = '<div class="vb-css-top"><b>' + ( 'js' === codeTab ? T( 'Global JavaScript' ) : T( 'Global CSS' ) ) + '</b><span class="vb-p-acts">' + pinBtnHTML() + '<button class="vb-css-x" id="vb-css-close">' + svg( 'x', 14 ) + '</button></span></div>' + tabs;
+
+		if ( 'js' === codeTab ) { box.innerHTML = head + jsPanelHTML(); applyDock(); return; }
+
 		var f = cssFiles[ cssActive ] || cssFiles[ 0 ];
-		box.innerHTML =
-			'<div class="vb-css-top"><b>' + T( 'Global CSS' ) + '</b><span class="vb-p-acts">' + pinBtnHTML() + '<button class="vb-css-x" id="vb-css-close">' + svg( 'x', 14 ) + '</button></span></div>' +
+		box.innerHTML = head +
 			'<div class="vb-css-files">' +
 				cssFiles.map( function ( fl, i ) { return '<button class="vb-css-file' + ( i === cssActive ? ' on' : '' ) + '" data-cssfile="' + i + '">' + svg( 'code', 12 ) + '<span>' + escapeHtml( fl.name ) + '</span></button>'; } ).join( '' ) +
 				'<button class="vb-css-new" id="vb-css-new">' + svg( 'plus', 13 ) + ' ' + T( 'New file' ) + '</button>' +
@@ -1394,6 +1405,55 @@
 			'<div class="vb-css-foot"><span id="vb-css-status">' + T( 'Applies to every Velox page' ) + '</span></div>';
 		applyDock();
 	}
+
+	/* ---------- Global JS files ----------
+	 * Same shape as the CSS editor, plus the two things that only matter for
+	 * scripts: WHERE it loads (head or footer) and HOW (normal, defer, async).
+	 * Scripts are never executed inside the editor canvas — a global script that
+	 * rewrites the DOM would fight the builder — so this is write-and-publish. */
+	var codeTab = 'css';
+	var jsFiles = ( CFG.globalJs && CFG.globalJs.length ) ? CFG.globalJs.slice() : [];
+	var jsActive = 0, jsSaveTimer;
+	function jsPanelHTML() {
+		if ( ! jsFiles.length ) {
+			return '<div class="vb-css-files"><button class="vb-css-new" id="vb-js-new">' + svg( 'plus', 13 ) + ' ' + T( 'New script' ) + '</button></div>' +
+				'<div class="vb-hist-empty">' + T( 'No global scripts yet. Anything you add here runs on every Velox page.' ) + '</div>';
+		}
+		if ( jsActive >= jsFiles.length ) { jsActive = 0; }
+		var f = jsFiles[ jsActive ];
+		return '<div class="vb-css-files">' +
+				jsFiles.map( function ( fl, i ) { return '<button class="vb-css-file' + ( i === jsActive ? ' on' : '' ) + ( fl.on ? '' : ' off' ) + '" data-jsfile="' + i + '">' + svg( 'bolt', 12 ) + '<span>' + escapeHtml( fl.name ) + '</span></button>'; } ).join( '' ) +
+				'<button class="vb-css-new" id="vb-js-new">' + svg( 'plus', 13 ) + ' ' + T( 'New script' ) + '</button>' +
+			'</div>' +
+			'<div class="vb-css-name"><input id="vb-js-name" value="' + escapeHtml( f.name ) + '" spellcheck="false">' +
+				'<button class="vb-css-del" id="vb-js-del" title="' + T( 'Delete script' ) + '">' + svg( 'trash', 13 ) + '</button></div>' +
+			'<div class="vb-js-opts">' +
+				'<label class="vb-js-opt"><span>' + T( 'Load in' ) + '</span><select id="vb-js-where">' +
+					'<option value="footer"' + ( 'head' !== f.where ? ' selected' : '' ) + '>' + T( 'Footer' ) + '</option>' +
+					'<option value="head"' + ( 'head' === f.where ? ' selected' : '' ) + '>' + T( 'Head' ) + '</option>' +
+				'</select></label>' +
+				'<label class="vb-js-opt"><span>' + T( 'Timing' ) + '</span><select id="vb-js-load">' +
+					'<option value="normal"' + ( 'normal' === ( f.load || 'normal' ) ? ' selected' : '' ) + '>' + T( 'Immediately' ) + '</option>' +
+					'<option value="defer"' + ( 'defer' === f.load ? ' selected' : '' ) + '>' + T( 'After page loads' ) + '</option>' +
+					'<option value="async"' + ( 'async' === f.load ? ' selected' : '' ) + '>' + T( 'Without blocking' ) + '</option>' +
+				'</select></label>' +
+				'<label class="vb-js-opt vb-js-on"><input type="checkbox" id="vb-js-on"' + ( f.on ? ' checked' : '' ) + '><span>' + T( 'Enabled' ) + '</span></label>' +
+			'</div>' +
+			'<textarea id="vb-js-code" class="vb-css-code" spellcheck="false" placeholder="// ' + T( 'Runs on every Velox page' ) + '">' + escapeHtml( f.js || '' ) + '</textarea>' +
+			'<div class="vb-css-foot"><span id="vb-js-status">' + T( 'Scripts do not run inside the editor — check the published page.' ) + '</span></div>';
+	}
+	function saveGlobalJs() {
+		if ( ! CFG.ajaxurl ) { return; }
+		var st = document.getElementById( 'vb-js-status' ); if ( st ) { st.textContent = T( 'Saving…' ); }
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_js_save' ); body.set( 'nonce', CFG.nonce || '' );
+		body.set( 'files', JSON.stringify( jsFiles ) );
+		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) { var s2 = document.getElementById( 'vb-js-status' ); if ( s2 ) { s2.textContent = res && res.success ? T( 'Saved — runs on every Velox page.' ) : ( ( res && res.data && res.data.message ) || T( 'Save failed' ) ); } } )
+			.catch( function () { var s2 = document.getElementById( 'vb-js-status' ); if ( s2 ) { s2.textContent = T( 'Save failed' ); } } );
+	}
+	function scheduleJsSave() { clearTimeout( jsSaveTimer ); jsSaveTimer = setTimeout( saveGlobalJs, 700 ); }
 	/* Inject the concatenated global CSS live into the canvas iframe. */
 	function injectGlobalCss() {
 		var doc = document.getElementById( 'vb-canvas' ); doc = doc && doc.contentDocument; if ( ! doc ) { return; }
@@ -1481,6 +1541,17 @@
 			if ( e.target.closest( '#vb-tgl-left' ) ) { toggleLeftStack(); return; }
 			if ( e.target.closest( '#vb-tgl-right' ) ) { toggleRightStack(); return; }
 			if ( e.target.closest( '#vb-code' ) ) { cssShown = ! cssShown; if ( cssShown ) { closeAllPanels( 'css' ); } renderCSSPanel(); return; }
+			var ct = e.target.closest( '[data-codetab]' );
+			if ( ct ) { codeTab = ct.getAttribute( 'data-codetab' ); renderCSSPanel(); return; }
+			if ( e.target.closest( '#vb-js-new' ) ) {
+				jsFiles.push( { name:'script-' + ( jsFiles.length + 1 ) + '.js', js:'', where:'footer', load:'defer', on:1 } );
+				jsActive = jsFiles.length - 1; renderCSSPanel(); saveGlobalJs(); return;
+			}
+			if ( e.target.closest( '#vb-js-del' ) ) {
+				if ( confirm( T( 'Delete this script?' ) ) ) { jsFiles.splice( jsActive, 1 ); jsActive = 0; renderCSSPanel(); saveGlobalJs(); }
+				return;
+			}
+			var jf = e.target.closest( '[data-jsfile]' ); if ( jf ) { jsActive = +jf.getAttribute( 'data-jsfile' ); renderCSSPanel(); return; }
 			if ( e.target.closest( '#vb-css-close' ) ) { cssShown = false; renderCSSPanel(); return; }
 			if ( e.target.closest( '#vb-css-new' ) ) { cssFiles.push( { name:'file-' + ( cssFiles.length + 1 ) + '.css', css:'' } ); cssActive = cssFiles.length - 1; renderCSSPanel(); saveGlobalCss(); return; }
 			if ( e.target.closest( '#vb-css-del' ) ) { if ( cssFiles.length > 1 && confirm( T( 'Delete this CSS file?' ) ) ) { cssFiles.splice( cssActive, 1 ); cssActive = 0; renderCSSPanel(); scheduleCssSave(); } return; }
@@ -1528,7 +1599,13 @@
 			var settag = e.target.closest( '[data-settag]' ); if ( settag ) { setNodeTag( settag.getAttribute( 'data-settag' ) ); return; }
 			var settarget = e.target.closest( '[data-settarget]' ); if ( settarget ) { var tv = settarget.getAttribute( 'data-settarget' ); store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.target = tv; } } ); return; }
 			var chip = e.target.closest( '.vb-chip' ); if ( chip && ! chip.classList.contains( 'vb-chip-add' ) ) { store.commit( function ( s ) { s.activeClass = chip.getAttribute( 'data-cls' ); }, false ); return; }
-			var blk = e.target.closest( '[data-block]' ); if ( blk ) { blk.parentElement.classList.toggle( 'closed' ); return; }
+			var blk = e.target.closest( '[data-block]' ); if ( blk ) {
+				var wrap = blk.parentElement;
+				wrap.classList.toggle( 'closed' );
+				var nm = blk.querySelector( 'b' );
+				if ( nm ) { blockOpen[ nm.textContent ] = ! wrap.classList.contains( 'closed' ); }
+				return;
+			}
 			if ( e.target.closest( '#vb-addstate' ) ) {
 				var ps = prompt( T( 'Custom pseudo-class (e.g. active, visited, nth-child(2)):' ), '' );
 				if ( ps ) { ps = ps.replace( /^:/, '' ).trim(); if ( ps && customStates.indexOf( ps ) < 0 && [ 'hover', 'focus', 'active', 'normal' ].indexOf( ps ) < 0 ) { customStates.push( ps ); } store.commit( function ( s ) { s.state = ps; }, false ); }
@@ -1545,6 +1622,8 @@
 			if ( e.target.id === 'vb-ap-search' ) { renderAddBody( e.target.value ); return; }
 			if ( e.target.id === 'vb-ps-search' ) { switcherQuery = e.target.value.trim(); renderSwitcher(); return; }
 			if ( e.target.id === 'vb-css-code' ) { if ( cssFiles[ cssActive ] ) { cssFiles[ cssActive ].css = e.target.value; scheduleCssSave(); } return; }
+			if ( e.target.id === 'vb-js-code' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].js = e.target.value; scheduleJsSave(); } return; }
+			if ( e.target.id === 'vb-js-name' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].name = e.target.value; var jt = document.querySelector( '.vb-css-file.on span' ); if ( jt ) { jt.textContent = e.target.value; } scheduleJsSave(); } return; }
 			if ( e.target.id === 'vb-css-name' ) { if ( cssFiles[ cssActive ] ) { cssFiles[ cssActive ].name = e.target.value; var tab = document.querySelector( '.vb-css-file.on span' ); if ( tab ) { tab.textContent = e.target.value; } scheduleCssSave(); } return; }
 			if ( e.target.hasAttribute( 'data-sethref' ) ) { var hv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.href = hv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setconn' ) ) { var cv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.conn = cv; } } ); return; }
@@ -1586,6 +1665,9 @@
 				setBoxAll( bk, inp ? inp.value.trim() : '', e.target.value );
 				return;
 			}
+			if ( e.target.id === 'vb-js-where' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].where = e.target.value; saveGlobalJs(); } return; }
+			if ( e.target.id === 'vb-js-load' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].load = e.target.value; saveGlobalJs(); } return; }
+			if ( e.target.id === 'vb-js-on' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].on = e.target.checked ? 1 : 0; renderCSSPanel(); saveGlobalJs(); } return; }
 			if ( e.target.id === 'vb-viewas' ) { setViewAs( e.target.value ); return; }
 			if ( e.target.id === 'vb-kind' ) {
 				docKind = e.target.value;
@@ -2137,7 +2219,7 @@
 			// column back to the canvas instead of sitting there empty.
 			'.vb-app.vb-nosel .vb-body{grid-template-columns:0 minmax(0,1fr)}',
 			'.vb-app.vb-lcol .vb-inspector,.vb-app.vb-nosel .vb-inspector{overflow:hidden;border-right-color:transparent}',
-			'.vb-app.vb-lcol .vb-dyndata{left:0}',
+			'.vb-app.vb-lcol .vb-dyndata,.vb-app.vb-nosel .vb-dyndata{left:0}',
 			// Pinned panels sit flush against the canvas — the overlay shadow would
 			// read as "floating on top", which is exactly what pinning undoes.
 			'.vb-app.vb-pin .vb-csspanel,.vb-app.vb-pin .vb-histpanel,.vb-app.vb-pin .vb-structpanel{box-shadow:none;border-left-color:rgba(255,255,255,.07)}',
@@ -2183,6 +2265,16 @@
 			'.vb-css-name input{flex:1;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:8px 11px;color:#f4f4f6;font-family:ui-monospace,Menlo,monospace;font-size:12px;outline:none}.vb-css-name input:focus{border-color:#2ab7f1}',
 			'.vb-css-del{background:#313339;border:1px solid rgba(255,255,255,.07);border-radius:8px;color:#a2a4ad;cursor:pointer;width:34px;display:grid;place-items:center}.vb-css-del:hover{background:rgba(245,106,92,.15);color:#f56a5c}',
 			'.vb-css-code{flex:1;margin:0 12px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:12px;color:#e6f7ff;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.6;resize:none;outline:none}.vb-css-code:focus{border-color:#2ab7f1}',
+			'.vb-code-tabs{display:flex;gap:3px;margin:10px 12px 0;padding:3px;background:#1a1b20;border-radius:9px}',
+			'.vb-code-tab{flex:1;padding:7px;border:none;background:none;border-radius:7px;color:#8b8d96;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}',
+			'.vb-code-tab:hover{color:#dcdce2}.vb-code-tab.on{background:#3c3e46;color:#f4f4f6}',
+			'.vb-css-file.off{opacity:.45}.vb-css-file.off span{text-decoration:line-through}',
+			'.vb-js-opts{display:flex;gap:8px;align-items:flex-end;padding:0 12px 10px;flex-wrap:wrap}',
+			'.vb-js-opt{flex:1;min-width:110px;display:flex;flex-direction:column;gap:5px;font-size:10.5px;color:#8b8d96}',
+			'.vb-js-opt select{background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:7px 9px;color:#f4f4f6;font-size:12px;font-family:inherit;outline:none;cursor:pointer;-webkit-appearance:none;appearance:none}',
+			'.vb-js-opt select:focus{border-color:#2ab7f1}',
+			'.vb-js-on{flex-direction:row;align-items:center;gap:7px;min-width:0;flex:0 0 auto;padding-bottom:8px;cursor:pointer}',
+			'.vb-js-on input{accent-color:#2ab7f1;width:15px;height:15px;cursor:pointer}',
 			'.vb-css-foot{padding:10px 14px;font-size:11px;color:#8b8d96}',
 			'.vb-histpanel{position:absolute;top:54px;right:0;bottom:0;width:320px;background:#232429;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
 			'.vb-hist-top{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07)}.vb-hist-top b{font-size:13px}',
@@ -2223,7 +2315,7 @@
 			'.vb-tt-b{width:30px;height:30px;border-radius:7px;background:none;border:none;color:#dcdce2;cursor:pointer;display:grid;place-items:center}.vb-tt-b:hover{background:#313339;color:#f4f4f6}',
 			'.vb-tt-sep{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px}',
 			'.vb-tt-data{width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px;border-radius:8px;background:#2a2c32;border:1px solid rgba(255,255,255,.09);color:#dcdce2;font-size:12px;font-weight:600;cursor:pointer}.vb-tt-data:hover{background:#313339;color:#f4f4f6}.vb-tt-data svg{color:#2ab7f1}',
-			'.vb-dyndata{position:absolute;top:54px;left:220px;bottom:0;width:340px;background:#232429;border-right:1px solid rgba(255,255,255,.12);box-shadow:8px 0 40px rgba(0,0,0,.5);z-index:140;display:none;flex-direction:column}',
+			'.vb-dyndata{position:absolute;top:54px;left:372px;bottom:0;width:340px;background:#232429;border-right:1px solid rgba(255,255,255,.12);box-shadow:8px 0 40px rgba(0,0,0,.5);z-index:140;display:none;flex-direction:column}',
 			'.vb-dyndata.open{display:flex}',
 			'.vb-dd-top{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07)}.vb-dd-top b{font-size:13px}',
 			'.vb-dd-note{padding:10px 14px;font-size:11px;color:#a2a4ad;line-height:1.5;border-bottom:1px solid rgba(255,255,255,.07)}',
