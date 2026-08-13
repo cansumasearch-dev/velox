@@ -315,11 +315,17 @@ class Velox_Builder {
 		$css_url = VELOX_ASSETS . 'css/velox-builder.css?v=' . VELOX_VERSION;
 		$js_url  = VELOX_ASSETS . 'js/velox-builder.js?v=' . VELOX_VERSION;
 		$post_id  = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
+		// If we entered by doc id, find the WP post this doc is bound to (if any),
+		// so Exit destinations (frontend / backend / preview) still work.
+		if ( ! $post_id && $doc_id ) {
+			global $wpdb;
+			$post_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . self::table() . ' WHERE id = %d', $doc_id ) );
+		}
 		// When entering from a WP page/post, inherit its title and make Exit return
 		// to that post's editor (not the builder home).
 		$seed_title = '';
-		$back_url   = admin_url( 'admin.php?page=' . self::SLUG );
-		$front_url  = '';
+		$back_url   = admin_url( 'edit.php?post_type=page' ); // fallback: WP Pages list
+		$front_url  = home_url( '/' );                        // fallback: site home
 		$preview_url = '';
 		if ( $post_id ) {
 			$p = get_post( $post_id );
@@ -330,6 +336,7 @@ class Velox_Builder {
 				$preview_url = get_preview_post_link( $post_id );
 			}
 		}
+		if ( ! $preview_url ) { $preview_url = $front_url; }
 		$boot = array(
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'velox_nonce' ),
@@ -863,6 +870,28 @@ class Velox_Builder {
 		}
 		update_option( self::OPT_ROLES, $roles );
 		wp_send_json_success( array( 'roles' => $roles ) );
+	}
+
+	/** Save a node (with its classes) as a reusable document. */
+	public static function ajax_make_reusable() {
+		global $wpdb;
+		$title   = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : __( 'Reusable', 'velox' );
+		$node    = isset( $_POST['node'] ) ? json_decode( wp_unslash( $_POST['node'] ), true ) : null;
+		$classes = isset( $_POST['classes'] ) ? json_decode( wp_unslash( $_POST['classes'] ), true ) : array();
+		if ( ! is_array( $node ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid element.', 'velox' ) ), 400 );
+		}
+		$data = wp_json_encode( array( 'tree' => array( $node ), 'classes' => is_array( $classes ) ? $classes : array(), 'content' => array() ) );
+		$wpdb->insert( self::table(), array(
+			'kind'    => 'reusable',
+			'title'   => $title,
+			'status'  => 'published',
+			'data'    => $data,
+			'updated' => current_time( 'mysql' ),
+			'created' => current_time( 'mysql' ),
+		) );
+		$id = (int) $wpdb->insert_id;
+		wp_send_json_success( array( 'id' => $id, 'title' => $title ) );
 	}
 
 	/** Reviews connections + presets for the builder's Reviews element pickers. */

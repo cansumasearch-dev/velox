@@ -83,6 +83,10 @@ class Velox_Ajax {
 				Velox_Builder::ajax_css_save();
 				break;
 
+			case 'builder_make_reusable':
+				Velox_Builder::ajax_make_reusable();
+				break;
+
 			case 'seocol_flag':
 				Velox_Seo_Columns::ajax_toggle_flag();
 				break;

@@ -2072,4 +2072,6 @@ return array(
 	'Build with Velox' => 'Mit Velox erstellen',
 	'This page has a Velox Builder layout. Opening the builder loads it.' => 'Diese Seite hat ein Velox-Builder-Layout. Beim Öffnen des Builders wird es geladen.',
 	'Design this page visually with Velox Builder. Your current content stays until you publish a Velox layout.' => 'Gestalten Sie diese Seite visuell mit Velox Builder. Ihr aktueller Inhalt bleibt erhalten, bis Sie ein Velox-Layout veröffentlichen.',
+	'Reusable' => 'Wiederverwendbar',
+	'Invalid element.' => 'Ungültiges Element.',
 );

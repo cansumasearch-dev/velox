@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.64.0 — Velox Builder: exit fix, contrast, duplicate, shortcuts + right-click (wave E)
+- Fixed the Exit menu: Open frontend / Go to backend / View page now resolve to real URLs even when you opened the builder by document (they were dead when no post was bound).
+- Right-click any element (in the canvas, layer tree or structure) for a context menu: Copy, Paste, Duplicate, Make reusable, Remove.
+- Keyboard shortcuts: Ctrl/Cmd+S saves, Ctrl/Cmd+P publishes, Ctrl/Cmd+C copies the selected element, Ctrl/Cmd+V pastes it into the element you right-clicked/selected (inside it if it is a container).
+- "Make reusable" saves the selected element (with its classes) as a reusable block.
+- Raised the contrast of icons, labels and muted text so they are no longer hard to see against the dark panels.
+
 ## 3.63.0 — Velox Builder: rich text toolbar + Insert Dynamic Data (wave D, #1)
 - Text elements now get a formatting toolbar in the left panel: bold, italic, underline, strikethrough, align left/center/right and link. Formatting is kept when you save.
 - New "Insert Data" picker with the full dynamic-data list (Post, Featured Image, Author, Current User, Blog Info, Archive, Advanced). Inserting a field drops a token into the text that renders the real WordPress value on the front end (post title/content/excerpt/date, author, site info, custom fields, etc.).
