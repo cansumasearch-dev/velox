@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.77.0 — Templates can now wrap pages you never built in Velox
+- **New catch-all option.** Turn it on and your default template also wraps pages that have no Velox layout — their normal WordPress content is placed in the template's Inner Content slot. That is how you get one shared navbar and footer across an existing site without rebuilding every page.
+- **Off by default, deliberately.** Switching it on makes Velox render every page on the site, which is not something to do silently — WooCommerce checkout and cart pages included. The switch lives in the Velox Builder box on any page editor.
+- Refuses to apply when the template has no Inner Content element, because the page content would have nowhere to go and would vanish. It says so instead.
+- Any page can still opt out individually with "No template — this page only".
+- **Fixed: the page editor contradicted itself**, showing "Not live with Velox" and a template selection at the same time with no explanation of why the template was doing nothing.
+
+## 3.76.1 — Dropdowns on the dark screens
+- **Fixed: the document-type and font dropdowns rendered as white boxes.** WordPress styles every select in the admin with its own light theme, which overrode the dark styling on the Velox Builder screens and stretched the rows.
+- Rows on the Pages overview are now a consistent height.
+
 ## 3.76.0 — View as, and a Live column on the overview
 - **"View as" now lists every page and post on the site**, grouped into Velox pages, WordPress pages and Posts — not just Velox-built pages. A plain WordPress page previews with its own content.
 - **A preview bar now says what you are looking at**: "Previewing as [page]", a reminder that the content is not part of the template and is not saved, and a Stop preview button. The dropdown alone was too quiet a signal.

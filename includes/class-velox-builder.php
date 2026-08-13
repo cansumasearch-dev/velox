@@ -142,6 +142,52 @@ class Velox_Builder {
 			}
 			echo '</select>';
 			echo '<p style="color:#787c82;margin:8px 0 0">' . esc_html__( 'The template supplies the shared navbar, footer and anything else around the page. This page renders inside the template\'s Inner Content element.', 'velox' ) . '</p>';
+
+			// Saying "this page uses template X" while the page has no Velox layout
+			// is a contradiction unless catch-all is on — so say which it is.
+			$has_layout = (bool) self::doc_id_for_post( $post->ID );
+			if ( ! $has_layout ) {
+				$tpl_id = self::template_for_post( $post->ID );
+				$slot   = $tpl_id ? self::template_has_inner( $tpl_id ) : false;
+				if ( ! self::wrap_legacy() ) {
+					echo '<p style="margin:12px 0 0;padding:10px 12px;background:#f0f0f1;border-radius:4px">';
+					echo '<strong>' . esc_html__( 'This template is not being applied yet.', 'velox' ) . '</strong><br>';
+					echo esc_html__( 'Templates only wrap pages that Velox renders. This page has no Velox layout, so WordPress is still drawing it with your theme.', 'velox' ) . ' ';
+					echo '<label style="display:block;margin-top:8px"><input type="checkbox" id="velox-wrap-legacy"> ';
+					echo esc_html__( 'Also apply the default template to pages without a Velox layout (their content goes in the Inner Content slot)', 'velox' );
+					echo '</label>';
+					echo '<span id="velox-wrap-msg" style="color:#787c82"></span>';
+					echo '</p>';
+				} elseif ( ! $slot ) {
+					echo '<p style="margin:12px 0 0;padding:10px 12px;background:#fff8e5;border-left:3px solid #f0c36d;border-radius:4px">';
+					echo esc_html__( 'The template has no Inner Content element, so there is nowhere to put this page\'s content. Add one to the template and this page will render inside it.', 'velox' );
+					echo '</p>';
+				} else {
+					echo '<p style="margin:12px 0 0;padding:10px 12px;background:#edfaf1;border-left:3px solid #7ad39b;border-radius:4px">';
+					echo esc_html__( 'This page has no Velox layout of its own, but the template wraps it and its WordPress content is placed in the Inner Content slot.', 'velox' );
+					echo '</p>';
+				}
+				?>
+				<script>
+				( function () {
+					var cb = document.getElementById( 'velox-wrap-legacy' );
+					if ( ! cb ) { return; }
+					cb.addEventListener( 'change', function () {
+						var msg = document.getElementById( 'velox-wrap-msg' );
+						msg.textContent = '<?php echo esc_js( __( 'Saving…', 'velox' ) ); ?>';
+						var body = new URLSearchParams();
+						body.set( 'action', 'velox' ); body.set( 'do', 'builder_wrap_legacy_save' );
+						body.set( 'nonce', '<?php echo esc_js( wp_create_nonce( 'velox_nonce' ) ); ?>' );
+						body.set( 'on', cb.checked ? '1' : '' );
+						fetch( ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+							.then( function ( r ) { return r.json(); } )
+							.then( function () { location.reload(); } )
+							.catch( function () { msg.textContent = '<?php echo esc_js( __( 'Save failed', 'velox' ) ); ?>'; } );
+					} );
+				}() );
+				</script>
+				<?php
+			}
 		}
 		echo '</div>';
 	}
@@ -1513,6 +1559,50 @@ class Velox_Builder {
 	 * content). Kept separate from the switcher list because that one is about
 	 * navigation and this one is about preview sources.
 	 */
+	const OPT_WRAP_LEGACY = 'velox_builder_wrap_legacy';
+
+	/**
+	 * Should the default template also wrap pages that have NO Velox layout of
+	 * their own (the "catch-all" behaviour)? Off by default on purpose: turning
+	 * it on makes Velox take over rendering for every page on the site, which is
+	 * not something to do behind someone's back — especially with WooCommerce
+	 * checkout/cart pages about.
+	 */
+	public static function wrap_legacy() {
+		return (bool) get_option( self::OPT_WRAP_LEGACY, false );
+	}
+
+	/** Does this template actually have a slot to put the content in? */
+	public static function template_has_inner( $tpl_id ) {
+		$model = self::doc_model( (int) $tpl_id );
+		if ( ! $model || empty( $model['tree'] ) ) {
+			return false;
+		}
+		$found = false;
+		$walk  = function ( $nodes ) use ( &$walk, &$found ) {
+			foreach ( (array) $nodes as $n ) {
+				if ( isset( $n['el'] ) && 'InnerContent' === $n['el'] ) {
+					$found = true;
+					return;
+				}
+				if ( ! empty( $n['children'] ) ) {
+					$walk( $n['children'] );
+				}
+			}
+		};
+		$walk( $model['tree'] );
+		return $found;
+	}
+
+	public static function ajax_wrap_legacy_save() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Not allowed.', 'velox' ) ), 403 );
+		}
+		$on = ! empty( $_POST['on'] ) && 'false' !== $_POST['on'];
+		update_option( self::OPT_WRAP_LEGACY, $on ? 1 : 0 );
+		wp_send_json_success( array( 'on' => $on ? 1 : 0 ) );
+	}
+
 	public static function ajax_viewas_list() {
 		global $wpdb;
 		$out   = array();

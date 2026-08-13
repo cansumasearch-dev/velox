@@ -75,8 +75,16 @@ class Velox_Builder_Render {
 		}
 		$post_id = get_queried_object_id();
 		$doc     = self::doc_for_post( $post_id );
+
 		if ( ! $doc ) {
-			return $template;
+			// No Velox layout on this page. If catch-all is on and a template with
+			// an Inner Content slot applies, wrap the post's own content in it —
+			// otherwise leave the page to the theme, untouched.
+			$legacy = self::legacy_doc_for_post( $post_id );
+			if ( ! $legacy ) {
+				return $template;
+			}
+			$doc = $legacy;
 		}
 
 		// Serve our own standalone document and stop the theme entirely.
@@ -149,6 +157,39 @@ class Velox_Builder_Render {
 		return array( 'live' => true, 'reason' => __( 'Velox is serving this page — your theme is bypassed entirely.', 'velox' ) );
 	}
 
+
+	/**
+	 * A stand-in "document" for a page that has no Velox layout: an empty tree
+	 * plus the post's own content, so a template can frame it. Returns null
+	 * unless catch-all is enabled AND a template with a slot actually applies —
+	 * without a slot the content would have nowhere to go.
+	 */
+	private static function legacy_doc_for_post( $post_id ) {
+		if ( ! class_exists( 'Velox_Builder' ) || ! Velox_Builder::wrap_legacy() ) {
+			return null;
+		}
+		$choice = get_post_meta( $post_id, '_velox_template', true );
+		if ( '-1' === (string) $choice ) {
+			return null; // explicitly opted out
+		}
+		$tpl_id = Velox_Builder::template_for_post( $post_id );
+		if ( ! $tpl_id || ! Velox_Builder::template_has_inner( $tpl_id ) ) {
+			return null;
+		}
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return null;
+		}
+		return array(
+			'tree'      => array(),
+			'classes'   => array(),
+			'content'   => array(),
+			'__id'      => 0,
+			'__title'   => $post->post_title,
+			'__html'    => apply_filters( 'the_content', $post->post_content ),
+		);
+	}
+
 	/** Print the full standalone HTML document. */
 	private static function output_page( $doc ) {
 		// A template wraps the page: we render the TEMPLATE's tree, and wherever it
@@ -183,6 +224,7 @@ class Velox_Builder_Render {
 		$body .= $header ? '<header class="velox-template-header">' . self::render_tree( $header['tree'], $header ) . '</header>' : '';
 		if ( $template && ! empty( $template['tree'] ) ) {
 			self::$inner_doc = $doc;
+			self::$inner_html = isset( $doc['__html'] ) ? $doc['__html'] : '';
 			self::$inner_used = false;
 			self::$inner_depth = 0;
 			$body .= self::render_tree( $template['tree'], $template );
@@ -324,6 +366,7 @@ class Velox_Builder_Render {
 	private static $inner_doc = null;
 	private static $inner_used = false;
 	private static $inner_depth = 0;
+	private static $inner_html = '';
 
 	private static function render_node( $node, $doc ) {
 		// Elements hidden in the builder stay in the document but are never output
@@ -351,6 +394,10 @@ class Velox_Builder_Render {
 			self::$inner_depth++;
 			$inner = self::render_tree( self::$inner_doc['tree'], self::$inner_doc );
 			self::$inner_depth--;
+			// A page with no Velox layout contributes its post content instead.
+			if ( '' === trim( $inner ) && '' !== self::$inner_html ) {
+				$inner = '<div class="velox-legacy-content">' . self::$inner_html . '</div>';
+			}
 			return '<div id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( implode( ' ', array_filter( $classes ) ) ) . '">' . $inner . '</div>';
 		}
 		$tag = preg_replace( '/[^a-z0-9]/', '', strtolower( $node['tag'] ?? 'div' ) );

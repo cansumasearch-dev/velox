@@ -95,6 +95,10 @@ class Velox_Ajax {
 				Velox_Builder::ajax_template_role();
 				break;
 
+			case 'builder_wrap_legacy_save':
+				Velox_Builder::ajax_wrap_legacy_save();
+				break;
+
 			case 'builder_viewas_list':
 				Velox_Builder::ajax_viewas_list();
 				break;
