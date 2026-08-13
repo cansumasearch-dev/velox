@@ -70,7 +70,7 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 	display:flex;flex-direction:column;box-shadow:0 2px 10px rgba(0,0,0,.25)}
 .vba-stat-ic{width:36px;height:36px;border-radius:10px;background:var(--vbb-accent-soft);color:var(--vbb-accent);
 	display:grid;place-items:center;margin-bottom:14px}
-.vba-stat-v{font-size:27px;font-weight:750;letter-spacing:-1px}
+.vba-stat-v{font-size:27px;font-weight:750;letter-spacing:-1px;color:var(--vbb-text)}
 .vba-stat-l{font-size:12px;color:var(--vbb-text-3);margin-top:2px}
 
 .vba-card{background:var(--vbb-panel);border:1px solid var(--vbb-line);border-radius:var(--vbb-r-xl);
@@ -280,3 +280,136 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .velox-wrap .vba-docrow .vba-doc-type,
 .velox-wrap .vba-docrow .vba-live,
 .velox-wrap .vba-docrow .vba-doc-status{flex:0 0 auto}
+
+/* ============================================================
+   Velox Builder admin — form + typography layer.
+   WordPress paints admin text dark and admin inputs white. These screens are
+   dark, so every heading, label and control needs an explicit value. Scoped to
+   .vba-shell and marked important where wp-core-ui competes on specificity.
+   ============================================================ */
+.vba-shell h1,.vba-shell h2,.vba-shell h3,.vba-shell h4{color:var(--vbb-text)}
+.vba-shell p,.vba-shell li{color:var(--vbb-text-2)}
+.vba-shell label,.vba-shell .vba-fl{color:var(--vbb-text-2)}
+.vba-card-h h2{color:var(--vbb-text)}
+.vba-card-h p,.vba-head p{color:var(--vbb-text-3)}
+.vba-shell a{color:var(--vbb-accent)}
+.vba-shell hr{border-color:var(--vbb-line)}
+
+/* --- one control style for every text-ish input on these screens --- */
+.vba-shell input[type=text],.vba-shell input[type=search],.vba-shell input[type=number],
+.vba-shell input[type=url],.vba-shell input[type=email],.vba-shell select,.vba-shell textarea{
+	background-color:var(--vbb-void)!important;color:var(--vbb-text)!important;
+	border:1px solid var(--vbb-line-2)!important;border-radius:var(--vbb-r-md)!important;
+	padding:9px 12px!important;font-size:13px;line-height:1.4;font-family:var(--vbb-font);
+	box-shadow:none!important;min-height:0!important;height:auto!important;max-width:100%;
+	transition:border-color .12s;
+}
+.vba-shell textarea{font-family:var(--vbb-mono);line-height:1.7}
+.vba-shell input::placeholder,.vba-shell textarea::placeholder{color:var(--vbb-text-3)}
+.vba-shell input:hover,.vba-shell select:hover,.vba-shell textarea:hover{border-color:var(--vbb-line-2)!important}
+.vba-shell input:focus,.vba-shell select:focus,.vba-shell textarea:focus{
+	border-color:var(--vbb-accent)!important;outline:none!important;box-shadow:0 0 0 3px rgba(42,183,241,.14)!important;
+}
+.vba-shell select{
+	-webkit-appearance:none;appearance:none;cursor:pointer;padding-right:30px!important;
+	background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239d9da8' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E")!important;
+	background-repeat:no-repeat!important;background-position:right 10px center!important;
+}
+.vba-shell select option,.vba-shell select optgroup{background:var(--vbb-panel);color:var(--vbb-text)}
+.vba-shell input[type=checkbox],.vba-shell input[type=radio]{
+	accent-color:var(--vbb-accent);width:16px;height:16px;min-height:0!important;
+	background-color:transparent!important;border-color:var(--vbb-line-2)!important;
+}
+.vba-shell input[type=color]{
+	padding:0!important;border:1px solid var(--vbb-line-2)!important;border-radius:8px!important;
+	width:34px;height:34px;background:none!important;cursor:pointer;
+}
+
+/* --- search field: shorter and wider than the stock control --- */
+.vba-search{min-width:300px;max-width:360px;padding:0 12px;border-radius:var(--vbb-r-md);
+	border:1px solid var(--vbb-line-2);background:var(--vbb-void);height:36px;box-sizing:border-box}
+.vba-search:focus-within{border-color:var(--vbb-accent);box-shadow:0 0 0 3px rgba(42,183,241,.14)}
+.vba-shell .vba-search input[type=search]{
+	border:none!important;background:none!important;box-shadow:none!important;
+	padding:0!important;height:34px!important;flex:1;font-size:13px;
+}
+.vba-shell .vba-search input[type=search]:focus{box-shadow:none!important}
+
+/* --- rows were running into the card edge --- */
+.vba-doclist,.vba-classlist{padding:0 14px 8px}
+.vba-docrow{padding:10px 12px;gap:10px}
+.vba-toolbar{padding:0 14px 14px}
+.vba-card-h{padding:16px 18px 12px}
+
+/* --- the type pill was a full-size form control; it should read as a chip --- */
+.velox-wrap .vba-doc-kind{
+	padding:3px 20px 3px 9px!important;font-size:11px!important;line-height:1.5!important;
+	max-width:112px;background-position:right 6px center!important;
+}
+.vba-doc-status,.vba-live,.vba-doc-type{font-size:10px;padding:3px 8px}
+
+.vba-live-yes{background:rgba(67,209,127,.14);color:var(--vbb-green)}
+.vba-live-no{background:rgba(245,106,92,.14);color:var(--vbb-red)}
+.vba-live-fix{background:rgba(42,183,241,.12);color:var(--vbb-accent);text-decoration:none;white-space:nowrap}
+.vba-live-fix:hover{background:rgba(42,183,241,.22);color:#7fd3f7}
+
+/* Stat tiles and empty states inherit WordPress's dark admin text otherwise. */
+.vba-shell .vba-stat-v{color:var(--vbb-text)}
+.vba-shell .vba-stat-l{color:var(--vbb-text-3)}
+.vba-shell .vba-empty b{color:var(--vbb-text)}
+.vba-shell .vba-empty p,.vba-shell .vba-nores,.vba-shell .vba-hint{color:var(--vbb-text-3)}
+.vba-shell .vba-doc-title{color:var(--vbb-text)}
+.vba-shell .vba-doc-meta,.vba-shell .vba-class-meta{color:var(--vbb-text-3)}
+.vba-shell .vba-class-name{color:var(--vbb-accent)}
+.vba-shell .vba-mini{color:var(--vbb-text-2)}
+.vba-shell .vba-filter{color:var(--vbb-text-2)}
+.vba-shell .vba-filter.on{color:#fff}
+
+/* Template rows: the name is the anchor and must win the space; the purpose
+   picker is a chip like the type picker on the overview, not a full control. */
+.velox-wrap .vba-tpl-purpose{
+	flex:0 0 auto!important;width:auto!important;max-width:130px;
+	padding:4px 22px 4px 10px!important;font-size:11.5px!important;line-height:1.5!important;
+	background-color:var(--vbb-raised,#1d1d24)!important;color:var(--vbb-text-2,#9d9da8)!important;
+	border:1px solid transparent!important;border-radius:20px!important;min-height:0!important;height:auto!important;
+	background-position:right 7px center!important;box-shadow:none!important;
+}
+.velox-wrap .vba-tpl-purpose:hover{border-color:var(--vbb-line-2)!important;color:var(--vbb-text)!important}
+.velox-wrap .vba-tpl-purpose:focus{border-color:var(--vbb-accent)!important;box-shadow:none!important}
+.vba-docrow .vba-doc-title{flex:1 1 auto;min-width:120px}
+.vba-docrow .vba-doc-meta{flex:0 0 auto;white-space:nowrap}
+
+/* ---- Fonts screen: each family is a titled card so it is never ambiguous
+   which font a set of controls belongs to. ---- */
+.vba-font-head{display:flex;align-items:baseline;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--vbb-line)}
+.vba-font-eyebrow{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--vbb-text-3)}
+.vba-font-title{flex:1;font-size:15px;font-weight:650;color:var(--vbb-text)}
+.vba-font-inline{color:var(--vbb-accent);font-family:var(--vbb-mono);font-size:11px}
+.vba-font-top{display:grid;grid-template-columns:1fr 200px 1fr;gap:10px;align-items:end}
+.vba-font-field{display:flex;flex-direction:column;gap:6px;min-width:0}
+.vba-font-block{margin-top:16px}
+.vba-font-block .vba-fl{display:block;margin-bottom:8px}
+.vba-font-block .vba-hint{margin-top:8px}
+/* Source decides which blocks make sense. */
+.vba-font[data-type="local"] .vba-only-url{display:none}
+.vba-font:not([data-type="local"]) .vba-only-local{display:none}
+.vba-font[data-type="google"] .vba-only-url{display:none}
+/* A weight that isn't being loaded can't be preloaded or given a file. */
+.vba-w.off,.vba-localrow.off{opacity:.3;pointer-events:none}
+.vba-w-pre.on{background:rgba(160,107,255,.18);border-color:rgba(160,107,255,.5);color:#b98bff}
+.vba-localfiles{display:flex;flex-direction:column;gap:6px}
+.vba-localrow{display:flex;align-items:center;gap:8px}
+.vba-localw{flex:0 0 42px;font-family:var(--vbb-mono);font-size:11.5px;color:var(--vbb-text-3)}
+.vba-localrow .vba-font-file{flex:1;min-width:0}
+
+/* ---- Global styles: dense but grouped, one row per heading level ---- */
+.vba-gs-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;padding:0 18px 16px}
+.vba-gs-f{display:flex;flex-direction:column;gap:6px;min-width:0}
+.vba-gs-in{position:relative;display:flex;align-items:center}
+.vba-gs-in input{width:100%;padding-right:32px!important}
+.vba-gs-in i{position:absolute;right:11px;font-style:normal;font-size:10.5px;color:var(--vbb-text-3);pointer-events:none}
+.vba-gs-color{display:flex;align-items:center;gap:8px}
+.vba-gs-color input[type=text]{flex:1;min-width:0;font-family:var(--vbb-mono);font-size:12px}
+.vba-gs-row{display:flex;align-items:flex-start;gap:14px;padding:12px 18px 0;border-top:1px solid var(--vbb-line)}
+.vba-gs-row .vba-gs-grid{flex:1;padding:0 0 14px}
+.vba-gs-tag{flex:0 0 62px;padding-top:22px;font-family:var(--vbb-mono);font-size:12px;font-weight:700;color:var(--vbb-accent)}

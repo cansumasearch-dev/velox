@@ -99,6 +99,18 @@ class Velox_Ajax {
 				Velox_Builder::ajax_wrap_legacy_save();
 				break;
 
+			case 'builder_global_styles_save':
+				Velox_Builder::ajax_global_styles_save();
+				break;
+
+			case 'builder_template_purpose':
+				Velox_Builder::ajax_template_purpose();
+				break;
+
+			case 'builder_template_create':
+				Velox_Builder::ajax_template_create();
+				break;
+
 			case 'builder_viewas_list':
 				Velox_Builder::ajax_viewas_list();
 				break;

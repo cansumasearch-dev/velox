@@ -96,14 +96,22 @@ $type_icon = array( 'page' => 'file', 'template' => 'grid', 'reusable' => 'globe
 								<option value="template"<?php selected( 'template', $d['type'] ); ?>><?php esc_html_e( 'Template', 'velox' ); ?></option>
 								<option value="reusable"<?php selected( 'reusable', $d['type'] ); ?>><?php esc_html_e( 'Reusable', 'velox' ); ?></option>
 							</select>
-						<?php else : ?>
-							<span class="vba-doc-type vba-type-legacy"><?php echo esc_html( $type_label[ $d['type'] ] ); ?></span>
 						<?php endif; ?>
 						<span class="vba-doc-status vba-status-<?php echo esc_attr( $d['status'] ); ?>"><?php echo esc_html( ucfirst( $d['status'] ) ); ?></span>
-						<?php $is_live = ! empty( $d['live'] ); ?>
-						<span class="vba-live vba-live-<?php echo $is_live ? 'yes' : 'no'; ?>" title="<?php echo esc_attr( $d['why'] ?? '' ); ?>">
-							<?php echo esc_html( $is_live ? __( 'Live', 'velox' ) : __( 'Not live', 'velox' ) ); ?>
-						</span>
+						<?php
+						// "Not live" on its own tells you nothing you can act on, so each
+						// state says what it means and, where there is one, links to the fix.
+						$is_live = ! empty( $d['live'] );
+						if ( $is_live ) {
+							echo '<span class="vba-live vba-live-yes" title="' . esc_attr( $d['why'] ?? '' ) . '">' . esc_html__( 'On your site', 'velox' ) . '</span>';
+						} elseif ( 'legacy' === $d['type'] ) {
+							echo '<a class="vba-live vba-live-fix" href="' . esc_url( $d['edit'] ) . '" title="' . esc_attr( $d['why'] ?? '' ) . '">' . esc_html__( 'Build this page →', 'velox' ) . '</a>';
+						} elseif ( 'draft' === $d['status'] ) {
+							echo '<a class="vba-live vba-live-fix" href="' . esc_url( $d['edit'] ) . '" title="' . esc_attr( $d['why'] ?? '' ) . '">' . esc_html__( 'Draft — publish it →', 'velox' ) . '</a>';
+						} else {
+							echo '<span class="vba-live vba-live-no" title="' . esc_attr( $d['why'] ?? '' ) . '">' . esc_html__( 'Not on your site', 'velox' ) . '</span>';
+						}
+						?>
 						<span class="vba-doc-meta"><?php echo esc_html( human_time_diff( strtotime( $d['updated'] ), current_time( 'timestamp' ) ) ); ?> <?php esc_html_e( 'ago', 'velox' ); ?></span>
 						<span class="vba-doc-actions">
 							<a class="vba-mini" href="<?php echo esc_url( $d['edit'] ); ?>"><?php echo esc_html( $d['doc_id'] ? __( 'Edit', 'velox' ) : __( 'Build', 'velox' ) ); ?></a>

@@ -488,11 +488,13 @@ class Velox_Builder {
 			'homeUrl'  => home_url( '/' ),
 			'previewUrl' => $preview_url,
 			'settingsUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-settings' ),
+			'stylesUrl'   => admin_url( 'admin.php?page=' . self::SLUG . '-styles' ),
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'reviewConnections' => self::review_connections(),
 			'reviewPresets' => self::review_presets(),
 			'globalCss' => self::global_css_files(),
 			'globalJs'  => self::global_js_files(),
+			'breakpoints' => self::breakpoints(),
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
 		);
 
@@ -843,8 +845,14 @@ class Velox_Builder {
 		foreach ( $f as $i => $one ) {
 			$f[ $i ]['weights'] = ( ! empty( $one['weights'] ) && is_array( $one['weights'] ) ) ? $one['weights'] : array( '400', '700' );
 			$f[ $i ]['italic']  = empty( $one['italic'] ) ? 0 : 1;
-			$f[ $i ]['display'] = $one['display'] ?? 'swap';
-			$f[ $i ]['preload'] = empty( $one['preload'] ) ? 0 : 1;
+			$f[ $i ]['files']   = ( ! empty( $one['files'] ) && is_array( $one['files'] ) ) ? $one['files'] : array();
+			// preload used to be a single yes/no for the family; carry that over as
+			// "preload the weights this family loads" rather than dropping it.
+			if ( is_array( $one['preload'] ?? null ) ) {
+				$f[ $i ]['preload'] = $one['preload'];
+			} else {
+				$f[ $i ]['preload'] = empty( $one['preload'] ) ? array() : $f[ $i ]['weights'];
+			}
 		}
 		return $f;
 	}
@@ -880,6 +888,128 @@ class Velox_Builder {
 		wp_send_json_success( array( 'tokens' => $clean ) );
 	}
 
+	const OPT_FONT_DISPLAY = 'velox_builder_font_display';
+
+	/** One font-display value for the whole site. */
+	public static function font_display() {
+		$d = get_option( self::OPT_FONT_DISPLAY, 'swap' );
+		return in_array( $d, array( 'swap', 'optional', 'fallback', 'block', 'auto' ), true ) ? $d : 'swap';
+	}
+
+	/** The animations Velox can play, keyed by the value stored on an element. */
+	public static function aos_types() {
+		return array(
+			'fade'       => __( 'Fade in', 'velox' ),
+			'fade-up'    => __( 'Fade up', 'velox' ),
+			'fade-down'  => __( 'Fade down', 'velox' ),
+			'fade-left'  => __( 'Fade from left', 'velox' ),
+			'fade-right' => __( 'Fade from right', 'velox' ),
+			'zoom-in'    => __( 'Zoom in', 'velox' ),
+			'zoom-out'   => __( 'Zoom out', 'velox' ),
+		);
+	}
+
+	const OPT_GLOBAL_STYLES = 'velox_builder_global_styles';
+
+	/** Every global style, with defaults filled in. */
+	public static function global_styles() {
+		$d = array(
+			'body'     => array( 'font' => '', 'size' => '16', 'weight' => '400', 'lineHeight' => '1.6', 'color' => '#1f2329' ),
+			'headings' => array( 'font' => '' ),
+			'links'    => array( 'color' => '#0e7fb3', 'hover' => '#2ab7f1', 'decoration' => 'none', 'weight' => '' ),
+			'width'    => array( 'page' => '1200', 'tablet' => '991', 'landscape' => '767', 'portrait' => '480' ),
+			'sections' => array( 'top' => '80', 'right' => '24', 'bottom' => '80', 'left' => '24' ),
+			'columns'  => array( 'top' => '20', 'right' => '20', 'bottom' => '20', 'left' => '20' ),
+			'aos'      => array( 'type' => '', 'duration' => '600', 'easing' => 'ease', 'offset' => '120', 'delay' => '0', 'once' => '1', 'disable' => '' ),
+		);
+		foreach ( array( 'h1' => '48', 'h2' => '36', 'h3' => '28', 'h4' => '22', 'h5' => '18', 'h6' => '16' ) as $tag => $size ) {
+			$d['headings'][ $tag ] = array( 'size' => $size, 'weight' => '700', 'lineHeight' => '1.25', 'color' => '' );
+		}
+		$saved = get_option( self::OPT_GLOBAL_STYLES, array() );
+		if ( ! is_array( $saved ) ) {
+			return $d;
+		}
+		// Merge one level deep so a new key added later still gets its default.
+		foreach ( $saved as $group => $vals ) {
+			if ( ! isset( $d[ $group ] ) || ! is_array( $vals ) ) {
+				continue;
+			}
+			foreach ( $vals as $k => $v ) {
+				if ( is_array( $v ) && isset( $d[ $group ][ $k ] ) && is_array( $d[ $group ][ $k ] ) ) {
+					$d[ $group ][ $k ] = array_merge( $d[ $group ][ $k ], $v );
+				} else {
+					$d[ $group ][ $k ] = $v;
+				}
+			}
+		}
+		return $d;
+	}
+
+	/** Breakpoints, used by the editor, the renderer and the class CSS parser. */
+	public static function breakpoints() {
+		$w = self::global_styles()['width'];
+		return array(
+			'tablet' => max( 320, (int) $w['tablet'] ),
+			'mobile' => max( 240, (int) $w['landscape'] ),
+		);
+	}
+
+	public static function ajax_global_styles_save() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'Not allowed.', 'velox' ) ), 403 );
+		}
+		$raw = isset( $_POST['styles'] ) ? wp_unslash( $_POST['styles'] ) : '';
+		$in  = json_decode( $raw, true );
+		if ( ! is_array( $in ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
+		}
+		$num = function ( $v ) { return preg_replace( '/[^0-9.]/', '', (string) $v ); };
+		$col = function ( $v ) { $v = trim( (string) $v ); return preg_match( '/^(#[0-9a-f]{3,8}|rgba?\([\d\s,.%]+\)|var\(--[a-z0-9\-]+\)|)$/i', $v ) ? $v : ''; };
+		$txt = function ( $v ) { return sanitize_text_field( (string) $v ); };
+
+		$out = array(
+			'body'     => array(
+				'font' => $txt( $in['body']['font'] ?? '' ), 'size' => $num( $in['body']['size'] ?? '' ),
+				'weight' => $num( $in['body']['weight'] ?? '' ), 'lineHeight' => $num( $in['body']['lineHeight'] ?? '' ),
+				'color' => $col( $in['body']['color'] ?? '' ),
+			),
+			'headings' => array( 'font' => $txt( $in['headings']['font'] ?? '' ) ),
+			'links'    => array(
+				'color' => $col( $in['links']['color'] ?? '' ), 'hover' => $col( $in['links']['hover'] ?? '' ),
+				'decoration' => in_array( ( $in['links']['decoration'] ?? 'none' ), array( 'none', 'underline' ), true ) ? $in['links']['decoration'] : 'none',
+				'weight' => $num( $in['links']['weight'] ?? '' ),
+			),
+			'width'    => array(
+				'page' => $num( $in['width']['page'] ?? '' ), 'tablet' => $num( $in['width']['tablet'] ?? '' ),
+				'landscape' => $num( $in['width']['landscape'] ?? '' ), 'portrait' => $num( $in['width']['portrait'] ?? '' ),
+			),
+			'sections' => array(), 'columns' => array(),
+			'aos'      => array(
+				'type'     => in_array( ( $in['aos']['type'] ?? '' ), array_keys( self::aos_types() ), true ) ? $in['aos']['type'] : '',
+				'duration' => $num( $in['aos']['duration'] ?? '' ),
+				'easing'   => in_array( ( $in['aos']['easing'] ?? 'ease' ), array( 'ease', 'ease-in', 'ease-out', 'ease-in-out', 'linear' ), true ) ? $in['aos']['easing'] : 'ease',
+				'offset'   => $num( $in['aos']['offset'] ?? '' ),
+				'delay'    => $num( $in['aos']['delay'] ?? '' ),
+				'once'     => empty( $in['aos']['once'] ) ? '' : '1',
+				'disable'  => in_array( ( $in['aos']['disable'] ?? '' ), array( '', 'mobile', 'tablet' ), true ) ? $in['aos']['disable'] : '',
+			),
+		);
+		foreach ( array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ) as $tag ) {
+			$out['headings'][ $tag ] = array(
+				'size' => $num( $in['headings'][ $tag ]['size'] ?? '' ), 'weight' => $num( $in['headings'][ $tag ]['weight'] ?? '' ),
+				'lineHeight' => $num( $in['headings'][ $tag ]['lineHeight'] ?? '' ), 'color' => $col( $in['headings'][ $tag ]['color'] ?? '' ),
+			);
+		}
+		foreach ( array( 'sections', 'columns' ) as $g ) {
+			foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
+				$out[ $g ][ $side ] = $num( $in[ $g ][ $side ] ?? '' );
+			}
+		}
+		update_option( self::OPT_GLOBAL_STYLES, $out );
+		self::purge_cache_for();
+		wp_send_json_success( array( 'styles' => $out ) );
+	}
+
 	public static function ajax_fonts_save() {
 		$raw   = isset( $_POST['fonts'] ) ? wp_unslash( $_POST['fonts'] ) : '';
 		$fonts = json_decode( $raw, true );
@@ -888,11 +1018,14 @@ class Velox_Builder {
 		}
 		$ok_display = array( 'swap', 'optional', 'fallback', 'block', 'auto' );
 		$ok_weights = array( '100', '200', '300', '400', '500', '600', '700', '800', '900' );
+		// font-display is one decision for the whole site, not per family.
+		$display = isset( $_POST['display'] ) ? sanitize_key( wp_unslash( $_POST['display'] ) ) : 'swap';
+		update_option( self::OPT_FONT_DISPLAY, in_array( $display, $ok_display, true ) ? $display : 'swap' );
 		$clean = array();
 		foreach ( $fonts as $f ) {
 			$name = sanitize_text_field( $f['name'] ?? '' );
 			$src  = esc_url_raw( $f['url'] ?? '' );
-			$type = in_array( ( $f['type'] ?? 'google' ), array( 'google', 'url' ), true ) ? $f['type'] : 'google';
+			$type = in_array( ( $f['type'] ?? 'google' ), array( 'google', 'url', 'local' ), true ) ? $f['type'] : 'google';
 			// Only the weights actually ticked get requested. Shipping all nine when
 			// a site uses two is the single biggest font cost on most pages.
 			$weights = array();
@@ -906,6 +1039,24 @@ class Velox_Builder {
 				$weights = array( '400', '700' );
 			}
 			sort( $weights, SORT_NUMERIC );
+			// Preload is per WEIGHT: preloading a whole family pulls files the page
+			// may never use, which is worse than not preloading at all.
+			$preload = array();
+			foreach ( (array) ( $f['preload'] ?? array() ) as $w ) {
+				$w = (string) (int) $w;
+				if ( in_array( $w, $weights, true ) && ! in_array( $w, $preload, true ) ) {
+					$preload[] = $w;
+				}
+			}
+			// Self-hosted files, one URL per weight.
+			$files = array();
+			foreach ( (array) ( $f['files'] ?? array() ) as $w => $url ) {
+				$w   = (string) (int) $w;
+				$url = esc_url_raw( $url );
+				if ( in_array( $w, $ok_weights, true ) && $url ) {
+					$files[ $w ] = $url;
+				}
+			}
 			if ( $name ) {
 				$clean[] = array(
 					'name'    => $name,
@@ -913,8 +1064,8 @@ class Velox_Builder {
 					'url'     => $src,
 					'weights' => $weights,
 					'italic'  => empty( $f['italic'] ) ? 0 : 1,
-					'display' => in_array( ( $f['display'] ?? 'swap' ), $ok_display, true ) ? $f['display'] : 'swap',
-					'preload' => empty( $f['preload'] ) ? 0 : 1,
+					'preload' => $preload,
+					'files'   => $files,
 				);
 			}
 		}
@@ -1166,7 +1317,8 @@ class Velox_Builder {
 				continue;
 			}
 			if ( 'base' !== $bp ) {
-				$mq   = 'tablet' === $bp ? '(max-width: 991px)' : '(max-width: 767px)';
+				$bpx  = self::breakpoints();
+				$mq   = 'tablet' === $bp ? '(max-width: ' . $bpx['tablet'] . 'px)' : '(max-width: ' . $bpx['mobile'] . 'px)';
 				$out .= '@media ' . $mq . " {\n" . $sel . " {\n" . $body . "}\n}\n\n";
 			} else {
 				$out .= $sel . " {\n" . $body . "}\n\n";
@@ -1215,7 +1367,10 @@ class Velox_Builder {
 		// stop at the INNER rule's closing brace and hand back an unbalanced chunk.
 		if ( preg_match_all( '/@media([^{]+)\{((?:[^{}]|\{[^{}]*\})*)\}/s', $css, $m, PREG_SET_ORDER ) ) {
 			foreach ( $m as $mm ) {
-				$bp = ( false !== strpos( $mm[1], '991' ) ) ? 'tablet' : ( ( false !== strpos( $mm[1], '767' ) ) ? 'mobile' : '' );
+				// Match on the site's ACTUAL breakpoints, not the old fixed numbers —
+				// otherwise editing a class silently dropped its responsive rules.
+				$bpx = self::breakpoints();
+				$bp  = ( false !== strpos( $mm[1], (string) $bpx['tablet'] ) ) ? 'tablet' : ( ( false !== strpos( $mm[1], (string) $bpx['mobile'] ) ) ? 'mobile' : '' );
 				if ( $bp ) {
 					$scoped[] = array( $bp, $mm[2] );
 				}
@@ -1415,6 +1570,12 @@ class Velox_Builder {
 				}
 			}
 		}
+		// No explicit choice: let a template's stated purpose decide, and only
+		// fall back to "the site default" when nothing claims this page.
+		$by_purpose = self::template_by_purpose( $post_id );
+		if ( $by_purpose ) {
+			return $by_purpose;
+		}
 		return self::default_template();
 	}
 
@@ -1600,6 +1761,121 @@ class Velox_Builder {
 		update_option( self::OPT_WRAP_LEGACY, $on ? 1 : 0 );
 		self::purge_cache_for();
 		wp_send_json_success( array( 'on' => $on ? 1 : 0 ) );
+	}
+
+	const OPT_TPL_RULES = 'velox_builder_template_rules';
+
+	/**
+	 * What each template is FOR, keyed by doc id: front_page, error404, search,
+	 * archive, posts, pages, catch_all. Stored in one option rather than a new
+	 * column so no schema migration is needed.
+	 */
+	public static function template_rules() {
+		$r = get_option( self::OPT_TPL_RULES, array() );
+		return is_array( $r ) ? $r : array();
+	}
+
+	public static function template_purpose( $doc_id ) {
+		$r = self::template_rules();
+		return isset( $r[ (int) $doc_id ] ) ? $r[ (int) $doc_id ] : 'catch_all';
+	}
+
+	public static function set_template_purpose( $doc_id, $purpose ) {
+		$doc_id = (int) $doc_id;
+		if ( ! $doc_id || ! isset( self::template_purposes()[ $purpose ] ) ) {
+			return false;
+		}
+		$r            = self::template_rules();
+		$r[ $doc_id ] = $purpose;
+		update_option( self::OPT_TPL_RULES, $r );
+		return true;
+	}
+
+	/** The purposes a template can serve, most specific first. */
+	public static function template_purposes() {
+		return array(
+			'front_page' => __( 'Front page — the site homepage only', 'velox' ),
+			'error404'   => __( '404 — the page-not-found screen', 'velox' ),
+			'search'     => __( 'Search results', 'velox' ),
+			'archive'    => __( 'Archives — category, tag, date listings', 'velox' ),
+			'posts'      => __( 'Posts — every single blog post', 'velox' ),
+			'pages'      => __( 'Pages — every WordPress page', 'velox' ),
+			'catch_all'  => __( 'Catch-all — anything without a better match', 'velox' ),
+		);
+	}
+
+	/**
+	 * Which template should render this post, by purpose. More specific purposes
+	 * win: a Front page template beats a Pages template, which beats catch-all.
+	 * Returns 0 when nothing matches.
+	 */
+	public static function template_by_purpose( $post_id ) {
+		global $wpdb;
+		$rules = self::template_rules();
+		if ( ! $rules ) {
+			return 0;
+		}
+		$post = get_post( $post_id );
+		if ( ! $post ) {
+			return 0;
+		}
+		$wanted = array();
+		if ( (int) get_option( 'page_on_front' ) === (int) $post_id ) {
+			$wanted[] = 'front_page';
+		}
+		$wanted[] = ( 'post' === $post->post_type ) ? 'posts' : 'pages';
+		$wanted[] = 'catch_all';
+
+		// Only templates that still exist and are actually templates count.
+		$valid = $wpdb->get_col( "SELECT id FROM " . self::table() . " WHERE kind = 'template'" );
+		$valid = array_map( 'intval', (array) $valid );
+		foreach ( $wanted as $purpose ) {
+			foreach ( $rules as $doc_id => $p ) {
+				if ( $p === $purpose && in_array( (int) $doc_id, $valid, true ) ) {
+					return (int) $doc_id;
+				}
+			}
+		}
+		return 0;
+	}
+
+	public static function ajax_template_purpose() {
+		$id      = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$purpose = isset( $_POST['purpose'] ) ? sanitize_key( wp_unslash( $_POST['purpose'] ) ) : '';
+		if ( ! self::set_template_purpose( $id, $purpose ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid template purpose.', 'velox' ) ), 400 );
+		}
+		self::purge_cache_for();
+		wp_send_json_success( array( 'id' => $id, 'purpose' => $purpose ) );
+	}
+
+	/** Create an empty template with a name and purpose, then open it. */
+	public static function ajax_template_create() {
+		global $wpdb;
+		$title   = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : '';
+		$purpose = isset( $_POST['purpose'] ) ? sanitize_key( wp_unslash( $_POST['purpose'] ) ) : 'catch_all';
+		if ( '' === $title ) {
+			wp_send_json_error( array( 'message' => __( 'Give the template a name.', 'velox' ) ), 400 );
+		}
+		$now  = current_time( 'mysql' );
+		// A template starts with the Inner Content slot already in place — without
+		// it a template cannot show any page's content, which was the single most
+		// confusing thing about building one from scratch.
+		$data = wp_json_encode( array(
+			'tree'    => array( array( 'id' => 'innercontent-1', 'el' => 'InnerContent', 'tag' => 'div', 'classes' => array( '.inner-content' ), 'overrides' => array(), 'children' => array() ) ),
+			'classes' => array( '.inner-content' => array( 'base' => array( 'minHeight' => '200' ) ) ),
+			'content' => array(),
+		) );
+		$wpdb->insert( self::table(), array(
+			'kind' => 'template', 'title' => $title, 'data' => $data, 'css_size' => 0,
+			'status' => 'draft', 'post_id' => null, 'updated' => $now, 'created' => $now,
+		), array( '%s', '%s', '%s', '%d', '%s', '%s', '%s', '%s' ) );
+		$id = (int) $wpdb->insert_id;
+		self::set_template_purpose( $id, $purpose );
+		if ( ! self::default_template() ) {
+			update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
+		}
+		wp_send_json_success( array( 'id' => $id, 'url' => self::edit_url( $id, 'template' ) ) );
 	}
 
 	public static function ajax_viewas_list() {

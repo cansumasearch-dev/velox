@@ -33,11 +33,15 @@ class Velox_Builder_Render {
 		'boxShadow' => 'box-shadow', 'gridTemplateColumns' => 'grid-template-columns',
 	);
 	private static $UNIT = array( 'gap', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'fontSize', 'letterSpacing', 'borderWidth', 'borderRadius' );
-	private static $BP = array(
-		'base'   => null,
-		'tablet' => '(max-width: 991px)',
-		'mobile' => '(max-width: 767px)',
-	);
+	/** Media queries, built from the editable breakpoints. */
+	private static function bp_map() {
+		$b = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991, 'mobile' => 767 );
+		return array(
+			'base'   => null,
+			'tablet' => '(max-width: ' . (int) $b['tablet'] . 'px)',
+			'mobile' => '(max-width: ' . (int) $b['mobile'] . 'px)',
+		);
+	}
 
 	/** camelCase model key → CSS property name (used by the class editor). */
 	public static function css_prop_name( $key ) {
@@ -201,6 +205,7 @@ class Velox_Builder_Render {
 
 	/** Print the full standalone HTML document. */
 	private static function output_page( $doc ) {
+		self::$page_settings = isset( $doc['page'] ) && is_array( $doc['page'] ) ? $doc['page'] : array();
 		// A template wraps the page: we render the TEMPLATE's tree, and wherever it
 		// contains an Inner Content element we drop this page's own tree in. If the
 		// template has no Inner Content the page would vanish, so we fall back to
@@ -261,6 +266,7 @@ class Velox_Builder_Render {
 </head>
 <body <?php body_class( 'velox-built' ); ?>>
 	<?php echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped — built from sanitized model ?>
+	<?php self::print_aos(); ?>
 	<?php if ( method_exists( 'Velox_Builder', 'print_global_js' ) ) { Velox_Builder::print_global_js( 'footer' ); } ?>
 	<?php wp_footer(); ?>
 </body>
@@ -287,24 +293,47 @@ class Velox_Builder_Render {
 			echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
 			echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
 		}
+		$face = '';
 		foreach ( $fonts as $f ) {
+			$type    = $f['type'] ?? '';
+			$preload = (array) ( $f['preload'] ?? array() );
+
+			// Self-hosted: one @font-face per weight, and preload the actual FILES
+			// (which is what preload is for) rather than a stylesheet.
+			if ( 'local' === $type && ! empty( $f['files'] ) ) {
+				foreach ( (array) $f['files'] as $w => $url ) {
+					if ( ! $url ) {
+						continue;
+					}
+					$fmt   = self::font_format( $url );
+					$face .= "@font-face{font-family:'" . str_replace( "'", '', $f['name'] ) . "';font-style:normal;font-weight:" . (int) $w .
+						";font-display:" . Velox_Builder::font_display() . ";src:url('" . esc_url( $url ) . "')" . ( $fmt ? " format('" . $fmt . "')" : '' ) . ";}\n";
+					if ( in_array( (string) $w, $preload, true ) ) {
+						echo '<link rel="preload" as="font" type="font/' . esc_attr( $fmt ? $fmt : 'woff2' ) . '" href="' . esc_url( $url ) . '" crossorigin>' . "\n";
+					}
+				}
+				continue;
+			}
+
 			$href = '';
-			if ( 'google' === ( $f['type'] ?? '' ) && ! empty( $f['name'] ) ) {
+			if ( 'google' === $type && ! empty( $f['name'] ) ) {
 				$href = self::google_font_url( $f );
-			} elseif ( 'url' === ( $f['type'] ?? '' ) && ! empty( $f['url'] ) ) {
+			} elseif ( 'url' === $type && ! empty( $f['url'] ) ) {
 				$href = $f['url'];
 			}
 			if ( '' === $href ) {
 				continue;
 			}
-			// Preload fetches the stylesheet at high priority and applies it on
-			// load; the <noscript> copy keeps it working without JavaScript.
-			if ( ! empty( $f['preload'] ) ) {
+			// For a hosted stylesheet we can only prioritise the sheet itself.
+			if ( $preload ) {
 				echo '<link rel="preload" as="style" href="' . esc_url( $href ) . '" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
 				echo '<noscript><link rel="stylesheet" href="' . esc_url( $href ) . '"></noscript>' . "\n";
 			} else {
 				echo '<link rel="stylesheet" href="' . esc_url( $href ) . '">' . "\n";
 			}
+		}
+		if ( '' !== $face ) {
+			echo '<style id="velox-builder-fontface">' . $face . '</style>' . "\n"; // phpcs:ignore
 		}
 		$tokens = Velox_Builder::tokens();
 		$vars   = '';
@@ -326,6 +355,27 @@ class Velox_Builder_Render {
 		if ( '' !== $vars ) {
 			echo '<style id="velox-builder-tokens">:root{' . $vars . '}</style>' . "\n"; // phpcs:ignore
 		}
+		// Per-page overrides sit after the global styles so a page can win.
+		$page_css = '';
+		if ( ! empty( self::$page_settings['width'] ) ) {
+			$page_css .= '.velox-built .section > *,.velox-inner-content{max-width:' . (int) self::$page_settings['width'] . 'px;margin-left:auto;margin-right:auto;}';
+		}
+		$ov = self::$page_settings['overlay'] ?? '';
+		if ( $ov ) {
+			// Lift the header out of the flow so the first section starts at the top.
+			$rule = '.velox-template-header{position:absolute;top:0;left:0;right:0;z-index:50;}';
+			if ( 'always' === $ov ) {
+				$page_css .= $rule;
+			} else {
+				$b   = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991 );
+				$min = ( 'desktop' === $ov ) ? ( (int) $b['tablet'] + 1 ) : ( (int) $b['mobile'] + 1 );
+				$page_css .= '@media (min-width:' . $min . 'px){' . $rule . '}';
+			}
+		}
+		$gs = self::global_styles_css() . $page_css;
+		if ( '' !== $gs ) {
+			echo '<style id="velox-builder-global-styles">' . $gs . '</style>' . "\n"; // phpcs:ignore
+		}
 		// Global CSS files (apply to every Velox page).
 		$gcss = Velox_Builder::global_css();
 		if ( '' !== trim( $gcss ) ) {
@@ -338,12 +388,145 @@ class Velox_Builder_Render {
 	}
 
 
+
+
+	/**
+	 * Global styles as real CSS. Only properties that were actually set are
+	 * emitted, so an untouched field never overrides an element's own styling.
+	 */
+	public static function global_styles_css() {
+		if ( ! class_exists( 'Velox_Builder' ) ) {
+			return '';
+		}
+		$g   = Velox_Builder::global_styles();
+		$out = '';
+		$px  = function ( $v ) { return ( '' === $v || null === $v ) ? '' : ( is_numeric( $v ) ? $v . 'px' : $v ); };
+
+		$b = $g['body'];
+		$decl = '';
+		if ( '' !== $b['font'] ) { $decl .= "font-family:'" . str_replace( "'", '', $b['font'] ) . "',sans-serif;"; }
+		if ( '' !== $b['size'] ) { $decl .= 'font-size:' . $px( $b['size'] ) . ';'; }
+		if ( '' !== $b['weight'] ) { $decl .= 'font-weight:' . (int) $b['weight'] . ';'; }
+		if ( '' !== $b['lineHeight'] ) { $decl .= 'line-height:' . $b['lineHeight'] . ';'; }
+		if ( '' !== $b['color'] ) { $decl .= 'color:' . $b['color'] . ';'; }
+		if ( '' !== $decl ) { $out .= 'body{' . $decl . '}'; }
+
+		$hfont = $g['headings']['font'] ?? '';
+		foreach ( array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ) as $tag ) {
+			$h    = $g['headings'][ $tag ] ?? array();
+			$decl = '';
+			if ( '' !== $hfont ) { $decl .= "font-family:'" . str_replace( "'", '', $hfont ) . "',sans-serif;"; }
+			if ( ! empty( $h['size'] ) ) { $decl .= 'font-size:' . $px( $h['size'] ) . ';'; }
+			if ( ! empty( $h['weight'] ) ) { $decl .= 'font-weight:' . (int) $h['weight'] . ';'; }
+			if ( ! empty( $h['lineHeight'] ) ) { $decl .= 'line-height:' . $h['lineHeight'] . ';'; }
+			if ( ! empty( $h['color'] ) ) { $decl .= 'color:' . $h['color'] . ';'; }
+			if ( '' !== $decl ) { $out .= $tag . '{' . $decl . '}'; }
+		}
+
+		$l = $g['links'];
+		$decl = '';
+		if ( '' !== $l['color'] ) { $decl .= 'color:' . $l['color'] . ';'; }
+		if ( '' !== $l['decoration'] ) { $decl .= 'text-decoration:' . $l['decoration'] . ';'; }
+		if ( '' !== $l['weight'] ) { $decl .= 'font-weight:' . (int) $l['weight'] . ';'; }
+		if ( '' !== $decl ) { $out .= 'a{' . $decl . '}'; }
+		if ( '' !== $l['hover'] ) { $out .= 'a:hover{color:' . $l['hover'] . ';}'; }
+
+		if ( ! empty( $g['width']['page'] ) ) {
+			$out .= '.velox-built .section > *,.velox-inner-content{max-width:' . $px( $g['width']['page'] ) . ';margin-left:auto;margin-right:auto;}';
+		}
+		foreach ( array( 'sections' => '.section', 'columns' => '.columns' ) as $key => $sel ) {
+			$p = $g[ $key ];
+			$decl = '';
+			foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
+				if ( '' !== ( $p[ $side ] ?? '' ) ) { $decl .= 'padding-' . $side . ':' . $px( $p[ $side ] ) . ';'; }
+			}
+			if ( '' !== $decl ) { $out .= $sel . '{' . $decl . '}'; }
+		}
+		return $out;
+	}
+
+
+	/**
+	 * Animate-on-scroll runtime. Deliberately tiny and dependency-free: one
+	 * IntersectionObserver, CSS does the animating. Printed only when the page
+	 * actually contains an animated element, and skipped entirely for visitors
+	 * who have asked for reduced motion.
+	 */
+	public static function print_aos() {
+		if ( ! self::$aos_used || ! class_exists( 'Velox_Builder' ) ) {
+			return;
+		}
+		$a        = Velox_Builder::global_styles()['aos'] ?? array();
+		$duration = (int) ( $a['duration'] ?? 600 );
+		$easing   = $a['easing'] ?? 'ease';
+		$offset   = (int) ( $a['offset'] ?? 120 );
+		$delay    = (int) ( $a['delay'] ?? 0 );
+		$once     = ! empty( $a['once'] );
+		$disable  = $a['disable'] ?? '';
+		$bp       = Velox_Builder::breakpoints();
+		$off_at   = 'mobile' === $disable ? (int) $bp['mobile'] : ( 'tablet' === $disable ? (int) $bp['tablet'] : 0 );
+
+		$css = '[data-vx-aos]{opacity:0;will-change:opacity,transform;' .
+			'transition:opacity ' . $duration . 'ms ' . $easing . ',transform ' . $duration . 'ms ' . $easing . ';}' .
+			'[data-vx-aos="fade-up"]{transform:translateY(24px);}' .
+			'[data-vx-aos="fade-down"]{transform:translateY(-24px);}' .
+			'[data-vx-aos="fade-left"]{transform:translateX(-24px);}' .
+			'[data-vx-aos="fade-right"]{transform:translateX(24px);}' .
+			'[data-vx-aos="zoom-in"]{transform:scale(.94);}' .
+			'[data-vx-aos="zoom-out"]{transform:scale(1.06);}' .
+			'[data-vx-aos].vx-in{opacity:1;transform:none;}' .
+			'@media (prefers-reduced-motion:reduce){[data-vx-aos]{opacity:1!important;transform:none!important;transition:none!important;}}';
+		if ( $off_at ) {
+			$css .= '@media (max-width:' . $off_at . 'px){[data-vx-aos]{opacity:1!important;transform:none!important;transition:none!important;}}';
+		}
+		echo '<style id="velox-aos-css">' . $css . '</style>' . "\n"; // phpcs:ignore
+		?>
+<script id="velox-aos-js">
+(function(){
+	var OFF = <?php echo $off_at; ?>, ONCE = <?php echo $once ? 'true' : 'false'; ?>;
+	if ( window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches ) { return; }
+	if ( OFF && window.innerWidth <= OFF ) { return; }
+	var els = document.querySelectorAll('[data-vx-aos]');
+	if ( ! els.length ) { return; }
+	// No IntersectionObserver (or no JS at all): show everything rather than
+	// leaving the page invisible.
+	if ( ! ('IntersectionObserver' in window) ) {
+		for ( var i = 0; i < els.length; i++ ) { els[i].classList.add('vx-in'); }
+		return;
+	}
+	var io = new IntersectionObserver(function(entries){
+		entries.forEach(function(en){
+			if ( ! en.isIntersecting ) {
+				if ( ! ONCE ) { en.target.classList.remove('vx-in'); }
+				return;
+			}
+			var el = en.target;
+			var d = parseInt(el.getAttribute('data-vx-aos-delay') || '<?php echo $delay; ?>', 10) || 0;
+			var dur = el.getAttribute('data-vx-aos-duration');
+			if ( dur ) { el.style.transitionDuration = parseInt(dur, 10) + 'ms'; }
+			setTimeout(function(){ el.classList.add('vx-in'); }, d);
+			if ( ONCE ) { io.unobserve(el); }
+		});
+	}, { rootMargin: '0px 0px -<?php echo $offset; ?>px 0px', threshold: 0.01 });
+	for ( var j = 0; j < els.length; j++ ) { io.observe(els[j]); }
+}());
+</script>
+		<?php
+	}
+
+	/** Map a font file extension to its CSS src format() keyword. */
+	public static function font_format( $url ) {
+		$ext = strtolower( pathinfo( wp_parse_url( $url, PHP_URL_PATH ) ?? '', PATHINFO_EXTENSION ) );
+		$map = array( 'woff2' => 'woff2', 'woff' => 'woff', 'ttf' => 'truetype', 'otf' => 'opentype' );
+		return $map[ $ext ] ?? '';
+	}
+
 	/** Build a Google Fonts URL from only the weights and options chosen. */
 	public static function google_font_url( $f ) {
 		$fam     = str_replace( ' ', '+', $f['name'] );
 		$weights = ( ! empty( $f['weights'] ) && is_array( $f['weights'] ) ) ? $f['weights'] : array( '400', '700' );
 		sort( $weights, SORT_NUMERIC );
-		$display = $f['display'] ?? 'swap';
+		$display = class_exists( 'Velox_Builder' ) ? Velox_Builder::font_display() : ( $f['display'] ?? 'swap' );
 		if ( ! empty( $f['italic'] ) ) {
 			// The ital axis needs every weight listed twice, upright then italic,
 			// and the pairs must be in ascending order or Google rejects the URL.
@@ -376,6 +559,8 @@ class Velox_Builder_Render {
 	private static $inner_used = false;
 	private static $inner_depth = 0;
 	private static $inner_html = '';
+	private static $aos_used = false;
+	private static $page_settings = array();
 
 	private static function render_node( $node, $doc ) {
 		// Elements hidden in the builder stay in the document but are never output
@@ -416,6 +601,25 @@ class Velox_Builder_Render {
 		$classes = array();
 		foreach ( (array) ( $node['classes'] ?? array() ) as $c ) {
 			$classes[] = sanitize_html_class( ltrim( $c, '.' ) );
+		}
+		// Animate-on-scroll: an element's own setting wins, otherwise the global
+		// default animates everything. "none" opts a single element out.
+		$aos_attr = '';
+		$g_aos    = class_exists( 'Velox_Builder' ) ? ( Velox_Builder::global_styles()['aos'] ?? array() ) : array();
+		$n_aos    = $node['aos'] ?? array();
+		$a_type   = $n_aos['type'] ?? ( $g_aos['type'] ?? '' );
+		if ( 'none' === ( $n_aos['type'] ?? '' ) ) {
+			$a_type = '';
+		}
+		if ( $a_type && isset( Velox_Builder::aos_types()[ $a_type ] ) ) {
+			self::$aos_used = true;
+			$aos_attr = ' data-vx-aos="' . esc_attr( $a_type ) . '"';
+			foreach ( array( 'duration', 'delay' ) as $k ) {
+				$v = $n_aos[ $k ] ?? '';
+				if ( '' !== $v ) {
+					$aos_attr .= ' data-vx-aos-' . $k . '="' . (int) $v . '"';
+				}
+			}
 		}
 		$id   = sanitize_html_class( $node['id'] ?? '' );
 		$attr = ' id="' . esc_attr( $id ) . '"';
@@ -470,7 +674,7 @@ class Velox_Builder_Render {
 				$attr .= ' target="_blank" rel="noopener"';
 			}
 		}
-		return '<' . $tag . $attr . '>' . $content . $kids . '</' . $tag . '>';
+		return '<' . $tag . $attr . $aos_attr . '>' . $content . $kids . '</' . $tag . '>';
 	}
 
 	/**
@@ -597,7 +801,7 @@ class Velox_Builder_Render {
 
 		$out    = '';
 		$states = array( 'normal', 'hover', 'focus' );
-		foreach ( self::$BP as $bp => $mq ) {
+		foreach ( self::bp_map() as $bp => $mq ) {
 			$body = '';
 			foreach ( $states as $state ) {
 				$key    = 'normal' === $state ? $bp : $bp . ':' . $state;

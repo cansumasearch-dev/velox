@@ -128,7 +128,14 @@
 		width:1, minWidth:1, maxWidth:1, height:1, minHeight:1, maxHeight:1, fontSize:1, letterSpacing:1, borderWidth:1, borderRadius:1
 	};
 	var BP_ORDER = [ 'base', 'tablet', 'mobile' ];
-	var BP_META = { base:{ label:'Desktop', mq:null }, tablet:{ label:'Tablet ≤991', mq:'(max-width: 991px)' }, mobile:{ label:'Mobile ≤767', mq:'(max-width: 767px)' } };
+	// Breakpoints are a site setting, so the editor must not hardcode them or its
+	// preview stops matching what visitors get.
+	var BPX = ( CFG.breakpoints && CFG.breakpoints.tablet ) ? CFG.breakpoints : { tablet:991, mobile:767 };
+	var BP_META = {
+		base:{ label:'Desktop', mq:null },
+		tablet:{ label:'Tablet ≤' + BPX.tablet, mq:'(max-width: ' + BPX.tablet + 'px)' },
+		mobile:{ label:'Mobile ≤' + BPX.mobile, mq:'(max-width: ' + BPX.mobile + 'px)' }
+	};
 
 	function walkTree( nodes, fn ) { for ( var i = 0; i < nodes.length; i++ ) { fn( nodes[ i ] ); if ( nodes[ i ].children ) { walkTree( nodes[ i ].children, fn ); } } }
 	function findNode( nodes, id ) { for ( var i = 0; i < nodes.length; i++ ) { if ( nodes[ i ].id === id ) { return nodes[ i ]; } if ( nodes[ i ].children ) { var f = findNode( nodes[ i ].children, id ); if ( f ) { return f; } } } return null; }
@@ -844,7 +851,7 @@
 	 *    the right stack closes but remembers which panel was open so the toggle
 	 *    brings the same one back.
 	 * Widths below MUST match the panel widths in injectStyles(). */
-	var PANEL_W = { add:300, css:380, hist:320, struct:300 };
+	var PANEL_W = { add:300, css:380, hist:320, struct:300, settings:340 };
 	var panelsPinned = false, leftCollapsed = false, lastRightPanel = 'struct';
 	function loadUiPrefs() {
 		try {
@@ -860,7 +867,7 @@
 		try { window.localStorage.setItem( 'velox_builder_ui', JSON.stringify( { pinned:panelsPinned, lcol:leftCollapsed, lastRight:lastRightPanel } ) ); } catch ( e ) {}
 	}
 	function addMenuOpen() { var m = document.getElementById( 'vb-addmenu' ); return !! ( m && m.classList.contains( 'open' ) ); }
-	function openRightPanel() { return cssShown ? 'css' : ( historyShown ? 'hist' : ( structShown ? 'struct' : null ) ); }
+	function openRightPanel() { return cssShown ? 'css' : ( historyShown ? 'hist' : ( structShown ? 'struct' : ( setShown ? 'settings' : null ) ) ); }
 	/* Reflect the current panel/collapse state onto the shell. Never triggers a
 	 * panel re-render, so it's safe to call from inside one. */
 	function applyDock() {
@@ -914,12 +921,14 @@
 			'<div class="vb-csspanel" id="vb-css"></div>' +
 			'<div class="vb-histpanel" id="vb-hist"></div>' +
 			'<div class="vb-structpanel" id="vb-struct"></div>' +
+			'<div class="vb-setpanel" id="vb-setpanel"></div>' +
 			'<div id="vb-dyndata-host"></div>' +
 			'<div class="vb-addmenu" id="vb-addmenu"></div>' +
 			'<div class="vb-scrim" id="vb-scrim"></div>';
 		injectStyles();
 		wireEvents();
 		applyDock();
+		applyEditorPrefs();
 		setNavUrls();
 		store.subscribe( renderAll );
 		store.subscribe( markDirty );
@@ -983,6 +992,7 @@
 				'<button class="vb-ic" id="vb-search" title="' + T( 'Search' ) + '">' + svg( 'search', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-code" title="' + T( 'Page CSS / JS' ) + '">' + svg( 'code', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-history" title="' + T( 'History' ) + '">' + svg( 'clock', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-settings" title="' + T( 'Settings' ) + '">' + svg( 'gear', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-tgl-right" title="' + T( 'Show right panel' ) + '">' + svg( 'panelright', 16 ) + '</button>' +
 				'<div class="vb-tsep"></div>' +
 				'<span id="vb-actions"></span>' +
@@ -1050,7 +1060,7 @@
 		walk( state.tree, 0 );
 		var treeEl = document.getElementById( 'vb-tree' ); if ( treeEl ) { treeEl.innerHTML = html; }
 	}
-	function elementHasSettings( node ) { return node && ( node.el === 'Reviews' || node.el === 'WP' || node.el === 'Heading' || node.el === 'Button' || node.tag === 'a' ); }
+	function elementHasSettings( node ) { return !! node; }
 	function elementNeedsSetup( node ) {
 		if ( ! node ) { return false; }
 		if ( node.el === 'Reviews' ) { return ! node.conn; }
@@ -1372,6 +1382,35 @@
 	}
 	/* Settings tab: element tag, link href, custom ID, and (for Reviews) the
 	   connection + preset pickers. */
+	/* Animate-on-scroll is per element, on top of the site-wide default. */
+	var AOS_TYPES = [
+		[ '', 'Use site default' ], [ 'none', 'No animation' ],
+		[ 'fade', 'Fade in' ], [ 'fade-up', 'Fade up' ], [ 'fade-down', 'Fade down' ],
+		[ 'fade-left', 'Fade from left' ], [ 'fade-right', 'Fade from right' ],
+		[ 'zoom-in', 'Zoom in' ], [ 'zoom-out', 'Zoom out' ]
+	];
+	function aosSettingsHTML( node ) {
+		var a = node.aos || {};
+		return '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'bolt', 14 ) + ' ' + T( 'Animate on scroll' ) + '</div>' +
+			'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Animation' ) + '</div>' +
+				'<select class="vb-inp" data-setaos="type">' + AOS_TYPES.map( function ( t ) {
+					return '<option value="' + t[ 0 ] + '"' + ( ( a.type || '' ) === t[ 0 ] ? ' selected' : '' ) + '>' + T( t[ 1 ] ) + '</option>';
+				} ).join( '' ) + '</select></div>' +
+			'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Duration' ) + '</div>' +
+				'<div class="vb-row"><input class="vb-inp num" data-setaos="duration" value="' + ( a.duration || '' ) + '" placeholder="' + T( 'default' ) + '"><span class="vb-unit-static">ms</span></div></div>' +
+			'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Delay' ) + '</div>' +
+				'<div class="vb-row"><input class="vb-inp num" data-setaos="delay" value="' + ( a.delay || '' ) + '" placeholder="' + T( 'default' ) + '"><span class="vb-unit-static">ms</span></div></div>' +
+			'<div class="vb-setnote">' + T( 'Animations do not play inside the editor — check the published page.' ) + '</div>' +
+		'</div>';
+	}
+	function setAos( key, val ) {
+		store.commit( function ( s ) {
+			var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
+			n.aos = n.aos || {};
+			if ( '' === val ) { delete n.aos[ key ]; } else { n.aos[ key ] = val; }
+			if ( ! Object.keys( n.aos ).length ) { delete n.aos; }
+		}, T( 'Animation' ) );
+	}
 	function settingsTabHTML( node ) {
 		var s = '<div class="vb-setwrap">';
 		var hasEl = false;
@@ -1411,6 +1450,9 @@
 			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Open in' ) + '</div><div class="vb-seg">' +
 				[ [ '', T( 'Same tab' ) ], [ '_blank', T( 'New tab' ) ] ].map( function ( o ) { return '<button class="' + ( ( node.target || '' ) === o[ 0 ] ? 'on' : '' ) + '" data-settarget="' + o[ 0 ] + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div></div></div>';
 		}
+
+		// ---- animate on scroll, available on every element ----
+		s += aosSettingsHTML( node );
 
 		// ---- generic, always-present ----
 		s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'gear', 14 ) + ' ' + T( 'General' ) + '</div>';
@@ -1514,6 +1556,75 @@
 	}
 	function scheduleCssSave() { clearTimeout( cssSaveTimer ); cssSaveTimer = setTimeout( saveGlobalCss, 700 ); injectGlobalCss(); }
 
+
+	/* ---------- Settings panel ----------
+	 * Three areas behind one button: this page, the editor itself, and the
+	 * site-wide styles. Page settings live in the document; editor settings are
+	 * local preferences; global styles are site-wide and stay on their own admin
+	 * screen rather than being crammed into a 380px panel. */
+	var setShown = false, setView = 'root';
+	var editorPrefs = { indicateParents:true, classLimit:'5' };
+	try {
+		var _ep = JSON.parse( window.localStorage.getItem( 'velox_builder_editorprefs' ) || 'null' );
+		if ( _ep ) { editorPrefs = Object.assign( editorPrefs, _ep ); }
+	} catch ( e ) {}
+	function saveEditorPrefs() {
+		try { window.localStorage.setItem( 'velox_builder_editorprefs', JSON.stringify( editorPrefs ) ); } catch ( e ) {}
+		applyEditorPrefs();
+	}
+	function applyEditorPrefs() {
+		var app = document.querySelector( '.vb-app' );
+		if ( app ) { app.classList.toggle( 'vb-indicate', !! editorPrefs.indicateParents ); }
+	}
+	function pageSettings() { return ( store.state && store.state.page ) || {}; }
+	function setPageSetting( key, val ) {
+		store.commit( function ( st ) {
+			st.page = st.page || {};
+			if ( '' === val ) { delete st.page[ key ]; } else { st.page[ key ] = val; }
+		}, T( 'Page settings' ) );
+	}
+	function crumb( label ) {
+		return '<div class="vb-set-crumb"><button class="vb-set-back" data-setview="root">' + svg( 'chevron', 12 ) + '</button>' +
+			'<span>' + T( 'All settings' ) + '</span><i>/</i><b>' + label + '</b></div>';
+	}
+	function renderSettingsPanel() {
+		var box = document.getElementById( 'vb-setpanel' ); if ( ! box ) { return; }
+		if ( ! setShown ) { box.style.display = 'none'; applyDock(); return; }
+		box.style.display = 'flex';
+		var head = '<div class="vb-hist-top"><b>' + T( 'Settings' ) + '</b><span class="vb-p-acts">' + pinBtnHTML() +
+			'<button class="vb-css-x" id="vb-set-close">' + svg( 'x', 14 ) + '</button></span></div>';
+		var body = '';
+		if ( 'root' === setView ) {
+			body = '<div class="vb-set-body">' +
+				'<button class="vb-set-nav" data-setview="page">' + svg( 'layout', 16 ) + '<span>' + T( 'Page settings' ) + '</span>' + svg( 'chevron', 12 ) + '</button>' +
+				'<button class="vb-set-nav" data-setview="editor">' + svg( 'gear', 16 ) + '<span>' + T( 'Editor settings' ) + '</span>' + svg( 'chevron', 12 ) + '</button>' +
+				'<a class="vb-set-nav" href="' + ( CFG.stylesUrl || '#' ) + '">' + svg( 'droplet', 16 ) + '<span>' + T( 'Global styles' ) + '</span>' + svg( 'external', 12 ) + '</a>' +
+				'<div class="vb-setnote" style="padding:12px 4px 0">' + T( 'Page settings apply to this document. Global styles apply to every page on the site.' ) + '</div>' +
+			'</div>';
+		} else if ( 'page' === setView ) {
+			var ps = pageSettings();
+			body = crumb( T( 'Page settings' ) ) + '<div class="vb-set-body">' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Page width' ) + '</div><div class="vb-row">' +
+					'<input class="vb-inp num" data-setpage="width" value="' + ( ps.width || '' ) + '" placeholder="' + T( 'site default' ) + '"><span class="vb-unit-static">px</span></div></div>' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Overlay header' ) + '</div>' +
+					'<select class="vb-inp" data-setpage="overlay">' +
+						[ [ '', T( 'Never' ) ], [ 'always', T( 'Always' ) ], [ 'tablet', T( 'Tablet and up' ) ], [ 'desktop', T( 'Desktop only' ) ] ].map( function ( o ) {
+							return '<option value="' + o[ 0 ] + '"' + ( ( ps.overlay || '' ) === o[ 0 ] ? ' selected' : '' ) + '>' + o[ 1 ] + '</option>';
+						} ).join( '' ) + '</select></div>' +
+				'<div class="vb-setnote">' + T( 'Overlay lets the header sit on top of the first section instead of pushing it down.' ) + '</div>' +
+			'</div>';
+		} else {
+			body = crumb( T( 'Editor settings' ) ) + '<div class="vb-set-body">' +
+				'<label class="vb-set-check"><input type="checkbox" data-setpref="indicateParents"' + ( editorPrefs.indicateParents ? ' checked' : '' ) + '><span>' + T( 'Indicate parent elements on hover' ) + '</span></label>' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Class suggestions' ) + '</div><div class="vb-row">' +
+					'<input class="vb-inp num" data-setpref="classLimit" value="' + ( editorPrefs.classLimit || '5' ) + '"></div></div>' +
+				'<div class="vb-setnote">' + T( 'These are your own preferences — they are stored in this browser and do not affect the site.' ) + '</div>' +
+			'</div>';
+		}
+		box.innerHTML = head + body;
+		applyDock();
+	}
+
 	/* ---------- Structure panel (collapsible full-page outline) ---------- */
 	var structShown = false, structCollapsed = {};
 	function renderStructPanel() {
@@ -1604,6 +1715,9 @@
 			if ( e.target.closest( '#vb-struct-close' ) ) { structShown = false; renderStructPanel(); return; }
 			var stc = e.target.closest( '[data-stcaret]' ); if ( stc ) { var sid = stc.getAttribute( 'data-stcaret' ); structCollapsed[ sid ] = ! structCollapsed[ sid ]; renderStructPanel(); e.stopPropagation(); return; }
 			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) { store.commit( function ( s ) { s.selection = stn.getAttribute( 'data-stnode' ); resetActiveClass( s ); }, false ); return; }
+			if ( e.target.closest( '#vb-settings' ) ) { setShown = ! setShown; if ( setShown ) { closeAllPanels( 'settings' ); setView = 'root'; } renderSettingsPanel(); return; }
+			if ( e.target.closest( '#vb-set-close' ) ) { setShown = false; renderSettingsPanel(); return; }
+			var sv = e.target.closest( '[data-setview]' ); if ( sv ) { setView = sv.getAttribute( 'data-setview' ); renderSettingsPanel(); return; }
 			if ( e.target.closest( '#vb-history' ) ) { historyShown = ! historyShown; if ( historyShown ) { closeAllPanels( 'hist' ); } renderHistoryPanel(); return; }
 			if ( e.target.closest( '#vb-hist-close' ) ) { historyShown = false; renderHistoryPanel(); return; }
 			var hr = e.target.closest( '[data-revert]' ); if ( hr ) { store.revertTo( +hr.getAttribute( 'data-revert' ) ); return; }
@@ -1666,6 +1780,10 @@
 			if ( e.target.id === 'vb-js-code' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].js = e.target.value; scheduleJsSave(); } return; }
 			if ( e.target.id === 'vb-js-name' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].name = e.target.value; var jt = document.querySelector( '.vb-css-file.on span' ); if ( jt ) { jt.textContent = e.target.value; } scheduleJsSave(); } return; }
 			if ( e.target.id === 'vb-css-name' ) { if ( cssFiles[ cssActive ] ) { cssFiles[ cssActive ].name = e.target.value; var tab = document.querySelector( '.vb-css-file.on span' ); if ( tab ) { tab.textContent = e.target.value; } scheduleCssSave(); } return; }
+			var pgi = e.target.closest( 'input[data-setpage]' );
+			if ( pgi ) { var pv2 = e.target.value.trim(); clearTimeout( dbTimer ); dbTimer = setTimeout( function () { setPageSetting( pgi.getAttribute( 'data-setpage' ), pv2 ); }, 250 ); return; }
+			var aoi = e.target.closest( 'input[data-setaos]' );
+			if ( aoi ) { var av = e.target.value.trim(); clearTimeout( dbTimer ); dbTimer = setTimeout( function () { setAos( aoi.getAttribute( 'data-setaos' ), av ); }, 200 ); return; }
 			if ( e.target.hasAttribute( 'data-sethref' ) ) { var hv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.href = hv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setconn' ) ) { var cv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.conn = cv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setpreset' ) ) { var pv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.preset = pv; } } ); return; }
@@ -1709,6 +1827,12 @@
 			if ( e.target.id === 'vb-js-where' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].where = e.target.value; saveGlobalJs(); } return; }
 			if ( e.target.id === 'vb-js-load' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].load = e.target.value; saveGlobalJs(); } return; }
 			if ( e.target.id === 'vb-js-on' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].on = e.target.checked ? 1 : 0; renderCSSPanel(); saveGlobalJs(); } return; }
+			var sp2 = e.target.closest( 'select[data-setpage]' );
+			if ( sp2 ) { setPageSetting( sp2.getAttribute( 'data-setpage' ), e.target.value ); return; }
+			var pf = e.target.closest( '[data-setpref]' );
+			if ( pf ) { var k = pf.getAttribute( 'data-setpref' ); editorPrefs[ k ] = ( 'checkbox' === pf.type ) ? pf.checked : pf.value.trim(); saveEditorPrefs(); return; }
+			var ao = e.target.closest( '[data-setaos]' );
+			if ( ao ) { setAos( ao.getAttribute( 'data-setaos' ), e.target.value.trim() ); return; }
 			if ( e.target.id === 'vb-viewas' ) { setViewAs( e.target.value ); return; }
 			if ( e.target.id === 'vb-kind' ) {
 				docKind = e.target.value;
@@ -1981,13 +2105,14 @@
 	 * structure/history/CSS, so there is room for one of each and closing the
 	 * other just loses the user's place. */
 	function closeAllPanels( except ) {
-		var sides = { add:'left', css:'right', hist:'right', struct:'right' };
+		var sides = { add:'left', css:'right', hist:'right', struct:'right', settings:'right' };
 		var keepSide = panelsPinned && sides[ except ] ? sides[ except ] : null;
 		function spare( key ) { return keepSide && sides[ key ] && sides[ key ] !== keepSide; }
 		if ( except !== 'add' && ! spare( 'add' ) ) { var a = document.getElementById( 'vb-addmenu' ); if ( a ) { a.classList.remove( 'open' ); } }
 		if ( except !== 'css' && ! spare( 'css' ) ) { cssShown = false; var c = document.getElementById( 'vb-css' ); if ( c ) { c.style.display = 'none'; } }
 		if ( except !== 'hist' && ! spare( 'hist' ) ) { historyShown = false; var h = document.getElementById( 'vb-hist' ); if ( h ) { h.style.display = 'none'; } }
 		if ( except !== 'struct' && ! spare( 'struct' ) ) { structShown = false; var st = document.getElementById( 'vb-struct' ); if ( st ) { st.style.display = 'none'; } }
+		if ( except !== 'settings' && ! spare( 'settings' ) ) { setShown = false; var sp = document.getElementById( 'vb-setpanel' ); if ( sp ) { sp.style.display = 'none'; } }
 		if ( except !== 'brand' ) { var bm = document.getElementById( 'vb-brandmenu' ); if ( bm ) { bm.classList.remove( 'open' ); } }
 		if ( except !== 'switch' ) { var ps = document.getElementById( 'vb-pageswitch' ); if ( ps ) { ps.classList.remove( 'open' ); } }
 		applyDock();
@@ -2201,7 +2326,7 @@
 		var marks = document.querySelectorAll( '.drop-before,.drop-after,.drop-inside,.drop-root' );
 		for ( var i = 0; i < marks.length; i++ ) { marks[ i ].classList.remove( 'drop-before', 'drop-after', 'drop-inside', 'drop-root' ); }
 	}
-	function resizeCanvas( bp ) { var fr = document.getElementById( 'vb-canvas' ); fr.style.maxWidth = bp === 'mobile' ? '390px' : bp === 'tablet' ? '768px' : ''; }
+	function resizeCanvas( bp ) { var fr = document.getElementById( 'vb-canvas' ); fr.style.maxWidth = bp === 'mobile' ? ( BPX.mobile + 'px' ) : bp === 'tablet' ? ( BPX.tablet + 'px' ) : ''; }
 
 	function injectStyles() {
 		if ( document.getElementById( 'vb-editor-style' ) ) { return; }
@@ -2318,7 +2443,19 @@
 			// space, so dimming the canvas there would be wrong.
 			'.vb-scrim{position:absolute;top:54px;left:0;right:0;bottom:0;background:rgba(12,13,16,.55);z-index:110;opacity:0;pointer-events:none;transition:opacity .16s}',
 			'.vb-scrim.on{opacity:1;pointer-events:auto}',
-			'.vb-viewas-wrap{display:flex;align-items:center;gap:6px;padding:0 4px 0 9px;height:32px;border-radius:8px;background:#313339;border:1px solid rgba(255,255,255,.08)}',
+			'.vb-setpanel{position:absolute;top:54px;right:0;bottom:0;width:340px;background:#232429;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
+			'.vb-set-body{flex:1;overflow:auto;padding:12px 14px}',
+			'.vb-set-nav{display:flex;align-items:center;gap:11px;width:100%;padding:12px;margin-bottom:6px;border-radius:10px;background:#2a2c32;border:1px solid rgba(255,255,255,.07);color:#dcdce2;font-size:12.5px;font-weight:600;cursor:pointer;text-decoration:none;font-family:inherit}',
+			'.vb-set-nav:hover{background:#3c3e46;color:#f4f4f6}.vb-set-nav span{flex:1;text-align:left}.vb-set-nav svg{color:#8b8d96}',
+			'.vb-set-crumb{display:flex;align-items:center;gap:7px;padding:11px 14px;border-bottom:1px solid rgba(255,255,255,.07);font-size:11.5px;color:#8b8d96}',
+			'.vb-set-crumb b{color:#f4f4f6;font-weight:600}.vb-set-crumb i{font-style:normal;color:#4d4f57}',
+			'.vb-set-back{background:#2a2c32;border:none;border-radius:6px;color:#dcdce2;cursor:pointer;display:grid;place-items:center;padding:4px;transform:rotate(90deg)}',
+			'.vb-set-back:hover{background:#3c3e46}',
+			'.vb-set-check{display:flex;align-items:center;gap:9px;padding:9px 0;font-size:12.5px;color:#dcdce2;cursor:pointer}',
+			'.vb-set-check input{accent-color:#2ab7f1;width:15px;height:15px;cursor:pointer}',
+						'.vb-unit-static{display:grid;place-items:center;min-width:34px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;color:#8b8d96;font-size:10.5px}',
+			'.vb-setnote{font-size:11px;color:#6d6f78;line-height:1.5;margin-top:8px}',
+						'.vb-viewas-wrap{display:flex;align-items:center;gap:6px;padding:0 4px 0 9px;height:32px;border-radius:8px;background:#313339;border:1px solid rgba(255,255,255,.08)}',
 			'.vb-viewas-wrap svg{color:#8b8d96;flex:0 0 auto}',
 			'.vb-viewas-wrap:hover{border-color:rgba(255,255,255,.16)}',
 			'.vb-viewas-wrap:focus-within{border-color:#2ab7f1}',

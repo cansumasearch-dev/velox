@@ -4,6 +4,50 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.84.0 — Settings inside the builder
+- **A Settings button in the top bar** opens a panel with three areas: Page settings, Editor settings, and a link to Global styles.
+- **Page settings** — page width and overlay header — apply to the document you are editing and are saved with it. Overlay lets the header sit on top of the first section instead of pushing it down, always or only from tablet or desktop up.
+- **Editor settings** — indicate parent elements on hover, and the class suggestions limit. These are your own preferences, stored in your browser, and never change the site.
+- Global styles stay on their own screen rather than being squeezed into a narrow panel; the entry links straight there.
+- The panel pins and collapses like every other panel in the editor.
+
+## 3.83.0 — Animate on scroll
+- **Elements can now animate as they scroll into view**: fade, fade up/down/left/right, zoom in and zoom out.
+- **Set a site-wide default** in Global styles — animation, duration, easing, trigger offset, delay, play once or every time, and turn it off on mobile or tablet.
+- **Every element can override it or opt out** from the Settings tab in the builder, including its own duration and delay.
+- **Visitors who ask their system for reduced motion never see animations**, whatever is configured.
+- The animation code only ships on pages that actually animate something, and browsers without IntersectionObserver simply show everything rather than leaving the page blank.
+- Animations do not play inside the editor, so they never fight the builder while you work.
+
+## 3.82.0 — Global styles
+- **Body text**: font family, size, weight, line height and colour, applied to every built page.
+- **Headings**: a shared heading font plus size, weight, line height and colour for H1 through H6 individually.
+- **Links**: colour, hover colour, underline and weight.
+- **Width & breakpoints**: page width, and the tablet, landscape and portrait breakpoints are now editable.
+- **Sections & columns**: default padding on all four sides.
+- **Breakpoints were hardcoded in four separate places** — the editor, the front-end renderer, and both halves of the class CSS editor. Editing a class could silently drop its responsive rules because the parser matched the old fixed numbers. They now come from one setting everywhere, including the editor's tablet and mobile preview widths.
+- Leaving a field empty means inherit: Velox writes no rule at all rather than forcing a default over your own styling.
+
+## 3.81.0 — Self-hosted fonts and per-weight preloading
+- **Preload is now per weight, not per family.** Preloading a whole family pulls files the page may never use, which is worse than not preloading at all. Pick the one or two weights your first screen actually needs.
+- **"While fonts load" is a single site-wide choice** instead of being set separately on every family.
+- **New Local files source.** Point Velox at .woff2 files in your media library, one per weight, and it writes the @font-face rules for you. Self-hosted fonts preload the actual font file rather than a stylesheet, which is what preload is for.
+- **Each family is now a titled card** and the weight sections name the font they belong to, so it is always clear which family you are editing.
+- Weights you are not loading are dimmed out of the preload and file lists rather than offering choices that do nothing.
+
+## 3.80.0 — Templates know what they are for
+- **Every template now has a purpose**: Front page, 404, Search, Archives, Posts, Pages, or Catch-all. Set it from a dropdown on the row. When more than one template could apply, the most specific wins — a Front page template beats a Pages template, which beats Catch-all.
+- **Creating a template asks for a name and a purpose first**, instead of dropping you into an untitled document.
+- **New templates start with an Inner Content element already in place**, so a template can show page content from the moment it is created. Not having one was the single most confusing thing about building a template from scratch.
+- **Templates now have the same row actions as pages**: Edit, Rename, Duplicate and Delete.
+- The old unexplained "Header" and "Footer" buttons are gone; a template is a whole page frame, and its purpose says where it applies.
+
+## 3.79.0 — The Velox Builder screens are readable again
+- **Fixed: headings, numbers and labels were nearly invisible.** These screens are dark, but WordPress colours admin text for a light background and nothing overrode it — so section titles, the counters on the overview and most secondary text were dark grey on near-black.
+- **Fixed: every text field, dropdown and textarea was unstyled** — WordPress painted them white with its own borders. All form controls on these screens now share one dark style with proper focus rings.
+- The search field is shorter and wider, the type dropdowns read as small chips rather than full-size form controls, and rows no longer run into the edge of the card.
+- **"Not live" and "No Velox layout" now say something you can act on**: "Build this page →", "Draft — publish it →", or "On your site". The first two are links straight to the fix.
+
 ## 3.78.0 — Text you type on the canvas is no longer lost
 - **Fixed: text typed directly on the page could vanish when you saved.** The canvas is an iframe, and clicking a button in the top bar does not reliably tell the browser you have finished editing — so the text was still only on screen and never reached the saved document. It looked especially bad on templates: the heading saved empty, so the whole template appeared to render nothing on the front end.
 - Text is now committed before every save and publish, and whenever you click anywhere outside the canvas.
