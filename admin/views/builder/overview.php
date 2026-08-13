@@ -100,6 +100,9 @@ $type_icon = array( 'page' => 'file', 'template' => 'grid', 'reusable' => 'globe
 							<span class="vba-doc-type vba-type-legacy"><?php echo esc_html( $type_label[ $d['type'] ] ); ?></span>
 						<?php endif; ?>
 						<span class="vba-doc-status vba-status-<?php echo esc_attr( $d['status'] ); ?>"><?php echo esc_html( ucfirst( $d['status'] ) ); ?></span>
+						<span class="vba-live vba-live-<?php echo $d['live'] ? 'yes' : 'no'; ?>" title="<?php echo esc_attr( $d['why'] ); ?>">
+							<?php echo esc_html( $d['live'] ? __( 'Live', 'velox' ) : __( 'Not live', 'velox' ) ); ?>
+						</span>
 						<span class="vba-doc-meta"><?php echo esc_html( human_time_diff( strtotime( $d['updated'] ), current_time( 'timestamp' ) ) ); ?> <?php esc_html_e( 'ago', 'velox' ); ?></span>
 						<span class="vba-doc-actions">
 							<a class="vba-mini" href="<?php echo esc_url( $d['edit'] ); ?>"><?php echo esc_html( $d['doc_id'] ? __( 'Edit', 'velox' ) : __( 'Build', 'velox' ) ); ?></a>

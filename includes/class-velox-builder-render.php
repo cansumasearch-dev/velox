@@ -222,12 +222,37 @@ class Velox_Builder_Render {
 		if ( ! class_exists( 'Velox_Builder' ) ) {
 			return;
 		}
-		foreach ( Velox_Builder::fonts() as $f ) {
-			if ( 'google' === $f['type'] && ! empty( $f['name'] ) ) {
-				$fam = str_replace( ' ', '+', $f['name'] );
-				echo '<link rel="stylesheet" href="' . esc_url( 'https://fonts.googleapis.com/css2?family=' . $fam . ':wght@400;600;700;800&display=swap' ) . '">' . "\n";
-			} elseif ( 'url' === $f['type'] && ! empty( $f['url'] ) ) {
-				echo '<link rel="stylesheet" href="' . esc_url( $f['url'] ) . '">' . "\n";
+		$fonts    = Velox_Builder::fonts();
+		$has_goog = false;
+		foreach ( $fonts as $f ) {
+			if ( 'google' === ( $f['type'] ?? '' ) && ! empty( $f['name'] ) ) {
+				$has_goog = true;
+				break;
+			}
+		}
+		// Google serves the CSS from one host and the font files from another, so
+		// warming both saves a round trip before the text can paint.
+		if ( $has_goog ) {
+			echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
+			echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
+		}
+		foreach ( $fonts as $f ) {
+			$href = '';
+			if ( 'google' === ( $f['type'] ?? '' ) && ! empty( $f['name'] ) ) {
+				$href = self::google_font_url( $f );
+			} elseif ( 'url' === ( $f['type'] ?? '' ) && ! empty( $f['url'] ) ) {
+				$href = $f['url'];
+			}
+			if ( '' === $href ) {
+				continue;
+			}
+			// Preload fetches the stylesheet at high priority and applies it on
+			// load; the <noscript> copy keeps it working without JavaScript.
+			if ( ! empty( $f['preload'] ) ) {
+				echo '<link rel="preload" as="style" href="' . esc_url( $href ) . '" onload="this.onload=null;this.rel=\'stylesheet\'">' . "\n";
+				echo '<noscript><link rel="stylesheet" href="' . esc_url( $href ) . '"></noscript>' . "\n";
+			} else {
+				echo '<link rel="stylesheet" href="' . esc_url( $href ) . '">' . "\n";
 			}
 		}
 		$tokens = Velox_Builder::tokens();
@@ -259,6 +284,30 @@ class Velox_Builder_Render {
 		if ( method_exists( 'Velox_Builder', 'print_global_js' ) ) {
 			Velox_Builder::print_global_js( 'head' );
 		}
+	}
+
+
+	/** Build a Google Fonts URL from only the weights and options chosen. */
+	public static function google_font_url( $f ) {
+		$fam     = str_replace( ' ', '+', $f['name'] );
+		$weights = ( ! empty( $f['weights'] ) && is_array( $f['weights'] ) ) ? $f['weights'] : array( '400', '700' );
+		sort( $weights, SORT_NUMERIC );
+		$display = $f['display'] ?? 'swap';
+		if ( ! empty( $f['italic'] ) ) {
+			// The ital axis needs every weight listed twice, upright then italic,
+			// and the pairs must be in ascending order or Google rejects the URL.
+			$pairs = array();
+			foreach ( $weights as $w ) {
+				$pairs[] = '0,' . $w;
+			}
+			foreach ( $weights as $w ) {
+				$pairs[] = '1,' . $w;
+			}
+			$axis = 'ital,wght@' . implode( ';', $pairs );
+		} else {
+			$axis = 'wght@' . implode( ';', $weights );
+		}
+		return 'https://fonts.googleapis.com/css2?family=' . $fam . ':' . $axis . '&display=' . $display;
 	}
 
 	/* -------------------------------------------------- HTML generation */

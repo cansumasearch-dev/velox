@@ -215,3 +215,32 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-doc-kind:focus{border-color:#2ab7f1}
 .vba-doc-kind.vba-type-template{background:rgba(160,107,255,.14);color:#b98bff}
 .vba-doc-kind.vba-type-reusable{background:rgba(42,183,241,.14);color:#5cc9f5}
+
+/* ---- Fonts & icons: per-family weight + loading controls ---- */
+.vba-fontlist{display:flex;flex-direction:column;gap:10px}
+.vba-font{padding:14px;border:1px solid var(--vbb-line,rgba(255,255,255,.09));border-radius:12px;background:var(--vbb-surface-2,#1b1c21)}
+.vba-font-top{display:grid;grid-template-columns:1fr 150px 1fr auto;gap:8px;align-items:center}
+.vba-font-top input,.vba-font-top select{background:var(--vbb-bg,#141519);border:1px solid var(--vbb-line,rgba(255,255,255,.09));
+  border-radius:8px;padding:8px 11px;color:var(--vbb-text,#e8e9ed);font-size:13px;font-family:inherit;outline:none;min-width:0}
+.vba-font-top input:focus,.vba-font-top select:focus{border-color:#2ab7f1}
+.vba-font-opts{display:flex;gap:18px;align-items:flex-end;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--vbb-line,rgba(255,255,255,.07))}
+.vba-font-field{flex:1;min-width:260px}
+.vba-font-field-sm{flex:0 0 280px;min-width:220px}
+.vba-font-field .vba-fl{display:block;font-size:11px;font-weight:600;color:var(--vbb-text-3,#8b8d96);margin-bottom:7px}
+.vba-weights{display:flex;flex-wrap:wrap;gap:5px}
+.vba-w{position:relative;padding:5px 11px;border-radius:20px;border:1px solid var(--vbb-line,rgba(255,255,255,.12));
+  font-size:11.5px;font-weight:600;color:var(--vbb-text-3,#8b8d96);cursor:pointer;user-select:none}
+.vba-w:hover{color:var(--vbb-text,#e8e9ed)}
+.vba-w input{position:absolute;opacity:0;width:0;height:0}
+.vba-w.on{background:rgba(42,183,241,.16);border-color:rgba(42,183,241,.5);color:#5cc9f5}
+.vba-w-ital{font-style:italic}
+.vba-font-display{width:100%;background:var(--vbb-bg,#141519);border:1px solid var(--vbb-line,rgba(255,255,255,.09));
+  border-radius:8px;padding:8px 11px;color:var(--vbb-text,#e8e9ed);font-size:12.5px;font-family:inherit;outline:none}
+.vba-font-display:focus{border-color:#2ab7f1}
+.vba-font-pre{display:flex;align-items:center;gap:7px;padding-bottom:9px;font-size:12.5px;color:var(--vbb-text-2,#aeb0b8);cursor:pointer}
+.vba-font-pre input{accent-color:#2ab7f1;width:15px;height:15px;cursor:pointer}
+
+/* Live-on-the-front-end indicator. Hover for the reason when it says Not live. */
+.vba-live{font-size:10.5px;font-weight:700;letter-spacing:.3px;padding:3px 9px;border-radius:20px;cursor:help;white-space:nowrap}
+.vba-live-yes{background:rgba(67,209,127,.14);color:#43d17f}
+.vba-live-no{background:rgba(245,106,92,.14);color:#f56a5c}

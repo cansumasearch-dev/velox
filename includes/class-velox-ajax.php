@@ -95,6 +95,14 @@ class Velox_Ajax {
 				Velox_Builder::ajax_template_role();
 				break;
 
+			case 'builder_viewas_list':
+				Velox_Builder::ajax_viewas_list();
+				break;
+
+			case 'builder_viewas_content':
+				Velox_Builder::ajax_viewas_content();
+				break;
+
 			case 'builder_switcher_list':
 				Velox_Builder::ajax_switcher_list();
 				break;

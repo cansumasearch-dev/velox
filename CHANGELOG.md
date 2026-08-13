@@ -4,6 +4,21 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.76.0 — View as, and a Live column on the overview
+- **"View as" now lists every page and post on the site**, grouped into Velox pages, WordPress pages and Posts — not just Velox-built pages. A plain WordPress page previews with its own content.
+- **A preview bar now says what you are looking at**: "Previewing as [page]", a reminder that the content is not part of the template and is not saved, and a Stop preview button. The dropdown alone was too quiet a signal.
+- The View as control is styled properly and grouped, rather than a bare dropdown.
+- **Every row on the Pages overview now shows Live or Not live**, and hovering explains why — no layout attached, still a draft, or saved as a Template/Reusable rather than a Page.
+- **Fixed: the top bar controls could overlap.** The centre cluster was positioned independently of the rest of the bar, so the right-hand buttons slid underneath it as the bar filled up.
+
+## 3.75.0 — Font loading you control
+- **Pick exactly which weights load** for each font family. Velox previously requested 400, 600, 700 and 800 for every Google font whether you used them or not — four files per family, on every page.
+- Italics are now opt-in per family rather than never available.
+- **font-display is now a choice** (swap, optional, fallback, block, auto) instead of always swap, with each option explained in plain language.
+- **Preload** any family to fetch its stylesheet at high priority, with a no-JavaScript fallback.
+- Pages using Google Fonts now preconnect to both Google hosts, saving a round trip before text can paint.
+- Fonts saved before this release keep working and default to 400 and 700.
+
 ## 3.74.0 — Global JavaScript
 - **New Global JavaScript manager**, alongside the existing Global CSS files. The code button in the builder now has CSS and JavaScript tabs.
 - Each script can be named, switched on or off without deleting it, and set to load **in the head or the footer**, either immediately, after the page loads, or without blocking.

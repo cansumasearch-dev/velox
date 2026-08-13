@@ -250,7 +250,12 @@
 				// With "View as" active, show that page's real content in the slot.
 				if ( viewAsDoc && viewAsDoc.tree ) {
 					var borrowed = renderReuseTree( viewAsDoc.tree, viewAsDoc );
-					return '<div id="' + node.id + '" class="' + cls + ' vb-inner-live" data-node="' + node.id + '"><span class="vb-inner-tag">' + T( 'Preview content' ) + '</span>' + borrowed + '</div>';
+					return '<div id="' + node.id + '" class="' + cls + ' vb-inner-live" data-node="' + node.id + '"><span class="vb-inner-tag">' + escapeHtml( viewAsTitle || T( 'Preview content' ) ) + '</span>' + borrowed + '</div>';
+				}
+				// A plain WordPress page has no builder model, so its post content
+				// goes in as HTML — enough to judge how the template frames it.
+				if ( viewAsHtml ) {
+					return '<div id="' + node.id + '" class="' + cls + ' vb-inner-live" data-node="' + node.id + '"><span class="vb-inner-tag">' + escapeHtml( viewAsTitle || T( 'Preview content' ) ) + '</span><div class="vb-inner-html">' + viewAsHtml + '</div></div>';
 				}
 				return '<div id="' + node.id + '" class="' + cls + ' vb-ph-el vb-ph-inner" data-node="' + node.id + '"><span class="vb-ph-ic">' + svg( 'layout', 22 ) + '</span><span class="vb-ph-l">' + T( 'Inner Content' ) + '</span><span class="vb-ph-s">' + T( 'Each page using this template renders its own layout here.' ) + '</span></div>';
 			}
@@ -276,7 +281,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}</style><style id="vb-style"></style></head><body></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}</style><style id="vb-style"></style></head><body></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -878,7 +883,7 @@
 			topbarHTML() +
 			'<div class="vb-body">' +
 				'<aside class="vb-inspector" id="vb-inspector"></aside>' +
-				'<main class="vb-stage"><iframe id="vb-canvas" title="Canvas"></iframe></main>' +
+				'<main class="vb-stage"><div class="vb-viewas-bar" id="vb-viewas-bar"></div><iframe id="vb-canvas" title="Canvas"></iframe></main>' +
 			'</div>' +
 			'<div class="vb-csspanel" id="vb-css"></div>' +
 			'<div class="vb-histpanel" id="vb-hist"></div>' +
@@ -937,7 +942,9 @@
 			'</div>' +
 			// RIGHT: tool icons · [Save Publish View] · Exit-icon (with menu)
 			'<div class="vb-tbc">' +
-				'<select class="vb-kind vb-viewas" id="vb-viewas" title="' + T( 'Preview this template with a page\'s content' ) + '"><option value="">' + T( 'View as…' ) + '</option></select>' +
+				'<span class="vb-viewas-wrap" id="vb-viewas-wrap">' + svg( 'eye', 14 ) +
+					'<select class="vb-viewas" id="vb-viewas" title="' + T( 'Preview this template with a page\'s content' ) + '"><option value="">' + T( 'View as…' ) + '</option></select>' +
+				'</span>' +
 				'<button class="vb-ic" id="vb-structure" title="' + T( 'Structure' ) + '">' + svg( 'structure', 16 ) + '</button>' +
 				'<a class="vb-ic" id="vb-reusables" href="' + ( CFG.reusablesUrl || '#' ) + '" title="' + T( 'Reusables' ) + '">' + svg( 'copy', 16 ) + '</a>' +
 				'<button class="vb-ic" id="vb-search" title="' + T( 'Search' ) + '">' + svg( 'search', 16 ) + '</button>' +
@@ -1536,6 +1543,7 @@
 			var pick = e.target.closest( '[data-pickimg]' ); if ( pick ) { openMediaPicker( pick.getAttribute( 'data-pickimg' ) ); return; }
 			var bm = e.target.closest( '[data-boxmode]' );
 			if ( bm ) { boxMode[ bm.getAttribute( 'data-boxmode' ) ] = bm.getAttribute( 'data-mode' ); saveBoxMode(); renderInspector( store.state ); return; }
+			if ( e.target.closest( '#vb-viewas-clear' ) ) { var vsel = document.getElementById( 'vb-viewas' ); if ( vsel ) { vsel.value = ''; } clearViewAs(); return; }
 			if ( e.target.id === 'vb-scrim' ) { closeAllPanels(); renderCSSPanel(); renderHistoryPanel(); renderStructPanel(); return; }
 			if ( e.target.closest( '[data-pin]' ) ) { togglePin(); return; }
 			if ( e.target.closest( '#vb-tgl-left' ) ) { toggleLeftStack(); return; }
@@ -1677,7 +1685,7 @@
 				if ( vs ) { vs.removeAttribute( 'data-filled' ); }
 				refreshViewAs();
 				setNavUrls();
-				if ( 'template' !== docKind ) { viewAsId = 0; viewAsDoc = null; injectCanvas(); }
+				if ( 'template' !== docKind ) { clearViewAs(); }
 				saveDoc();
 				toast( docKind === 'template' ? T( 'Saved as a template — pages can now use it.' ) : T( 'Document type changed.' ) );
 			}
@@ -1956,34 +1964,73 @@
 	 * Templates render as a navbar/footer around an empty slot, which tells you
 	 * nothing about how a real page will sit inside. Pick any built page and its
 	 * content is dropped into the slot for preview only — never saved. */
-	var viewAsId = 0, viewAsDoc = null;
+	var viewAsRef = '', viewAsDoc = null, viewAsHtml = '', viewAsTitle = '', viewAsList = null;
 	function refreshViewAs() {
 		var sel = document.getElementById( 'vb-viewas' );
 		if ( ! sel ) { return; }
 		var show = ( 'template' === docKind );
-		sel.style.display = show ? '' : 'none';
-		if ( ! show || sel.getAttribute( 'data-filled' ) ) { return; }
-		if ( ! switcherData ) { fetchSwitcher(); return; }
-		var pages = ( switcherData.velox || [] ).filter( function ( d ) { return 'page' === d.kind; } );
+		var wrap = document.getElementById( 'vb-viewas-wrap' );
+		if ( wrap ) { wrap.style.display = show ? '' : 'none'; }
+		if ( ! show ) { return; }
+		if ( ! viewAsList ) { fetchViewAsList(); return; }
+		if ( sel.getAttribute( 'data-filled' ) ) { return; }
+		// Group Velox pages, WordPress pages and posts so a long list stays readable.
+		var groups = {}, order = [];
+		viewAsList.forEach( function ( it ) {
+			if ( ! groups[ it.group ] ) { groups[ it.group ] = []; order.push( it.group ); }
+			groups[ it.group ].push( it );
+		} );
 		sel.innerHTML = '<option value="">' + T( 'View as…' ) + '</option>' +
-			pages.map( function ( d ) { return '<option value="' + d.id + '">' + escapeHtml( d.title ) + '</option>'; } ).join( '' );
+			order.map( function ( g ) {
+				return '<optgroup label="' + escapeHtml( g ) + '">' + groups[ g ].map( function ( it ) {
+					return '<option value="' + escapeHtml( it.id ) + '">' + escapeHtml( it.title ) + '</option>';
+				} ).join( '' ) + '</optgroup>';
+			} ).join( '' );
 		sel.setAttribute( 'data-filled', '1' );
-		if ( viewAsId ) { sel.value = String( viewAsId ); }
+		if ( viewAsRef ) { sel.value = viewAsRef; }
+		renderViewAsBar();
 	}
-	function setViewAs( id ) {
-		viewAsId = +id || 0;
-		if ( ! viewAsId ) { viewAsDoc = null; injectCanvas(); return; }
+	function fetchViewAsList() {
+		if ( ! CFG.ajaxurl || viewAsList ) { return; }
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_viewas_list' ); body.set( 'nonce', CFG.nonce || '' );
+		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) { viewAsList = ( res && res.success ) ? ( res.data.items || [] ) : []; refreshViewAs(); } )
+			.catch( function () { viewAsList = []; } );
+	}
+	function clearViewAs() { viewAsRef = ''; viewAsDoc = null; viewAsHtml = ''; viewAsTitle = ''; renderViewAsBar(); injectCanvas(); }
+	function setViewAs( ref ) {
+		viewAsRef = ref || '';
+		if ( ! viewAsRef ) { clearViewAs(); return; }
 		if ( ! CFG.ajaxurl ) { return; }
 		var body = new URLSearchParams();
-		body.set( 'action', 'velox' ); body.set( 'do', 'builder_load' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'id', viewAsId );
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_viewas_content' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'ref', viewAsRef );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) {
-				viewAsDoc = ( res && res.success && res.data && res.data.model ) ? res.data.model : null;
+				if ( ! res || ! res.success ) { toast( T( 'Could not load that page.' ) ); clearViewAs(); return; }
+				viewAsDoc = 'model' === res.data.type ? res.data.model : null;
+				viewAsHtml = 'html' === res.data.type ? ( res.data.html || '' ) : '';
+				var sel = document.getElementById( 'vb-viewas' );
+				viewAsTitle = sel && sel.selectedIndex > 0 ? sel.options[ sel.selectedIndex ].text : '';
+				renderViewAsBar();
 				injectCanvas();
-				toast( viewAsDoc ? T( 'Previewing with that page — nothing is saved.' ) : T( 'Could not load that page.' ) );
 			} )
-			.catch( function () { viewAsDoc = null; } );
+			.catch( function () { clearViewAs(); } );
+	}
+	/* A persistent bar, because a quiet dropdown is not enough of a signal that
+	 * what you're looking at is somebody else's content inside your template. */
+	function renderViewAsBar() {
+		var bar = document.getElementById( 'vb-viewas-bar' );
+		if ( ! bar ) { return; }
+		var on = !! ( viewAsDoc || viewAsHtml );
+		bar.classList.toggle( 'on', on );
+		if ( ! on ) { bar.innerHTML = ''; return; }
+		bar.innerHTML = '<span class="vb-va-dot"></span>' +
+			'<b>' + T( 'Previewing as' ) + ' ' + escapeHtml( viewAsTitle ) + '</b>' +
+			'<span class="vb-va-note">' + T( 'This content is not part of the template and is not saved.' ) + '</span>' +
+			'<button class="vb-va-x" id="vb-viewas-clear">' + T( 'Stop preview' ) + '</button>';
 	}
 
 	/* ---------- page switcher ---------- */
@@ -2130,7 +2177,17 @@
 			'.vb-app svg{display:block}',
 			'.vb-top{width:100%;height:54px;display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0 14px;background:#232429;border-bottom:1px solid rgba(255,255,255,.07);position:relative;box-sizing:border-box}',
 			'.vb-tbc{display:flex;align-items:center;gap:8px}',
-			'.vb-tbc-center{position:absolute;left:50%;transform:translateX(-50%);background:#232429;padding:0 10px}',
+			// The centre cluster used to be absolutely positioned at left:50%, so it took
+			// no part in the flex layout and the right-hand cluster slid underneath it
+			// once the bar got dense. It's a real flex item now: near-centred, never
+			// overlapping.
+			'.vb-tbc-center{flex:0 0 auto;margin:0 auto;padding:0 10px}',
+			'.vb-top > .vb-tbc:first-child{min-width:0;flex:1 1 auto}',
+			'.vb-top > .vb-tbc:last-child{flex:0 0 auto}',
+			// Only the page title may shrink; buttons keep their width and never wrap.
+			'.vb-pagepick{min-width:0;flex:1 1 auto}',
+			'.vb-title{min-width:60px;width:100%;flex:1 1 auto}',
+			'.vb-top .vb-btn,.vb-add-top,.vb-brand,.vb-ic,.vb-kind,.vb-viewas-wrap{flex:0 0 auto;white-space:nowrap}',
 			'.vb-brand{width:36px;height:34px;border-radius:9px;background:#313339;border:1px solid rgba(255,255,255,.07);display:grid;place-items:center;cursor:pointer;padding:0}',
 			'.vb-brand:hover{background:#3c3e46}',
 			'.vb-tsep{width:1px;height:22px;background:rgba(255,255,255,.11);margin:0 3px}',
@@ -2228,7 +2285,23 @@
 			// space, so dimming the canvas there would be wrong.
 			'.vb-scrim{position:absolute;top:54px;left:0;right:0;bottom:0;background:rgba(12,13,16,.55);z-index:110;opacity:0;pointer-events:none;transition:opacity .16s}',
 			'.vb-scrim.on{opacity:1;pointer-events:auto}',
-			'.vb-viewas{max-width:150px;text-overflow:ellipsis}',
+			'.vb-viewas-wrap{display:flex;align-items:center;gap:6px;padding:0 4px 0 9px;height:32px;border-radius:8px;background:#313339;border:1px solid rgba(255,255,255,.08)}',
+			'.vb-viewas-wrap svg{color:#8b8d96;flex:0 0 auto}',
+			'.vb-viewas-wrap:hover{border-color:rgba(255,255,255,.16)}',
+			'.vb-viewas-wrap:focus-within{border-color:#2ab7f1}',
+			'.vb-viewas-wrap:focus-within svg{color:#2ab7f1}',
+			'.vb-viewas{max-width:132px;background:none;border:none;color:#dcdce2;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;outline:none;-webkit-appearance:none;appearance:none;padding:0 6px 0 0;text-overflow:ellipsis}',
+			'.vb-viewas option,.vb-viewas optgroup{background:#232429;color:#dcdce2}',
+			'.vb-viewas optgroup{font-size:11px;color:#8b8d96}',
+			// A dropdown alone is too quiet a signal that the canvas is showing
+			// someone else's content, so the preview announces itself.
+			'.vb-viewas-bar{display:none;align-items:center;gap:10px;width:100%;max-width:1200px;margin:0 0 12px;padding:9px 13px;border-radius:10px;background:rgba(160,107,255,.14);border:1px solid rgba(160,107,255,.4);box-sizing:border-box}',
+			'.vb-viewas-bar.on{display:flex}',
+			'.vb-viewas-bar b{font-size:12.5px;color:#c9adff;font-weight:650}',
+			'.vb-va-dot{width:7px;height:7px;border-radius:50%;background:#a06bff;box-shadow:0 0 8px #a06bff;flex:0 0 auto}',
+			'.vb-va-note{flex:1;font-size:11.5px;color:#9b8fb5}',
+			'.vb-va-x{background:rgba(255,255,255,.08);border:none;border-radius:7px;color:#dcdce2;font-size:11.5px;font-weight:600;padding:5px 10px;cursor:pointer;font-family:inherit}',
+			'.vb-va-x:hover{background:rgba(255,255,255,.16);color:#fff}',
 			'.vb-p-acts{display:flex;align-items:center;gap:2px}',
 			'.vb-pinbtn.on{color:#2ab7f1;background:rgba(42,183,241,.14)}',
 			'.vb-pinbtn.on:hover{background:rgba(42,183,241,.22);color:#2ab7f1}',

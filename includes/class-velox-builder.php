@@ -791,7 +791,18 @@ class Velox_Builder {
 
 	public static function fonts() {
 		$f = get_option( self::OPT_FONTS, null );
-		return is_array( $f ) ? $f : array();
+		if ( ! is_array( $f ) ) {
+			return array();
+		}
+		// Fonts saved before weight/display control existed get sensible defaults
+		// rather than an empty request that would load nothing.
+		foreach ( $f as $i => $one ) {
+			$f[ $i ]['weights'] = ( ! empty( $one['weights'] ) && is_array( $one['weights'] ) ) ? $one['weights'] : array( '400', '700' );
+			$f[ $i ]['italic']  = empty( $one['italic'] ) ? 0 : 1;
+			$f[ $i ]['display'] = $one['display'] ?? 'swap';
+			$f[ $i ]['preload'] = empty( $one['preload'] ) ? 0 : 1;
+		}
+		return $f;
 	}
 
 	public static function settings() {
@@ -831,13 +842,36 @@ class Velox_Builder {
 		if ( ! is_array( $fonts ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
 		}
+		$ok_display = array( 'swap', 'optional', 'fallback', 'block', 'auto' );
+		$ok_weights = array( '100', '200', '300', '400', '500', '600', '700', '800', '900' );
 		$clean = array();
 		foreach ( $fonts as $f ) {
 			$name = sanitize_text_field( $f['name'] ?? '' );
 			$src  = esc_url_raw( $f['url'] ?? '' );
 			$type = in_array( ( $f['type'] ?? 'google' ), array( 'google', 'url' ), true ) ? $f['type'] : 'google';
+			// Only the weights actually ticked get requested. Shipping all nine when
+			// a site uses two is the single biggest font cost on most pages.
+			$weights = array();
+			foreach ( (array) ( $f['weights'] ?? array() ) as $w ) {
+				$w = (string) (int) $w;
+				if ( in_array( $w, $ok_weights, true ) && ! in_array( $w, $weights, true ) ) {
+					$weights[] = $w;
+				}
+			}
+			if ( ! $weights ) {
+				$weights = array( '400', '700' );
+			}
+			sort( $weights, SORT_NUMERIC );
 			if ( $name ) {
-				$clean[] = array( 'name' => $name, 'type' => $type, 'url' => $src );
+				$clean[] = array(
+					'name'    => $name,
+					'type'    => $type,
+					'url'     => $src,
+					'weights' => $weights,
+					'italic'  => empty( $f['italic'] ) ? 0 : 1,
+					'display' => in_array( ( $f['display'] ?? 'swap' ), $ok_display, true ) ? $f['display'] : 'swap',
+					'preload' => empty( $f['preload'] ) ? 0 : 1,
+				);
 			}
 		}
 		update_option( self::OPT_FONTS, $clean );
@@ -900,9 +934,21 @@ class Velox_Builder {
 			if ( $pid ) {
 				$bound[ $pid ] = true;
 			}
+			// Whether a visitor actually gets this layout, so the overview can say
+			// so per row instead of the answer living only in the page editor.
+			$live = array( 'live' => false, 'reason' => '' );
+			if ( 'page' === $d['kind'] && class_exists( 'Velox_Builder_Render' ) && $pid ) {
+				$live = Velox_Builder_Render::render_status( $pid );
+			} elseif ( 'page' === $d['kind'] ) {
+				$live = array( 'live' => false, 'reason' => __( 'Never published, so it has no URL yet. Open it and press Publish.', 'velox' ) );
+			} else {
+				$live = array( 'live' => true, 'reason' => __( 'Building block — not served at a URL of its own.', 'velox' ) );
+			}
 			$out[] = array(
 				'type'    => $d['kind'],                 // page | template | reusable
 				'source'  => 'velox',
+				'live'    => $live['live'],
+				'why'     => $live['reason'],
 				'doc_id'  => (int) $d['id'],
 				'post_id' => $pid,
 				'title'   => $d['title'] ? $d['title'] : __( 'Untitled', 'velox' ),
@@ -930,6 +976,8 @@ class Velox_Builder {
 			$out[] = array(
 				'type'    => 'legacy',
 				'source'  => 'wp',
+				'live'    => false,
+				'why'     => __( 'No Velox layout — WordPress renders this with your theme.', 'velox' ),
 				'doc_id'  => 0,
 				'post_id' => $p->ID,
 				'title'   => $p->post_title ? $p->post_title : __( '(no title)', 'velox' ),
@@ -1459,6 +1507,72 @@ class Velox_Builder {
 	 * WordPress pages and posts that aren't built with Velox yet (so you can jump
 	 * in and start building one). Grouped and ready for the editor dropdown.
 	 */
+	/**
+	 * Everything a template can be previewed against: Velox pages (rendered from
+	 * their model) plus plain WordPress pages and posts (rendered from their
+	 * content). Kept separate from the switcher list because that one is about
+	 * navigation and this one is about preview sources.
+	 */
+	public static function ajax_viewas_list() {
+		global $wpdb;
+		$out   = array();
+		$bound = array();
+		$docs  = $wpdb->get_results( "SELECT id, title, post_id FROM " . self::table() . " WHERE kind = 'page' ORDER BY updated DESC", ARRAY_A );
+		foreach ( (array) $docs as $d ) {
+			if ( (int) $d['post_id'] ) {
+				$bound[ (int) $d['post_id'] ] = true;
+			}
+			$out[] = array(
+				'id'    => 'doc:' . (int) $d['id'],
+				'title' => $d['title'] ? $d['title'] : __( 'Untitled', 'velox' ),
+				'group' => __( 'Velox pages', 'velox' ),
+			);
+		}
+		$posts = get_posts( array(
+			'post_type'      => array( 'page', 'post' ),
+			'post_status'    => array( 'publish', 'draft', 'private' ),
+			'posts_per_page' => 200,
+			'orderby'        => 'title',
+			'order'          => 'ASC',
+		) );
+		foreach ( (array) $posts as $p ) {
+			if ( isset( $bound[ $p->ID ] ) ) {
+				continue;
+			}
+			$out[] = array(
+				'id'    => 'post:' . $p->ID,
+				'title' => $p->post_title ? $p->post_title : __( '(no title)', 'velox' ),
+				'group' => 'page' === $p->post_type ? __( 'WordPress pages', 'velox' ) : __( 'Posts', 'velox' ),
+			);
+		}
+		wp_send_json_success( array( 'items' => $out ) );
+	}
+
+	/**
+	 * The content to drop into a template's Inner Content for preview. A Velox
+	 * page hands back its model so it renders exactly as it would live; a plain
+	 * WordPress page has no model, so its post content is returned as HTML.
+	 */
+	public static function ajax_viewas_content() {
+		$ref = isset( $_POST['ref'] ) ? sanitize_text_field( wp_unslash( $_POST['ref'] ) ) : '';
+		if ( 0 === strpos( $ref, 'doc:' ) ) {
+			$model = self::doc_model( (int) substr( $ref, 4 ) );
+			if ( ! $model ) {
+				wp_send_json_error( array( 'message' => __( 'That page could not be loaded.', 'velox' ) ), 404 );
+			}
+			wp_send_json_success( array( 'type' => 'model', 'model' => $model ) );
+		}
+		if ( 0 === strpos( $ref, 'post:' ) ) {
+			$p = get_post( (int) substr( $ref, 5 ) );
+			if ( ! $p ) {
+				wp_send_json_error( array( 'message' => __( 'That page could not be loaded.', 'velox' ) ), 404 );
+			}
+			$html = apply_filters( 'the_content', $p->post_content );
+			wp_send_json_success( array( 'type' => 'html', 'html' => wp_kses_post( $html ), 'title' => $p->post_title ) );
+		}
+		wp_send_json_error( array( 'message' => __( 'Nothing selected.', 'velox' ) ), 400 );
+	}
+
 	public static function ajax_switcher_list() {
 		global $wpdb;
 		$out  = array( 'velox' => array(), 'wp' => array() );
