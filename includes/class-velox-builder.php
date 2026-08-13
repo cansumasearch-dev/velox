@@ -49,6 +49,7 @@ class Velox_Builder {
 		add_filter( 'post_row_actions', array( $this, 'row_action' ), 10, 2 );
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar_link' ), 90 );
 		add_action( 'add_meta_boxes', array( $this, 'add_edit_metabox' ) );
+		add_action( 'save_post', array( $this, 'save_template_choice' ) );
 
 		// Two-way delete sync: deleting/trashing a WP post removes its Velox doc.
 		add_action( 'before_delete_post', array( __CLASS__, 'on_post_deleted' ) );
@@ -90,6 +91,61 @@ class Velox_Builder {
 			? esc_html__( 'This page has a Velox Builder layout. Opening the builder loads it.', 'velox' )
 			: esc_html__( 'Design this page visually with Velox Builder. Your current content stays until you publish a Velox layout.', 'velox' ) ) . '</p>';
 		echo '</div>';
+
+		// ---- Render page using template ----
+		$templates = self::template_choices();
+		$default   = self::default_template();
+		$choice    = get_post_meta( $post->ID, '_velox_template', true );
+		$choice    = ( '' === $choice || null === $choice ) ? '' : (int) $choice;
+		wp_nonce_field( 'velox_template_' . $post->ID, 'velox_template_nonce' );
+
+		echo '<div style="border-top:1px solid #dcdcde;padding:16px 0 4px">';
+		echo '<p style="margin:0 0 8px"><label for="velox-template" style="font-weight:600">' . esc_html__( 'Render page using template', 'velox' ) . '</label></p>';
+
+		if ( ! $templates ) {
+			echo '<p style="color:#787c82;margin:0">' . esc_html__( 'No templates yet. Create one in Velox Builder → Templates, add an Inner Content element where the page content belongs, and it becomes the default for every page.', 'velox' ) . '</p>';
+		} else {
+			$default_label = '';
+			foreach ( $templates as $t ) {
+				if ( (int) $t['id'] === $default ) {
+					$default_label = $t['title'];
+				}
+			}
+			echo '<select name="velox_template" id="velox-template" style="min-width:280px">';
+			echo '<option value=""' . selected( '', $choice, false ) . '>'
+				. esc_html( $default_label
+					? sprintf( __( 'Site default (%s)', 'velox' ), $default_label )
+					: __( 'Site default (none set)', 'velox' ) )
+				. '</option>';
+			echo '<option value="-1"' . selected( -1, $choice, false ) . '>' . esc_html__( 'No template — this page only', 'velox' ) . '</option>';
+			foreach ( $templates as $t ) {
+				echo '<option value="' . esc_attr( $t['id'] ) . '"' . selected( (int) $t['id'], $choice, false ) . '>' . esc_html( $t['title'] ) . '</option>';
+			}
+			echo '</select>';
+			echo '<p style="color:#787c82;margin:8px 0 0">' . esc_html__( 'The template supplies the shared navbar, footer and anything else around the page. This page renders inside the template\'s Inner Content element.', 'velox' ) . '</p>';
+		}
+		echo '</div>';
+	}
+
+	/** Persist the per-page template choice. */
+	public function save_template_choice( $post_id ) {
+		if ( defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE ) {
+			return;
+		}
+		if ( ! isset( $_POST['velox_template_nonce'] ) || ! wp_verify_nonce( sanitize_text_field( wp_unslash( $_POST['velox_template_nonce'] ) ), 'velox_template_' . $post_id ) ) {
+			return;
+		}
+		if ( ! current_user_can( 'edit_post', $post_id ) ) {
+			return;
+		}
+		$val = isset( $_POST['velox_template'] ) ? sanitize_text_field( wp_unslash( $_POST['velox_template'] ) ) : '';
+		// Empty string = "follow the site default", so the meta is removed rather
+		// than pinned — that's what lets a later template apply retroactively.
+		if ( '' === $val ) {
+			delete_post_meta( $post_id, '_velox_template' );
+			return;
+		}
+		update_post_meta( $post_id, '_velox_template', (int) $val );
 	}
 
 	/** Are we on a Velox Builder admin screen? */
@@ -495,6 +551,12 @@ class Velox_Builder {
 			if ( $post_id ) {
 				update_post_meta( $post_id, '_velox_builder_doc', $id );
 			}
+			// The first template anyone creates becomes the site-wide default, so
+			// pages built BEFORE it existed pick it up too — the default lives in
+			// one option, never copied onto individual pages.
+			if ( 'template' === $kind && ! self::default_template() ) {
+				update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
+			}
 		}
 
 		// Regenerate the page's static CSS file so the front end reflects the save.
@@ -803,6 +865,64 @@ class Velox_Builder {
 	   REUSABLES (by reference) + TEMPLATE ROLES (header/footer)
 	   ===================================================================== */
 	const OPT_ROLES = 'velox_builder_roles';
+	const OPT_DEFAULT_TEMPLATE = 'velox_builder_default_template';
+
+	/** The site-wide default template id (0 = none). */
+	public static function default_template() {
+		$id = (int) get_option( self::OPT_DEFAULT_TEMPLATE, 0 );
+		if ( ! $id ) {
+			return 0;
+		}
+		// Don't hand back an id whose template has since been deleted.
+		global $wpdb;
+		$ok = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . self::table() . " WHERE id = %d AND kind = 'template'", $id ) );
+		if ( ! $ok ) {
+			delete_option( self::OPT_DEFAULT_TEMPLATE );
+			return 0;
+		}
+		return $id;
+	}
+
+	public static function set_default_template( $id ) {
+		$id = (int) $id;
+		if ( $id > 0 ) {
+			update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
+		} else {
+			delete_option( self::OPT_DEFAULT_TEMPLATE );
+		}
+	}
+
+	/**
+	 * Which template renders this post. Per-page choice wins; -1 means the page
+	 * explicitly opts out; anything else falls back to the site default. A page
+	 * that has never been touched therefore inherits a template created later.
+	 *
+	 * @return int Template doc id, or 0 for none.
+	 */
+	public static function template_for_post( $post_id ) {
+		$choice = get_post_meta( (int) $post_id, '_velox_template', true );
+		if ( '' !== $choice && null !== $choice ) {
+			$choice = (int) $choice;
+			if ( -1 === $choice ) {
+				return 0; // "No template" chosen deliberately.
+			}
+			if ( $choice > 0 ) {
+				global $wpdb;
+				$ok = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . self::table() . " WHERE id = %d AND kind = 'template'", $choice ) );
+				if ( $ok ) {
+					return $choice;
+				}
+			}
+		}
+		return self::default_template();
+	}
+
+	/** All templates, for the page-editor picker. */
+	public static function template_choices() {
+		global $wpdb;
+		$rows = $wpdb->get_results( "SELECT id, title FROM " . self::table() . " WHERE kind = 'template' ORDER BY title ASC", ARRAY_A );
+		return is_array( $rows ) ? $rows : array();
+	}
 
 	/** Full decoded model for one document (tree + classes + content). */
 	public static function doc_model( $id ) {

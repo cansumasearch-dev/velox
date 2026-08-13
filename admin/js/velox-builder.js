@@ -63,13 +63,20 @@
 		alignright:'<path d="M3 6h18M9 12h12M6 18h15"/>',
 		database:'<ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.7 4 3 9 3s9-1.3 9-3V5M3 12c0 1.7 4 3 9 3s9-1.3 9-3"/>',
 		clipboard:'<rect x="8" y="2" width="8" height="4" rx="1"/><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>',
-		droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>'
+		droplet:'<path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/>',
+		pin:'<path d="M12 17v5"/><path d="M9 10.8V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v5.8a4 4 0 0 0 2 3.2H7a4 4 0 0 0 2-3.2z"/>',
+		// Referenced by elIcon('WP'), the WordPress catalog group, the canvas
+		// placeholder and the settings header — was missing, so all four rendered
+		// an empty <svg>.
+		wp:'<circle cx="12" cy="12" r="9"/><path d="m6.8 8.5 2.3 7.2 2.9-7.2 2.9 7.2 2.3-7.2"/>',
+		panelleft:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>',
+		panelright:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>'
 	};
 	function svg( name, size ) {
 		size = size || 16;
 		return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + ( ICON[ name ] || '' ) + '</svg>';
 	}
-	function elIcon( n ) { return { Section:'layout', Heading:'type', Text:'type', Button:'link', Div:'layout', Image:'image', Columns:'columns', Grid:'grid', Video:'video', Icon:'star', WP:'wp', Reviews:'star', Reusable:'copy' }[ n ] || 'layout'; }
+	function elIcon( n ) { return { Section:'layout', Heading:'type', Text:'type', Button:'link', Div:'layout', Image:'image', Columns:'columns', Grid:'grid', Video:'video', Icon:'star', WP:'wp', Reviews:'star', Reusable:'copy', InnerContent:'layout' }[ n ] || 'layout'; }
 
 	/* ============================================================
 	   1. STORE
@@ -221,6 +228,9 @@
 		}
 		function render( node ) {
 			var cls = node.classes.map( function ( c ) { return c.slice( 1 ); } ).join( ' ' );
+			// Hidden elements stay visible-but-ghosted in the canvas so you can still
+			// select and unhide them; the front-end renderer skips them entirely.
+			if ( node.hidden ) { cls += ' vb-is-hidden'; }
 			var kids = node.children.map( render ).join( '' );
 			// Reusable: render the referenced block inline, framed + non-interactive.
 			if ( node.el === 'Reusable' ) {
@@ -233,6 +243,11 @@
 				var rc = ( CFG.reviewConnections || [] ).filter( function ( c ) { return c.id === node.conn; } )[ 0 ];
 				var label = node.conn ? ( T( 'Google Reviews' ) + ( rc ? ' · ' + escapeHtml( rc.name ) : '' ) ) : T( 'Google Reviews — pick a connection & preset in Settings' );
 				return '<div id="' + node.id + '" class="' + cls + ' vb-ph-el" data-node="' + node.id + '"><span class="vb-ph-ic">' + svg( 'star', 22 ) + '</span><span class="vb-ph-l">' + label + '</span></div>';
+			}
+			// Inner Content: the slot a template drops each page's own layout into.
+			// Editor shows it as a labelled well; the front end replaces it with the page.
+			if ( node.el === 'InnerContent' ) {
+				return '<div id="' + node.id + '" class="' + cls + ' vb-ph-el vb-ph-inner" data-node="' + node.id + '"><span class="vb-ph-ic">' + svg( 'layout', 22 ) + '</span><span class="vb-ph-l">' + T( 'Inner Content' ) + '</span><span class="vb-ph-s">' + T( 'Each page using this template renders its own layout here.' ) + '</span></div>';
 			}
 			// WordPress-data: labeled placeholder in the editor (live data renders on the front end).
 			if ( node.el === 'WP' ) {
@@ -256,7 +271,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}</style><style id="vb-style"></style></head><body></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}</style><style id="vb-style"></style></head><body></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -435,6 +450,12 @@
 		] },
 		{ name:'Velox', icon:'star', items:[
 			{ key:'reviews', el:'Reviews', tag:'div', label:'Google Reviews', cls:'.reviews', rules:{}, badge:'plugin' }
+		] },
+		// Template-only. Inner Content marks the slot in a template where the
+		// individual page's own layout gets dropped in. Without it a template can
+		// only ever be a navbar and a footer with nothing between them.
+		{ name:'Template', icon:'layout', items:[
+			{ key:'innercontent', el:'InnerContent', tag:'div', label:'Inner Content', cls:'.inner-content', rules:{ minHeight:'200' }, badge:'template' }
 		] }
 	];
 	// flat lookup used by insertNode
@@ -706,14 +727,76 @@
 	];
 	var canvasReady = false, cssShown = false, dbTimer;
 
+	/* ---------- panel docking (pin) + offcanvas collapse ----------
+	 * Two problems, one spatial model:
+	 *  - PIN (global, shared by add / CSS / history / structure): a pinned panel
+	 *    reserves its width on .vb-body instead of overlaying the canvas. Done with
+	 *    padding on the grid rather than moving DOM nodes, because every panel
+	 *    re-renders through innerHTML and moved nodes go stale.
+	 *  - COLLAPSE: the left stack (spine + inspector) folds its grid columns to 0;
+	 *    the right stack closes but remembers which panel was open so the toggle
+	 *    brings the same one back.
+	 * Widths below MUST match the panel widths in injectStyles(). */
+	var PANEL_W = { add:300, css:380, hist:320, struct:300 };
+	var panelsPinned = false, leftCollapsed = false, lastRightPanel = 'struct';
+	function loadUiPrefs() {
+		try {
+			var raw = window.localStorage.getItem( 'velox_builder_ui' );
+			if ( ! raw ) { return; }
+			var p = JSON.parse( raw );
+			panelsPinned = !! p.pinned;
+			leftCollapsed = !! p.lcol;
+			if ( p.lastRight ) { lastRightPanel = p.lastRight; }
+		} catch ( e ) {}
+	}
+	function saveUiPrefs() {
+		try { window.localStorage.setItem( 'velox_builder_ui', JSON.stringify( { pinned:panelsPinned, lcol:leftCollapsed, lastRight:lastRightPanel } ) ); } catch ( e ) {}
+	}
+	function addMenuOpen() { var m = document.getElementById( 'vb-addmenu' ); return !! ( m && m.classList.contains( 'open' ) ); }
+	function openRightPanel() { return cssShown ? 'css' : ( historyShown ? 'hist' : ( structShown ? 'struct' : null ) ); }
+	/* Reflect the current panel/collapse state onto the shell. Never triggers a
+	 * panel re-render, so it's safe to call from inside one. */
+	function applyDock() {
+		var app = document.querySelector( '.vb-app' ); if ( ! app ) { return; }
+		app.classList.toggle( 'vb-pin', panelsPinned );
+		app.classList.toggle( 'vb-lcol', leftCollapsed );
+		app.classList.toggle( 'vb-nosel', ! ( store.state && store.state.selection ) );
+		var right = openRightPanel();
+		app.style.setProperty( '--vb-rw', ( panelsPinned && right ? PANEL_W[ right ] : 0 ) + 'px' );
+		app.style.setProperty( '--vb-lw', ( panelsPinned && addMenuOpen() ? PANEL_W.add : 0 ) + 'px' );
+		var lt = document.getElementById( 'vb-tgl-left' );
+		if ( lt ) { lt.classList.toggle( 'on', ! leftCollapsed ); lt.setAttribute( 'title', leftCollapsed ? T( 'Show left panels' ) : T( 'Hide left panels' ) ); }
+		var rt = document.getElementById( 'vb-tgl-right' );
+		if ( rt ) { rt.classList.toggle( 'on', !! right ); rt.setAttribute( 'title', right ? T( 'Hide right panel' ) : T( 'Show right panel' ) ); }
+		var pins = document.querySelectorAll( '.vb-pinbtn' );
+		for ( var i = 0; i < pins.length; i++ ) {
+			pins[ i ].classList.toggle( 'on', panelsPinned );
+			pins[ i ].setAttribute( 'title', panelsPinned ? T( 'Unpin — let panels overlay the canvas' ) : T( 'Pin — panels push the canvas instead of covering it' ) );
+		}
+	}
+	function togglePin() { panelsPinned = ! panelsPinned; saveUiPrefs(); applyDock(); }
+	function toggleLeftStack() { leftCollapsed = ! leftCollapsed; saveUiPrefs(); applyDock(); }
+	/* Right toggle = slide the whole right stack off / bring the last one back. */
+	function toggleRightStack() {
+		var right = openRightPanel();
+		if ( right ) { lastRightPanel = right; cssShown = false; historyShown = false; structShown = false; }
+		else if ( lastRightPanel === 'css' ) { cssShown = true; }
+		else if ( lastRightPanel === 'hist' ) { historyShown = true; }
+		else { structShown = true; }
+		saveUiPrefs();
+		renderCSSPanel(); renderHistoryPanel(); renderStructPanel();
+	}
+	/* Shared pin control for every panel header. */
+	function pinBtnHTML() { return '<button class="vb-css-x vb-pinbtn" data-pin>' + svg( 'pin', 14 ) + '</button>'; }
+
 	function mount() {
 		var root = document.getElementById( 'velox-builder-root' );
 		if ( ! root ) { return; }
+		loadUiPrefs();
 		root.className = 'vb-app';
 		root.innerHTML =
 			topbarHTML() +
 			'<div class="vb-body">' +
-				spineHTML() +
 				'<aside class="vb-inspector" id="vb-inspector"></aside>' +
 				'<main class="vb-stage"><iframe id="vb-canvas" title="Canvas"></iframe></main>' +
 			'</div>' +
@@ -724,6 +807,7 @@
 			'<div class="vb-addmenu" id="vb-addmenu"></div>';
 		injectStyles();
 		wireEvents();
+		applyDock();
 		setNavUrls();
 		store.subscribe( renderAll );
 		store.subscribe( markDirty );
@@ -742,6 +826,9 @@
 			// LEFT: logo (menu) + page-title picker
 			'<div class="vb-tbc">' +
 				'<button class="vb-brand" id="vb-brand" title="Velox">' + veloxLogo() + '</button>' +
+				'<div class="vb-tsep"></div>' +
+				'<button class="vb-ic" id="vb-tgl-left" title="' + T( 'Hide left panels' ) + '">' + svg( 'panelleft', 16 ) + '</button>' +
+				'<button class="vb-add-top" data-add>' + svg( 'plus', 15 ) + ' ' + T( 'Add element' ) + '</button>' +
 				'<div class="vb-tsep"></div>' +
 				'<div class="vb-pagepick" id="vb-pagepick">' +
 					'<small>' + T( 'Editing' ) + '</small>' +
@@ -763,9 +850,11 @@
 			// RIGHT: tool icons · [Save Publish View] · Exit-icon (with menu)
 			'<div class="vb-tbc">' +
 				'<button class="vb-ic" id="vb-structure" title="' + T( 'Structure' ) + '">' + svg( 'structure', 16 ) + '</button>' +
+				'<a class="vb-ic" id="vb-reusables" href="' + ( CFG.reusablesUrl || '#' ) + '" title="' + T( 'Reusables' ) + '">' + svg( 'copy', 16 ) + '</a>' +
 				'<button class="vb-ic" id="vb-search" title="' + T( 'Search' ) + '">' + svg( 'search', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-code" title="' + T( 'Page CSS / JS' ) + '">' + svg( 'code', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-history" title="' + T( 'History' ) + '">' + svg( 'clock', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-tgl-right" title="' + T( 'Show right panel' ) + '">' + svg( 'panelright', 16 ) + '</button>' +
 				'<div class="vb-tsep"></div>' +
 				'<span id="vb-actions"></span>' +
 				'<a class="vb-btn vb-btn-ghost" id="vb-view" href="#" target="_blank" rel="noopener">' + T( 'View page' ) + '</a>' +
@@ -801,21 +890,12 @@
 	function veloxLogo() {
 		return '<svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><path d="M4 6l8 18 8-18h-4.2L12 16.5 8.2 6H4z" fill="#2ab7f1"/><path d="M20 6l-3.4 7.6L20.7 24 28 6h-8z" fill="#a06bff"/></svg>';
 	}
-	function spineHTML() {
-		return '<aside class="vb-spine">' +
-			'<div class="vb-spine-top">' +
-				'<button class="vb-add-big" data-add>' + svg( 'plus', 17 ) + ' ' + T( 'Add element' ) + '</button>' +
-				'<div class="vb-quick">' +
-					'<a class="vb-qt" href="' + ( CFG.reusablesUrl || '#' ) + '">' + svg( 'copy', 15 ) + ' ' + T( 'Reusables' ) + '</a>' +
-					'<a class="vb-qt" href="' + ( CFG.settingsUrl || '#' ) + '">' + svg( 'gear', 15 ) + ' ' + T( 'Settings' ) + '</a>' +
-				'</div>' +
-				'<button class="vb-qt vb-spine-struct" id="vb-spine-structure">' + svg( 'structure', 15 ) + ' ' + T( 'Structure' ) + '</button>' +
-			'</div>' +
-		'</aside>';
-	}
+	/* The old left spine is gone: "Add element" is now the accent action in the top
+	 * bar, Reusables sits with the other tool icons, and Settings was already in the
+	 * logo menu — no reason to carry it twice. */
 
 	function renderAll( state ) {
-		renderTree( state ); renderInspector( state ); renderTopbar( state ); renderCSSPanel();
+		renderTree( state ); renderInspector( state ); renderTopbar( state ); renderCSSPanel(); applyDock();
 		if ( structShown ) { renderStructPanel(); }
 		injectCanvas();
 	}
@@ -831,7 +911,7 @@
 		function walk( nodes, depth ) {
 			nodes.forEach( function ( n ) {
 				html += '<div class="vb-tn ' + ( n.id === state.selection ? 'sel' : '' ) + '" data-node="' + n.id + '" draggable="true" style="padding-left:' + ( 8 + depth * 14 ) + 'px">' +
-					'<span class="vb-tn-ic">' + svg( elIcon( n.el ), 13 ) + '</span><span class="vb-tn-name">' + n.el + '</span>' +
+					'<span class="vb-tn-ic">' + svg( elIcon( n.el ), 13 ) + '</span><span class="vb-tn-name">' + escapeHtml( n.name || n.el ) + '</span>' +
 					'<span class="vb-tn-cls">' + ( n.classes[ 0 ] || '' ) + '</span></div>';
 				if ( n.children ) { walk( n.children, depth + 1 ); }
 			} );
@@ -848,7 +928,7 @@
 	var lastInspNode = null;
 	function renderInspector( state ) {
 		var node = findNode( state.tree, state.selection ), insp = document.getElementById( 'vb-inspector' );
-		if ( ! node ) { insp.innerHTML = '<div class="vb-insp-empty">' + T( 'Select an element to style it.' ) + '</div>'; lastInspNode = null; return; }
+		if ( ! node ) { insp.innerHTML = ''; lastInspNode = null; return; }
 		// On selecting a NEW element that still needs setup (e.g. a Reviews element
 		// with no connection yet), jump straight to its Settings so the real
 		// options are visible instead of only style controls.
@@ -1088,11 +1168,11 @@
 	var cssActive = 0, cssSaveTimer;
 	function renderCSSPanel() {
 		var box = document.getElementById( 'vb-css' ); if ( ! box ) { return; }
-		if ( ! cssShown ) { box.style.display = 'none'; injectGlobalCss(); return; }
+		if ( ! cssShown ) { box.style.display = 'none'; injectGlobalCss(); applyDock(); return; }
 		box.style.display = 'flex';
 		var f = cssFiles[ cssActive ] || cssFiles[ 0 ];
 		box.innerHTML =
-			'<div class="vb-css-top"><b>' + T( 'Global CSS' ) + '</b><button class="vb-css-x" id="vb-css-close">' + svg( 'x', 14 ) + '</button></div>' +
+			'<div class="vb-css-top"><b>' + T( 'Global CSS' ) + '</b><span class="vb-p-acts">' + pinBtnHTML() + '<button class="vb-css-x" id="vb-css-close">' + svg( 'x', 14 ) + '</button></span></div>' +
 			'<div class="vb-css-files">' +
 				cssFiles.map( function ( fl, i ) { return '<button class="vb-css-file' + ( i === cssActive ? ' on' : '' ) + '" data-cssfile="' + i + '">' + svg( 'code', 12 ) + '<span>' + escapeHtml( fl.name ) + '</span></button>'; } ).join( '' ) +
 				'<button class="vb-css-new" id="vb-css-new">' + svg( 'plus', 13 ) + ' ' + T( 'New file' ) + '</button>' +
@@ -1101,6 +1181,7 @@
 				( cssFiles.length > 1 ? '<button class="vb-css-del" id="vb-css-del" title="' + T( 'Delete file' ) + '">' + svg( 'trash', 13 ) + '</button>' : '' ) + '</div>' +
 			'<textarea id="vb-css-code" class="vb-css-code" spellcheck="false" placeholder="/* ' + T( 'Global CSS — applies to every page' ) + ' */">' + escapeHtml( f.css ) + '</textarea>' +
 			'<div class="vb-css-foot"><span id="vb-css-status">' + T( 'Applies to every Velox page' ) + '</span></div>';
+		applyDock();
 	}
 	/* Inject the concatenated global CSS live into the canvas iframe. */
 	function injectGlobalCss() {
@@ -1126,24 +1207,25 @@
 	var structShown = false, structCollapsed = {};
 	function renderStructPanel() {
 		var box = document.getElementById( 'vb-struct' ); if ( ! box ) { return; }
-		if ( ! structShown ) { box.style.display = 'none'; return; }
+		if ( ! structShown ) { box.style.display = 'none'; applyDock(); return; }
 		box.style.display = 'flex';
 		var sel = store.state ? store.state.selection : null;
 		function row( node, depth ) {
 			var kids = node.children || [];
 			var hasKids = kids.length > 0;
 			var collapsed = !! structCollapsed[ node.id ];
-			var name = ( node.el || 'El' ) + ( node.classes && node.classes[ 0 ] ? ' · ' + node.classes[ 0 ] : '' );
+			var name = ( node.name || node.el || 'El' ) + ( node.classes && node.classes[ 0 ] ? ' · ' + node.classes[ 0 ] : '' );
 			var caret = hasKids ? '<span class="vb-st-caret' + ( collapsed ? ' closed' : '' ) + '" data-stcaret="' + node.id + '">' + svg( 'chevron', 11 ) + '</span>' : '<span class="vb-st-spacer"></span>';
-			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + '" data-stnode="' + node.id + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px">' + caret + '<span class="vb-st-ic">' + svg( elIcon( node.el ), 13 ) + '</span><span class="vb-st-l">' + escapeHtml( name ) + '</span></div>';
+			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( node.hidden ? ' hid' : '' ) + '" data-stnode="' + node.id + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px">' + caret + '<span class="vb-st-ic">' + svg( elIcon( node.el ), 13 ) + '</span><span class="vb-st-l">' + escapeHtml( name ) + '</span></div>';
 			if ( hasKids && ! collapsed ) { html += kids.map( function ( k ) { return row( k, depth + 1 ); } ).join( '' ); }
 			return html;
 		}
 		var tree = store.state ? store.state.tree : [];
 		var body = tree.length ? tree.map( function ( n ) { return row( n, 0 ); } ).join( '' ) : '<div class="vb-hist-empty">' + T( 'Nothing on the page yet.' ) + '</div>';
 		box.innerHTML =
-			'<div class="vb-hist-top"><b>' + T( 'Structure' ) + '</b><button class="vb-css-x" id="vb-struct-close">' + svg( 'x', 14 ) + '</button></div>' +
+			'<div class="vb-hist-top"><b>' + T( 'Structure' ) + '</b><span class="vb-p-acts">' + pinBtnHTML() + '<button class="vb-css-x" id="vb-struct-close">' + svg( 'x', 14 ) + '</button></span></div>' +
 			'<div class="vb-st-tree">' + body + '</div>';
+		applyDock();
 	}
 
 	/* ---------- Session history (in-memory, cleared on close) ---------- */
@@ -1157,7 +1239,7 @@
 	}
 	function renderHistoryPanel() {
 		var box = document.getElementById( 'vb-hist' ); if ( ! box ) { return; }
-		if ( ! historyShown ) { box.style.display = 'none'; return; }
+		if ( ! historyShown ) { box.style.display = 'none'; applyDock(); return; }
 		box.style.display = 'flex';
 		var log = store.log;
 		var items = log.length
@@ -1166,9 +1248,10 @@
 			} ).join( '' )
 			: '<div class="vb-hist-empty">' + T( 'No changes yet. Your edits this session will appear here.' ) + '</div>';
 		box.innerHTML =
-			'<div class="vb-hist-top"><b>' + T( 'History' ) + '</b><button class="vb-css-x" id="vb-hist-close">' + svg( 'x', 14 ) + '</button></div>' +
+			'<div class="vb-hist-top"><b>' + T( 'History' ) + '</b><span class="vb-p-acts">' + pinBtnHTML() + '<button class="vb-css-x" id="vb-hist-close">' + svg( 'x', 14 ) + '</button></span></div>' +
 			'<div class="vb-hist-note">' + T( 'This session only — cleared when you close the editor.' ) + '</div>' +
 			'<div class="vb-hist-list">' + items + '</div>';
+		applyDock();
 	}
 
 	function wireEvents() {
@@ -1180,6 +1263,9 @@
 			if ( e.target.closest( '[data-dup]' ) ) { duplicateNode( store.state.selection ); return; }
 			if ( e.target.closest( '[data-del]' ) ) { deleteNode( store.state.selection ); return; }
 			var pick = e.target.closest( '[data-pickimg]' ); if ( pick ) { openMediaPicker( pick.getAttribute( 'data-pickimg' ) ); return; }
+			if ( e.target.closest( '[data-pin]' ) ) { togglePin(); return; }
+			if ( e.target.closest( '#vb-tgl-left' ) ) { toggleLeftStack(); return; }
+			if ( e.target.closest( '#vb-tgl-right' ) ) { toggleRightStack(); return; }
 			if ( e.target.closest( '#vb-code' ) ) { cssShown = ! cssShown; if ( cssShown ) { closeAllPanels( 'css' ); } renderCSSPanel(); return; }
 			if ( e.target.closest( '#vb-css-close' ) ) { cssShown = false; renderCSSPanel(); return; }
 			if ( e.target.closest( '#vb-css-new' ) ) { cssFiles.push( { name:'file-' + ( cssFiles.length + 1 ) + '.css', css:'' } ); cssActive = cssFiles.length - 1; renderCSSPanel(); saveGlobalCss(); return; }
@@ -1188,7 +1274,7 @@
 			if ( e.target.closest( '#vb-search' ) ) { toggleSwitcher(); e.stopPropagation(); return; }
 			if ( e.target.closest( '#vb-exit' ) ) { var em = document.getElementById( 'vb-exitmenu' ); var was = em.classList.contains( 'open' ); closeAllPanels(); em.classList.toggle( 'open', ! was ); e.stopPropagation(); return; }
 			if ( ! e.target.closest( '.vb-exitwrap' ) ) { var em2 = document.getElementById( 'vb-exitmenu' ); if ( em2 ) { em2.classList.remove( 'open' ); } }
-			if ( e.target.closest( '#vb-structure' ) || e.target.closest( '#vb-spine-structure' ) ) { structShown = ! structShown; if ( structShown ) { closeAllPanels( 'struct' ); } renderStructPanel(); return; }
+			if ( e.target.closest( '#vb-structure' ) ) { structShown = ! structShown; if ( structShown ) { closeAllPanels( 'struct' ); } renderStructPanel(); return; }
 			if ( e.target.closest( '#vb-struct-close' ) ) { structShown = false; renderStructPanel(); return; }
 			var stc = e.target.closest( '[data-stcaret]' ); if ( stc ) { var sid = stc.getAttribute( 'data-stcaret' ); structCollapsed[ sid ] = ! structCollapsed[ sid ]; renderStructPanel(); e.stopPropagation(); return; }
 			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) { store.commit( function ( s ) { s.selection = stn.getAttribute( 'data-stnode' ); resetActiveClass( s ); }, false ); return; }
@@ -1217,6 +1303,10 @@
 				else if ( act === 'paste' ) { pasteNode( tid ); }
 				else if ( act === 'dup' ) { duplicateNode( tid ); }
 				else if ( act === 'reuse' ) { makeReusableFromNode( tid ); }
+				else if ( act === 'rename' ) { renameNode( tid ); }
+				else if ( act === 'export' ) { exportNode( tid ); }
+				else if ( act === 'wrap' ) { wrapNodeInDiv( tid ); }
+				else if ( act === 'hide' ) { toggleNodeHidden( tid ); }
 				else if ( act === 'del' ) { deleteNode( tid ); }
 				return;
 			}
@@ -1261,6 +1351,7 @@
 			if ( mod && ( e.key === 'p' || e.key === 'P' ) ) { e.preventDefault(); publishDoc(); }
 			if ( mod && e.key === 'c' && ! typing && store.state && store.state.selection ) { e.preventDefault(); copyNode( store.state.selection ); toast( T( 'Copied.' ) ); }
 			if ( mod && e.key === 'v' && ! typing && clipboardNode ) { e.preventDefault(); pasteNode( ctxHoverId || store.state.selection ); }
+			if ( mod && e.key === '\\' ) { e.preventDefault(); if ( e.shiftKey ) { toggleRightStack(); } else { toggleLeftStack(); } }
 			if ( e.key === 'Escape' ) { closeAddMenu(); closeContextMenu(); }
 			if ( ( e.key === 'Delete' || e.key === 'Backspace' ) && ! typing && e.target === document.body && store.state && store.state.selection ) { e.preventDefault(); deleteNode( store.state.selection ); }
 		} );
@@ -1282,6 +1373,7 @@
 		closeAllPanels( 'add' );
 		renderAddPanel( '' );
 		m.classList.add( 'open' );
+		applyDock();
 		var si = document.getElementById( 'vb-ap-search' ); if ( si ) { si.focus(); }
 	}
 	function accGroups() {
@@ -1309,7 +1401,7 @@
 	function renderAddPanel( filter ) {
 		var m = document.getElementById( 'vb-addmenu' );
 		m.innerHTML =
-			'<div class="vb-ap-h"><span class="vb-ap-plus">' + svg( 'plus', 15 ) + '</span><b>' + T( 'Add element' ) + '</b><button class="vb-ap-x" data-add>' + svg( 'x', 15 ) + '</button></div>' +
+			'<div class="vb-ap-h"><span class="vb-ap-plus">' + svg( 'plus', 15 ) + '</span><b>' + T( 'Add element' ) + '</b><span class="vb-p-acts">' + pinBtnHTML() + '<button class="vb-ap-x" data-add>' + svg( 'x', 15 ) + '</button></span></div>' +
 			'<div class="vb-ap-search"><span class="vb-ss-ic">' + svg( 'search', 13 ) + '</span><input id="vb-ap-search" placeholder="' + T( 'Type to filter elements…' ) + '" value="' + escapeHtml( filter || '' ) + '"></div>' +
 			'<div class="vb-ap-body">' + addBodyHTML( filter ) + '</div>';
 	}
@@ -1324,7 +1416,7 @@
 		set( 'vb-exit-view', preview, false );
 		var b = document.getElementById( 'vb-exit-back' ); if ( b ) { b.href = back; }
 	}
-	function closeAddMenu() { var m = document.getElementById( 'vb-addmenu' ); if ( m ) { m.classList.remove( 'open' ); } }
+	function closeAddMenu() { var m = document.getElementById( 'vb-addmenu' ); if ( m ) { m.classList.remove( 'open' ); } applyDock(); }
 
 	/* ---------- clipboard, context menu, keyboard shortcuts ---------- */
 	var clipboardNode = null, ctxHoverId = null;
@@ -1371,23 +1463,98 @@
 		var menu = document.createElement( 'div' );
 		menu.className = 'vb-ctx'; menu.id = 'vb-ctx';
 		var items = [
-			{ a:'copy', ic:'copy', l:T( 'Copy' ) },
-			{ a:'paste', ic:'clipboard', l:T( 'Paste' ), off:! clipboardNode },
+			{ a:'copy', ic:'copy', l:T( 'Copy' ), k:'⌘C' },
+			{ a:'paste', ic:'clipboard', l:T( 'Paste' ), k:'⌘V', off:! clipboardNode },
 			{ a:'dup', ic:'copy', l:T( 'Duplicate' ) },
-			{ a:'reuse', ic:'star', l:T( 'Make reusable' ) },
+			{ a:'del', ic:'trash', l:T( 'Delete' ), k:'⌫', danger:true },
 			{ sep:true },
-			{ a:'del', ic:'trash', l:T( 'Remove' ), danger:true }
+			{ a:'rename', ic:'type', l:T( 'Rename' ) },
+			{ a:'export', ic:'external', l:T( 'Export' ) },
+			{ a:'wrap', ic:'div', l:T( 'Wrap with div' ) },
+			{ sep:true },
+			{ a:'hide', ic:'eye', l:node && node.hidden ? T( 'Show' ) : T( 'Hide' ) },
+			{ a:'reuse', ic:'star', l:T( 'Make re-usable' ) },
+			{ a:'cond', ic:'bolt', l:T( 'Conditions' ), soon:true, off:true }
 		];
 		menu.innerHTML = items.map( function ( it ) {
 			if ( it.sep ) { return '<div class="vb-ctx-sep"></div>'; }
-			return '<button class="vb-ctx-i' + ( it.danger ? ' danger' : '' ) + '"' + ( it.off ? ' disabled' : '' ) + ' data-ctx="' + it.a + '">' + svg( it.ic, 14 ) + ' ' + it.l + '</button>';
+			return '<button class="vb-ctx-i' + ( it.danger ? ' danger' : '' ) + '"' + ( it.off ? ' disabled' : '' ) + ' data-ctx="' + it.a + '">' +
+				svg( it.ic, 14 ) + '<span class="vb-ctx-l">' + it.l + '</span>' +
+				( it.soon ? '<span class="vb-ctx-soon">' + T( 'SOON' ) + '</span>' : '' ) +
+				( it.k ? '<span class="vb-ctx-k">' + it.k + '</span>' : '' ) + '</button>';
 		} ).join( '' );
 		document.body.appendChild( menu );
-		var mw = 190, mh = menu.offsetHeight || 200;
+		var mw = 212, mh = menu.offsetHeight || 200;
 		menu.style.left = Math.min( x, window.innerWidth - mw - 8 ) + 'px';
 		menu.style.top = Math.min( y, window.innerHeight - mh - 8 ) + 'px';
 	}
 	function closeContextMenu() { var m = document.getElementById( 'vb-ctx' ); if ( m ) { m.remove(); } }
+
+	/* ---------- context-menu actions (rename / export / wrap / hide) ---------- */
+	/* A custom label only affects how the element reads in the tree, Structure and
+	 * the inspector head — it never touches markup or classes. */
+	function renameNode( id ) {
+		var n = findNode( store.state.tree, id ); if ( ! n ) { return; }
+		var name = prompt( T( 'Name this element:' ), n.name || n.el );
+		if ( name === null ) { return; }
+		name = name.trim();
+		store.commit( function ( s ) {
+			var t = findNode( s.tree, id ); if ( ! t ) { return; }
+			if ( name ) { t.name = name; } else { delete t.name; }
+		}, T( 'Rename element' ) );
+	}
+	/* Copy the element (and its subtree) to the clipboard as JSON so it can be
+	 * pasted into another page or kept outside the editor. */
+	function exportNode( id ) {
+		var n = findNode( store.state.tree, id ); if ( ! n ) { return; }
+		var payload = { velox:'element', version:1, node:n, classes:collectClasses( n, store.state ) };
+		var text = JSON.stringify( payload, null, 2 );
+		if ( navigator.clipboard && navigator.clipboard.writeText ) {
+			navigator.clipboard.writeText( text ).then( function () { toast( T( 'Element JSON copied to clipboard.' ) ); } )
+				.catch( function () { exportFallback( text ); } );
+		} else { exportFallback( text ); }
+	}
+	function exportFallback( text ) {
+		var ta = document.createElement( 'textarea' );
+		ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+		document.body.appendChild( ta ); ta.select();
+		try { document.execCommand( 'copy' ); toast( T( 'Element JSON copied to clipboard.' ) ); }
+		catch ( e ) { toast( T( 'Could not copy — check the browser console.' ) ); window.console && console.log( text ); }
+		ta.remove();
+	}
+	/* Gather every styling class used anywhere in the subtree, so an exported
+	 * element carries its own styles with it. */
+	function collectClasses( node, state ) {
+		var out = {};
+		( function walk( n ) {
+			( n.classes || [] ).forEach( function ( c ) { if ( state.classes[ c ] ) { out[ c ] = state.classes[ c ]; } } );
+			( n.children || [] ).forEach( walk );
+		} )( node );
+		return out;
+	}
+	/* Put a Div around the element, in place, keeping the element's position. */
+	function wrapNodeInDiv( id ) {
+		store.commit( function ( s ) {
+			var target = findNode( s.tree, id ); if ( ! target ) { return; }
+			var parent = findParent( s.tree, id );
+			var list = parent ? parent.children : s.tree;
+			var i = list.indexOf( target ); if ( i < 0 ) { return; }
+			var wrapId = uid( 'div' );
+			if ( ! s.classes.div ) { s.classes.div = { base:{ display:'block' } }; }
+			list.splice( i, 1, { id:wrapId, el:'Div', tag:'div', classes:[ 'div' ], overrides:{}, children:[ target ] } );
+			s.selection = wrapId; resetActiveClass( s );
+		}, T( 'Wrap with div' ) );
+	}
+	/* Hidden elements stay in the tree and stay editable, but are skipped on the
+	 * front end and shown ghosted in the canvas. */
+	function toggleNodeHidden( id ) {
+		var n = findNode( store.state.tree, id ); if ( ! n ) { return; }
+		var next = ! n.hidden;
+		store.commit( function ( s ) {
+			var t = findNode( s.tree, id ); if ( ! t ) { return; }
+			if ( next ) { t.hidden = true; } else { delete t.hidden; }
+		}, next ? T( 'Hide element' ) : T( 'Show element' ) );
+	}
 	function toast( msg ) {
 		var t = document.createElement( 'div' ); t.className = 'vb-toast'; t.textContent = msg;
 		document.body.appendChild( t ); setTimeout( function () { t.classList.add( 'show' ); }, 10 );
@@ -1401,6 +1568,7 @@
 		if ( except !== 'struct' ) { structShown = false; var st = document.getElementById( 'vb-struct' ); if ( st ) { st.style.display = 'none'; } }
 		if ( except !== 'brand' ) { var bm = document.getElementById( 'vb-brandmenu' ); if ( bm ) { bm.classList.remove( 'open' ); } }
 		if ( except !== 'switch' ) { var ps = document.getElementById( 'vb-pageswitch' ); if ( ps ) { ps.classList.remove( 'open' ); } }
+		applyDock();
 	}
 
 	/* ---------- page switcher ---------- */
@@ -1586,19 +1754,33 @@
 			'.vb-el:hover{background:#3c3e46;border-color:#2ab7f1}.vb-el-ic{color:#dcdce2}.vb-el:hover .vb-el-ic{color:#2ab7f1}',
 			'.vb-el-l{font-size:11px;color:#dcdce2;display:flex;align-items:center;gap:5px}',
 			'.vb-el-badge{font-size:8px;font-weight:700;color:#a06bff;background:rgba(160,107,255,.15);padding:1px 5px;border-radius:4px}',
-			'.vb-body{flex:1;display:grid;grid-template-columns:190px 320px minmax(0,1fr);min-height:0;width:100%}',
-			'.vb-spine{background:#232429;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;min-height:0}',
-			'.vb-spine-top{padding:12px}',
-			'.vb-quick{display:flex;gap:6px;margin-top:8px}',
-			'.vb-qt{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:8px;border-radius:8px;background:#313339;border:1px solid rgba(255,255,255,.06);color:#aeb0b8;font-size:11.5px;font-weight:600;text-decoration:none}',
-			'.vb-qt:hover{background:#3c3e46;color:#f4f4f6}',
-			'.vb-spine-search{display:flex;align-items:center;gap:7px;margin:0 12px 8px;padding:7px 10px;background:#1a1b20;border:1px solid rgba(255,255,255,.06);border-radius:9px}',
+			// Pinned panels reserve their width via padding on the grid; collapsing
+			// the left stack folds its two columns to zero. --vb-lw/--vb-rw are set
+			// by applyDock() and are 0 whenever nothing is pinned+open.
+			'.vb-body{flex:1;display:grid;grid-template-columns:320px minmax(0,1fr);min-height:0;width:100%;box-sizing:border-box;padding-left:var(--vb-lw,0);padding-right:var(--vb-rw,0);transition:padding .16s ease,grid-template-columns .16s ease}',
+			'.vb-app.vb-lcol .vb-body{grid-template-columns:0 minmax(0,1fr)}',
+			// Nothing selected means the inspector has nothing to say, so it gives its
+			// column back to the canvas instead of sitting there empty.
+			'.vb-app.vb-nosel .vb-body{grid-template-columns:0 minmax(0,1fr)}',
+			'.vb-app.vb-lcol .vb-inspector,.vb-app.vb-nosel .vb-inspector{overflow:hidden;border-right-color:transparent}',
+			'.vb-app.vb-lcol .vb-dyndata{left:0}',
+			// Pinned panels sit flush against the canvas — the overlay shadow would
+			// read as "floating on top", which is exactly what pinning undoes.
+			'.vb-app.vb-pin .vb-csspanel,.vb-app.vb-pin .vb-histpanel,.vb-app.vb-pin .vb-structpanel{box-shadow:none;border-left-color:rgba(255,255,255,.07)}',
+			'.vb-app.vb-pin .vb-addmenu{box-shadow:none;border-right-color:rgba(255,255,255,.07)}',
+			'.vb-p-acts{display:flex;align-items:center;gap:2px}',
+			'.vb-pinbtn.on{color:#2ab7f1;background:rgba(42,183,241,.14)}',
+			'.vb-pinbtn.on:hover{background:rgba(42,183,241,.22);color:#2ab7f1}',
+			// Toggles are "on" whenever their stack is visible, which is the default
+			// state — so this stays a brightness shift, not a permanent filled chip.
+			'.vb-ic.on{color:#f4f4f6}',
 			'.vb-ss-ic{color:#8b8d96;display:grid;place-items:center}',
-			'.vb-spine-search input{flex:1;background:none;border:none;outline:none;color:#f4f4f6;font-size:12px}',
-			'.vb-spine-search input::placeholder{color:#8b8d96}',
-			'.vb-add-big{width:100%;padding:11px;border-radius:11px;background:linear-gradient(180deg,#218ec4,#1a789f);color:#eef7fc;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px;border:none;cursor:pointer}',
-			'.vb-add-big:hover{background:linear-gradient(180deg,#2597ce,#1d82ab)}',
-			'.vb-spine-h{padding:6px 14px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:#8b8d96}',
+			// Add element is the primary action of the whole editor, so it keeps the
+			// accent fill — it's the only accent-filled control in the top bar.
+			'.vb-add-top{display:flex;align-items:center;gap:7px;height:34px;padding:0 11px;border-radius:8px;border:none;cursor:pointer;background:none;color:#dcdce2;font-size:12.5px;font-weight:600}',
+			'.vb-add-top:hover{background:#3c3e46;color:#f4f4f6}',
+			'.vb-add-top svg{color:#2ab7f1}',
+			'.vb-add-top.on{background:#3c3e46;color:#f4f4f6}',
 			'.vb-tree{overflow-y:auto;flex:1;padding:0 8px 12px}',
 			'.vb-tn{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:7px;cursor:pointer;color:#aeb0b8}',
 			'.vb-tn:hover{background:#3c3e46;color:#f4f4f6}',
@@ -1637,6 +1819,7 @@
 			'.vb-st-tree{flex:1;overflow:auto;padding:6px}',
 			'.vb-st-row{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:7px;cursor:pointer;color:#dcdce2}',
 			'.vb-st-row:hover{background:#3c3e46}.vb-st-row.sel{background:rgba(42,183,241,.14);color:#f4f4f6}',
+			'.vb-st-row.hid{opacity:.45}.vb-st-row.hid .vb-st-l{text-decoration:line-through}',
 			'.vb-st-caret{display:grid;place-items:center;color:#8b8d96;cursor:pointer;transition:transform .12s;width:14px}.vb-st-caret.closed{transform:rotate(-90deg)}',
 			'.vb-st-spacer{width:14px;flex:0 0 auto}',
 			'.vb-st-ic{color:#a2a4ad;display:grid;place-items:center}.vb-st-row.sel .vb-st-ic{color:#2ab7f1}',
@@ -1645,7 +1828,6 @@
 			'.vb-live::before{content:"";width:6px;height:6px;border-radius:50%;background:#43d17f;box-shadow:0 0 8px #43d17f}',
 			'.vb-css pre{margin:0;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#aeb0b8;white-space:pre;overflow:auto;max-height:220px}',
 			'.vb-inspector{background:#232429;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;min-height:0;overflow-y:auto}',
-			'.vb-insp-empty{padding:20px;color:#8b8d96}',
 			'.vb-insp-head{display:flex;align-items:center;gap:10px;padding:14px}',
 			'.vb-insp-ic{width:32px;height:32px;border-radius:9px;background:rgba(42,183,241,.14);color:#2ab7f1;display:grid;place-items:center}',
 			'.vb-insp-tx b{font-size:13.5px;font-weight:650;display:block}',
@@ -1723,12 +1905,15 @@
 			'.vb-inp:focus{border-color:#2ab7f1}.vb-inp.num{max-width:70px;font-family:ui-monospace,Menlo,monospace;text-align:center}',
 			'.vb-unit{background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:0 8px;display:grid;place-items:center;color:#8b8d96;font-size:10px}',
 			'.vb-swatch{width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.11);cursor:pointer;padding:0;background:none}',
-			'.vb-ctx{position:fixed;z-index:9999;width:190px;background:#2a2c32;border:1px solid rgba(255,255,255,.14);border-radius:11px;box-shadow:0 20px 60px rgba(0,0,0,.55);padding:6px}',
-			'.vb-ctx-i{display:flex;align-items:center;gap:10px;width:100%;padding:9px 11px;border:none;background:none;color:#e6e6ec;font-size:12.5px;cursor:pointer;border-radius:7px;text-align:left;font-family:inherit}',
-			'.vb-ctx-i:hover{background:#3c3e46}.vb-ctx-i svg{color:#9fa3ad}.vb-ctx-i:hover svg{color:#f4f4f6}',
-			'.vb-ctx-i.danger{color:#f56a5c}.vb-ctx-i.danger svg{color:#f56a5c}.vb-ctx-i.danger:hover{background:rgba(245,106,92,.14)}',
-			'.vb-ctx-i:disabled{opacity:.4;cursor:default}.vb-ctx-i:disabled:hover{background:none}',
-			'.vb-ctx-sep{height:1px;background:rgba(255,255,255,.09);margin:5px 8px}',
+			'.vb-ctx{position:fixed;z-index:9999;min-width:212px;background:#232429;border:1px solid rgba(255,255,255,.1);border-radius:10px;box-shadow:0 16px 44px rgba(0,0,0,.55);padding:5px}',
+			'.vb-ctx-i{display:flex;align-items:center;gap:9px;width:100%;padding:7px 9px;border:none;background:none;color:#dcdce2;font-size:12.5px;cursor:pointer;border-radius:6px;text-align:left;font-family:inherit;box-sizing:border-box}',
+			'.vb-ctx-i:hover{background:#3c3e46;color:#f4f4f6}.vb-ctx-i svg{color:#8b8d96;flex:0 0 auto}.vb-ctx-i:hover svg{color:#dcdce2}',
+			'.vb-ctx-l{flex:1}',
+			'.vb-ctx-k{font-size:10.5px;color:#6d6f78;font-family:ui-monospace,Menlo,monospace}',
+			'.vb-ctx-soon{font-size:9px;font-weight:700;color:#a06bff;background:rgba(160,107,255,.15);padding:1px 5px;border-radius:4px}',
+			'.vb-ctx-i.danger{color:#f56a5c}.vb-ctx-i.danger svg{color:#f56a5c}.vb-ctx-i.danger:hover{background:rgba(245,106,92,.14);color:#f56a5c}',
+			'.vb-ctx-i:disabled{opacity:.38;cursor:default}.vb-ctx-i:disabled:hover{background:none;color:#dcdce2}.vb-ctx-i:disabled:hover svg{color:#8b8d96}',
+			'.vb-ctx-sep{height:1px;background:rgba(255,255,255,.08);margin:5px 7px}',
 			'.vb-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(12px);background:#2a2c32;border:1px solid rgba(255,255,255,.14);color:#f4f4f6;padding:10px 18px;border-radius:10px;font-size:12.5px;font-weight:600;box-shadow:0 14px 40px rgba(0,0,0,.5);opacity:0;transition:all .25s;z-index:9999;pointer-events:none}',
 			'.vb-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}'
 		].join( '' );

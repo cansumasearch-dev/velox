@@ -87,14 +87,36 @@ class Velox_Builder_Render {
 		$header = $roles['header'] ? Velox_Builder::doc_model( $roles['header'] ) : null;
 		$footer = $roles['footer'] ? Velox_Builder::doc_model( $roles['footer'] ) : null;
 
+		// A template wraps the page: we render the TEMPLATE's tree, and wherever it
+		// contains an Inner Content element we drop this page's own tree in. If the
+		// template has no Inner Content the page would vanish, so we fall back to
+		// appending it after the template rather than silently losing it.
+		$template = null;
+		if ( class_exists( 'Velox_Builder' ) ) {
+			$tpl_id = Velox_Builder::template_for_post( get_queried_object_id() );
+			if ( $tpl_id ) {
+				$template = Velox_Builder::doc_model( $tpl_id );
+			}
+		}
+
 		// Build the effective CSS from the page + any reusables it references +
 		// the active header/footer templates, so every class the visitor can see
 		// is covered by exactly one stylesheet.
-		$css_url = self::ensure_css_file( $doc, array( $header, $footer ) );
+		$css_url = self::ensure_css_file( $doc, array( $header, $footer, $template ) );
 
 		$body  = '';
 		$body .= $header ? '<header class="velox-template-header">' . self::render_tree( $header['tree'], $header ) . '</header>' : '';
-		$body .= self::render_tree( $doc['tree'], $doc );
+		if ( $template && ! empty( $template['tree'] ) ) {
+			self::$inner_doc = $doc;
+			self::$inner_used = false;
+			$body .= self::render_tree( $template['tree'], $template );
+			if ( ! self::$inner_used ) {
+				$body .= self::render_tree( $doc['tree'], $doc );
+			}
+			self::$inner_doc = null;
+		} else {
+			$body .= self::render_tree( $doc['tree'], $doc );
+		}
 		$body .= $footer ? '<footer class="velox-template-footer">' . self::render_tree( $footer['tree'], $footer ) . '</footer>' : '';
 
 		header( 'Content-Type: text/html; charset=' . get_bloginfo( 'charset' ) );
@@ -169,7 +191,29 @@ class Velox_Builder_Render {
 		return $out;
 	}
 
+	private static $inner_doc = null;
+	private static $inner_used = false;
+
 	private static function render_node( $node, $doc ) {
+		// Elements hidden in the builder stay in the document but are never output
+		// on the front end. The whole subtree goes with them.
+		if ( ! empty( $node['hidden'] ) ) {
+			return '';
+		}
+		// Inner Content: swap the template's placeholder for the actual page.
+		if ( isset( $node['el'] ) && 'InnerContent' === $node['el'] ) {
+			if ( ! self::$inner_doc ) {
+				return ''; // Rendering a template on its own — nothing to inject.
+			}
+			self::$inner_used = true;
+			$classes = array();
+			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) {
+				$classes[] = sanitize_html_class( ltrim( $c, '.' ) );
+			}
+			$classes[] = 'velox-inner-content';
+			$inner = self::render_tree( self::$inner_doc['tree'], self::$inner_doc );
+			return '<div id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( implode( ' ', array_filter( $classes ) ) ) . '">' . $inner . '</div>';
+		}
 		$tag = preg_replace( '/[^a-z0-9]/', '', strtolower( $node['tag'] ?? 'div' ) );
 		if ( '' === $tag ) {
 			$tag = 'div';

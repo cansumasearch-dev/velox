@@ -4,6 +4,30 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.68.0 — Templates that actually wrap your pages
+- **New "Inner Content" element.** Drop it into a template to mark where each page's own layout belongs. A template can now be a real navbar + content + footer instead of just a header and footer with a gap between them.
+- **"Render page using template"** now appears on every page and post editor, under the Velox Builder box. Pick a specific template, opt this page out entirely, or leave it following the site default.
+- **The first template you create becomes the site default automatically** — and because the default lives in one setting rather than being copied onto each page, pages you built *before* that template existed pick it up too.
+- If a template has no Inner Content element, the page content is appended after the template rather than disappearing.
+- The builder's "Add element" button is now a flat icon-and-text button in the top bar instead of a filled blue block.
+
+## 3.67.0 — Builder: one left column, richer right-click menu
+- **The left sidebar is gone.** "Add element" is now a button in the top bar, Reusables moved in with the other tool icons, and the duplicate Settings shortcut was dropped (it was already in the logo menu). The editor went from three stacked left columns down to one.
+- **The style panel only appears when you select something.** With nothing selected the canvas gets the full width instead of showing an empty column. Add an element and the panel slides straight in for it.
+- **Right-click menu rebuilt**: Copy, Paste, Duplicate, Delete, Rename, Export, Wrap with div, Hide, Make re-usable — with keyboard shortcuts shown next to each.
+- **Rename** gives an element a friendly name in the page structure without touching its markup or classes.
+- **Export** copies an element and all its styles as JSON to your clipboard.
+- **Wrap with div** puts a container around an element in place.
+- **Hide** keeps an element in the builder — ghosted, still editable — but leaves it off the published page entirely.
+- Conditions is listed in the menu but not built yet; it is greyed out and marked SOON rather than quietly missing.
+
+## 3.66.0 — Pin and collapse the builder panels
+- Panels can now be **pinned**: a pinned Structure, History, Global CSS or Add-element panel pushes the canvas across instead of covering it, so you can style and see your page at the same time. The pin is shared — set it once and every panel opens the same way.
+- New **Hide left panels** and **Hide right panel** buttons in the top bar slide the side panels off screen to give the canvas the full width. Shortcuts: Ctrl/Cmd + \ for the left stack, Ctrl/Cmd + Shift + \ for the right one.
+- The right-hand toggle remembers which panel you last had open and brings that one back.
+- Your pin and collapse choices are remembered between sessions.
+- Fixed the missing WordPress icon, which showed as a blank square in the Add-element list, the page structure and on WordPress data elements in the canvas.
+
 ## 3.65.0 — Velox Builder: states, spine cleanup, styled inputs (wave F)
 - State selector now includes :active out of the box plus a + button to add any custom pseudo-class (:visited, :nth-child(2), etc.); the generated CSS renders whatever states you use.
 - Removed the separate Layers list from the left spine — element editing lives in the inspector and the full tree is in the Structure panel (reachable from the spine or the top bar).
