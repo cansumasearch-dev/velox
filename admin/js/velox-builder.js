@@ -83,7 +83,13 @@
 	   ============================================================ */
 	var store = {
 		state:null, history:[], future:[], listeners:[], log:[], logListeners:[],
-		init:function ( d ) { this.state = d; this.history = [ JSON.stringify( d ) ]; this.log = []; this.future = []; this.emitLog(); this.emit(); },
+		init:function ( d ) {
+			// A document stored before a key existed must not break editing.
+			d = d || {};
+			if ( ! d.tree ) { d.tree = []; }
+			if ( ! d.classes ) { d.classes = {}; }
+			if ( ! d.content ) { d.content = {}; }
+			this.state = d; this.history = [ JSON.stringify( d ) ]; this.log = []; this.future = []; this.emitLog(); this.emit(); },
 		snapshot:function () { var snap = JSON.stringify( this.state ); if ( this.history[ this.history.length - 1 ] === snap ) { return false; } this.history.push( snap ); if ( this.history.length > 120 ) { this.history.shift(); } this.future = []; return true; },
 		/* commit: fn mutates state; snapshot the RESULT so history holds real edit
 		   states. quiet=true (selection, hover) doesn't record history/log. */
@@ -295,6 +301,21 @@
 		}
 		if ( doc.body.getAttribute( 'data-html' ) !== html ) {
 			doc.body.innerHTML = html; doc.body.setAttribute( 'data-html', html );
+			// Keystrokes inside the canvas iframe never reach the editor's own
+			// handler, so Ctrl+S and friends did nothing whenever the caret was on
+			// the page. Forward them, minus the ones that belong to typing.
+			doc.addEventListener( 'keydown', function ( e ) {
+				if ( ! ( e.metaKey || e.ctrlKey ) ) { return; }
+				var k = ( e.key || '' ).toLowerCase();
+				if ( [ 's', 'p', 'z', 'd', '\\' ].indexOf( k ) < 0 ) { return; }
+				e.preventDefault();
+				document.dispatchEvent( new KeyboardEvent( 'keydown', {
+					key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey,
+					shiftKey: e.shiftKey, altKey: e.altKey, bubbles: true
+				} ) );
+			// Capture phase: the inline-edit key handler on the element calls
+			// stopPropagation(), so a bubble-phase listener here never runs.
+			}, true );
 			doc.addEventListener( 'click', function ( e ) {
 				if ( e.target.isContentEditable ) { return; }
 				var n = e.target.closest ? e.target.closest( '[data-node]' ) : null;
@@ -677,6 +698,10 @@
 	/* ---------- persistence (save / load via AJAX) ---------- */
 	var docId = CFG.docId || 0, docTitle = ( CFG.seedTitle || 'Untitled' ), saving = false, postId = CFG.postId || 0, docKind = CFG.kind || 'page';
 	function saveDoc( silent ) {
+		// The canvas is an iframe, and clicking a top-bar button does not reliably
+		// blur a contenteditable inside it — so the text you just typed was still
+		// only in the DOM and never reached the model. Flush it first, always.
+		if ( editing ) { commitInlineEdit(); }
 		if ( saving || ! CFG.ajaxurl ) { return; }
 		saving = true; setSaveState( 'saving' );
 		var body = new URLSearchParams();
@@ -703,6 +728,7 @@
 	   Publish (pushes live for everyone). Save state shows on the Save button. */
 	var everPublished = false, dirty = false, pubStatus = 'draft', pubUrl = '', inspTab = 'ess', customStates = [];
 	function publishDoc() {
+		if ( editing ) { commitInlineEdit(); }
 		if ( ! CFG.ajaxurl ) { return; }
 		var afterSave = function () {
 			var body = new URLSearchParams();
@@ -899,6 +925,13 @@
 		store.subscribe( markDirty );
 		store.subscribeLog( function () { if ( historyShown ) { renderHistoryPanel(); } } );
 		renderActions();
+		// Clicking anywhere in the editor chrome means the canvas lost focus:
+		// commit whatever was being typed rather than waiting for a blur that may
+		// never arrive.
+		document.addEventListener( 'mousedown', function ( e ) {
+			if ( editing && ! e.target.closest( '#vb-canvas' ) ) { commitInlineEdit(); }
+		}, true );
+		window.addEventListener( 'blur', function () { if ( editing ) { commitInlineEdit(); } } );
 		var fr = document.getElementById( 'vb-canvas' );
 		fr.addEventListener( 'load', function () { canvasReady = true; if ( ! store.state ) { boot(); } else { injectCanvas(); } injectGlobalCss(); } );
 		setTimeout( function () { if ( ! store.state ) { boot(); } }, 60 );

@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.78.0 — Text you type on the canvas is no longer lost
+- **Fixed: text typed directly on the page could vanish when you saved.** The canvas is an iframe, and clicking a button in the top bar does not reliably tell the browser you have finished editing — so the text was still only on screen and never reached the saved document. It looked especially bad on templates: the heading saved empty, so the whole template appeared to render nothing on the front end.
+- Text is now committed before every save and publish, and whenever you click anywhere outside the canvas.
+- **Fixed: keyboard shortcuts did nothing while the cursor was on the page.** Ctrl/Cmd + S, P, Z, D and \\ now work whether you are typing on the canvas or not.
+- A document saved without a content, tree or class map no longer breaks editing.
+
 ## 3.77.1 — Cache purging, and a status that cannot lie
 - **Fixed: publishing never cleared the page cache.** Logged-in users bypass the cache, so changes looked fine to you while logged-out visitors kept being served the old page indefinitely. Publishing a page, publishing a template, changing global CSS or JavaScript, and switching the catch-all option now all clear the cache.
 - **Fixed: the page editor could show two contradictory statuses at once** — "No Velox layout is attached" alongside a message saying the template wraps the page. The status now runs the same code the front end runs, so the two cannot disagree.
