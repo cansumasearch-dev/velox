@@ -4,6 +4,28 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.91.0 — Interactive elements, and the foundation under them
+**New elements**
+- **Accordion** and **FAQ** — add sections, choose one-at-a-time or several open at once, set the icon side and heading level. Optional FAQ structured data, off by default.
+- **Tabs** — above or beside, click or hover, and an option to become an accordion on mobile using the same content rather than a duplicate copy.
+- **Slider** — slides shown, spacing, looping, autoplay with a play/pause control, arrows, dots and a position counter.
+- **Offcanvas panel**, **Popup / modal** and **Dropdown** — edge, size, whether the page is pushed or stays put, backdrop, and how it can be closed.
+- **36 layout, typography, content and utility elements**: split screen, full-height section, aspect-ratio box, bento grid, auto stack, cluster, content + sidebar, gradient/outlined/highlighted text, drop cap, eyebrow, pull quote, vertical text, icon box, card, stats row, team member, logo strip, callout, badge, avatar group, trust badges, payment icons, case study card, CTA band, notice box, feature grid, skip link, screen-reader text, reading time, last updated, loading skeleton, empty state and anchor target.
+
+**Under the hood**
+- Elements now carry their own settings, so every element gets a properly organised Settings tab with sections, plain-language labels and controls that appear only when they are relevant.
+- Interactive elements are keyboard-accessible and screen-reader-correct by default, following the W3C accessibility patterns for accordions, tabs, dialogs and carousels.
+- **The slider uses no carousel library.** Slides are ordinary content in the page, so they are visible to search engines without JavaScript, nothing jumps while the page loads, and the first slide is prioritised for speed.
+- Element code is only sent to a page that actually uses it — a page with an accordion does not carry the code for sliders.
+- Anything that animates respects the visitor's reduced-motion setting.
+
+**Fixes**
+- **Fixed: a setting switched off came back on.** Turning any toggle off removed the setting entirely, so it fell back to its default — meaning "off" was impossible to save.
+- **Fixed: an empty popup could not be closed**, because it collapsed to nothing and hid its own close button.
+
+## 3.90.1 — Nothing shows through a floating panel
+- **Fixed: the style panel stayed visible behind an unpinned Add panel.** The Add panel is narrower than the style panel, so its right edge stuck out and remained readable through the dimming. Dimming is not hiding — the column is now removed while a panel floats over it, and comes back the moment the panel is pinned or closed.
+
 ## 3.90.0 — Panels and shortcuts behave
 - **Fixed: the Add panel's pin did nothing.** It was pinning the right-hand side instead of its own, so clicking it appeared to have no effect at all.
 - **Fixed: opening a panel closed the one on the other side.** Structure and Add can now be open together, as can Settings and Add. Panels on the same side still replace each other, since they share the space. Pinning decides whether a panel pushes or overlays the canvas — nothing more.

@@ -203,6 +203,421 @@ class Velox_Builder_Render {
 		);
 	}
 
+
+	/** Elements needing the runtime, collected while rendering this page. */
+	private static $runtime_used = array();
+
+	/** A node's saved settings, with the element's defaults filled in. */
+	private static function el_settings( $node ) {
+		return isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : array();
+	}
+	private static function el_set( $node, $key, $default = '' ) {
+		$s = self::el_settings( $node );
+		// A stored key wins even when it is empty: '' is how a toggle says OFF,
+		// and falling back to the default there turns every disabled toggle back
+		// on. Only an absent key means "use the default".
+		if ( ! array_key_exists( $key, $s ) ) {
+			return $default;
+		}
+		return ( '0' === $s[ $key ] ) ? '' : $s[ $key ];
+	}
+
+	/**
+	 * Accordion / FAQ.
+	 *
+	 * Markup follows the W3C APG Accordion pattern exactly: a heading element
+	 * containing a button that owns aria-expanded and aria-controls, and a
+	 * labelled region for the panel. Built correctly here so it is accessible by
+	 * default rather than retrofitted.
+	 */
+	private static function render_accordion( $node, $doc, $classes ) {
+		$items = (array) self::el_set( $node, 'items', array() );
+		if ( ! is_array( $items ) || ! $items ) {
+			return '';
+		}
+		self::$runtime_used['accordion'] = true;
+
+		$is_faq   = isset( $node['el'] ) && 'Faq' === $node['el'];
+		$mode     = self::el_set( $node, 'openMode', 'single' );
+		$speed    = (int) self::el_set( $node, 'speed', 220 );
+		$icon_pos = self::el_set( $node, 'iconPos', 'right' );
+		$h_tag    = self::el_set( $node, 'headingTag', 'h3' );
+		$h_tag    = in_array( $h_tag, array( 'h2', 'h3', 'h4', 'h5' ), true ) ? $h_tag : 'h3';
+		$deeplink = self::el_set( $node, 'deepLink', '' );
+		$first    = self::el_set( $node, 'firstOpen', $is_faq ? '' : '1' );
+		$base     = sanitize_html_class( $node['id'] ?? 'acc' );
+
+		$cls = $classes . ' vx-acc' . ( 'left' === $icon_pos ? ' vx-acc-left' : '' );
+		$out = '<div id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( trim( $cls ) ) . '"' .
+			' data-vx-mode="' . esc_attr( $mode ) . '" data-vx-speed="' . (int) $speed . '"' .
+			( $deeplink ? ' data-vx-deeplink' : '' ) . '>';
+
+		$qa = array();
+		foreach ( array_values( $items ) as $i => $item ) {
+			$title = isset( $item['title'] ) ? (string) $item['title'] : '';
+			$body  = isset( $item['body'] ) ? (string) $item['body'] : '';
+			if ( '' === trim( $title ) && '' === trim( $body ) ) {
+				continue;
+			}
+			$open   = ( $first && 0 === $i );
+			$btn_id = $base . '-b' . $i;
+			$pan_id = $base . '-p' . $i;
+
+			$out .= '<div class="vx-acc-item' . ( $open ? ' is-open' : '' ) . '" id="' . esc_attr( $pan_id ) . '-item">';
+			$out .= '<' . $h_tag . ' class="vx-acc-h">';
+			$out .= '<button class="vx-acc-btn" type="button" id="' . esc_attr( $btn_id ) . '"' .
+				' aria-expanded="' . ( $open ? 'true' : 'false' ) . '" aria-controls="' . esc_attr( $pan_id ) . '">';
+			$out .= '<span class="vx-acc-t">' . esc_html( $title ) . '</span>';
+			$out .= '<span class="vx-acc-i" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>';
+			$out .= '</button></' . $h_tag . '>';
+			$out .= '<div class="vx-acc-p" id="' . esc_attr( $pan_id ) . '" role="region" aria-labelledby="' . esc_attr( $btn_id ) . '"' . ( $open ? '' : ' hidden' ) . '>';
+			$out .= wp_kses_post( wpautop( $body ) );
+			$out .= '</div></div>';
+
+			$qa[] = array( 'q' => $title, 'a' => wp_strip_all_tags( $body ) );
+		}
+		$out .= '</div>';
+
+		// FAQPage structured data. Google restricted FAQ rich results to
+		// government/health sites in 2023 and retired them in Search in 2026, so
+		// this is opt-in and off by default — it is no longer an SEO win.
+		if ( $is_faq && self::el_set( $node, 'faqSchema', '' ) && $qa ) {
+			$ld = array( '@context' => 'https://schema.org', '@type' => 'FAQPage', 'mainEntity' => array() );
+			foreach ( $qa as $pair ) {
+				$ld['mainEntity'][] = array(
+					'@type'          => 'Question',
+					'name'           => $pair['q'],
+					'acceptedAnswer' => array( '@type' => 'Answer', 'text' => $pair['a'] ),
+				);
+			}
+			$out .= '<script type="application/ld+json">' . wp_json_encode( $ld ) . '</script>';
+		}
+		return $out;
+	}
+
+
+	/**
+	 * Tabs — W3C APG Tabs pattern.
+	 *
+	 * One set of markup serves both the tab layout and the mobile accordion
+	 * fallback; only a class changes at the breakpoint. Duplicating the content
+	 * for mobile would double it for screen readers and search engines.
+	 */
+	private static function render_tabs( $node, $doc, $classes ) {
+		$items = (array) self::el_set( $node, 'items', array() );
+		$items = array_values( array_filter( $items, function ( $it ) {
+			return '' !== trim( (string) ( $it['title'] ?? '' ) ) || '' !== trim( (string) ( $it['body'] ?? '' ) );
+		} ) );
+		if ( ! $items ) {
+			return '';
+		}
+		self::$runtime_used['tabs'] = true;
+
+		$orient   = self::el_set( $node, 'orient', 'top' );
+		$activate = self::el_set( $node, 'activate', 'click' );
+		$start    = max( 0, (int) self::el_set( $node, 'startTab', 1 ) - 1 );
+		$start    = min( $start, count( $items ) - 1 );
+		$to_acc   = self::el_set( $node, 'toAccordion', '1' );
+		$deeplink = self::el_set( $node, 'deepLink', '' );
+		$base     = sanitize_html_class( $node['id'] ?? 'tabs' );
+		$bp       = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'mobile' => 767 );
+
+		$cls = trim( $classes . ' vx-tabs' . ( 'left' === $orient ? ' vx-tabs-left' : '' ) );
+		$out = '<div id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( $cls ) . '"' .
+			' data-vx-activate="' . esc_attr( $activate ) . '"' .
+			( $to_acc ? ' data-vx-toacc data-vx-accbp="' . (int) $bp['mobile'] . '"' : '' ) .
+			( $deeplink ? ' data-vx-deeplink' : '' ) . '>';
+
+		$out .= '<div class="vx-tablist" role="tablist"' . ( 'left' === $orient ? ' aria-orientation="vertical"' : '' ) . '>';
+		foreach ( $items as $i => $item ) {
+			$on = ( $i === $start );
+			$out .= '<button type="button" class="vx-tab' . ( $on ? ' is-active' : '' ) . '" role="tab"' .
+				' id="' . esc_attr( $base . '-t' . $i ) . '"' .
+				' aria-selected="' . ( $on ? 'true' : 'false' ) . '"' .
+				' aria-controls="' . esc_attr( $base . '-tp' . $i ) . '"' .
+				' tabindex="' . ( $on ? '0' : '-1' ) . '">' . esc_html( (string) ( $item['title'] ?? '' ) ) . '</button>';
+		}
+		$out .= '</div><div class="vx-tabpanels">';
+		foreach ( $items as $i => $item ) {
+			$on = ( $i === $start );
+			$out .= '<div class="vx-tabp" role="tabpanel" id="' . esc_attr( $base . '-tp' . $i ) . '"' .
+				' aria-labelledby="' . esc_attr( $base . '-t' . $i ) . '" tabindex="0"' . ( $on ? '' : ' hidden' ) . '>' .
+				wp_kses_post( wpautop( (string) ( $item['body'] ?? '' ) ) ) . '</div>';
+		}
+		$out .= '</div></div>';
+		return $out;
+	}
+
+
+	/**
+	 * Offcanvas, modal and dropdown.
+	 *
+	 * All three are the same thing — a panel that opens, traps focus and gives it
+	 * back — so they share one renderer and one runtime primitive. Only the
+	 * chrome and positioning differ.
+	 */
+	private static function render_overlay( $node, $doc, $classes ) {
+		$kind = strtolower( $node['el'] );      // offcanvas | modal | dropdown
+		self::$runtime_used['overlay'] = true;
+		self::$runtime_used[ $kind ]   = true;
+
+		$id       = sanitize_html_class( $node['id'] ?? $kind );
+		$ms       = (int) self::el_set( $node, 'ms', 'dropdown' === $kind ? 160 : 250 );
+		$backdrop = 'dropdown' === $kind ? '' : self::el_set( $node, 'backdrop', '1' );
+		$kids     = self::render_tree( $node['children'] ?? array(), $doc );
+		$labelled = $id . '-label';
+
+		$attr = ' id="' . esc_attr( $id ) . '" data-vx-ms="' . $ms . '"';
+		if ( ! self::el_set( $node, 'closeEsc', '1' ) ) { $attr .= ' data-vx-noesc'; }
+		if ( ! self::el_set( $node, 'closeBack', '1' ) ) { $attr .= ' data-vx-nobackclose'; }
+
+		// Size belongs on the PANEL. Putting it on the container left the panel at
+		// 100% of a full-viewport box, so it covered the backdrop entirely and
+		// clicking outside could never close it.
+		$panel_style = '';
+		$cls         = trim( $classes . ' vx-ov vx-' . $kind );
+
+		if ( 'offcanvas' === $kind ) {
+			$edge         = self::el_set( $node, 'edge', 'right' );
+			$size         = (int) self::el_set( $node, 'size', 340 );
+			$cls         .= ' vx-oc-' . $edge;
+			$panel_style  = in_array( $edge, array( 'left', 'right' ), true )
+				? 'width:' . $size . 'px;max-width:100%;' : 'height:' . $size . 'px;width:100%;';
+			$attr        .= ' data-vx-modal';
+		} elseif ( 'modal' === $kind ) {
+			$cls        .= ' vx-modal-' . self::el_set( $node, 'pos', 'center' );
+			$panel_style = 'max-width:' . (int) self::el_set( $node, 'width', 520 ) . 'px;';
+			$attr       .= ' data-vx-modal';
+		} else {
+			$cls .= ' vx-dd-' . self::el_set( $node, 'align', 'left' );
+		}
+
+		$out = '';
+
+		// A dropdown carries its own trigger button; the other two are opened by
+		// something else on the page.
+		if ( 'dropdown' === $kind ) {
+			$out .= '<div class="vx-dd-wrap">';
+			$out .= '<button type="button" class="vx-dd-btn" aria-expanded="false" aria-haspopup="true"' .
+				' aria-controls="' . esc_attr( $id ) . '" data-vx-toggle="' . esc_attr( $id ) . '">' .
+				esc_html( self::el_set( $node, 'label', 'Menü' ) ) .
+				'<span class="vx-dd-i" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>';
+		}
+
+		$out .= '<div class="' . esc_attr( $cls ) . '"' . $attr . ' role="dialog"' .
+			( 'dropdown' === $kind ? '' : ' aria-modal="true"' ) .
+			' aria-labelledby="' . esc_attr( $labelled ) . '" aria-hidden="true" hidden>';
+
+		if ( $backdrop ) {
+			$bc   = self::sanitize_value( self::el_set( $node, 'backColor', 'rgba(0,0,0,.5)' ) );
+			$out .= '<div class="vx-ov-back" style="background:' . esc_attr( $bc ) . '"></div>';
+		}
+		$out .= '<div class="vx-ov-panel"' . ( $panel_style ? ' style="' . esc_attr( $panel_style ) . '"' : '' ) . '>';
+		if ( 'dropdown' !== $kind && self::el_set( $node, 'closeBtn', '1' ) ) {
+			$out .= '<button type="button" class="vx-ov-close" data-vx-close aria-label="' . esc_attr__( 'Close', 'velox' ) . '">' .
+				'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+		}
+		// Screen readers need a name for the dialog even when the design has no
+		// visible heading.
+		$out .= '<span id="' . esc_attr( $labelled ) . '" class="vx-sr">' .
+			esc_html( self::el_set( $node, 'label', ucfirst( $kind ) ) ) . '</span>';
+		$out .= $kids . '</div></div>';
+
+		if ( 'dropdown' === $kind ) { $out .= '</div>'; }
+		return $out;
+	}
+
+
+	/**
+	 * Slider — a scroll-snap track with real slides in the markup.
+	 *
+	 * No carousel library: slides are ordinary HTML inside a scroll container,
+	 * so they exist for search engines and screen readers with no JavaScript,
+	 * nothing shifts while a script boots, and native scrolling gives touch and
+	 * trackpad support for free. JS only wires the arrows, dots and autoplay.
+	 * Roles follow the W3C APG Carousel pattern.
+	 */
+	private static function render_slider( $node, $doc, $classes ) {
+		$items = (array) self::el_set( $node, 'items', array() );
+		$items = array_values( array_filter( $items, function ( $it ) {
+			return '' !== trim( (string) ( $it['title'] ?? '' ) )
+				|| '' !== trim( (string) ( $it['body'] ?? '' ) )
+				|| '' !== trim( (string) ( $it['image'] ?? '' ) );
+		} ) );
+		if ( ! $items ) {
+			return '';
+		}
+		self::$runtime_used['slider'] = true;
+
+		$per    = max( 1, (int) self::el_set( $node, 'perView', 1 ) );
+		$gap    = (int) self::el_set( $node, 'gap', 16 );
+		$loop   = self::el_set( $node, 'loop', '' );
+		$auto   = self::el_set( $node, 'auto', '' );
+		$automs = max( 1500, (int) self::el_set( $node, 'autoMs', 5000 ) );
+		$arrows = self::el_set( $node, 'arrows', '1' );
+		$dots   = self::el_set( $node, 'dots', '1' );
+		$count  = self::el_set( $node, 'counter', '' );
+		$id     = sanitize_html_class( $node['id'] ?? 'slider' );
+		$total  = count( $items );
+
+		$attr = ' id="' . esc_attr( $id ) . '"' .
+			( $loop ? ' data-vx-loop' : '' ) .
+			( $auto ? ' data-vx-auto="' . $automs . '"' : '' );
+
+		$out  = '<div class="' . esc_attr( trim( $classes . ' vx-slider' ) ) . '"' . $attr .
+			' role="group" aria-roledescription="' . esc_attr__( 'carousel', 'velox' ) . '"' .
+			' aria-label="' . esc_attr__( 'Slider', 'velox' ) . '">';
+
+		$basis = 'flex:0 0 calc((100% - ' . ( ( $per - 1 ) * $gap ) . 'px)/' . $per . ')';
+		$out  .= '<div class="vx-track" style="gap:' . $gap . 'px">';
+		foreach ( $items as $i => $item ) {
+			$out .= '<div class="vx-slide" style="' . esc_attr( $basis ) . '"' .
+				' role="group" aria-roledescription="' . esc_attr__( 'slide', 'velox' ) . '"' .
+				' aria-label="' . esc_attr( sprintf( '%d / %d', $i + 1, $total ) ) . '">';
+			if ( ! empty( $item['image'] ) ) {
+				// Width/height are unknown here, so lazy-load everything except the
+				// first slide, which is often the LCP element.
+				$out .= '<img src="' . esc_url( $item['image'] ) . '" alt=""' .
+					( 0 === $i ? ' fetchpriority="high"' : ' loading="lazy" decoding="async"' ) . '>';
+			}
+			if ( ! empty( $item['title'] ) ) { $out .= '<strong class="vx-slide-t">' . esc_html( $item['title'] ) . '</strong>'; }
+			if ( ! empty( $item['body'] ) ) { $out .= wp_kses_post( wpautop( $item['body'] ) ); }
+			$out .= '</div>';
+		}
+		$out .= '</div>';
+
+		$out .= '<div class="vx-live vx-sr" aria-live="polite" aria-atomic="true">1 / ' . $total . '</div>';
+
+		if ( $arrows || $dots || $auto ) {
+			$out .= '<div class="vx-controls">';
+			if ( $auto ) {
+				// APG requires a way to stop anything that moves by itself.
+				$out .= '<button type="button" class="vx-play" aria-pressed="false"' .
+					' data-vx-play-label="' . esc_attr__( 'Play', 'velox' ) . '"' .
+					' data-vx-pause-label="' . esc_attr__( 'Pause', 'velox' ) . '"' .
+					' aria-label="' . esc_attr__( 'Pause', 'velox' ) . '">' .
+					'<span class="vx-play-i" aria-hidden="true"></span></button>';
+			}
+			if ( $dots ) {
+				$out .= '<div class="vx-dots" role="tablist" aria-label="' . esc_attr__( 'Choose a slide', 'velox' ) . '">';
+				foreach ( $items as $i => $item ) {
+					$out .= '<button type="button" class="vx-dot' . ( 0 === $i ? ' is-active' : '' ) . '" role="tab"' .
+						' data-vx-i="' . $i . '" aria-selected="' . ( 0 === $i ? 'true' : 'false' ) . '"' .
+						' tabindex="' . ( 0 === $i ? '0' : '-1' ) . '"' .
+						' aria-label="' . esc_attr( sprintf( '%d / %d', $i + 1, $total ) ) . '"></button>';
+				}
+				$out .= '</div>';
+			}
+			if ( $count ) { $out .= '<span class="vx-count" aria-hidden="true">1 / ' . $total . '</span>'; }
+			if ( $arrows ) {
+				$out .= '<div class="vx-arrows">' .
+					'<button type="button" class="vx-prev" aria-label="' . esc_attr__( 'Previous slide', 'velox' ) . '"' . ( $loop ? '' : ' disabled' ) . '><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></button>' .
+					'<button type="button" class="vx-next" aria-label="' . esc_attr__( 'Next slide', 'velox' ) . '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg></button>' .
+					'</div>';
+			}
+			$out .= '</div>';
+		}
+		return $out . '</div>';
+	}
+
+	/** Ship the element runtime, but only when the page actually uses it. */
+	public static function print_element_runtime() {
+		if ( ! self::$runtime_used ) {
+			return;
+		}
+		$src = defined( 'VELOX_URL' ) ? VELOX_URL . 'assets/js/velox-elements.js' : '';
+		$ver = defined( 'VELOX_VERSION' ) ? VELOX_VERSION : '1';
+		if ( $src ) {
+			echo "\n" . '<script src="' . esc_url( $src . '?ver=' . $ver ) . '" defer></script>' . "\n";
+		}
+	}
+
+	/** Baseline CSS for runtime elements, so they look right before any styling. */
+	public static function element_base_css() {
+		if ( ! self::$runtime_used ) {
+			return '';
+		}
+		$css = '';
+		if ( isset( self::$runtime_used['slider'] ) ) {
+			$css .= '.vx-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}' .
+				'.vx-slider{position:relative}' .
+				'.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:none}' .
+				'.vx-track::-webkit-scrollbar{display:none}' .
+				'.vx-slide{scroll-snap-align:start;min-width:0}' .
+				'.vx-slide img{width:100%;height:auto;display:block}' .
+				'.vx-controls{display:flex;align-items:center;gap:14px;margin-top:14px}' .
+				'.vx-dots{display:flex;gap:8px;flex:1;justify-content:center}' .
+				'.vx-dot{width:9px;height:9px;padding:0;border:none;border-radius:50%;background:currentColor;opacity:.25;cursor:pointer}' .
+				'.vx-dot[aria-selected="true"]{opacity:1}' .
+				'.vx-arrows{display:flex;gap:8px}' .
+				'.vx-prev,.vx-next,.vx-play{width:36px;height:36px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;cursor:pointer;display:grid;place-items:center;opacity:.75}' .
+				'.vx-prev:hover,.vx-next:hover,.vx-play:hover{opacity:1}' .
+				'.vx-prev[disabled],.vx-next[disabled]{opacity:.25;cursor:default}' .
+				'.vx-play-i{width:0;height:0;border-style:solid;border-width:6px 0 6px 9px;border-color:transparent transparent transparent currentColor}' .
+				'.vx-slider.is-playing .vx-play-i{width:9px;height:11px;border:none;background:linear-gradient(to right,currentColor 0 3px,transparent 3px 6px,currentColor 6px 9px)}' .
+				'@media (prefers-reduced-motion:reduce){.vx-track{scroll-behavior:auto}}';
+		}
+		if ( isset( self::$runtime_used['overlay'] ) ) {
+			$css .= '.vx-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}' .
+				'.vx-ov[hidden]{display:none}' .
+				'.vx-ov{position:fixed;inset:0;z-index:9998;display:flex}' .
+				'.vx-ov-back{position:absolute;inset:0;z-index:0;opacity:0;transition:opacity .25s ease}' .
+				'.vx-ov.is-open .vx-ov-back{opacity:1}' .
+				'.vx-ov-panel{position:relative;z-index:2;max-height:100%;overflow:auto;background:#fff;min-height:56px;transition:transform .25s ease,opacity .25s ease}' .
+				'.vx-ov-close{position:absolute;z-index:3;top:12px;right:12px;background:none;border:none;padding:6px;cursor:pointer;color:inherit;line-height:0}' .
+				// offcanvas: slides in from its edge
+				'.vx-offcanvas .vx-ov-panel{height:100%}' .
+				'.vx-oc-right{justify-content:flex-end}.vx-oc-left{justify-content:flex-start}' .
+				'.vx-oc-top{align-items:flex-start}.vx-oc-bottom{align-items:flex-end}' .
+				'.vx-oc-right .vx-ov-panel{transform:translateX(100%)}.vx-oc-left .vx-ov-panel{transform:translateX(-100%)}' .
+				'.vx-oc-top .vx-ov-panel{transform:translateY(-100%)}.vx-oc-bottom .vx-ov-panel{transform:translateY(100%)}' .
+				'.vx-ov.is-open .vx-ov-panel{transform:none}' .
+				// modal: centred box that scales in
+				'.vx-modal{align-items:center;justify-content:center;padding:24px}' .
+				'.vx-modal-top{align-items:flex-start}.vx-modal-bottom{align-items:flex-end}' .
+				'.vx-modal .vx-ov-panel{width:100%;transform:scale(.96);opacity:0}' . '.vx-modal .vx-ov-panel,.vx-offcanvas .vx-ov-panel{padding-top:44px}' .
+				'.vx-modal.is-open .vx-ov-panel{transform:none;opacity:1}' .
+				// dropdown: anchored to its button, not the viewport
+				'.vx-dd-wrap{position:relative;display:inline-block}' .
+				'.vx-dd-btn{display:inline-flex;align-items:center;gap:6px;font:inherit;background:none;border:none;cursor:pointer;color:inherit}' .
+				'.vx-dropdown{position:absolute;inset:auto;top:100%;z-index:60;display:block}' .
+				'.vx-dd-left{left:0}.vx-dd-right{right:0}' .
+				'.vx-dropdown .vx-ov-panel{transform:translateY(-6px);opacity:0}' .
+				'.vx-dropdown.is-open .vx-ov-panel{transform:none;opacity:1}' .
+				'@media (prefers-reduced-motion:reduce){.vx-ov-panel,.vx-ov-back{transition:none}}';
+		}
+		if ( isset( self::$runtime_used['tabs'] ) ) {
+			$bp   = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'mobile' => 767 );
+			$css .= '.vx-tablist{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid rgba(0,0,0,.12)}' .
+				'.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}' .
+				'.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}' .
+				'.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:inherit;opacity:.65;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}' .
+				'.vx-tab[aria-selected="true"]{opacity:1;border-bottom-color:currentColor}' .
+				'.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}' .
+				'.vx-tabs-left .vx-tab[aria-selected="true"]{border-right-color:currentColor}' .
+				'.vx-tabp{padding:18px 4px}.vx-tabp[hidden]{display:none}' .
+				// Accordion fallback: the tab button moves above its own panel.
+				'@media (max-width:' . (int) $bp['mobile'] . 'px){' .
+					'.vx-tabs-acc{display:block}' .
+					'.vx-tabs-acc .vx-tablist,.vx-tabs-acc .vx-tabpanels{display:contents;border:none}' .
+					'.vx-tabs-acc .vx-tab{display:block;width:100%;border:none;border-top:1px solid rgba(0,0,0,.12);margin:0;text-align:left}' .
+					'.vx-tabs-acc .vx-tabp{padding:0 4px 16px}' .
+				'}';
+		}
+		if ( isset( self::$runtime_used['accordion'] ) ) {
+			$css .= '.vx-acc-h{margin:0}' .
+				'.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}' .
+				'.vx-acc-t{flex:1}' .
+				'.vx-acc-i{flex:0 0 auto;transition:transform .2s}' .
+				'.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}' .
+				'.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}' .
+				'.vx-acc-p{overflow:hidden}' .
+				'.vx-acc-p[hidden]{display:none}' .
+				'@media (prefers-reduced-motion:reduce){.vx-acc-i{transition:none}}';
+		}
+		return $css;
+	}
+
 	/** Print the full standalone HTML document. */
 	private static function output_page( $doc ) {
 		self::$page_settings = isset( $doc['page'] ) && is_array( $doc['page'] ) ? $doc['page'] : array();
@@ -266,6 +681,7 @@ class Velox_Builder_Render {
 </head>
 <body <?php body_class( 'velox-built' ); ?>>
 	<?php echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped — built from sanitized model ?>
+	<?php self::print_element_runtime(); ?>
 	<?php self::print_aos(); ?>
 	<?php
 	if ( ! empty( self::$page_settings['js'] ) ) {
@@ -384,7 +800,7 @@ class Velox_Builder_Render {
 		if ( ! empty( self::$page_settings['css'] ) ) {
 			$page_css .= str_ireplace( array( '</style', '<script' ), '', (string) self::$page_settings['css'] );
 		}
-		$gs = self::global_styles_css() . $page_css;
+		$gs = self::element_base_css() . self::global_styles_css() . $page_css;
 		if ( '' !== $gs ) {
 			echo '<style id="velox-builder-global-styles">' . $gs . '</style>' . "\n"; // phpcs:ignore
 		}
@@ -579,6 +995,28 @@ class Velox_Builder_Render {
 		// on the front end. The whole subtree goes with them.
 		if ( ! empty( $node['hidden'] ) ) {
 			return '';
+		}
+		if ( isset( $node['el'] ) && 'Slider' === $node['el'] ) {
+			$sc = array();
+			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $sc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
+			return self::render_slider( $node, $doc, implode( ' ', array_filter( $sc ) ) );
+		}
+		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Offcanvas', 'Modal', 'Dropdown' ), true ) ) {
+			$oc = array();
+			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $oc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
+			return self::render_overlay( $node, $doc, implode( ' ', array_filter( $oc ) ) );
+		}
+		if ( isset( $node['el'] ) && 'Tabs' === $node['el'] ) {
+			$tc = array();
+			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $tc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
+			return self::render_tabs( $node, $doc, implode( ' ', array_filter( $tc ) ) );
+		}
+		if ( isset( $node['el'] ) && ( 'Accordion' === $node['el'] || 'Faq' === $node['el'] ) ) {
+			$acc_cls = array();
+			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) {
+				$acc_cls[] = sanitize_html_class( ltrim( $c, '.' ) );
+			}
+			return self::render_accordion( $node, $doc, implode( ' ', array_filter( $acc_cls ) ) );
 		}
 		// Inner Content: swap the template's placeholder for the actual page.
 		if ( isset( $node['el'] ) && 'InnerContent' === $node['el'] ) {

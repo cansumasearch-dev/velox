@@ -257,6 +257,72 @@
 				var label = node.conn ? ( T( 'Google Reviews' ) + ( rc ? ' · ' + escapeHtml( rc.name ) : '' ) ) : T( 'Google Reviews — pick a connection & preset in Settings' );
 				return '<div id="' + node.id + '" class="' + cls + ' vb-ph-el" data-node="' + node.id + '"><span class="vb-ph-ic">' + svg( 'star', 22 ) + '</span><span class="vb-ph-l">' + label + '</span></div>';
 			}
+			// Elements built from items render their real content on the canvas.
+			// Animations and toggling stay off here — the editor should show the
+			// finished shape without the behaviour fighting the builder.
+			// Overlays are invisible until triggered, so the canvas shows them laid
+			// out flat with a label — otherwise you'd be styling a blank space.
+			if ( 'Offcanvas' === node.el || 'Modal' === node.el || 'Dropdown' === node.el ) {
+				var oSet = node.settings || {};
+				var oName = { Offcanvas:T( 'Offcanvas panel' ), Modal:T( 'Popup' ), Dropdown:T( 'Dropdown' ) }[ node.el ];
+				var oHint = { Offcanvas:oSet.edge || 'right', Modal:oSet.pos || 'center', Dropdown:oSet.align || 'left' }[ node.el ];
+				var okids = ( node.children || [] ).map( render ).join( '' );
+				return '<div id="' + node.id + '" class="' + cls + ' vx-ovprev" data-node="' + node.id + '">' +
+					'<span class="vx-ovprev-tag">' + svg( 'layout', 12 ) + ' ' + oName + ' · ' + escapeHtml( oHint ) + '</span>' +
+					( okids || '<span class="vb-img-ph">' + T( 'Drop elements in here.' ) + '</span>' ) + '</div>';
+			}
+			if ( 'Slider' === node.el ) {
+				var sSet = node.settings || {}, sItems = sSet.items || [];
+				if ( ! sItems.length ) {
+					return '<div id="' + node.id + '" class="' + cls + ' vx-slider" data-node="' + node.id + '"><span class="vb-img-ph">' + T( 'No slides yet — add some in Settings.' ) + '</span></div>';
+				}
+				var per = Math.max( 1, parseInt( sSet.perView, 10 ) || 1 );
+				var gapv = ( sSet.gap === undefined ? 16 : sSet.gap );
+				var slidesHtml = sItems.map( function ( it ) {
+					var img = it.image ? '<img src="' + escapeHtml( it.image ) + '" alt="" loading="lazy">' : '';
+					return '<div class="vx-slide" style="flex:0 0 calc((100% - ' + ( ( per - 1 ) * gapv ) + 'px)/' + per + ')">' + img +
+						( it.title ? '<strong>' + escapeHtml( it.title ) + '</strong>' : '' ) +
+						( it.body ? '<p>' + escapeHtml( it.body ) + '</p>' : '' ) + '</div>';
+				} ).join( '' );
+				var ctrls = '';
+				if ( sSet.arrows !== '' ) { ctrls += '<div class="vx-arrows"><button class="vx-prev" type="button">' + svg( 'chevron', 16 ) + '</button><button class="vx-next" type="button">' + svg( 'chevron', 16 ) + '</button></div>'; }
+				if ( sSet.dots !== '' ) { ctrls += '<div class="vx-dots">' + sItems.map( function ( x, i ) { return '<span class="vx-dot' + ( 0 === i ? ' is-active' : '' ) + '"></span>'; } ).join( '' ) + '</div>'; }
+				return '<div id="' + node.id + '" class="' + cls + ' vx-slider" data-node="' + node.id + '">' +
+					'<div class="vx-track" style="gap:' + gapv + 'px">' + slidesHtml + '</div>' + ctrls + '</div>';
+			}
+			if ( 'Tabs' === node.el ) {
+				var tSet = node.settings || {}, tItems = tSet.items || [];
+				var active = Math.max( 0, Math.min( ( parseInt( tSet.startTab, 10 ) || 1 ) - 1, tItems.length - 1 ) );
+				if ( ! tItems.length ) {
+					return '<div id="' + node.id + '" class="' + cls + ' vx-tabs" data-node="' + node.id + '"><span class="vb-img-ph">' + T( 'No tabs yet — add some in Settings.' ) + '</span></div>';
+				}
+				var tabsBtns = tItems.map( function ( it, i ) {
+					return '<button type="button" class="vx-tab' + ( i === active ? ' is-active' : '' ) + '" role="tab" aria-selected="' + ( i === active ? 'true' : 'false' ) + '">' + escapeHtml( it.title || '' ) + '</button>';
+				} ).join( '' );
+				var tabsPanels = tItems.map( function ( it, i ) {
+					return '<div class="vx-tabp" role="tabpanel"' + ( i === active ? '' : ' hidden' ) + '>' + escapeHtml( it.body || '' ) + '</div>';
+				} ).join( '' );
+				return '<div id="' + node.id + '" class="' + cls + ' vx-tabs' + ( 'left' === ( tSet.orient || 'top' ) ? ' vx-tabs-left' : '' ) + '" data-node="' + node.id + '">' +
+					'<div class="vx-tablist" role="tablist">' + tabsBtns + '</div><div class="vx-tabpanels">' + tabsPanels + '</div></div>';
+			}
+			if ( 'Accordion' === node.el || 'Faq' === node.el ) {
+				var accSet = node.settings || {};
+				var accItems = accSet.items || [];
+				var hTag = accSet.headingTag || 'h3';
+				var openFirst = accSet.firstOpen !== '' && accSet.firstOpen !== undefined ? accSet.firstOpen : ( 'Accordion' === node.el ? '1' : '' );
+				var accHtml = accItems.map( function ( it, i ) {
+					var open = ( openFirst && 0 === i );
+					return '<div class="vx-acc-item' + ( open ? ' is-open' : '' ) + '">' +
+						'<' + hTag + ' class="vx-acc-h"><button class="vx-acc-btn" type="button" aria-expanded="' + ( open ? 'true' : 'false' ) + '">' +
+							'<span class="vx-acc-t">' + escapeHtml( it.title || '' ) + '</span>' +
+							'<span class="vx-acc-i">' + svg( 'chevron', 15 ) + '</span>' +
+						'</button></' + hTag + '>' +
+						'<div class="vx-acc-p"' + ( open ? '' : ' hidden' ) + '>' + escapeHtml( it.body || '' ) + '</div>' +
+					'</div>';
+				} ).join( '' );
+				if ( ! accHtml ) { accHtml = '<span class="vb-img-ph">' + T( 'No items yet — add some in Settings.' ) + '</span>'; }
+				return '<div id="' + node.id + '" class="' + cls + ' vx-acc' + ( 'right' === ( accSet.iconPos || 'right' ) ? '' : ' vx-acc-left' ) + '" data-node="' + node.id + '">' + accHtml + '</div>';
+			}
 			// Inner Content: the slot a template drops each page's own layout into.
 			// Editor shows it as a labelled well; the front end replaces it with the page.
 			if ( node.el === 'InnerContent' ) {
@@ -294,7 +360,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}</style><style id="vb-style"></style></head><body></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}</style><style id="vb-style"></style></head><body></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -511,6 +577,90 @@
 	/* element catalog: what "Add" can insert. Each seeds a default class + rules. */
 	/* Element catalog, grouped into the accordion categories shown in the panel.
 	   Each element: key, el(type), tag, label, starter class + rules, optional text. */
+	/* ==========================================================================
+	 * ELEMENT DEFINITIONS
+	 * --------------------------------------------------------------------------
+	 * Every element is DATA, not code. A definition carries its own settings
+	 * schema, so the inspector renders any element's Settings tab generically and
+	 * adding element #200 means adding an object here — not touching the
+	 * inspector, the renderer or the runtime.
+	 *
+	 *   key      catalog key (unique)
+	 *   el       node type stored in the tree
+	 *   tag      HTML tag rendered
+	 *   label    what the user sees
+	 *   cls      default styling class
+	 *   rules    default CSS for that class
+	 *   runtime  behaviour module the front end should load (optional)
+	 *   settings array of control definitions (below)
+	 *   repeat   { of, min, max, label } when the element holds N child items
+	 *   kids     default child tree on insert
+	 *
+	 * A control definition:
+	 *   k     key stored in node.settings
+	 *   t     control type: text|num|select|toggle|color|icon|link|textarea|
+	 *         media|repeat|segment|range
+	 *   l     label
+	 *   d     default value
+	 *   o     options for select/segment: [ [value, label], ... ]
+	 *   r     true = offer per-breakpoint overrides
+	 *   s     section heading in the inspector
+	 *   when  { key: value } — only show this control when another matches
+	 * ========================================================================== */
+	var CTRL = {
+		text:1, num:1, select:1, toggle:1, color:1, icon:1, link:1,
+		textarea:1, media:1, segment:1, range:1, repeat:1
+	};
+
+	/* Control fragments reused across many elements, so the shared behaviour
+	 * (triggers, placement, responsive visibility) stays defined in ONE place. */
+	var FRAG = {
+		trigger: function ( sec ) {
+			sec = sec || 'Trigger';
+			return [
+				{ k:'trigType', t:'select', l:'Show when', d:'click', s:sec, o:[
+					[ 'click', 'A visitor clicks' ], [ 'load', 'The page loads' ],
+					[ 'delay', 'After a delay' ], [ 'scroll', 'After scrolling' ],
+					[ 'element', 'An element scrolls into view' ],
+					[ 'idle', 'After inactivity' ], [ 'exit', 'The visitor moves to leave' ]
+				] },
+				{ k:'trigDelay', t:'num', l:'Delay', d:'3', s:sec, unit:'s', when:{ trigType:'delay' } },
+				{ k:'trigScroll', t:'num', l:'Scrolled past', d:'50', s:sec, unit:'%', when:{ trigType:'scroll' } },
+				{ k:'trigIdle', t:'num', l:'Idle for', d:'20', s:sec, unit:'s', when:{ trigType:'idle' } },
+				{ k:'trigTarget', t:'text', l:'Element selector', d:'', s:sec, when:{ trigType:'element' } },
+				{ k:'trigOnce', t:'select', l:'Show it', d:'session', s:sec, o:[
+					[ 'always', 'Every time' ], [ 'session', 'Once per visit' ],
+					[ 'day', 'Once a day' ], [ 'ever', 'Once, ever' ]
+				] }
+			];
+		},
+		placement: function () {
+			return [
+				{ k:'anchorX', t:'segment', l:'Across', d:'right', s:'Placement', o:[ [ 'left', 'Left' ], [ 'center', 'Centre' ], [ 'right', 'Right' ] ] },
+				{ k:'anchorY', t:'segment', l:'Down', d:'bottom', s:'Placement', o:[ [ 'top', 'Top' ], [ 'middle', 'Middle' ], [ 'bottom', 'Bottom' ] ] },
+				{ k:'offsetX', t:'num', l:'Side offset', d:'24', unit:'px', r:true, s:'Placement' },
+				{ k:'offsetY', t:'num', l:'Vertical offset', d:'24', unit:'px', r:true, s:'Placement' },
+				{ k:'zIndex', t:'num', l:'Stacking order', d:'9990', s:'Placement' }
+			];
+		},
+		visibility: function () {
+			return [
+				{ k:'hideDesktop', t:'toggle', l:'Hide on desktop', d:'', s:'Visibility' },
+				{ k:'hideTablet', t:'toggle', l:'Hide on tablet', d:'', s:'Visibility' },
+				{ k:'hideMobile', t:'toggle', l:'Hide on mobile', d:'', s:'Visibility' }
+			];
+		},
+		anim: function ( sec ) {
+			return [
+				{ k:'animIn', t:'select', l:'Appears with', d:'fade', s:sec || 'Animation', o:[
+					[ 'none', 'No animation' ], [ 'fade', 'Fade' ], [ 'slide', 'Slide in' ],
+					[ 'scale', 'Scale up' ], [ 'bounce', 'Bounce' ]
+				] },
+				{ k:'animMs', t:'num', l:'Speed', d:'300', unit:'ms', s:sec || 'Animation' }
+			];
+		}
+	};
+
 	var CAT_GROUPS = [
 		{ name:'Containers', icon:'layout', items:[
 			{ key:'section', el:'Section', tag:'section', label:'Section', cls:'.section', rules:{ paddingTop:'48', paddingBottom:'48', paddingLeft:'32', paddingRight:'32' } },
@@ -547,6 +697,160 @@
 		// Template-only. Inner Content marks the slot in a template where the
 		// individual page's own layout gets dropped in. Without it a template can
 		// only ever be a navbar and a footer with nothing between them.
+		{ name:'Layout', icon:'layout', items:[
+			{ key:'splitscreen', el:'Splitscreen', tag:'div', label:'Split screen', cls:'.split-screen', rules:{ display:'grid', gridTemplate:'1fr 1fr', gap:'0', minHeight:'480' } },
+			{ key:'fullheight', el:'Fullheight', tag:'section', label:'Full-height section', cls:'.full-height', rules:{ minHeight:'100vh', display:'flex', alignItems:'center' } },
+			{ key:'ratiobox', el:'Ratiobox', tag:'div', label:'Aspect-ratio box', cls:'.ratio-box', rules:{ aspectRatio:'16/9', overflow:'hidden' } },
+			{ key:'bento', el:'Bento', tag:'div', label:'Bento grid', cls:'.bento', rules:{ display:'grid', gridTemplate:'repeat(3,1fr)', gap:'16' } },
+			{ key:'overlap', el:'Overlap', tag:'div', label:'Overlap wrapper', cls:'.overlap', rules:{ position:'relative', marginTop:'-80', zIndex:'2' } },
+			{ key:'stack', el:'Stack', tag:'div', label:'Auto stack', cls:'.stack', rules:{ display:'flex', flexDirection:'column', gap:'16' } },
+			{ key:'cluster', el:'Cluster', tag:'div', label:'Cluster', cls:'.cluster', rules:{ display:'flex', flexWrap:'wrap', gap:'12', alignItems:'center' } },
+			{ key:'sidebarlayout', el:'Sidebarlayout', tag:'div', label:'Content + sidebar', cls:'.sidebar-layout', rules:{ display:'grid', gridTemplate:'2fr 1fr', gap:'32' } }
+		] },
+		{ name:'Typography', icon:'type', items:[
+			{ key:'gradienttext', el:'Gradienttext', tag:'span', label:'Gradient text', cls:'.gradient-text', rules:{ fontSize:'48', fontWeight:'800' }, text:'Gradient headline' },
+			{ key:'outlinetext', el:'Outlinetext', tag:'span', label:'Outlined text', cls:'.outline-text', rules:{ fontSize:'56', fontWeight:'800' }, text:'Outlined' },
+			{ key:'highlighttext', el:'Highlighttext', tag:'mark', label:'Highlighted text', cls:'.highlight-text', rules:{ padding:'2' }, text:'highlighted' },
+			{ key:'dropcap', el:'Dropcap', tag:'p', label:'Drop cap paragraph', cls:'.drop-cap', rules:{ fontSize:'17', lineHeight:'1.7' }, text:'Der erste Buchstabe dieses Absatzes wird gross dargestellt.' },
+			{ key:'eyebrow', el:'Eyebrow', tag:'span', label:'Eyebrow', cls:'.eyebrow', rules:{ fontSize:'12', fontWeight:'700', letterSpacing:'1' }, text:'ÜBER UNS' },
+			{ key:'pullquote', el:'Pullquote', tag:'blockquote', label:'Pull quote', cls:'.pull-quote', rules:{ fontSize:'26', fontWeight:'600', lineHeight:'1.4' }, text:'Ein hervorgehobenes Zitat.' },
+			{ key:'verticaltext', el:'Verticaltext', tag:'span', label:'Vertical text', cls:'.vertical-text', rules:{ fontSize:'14', letterSpacing:'2' }, text:'SCROLL' }
+		] },
+		{ name:'Content', icon:'columns', items:[
+			{ key:'iconbox', el:'Iconbox', tag:'div', label:'Icon box', cls:'.icon-box', rules:{ display:'flex', flexDirection:'column', gap:'12', padding:'24' } },
+			{ key:'card', el:'Card', tag:'div', label:'Card', cls:'.card', rules:{ padding:'24', borderRadius:'14', background:'#ffffff', display:'flex', flexDirection:'column', gap:'12' } },
+			{ key:'statsrow', el:'Statsrow', tag:'div', label:'Stats row', cls:'.stats-row', rules:{ display:'grid', gridTemplate:'repeat(4,1fr)', gap:'24' } },
+			{ key:'teammember', el:'Teammember', tag:'div', label:'Team member', cls:'.team-member', rules:{ display:'flex', flexDirection:'column', gap:'10', textAlign:'center' } },
+			{ key:'logostrip', el:'Logostrip', tag:'div', label:'Logo strip', cls:'.logo-strip', rules:{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'center', gap:'40' } },
+			{ key:'callout', el:'Callout', tag:'div', label:'Callout', cls:'.callout', rules:{ padding:'18', borderRadius:'12', borderWidth:'1', background:'#f6f9fc' } },
+			{ key:'badge', el:'Badge', tag:'span', label:'Badge', cls:'.badge', rules:{ padding:'4', borderRadius:'20', fontSize:'12', fontWeight:'700' }, text:'Neu' },
+			{ key:'avatargroup', el:'Avatargroup', tag:'div', label:'Avatar group', cls:'.avatar-group', rules:{ display:'flex', alignItems:'center' } },
+			{ key:'trustrow', el:'Trustrow', tag:'div', label:'Trust badges', cls:'.trust-row', rules:{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:'24' } },
+			{ key:'paymenticons', el:'Paymenticons', tag:'div', label:'Payment icons', cls:'.payment-icons', rules:{ display:'flex', flexWrap:'wrap', gap:'12', alignItems:'center' } },
+			{ key:'casestudy', el:'Casestudy', tag:'div', label:'Case study card', cls:'.case-study', rules:{ display:'flex', flexDirection:'column', gap:'14', padding:'24', borderRadius:'14' } },
+			{ key:'ctaband', el:'Ctaband', tag:'div', label:'CTA band', cls:'.cta-band', rules:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'24', padding:'32', borderRadius:'16' } },
+			{ key:'noticebox', el:'Noticebox', tag:'div', label:'Notice box', cls:'.notice-box', rules:{ display:'flex', gap:'12', padding:'16', borderRadius:'10' } },
+			{ key:'featuregrid', el:'Featuregrid', tag:'div', label:'Feature grid', cls:'.feature-grid', rules:{ display:'grid', gridTemplate:'repeat(3,1fr)', gap:'24' } }
+		] },
+		{ name:'Utility', icon:'gear', items:[
+			{ key:'skiplink', el:'Skiplink', tag:'a', label:'Skip link', cls:'.skip-link', rules:{ position:'absolute' }, text:'Zum Inhalt springen' },
+			{ key:'sronly', el:'Sronly', tag:'span', label:'Screen-reader text', cls:'.sr-only', rules:{ position:'absolute' }, text:'Beschreibung für Screenreader' },
+			{ key:'readingtime', el:'Readingtime', tag:'span', label:'Reading time', cls:'.reading-time', rules:{ fontSize:'13' }, text:'5 Min. Lesezeit' },
+			{ key:'lastupdated', el:'Lastupdated', tag:'span', label:'Last updated', cls:'.last-updated', rules:{ fontSize:'13' }, text:'Zuletzt aktualisiert' },
+			{ key:'skeleton', el:'Skeleton', tag:'div', label:'Loading skeleton', cls:'.skeleton', rules:{ borderRadius:'8', minHeight:'18', background:'#e9edf2' } },
+			{ key:'emptystate', el:'Emptystate', tag:'div', label:'Empty state', cls:'.empty-state', rules:{ display:'flex', flexDirection:'column', alignItems:'center', gap:'12', padding:'48', textAlign:'center' } },
+			{ key:'anchortarget', el:'Anchortarget', tag:'span', label:'Anchor target', cls:'.anchor-target', rules:{ display:'block' } }
+		] },
+		{ name:'Interactive', icon:'bolt', items:[
+			{ key:'slider', el:'Slider', tag:'div', label:'Slider', cls:'.slider',
+			  rules:{ display:'block' }, runtime:'slider',
+			  repeat:{ label:'Slides', fields:[
+				{ k:'title', t:'text', l:'Heading', d:'Slide' },
+				{ k:'body', t:'textarea', l:'Text', d:'' },
+				{ k:'image', t:'text', l:'Image URL', d:'' }
+			  ] },
+			  settings:[
+				{ k:'perView', t:'num', l:'Slides shown', d:'1', r:true, s:'Layout' },
+				{ k:'gap', t:'num', l:'Space between', d:'16', unit:'px', r:true, s:'Layout' },
+				{ k:'loop', t:'toggle', l:'Jump back to the start at the end', d:'', s:'Behaviour' },
+				{ k:'auto', t:'toggle', l:'Advance on its own', d:'', s:'Autoplay' },
+				{ k:'autoMs', t:'num', l:'Wait between slides', d:'5000', unit:'ms', s:'Autoplay', when:{ auto:'1' } },
+				{ k:'arrows', t:'toggle', l:'Show arrows', d:'1', s:'Controls' },
+				{ k:'dots', t:'toggle', l:'Show dots', d:'1', s:'Controls' },
+				{ k:'counter', t:'toggle', l:'Show "2 of 5"', d:'', s:'Controls' }
+			  ] },
+			{ key:'offcanvas', el:'Offcanvas', tag:'div', label:'Offcanvas panel', cls:'.offcanvas',
+			  rules:{ padding:'28' }, runtime:'overlay', overlay:'offcanvas',
+			  settings:[
+				{ k:'edge', t:'segment', l:'Slides in from', d:'right', s:'Layout',
+				  o:[ [ 'left', 'Left' ], [ 'right', 'Right' ], [ 'top', 'Top' ], [ 'bottom', 'Bottom' ] ] },
+				{ k:'size', t:'num', l:'Width', d:'340', unit:'px', r:true, s:'Layout' },
+				{ k:'mode', t:'segment', l:'The page', d:'overlay', s:'Layout',
+				  o:[ [ 'overlay', 'Stays put' ], [ 'push', 'Gets pushed' ] ] },
+				{ k:'backdrop', t:'toggle', l:'Dim the page behind', d:'1', s:'Backdrop' },
+				{ k:'backColor', t:'color', l:'Dim colour', d:'rgba(0,0,0,.5)', s:'Backdrop', when:{ backdrop:'1' } },
+				{ k:'closeBack', t:'toggle', l:'Close when the dimmed area is clicked', d:'1', s:'Closing' },
+				{ k:'closeEsc', t:'toggle', l:'Close with the Escape key', d:'1', s:'Closing' },
+				{ k:'ms', t:'num', l:'Slide speed', d:'250', unit:'ms', s:'Animation' },
+				{ k:'openWith', t:'text', l:'Opened by (CSS selector)', d:'', s:'Behaviour',
+				  ph:'.menu-toggle' }
+			  ] },
+			{ key:'modal', el:'Modal', tag:'div', label:'Popup / modal', cls:'.modal',
+			  rules:{ padding:'32', borderRadius:'16', background:'#ffffff', maxWidth:'520' },
+			  runtime:'overlay', overlay:'modal',
+			  settings:[].concat( FRAG.trigger( 'When it appears' ), [
+				{ k:'pos', t:'select', l:'Sits', d:'center', s:'Layout', o:[
+					[ 'center', 'In the middle' ], [ 'top', 'Near the top' ], [ 'bottom', 'Near the bottom' ]
+				] },
+				{ k:'width', t:'num', l:'Width', d:'520', unit:'px', r:true, s:'Layout' },
+				{ k:'backdrop', t:'toggle', l:'Dim the page behind', d:'1', s:'Backdrop' },
+				{ k:'backColor', t:'color', l:'Dim colour', d:'rgba(10,11,14,.6)', s:'Backdrop', when:{ backdrop:'1' } },
+				{ k:'closeBack', t:'toggle', l:'Close when the dimmed area is clicked', d:'1', s:'Closing' },
+				{ k:'closeEsc', t:'toggle', l:'Close with the Escape key', d:'1', s:'Closing' },
+				{ k:'closeBtn', t:'toggle', l:'Show a close button', d:'1', s:'Closing' },
+				{ k:'ms', t:'num', l:'Speed', d:'250', unit:'ms', s:'Animation' }
+			] ) },
+			{ key:'dropdown', el:'Dropdown', tag:'div', label:'Dropdown', cls:'.dropdown',
+			  rules:{ padding:'12', borderRadius:'12', background:'#ffffff', minWidth:'200' },
+			  runtime:'overlay', overlay:'dropdown',
+			  settings:[
+				{ k:'label', t:'text', l:'Button text', d:'Menü', s:'Trigger' },
+				{ k:'align', t:'segment', l:'Opens to the', d:'left', s:'Layout',
+				  o:[ [ 'left', 'Left' ], [ 'right', 'Right' ] ] },
+				{ k:'openOn', t:'segment', l:'Opens on', d:'click', s:'Behaviour',
+				  o:[ [ 'click', 'Click' ], [ 'hover', 'Hover' ] ] },
+				{ k:'ms', t:'num', l:'Speed', d:'160', unit:'ms', s:'Animation' }
+			  ] },
+			{ key:'tabs', el:'Tabs', tag:'div', label:'Tabs', cls:'.tabs',
+			  rules:{ display:'block' }, runtime:'tabs',
+			  repeat:{ label:'Tabs', fields:[
+				{ k:'title', t:'text', l:'Tab label', d:'New tab' },
+				{ k:'body', t:'textarea', l:'Tab content', d:'' }
+			  ] },
+			  settings:[
+				{ k:'orient', t:'segment', l:'Tabs sit', d:'top', s:'Layout',
+				  o:[ [ 'top', 'Above' ], [ 'left', 'Beside' ] ] },
+				{ k:'activate', t:'segment', l:'Switch on', d:'click', s:'Behaviour',
+				  o:[ [ 'click', 'Click' ], [ 'hover', 'Hover' ] ] },
+				{ k:'startTab', t:'num', l:'Open tab number', d:'1', s:'Behaviour' },
+				{ k:'toAccordion', t:'toggle', l:'Turn into an accordion on mobile', d:'1', s:'Behaviour' },
+				{ k:'deepLink', t:'toggle', l:'Open the tab named in the web address', d:'', s:'Behaviour' }
+			  ] },
+			{ key:'accordion', el:'Accordion', tag:'div', label:'Accordion', cls:'.accordion',
+			  rules:{ display:'block' }, runtime:'accordion',
+			  repeat:{ label:'Sections', fields:[
+				{ k:'title', t:'text', l:'Heading', d:'New section' },
+				{ k:'body', t:'textarea', l:'Content', d:'' }
+			  ] },
+			  settings:[
+				{ k:'openMode', t:'segment', l:'Open sections', d:'single', s:'Behaviour',
+				  o:[ [ 'single', 'One at a time' ], [ 'multi', 'Several at once' ] ] },
+				{ k:'firstOpen', t:'toggle', l:'Start with the first one open', d:'1', s:'Behaviour' },
+				{ k:'speed', t:'num', l:'Open speed', d:'220', unit:'ms', s:'Behaviour' },
+				{ k:'iconPos', t:'segment', l:'Icon side', d:'right', s:'Icon',
+				  o:[ [ 'left', 'Left' ], [ 'right', 'Right' ] ] },
+				{ k:'iconRotate', t:'num', l:'Icon turns', d:'180', unit:'°', s:'Icon' },
+				{ k:'deepLink', t:'toggle', l:'Open the section named in the web address', d:'1', s:'Behaviour' },
+				{ k:'headingTag', t:'select', l:'Heading level', d:'h3', s:'Accessibility',
+				  o:[ [ 'h2', 'H2' ], [ 'h3', 'H3' ], [ 'h4', 'H4' ] ] }
+			  ] },
+			{ key:'faq', el:'Faq', tag:'div', label:'FAQ', cls:'.faq',
+			  rules:{ display:'block' }, runtime:'accordion',
+			  repeat:{ label:'Questions', fields:[
+				{ k:'title', t:'text', l:'Question', d:'New question' },
+				{ k:'body', t:'textarea', l:'Answer', d:'' }
+			  ] },
+			  settings:[
+				{ k:'openMode', t:'segment', l:'Open answers', d:'single', s:'Behaviour',
+				  o:[ [ 'single', 'One at a time' ], [ 'multi', 'Several at once' ] ] },
+				{ k:'firstOpen', t:'toggle', l:'Start with the first one open', d:'', s:'Behaviour' },
+				{ k:'speed', t:'num', l:'Open speed', d:'220', unit:'ms', s:'Behaviour' },
+				{ k:'iconPos', t:'segment', l:'Icon side', d:'right', s:'Icon',
+				  o:[ [ 'left', 'Left' ], [ 'right', 'Right' ] ] },
+				{ k:'headingTag', t:'select', l:'Heading level', d:'h3', s:'Accessibility',
+				  o:[ [ 'h2', 'H2' ], [ 'h3', 'H3' ], [ 'h4', 'H4' ] ] }
+			  ] }
+		] },
 		{ name:'Template', icon:'layout', items:[
 			{ key:'innercontent', el:'InnerContent', tag:'div', label:'Inner Content', cls:'.inner-content', rules:{ minHeight:'200' }, badge:'template' }
 		] }
@@ -562,6 +866,19 @@
 	}
 	function insertNode( catKey ) {
 		var cat = CATALOG.filter( function ( c ) { return c.key === catKey; } )[ 0 ] || CATALOG[ 0 ];
+		// An element made of items should arrive with a few, not empty — an empty
+		// accordion on the canvas tells you nothing about what it will look like.
+		var seedItems = null;
+		if ( cat.repeat ) {
+			seedItems = [];
+			for ( var si = 0; si < ( cat.repeat.seed || 3 ); si++ ) {
+				var row = {};
+				( cat.repeat.fields || [] ).forEach( function ( f ) {
+					row[ f.k ] = f.d ? ( f.d + ( f.k === 'title' ? ' ' + ( si + 1 ) : '' ) ) : '';
+				} );
+				seedItems.push( row );
+			}
+		}
 		// Inner Content marks where a whole page is dropped in, so it belongs at
 		// the top level of a template — never nested inside a section or div, and
 		// never twice.
@@ -580,6 +897,7 @@
 			var id = uid( cat.key );
 			var node = { id:id, el:cat.el, tag:cat.tag, classes:[ cat.cls ], overrides:{}, children:[] };
 			if ( cat.wp ) { node.wp = cat.wp; }         // WordPress-data element kind
+			if ( seedItems ) { node.settings = { items: seedItems }; }
 			if ( cat.el === 'Reviews' ) { node.conn = ''; node.preset = ''; }
 			// register the class + its starter rules (only if new)
 			if ( ! s.classes[ cat.cls ] ) { s.classes[ cat.cls ] = { base: Object.assign( {}, cat.rules ) }; }
@@ -897,7 +1215,14 @@
 		// An unpinned panel floats OVER the editor, so dim what's behind it —
 		// otherwise the inspector shows through and the two read as one surface.
 		var scrim = document.getElementById( 'vb-scrim' );
-		if ( scrim ) { scrim.classList.toggle( 'on', ( !! right && ! pinned.right ) || ( addMenuOpen() && ! pinned.left ) ); }
+		var floatLeft = addMenuOpen() && ! pinned.left;
+		if ( scrim ) { scrim.classList.toggle( 'on', ( !! right && ! pinned.right ) || floatLeft ); }
+		// An unpinned left panel sits ON TOP of the inspector but is narrower than
+		// it, so the last ~70px of the inspector stuck out and stayed readable
+		// through the dimming. Dimming is not hiding: take the column out entirely
+		// while a panel floats over it, and give it back when the panel is pinned
+		// (pinned means it has its own space and nothing is covered).
+		app.classList.toggle( 'vb-hide-insp', floatLeft );
 		var pins = document.querySelectorAll( '.vb-pinbtn' );
 		for ( var i = 0; i < pins.length; i++ ) {
 			var side = pins[ i ].getAttribute( 'data-pin' ) || 'right';
@@ -1425,6 +1750,127 @@
 			if ( ! Object.keys( n.aos ).length ) { delete n.aos; }
 		}, T( 'Animation' ) );
 	}
+	/* ---------- generic settings renderer ----------
+	 * Renders ANY element's Settings tab from its definition. One code path for
+	 * all 240 elements: no per-element inspector code, so a new element is a data
+	 * entry and nothing more. */
+	function elDef( node ) {
+		if ( ! node ) { return null; }
+		for ( var i = 0; i < CATALOG.length; i++ ) {
+			if ( CATALOG[ i ].el === node.el ) { return CATALOG[ i ]; }
+		}
+		return null;
+	}
+	function setVal( node, key, def ) {
+		var v = node && node.settings ? node.settings[ key ] : undefined;
+		if ( v === undefined || v === null ) { return def === undefined ? '' : def; }
+		return ( '0' === v ) ? '' : v;
+	}
+	/* A control is hidden until the control it depends on has the right value —
+	 * this is what keeps a 30-control element from looking like a cockpit. */
+	function ctrlVisible( node, c ) {
+		if ( ! c.when ) { return true; }
+		for ( var k in c.when ) {
+			if ( String( setVal( node, k, '' ) ) !== String( c.when[ k ] ) ) { return false; }
+		}
+		return true;
+	}
+	function renderCtrl( node, c ) {
+		var v = setVal( node, c.k, c.d );
+		var id = 'data-setel="' + c.k + '"';
+		var body = '';
+		if ( 'toggle' === c.t ) {
+			return '<label class="vb-set-check"><input type="checkbox" ' + id + ( v ? ' checked' : '' ) +
+				'><span>' + T( c.l ) + '</span></label>';
+		}
+		if ( 'select' === c.t ) {
+			body = '<select class="vb-inp" ' + id + '>' + ( c.o || [] ).map( function ( o ) {
+				return '<option value="' + escapeHtml( o[ 0 ] ) + '"' + ( String( v ) === String( o[ 0 ] ) ? ' selected' : '' ) + '>' + T( o[ 1 ] ) + '</option>';
+			} ).join( '' ) + '</select>';
+		} else if ( 'segment' === c.t ) {
+			body = '<div class="vb-seg">' + ( c.o || [] ).map( function ( o ) {
+				return '<button class="' + ( String( v ) === String( o[ 0 ] ) ? 'on' : '' ) + '" ' + id + ' data-segval="' + escapeHtml( o[ 0 ] ) + '">' + T( o[ 1 ] ) + '</button>';
+			} ).join( '' ) + '</div>';
+		} else if ( 'num' === c.t || 'range' === c.t ) {
+			body = '<div class="vb-row"><input class="vb-inp num" ' + id + ' value="' + escapeHtml( v ) + '" placeholder="—">' +
+				( c.unit ? '<span class="vb-unit-static">' + c.unit + '</span>' : '' ) + '</div>';
+		} else if ( 'color' === c.t ) {
+			body = '<div class="vb-row"><input type="color" class="vb-swatch" data-setelswatch="' + c.k + '" value="' +
+				( /^#[0-9a-f]{6}$/i.test( v ) ? v : '#000000' ) + '"><input class="vb-inp" ' + id + ' value="' + escapeHtml( v ) + '" placeholder="' + T( 'inherit' ) + '"></div>';
+		} else if ( 'textarea' === c.t ) {
+			body = '<textarea class="vb-css-code vb-page-code" ' + id + ' spellcheck="false">' + escapeHtml( v ) + '</textarea>';
+		} else if ( 'icon' === c.t ) {
+			body = '<div class="vb-row"><input class="vb-inp" ' + id + ' value="' + escapeHtml( v ) + '" placeholder="' + T( 'icon name' ) + '"></div>';
+		} else {
+			body = '<input class="vb-inp" ' + id + ' value="' + escapeHtml( v ) + '" placeholder="' + escapeHtml( c.ph || '' ) + '">';
+		}
+		return '<div class="vb-f"><div class="vb-f-lbl">' + T( c.l ) +
+			( c.r ? '<span class="vb-f-resp" title="' + T( 'Can differ per screen size' ) + '">' + BP_META[ store.state.breakpoint ].label.charAt( 0 ) + '</span>' : '' ) +
+			'</div>' + body + '</div>';
+	}
+	/* Repeater: the add / reorder / remove UI for elements made of N items
+	 * (accordion rows, tabs, slides, pricing tiers). */
+	function renderRepeat( node, def ) {
+		var items = ( node.settings && node.settings.items ) || [];
+		var rows = items.map( function ( it, i ) {
+			return '<div class="vb-rep-row" data-repi="' + i + '">' +
+				'<span class="vb-rep-h">' + svg( 'move', 12 ) + '<b>' + escapeHtml( it.title || ( T( def.repeat.label || 'Item' ) + ' ' + ( i + 1 ) ) ) + '</b>' +
+					'<button class="vb-css-del" data-repdel="' + i + '" title="' + T( 'Remove' ) + '">' + svg( 'trash', 12 ) + '</button></span>' +
+				( def.repeat.fields || [] ).map( function ( f ) {
+					var val = it[ f.k ] === undefined ? ( f.d || '' ) : it[ f.k ];
+					if ( 'textarea' === f.t ) {
+						return '<textarea class="vb-css-code vb-page-code" data-repset="' + i + ':' + f.k + '" spellcheck="false">' + escapeHtml( val ) + '</textarea>';
+					}
+					return '<input class="vb-inp" data-repset="' + i + ':' + f.k + '" value="' + escapeHtml( val ) + '" placeholder="' + T( f.l ) + '">';
+				} ).join( '' ) +
+			'</div>';
+		} ).join( '' );
+		return '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'list', 14 ) + ' ' + T( def.repeat.label || 'Items' ) + '</div>' +
+			'<div class="vb-rep">' + ( rows || '<div class="vb-setnote">' + T( 'No items yet.' ) + '</div>' ) + '</div>' +
+			'<button class="vb-set-nav" data-repadd style="justify-content:center">' + svg( 'plus', 13 ) + '<span style="flex:0 0 auto">' + T( 'Add item' ) + '</span></button></div>';
+	}
+	/* The whole Settings tab for an element, built from its definition. */
+	function defSettingsHTML( node ) {
+		var def = elDef( node );
+		if ( ! def || ( ! def.settings && ! def.repeat ) ) { return ''; }
+		var out = '';
+		if ( def.repeat ) { out += renderRepeat( node, def ); }
+		var secs = {}, order = [];
+		( def.settings || [] ).forEach( function ( c ) {
+			if ( ! ctrlVisible( node, c ) ) { return; }
+			var sec = c.s || 'Options';
+			if ( ! secs[ sec ] ) { secs[ sec ] = []; order.push( sec ); }
+			secs[ sec ].push( c );
+		} );
+		order.forEach( function ( sec ) {
+			out += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'gear', 14 ) + ' ' + T( sec ) + '</div>' +
+				secs[ sec ].map( function ( c ) { return renderCtrl( node, c ); } ).join( '' ) + '</div>';
+		} );
+		return out;
+	}
+	function setElSetting( key, val ) {
+		store.commit( function ( s ) {
+			var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
+			n.settings = n.settings || {};
+			// Deleting the key on an empty value made "off" indistinguishable from
+			// "never touched", so a toggle switched off came back on from its
+			// default. Store the decision instead.
+			if ( undefined === val || null === val ) { delete n.settings[ key ]; }
+			else if ( false === val ) { n.settings[ key ] = '0'; }
+			else { n.settings[ key ] = val; }
+			if ( ! Object.keys( n.settings ).length ) { delete n.settings; }
+		}, T( 'Settings' ) );
+	}
+	function repeatItems( n ) { return ( n.settings && n.settings.items ) || []; }
+	function setRepeat( fn, label ) {
+		store.commit( function ( s ) {
+			var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
+			n.settings = n.settings || {};
+			n.settings.items = ( n.settings.items || [] ).slice();
+			fn( n.settings.items, n );
+		}, T( label || 'Items' ) );
+	}
+
 	function settingsTabHTML( node ) {
 		var s = '<div class="vb-setwrap">';
 		var hasEl = false;
@@ -1464,6 +1910,10 @@
 			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Open in' ) + '</div><div class="vb-seg">' +
 				[ [ '', T( 'Same tab' ) ], [ '_blank', T( 'New tab' ) ] ].map( function ( o ) { return '<button class="' + ( ( node.target || '' ) === o[ 0 ] ? 'on' : '' ) + '" data-settarget="' + o[ 0 ] + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div></div></div>';
 		}
+
+		// ---- element's own settings, generated from its definition ----
+		var defHtml = defSettingsHTML( node );
+		if ( defHtml ) { s += defHtml; hasEl = true; }
 
 		// ---- animate on scroll, available on every element ----
 		s += aosSettingsHTML( node );
@@ -1932,6 +2382,18 @@
 			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) { store.commit( function ( s ) { s.selection = stn.getAttribute( 'data-stnode' ); resetActiveClass( s ); }, false ); return; }
 			if ( e.target.closest( '#vb-settings' ) ) { setShown = ! setShown; if ( setShown ) { closeAllPanels( 'settings' ); setView = 'root'; } renderSettingsPanel(); return; }
 			if ( e.target.closest( '#vb-set-close' ) ) { setShown = false; renderSettingsPanel(); return; }
+			var segb = e.target.closest( '[data-setel][data-segval]' );
+			if ( segb ) { setElSetting( segb.getAttribute( 'data-setel' ), segb.getAttribute( 'data-segval' ) ); return; }
+			if ( e.target.closest( '[data-repadd]' ) ) {
+				var rdef = elDef( findNode( store.state.tree, store.state.selection ) );
+				setRepeat( function ( items ) {
+					var blank = {};
+					( ( rdef && rdef.repeat && rdef.repeat.fields ) || [] ).forEach( function ( f ) { blank[ f.k ] = f.d || ''; } );
+					items.push( blank );
+				}, 'Add item' ); return;
+			}
+			var rdel = e.target.closest( '[data-repdel]' );
+			if ( rdel ) { var ri = +rdel.getAttribute( 'data-repdel' ); setRepeat( function ( items ) { items.splice( ri, 1 ); }, 'Remove item' ); return; }
 			if ( e.target.closest( '#vb-token-add' ) ) {
 				TOKENS.colors.push( { name:'colour-' + ( TOKENS.colors.length + 1 ), value:'#2ab7f1' } );
 				document.getElementById( 'vb-tokenlist' ).innerHTML = tokenRowsHTML(); saveTokens(); return;
@@ -2004,6 +2466,21 @@
 			if ( e.target.id === 'vb-js-code' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].js = e.target.value; scheduleJsSave(); } return; }
 			if ( e.target.id === 'vb-js-name' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].name = e.target.value; var jt = document.querySelector( '.vb-css-file.on span' ); if ( jt ) { jt.textContent = e.target.value; } scheduleJsSave(); } return; }
 			if ( e.target.id === 'vb-css-name' ) { if ( cssFiles[ cssActive ] ) { cssFiles[ cssActive ].name = e.target.value; var tab = document.querySelector( '.vb-css-file.on span' ); if ( tab ) { tab.textContent = e.target.value; } scheduleCssSave(); } return; }
+			var einp = e.target.closest( 'input[data-setel], textarea[data-setel]' );
+			if ( einp && ! einp.hasAttribute( 'data-segval' ) ) {
+				var ek = einp.getAttribute( 'data-setel' ), ev = e.target.value;
+				clearTimeout( dbTimer ); dbTimer = setTimeout( function () { setElSetting( ek, ev.trim ? ev.trim() : ev ); }, 250 );
+				return;
+			}
+			var rset = e.target.closest( '[data-repset]' );
+			if ( rset ) {
+				var parts = rset.getAttribute( 'data-repset' ).split( ':' ), rv = e.target.value;
+				clearTimeout( dbTimer );
+				dbTimer = setTimeout( function () {
+					setRepeat( function ( items ) { items[ +parts[ 0 ] ] = Object.assign( {}, items[ +parts[ 0 ] ] ); items[ +parts[ 0 ] ][ parts[ 1 ] ] = rv; }, 'Edit item' );
+				}, 300 );
+				return;
+			}
 			var tsw = e.target.closest( '[data-tokenswatch]' );
 			if ( tsw ) {
 				var ti = +tsw.getAttribute( 'data-tokenswatch' );
@@ -2082,6 +2559,16 @@
 			if ( e.target.id === 'vb-js-where' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].where = e.target.value; saveGlobalJs(); } return; }
 			if ( e.target.id === 'vb-js-load' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].load = e.target.value; saveGlobalJs(); } return; }
 			if ( e.target.id === 'vb-js-on' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].on = e.target.checked ? 1 : 0; renderCSSPanel(); saveGlobalJs(); } return; }
+			var esel = e.target.closest( 'select[data-setel]' );
+			if ( esel ) { setElSetting( esel.getAttribute( 'data-setel' ), e.target.value ); return; }
+			var echk = e.target.closest( 'input[type=checkbox][data-setel]' );
+			if ( echk ) { setElSetting( echk.getAttribute( 'data-setel' ), echk.checked ? '1' : '0' ); return; }
+			var esw = e.target.closest( '[data-setelswatch]' );
+			if ( esw ) {
+				var tf = esw.parentElement.querySelector( '[data-setel]' );
+				if ( tf ) { tf.value = e.target.value; }
+				setElSetting( esw.getAttribute( 'data-setelswatch' ), e.target.value ); return;
+			}
 			var gsel = e.target.closest( 'select[data-gsx]' );
 			if ( gsel ) { gsSet( gsel.getAttribute( 'data-gsx' ), e.target.value ); return; }
 			var sp2 = e.target.closest( 'select[data-setpage]' );
@@ -2707,7 +3194,8 @@
 			'.vb-app.vb-pin-left .vb-addmenu{box-shadow:none;border-right-color:rgba(255,255,255,.07)}',
 			// Scrim only appears for UNPINNED panels — a pinned panel owns its own
 			// space, so dimming the canvas there would be wrong.
-			'.vb-scrim{position:absolute;top:54px;left:0;right:0;bottom:0;background:rgba(10,11,14,.86);z-index:110;opacity:0;pointer-events:none;transition:opacity .16s}',
+			'.vb-app.vb-hide-insp .vb-inspector{visibility:hidden}',
+						'.vb-scrim{position:absolute;top:54px;left:0;right:0;bottom:0;background:rgba(10,11,14,.86);z-index:110;opacity:0;pointer-events:none;transition:opacity .16s}',
 			'.vb-scrim.on{opacity:1;pointer-events:auto}',
 			'.vb-setpanel{position:absolute;top:54px;right:0;bottom:0;width:340px;background:#232429;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
 			'.vb-set-body{flex:1;overflow:auto;padding:12px 14px}',
@@ -2725,7 +3213,13 @@
 			'.vb-page-code{width:100%;box-sizing:border-box;min-height:120px;margin:0}',
 						'.vb-gs-group{margin:14px 0 0;padding:12px;background:#1a1b20;border:1px solid rgba(255,255,255,.06);border-radius:11px}',
 			'.vb-gs-grouph{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6d6f78;margin-bottom:10px}',
-			'.vb-token-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}',
+			'.vb-f-resp{display:inline-grid;place-items:center;width:14px;height:14px;margin-left:6px;border-radius:4px;background:#2a2c32;color:#6d6f78;font-size:8.5px;font-weight:700}',
+			'.vb-rep{display:flex;flex-direction:column;gap:7px;margin-bottom:8px}',
+			'.vb-rep-row{padding:9px;border:1px solid rgba(255,255,255,.07);border-radius:9px;background:#1a1b20;display:flex;flex-direction:column;gap:6px}',
+			'.vb-rep-h{display:flex;align-items:center;gap:7px;color:#8b8d96;font-size:11.5px}',
+			'.vb-rep-h b{flex:1;color:#dcdce2;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+			'.vb-rep-row textarea{min-height:64px}',
+						'.vb-token-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}',
 			'.vb-token-row .vb-token-name{flex:1;min-width:0}',
 			'.vb-token-row .vb-token-val{flex:0 0 92px;font-family:ui-monospace,Menlo,monospace;font-size:11px}',
 						'.vb-gs-swatchrow{display:flex;align-items:center;gap:9px;padding:8px 0;font-size:12px}',
