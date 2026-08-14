@@ -321,11 +321,13 @@
 				}
 				var per = Math.max( 1, parseInt( sSet.perView, 10 ) || 1 );
 				var gapv = ( sSet.gap === undefined ? 16 : sSet.gap );
-				var slidesHtml = sItems.map( function ( it ) {
+				var slidesHtml = sItems.map( function ( it, i ) {
+					var sk = ( node.children || [] )[ i ];
 					var img = it.image ? '<img src="' + escapeHtml( it.image ) + '" alt="" loading="lazy">' : '';
-					return '<div class="vx-slide" style="flex:0 0 calc((100% - ' + ( ( per - 1 ) * gapv ) + 'px)/' + per + ')">' + img +
+					var sinner = sk ? render( sk ) : (
 						( it.title ? '<strong>' + escapeHtml( it.title ) + '</strong>' : '' ) +
-						( it.body ? '<p>' + escapeHtml( it.body ) + '</p>' : '' ) + '</div>';
+						( it.body ? '<p>' + escapeHtml( it.body ) + '</p>' : '' ) );
+					return '<div class="vx-slide" style="flex:0 0 calc((100% - ' + ( ( per - 1 ) * gapv ) + 'px)/' + per + ')">' + img + sinner + '</div>';
 				} ).join( '' );
 				var ctrls = '';
 				if ( sSet.arrows !== '' ) { ctrls += '<div class="vx-arrows"><button class="vx-prev" type="button">' + svg( 'chevron', 16 ) + '</button><button class="vx-next" type="button">' + svg( 'chevron', 16 ) + '</button></div>'; }
@@ -343,7 +345,9 @@
 					return '<button type="button" class="vx-tab' + ( i === active ? ' is-active' : '' ) + '" role="tab" aria-selected="' + ( i === active ? 'true' : 'false' ) + '">' + escapeHtml( it.title || '' ) + '</button>';
 				} ).join( '' );
 				var tabsPanels = tItems.map( function ( it, i ) {
-					return '<div class="vx-tabp" role="tabpanel"' + ( i === active ? '' : ' hidden' ) + '>' + escapeHtml( it.body || '' ) + '</div>';
+					var tk = ( node.children || [] )[ i ];
+					return '<div class="vx-tabp" role="tabpanel"' + ( i === active ? '' : ' hidden' ) + '>' +
+						( tk ? render( tk ) : escapeHtml( it.body || '' ) ) + '</div>';
 				} ).join( '' );
 				return '<div id="' + node.id + '" class="' + cls + ' vx-tabs' + ( 'left' === ( tSet.orient || 'top' ) ? ' vx-tabs-left' : '' ) + '" data-node="' + node.id + '">' +
 					'<div class="vx-tablist" role="tablist">' + tabsBtns + '</div><div class="vx-tabpanels">' + tabsPanels + '</div></div>';
@@ -355,12 +359,14 @@
 				var openFirst = accSet.firstOpen !== '' && accSet.firstOpen !== undefined ? accSet.firstOpen : ( 'Accordion' === node.el ? '1' : '' );
 				var accHtml = accItems.map( function ( it, i ) {
 					var open = ( openFirst && 0 === i );
+					var kid = ( node.children || [] )[ i ];
+					var inner = kid ? render( kid ) : escapeHtml( it.body || '' );
 					return '<div class="vx-acc-item' + ( open ? ' is-open' : '' ) + '">' +
 						'<' + hTag + ' class="vx-acc-h"><button class="vx-acc-btn" type="button" aria-expanded="' + ( open ? 'true' : 'false' ) + '">' +
 							'<span class="vx-acc-t">' + escapeHtml( it.title || '' ) + '</span>' +
 							'<span class="vx-acc-i">' + svg( 'chevron', 15 ) + '</span>' +
 						'</button></' + hTag + '>' +
-						'<div class="vx-acc-p"' + ( open ? '' : ' hidden' ) + '>' + escapeHtml( it.body || '' ) + '</div>' +
+						'<div class="vx-acc-p"' + ( open ? '' : ' hidden' ) + '>' + inner + '</div>' +
 					'</div>';
 				} ).join( '' );
 				if ( ! accHtml ) { accHtml = '<span class="vb-img-ph">' + T( 'No items yet — add some in Settings.' ) + '</span>'; }
@@ -735,7 +741,34 @@
 			{ key:'wp_menu', el:'WP', tag:'nav', label:'Menu / Nav', cls:'.wp-menu', rules:{}, wp:'menu' }
 		] },
 		{ name:'Velox', icon:'star', items:[
-			{ key:'reviews', el:'Reviews', tag:'div', label:'Google Reviews', cls:'.reviews', rules:{}, badge:'plugin' }
+			{ key:'reviews', el:'Reviews', tag:'div', label:'Google Reviews', cls:'.reviews', rules:{}, badge:'plugin',
+			  settings:[
+				{ k:'demo', t:'toggle', l:'Show example reviews while designing', d:'', s:'Content' },
+				{ k:'count', t:'num', l:'How many to show', d:'6', s:'Content' },
+				{ k:'minStars', t:'select', l:'Only show reviews with', d:'0', s:'Content', o:[
+					[ '0', 'Any rating' ], [ '3', '3 stars and up' ], [ '4', '4 stars and up' ], [ '5', '5 stars only' ]
+				] },
+				{ k:'layout', t:'segment', l:'Arranged as', d:'grid', s:'Layout',
+				  o:[ [ 'grid', 'A grid' ], [ 'list', 'A list' ], [ 'slider', 'A slider' ] ] },
+				{ k:'columns', t:'num', l:'Columns', d:'3', r:true, s:'Layout', when:{ layout:'grid' } },
+				{ k:'gap', t:'num', l:'Space between', d:'20', unit:'px', r:true, s:'Layout' },
+				{ k:'cardBg', t:'color', l:'Card background', d:'#ffffff', s:'Card' },
+				{ k:'cardRadius', t:'num', l:'Corner rounding', d:'14', unit:'px', s:'Card' },
+				{ k:'cardPad', t:'num', l:'Inner spacing', d:'20', unit:'px', s:'Card' },
+				{ k:'cardBorder', t:'color', l:'Border colour', d:'', s:'Card' },
+				{ k:'shadow', t:'select', l:'Shadow', d:'soft', s:'Card', o:[
+					[ 'none', 'None' ], [ 'soft', 'Soft' ], [ 'strong', 'Strong' ]
+				] },
+				{ k:'starColor', t:'color', l:'Star colour', d:'#fbbc04', s:'Stars' },
+				{ k:'starSize', t:'num', l:'Star size', d:'16', unit:'px', s:'Stars' },
+				{ k:'showAvatar', t:'toggle', l:'Show the profile picture', d:'1', s:'What to show' },
+				{ k:'showDate', t:'toggle', l:'Show the date', d:'1', s:'What to show' },
+				{ k:'showLogo', t:'toggle', l:'Show the Google logo', d:'1', s:'What to show' },
+				{ k:'trim', t:'num', l:'Shorten long reviews to', d:'0', unit:'characters', s:'What to show' },
+				{ k:'nameColor', t:'color', l:'Name colour', d:'', s:'Text' },
+				{ k:'textColor', t:'color', l:'Review colour', d:'', s:'Text' },
+				{ k:'textSize', t:'num', l:'Review size', d:'14', unit:'px', r:true, s:'Text' }
+			  ] }
 		] },
 		// Template-only. Inner Content marks the slot in a template where the
 		// individual page's own layout gets dropped in. Without it a template can
@@ -894,7 +927,7 @@
 				{ k:'color', t:'color', l:'Colour', d:'#2ab7f1', s:'Layout' }
 			  ] },
 
-			{ key:'slider', el:'Slider', tag:'div', label:'Slider', cls:'.slider',
+			{ key:'slider', nestable:true, el:'Slider', tag:'div', label:'Slider', cls:'.slider',
 			  rules:{ display:'block' }, runtime:'slider',
 			  repeat:{ label:'Slides', fields:[
 				{ k:'title', t:'text', l:'Heading', d:'Slide' },
@@ -953,7 +986,7 @@
 				  o:[ [ 'click', 'Click' ], [ 'hover', 'Hover' ] ] },
 				{ k:'ms', t:'num', l:'Speed', d:'160', unit:'ms', s:'Animation' }
 			  ] },
-			{ key:'tabs', el:'Tabs', tag:'div', label:'Tabs', cls:'.tabs',
+			{ key:'tabs', nestable:true, el:'Tabs', tag:'div', label:'Tabs', cls:'.tabs',
 			  rules:{ display:'block' }, runtime:'tabs',
 			  repeat:{ label:'Tabs', fields:[
 				{ k:'title', t:'text', l:'Tab label', d:'New tab' },
@@ -968,7 +1001,7 @@
 				{ k:'toAccordion', t:'toggle', l:'Turn into an accordion on mobile', d:'1', s:'Behaviour' },
 				{ k:'deepLink', t:'toggle', l:'Open the tab named in the web address', d:'', s:'Behaviour' }
 			  ] },
-			{ key:'accordion', el:'Accordion', tag:'div', label:'Accordion', cls:'.accordion',
+			{ key:'accordion', nestable:true, el:'Accordion', tag:'div', label:'Accordion', cls:'.accordion',
 			  rules:{ display:'block' }, runtime:'accordion',
 			  repeat:{ label:'Sections', fields:[
 				{ k:'title', t:'text', l:'Heading', d:'New section' },
@@ -986,7 +1019,7 @@
 				{ k:'headingTag', t:'select', l:'Heading level', d:'h3', s:'Accessibility',
 				  o:[ [ 'h2', 'H2' ], [ 'h3', 'H3' ], [ 'h4', 'H4' ] ] }
 			  ] },
-			{ key:'faq', el:'Faq', tag:'div', label:'FAQ', cls:'.faq',
+			{ key:'faq', nestable:true, el:'Faq', tag:'div', label:'FAQ', cls:'.faq',
 			  rules:{ display:'block' }, runtime:'accordion',
 			  repeat:{ label:'Questions', fields:[
 				{ k:'title', t:'text', l:'Question', d:'New question' },
@@ -1020,6 +1053,10 @@
 		var cat = CATALOG.filter( function ( c ) { return c.key === catKey; } )[ 0 ] || CATALOG[ 0 ];
 		// An element made of items should arrive with a few, not empty — an empty
 		// accordion on the canvas tells you nothing about what it will look like.
+		// An item can hold real elements, so each one gets a container child. The
+		// text fields stay for simple content; anything dropped into the container
+		// wins. Without this an accordion panel could only ever be plain text.
+		var seedKids = null;
 		var seedItems = null;
 		if ( cat.repeat ) {
 			seedItems = [];
@@ -1049,7 +1086,16 @@
 			var id = uid( cat.key );
 			var node = { id:id, el:cat.el, tag:cat.tag, classes:[ cat.cls ], overrides:{}, children:[] };
 			if ( cat.wp ) { node.wp = cat.wp; }         // WordPress-data element kind
-			if ( seedItems ) { node.settings = { items: seedItems }; }
+			if ( seedItems ) {
+				node.settings = { items: seedItems };
+				if ( cat.nestable ) {
+					node.children = seedItems.map( function () {
+						var kidId = uid( 'div' );
+						if ( ! s.classes[ '.item-content' ] ) { s.classes[ '.item-content' ] = { base:{ display:'block' } }; }
+						return { id:kidId, el:'Div', tag:'div', classes:[ '.item-content' ], overrides:{}, children:[] };
+					} );
+				}
+			}
 			if ( cat.el === 'Reviews' ) { node.conn = ''; node.preset = ''; }
 			// register the class + its starter rules (only if new)
 			if ( ! s.classes[ cat.cls ] ) { s.classes[ cat.cls ] = { base: Object.assign( {}, cat.rules ) }; }
@@ -2538,14 +2584,26 @@
 			if ( segb ) { setElSetting( segb.getAttribute( 'data-setel' ), segb.getAttribute( 'data-segval' ) ); return; }
 			if ( e.target.closest( '[data-repadd]' ) ) {
 				var rdef = elDef( findNode( store.state.tree, store.state.selection ) );
-				setRepeat( function ( items ) {
+				setRepeat( function ( items, n ) {
 					var blank = {};
 					( ( rdef && rdef.repeat && rdef.repeat.fields ) || [] ).forEach( function ( f ) { blank[ f.k ] = f.d || ''; } );
 					items.push( blank );
+					// Keep the content containers in step with the items.
+					if ( rdef && rdef.nestable ) {
+						n.children = ( n.children || [] ).slice();
+						n.children.push( { id:uid( 'div' ), el:'Div', tag:'div', classes:[ '.item-content' ], overrides:{}, children:[] } );
+					}
 				}, 'Add item' ); return;
 			}
 			var rdel = e.target.closest( '[data-repdel]' );
-			if ( rdel ) { var ri = +rdel.getAttribute( 'data-repdel' ); setRepeat( function ( items ) { items.splice( ri, 1 ); }, 'Remove item' ); return; }
+			if ( rdel ) {
+				var ri = +rdel.getAttribute( 'data-repdel' );
+				setRepeat( function ( items, n ) {
+					items.splice( ri, 1 );
+					if ( n.children && n.children.length > ri ) { n.children = n.children.slice(); n.children.splice( ri, 1 ); }
+				}, 'Remove item' );
+				return;
+			}
 			if ( e.target.closest( '#vb-token-add' ) ) {
 				TOKENS.colors.push( { name:'colour-' + ( TOKENS.colors.length + 1 ), value:'#2ab7f1' } );
 				document.getElementById( 'vb-tokenlist' ).innerHTML = tokenRowsHTML(); saveTokens(); return;

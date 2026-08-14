@@ -28,6 +28,14 @@ $vx_wizard    = (bool) Velox_Settings::get( 'wizard_done' );
 $vx_forceopen = isset( $_GET['velox_wizard'] );
 $vx_autoopen  = $vx_forceopen || ( ! $vx_wizard && '' === $vx_current );
 
+// Opening the wizard by itself counts as having run it. Completion previously
+// only registered when the user explicitly dismissed it, so reloading before
+// that started the whole thing over again. Re-run it deliberately with
+// ?velox_wizard=1 at any time.
+if ( $vx_autoopen && ! $vx_forceopen ) {
+	Velox_Settings::set( 'wizard_done', true );
+}
+
 if ( ! function_exists( 'velox_side_item' ) ) {
 	function velox_side_item( $admin, $tab, $key, $current, $sub = false ) {
 		$active = ( $current === $key ) ? ' is-active' : '';

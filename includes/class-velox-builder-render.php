@@ -271,7 +271,10 @@ class Velox_Builder_Render {
 			$out .= '<span class="vx-acc-i" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>';
 			$out .= '</button></' . $h_tag . '>';
 			$out .= '<div class="vx-acc-p" id="' . esc_attr( $pan_id ) . '" role="region" aria-labelledby="' . esc_attr( $btn_id ) . '"' . ( $open ? '' : ' hidden' ) . '>';
-			$out .= wp_kses_post( wpautop( $body ) );
+			// A panel can hold real elements. children[i] belongs to item i; the
+			// plain text field stays as a fallback for simple content.
+			$kid = $node['children'][ $i ] ?? null;
+			$out .= $kid ? self::render_node( $kid, $doc ) : wp_kses_post( wpautop( $body ) );
 			$out .= '</div></div>';
 
 			$qa[] = array( 'q' => $title, 'a' => wp_strip_all_tags( $body ) );
@@ -340,9 +343,10 @@ class Velox_Builder_Render {
 		$out .= '</div><div class="vx-tabpanels">';
 		foreach ( $items as $i => $item ) {
 			$on = ( $i === $start );
+			$kid  = $node['children'][ $i ] ?? null;
 			$out .= '<div class="vx-tabp" role="tabpanel" id="' . esc_attr( $base . '-tp' . $i ) . '"' .
 				' aria-labelledby="' . esc_attr( $base . '-t' . $i ) . '" tabindex="0"' . ( $on ? '' : ' hidden' ) . '>' .
-				wp_kses_post( wpautop( (string) ( $item['body'] ?? '' ) ) ) . '</div>';
+				( $kid ? self::render_node( $kid, $doc ) : wp_kses_post( wpautop( (string) ( $item['body'] ?? '' ) ) ) ) . '</div>';
 		}
 		$out .= '</div></div>';
 		return $out;
@@ -480,8 +484,13 @@ class Velox_Builder_Render {
 				$out .= '<img src="' . esc_url( $item['image'] ) . '" alt=""' .
 					( 0 === $i ? ' fetchpriority="high"' : ' loading="lazy" decoding="async"' ) . '>';
 			}
-			if ( ! empty( $item['title'] ) ) { $out .= '<strong class="vx-slide-t">' . esc_html( $item['title'] ) . '</strong>'; }
-			if ( ! empty( $item['body'] ) ) { $out .= wp_kses_post( wpautop( $item['body'] ) ); }
+			$kid = $node['children'][ $i ] ?? null;
+			if ( $kid ) {
+				$out .= self::render_node( $kid, $doc );
+			} else {
+				if ( ! empty( $item['title'] ) ) { $out .= '<strong class="vx-slide-t">' . esc_html( $item['title'] ) . '</strong>'; }
+				if ( ! empty( $item['body'] ) ) { $out .= wp_kses_post( wpautop( $item['body'] ) ); }
+			}
 			$out .= '</div>';
 		}
 		$out .= '</div>';
@@ -707,6 +716,18 @@ class Velox_Builder_Render {
 
 		$items  = (array) self::el_set( $node, 'items', array() );
 		$anchor = ( 'Anchornav' === $el );
+		// The WordPress-menu source was a setting the renderer ignored: choosing
+		// it produced nothing at all. Pull the real menu and convert it into the
+		// same item shape the manual list uses, so one renderer serves both.
+		// Default to whichever the document actually has: a nav saved with manual
+		// links but no explicit source must not silently lose them.
+		$default_source = $items ? 'manual' : 'wp';
+		if ( ! $anchor && 'wp' === self::el_set( $node, 'source', $default_source ) ) {
+			$wp_items = self::wp_menu_items( self::el_set( $node, 'menu', 'primary' ) );
+			// An empty or missing menu falls back to the manual list rather than
+			// rendering an empty nav.
+			if ( $wp_items ) { $items = $wp_items; }
+		}
 		$spy    = $anchor && self::el_set( $node, 'spy', '1' );
 		$sticky = self::el_set( $node, 'sticky', '' );
 
@@ -765,6 +786,126 @@ class Velox_Builder_Render {
 		return $out . '</ul></nav>';
 	}
 
+
+	/** A WordPress menu, flattened to the item shape the nav renderer expects. */
+	private static function wp_menu_items( $location ) {
+		$out = array();
+		$locations = get_nav_menu_locations();
+		$menu_id   = 0;
+		if ( $location && ! empty( $locations[ $location ] ) ) {
+			$menu_id = (int) $locations[ $location ];
+		} else {
+			$obj = wp_get_nav_menu_object( $location );
+			if ( $obj ) { $menu_id = (int) $obj->term_id; }
+		}
+		if ( ! $menu_id ) {
+			return $out;
+		}
+		$objs = wp_get_nav_menu_items( $menu_id );
+		if ( ! $objs ) {
+			return $out;
+		}
+		$top = array();
+		$kids = array();
+		foreach ( $objs as $o ) {
+			if ( (int) $o->menu_item_parent ) { $kids[ (int) $o->menu_item_parent ][] = $o; }
+			else { $top[] = $o; }
+		}
+		foreach ( $top as $o ) {
+			$children = '';
+			if ( ! empty( $kids[ (int) $o->ID ] ) ) {
+				$parts = array();
+				foreach ( $kids[ (int) $o->ID ] as $k ) {
+					$parts[] = str_replace( array( '|', ',' ), ' ', $k->title ) . '|' . $k->url;
+				}
+				$children = implode( ',', $parts );
+			}
+			$out[] = array( 'title' => $o->title, 'href' => $o->url, 'children' => $children );
+		}
+		return $out;
+	}
+
+
+	/** Styling for a reviews block, from its settings. */
+	private static function reviews_css( $node, $sel ) {
+		$css    = '';
+		$layout = self::el_set( $node, 'layout', 'grid' );
+		$gap    = (int) self::el_set( $node, 'gap', 20 );
+		$cols   = max( 1, (int) self::el_set( $node, 'columns', 3 ) );
+		if ( 'grid' === $layout ) {
+			$css .= $sel . ' .vx-rv-list{display:grid;grid-template-columns:repeat(' . $cols . ',minmax(0,1fr));gap:' . $gap . 'px}';
+		} elseif ( 'slider' === $layout ) {
+			$css .= $sel . ' .vx-rv-list{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:' . $gap . 'px}' .
+				$sel . ' .vx-rv-card{flex:0 0 min(320px,80%);scroll-snap-align:start}';
+		} else {
+			$css .= $sel . ' .vx-rv-list{display:flex;flex-direction:column;gap:' . $gap . 'px}';
+		}
+		$shadow = self::el_set( $node, 'shadow', 'soft' );
+		$shadows = array(
+			'none'   => 'none',
+			'soft'   => '0 2px 10px rgba(0,0,0,.07)',
+			'strong' => '0 10px 30px rgba(0,0,0,.14)',
+		);
+		$card = 'background:' . self::sanitize_value( self::el_set( $node, 'cardBg', '#ffffff' ) ) . ';' .
+			'border-radius:' . (int) self::el_set( $node, 'cardRadius', 14 ) . 'px;' .
+			'padding:' . (int) self::el_set( $node, 'cardPad', 20 ) . 'px;' .
+			'box-shadow:' . ( $shadows[ $shadow ] ?? $shadows['soft'] ) . ';';
+		$border = self::el_set( $node, 'cardBorder', '' );
+		if ( $border ) { $card .= 'border:1px solid ' . self::sanitize_value( $border ) . ';'; }
+		$css .= $sel . ' .vx-rv-card{' . $card . '}';
+		$css .= $sel . ' .vx-rv-stars{color:' . self::sanitize_value( self::el_set( $node, 'starColor', '#fbbc04' ) ) .
+			';font-size:' . (int) self::el_set( $node, 'starSize', 16 ) . 'px}';
+		$nc = self::el_set( $node, 'nameColor', '' );
+		if ( $nc ) { $css .= $sel . ' .vx-rv-name{color:' . self::sanitize_value( $nc ) . '}'; }
+		$tc = self::el_set( $node, 'textColor', '' );
+		$ts = (int) self::el_set( $node, 'textSize', 14 );
+		$css .= $sel . ' .vx-rv-text{font-size:' . $ts . 'px' . ( $tc ? ';color:' . self::sanitize_value( $tc ) : '' ) . '}';
+		foreach ( array( 'showAvatar' => '.vx-rv-av', 'showDate' => '.vx-rv-date', 'showLogo' => '.vx-rv-logo' ) as $k => $part ) {
+			if ( ! self::el_set( $node, $k, '1' ) ) { $css .= $sel . ' ' . $part . '{display:none}'; }
+		}
+		return $css;
+	}
+
+	/** Example reviews, so a block can be styled before the connection exists. */
+	private static function reviews_demo( $node ) {
+		$people = array(
+			array( 'Anna Weber', 5, __( 'Sehr freundliches Team und schnelle Umsetzung. Jederzeit wieder!', 'velox' ), '2 Wochen' ),
+			array( 'Michael Braun', 5, __( 'Top Beratung, faire Preise und alles pünktlich fertig geworden.', 'velox' ), '1 Monat' ),
+			array( 'Sarah Klein', 4, __( 'Gute Arbeit, kleine Verzögerung — aber das Ergebnis stimmt.', 'velox' ), '1 Monat' ),
+			array( 'Thomas Fischer', 5, __( 'Kompetent, zuverlässig und sehr sauber gearbeitet. Klare Empfehlung.', 'velox' ), '3 Monate' ),
+			array( 'Julia Hoffmann', 5, __( 'Von der ersten Anfrage bis zur Übergabe alles reibungslos.', 'velox' ), '4 Monate' ),
+			array( 'Daniel Schulz', 4, __( 'Sehr zufrieden mit dem Ergebnis und der Kommunikation.', 'velox' ), '6 Monate' ),
+		);
+		$count = max( 1, min( count( $people ), (int) self::el_set( $node, 'count', 6 ) ) );
+		$min   = (int) self::el_set( $node, 'minStars', 0 );
+		$trim  = (int) self::el_set( $node, 'trim', 0 );
+		$out   = '<div class="vx-rv" data-vx-demo="1">' .
+			'<p class="vx-rv-note">' . esc_html__( 'Example reviews — shown only while you design. Connect Google to show real ones.', 'velox' ) . '</p>' .
+			'<div class="vx-rv-list">';
+		$shown = 0;
+		foreach ( $people as $p ) {
+			if ( $shown >= $count ) { break; }
+			if ( $min && $p[1] < $min ) { continue; }
+			$shown++;
+			$text = $p[2];
+			if ( $trim && function_exists( 'mb_strimwidth' ) && mb_strlen( $text ) > $trim ) {
+				$text = mb_strimwidth( $text, 0, $trim, '…' );
+			}
+			$initial = mb_substr( $p[0], 0, 1 );
+			$out .= '<div class="vx-rv-card">' .
+				'<div class="vx-rv-head">' .
+					'<span class="vx-rv-av" aria-hidden="true">' . esc_html( $initial ) . '</span>' .
+					'<span class="vx-rv-name">' . esc_html( $p[0] ) . '</span>' .
+					'<span class="vx-rv-logo" aria-hidden="true">G</span>' .
+				'</div>' .
+				'<div class="vx-rv-stars" aria-label="' . esc_attr( sprintf( '%d/5', $p[1] ) ) . '">' . str_repeat( '★', $p[1] ) . str_repeat( '☆', 5 - $p[1] ) . '</div>' .
+				'<p class="vx-rv-text">' . esc_html( $text ) . '</p>' .
+				'<span class="vx-rv-date">' . esc_html( sprintf( __( 'vor %s', 'velox' ), $p[3] ) ) . '</span>' .
+			'</div>';
+		}
+		return $out . '</div></div>';
+	}
+
 	/** Ship the element runtime, but only when the page actually uses it. */
 	public static function print_element_runtime() {
 		if ( ! self::$runtime_used ) {
@@ -783,6 +924,16 @@ class Velox_Builder_Render {
 			return '';
 		}
 		$css = '';
+		if ( isset( self::$runtime_used['reviews'] ) ) {
+			$css .= '.vx-rv-note{font-size:12px;opacity:.6;margin:0 0 10px}' .
+				'.vx-rv-head{display:flex;align-items:center;gap:9px;margin-bottom:8px}' .
+				'.vx-rv-av{width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#e8eaed;color:#3c4043;font-weight:700;font-size:14px}' .
+				'.vx-rv-name{font-weight:600;flex:1}' .
+				'.vx-rv-logo{width:20px;height:20px;display:grid;place-items:center;border-radius:50%;background:#fff;border:1px solid #dadce0;font:700 12px/1 Arial,sans-serif;color:#4285f4}' .
+				'.vx-rv-stars{letter-spacing:1px;margin-bottom:6px}' .
+				'.vx-rv-text{margin:0 0 8px;line-height:1.55}' .
+				'.vx-rv-date{font-size:12px;opacity:.6}';
+		}
 		if ( isset( self::$runtime_used['nav'] ) ) {
 			$css .= '.vx-nav-list{display:flex;align-items:center;gap:22px;list-style:none;margin:0;padding:0;flex-wrap:wrap}' .
 				'.vx-nav-item{position:relative;display:flex;align-items:center;gap:4px}' .
@@ -1410,10 +1561,24 @@ class Velox_Builder_Render {
 		if ( isset( $node['el'] ) && 'Reviews' === $node['el'] ) {
 			$conn   = isset( $node['conn'] ) ? sanitize_key( $node['conn'] ) : '';
 			$preset = isset( $node['preset'] ) ? sanitize_key( $node['preset'] ) : '';
+			// Styling is applied whether the reviews are real or the example set,
+			// so what you design is what you get once the connection is live.
+			$rid = sanitize_html_class( $node['id'] ?? 'rv' );
+			self::$float_css .= self::reviews_css( $node, '#' . $rid );
+
+			if ( self::el_set( $node, 'demo', '' ) ) {
+				self::$runtime_used['reviews'] = true;
+				return '<div' . $attr . '>' . self::reviews_demo( $node ) . '</div>';
+			}
 			if ( ! $conn || ! shortcode_exists( 'velox_reviews' ) ) {
 				return '<div' . $attr . '></div>';
 			}
-			$sc = '[velox_reviews connection="' . esc_attr( $conn ) . '" preset="' . esc_attr( $preset ) . '"]';
+			$sc = '[velox_reviews connection="' . esc_attr( $conn ) . '" preset="' . esc_attr( $preset ) . '"';
+			$cnt = (int) self::el_set( $node, 'count', 6 );
+			if ( $cnt ) { $sc .= ' count="' . $cnt . '"'; }
+			$min = (int) self::el_set( $node, 'minStars', 0 );
+			if ( $min ) { $sc .= ' min_rating="' . $min . '"'; }
+			$sc .= ']';
 			return '<div' . $attr . '>' . do_shortcode( $sc ) . '</div>';
 		}
 

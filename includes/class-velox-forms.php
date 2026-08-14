@@ -1455,20 +1455,40 @@ class Velox_Forms {
 		return is_array( $arr ) ? array_values( $arr ) : array();
 	}
 
-	public static function save_reply_template( $name, $subject, $body ) {
+	public static function save_reply_template( $name, $subject, $body, $id = '' ) {
 		$name = trim( wp_strip_all_tags( (string) $name ) );
 		if ( '' === $name ) {
 			return new WP_Error( 'no_name', __( 'Give the template a name.', 'velox' ) );
 		}
-		$list   = self::reply_templates();
-		$list[] = array(
-			'id'      => 'tpl_' . wp_generate_password( 8, false ),
+		$id      = sanitize_text_field( (string) $id );
+		$list    = self::reply_templates();
+		$entry   = array(
 			'name'    => $name,
 			'subject' => trim( wp_strip_all_tags( (string) $subject ) ),
 			'body'    => wp_kses_post( (string) $body ),
 		);
+
+		// This used to append unconditionally, so saving the same template twice
+		// — or a double submit — produced duplicate copies instead of updating.
+		$found = -1;
+		foreach ( $list as $i => $t ) {
+			if ( $id && isset( $t['id'] ) && $t['id'] === $id ) { $found = $i; break; }
+		}
+		if ( $found < 0 && ! $id ) {
+			// No id yet: match on name so a repeated save updates rather than piles up.
+			foreach ( $list as $i => $t ) {
+				if ( isset( $t['name'] ) && strtolower( $t['name'] ) === strtolower( $name ) ) { $found = $i; break; }
+			}
+		}
+		if ( $found >= 0 ) {
+			$entry['id']   = $list[ $found ]['id'] ?? ( 'tpl_' . wp_generate_password( 8, false ) );
+			$list[ $found ] = $entry;
+		} else {
+			$entry['id'] = $id ? $id : ( 'tpl_' . wp_generate_password( 8, false ) );
+			$list[]      = $entry;
+		}
 		Velox_Settings::set( 'mail_reply_templates', wp_json_encode( array_values( $list ) ) );
-		return array( 'ok' => true, 'templates' => self::reply_templates() );
+		return array( 'ok' => true, 'templates' => self::reply_templates(), 'id' => $entry['id'] );
 	}
 
 	public static function delete_reply_template( $id ) {

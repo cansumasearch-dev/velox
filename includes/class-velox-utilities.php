@@ -110,6 +110,7 @@ class Velox_Utilities {
 		}
 		// Admin-bar quick toggle (available to admins whether it's on or off).
 		add_action( 'admin_init', array( __CLASS__, 'maybe_toggle_maintenance' ) );
+		add_action( 'admin_notices', array( __CLASS__, 'maintenance_notice' ) );
 		// Maintenance → search visibility. The transition hook is registered
 		// unconditionally: it has to notice the switch going OFF too.
 		add_action( 'update_option_' . Velox_Settings::OPTION, array( __CLASS__, 'maintenance_seo_transition' ), 10, 2 );
@@ -712,13 +713,34 @@ class Velox_Utilities {
 		if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( sanitize_key( wp_unslash( $_GET['_wpnonce'] ) ), 'velox_maint_toggle' ) ) {
 			return;
 		}
-		Velox_Settings::set( 'util_maintenance', ! Velox_Settings::get( 'util_maintenance' ) );
+		$now = ! Velox_Settings::get( 'util_maintenance' );
+		Velox_Settings::set( 'util_maintenance', $now );
 		// Go back to wherever the toggle was clicked from (the admin bar), not to the
-		// maintenance settings page.
+		// maintenance settings page, and carry a flag so the confirmation shows on
+		// that page — turning the site off is worth confirming wherever you are.
 		$back = wp_get_referer();
 		$back = $back ? remove_query_arg( array( 'velox_maint_toggle', '_wpnonce' ), $back ) : admin_url();
-		wp_safe_redirect( $back );
+		wp_safe_redirect( add_query_arg( 'velox_maint', $now ? 'on' : 'off', $back ) );
 		exit;
+	}
+
+	/** Confirmation after toggling maintenance, on whichever screen you were on. */
+	public static function maintenance_notice() {
+		if ( empty( $_GET['velox_maint'] ) || ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
+		$on   = ( 'on' === sanitize_key( wp_unslash( $_GET['velox_maint'] ) ) );
+		$link = admin_url( 'admin.php?page=velox-utilities&tool=maintenance' );
+		printf(
+			'<div class="notice notice-%s is-dismissible"><p><strong>%s</strong> %s <a href="%s">%s</a></p></div>',
+			$on ? 'warning' : 'success',
+			esc_html( $on ? __( 'Maintenance mode is on.', 'velox' ) : __( 'Maintenance mode is off.', 'velox' ) ),
+			esc_html( $on
+				? __( 'Visitors see your maintenance page; you can still browse the site as normal.', 'velox' )
+				: __( 'Your site is visible to everyone again.', 'velox' ) ),
+			esc_url( $link ),
+			esc_html__( 'Maintenance settings', 'velox' )
+		);
 	}
 
 	private static function hex_to_rgba( $hex, $alpha ) {

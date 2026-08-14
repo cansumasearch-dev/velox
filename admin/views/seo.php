@@ -136,20 +136,6 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 		</div>
 	</div>
 
-	<!-- ============ Import / Export settings ============ -->
-	<div class="velox-panel">
-		<div class="velox-panel-head">
-			<h3 class="velox-panel-title"><?php esc_html_e('Import / Export settings', 'velox'); ?></h3>
-		</div>
-		<p class="velox-hint"><?php esc_html_e('Export all your Velox settings to a file, then import it on another site to replicate your setup. Only recognised settings are applied on import — anything unknown is ignored.', 'velox'); ?></p>
-		<div class="velox-actions">
-			<button class="velox-btn velox-btn--primary" id="velox-settings-export"><?php esc_html_e('Export settings', 'velox'); ?></button>
-			<button class="velox-btn velox-btn--ghost" id="velox-settings-import-pick"><?php esc_html_e('Import from file…', 'velox'); ?></button>
-			<input type="file" id="velox-settings-import-file" accept="application/json,.json" hidden>
-		</div>
-		<p class="velox-hint velox-settings-import-note" hidden></p>
-	</div>
-
 	<!-- ============ Sitemap ============ -->
 	<div class="velox-panel">
 		<div class="velox-cache-status-row">
@@ -287,3 +273,17 @@ $ht_writable = Velox_Seo::htaccess_writable();
 	<div class="velox-seoh-tiles" id="velox-seoh-tiles" hidden></div>
 	<div id="velox-seoh-issues"></div>
 </div>
+
+<!-- ============ Import / Export settings ============ -->
+	<div class="velox-panel">
+		<div class="velox-panel-head">
+			<h3 class="velox-panel-title"><?php esc_html_e('Import / Export settings', 'velox'); ?></h3>
+		</div>
+		<p class="velox-hint"><?php esc_html_e('Export all your Velox settings to a file, then import it on another site to replicate your setup. Only recognised settings are applied on import — anything unknown is ignored.', 'velox'); ?></p>
+		<div class="velox-actions">
+			<button class="velox-btn velox-btn--primary" id="velox-settings-export"><?php esc_html_e('Export settings', 'velox'); ?></button>
+			<button class="velox-btn velox-btn--ghost" id="velox-settings-import-pick"><?php esc_html_e('Import from file…', 'velox'); ?></button>
+			<input type="file" id="velox-settings-import-file" accept="application/json,.json" hidden>
+		</div>
+		<p class="velox-hint velox-settings-import-note" hidden></p>
+	</div>

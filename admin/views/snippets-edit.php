@@ -68,7 +68,10 @@ $scope_opts = array(
 	<div class="velox-snip-edgrid">
 		<div class="velox-panel velox-snip-code-panel">
 			<div class="velox-field" style="margin:0;">
-				<label class="velox-label" for="velox-snip-code"><?php esc_html_e('Code', 'velox'); ?></label>
+				<div class="velox-snip-codehead">
+					<label class="velox-label" for="velox-snip-code"><?php esc_html_e('Code', 'velox'); ?></label>
+					<span class="velox-snip-lang" id="velox-snip-lang" aria-live="polite"></span>
+				</div>
 				<textarea id="velox-snip-code" class="velox-snip-code" spellcheck="false"><?php echo esc_textarea( $code ); ?></textarea>
 				<span class="velox-hint" id="velox-snip-codehint"></span>
 			</div>
@@ -114,3 +117,31 @@ $scope_opts = array(
 		</aside>
 	</div>
 </div>
+
+<script>
+( function () {
+	/* Say which language the editor is expecting, and what the code is wrapped
+	   in — a PHP snippet behaves very differently to a CSS one and nothing on
+	   this screen used to say so. */
+	var typeSel = document.getElementById( 'velox-snip-type' );
+	var lang    = document.getElementById( 'velox-snip-lang' );
+	var code    = document.getElementById( 'velox-snip-code' );
+	if ( ! typeSel || ! lang ) { return; }
+	var MAP = {
+		php:  { tag: '<?php … ?>',      note: '<?php echo esc_js( __( 'Runs on the server. Do not add the opening tag — Velox adds it.', 'velox' ) ); ?>' },
+		css:  { tag: '<style> … </style>', note: '<?php echo esc_js( __( 'Added to the page styles. No <style> tag needed.', 'velox' ) ); ?>' },
+		js:   { tag: '<script> … </script>', note: '<?php echo esc_js( __( 'Runs in the browser. No <script> tag needed.', 'velox' ) ); ?>' },
+		html: { tag: '<html>',          note: '<?php echo esc_js( __( 'Inserted as-is.', 'velox' ) ); ?>' }
+	};
+	function sync() {
+		var v = ( typeSel.value || '' ).toLowerCase();
+		var m = MAP[ v ] || MAP[ Object.keys( MAP ).filter( function ( k ) { return v.indexOf( k ) > -1; } )[ 0 ] ];
+		if ( ! m ) { lang.textContent = ''; lang.removeAttribute( 'data-lang' ); return; }
+		lang.setAttribute( 'data-lang', v );
+		lang.innerHTML = '<code>' + m.tag.replace( /</g, '&lt;' ) + '</code><span>' + m.note + '</span>';
+		if ( code ) { code.setAttribute( 'placeholder', m.tag ); }
+	}
+	typeSel.addEventListener( 'change', sync );
+	sync();
+}() );
+</script>

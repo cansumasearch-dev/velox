@@ -892,7 +892,8 @@ class Velox_Ajax {
 				$this->respond( Velox_Forms::save_reply_template(
 					isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '',
 					isset( $_POST['subject'] ) ? wp_unslash( $_POST['subject'] ) : '',
-					isset( $_POST['body'] ) ? wp_unslash( $_POST['body'] ) : ''
+					isset( $_POST['body'] ) ? wp_unslash( $_POST['body'] ) : '',
+					isset( $_POST['id'] ) ? wp_unslash( $_POST['id'] ) : ''
 				) );
 				break;
 

@@ -1162,6 +1162,16 @@
 				api( 'clear_cache', { which: which } )
 					.then( function ( d ) {
 						toast( ( d && d.message ) || vxT( 'Cache purged.' ) );
+						// After purging, the useful next step is measuring — offer both
+						// the built-in check and the real PageSpeed test.
+						var m = d && d.measure;
+						var host = document.getElementById( 'velox-purge-measure' );
+						if ( m && host ) {
+							host.innerHTML = '<span class="velox-measure-t">' + m.text + '</span>' +
+								'<a class="velox-btn velox-btn--ghost velox-btn--sm" href="' + m.onpage + '">' + m.onpageTxt + '</a>' +
+								'<a class="velox-btn velox-btn--ghost velox-btn--sm" href="' + m.external + '" target="_blank" rel="noopener">' + m.extTxt + ' ↗</a>';
+							host.hidden = false;
+						}
 					} )
 					.catch( function ( e ) {
 						toast( e.message || vxT( 'Error clearing cache.' ), 'error' );

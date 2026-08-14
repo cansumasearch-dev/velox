@@ -299,12 +299,17 @@
 		}
 
 		function text( value, placeholder, key ) {
+			// onChange alone only commits when the field loses focus, so the
+			// character counter and the search preview sat still while you typed
+			// and only caught up after a reload. onInput updates as you go.
+			var push = function ( e ) { setMeta( key, e.target.value ); };
 			return el( 'input', {
 				type: 'text',
 				className: 'velox-gseo-input',
 				value: value,
 				placeholder: placeholder || '',
-				onChange: function ( e ) { setMeta( key, e.target.value ); }
+				onInput: push,
+				onChange: push
 			} );
 		}
 
@@ -358,6 +363,7 @@
 						className: 'velox-gseo-area',
 						value: seoDesc,
 						placeholder: 'Write what should show under the title\u2026',
+						onInput: function ( e ) { setMeta( '_velox_seo_desc', e.target.value ); },
 						onChange: function ( e ) { setMeta( '_velox_seo_desc', e.target.value ); }
 					} ),
 					null, seoDesc.length, 160 )
@@ -392,7 +398,8 @@
 							className: 'velox-gseo-area',
 							value: ogDesc,
 							placeholder: vxT( 'Falls back to the meta description' ),
-							onChange: function ( e ) { setMeta( '_velox_seo_og_desc', e.target.value ); }
+							onInput: function ( e ) { setMeta( '_velox_seo_og_desc', e.target.value ); },
+						onChange: function ( e ) { setMeta( '_velox_seo_og_desc', e.target.value ); }
 						} ) ),
 					field( vxT( 'Social image URL' ), text( ogImage, vxT( 'Defaults to the featured image' ), '_velox_seo_og_image' ),
 						'Recommended size 1200\u00d7630.' )

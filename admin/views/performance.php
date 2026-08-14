@@ -11,7 +11,7 @@ $s = Velox_Settings::all();
 $fields = array(
 	// Cache
 	'cache_enable'          => array( 'switch', 'Enable page cache', 'Serve a static HTML copy of each page so visitors skip PHP and the database entirely. Velox\'s own cache — no WP Fastest Cache or WP Rocket needed.' ),
-	'cache_ttl'             => array( 'number', 'Cache lifetime (seconds)', 'How long a cached page stays fresh before it\'s rebuilt. 36000 = 10 hours. 0 = until purged.' ),
+	'cache_ttl'             => array( 'ttl', 'Cache lifetime', 'How long a saved copy of a page stays fresh before it is rebuilt.' ),
 	'cache_logged_in'       => array( 'switch', 'Cache for logged-in users', 'Off by default — logged-in visitors always see live pages. Only enable if your site looks identical when logged in.' ),
 	'cache_mobile_separate' => array( 'switch', 'Separate mobile cache', 'Store a separate cached copy for mobile devices. Enable only if your theme serves different markup to phones.' ),
 	'cache_gzip'            => array( 'switch', 'Pre-compress pages', 'Stores gzip (and Brotli where available) copies so the server sends compressed HTML without compressing on every request.' ),
@@ -121,7 +121,37 @@ function velox_perf_field( $key, $meta, $s, $is_risky = false ) {
 	?>
 	<div class="velox-field"<?php echo $risky_att; ?>>
 		<span class="velox-field-label"><?php echo esc_html( $label ); ?><?php echo $badge; ?><?php echo $info; ?></span>
-		<?php if ( 'number' === $type ) : ?>
+		<?php if ( 'ttl' === $type ) :
+			// Seconds are how the setting is stored, but nobody thinks in seconds —
+			// "36000" tells you nothing. Offer the usual choices and translate
+			// whatever is entered into plain language underneath.
+			$presets = array(
+				3600    => __( '1 hour', 'velox' ),
+				21600   => __( '6 hours', 'velox' ),
+				43200   => __( '12 hours', 'velox' ),
+				86400   => __( '1 day', 'velox' ),
+				604800  => __( '1 week', 'velox' ),
+				2592000 => __( '30 days', 'velox' ),
+				0       => __( 'Until I purge it', 'velox' ),
+			);
+			$cur = (int) $s[ $key ];
+			?>
+			<div class="velox-ttl">
+				<div class="velox-ttl-presets" role="group" aria-label="<?php esc_attr_e( 'Cache lifetime presets', 'velox' ); ?>">
+					<?php foreach ( $presets as $secs => $text ) : ?>
+						<button type="button" class="velox-ttl-btn<?php echo $cur === (int) $secs ? ' is-active' : ''; ?>"
+							data-ttl="<?php echo (int) $secs; ?>"><?php echo esc_html( $text ); ?></button>
+					<?php endforeach; ?>
+				</div>
+				<div class="velox-ttl-custom">
+					<label class="velox-ttl-lab" for="velox-ttl-input"><?php esc_html_e( 'Or set it exactly', 'velox' ); ?></label>
+					<input type="number" id="velox-ttl-input" class="velox-input velox-input--sm" min="0" step="60"
+						data-setting="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $cur ); ?>">
+					<span class="velox-ttl-unit"><?php esc_html_e( 'seconds', 'velox' ); ?></span>
+					<span class="velox-ttl-human" id="velox-ttl-human"></span>
+				</div>
+			</div>
+		<?php elseif ( 'number' === $type ) : ?>
 			<input type="number" class="velox-input velox-input--sm" data-setting="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $s[ $key ] ); ?>">
 		<?php elseif ( 'text' === $type ) : ?>
 			<input type="text" class="velox-input" data-setting="<?php echo esc_attr( $key ); ?>" value="<?php echo esc_attr( $s[ $key ] ); ?>" placeholder="https://…">
@@ -219,6 +249,7 @@ $sec_icons   = array(
 					<div class="velox-panel velox-cache-panel">
 						<h3 class="velox-panel-title"><?php esc_html_e('Clear cache', 'velox'); ?></h3>
 						<p class="velox-hint"><?php esc_html_e('Purge caches across your whole stack in one click. Velox clears its own page cache, WP Fastest Cache and Oxygen directly. Cloudflare is cleared through the official Cloudflare plugin (see the note below).', 'velox'); ?></p>
+						<div class="velox-measure" id="velox-purge-measure" hidden></div>
 						<div class="velox-cache-btns">
 							<button class="velox-btn velox-btn--primary velox-cache-btn" data-which="all"><?php esc_html_e('Clear all caches', 'velox'); ?></button>
 							<button class="velox-btn velox-btn--ghost velox-cache-btn" data-which="minified"><?php esc_html_e('Minified CSS/JS', 'velox'); ?></button>
@@ -358,3 +389,40 @@ $sec_icons   = array(
 <div class="velox-actions velox-actions--sticky">
 	<button class="velox-btn velox-btn--primary" id="velox-perf-save"><?php esc_html_e('Save performance settings', 'velox'); ?></button>
 </div>
+
+<script>
+( function () {
+	/* Cache lifetime: presets, and a plain-language reading of whatever is set. */
+	var input = document.getElementById( 'velox-ttl-input' );
+	var human = document.getElementById( 'velox-ttl-human' );
+	if ( input && human ) {
+		var say = function ( n ) {
+			n = parseInt( n, 10 );
+			if ( isNaN( n ) || n < 0 ) { return ''; }
+			if ( 0 === n ) { return '<?php echo esc_js( __( 'Kept until you purge it', 'velox' ) ); ?>'; }
+			var d = Math.floor( n / 86400 ), h = Math.floor( ( n % 86400 ) / 3600 ), m = Math.round( ( n % 3600 ) / 60 );
+			var out = [];
+			if ( d ) { out.push( d + ( 1 === d ? ' <?php echo esc_js( __( 'day', 'velox' ) ); ?>' : ' <?php echo esc_js( __( 'days', 'velox' ) ); ?>' ) ); }
+			if ( h ) { out.push( h + ( 1 === h ? ' <?php echo esc_js( __( 'hour', 'velox' ) ); ?>' : ' <?php echo esc_js( __( 'hours', 'velox' ) ); ?>' ) ); }
+			if ( m && ! d ) { out.push( m + ' <?php echo esc_js( __( 'min', 'velox' ) ); ?>' ); }
+			return '= ' + ( out.join( ' ' ) || '< 1 min' );
+		};
+		var sync = function () {
+			human.textContent = say( input.value );
+			var v = parseInt( input.value, 10 );
+			[].forEach.call( document.querySelectorAll( '.velox-ttl-btn' ), function ( b ) {
+				b.classList.toggle( 'is-active', parseInt( b.getAttribute( 'data-ttl' ), 10 ) === v );
+			} );
+		};
+		input.addEventListener( 'input', sync );
+		[].forEach.call( document.querySelectorAll( '.velox-ttl-btn' ), function ( b ) {
+			b.addEventListener( 'click', function () {
+				input.value = b.getAttribute( 'data-ttl' );
+				input.dispatchEvent( new Event( 'input', { bubbles: true } ) );
+				input.dispatchEvent( new Event( 'change', { bubbles: true } ) );
+			} );
+		} );
+		sync();
+	}
+}() );
+</script>

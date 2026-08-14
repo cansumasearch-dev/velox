@@ -4,6 +4,31 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.94.0 — Fixes and clearer settings across the admin
+**Fixes**
+- **Fixed: saving a mail template made a copy instead of updating it.** Saving the same template repeatedly piled up duplicates; it now updates in place.
+- **Fixed: the setup wizard started again after a reload.** It only counted as finished if you explicitly dismissed it. Re-run it any time with ?velox_wizard=1.
+- **Fixed: SEO title and description counters only updated after a reload.** They now count as you type.
+- **Fixed: risky settings sat flush against the amber line** and some fields ran past the edge. The spacing rule was competing with another of equal weight, so whether it applied was down to chance.
+
+**Clearer**
+- **Cache lifetime** now has one-click presets (1 hour, 6 hours, 12 hours, 1 day, 1 week, 30 days, or until purged) and tells you in plain words what any number means — 36000 seconds reads as "= 10 hours".
+- **After purging the cache** Velox no longer reports "WP Fastest Cache not active" as something skipped; not having it is normal. Instead you get links to check the result, both in Velox and on Google PageSpeed Insights.
+- **The snippet editor shows which language you are writing**, with the wrapper Velox adds for you, so a PHP snippet is not mistaken for plain output.
+- **Maintenance mode now confirms itself wherever you are** in the admin, instead of only inside Velox.
+- **SEO: import and export moved to the bottom** of the page, out of the way of everyday settings.
+
+**Google Reviews**
+- Full styling controls: layout as a grid, list or slider, columns, spacing, card background, rounding, padding, border and shadow, star colour and size, name and text colours and sizes, and switches for the profile picture, date and Google logo.
+- **Example reviews for designing.** Turn them on to style the block before the Google connection exists; they are clearly labelled and never appear once real reviews are in place.
+- Filter by minimum rating and shorten long reviews.
+
+## 3.93.0 — Real content inside accordions, tabs and slides
+- **Accordion panels, tab panels and slides can now hold anything** — buttons, images, grids, any element — instead of plain text only. Each item gets its own container you can drop elements into, and the text fields stay as a shortcut for simple content.
+- Adding or removing an item adds or removes its container to match.
+- **Fixed: the Navigation element ignored the "A WordPress menu" setting entirely.** Choosing it produced no links at all; it now reads the menu, including submenus.
+- A navigation with no menu found falls back to its typed links rather than rendering nothing.
+
 ## 3.92.0 — Navigation and floating elements
 **New elements**
 - **Navigation** — links from a WordPress menu or typed by hand, submenus, a burger menu with a breakpoint you choose, submenus on hover or click, and optional sticky behaviour that can shrink or hide as you scroll.

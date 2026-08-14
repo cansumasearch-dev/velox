@@ -371,9 +371,10 @@ class Velox_Admin {
 			} elseif ( isset( $GLOBALS['wp_fastest_cache'] ) && method_exists( $GLOBALS['wp_fastest_cache'], 'deleteCache' ) ) {
 				$GLOBALS['wp_fastest_cache']->deleteCache( true );
 				$done[] = 'WP Fastest Cache';
-			} else {
-				$missing[] = 'WP Fastest Cache not active';
 			}
+			// Not having WP Fastest Cache installed is normal — Velox has its own
+			// page cache. Reporting it as something "skipped" made a successful purge
+			// look like a failure.
 		};
 
 		$label = 'Cache';
@@ -474,6 +475,13 @@ class Velox_Admin {
 				'ok'      => true,
 				'cleared' => array_values( array_filter( $done ) ),
 				'message' => $label . ' purged' . ( $missing ? ' — skipped: ' . implode( '; ', $missing ) : '' ),
+				'measure' => array(
+					'text'      => __( 'See the difference', 'velox' ),
+					'onpage'    => admin_url( 'admin.php?page=velox-pagespeed' ),
+					'onpageTxt' => __( 'Run the built-in check', 'velox' ),
+					'external'  => 'https://pagespeed.web.dev/analysis?url=' . rawurlencode( home_url( '/' ) ),
+					'extTxt'    => __( 'Test on PageSpeed Insights', 'velox' ),
+				),
 			);
 		}
 		return array(
