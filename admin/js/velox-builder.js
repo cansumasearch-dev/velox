@@ -308,6 +308,12 @@
 		}
 		if ( doc.body.getAttribute( 'data-html' ) !== html ) {
 			doc.body.innerHTML = html; doc.body.setAttribute( 'data-html', html );
+		}
+		// Listeners belong to the DOCUMENT, not the markup — re-attaching them on
+		// every render stacked a new copy each time, so one click ran the handler
+		// once per render since the page opened. Wire each canvas document once.
+		if ( ! doc.__vbWired ) {
+			doc.__vbWired = true;
 			// Keystrokes inside the canvas iframe never reach the editor's own
 			// handler, so Ctrl+S and friends did nothing whenever the caret was on
 			// the page. Forward them, minus the ones that belong to typing.
@@ -318,7 +324,7 @@
 				e.preventDefault();
 				document.dispatchEvent( new KeyboardEvent( 'keydown', {
 					key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey,
-					shiftKey: e.shiftKey, altKey: e.altKey, bubbles: true
+					shiftKey: e.shiftKey, altKey: e.altKey, bubbles: true, cancelable: true
 				} ) );
 			// Capture phase: the inline-edit key handler on the element calls
 			// stopPropagation(), so a bubble-phase listener here never runs.
@@ -2100,22 +2106,28 @@
 		} );
 		document.getElementById( 'vb-undo' ).addEventListener( 'click', function () { store.undo(); } );
 		document.getElementById( 'vb-redo' ).addEventListener( 'click', function () { store.redo(); } );
+		// Capture phase, so a handler that calls stopPropagation can never swallow a
+		// shortcut and let the BROWSER act on it instead — Cmd+S opening the
+		// browser's own save dialog was exactly that.
 		document.addEventListener( 'keydown', function ( e ) {
 			var mod = e.metaKey || e.ctrlKey;
+			// Shift or Caps Lock makes e.key uppercase, so comparing to 's' missed
+			// and the keystroke fell through to the browser.
+			var k = ( e.key || '' ).toLowerCase();
 			var typing = editing || /^(INPUT|TEXTAREA|SELECT)$/.test( ( e.target.tagName || '' ) ) || e.target.isContentEditable;
-			if ( mod && e.key === 'z' ) { e.preventDefault(); if ( e.shiftKey ) { store.redo(); } else { store.undo(); } }
-			if ( mod && e.key === 's' ) { e.preventDefault(); saveDoc(); }
-			if ( mod && ( e.key === 'p' || e.key === 'P' ) ) { e.preventDefault(); publishDoc(); }
-			if ( mod && e.key === 'c' && ! typing && store.state && store.state.selection ) { e.preventDefault(); copyNode( store.state.selection ); toast( T( 'Copied.' ) ); }
-			if ( mod && e.key === 'v' && ! typing && clipboardNode ) { e.preventDefault(); pasteNode( ctxHoverId || store.state.selection ); }
-			if ( mod && ( e.key === 'd' || e.key === 'D' ) && ! typing && store.state && store.state.selection ) { e.preventDefault(); duplicateNode( store.state.selection ); }
-			if ( mod && e.key === '\\' ) { e.preventDefault(); if ( e.shiftKey ) { toggleRightStack(); } else { toggleLeftStack(); } }
+			if ( mod && k === 'z' ) { e.preventDefault(); if ( e.shiftKey ) { store.redo(); } else { store.undo(); } }
+			if ( mod && k === 's' ) { e.preventDefault(); saveDoc(); }
+			if ( mod && k === 'p' ) { e.preventDefault(); publishDoc(); }
+			if ( mod && k === 'c' && ! typing && store.state && store.state.selection ) { e.preventDefault(); copyNode( store.state.selection ); toast( T( 'Copied.' ) ); }
+			if ( mod && k === 'v' && ! typing && clipboardNode ) { e.preventDefault(); pasteNode( ctxHoverId || store.state.selection ); }
+			if ( mod && k === 'd' && ! typing && store.state && store.state.selection ) { e.preventDefault(); duplicateNode( store.state.selection ); }
+			if ( mod && k === '\\' ) { e.preventDefault(); if ( e.shiftKey ) { toggleRightStack(); } else { toggleLeftStack(); } }
 			if ( e.key === 'Escape' ) { closeAddMenu(); closeContextMenu(); }
 			// Deleting the selected element is destructive, so it needs a deliberate
 			// keypress — not one that lands on <body> because a field just re-rendered
 			// under the cursor. Backspace no longer deletes; Delete does.
 			if ( e.key === 'Delete' && ! typing && e.target === document.body && store.state && store.state.selection ) { e.preventDefault(); deleteNode( store.state.selection ); }
-		} );
+		}, true );
 		wireDrag();
 		// Right-click context menu on layer tree + structure panel rows.
 		document.addEventListener( 'contextmenu', function ( e ) {
@@ -2167,7 +2179,7 @@
 	function renderAddPanel( filter ) {
 		var m = document.getElementById( 'vb-addmenu' );
 		m.innerHTML =
-			'<div class="vb-ap-h"><span class="vb-ap-plus">' + svg( 'plus', 15 ) + '</span><b>' + T( 'Add element' ) + '</b><span class="vb-p-acts">' + pinBtnHTML() + '<button class="vb-ap-x" data-add>' + svg( 'x', 15 ) + '</button></span></div>' +
+			'<div class="vb-ap-h"><span class="vb-ap-plus">' + svg( 'plus', 15 ) + '</span><b>' + T( 'Add element' ) + '</b><span class="vb-p-acts">' + pinBtnHTML( 'left' ) + '<button class="vb-ap-x" data-add>' + svg( 'x', 15 ) + '</button></span></div>' +
 			'<div class="vb-ap-search"><span class="vb-ss-ic">' + svg( 'search', 13 ) + '</span><input id="vb-ap-search" placeholder="' + T( 'Type to filter elements…' ) + '" value="' + escapeHtml( filter || '' ) + '"></div>' +
 			'<div class="vb-ap-body">' + addBodyHTML( filter ) + '</div>';
 	}
@@ -2357,8 +2369,11 @@
 	 * other just loses the user's place. */
 	function closeAllPanels( except ) {
 		var sides = { add:'left', css:'right', hist:'right', struct:'right', settings:'right' };
-		var keepSide = ( sides[ except ] && pinned[ sides[ except ] ] ) ? sides[ except ] : null;
-		function spare( key ) { return keepSide && sides[ key ] && sides[ key ] !== keepSide && pinned[ sides[ key ] ]; }
+		// Panels on OPPOSITE sides never close each other, pinned or not. Pinning
+		// decides whether a panel pushes or overlays the canvas — it was never
+		// meant to decide whether an unrelated panel is allowed to stay open.
+		var openSide = sides[ except ] || null;
+		function spare( key ) { return openSide && sides[ key ] && sides[ key ] !== openSide; }
 		if ( except !== 'add' && ! spare( 'add' ) ) { var a = document.getElementById( 'vb-addmenu' ); if ( a ) { a.classList.remove( 'open' ); } }
 		if ( except !== 'css' && ! spare( 'css' ) ) { cssShown = false; var c = document.getElementById( 'vb-css' ); if ( c ) { c.style.display = 'none'; } }
 		if ( except !== 'hist' && ! spare( 'hist' ) ) { historyShown = false; var h = document.getElementById( 'vb-hist' ); if ( h ) { h.style.display = 'none'; } }

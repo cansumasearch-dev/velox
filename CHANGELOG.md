@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.90.0 — Panels and shortcuts behave
+- **Fixed: the Add panel's pin did nothing.** It was pinning the right-hand side instead of its own, so clicking it appeared to have no effect at all.
+- **Fixed: opening a panel closed the one on the other side.** Structure and Add can now be open together, as can Settings and Add. Panels on the same side still replace each other, since they share the space. Pinning decides whether a panel pushes or overlays the canvas — nothing more.
+- **Fixed: Ctrl/Cmd + S sometimes opened the browser's own save dialog.** Two causes: the shortcut only matched a lowercase "s", so Shift or Caps Lock missed it; and it listened after other handlers, any of which could stop it. It now matches regardless of case and runs before anything can swallow it.
+- **Fixed: canvas event listeners stacked up on every render.** A click, double-click or shortcut on the page ran its handler once for every time the canvas had been redrawn since opening the editor — so a single Ctrl+S could fire several saves.
+
 ## 3.89.0 — Colours are editable again
 - **Fixed a regression: there was no way to edit your colours.** Rebuilding the Global styles screen in 3.82.0 dropped the colour and spacing editors, and nothing replaced them — the in-editor Colors page only listed them. Both are now editable in Settings → Global styles, with add, rename, recolour and remove.
 - **Spacing scale** is editable there too, available as var(--space-0), var(--space-1) and so on.
