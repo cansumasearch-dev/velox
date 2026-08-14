@@ -4,6 +4,26 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.92.0 — Navigation and floating elements
+**New elements**
+- **Navigation** — links from a WordPress menu or typed by hand, submenus, a burger menu with a breakpoint you choose, submenus on hover or click, and optional sticky behaviour that can shrink or hide as you scroll.
+- **Breadcrumbs** — with optional search-engine markup.
+- **Anchor navigation** — jump links that highlight the section currently on screen.
+- **Floating button** — nine placements, offsets, and actions for links, phone calls, WhatsApp, email, scroll-to-top or opening a popup. Optional attention animation.
+- **Back to top**, **Announcement bar** (dismissible, remembers the dismissal), **Sticky contact bar** (phone-friendly button row) and **Reading progress**.
+
+**How they behave**
+- Floating elements share one system for when they appear (page load, delay, scroll depth, an element coming into view, inactivity, or leaving the page) and how often (every time, once a visit, once a day, once ever).
+- Placement and per-device hiding are written as real CSS, so nothing flashes in the wrong place while the page loads and hidden elements are genuinely hidden.
+- On phones, where there is no cursor to detect, the leaving-the-page trigger becomes a scroll trigger instead of never running.
+- Navigation uses one set of links for desktop and mobile, so search engines and screen readers see them once.
+
+**Fixes**
+- **Fixed: hover never worked on submenus or tabs.** The events used for hover do not travel up the page the way the code assumed, so hover mode did nothing at all.
+- **Fixed: clicking a hover submenu closed it.** Hovering opened the menu and the click immediately shut it again, making it impossible to click through.
+- **Fixed: elements shown by a trigger stayed marked as hidden**, so assistive technology was told the opposite of what was on screen.
+- **Fixed: closing an announcement bar did not stick** when it was set to show every time. Closing something is deliberate and now lasts the visit.
+
 ## 3.91.0 — Interactive elements, and the foundation under them
 **New elements**
 - **Accordion** and **FAQ** — add sections, choose one-at-a-time or several open at once, set the icon side and heading level. Optional FAQ structured data, off by default.

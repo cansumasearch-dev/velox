@@ -520,6 +520,251 @@ class Velox_Builder_Render {
 		return $out . '</div>';
 	}
 
+
+	/** Placement + trigger attributes shared by every floating element. */
+	private static function floating_attrs( $node ) {
+		$out = '';
+		$trig = self::el_set( $node, 'trigType', '' );
+		if ( $trig ) {
+			$out .= ' data-vx-trig="' . esc_attr( $trig ) . '"' .
+				' data-vx-once="' . esc_attr( self::el_set( $node, 'trigOnce', 'always' ) ) . '"';
+			foreach ( array( 'trigDelay' => 'delay', 'trigScroll' => 'scroll', 'trigIdle' => 'idle', 'trigTarget' => 'target' ) as $k => $a ) {
+				$v = self::el_set( $node, $k, '' );
+				if ( '' !== $v ) { $out .= ' data-vx-' . $a . '="' . esc_attr( $v ) . '"'; }
+			}
+		}
+		return $out;
+	}
+	private static function floating_style( $node ) {
+		$ax = self::el_set( $node, 'anchorX', 'right' );
+		$ay = self::el_set( $node, 'anchorY', 'bottom' );
+		$ox = (int) self::el_set( $node, 'offsetX', 24 );
+		$oy = (int) self::el_set( $node, 'offsetY', 24 );
+		$z  = (int) self::el_set( $node, 'zIndex', 9990 );
+		$st = 'position:fixed;z-index:' . $z . ';';
+		if ( 'center' === $ax )      { $st .= 'left:50%;transform:translateX(-50%);'; }
+		elseif ( 'left' === $ax )    { $st .= 'left:' . $ox . 'px;'; }
+		else                         { $st .= 'right:' . $ox . 'px;'; }
+		if ( 'middle' === $ay )      { $st .= 'top:50%;'; }
+		elseif ( 'top' === $ay )     { $st .= 'top:' . $oy . 'px;'; }
+		else                         { $st .= 'bottom:' . $oy . 'px;'; }
+		return $st;
+	}
+	/** Per-device hiding, as real CSS rather than a JS check. */
+	private static function visibility_css( $node, $sel ) {
+		if ( ! class_exists( 'Velox_Builder' ) ) { return ''; }
+		$bp  = Velox_Builder::breakpoints();
+		$css = '';
+		if ( self::el_set( $node, 'hideMobile', '' ) ) {
+			$css .= '@media (max-width:' . (int) $bp['mobile'] . 'px){' . $sel . '{display:none!important}}';
+		}
+		if ( self::el_set( $node, 'hideTablet', '' ) ) {
+			$css .= '@media (min-width:' . ( (int) $bp['mobile'] + 1 ) . 'px) and (max-width:' . (int) $bp['tablet'] . 'px){' . $sel . '{display:none!important}}';
+		}
+		if ( self::el_set( $node, 'hideDesktop', '' ) ) {
+			$css .= '@media (min-width:' . ( (int) $bp['tablet'] + 1 ) . 'px){' . $sel . '{display:none!important}}';
+		}
+		return $css;
+	}
+
+	/** Floating buttons, bars and the reading-progress indicator. */
+	private static function render_floating( $node, $doc, $classes ) {
+		$el = $node['el'];
+		self::$runtime_used['floating'] = true;
+		$id  = sanitize_html_class( $node['id'] ?? 'fl' );
+		$sel = '#' . $id;
+
+		if ( 'Progressbar' === $el ) {
+			$pos   = self::el_set( $node, 'pos', 'top' );
+			$thick = (int) self::el_set( $node, 'thickness', 4 );
+			$col   = self::sanitize_value( self::el_set( $node, 'color', '#2ab7f1' ) );
+			self::$float_css .= $sel . '{position:fixed;left:0;right:0;' . ( 'bottom' === $pos ? 'bottom:0' : 'top:0' ) .
+				';height:' . $thick . 'px;z-index:9995;background:transparent}' .
+				$sel . ' .vx-progress-fill{height:100%;width:0;background:' . $col . ';transition:width .1s linear}';
+			return '<div id="' . esc_attr( $id ) . '" class="' . esc_attr( trim( $classes . ' vx-progress' ) ) . '"' .
+				' role="progressbar" aria-label="' . esc_attr__( 'Reading progress', 'velox' ) . '"' .
+				' aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="vx-progress-fill"></div></div>';
+		}
+
+		if ( 'Announcebar' === $el || 'Stickybar' === $el ) {
+			$pos    = self::el_set( $node, 'pos', 'Stickybar' === $el ? 'bottom' : 'top' );
+			$sticky = 'Stickybar' === $el ? '1' : self::el_set( $node, 'sticky', '1' );
+			$hidden = self::el_set( $node, 'trigType', '' ) ? ' hidden' : '';
+			if ( $sticky ) {
+				self::$float_css .= $sel . '{position:fixed;left:0;right:0;' . ( 'bottom' === $pos ? 'bottom:0' : 'top:0' ) . ';z-index:9992}';
+			}
+			if ( 'Stickybar' === $el && self::el_set( $node, 'mobileOnly', '1' ) && class_exists( 'Velox_Builder' ) ) {
+				$bp = Velox_Builder::breakpoints();
+				self::$float_css .= '@media (min-width:' . ( (int) $bp['mobile'] + 1 ) . 'px){' . $sel . '{display:none!important}}';
+			}
+			self::$float_css .= self::visibility_css( $node, $sel );
+
+			$inner = '';
+			if ( 'Announcebar' === $el ) {
+				$inner .= '<span class="vx-bar-text">' . esc_html( self::el_set( $node, 'text', '' ) ) . '</span>';
+				$lt = self::el_set( $node, 'linkText', '' );
+				$lu = self::el_set( $node, 'linkUrl', '' );
+				if ( $lt && $lu ) { $inner .= ' <a class="vx-bar-link" href="' . esc_url( $lu ) . '">' . esc_html( $lt ) . '</a>'; }
+				if ( self::el_set( $node, 'dismiss', '1' ) ) {
+					$inner .= '<button type="button" class="vx-bar-x" data-vx-dismiss aria-label="' . esc_attr__( 'Close', 'velox' ) . '">' .
+						'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+				}
+			} else {
+				foreach ( (array) self::el_set( $node, 'items', array() ) as $item ) {
+					if ( empty( $item['title'] ) && empty( $item['href'] ) ) { continue; }
+					$inner .= '<a class="vx-bar-btn" href="' . esc_url( $item['href'] ?? '#' ) . '">' .
+						esc_html( $item['title'] ?? '' ) . '</a>';
+				}
+			}
+			return '<div id="' . esc_attr( $id ) . '" class="' . esc_attr( trim( $classes . ' vx-bar' ) ) . '"' .
+				self::floating_attrs( $node ) . $hidden . '>' . $inner . '</div>';
+		}
+
+		// Floating button / back to top
+		self::$float_css .= $sel . '{' . self::floating_style( $node ) . '}' . self::visibility_css( $node, $sel );
+		$idle = self::el_set( $node, 'idle', 'none' );
+		if ( 'none' !== $idle ) { self::$runtime_used['fabanim'] = true; }
+
+		$label  = self::el_set( $node, 'label', '' );
+		$action = self::el_set( $node, 'action', 'link' );
+		$target = self::el_set( $node, 'target', '' );
+		$href   = '#';
+		$extra  = '';
+		if ( 'Backtotop' === $el || 'scrolltop' === $action ) {
+			$extra = ' data-vx-scrollto="#top"';
+		} elseif ( 'call' === $action )     { $href = 'tel:' . preg_replace( '/[^0-9+]/', '', $target ); }
+		elseif ( 'whatsapp' === $action )   { $href = 'https://wa.me/' . preg_replace( '/[^0-9]/', '', $target ); }
+		elseif ( 'mail' === $action )       { $href = 'mailto:' . sanitize_email( $target ); }
+		elseif ( 'open' === $action )       { $extra = ' data-vx-open="' . esc_attr( self::el_set( $node, 'openId', '' ) ) . '"'; }
+		else                                { $href = $target ? esc_url( $target ) : '#'; }
+
+		$tag  = ( 'Backtotop' === $el || 'open' === $action || 'scrolltop' === $action ) ? 'button' : 'a';
+		$attr = ( 'button' === $tag ) ? ' type="button"' : ' href="' . esc_url( $href ) . '"';
+		$name = $label ? $label : ( 'Backtotop' === $el ? __( 'Back to top', 'velox' ) : __( 'Open', 'velox' ) );
+
+		$hidden = self::el_set( $node, 'trigType', '' ) ? ' hidden' : '';
+		$out  = '<' . $tag . ' id="' . esc_attr( $id ) . '" class="' . esc_attr( trim( $classes . ' vx-fab' . ( 'none' !== $idle ? ' vx-idle-' . $idle : '' ) ) ) . '"' .
+			$attr . $extra . self::floating_attrs( $node ) . $hidden .
+			( $label ? '' : ' aria-label="' . esc_attr( $name ) . '"' ) . '>';
+		$out .= '<span class="vx-fab-i" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' .
+			( 'Backtotop' === $el ? '<path d="m18 15-6-6-6 6"/>' : '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' ) . '</svg></span>';
+		if ( $label ) { $out .= '<span class="vx-fab-l">' . esc_html( $label ) . '</span>'; }
+		return $out . '</' . $tag . '>';
+	}
+
+	/** Per-instance CSS for floating elements, collected during render. */
+	private static $float_css = '';
+
+
+	/**
+	 * Navigation.
+	 *
+	 * A <nav> landmark, an ordinary list of links, and a real <button
+	 * aria-expanded> per submenu — the APG Disclosure Navigation pattern. The
+	 * menubar/menu/menuitem roles are deliberately NOT used: they switch screen
+	 * readers into application mode and promise keyboard behaviour that site
+	 * navigation does not implement. aria-haspopup is omitted for the same
+	 * reason.
+	 */
+	private static function render_nav( $node, $doc, $classes ) {
+		$el = $node['el'];
+		self::$runtime_used['nav'] = true;
+		$id = sanitize_html_class( $node['id'] ?? 'nav' );
+
+		if ( 'Breadcrumbs' === $el ) {
+			$sep   = self::el_set( $node, 'sep', '/' );
+			$home  = self::el_set( $node, 'homeLabel', 'Start' );
+			$crumbs = array( array( 'name' => $home, 'url' => home_url( '/' ) ) );
+			$pid = get_queried_object_id();
+			if ( $pid ) {
+				foreach ( array_reverse( get_post_ancestors( $pid ) ) as $anc ) {
+					$crumbs[] = array( 'name' => get_the_title( $anc ), 'url' => get_permalink( $anc ) );
+				}
+				$crumbs[] = array( 'name' => get_the_title( $pid ), 'url' => '' );
+			}
+			$out = '<nav id="' . esc_attr( $id ) . '" class="' . esc_attr( trim( $classes . ' vx-crumbs' ) ) . '"' .
+				' aria-label="' . esc_attr__( 'Breadcrumb', 'velox' ) . '"><ol class="vx-crumb-list">';
+			foreach ( $crumbs as $i => $c ) {
+				$last = ( $i === count( $crumbs ) - 1 );
+				$out .= '<li class="vx-crumb">';
+				if ( $c['url'] && ! $last ) { $out .= '<a href="' . esc_url( $c['url'] ) . '">' . esc_html( $c['name'] ) . '</a>'; }
+				else { $out .= '<span aria-current="page">' . esc_html( $c['name'] ) . '</span>'; }
+				if ( ! $last ) { $out .= '<span class="vx-crumb-sep" aria-hidden="true">' . esc_html( $sep ) . '</span>'; }
+				$out .= '</li>';
+			}
+			$out .= '</ol>';
+			if ( self::el_set( $node, 'schema', '1' ) ) {
+				$ld = array( '@context' => 'https://schema.org', '@type' => 'BreadcrumbList', 'itemListElement' => array() );
+				foreach ( $crumbs as $i => $c ) {
+					$item = array( '@type' => 'ListItem', 'position' => $i + 1, 'name' => $c['name'] );
+					if ( $c['url'] ) { $item['item'] = $c['url']; }
+					$ld['itemListElement'][] = $item;
+				}
+				$out .= '<script type="application/ld+json">' . wp_json_encode( $ld ) . '</script>';
+			}
+			return $out . '</nav>';
+		}
+
+		$items  = (array) self::el_set( $node, 'items', array() );
+		$anchor = ( 'Anchornav' === $el );
+		$spy    = $anchor && self::el_set( $node, 'spy', '1' );
+		$sticky = self::el_set( $node, 'sticky', '' );
+
+		$attr = ' id="' . esc_attr( $id ) . '"';
+		if ( ! $anchor ) {
+			$collapse = self::el_set( $node, 'collapseAt', 'tablet' );
+			$bp       = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991, 'mobile' => 767 );
+			$px       = array( 'tablet' => (int) $bp['tablet'], 'mobile' => (int) $bp['mobile'], 'always' => 99999, 'never' => 0 );
+			if ( ! empty( $px[ $collapse ] ) ) { $attr .= ' data-vx-bp="' . (int) $px[ $collapse ] . '"'; }
+			$attr .= ' data-vx-subtrigger="' . esc_attr( self::el_set( $node, 'subTrigger', 'hover' ) ) . '"';
+		}
+		if ( $spy )    { $attr .= ' data-vx-spy'; }
+		if ( $sticky ) {
+			$attr .= ' data-vx-sticky data-vx-shrink-at="' . (int) self::el_set( $node, 'shrinkAt', 60 ) . '"';
+			if ( self::el_set( $node, 'hideDown', '' ) ) { $attr .= ' data-vx-hide-down'; }
+			self::$float_css .= '#' . $id . '{position:sticky;top:0;z-index:9990}';
+			if ( self::el_set( $node, 'shrink', '' ) ) { self::$runtime_used['navshrink'] = true; }
+		}
+
+		$out  = '<nav class="' . esc_attr( trim( $classes . ' vx-nav' . ( $anchor ? ' vx-anchornav' : '' ) ) ) . '"' . $attr .
+			' aria-label="' . esc_attr( $anchor ? __( 'On this page', 'velox' ) : __( 'Main', 'velox' ) ) . '">';
+
+		if ( ! $anchor ) {
+			$out .= '<button type="button" class="vx-burger" aria-expanded="false" aria-controls="' . esc_attr( $id . '-list' ) . '"' .
+				' aria-label="' . esc_attr__( 'Menu', 'velox' ) . '" hidden>' .
+				'<span class="vx-burger-i" aria-hidden="true"></span></button>';
+		}
+
+		$out .= '<ul class="vx-nav-list" id="' . esc_attr( $id . '-list' ) . '">';
+		$current = get_permalink( get_queried_object_id() );
+		foreach ( array_values( $items ) as $i => $item ) {
+			$title = (string) ( $item['title'] ?? '' );
+			$href  = (string) ( $item['href'] ?? '#' );
+			if ( '' === trim( $title ) ) { continue; }
+			$subs  = array();
+			foreach ( array_filter( explode( ',', (string) ( $item['children'] ?? '' ) ) ) as $pair ) {
+				$bits = explode( '|', $pair );
+				if ( trim( $bits[0] ) ) { $subs[] = array( trim( $bits[0] ), trim( $bits[1] ?? '#' ) ); }
+			}
+			$out .= '<li class="vx-nav-item' . ( $subs ? ' vx-has-sub' : '' ) . '">';
+			$is_current = ( $current && untrailingslashit( $href ) === untrailingslashit( $current ) );
+			$out .= '<a href="' . esc_url( $href ) . '"' . ( $is_current ? ' aria-current="page"' : '' ) . '>' . esc_html( $title ) . '</a>';
+			if ( $subs ) {
+				$sid  = $id . '-s' . $i;
+				$out .= '<button type="button" class="vx-sub-btn" aria-expanded="false" aria-controls="' . esc_attr( $sid ) . '"' .
+					' aria-label="' . esc_attr( sprintf( __( 'Show submenu of %s', 'velox' ), $title ) ) . '">' .
+					'<span aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span></button>';
+				$out .= '<ul class="vx-submenu" id="' . esc_attr( $sid ) . '" hidden>';
+				foreach ( $subs as $sub ) {
+					$out .= '<li><a href="' . esc_url( $sub[1] ) . '">' . esc_html( $sub[0] ) . '</a></li>';
+				}
+				$out .= '</ul>';
+			}
+			$out .= '</li>';
+		}
+		return $out . '</ul></nav>';
+	}
+
 	/** Ship the element runtime, but only when the page actually uses it. */
 	public static function print_element_runtime() {
 		if ( ! self::$runtime_used ) {
@@ -538,6 +783,55 @@ class Velox_Builder_Render {
 			return '';
 		}
 		$css = '';
+		if ( isset( self::$runtime_used['nav'] ) ) {
+			$css .= '.vx-nav-list{display:flex;align-items:center;gap:22px;list-style:none;margin:0;padding:0;flex-wrap:wrap}' .
+				'.vx-nav-item{position:relative;display:flex;align-items:center;gap:4px}' .
+				'.vx-nav-item a{text-decoration:none;color:inherit}' .
+				'.vx-nav-item a[aria-current="page"]{font-weight:700}' .
+				'.vx-sub-btn{background:none;border:none;padding:2px;cursor:pointer;color:inherit;line-height:0}' .
+				'.vx-sub-btn[aria-expanded="true"] svg{transform:rotate(180deg)}' .
+				'.vx-submenu{position:absolute;top:100%;left:0;min-width:190px;margin:0;padding:8px;list-style:none;background:#fff;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.14);z-index:50}' .
+				'.vx-submenu[hidden]{display:none}' .
+				'.vx-submenu a{display:block;padding:8px 10px;border-radius:6px}' .
+				'.vx-burger{background:none;border:none;padding:10px;cursor:pointer;color:inherit}' .
+				'.vx-burger[hidden]{display:none}' .
+				'.vx-burger-i,.vx-burger-i::before,.vx-burger-i::after{display:block;width:22px;height:2px;background:currentColor;content:""}' .
+				'.vx-burger-i::before{transform:translateY(-7px)}.vx-burger-i::after{transform:translateY(5px)}' .
+				'.vx-nav.is-mobile .vx-nav-list{position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:#fff;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.14);z-index:49}' .
+				'.vx-nav.is-mobile{position:relative}' .
+				'.vx-nav.is-mobile .vx-nav-list[hidden]{display:none}' .
+				'.vx-nav.is-mobile .vx-nav-item{padding:10px 8px}' .
+				'.vx-nav.is-mobile .vx-submenu{position:static;box-shadow:none;padding-left:14px}' .
+				'.vx-crumb-list{display:flex;flex-wrap:wrap;align-items:center;gap:8px;list-style:none;margin:0;padding:0}' .
+				'.vx-crumb{display:flex;align-items:center;gap:8px}' .
+				'.vx-anchornav a.is-current{font-weight:700}' .
+				'[data-vx-sticky]{transition:transform .2s ease,padding .2s ease}' .
+				'[data-vx-sticky].is-hidden{transform:translateY(-100%)}' .
+				'@media (prefers-reduced-motion:reduce){[data-vx-sticky]{transition:none}}';
+			if ( isset( self::$runtime_used['navshrink'] ) ) {
+				$css .= '[data-vx-sticky].is-stuck{padding-top:6px;padding-bottom:6px}';
+			}
+		}
+		if ( isset( self::$runtime_used['floating'] ) ) {
+			$css .= '.vx-fab{display:inline-flex;align-items:center;gap:8px;padding:14px;border-radius:999px;border:none;cursor:pointer;text-decoration:none;box-shadow:0 6px 20px rgba(0,0,0,.18);background:#111827;color:#fff}' .
+				'.vx-fab[hidden]{display:none}' .
+				'.vx-fab.is-shown{display:inline-flex}' .
+				'.vx-bar{display:flex;align-items:center;justify-content:center;gap:12px;background:#111827;color:#fff}' .
+				'.vx-bar[hidden]{display:none}.vx-bar.is-shown{display:flex}' .
+				'.vx-bar-link{color:inherit;text-decoration:underline}' .
+				'.vx-bar-btn{flex:1;text-align:center;padding:14px 8px;color:inherit;text-decoration:none}' .
+				'.vx-bar-x{margin-left:auto;background:none;border:none;color:inherit;cursor:pointer;padding:6px;line-height:0}';
+			if ( isset( self::$runtime_used['fabanim'] ) ) {
+				$css .= '@keyframes vxPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}' .
+					'@keyframes vxBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}' .
+					'@keyframes vxShake{0%,100%{transform:rotate(0)}25%{transform:rotate(-8deg)}75%{transform:rotate(8deg)}}' .
+					'.vx-idle-pulse{animation:vxPulse 2.4s ease-in-out infinite}' .
+					'.vx-idle-bounce{animation:vxBounce 2.4s ease-in-out infinite}' .
+					'.vx-idle-shake{animation:vxShake 3s ease-in-out infinite}' .
+					'@media (prefers-reduced-motion:reduce){.vx-idle-pulse,.vx-idle-bounce,.vx-idle-shake{animation:none}}';
+			}
+			if ( self::$float_css ) { $css .= self::$float_css; }
+		}
 		if ( isset( self::$runtime_used['slider'] ) ) {
 			$css .= '.vx-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}' .
 				'.vx-slider{position:relative}' .
@@ -995,6 +1289,16 @@ class Velox_Builder_Render {
 		// on the front end. The whole subtree goes with them.
 		if ( ! empty( $node['hidden'] ) ) {
 			return '';
+		}
+		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Navbar', 'Breadcrumbs', 'Anchornav' ), true ) ) {
+			$nc = array();
+			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $nc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
+			return self::render_nav( $node, $doc, implode( ' ', array_filter( $nc ) ) );
+		}
+		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Fab', 'Backtotop', 'Announcebar', 'Stickybar', 'Progressbar' ), true ) ) {
+			$fc = array();
+			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $fc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
+			return self::render_floating( $node, $doc, implode( ' ', array_filter( $fc ) ) );
 		}
 		if ( isset( $node['el'] ) && 'Slider' === $node['el'] ) {
 			$sc = array();
