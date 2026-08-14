@@ -1461,7 +1461,8 @@
 			'<div class="vb-setpanel" id="vb-setpanel"></div>' +
 			'<div id="vb-dyndata-host"></div>' +
 			'<div class="vb-addmenu" id="vb-addmenu"></div>' +
-			'<div class="vb-scrim" id="vb-scrim"></div>';
+			'<div class="vb-scrim" id="vb-scrim"></div>' +
+			'<div class="vb-iconpick" id="vb-iconpick"></div>';
 		injectStyles();
 		wireEvents();
 		applyDock();
@@ -1948,6 +1949,49 @@
 			if ( ! Object.keys( n.aos ).length ) { delete n.aos; }
 		}, T( 'Animation' ) );
 	}
+
+	/* ---------- icon picker ----------
+	 * The set is small and curated on purpose: 70 icons that cover real agency
+	 * work, shipped inline so nothing is fetched from a CDN. */
+	var ICONSET = CFG.icons || {};
+	function iconMarkup( name, size ) {
+		var def = ICONSET[ name ];
+		if ( ! def ) { return ''; }
+		return '<svg width="' + ( size || 20 ) + '" height="' + ( size || 20 ) + '" viewBox="0 0 24 24" fill="none" ' +
+			'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + def[ 1 ] + '</svg>';
+	}
+	var iconPickFor = null, iconFilter = '';
+	function openIconPicker( key ) { iconPickFor = key; iconFilter = ''; renderIconPicker(); }
+	function closeIconPicker() { iconPickFor = null; renderIconPicker(); }
+	function renderIconPicker() {
+		var box = document.getElementById( 'vb-iconpick' );
+		if ( ! box ) { return; }
+		if ( ! iconPickFor ) { box.style.display = 'none'; box.innerHTML = ''; return; }
+		var names = Object.keys( ICONSET ).filter( function ( n ) {
+			return ! iconFilter || n.indexOf( iconFilter.toLowerCase() ) > -1;
+		} );
+		var groups = {};
+		names.forEach( function ( n ) {
+			var g = ICONSET[ n ][ 0 ] || 'other';
+			if ( ! groups[ g ] ) { groups[ g ] = []; }
+			groups[ g ].push( n );
+		} );
+		var GNAME = { contact:'Contact', interface:'Interface', trust:'Trust & commerce',
+			people:'People & places', trade:'Trades & services', media:'Media & data' };
+		box.style.display = 'flex';
+		box.innerHTML =
+			'<div class="vb-ip-h"><b>' + T( 'Choose an icon' ) + '</b>' +
+				'<button class="vb-css-x" id="vb-ip-close">' + svg( 'x', 14 ) + '</button></div>' +
+			'<div class="vb-ip-s"><input id="vb-ip-search" class="vb-inp" placeholder="' + T( 'Search icons…' ) + '" value="' + escapeHtml( iconFilter ) + '"></div>' +
+			'<div class="vb-ip-body">' + ( names.length ? Object.keys( groups ).map( function ( g ) {
+				return '<div class="vb-ip-g">' + T( GNAME[ g ] || g ) + '</div><div class="vb-ip-grid">' +
+					groups[ g ].map( function ( n ) {
+						return '<button type="button" class="vb-ip-i" data-iconval="' + escapeHtml( n ) + '" title="' + escapeHtml( n ) + '">' +
+							iconMarkup( n, 20 ) + '</button>';
+					} ).join( '' ) + '</div>';
+			} ).join( '' ) : '<div class="vb-setnote">' + T( 'No icons match that.' ) + '</div>' ) + '</div>';
+	}
+
 	/* ---------- generic settings renderer ----------
 	 * Renders ANY element's Settings tab from its definition. One code path for
 	 * all 240 elements: no per-element inspector code, so a new element is a data
@@ -1998,7 +2042,13 @@
 		} else if ( 'textarea' === c.t ) {
 			body = '<textarea class="vb-css-code vb-page-code" ' + id + ' spellcheck="false">' + escapeHtml( v ) + '</textarea>';
 		} else if ( 'icon' === c.t ) {
-			body = '<div class="vb-row"><input class="vb-inp" ' + id + ' value="' + escapeHtml( v ) + '" placeholder="' + T( 'icon name' ) + '"></div>';
+			// A name typed from memory is a guess; show the icons and let them be
+			// picked. The stored value is still just a name.
+			body = '<button type="button" class="vb-iconbtn" data-iconpick="' + c.k + '">' +
+				'<span class="vb-iconbtn-p">' + ( iconMarkup( v, 18 ) || svg( 'star', 16 ) ) + '</span>' +
+				'<span class="vb-iconbtn-n">' + ( v ? escapeHtml( v ) : T( 'Choose an icon' ) ) + '</span>' +
+				( v ? '<span class="vb-iconbtn-x" data-iconclear="' + c.k + '">' + svg( 'x', 12 ) + '</span>' : '' ) +
+			'</button>';
 		} else {
 			body = '<input class="vb-inp" ' + id + ' value="' + escapeHtml( v ) + '" placeholder="' + escapeHtml( c.ph || '' ) + '">';
 		}
@@ -2496,14 +2546,41 @@
 		var sel = store.state ? store.state.selection : null;
 		function row( node, depth ) {
 			var kids = node.children || [];
-			var hasKids = kids.length > 0;
+			var def = elDef( node );
+			// An element made of items (accordion, tabs, slider) showed as a single
+			// line, so its panels could not be found or reordered from here. List
+			// the items, each carrying the container that holds its content.
+			var items = ( def && def.repeat && node.settings && node.settings.items ) ? node.settings.items : null;
+			var hasKids = kids.length > 0 || ( items && items.length );
 			var collapsed = !! structCollapsed[ node.id ];
 			var name = ( node.name || node.el || 'El' ) + ( node.classes && node.classes[ 0 ] ? ' · ' + node.classes[ 0 ] : '' );
 			var caret = hasKids ? '<span class="vb-st-caret' + ( collapsed ? ' closed' : '' ) + '" data-stcaret="' + node.id + '">' + svg( 'chevron', 11 ) + '</span>' : '<span class="vb-st-spacer"></span>';
 			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( node.hidden ? ' hid' : '' ) + '" data-stnode="' + node.id + '" draggable="true" style="padding-left:' + ( 8 + depth * 15 ) + 'px">' + caret + '<span class="vb-st-ic">' + svg( elIcon( node.el ), 13 ) + '</span><span class="vb-st-l">' + escapeHtml( name ) + '</span></div>';
-			if ( hasKids && ! collapsed ) { html += kids.map( function ( k ) { return row( k, depth + 1 ); } ).join( '' ); }
+			if ( collapsed ) { return html; }
+
+			if ( items ) {
+				html += items.map( function ( it, i ) {
+					var kid = kids[ i ];
+					var label = it.title || ( T( def.repeat.label || 'Item' ) + ' ' + ( i + 1 ) );
+					html2 = '<div class="vb-st-row vb-st-item" data-stitem="' + node.id + ':' + i + '"' +
+						' style="padding-left:' + ( 8 + ( depth + 1 ) * 15 ) + 'px">' +
+						'<span class="vb-st-spacer"></span>' +
+						'<span class="vb-st-ic">' + svg( 'list', 12 ) + '</span>' +
+						'<span class="vb-st-l">' + escapeHtml( label ) + '</span>' +
+						'<span class="vb-st-acts">' +
+							'<button class="vb-st-mv" data-stmove="' + node.id + ':' + i + ':-1" title="' + T( 'Move up' ) + '">' + svg( 'chevron', 10 ) + '</button>' +
+							'<button class="vb-st-mv down" data-stmove="' + node.id + ':' + i + ':1" title="' + T( 'Move down' ) + '">' + svg( 'chevron', 10 ) + '</button>' +
+						'</span></div>';
+					// The container below it is a real element you can select and fill.
+					if ( kid ) { html2 += row( kid, depth + 2 ); }
+					return html2;
+				} ).join( '' );
+				return html;
+			}
+			if ( kids.length ) { html += kids.map( function ( k ) { return row( k, depth + 1 ); } ).join( '' ); }
 			return html;
 		}
+		var html2;
 		var tree = store.state ? store.state.tree : [];
 		var body = tree.length ? tree.map( function ( n ) { return row( n, 0 ); } ).join( '' ) : '<div class="vb-hist-empty">' + T( 'Nothing on the page yet.' ) + '</div>';
 		box.innerHTML =
@@ -2580,6 +2657,13 @@
 			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) { store.commit( function ( s ) { s.selection = stn.getAttribute( 'data-stnode' ); resetActiveClass( s ); }, false ); return; }
 			if ( e.target.closest( '#vb-settings' ) ) { setShown = ! setShown; if ( setShown ) { closeAllPanels( 'settings' ); setView = 'root'; } renderSettingsPanel(); return; }
 			if ( e.target.closest( '#vb-set-close' ) ) { setShown = false; renderSettingsPanel(); return; }
+			var iclr = e.target.closest( '[data-iconclear]' );
+			if ( iclr ) { e.stopPropagation(); setElSetting( iclr.getAttribute( 'data-iconclear' ), '' ); return; }
+			var ipk = e.target.closest( '[data-iconpick]' );
+			if ( ipk ) { openIconPicker( ipk.getAttribute( 'data-iconpick' ) ); return; }
+			if ( e.target.closest( '#vb-ip-close' ) ) { closeIconPicker(); return; }
+			var ival = e.target.closest( '[data-iconval]' );
+			if ( ival ) { setElSetting( iconPickFor, ival.getAttribute( 'data-iconval' ) ); closeIconPicker(); return; }
 			var segb = e.target.closest( '[data-setel][data-segval]' );
 			if ( segb ) { setElSetting( segb.getAttribute( 'data-setel' ), segb.getAttribute( 'data-segval' ) ); return; }
 			if ( e.target.closest( '[data-repadd]' ) ) {
@@ -2612,6 +2696,35 @@
 			if ( tdl ) {
 				TOKENS.colors.splice( +tdl.getAttribute( 'data-tokendel' ), 1 );
 				document.getElementById( 'vb-tokenlist' ).innerHTML = tokenRowsHTML(); saveTokens(); return;
+			}
+			var stmv = e.target.closest( '[data-stmove]' );
+			if ( stmv ) {
+				e.stopPropagation();
+				var mp = stmv.getAttribute( 'data-stmove' ).split( ':' );
+				var from = +mp[ 1 ], to = from + ( +mp[ 2 ] );
+				store.commit( function ( st ) {
+					var n = findNode( st.tree, mp[ 0 ] ); if ( ! n || ! n.settings || ! n.settings.items ) { return; }
+					var its = n.settings.items.slice();
+					if ( to < 0 || to >= its.length ) { return; }
+					its.splice( to, 0, its.splice( from, 1 )[ 0 ] );
+					n.settings.items = its;
+					// The container must travel with its item or the content ends up on
+					// the wrong panel.
+					if ( n.children && n.children.length > Math.max( from, to ) ) {
+						var ks = n.children.slice();
+						ks.splice( to, 0, ks.splice( from, 1 )[ 0 ] );
+						n.children = ks;
+					}
+				}, T( 'Reorder items' ) );
+				return;
+			}
+			var stit = e.target.closest( '[data-stitem]' );
+			if ( stit ) {
+				var ip = stit.getAttribute( 'data-stitem' ).split( ':' );
+				selectNode( ip[ 0 ] );
+				inspTab = 'set';
+				renderInspector();
+				return;
 			}
 			var sv = e.target.closest( '[data-setview]' ); if ( sv ) { setView = sv.getAttribute( 'data-setview' ); renderSettingsPanel(); return; }
 			if ( e.target.closest( '#vb-history' ) ) { historyShown = ! historyShown; if ( historyShown ) { closeAllPanels( 'hist' ); } renderHistoryPanel(); return; }
@@ -2676,6 +2789,8 @@
 			if ( e.target.id === 'vb-js-code' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].js = e.target.value; scheduleJsSave(); } return; }
 			if ( e.target.id === 'vb-js-name' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].name = e.target.value; var jt = document.querySelector( '.vb-css-file.on span' ); if ( jt ) { jt.textContent = e.target.value; } scheduleJsSave(); } return; }
 			if ( e.target.id === 'vb-css-name' ) { if ( cssFiles[ cssActive ] ) { cssFiles[ cssActive ].name = e.target.value; var tab = document.querySelector( '.vb-css-file.on span' ); if ( tab ) { tab.textContent = e.target.value; } scheduleCssSave(); } return; }
+			if ( e.target.id === 'vb-ip-search' ) { iconFilter = e.target.value.trim(); renderIconPicker();
+				var sf = document.getElementById( 'vb-ip-search' ); if ( sf ) { sf.focus(); sf.setSelectionRange( sf.value.length, sf.value.length ); } return; }
 			var einp = e.target.closest( 'input[data-setel], textarea[data-setel]' );
 			if ( einp && ! einp.hasAttribute( 'data-segval' ) ) {
 				var ek = einp.getAttribute( 'data-setel' ), ev = e.target.value;
@@ -3429,6 +3544,28 @@
 			'.vb-rep-h{display:flex;align-items:center;gap:7px;color:#8b8d96;font-size:11.5px}',
 			'.vb-rep-h b{flex:1;color:#dcdce2;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
 			'.vb-rep-row textarea{min-height:64px}',
+						'.vb-st-item{opacity:.9}',
+			'.vb-st-item .vb-st-l{font-style:italic}',
+			'.vb-st-acts{display:none;gap:2px;margin-left:auto;padding-right:6px}',
+			'.vb-st-item:hover .vb-st-acts{display:flex}',
+			'.vb-st-mv{display:grid;place-items:center;width:18px;height:18px;border:none;border-radius:4px;background:#2a2c32;color:#8b8d96;cursor:pointer;padding:0}',
+			'.vb-st-mv:hover{background:#3c3e46;color:#fff}',
+			'.vb-st-mv svg{transform:rotate(180deg)}.vb-st-mv.down svg{transform:none}',
+						'.vb-iconbtn{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border-radius:9px;background:#1a1b20;border:1px solid rgba(255,255,255,.08);color:#dcdce2;font:inherit;font-size:12.5px;cursor:pointer;text-align:left}',
+			'.vb-iconbtn:hover{border-color:rgba(255,255,255,.18)}',
+			'.vb-iconbtn-p{display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:#2a2c32;color:#7fd3f7;flex:0 0 auto}',
+			'.vb-iconbtn-n{flex:1;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+			'.vb-iconbtn-x{display:grid;place-items:center;padding:3px;border-radius:5px;color:#8b8d96}',
+			'.vb-iconbtn-x:hover{background:rgba(255,255,255,.1);color:#fff}',
+			'.vb-iconpick{position:absolute;top:54px;right:0;bottom:0;width:340px;background:#232429;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:140;display:none;flex-direction:column}',
+			'.vb-ip-h{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07)}',
+			'.vb-ip-h b{font-size:13px}',
+			'.vb-ip-s{padding:10px 14px}',
+			'.vb-ip-body{flex:1;overflow:auto;padding:0 14px 16px}',
+			'.vb-ip-g{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6d6f78;margin:14px 0 8px}',
+			'.vb-ip-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}',
+			'.vb-ip-i{display:grid;place-items:center;aspect-ratio:1;border-radius:8px;background:#1a1b20;border:1px solid transparent;color:#dcdce2;cursor:pointer}',
+			'.vb-ip-i:hover{background:#2f313a;border-color:#2ab7f1;color:#fff}',
 						'.vb-token-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}',
 			'.vb-token-row .vb-token-name{flex:1;min-width:0}',
 			'.vb-token-row .vb-token-val{flex:0 0 92px;font-family:ui-monospace,Menlo,monospace;font-size:11px}',

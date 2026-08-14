@@ -492,6 +492,7 @@ class Velox_Builder {
 			'globalStyles' => self::global_styles(),
 			'aosTypes'    => self::aos_types(),
 			'fontNames'   => wp_list_pluck( self::fonts(), 'name' ),
+			'icons'       => class_exists( 'Velox_Icons' ) ? Velox_Icons::all() : array(),
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'reviewConnections' => self::review_connections(),
 			'reviewPresets' => self::review_presets(),

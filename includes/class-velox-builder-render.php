@@ -621,7 +621,9 @@ class Velox_Builder_Render {
 			} else {
 				foreach ( (array) self::el_set( $node, 'items', array() ) as $item ) {
 					if ( empty( $item['title'] ) && empty( $item['href'] ) ) { continue; }
+					$ico = ( ! empty( $item['icon'] ) && class_exists( 'Velox_Icons' ) ) ? Velox_Icons::svg( $item['icon'], 18 ) : '';
 					$inner .= '<a class="vx-bar-btn" href="' . esc_url( $item['href'] ?? '#' ) . '">' .
+						( $ico ? '<span class="vx-bar-i" aria-hidden="true">' . $ico . '</span>' : '' ) .
 						esc_html( $item['title'] ?? '' ) . '</a>';
 				}
 			}
@@ -655,8 +657,13 @@ class Velox_Builder_Render {
 		$out  = '<' . $tag . ' id="' . esc_attr( $id ) . '" class="' . esc_attr( trim( $classes . ' vx-fab' . ( 'none' !== $idle ? ' vx-idle-' . $idle : '' ) ) ) . '"' .
 			$attr . $extra . self::floating_attrs( $node ) . $hidden .
 			( $label ? '' : ' aria-label="' . esc_attr( $name ) . '"' ) . '>';
-		$out .= '<span class="vx-fab-i" aria-hidden="true"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' .
-			( 'Backtotop' === $el ? '<path d="m18 15-6-6-6 6"/>' : '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' ) . '</svg></span>';
+		// Use the chosen icon; fall back to something sensible for the element.
+		$icon_name = self::el_set( $node, 'icon', '' );
+		$icon_svg  = ( $icon_name && class_exists( 'Velox_Icons' ) ) ? Velox_Icons::svg( $icon_name, 20 ) : '';
+		if ( ! $icon_svg && class_exists( 'Velox_Icons' ) ) {
+			$icon_svg = Velox_Icons::svg( 'Backtotop' === $el ? 'chevron-up' : 'message', 20 );
+		}
+		$out .= '<span class="vx-fab-i" aria-hidden="true">' . $icon_svg . '</span>';
 		if ( $label ) { $out .= '<span class="vx-fab-l">' . esc_html( $label ) . '</span>'; }
 		return $out . '</' . $tag . '>';
 	}
@@ -970,7 +977,7 @@ class Velox_Builder_Render {
 				'.vx-bar{display:flex;align-items:center;justify-content:center;gap:12px;background:#111827;color:#fff}' .
 				'.vx-bar[hidden]{display:none}.vx-bar.is-shown{display:flex}' .
 				'.vx-bar-link{color:inherit;text-decoration:underline}' .
-				'.vx-bar-btn{flex:1;text-align:center;padding:14px 8px;color:inherit;text-decoration:none}' .
+				'.vx-bar-btn{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:12px 8px;color:inherit;text-decoration:none;font-size:12px}' .
 				'.vx-bar-x{margin-left:auto;background:none;border:none;color:inherit;cursor:pointer;padding:6px;line-height:0}';
 			if ( isset( self::$runtime_used['fabanim'] ) ) {
 				$css .= '@keyframes vxPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}' .

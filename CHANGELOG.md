@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.96.0 — Accordion, tab and slide items in the outline
+- **The Structure panel now lists the items inside an accordion, tabs or a slider**, each with the container that holds its content. A slider with six slides was previously a single line, so its slides could not be found or selected from the outline.
+- **Reorder items straight from the outline** with the arrows that appear on hover. The content container moves with its item, so nothing ends up on the wrong panel.
+- Clicking an item selects its element and opens the Settings tab where that item is edited.
+
+## 3.95.0 — Icons you can actually pick
+- **New icon picker.** Anywhere an element asks for an icon you now get a searchable, grouped picker with a live preview, instead of typing a name from memory and hoping.
+- **70 icons** covering contact, interface, trust and commerce, people and places, trades and services, and media and data — chosen for the work rather than shipping a library of thousands.
+- **Icons are drawn into the page directly.** Nothing is fetched from an icon CDN, so no visitor IP addresses are shared with a third party and no icon font is downloaded for the sake of a few symbols.
+- Floating buttons and the sticky contact bar now use the icon you choose, with a sensible fallback when you have not chosen one.
+
 ## 3.94.0 — Fixes and clearer settings across the admin
 **Fixes**
 - **Fixed: saving a mail template made a copy instead of updating it.** Saving the same template repeatedly piled up duplicates; it now updates in place.
