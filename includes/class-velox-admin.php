@@ -23,6 +23,7 @@ class Velox_Admin {
 			'pagespeed'   => array( 'label' => 'PageSpeed',    'icon' => 'search', 'module' => 'ps_enable' ),
 			'database'    => array( 'label' => 'Database',     'icon' => 'db', 'module' => 'module_database' ),
 			'seo'         => array( 'label' => 'SEO',          'icon' => 'search', 'module' => 'module_seo' ),
+			'reviews'     => array( 'label' => 'Reviews',      'icon' => 'star', 'module' => 'util_reviews' ),
 			'utilities'   => array( 'label' => 'Utilities',    'icon' => 'grid', 'module' => null ),
 			'settings'    => array( 'label' => 'Settings',     'icon' => 'gear', 'module' => null ),
 		);
@@ -522,6 +523,19 @@ class Velox_Admin {
 
 	public function assets( $hook ) {
 		if ( false === strpos( (string) $hook, self::SLUG ) ) {
+			// Maintenance can be toggled from the admin bar on any screen, but the
+			// prompt that asks what to do about indexing lived in a script that
+			// only loaded on Velox pages — so it never appeared. Load a minimal
+			// version wherever there is something pending.
+			if ( class_exists( 'Velox_Utilities' ) && Velox_Utilities::maintenance_seo_pending() ) {
+				wp_enqueue_style( 'velox-admin', VELOX_ASSETS . 'css/velox-admin.css', array(), VELOX_VERSION );
+				wp_enqueue_script( 'velox-admin', VELOX_ASSETS . 'js/velox-admin.js', array(), VELOX_VERSION, true );
+				wp_localize_script( 'velox-admin', 'VELOX', array(
+					'ajaxurl' => admin_url( 'admin-ajax.php' ),
+					'nonce'   => wp_create_nonce( 'velox_nonce' ),
+					'i18n'    => Velox::js_dictionary(),
+				) );
+			}
 			return;
 		}
 		wp_enqueue_style( 'velox-admin', VELOX_ASSETS . 'css/velox-admin.css', array(), VELOX_VERSION );

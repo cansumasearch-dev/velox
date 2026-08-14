@@ -154,3 +154,52 @@ $def_style   = Velox_Reviews::default_style();
 		</div>
 	</div>
 </div>
+
+<?php
+/**
+ * Example reviews.
+ *
+ * You cannot style a review block against an empty box, and connecting Google
+ * just to see what it looks like is backwards. These are fake, clearly labelled,
+ * and never leave this screen.
+ */
+?>
+<div class="velox-panel" id="velox-rv-demo-panel">
+	<div class="velox-panel-head">
+		<h3 class="velox-panel-title"><?php esc_html_e( 'Preview with example reviews', 'velox' ); ?></h3>
+		<label class="velox-switch"><input type="checkbox" id="velox-rv-demo"><span class="velox-switch-track"></span></label>
+	</div>
+	<p class="velox-hint"><?php esc_html_e( 'Fake reviews so you can see how a block looks before connecting Google. Nothing here is published.', 'velox' ); ?></p>
+	<div class="velox-rv-demo" id="velox-rv-demo-out" hidden></div>
+</div>
+<script>
+( function () {
+	var sw  = document.getElementById( 'velox-rv-demo' );
+	var out = document.getElementById( 'velox-rv-demo-out' );
+	if ( ! sw || ! out ) { return; }
+	var PEOPLE = [
+		[ 'Anna Weber', 5, 'Sehr freundliches Team und schnelle Umsetzung. Jederzeit wieder!', '2 Wochen' ],
+		[ 'Michael Braun', 5, 'Top Beratung, faire Preise und alles pünktlich fertig geworden.', '1 Monat' ],
+		[ 'Sarah Klein', 4, 'Gute Arbeit, kleine Verzögerung — aber das Ergebnis stimmt.', '1 Monat' ],
+		[ 'Thomas Fischer', 5, 'Kompetent, zuverlässig und sehr sauber gearbeitet.', '3 Monate' ],
+		[ 'Julia Hoffmann', 5, 'Von der ersten Anfrage bis zur Übergabe alles reibungslos.', '4 Monate' ],
+		[ 'Daniel Schulz', 4, 'Sehr zufrieden mit dem Ergebnis und der Kommunikation.', '6 Monate' ]
+	];
+	function esc( t ) { return String( t ).replace( /[&<>"]/g, function ( c ) {
+		return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ c ]; } ); }
+	function render() {
+		out.innerHTML = PEOPLE.map( function ( p ) {
+			return '<div class="velox-rv-card">' +
+				'<div class="velox-rv-head"><span class="velox-rv-av">' + esc( p[0].charAt( 0 ) ) + '</span>' +
+				'<span class="velox-rv-name">' + esc( p[0] ) + '</span><span class="velox-rv-g">G</span></div>' +
+				'<div class="velox-rv-stars">' + '★'.repeat( p[1] ) + '☆'.repeat( 5 - p[1] ) + '</div>' +
+				'<p class="velox-rv-text">' + esc( p[2] ) + '</p>' +
+				'<span class="velox-rv-date">vor ' + esc( p[3] ) + '</span></div>';
+		} ).join( '' );
+	}
+	sw.addEventListener( 'change', function () {
+		out.hidden = ! sw.checked;
+		if ( sw.checked && ! out.innerHTML ) { render(); }
+	} );
+}() );
+</script>

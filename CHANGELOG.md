@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.97.0 — Reviews gets its own home, and three fixes
+- **Fixed: the indexing prompt after maintenance mode never appeared.** Since maintenance can be switched from the admin bar on any screen, but the prompt lived in a script that only loaded on Velox pages, it was invisible everywhere else. It now loads wherever there is something to decide.
+- **Fixed: the snippet code box was completely unlabelled.** The language badge and placeholder are now written into the page itself instead of being added by a script, so an empty editor always says what it expects.
+- **Google Reviews is now its own section** in the sidebar and has a card on the dashboard, instead of being buried three levels down in Utilities.
+- **Example reviews in the Reviews tool**: switch them on to see how reviews look before connecting Google. Clearly fake, and nothing leaves the screen.
+
 ## 3.96.0 — Accordion, tab and slide items in the outline
 - **The Structure panel now lists the items inside an accordion, tabs or a slider**, each with the container that holds its content. A slider with six slides was previously a single line, so its slides could not be found or selected from the outline.
 - **Reorder items straight from the outline** with the arrows that appear on hover. The content container moves with its item, so nothing ends up on the wrong panel.

@@ -316,6 +316,23 @@ $vx_ps_panel = function ( $device, $r, $active ) use ( $admin, $v_ps_metrics, $v
 		<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'dashboard' ) . '&traffic=1' ); ?>"><?php esc_html_e('View traffic', 'velox'); ?></a>
 	</div>
 
+	<?php
+	// Google Reviews had no presence on the dashboard at all, so a tool that
+	// affects what visitors see was invisible unless you went looking for it.
+	$vx_rv_on = (bool) Velox_Settings::get( 'util_reviews' );
+	?>
+	<div class="<?php echo esc_attr( $vx_wcls( 'reviews', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'reviews', 4, 2 ) ); ?>" data-widget="reviews" data-widget-label="Reviews">
+		<?php echo $vx_wctl; ?>
+		<div class="velox-w-h"><?php echo Velox_Admin::icon( 'star', 15 ); ?><?php esc_html_e('Google Reviews', 'velox'); ?></div>
+		<?php if ( $vx_rv_on ) : ?>
+			<p class="velox-w-sub"><?php esc_html_e('Show your Google rating and reviews anywhere on the site.', 'velox'); ?></p>
+			<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'reviews' ) ); ?>"><?php esc_html_e('Manage reviews', 'velox'); ?></a>
+		<?php else : ?>
+			<p class="velox-w-sub"><?php esc_html_e('Not switched on yet. Turn it on to pull in your Google rating and reviews.', 'velox'); ?></p>
+			<a class="velox-btn velox-btn--ghost velox-btn--sm velox-w-act" href="<?php echo esc_url( $admin->tab_url( 'settings' ) ); ?>"><?php esc_html_e('Turn it on', 'velox'); ?></a>
+		<?php endif; ?>
+	</div>
+
 	<div class="<?php echo esc_attr( $vx_wcls( 'pagespeed', 'velox-w' ) ); ?>" style="<?php echo esc_attr( $vx_wsize( 'pagespeed', 8, 2 ) ); ?>" data-widget="pagespeed" data-widget-label="PageSpeed">
 		<?php echo $vx_wctl; ?>
 		<div class="velox-w-h velox-ps-head">

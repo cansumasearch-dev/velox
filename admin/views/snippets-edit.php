@@ -68,11 +68,26 @@ $scope_opts = array(
 	<div class="velox-snip-edgrid">
 		<div class="velox-panel velox-snip-code-panel">
 			<div class="velox-field" style="margin:0;">
+				<?php
+				// Rendered here rather than only in JavaScript: the badge and the
+				// placeholder were invisible whenever that script did not run, which
+				// left an unlabelled empty box with no clue what to type in it.
+				$vx_lang = array(
+					'php'  => array( '<?php … ?>',            __( 'Runs on the server. Do not add the opening tag — Velox adds it.', 'velox' ) ),
+					'css'  => array( '<style> … </style>',    __( 'Added to the page styles. No style tag needed.', 'velox' ) ),
+					'js'   => array( '<script> … </script>',  __( 'Runs in the browser. No script tag needed.', 'velox' ) ),
+					'html' => array( '<html>',                __( 'Inserted into the page exactly as written.', 'velox' ) ),
+				);
+				$vx_cur = $vx_lang[ $type ] ?? $vx_lang['php'];
+				?>
 				<div class="velox-snip-codehead">
 					<label class="velox-label" for="velox-snip-code"><?php esc_html_e('Code', 'velox'); ?></label>
-					<span class="velox-snip-lang" id="velox-snip-lang" aria-live="polite"></span>
+					<span class="velox-snip-lang" id="velox-snip-lang" data-lang="<?php echo esc_attr( $type ); ?>" aria-live="polite">
+						<code><?php echo esc_html( $vx_cur[0] ); ?></code><span><?php echo esc_html( $vx_cur[1] ); ?></span>
+					</span>
 				</div>
-				<textarea id="velox-snip-code" class="velox-snip-code" spellcheck="false"><?php echo esc_textarea( $code ); ?></textarea>
+				<textarea id="velox-snip-code" class="velox-snip-code" spellcheck="false"
+					placeholder="<?php echo esc_attr( $vx_cur[0] ); ?>"><?php echo esc_textarea( $code ); ?></textarea>
 				<span class="velox-hint" id="velox-snip-codehint"></span>
 			</div>
 		</div>

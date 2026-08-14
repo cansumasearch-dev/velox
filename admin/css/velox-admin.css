@@ -3600,3 +3600,16 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-snip-lang[data-lang="php"] code { background: #4f5b93; }
 .velox-snip-lang[data-lang="css"] code { background: #1572b6; }
 .velox-snip-lang[data-lang="js"] code  { background: #b8a123; }
+
+/* ---- Example reviews preview ---- */
+.velox-rv-demo { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; margin-top: 14px; }
+.velox-rv-card { padding: 18px; border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-md); background: var(--vx-card); }
+.velox-rv-head { display: flex; align-items: center; gap: 9px; margin-bottom: 8px; }
+.velox-rv-av { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+	background: #e8eaed; color: #3c4043; font-weight: 700; font-size: 13px; }
+.velox-rv-name { flex: 1; font-weight: 600; font-size: 13.5px; color: var(--vx-ink); }
+.velox-rv-g { width: 19px; height: 19px; display: grid; place-items: center; border-radius: 50%;
+	border: 1px solid #dadce0; font: 700 11px/1 Arial, sans-serif; color: #4285f4; background: #fff; }
+.velox-rv-stars { color: #fbbc04; letter-spacing: 1px; margin-bottom: 6px; }
+.velox-rv-text { margin: 0 0 8px; font-size: 13.5px; line-height: 1.55; color: var(--vx-ink-2); }
+.velox-rv-date { font-size: 12px; color: var(--vx-ink-3, #6b7280); }
