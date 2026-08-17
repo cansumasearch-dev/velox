@@ -712,10 +712,10 @@
 						'" data-full="' + escapeHtml( it.full || it.thumb || '' ) +
 						'" data-name="' + escapeHtml( it.filename || '' ) + '">' +
 						'<div class="velox-media-thumb">' +
-						'<input type="checkbox" class="velox-media-select" value="' + it.id + '" aria-label=vxT( "Select image" )>' +
+						'<input type="checkbox" class="velox-media-select" value="' + it.id + '" aria-label="' + vxT( "Select image" ) + '">' +
 						'<img src="' +
 						escapeHtml( it.thumb || it.full ) +
-						'" alt="" loading="lazy" class="velox-media-open" title=vxT( "Click to resize" )>' +
+						'" alt="" loading="lazy" class="velox-media-open" title="' + vxT( "Click to resize" ) + '">' +
 						'<span class="velox-media-dims">' + ( it.width ? it.width + ' × ' + it.height : '' ) + '</span>' +
 						( it.webp
 							? '<span class="velox-media-badge">WebP</span>'
@@ -1344,7 +1344,7 @@
 								'<span class="velox-font-meta">' + escapeHtml( meta ) + ' · ' + escapeHtml( file ) + '</span></div>' +
 								'<div class="velox-font-acts">' +
 									'<label class="velox-font-pre-lbl" title="Preload this font so it starts loading immediately — use only for fonts visible above the fold"><span>Preload</span><span class="velox-switch"><input type="checkbox" class="velox-font-pre" data-url="' + escapeHtml( f.url ) + '"' + ( on ? ' checked' : '' ) + '><span class="velox-switch-track"></span></span></label>' +
-									'<button type="button" class="velox-font-block' + ( isBlk ? ' is-on' : '' ) + '" data-fam="' + escapeHtml( f.family ) + '" title=vxT( "Stop this font from loading at all" )>' + ( isBlk ? vxT( 'Blocked' ) : vxT( 'Block' ) ) + '</button>' +
+									'<button type="button" class="velox-font-block' + ( isBlk ? ' is-on' : '' ) + '" data-fam="' + escapeHtml( f.family ) + '" title="' + vxT( "Stop this font from loading at all" ) + '">' + ( isBlk ? vxT( 'Blocked' ) : vxT( 'Block' ) ) + '</button>' +
 								'</div>' +
 								'</div>';
 						} );
@@ -2449,27 +2449,27 @@
 			wrap.innerHTML =
 				'<div class="velox-modal-box velox-modal-box--lg">' +
 					'<div class="velox-modal-head">' +
-						'<h2 class="velox-modal-title">Maintenance is off — what about search engines?</h2>' +
-						'<button type="button" class="velox-modal-x" data-act="later" aria-label=vxT( "Decide later" )>&times;</button>' +
+						'<h2 class="velox-modal-title">' + escapeHtml( vxT( "Maintenance is off — what about search engines?" ) ) + '</h2>' +
+						'<button type="button" class="velox-modal-x" data-act="later" aria-label="' + vxT( "Decide later" ) + '">&times;</button>' +
 					'</div>' +
 					'<p class="velox-sub vxms-lead"></p>' +
 					'<div class="vxms-choices">' +
-						'<button type="button" class="velox-btn velox-btn--primary" data-act="release">Make them visible again</button>' +
-						'<button type="button" class="velox-btn velox-btn--ghost" data-act="keep">Keep them hidden</button>' +
-						'<button type="button" class="velox-btn velox-btn--ghost" data-act="pick">Choose pages…</button>' +
+						'<button type="button" class="velox-btn velox-btn--primary" data-act="release">' + escapeHtml( vxT( "Make them visible again" ) ) + '</button>' +
+						'<button type="button" class="velox-btn velox-btn--ghost" data-act="keep">' + escapeHtml( vxT( "Keep them hidden" ) ) + '</button>' +
+						'<button type="button" class="velox-btn velox-btn--ghost" data-act="pick">' + escapeHtml( vxT( "Choose pages…" ) ) + '</button>' +
 					'</div>' +
 					'<div class="vxms-pick" hidden>' +
 						'<div class="vxms-pick-bar">' +
-							'<label class="vxms-all"><input type="checkbox" data-act="all"> Select all</label>' +
+							'<label class="vxms-all"><input type="checkbox" data-act="all"> ' + escapeHtml( vxT( "Select all" ) ) + '</label>' +
 							'<span class="vxms-count"></span>' +
 						'</div>' +
-						'<div class="vxms-list" aria-busy="true">Loading pages…</div>' +
+						'<div class="vxms-list" aria-busy="true">' + escapeHtml( vxT( "Loading pages…" ) ) + '</div>' +
 						'<div class="vxms-pick-foot">' +
-							'<button type="button" class="velox-btn velox-btn--primary" data-act="apply">Make selected visible</button>' +
-							'<span class="velox-hint vxms-note">Anything left unticked stays hidden.</span>' +
+							'<button type="button" class="velox-btn velox-btn--primary" data-act="apply">' + escapeHtml( vxT( "Make selected visible" ) ) + '</button>' +
+							'<span class="velox-hint vxms-note">' + escapeHtml( vxT( "Anything left unticked stays hidden." ) ) + '</span>' +
 						'</div>' +
 					'</div>' +
-					'<p class="velox-hint vxms-foot">Pages that were already noindex before maintenance started were never touched, so they are not in this list.</p>' +
+					'<p class="velox-hint vxms-foot">' + escapeHtml( vxT( "Pages that were already noindex before maintenance started were never touched, so they are not in this list." ) ) + '</p>' +
 				'</div>';
 			document.body.appendChild( wrap );
 
@@ -2477,8 +2477,9 @@
 			var pick  = wrap.querySelector( '.vxms-pick' );
 			var list  = wrap.querySelector( '.vxms-list' );
 			var count = wrap.querySelector( '.vxms-count' );
-			lead.textContent = marked + ' item' + ( 1 === marked ? ' is' : 's are' ) +
-				' still hidden from search because maintenance hid ' + ( 1 === marked ? 'it' : 'them' ) + '.';
+			lead.textContent = 1 === marked
+				? vxT( '%d item is still hidden from search because maintenance hid it.', marked )
+				: vxT( '%d items are still hidden from search because maintenance hid them.', marked );
 
 			function close() { wrap.remove(); }
 
@@ -2923,12 +2924,12 @@
 				var meta = '<code>' + escapeHtml( f.name || slugify( f.label ) ) + '</code>' + ( f.required ? ' · required' : '' ) + ( f.active === false ? ' · off' : '' );
 				var head =
 					'<div class="vfg-field-row">' +
-						'<span class="vfg-handle" title=vxT( "Drag to reorder" )><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>' +
+						'<span class="vfg-handle" title="' + vxT( "Drag to reorder" ) + '"><svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span>' +
 						'<span class="vfg-type-pill">' + typeIcon() + ' ' + ( TYPES[ f.type ] ? TYPES[ f.type ].label : f.type ) + '</span>' +
 						'<span class="vfg-field-main"><span class="vfg-field-label">' + escapeHtml( f.label || vxT( 'Untitled' ) ) + '</span><span class="vfg-field-meta">' + meta + '</span></span>' +
 						'<span class="vfg-field-acts">' +
-							'<label class="vfg-field-onoff velox-switch" title=vxT( "Enable or disable this field" )><input type="checkbox" data-act="active"' + ( f.active === false ? '' : ' checked' ) + '><span class="velox-switch-track"></span></label>' +
-							'<button type="button" class="vfg-iconbtn" data-act="dup" title=vxT( "Duplicate" )><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
+							'<label class="vfg-field-onoff velox-switch" title="' + vxT( "Enable or disable this field" ) + '"><input type="checkbox" data-act="active"' + ( f.active === false ? '' : ' checked' ) + '><span class="velox-switch-track"></span></label>' +
+							'<button type="button" class="vfg-iconbtn" data-act="dup" title="' + vxT( "Duplicate" ) + '"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>' +
 							'<button type="button" class="vfg-iconbtn vfg-del" data-act="del" title="Delete"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/></svg></button>' +
 							'<button type="button" class="vfg-iconbtn" data-act="toggle" title="' + ( open ? vxT( 'Collapse' ) : vxT( 'Expand' ) ) + '"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.7"><path d="' + ( open ? 'M18 15l-6-6-6 6' : 'M6 9l6 6 6-6' ) + '"/></svg></button>' +
 						'</span>' +
@@ -3201,7 +3202,7 @@
 					'<input class="velox-input vfg-sub-in" data-si="' + si + '" data-sk="label" value="' + escapeHtml( s.label || '' ) + '" placeholder=vxT( "Label" )>' +
 					'<input class="velox-input vfg-sub-in vfg-mono" data-si="' + si + '" data-sk="name" value="' + escapeHtml( s.name || '' ) + '" placeholder="name (auto)">' +
 					'<select class="velox-select vfg-sub-in" data-si="' + si + '" data-sk="type">' + topts + '</select>' +
-					'<button type="button" class="vfg-sub-del" data-si="' + si + '" title=vxT( "Remove sub-field" )><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+					'<button type="button" class="vfg-sub-del" data-si="' + si + '" title="' + vxT( "Remove sub-field" ) + '"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
 				'</div>';
 			} ).join( '' );
 			return '<div class="vfg-subfields"><div class="vfg-sub-h">Sub-fields</div>' +
@@ -3219,14 +3220,14 @@
 						'<input class="velox-input vfg-flex-in" data-li="' + li + '" data-si="' + si + '" data-sk="label" value="' + escapeHtml( s.label || '' ) + '" placeholder=vxT( "Label" )>' +
 						'<input class="velox-input vfg-flex-in vfg-mono" data-li="' + li + '" data-si="' + si + '" data-sk="name" value="' + escapeHtml( s.name || '' ) + '" placeholder="name (auto)">' +
 						'<select class="velox-select vfg-flex-in" data-li="' + li + '" data-si="' + si + '" data-sk="type">' + topts + '</select>' +
-						'<button type="button" class="vfg-sub-del vfg-flex-subdel" data-li="' + li + '" data-si="' + si + '" title=vxT( "Remove sub-field" )><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+						'<button type="button" class="vfg-sub-del vfg-flex-subdel" data-li="' + li + '" data-si="' + si + '" title="' + vxT( "Remove sub-field" ) + '"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
 					'</div>';
 				} ).join( '' );
 				return '<div class="vfg-layout">' +
 					'<div class="vfg-layout-head">' +
 						'<input class="velox-input vfg-flex-lin" data-li="' + li + '" data-lk="label" value="' + escapeHtml( L.label || '' ) + '" placeholder=vxT( "Layout label" )>' +
 						'<input class="velox-input vfg-mono vfg-flex-lin" data-li="' + li + '" data-lk="name" value="' + escapeHtml( L.name || '' ) + '" placeholder="name (auto)">' +
-						'<button type="button" class="vfg-layout-del" data-li="' + li + '" title=vxT( "Remove layout" )><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+						'<button type="button" class="vfg-layout-del" data-li="' + li + '" title="' + vxT( "Remove layout" ) + '"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
 					'</div>' +
 					'<div class="vfg-layout-subs">' + ( subRows || '<div class="vfg-sub-empty">No sub-fields.</div>' ) + '<button type="button" class="vfg-sub-add vfg-flex-subadd" data-li="' + li + '">+ Add sub-field</button></div>' +
 				'</div>';
@@ -3250,7 +3251,7 @@
 					'<select class="velox-select vfg-cond-in" data-ri="' + ri + '" data-ck="field"><option value="">— field —</option>' + fopts + '</select>' +
 					'<select class="velox-select vfg-cond-in" data-ri="' + ri + '" data-ck="operator">' + oopts + '</select>' +
 					'<input class="velox-input vfg-cond-in" data-ri="' + ri + '" data-ck="value" value="' + escapeHtml( r.value || '' ) + '" placeholder="value">' +
-					'<button type="button" class="vfg-sub-del vfg-cond-del" data-ri="' + ri + '" title=vxT( "Remove rule" )><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+					'<button type="button" class="vfg-sub-del vfg-cond-del" data-ri="' + ri + '" title="' + vxT( "Remove rule" ) + '"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
 				'</div>';
 			} ).join( '' );
 			return head + '<div class="vfg-cond-rules">' + ( rows || '<div class="vfg-sub-empty">No rules yet.</div>' ) +
@@ -3287,9 +3288,9 @@
 			typeModalEl.className = 'vfx-typemodal';
 			typeModalEl.innerHTML =
 				'<div class="vfx-modal-overlay" data-close></div>' +
-				'<div class="vfx-modal" role="dialog" aria-modal="true" aria-label=vxT( "Select a field type" )>' +
+				'<div class="vfx-modal" role="dialog" aria-modal="true" aria-label="' + vxT( "Select a field type" ) + '">' +
 					'<div class="vfx-modal-head"><div class="vfx-modal-title">Select a field type</div>' +
-						'<button type="button" class="vfx-modal-x" data-close aria-label=vxT( "Close" )><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>' +
+						'<button type="button" class="vfx-modal-x" data-close aria-label="' + vxT( "Close" ) + '"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>' +
 					'<div class="vfx-modal-search"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3-3"/></svg><input type="search" class="vfx-tsearch" placeholder="Search fields\u2026"></div>' +
 					'<div class="vfx-modal-body"><div class="vfx-tcats"></div><div class="vfx-tgrid"></div></div>' +
 				'</div>';
@@ -3349,7 +3350,7 @@
 					row.innerHTML =
 						'<div class="vfg-rule-top">' +
 							'<select class="velox-select" data-r="param">' + paramOpts + '</select>' +
-							'<button type="button" class="vfg-rule-del" title=vxT( "Remove rule" )><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
+							'<button type="button" class="vfg-rule-del" title="' + vxT( "Remove rule" ) + '"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>' +
 						'</div>' +
 						'<div class="vfg-rule-bot">' +
 							'<select class="velox-select" data-r="operator"><option value="is"' + ( rule.operator !== 'is_not' ? ' selected' : '' ) + '>is</option><option value="is_not"' + ( rule.operator === 'is_not' ? ' selected' : '' ) + '>is not</option></select>' +
@@ -4549,11 +4550,11 @@
 					'</div>' +
 				'</div>' +
 				'<div class="vmail-d-actions">' +
-					'<button type="button" class="velox-btn velox-btn--primary vmail-act" data-act="reply"' + ( canReply ? '' : ' disabled title=vxT( "No email address to reply to" )' ) + '>Reply</button>' +
+					'<button type="button" class="velox-btn velox-btn--primary vmail-act" data-act="reply"' + ( canReply ? '' : ' disabled title="' + vxT( "No email address to reply to" ) + '"' ) + '>Reply</button>' +
 					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="pin">' + ( pinned ? vxT( 'Unpin' ) : vxT( 'Pin' ) ) + '</button>' +
 					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="done">' + ( done ? vxT( 'Reopen' ) : vxT( 'Mark done' ) ) + '</button>' +
 					'<button type="button" class="velox-btn velox-btn--ghost vmail-act" data-act="delete">Delete</button>' +
-					( folders.length ? '<select class="velox-select velox-select--sm vmail-d-folder" title=vxT( "Move to folder" )>' + folderOptions( sub.folder || '' ) + '</select>' : '' ) +
+					( folders.length ? '<select class="velox-select velox-select--sm vmail-d-folder" title="' + vxT( "Move to folder" ) + '">' + folderOptions( sub.folder || '' ) + '</select>' : '' ) +
 				'</div>' +
 				'<dl class="vmail-d-dl">' + rows + '</dl>';
 		}
@@ -4680,8 +4681,8 @@
 					'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">' + path + '</svg></button>';
 			}
 			row.innerHTML =
-				'<label class="vmail-inbox-check" title=vxT( "Select" )><input type="checkbox" class="vmail-check" data-id="' + it.id + '"></label>' +
-				'<button type="button" class="vmail-inbox-open" aria-label=vxT( "Open submission" )>' +
+				'<label class="vmail-inbox-check" title="' + vxT( "Select" ) + '"><input type="checkbox" class="vmail-check" data-id="' + it.id + '"></label>' +
+				'<button type="button" class="vmail-inbox-open" aria-label="' + vxT( "Open submission" ) + '">' +
 					'<span class="vmail-avatar" aria-hidden="true">' + escapeHtml( initials( it.who ) ) + '</span>' +
 					'<span class="vmail-inbox-body">' +
 						'<span class="vmail-inbox-line1"><span class="vmail-inbox-who">' + escapeHtml( it.who || vxT( 'Anonymous' ) ) + '</span>' +
@@ -4698,7 +4699,7 @@
 					actBtn( 'pin', vxT( 'Pin to top' ), '<path d="M9 4v6l-2 4h10l-2-4V4M12 14v6M8 4h8"/>' ) +
 					actBtn( 'done', vxT( 'Mark as done' ), '<circle cx="12" cy="12" r="9"/><path d="m8.5 12.5 2.5 2.5 4.5-5"/>' ) +
 					actBtn( 'read', vxT( 'Mark read or unread' ), '<rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="m3 7 9 6 9-6"/>' ) +
-					'<button type="button" class="vmail-act vmail-act--del vmail-inbox-del" data-id="' + it.id + '" title=vxT( "Move to Deleted" ) aria-label=vxT( "Move to Deleted" )>' +
+					'<button type="button" class="vmail-act vmail-act--del vmail-inbox-del" data-id="' + it.id + '" title="' + vxT( "Move to Deleted" ) + '" aria-label="' + vxT( "Move to Deleted" ) + '">' +
 						'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>' +
 					'</button>' +
 				'</div>';
@@ -4809,9 +4810,9 @@
 					'</span>' +
 				'</div>' +
 				'<div class="vmail-del-acts">' +
-					'<button type="button" class="vmail-iact vmail-del-restore" title=vxT( "Restore to inbox" ) aria-label=vxT( "Restore to inbox" )>' +
+					'<button type="button" class="vmail-iact vmail-del-restore" title="' + vxT( "Restore to inbox" ) + '" aria-label="' + vxT( "Restore to inbox" ) + '">' +
 						'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 5 5v6"/></svg></button>' +
-					'<button type="button" class="vmail-iact vmail-iact--del vmail-del-purge" title=vxT( "Delete permanently" ) aria-label=vxT( "Delete permanently" )>' +
+					'<button type="button" class="vmail-iact vmail-iact--del vmail-del-purge" title="' + vxT( "Delete permanently" ) + '" aria-label="' + vxT( "Delete permanently" ) + '">' +
 						'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></button>' +
 				'</div>';
 			row.querySelector( '.vmail-del-restore' ).addEventListener( 'click', function () {
@@ -4885,7 +4886,7 @@
 					'<div class="vmail-fm">' +
 						'<div class="vmail-fm-head">' +
 							'<div><strong>Folders</strong><span class="vmail-fm-sub">Colour-code submissions in your inbox.</span></div>' +
-							'<button type="button" class="vmail-fm-x" aria-label=vxT( "Close" )>' +
+							'<button type="button" class="vmail-fm-x" aria-label="' + vxT( "Close" ) + '">' +
 								'<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>' +
 							'</button>' +
 						'</div>' +
@@ -4913,9 +4914,9 @@
 						row.className = 'vmail-fm-row';
 						row.innerHTML =
 							'<span class="vmail-fm-sw" style="background:' + escapeHtml( f.color || '#2ab7f1' ) + '">' +
-								'<input type="color" class="vmail-fm-color" value="' + escapeHtml( f.color || '#2ab7f1' ) + '" aria-label=vxT( "Folder colour" )></span>' +
+								'<input type="color" class="vmail-fm-color" value="' + escapeHtml( f.color || '#2ab7f1' ) + '" aria-label="' + vxT( "Folder colour" ) + '"></span>' +
 							'<input type="text" class="vmail-fm-name" value="' + escapeHtml( f.name || '' ) + '" placeholder="Folder ' + ( idx + 1 ) + '">' +
-							'<button type="button" class="vmail-fm-del" title=vxT( "Remove folder" ) aria-label=vxT( "Remove folder" )>' +
+							'<button type="button" class="vmail-fm-del" title="' + vxT( "Remove folder" ) + '" aria-label="' + vxT( "Remove folder" ) + '">' +
 								'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
 						row.querySelector( '.vmail-fm-color' ).addEventListener( 'input', function () {
 							working[ idx ].color = this.value;
@@ -5326,9 +5327,9 @@
 			} ).join( '' );
 			card.innerHTML =
 				'<div class="vmail-conn-top">' +
-					'<select class="velox-select vmail-c-provider" title=vxT( "Pick your provider to fill the server settings" )>' + provOpts + '</select>' +
+					'<select class="velox-select vmail-c-provider" title="' + vxT( "Pick your provider to fill the server settings" ) + '">' + provOpts + '</select>' +
 					'<input type="text" class="velox-input vmail-c-label" value="' + escapeHtml( c.label || '' ) + '" placeholder=vxT( "Connection name (e.g. Transactional)" )>' +
-					'<button type="button" class="vmail-conn-del" title=vxT( "Remove connection" ) aria-label=vxT( "Remove connection" )>&times;</button>' +
+					'<button type="button" class="vmail-conn-del" title="' + vxT( "Remove connection" ) + '" aria-label="' + vxT( "Remove connection" ) + '">&times;</button>' +
 				'</div>' +
 				'<div class="vmail-conn-grid">' +
 					'<label class="vmail-cf vmail-cf--host"><span>Host</span><input type="text" class="velox-input vmail-c-host" value="' + escapeHtml( c.host || '' ) + '" placeholder="smtp.example.com"></label>' +
@@ -5377,7 +5378,7 @@
 				'<input type="text" class="velox-input vmail-r-value" value="' + escapeHtml( r.value || '' ) + '" placeholder="value">' +
 				'<span class="vmail-r-arrow">→</span>' +
 				'<select class="velox-select velox-select--sm vmail-r-conn"></select>' +
-				'<button type="button" class="vmail-route-del" title=vxT( "Remove rule" ) aria-label=vxT( "Remove rule" )>&times;</button>';
+				'<button type="button" class="vmail-route-del" title="' + vxT( "Remove rule" ) + '" aria-label="' + vxT( "Remove rule" ) + '">&times;</button>';
 			fillConnSelect( row.querySelector( '.vmail-r-conn' ), r.conn );
 			var matchSel = row.querySelector( '.vmail-r-match' );
 			var valInput = row.querySelector( '.vmail-r-value' );
@@ -5474,7 +5475,7 @@
 				} ).join( '' );
 				overlay.innerHTML =
 					'<div class="vmail-fm vmail-guide">' +
-						'<div class="vmail-fm-head"><strong>SMTP setup guide</strong><button type="button" class="vmail-fm-x" aria-label=vxT( "Close" )>&times;</button></div>' +
+						'<div class="vmail-fm-head"><strong>SMTP setup guide</strong><button type="button" class="vmail-fm-x" aria-label="' + vxT( "Close" ) + '">&times;</button></div>' +
 						'<select class="velox-select vmail-guide-sel">' + provOpts + '</select>' +
 						'<div class="vmail-guide-body"></div>' +
 					'</div>';
@@ -5999,12 +6000,12 @@
 				card.innerHTML =
 					'<div class="vmail-fcard-body">' + fieldPreview( f ) + '</div>' +
 					'<div class="vmail-fcard-toolbar">' +
-						'<button type="button" class="vmail-ft" data-act="up" title=vxT( "Move up" )>' + ico('<path d="M12 19V5M5 12l7-7 7 7"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="down" title=vxT( "Move down" )>' + ico('<path d="M12 5v14M19 12l-7 7-7-7"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="edit" title=vxT( "Edit" )>' + ico('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="copy" title=vxT( "Copy" )>' + ico('<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="paste" title=vxT( "Paste after" )>' + ico('<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><rect x="5" y="6" width="14" height="15" rx="2.5"/>') + '</button>' +
-						'<button type="button" class="vmail-ft" data-act="dup" title=vxT( "Duplicate" )>' + ico('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="up" title="' + vxT( "Move up" ) + '">' + ico('<path d="M12 19V5M5 12l7-7 7 7"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="down" title="' + vxT( "Move down" ) + '">' + ico('<path d="M12 5v14M19 12l-7 7-7-7"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="edit" title="' + vxT( "Edit" ) + '">' + ico('<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="copy" title="' + vxT( "Copy" ) + '">' + ico('<rect x="9" y="9" width="11" height="11" rx="2.5"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="paste" title="' + vxT( "Paste after" ) + '">' + ico('<path d="M9 4h6a1 1 0 0 1 1 1v1H8V5a1 1 0 0 1 1-1z"/><rect x="5" y="6" width="14" height="15" rx="2.5"/>') + '</button>' +
+						'<button type="button" class="vmail-ft" data-act="dup" title="' + vxT( "Duplicate" ) + '">' + ico('<rect x="8" y="8" width="12" height="12" rx="2.5"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>') + '</button>' +
 						'<button type="button" class="vmail-ft vmail-ft-del" data-act="del" title="Delete">' + ico('<path d="M4 7h16M10 11v6M14 11v6M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13M9 7V4h6v3"/>') + '</button>' +
 					'</div>';
 				card.addEventListener( 'click', function ( e ) {
@@ -6130,7 +6131,7 @@
 					'<select class="velox-select velox-select--sm" data-cr="field">' + condFieldOptions( f.key, r.field ) + '</select>' +
 					'<select class="velox-select velox-select--sm" data-cr="op">' + COND_OPS.map( function ( o ) { return '<option value="' + o[0] + '"' + ( r.op === o[0] ? ' selected' : '' ) + '>' + o[1] + '</option>'; } ).join( '' ) + '</select>' +
 					'<input type="text" class="velox-input vmail-cond-val" data-cr="value" value="' + escapeHtml( r.value || '' ) + '" placeholder="value"' + ( needsVal ? '' : ' style="visibility:hidden"' ) + '>' +
-					'<button type="button" class="vmail-cond-del" data-i="' + i + '" title=vxT( "Remove rule" ) aria-label=vxT( "Remove rule" )>&times;</button>' +
+					'<button type="button" class="vmail-cond-del" data-i="' + i + '" title="' + vxT( "Remove rule" ) + '" aria-label="' + vxT( "Remove rule" ) + '">&times;</button>' +
 				'</div>';
 			} );
 			rows += '</div>';
@@ -6191,7 +6192,7 @@
 			if ( selected === 'submit' ) {
 				var srows = inspText( vxT( 'Button text' ), 'submit_label', form.submit_label || vxT( 'Submit' ) );
 				srows += '<div class="vmail-insp-note">Want to fully style this button — colours, padding, alignment, shadow? Open the <strong>Style editor</strong> from the top bar.</div>';
-				inspector.innerHTML = '<div class="vmail-insp-head"><span>Submit button</span><button type="button" class="vmail-sb-insp-x" id="vmail-insp-close" title=vxT( "Close" )><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="vmail-insp-body">' + srows + '</div>';
+				inspector.innerHTML = '<div class="vmail-insp-head"><span>Submit button</span><button type="button" class="vmail-sb-insp-x" id="vmail-insp-close" title="' + vxT( "Close" ) + '"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="vmail-insp-body">' + srows + '</div>';
 				var sx = $( '#vmail-insp-close', inspector ); if ( sx ) { sx.addEventListener( 'click', closeInspector ); }
 				var sl = $( '[data-k="submit_label"]', inspector );
 				if ( sl ) { sl.addEventListener( 'input', function () { form.submit_label = sl.value; renderCanvas(); } ); }
@@ -6264,7 +6265,7 @@
 				rows += inspText( vxT( 'CSS class' ), 'css', f.css );
 			}
 			rows += conditionalRows( f );
-			inspector.innerHTML = '<div class="vmail-insp-head"><span>' + ( TYPES[ t ] ? TYPES[ t ].label : t ) + ' field</span><button type="button" class="vmail-sb-insp-x" id="vmail-insp-close" title=vxT( "Close" )><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="vmail-insp-body">' + rows + '</div>';
+			inspector.innerHTML = '<div class="vmail-insp-head"><span>' + ( TYPES[ t ] ? TYPES[ t ].label : t ) + ' field</span><button type="button" class="vmail-sb-insp-x" id="vmail-insp-close" title="' + vxT( "Close" ) + '"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div><div class="vmail-insp-body">' + rows + '</div>';
 			var ix = $( '#vmail-insp-close', inspector ); if ( ix ) { ix.addEventListener( 'click', closeInspector ); }
 
 			$$( '[data-k]', inspector ).forEach( function ( el ) {
@@ -6541,13 +6542,13 @@
 				overlay.innerHTML =
 					'<div class="vmail-nav vmail-nav--vmp">' +
 						'<div class="vmail-nav-left">' +
-							'<a class="vmail-nav-back" id="vmp-back" title=vxT( "Back to Build" ) style="cursor:pointer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>' +
+							'<a class="vmail-nav-back" id="vmp-back" title="' + vxT( "Back to Build" ) + '" style="cursor:pointer"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></a>' +
 							'<div class="vmail-nav-crumb">Utilities <span>/</span> <b>Mail &amp; forms</b></div>' +
 							'<div class="vmail-nav-vsep"></div>' +
 							'<span class="vmail-nav-title vmail-nav-title--static">' + escapeHtml( form.title || vxT( 'Form' ) ) + '</span>' +
-							'<label class="vmail-nav-switch" title=vxT( "Turn this form on or off" )><input type="checkbox" id="vmp-enabled"' + ( form.enabled !== false ? ' checked' : '' ) + '><span class="vmail-switch-track"></span></label>' +
+							'<label class="vmail-nav-switch" title="' + vxT( "Turn this form on or off" ) + '"><input type="checkbox" id="vmp-enabled"' + ( form.enabled !== false ? ' checked' : '' ) + '><span class="vmail-switch-track"></span></label>' +
 							'<span class="vmail-nav-onoff' + ( form.enabled !== false ? ' is-on' : '' ) + '" id="vmp-onoff-label">' + ( form.enabled !== false ? vxT( 'On' ) : vxT( 'Off' ) ) + '</span>' +
-							'<button type="button" class="vmail-nav-sc" data-code=\'[velox_form id="' + form.id + '"]\' title=vxT( "Form shortcode — click to copy" )><span class="vmail-nav-sc-tag">Shortcode</span><code>[velox_form id="' + form.id + '"]</code></button>' +
+							'<button type="button" class="vmail-nav-sc" data-code=\'[velox_form id="' + form.id + '"]\' title="' + vxT( "Form shortcode — click to copy" ) + '"><span class="vmail-nav-sc-tag">Shortcode</span><code>[velox_form id="' + form.id + '"]</code></button>' +
 						'</div>' +
 						'<div class="vmail-nav-mode">' +
 							'<button type="button" class="vmail-modebtn" id="vmp-to-build"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 5h18M3 12h18M3 19h12"/></svg> Build</button>' +
@@ -6735,7 +6736,7 @@
 					'<span class="vse-sw' + ( has ? '' : ' is-inherit' ) + '"' + ( has ? ' style="background:' + escapeHtml( v ) + '"' : '' ) + '>' +
 					'<input type="color" data-t="' + target + '" data-k="' + key + '" data-color="1" value="' + ( hexOk ? v : '#2ab7f1' ) + '"></span>' +
 					'<input class="vse-hex' + ( has ? '' : ' is-inherit' ) + '" data-t="' + target + '" data-k="' + key + '" value="' + escapeHtml( v ) + '" placeholder=vxT( "Inherit" )>' +
-					'<button type="button" class="vse-revert' + ( has ? '' : ' is-hidden' ) + '" data-t="' + target + '" data-k="' + key + '" title=vxT( "Reset to inherit" )>' + svgi( REVERT, 13, 1.8 ) + '</button>' +
+					'<button type="button" class="vse-revert' + ( has ? '' : ' is-hidden' ) + '" data-t="' + target + '" data-k="' + key + '" title="' + vxT( "Reset to inherit" ) + '">' + svgi( REVERT, 13, 1.8 ) + '</button>' +
 					'</span></div>';
 			}
 			function ctrlToggle( label, target, key, on ) {
@@ -7266,7 +7267,7 @@
 			if ( ! lb ) {
 				lb = document.createElement( 'div' );
 				lb.className = 'velox-lightbox';
-				lb.innerHTML = '<div class="velox-lightbox-inner"><button type="button" class="velox-lightbox-x" aria-label=vxT( "Close" )>&times;</button><img alt=""><div class="velox-lightbox-cap"></div></div>';
+				lb.innerHTML = '<div class="velox-lightbox-inner"><button type="button" class="velox-lightbox-x" aria-label="' + vxT( "Close" ) + '">&times;</button><img alt=""><div class="velox-lightbox-cap"></div></div>';
 				lb.addEventListener( 'click', function ( e ) {
 					if ( e.target === lb || e.target.classList.contains( 'velox-lightbox-x' ) ) { lb.classList.remove( 'is-open' ); }
 				} );
@@ -7775,7 +7776,7 @@
 				'<div class="l">' + escapeHtml( label ) + '</div></div>';
 		}
 		function pageRow( r, goto ) {
-			var open = r.url ? '<a class="velox-btn velox-btn--ghost velox-btn--sm" href="' + escapeHtml( r.url ) + '" target="_blank" rel="noopener" title=vxT( "Open page" )>' +
+			var open = r.url ? '<a class="velox-btn velox-btn--ghost velox-btn--sm" href="' + escapeHtml( r.url ) + '" target="_blank" rel="noopener" title="' + vxT( "Open page" ) + '">' +
 				'<svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><path d="M15 3h6v6M10 14 21 3"/></svg></a>' : '';
 			var edit = '';
 			if ( 'media' === goto ) {
@@ -8627,9 +8628,9 @@
 		pop.innerHTML =
 			'<h4>Grid size</h4>' +
 			'<div class="velox-wsize-row"><span>Width</span><span class="velox-wsize-step" data-axis="c">' +
-				'<button type="button" data-d="-1" aria-label=vxT( "Narrower" )>\u2212</button><b>' + z.c + '</b><button type="button" data-d="1" aria-label=vxT( "Wider" )>+</button></span></div>' +
+				'<button type="button" data-d="-1" aria-label="' + vxT( "Narrower" ) + '">\u2212</button><b>' + z.c + '</b><button type="button" data-d="1" aria-label="' + vxT( "Wider" ) + '">+</button></span></div>' +
 			'<div class="velox-wsize-row"><span>Height</span><span class="velox-wsize-step" data-axis="r">' +
-				'<button type="button" data-d="-1" aria-label=vxT( "Shorter" )>\u2212</button><b>' + z.r + '</b><button type="button" data-d="1" aria-label=vxT( "Taller" )>+</button></span></div>';
+				'<button type="button" data-d="-1" aria-label="' + vxT( "Shorter" ) + '">\u2212</button><b>' + z.r + '</b><button type="button" data-d="1" aria-label="' + vxT( "Taller" ) + '">+</button></span></div>';
 		document.body.appendChild( pop );
 		positionPop( btn );
 		function refresh() {

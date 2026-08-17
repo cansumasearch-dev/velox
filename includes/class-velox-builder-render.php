@@ -35,11 +35,28 @@ class Velox_Builder_Render {
 	private static $UNIT = array( 'gap', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'fontSize', 'letterSpacing', 'borderWidth', 'borderRadius' );
 	/** Media queries, built from the editable breakpoints. */
 	private static function bp_map() {
-		$b = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991, 'mobile' => 767 );
+		$b = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array();
+		$d = array( 'xxl' => 1399.98, 'xl' => 1199.98, 'lg' => 991.98, 'md' => 767.98, 'sm' => 575.98 );
+		foreach ( $d as $k => $v ) {
+			if ( ! isset( $b[ $k ] ) ) {
+				$b[ $k ] = $v;
+			}
+		}
+		$mq = function ( $k ) use ( $b ) {
+			return '(max-width: ' . rtrim( rtrim( number_format( (float) $b[ $k ], 2, '.', '' ), '0' ), '.' ) . 'px)';
+		};
+		// Legacy keys ('tablet'/'mobile') alias lg/md and are emitted immediately
+		// BEFORE their modern twin, so a value saved on the new key wins on source
+		// order. Documents saved before the Bootstrap 5 switch keep rendering.
 		return array(
 			'base'   => null,
-			'tablet' => '(max-width: ' . (int) $b['tablet'] . 'px)',
-			'mobile' => '(max-width: ' . (int) $b['mobile'] . 'px)',
+			'xxl'    => $mq( 'xxl' ),
+			'xl'     => $mq( 'xl' ),
+			'tablet' => $mq( 'lg' ),
+			'lg'     => $mq( 'lg' ),
+			'mobile' => $mq( 'md' ),
+			'md'     => $mq( 'md' ),
+			'sm'     => $mq( 'sm' ),
 		);
 	}
 
@@ -211,6 +228,25 @@ class Velox_Builder_Render {
 	private static function el_settings( $node ) {
 		return isset( $node['settings'] ) && is_array( $node['settings'] ) ? $node['settings'] : array();
 	}
+	/**
+	 * A setting resolved per breakpoint. Base keeps its plain key (so documents
+	 * written before responsive settings existed read back unchanged); narrower
+	 * breakpoints store under 'key@bp'. Returns only the breakpoints that carry
+	 * an explicit value — the caller emits a media query for each, and the CSS
+	 * cascade does the inheriting rather than us repeating values.
+	 */
+	private static function el_set_bp( $node, $key, $default = '' ) {
+		$s   = self::el_settings( $node );
+		$out = array( 'base' => self::el_set( $node, $key, $default ) );
+		foreach ( array( 'xxl', 'xl', 'lg', 'md', 'sm' ) as $bp ) {
+			$k = $key . '@' . $bp;
+			if ( array_key_exists( $k, $s ) ) {
+				$out[ $bp ] = ( '0' === $s[ $k ] ) ? '' : $s[ $k ];
+			}
+		}
+		return $out;
+	}
+
 	private static function el_set( $node, $key, $default = '' ) {
 		$s = self::el_settings( $node );
 		// A stored key wins even when it is empty: '' is how a toggle says OFF,
@@ -472,10 +508,81 @@ class Velox_Builder_Render {
 			' role="group" aria-roledescription="' . esc_attr__( 'carousel', 'velox' ) . '"' .
 			' aria-label="' . esc_attr__( 'Slider', 'velox' ) . '">';
 
-		$basis = 'flex:0 0 calc((100% - ' . ( ( $per - 1 ) * $gap ) . 'px)/' . $per . ')';
-		$out  .= '<div class="vx-track" style="gap:' . $gap . 'px">';
+		// Slide width and gap are emitted as a real stylesheet rule per breakpoint,
+		// not as an inline style. Inline styles cannot carry a media query, which
+		// is why perView and gap were marked responsive in the editor but always
+		// rendered at their base value; they also outrank every later rule, so
+		// nothing downstream could override them.
+		$resp = array();
+		foreach ( array( 'perView', 'gap', 'slideWidth', 'slideMinWidth', 'slideMaxWidth', 'slideHeight', 'peek' ) as $k ) {
+			$resp[ $k ] = self::el_set_bp( $node, $k, '' );
+		}
+		$equal = self::el_set( $node, 'equalHeight', '1' );
+		$mqs   = self::bp_map();
+		foreach ( array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' ) as $bp ) {
+			$touched = false;
+			foreach ( $resp as $vals ) {
+				if ( isset( $vals[ $bp ] ) ) {
+					$touched = true;
+					break;
+				}
+			}
+			if ( ! $touched ) {
+				continue;
+			}
+			// Carry the widest set value down, so a breakpoint that only changes
+			// the gap still computes its slide width against the right count.
+			$val = function ( $k, $fallback ) use ( $resp, $bp ) {
+				foreach ( array_reverse( array_slice( array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' ), 0, array_search( $bp, array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' ), true ) + 1 ) ) as $b ) {
+					if ( isset( $resp[ $k ][ $b ] ) && '' !== $resp[ $k ][ $b ] ) {
+						return $resp[ $k ][ $b ];
+					}
+				}
+				return $fallback;
+			};
+			$p  = max( 1, (int) $val( 'perView', 1 ) );
+			$g  = (int) $val( 'gap', 16 );
+			$pk = (int) $val( 'peek', 0 );
+			$w  = trim( (string) $val( 'slideWidth', '' ) );
+
+			// An explicit card width wins over slides-shown; otherwise the width
+			// is derived from the count, minus the gaps and any peek.
+			$basis = '' !== $w
+				? 'flex:0 0 ' . self::css_value( 'width', $w )
+				: 'flex:0 0 calc((100% - ' . ( ( $p - 1 ) * $g + $pk ) . 'px)/' . $p . ')';
+
+			$slide = $basis;
+			$mn = $val( 'slideMinWidth', '' );
+			$mx = $val( 'slideMaxWidth', '' );
+			$h  = $val( 'slideHeight', '' );
+			if ( '' !== $mn ) { $slide .= ';min-width:' . self::css_value( 'minWidth', $mn ); }
+			if ( '' !== $mx ) { $slide .= ';max-width:' . self::css_value( 'maxWidth', $mx ); }
+			if ( '' !== $h )  { $slide .= ';height:' . self::css_value( 'height', $h ); }
+
+			$rule = '#' . $id . ' .vx-track{gap:' . $g . 'px'
+				. ( $equal ? ';align-items:stretch' : ';align-items:flex-start' ) . '}'
+				. '#' . $id . ' .vx-slide{' . $slide . '}';
+			$mq = $mqs[ $bp ] ?? null;
+			self::$float_css .= $mq ? ( '@media ' . $mq . '{' . $rule . '}' ) : $rule;
+		}
+
+		// Snapping and movement are page-wide, not per breakpoint.
+		$snap = self::el_set( $node, 'snap', 'mandatory' );
+		$snap = in_array( $snap, array( 'mandatory', 'proximity', 'none' ), true ) ? $snap : 'mandatory';
+		$beh  = 'auto' === self::el_set( $node, 'behavior', 'smooth' ) ? 'auto' : 'smooth';
+		self::$float_css .= '#' . $id . ' .vx-track{scroll-snap-type:'
+			. ( 'none' === $snap ? 'none' : 'x ' . $snap ) . ';scroll-behavior:' . $beh . '}';
+
+		$apos = self::el_set( $node, 'arrowPos', 'below' );
+		if ( 'inside' === $apos || 'outside' === $apos ) {
+			// trim() drops the leading space when the element has no classes of its
+			// own, so match the bare token rather than assuming one.
+			$out = str_replace( 'vx-slider"', 'vx-slider vx-arrows-' . $apos . '"', $out );
+		}
+
+		$out .= '<div class="vx-track">';
 		foreach ( $items as $i => $item ) {
-			$out .= '<div class="vx-slide" style="' . esc_attr( $basis ) . '"' .
+			$out .= '<div class="vx-slide"' .
 				' role="group" aria-roledescription="' . esc_attr__( 'slide', 'velox' ) . '"' .
 				' aria-label="' . esc_attr( sprintf( '%d / %d', $i + 1, $total ) ) . '">';
 			if ( ! empty( $item['image'] ) ) {
@@ -1002,6 +1109,13 @@ class Velox_Builder_Render {
 				'.vx-dot{width:9px;height:9px;padding:0;border:none;border-radius:50%;background:currentColor;opacity:.25;cursor:pointer}' .
 				'.vx-dot[aria-selected="true"]{opacity:1}' .
 				'.vx-arrows{display:flex;gap:8px}' .
+				// Arrows over or beside the track. Both lift the arrow row out of
+				// the control strip and centre it vertically against the slides.
+				'.vx-arrows-inside .vx-controls,.vx-arrows-outside .vx-controls{position:static}' .
+				'.vx-arrows-inside .vx-arrows,.vx-arrows-outside .vx-arrows{position:absolute;top:50%;left:0;right:0;transform:translateY(-50%);justify-content:space-between;pointer-events:none;z-index:2}' .
+				'.vx-arrows-inside .vx-arrows{padding:0 10px}' .
+				'.vx-arrows-outside .vx-arrows{left:-46px;right:-46px}' .
+				'.vx-arrows-inside .vx-prev,.vx-arrows-inside .vx-next,.vx-arrows-outside .vx-prev,.vx-arrows-outside .vx-next{pointer-events:auto;background:var(--vx-arrow-bg,rgba(255,255,255,.9))}' .
 				'.vx-prev,.vx-next,.vx-play{width:36px;height:36px;border-radius:50%;border:1px solid currentColor;background:none;color:inherit;cursor:pointer;display:grid;place-items:center;opacity:.75}' .
 				'.vx-prev:hover,.vx-next:hover,.vx-play:hover{opacity:1}' .
 				'.vx-prev[disabled],.vx-next[disabled]{opacity:.25;cursor:default}' .

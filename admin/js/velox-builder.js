@@ -127,15 +127,38 @@
 		gap:1, paddingTop:1, paddingRight:1, paddingBottom:1, paddingLeft:1, marginTop:1, marginRight:1, marginBottom:1, marginLeft:1,
 		width:1, minWidth:1, maxWidth:1, height:1, minHeight:1, maxHeight:1, fontSize:1, letterSpacing:1, borderWidth:1, borderRadius:1
 	};
-	var BP_ORDER = [ 'base', 'tablet', 'mobile' ];
-	// Breakpoints are a site setting, so the editor must not hardcode them or its
-	// preview stops matching what visitors get.
-	var BPX = ( CFG.breakpoints && CFG.breakpoints.tablet ) ? CFG.breakpoints : { tablet:991, mobile:767 };
+	/* Breakpoints follow Bootstrap 5 so a Velox layout and a Bootstrap utility on
+	 * the same page agree on where a viewport ends. Desktop-first (max-width),
+	 * matching Bootstrap's own down-mixins including the .98 boundary.
+	 *
+	 * LEGACY: documents saved before this change filed rules under 'tablet' and
+	 * 'mobile'. Those keys are never rewritten — they are read as aliases of lg
+	 * and md, and emitted just BEFORE their modern twin so a newer value on the
+	 * same breakpoint wins on source order. Nothing migrates, nothing is lost,
+	 * and an old document opened in a new editor keeps rendering identically. */
+	var BP_ORDER  = [ 'base', 'xxl', 'xl', 'lg', 'md', 'sm' ];
+	var BP_LEGACY = { lg:'tablet', md:'mobile' };
+	var BPX = ( CFG.breakpoints && CFG.breakpoints.lg )
+		? CFG.breakpoints
+		: { xxl:1399.98, xl:1199.98, lg:991.98, md:767.98, sm:575.98 };
 	var BP_META = {
-		base:{ label:'Desktop', mq:null },
-		tablet:{ label:'Tablet ≤' + BPX.tablet, mq:'(max-width: ' + BPX.tablet + 'px)' },
-		mobile:{ label:'Mobile ≤' + BPX.mobile, mq:'(max-width: ' + BPX.mobile + 'px)' }
+		base:{ label:'Desktop',        mq:null,                                  px:'' },
+		xxl: { label:'XXL ≤' + BPX.xxl, mq:'(max-width: ' + BPX.xxl + 'px)', px:BPX.xxl },
+		xl:  { label:'XL ≤'  + BPX.xl,  mq:'(max-width: ' + BPX.xl  + 'px)', px:BPX.xl },
+		lg:  { label:'LG ≤'  + BPX.lg,  mq:'(max-width: ' + BPX.lg  + 'px)', px:BPX.lg },
+		md:  { label:'MD ≤'  + BPX.md,  mq:'(max-width: ' + BPX.md  + 'px)', px:BPX.md },
+		sm:  { label:'SM ≤'  + BPX.sm,  mq:'(max-width: ' + BPX.sm  + 'px)', px:BPX.sm }
 	};
+	/* CSS emission order. Wider to narrower so the cascade works, with each
+	 * legacy key immediately before the modern breakpoint it aliases. */
+	var BP_EMIT = ( function () {
+		var out = [];
+		BP_ORDER.forEach( function ( bp ) {
+			if ( BP_LEGACY[ bp ] ) { out.push( { key:BP_LEGACY[ bp ], mq:BP_META[ bp ].mq } ); }
+			out.push( { key:bp, mq:BP_META[ bp ].mq } );
+		} );
+		return out;
+	}() );
 
 	function walkTree( nodes, fn ) { for ( var i = 0; i < nodes.length; i++ ) { fn( nodes[ i ] ); if ( nodes[ i ].children ) { walkTree( nodes[ i ].children, fn ); } } }
 	function findNode( nodes, id ) { for ( var i = 0; i < nodes.length; i++ ) { if ( nodes[ i ].id === id ) { return nodes[ i ]; } if ( nodes[ i ].children ) { var f = findNode( nodes[ i ].children, id ); if ( f ) { return f; } } } return null; }
@@ -148,7 +171,14 @@
 		var S = store.state, chain = bpChain( bp ), b, k;
 		// When editing a pseudo-state, that state's keys win; otherwise fall to normal.
 		var keysFor = function ( breakpoint ) {
-			return ( state && state !== 'normal' ) ? [ breakpoint + ':' + state, breakpoint ] : [ breakpoint ];
+			var names = [ breakpoint ];
+			if ( BP_LEGACY[ breakpoint ] ) { names.push( BP_LEGACY[ breakpoint ] ); }
+			var out = [];
+			names.forEach( function ( n ) {
+				if ( state && state !== 'normal' ) { out.push( n + ':' + state ); }
+				out.push( n );
+			} );
+			return out;
 		};
 		var ov = node.overrides || {};
 		for ( k = 0; k < chain.length; k++ ) { var ks = keysFor( chain[ k ] ); for ( var ki = 0; ki < ks.length; ki++ ) { if ( ov[ ks[ ki ] ] && ov[ ks[ ki ] ][ prop ] != null ) { return { value:ov[ ks[ ki ] ][ prop ], source:'element', bp:chain[ k ], st:ks[ ki ].indexOf( ':' ) > -1 }; } } }
@@ -204,8 +234,8 @@
 				if ( n.children ) { collectReuse( n.children ); }
 			} );
 		}( S.tree ) );
-		for ( var i = 0; i < BP_ORDER.length; i++ ) {
-			var bp = BP_ORDER[ i ], meta = BP_META[ bp ], body = '';
+		for ( var i = 0; i < BP_EMIT.length; i++ ) {
+			var bp = BP_EMIT[ i ].key, meta = { mq: BP_EMIT[ i ].mq }, body = '';
 			for ( var si = 0; si < STATES.length; si++ ) {
 				var st = STATES[ si ], key = st === 'normal' ? bp : bp + ':' + st, pseudo = st === 'normal' ? '' : ':' + st;
 				for ( var cls in merged ) {
@@ -942,7 +972,19 @@
 				{ k:'autoMs', t:'num', l:'Wait between slides', d:'5000', unit:'ms', s:'Autoplay', when:{ auto:'1' } },
 				{ k:'arrows', t:'toggle', l:'Show arrows', d:'1', s:'Controls' },
 				{ k:'dots', t:'toggle', l:'Show dots', d:'1', s:'Controls' },
-				{ k:'counter', t:'toggle', l:'Show "2 of 5"', d:'', s:'Controls' }
+				{ k:'counter', t:'toggle', l:'Show "2 of 5"', d:'', s:'Controls' },
+				{ k:'arrowPos', t:'segment', l:'Arrows sit', d:'below', s:'Controls', when:{ arrows:'1' },
+				  o:[ [ 'below', 'Below' ], [ 'inside', 'Over the slides' ], [ 'outside', 'Outside the edges' ] ] },
+				{ k:'slideWidth', t:'text', l:'Card width', d:'', ph:'auto', r:true, s:'Card size' },
+				{ k:'slideMinWidth', t:'num', l:'Never narrower than', d:'', unit:'px', r:true, s:'Card size' },
+				{ k:'slideMaxWidth', t:'num', l:'Never wider than', d:'', unit:'px', r:true, s:'Card size' },
+				{ k:'equalHeight', t:'toggle', l:'Make every card the same height', d:'1', s:'Card size' },
+				{ k:'slideHeight', t:'num', l:'Force a height', d:'', unit:'px', r:true, s:'Card size' },
+				{ k:'peek', t:'num', l:'Show a sliver of the next card', d:'', unit:'px', r:true, s:'Card size' },
+				{ k:'snap', t:'segment', l:'Snapping', d:'mandatory', s:'Behaviour',
+				  o:[ [ 'mandatory', 'Always snap' ], [ 'proximity', 'Snap if close' ], [ 'none', 'Free scroll' ] ] },
+				{ k:'behavior', t:'segment', l:'Movement', d:'smooth', s:'Behaviour',
+				  o:[ [ 'smooth', 'Glide' ], [ 'auto', 'Jump' ] ] }
 			  ] },
 			{ key:'offcanvas', el:'Offcanvas', tag:'div', label:'Offcanvas panel', cls:'.offcanvas',
 			  rules:{ padding:'28' }, runtime:'overlay', overlay:'offcanvas',
@@ -1315,6 +1357,11 @@
 	/* ============================================================
 	   UI
 	   ============================================================ */
+	/* NOTE: the Spacing and Size groups are rendered by spacingBlockHTML() and
+	 * sizeBlockHTML(), which return before g.items is read — those two already
+	 * draw all four padding/margin sides and width/height min+max as paired
+	 * boxes. Adding items to either group here has NO effect. Every other group
+	 * IS item-driven. */
 	var CONTROLS = [
 		{ group:'Layout', icon:'layout', items:[
 			{ prop:'display', label:'Display', type:'seg', opts:[ 'block', 'flex', 'grid', 'inline-block' ] },
@@ -1513,8 +1560,11 @@
 			'<div class="vb-tbc vb-tbc-center">' +
 				'<div class="vb-bp" id="vb-bp">' +
 					'<button data-bp="base" class="on" title="Desktop">' + svg( 'monitor', 15 ) + '</button>' +
-					'<button data-bp="tablet" title="Tablet">' + svg( 'tablet', 14 ) + '</button>' +
-					'<button data-bp="mobile" title="Mobile">' + svg( 'smartphone', 14 ) + '</button>' +
+					'<button data-bp="xxl" title="' + BP_META.xxl.label + '">' + svg( 'monitor', 14 ) + '</button>' +
+					'<button data-bp="xl" title="' + BP_META.xl.label + '">' + svg( 'monitor', 13 ) + '</button>' +
+					'<button data-bp="lg" title="' + BP_META.lg.label + '">' + svg( 'tablet', 14 ) + '</button>' +
+					'<button data-bp="md" title="' + BP_META.md.label + '">' + svg( 'tablet', 13 ) + '</button>' +
+					'<button data-bp="sm" title="' + BP_META.sm.label + '">' + svg( 'smartphone', 14 ) + '</button>' +
 				'</div>' +
 				'<div class="vb-tsep"></div>' +
 				'<button class="vb-ic" id="vb-undo" title="Undo">' + svg( 'undo', 16 ) + '</button>' +
@@ -2003,8 +2053,23 @@
 		}
 		return null;
 	}
+	/* Element settings carry a breakpoint dimension the same way class rules do.
+	 * A value for the base breakpoint keeps living under its plain key, so every
+	 * document written before this reads back unchanged and nothing migrates;
+	 * a narrower breakpoint stores under 'key@bp'. Reads walk wide -> narrow, so
+	 * an unset breakpoint inherits, exactly like the CSS cascade. */
+	function settingKey( key, bp ) { return ( !bp || 'base' === bp ) ? key : ( key + '@' + bp ); }
+	function rawSetting( node, key, bp ) {
+		if ( ! node || ! node.settings ) { return undefined; }
+		var chain = bpChain( bp || 'base' );
+		for ( var i = 0; i < chain.length; i++ ) {
+			var v = node.settings[ settingKey( key, chain[ i ] ) ];
+			if ( v !== undefined && v !== null ) { return v; }
+		}
+		return undefined;
+	}
 	function setVal( node, key, def ) {
-		var v = node && node.settings ? node.settings[ key ] : undefined;
+		var v = rawSetting( node, key, store.state.breakpoint );
 		if ( v === undefined || v === null ) { return def === undefined ? '' : def; }
 		return ( '0' === v ) ? '' : v;
 	}
@@ -2097,15 +2162,29 @@
 		return out;
 	}
 	function setElSetting( key, val ) {
+		// Only settings declared r:true get per-breakpoint storage. Everything
+		// else stays global, because a setting like "open with" or an image URL
+		// differing by screen width is a bug, not a feature.
+		var spec = null, cat = null;
+		( function () {
+			var n = findNode( store.state.tree, store.state.selection );
+			if ( ! n ) { return; }
+			cat = elDef( n );
+			if ( ! cat || ! cat.settings ) { return; }
+			for ( var i = 0; i < cat.settings.length; i++ ) {
+				if ( cat.settings[ i ].k === key ) { spec = cat.settings[ i ]; return; }
+			}
+		}() );
+		var k = ( spec && spec.r ) ? settingKey( key, store.state.breakpoint ) : key;
 		store.commit( function ( s ) {
 			var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
 			n.settings = n.settings || {};
 			// Deleting the key on an empty value made "off" indistinguishable from
 			// "never touched", so a toggle switched off came back on from its
 			// default. Store the decision instead.
-			if ( undefined === val || null === val ) { delete n.settings[ key ]; }
-			else if ( false === val ) { n.settings[ key ] = '0'; }
-			else { n.settings[ key ] = val; }
+			if ( undefined === val || null === val ) { delete n.settings[ k ]; }
+			else if ( false === val ) { n.settings[ k ] = '0'; }
+			else { n.settings[ k ] = val; }
 			if ( ! Object.keys( n.settings ).length ) { delete n.settings; }
 		}, T( 'Settings' ) );
 	}
@@ -3404,7 +3483,11 @@
 		var marks = document.querySelectorAll( '.drop-before,.drop-after,.drop-inside,.drop-root' );
 		for ( var i = 0; i < marks.length; i++ ) { marks[ i ].classList.remove( 'drop-before', 'drop-after', 'drop-inside', 'drop-root' ); }
 	}
-	function resizeCanvas( bp ) { var fr = document.getElementById( 'vb-canvas' ); fr.style.maxWidth = bp === 'mobile' ? ( BPX.mobile + 'px' ) : bp === 'tablet' ? ( BPX.tablet + 'px' ) : ''; }
+	function resizeCanvas( bp ) {
+		var fr = document.getElementById( 'vb-canvas' );
+		var px = ( BP_META[ bp ] && BP_META[ bp ].px ) ? BP_META[ bp ].px : '';
+		fr.style.maxWidth = px ? ( px + 'px' ) : '';
+	}
 
 	function injectStyles() {
 		if ( document.getElementById( 'vb-editor-style' ) ) { return; }

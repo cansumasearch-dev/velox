@@ -4,6 +4,47 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 3.99.3 — Completes the block-editor script fix
+
+- **The remaining script error when opening a post from the SEO health list is gone.** 3.99.2 fixed one of the blocks in this file; the resize handle sits in a different one and still could not reach the translation helper. There is now a single helper shared by the whole file rather than a copy per block, so no part of it can be missed again.
+
+## 3.99.2 — Fixes a script error on every block-editor page load
+
+- **The SEO sidebar threw a ReferenceError twice on every editor load.** The code that adds the drag-to-resize handle sits in its own block and was calling the translation helper defined in a different one. The handle lost its tooltip and two errors were logged each time a post was opened.
+
+## 3.99.1 — Ten more slider settings
+
+- **Card sizing**: set a card width outright, or a minimum and maximum width, or force a height — each per screen size. Cards can be made the same height as each other, or left to their own.
+- **Show a sliver of the next card** so it is obvious the row scrolls.
+- **Snapping** can be always, only when a card is already close, or off entirely for free scrolling. **Movement** can glide or jump.
+- **Arrows** can sit below as before, over the slides, or outside the edges.
+
+## 3.99.0 — Element settings marked responsive finally are
+
+- **Settings marked "can differ per screen size" now actually do.** That badge has been shown on slides-shown, spacing, review columns, floating-button offsets and popup width for some time, but the value underneath was stored once and used everywhere — the badge was the only part that was responsive. Element settings now carry a breakpoint the same way styles always have, set at whichever viewport you are editing.
+- **A slider's slides-shown and spacing now change per breakpoint on the live page.** They were previously written into each slide as an inline style, which cannot carry a media query and outranks every stylesheet, so the widest value won everywhere and nothing could override it. They are emitted as ordinary rules now.
+- **Nothing is migrated.** A setting with no per-screen values behaves exactly as before and is still stored the same way.
+
+## 3.98.1 — Reverts a no-op change from 3.97.2
+
+- **Reverts the four inspector controls added in 3.97.2.** They were added to a list the Spacing and Size panels never read, so they never appeared and changed nothing. Those panels already offer all four padding and margin sides and both width and height with min and max. A comment now records this so the same mistake isn't repeated.
+
+## 3.98.0 — Builder breakpoints now match Bootstrap 5
+
+- **Six viewports instead of three.** The builder had Desktop, Tablet and Mobile; it now has Desktop plus xxl, xl, lg, md and sm, on Bootstrap 5's own boundaries (1400 / 1200 / 992 / 768 / 576, using the same .98 down-mixin edges Bootstrap uses). A Velox layout and a Bootstrap utility on the same page no longer disagree about where a viewport ends.
+- **Existing pages are not migrated and cannot lose styling.** Rules saved under the old Tablet and Mobile keys are read as lg and md and still render at the same widths. They are emitted just before the matching new breakpoint, so if both exist the newer value wins. Nothing is rewritten on disk.
+- **The small breakpoint is a real breakpoint now.** The 'portrait' global width was stored but never actually produced a media query.
+
+## 3.97.2 — Four builder controls that existed but were never shown
+
+- **Margin left and margin right are now editable.** Both were already supported everywhere — the model, the editor's CSS generator and the front-end renderer all handled them — but the inspector only ever offered top and bottom, so there was no way to set them.
+- **Min width and max height are now editable**, for the same reason.
+
+## 3.97.1 — Attribute and translation fixes in the admin
+
+- **Fixed: 54 broken `aria-label` and `title` attributes across the admin.** An earlier translation pass wrapped these values in `vxT( … )` without escaping out of the surrounding string, so the browser received the literal function call as attribute text instead of a label. Screen readers got nonsense on the media library checkboxes, the mail folder and connection controls, the field-type picker, the image lightbox and the builder size steppers, among others.
+- **The maintenance indexing prompt is now translatable.** Its heading, the three choices, the select-all label and the footer note were hardcoded English while the rest of the screen switched to German. Item counts now use proper singular and plural forms rather than being assembled from fragments.
+
 ## 3.97.0 — Reviews gets its own home, and three fixes
 - **Fixed: the indexing prompt after maintenance mode never appeared.** Since maintenance can be switched from the admin bar on any screen, but the prompt lived in a script that only loaded on Velox pages, it was invisible everywhere else. It now loads wherever there is something to decide.
 - **Fixed: the snippet code box was completely unlabelled.** The language badge and placeholder are now written into the page itself instead of being added by a script, so an empty editor always says what it expects.

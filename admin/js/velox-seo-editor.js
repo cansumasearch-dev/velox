@@ -1,3 +1,14 @@
+/* Translation helper for EVERY block in this file. It lives at file scope on
+ * purpose: this file is five separate IIFEs, and a copy declared inside one of
+ * them is invisible to the other four. That is exactly how the resize handle
+ * ended up calling an undefined vxT and throwing on each editor load. */
+var vxT = ( function () {
+	var dict = ( window.VeloxSeoData && window.VeloxSeoData.i18n ) ? window.VeloxSeoData.i18n : {};
+	return function ( s ) {
+		return Object.prototype.hasOwnProperty.call( dict, s ) ? dict[ s ] : s;
+	};
+}() );
+
 /**
  * Velox SEO — block-editor sidebar panel.
  * Adds a Velox button to the editor top bar that opens a Rank-Math-style SEO
@@ -6,13 +17,6 @@
 ( function ( wp ) {
 	if ( ! wp || ! wp.plugins || ! wp.element || ! wp.data || ! wp.components ) {
 		return;
-	}
-
-	// Translation helper — reads the dictionary shipped with VeloxSeoData.i18n,
-	// falls back to the English source string.
-	var VX_I18N = ( window.VeloxSeoData && window.VeloxSeoData.i18n ) ? window.VeloxSeoData.i18n : {};
-	function vxT( s ) {
-		return ( VX_I18N && Object.prototype.hasOwnProperty.call( VX_I18N, s ) ) ? VX_I18N[ s ] : s;
 	}
 
 	var el       = wp.element.createElement;

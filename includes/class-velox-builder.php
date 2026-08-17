@@ -952,7 +952,19 @@ class Velox_Builder {
 	/** Breakpoints, used by the editor, the renderer and the class CSS parser. */
 	public static function breakpoints() {
 		$w = self::global_styles()['width'];
+		// Bootstrap 5 boundaries. lg/md stay tied to the editable global widths
+		// (which already sit on Bootstrap's 992/768 lines) so an existing site
+		// keeps the boundaries it was designed against; xxl, xl and sm are fixed
+		// at Bootstrap's values. The .98 matches Bootstrap's own down-mixins.
+		// sm is deliberately NOT derived from the 'portrait' width (480) — that
+		// figure predates this and does not correspond to a Bootstrap breakpoint.
 		return array(
+			'xxl'    => 1399.98,
+			'xl'     => 1199.98,
+			'lg'     => max( 320, (float) $w['tablet'] ) + 0.98,
+			'md'     => max( 240, (float) $w['landscape'] ) + 0.98,
+			'sm'     => 575.98,
+			// Back-compat for any caller still asking for the old names.
 			'tablet' => max( 320, (int) $w['tablet'] ),
 			'mobile' => max( 240, (int) $w['landscape'] ),
 		);
