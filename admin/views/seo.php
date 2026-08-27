@@ -101,8 +101,10 @@ $smap_on   = ! empty( $s['seo_sitemap_enable'] );
 			<div class="velox-tool-actions">
 				<button class="velox-btn velox-btn--primary" id="velox-seo-llms-save"><?php esc_html_e('Save llms.txt', 'velox'); ?></button>
 				<button class="velox-btn velox-btn--ghost" id="velox-seo-llms-generate"><?php esc_html_e('Regenerate from pages', 'velox'); ?></button>
+				<button class="velox-btn velox-btn--ghost" id="velox-seo-llms-preview"><?php esc_html_e('Preview auto-generated', 'velox'); ?></button>
 				<button class="velox-btn velox-btn--ghost" id="velox-seo-llms-view" data-url="<?php echo esc_url( home_url( '/llms.txt' ) ); ?>"><?php esc_html_e('View live llms.txt', 'velox'); ?></button>
 			</div>
+			<pre class="velox-textarea velox-mono velox-llms-preview" id="velox-seo-llms-preview-out" hidden></pre>
 		</div>
 	</div>
 

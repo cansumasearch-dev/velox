@@ -311,7 +311,8 @@ class Velox_Ajax {
 			/* -------- Cache -------- */
 			case 'clear_cache':
 				$which = sanitize_key( $_POST['which'] ?? 'all' );
-				$res   = Velox_Admin::clear_cache( $which );
+				$purl  = isset( $_POST['url'] ) ? esc_url_raw( wp_unslash( $_POST['url'] ) ) : '';
+				$res   = Velox_Admin::clear_cache( $which, $purl );
 				if ( empty( $res['ok'] ) ) {
 					wp_send_json_error( $res );
 				}
@@ -326,6 +327,17 @@ class Velox_Ajax {
 				$path = isset( $_POST['path'] ) ? wp_unslash( $_POST['path'] ) : '/';
 				$css  = new Velox_CSS();
 				$this->respond( $css->build_for_path( $path ) );
+				break;
+
+			/* -------- Login protection -------- */
+			case 'lg_unlock':
+				$k = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
+				wp_send_json_success( array( 'ok' => Velox_Login_Guard::unlock( $k ) ) );
+				break;
+
+			case 'lg_unlock_all':
+				Velox_Login_Guard::unlock_all();
+				wp_send_json_success( array( 'ok' => true ) );
 				break;
 
 			/* -------- Maintenance → search visibility -------- */

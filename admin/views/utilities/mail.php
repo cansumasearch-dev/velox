@@ -461,6 +461,7 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 							<?php endforeach; ?>
 						</select>
 						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-reply-savetpl"><?php esc_html_e('Save as template', 'velox'); ?></button>
+						<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="vmail-reply-deltpl"><?php esc_html_e('Remove template', 'velox'); ?></button>
 					</div>
 					<div class="vmail-editor">
 						<div class="vmail-editor-tb">

@@ -4,6 +4,155 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.7.0 — Login protection
+
+Blocks an address after repeated failed sign-ins and keeps it blocked until you let it back in.
+
+- **Blocks by address, not by account.** Locking an account after failed attempts would let anyone lock you out of your own site simply by typing your username wrong a few times.
+- **A blocked address is refused before the password is even checked**, so the guessing stops rather than merely being recorded.
+- **You can never be shut out by this.** Every block emails you a one-click unlock link, valid once and for 24 hours, alongside the unlock buttons in the admin.
+- Blocked addresses are listed with the attempt count and the username that was tried, and can be released one at a time or all at once.
+- A successful sign-in clears the counter for that address.
+- If the site sits behind a proxy or CDN, say so and the forwarded address is used. It is off by default, because trusting that header on a site without a proxy would let anyone forge it and walk past every block.
+
+## 4.6.8 — Checking out places the order
+
+- **Pressing the order button removed an item from the cart instead.** The cart summary on the checkout page carried its own remove buttons, each in a form nested inside the checkout form. Nested forms are invalid HTML and the browser attributed the submission to the wrong one. That summary is now read-only.
+
+## 4.6.7 — Checking out places the order
+
+- **Pressing the order button removed an item from the cart instead.** The cart summary shown on the checkout page carried its own remove buttons, each in its own form nested inside the checkout form. Nested forms are invalid HTML and the browser attributed the submission to the wrong one. The summary on the checkout page is now read-only.
+
+## 4.6.6 — Cart pages are no longer served from cache by the drop-in
+
+- **The built-in cookie exclusions never reached the cache drop-in.** Because the drop-in serves a page before WordPress loads, it only knew about cookies added by hand in the settings — so a visitor with a WooCommerce, Easy Digital Downloads or Velox cart could still be served someone else'''s cached page. The built-in list is now written into the drop-in'''s own configuration, and both sides read the same source.
+
+## 4.6.5 — Placing an order shows the confirmation
+
+- **After placing an order you were sent to the home page** instead of the confirmation with your reference number. The checkout now returns to wherever it was placed, so it works on any page the shortcode is used.
+
+## 4.6.4 — The cart is never served from the page cache
+
+- **A visitor with something in their cart was being shown a cached page**, so the cart looked empty however much they added. The cart cookie now excludes a request from the page cache, exactly as the WooCommerce and Easy Digital Downloads cookies already did.
+- Cart, checkout and account pages opt out of caching on their own, so one visitor'''s view can never be served to the next.
+- Modules can now veto caching for a request they know is personal.
+
+## 4.6.3 — Product details are readable and writable through the API
+
+- **A work'''s price, dimensions and availability were invisible to the REST API**, so importing a catalogue programmatically appeared to succeed while saving nothing. The product type now declares the support WordPress requires for that.
+
+## 4.6.2 — Adding to the cart returns you to where you were
+
+- **After adding a work you landed on the home page** instead of staying on the catalogue. The form now carries where it came from, and only ever returns to a URL on this site.
+
+## 4.6.1 — Adding to the cart works on builder-built pages
+
+- **Add to cart did nothing on a page built with Velox Builder.** The builder renders its own document and stops there, so the shop's form handler — which ran at the same point — never got a turn. It now runs earlier, which is also the last safe moment to set the cart cookie.
+
+## 4.6.0 — Shop
+
+A small commerce layer for sites that sell individual pieces rather than stock.
+
+- **Works** get their own area in the admin, each with a price, dimensions, medium, year and an availability state — available, sold, or on commission.
+- **A cart and checkout** that work without JavaScript. Ordering records the order, emails the customer and you, and marks the piece as sold so a one-off cannot be bought twice.
+- **Orders** are listed with customer, total and state, and are never public.
+- **A customer area** showing order history, using ordinary WordPress accounts.
+- Four shortcodes place it anywhere: the catalogue, the cart, the checkout and the account area.
+
+**Two things it deliberately does not do.** No card details are handled or stored — an order is recorded and payment agreed separately, so a payment provider can be added behind a redirect later. And sign-in, registration and password resets are WordPress's own, so there is no second set of credentials to protect.
+
+## 4.5.0 — A template can carry its own styles, and three dead controls now work
+
+- **A template's own CSS and JavaScript are now used.** Only the page being rendered was consulted, so anything written against a template was silently discarded and every shell style had to be duplicated into each page. Template assets are emitted first, so a page can still override them.
+- **Saved reply templates can be removed.** Creating them worked; there was no way to delete one.
+- **The llms.txt editor can preview what auto-generation would produce**, without overwriting whatever you have typed.
+
+## 4.4.1 — Font family is no longer discarded
+
+- **Setting a font on an element did nothing**: font-family was missing from the properties the builder knows how to write out, so the rule was dropped and the element kept the theme's font. Font-style and white-space were missing for the same reason.
+
+## 4.4.0 — Shortcodes typed into the builder now run
+
+- **A shortcode placed in builder text was printed on the page as literal text.** Putting a Velox form, or anything else that uses a shortcode, into a page built with the builder simply did not work. Shortcodes are now run after the text is sanitised, so the content is still filtered but registered shortcodes render as intended.
+
+## 4.3.2 — Builder images can carry alt text
+
+- **Images placed with the builder always output an empty alt attribute**, whatever was set, so they were invisible to search engines and unusable for anyone on a screen reader. The element's alt text now reaches the page.
+
+## 4.3.1 — Element styling was being thrown away on pages without a navigation element
+
+- **Per-element styling only reached the page when the page happened to contain a navigation element.** The text effects, the utility presets, the grid layouts, the aspect-ratio box and the Google Reviews styling all write their CSS into the same place, and that place was only ever printed as part of the navigation block. A page without navigation lost every one of them.
+- Align-self, justify-self, grid-column, grid-row and text-wrap are now understood, so rules using them are no longer discarded.
+
+## 4.3.0 — Google Reviews ships with designs, and says how to preview them
+
+The reviews element asked you to pick a design, but no designs existed until you built one yourself — and the only way to see anything at all was to connect Google first.
+
+- **Five designs are included**: Cards, Slider, Minimal, Compact list and Single spotlight. They are always available, including on a site that has never opened the Reviews screen, and any of them can be duplicated and changed.
+- **The element now says how to see example reviews** instead of only pointing at a connection you may not have yet, and says so on the canvas once they are switched on.
+- Your own saved designs always take precedence over an included one of the same name.
+
+## 4.2.0 — After purging, Velox offers to measure
+
+Clearing the cache used to be a dead end. It now offers the obvious next step: run the built-in PageSpeed check, or test on Google's PageSpeed Insights.
+
+- **The offer appears wherever you purge from.** It was already written, but the markup it needed only existed on the Performance screen, so purging anywhere else showed nothing.
+- **Purging from the front-end bar tests the page you are actually on**, rather than the home page — that is the one place the exact page is known. Only URLs on this site are ever accepted.
+
+## 4.1.2 — The character count on the Pages list updates as you edit
+
+Editing an SEO title or description straight from the Pages list saved the new text but left the little character count beside it showing the old number — and a field that started out empty never got a count at all until the page was reloaded. The count is now rebuilt, added or removed the moment the edit is saved, and still colours itself against the same length guidance.
+
+## 4.1.1 — The last of the preset elements get their settings
+
+Small on purpose: each of these only gained the one or two things the ordinary style controls cannot express.
+
+- **Aspect-ratio box**: pick a shape from a list — widescreen, square, portrait and so on — or give your own, and choose whether the contents fill and crop or fit inside. The shape can differ per screen size.
+- **Trust badges and payment icons**: force every badge to a common height so logos supplied at different sizes stop appearing at wildly different scales. Height and spacing are per screen size, with optional grey-until-hovered.
+- **Pull quote**: an optional quotation mark above or beside the text, and an accent line down the left or underneath.
+- **Eyebrow**: an optional short rule before or after the text, with adjustable length and colour.
+
+## 4.1.0 — Column counts you can set per screen size
+
+The bento grid, stats row, feature grid, split screen, content-and-sidebar and logo strip could only be changed by typing a raw CSS value, which meant no per-screen control: a four-column stats row stayed four columns on a phone.
+
+- **Bento, stats row and feature grid**: set the number of columns, the spacing, and how items line up — each per screen size. Optionally give a minimum column width and the grid wraps by itself.
+- **Split screen**: choose an even or weighted split, the spacing, and which screen size it stacks below.
+- **Content and sidebar**: set the sidebar's width and which side it sits on, and where it stacks. Putting the sidebar on the left reorders it visually without changing the markup, so reading order stays sensible.
+- **Logo strip**: set a uniform logo height and spacing per screen size, with an optional grey-until-hovered treatment.
+
+## 4.0.2 — Reading time and Last updated now show something
+
+Both elements produced an empty space on the page: neither had any code behind it. They now read from the post itself.
+
+- **Reading time** counts the words in the post and divides by a reading speed you set, ignoring markup and shortcodes so the count is honest. The wording either side of the number is yours, and you can set a floor so a very short page does not say "0".
+- **Last updated** shows when the post was last edited, in the site's date format or one you give it, or as "3 days ago". It can fall back to the published date for a post that has never been edited, and it outputs a real time element so search engines can read the date.
+
+## 4.0.1 — Five more elements that did not do what they promised
+
+- **Screen-reader text is now actually hidden.** It only moved itself off to one side, which leaves the text selectable and can add stray scrollbars. It can optionally appear when tabbed to.
+- **The skip link now appears when focused**, which is the entire point of one. Its colours and position are adjustable.
+- **The anchor target no longer scrolls under a sticky header** — set how far below the top it should stop, per screen size.
+- **Avatars in an avatar group overlap**, with adjustable size, overlap, ring colour and thickness, and a choice of which face sits in front.
+- **The loading skeleton shimmers**, with adjustable speed and colour. It holds still for visitors who have asked for reduced motion.
+
+## 4.0.0 — The five text-effect elements now produce their effect
+
+Gradient text, Outlined text, Drop cap, Vertical text and Highlighted text were named after effects none of them implemented — inserting "Gradient text" gave you plain bold text. Each now renders properly and comes with the handful of settings that actually control it.
+
+- **Gradient text**: start colour, end colour and angle.
+- **Outlined text**: outline thickness (per screen size), outline colour, and an optional fill instead of the hollow look.
+- **Drop cap**: how many lines tall (per screen size), letter colour and weight.
+- **Highlighted text**: colour, and whether it fills the whole block, sits under the words, or sweeps like a marker pen.
+- **Vertical text**: reads top-to-bottom or bottom-to-top.
+
+## 3.99.4 — Twenty-three elements were losing their styling on the live page
+
+- **Cards, callouts, badges, notices, CTA bands, empty states, popups, offcanvas panels and dropdowns had no padding on the front end.** They set it as a shorthand, and the shorthand was not among the properties the page builder knew how to write out, so it was discarded every time. Thirteen elements were affected.
+- **The bento grid, feature grid, split screen, stats row and sidebar layout had no grid.** They were setting a property name the builder does not recognise; they now set the one it does, and lay out as intended.
+- **The aspect-ratio box now keeps its ratio, and the overlap wrapper overlaps.** Both relied on properties that were being dropped for the same reason.
+- Padding, margin, position, z-index, overflow, aspect-ratio and object-fit are now understood everywhere, so a rule using one is no longer silently lost.
+
 ## 3.99.3 — Completes the block-editor script fix
 
 - **The remaining script error when opening a post from the SEO health list is gone.** 3.99.2 fixed one of the blocks in this file; the resize handle sits in a different one and still could not reach the translation helper. There is now a single helper shared by the whole file rather than a copy per block, so no part of it can be missed again.

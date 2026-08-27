@@ -1166,6 +1166,16 @@
 						// the built-in check and the real PageSpeed test.
 						var m = d && d.measure;
 						var host = document.getElementById( 'velox-purge-measure' );
+						// The markup for this only exists on the Performance screen,
+						// so purging from anywhere else showed a bare toast and the
+						// links never appeared. Put one next to the button instead.
+						if ( m && ! host && cb.parentNode ) {
+							host = document.createElement( 'div' );
+							host.className = 'velox-measure';
+							host.id = 'velox-purge-measure';
+							host.hidden = true;
+							cb.parentNode.insertBefore( host, cb.nextSibling );
+						}
 						if ( m && host ) {
 							host.innerHTML = '<span class="velox-measure-t">' + m.text + '</span>' +
 								'<a class="velox-btn velox-btn--ghost velox-btn--sm" href="' + m.onpage + '">' + m.onpageTxt + '</a>' +
@@ -2338,6 +2348,37 @@
 				.catch( function ( e ) { toast( e.message, 'error' ); } )
 				.then( function () { btn.disabled = false; } );
 		} );
+	}
+
+	/* Login protection: unlock one address or all of them. */
+	function initLoginGuard() {
+		var table = $( '#velox-lg-table' );
+		if ( table ) {
+			table.addEventListener( 'click', function ( e ) {
+				var btn = e.target.closest( '.velox-lg-unlock' );
+				if ( ! btn ) { return; }
+				var row = btn.closest( '[data-lock]' );
+				if ( ! row ) { return; }
+				btn.disabled = true;
+				api( 'lg_unlock', { key: row.getAttribute( 'data-lock' ) } )
+					.then( function () {
+						row.parentNode.removeChild( row );
+						toast( vxT( 'Address unlocked.' ) );
+						if ( ! table.querySelectorAll( '[data-lock]' ).length ) { location.reload(); }
+					} )
+					.catch( function ( err ) { toast( err.message, 'error' ); btn.disabled = false; } );
+			} );
+		}
+		var all = $( '#velox-lg-unlockall' );
+		if ( all ) {
+			all.addEventListener( 'click', function () {
+				if ( ! window.confirm( vxT( 'Unlock every blocked address?' ) ) ) { return; }
+				all.disabled = true;
+				api( 'lg_unlock_all', {} )
+					.then( function () { toast( vxT( 'All addresses unlocked.' ) ); location.reload(); } )
+					.catch( function ( err ) { toast( err.message, 'error' ); all.disabled = false; } );
+			} );
+		}
 	}
 
 	function initUtilities() {
@@ -5091,6 +5132,27 @@
 					var body = opt.getAttribute( 'data-body' ) || '';
 					if ( subj ) { var s = $( '#vmail-reply-subject' ); if ( s ) { s.value = subj; } }
 					var b = $( '#vmail-reply-body' ); if ( b ) { b.innerHTML = body; }
+				} );
+			}
+			// Saved reply templates could be created but never removed: the delete
+			// endpoint existed with nothing calling it. Remove the selected one.
+			var delTpl = $( '#vmail-reply-deltpl' );
+			if ( delTpl ) {
+				delTpl.addEventListener( 'click', function () {
+					var sel = $( '#vmail-reply-tpl' );
+					var id  = sel && sel.value ? sel.value : '';
+					if ( ! id ) { toast( vxT( 'Pick a template to remove first.' ), 'warn' ); return; }
+					if ( ! window.confirm( vxT( 'Remove this reply template?' ) ) ) { return; }
+					delTpl.disabled = true;
+					api( 'mail_template_delete', { id: id } )
+						.then( function () {
+							var o = sel.querySelector( 'option[value="' + id + '"]' );
+							if ( o && o.parentNode ) { o.parentNode.removeChild( o ); }
+							sel.value = '';
+							toast( vxT( 'Template removed.' ) );
+						} )
+						.catch( function ( e ) { toast( e.message, 'error' ); } )
+						.then( function () { delTpl.disabled = false; } );
 				} );
 			}
 			var saveTpl = $( '#vmail-reply-savetpl' );
@@ -8364,6 +8426,24 @@
 					.then( function () { llmsGen.disabled = false; } );
 			} );
 		}
+		// Preview: shows what auto-generation WOULD produce, without replacing
+		// what you have typed. The endpoint existed but nothing ever called it.
+		var llmsPrev = $( '#velox-seo-llms-preview' );
+		if ( llmsPrev ) {
+			llmsPrev.addEventListener( 'click', function () {
+				llmsPrev.disabled = true;
+				api( 'seo_llms_preview', {} )
+					.then( function ( r ) {
+						var box = $( '#velox-seo-llms-preview-out' );
+						if ( box ) {
+							box.textContent = ( r && r.content ) ? r.content : vxT( 'Nothing to generate yet.' );
+							box.hidden = false;
+						}
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { llmsPrev.disabled = false; } );
+			} );
+		}
 		var llmsView = $( '#velox-seo-llms-view' );
 		if ( llmsView ) {
 			llmsView.addEventListener( 'click', function () {
@@ -8393,6 +8473,7 @@
 		initSidebar();
 		initWizard();
 		initUtilities();
+		initLoginGuard();
 		initDashboard();
 		initImages();
 		initLibrary();

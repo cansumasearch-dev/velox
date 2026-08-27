@@ -286,6 +286,22 @@ class Velox_Frontend_Bar {
 		if ( class_exists( 'Velox_Cache' ) ) {
 			Velox_Cache::purge_all();
 		}
-		wp_send_json_success( array( 'ok' => true ) );
+		// Purging from the front end is the one place the exact page being looked
+		// at is known, so the PageSpeed link can point at it rather than the home
+		// page. Only a URL on this site is ever accepted.
+		$url  = isset( $_POST['url'] ) ? esc_url_raw( wp_unslash( $_POST['url'] ) ) : '';
+		$home = home_url( '/' );
+		if ( '' === $url || 0 !== strpos( $url, untrailingslashit( home_url() ) ) ) {
+			$url = $home;
+		}
+		wp_send_json_success( array(
+			'ok'      => true,
+			'measure' => array(
+				'external' => 'https://pagespeed.web.dev/analysis?url=' . rawurlencode( $url ),
+				'extTxt'   => __( 'Test this page on PageSpeed Insights', 'velox' ),
+				'onpage'   => admin_url( 'admin.php?page=velox-pagespeed' ),
+				'onpageTxt' => __( 'Run the built-in check', 'velox' ),
+			),
+		) );
 	}
 }

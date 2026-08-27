@@ -45,12 +45,43 @@
 		input.setSelectionRange( input.value.length, input.value.length );
 
 		var done = false;
+		/* The length badge is a sibling of the cell, printed by PHP when the page
+		 * loads. Rewriting only the cell left the old number sitting next to a new
+		 * value — and a field that started out empty had no badge element at all,
+		 * so filling it in produced no number until the page was reloaded. Build,
+		 * update and remove it here instead. */
+		function grade( field, len ) {
+			var g = ( D.grade && D.grade[ field ] ) || null;
+			if ( ! g ) { return 'warn'; }
+			if ( len >= g.good[ 0 ] && len <= g.good[ 1 ] ) { return 'good'; }
+			if ( len > g.bad ) { return 'bad'; }
+			if ( g.short && len < g.short ) { return 'bad'; }
+			return 'warn';
+		}
+		function syncBadge( value ) {
+			var field = cell.getAttribute( 'data-key' ) === 'title' ? 'title' : 'desc';
+			var badge = cell.parentNode ? cell.parentNode.querySelector( '.velox-seolen' ) : null;
+			var len   = value ? Array.from( value ).length : 0;
+			if ( ! len ) {
+				if ( badge && badge.parentNode ) { badge.parentNode.removeChild( badge ); }
+				return;
+			}
+			if ( ! badge ) {
+				badge = document.createElement( 'span' );
+				badge.className = 'velox-seolen';
+				if ( cell.parentNode ) { cell.parentNode.insertBefore( badge, cell.nextSibling ); }
+			}
+			badge.className = 'velox-seolen is-' + grade( field, len );
+			badge.textContent = String( len );
+			badge.setAttribute( 'title', ( D.hints && D.hints[ field ] ) || '' );
+		}
 		function restore( value ) {
 			cell.dataset.editing = '';
 			cell.setAttribute( 'data-value', value );
 			var empty = ! value.trim();
 			cell.classList.toggle( 'is-empty', empty );
 			cell.textContent = empty ? ( t.add || '— add —' ) : value;
+			syncBadge( empty ? '' : value );
 		}
 		function cancel() {
 			if ( done ) { return; }

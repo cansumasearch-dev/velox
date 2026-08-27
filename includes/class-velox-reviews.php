@@ -37,10 +37,21 @@ class Velox_Reviews {
 		if ( ! is_array( $s ) ) {
 			$s = array();
 		}
-		return wp_parse_args( $s, array(
+		$store = wp_parse_args( $s, array(
 			'connections' => array(),
 			'presets'     => array(),
 		) );
+		// Built-in presets are merged in rather than written to the database, so
+		// they cannot be orphaned by an update and a site that has never opened
+		// this screen still has something to choose from. A saved preset with the
+		// same id wins, which is what makes them editable: duplicate one, change
+		// it, and the edited copy takes over.
+		foreach ( self::builtin_presets() as $id => $preset ) {
+			if ( ! isset( $store['presets'][ $id ] ) ) {
+				$store['presets'][ $id ] = $preset;
+			}
+		}
+		return $store;
 	}
 
 	public static function save_store( $store ) {
@@ -127,6 +138,62 @@ class Velox_Reviews {
 	}
 
 	/* --------------------------------------------------------------- style */
+
+	/**
+	 * Presets that ship with the plugin. Without these the preset list was empty
+	 * on a fresh install, so the element asked you to choose something that did
+	 * not exist yet and there was no way to see what reviews would look like
+	 * without building a design from nothing.
+	 */
+	public static function builtin_presets() {
+		$mk = function ( $id, $name, $type, $style ) {
+			return array(
+				'id'      => $id,
+				'name'    => $name,
+				'type'    => $type,
+				'builtin' => true,
+				'style'   => array_merge( self::default_style(), $style ),
+			);
+		};
+		return array(
+			'vx_cards'   => $mk( 'vx_cards', __( 'Cards', 'velox' ), 'static', array(
+				'columns' => 3,
+			) ),
+			'vx_slider'  => $mk( 'vx_slider', __( 'Slider', 'velox' ), 'slider', array(
+				'slides_desktop' => 3,
+				'slides_tablet'  => 2,
+				'slides_mobile'  => 1,
+			) ),
+			'vx_minimal' => $mk( 'vx_minimal', __( 'Minimal', 'velox' ), 'static', array(
+				'columns'     => 3,
+				'card_bg'     => '',
+				'card_shadow' => false,
+				'card_radius' => 0,
+				'card_padding' => 0,
+				'show_avatar' => false,
+				'card_gap'    => 32,
+			) ),
+			'vx_compact' => $mk( 'vx_compact', __( 'Compact list', 'velox' ), 'static', array(
+				'columns'     => 1,
+				'card_padding' => 14,
+				'card_gap'    => 8,
+				'avatar_size' => 32,
+				'text_size'   => 13,
+				'show_date'   => false,
+			) ),
+			'vx_spot'    => $mk( 'vx_spot', __( 'Single spotlight', 'velox' ), 'slider', array(
+				'count'          => 10,
+				'min_rating'     => 5,
+				'slides_desktop' => 1,
+				'slides_tablet'  => 1,
+				'slides_mobile'  => 1,
+				'card_padding'   => 32,
+				'text_size'      => 18,
+				'avatar_size'    => 56,
+				'autoplay_speed' => 6000,
+			) ),
+		);
+	}
 
 	public static function default_style() {
 		return array(

@@ -2612,4 +2612,125 @@ return array(
 	'Pages that were already noindex before maintenance started were never touched, so they are not in this list.' => 'Seiten, die schon vor dem Wartungsmodus auf noindex standen, wurden nie verändert und erscheinen deshalb nicht in dieser Liste.',
 	'%d item is still hidden from search because maintenance hid it.' => '%d Eintrag ist noch vor der Suche verborgen, weil der Wartungsmodus ihn ausgeblendet hat.',
 	'%d items are still hidden from search because maintenance hid them.' => '%d Einträge sind noch vor der Suche verborgen, weil der Wartungsmodus sie ausgeblendet hat.',
+	'Last updated' => 'Zuletzt aktualisiert',
+	'Test this page on PageSpeed Insights' => 'Diese Seite mit PageSpeed Insights testen',
+	'Cards' => 'Karten',
+	'Minimal' => 'Minimal',
+	'Compact list' => 'Kompakte Liste',
+	'Single spotlight' => 'Einzelne Hervorhebung',
+	'Google Reviews — showing example reviews' => 'Google Bewertungen — Beispielbewertungen werden angezeigt',
+	'Google Reviews — switch on example reviews in Settings, or connect Google' => 'Google Bewertungen — Beispielbewertungen in den Einstellungen aktivieren oder Google verbinden',
+	'Show example reviews' => 'Beispielbewertungen anzeigen',
+	'Preview auto-generated' => 'Automatisch erzeugte Fassung ansehen',
+	'Remove template' => 'Vorlage entfernen',
+	'Pick a template to remove first.' => 'Bitte zuerst eine Vorlage auswählen.',
+	'Remove this reply template?' => 'Diese Antwortvorlage entfernen?',
+	'Template removed.' => 'Vorlage entfernt.',
+	'Nothing to generate yet.' => 'Es gibt noch nichts zu erzeugen.',
+	'Product' => 'Werk',
+	'Add product' => 'Werk hinzufügen',
+	'Edit product' => 'Werk bearbeiten',
+	'Orders' => 'Bestellungen',
+	'Order' => 'Bestellung',
+	'Hello %1$s,
+
+thank you for your order (%2$s).
+
+%3$s
+Total: %4$s
+
+We will be in touch with payment details before anything ships.
+' => 'Hallo %1$s,
+
+vielen Dank für Ihre Bestellung (%2$s).
+
+%3$s
+Gesamt: %4$s
+
+Wir melden uns mit den Zahlungsdaten, bevor etwas versendet wird.
+',
+	'Your order %s' => 'Ihre Bestellung %s',
+	'New order %s' => 'Neue Bestellung %s',
+	'No works are listed yet.' => 'Es sind noch keine Werke eingestellt.',
+	'Sold' => 'Verkauft',
+	'On commission' => 'Auf Anfrage',
+	'Add to cart' => 'In den Warenkorb',
+	'Your cart is empty.' => 'Ihr Warenkorb ist leer.',
+	'Thank you — your order is in.' => 'Vielen Dank — Ihre Bestellung ist eingegangen.',
+	'Reference %s. We will email you payment details before anything ships.' => 'Referenz %s. Wir senden Ihnen die Zahlungsdaten per E-Mail, bevor etwas versendet wird.',
+	'Delivery address' => 'Lieferadresse',
+	'Anything we should know?' => 'Gibt es etwas, das wir wissen sollten?',
+	'No card details are taken here. We confirm the order first and send payment details by email.' => 'Hier werden keine Kartendaten erfasst. Wir bestätigen die Bestellung und senden die Zahlungsdaten per E-Mail.',
+	'Place order' => 'Bestellung abschicken',
+	'Forgotten your password?' => 'Passwort vergessen?',
+	'Create an account' => 'Konto erstellen',
+	'Signed in as %s.' => 'Angemeldet als %s.',
+	'Sign out' => 'Abmelden',
+	'No orders yet.' => 'Noch keine Bestellungen.',
+	'Awaiting payment' => 'Zahlung ausstehend',
+	'Paid' => 'Bezahlt',
+	'Shipped' => 'Versendet',
+	'Cancelled' => 'Storniert',
+	'Price' => 'Preis',
+	'Availability' => 'Verfügbarkeit',
+	'Dimensions' => 'Masse',
+	'State' => 'Status',
+	'Customer' => 'Kunde',
+	'Work details' => 'Angaben zum Werk',
+	'Year' => 'Jahr',
+	'Enable shop' => 'Shop aktivieren',
+	'Adds a Products area to the admin menu, with Orders beneath it.' => 'Fügt einen Bereich „Werke“ im Menü hinzu, mit „Bestellungen“ darunter.',
+	'What this deliberately does not do' => 'Was bewusst nicht passiert',
+	'No card details are taken or stored anywhere in Velox. Placing an order records it and emails both sides; you agree payment out of band. A real payment provider belongs behind a redirect and can be added later without changing anything here.' => 'In Velox werden keine Kartendaten erfasst oder gespeichert. Eine Bestellung wird aufgezeichnet und beiden Seiten per E-Mail bestätigt; die Zahlung vereinbaren Sie separat. Ein echter Zahlungsanbieter gehört hinter eine Weiterleitung und lässt sich später ergänzen.',
+	'Customer accounts are ordinary WordPress users. Sign-in, registration and password resets all use WordPress itself, so no second set of credentials exists to be leaked.' => 'Kundenkonten sind gewöhnliche WordPress-Benutzer. Anmeldung, Registrierung und Passwort-Zurücksetzen laufen über WordPress selbst — es gibt keine zweiten Zugangsdaten, die verloren gehen könnten.',
+	'Currency symbol' => 'Währungssymbol',
+	'Symbol position' => 'Position des Symbols',
+	'After the amount — 149 €' => 'Hinter dem Betrag — 149 €',
+	'Before the amount — € 149' => 'Vor dem Betrag — € 149',
+	'Putting it on a page' => 'Einbinden auf einer Seite',
+	'Four shortcodes. Drop them into a Velox Builder text element or any page.' => 'Vier Shortcodes. Einfach in ein Velox-Builder-Textelement oder eine beliebige Seite einfügen.',
+	'The catalogue grid' => 'Das Werkraster',
+	'Current cart contents' => 'Aktueller Warenkorb',
+	'Checkout form and the thank-you state' => 'Kasse und Bestätigungsansicht',
+	'Sign in, and order history once signed in' => 'Anmeldung und Bestellübersicht nach dem Anmelden',
+	'Published works' => 'Veröffentlichte Werke',
+	'Add a work' => 'Werk hinzufügen',
+	'View orders' => 'Bestellungen ansehen',
+	'Sell individual works: a catalogue with prices and availability, a cart, orders and a customer account area.' => 'Einzelne Werke verkaufen: ein Katalog mit Preisen und Verfügbarkeit, ein Warenkorb, Bestellungen und ein Kundenbereich.',
+	'Shop' => 'Shop',
+	'Login protection' => 'Anmeldeschutz',
+	'Block an address after repeated failed sign-ins, until you let it back in.' => 'Eine Adresse nach wiederholt fehlgeschlagenen Anmeldungen sperren, bis Sie sie wieder freigeben.',
+	'Enable' => 'Aktivieren',
+	'Block after this many failures' => 'Sperren nach so vielen Fehlversuchen',
+	'Counted per address. A successful sign-in resets the count.' => 'Wird je Adresse gezählt. Eine erfolgreiche Anmeldung setzt den Zähler zurück.',
+	'Email me when an address is blocked' => 'Bei einer Sperre eine E-Mail senden',
+	'The email carries a one-click unlock link, so you can never be shut out of your own site by this.' => 'Die E-Mail enthält einen Freigabe-Link, damit Sie sich hiermit nie selbst aussperren können.',
+	'This site sits behind a proxy or CDN' => 'Diese Website läuft hinter einem Proxy oder CDN',
+	'Only switch this on if it is true. It makes Velox trust the forwarded-address header — and on a site that is not behind a proxy, anyone could forge that header and dodge every block.' => 'Nur aktivieren, wenn es zutrifft. Velox vertraut dann dem weitergeleiteten Adress-Header — ohne Proxy könnte jeder diesen Header fälschen und jede Sperre umgehen.',
+	'Blocked by address, not by account' => 'Gesperrt wird die Adresse, nicht das Konto',
+	'Blocking an account after failed attempts would let anyone lock you out of your own site just by typing your username wrong a few times. Velox blocks where the attempts come from instead.' => 'Ein Konto zu sperren würde bedeuten, dass jeder Sie aus Ihrer eigenen Website aussperren kann, indem er Ihren Benutzernamen einige Male falsch eingibt. Velox sperrt stattdessen die Herkunft der Versuche.',
+	'Blocked addresses' => 'Gesperrte Adressen',
+	'Unlock all' => 'Alle freigeben',
+	'Nothing is blocked.' => 'Nichts ist gesperrt.',
+	'Attempts' => 'Versuche',
+	'Username tried' => 'Versuchter Benutzername',
+	'Unlock' => 'Freigeben',
+	'<strong>Signing in is blocked from this address.</strong> There were %s failed attempts. An administrator has to unlock it before you can try again.' => '<strong>Die Anmeldung von dieser Adresse ist gesperrt.</strong> Es gab %s Fehlversuche. Ein Administrator muss die Adresse freigeben, bevor Sie es erneut versuchen können.',
+	'Sign-ins to %1$s are now blocked from %2$s after %3$d failed attempts (last username tried: %4$s).
+
+If that was you, unlock it here:
+%5$s
+
+The link works once and expires in 24 hours. You can also unlock it under Velox → Utilities → Login protection.
+' => 'Anmeldungen bei %1$s sind von %2$s nach %3$d Fehlversuchen gesperrt (zuletzt versuchter Benutzername: %4$s).
+
+Falls Sie das waren, hier freigeben:
+%5$s
+
+Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adresse auch unter Velox → Utilities → Anmeldeschutz freigeben.
+',
+	'Sign-in blocked from %s' => 'Anmeldung von %s gesperrt',
+	'Address unlocked.' => 'Adresse freigegeben.',
+	'Unlock every blocked address?' => 'Alle gesperrten Adressen freigeben?',
+	'All addresses unlocked.' => 'Alle Adressen freigegeben.',
 );

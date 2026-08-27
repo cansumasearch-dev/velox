@@ -121,3 +121,9 @@
 
 /* Nudge above the WP admin bar when it's showing on the front end */
 body.admin-bar .velox-fb { bottom: 16px; }
+
+/* Purge → measure. Shown only after a purge, so it never takes up room until
+   there is something worth doing next. */
+.vfb-measure{display:flex;flex-direction:column;gap:4px;padding:6px 10px 8px}
+.vfb-measure a{display:block;font-size:12px;line-height:1.35;color:inherit;opacity:.75;text-decoration:none}
+.vfb-measure a:hover,.vfb-measure a:focus{opacity:1;text-decoration:underline}

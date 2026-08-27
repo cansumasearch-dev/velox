@@ -86,6 +86,15 @@ class Velox_Settings {
 			// ---- Utilities (each tool off by default) ----
 			'util_svg_upload'    => false,
 			'util_duplicate'     => false,
+			// ---- Login protection ----
+			'util_loginguard'          => false,
+			'loginguard_max'           => 5,
+			'loginguard_notify'        => true,
+			'loginguard_behind_proxy'  => false,
+			// ---- Shop ----
+			'util_shop'                => false,
+			'shop_currency'            => '€',
+			'shop_currency_pos'        => 'right',
 			'util_maintenance'         => false,
 			'util_frontendbar'         => false,
 			'util_maintenance_title'   => 'We\'ll be right back',

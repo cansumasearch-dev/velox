@@ -314,6 +314,16 @@ class Velox_Seo_Columns {
 		wp_localize_script( 'velox-seocol', 'VELOX_SEOCOL', array(
 			'ajaxUrl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'velox_nonce' ),
+			// The badge is rebuilt in the browser after an inline edit, so the
+			// grading thresholds and hints have to be available there too.
+			'grade'   => array(
+				'title' => array( 'good' => array( 30, 60 ), 'bad' => 70 ),
+				'desc'  => array( 'good' => array( 120, 160 ), 'bad' => 180, 'short' => 70 ),
+			),
+			'hints'   => array(
+				'title' => self::length_hint( 'title' ),
+				'desc'  => self::length_hint( 'desc' ),
+			),
 			'i18n'    => array(
 				'add'      => __( '— add —', 'velox' ),
 				'saving'   => __( 'Saving…', 'velox' ),

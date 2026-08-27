@@ -31,8 +31,15 @@ class Velox_Builder_Render {
 		'color' => 'color', 'background' => 'background', 'opacity' => 'opacity',
 		'borderWidth' => 'border-width', 'borderStyle' => 'border-style', 'borderColor' => 'border-color', 'borderRadius' => 'border-radius',
 		'boxShadow' => 'box-shadow', 'gridTemplateColumns' => 'grid-template-columns',
+		// Mirrors the editor. Absent here, any preset or class rule using one of
+		// these was silently discarded when the page was built.
+		'padding' => 'padding', 'margin' => 'margin', 'position' => 'position',
+		'zIndex' => 'z-index', 'overflow' => 'overflow', 'aspectRatio' => 'aspect-ratio',
+		'objectFit' => 'object-fit', 'alignSelf' => 'align-self', 'justifySelf' => 'justify-self',
+		'fontFamily' => 'font-family', 'fontStyle' => 'font-style', 'whiteSpace' => 'white-space',
+		'textWrap' => 'text-wrap', 'gridColumn' => 'grid-column', 'gridRow' => 'grid-row',
 	);
-	private static $UNIT = array( 'gap', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'fontSize', 'letterSpacing', 'borderWidth', 'borderRadius' );
+	private static $UNIT = array( 'gap', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'fontSize', 'letterSpacing', 'borderWidth', 'borderRadius', 'padding', 'margin' );
 	/** Media queries, built from the editable breakpoints. */
 	private static function bp_map() {
 		$b = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array();
@@ -235,6 +242,423 @@ class Velox_Builder_Render {
 	 * an explicit value — the caller emits a media query for each, and the CSS
 	 * cascade does the inheriting rather than us repeating values.
 	 */
+	/**
+	 * The five text-effect presets. Each is named after something CSS can do but
+	 * none of them shipped the CSS to do it — a "Gradient text" element rendered
+	 * as plain bold text. The effects need properties with vendor prefixes and a
+	 * pseudo-element, which the ordinary style controls cannot express, so they
+	 * are written here from the element's own settings instead.
+	 */
+	private static function text_effect_css( $node ) {
+		$id  = sanitize_html_class( $node['id'] ?? '' );
+		if ( '' === $id ) {
+			return;
+		}
+		$sel = '#' . $id;
+		$el  = $node['el'];
+
+		if ( 'Gradienttext' === $el ) {
+			$from  = self::el_set( $node, 'from', '#2ab7f1' );
+			$to    = self::el_set( $node, 'to', '#7b5cff' );
+			$angle = (int) self::el_set( $node, 'angle', 90 );
+			self::$float_css .= $sel . '{background-image:linear-gradient(' . $angle . 'deg,'
+				. esc_attr( $from ) . ',' . esc_attr( $to ) . ');'
+				. '-webkit-background-clip:text;background-clip:text;'
+				. 'color:transparent;-webkit-text-fill-color:transparent;'
+				. 'display:inline-block}';
+			return;
+		}
+
+		if ( 'Outlinetext' === $el ) {
+			$w    = self::el_set_bp( $node, 'strokeW', 2 );
+			$col  = self::el_set( $node, 'strokeC', '#0b0f14' );
+			$fill = self::el_set( $node, 'fill', '' );
+			$mqs  = self::bp_map();
+			foreach ( array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' ) as $bp ) {
+				if ( ! isset( $w[ $bp ] ) ) {
+					continue;
+				}
+				$rule = $sel . '{-webkit-text-stroke:' . (float) $w[ $bp ] . 'px ' . esc_attr( $col )
+					. ';text-stroke:' . (float) $w[ $bp ] . 'px ' . esc_attr( $col ) . '}';
+				$mq = $mqs[ $bp ] ?? null;
+				self::$float_css .= $mq ? ( '@media ' . $mq . '{' . $rule . '}' ) : $rule;
+			}
+			// An empty fill is the classic hollow look; a colour keeps it filled.
+			self::$float_css .= $sel . '{color:' . ( '' !== $fill ? esc_attr( $fill ) : 'transparent' )
+				. ';-webkit-text-fill-color:' . ( '' !== $fill ? esc_attr( $fill ) : 'transparent' ) . '}';
+			return;
+		}
+
+		if ( 'Highlighttext' === $el ) {
+			$c     = self::el_set( $node, 'hlColor', '#ffe066' );
+			$style = self::el_set( $node, 'hlStyle', 'full' );
+			if ( 'underline' === $style ) {
+				self::$float_css .= $sel . '{background:linear-gradient(' . esc_attr( $c ) . ',' . esc_attr( $c )
+					. ') 0 88%/100% 34% no-repeat;color:inherit}';
+			} elseif ( 'marker' === $style ) {
+				self::$float_css .= $sel . '{background:linear-gradient(104deg,transparent .5%,'
+					. esc_attr( $c ) . ' 2%,' . esc_attr( $c ) . ' 96%,transparent 98%);'
+					. 'color:inherit;border-radius:2px;padding:2px 6px;box-decoration-break:clone;'
+					. '-webkit-box-decoration-break:clone}';
+			} else {
+				self::$float_css .= $sel . '{background:' . esc_attr( $c ) . ';color:inherit}';
+			}
+			return;
+		}
+
+		if ( 'Dropcap' === $el ) {
+			$lines = self::el_set_bp( $node, 'capLines', 3 );
+			$col   = self::el_set( $node, 'capColor', '' );
+			$wt    = self::el_set( $node, 'capWeight', '700' );
+			$mqs   = self::bp_map();
+			foreach ( array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' ) as $bp ) {
+				if ( ! isset( $lines[ $bp ] ) ) {
+					continue;
+				}
+				$n    = max( 2, (int) $lines[ $bp ] );
+				// Sized in em against the paragraph so it scales with the text.
+				$rule = $sel . '::first-letter{float:left;font-size:' . $n . 'em;line-height:.85;'
+					. 'padding:2px 8px 0 0;font-weight:' . (int) $wt
+					. ( '' !== $col ? ';color:' . esc_attr( $col ) : '' ) . '}';
+				$mq = $mqs[ $bp ] ?? null;
+				self::$float_css .= $mq ? ( '@media ' . $mq . '{' . $rule . '}' ) : $rule;
+			}
+			return;
+		}
+
+		if ( 'Verticaltext' === $el ) {
+			$up = 'up' === self::el_set( $node, 'vDir', 'down' );
+			self::$float_css .= $sel . '{writing-mode:vertical-rl;'
+				. ( $up ? 'transform:rotate(180deg);' : '' )
+				. 'white-space:nowrap;display:inline-block}';
+		}
+	}
+
+	/**
+	 * Utility presets that, like the text effects, were named after behaviour they
+	 * never implemented: screen-reader text that was not actually hidden, a skip
+	 * link that never appeared on focus, an anchor that scrolled under a sticky
+	 * header, avatars that did not overlap and a skeleton that did not shimmer.
+	 * None of it is expressible through the ordinary style controls.
+	 */
+	private static function utility_effect_css( $node ) {
+		$id = sanitize_html_class( $node['id'] ?? '' );
+		if ( '' === $id ) {
+			return;
+		}
+		$sel = '#' . $id;
+		$el  = $node['el'];
+		$mqs = self::bp_map();
+		$bps = array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' );
+
+		if ( 'Sronly' === $el ) {
+			// The standard visually-hidden recipe: off-canvas positioning alone
+			// (which is all this shipped with) still leaves the text selectable
+			// and can create stray scrollbars.
+			self::$float_css .= $sel . '{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;'
+				. 'overflow:hidden;clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border:0}';
+			if ( self::el_set( $node, 'srFocus', '' ) ) {
+				self::$float_css .= $sel . ':focus,' . $sel . ':focus-within{position:static!important;width:auto;'
+					. 'height:auto;margin:0;overflow:visible;clip:auto;clip-path:none;white-space:normal}';
+			}
+			return;
+		}
+
+		if ( 'Skiplink' === $el ) {
+			$bg  = self::el_set( $node, 'skBg', '#0b0f14' );
+			$fg  = self::el_set( $node, 'skFg', '#ffffff' );
+			$top = (int) self::el_set( $node, 'skTop', 8 );
+			self::$float_css .= $sel . '{position:absolute;left:' . $top . 'px;top:-64px;z-index:1000;'
+				. 'padding:10px 16px;border-radius:6px;background:' . esc_attr( $bg ) . ';color:' . esc_attr( $fg )
+				. ';text-decoration:none;transition:top .15s}'
+				. $sel . ':focus{top:' . $top . 'px;outline:2px solid ' . esc_attr( $fg ) . ';outline-offset:2px}';
+			return;
+		}
+
+		if ( 'Anchortarget' === $el ) {
+			$off = self::el_set_bp( $node, 'anOffset', 80 );
+			foreach ( $bps as $bp ) {
+				if ( ! isset( $off[ $bp ] ) ) {
+					continue;
+				}
+				$rule = $sel . '{display:block;scroll-margin-top:' . (int) $off[ $bp ] . 'px}';
+				$mq   = $mqs[ $bp ] ?? null;
+				self::$float_css .= $mq ? ( '@media ' . $mq . '{' . $rule . '}' ) : $rule;
+			}
+			return;
+		}
+
+		if ( 'Avatargroup' === $el ) {
+			$ring  = self::el_set( $node, 'avRing', '#ffffff' );
+			$ringW = (int) self::el_set( $node, 'avRingW', 2 );
+			$last  = 'last' === self::el_set( $node, 'avOrder', 'first' );
+			$size  = self::el_set_bp( $node, 'avSize', 40 );
+			$over  = self::el_set_bp( $node, 'avOverlap', 12 );
+			foreach ( $bps as $bp ) {
+				if ( ! isset( $size[ $bp ] ) && ! isset( $over[ $bp ] ) ) {
+					continue;
+				}
+				$sz = (int) ( $size[ $bp ] ?? self::el_set( $node, 'avSize', 40 ) );
+				$ov = (int) ( $over[ $bp ] ?? self::el_set( $node, 'avOverlap', 12 ) );
+				$rule = $sel . '>*{width:' . $sz . 'px;height:' . $sz . 'px;border-radius:50%;overflow:hidden;'
+					. 'flex:0 0 auto;box-shadow:0 0 0 ' . $ringW . 'px ' . esc_attr( $ring ) . '}'
+					. $sel . '>*+*{margin-left:-' . $ov . 'px}'
+					. $sel . '>* img{width:100%;height:100%;object-fit:cover;display:block}';
+				$mq = $mqs[ $bp ] ?? null;
+				self::$float_css .= $mq ? ( '@media ' . $mq . '{' . $rule . '}' ) : $rule;
+			}
+			// Without an explicit order the later avatars paint on top, which reads
+			// backwards when the group is meant to lead with the first face.
+			self::$float_css .= $last
+				? $sel . '{isolation:isolate}'
+				: $sel . '{isolation:isolate;flex-direction:row-reverse;justify-content:flex-end}';
+			return;
+		}
+
+		if ( 'Skeleton' === $el ) {
+			if ( ! self::el_set( $node, 'skShimmer', '1' ) ) {
+				return;
+			}
+			$ms = max( 300, (int) self::el_set( $node, 'skSpeed', 1400 ) );
+			$hi = self::el_set( $node, 'skHi', '#f6f8fb' );
+			self::$float_css .= $sel . '{background-image:linear-gradient(90deg,transparent,' . esc_attr( $hi )
+				. ',transparent);background-size:200% 100%;background-repeat:no-repeat;'
+				. 'animation:vx-shimmer ' . $ms . 'ms linear infinite}'
+				. '@keyframes vx-shimmer{from{background-position:-150% 0}to{background-position:250% 0}}'
+				// Anything that loops forever has to stop for a visitor who asked
+				// for less motion.
+				. '@media (prefers-reduced-motion:reduce){' . $sel . '{animation:none}}';
+		}
+	}
+
+	/**
+	 * The grid layouts. Column counts were only reachable as a raw
+	 * grid-template-columns string, which meant no per-screen control at all —
+	 * a four-column stats row stayed four columns on a phone. These write the
+	 * real grid per breakpoint from a plain "how many columns" number.
+	 */
+	private static function layout_effect_css( $node ) {
+		$id = sanitize_html_class( $node['id'] ?? '' );
+		if ( '' === $id ) {
+			return;
+		}
+		$sel = '#' . $id;
+		$el  = $node['el'];
+		$mqs = self::bp_map();
+		$bps = array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' );
+		$emit = function ( $bp, $rule ) use ( $mqs ) {
+			$mq = $mqs[ $bp ] ?? null;
+			self::$float_css .= $mq ? ( '@media ' . $mq . '{' . $rule . '}' ) : $rule;
+		};
+		// A breakpoint with no value of its own inherits the nearest wider one.
+		$carry = function ( $vals, $bp, $fallback ) use ( $bps ) {
+			$upto = array_slice( $bps, 0, array_search( $bp, $bps, true ) + 1 );
+			foreach ( array_reverse( $upto ) as $b ) {
+				if ( isset( $vals[ $b ] ) && '' !== $vals[ $b ] ) {
+					return $vals[ $b ];
+				}
+			}
+			return $fallback;
+		};
+
+		if ( in_array( $el, array( 'Bento', 'Statsrow', 'Featuregrid' ), true ) ) {
+			$defc  = 'Statsrow' === $el ? 4 : 3;
+			$defg  = 'Bento' === $el ? 16 : 24;
+			$cols  = self::el_set_bp( $node, 'cols', $defc );
+			$gaps  = self::el_set_bp( $node, 'gGap', $defg );
+			$minc  = (int) self::el_set( $node, 'minCol', 0 );
+			$align = self::el_set( $node, 'gAlign', 'stretch' );
+			foreach ( $bps as $bp ) {
+				if ( ! isset( $cols[ $bp ] ) && ! isset( $gaps[ $bp ] ) ) {
+					continue;
+				}
+				$c = max( 1, (int) $carry( $cols, $bp, $defc ) );
+				$g = (int) $carry( $gaps, $bp, $defg );
+				// With a minimum column width the grid wraps on its own and the
+				// column count becomes a ceiling rather than a fixed number.
+				$tpl = $minc
+					? 'repeat(auto-fit,minmax(min(' . $minc . 'px,100%),1fr))'
+					: 'repeat(' . $c . ',minmax(0,1fr))';
+				$emit( $bp, $sel . '{display:grid;grid-template-columns:' . $tpl . ';gap:' . $g . 'px}' );
+			}
+			if ( in_array( $align, array( 'start', 'center' ), true ) ) {
+				self::$float_css .= $sel . '{align-items:' . $align . '}';
+			}
+			return;
+		}
+
+		if ( 'Splitscreen' === $el ) {
+			$ratio = self::el_set_bp( $node, 'spRatio', '1fr 1fr' );
+			$gaps  = self::el_set_bp( $node, 'spGap', 0 );
+			$stack = self::el_set( $node, 'spStack', 'md' );
+			foreach ( $bps as $bp ) {
+				if ( ! isset( $ratio[ $bp ] ) && ! isset( $gaps[ $bp ] ) ) {
+					continue;
+				}
+				$r = (string) $carry( $ratio, $bp, '1fr 1fr' );
+				$r = preg_match( '/^[0-9fr\s.]+$/', $r ) ? $r : '1fr 1fr';
+				$emit( $bp, $sel . '{display:grid;grid-template-columns:' . $r . ';gap:'
+					. (int) $carry( $gaps, $bp, 0 ) . 'px}' );
+			}
+			if ( 'never' !== $stack && isset( $mqs[ $stack ] ) ) {
+				self::$float_css .= '@media ' . $mqs[ $stack ] . '{' . $sel . '{grid-template-columns:1fr}}';
+			}
+			return;
+		}
+
+		if ( 'Sidebarlayout' === $el ) {
+			$w     = self::el_set_bp( $node, 'sbWidth', 300 );
+			$gaps  = self::el_set_bp( $node, 'sbGap', 32 );
+			$left  = 'left' === self::el_set( $node, 'sbSide', 'right' );
+			$stack = self::el_set( $node, 'sbStack', 'md' );
+			foreach ( $bps as $bp ) {
+				if ( ! isset( $w[ $bp ] ) && ! isset( $gaps[ $bp ] ) ) {
+					continue;
+				}
+				$px  = (int) $carry( $w, $bp, 300 );
+				$tpl = $left ? ( $px . 'px minmax(0,1fr)' ) : ( 'minmax(0,1fr) ' . $px . 'px' );
+				$emit( $bp, $sel . '{display:grid;grid-template-columns:' . $tpl . ';gap:'
+					. (int) $carry( $gaps, $bp, 32 ) . 'px}' );
+			}
+			// The sidebar is the second child in the markup either way, so putting
+			// it on the left is an order change, not a different DOM.
+			if ( $left ) {
+				self::$float_css .= $sel . '>*:first-child{order:2}' . $sel . '>*:nth-child(2){order:1}';
+			}
+			if ( 'never' !== $stack && isset( $mqs[ $stack ] ) ) {
+				self::$float_css .= '@media ' . $mqs[ $stack ] . '{' . $sel . '{grid-template-columns:1fr}'
+					. $sel . '>*{order:0}}';
+			}
+			return;
+		}
+
+		if ( 'Logostrip' === $el ) {
+			$h    = self::el_set_bp( $node, 'lsHeight', 32 );
+			$gaps = self::el_set_bp( $node, 'lsGap', 40 );
+			foreach ( $bps as $bp ) {
+				if ( ! isset( $h[ $bp ] ) && ! isset( $gaps[ $bp ] ) ) {
+					continue;
+				}
+				$emit( $bp, $sel . '{gap:' . (int) $carry( $gaps, $bp, 40 ) . 'px}'
+					. $sel . ' img{height:' . (int) $carry( $h, $bp, 32 ) . 'px;width:auto;display:block}' );
+			}
+			if ( self::el_set( $node, 'lsGrey', '1' ) ) {
+				$op = max( 0, min( 100, (int) self::el_set( $node, 'lsFade', 55 ) ) ) / 100;
+				self::$float_css .= $sel . ' img{filter:grayscale(1);opacity:' . $op . ';transition:filter .2s,opacity .2s}'
+					. $sel . ' img:hover{filter:grayscale(0);opacity:1}';
+			}
+		}
+	}
+
+	/**
+	 * The last of the presets. Small by design: each of these only needed the one
+	 * or two things the ordinary style controls genuinely cannot express — a
+	 * ratio picked from a list, a row of badges forced to a common height, a
+	 * quotation mark or rule drawn with a pseudo-element.
+	 */
+	private static function trim_effect_css( $node ) {
+		$id = sanitize_html_class( $node['id'] ?? '' );
+		if ( '' === $id ) {
+			return;
+		}
+		$sel = '#' . $id;
+		$el  = $node['el'];
+		$mqs = self::bp_map();
+		$bps = array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' );
+		$emit = function ( $bp, $rule ) use ( $mqs ) {
+			$mq = $mqs[ $bp ] ?? null;
+			self::$float_css .= $mq ? ( '@media ' . $mq . '{' . $rule . '}' ) : $rule;
+		};
+
+		if ( 'Ratiobox' === $el ) {
+			$fit  = 'contain' === self::el_set( $node, 'arFit', 'cover' ) ? 'contain' : 'cover';
+			$vals = self::el_set_bp( $node, 'arRatio', '16/9' );
+			foreach ( $bps as $bp ) {
+				if ( ! isset( $vals[ $bp ] ) ) {
+					continue;
+				}
+				$r = (string) $vals[ $bp ];
+				if ( 'custom' === $r ) {
+					$r = trim( (string) self::el_set( $node, 'arCustom', '' ) );
+				}
+				// Only ever "number / number" reaches the stylesheet.
+				if ( ! preg_match( '#^\s*\d+(\.\d+)?\s*/\s*\d+(\.\d+)?\s*$#', $r ) ) {
+					$r = '16/9';
+				}
+				$emit( $bp, $sel . '{aspect-ratio:' . str_replace( ' ', '', $r ) . ';overflow:hidden}' );
+			}
+			self::$float_css .= $sel . '>*,' . $sel . ' img,' . $sel . ' video,' . $sel . ' iframe'
+				. '{width:100%;height:100%;object-fit:' . $fit . ';display:block}';
+			return;
+		}
+
+		if ( 'Trustrow' === $el || 'Paymenticons' === $el ) {
+			$defH  = 'Trustrow' === $el ? 28 : 24;
+			$defG  = 'Trustrow' === $el ? 24 : 12;
+			$h     = self::el_set_bp( $node, 'bgHeight', $defH );
+			$g     = self::el_set_bp( $node, 'bgGap', $defG );
+			$align = self::el_set( $node, 'bgAlign', 'start' );
+			foreach ( $bps as $bp ) {
+				if ( ! isset( $h[ $bp ] ) && ! isset( $g[ $bp ] ) ) {
+					continue;
+				}
+				$hh = (int) ( $h[ $bp ] ?? $defH );
+				$gg = (int) ( $g[ $bp ] ?? $defG );
+				// A common height is the whole point: logos supplied at different
+				// pixel sizes otherwise sit at wildly different scales.
+				$emit( $bp, $sel . '{gap:' . $gg . 'px}'
+					. $sel . ' img,' . $sel . ' svg{height:' . $hh . 'px;width:auto;display:block}' );
+			}
+			if ( in_array( $align, array( 'center', 'space-between' ), true ) ) {
+				self::$float_css .= $sel . '{justify-content:' . $align . '}';
+			}
+			if ( self::el_set( $node, 'bgGrey', '' ) ) {
+				self::$float_css .= $sel . ' img,' . $sel . ' svg{filter:grayscale(1);opacity:.6;transition:filter .2s,opacity .2s}'
+					. $sel . ' img:hover,' . $sel . ' svg:hover{filter:grayscale(0);opacity:1}';
+			}
+			return;
+		}
+
+		if ( 'Pullquote' === $el ) {
+			$mark = self::el_set( $node, 'pqMark', 'none' );
+			$rule = self::el_set( $node, 'pqRule', 'none' );
+			if ( 'before' === $mark || 'left' === $mark ) {
+				$c = self::el_set( $node, 'pqMarkColor', '#2ab7f1' );
+				// A decorative glyph, so it is hidden from assistive tech.
+				self::$float_css .= $sel . '{position:relative}'
+					. $sel . '::before{content:"\201C";color:' . esc_attr( $c ) . ';font-size:2.5em;line-height:1;'
+					. ( 'left' === $mark
+						? 'position:absolute;left:-.6em;top:-.1em'
+						: 'display:block;margin-bottom:.1em' )
+					. '}';
+			}
+			if ( 'left' === $rule ) {
+				$c = self::el_set( $node, 'pqRuleColor', '#2ab7f1' );
+				self::$float_css .= $sel . '{border-left:4px solid ' . esc_attr( $c ) . ';padding-left:20px}';
+			} elseif ( 'top' === $rule ) {
+				$c = self::el_set( $node, 'pqRuleColor', '#2ab7f1' );
+				self::$float_css .= $sel . '::after{content:"";display:block;width:56px;height:3px;'
+					. 'background:' . esc_attr( $c ) . ';margin-top:16px}';
+			}
+			return;
+		}
+
+		if ( 'Eyebrow' === $el ) {
+			$line = self::el_set( $node, 'ebLine', 'none' );
+			if ( 'none' === $line ) {
+				return;
+			}
+			$w   = max( 4, (int) self::el_set( $node, 'ebLineW', 24 ) );
+			$c   = self::el_set( $node, 'ebLineColor', '' );
+			$col = '' !== $c ? esc_attr( $c ) : 'currentColor';
+			$pos = 'before' === $line ? '::before' : '::after';
+			$mar = 'before' === $line ? 'margin-right:10px' : 'margin-left:10px';
+			self::$float_css .= $sel . '{display:inline-flex;align-items:center}'
+				. $sel . $pos . '{content:"";width:' . $w . 'px;height:2px;background:' . $col . ';'
+				. $mar . ';flex:0 0 auto}';
+		}
+	}
+
 	private static function el_set_bp( $node, $key, $default = '' ) {
 		$s   = self::el_settings( $node );
 		$out = array( 'base' => self::el_set( $node, $key, $default ) );
@@ -1095,7 +1519,14 @@ class Velox_Builder_Render {
 					'.vx-idle-shake{animation:vxShake 3s ease-in-out infinite}' .
 					'@media (prefers-reduced-motion:reduce){.vx-idle-pulse,.vx-idle-bounce,.vx-idle-shake{animation:none}}';
 			}
-			if ( self::$float_css ) { $css .= self::$float_css; }
+		}
+		// Per-element CSS is written by many elements — text effects, the utility
+		// presets, the grid layouts, the ratio box, reviews styling — and has
+		// nothing to do with navigation. It used to be emitted inside the block
+		// above, so on a page with no navigation element every one of those
+		// elements silently lost its styling.
+		if ( self::$float_css ) {
+			$css .= self::$float_css;
 		}
 		if ( isset( self::$runtime_used['slider'] ) ) {
 			$css .= '.vx-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}' .
@@ -1187,6 +1618,11 @@ class Velox_Builder_Render {
 	/** Print the full standalone HTML document. */
 	private static function output_page( $doc ) {
 		self::$page_settings = isset( $doc['page'] ) && is_array( $doc['page'] ) ? $doc['page'] : array();
+		// The template's own CSS and JS used to be dropped on the floor: only the
+		// page being rendered was consulted. That forced every shell style to be
+		// duplicated into every page. The template's assets are collected below
+		// once the template is resolved, and emitted BEFORE the page's own, so a
+		// page can still override the shell.
 		// A template wraps the page: we render the TEMPLATE's tree, and wherever it
 		// contains an Inner Content element we drop this page's own tree in. If the
 		// template has no Inner Content the page would vanish, so we fall back to
@@ -1196,6 +1632,18 @@ class Velox_Builder_Render {
 			$tpl_id = Velox_Builder::template_for_post( get_queried_object_id() );
 			if ( $tpl_id ) {
 				$template = Velox_Builder::doc_model( $tpl_id );
+			}
+		}
+
+		// Template-level CSS/JS: prepended, so page rules still win on conflict.
+		if ( $template && ! empty( $template['page'] ) && is_array( $template['page'] ) ) {
+			$tp = $template['page'];
+			foreach ( array( 'css', 'js' ) as $k ) {
+				if ( empty( $tp[ $k ] ) ) {
+					continue;
+				}
+				self::$page_settings[ $k ] = trim( (string) $tp[ $k ] )
+					. "\n" . ( isset( self::$page_settings[ $k ] ) ? (string) self::$page_settings[ $k ] : '' );
 			}
 		}
 
@@ -1572,6 +2020,18 @@ class Velox_Builder_Render {
 			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $fc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
 			return self::render_floating( $node, $doc, implode( ' ', array_filter( $fc ) ) );
 		}
+		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Gradienttext', 'Outlinetext', 'Highlighttext', 'Dropcap', 'Verticaltext' ), true ) ) {
+			self::text_effect_css( $node );
+		}
+		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Sronly', 'Skiplink', 'Anchortarget', 'Avatargroup', 'Skeleton' ), true ) ) {
+			self::utility_effect_css( $node );
+		}
+		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Bento', 'Statsrow', 'Featuregrid', 'Splitscreen', 'Sidebarlayout', 'Logostrip' ), true ) ) {
+			self::layout_effect_css( $node );
+		}
+		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Ratiobox', 'Trustrow', 'Paymenticons', 'Pullquote', 'Eyebrow' ), true ) ) {
+			self::trim_effect_css( $node );
+		}
 		if ( isset( $node['el'] ) && 'Slider' === $node['el'] ) {
 			$sc = array();
 			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $sc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
@@ -1673,7 +2133,12 @@ class Velox_Builder_Render {
 		// Image element: emit a real <img> from the stored URL (empty = nothing).
 		if ( isset( $node['el'] ) && 'Image' === $node['el'] ) {
 			$src = isset( $doc['content'][ $node['id'] ] ) ? esc_url( $doc['content'][ $node['id'] ] ) : '';
-			$img = $src ? '<img src="' . $src . '" alt="" style="display:block;max-width:100%;height:auto">' : '';
+			// Alt text is content, not decoration: it belongs to the element and has
+			// to survive to the page. It was hardcoded empty, which made every
+			// builder image invisible to search engines and screen readers alike.
+			$alt = isset( $node['alt'] ) ? sanitize_text_field( (string) $node['alt'] ) : '';
+			$img = $src ? '<img src="' . $src . '" alt="' . esc_attr( $alt ) . '"'
+				. ' style="display:block;max-width:100%;height:auto">' : '';
 			return '<div' . $attr . '>' . $img . '</div>';
 		}
 
@@ -1708,7 +2173,61 @@ class Velox_Builder_Render {
 			return self::render_wp_node( $node, $attr, $tag );
 		}
 
-		$content = isset( $doc['content'][ $node['id'] ] ) ? wp_kses_post( self::resolve_tokens( $doc['content'][ $node['id'] ] ) ) : '';
+		// Reading time and Last updated are computed from the post, not typed in.
+		// Both previously had no branch at all, so they rendered as empty spans.
+		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Readingtime', 'Lastupdated' ), true ) ) {
+			// Same source the other WordPress-data elements use.
+			$pid = get_the_ID();
+			if ( ! $pid ) {
+				$pid = get_queried_object_id();
+			}
+			if ( ! $pid ) {
+				return '<' . $tag . $attr . '></' . $tag . '>';
+			}
+
+			if ( 'Readingtime' === $node['el'] ) {
+				$wpm   = max( 50, (int) self::el_set( $node, 'wpm', 200 ) );
+				$floor = max( 0, (int) self::el_set( $node, 'rtMin', 1 ) );
+				$body  = (string) get_post_field( 'post_content', $pid );
+				// Strip shortcodes and tags first or markup inflates the count.
+				$words = str_word_count( wp_strip_all_tags( strip_shortcodes( $body ) ) );
+				$mins  = (int) max( $floor, (int) ceil( $words / $wpm ) );
+				$parts = array_filter( array(
+					trim( (string) self::el_set( $node, 'rtBefore', '' ) ),
+					(string) $mins,
+					trim( (string) self::el_set( $node, 'rtAfter', 'min read' ) ),
+				), function ( $v ) {
+					return '' !== $v;
+				} );
+				return '<' . $tag . $attr . '>' . esc_html( implode( ' ', $parts ) ) . '</' . $tag . '>';
+			}
+
+			$mod = get_post_modified_time( 'U', true, $pid );
+			$pub = get_post_time( 'U', true, $pid );
+			if ( ! $mod || ( $mod <= $pub && ! self::el_set( $node, 'luFallback', '1' ) ) ) {
+				return '<' . $tag . $attr . '></' . $tag . '>';
+			}
+			$stamp = $mod ? $mod : $pub;
+			if ( self::el_set( $node, 'luRelative', '' ) ) {
+				/* translators: %s: a length of time, e.g. "3 days". */
+				$when = sprintf( __( '%s ago', 'velox' ), human_time_diff( $stamp, time() ) );
+			} else {
+				$fmt  = trim( (string) self::el_set( $node, 'luFormat', '' ) );
+				$when = wp_date( '' !== $fmt ? $fmt : get_option( 'date_format' ), $stamp );
+			}
+			$before = trim( (string) self::el_set( $node, 'luBefore', __( 'Last updated', 'velox' ) ) );
+			$text   = '' !== $before ? $before . ' ' . $when : $when;
+			return '<' . $tag . $attr . '><time datetime="' . esc_attr( gmdate( 'c', $stamp ) ) . '">'
+				. esc_html( $text ) . '</time></' . $tag . '>';
+		}
+
+		// Shortcodes typed into builder text were printed as literal text, so a
+		// contact form, a gallery or anything else placed this way never ran.
+		// do_shortcode() comes after sanitising, so the stored text is still
+		// filtered but a registered shortcode is allowed to render.
+		$content = isset( $doc['content'][ $node['id'] ] )
+			? do_shortcode( wp_kses_post( self::resolve_tokens( $doc['content'][ $node['id'] ] ) ) )
+			: '';
 		$kids    = self::render_tree( $node['children'] ?? array(), $doc );
 		if ( 'a' === $tag ) {
 			$href  = isset( $node['href'] ) ? esc_url( $node['href'] ) : '#';

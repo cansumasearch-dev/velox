@@ -121,11 +121,21 @@
 		fontSize:'font-size', fontWeight:'font-weight', lineHeight:'line-height', letterSpacing:'letter-spacing', textAlign:'text-align', textDecoration:'text-decoration', textTransform:'text-transform',
 		color:'color', background:'background', opacity:'opacity',
 		borderWidth:'border-width', borderStyle:'border-style', borderColor:'border-color', borderRadius:'border-radius',
-		boxShadow:'box-shadow', gridTemplateColumns:'grid-template-columns'
+		boxShadow:'box-shadow', gridTemplateColumns:'grid-template-columns',
+		// Shorthands and layout properties the element presets already set. They
+		// were missing here and in the renderer's map, so every rule using one was
+		// dropped on the way to the page: cards shipped without padding, the bento
+		// and feature grids without a grid, the ratio box without a ratio.
+		padding:'padding', margin:'margin', position:'position', zIndex:'z-index',
+		overflow:'overflow', aspectRatio:'aspect-ratio', objectFit:'object-fit',
+		alignSelf:'align-self', justifySelf:'justify-self', textWrap:'text-wrap',
+		fontFamily:'font-family', fontStyle:'font-style', whiteSpace:'white-space',
+		gridColumn:'grid-column', gridRow:'grid-row'
 	};
 	var UNIT_PROPS = {
 		gap:1, paddingTop:1, paddingRight:1, paddingBottom:1, paddingLeft:1, marginTop:1, marginRight:1, marginBottom:1, marginLeft:1,
-		width:1, minWidth:1, maxWidth:1, height:1, minHeight:1, maxHeight:1, fontSize:1, letterSpacing:1, borderWidth:1, borderRadius:1
+		width:1, minWidth:1, maxWidth:1, height:1, minHeight:1, maxHeight:1, fontSize:1, letterSpacing:1, borderWidth:1, borderRadius:1,
+		padding:1, margin:1
 	};
 	/* Breakpoints follow Bootstrap 5 so a Velox layout and a Bootstrap utility on
 	 * the same page agree on where a viewport ends. Desktop-first (max-width),
@@ -284,7 +294,12 @@
 			// Google Reviews: labeled placeholder in the editor (real reviews render on the front end).
 			if ( node.el === 'Reviews' ) {
 				var rc = ( CFG.reviewConnections || [] ).filter( function ( c ) { return c.id === node.conn; } )[ 0 ];
-				var label = node.conn ? ( T( 'Google Reviews' ) + ( rc ? ' · ' + escapeHtml( rc.name ) : '' ) ) : T( 'Google Reviews — pick a connection & preset in Settings' );
+				var demoOn = !! ( node.settings && node.settings.demo );
+				var label = node.conn
+					? ( T( 'Google Reviews' ) + ( rc ? ' · ' + escapeHtml( rc.name ) : '' ) )
+					: ( demoOn
+						? T( 'Google Reviews — showing example reviews' )
+						: T( 'Google Reviews — switch on example reviews in Settings, or connect Google' ) );
 				return '<div id="' + node.id + '" class="' + cls + ' vb-ph-el" data-node="' + node.id + '"><span class="vb-ph-ic">' + svg( 'star', 22 ) + '</span><span class="vb-ph-l">' + label + '</span></div>';
 			}
 			// Elements built from items render their real content on the canvas.
@@ -773,7 +788,7 @@
 		{ name:'Velox', icon:'star', items:[
 			{ key:'reviews', el:'Reviews', tag:'div', label:'Google Reviews', cls:'.reviews', rules:{}, badge:'plugin',
 			  settings:[
-				{ k:'demo', t:'toggle', l:'Show example reviews while designing', d:'', s:'Content' },
+				{ k:'demo', t:'toggle', l:'Show example reviews', d:'', s:'Google Reviews' },
 				{ k:'count', t:'num', l:'How many to show', d:'6', s:'Content' },
 				{ k:'minStars', t:'select', l:'Only show reviews with', d:'0', s:'Content', o:[
 					[ '0', 'Any rating' ], [ '3', '3 stars and up' ], [ '4', '4 stars and up' ], [ '5', '5 stars only' ]
@@ -804,48 +819,188 @@
 		// individual page's own layout gets dropped in. Without it a template can
 		// only ever be a navbar and a footer with nothing between them.
 		{ name:'Layout', icon:'layout', items:[
-			{ key:'splitscreen', el:'Splitscreen', tag:'div', label:'Split screen', cls:'.split-screen', rules:{ display:'grid', gridTemplate:'1fr 1fr', gap:'0', minHeight:'480' } },
+			{ key:'splitscreen', el:'Splitscreen', tag:'div', label:'Split screen', cls:'.split-screen', rules:{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0', minHeight:'480' },
+			  settings:[
+				{ k:'spRatio', t:'segment', l:'Split', d:'1fr 1fr', r:true, s:'Split',
+				  o:[ [ '1fr 1fr', 'Even' ], [ '3fr 2fr', 'Wider left' ], [ '2fr 3fr', 'Wider right' ] ] },
+				{ k:'spGap', t:'num', l:'Space between', d:'0', unit:'px', r:true, s:'Split' },
+				{ k:'spStack', t:'segment', l:'Stacks below', d:'md', s:'Split',
+				  o:[ [ 'lg', 'lg' ], [ 'md', 'md' ], [ 'sm', 'sm' ], [ 'never', 'Never' ] ] }
+			  ] },
 			{ key:'fullheight', el:'Fullheight', tag:'section', label:'Full-height section', cls:'.full-height', rules:{ minHeight:'100vh', display:'flex', alignItems:'center' } },
-			{ key:'ratiobox', el:'Ratiobox', tag:'div', label:'Aspect-ratio box', cls:'.ratio-box', rules:{ aspectRatio:'16/9', overflow:'hidden' } },
-			{ key:'bento', el:'Bento', tag:'div', label:'Bento grid', cls:'.bento', rules:{ display:'grid', gridTemplate:'repeat(3,1fr)', gap:'16' } },
+			{ key:'ratiobox', el:'Ratiobox', tag:'div', label:'Aspect-ratio box', cls:'.ratio-box', rules:{ aspectRatio:'16/9', overflow:'hidden' },
+			  settings:[
+				{ k:'arRatio', t:'select', l:'Shape', d:'16/9', r:true, s:'Ratio', o:[
+					[ '16/9', 'Widescreen 16:9' ], [ '4/3', 'Classic 4:3' ], [ '1/1', 'Square' ],
+					[ '3/2', 'Photo 3:2' ], [ '21/9', 'Ultrawide 21:9' ], [ '9/16', 'Portrait 9:16' ],
+					[ 'custom', 'Something else' ] ] },
+				{ k:'arCustom', t:'text', l:'Width to height', d:'', ph:'e.g. 5/2', s:'Ratio', when:{ arRatio:'custom' } },
+				{ k:'arFit', t:'segment', l:'Contents', d:'cover', s:'Ratio',
+				  o:[ [ 'cover', 'Fill and crop' ], [ 'contain', 'Fit inside' ] ] }
+			  ] },
+			{ key:'bento', el:'Bento', tag:'div', label:'Bento grid', cls:'.bento', rules:{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'16' },
+			  settings:[
+				{ k:'cols', t:'num', l:'Columns', d:'3', r:true, s:'Grid' },
+				{ k:'gGap', t:'num', l:'Space between', d:'16', unit:'px', r:true, s:'Grid' },
+				{ k:'minCol', t:'num', l:'Wrap when a column gets narrower than', d:'', unit:'px', s:'Grid' },
+				{ k:'gAlign', t:'segment', l:'Items align', d:'stretch', s:'Grid',
+				  o:[ [ 'stretch', 'Fill' ], [ 'start', 'Top' ], [ 'center', 'Middle' ] ] }
+			  ] },
 			{ key:'overlap', el:'Overlap', tag:'div', label:'Overlap wrapper', cls:'.overlap', rules:{ position:'relative', marginTop:'-80', zIndex:'2' } },
 			{ key:'stack', el:'Stack', tag:'div', label:'Auto stack', cls:'.stack', rules:{ display:'flex', flexDirection:'column', gap:'16' } },
 			{ key:'cluster', el:'Cluster', tag:'div', label:'Cluster', cls:'.cluster', rules:{ display:'flex', flexWrap:'wrap', gap:'12', alignItems:'center' } },
-			{ key:'sidebarlayout', el:'Sidebarlayout', tag:'div', label:'Content + sidebar', cls:'.sidebar-layout', rules:{ display:'grid', gridTemplate:'2fr 1fr', gap:'32' } }
+			{ key:'sidebarlayout', el:'Sidebarlayout', tag:'div', label:'Content + sidebar', cls:'.sidebar-layout', rules:{ display:'grid', gridTemplateColumns:'2fr 1fr', gap:'32' },
+			  settings:[
+				{ k:'sbWidth', t:'num', l:'Sidebar width', d:'300', unit:'px', r:true, s:'Sidebar' },
+				{ k:'sbSide', t:'segment', l:'Sidebar sits', d:'right', s:'Sidebar',
+				  o:[ [ 'left', 'Left' ], [ 'right', 'Right' ] ] },
+				{ k:'sbGap', t:'num', l:'Space between', d:'32', unit:'px', r:true, s:'Sidebar' },
+				{ k:'sbStack', t:'segment', l:'Stacks below', d:'md', s:'Sidebar',
+				  o:[ [ 'lg', 'lg' ], [ 'md', 'md' ], [ 'sm', 'sm' ], [ 'never', 'Never' ] ] }
+			  ] }
 		] },
 		{ name:'Typography', icon:'type', items:[
-			{ key:'gradienttext', el:'Gradienttext', tag:'span', label:'Gradient text', cls:'.gradient-text', rules:{ fontSize:'48', fontWeight:'800' }, text:'Gradient headline' },
-			{ key:'outlinetext', el:'Outlinetext', tag:'span', label:'Outlined text', cls:'.outline-text', rules:{ fontSize:'56', fontWeight:'800' }, text:'Outlined' },
-			{ key:'highlighttext', el:'Highlighttext', tag:'mark', label:'Highlighted text', cls:'.highlight-text', rules:{ padding:'2' }, text:'highlighted' },
-			{ key:'dropcap', el:'Dropcap', tag:'p', label:'Drop cap paragraph', cls:'.drop-cap', rules:{ fontSize:'17', lineHeight:'1.7' }, text:'Der erste Buchstabe dieses Absatzes wird gross dargestellt.' },
-			{ key:'eyebrow', el:'Eyebrow', tag:'span', label:'Eyebrow', cls:'.eyebrow', rules:{ fontSize:'12', fontWeight:'700', letterSpacing:'1' }, text:'ÜBER UNS' },
-			{ key:'pullquote', el:'Pullquote', tag:'blockquote', label:'Pull quote', cls:'.pull-quote', rules:{ fontSize:'26', fontWeight:'600', lineHeight:'1.4' }, text:'Ein hervorgehobenes Zitat.' },
-			{ key:'verticaltext', el:'Verticaltext', tag:'span', label:'Vertical text', cls:'.vertical-text', rules:{ fontSize:'14', letterSpacing:'2' }, text:'SCROLL' }
+			{ key:'gradienttext', el:'Gradienttext', tag:'span', label:'Gradient text', cls:'.gradient-text', rules:{ fontSize:'48', fontWeight:'800' }, text:'Gradient headline',
+			  settings:[
+				{ k:'from', t:'color', l:'Starts as', d:'#2ab7f1', s:'Gradient' },
+				{ k:'to', t:'color', l:'Fades to', d:'#7b5cff', s:'Gradient' },
+				{ k:'angle', t:'num', l:'Angle', d:'90', unit:'deg', s:'Gradient' }
+			  ] },
+			{ key:'outlinetext', el:'Outlinetext', tag:'span', label:'Outlined text', cls:'.outline-text', rules:{ fontSize:'56', fontWeight:'800' }, text:'Outlined',
+			  settings:[
+				{ k:'strokeW', t:'num', l:'Outline thickness', d:'2', unit:'px', r:true, s:'Outline' },
+				{ k:'strokeC', t:'color', l:'Outline colour', d:'#0b0f14', s:'Outline' },
+				{ k:'fill', t:'color', l:'Fill colour', d:'', s:'Outline' }
+			  ] },
+			{ key:'highlighttext', el:'Highlighttext', tag:'mark', label:'Highlighted text', cls:'.highlight-text', rules:{ padding:'2' }, text:'highlighted',
+			  settings:[
+				{ k:'hlColor', t:'color', l:'Highlight colour', d:'#ffe066', s:'Highlight' },
+				{ k:'hlStyle', t:'segment', l:'Shape', d:'full', s:'Highlight',
+				  o:[ [ 'full', 'Whole block' ], [ 'underline', 'Under the words' ], [ 'marker', 'Marker sweep' ] ] }
+			  ] },
+			{ key:'dropcap', el:'Dropcap', tag:'p', label:'Drop cap paragraph', cls:'.drop-cap', rules:{ fontSize:'17', lineHeight:'1.7' }, text:'Der erste Buchstabe dieses Absatzes wird gross dargestellt.',
+			  settings:[
+				{ k:'capLines', t:'num', l:'Lines tall', d:'3', r:true, s:'Drop cap' },
+				{ k:'capColor', t:'color', l:'Letter colour', d:'', s:'Drop cap' },
+				{ k:'capWeight', t:'segment', l:'Letter weight', d:'700', s:'Drop cap',
+				  o:[ [ '400', 'Normal' ], [ '700', 'Bold' ], [ '900', 'Heavy' ] ] }
+			  ] },
+			{ key:'eyebrow', el:'Eyebrow', tag:'span', label:'Eyebrow', cls:'.eyebrow', rules:{ fontSize:'12', fontWeight:'700', letterSpacing:'1' },
+			  settings:[
+				{ k:'ebLine', t:'segment', l:'Small line', d:'none', s:'Eyebrow',
+				  o:[ [ 'none', 'None' ], [ 'before', 'Before the text' ], [ 'after', 'After the text' ] ] },
+				{ k:'ebLineW', t:'num', l:'Line length', d:'24', unit:'px', s:'Eyebrow', when:{ ebLine:'before' } },
+				{ k:'ebLineColor', t:'color', l:'Line colour', d:'', s:'Eyebrow', when:{ ebLine:'before' } }
+			  ], text:'ÜBER UNS' },
+			{ key:'pullquote', el:'Pullquote', tag:'blockquote', label:'Pull quote', cls:'.pull-quote', rules:{ fontSize:'26', fontWeight:'600', lineHeight:'1.4' },
+			  settings:[
+				{ k:'pqMark', t:'segment', l:'Quotation mark', d:'none', s:'Pull quote',
+				  o:[ [ 'none', 'None' ], [ 'before', 'Above' ], [ 'left', 'Beside' ] ] },
+				{ k:'pqMarkColor', t:'color', l:'Mark colour', d:'#2ab7f1', s:'Pull quote', when:{ pqMark:'before' } },
+				{ k:'pqRule', t:'segment', l:'Accent line', d:'none', s:'Pull quote',
+				  o:[ [ 'none', 'None' ], [ 'left', 'Down the left' ], [ 'top', 'Above' ] ] },
+				{ k:'pqRuleColor', t:'color', l:'Line colour', d:'#2ab7f1', s:'Pull quote', when:{ pqRule:'left' } }
+			  ], text:'Ein hervorgehobenes Zitat.' },
+			{ key:'verticaltext', el:'Verticaltext', tag:'span', label:'Vertical text', cls:'.vertical-text', rules:{ fontSize:'14', letterSpacing:'2' }, text:'SCROLL',
+			  settings:[
+				{ k:'vDir', t:'segment', l:'Reads', d:'down', s:'Direction',
+				  o:[ [ 'down', 'Top to bottom' ], [ 'up', 'Bottom to top' ] ] }
+			  ] }
 		] },
 		{ name:'Content', icon:'columns', items:[
 			{ key:'iconbox', el:'Iconbox', tag:'div', label:'Icon box', cls:'.icon-box', rules:{ display:'flex', flexDirection:'column', gap:'12', padding:'24' } },
 			{ key:'card', el:'Card', tag:'div', label:'Card', cls:'.card', rules:{ padding:'24', borderRadius:'14', background:'#ffffff', display:'flex', flexDirection:'column', gap:'12' } },
-			{ key:'statsrow', el:'Statsrow', tag:'div', label:'Stats row', cls:'.stats-row', rules:{ display:'grid', gridTemplate:'repeat(4,1fr)', gap:'24' } },
+			{ key:'statsrow', el:'Statsrow', tag:'div', label:'Stats row', cls:'.stats-row', rules:{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:'24' },
+			  settings:[
+				{ k:'cols', t:'num', l:'Columns', d:'4', r:true, s:'Grid' },
+				{ k:'gGap', t:'num', l:'Space between', d:'24', unit:'px', r:true, s:'Grid' },
+				{ k:'minCol', t:'num', l:'Wrap when a column gets narrower than', d:'', unit:'px', s:'Grid' },
+				{ k:'gAlign', t:'segment', l:'Items align', d:'stretch', s:'Grid',
+				  o:[ [ 'stretch', 'Fill' ], [ 'start', 'Top' ], [ 'center', 'Middle' ] ] }
+			  ] },
 			{ key:'teammember', el:'Teammember', tag:'div', label:'Team member', cls:'.team-member', rules:{ display:'flex', flexDirection:'column', gap:'10', textAlign:'center' } },
-			{ key:'logostrip', el:'Logostrip', tag:'div', label:'Logo strip', cls:'.logo-strip', rules:{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'center', gap:'40' } },
+			{ key:'logostrip', el:'Logostrip', tag:'div', label:'Logo strip', cls:'.logo-strip', rules:{ display:'flex', flexWrap:'wrap', alignItems:'center', justifyContent:'center', gap:'40' },
+			  settings:[
+				{ k:'lsHeight', t:'num', l:'Logo height', d:'32', unit:'px', r:true, s:'Logos' },
+				{ k:'lsGap', t:'num', l:'Space between', d:'40', unit:'px', r:true, s:'Logos' },
+				{ k:'lsGrey', t:'toggle', l:'Grey until hovered', d:'1', s:'Logos' },
+				{ k:'lsFade', t:'num', l:'Dimmed to', d:'55', unit:'%', s:'Logos', when:{ lsGrey:'1' } }
+			  ] },
 			{ key:'callout', el:'Callout', tag:'div', label:'Callout', cls:'.callout', rules:{ padding:'18', borderRadius:'12', borderWidth:'1', background:'#f6f9fc' } },
 			{ key:'badge', el:'Badge', tag:'span', label:'Badge', cls:'.badge', rules:{ padding:'4', borderRadius:'20', fontSize:'12', fontWeight:'700' }, text:'Neu' },
-			{ key:'avatargroup', el:'Avatargroup', tag:'div', label:'Avatar group', cls:'.avatar-group', rules:{ display:'flex', alignItems:'center' } },
-			{ key:'trustrow', el:'Trustrow', tag:'div', label:'Trust badges', cls:'.trust-row', rules:{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:'24' } },
-			{ key:'paymenticons', el:'Paymenticons', tag:'div', label:'Payment icons', cls:'.payment-icons', rules:{ display:'flex', flexWrap:'wrap', gap:'12', alignItems:'center' } },
+			{ key:'avatargroup', el:'Avatargroup', tag:'div', label:'Avatar group', cls:'.avatar-group', rules:{ display:'flex', alignItems:'center' },
+			  settings:[
+				{ k:'avSize', t:'num', l:'Avatar size', d:'40', unit:'px', r:true, s:'Avatars' },
+				{ k:'avOverlap', t:'num', l:'How much they overlap', d:'12', unit:'px', r:true, s:'Avatars' },
+				{ k:'avRing', t:'color', l:'Ring colour', d:'#ffffff', s:'Avatars' },
+				{ k:'avRingW', t:'num', l:'Ring thickness', d:'2', unit:'px', s:'Avatars' },
+				{ k:'avOrder', t:'segment', l:'Front avatar is', d:'first', s:'Avatars',
+				  o:[ [ 'first', 'The first one' ], [ 'last', 'The last one' ] ] }
+			  ] },
+			{ key:'trustrow', el:'Trustrow', tag:'div', label:'Trust badges', cls:'.trust-row', rules:{ display:'flex', flexWrap:'wrap', alignItems:'center', gap:'24' },
+			  settings:[
+				{ k:'bgHeight', t:'num', l:'Badge height', d:'28', unit:'px', r:true, s:'Badges' },
+				{ k:'bgGap', t:'num', l:'Space between', d:'24', unit:'px', r:true, s:'Badges' },
+				{ k:'bgAlign', t:'segment', l:'Line up', d:'start', s:'Badges',
+				  o:[ [ 'start', 'Left' ], [ 'center', 'Centre' ], [ 'space-between', 'Spread out' ] ] },
+				{ k:'bgGrey', t:'toggle', l:'Grey until hovered', d:'', s:'Badges' }
+			  ] },
+			{ key:'paymenticons', el:'Paymenticons', tag:'div', label:'Payment icons', cls:'.payment-icons', rules:{ display:'flex', flexWrap:'wrap', gap:'12', alignItems:'center' },
+			  settings:[
+				{ k:'bgHeight', t:'num', l:'Badge height', d:'24', unit:'px', r:true, s:'Badges' },
+				{ k:'bgGap', t:'num', l:'Space between', d:'12', unit:'px', r:true, s:'Badges' },
+				{ k:'bgAlign', t:'segment', l:'Line up', d:'start', s:'Badges',
+				  o:[ [ 'start', 'Left' ], [ 'center', 'Centre' ], [ 'space-between', 'Spread out' ] ] },
+				{ k:'bgGrey', t:'toggle', l:'Grey until hovered', d:'', s:'Badges' }
+			  ] },
 			{ key:'casestudy', el:'Casestudy', tag:'div', label:'Case study card', cls:'.case-study', rules:{ display:'flex', flexDirection:'column', gap:'14', padding:'24', borderRadius:'14' } },
 			{ key:'ctaband', el:'Ctaband', tag:'div', label:'CTA band', cls:'.cta-band', rules:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'24', padding:'32', borderRadius:'16' } },
 			{ key:'noticebox', el:'Noticebox', tag:'div', label:'Notice box', cls:'.notice-box', rules:{ display:'flex', gap:'12', padding:'16', borderRadius:'10' } },
-			{ key:'featuregrid', el:'Featuregrid', tag:'div', label:'Feature grid', cls:'.feature-grid', rules:{ display:'grid', gridTemplate:'repeat(3,1fr)', gap:'24' } }
+			{ key:'featuregrid', el:'Featuregrid', tag:'div', label:'Feature grid', cls:'.feature-grid', rules:{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'24' },
+			  settings:[
+				{ k:'cols', t:'num', l:'Columns', d:'3', r:true, s:'Grid' },
+				{ k:'gGap', t:'num', l:'Space between', d:'24', unit:'px', r:true, s:'Grid' },
+				{ k:'minCol', t:'num', l:'Wrap when a column gets narrower than', d:'', unit:'px', s:'Grid' },
+				{ k:'gAlign', t:'segment', l:'Items align', d:'stretch', s:'Grid',
+				  o:[ [ 'stretch', 'Fill' ], [ 'start', 'Top' ], [ 'center', 'Middle' ] ] }
+			  ] }
 		] },
 		{ name:'Utility', icon:'gear', items:[
-			{ key:'skiplink', el:'Skiplink', tag:'a', label:'Skip link', cls:'.skip-link', rules:{ position:'absolute' }, text:'Zum Inhalt springen' },
-			{ key:'sronly', el:'Sronly', tag:'span', label:'Screen-reader text', cls:'.sr-only', rules:{ position:'absolute' }, text:'Beschreibung für Screenreader' },
-			{ key:'readingtime', el:'Readingtime', tag:'span', label:'Reading time', cls:'.reading-time', rules:{ fontSize:'13' }, text:'5 Min. Lesezeit' },
-			{ key:'lastupdated', el:'Lastupdated', tag:'span', label:'Last updated', cls:'.last-updated', rules:{ fontSize:'13' }, text:'Zuletzt aktualisiert' },
-			{ key:'skeleton', el:'Skeleton', tag:'div', label:'Loading skeleton', cls:'.skeleton', rules:{ borderRadius:'8', minHeight:'18', background:'#e9edf2' } },
+			{ key:'skiplink', el:'Skiplink', tag:'a', label:'Skip link', cls:'.skip-link', rules:{ position:'absolute' },
+			  settings:[
+				{ k:'skBg', t:'color', l:'Background', d:'#0b0f14', s:'When focused' },
+				{ k:'skFg', t:'color', l:'Text colour', d:'#ffffff', s:'When focused' },
+				{ k:'skTop', t:'num', l:'Distance from the top', d:'8', unit:'px', s:'When focused' }
+			  ], text:'Zum Inhalt springen' },
+			{ key:'sronly', el:'Sronly', tag:'span', label:'Screen-reader text', cls:'.sr-only', rules:{ position:'absolute' },
+			  settings:[
+				{ k:'srFocus', t:'toggle', l:'Becomes visible when tabbed to', d:'', s:'Screen-reader text' }
+			  ], text:'Beschreibung für Screenreader' },
+			{ key:'readingtime', el:'Readingtime', tag:'span', label:'Reading time', cls:'.reading-time', rules:{ fontSize:'13' },
+			  settings:[
+				{ k:'wpm', t:'num', l:'Words read per minute', d:'200', s:'Reading time' },
+				{ k:'rtBefore', t:'text', l:'Text before', d:'', ph:'e.g. Reading time:', s:'Reading time' },
+				{ k:'rtAfter', t:'text', l:'Text after', d:'min read', s:'Reading time' },
+				{ k:'rtMin', t:'num', l:'Never show less than', d:'1', unit:'min', s:'Reading time' }
+			  ], text:'5 Min. Lesezeit' },
+			{ key:'lastupdated', el:'Lastupdated', tag:'span', label:'Last updated', cls:'.last-updated', rules:{ fontSize:'13' },
+			  settings:[
+				{ k:'luBefore', t:'text', l:'Text before', d:'Last updated', s:'Last updated' },
+				{ k:'luFormat', t:'text', l:'Date format', d:'', ph:'Site default', s:'Last updated' },
+				{ k:'luRelative', t:'toggle', l:'Show as "3 days ago"', d:'', s:'Last updated' },
+				{ k:'luFallback', t:'toggle', l:'Use the published date if never edited', d:'1', s:'Last updated' }
+			  ], text:'Zuletzt aktualisiert' },
+			{ key:'skeleton', el:'Skeleton', tag:'div', label:'Loading skeleton', cls:'.skeleton', rules:{ borderRadius:'8', minHeight:'18', background:'#e9edf2' },
+			  settings:[
+				{ k:'skShimmer', t:'toggle', l:'Shimmer', d:'1', s:'Skeleton' },
+				{ k:'skSpeed', t:'num', l:'Shimmer takes', d:'1400', unit:'ms', s:'Skeleton', when:{ skShimmer:'1' } },
+				{ k:'skHi', t:'color', l:'Shimmer colour', d:'#f6f8fb', s:'Skeleton', when:{ skShimmer:'1' } }
+			  ] },
 			{ key:'emptystate', el:'Emptystate', tag:'div', label:'Empty state', cls:'.empty-state', rules:{ display:'flex', flexDirection:'column', alignItems:'center', gap:'12', padding:'48', textAlign:'center' } },
-			{ key:'anchortarget', el:'Anchortarget', tag:'span', label:'Anchor target', cls:'.anchor-target', rules:{ display:'block' } }
+			{ key:'anchortarget', el:'Anchortarget', tag:'span', label:'Anchor target', cls:'.anchor-target', rules:{ display:'block' },
+			  settings:[
+				{ k:'anOffset', t:'num', l:'Stop this far below a sticky header', d:'80', unit:'px', r:true, s:'Anchor' }
+			  ] }
 		] },
 		{ name:'Interactive', icon:'bolt', items:[
 			{ key:'navbar', el:'Navbar', tag:'nav', label:'Navigation', cls:'.navbar',
@@ -936,7 +1091,7 @@
 			  ], FRAG.trigger( 'When it appears' ), FRAG.visibility() ) },
 
 			{ key:'stickybar', el:'Stickybar', tag:'div', label:'Sticky contact bar', cls:'.sticky-bar',
-			  rules:{ display:'grid', gridTemplate:'repeat(3,1fr)' }, runtime:'floating', bar:true,
+			  rules:{ display:'grid', gridTemplateColumns:'repeat(3,1fr)' }, runtime:'floating', bar:true,
 			  settings:[].concat( [
 				{ k:'pos', t:'segment', l:'Sits at the', d:'bottom', s:'Layout',
 				  o:[ [ 'top', 'Top' ], [ 'bottom', 'Bottom' ] ] },

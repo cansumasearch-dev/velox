@@ -361,7 +361,13 @@ class Velox_Admin {
 	 * Clear caches. Integrates with whatever is installed and silently skips the
 	 * rest. Shared by the admin bar (no-JS) and the AJAX endpoint.
 	 */
-	public static function clear_cache( $which ) {
+	/**
+	 * @param string $which Cache target.
+	 * @param string $url   Page to offer as the PageSpeed target. Defaults to the
+	 *                      home page, which is all the admin screens can know; a
+	 *                      purge from the front-end bar knows the actual page.
+	 */
+	public static function clear_cache( $which, $url = '' ) {
 		$done    = array();
 		$missing = array();
 
@@ -480,7 +486,9 @@ class Velox_Admin {
 					'text'      => __( 'See the difference', 'velox' ),
 					'onpage'    => admin_url( 'admin.php?page=velox-pagespeed' ),
 					'onpageTxt' => __( 'Run the built-in check', 'velox' ),
-					'external'  => 'https://pagespeed.web.dev/analysis?url=' . rawurlencode( home_url( '/' ) ),
+					'external'  => 'https://pagespeed.web.dev/analysis?url=' . rawurlencode(
+						( '' !== $url && wp_http_validate_url( $url ) ) ? $url : home_url( '/' )
+					),
 					'extTxt'    => __( 'Test on PageSpeed Insights', 'velox' ),
 				),
 			);

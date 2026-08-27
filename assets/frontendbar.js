@@ -71,7 +71,22 @@
 
 		var purgeRow = rowBtn( ICON.purge, t.purge || 'Purge cache', {} );
 		purgeRow.addEventListener( 'click', function () {
-			post( 'fb_purge', {}, purgeRow, function () { toast( t.purged || 'Cache purged' ); } );
+			post( 'fb_purge', { url: window.location.href }, purgeRow, function ( d ) {
+				toast( t.purged || 'Cache purged' );
+				// Measuring is the obvious next step after a purge, so offer it
+				// rather than leaving a dead end.
+				var m = d && d.measure;
+				if ( ! m ) { return; }
+				var row = document.createElement( 'div' );
+				row.className = 'vfb-measure';
+				var a = document.createElement( 'a' );
+				a.href = m.external; a.target = '_blank'; a.rel = 'noopener';
+				a.textContent = m.extTxt;
+				var b = document.createElement( 'a' );
+				b.href = m.onpage; b.textContent = m.onpageTxt;
+				row.appendChild( a ); row.appendChild( b );
+				if ( purgeRow.parentNode ) { purgeRow.parentNode.insertBefore( row, purgeRow.nextSibling ); }
+			} );
 		} );
 		wrap.appendChild( purgeRow );
 

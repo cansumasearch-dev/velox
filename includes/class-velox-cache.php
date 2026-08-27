@@ -195,6 +195,16 @@ class Velox_Cache {
 		if ( self::uri_excluded( isset( $_SERVER['REQUEST_URI'] ) ? $_SERVER['REQUEST_URI'] : '/' ) ) {
 			return false;
 		}
+		/**
+		 * Let a module veto caching for a request it knows is personal — a cart,
+		 * a checkout, an account view. Returning true from this filter means
+		 * "do not cache".
+		 *
+		 * @param bool $skip Whether to skip caching this request.
+		 */
+		if ( apply_filters( 'velox_cache_skip', false ) ) {
+			return false;
+		}
 		return true;
 	}
 
@@ -210,11 +220,26 @@ class Velox_Cache {
 		return true;
 	}
 
+	/**
+	 * Cookies that always mean "this page is personal". Shared by the PHP check
+	 * and the drop-in config so the two can never disagree.
+	 */
+	public static function builtin_cookie_patterns() {
+		return array(
+			'comment_author_', 'wp-postpass_',
+			'woocommerce_items_in_cart', 'woocommerce_cart_hash', 'wp_woocommerce_session_',
+			'edd_items_in_cart', 'velox_cart',
+		);
+	}
+
 	public static function has_excluded_cookie() {
 		if ( empty( $_COOKIE ) ) {
 			return false;
 		}
-		$patterns = array( 'comment_author_', 'wp-postpass_', 'woocommerce_items_in_cart', 'woocommerce_cart_hash', 'wp_woocommerce_session_', 'edd_items_in_cart' );
+		// A visitor holding a cart must never be served a cached page: the cart,
+		// checkout and account views are personal. Velox Shop's own cookie sits
+		// alongside the WooCommerce and EDD ones for exactly that reason.
+		$patterns = self::builtin_cookie_patterns();
 		$extra = (string) Velox_Settings::get( 'cache_exclude_cookies', '' );
 		foreach ( array_filter( array_map( 'trim', explode( "\n", $extra ) ) ) as $p ) {
 			$patterns[] = $p;
@@ -422,7 +447,15 @@ class Velox_Cache {
 			'mobile_separate' => (bool) Velox_Settings::get( 'cache_mobile_separate', false ),
 			'gzip'            => (bool) Velox_Settings::get( 'cache_gzip', true ),
 			'exclude_urls'    => array_filter( array_map( 'trim', explode( "\n", (string) Velox_Settings::get( 'cache_exclude_urls', '' ) ) ) ),
-			'exclude_cookies' => array_filter( array_map( 'trim', explode( "\n", (string) Velox_Settings::get( 'cache_exclude_cookies', '' ) ) ) ),
+			// The drop-in serves before WordPress loads, so it cannot call
+			// has_excluded_cookie(). The built-in patterns therefore have to be
+			// written into its config alongside the user's own — without this a
+			// visitor holding a cart is served a cached page by the drop-in no
+			// matter what the PHP-side check says.
+			'exclude_cookies' => array_values( array_unique( array_merge(
+				self::builtin_cookie_patterns(),
+				array_filter( array_map( 'trim', explode( "\n", (string) Velox_Settings::get( 'cache_exclude_cookies', '' ) ) ) )
+			) ) ),
 		);
 		$dir = self::dir();
 		if ( ! is_dir( $dir ) ) {
