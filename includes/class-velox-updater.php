@@ -229,7 +229,7 @@ class Velox_Updater {
 	}
 
 	/**
-	 * GitHub zipballs unpack to a folder like "JustKyrix-velox-a1b2c3". Rename it
+	 * GitHub zipballs unpack to a folder like "cansumasearch-dev-velox-a1b2c3". Rename it
 	 * back to the plugin slug so the update lands in the right place.
 	 */
 	public function fix_folder_name( $source, $remote_source, $upgrader, $hook_extra = array() ) {

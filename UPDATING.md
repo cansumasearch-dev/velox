@@ -7,7 +7,7 @@ auto-update — while the plugin stays private to the people you choose.
 
 ## 0. The 30-second mental model
 
-- Velox lives in a **GitHub repo** (`JustKyrix/velox`).
+- Velox lives in a **GitHub repo** (`cansumasearch-dev/velox`).
 - Every time you want to ship an update, you **bump the version number** and
   **publish a release**. A GitHub Action builds the zip for you automatically.
 - Every site that has Velox installed checks that repo a few times a day and
@@ -46,7 +46,7 @@ git init
 git add .
 git commit -m "Velox 1.0.0"
 git branch -M main
-git remote add origin https://github.com/JustKyrix/velox.git
+git remote add origin https://github.com/cansumasearch-dev/velox.git
 git push -u origin main
 ```
 
@@ -54,7 +54,7 @@ If your GitHub username or repo name is different, change these two lines at
 the top of `velox.php` so the auto-updater points at the right place:
 
 ```php
-define( 'VELOX_GH_USER', 'JustKyrix' );
+define( 'VELOX_GH_USER', 'cansumasearch-dev' );
 define( 'VELOX_GH_REPO', 'velox' );
 ```
 
