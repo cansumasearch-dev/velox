@@ -1,0 +1,6 @@
+# Build artifacts. release.yml already excludes build/ from the plugin zip,
+# so anything in here can never leak into a release.
+build/
+
+# macOS
+.DS_Store
