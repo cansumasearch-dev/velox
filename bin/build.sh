@@ -20,8 +20,10 @@ step() { printf '\n\033[1m%s\033[0m\n' "$1"; }
 # Both places must agree. A bump that updates the header but not the constant
 # (or the reverse) produces a plugin that reports one version and behaves as
 # another, and WordPress will show the wrong one on the Plugins screen.
-HEADER_V="$(sed -n 's/^ \* Version: *\([0-9][0-9.]*\).*/\1/p' velox.php | head -1)"
-CONST_V="$(sed -n "s/.*define( 'VELOX_VERSION', '\([0-9][0-9.]*\)' ).*/\1/p" velox.php | head -1)"
+HEADER_V="$(sed -n 's/^ \* Version: *\([0-9][0-9.]*\).*/\1/p' velox.php)"
+CONST_V="$(sed -n "s/.*define( 'VELOX_VERSION', '\([0-9][0-9.]*\)' ).*/\1/p" velox.php)"
+HEADER_V="${HEADER_V%%$'\n'*}"
+CONST_V="${CONST_V%%$'\n'*}"
 
 [ -n "$HEADER_V" ] || fail "could not read the Version: header from velox.php"
 [ -n "$CONST_V" ]  || fail "could not read VELOX_VERSION from velox.php"
@@ -72,9 +74,11 @@ rm -f "$ZIP"
 # Read the version back out of the finished archive. This is the check that
 # catches a stale or half-written zip before it reaches a live site.
 step "Verifying the archive"
-BUILT_V="$(unzip -p "$ZIP" velox/velox.php | sed -n "s/.*define( 'VELOX_VERSION', '\([0-9][0-9.]*\)' ).*/\1/p" | head -1)"
+BUILT_V="$(unzip -p "$ZIP" velox/velox.php | sed -n "s/.*define( 'VELOX_VERSION', '\([0-9][0-9.]*\)' ).*/\1/p")"
+BUILT_V="${BUILT_V%%$'\n'*}"
 [ "$BUILT_V" = "$VERSION" ] || fail "the zip reports $BUILT_V, expected $VERSION"
-unzip -l "$ZIP" | grep -q 'velox/velox.php' || fail "velox.php is not at velox/ inside the archive"
+LISTING="$(unzip -l "$ZIP")"
+case "$LISTING" in *"velox/velox.php"*) ;; *) fail "velox.php is not at velox/ inside the archive" ;; esac
 
 printf '\n\033[32mBuilt\033[0m %s (%s)\n' "$ZIP" "$(du -h "$ZIP" | cut -f1)"
 printf 'Upload via wp-admin → Plugins → Add New → Upload → "Replace current with uploaded".\n'
