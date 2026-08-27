@@ -207,9 +207,15 @@ class Velox_Login_Guard {
 		$locks = self::locks();
 		foreach ( $locks as $k => $lock ) {
 			if ( ! empty( $lock['token'] ) && hash_equals( (string) $lock['token'], $token ) ) {
-				$fresh = ( time() - (int) ( $lock['when'] ?? 0 ) ) < DAY_IN_SECONDS;
+				// An expired link must not unlock. Saying "expires in 24 hours"
+				// in the email and then honouring it anyway is the worst of both:
+				// the promise is false and the link stays live in an inbox.
+				if ( ( time() - (int) ( $lock['when'] ?? 0 ) ) >= DAY_IN_SECONDS ) {
+					wp_safe_redirect( add_query_arg( 'velox_unlocked', 'expired', wp_login_url() ) );
+					exit;
+				}
 				self::unlock( $k );
-				wp_safe_redirect( add_query_arg( 'velox_unlocked', $fresh ? '1' : 'expired', wp_login_url() ) );
+				wp_safe_redirect( add_query_arg( 'velox_unlocked', '1', wp_login_url() ) );
 				exit;
 			}
 		}

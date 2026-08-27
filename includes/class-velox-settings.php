@@ -91,6 +91,7 @@ class Velox_Settings {
 			'loginguard_max'           => 5,
 			'loginguard_notify'        => true,
 			'loginguard_behind_proxy'  => false,
+			'util_sitescan'            => false,
 			// ---- Shop ----
 			'util_shop'                => false,
 			'shop_currency'            => '€',

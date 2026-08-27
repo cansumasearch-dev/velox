@@ -4,6 +4,20 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.8.0 — Site scan
+
+Checks that your WordPress files are the ones WordPress shipped, and that nothing runnable is hiding in your media folder.
+
+- **Core files are verified against the checksums WordPress.org publishes** for your exact version and site language. Anything altered, missing, or sitting in wp-admin or wp-includes without belonging there is listed with the reason it was flagged.
+- **The uploads folder is checked for runnable code.** That folder is for media; a .php file in it is one of the few signals that is both cheap to check and almost never a false alarm. Files with a hidden second extension, and .htaccess files that change how the folder is served, are listed separately as worth a look rather than as an alarm.
+- **It does not pattern-match for malware, and the screen says so.** Scanning file contents for "known bad" code fails in both directions — ordinary minified code sets it off constantly, and any infection not already on the list walks straight past, which is worse than no scan at all because it reads as an all-clear. A clean result here means your core files match and uploads holds no code, nothing more.
+- Plugins, themes and the rest of wp-content are not checked, because there is no published list of what those files should contain. Said plainly on the screen rather than left to be assumed.
+- If the checksums cannot be fetched, or the uploads folder is too large to walk to the end, the report says which part was skipped instead of quietly reporting less.
+
+**Also fixed**
+
+- **An expired unlock link from login protection still worked.** The email promises the link stops working after 24 hours; it was honoured whatever its age, so an old message in an inbox stayed live. It is now refused once it expires.
+
 ## 4.7.0 — Login protection
 
 Blocks an address after repeated failed sign-ins and keeps it blocked until you let it back in.
@@ -18,10 +32,6 @@ Blocks an address after repeated failed sign-ins and keeps it blocked until you 
 ## 4.6.8 — Checking out places the order
 
 - **Pressing the order button removed an item from the cart instead.** The cart summary on the checkout page carried its own remove buttons, each in a form nested inside the checkout form. Nested forms are invalid HTML and the browser attributed the submission to the wrong one. That summary is now read-only.
-
-## 4.6.7 — Checking out places the order
-
-- **Pressing the order button removed an item from the cart instead.** The cart summary shown on the checkout page carried its own remove buttons, each in its own form nested inside the checkout form. Nested forms are invalid HTML and the browser attributed the submission to the wrong one. The summary on the checkout page is now read-only.
 
 ## 4.6.6 — Cart pages are no longer served from cache by the drop-in
 

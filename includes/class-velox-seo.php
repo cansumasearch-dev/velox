@@ -687,7 +687,11 @@ class Velox_Seo {
 				'orderby'          => 'title',
 				'order'            => 'ASC',
 				'no_found_rows'    => true,
-				'suppress_filters' => true,  // don't let another plugin's pre_get_posts empty this
+				// Note: this suppresses the posts_* query filters. It does NOT stop
+				// another plugin's pre_get_posts from narrowing this query — that hook
+				// fires regardless, so a plugin filtering posts site-wide can still
+				// thin the sitemap.
+				'suppress_filters' => true,
 				'ignore_sticky_posts' => true,
 			) );
 			if ( $q->have_posts() ) {

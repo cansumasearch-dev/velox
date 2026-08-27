@@ -340,6 +340,20 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'ok' => true ) );
 				break;
 
+			/* -------- Site scan -------- */
+			case 'scan_start':
+				wp_send_json_success( Velox_Site_Scan::start() );
+				break;
+
+			case 'scan_step':
+				wp_send_json_success( Velox_Site_Scan::step() );
+				break;
+
+			case 'scan_forget':
+				Velox_Site_Scan::forget();
+				wp_send_json_success( array( 'ok' => true ) );
+				break;
+
 			/* -------- Maintenance → search visibility -------- */
 			case 'maint_seo_status':
 				wp_send_json_success( array(

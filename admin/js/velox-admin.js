@@ -2381,6 +2381,49 @@
 		}
 	}
 
+	/* Site scan: run it, step through the phases, then reload so the report
+	   renders from the stored result rather than being drawn twice. */
+	function initSiteScan() {
+		var run = $( '#velox-scan-run' );
+		if ( ! run ) { return; }
+		var wrap  = $( '#velox-scan-progress' );
+		var bar   = $( '#velox-scan-bar' );
+		var label = $( '#velox-scan-label' );
+
+		function paint( d ) {
+			if ( bar ) { bar.style.width = ( d.percent || 0 ) + '%'; }
+			if ( label ) {
+				label.textContent = ( d.label || '' ) + ( d.found ? '  ·  ' + d.found + ' ' + vxT( 'so far' ) : '' );
+			}
+		}
+
+		function next() {
+			return api( 'scan_step', {} ).then( function ( d ) {
+				paint( d );
+				if ( d.done ) {
+					if ( label ) { label.textContent = vxT( 'Done.' ); }
+					setTimeout( function () { location.reload(); }, 400 );
+					return;
+				}
+				return next();
+			} );
+		}
+
+		run.addEventListener( 'click', function () {
+			run.disabled = true;
+			if ( wrap ) { wrap.hidden = false; }
+			paint( { percent: 0, label: vxT( 'Starting…' ) } );
+			api( 'scan_start', {} )
+				.then( paint )
+				.then( next )
+				.catch( function ( e ) {
+					toast( e.message, 'error' );
+					run.disabled = false;
+					if ( wrap ) { wrap.hidden = true; }
+				} );
+		} );
+	}
+
 	function initUtilities() {
 		$$( '.velox-util-toggle' ).forEach( function ( box ) {
 			function commit( on ) {
@@ -8474,6 +8517,7 @@
 		initWizard();
 		initUtilities();
 		initLoginGuard();
+		initSiteScan();
 		initDashboard();
 		initImages();
 		initLibrary();
