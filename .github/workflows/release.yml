@@ -23,6 +23,8 @@ jobs:
           mkdir -p build/velox
           rsync -a --exclude='.git' \
                    --exclude='.github' \
+                   --exclude='.gitignore' \
+                   --exclude='.DS_Store' \
                    --exclude='build' \
                    ./ build/velox/
           cd build
