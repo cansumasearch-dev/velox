@@ -47,6 +47,9 @@ for f in admin/js/*.js; do
 done
 echo "  ok"
 
+step "Catalogue"
+php bin/check-catalog.php || fail "a tool would be invisible in the sidebar or dashboard"
+
 step "German translations"
 php bin/check-i18n.php || fail "untranslated strings — every user-facing string needs a German entry"
 

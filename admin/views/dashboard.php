@@ -50,35 +50,25 @@ usort( $todo, function ( $a, $b ) { return $b['w'] - $a['w']; } );
 $todo = array_slice( $todo, 0, 4 );
 
 $purge_url = wp_nonce_url( admin_url( 'admin-post.php?action=velox_cache&which=all' ), 'velox_cache_all' );
-// "Everything in Velox" — every area + utility, for the catalog grid.
+// "Everything in Velox" — the areas, then every tool straight from the utility
+// catalogue. The tools are NOT listed again here: a hand-kept second list drifts
+// from the catalogue, and this one had quietly lost Google Reviews, Login
+// protection, Site scan and Shop while all four were switched on.
 $velox_tiles = array(
-	array( 'tab', 'dashboard',   'Dashboard',        'home',     'Overview & score' ),
-	array( 'util','fields',      'Custom Fields',    'grid',     'Field groups' ),
-	array( 'tab', 'media',       'Media Editor',     'tag',      'Alt text & files' ),
-	array( 'util','svg',         'SVG Uploads',      'file',     'Safe SVG' ),
-	array( 'util','duplicate',   'Duplicate Post',   'copy',     'One-click clone' ),
-	array( 'tab', 'performance', 'Performance',      'bolt',     'Speed tuning' ),
-	array( 'tab', 'images',      'Images',           'image',    'WebP / AVIF' ),
-	array( 'tab', 'database',    'Database',         'db',       'Cleanup' ),
-	array( 'util','scripts',     'Script Manager',   'code',     'Dequeue CSS/JS' ),
-	array( 'util','unusedmedia', 'Unused Media',     'broom',    'Find & clean' ),
-	array( 'util','redirects',   'Redirects & 404s', 'redirect', 'Manage URLs' ),
-	array( 'util','snippets',    'Code Snippets',    'code',     'PHP/CSS/JS' ),
-	array( 'util','cookies',     'Cookie Banner',    'cookie',   'Consent Mode' ),
-	array( 'util','mail',        'Mail & Forms',     'mail',     'SMTP & forms' ),
-	array( 'util','maintenance', 'Maintenance',      'cone',     'Coming-soon' ),
-	array( 'util','loginurl',    'Login URL',        'lock',     'Hide wp-login' ),
-	array( 'util','htmllang',    'HTML Lang',        'globe',    'Page language' ),
-	array( 'util','filemanager', 'File Manager',     'folder',   'Browse & edit' ),
-	array( 'util','installer',   'Bulk Installer',   'plug',     'Plugin stacks' ),
-	array( 'util','october',     'OctoberCMS',       'package',  'Theme export' ),
-	array( 'util','backup',      'Backup & Restore', 'package',  'DB & files' ),
-	array( 'util','errorlog',    'Error Logger',     'warning',  'PHP error log' ),
-	array( 'util','frontendbar', 'Frontend Tools',   'bolt',     'Admin quick-panel' ),
-	array( 'tab', 'pagespeed',   'PageSpeed',        'bolt',     'Live scores' ),
-	array( 'tab', 'seo',         'SEO',              'search',   'Meta & sitemaps' ),
-	array( 'tab', 'settings',    'Settings',         'gear',     'Modules & config' ),
+	array( 'tab', 'dashboard',   'Dashboard',   'home',   'Overview & score' ),
+	array( 'tab', 'performance', 'Performance', 'bolt',   'Speed tuning' ),
+	array( 'tab', 'images',      'Images',      'image',  'WebP / AVIF' ),
+	array( 'tab', 'seo',         'SEO',         'search', 'Meta & sitemaps' ),
+	array( 'tab', 'pagespeed',   'PageSpeed',   'bolt',   'Live scores' ),
+	array( 'tab', 'database',    'Database',    'db',     'Cleanup' ),
 );
+foreach ( Velox_Utilities::catalog() as $vx_tid => $vx_t ) {
+	if ( empty( $vx_t['tile'] ) ) {
+		continue;
+	}
+	$velox_tiles[] = array( 'util', $vx_tid, $vx_t['tile'], $vx_t['icon'], $vx_t['blurb'] );
+}
+$velox_tiles[] = array( 'tab', 'settings', 'Settings', 'gear', 'Modules & config' );
 
 
 ?>

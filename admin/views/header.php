@@ -90,8 +90,10 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 
 		<nav class="velox-side-nav">
 			<?php
-			// Full Velox catalogue — every area and utility, grouped. ('tab' = primary
-			// area via $admin->tab_url(); 'util' = utility via Velox_Utilities::tool_url().)
+			// The areas Velox owns outright. Every TOOL below comes from the
+			// utility catalogue instead of being listed again here — a second list
+			// only ever drifts from the first, and this one had silently lost four
+			// tools that were switched on and working.
 			$vx_full_nav = array(
 				'Overview'    => array(
 					array( 'tab', 'dashboard', 'Dashboard', 'home' ),
@@ -102,31 +104,26 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 					array( 'tab', 'images', 'Images', 'image' ),
 					array( 'tab', 'seo', 'SEO', 'search' ),
 				),
-				'Content & media' => array(
-					array( 'tab', 'media', 'Media Editor', 'tag' ),
-					array( 'util', 'unusedmedia', 'Unused Media', 'broom' ),
-					array( 'util', 'fields', 'Custom Fields', 'grid' ),
-					array( 'util', 'snippets', 'Code Snippets', 'code' ),
-					array( 'util', 'scripts', 'Script Manager', 'code' ),
-				),
-				'Site & visitors' => array(
-					array( 'util', 'redirects', 'Redirects & 404s', 'redirect' ),
-					array( 'util', 'cookies', 'Cookie Banner', 'cookie' ),
-					array( 'util', 'mail', 'Mail & Forms', 'mail' ),
-					array( 'util', 'maintenance', 'Maintenance Mode', 'cone' ),
-					array( 'util', 'loginurl', 'Login URL', 'lock' ),
-					array( 'util', 'htmllang', 'HTML Lang', 'globe' ),
-				),
+				'Content & media' => array(),
+				'Site & visitors' => array(),
+				'Security'    => array(),
 				'System'      => array(
 					array( 'tab', 'database', 'Database', 'db' ),
-					array( 'util', 'backup', 'Backup & Restore', 'package' ),
-					array( 'util', 'installer', 'Bulk Installer', 'plug' ),
-					array( 'util', 'october', 'OctoberCMS Theme', 'package' ),
-					array( 'util', 'filemanager', 'File Manager', 'folder' ),
-					array( 'util', 'errorlog', 'Error Logger', 'warning' ),
 				),
 			);
 			$vx_cat = Velox_Utilities::catalog();
+			foreach ( $vx_cat as $vx_tid => $vx_t ) {
+				$vx_grp = isset( $vx_t['group'] ) ? $vx_t['group'] : '';
+				if ( '' === $vx_grp || ! isset( $vx_full_nav[ $vx_grp ] ) ) {
+					continue; // hub-only tools (SVG, Duplicate, Frontend tools) have no page to open
+				}
+				$vx_full_nav[ $vx_grp ][] = array(
+					'util',
+					$vx_tid,
+					isset( $vx_t['nav'] ) ? $vx_t['nav'] : $vx_t['label'],
+					$vx_t['icon'],
+				);
+			}
 			// Whole areas that can be switched off in Settings → Modules.
 			$vx_tab_modules = array(
 				'performance' => 'module_performance',

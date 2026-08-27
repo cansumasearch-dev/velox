@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.9.0 — Every tool you switched on is actually in the menu
+
+- **Four working tools were missing from the sidebar.** Google Reviews, Login protection, Site scan and Shop were switched on and running, but never appeared under any menu group — the only way to reach them was the Utilities page. The dashboard grid was missing the same four.
+- **The cause, rather than the symptom, is fixed.** The sidebar and the dashboard each kept their own hand-written list of tools alongside the real one, so adding a tool meant remembering three places, and forgetting was silent. Both now read the one list, so a tool that exists is a tool you can find.
+- **Security has its own group** — Login URL, Login protection and Site scan sit together instead of being scattered through the menu.
+- A check now refuses to build Velox at all if a tool would be invisible, because this went unnoticed across four releases.
+
 ## 4.8.1 — The site scan stops crying wolf
 
 - **Every folder guard file was reported as malware.** Plugins drop an inert `index.php` into their own upload folders so the folder cannot be listed — WP All Import, WooCommerce and most others do it, several folders deep. The scan reported each one as runnable code, so a perfectly healthy site opened the screen to a wall of serious findings. A file that does nothing is no longer reported, decided by whether it actually runs anything rather than by what it is named. One named `index.php` that does contain code is still reported.

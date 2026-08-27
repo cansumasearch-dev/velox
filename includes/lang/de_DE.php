@@ -2770,4 +2770,15 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Why it is listed' => 'Warum aufgeführt',
 	'A further %s were found and are not listed here. Deal with the ones above first, then scan again.' => 'Weitere %s wurden gefunden und sind hier nicht aufgeführt. Kümmern Sie sich zuerst um die obigen und prüfen Sie dann erneut.',
 	'so far' => 'bisher',
+
+	/* Sidebar groups and dashboard tiles */
+	'Security' => 'Sicherheit',
+	'Live scores' => 'Live-Werte',
+	'Rating slider' => 'Bewertungs-Slider',
+	'Frontend Tools' => 'Frontend-Werkzeuge',
+	'Admin quick-panel' => 'Schnellzugriff für Admins',
+	'PHP error log' => 'PHP-Fehlerprotokoll',
+	'Block brute force' => 'Brute-Force blockieren',
+	'Core & uploads' => 'Kern & Uploads',
+	'Products & orders' => 'Produkte & Bestellungen',
 );
