@@ -2746,6 +2746,7 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Runnable code in the media folder. Nothing legitimate puts it there.' => 'Ausführbarer Code im Medienordner. Nichts Legitimes legt ihn dort ab.',
 	'A double extension hiding a code file. Some server setups will run it.' => 'Eine doppelte Dateiendung, die eine Code-Datei verbirgt. Manche Server-Konfigurationen führen sie aus.',
 	'Changes how this folder is served. Some plugins add one legitimately — read it before removing it.' => 'Ändert, wie dieser Ordner ausgeliefert wird. Manche Plugins legen sie berechtigt an — lesen Sie sie, bevor Sie sie entfernen.',
+	'Makes this folder run code. That is how an uploaded image becomes a back door.' => 'Lässt diesen Ordner Code ausführen. Genau so wird aus einem hochgeladenen Bild eine Hintertür.',
 	'Changed' => 'Geändert',
 	'Missing' => 'Fehlt',
 	'Does not belong' => 'Gehört nicht hierher',

@@ -282,6 +282,9 @@ class Velox_Site_Scan {
 			$rel  = 'uploads/' . ltrim( str_replace( '\\', '/', substr( $abs, strlen( $base ) ) ), '/' );
 
 			if ( self::is_executable_name( $name ) ) {
+				if ( self::is_inert( $abs, $name ) ) {
+					continue;
+				}
 				self::add( $state, 'danger', 'upload_php', $rel, __( 'Runnable code in the media folder. Nothing legitimate puts it there.', 'velox' ) );
 				continue;
 			}
@@ -292,13 +295,69 @@ class Velox_Site_Scan {
 				continue;
 			}
 			if ( '.htaccess' === $name ) {
-				self::add( $state, 'warn', 'upload_htaccess', $rel, __( 'Changes how this folder is served. Some plugins add one legitimately — read it before removing it.', 'velox' ) );
+				// Most of these deny access, which is the folder protecting itself
+				// and the opposite of a problem — WooCommerce ships exactly that.
+				// One that switches a handler on is the real thing to catch: it is
+				// how an uploaded image gets executed as code.
+				$rules = strtolower( (string) @file_get_contents( $abs ) );
+				if ( preg_match( '/addhandler|addtype|sethandler|php_flag|php_value|execcgi|x-httpd-php/', $rules ) ) {
+					self::add( $state, 'danger', 'upload_htaccess', $rel, __( 'Makes this folder run code. That is how an uploaded image becomes a back door.', 'velox' ) );
+				}
 			}
 		}
 		return false;
 	}
 
 	/* ---------------------------------------------------------------- utils */
+
+	/**
+	 * A guard file, not a threat.
+	 *
+	 * Plugins drop an inert index.php into their own upload folders so the
+	 * directory cannot be listed — WP All Import, WooCommerce and most others
+	 * do it, several folders deep. Reporting those fills the report with
+	 * alarms nobody can act on, which is the exact failure this module exists
+	 * to avoid.
+	 *
+	 * This asks whether the file DOES anything, not whether it resembles
+	 * something known-bad. A file whose only tokens are an open tag and
+	 * comments cannot execute, whatever it happens to be called, so skipping
+	 * it costs nothing — an attacker gains no ground by hiding a payload in a
+	 * file that runs no code.
+	 */
+	private static function is_inert( $abs, $name ) {
+		if ( 'index.php' !== strtolower( $name ) ) {
+			return false;
+		}
+		$size = @filesize( $abs );
+		if ( false === $size || $size > 512 ) {
+			return false;
+		}
+		$src = @file_get_contents( $abs );
+		if ( false === $src ) {
+			return false;
+		}
+		if ( '' === trim( $src ) ) {
+			return true;
+		}
+		if ( ! function_exists( 'token_get_all' ) ) {
+			// No tokenizer: accept only an open tag followed by line comments.
+			return (bool) preg_match( '{^\s*<\?php\s*(//[^\n]*\s*)*$}', $src );
+		}
+		$harmless = array( T_OPEN_TAG, T_CLOSE_TAG, T_WHITESPACE, T_COMMENT, T_DOC_COMMENT, T_INLINE_HTML );
+		foreach ( @token_get_all( $src ) as $t ) {
+			if ( ! is_array( $t ) ) {
+				return false; // a bare ';' or '{' is a statement, so this runs
+			}
+			if ( ! in_array( $t[0], $harmless, true ) ) {
+				return false;
+			}
+			if ( T_INLINE_HTML === $t[0] && '' !== trim( $t[1] ) ) {
+				return false;
+			}
+		}
+		return true;
+	}
 
 	private static function is_executable_name( $name ) {
 		return (bool) preg_match( '/\.(php\d?|phtml|phtm|pht|phps|phar)$/i', $name );

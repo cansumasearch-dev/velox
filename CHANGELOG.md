@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.8.1 — The site scan stops crying wolf
+
+- **Every folder guard file was reported as malware.** Plugins drop an inert `index.php` into their own upload folders so the folder cannot be listed — WP All Import, WooCommerce and most others do it, several folders deep. The scan reported each one as runnable code, so a perfectly healthy site opened the screen to a wall of serious findings. A file that does nothing is no longer reported, decided by whether it actually runs anything rather than by what it is named. One named `index.php` that does contain code is still reported.
+- **A folder protecting itself was reported too.** Most `.htaccess` files in uploads deny access, which is the opposite of a problem. Only one that switches a handler on is now reported — and it is reported as serious, because that is how an uploaded image gets run as code.
+- The Shop card in Utilities showed a stray `\u2014` instead of a dash.
+
 ## 4.8.0 — Site scan
 
 Checks that your WordPress files are the ones WordPress shipped, and that nothing runnable is hiding in your media folder.
