@@ -59,9 +59,10 @@ $fields = array(
 	'perf_disable_woo_fragments' => array( 'switch', 'WooCommerce cart fragments off non-cart pages', 'Removes the wc-cart-fragments AJAX request away from cart/checkout.' ),
 
 	// Images
-	'perf_add_image_dimensions'  => array( 'switch', 'Add missing width/height', 'Gives images explicit dimensions to cut layout shift (CLS).' ),
-	'perf_fetchpriority_lcp'     => array( 'switch', 'Prioritise the hero image (LCP)', 'Adds fetchpriority="high" to the featured image and stops it lazy-loading — the single biggest LCP win.' ),
-	'perf_lazyload_iframes'      => array( 'switch', 'Lazy-load iframes', 'Adds loading="lazy" to iframes/embeds in content.' ),
+	'perf_lazyload_images'       => array( 'switch', 'Lazy-load images', 'Native lazy-loading for every image below the fold — including Oxygen image elements, which WordPress skips. The first images stay eager (see below).' ),
+	'perf_add_image_dimensions'  => array( 'switch', 'Add missing width/height', 'Gives images explicit dimensions to cut layout shift (CLS) — works on Oxygen image elements too.' ),
+	'perf_fetchpriority_lcp'     => array( 'switch', 'Prioritise the hero image (LCP)', 'Adds fetchpriority="high" to the hero image (the featured image, or the first large image on builder pages) and stops it lazy-loading — the single biggest LCP win.' ),
+	'perf_lazyload_iframes'      => array( 'switch', 'Lazy-load iframes', 'Adds loading="lazy" to every iframe/embed on the page (maps, videos, widgets).' ),
 	'perf_lazy_skip_count'       => array( 'number', 'Eager images above the fold', 'Keep the first N images out of lazy-loading so the hero/LCP loads instantly. 2 is a safe default; raise it for image-heavy headers.' ),
 	'perf_youtube_facade'        => array( 'switch', 'YouTube facade', 'Swaps YouTube embeds for a click-to-load thumbnail — saves ~1MB+ on first load.' ),
 	'perf_preload_lcp'           => array( 'text', 'Preload LCP image', 'Full URL of your hero image. Preloads it with high priority for a faster LCP.' ),

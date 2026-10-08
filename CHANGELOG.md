@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.10.0 — The Images switches now work on Oxygen pages
+- **Oxygen images finally get lazy-loaded.** WordPress only lazy-loads images it renders itself, so on Oxygen pages every image loaded straight away, even far below the fold. The new **Lazy-load images** switch (on by default) covers every image on the page. The first few stay eager, controlled by "Eager images above the fold".
+- **Width/height, hero priority, iframe lazy-loading, the YouTube facade and the CDN now reach Oxygen markup.** These used to hook into places Oxygen never uses, so on most Oxygen pages the switches looked on but did nothing. Velox now applies them to the finished page HTML, the same way WebP already worked.
+- **The hero image is found automatically**: it's the first reasonably large image near the top. A small header logo is skipped, any `loading="lazy"` on the hero is removed, and it gets `fetchpriority="high"`. If you set "Preload LCP image", that image wins.
+- **Image sizes are read from your uploads**, so Oxygen images get real width/height and stop the page jumping while it loads (CLS). A tiny CSS guard keeps images that only have a CSS width from stretching. Any height your own CSS sets still wins.
+- **YouTube in Oxygen's Video element** now becomes a click-to-play thumbnail that fills the video box exactly, instead of loading about 1 MB of YouTube player up front.
+- It never touches scripts, JSON, `<noscript>` fallbacks, comments, images that use a JS lazy-loader, or anything with a `skip-lazy` / `no-lazy` class. It stays off inside the Oxygen editor and respects the per-page "Don't lazy-load" box. If anything goes wrong, it returns the page unchanged.
+
 ## 4.9.1 — Faster pages, and Velox stays out of the Oxygen editor
 - **Velox no longer runs its speed tricks inside the Oxygen editor.** Deferring and delaying JavaScript, the WebP image rewriter, the Script Manager, the cookie banner and the visitor counter all ran inside the builder canvas too. That could break or slow down the editor, and the image rewriter could swap URLs inside Oxygen's own data, which could then get saved into the page as .webp. All of them now stand down in Oxygen, plus Bricks, Elementor, Divi, Breakdance and the Customizer.
 - **"Delay JavaScript" no longer breaks Oxygen sites.** jQuery is never delayed now, because Oxygen and most themes print `jQuery(...)` calls straight into the page. Delayed scripts also run strictly in page order, so a slider's setup code can no longer run before the slider library has loaded. Before, they could run in any order.

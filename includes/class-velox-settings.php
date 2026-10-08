@@ -291,6 +291,7 @@ class Velox_Settings {
 			'perf_disable_woo_fragments' => false, // cart-fragments off non-woo pages
 
 			// ---- Performance · Images (front-end) ----
+			'perf_lazyload_images'       => true,  // native lazy-load for every image, incl. Oxygen's own <img> markup
 			'perf_add_image_dimensions'  => true,  // width/height to cut CLS
 			'perf_lazyload_iframes'      => true,
 			'perf_lazy_skip_count'       => 2,    // keep first N images eager (above-the-fold)
@@ -370,7 +371,7 @@ class Velox_Settings {
 			),
 			'images' => array(
 				'label' => 'Images',
-				'keys'  => array( 'perf_add_image_dimensions', 'perf_fetchpriority_lcp', 'perf_lazyload_iframes', 'perf_lazy_skip_count', 'perf_youtube_facade', 'perf_preload_lcp', 'perf_content_visibility', 'perf_content_visibility_selector' ),
+				'keys'  => array( 'perf_lazyload_images', 'perf_add_image_dimensions', 'perf_fetchpriority_lcp', 'perf_lazyload_iframes', 'perf_lazy_skip_count', 'perf_youtube_facade', 'perf_preload_lcp', 'perf_content_visibility', 'perf_content_visibility_selector' ),
 			),
 			'fonts' => array(
 				'label' => 'Fonts',

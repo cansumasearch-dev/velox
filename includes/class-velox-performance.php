@@ -18,6 +18,8 @@ class Velox_Performance {
 			return;
 		}
 		$this->s = Velox_Settings::all();
+		// Page builders' editors (Oxygen, Bricks, Elementor…) never get front-end rewrites.
+		$builder = Velox::is_builder_request();
 
 		// ---- General ----
 		if ( $this->on( 'perf_disable_emojis' ) ) {
@@ -77,7 +79,6 @@ class Velox_Performance {
 		// ---- JavaScript ----
 		// Never rewrite script loading inside a page builder (Oxygen's editor runs
 		// its own app in the canvas iframe and breaks if its scripts are deferred).
-		$builder = Velox::is_builder_request();
 		if ( $this->on( 'perf_defer_scripts' ) && ! $builder ) {
 			if ( self::core_strategy_supported() ) {
 				// WP 6.3+: let core apply defer through its loading-strategy API, which
@@ -122,6 +123,13 @@ class Velox_Performance {
 		}
 		if ( $this->on( 'perf_content_visibility' ) && ! empty( $this->s['perf_content_visibility_selector'] ) ) {
 			add_action( 'wp_head', array( $this, 'content_visibility_css' ), 3 );
+		}
+		// Oxygen (and any theme/builder that prints its own <img>/<iframe> markup)
+		// bypasses the WordPress image + the_content filters above, so on most
+		// Oxygen pages those switches did nothing. Apply the same optimizations to
+		// the finished page HTML so they reach every element.
+		if ( ! $builder && $this->page_pass_wanted() ) {
+			add_action( 'template_redirect', array( $this, 'start_page_pass' ), 1 );
 		}
 
 		// ---- Fonts ----
@@ -650,10 +658,237 @@ evts.forEach(function(e){window.addEventListener(e,fire,{passive:true});});
 		if ( is_admin() ) {
 			return;
 		}
+		// Responsive-embed wrappers (Oxygen's video element, WP embed blocks) size
+		// themselves with padding and position the iframe absolutely — the facade
+		// has to fill that box the same way or the video area doubles in height.
 		?>
-<style id="velox-yt-css">.velox-yt{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background-size:cover;background-position:center;border-radius:10px;cursor:pointer;overflow:hidden}.velox-yt-btn{position:absolute;inset:0;margin:auto;width:68px;height:48px;border:0;border-radius:12px;background:rgba(0,0,0,.65);cursor:pointer}.velox-yt-btn::before{content:"";position:absolute;top:50%;left:50%;transform:translate(-40%,-50%);border-style:solid;border-width:11px 0 11px 19px;border-color:transparent transparent transparent #fff}.velox-yt:hover .velox-yt-btn{background:#f00}</style>
+<style id="velox-yt-css">.velox-yt{position:relative;width:100%;max-width:100%;aspect-ratio:16/9;background-size:cover;background-position:center;border-radius:10px;cursor:pointer;overflow:hidden}.oxy-video-container>.velox-yt,.wp-block-embed__wrapper>.velox-yt,.fluid-width-video-wrapper>.velox-yt{position:absolute;inset:0;height:100%;aspect-ratio:auto;border-radius:0}.velox-yt-btn{position:absolute;inset:0;margin:auto;width:68px;height:48px;border:0;border-radius:12px;background:rgba(0,0,0,.65);cursor:pointer}.velox-yt-btn::before{content:"";position:absolute;top:50%;left:50%;transform:translate(-40%,-50%);border-style:solid;border-width:11px 0 11px 19px;border-color:transparent transparent transparent #fff}.velox-yt:hover .velox-yt-btn{background:#f00}</style>
 <script id="velox-yt-js">document.addEventListener('click',function(e){var f=e.target.closest('.velox-yt');if(!f)return;var i=document.createElement('iframe');i.setAttribute('allow','accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture');i.setAttribute('allowfullscreen','');i.style.cssText='width:100%;height:100%;border:0;position:absolute;inset:0';i.src='https://www.youtube-nocookie.com/embed/'+f.dataset.id+'?autoplay=1';f.innerHTML='';f.appendChild(i);});</script>
 		<?php
+	}
+
+	/* ---------------------------------------------------------------- Page pass */
+
+	/** True when at least one option needs the full-page HTML pass. */
+	private function page_pass_wanted() {
+		return $this->on( 'perf_lazyload_images' ) || $this->on( 'perf_add_image_dimensions' )
+			|| $this->on( 'perf_fetchpriority_lcp' ) || $this->on( 'perf_lazyload_iframes' )
+			|| $this->on( 'perf_youtube_facade' )
+			|| ( $this->on( 'perf_cdn_enable' ) && ! empty( $this->s['perf_cdn_url'] ) );
+	}
+
+	/** Buffer normal front-end page views so optimize_page() sees the final HTML. */
+	public function start_page_pass() {
+		if ( is_admin() || is_feed() || is_embed() || is_robots() || is_trackback() ) {
+			return;
+		}
+		if ( ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
+			return;
+		}
+		if ( Velox::is_builder_request() || Velox_PageMeta::disabled( 'all' ) ) {
+			return;
+		}
+		ob_start( array( $this, 'optimize_page' ) );
+	}
+
+	/**
+	 * Apply the image / iframe / YouTube / CDN options to a whole HTML page.
+	 * Fails OPEN: any problem returns the original HTML untouched.
+	 *
+	 * @param string $html Full page HTML.
+	 * @return string
+	 */
+	public function optimize_page( $html ) {
+		if ( ! is_string( $html ) || '' === $html || false === stripos( $html, '<html' ) ) {
+			return $html; // not a full HTML document (JSON, XML, a fragment…)
+		}
+		try {
+			$out = $this->optimize_markup( $html );
+			return ( is_string( $out ) && '' !== $out ) ? $out : $html;
+		} catch ( \Throwable $e ) {
+			return $html;
+		}
+	}
+
+	/** @internal Public for tests. Does the actual rewriting; may return null on regex failure. */
+	public function optimize_markup( $html ) {
+		// Park blocks we must never touch (inline JS/JSON, CSS, <noscript> lazy
+		// fallbacks, textareas, comments) so the tag regexes can't reach into them.
+		$parked = array();
+		$html   = preg_replace_callback(
+			'#<(script|style|noscript|textarea|template)\b[^>]*>.*?</\1\s*>|<!--.*?-->#is',
+			function ( $m ) use ( &$parked ) {
+				$parked[] = $m[0];
+				return "\x1AVX" . ( count( $parked ) - 1 ) . "\x1A";
+			},
+			$html
+		);
+		if ( null === $html ) {
+			return null;
+		}
+
+		$lazy_off = Velox_PageMeta::disabled( 'lazy' );
+
+		// 1) YouTube facade first, so the iframes it replaces aren't touched below.
+		if ( $this->on( 'perf_youtube_facade' ) ) {
+			$html = $this->youtube_facade( $html );
+		}
+
+		// 2) Iframes.
+		if ( $this->on( 'perf_lazyload_iframes' ) && ! $lazy_off ) {
+			$html = preg_replace( '/<iframe\b(?![^>]*\bloading=)/i', '<iframe loading="lazy"', $html );
+		}
+
+		// 3) Images: dimensions, hero priority, lazy-loading — in document order.
+		$html = $this->optimize_images( $html, $lazy_off );
+
+		// 4) CDN for everything the asset filters didn't see (Oxygen images, inline links).
+		if ( $this->on( 'perf_cdn_enable' ) && ! empty( $this->s['perf_cdn_url'] ) && is_string( $html ) ) {
+			$html = $this->cdn_content( $html );
+		}
+
+		if ( ! is_string( $html ) ) {
+			return null;
+		}
+		return preg_replace_callback(
+			"#\x1AVX(\d+)\x1A#",
+			function ( $m ) use ( $parked ) {
+				return $parked[ (int) $m[1] ];
+			},
+			$html
+		);
+	}
+
+	/** Width/height, fetchpriority and loading="lazy" for every <img> on the page. */
+	private function optimize_images( $html, $lazy_off ) {
+		if ( ! is_string( $html ) ) {
+			return $html;
+		}
+		$do_dims  = $this->on( 'perf_add_image_dimensions' );
+		$do_lazy  = $this->on( 'perf_lazyload_images' ) && ! $lazy_off;
+		$do_lcp   = $this->on( 'perf_fetchpriority_lcp' );
+		$eager    = max( 0, (int) $this->s['perf_lazy_skip_count'] );
+		// Someone (WP's featured-image filter, the theme) already chose a hero?
+		$lcp_done = (bool) preg_match( '/<img\b[^>]*\bfetchpriority=["\']?high/i', $html );
+		$preload  = (string) $this->s['perf_preload_lcp'];
+		$index    = 0;
+		$dims_added = false;
+		$self     = $this;
+
+		$html = preg_replace_callback(
+			'/<img\b[^>]*>/i',
+			function ( $m ) use ( &$index, &$lcp_done, &$dims_added, $do_dims, $do_lazy, $do_lcp, $eager, $preload, $self ) {
+				$tag = $m[0];
+				$pos = $index++;
+				$src = $self->attr( $tag, 'src' );
+				// Placeholders / JS lazy-loaders / explicit opt-outs: leave alone.
+				if ( '' === $src || 0 === stripos( $src, 'data:' ) || preg_match( '/\bdata-(?:lazy-)?src=|\bclass=["\'][^"\']*\b(?:skip-lazy|no-lazy|velox-skip)\b/i', $tag ) ) {
+					return $tag;
+				}
+
+				$w = $self->attr( $tag, 'width' );
+				$h = $self->attr( $tag, 'height' );
+				if ( $do_dims && '' === $w && '' === $h ) {
+					$size = $self->image_size( $src );
+					if ( $size ) {
+						list( $w, $h ) = $size;
+						$tag        = preg_replace( '/^<img\b/i', '<img width="' . (int) $w . '" height="' . (int) $h . '" data-velox-dim', $tag );
+						$dims_added = true;
+					}
+				}
+
+				// Hero image: the first reasonably large image among the eager ones
+				// (skips a small header logo), or the URL set as "Preload LCP image".
+				$is_hero = false;
+				if ( $do_lcp && ! $lcp_done ) {
+					if ( '' !== $preload && false !== strpos( $preload, (string) wp_parse_url( $src, PHP_URL_PATH ) ) ) {
+						$is_hero = true;
+					} elseif ( $pos < max( 1, $eager ) && ( '' === $w || (int) $w >= 300 ) && ! preg_match( '/\.svg(\?|$)/i', $src ) ) {
+						$is_hero = true;
+					}
+				}
+				if ( $is_hero ) {
+					$lcp_done = true;
+					$tag      = preg_replace( '/\sloading=(["\']?)lazy\1/i', '', $tag );
+					if ( ! preg_match( '/\bfetchpriority=/i', $tag ) ) {
+						$tag = preg_replace( '/^<img\b/i', '<img fetchpriority="high"', $tag );
+					}
+					return $tag;
+				}
+
+				if ( $do_lazy && $pos >= $eager && ! preg_match( '/\bloading=/i', $tag ) ) {
+					$tag = preg_replace( '/^<img\b/i', '<img loading="lazy"', $tag );
+					if ( ! preg_match( '/\bdecoding=/i', $tag ) ) {
+						$tag = preg_replace( '/^<img\b/i', '<img decoding="async"', $tag );
+					}
+				}
+				return $tag;
+			},
+			$html
+		);
+
+		// Width/height attributes only reserve space if the image also scales its
+		// height; zero-specificity rule so any height the site's own CSS sets wins.
+		if ( $dims_added && is_string( $html ) ) {
+			$css  = '<style id="velox-img-dims">:where(img[data-velox-dim]){height:auto}</style>';
+			$html = preg_replace( '#</head>#i', $css . '</head>', $html, 1 );
+		}
+		return $html;
+	}
+
+	/** @internal Read one attribute's value from a single HTML tag ('' if absent). */
+	public function attr( $tag, $name ) {
+		if ( preg_match( '/\s' . preg_quote( $name, '/' ) . '\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s>]+))/i', $tag, $m ) ) {
+			// PCRE drops trailing unmatched groups, so take the last one present.
+			return html_entity_decode( (string) end( $m ), ENT_QUOTES );
+		}
+		return '';
+	}
+
+	/**
+	 * Intrinsic size of a local image: from WordPress's "-800x600" size suffix when
+	 * present, else by reading the file. Remote images are skipped. Cached per
+	 * request, and file reads are capped so a gallery page can't stall rendering.
+	 *
+	 * @internal Public for tests.
+	 * @return int[]|null [width, height]
+	 */
+	public function image_size( $src ) {
+		static $cache = array(), $reads = 0;
+		$path = (string) wp_parse_url( $src, PHP_URL_PATH );
+		if ( '' === $path || array_key_exists( $path, $cache ) ) {
+			return '' === $path ? null : $cache[ $path ];
+		}
+		$cache[ $path ] = null;
+		if ( preg_match( '/\.svg$/i', $path ) ) {
+			return null;
+		}
+		if ( preg_match( '/-(\d{1,5})x(\d{1,5})\.(?:jpe?g|png|gif|webp|avif)$/i', $path, $m ) ) {
+			return $cache[ $path ] = array( (int) $m[1], (int) $m[2] );
+		}
+		// Only our own files: same host (or relative), mapped onto the disk.
+		$host = wp_parse_url( $src, PHP_URL_HOST );
+		if ( $host && strtolower( $host ) !== strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) ) {
+			return null;
+		}
+		$up      = wp_upload_dir();
+		$up_path = (string) wp_parse_url( $up['baseurl'], PHP_URL_PATH );
+		if ( '' !== $up_path && 0 === strpos( $path, $up_path . '/' ) ) {
+			$file = $up['basedir'] . substr( rawurldecode( $path ), strlen( $up_path ) );
+		} else {
+			$home_path = rtrim( (string) wp_parse_url( home_url(), PHP_URL_PATH ), '/' );
+			$rel       = ( '' !== $home_path && 0 === strpos( $path, $home_path . '/' ) ) ? substr( $path, strlen( $home_path ) ) : $path;
+			$file      = rtrim( ABSPATH, '/\\' ) . rawurldecode( $rel );
+		}
+		if ( $reads >= 40 || false !== strpos( $file, '..' ) || ! is_file( $file ) ) {
+			return null;
+		}
+		$reads++;
+		$info = @getimagesize( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		if ( ! $info || empty( $info[0] ) || empty( $info[1] ) ) {
+			return null;
+		}
+		return $cache[ $path ] = array( (int) $info[0], (int) $info[1] );
 	}
 
 	/** Inject content-visibility:auto for offscreen sections (risky — needs intrinsic size). */
