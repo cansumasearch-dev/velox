@@ -122,14 +122,22 @@ final class Velox_Stats {
 
 	/** Print the front-end beacon. Fires once per page view; fire-and-forget. */
 	public static function beacon() {
+		// Logged-in users are never counted (record_hit() drops them), so don't
+		// make them pay for a REST round-trip — and never fire inside the builder.
+		if ( is_user_logged_in() || Velox::is_builder_request() ) {
+			return;
+		}
 		$url = wp_json_encode( esc_url_raw( rest_url( 'velox/v1/hit' ) ) );
 		// Skip speculative loads (prerender/prefetch): only count once the page is
 		// actually shown, so browser pre-rendering can't inflate the view count.
+		// Sent after the load event so it never competes with the page's own
+		// requests (LCP image, fonts, CSS).
 		echo '<script>(function(){try{var u=' . $url . ';'
 			. 'function s(){if(navigator.sendBeacon){navigator.sendBeacon(u);}else{fetch(u,{method:"POST",keepalive:true,credentials:"same-origin"});}}'
-			. 'if(document.prerendering){document.addEventListener("prerenderingchange",s,{once:true});return;}'
+			. 'function w(){if(document.readyState==="complete"){s();}else{window.addEventListener("load",s,{once:true});}}'
+			. 'if(document.prerendering){document.addEventListener("prerenderingchange",w,{once:true});return;}'
 			. 'if(document.visibilityState==="prerender")return;'
-			. 's();'
+			. 'w();'
 			. '}catch(e){}})();</script>' . "\n";
 	}
 

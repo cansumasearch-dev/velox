@@ -75,10 +75,22 @@ class Velox_Performance {
 		}
 
 		// ---- JavaScript ----
-		if ( $this->on( 'perf_defer_scripts' ) ) {
-			add_filter( 'script_loader_tag', array( $this, 'defer_scripts' ), 10, 2 );
+		// Never rewrite script loading inside a page builder (Oxygen's editor runs
+		// its own app in the canvas iframe and breaks if its scripts are deferred).
+		$builder = Velox::is_builder_request();
+		if ( $this->on( 'perf_defer_scripts' ) && ! $builder ) {
+			if ( self::core_strategy_supported() ) {
+				// WP 6.3+: let core apply defer through its loading-strategy API, which
+				// respects dependencies and inline "after" scripts (a deferred script
+				// whose inline init code runs before it loads is what breaks sliders,
+				// popups, etc.).
+				add_action( 'wp_print_scripts', array( $this, 'apply_defer_strategy' ), 1 );
+				add_action( 'wp_print_footer_scripts', array( $this, 'apply_defer_strategy' ), 1 );
+			} else {
+				add_filter( 'script_loader_tag', array( $this, 'defer_scripts' ), 10, 2 );
+			}
 		}
-		if ( $this->on( 'perf_delay_js' ) ) {
+		if ( $this->on( 'perf_delay_js' ) && ! $builder ) {
 			add_filter( 'script_loader_tag', array( $this, 'delay_scripts' ), 11, 3 );
 			add_action( 'wp_footer', array( $this, 'delay_js_loader' ), 99 );
 		}
@@ -140,8 +152,15 @@ class Velox_Performance {
 		if ( ! empty( $this->s['perf_preload_assets'] ) ) {
 			add_action( 'wp_head', array( $this, 'preload_assets' ), 2 );
 		}
-		if ( in_array( $this->s['perf_speculative_loading'], array( 'conservative', 'moderate' ), true ) ) {
-			add_action( 'wp_footer', array( $this, 'speculation_rules' ), 99 );
+		if ( in_array( $this->s['perf_speculative_loading'], array( 'conservative', 'moderate' ), true ) && ! $builder ) {
+			if ( function_exists( 'wp_get_speculation_rules_configuration' ) ) {
+				// WP 6.8+ ships speculative loading in core (with the right exclusions
+				// for wp-admin, login/logout, nonce URLs…). Upgrade its config to
+				// prerender instead of printing a second, competing ruleset.
+				add_filter( 'wp_speculation_rules_configuration', array( $this, 'core_speculation_config' ) );
+			} else {
+				add_action( 'wp_footer', array( $this, 'speculation_rules' ), 99 );
+			}
 		}
 	}
 
@@ -427,36 +446,115 @@ class Velox_Performance {
 		);
 	}
 
+	/** WordPress 6.3+ can defer scripts itself while honouring their dependencies. */
+	private static function core_strategy_supported() {
+		global $wp_version;
+		return isset( $wp_version ) && version_compare( $wp_version, '6.3', '>=' );
+	}
+
+	/** True when a handle/tag matches the user's exclusion list for $key. */
+	private function excluded( $key, $handle, $haystack ) {
+		foreach ( $this->lines( $key ) as $ex ) {
+			if ( false !== stripos( $handle, $ex ) || false !== stripos( $haystack, $ex ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/**
+	 * Mark every queued front-end script (and its dependencies) as "defer" via the
+	 * core loading-strategy API. Core then only actually defers a script when that's
+	 * safe — e.g. it keeps a script blocking if something that runs immediately
+	 * depends on it — so this can't break execution order the way string-rewriting
+	 * the <script> tag can.
+	 */
+	public function apply_defer_strategy() {
+		if ( is_admin() || Velox_PageMeta::disabled( 'js' ) ) {
+			return;
+		}
+		$scripts = wp_scripts();
+		foreach ( self::queued_with_deps( $scripts ) as $handle ) {
+			$dep = $scripts->registered[ $handle ];
+			if ( empty( $dep->src ) || $scripts->get_data( $handle, 'strategy' ) ) {
+				continue; // inline-only alias, or the author already chose a strategy
+			}
+			if ( $this->excluded( 'perf_defer_exclude', $handle, (string) $dep->src ) ) {
+				continue;
+			}
+			$scripts->add_data( $handle, 'strategy', 'defer' );
+		}
+	}
+
+	/** Every queued script handle plus its (recursive) dependencies. */
+	private static function queued_with_deps( $scripts ) {
+		$out   = array();
+		$stack = (array) $scripts->queue;
+		while ( $stack ) {
+			$h = array_pop( $stack );
+			if ( isset( $out[ $h ] ) || ! isset( $scripts->registered[ $h ] ) ) {
+				continue;
+			}
+			$out[ $h ] = true;
+			foreach ( (array) $scripts->registered[ $h ]->deps as $d ) {
+				$stack[] = $d;
+			}
+		}
+		return array_keys( $out );
+	}
+
+	/**
+	 * Handles that must never be delayed: themes and builders (Oxygen included)
+	 * print inline jQuery(...) calls straight into the page, which throw
+	 * "jQuery is not defined" if jQuery itself waits for user interaction.
+	 */
+	private static $never_delay = array( 'jquery', 'jquery-core', 'jquery-migrate' );
+
 	public function delay_scripts( $tag, $handle, $src ) {
 		if ( is_admin() || Velox_PageMeta::disabled( 'js' ) || empty( $src ) || false === strpos( $tag, 'src=' ) ) {
 			return $tag;
 		}
-		foreach ( $this->lines( 'perf_delay_js_exclude' ) as $ex ) {
-			if ( false !== stripos( $handle, $ex ) || false !== stripos( $tag, $ex ) ) {
-				return $tag;
-			}
+		if ( in_array( $handle, self::$never_delay, true ) || $this->excluded( 'perf_delay_js_exclude', $handle, $tag ) ) {
+			return $tag;
 		}
-		// Only transform the external (src-bearing) <script>; leave any inline
-		// translation script that WP 6.9 bundled into the same tag untouched.
+		// Delay every <script> in this tag — the external file AND any inline
+		// before/after code WordPress bundled with it (translations, config, init
+		// calls). That inline code depends on the file, so it has to wait too; the
+		// loader replays them strictly in document order.
 		return preg_replace_callback(
-			'#<script\b([^>]*?)\bsrc=("|\')([^"\']*)\2([^>]*)>#i',
+			'#<script\b([^>]*)>#i',
 			function ( $m ) {
-				return '<script type="velox/lazy" data-velox-src="' . esc_url( $m[3] ) . '"' . $m[1] . $m[4] . '>';
+				$attrs = $m[1];
+				// Leave JSON / template / other non-JS data blocks alone.
+				if ( preg_match( '#\btype=("|\')(?!text/javascript|application/javascript)[^"\']*\1#i', $attrs ) ) {
+					return $m[0];
+				}
+				$attrs = preg_replace( '#\stype=("|\')[^"\']*\1#i', '', $attrs );
+				if ( preg_match( '#\bsrc=("|\')([^"\']*)\1#i', $attrs, $src ) ) {
+					$attrs = str_replace( $src[0], 'data-velox-src="' . esc_url( html_entity_decode( $src[2] ) ) . '"', $attrs );
+				}
+				return '<script type="velox/lazy"' . $attrs . '>';
 			},
-			$tag,
-			1
+			$tag
 		);
 	}
 
 	public function delay_js_loader() {
 		$timeout = max( 0, (int) $this->s['perf_delay_js_timeout'] ) * 1000;
+		// Replays delayed scripts one at a time, in document order: an external file
+		// is fully loaded before the next script (often its inline init code) runs.
+		// Dynamically inserted scripts are async by default, so a plain "swap them
+		// all in" loop runs them in random order and breaks dependencies.
 		?>
 <script id="velox-delay-js">
-(function(){var loaded=false;function load(){if(loaded)return;loaded=true;
-document.querySelectorAll('script[type="velox/lazy"]').forEach(function(o){var n=document.createElement('script');
-if(o.dataset.veloxSrc){n.src=o.dataset.veloxSrc;}else{n.textContent=o.textContent;}
-for(var i=0;i<o.attributes.length;i++){var a=o.attributes[i];if(['type','data-velox-src'].indexOf(a.name)===-1)n.setAttribute(a.name,a.value);}
-o.parentNode.replaceChild(n,o);});}
+(function(){var started=false;function load(){if(started)return;started=true;
+var list=Array.prototype.slice.call(document.querySelectorAll('script[type="velox/lazy"]'));
+function next(){var o=list.shift();if(!o){try{document.dispatchEvent(new Event('velox:delayed-loaded'));}catch(e){}return;}
+var n=document.createElement('script');for(var i=0;i<o.attributes.length;i++){var a=o.attributes[i];if(a.name!=='type'&&a.name!=='data-velox-src')n.setAttribute(a.name,a.value);}
+var src=o.getAttribute('data-velox-src');
+if(src){n.async=false;n.onload=n.onerror=next;n.src=src;o.parentNode.replaceChild(n,o);}
+else{n.text=o.text;o.parentNode.replaceChild(n,o);next();}}
+next();}
 var evts=['mousemove','mousedown','keydown','touchstart','scroll','wheel'];
 function fire(){evts.forEach(function(e){window.removeEventListener(e,fire,{passive:true});});load();}
 evts.forEach(function(e){window.addEventListener(e,fire,{passive:true});});
@@ -619,17 +717,47 @@ evts.forEach(function(e){window.addEventListener(e,fire,{passive:true});});
 		}
 	}
 
+	/** WP 6.8+: switch core's speculative loading to prerender at our eagerness. */
+	public function core_speculation_config( $config ) {
+		if ( ! is_array( $config ) ) {
+			return $config; // core turned it off (logged-in user, plain permalinks…)
+		}
+		$config['mode']      = 'prerender';
+		$config['eagerness'] = ( 'moderate' === $this->s['perf_speculative_loading'] ) ? 'moderate' : 'conservative';
+		return $config;
+	}
+
+	/** Pre-6.8 fallback: our own ruleset, with the same exclusions core uses. */
 	public function speculation_rules() {
+		// Logged-in users hover admin/edit/logout links — never prerender for them.
+		if ( is_user_logged_in() ) {
+			return;
+		}
 		$eagerness = ( 'moderate' === $this->s['perf_speculative_loading'] ) ? 'moderate' : 'conservative';
+		$prefix    = '/' . trim( (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH ), '/' );
+		$prefix    = '/' === $prefix ? '' : $prefix;
+		$skip      = array(
+			$prefix . '/wp-admin/*',
+			$prefix . '/wp-login.php*',
+			$prefix . '/wp-content/*',
+			$prefix . '/wp-includes/*',
+			$prefix . '/*\\?(.+)', // anything with a query string (nonces, add-to-cart, logout…)
+		);
 		$rules = array(
 			'prerender' => array(
 				array(
 					'source'    => 'document',
-					'where'     => array( 'href_matches' => '/*' ),
+					'where'     => array(
+						'and' => array(
+							array( 'href_matches' => $prefix . '/*' ),
+							array( 'not' => array( 'href_matches' => $skip ) ),
+							array( 'not' => array( 'selector_matches' => 'a[rel~="nofollow"], .no-prerender, .no-prerender a' ) ),
+						),
+					),
 					'eagerness' => $eagerness,
 				),
 			),
 		);
-		echo '<script type="speculationrules">' . wp_json_encode( $rules ) . "</script>\n";
+		echo '<script type="speculationrules">' . wp_json_encode( $rules, JSON_UNESCAPED_SLASHES ) . "</script>\n";
 	}
 }

@@ -4,6 +4,15 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.9.1 — Faster pages, and Velox stays out of the Oxygen editor
+- **Velox no longer runs its speed tricks inside the Oxygen editor.** Deferring and delaying JavaScript, the WebP image rewriter, the Script Manager, the cookie banner and the visitor counter all ran inside the builder canvas too. That could break or slow down the editor, and the image rewriter could swap URLs inside Oxygen's own data, which could then get saved into the page as .webp. All of them now stand down in Oxygen, plus Bricks, Elementor, Divi, Breakdance and the Customizer.
+- **"Delay JavaScript" no longer breaks Oxygen sites.** jQuery is never delayed now, because Oxygen and most themes print `jQuery(...)` calls straight into the page. Delayed scripts also run strictly in page order, so a slider's setup code can no longer run before the slider library has loaded. Before, they could run in any order.
+- **"Defer JavaScript" respects dependencies.** On WordPress 6.3 and newer, Velox hands deferring to WordPress itself. WordPress only defers a script when nothing that runs straight away needs it, so inline setup code can't break any more.
+- **Speculative loading is safe for admins.** On WordPress 6.8+ Velox upgrades WordPress's own preloading to prerender instead of adding a second set of rules. On older versions, Velox never preloads logout, login, wp-admin, links with a query string or nofollow links, and never preloads for logged-in users. Before, hovering over "Log out" could actually log you out.
+- **The aggressive preset now turns on what it says.** It was saving two setting names that don't exist, so "JS delay" and the WooCommerce cart-fragments switch silently stayed off.
+- **Lighter visitor counter.** It no longer fires for logged-in users, who are never counted anyway, and it waits until the page has finished loading, so it never competes with your images and fonts.
+- **One fewer database query per page** when you have redirects. The redirect list now loads with the rest of WordPress's settings. This kicks in the next time you save a redirect.
+
 ## 4.9.0 — Every tool you switched on is actually in the menu
 
 - **Four working tools were missing from the sidebar.** Google Reviews, Login protection, Site scan and Shop were switched on and running, but never appeared under any menu group — the only way to reach them was the Utilities page. The dashboard grid was missing the same four.

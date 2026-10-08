@@ -261,7 +261,9 @@ class Velox_Redirects {
 				);
 			}
 		}
-		update_option( self::MAP_OPTION, $map, false );
+		// Autoloaded: maybe_redirect() reads it on every front-end request, so
+		// loading it with the other options saves a database query per page view.
+		update_option( self::MAP_OPTION, $map, true );
 	}
 
 	/** Normalise the extra rule options coming from the editor. Unset = on (the safe default). */

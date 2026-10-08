@@ -140,6 +140,76 @@ final class Velox {
 		return is_array( $dict ) ? $dict : array();
 	}
 
+	/** @var bool|null Per-request cache for is_builder_request(). */
+	private static $builder_request = null;
+
+	/**
+	 * True when the current request is a page builder's editor, its canvas iframe
+	 * or a live preview (Oxygen, Bricks, Elementor, Divi, Breakdance … and the
+	 * Customizer). Front-end optimizations (JS defer/delay, HTML rewriting, script
+	 * dequeuing, cookie banner, traffic beacon) must stand down here, otherwise
+	 * they break or slow down the editor. Detection only reads the query string and
+	 * constants, so it's safe to call as early as plugins_loaded.
+	 */
+	public static function is_builder_request() {
+		if ( null !== self::$builder_request ) {
+			return self::$builder_request;
+		}
+		$hit = false;
+		foreach ( array( 'SHOW_CT_BUILDER', 'ELEMENTOR_EDIT_MODE', 'ET_BUILDER_PLUGIN_ACTIVE_EDIT' ) as $c ) {
+			if ( defined( $c ) && constant( $c ) ) {
+				$hit = true;
+				break;
+			}
+		}
+		// Query-param signatures each builder sets on its editor / preview request.
+		// Keyed by param name => value to match ('*' = any value present).
+		$params = array(
+			'ct_builder'                => '*',   // Oxygen Classic
+			'oxygen_iframe'             => '*',   // Oxygen canvas iframe
+			'ct_inner'                  => '*',   // Oxygen inner content editing
+			'oxygen_vsb_preview'        => '*',
+			'bricks'                    => 'run', // Bricks (?bricks=run)
+			'brizy-edit'                => '*',   // Brizy
+			'brizy-edit-iframe'         => '*',
+			'elementor-preview'         => '*',   // Elementor
+			'et_fb'                     => '*',   // Divi front-end builder
+			'et_pb_preview'             => '*',
+			'fl_builder'                => '*',   // Beaver Builder
+			'vcv-action'                => '*',   // Visual Composer (new)
+			'vc_editable'               => '*',   // WPBakery
+			'vc_action'                 => '*',
+			'cs_preview_state'          => '*',   // Cornerstone / X / Pro
+			'fb-edit'                   => '*',   // Fusion Builder (Avada)
+			'builder'                   => 'true',// Fusion / generic
+			'tve'                       => '*',   // Thrive
+			'zionbuilder-preview'       => '*',   // Zion
+			'breakdance'                => '*',   // Breakdance / Oxygen 6
+			'breakdance_iframe'         => '*',
+			'customize_changeset_uuid'  => '*',   // Customizer preview
+			'customize_messenger_channel' => '*',
+		);
+		if ( ! $hit ) {
+			foreach ( $params as $key => $want ) {
+				if ( isset( $_GET[ $key ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+					if ( '*' === $want || (string) $want === (string) $_GET[ $key ] ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+						$hit = true;
+						break;
+					}
+				}
+			}
+		}
+		if ( ! $hit && function_exists( 'is_customize_preview' ) && did_action( 'setup_theme' ) && is_customize_preview() ) {
+			$hit = true;
+		}
+		// Only cache a positive answer, or a negative one once WordPress is fully
+		// set up (the Customizer check above isn't reliable before that).
+		if ( $hit || did_action( 'wp_loaded' ) ) {
+			self::$builder_request = $hit;
+		}
+		return $hit;
+	}
+
 	public function init() {
 
 		// Heal any settings corrupted by the pre-1.1.1 save bug (runs once).

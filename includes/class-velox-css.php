@@ -71,7 +71,7 @@ class Velox_CSS {
 		if ( is_admin() || is_feed() || is_embed() || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST ) ) {
 			return false;
 		}
-		if ( isset( $_GET['ct_builder'] ) || isset( $_GET['oxygen_iframe'] ) || isset( $_GET['elementor-preview'] ) ) {
+		if ( Velox::is_builder_request() ) {
 			return false; // never run inside a page builder
 		}
 		if ( is_user_logged_in() ) {

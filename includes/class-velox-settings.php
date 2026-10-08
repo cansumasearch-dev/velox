@@ -453,10 +453,10 @@ class Velox_Settings {
 			$s['perf_risky_mode']            = true;
 			$s['perf_optimize_css_delivery'] = true;
 			$s['perf_remove_unused_css']     = true;   // engine stays 'auto' = safe + zero-setup
-			$s['perf_delay_scripts']         = true;
+			$s['perf_delay_js']              = true;
 			$s['perf_disable_block_css']     = true;
 			$s['perf_disable_global_styles'] = true;
-			$s['perf_dequeue_woo_fragments'] = true;
+			$s['perf_disable_woo_fragments'] = true;
 		}
 		update_option( self::OPTION, $s );
 		self::$cache = $s;

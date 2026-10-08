@@ -25,6 +25,10 @@ class Velox_Cookies {
 		if ( ! Velox_Settings::get( 'util_cookies', false ) ) {
 			return;
 		}
+		// No consent banner over the Oxygen/page-builder canvas.
+		if ( Velox::is_builder_request() ) {
+			return;
+		}
 		add_action( 'wp_head', array( __CLASS__, 'head' ), 0 );
 		add_action( 'wp_footer', array( __CLASS__, 'footer' ), 20 );
 	}

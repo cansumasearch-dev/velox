@@ -22,7 +22,9 @@ class Velox_Scripts {
 	const MAX_HANDLES  = 250;
 
 	public static function init() {
-		if ( ! Velox_Settings::get( 'util_scripts', false ) || is_admin() ) {
+		// Stand down in the builder editor: dequeuing there can remove scripts the
+		// editor needs, and "discovering" its editor-only handles pollutes the list.
+		if ( ! Velox_Settings::get( 'util_scripts', false ) || is_admin() || Velox::is_builder_request() ) {
 			return;
 		}
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'enforce' ), 9999 );

@@ -856,6 +856,11 @@ class Velox_Image_Optimizer {
 		if ( is_admin() || is_feed() || is_embed() ) {
 			return;
 		}
+		// Never rewrite the Oxygen/page-builder editor: it would swap URLs inside the
+		// builder's own data, which can then get saved back into the page as .webp.
+		if ( Velox::is_builder_request() ) {
+			return;
+		}
 		if ( ( defined( 'REST_REQUEST' ) && REST_REQUEST ) || ( defined( 'DOING_AJAX' ) && DOING_AJAX ) || ( defined( 'WP_CLI' ) && WP_CLI ) ) {
 			return;
 		}
