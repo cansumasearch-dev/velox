@@ -36,6 +36,7 @@ $fields = array(
 	'perf_disable_app_passwords' => array( 'switch', 'Disable Application Passwords', 'Minor hardening; disable if you don\'t use external app logins.' ),
 
 	// CSS
+	'perf_minify_css'            => array( 'switch', 'Minify CSS files', 'Serves a minified copy of every local stylesheet that isn\'t already minified — Oxygen\'s generated CSS included. Relative image/font paths are fixed up automatically; copies are rebuilt whenever a file changes or the cache is cleared.' ),
 	'perf_disable_block_css'     => array( 'switch', 'Disable Gutenberg block CSS', 'Removes wp-block-library on the front end. Safe on Oxygen sites that don\'t render blocks.' ),
 	'perf_disable_global_styles' => array( 'switch', 'Disable global styles', 'Removes global-styles and classic-theme-styles inline CSS from the head.' ),
 	'perf_disable_woo_css'       => array( 'switch', 'WooCommerce CSS off non-shop pages', 'Only loads Woo styles on shop/cart/checkout/account pages.' ),
@@ -60,6 +61,7 @@ $fields = array(
 
 	// Images
 	'perf_lazyload_images'       => array( 'switch', 'Lazy-load images', 'Native lazy-loading for every image below the fold — including Oxygen image elements, which WordPress skips. The first images stay eager (see below).' ),
+	'perf_lazyload_bg'           => array( 'switch', 'Lazy-load background images', 'Section and div backgrounds from your stylesheets (Oxygen puts every section background there) only download when they scroll near the screen. The header and first section always load straight away. Add the class skip-lazy to an element to opt it out.' ),
 	'perf_add_image_dimensions'  => array( 'switch', 'Add missing width/height', 'Gives images explicit dimensions to cut layout shift (CLS) — works on Oxygen image elements too.' ),
 	'perf_fetchpriority_lcp'     => array( 'switch', 'Prioritise the hero image (LCP)', 'Adds fetchpriority="high" to the hero image (the featured image, or the first large image on builder pages) and stops it lazy-loading — the single biggest LCP win.' ),
 	'perf_lazyload_iframes'      => array( 'switch', 'Lazy-load iframes', 'Adds loading="lazy" to every iframe/embed on the page (maps, videos, widgets).' ),

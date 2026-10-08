@@ -66,6 +66,72 @@ class Velox_Cache {
 		// Auto-warm: after a full purge we schedule a background rebuild so visitors
 		// hit a warm cache instead of paying for the first regeneration themselves.
 		add_action( 'velox_cache_preload', array( __CLASS__, 'preload' ) );
+
+		// Oxygen stores page designs in post meta and its global styles/classes in
+		// options — neither goes through save_post in a way that reaches every page
+		// a template or class is used on, so watch those directly.
+		add_action( 'added_post_meta', array( __CLASS__, 'purge_by_meta' ), 10, 3 );
+		add_action( 'updated_post_meta', array( __CLASS__, 'purge_by_meta' ), 10, 3 );
+		add_action( 'updated_option', array( __CLASS__, 'purge_by_option' ), 10, 1 );
+
+		// A Velox update changes what pages are built with — start from a clean cache.
+		add_action( 'init', array( __CLASS__, 'purge_on_version_change' ), 20 );
+	}
+
+	/** Post types whose content appears on many pages (templates, reusable parts). */
+	private static $shared_types = array( 'ct_template', 'oxy_user_library', 'wp_template', 'wp_template_part', 'wp_block', 'wp_navigation' );
+
+	/** Options holding site-wide design (Oxygen global styles, classes, colors…). */
+	private static $design_options = array(
+		'ct_global_settings', 'ct_components_classes', 'ct_custom_selectors', 'ct_style_sheets',
+		'ct_style_sets', 'ct_style_folders', 'oxygen_vsb_global_colors', 'oxygen_vsb_element_presets',
+		'oxygen_vsb_universal_css_cache', 'oxy_global_settings',
+	);
+
+	/** Oxygen page-design meta keys. */
+	private static $design_meta = array( 'ct_builder_shortcodes', '_ct_builder_shortcodes', 'ct_builder_json', '_ct_builder_json', 'ct_other_template', 'ct_template_inner_content' );
+
+	/** Purge once per request at most, however many triggers fire (Oxygen saves several at once). */
+	private static $purged_all = false;
+
+	public static function purge_by_meta( $meta_id, $post_id, $meta_key ) {
+		if ( self::$purged_all || ! in_array( $meta_key, self::$design_meta, true ) ) {
+			return;
+		}
+		self::purge_post( (int) $post_id );
+	}
+
+	public static function purge_by_option( $option ) {
+		if ( ! self::$purged_all && in_array( $option, self::$design_options, true ) ) {
+			self::purge_all();
+		}
+	}
+
+	public static function purge_on_version_change() {
+		if ( ! defined( 'VELOX_VERSION' ) || get_option( 'velox_cache_built_with' ) === VELOX_VERSION ) {
+			return;
+		}
+		update_option( 'velox_cache_built_with', VELOX_VERSION, true );
+		self::purge_all();
+	}
+
+	/**
+	 * Did a settings save change anything that shapes front-end output? Admin-only
+	 * keys (PageSpeed widget, language, mail, …) don't need a purge.
+	 */
+	public static function settings_affect_pages( array $before, array $after ) {
+		$prefixes = array( 'perf_', 'webp_', 'image_', 'cookie_', 'seo_', 'cache_', 'module_', 'util_', 'cf_', 'avif_' );
+		foreach ( $after as $key => $val ) {
+			if ( array_key_exists( $key, $before ) && $before[ $key ] === $val ) {
+				continue;
+			}
+			foreach ( $prefixes as $p ) {
+				if ( 0 === strpos( (string) $key, $p ) ) {
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 
 	/** Is the advanced-cache.php drop-in installed and wired (WP_CACHE on)? */
@@ -382,6 +448,7 @@ class Velox_Cache {
 	/* -------------------------------------------------------------- purge */
 
 	public static function purge_all() {
+		self::$purged_all = true;
 		self::rrmdir( self::dir(), false );
 		self::write_config(); // keep the drop-in's config in place after a full purge
 		// Velox never stacks a second cache on top of yours — so also nudge the common
@@ -416,6 +483,13 @@ class Velox_Cache {
 	}
 
 	public static function purge_post( $post_id ) {
+		// A template / reusable part is shown on many pages — drop them all.
+		if ( function_exists( 'get_post_type' ) && in_array( get_post_type( $post_id ), self::$shared_types, true ) ) {
+			if ( ! self::$purged_all ) {
+				self::purge_all();
+			}
+			return;
+		}
 		if ( function_exists( 'get_permalink' ) ) {
 			$link = get_permalink( $post_id );
 			if ( $link ) {

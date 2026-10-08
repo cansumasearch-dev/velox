@@ -64,6 +64,10 @@ class Velox_Performance {
 		add_filter( 'autosave_interval', array( $this, 'autosave_interval' ), 99 );
 
 		// ---- CSS ----
+		if ( $this->on( 'perf_minify_css' ) && ! $builder ) {
+			add_filter( 'style_loader_src', array( $this, 'minified_css_src' ), 12, 2 );
+		}
+		add_action( 'velox_purge_all', array( __CLASS__, 'clear_minified' ) );
 		if ( $this->on( 'perf_disable_block_css' ) ) {
 			add_action( 'wp_enqueue_scripts', array( $this, 'dequeue_block_css' ), 100 );
 		}
@@ -671,7 +675,7 @@ evts.forEach(function(e){window.addEventListener(e,fire,{passive:true});});
 
 	/** True when at least one option needs the full-page HTML pass. */
 	private function page_pass_wanted() {
-		return $this->on( 'perf_lazyload_images' ) || $this->on( 'perf_add_image_dimensions' )
+		return $this->on( 'perf_lazyload_images' ) || $this->on( 'perf_lazyload_bg' ) || $this->on( 'perf_add_image_dimensions' )
 			|| $this->on( 'perf_fetchpriority_lcp' ) || $this->on( 'perf_lazyload_iframes' )
 			|| $this->on( 'perf_youtube_facade' )
 			|| ( $this->on( 'perf_cdn_enable' ) && ! empty( $this->s['perf_cdn_url'] ) );
@@ -741,6 +745,11 @@ evts.forEach(function(e){window.addEventListener(e,fire,{passive:true});});
 
 		// 3) Images: dimensions, hero priority, lazy-loading — in document order.
 		$html = $this->optimize_images( $html, $lazy_off );
+
+		// 3b) CSS background images (Oxygen section backgrounds live in stylesheets).
+		if ( $this->on( 'perf_lazyload_bg' ) && ! $lazy_off && is_string( $html ) ) {
+			$html = $this->lazy_backgrounds( $html, $parked );
+		}
 
 		// 4) CDN for everything the asset filters didn't see (Oxygen images, inline links).
 		if ( $this->on( 'perf_cdn_enable' ) && ! empty( $this->s['perf_cdn_url'] ) && is_string( $html ) ) {
@@ -866,8 +875,30 @@ evts.forEach(function(e){window.addEventListener(e,fire,{passive:true});});
 		if ( preg_match( '/-(\d{1,5})x(\d{1,5})\.(?:jpe?g|png|gif|webp|avif)$/i', $path, $m ) ) {
 			return $cache[ $path ] = array( (int) $m[1], (int) $m[2] );
 		}
-		// Only our own files: same host (or relative), mapped onto the disk.
-		$host = wp_parse_url( $src, PHP_URL_HOST );
+		$file = $reads < 40 ? $this->local_file( $src ) : null;
+		if ( ! $file ) {
+			return null;
+		}
+		$reads++;
+		$info = @getimagesize( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		if ( ! $info || empty( $info[0] ) || empty( $info[1] ) ) {
+			return null;
+		}
+		return $cache[ $path ] = array( (int) $info[0], (int) $info[1] );
+	}
+
+	/**
+	 * Map one of this site's URLs onto the file on disk. Remote URLs, traversal
+	 * attempts and missing files give null.
+	 *
+	 * @internal Public for tests.
+	 */
+	public function local_file( $url ) {
+		$path = (string) wp_parse_url( $url, PHP_URL_PATH );
+		if ( '' === $path ) {
+			return null;
+		}
+		$host = wp_parse_url( $url, PHP_URL_HOST );
 		if ( $host && strtolower( $host ) !== strtolower( (string) wp_parse_url( home_url(), PHP_URL_HOST ) ) ) {
 			return null;
 		}
@@ -880,15 +911,341 @@ evts.forEach(function(e){window.addEventListener(e,fire,{passive:true});});
 			$rel       = ( '' !== $home_path && 0 === strpos( $path, $home_path . '/' ) ) ? substr( $path, strlen( $home_path ) ) : $path;
 			$file      = rtrim( ABSPATH, '/\\' ) . rawurldecode( $rel );
 		}
-		if ( $reads >= 40 || false !== strpos( $file, '..' ) || ! is_file( $file ) ) {
+		if ( false !== strpos( $file, '..' ) || ! is_file( $file ) ) {
 			return null;
 		}
-		$reads++;
-		$info = @getimagesize( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
-		if ( ! $info || empty( $info[0] ) || empty( $info[1] ) ) {
+		return $file;
+	}
+
+	/* ---------------------------------------------------------- Minify CSS */
+
+	const MIN_DIR = 'velox-min';
+
+	/**
+	 * Swap a local, unminified stylesheet for a minified copy in uploads/velox-min/.
+	 * The copy is named after the source file's path + mtime + size, so it's rebuilt
+	 * automatically when the file changes (e.g. Oxygen regenerating its CSS).
+	 * Fails open: anything unexpected keeps the original URL.
+	 */
+	public function minified_css_src( $src, $handle = '' ) {
+		if ( ! $src || is_admin() || preg_match( '/[.\-]min\.css(\?|$)/i', $src ) ) {
+			return $src;
+		}
+		$file = $this->local_file( $src );
+		if ( ! $file || ! preg_match( '/\.css$/i', $file ) ) {
+			return $src;
+		}
+		$size = (int) @filesize( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		if ( $size <= 0 || $size > 3 * MB_IN_BYTES ) {
+			return $src;
+		}
+		$up   = wp_upload_dir();
+		$name = md5( $file . '|' . (int) @filemtime( $file ) . '|' . $size ) . '.css'; // phpcs:ignore
+		$dir  = trailingslashit( $up['basedir'] ) . self::MIN_DIR;
+		$dest = $dir . '/' . $name;
+		if ( ! is_file( $dest ) ) {
+			$css = (string) @file_get_contents( $file ); // phpcs:ignore
+			$min = self::minify_css( $css, (string) preg_replace( '/[?#].*$/', '', $src ) );
+			if ( null === $min || '' === trim( $min ) ) {
+				return $src;
+			}
+			if ( ! is_dir( $dir ) && ! wp_mkdir_p( $dir ) ) {
+				return $src;
+			}
+			// Write to a temp name first so a visitor never gets a half-written file.
+			$tmp = $dest . '.' . uniqid( '', true ) . '.tmp';
+			if ( false === @file_put_contents( $tmp, $min ) || ! @rename( $tmp, $dest ) ) { // phpcs:ignore
+				@unlink( $tmp ); // phpcs:ignore
+				return $src;
+			}
+		}
+		return trailingslashit( $up['baseurl'] ) . self::MIN_DIR . '/' . $name;
+	}
+
+	/** Remove all minified copies (runs on every full cache purge). */
+	public static function clear_minified() {
+		$up  = wp_upload_dir();
+		$dir = trailingslashit( $up['basedir'] ) . self::MIN_DIR;
+		foreach ( (array) glob( $dir . '/*.css' ) as $f ) {
+			@unlink( $f ); // phpcs:ignore
+		}
+	}
+
+	/**
+	 * Conservative CSS minifier. Strings, comments and url() are tokenised first so
+	 * nothing inside them is touched; outside them it only drops comments (keeps
+	 * /*! licence blocks), collapses whitespace, and removes it around { } ; , >
+	 * and after ":" — never around + - (calc) and never before ":" (descendant
+	 * pseudo-selectors). Relative url()/@import paths are made absolute against
+	 * the original file's URL, because the copy lives in a different folder.
+	 *
+	 * @param string $css  Stylesheet source.
+	 * @param string $base Original stylesheet URL (relative paths resolve against it).
+	 * @return string|null null on regex failure.
+	 */
+	public static function minify_css( $css, $base ) {
+		$parts = preg_split(
+			// Strings use the "unrolled loop" form: no per-character alternation, so a
+			// 40 KB base64 font inside quotes can't exhaust PCRE's stack.
+			'#("[^"\\\\]*(?:\\\\.[^"\\\\]*)*"|\'[^\'\\\\]*(?:\\\\.[^\'\\\\]*)*\'|/\*.*?\*/|url\(\s*[^)"\'\s][^)"\']*\))#is',
+			$css,
+			-1,
+			PREG_SPLIT_DELIM_CAPTURE
+		);
+		if ( ! is_array( $parts ) ) {
 			return null;
 		}
-		return $cache[ $path ] = array( (int) $info[0], (int) $info[1] );
+		$out = '';
+		foreach ( $parts as $i => $part ) {
+			if ( 0 === $i % 2 ) { // plain CSS between tokens
+				$p = preg_replace( '/\s+/', ' ', $part );
+				$p = preg_replace( '/\s*([{};,>])\s*/', '$1', $p );
+				$p = preg_replace( '/:\s+/', ':', $p );
+				if ( '' !== $out && false !== strpos( '{};,>', substr( $out, -1 ) ) ) {
+					$p = ltrim( (string) $p ); // e.g. the gap a removed comment leaves after "}"
+				}
+				$out .= str_replace( ';}', '}', (string) $p );
+				continue;
+			}
+			if ( 0 === strpos( $part, '/*' ) ) {
+				if ( 0 === strpos( $part, '/*!' ) ) {
+					$out .= $part;
+				}
+				continue;
+			}
+			if ( 0 === stripos( $part, 'url(' ) ) { // unquoted url(...)
+				$out .= 'url(' . self::absolute_css_url( trim( substr( $part, 4, -1 ) ), $base ) . ')';
+				continue;
+			}
+			// Quoted string: a path only when it's the argument of url( or @import.
+			if ( preg_match( '/(?:url\(\s*|@import\s*)$/i', $out ) ) {
+				$q     = $part[0];
+				$part  = $q . self::absolute_css_url( substr( $part, 1, -1 ), $base ) . $q;
+			}
+			$out .= $part;
+		}
+		return trim( $out );
+	}
+
+	/** Resolve a stylesheet-relative path against the stylesheet's URL. */
+	private static function absolute_css_url( $url, $base ) {
+		if ( '' === $url || preg_match( '#^(?:[a-z][a-z0-9+.\-]*:|//|/|\#|%23)#i', $url ) ) {
+			return $url; // absolute, root-relative, data:, fragment (SVG filters)…
+		}
+		$b = wp_parse_url( $base );
+		if ( empty( $b['host'] ) ) {
+			return $url;
+		}
+		$suffix = '';
+		if ( preg_match( '/^([^?#]*)([?#].*)$/', $url, $m ) ) {
+			$url    = $m[1];
+			$suffix = $m[2];
+		}
+		$dir  = isset( $b['path'] ) ? preg_replace( '#/[^/]*$#', '/', $b['path'] ) : '/';
+		$segs = array();
+		foreach ( explode( '/', $dir . $url ) as $seg ) {
+			if ( '..' === $seg ) {
+				array_pop( $segs );
+			} elseif ( '.' !== $seg && '' !== $seg ) {
+				$segs[] = $seg;
+			}
+		}
+		$path = '/' . implode( '/', $segs ) . ( '/' === substr( $url, -1 ) ? '/' : '' );
+		$port = isset( $b['port'] ) ? ':' . $b['port'] : '';
+		return ( isset( $b['scheme'] ) ? $b['scheme'] . ':' : '' ) . '//' . $b['host'] . $port . $path . $suffix;
+	}
+
+	/* ---------------------------------------------------------- Lazy backgrounds */
+
+	/**
+	 * Lazy-load CSS background images. Oxygen writes every section/div background
+	 * into its generated stylesheets, so the browser downloads all of them up
+	 * front. Here we find those rules (in the page's local stylesheets and inline
+	 * <style> blocks), keep only the ones whose element is on THIS page and sits
+	 * below the first section, and hold their background back with one override
+	 * rule until a small IntersectionObserver sees the element near the viewport.
+	 *
+	 * Safe by construction: the override only applies once an inline script has
+	 * put a class on <html>, so without JavaScript every background loads as
+	 * normal; and the observer reveals anything already on screen immediately.
+	 */
+	private function lazy_backgrounds( $html, array $parked ) {
+		foreach ( $parked as $block ) {
+			if ( false !== strpos( $block, 'velox-lazy-bg' ) ) {
+				return $html; // already processed (e.g. a second pass)
+			}
+		}
+		$body = stripos( $html, '<body' );
+		if ( false === $body ) {
+			return $html;
+		}
+
+		// 1) Selectors with a background image, from inline <style> + local stylesheets.
+		$selectors = array();
+		foreach ( $parked as $block ) {
+			if ( 0 === stripos( $block, '<style' ) ) {
+				$selectors = array_merge( $selectors, self::bg_selectors( preg_replace( '#^<style\b[^>]*>|</style\s*>$#i', '', $block ) ) );
+			}
+		}
+		if ( preg_match_all( '#<link\b[^>]*>#i', substr( $html, 0, $body ), $links ) ) {
+			$budget = 12; // stylesheets per page we're willing to read
+			foreach ( $links[0] as $link ) {
+				if ( ! preg_match( '/\brel=["\']?stylesheet/i', $link ) || $budget <= 0 ) {
+					continue;
+				}
+				$file = $this->local_file( $this->attr( $link, 'href' ) );
+				if ( $file && preg_match( '/\.css$/i', $file ) ) {
+					$budget--;
+					$selectors = array_merge( $selectors, self::bg_selectors_for_file( $file ) );
+				}
+			}
+		}
+		if ( ! $selectors ) {
+			return $html;
+		}
+
+		// 2) Where does each id / class first appear in the body?
+		$ids = array();
+		$classes = array();
+		if ( preg_match_all( '/\s(id|class)\s*=\s*(["\'])(.*?)\2/is', $html, $m, PREG_SET_ORDER | PREG_OFFSET_CAPTURE, $body ) ) {
+			foreach ( $m as $x ) {
+				$is_id = 'id' === strtolower( $x[1][0] );
+				foreach ( preg_split( '/\s+/', trim( $x[3][0] ) ) as $tok ) {
+					if ( '' === $tok ) {
+						continue;
+					}
+					if ( $is_id && ! isset( $ids[ $tok ] ) ) {
+						$ids[ $tok ] = $x[0][1];
+					} elseif ( ! $is_id && ! isset( $classes[ $tok ] ) ) {
+						$classes[ $tok ] = $x[0][1];
+					}
+				}
+			}
+		}
+
+		// 3) The fold: everything before the second <section> (header + hero) stays
+		// eager. Pages without sections: the first fifth of the body.
+		$fold = $body + (int) ( ( strlen( $html ) - $body ) * 0.2 );
+		if ( preg_match_all( '/<section\b/i', $html, $sm, PREG_OFFSET_CAPTURE, $body ) && count( $sm[0] ) >= 2 ) {
+			$fold = $sm[0][1][1];
+		}
+
+		$lazy = array();
+		foreach ( array_unique( $selectors ) as $sel ) {
+			$pos = self::selector_position( $sel, $ids, $classes );
+			if ( null !== $pos && $pos >= $fold ) {
+				$lazy[] = $sel;
+			}
+		}
+		if ( ! $lazy ) {
+			return $html;
+		}
+
+		$hide    = array();
+		$observe = array();
+		foreach ( $lazy as $sel ) {
+			$hide[]                                 = 'html.vx-lzbg ' . self::until_loaded( $sel );
+			$observe[ self::strip_pseudo( $sel ) ] = true;
+		}
+		$head = '<style id="velox-lazy-bg">' . implode( ',', $hide ) . '{background-image:none!important}</style>'
+			. '<script id="velox-lazy-bg-flag">document.documentElement.classList.add("vx-lzbg")</script>';
+		$foot = '<script id="velox-lazy-bg-js">(function(){var q=' . wp_json_encode( array_keys( $observe ), JSON_UNESCAPED_SLASHES ) . ',els=[];'
+			. 'q.forEach(function(s){try{els=els.concat([].slice.call(document.querySelectorAll(s)));}catch(e){}});'
+			. 'function on(e){e.classList.add("vx-bg");}'
+			. 'if(!("IntersectionObserver" in window)){els.forEach(on);return;}'
+			. 'var io=new IntersectionObserver(function(es){es.forEach(function(x){if(x.isIntersecting){on(x.target);io.unobserve(x.target);}});},{rootMargin:"300px"});'
+			. 'els.forEach(function(e){if(e.closest(".skip-lazy")){on(e);}else{io.observe(e);}});})();</script>';
+
+		$html = preg_replace( '#</head>#i', $head . '</head>', $html, 1 );
+		$end  = strripos( $html, '</body>' );
+		return false === $end ? $html . $foot : substr_replace( $html, $foot, $end, 0 );
+	}
+
+	/** Selectors in a stylesheet whose rule sets a background image (url(), not data:). */
+	private static function bg_selectors( $css ) {
+		$out = array();
+		$css = preg_replace( '#/\*.*?\*/#s', '', (string) $css );
+		if ( ! is_string( $css ) || false === stripos( $css, 'url(' ) ) {
+			return $out;
+		}
+		if ( ! preg_match_all( '/([^{}]+)\{([^{}]*)\}/', $css, $m, PREG_SET_ORDER ) ) {
+			return $out;
+		}
+		foreach ( $m as $x ) {
+			if ( ! preg_match( '/background(?:-image)?\s*:[^;}]*url\(\s*["\']?(?!data:)[^)"\'\s]/i', $x[2] ) ) {
+				continue;
+			}
+			$sel = trim( $x[1] );
+			if ( '' === $sel || '@' === $sel[0] || preg_match( '/^(?:from|to|[\d.]+%)\b/i', $sel ) || preg_match( '/\([^)]*,/', $sel ) ) {
+				continue; // at-rules, keyframe steps, or :is(a,b)-style lists we won't split
+			}
+			foreach ( explode( ',', $sel ) as $one ) {
+				$one = trim( $one );
+				if ( '' !== $one && ! preg_match( '/^(?:html|body|:root)\b/i', $one ) && strlen( $one ) < 300 ) {
+					$out[] = $one;
+				}
+			}
+		}
+		return $out;
+	}
+
+	/** bg_selectors() for a file on disk, cached until the file changes. */
+	private static function bg_selectors_for_file( $file ) {
+		$size = (int) @filesize( $file ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		if ( $size <= 0 || $size > 2 * MB_IN_BYTES ) {
+			return array();
+		}
+		$key    = 'velox_bgsel_' . md5( $file . '|' . (int) @filemtime( $file ) . '|' . $size ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		$cached = get_transient( $key );
+		if ( is_array( $cached ) ) {
+			return $cached;
+		}
+		$sel = self::bg_selectors( (string) @file_get_contents( $file ) ); // phpcs:ignore
+		set_transient( $key, $sel, WEEK_IN_SECONDS );
+		return $sel;
+	}
+
+	/**
+	 * Earliest point in the HTML where the element a selector targets can appear.
+	 * Every #id / .class in the selector — the element's own and its ancestors' or
+	 * preceding siblings' — has to occur at or before the element, so the latest
+	 * first-occurrence among them is a safe lower bound. null = not on this page,
+	 * or a selector we can't place (tag-only, attribute-only…) — left alone.
+	 */
+	private static function selector_position( $sel, array $ids, array $classes ) {
+		$parts = preg_split( '/\s*[\s>+~]\s*/', trim( self::strip_pseudo( $sel ) ) );
+		$last  = (string) end( $parts );
+		// The targeted element itself must be identifiable by id/class.
+		if ( ! preg_match( '/[#.][A-Za-z0-9_-]/', $last ) ) {
+			return null;
+		}
+		if ( ! preg_match_all( '/([#.])([A-Za-z0-9_-]+)/', implode( ' ', $parts ), $t, PREG_SET_ORDER ) ) {
+			return null;
+		}
+		$pos = -1;
+		foreach ( $t as $tok ) {
+			$map = '#' === $tok[1] ? $ids : $classes;
+			if ( ! isset( $map[ $tok[2] ] ) ) {
+				return null;
+			}
+			$pos = max( $pos, $map[ $tok[2] ] );
+		}
+		return $pos;
+	}
+
+	/** Drop pseudo-classes/elements so the selector matches the element itself. */
+	private static function strip_pseudo( $sel ) {
+		$s = preg_replace( '/::?[a-zA-Z-]+(?:\([^)]*\))?/', '', $sel );
+		$s = trim( (string) $s );
+		return '' === $s ? '*' : $s;
+	}
+
+	/** $sel, but only while its element hasn't been revealed (keeps ::before etc. last). */
+	private static function until_loaded( $sel ) {
+		if ( preg_match( '/(::?(?:before|after|first-line|first-letter|marker|backdrop|placeholder))\s*$/i', $sel, $m ) ) {
+			return substr( $sel, 0, -strlen( $m[0] ) ) . ':not(.vx-bg)' . $m[1];
+		}
+		return $sel . ':not(.vx-bg)';
 	}
 
 	/** Inject content-visibility:auto for offscreen sections (risky — needs intrinsic size). */

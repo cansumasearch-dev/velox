@@ -1326,6 +1326,7 @@ class Velox_Ajax {
 		$raw      = wp_unslash( $_POST );
 		$defaults = Velox_Settings::defaults();
 		$clean    = Velox_Settings::all(); // start from the current saved values
+		$before   = $clean;
 
 		foreach ( $defaults as $key => $default ) {
 			if ( ! array_key_exists( $key, $raw ) ) {
@@ -1352,6 +1353,12 @@ class Velox_Ajax {
 		}
 
 		Velox_Settings::save( $clean );
+
+		// A change to anything that shapes the front end must drop cached pages, or
+		// the new setting only shows once they expire (up to 30 days on some sites).
+		if ( class_exists( 'Velox_Cache' ) && Velox_Cache::settings_affect_pages( $before, $clean ) ) {
+			Velox_Cache::purge_all();
+		}
 
 		// Keep the page-cache drop-in config in step whenever a cache_* key was touched.
 		if ( class_exists( 'Velox_Cache' ) ) {

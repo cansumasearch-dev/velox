@@ -271,6 +271,7 @@ class Velox_Settings {
 			'perf_disable_block_css'     => false, // wp-block-library (safe on Oxygen, no Gutenberg front end)
 			'perf_disable_global_styles' => false, // global-styles + classic-theme-styles
 			'perf_disable_woo_css'       => false, // WooCommerce CSS off non-shop pages
+			'perf_minify_css'            => false, // serve minified copies of local, unminified stylesheets
 			'perf_optimize_css_delivery' => false, // load CSS non-render-blocking (async)
 			'perf_critical_css'          => '',    // above-the-fold CSS to inline in <head>
 			'perf_css_async_exclude'     => "oxygen\nadmin-bar", // stylesheets that stay render-blocking
@@ -292,6 +293,7 @@ class Velox_Settings {
 
 			// ---- Performance · Images (front-end) ----
 			'perf_lazyload_images'       => true,  // native lazy-load for every image, incl. Oxygen's own <img> markup
+			'perf_lazyload_bg'           => true,  // lazy-load CSS background images below the first section
 			'perf_add_image_dimensions'  => true,  // width/height to cut CLS
 			'perf_lazyload_iframes'      => true,
 			'perf_lazy_skip_count'       => 2,    // keep first N images eager (above-the-fold)
@@ -363,7 +365,7 @@ class Velox_Settings {
 			),
 			'css' => array(
 				'label' => 'CSS',
-				'keys'  => array( 'perf_disable_block_css', 'perf_disable_global_styles', 'perf_disable_woo_css', 'perf_optimize_css_delivery', 'perf_critical_css', 'perf_css_async_exclude', 'perf_remove_unused_css', 'perf_rucss_engine', 'cf_account_id', 'cf_api_token', 'perf_rucss_urls', 'perf_rucss_safelist', 'perf_rucss_exclude' ),
+				'keys'  => array( 'perf_minify_css', 'perf_disable_block_css', 'perf_disable_global_styles', 'perf_disable_woo_css', 'perf_optimize_css_delivery', 'perf_critical_css', 'perf_css_async_exclude', 'perf_remove_unused_css', 'perf_rucss_engine', 'cf_account_id', 'cf_api_token', 'perf_rucss_urls', 'perf_rucss_safelist', 'perf_rucss_exclude' ),
 			),
 			'js' => array(
 				'label' => 'JavaScript',
@@ -371,7 +373,7 @@ class Velox_Settings {
 			),
 			'images' => array(
 				'label' => 'Images',
-				'keys'  => array( 'perf_lazyload_images', 'perf_add_image_dimensions', 'perf_fetchpriority_lcp', 'perf_lazyload_iframes', 'perf_lazy_skip_count', 'perf_youtube_facade', 'perf_preload_lcp', 'perf_content_visibility', 'perf_content_visibility_selector' ),
+				'keys'  => array( 'perf_lazyload_images', 'perf_lazyload_bg', 'perf_add_image_dimensions', 'perf_fetchpriority_lcp', 'perf_lazyload_iframes', 'perf_lazy_skip_count', 'perf_youtube_facade', 'perf_preload_lcp', 'perf_content_visibility', 'perf_content_visibility_selector' ),
 			),
 			'fonts' => array(
 				'label' => 'Fonts',

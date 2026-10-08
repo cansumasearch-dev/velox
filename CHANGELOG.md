@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.11.0 — Lazy background images, CSS minify, and settings that apply straight away
+- **Background images now lazy-load.** Oxygen puts every section and div background into its stylesheets, so the browser downloaded all of them up front, even ones far down the page. With **Lazy-load background images** (on by default), Velox finds those rules, keeps only the ones used on the current page, and holds each background back until its section is about to scroll into view. The header and first section always load straight away. Anything with the class `skip-lazy` is left alone, and without JavaScript every background loads as normal.
+- **New: Minify CSS files.** Every local stylesheet that isn't already minified gets served as a minified copy, Oxygen's generated CSS included. That's typically 13–36% smaller. Relative image and font paths are fixed up automatically, and copies rebuild when a file changes. We checked it against real WordPress stylesheets: all 2,116 rules came out identical in the browser. JavaScript isn't minified on purpose. Nearly all of it already ships minified, and regex JS minifiers are a common way to break sites.
+- **Changing a setting now shows straight away.** Saving the Performance tab (or any setting that changes your pages) now clears the page cache. Before, with a long cache lifetime, a new setting could take weeks to appear.
+- **Editing an Oxygen template now updates every page.** Saving a header, footer or other template, a reusable part, or Oxygen's global styles, classes or colours now clears the whole page cache instead of just one URL.
+- **Updating Velox clears the cache once**, so improvements like these reach visitors right away instead of after the cache expires.
+
 ## 4.10.0 — The Images switches now work on Oxygen pages
 - **Oxygen images finally get lazy-loaded.** WordPress only lazy-loads images it renders itself, so on Oxygen pages every image loaded straight away, even far below the fold. The new **Lazy-load images** switch (on by default) covers every image on the page. The first few stay eager, controlled by "Eager images above the fold".
 - **Width/height, hero priority, iframe lazy-loading, the YouTube facade and the CDN now reach Oxygen markup.** These used to hook into places Oxygen never uses, so on most Oxygen pages the switches looked on but did nothing. Velox now applies them to the finished page HTML, the same way WebP already worked.
