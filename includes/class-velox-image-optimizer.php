@@ -439,6 +439,13 @@ class Velox_Image_Optimizer {
 						imagesavealpha( $image, true );
 					}
 					break;
+				case IMAGETYPE_WEBP:
+					$image = function_exists( 'imagecreatefromwebp' ) ? @imagecreatefromwebp( $source ) : false;
+					if ( $image ) {
+						imagealphablending( $image, true );
+						imagesavealpha( $image, true );
+					}
+					break;
 				default:
 					return false;
 			}
@@ -569,6 +576,201 @@ class Velox_Image_Optimizer {
 			'pending'     => $pending,
 			'saved_bytes' => max( 0, $saved ),
 		);
+	}
+
+	/* ----------------------------------------------------------------
+	 * Large images + re-convert
+	 * ------------------------------------------------------------- */
+
+	/**
+	 * Every JPG/PNG/WebP in the library whose width / height / file size is ABOVE
+	 * $min (so 1001 counts when $min is 1000). Largest first.
+	 *
+	 * @param int    $min Threshold (pixels, or KB when $by is 'kb').
+	 * @param string $by  'width' | 'height' | 'kb'.
+	 * @return array<int,array>
+	 */
+	public static function large_images( $min, $by = 'width' ) {
+		$min = max( 0, (int) $min );
+		$by  = in_array( $by, array( 'width', 'height', 'kb' ), true ) ? $by : 'width';
+		$q   = new WP_Query( array(
+			'post_type'      => 'attachment',
+			'post_status'    => 'inherit',
+			'post_mime_type' => array( 'image/jpeg', 'image/png', 'image/webp' ),
+			'posts_per_page' => 3000,
+			'fields'         => 'ids',
+			'no_found_rows'  => true,
+		) );
+		$ids = array_map( 'intval', $q->posts );
+		if ( ! $ids ) {
+			return array();
+		}
+		update_meta_cache( 'post', $ids );
+		$out = array();
+		foreach ( $ids as $id ) {
+			$meta  = wp_get_attachment_metadata( $id );
+			$w     = isset( $meta['width'] ) ? (int) $meta['width'] : 0;
+			$h     = isset( $meta['height'] ) ? (int) $meta['height'] : 0;
+			$file  = get_attached_file( $id );
+			$bytes = isset( $meta['filesize'] ) ? (int) $meta['filesize'] : 0;
+			if ( ! $bytes && $file && file_exists( $file ) ) {
+				$bytes = (int) filesize( $file );
+			}
+			$value = 'kb' === $by ? $bytes / 1024 : ( 'height' === $by ? $h : $w );
+			if ( $value <= $min ) {
+				continue;
+			}
+			$ext   = $file ? strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ) : '';
+			$out[] = array(
+				'id'       => $id,
+				'title'    => get_the_title( $id ),
+				'file'     => $file ? wp_basename( $file ) : '',
+				'thumb'    => wp_get_attachment_image_url( $id, 'thumbnail' ),
+				'url'      => wp_get_attachment_image_url( $id, 'full' ),
+				'w'        => $w,
+				'h'        => $h,
+				'bytes'    => $bytes,
+				'ext'      => 'jpeg' === $ext ? 'jpg' : $ext,
+				'original' => 'webp' === $ext && $file ? (bool) self::original_for( $file ) : in_array( $ext, array( 'jpg', 'jpeg', 'png' ), true ),
+				'value'    => $value,
+			);
+		}
+		usort( $out, function ( $a, $b ) {
+			return $b['value'] <=> $a['value'];
+		} );
+		return $out;
+	}
+
+	/**
+	 * The kept original (.jpg/.png) next to a converted WebP, if Velox kept one.
+	 * Also checks the name WordPress used before it made a "-scaled" copy.
+	 */
+	private static function original_for( $webp_file ) {
+		$stems = array( preg_replace( '/\.webp$/i', '', $webp_file ) );
+		if ( preg_match( '/-scaled$/', $stems[0] ) ) {
+			$stems[] = substr( $stems[0], 0, -7 );
+		}
+		foreach ( $stems as $stem ) {
+			foreach ( array( '.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG' ) as $ext ) {
+				if ( file_exists( $stem . $ext ) ) {
+					return $stem . $ext;
+				}
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Re-convert one image with one-off settings (nothing is saved to the global
+	 * Images settings). Re-encodes from the kept original JPG/PNG when there is
+	 * one, so quality doesn't drop from converting a WebP a second time.
+	 *
+	 * @param int   $attachment_id
+	 * @param array $opts max_width (0 = keep size), quality, avif, lossless, keep_exif, replace.
+	 * @return array|WP_Error Stats + the new width/height/bytes.
+	 */
+	public function reconvert( $attachment_id, array $opts ) {
+		$quality = max( 1, min( 100, isset( $opts['quality'] ) ? (int) $opts['quality'] : (int) Velox_Settings::get( 'webp_quality', 80 ) ) );
+		$prev    = Velox_Settings::override( array(
+			'image_max_width' => max( 0, isset( $opts['max_width'] ) ? (int) $opts['max_width'] : 0 ),
+			'webp_quality'    => $quality,
+			'image_webp'      => true,
+			'image_avif'      => ! empty( $opts['avif'] ),
+			'image_lossless'  => ! empty( $opts['lossless'] ),
+			'image_keep_exif' => ! empty( $opts['keep_exif'] ),
+			'image_replace'   => ! isset( $opts['replace'] ) || ! empty( $opts['replace'] ),
+		) );
+		try {
+			$res = $this->reconvert_inner( (int) $attachment_id, $quality );
+		} finally {
+			Velox_Settings::override( $prev );
+		}
+		if ( is_wp_error( $res ) ) {
+			return $res;
+		}
+		$meta  = wp_get_attachment_metadata( $attachment_id );
+		$file  = get_attached_file( $attachment_id );
+		$res['w']     = isset( $meta['width'] ) ? (int) $meta['width'] : 0;
+		$res['h']     = isset( $meta['height'] ) ? (int) $meta['height'] : 0;
+		$res['bytes'] = $file && file_exists( $file ) ? (int) filesize( $file ) : 0;
+		$res['ext']   = $file ? strtolower( pathinfo( $file, PATHINFO_EXTENSION ) ) : '';
+		$res['thumb'] = wp_get_attachment_image_url( $attachment_id, 'thumbnail' );
+		return $res;
+	}
+
+	private function reconvert_inner( $attachment_id, $quality ) {
+		$file = get_attached_file( $attachment_id );
+		if ( ! $file || ! file_exists( $file ) ) {
+			return new WP_Error( 'no_file', __( 'Source file not found.', 'velox' ) );
+		}
+		if ( preg_match( '/\.(jpe?g|png)$/i', $file ) ) {
+			delete_post_meta( $attachment_id, self::META_KEY ); // force a fresh run
+			return $this->convert_attachment( $attachment_id, $quality );
+		}
+		if ( ! preg_match( '/\.webp$/i', $file ) ) {
+			return new WP_Error( 'unsupported', __( 'Only JPG, PNG and WebP images can be re-converted.', 'velox' ) );
+		}
+
+		// Already WebP. Best case: Velox kept the original — rebuild from that.
+		$original = self::original_for( $file );
+		if ( '' !== $original ) {
+			$res = $this->replace_inplace( $attachment_id, $original, $quality );
+			$new = get_attached_file( $attachment_id );
+			if ( ! is_wp_error( $res ) && $new !== $file && file_exists( $file ) ) {
+				@unlink( $file ); // the previous WebP had a different name — don't leave it orphaned
+			}
+			return $res;
+		}
+
+		// No original left: re-encode the WebP itself (resize + new quality).
+		$orig_bytes = (int) filesize( $file );
+		$src        = $file . '.velox-src';
+		if ( ! @copy( $file, $src ) ) { // phpcs:ignore
+			return new WP_Error( 'failed', __( 'Could not make a working copy of the image.', 'velox' ) );
+		}
+		$tmp = $file . '.velox-new.webp';
+		$ok  = $this->encode_webp( $src, $tmp, $quality ) && file_exists( $tmp ) && filesize( $tmp ) > 0;
+		@unlink( $src ); // phpcs:ignore
+		if ( ! $ok || ! @rename( $tmp, $file ) ) { // phpcs:ignore
+			@unlink( $tmp ); // phpcs:ignore
+			return new WP_Error( 'failed', __( 'Conversion failed. Check that GD or Imagick supports WebP on this server.', 'velox' ) );
+		}
+		if ( self::avif_active() ) {
+			$this->encode_avif( $file, preg_replace( '/\.webp$/i', '.avif', $file ), $quality );
+		}
+		// Rebuild the thumbnails from the new full-size image.
+		$old_meta = wp_get_attachment_metadata( $attachment_id );
+		$base_dir = trailingslashit( dirname( $file ) );
+		if ( ! empty( $old_meta['sizes'] ) ) {
+			foreach ( $old_meta['sizes'] as $size ) {
+				if ( ! empty( $size['file'] ) && file_exists( $base_dir . $size['file'] ) ) {
+					@unlink( $base_dir . $size['file'] ); // phpcs:ignore
+				}
+			}
+		}
+		if ( ! function_exists( 'wp_generate_attachment_metadata' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/image.php';
+		}
+		self::$busy = true;
+		$new_meta   = wp_generate_attachment_metadata( $attachment_id, $file );
+		self::$busy = false;
+		if ( is_array( $new_meta ) ) {
+			wp_update_attachment_metadata( $attachment_id, $new_meta );
+		}
+		$new_bytes = (int) filesize( $file );
+		$prev      = get_post_meta( $attachment_id, self::META_KEY, true );
+		$first     = is_array( $prev ) && ! empty( $prev['original_bytes'] ) ? (int) $prev['original_bytes'] : $orig_bytes;
+		$stats     = array(
+			'original_bytes' => $first,
+			'webp_bytes'     => $new_bytes,
+			'saved_pct'      => $first > 0 ? max( 0, round( ( 1 - $new_bytes / $first ) * 100, 1 ) ) : 0,
+			'quality'        => $quality,
+			'files'          => 1,
+			'replaced'       => true,
+			'time'           => time(),
+		);
+		update_post_meta( $attachment_id, self::META_KEY, $stats );
+		return $stats;
 	}
 
 	/** All attachments Velox has converted, newest first — powers the converted-images screen. */

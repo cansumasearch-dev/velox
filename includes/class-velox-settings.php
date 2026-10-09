@@ -391,6 +391,12 @@ class Velox_Settings {
 				'label' => 'Background',
 				'keys'  => array( 'perf_heartbeat', 'perf_revisions_keep', 'perf_autosave_interval' ),
 			),
+			// Not settings — the .htaccess editor. Only shown with Risky mode on.
+			'htaccess' => array(
+				'label' => '.htaccess',
+				'keys'  => array(),
+				'risky' => true,
+			),
 		);
 	}
 
@@ -417,6 +423,21 @@ class Velox_Settings {
 			self::$cache = array_merge( self::defaults(), $saved );
 		}
 		return self::$cache;
+	}
+
+	/**
+	 * Override settings for the rest of THIS request only (nothing is saved).
+	 * Used by one-off jobs like re-converting an image with custom quality/width.
+	 * Returns the previous values so the caller can put them back.
+	 */
+	public static function override( array $values ) {
+		$all  = self::all();
+		$prev = array();
+		foreach ( $values as $k => $v ) {
+			$prev[ $k ] = array_key_exists( $k, $all ) ? $all[ $k ] : null;
+			self::$cache[ $k ] = $v;
+		}
+		return $prev;
 	}
 
 	public static function get( $key, $fallback = null ) {

@@ -1143,6 +1143,15 @@
 			$$( '[data-risky="1"]' ).forEach( function ( el ) {
 				el.style.display = on ? '' : 'none';
 			} );
+			// Whole risky sections (the .htaccess editor). If one was open when risky
+			// mode went off, fall back to the first section so the page isn't blank.
+			$$( '.velox-perf-navitem[data-risky-section="1"]' ).forEach( function ( el ) {
+				el.hidden = ! on;
+				if ( ! on && el.classList.contains( 'is-active' ) ) {
+					var firstItem = $( '.velox-perf-navitem' );
+					if ( firstItem ) { firstItem.click(); }
+				}
+			} );
 		}
 		if ( riskyToggle ) {
 			applyRisky();
@@ -8510,6 +8519,412 @@
 		} );
 	}
 
+	/* ----------------------------------------------------------------
+	 * Performance → .htaccess editor (risky mode). Locked until unlocked;
+	 * the server enforces the same 10-minute window, this just mirrors it.
+	 * ------------------------------------------------------------- */
+
+	function initHtaccess() {
+		var box = document.getElementById( 'velox-ht' );
+		if ( ! box ) {
+			return;
+		}
+		var ed      = document.getElementById( 'vxht-editor' );
+		var unlockB = document.getElementById( 'vxht-unlock' );
+		var lockB   = document.getElementById( 'vxht-lock' );
+		var saveB   = document.getElementById( 'vxht-save' );
+		var restB   = document.getElementById( 'vxht-restore' );
+		var stateT  = document.getElementById( 'vxht-state-text' );
+		var bk      = document.getElementById( 'vxht-backups' );
+		var until   = 0;
+		var timer   = null;
+		var saved   = ed.value;
+		var working = false;
+
+		function fmt( secs ) {
+			var m = Math.floor( secs / 60 );
+			var r = secs % 60;
+			return m + ':' + ( r < 10 ? '0' : '' ) + r;
+		}
+		function render() {
+			var left = Math.max( 0, Math.round( ( until - Date.now() ) / 1000 ) );
+			var open = left > 0;
+			box.classList.toggle( 'is-open', open );
+			box.classList.toggle( 'is-ending', open && left <= 60 );
+			ed.readOnly    = ! open;
+			unlockB.hidden = open;
+			lockB.hidden   = ! open;
+			saveB.disabled = working || ! open || ed.value === saved;
+			restB.disabled = working || ! open || parseInt( bk.getAttribute( 'data-count' ), 10 ) < 1;
+			stateT.textContent = open ? vxT( 'Unlocked · %s left', fmt( left ) ) : vxT( 'Locked' );
+			if ( ! open && timer ) {
+				clearInterval( timer );
+				timer = null;
+			}
+		}
+		function openFor( secs ) {
+			until = Date.now() + secs * 1000;
+			if ( ! timer ) {
+				timer = setInterval( render, 1000 );
+			}
+			render();
+		}
+		function busy( btn, on ) {
+			working      = on;
+			btn.disabled = on;
+			btn.classList.toggle( 'is-loading', on );
+			if ( ! on ) {
+				render();
+			}
+		}
+
+		unlockB.addEventListener( 'click', function () {
+			busy( unlockB, true );
+			api( 'htaccess_unlock', {} )
+				.then( function ( d ) {
+					if ( ed.value === saved ) { // pick up the file as it is right now
+						ed.value = d.content;
+						saved    = d.content;
+					}
+					openFor( d.seconds_left );
+					ed.focus();
+				} )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { busy( unlockB, false ); } );
+		} );
+
+		lockB.addEventListener( 'click', function () {
+			api( 'htaccess_lock', {} ).catch( function () {} );
+			until = 0;
+			render();
+		} );
+
+		function save() {
+			if ( saveB.disabled ) {
+				return;
+			}
+			busy( saveB, true );
+			api( 'htaccess_save', { content: ed.value } )
+				.then( function ( d ) {
+					saved = ed.value;
+					if ( 'number' === typeof d.backups ) {
+						bk.setAttribute( 'data-count', d.backups );
+					}
+					toast( d.message, 'unknown' === d.checked ? 'warn' : 'success' );
+				} )
+				.catch( function ( e ) {
+					// Rolled back or refused — the server file is unchanged; keep the
+					// text so it can be fixed. If our window just ran out, show locked.
+					toast( e.message, 'error' );
+					if ( Date.now() > until - 3000 ) {
+						until = 0;
+					}
+				} )
+				.then( function () { busy( saveB, false ); } );
+		}
+		saveB.addEventListener( 'click', save );
+		ed.addEventListener( 'input', render );
+		ed.addEventListener( 'keydown', function ( e ) {
+			if ( ( e.ctrlKey || e.metaKey ) && 's' === e.key.toLowerCase() ) {
+				e.preventDefault();
+				save();
+			}
+		} );
+
+		restB.addEventListener( 'click', function () {
+			if ( ! window.confirm( vxT( 'Put the previous version of .htaccess back?' ) ) ) {
+				return;
+			}
+			busy( restB, true );
+			api( 'htaccess_restore', {} )
+				.then( function ( d ) {
+					ed.value = d.content;
+					saved    = d.content;
+					bk.setAttribute( 'data-count', d.backups );
+					toast( d.message, 'success' );
+				} )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { busy( restB, false ); } );
+		} );
+
+		var left = parseInt( box.getAttribute( 'data-left' ), 10 ) || 0;
+		if ( left > 0 ) {
+			openFor( left );
+		} else {
+			render();
+		}
+	}
+
+	/* ----------------------------------------------------------------
+	 * Images → Large images (?view=large): list everything above a limit
+	 * and re-convert one / selected / all with one-off settings.
+	 * ------------------------------------------------------------- */
+
+	function initLargeImages() {
+		var root = document.getElementById( 'velox-large' );
+		if ( ! root ) {
+			return;
+		}
+		var by     = document.getElementById( 'vxlg-by' );
+		var min    = document.getElementById( 'vxlg-min' );
+		var unit   = document.getElementById( 'vxlg-unit' );
+		var findB  = document.getElementById( 'vxlg-find' );
+		var maxw   = document.getElementById( 'vxlg-maxw' );
+		var qual   = document.getElementById( 'vxlg-quality' );
+		var all    = document.getElementById( 'vxlg-all' );
+		var count  = document.getElementById( 'vxlg-count' );
+		var runB   = document.getElementById( 'vxlg-run' );
+		var stopB  = document.getElementById( 'vxlg-stop' );
+		var list   = document.getElementById( 'vxlg-list' );
+		var prog   = document.getElementById( 'vxlg-progress' );
+		var bar    = document.getElementById( 'vxlg-progress-bar' );
+		var ptxt   = document.getElementById( 'vxlg-progress-text' );
+		var engine = '1' === root.getAttribute( 'data-engine' );
+		var items  = [];
+		var rows   = {};
+		var picked = {};
+		var running = false;
+		var stopReq = false;
+		var maxwTouched = false;
+
+		function size( b ) {
+			if ( b >= 1048576 ) {
+				return ( b / 1048576 ).toFixed( 1 ) + ' MB';
+			}
+			return Math.max( 1, Math.round( b / 1024 ) ) + ' KB';
+		}
+		function el( tag, cls, text ) {
+			var n = document.createElement( tag );
+			if ( cls ) { n.className = cls; }
+			if ( null != text ) { n.textContent = text; }
+			return n;
+		}
+		function opts() {
+			var fmt = root.querySelector( '[data-vxlg-format].is-active' );
+			return {
+				max_width: Math.max( 0, parseInt( maxw.value, 10 ) || 0 ),
+				quality:   Math.min( 100, Math.max( 1, parseInt( qual.value, 10 ) || 80 ) ),
+				avif:      fmt && 'avif' === fmt.getAttribute( 'data-vxlg-format' ) ? 1 : 0,
+				lossless:  document.getElementById( 'vxlg-lossless' ).checked ? 1 : 0,
+				keep_exif: document.getElementById( 'vxlg-exif' ).checked ? 1 : 0,
+				replace:   document.getElementById( 'vxlg-replace' ).checked ? 1 : 0,
+			};
+		}
+		function pickedCount() {
+			return Object.keys( picked ).length;
+		}
+		function updateBar() {
+			var n = pickedCount();
+			var total = 0;
+			items.forEach( function ( it ) { total += it.bytes; } );
+			count.textContent = items.length
+				? vxT( '%s images · %s', items.length, size( total ) )
+				: vxT( 'No images' );
+			all.disabled = running || ! items.length;
+			all.checked  = items.length > 0 && n === items.length;
+			all.indeterminate = n > 0 && n < items.length;
+			runB.disabled = running || ! n || ! engine;
+			runB.textContent = n ? vxT( 'Re-convert selected (%s)', n ) : vxT( 'Re-convert selected' );
+		}
+
+		function rowFor( it ) {
+			var row = el( 'div', 'vxlg-row' );
+			row.setAttribute( 'data-id', it.id );
+
+			var cb = el( 'input' );
+			cb.type = 'checkbox';
+			cb.className = 'vxlg-cb';
+			cb.setAttribute( 'aria-label', vxT( 'Select %s', it.title || it.file ) );
+			cb.addEventListener( 'change', function () {
+				if ( cb.checked ) { picked[ it.id ] = true; } else { delete picked[ it.id ]; }
+				updateBar();
+			} );
+
+			var th = el( 'a', 'vxlg-thumb' );
+			th.href = it.url || '#';
+			th.target = '_blank';
+			th.rel = 'noopener';
+			if ( it.thumb ) { th.style.backgroundImage = 'url("' + String( it.thumb ).replace( /"/g, '%22' ) + '")'; }
+
+			var name = el( 'div', 'vxlg-name' );
+			name.appendChild( el( 'span', 'vxlg-title', it.title || it.file ) );
+			var sub = el( 'span', 'vxlg-sub' );
+			sub.appendChild( el( 'span', 'vxlg-ext', ( it.ext || '' ).toUpperCase() ) );
+			sub.appendChild( el( 'span', 'vxlg-file', it.file ) );
+			if ( 'webp' === it.ext && ! it.original ) {
+				sub.appendChild( el( 'span', 'vxlg-noorig', vxT( 'no original kept' ) ) );
+			}
+			name.appendChild( sub );
+
+			var dims = el( 'div', 'vxlg-dims', it.w + ' × ' + it.h );
+			var sz   = el( 'div', 'vxlg-size', size( it.bytes ) );
+
+			var act = el( 'div', 'vxlg-act' );
+			var btn = el( 'button', 'velox-btn velox-btn--ghost velox-btn--sm', vxT( 'Re-convert' ) );
+			btn.type = 'button';
+			btn.disabled = ! engine;
+			btn.addEventListener( 'click', function () {
+				if ( running ) { return; }
+				running = true;
+				updateBar();
+				convert( it ).then( function () { running = false; updateBar(); } );
+			} );
+			act.appendChild( btn );
+
+			row.appendChild( cb );
+			row.appendChild( th );
+			row.appendChild( name );
+			row.appendChild( dims );
+			row.appendChild( sz );
+			row.appendChild( act );
+			rows[ it.id ] = { row: row, cb: cb, thumb: th, dims: dims, size: sz, act: act, btn: btn };
+			return row;
+		}
+
+		function render() {
+			list.textContent = '';
+			rows = {};
+			picked = {};
+			if ( ! items.length ) {
+				var empty = el( 'div', 'vxlg-empty' );
+				empty.appendChild( el( 'strong', null, vxT( 'Nothing above %s %s', min.value, unit.textContent ) ) );
+				empty.appendChild( el( 'span', 'velox-hint', vxT( 'Every image in your library is within this limit. Try a lower number to see more.' ) ) );
+				list.appendChild( empty );
+			} else {
+				items.forEach( function ( it ) { list.appendChild( rowFor( it ) ); } );
+			}
+			updateBar();
+		}
+
+		function load() {
+			list.textContent = '';
+			list.appendChild( el( 'div', 'velox-loading', vxT( 'Looking through your library…' ) ) );
+			count.textContent = '—';
+			runB.disabled = true;
+			api( 'large_images', { min: Math.max( 0, parseInt( min.value, 10 ) || 0 ), by: by.value } )
+				.then( function ( d ) {
+					items = d.items || [];
+					render();
+				} )
+				.catch( function ( e ) {
+					list.textContent = '';
+					list.appendChild( el( 'div', 'vxlg-empty vxlg-empty--error', e.message ) );
+				} );
+		}
+
+		function convert( it ) {
+			var r = rows[ it.id ];
+			r.row.classList.remove( 'is-done', 'is-failed' );
+			r.row.classList.add( 'is-working' );
+			r.btn.disabled = true;
+			r.btn.classList.add( 'is-loading' );
+			var payload = opts();
+			payload.id = it.id;
+			return api( 'reconvert_image', payload )
+				.then( function ( d ) {
+					var before = it.bytes;
+					it.w = d.w; it.h = d.h; it.bytes = d.bytes; it.ext = d.ext;
+					r.dims.textContent = d.w + ' × ' + d.h;
+					r.size.textContent = size( d.bytes );
+					if ( d.thumb ) { // cache-bust: the file name is unchanged but the pixels aren't
+						var t = String( d.thumb ).replace( /"/g, '%22' );
+						if ( 0 !== t.indexOf( 'data:' ) ) {
+							t += ( -1 === t.indexOf( '?' ) ? '?' : '&' ) + 'v=' + Date.now();
+						}
+						r.thumb.style.backgroundImage = 'url("' + t + '")';
+					}
+					var pct = before > 0 ? Math.round( ( 1 - d.bytes / before ) * 100 ) : 0;
+					r.act.textContent = '';
+					r.act.appendChild( el( 'span', 'vxlg-result', pct > 0 ? '−' + pct + '%' : vxT( 'Done' ) ) );
+					r.row.classList.add( 'is-done' );
+					r.cb.checked = false;
+					delete picked[ it.id ];
+					return true;
+				} )
+				.catch( function ( e ) {
+					r.row.classList.add( 'is-failed' );
+					r.btn.disabled = false;
+					r.btn.classList.remove( 'is-loading' );
+					r.btn.title = e.message;
+					r.btn.textContent = vxT( 'Retry' );
+					toast( e.message, 'error' );
+					return false;
+				} )
+				.then( function ( ok ) {
+					r.row.classList.remove( 'is-working' );
+					return ok;
+				} );
+		}
+
+		runB.addEventListener( 'click', function () {
+			var queue = items.filter( function ( it ) { return picked[ it.id ]; } );
+			if ( ! queue.length || running ) {
+				return;
+			}
+			running = true;
+			stopReq = false;
+			var done = 0;
+			var failed = 0;
+			var total = queue.length;
+			prog.hidden = false;
+			stopB.hidden = false;
+			$$( '.vxlg-cb', list ).forEach( function ( c ) { c.disabled = true; } );
+			updateBar();
+			function step() {
+				bar.style.width = Math.round( done / total * 100 ) + '%';
+				ptxt.textContent = done + ' / ' + total;
+				if ( stopReq || ! queue.length ) {
+					running = false;
+					stopB.hidden = true;
+					$$( '.vxlg-cb', list ).forEach( function ( c ) { c.disabled = false; } );
+					updateBar();
+					if ( stopReq ) {
+						toast( vxT( 'Stopped after %s of %s.', done, total ), 'info' );
+					} else if ( failed ) {
+						toast( vxT( 'Re-converted %s of %s — %s failed. Hover Retry to see why.', done - failed, total, failed ), 'warn' );
+					} else {
+						toast( vxT( 'Re-converted %s images.', done ), 'success' );
+					}
+					return;
+				}
+				convert( queue.shift() ).then( function ( ok ) { done++; if ( ! ok ) { failed++; } step(); } );
+			}
+			step();
+		} );
+		stopB.addEventListener( 'click', function () { stopReq = true; } );
+
+		all.addEventListener( 'change', function () {
+			picked = {};
+			items.forEach( function ( it ) {
+				var r = rows[ it.id ];
+				if ( r ) { r.cb.checked = all.checked; }
+				if ( all.checked ) { picked[ it.id ] = true; }
+			} );
+			updateBar();
+		} );
+
+		$$( '[data-vxlg-format]', root ).forEach( function ( b ) {
+			b.addEventListener( 'click', function () {
+				$$( '[data-vxlg-format]', root ).forEach( function ( o ) { o.classList.toggle( 'is-active', o === b ); } );
+			} );
+		} );
+		by.addEventListener( 'change', function () {
+			unit.textContent = 'kb' === by.value ? 'KB' : 'px';
+			load();
+		} );
+		// Until the user picks their own max width, resizing "wider than 1000"
+		// images to 1000 px is the obvious default — keep the two in step.
+		maxw.addEventListener( 'input', function () { maxwTouched = true; } );
+		min.addEventListener( 'input', function () {
+			if ( ! maxwTouched && 'width' === by.value ) { maxw.value = min.value; }
+		} );
+		min.addEventListener( 'keydown', function ( e ) {
+			if ( 'Enter' === e.key ) { e.preventDefault(); load(); }
+		} );
+		findB.addEventListener( 'click', load );
+		load();
+	}
+
 	function veloxInit() {
 		initLangSwitch();
 		initErrorLog();
@@ -8523,6 +8938,8 @@
 		initLibrary();
 		initMedia();
 		initPerformance();
+		initHtaccess();
+		initLargeImages();
 		initDatabase();
 		initSeo();
 		initSeoHealth();

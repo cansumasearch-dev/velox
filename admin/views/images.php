@@ -55,6 +55,89 @@ if ( 'converted' === $velox_view ) :
 	return;
 endif;
 ?>
+<?php
+/* -------------------------------------------------------------------------
+ * Large-images screen (?view=large) — every image above a size limit, with a
+ * one-off re-convert (its own width/quality/format; saved settings untouched).
+ * The list is loaded and processed by initLargeImages() in velox-admin.js.
+ * ---------------------------------------------------------------------- */
+if ( 'large' === $velox_view ) :
+	$back_url = admin_url( 'admin.php?page=velox-images' );
+	?>
+	<div class="velox-page-head velox-page-head--back">
+		<a class="velox-back" href="<?php echo esc_url( $back_url ); ?>"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg> <?php esc_html_e('Images', 'velox'); ?></a>
+		<h1 class="velox-h2"><?php esc_html_e('Large images', 'velox'); ?></h1>
+		<p class="velox-sub"><?php esc_html_e('Every image above the limit you set — 1001 counts when the limit is 1000. Re-convert them smaller with the settings below; your saved Images settings stay as they are.', 'velox'); ?></p>
+	</div>
+
+	<?php if ( ! $engine ) : ?>
+		<div class="velox-alert velox-alert--warn"><?php esc_html_e('No image engine (Imagick or GD with WebP) was found on this server, so images can be listed but not re-converted.', 'velox'); ?></div>
+	<?php endif; ?>
+
+	<div class="velox-panel vxlg-setup" id="velox-large" data-engine="<?php echo $engine ? '1' : '0'; ?>">
+		<div class="vxlg-find">
+			<span class="velox-field-label"><?php esc_html_e('Show images', 'velox'); ?></span>
+			<div class="vxlg-find-row">
+				<select class="velox-select" id="vxlg-by">
+					<option value="width"><?php esc_html_e('wider than', 'velox'); ?></option>
+					<option value="height"><?php esc_html_e('taller than', 'velox'); ?></option>
+					<option value="kb"><?php esc_html_e('bigger than', 'velox'); ?></option>
+				</select>
+				<input type="number" class="velox-input velox-input--sm" id="vxlg-min" value="1000" min="0" step="1" aria-label="<?php esc_attr_e( 'Limit', 'velox' ); ?>">
+				<span class="vxlg-unit" id="vxlg-unit">px</span>
+				<button type="button" class="velox-btn velox-btn--ghost" id="vxlg-find"><?php esc_html_e('Find', 'velox'); ?></button>
+			</div>
+		</div>
+
+		<div class="vxlg-opts">
+			<span class="velox-field-label"><?php esc_html_e('Re-convert with', 'velox'); ?></span>
+			<div class="vxlg-opts-grid">
+				<label class="vxlg-opt">
+					<span class="vxlg-opt-k"><?php esc_html_e('Max width', 'velox'); ?></span>
+					<span class="vxlg-opt-v"><input type="number" class="velox-input velox-input--sm" id="vxlg-maxw" value="1000" min="0" step="10"> <span class="vxlg-unit">px</span></span>
+					<span class="vxlg-opt-h"><?php esc_html_e('Height follows. 0 keeps the size.', 'velox'); ?></span>
+				</label>
+				<label class="vxlg-opt">
+					<span class="vxlg-opt-k"><?php esc_html_e('Quality', 'velox'); ?></span>
+					<span class="vxlg-opt-v"><input type="number" class="velox-input velox-input--sm" id="vxlg-quality" value="<?php echo esc_attr( $quality ); ?>" min="1" max="100" step="1"> <span class="vxlg-unit">%</span></span>
+					<span class="vxlg-opt-h"><?php esc_html_e('75–85 looks identical for photos.', 'velox'); ?></span>
+				</label>
+				<div class="vxlg-opt">
+					<span class="vxlg-opt-k"><?php esc_html_e('Format', 'velox'); ?></span>
+					<span class="vxck-seg" role="group" aria-label="<?php esc_attr_e( 'Format', 'velox' ); ?>">
+						<button type="button" class="vxck-seg-btn<?php echo empty( $s['image_avif'] ) ? ' is-active' : ''; ?>" data-vxlg-format="webp"><?php esc_html_e('WebP', 'velox'); ?></button>
+						<button type="button" class="vxck-seg-btn<?php echo ! empty( $s['image_avif'] ) ? ' is-active' : ''; ?>" data-vxlg-format="avif" <?php disabled( ! $avif_engine ); ?> title="<?php echo $avif_engine ? '' : esc_attr__( 'This server cannot create AVIF files.', 'velox' ); ?>"><?php esc_html_e('WebP + AVIF', 'velox'); ?></button>
+					</span>
+				</div>
+			</div>
+			<div class="vxlg-toggles">
+				<label class="vxlg-toggle"><span class="velox-switch"><input type="checkbox" id="vxlg-replace" <?php checked( ! empty( $s['image_replace'] ) ); ?>><span class="velox-switch-track"></span></span><?php esc_html_e('Replace in media library', 'velox'); ?></label>
+				<label class="vxlg-toggle"><span class="velox-switch"><input type="checkbox" id="vxlg-lossless" <?php checked( ! empty( $s['image_lossless'] ) ); ?>><span class="velox-switch-track"></span></span><?php esc_html_e('Lossless', 'velox'); ?></label>
+				<label class="vxlg-toggle"><span class="velox-switch"><input type="checkbox" id="vxlg-exif" <?php checked( ! empty( $s['image_keep_exif'] ) ); ?>><span class="velox-switch-track"></span></span><?php esc_html_e('Keep EXIF', 'velox'); ?></label>
+			</div>
+		</div>
+	</div>
+
+	<div class="velox-panel vxlg-results">
+		<div class="vxlg-bar">
+			<label class="vxlg-all"><input type="checkbox" id="vxlg-all" aria-label="<?php esc_attr_e( 'Select all', 'velox' ); ?>"> <span id="vxlg-count" class="vxlg-count">—</span></label>
+			<div class="vxlg-bar-acts">
+				<button type="button" class="velox-btn velox-btn--ghost" id="vxlg-stop" hidden><?php esc_html_e('Stop', 'velox'); ?></button>
+				<button type="button" class="velox-btn velox-btn--primary" id="vxlg-run" disabled><?php esc_html_e('Re-convert selected', 'velox'); ?></button>
+			</div>
+		</div>
+		<div class="velox-progress-wrap" id="vxlg-progress" hidden>
+			<div class="velox-progress"><div class="velox-progress-bar" id="vxlg-progress-bar"></div></div>
+			<span class="velox-progress-text" id="vxlg-progress-text">0 / 0</span>
+		</div>
+		<div class="vxlg-list" id="vxlg-list" aria-live="polite">
+			<div class="velox-loading"><?php esc_html_e('Looking through your library…', 'velox'); ?></div>
+		</div>
+	</div>
+	<?php
+	return;
+endif;
+?>
 <div class="velox-page-head">
 	<h1 class="velox-h2"><?php esc_html_e('Images', 'velox'); ?></h1>
 	<p class="velox-sub"><?php esc_html_e('Your image optimization center — pick formats and quality, then convert your whole library. With replace mode on, images become WebP right in your media library; the resize width sets a max (height follows automatically, smaller images are left untouched).', 'velox'); ?></p>
@@ -176,6 +259,7 @@ endif;
 			<button class="velox-btn velox-btn--primary" id="velox-bulk-start" <?php disabled( ! $engine ); ?>><?php esc_html_e('Convert pending images', 'velox'); ?></button>
 			<button class="velox-btn velox-btn--ghost" id="velox-bulk-stop" hidden><?php esc_html_e('Stop', 'velox'); ?></button>
 			<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=velox-images&view=converted' ) ); ?>"><?php esc_html_e('View converted images →', 'velox'); ?></a>
+			<a class="velox-btn velox-btn--ghost" href="<?php echo esc_url( admin_url( 'admin.php?page=velox-images&view=large' ) ); ?>"><?php esc_html_e('Find large images →', 'velox'); ?></a>
 		</div>
 		<p class="velox-hint" id="velox-bulk-summary"></p>
 	</div>

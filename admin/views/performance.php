@@ -214,7 +214,9 @@ $sec_icons   = array(
 	'preload' => '<circle cx="12" cy="12" r="1.6"/><path d="M8.5 8.5a5 5 0 0 0 0 7M15.5 8.5a5 5 0 0 1 0 7M6 6a9 9 0 0 0 0 12M18 6a9 9 0 0 1 0 12"/>',
 	'background' => '<path d="M4 12a8 8 0 0 1 13.7-5.6L20 8"/><path d="M20 4v4h-4"/><path d="M20 12a8 8 0 0 1-13.7 5.6L4 16"/><path d="M4 20v-4h4"/>',
 	'cdn'     => '<circle cx="12" cy="12" r="9"/><path d="M2 12h20M12 3a15 15 0 010 18 15 15 0 010-18z"/>',
+	'htaccess' => '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M9 13h6M9 17h4"/>',
 );
+$risky_on = ! empty( $s['perf_risky_mode'] );
 ?>
 <div class="velox-pf-status">
 	<div class="velox-pf-stat">
@@ -237,7 +239,7 @@ $sec_icons   = array(
 				$badge = $cnt > 0 ? (string) $cnt : '';
 			}
 			?>
-			<button type="button" class="velox-perf-navitem<?php echo $first ? ' is-active' : ''; ?>" data-section="<?php echo esc_attr( $id ); ?>">
+			<button type="button" class="velox-perf-navitem<?php echo $first ? ' is-active' : ''; ?>" data-section="<?php echo esc_attr( $id ); ?>"<?php echo ! empty( $sec['risky'] ) ? ' data-risky-section="1"' . ( $risky_on ? '' : ' hidden' ) : ''; ?>>
 				<svg class="velox-perf-navic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><?php echo $sec_icons[ $id ] ?? ''; // phpcs:ignore WordPress.Security.EscapeOutput ?></svg>
 				<span class="velox-perf-navlabel"><?php echo esc_html( $sec['label'] ); ?></span>
 				<?php if ( '' !== $badge ) : ?><span class="velox-perf-navcount velox-perf-navcount--<?php echo ( 'on' === $badge || 'off' === $badge ) ? esc_attr( $badge ) : 'num'; ?>"><?php echo esc_html( $badge ); ?></span><?php endif; ?>
@@ -247,7 +249,43 @@ $sec_icons   = array(
 
 	<div class="velox-perf-body">
 		<?php $first = true; foreach ( $sections as $id => $sec ) : ?>
-			<section class="velox-perf-panel<?php echo $first ? ' is-active' : ''; ?>" data-section="<?php echo esc_attr( $id ); ?>">
+			<section class="velox-perf-panel<?php echo $first ? ' is-active' : ''; ?>" data-section="<?php echo esc_attr( $id ); ?>"<?php echo ! empty( $sec['risky'] ) ? ' data-risky-section="1"' : ''; ?>>
+				<?php if ( 'htaccess' === $id ) :
+					$ht_left    = Velox_Htaccess::seconds_left();
+					$ht_blocked = Velox_Htaccess::blocked_reason();
+					$ht_backups = count( Velox_Htaccess::backups() );
+					?>
+					<div class="velox-panel vxht" id="velox-ht" data-left="<?php echo (int) $ht_left; ?>" data-blocked="<?php echo '' !== $ht_blocked ? '1' : '0'; ?>">
+						<div class="vxht-head">
+							<div>
+								<h3 class="velox-panel-title"><?php esc_html_e('.htaccess', 'velox'); ?></h3>
+								<p class="velox-hint"><?php esc_html_e('Server rules for redirects, caching headers and access. One typo can take the whole site offline, so the editor stays locked until you open it — and locks itself again after 10 minutes.', 'velox'); ?></p>
+							</div>
+							<div class="vxht-lock">
+								<span class="vxht-state" id="vxht-state" aria-live="polite">
+									<svg class="vxht-ic vxht-ic--locked" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
+									<svg class="vxht-ic vxht-ic--open" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.5-2"/></svg>
+									<span id="vxht-state-text"><?php esc_html_e('Locked', 'velox'); ?></span>
+								</span>
+								<button type="button" class="velox-btn velox-btn--primary" id="vxht-unlock" <?php disabled( '' !== $ht_blocked ); ?>><?php esc_html_e('Unlock for 10 minutes', 'velox'); ?></button>
+								<button type="button" class="velox-btn velox-btn--ghost" id="vxht-lock" hidden><?php esc_html_e('Lock now', 'velox'); ?></button>
+							</div>
+						</div>
+						<?php if ( '' !== $ht_blocked ) : ?>
+							<div class="velox-alert velox-alert--warn"><?php echo esc_html( $ht_blocked ); ?></div>
+						<?php elseif ( ! Velox_Htaccess::server_reads_htaccess() ) : ?>
+							<div class="velox-alert velox-alert--info"><?php esc_html_e('This server does not look like Apache or LiteSpeed. If it runs on nginx alone, rules in .htaccess have no effect.', 'velox'); ?></div>
+						<?php endif; ?>
+						<textarea class="vxht-editor velox-code-editor" id="vxht-editor" spellcheck="false" autocomplete="off" autocapitalize="off" readonly aria-label="<?php esc_attr_e( '.htaccess contents', 'velox' ); ?>"><?php echo esc_textarea( Velox_Htaccess::read() ); ?></textarea>
+						<div class="vxht-foot">
+							<p class="velox-hint" id="vxht-backups" data-count="<?php echo (int) $ht_backups; ?>"><?php esc_html_e('Every save keeps the previous version and checks that your site still loads — if it doesn\'t, the old version is put back automatically.', 'velox'); ?></p>
+							<div class="vxht-acts">
+								<button type="button" class="velox-btn velox-btn--ghost" id="vxht-restore" disabled><?php esc_html_e('Restore previous version', 'velox'); ?></button>
+								<button type="button" class="velox-btn velox-btn--primary" id="vxht-save" disabled><?php esc_html_e('Save .htaccess', 'velox'); ?></button>
+							</div>
+						</div>
+					</div>
+				<?php endif; ?>
 				<?php if ( 'general' === $id ) : ?>
 					<div class="velox-panel velox-cache-panel">
 						<h3 class="velox-panel-title"><?php esc_html_e('Clear cache', 'velox'); ?></h3>
@@ -335,6 +373,7 @@ $sec_icons   = array(
 						<div class="velox-alert velox-alert--warn velox-cache-note" id="velox-cache-note" hidden></div>
 					</div>
 				<?php endif; ?>
+				<?php if ( 'htaccess' !== $id ) : ?>
 				<div class="velox-panel">
 					<h3 class="velox-panel-title"><?php echo esc_html( $sec['label'] ); ?></h3>
 					<?php foreach ( $sec['keys'] as $key ) : ?>
@@ -384,6 +423,7 @@ $sec_icons   = array(
 						</div>
 					<?php endif; ?>
 				</div>
+				<?php endif; ?>
 			</section>
 		<?php $first = false; endforeach; ?>
 	</div>

@@ -161,6 +161,48 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Image_Optimizer::library_stats() );
 				break;
 
+			case 'large_images':
+				$min = isset( $_POST['min'] ) ? (int) $_POST['min'] : 1000;
+				$by  = isset( $_POST['by'] ) ? sanitize_key( wp_unslash( $_POST['by'] ) ) : 'width';
+				wp_send_json_success( array( 'items' => Velox_Image_Optimizer::large_images( $min, $by ) ) );
+				break;
+
+			case 'reconvert_image':
+				$opt = new Velox_Image_Optimizer();
+				$this->respond( $opt->reconvert( (int) ( $_POST['id'] ?? 0 ), array(
+					'max_width' => (int) ( $_POST['max_width'] ?? 0 ),
+					'quality'   => (int) ( $_POST['quality'] ?? 80 ),
+					'avif'      => ! empty( $_POST['avif'] ),
+					'lossless'  => ! empty( $_POST['lossless'] ),
+					'keep_exif' => ! empty( $_POST['keep_exif'] ),
+					'replace'   => ! empty( $_POST['replace'] ),
+				) ) );
+				break;
+
+			/* -------- .htaccess editor (risky mode) -------- */
+			case 'htaccess_unlock':
+				if ( ! Velox_Settings::get( 'perf_risky_mode', false ) ) {
+					wp_send_json_error( array( 'message' => __( 'Turn on Risky mode in Performance to edit .htaccess.', 'velox' ) ) );
+				}
+				$reason = Velox_Htaccess::blocked_reason();
+				if ( '' !== $reason ) {
+					wp_send_json_error( array( 'message' => $reason ) );
+				}
+				wp_send_json_success( Velox_Htaccess::unlock() );
+				break;
+
+			case 'htaccess_lock':
+				wp_send_json_success( Velox_Htaccess::lock() );
+				break;
+
+			case 'htaccess_save':
+				$this->respond( Velox_Htaccess::save( isset( $_POST['content'] ) ? (string) wp_unslash( $_POST['content'] ) : '' ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput -- raw server config by design; admin-only, unlock-gated
+				break;
+
+			case 'htaccess_restore':
+				$this->respond( Velox_Htaccess::restore_latest() );
+				break;
+
 			case 'dash_widgets':
 				$hidden = isset( $_POST['hidden'] ) ? (array) wp_unslash( $_POST['hidden'] ) : array();
 				$hidden = array_values( array_unique( array_filter( array_map( 'sanitize_key', $hidden ) ) ) );
