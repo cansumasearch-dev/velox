@@ -2902,4 +2902,11 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Moved %s comments to the spam folder.' => '%s Kommentare in den Spam-Ordner verschoben.',
 	'Delete all %s spam comments for good? This cannot be undone.' => 'Alle %s Spam-Kommentare endgültig löschen? Das kann nicht rückgängig gemacht werden.',
 	'Deleted %s spam comments.' => '%s Spam-Kommentare gelöscht.',
+	'When an image becomes WebP, Velox keeps its original JPG/PNG so nothing is ever lost — and every image wider than 1000 px always has a full-size original saved, even one that was uploaded as WebP. Choose where the originals live.' => 'Wenn ein Bild zu WebP wird, behält Velox das originale JPG/PNG, damit nichts verloren geht – und für jedes Bild, das breiter als 1000 px ist, wird immer ein Original in voller Größe gesichert, auch wenn es als WebP hochgeladen wurde. Wählen Sie, wo die Originale liegen.',
+	'Originals: a JPG or PNG is always kept, and every image wider than 1000 px always has a full-size original saved — re-convert builds from it. Smaller WebPs are not backed up.' => 'Originale: Ein JPG oder PNG wird immer behalten, und für jedes Bild, das breiter als 1000 px ist, wird immer ein Original in voller Größe gesichert – das Neukonvertieren baut darauf auf. Kleinere WebPs werden nicht gesichert.',
+	'%s large images still being backed up' => '%s große Bilder werden noch gesichert',
+	'Back up %s now' => '%s jetzt sichern',
+	'Backing up… %s left' => 'Wird gesichert … noch %s',
+	'Backed up %s — %s could not be copied. Check that the uploads folder is writable.' => '%s gesichert – %s konnten nicht kopiert werden. Prüfen Sie, ob der Uploads-Ordner beschreibbar ist.',
+	'Backed up %s large images.' => '%s große Bilder gesichert.',
 );

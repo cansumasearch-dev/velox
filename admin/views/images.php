@@ -115,7 +115,7 @@ if ( 'large' === $velox_view ) :
 				<label class="vxlg-toggle"><span class="velox-switch"><input type="checkbox" id="vxlg-lossless" <?php checked( ! empty( $s['image_lossless'] ) ); ?>><span class="velox-switch-track"></span></span><?php esc_html_e('Lossless', 'velox'); ?></label>
 				<label class="vxlg-toggle"><span class="velox-switch"><input type="checkbox" id="vxlg-exif" <?php checked( ! empty( $s['image_keep_exif'] ) ); ?>><span class="velox-switch-track"></span></span><?php esc_html_e('Keep EXIF', 'velox'); ?></label>
 			</div>
-			<p class="velox-hint vxlg-orig-hint"><?php esc_html_e('Originals: a JPG or PNG is always kept. A WebP wider than 1000 px with no original is backed up before it is re-converted; smaller WebPs are not.', 'velox'); ?></p>
+			<p class="velox-hint vxlg-orig-hint"><?php esc_html_e('Originals: a JPG or PNG is always kept, and every image wider than 1000 px always has a full-size original saved — re-convert builds from it. Smaller WebPs are not backed up.', 'velox'); ?></p>
 		</div>
 	</div>
 
@@ -220,11 +220,12 @@ $orig_zip   = wp_nonce_url( admin_url( 'admin-post.php?action=velox_originals_zi
 ?>
 <div class="velox-panel vxorig" id="velox-originals"
 	data-loose="<?php echo (int) $orig_stats['loose']; ?>" data-loose-bytes="<?php echo (int) $orig_stats['loose_bytes']; ?>"
-	data-archived="<?php echo (int) $orig_stats['archived']; ?>" data-archived-bytes="<?php echo (int) $orig_stats['archived_bytes']; ?>">
+	data-archived="<?php echo (int) $orig_stats['archived']; ?>" data-archived-bytes="<?php echo (int) $orig_stats['archived_bytes']; ?>"
+	data-unbacked="<?php echo (int) $orig_stats['unbacked']; ?>">
 	<div class="vxorig-head">
 		<div>
 			<h3 class="velox-panel-title"><?php esc_html_e('Original files', 'velox'); ?></h3>
-			<p class="velox-hint"><?php esc_html_e('When an image becomes WebP, Velox keeps its original JPG/PNG so nothing is ever lost. Choose where the originals live.', 'velox'); ?></p>
+			<p class="velox-hint"><?php esc_html_e('When an image becomes WebP, Velox keeps its original JPG/PNG so nothing is ever lost — and every image wider than 1000 px always has a full-size original saved, even one that was uploaded as WebP. Choose where the originals live.', 'velox'); ?></p>
 		</div>
 		<span class="vxck-seg" role="radiogroup" aria-label="<?php esc_attr_e( 'Original files', 'velox' ); ?>">
 			<button type="button" class="vxck-seg-btn<?php echo 'archive' !== $orig_mode ? ' is-active' : ''; ?>" data-orig-mode="keep" role="radio" aria-checked="<?php echo 'archive' !== $orig_mode ? 'true' : 'false'; ?>"><?php esc_html_e('Next to the WebP', 'velox'); ?></button>
@@ -242,6 +243,7 @@ $orig_zip   = wp_nonce_url( admin_url( 'admin-post.php?action=velox_originals_zi
 	<div class="vxorig-foot">
 		<span class="vxorig-stats" id="vxorig-stats" aria-live="polite"></span>
 		<div class="vxorig-acts">
+			<button type="button" class="velox-btn velox-btn--primary" id="vxorig-backup" hidden></button>
 			<button type="button" class="velox-btn velox-btn--primary" id="vxorig-move" hidden></button>
 			<a class="velox-btn velox-btn--ghost" id="vxorig-zip" href="<?php echo esc_url( $orig_zip ); ?>"><?php esc_html_e('Download all (ZIP)', 'velox'); ?></a>
 		</div>

@@ -49,6 +49,15 @@ class Velox_Image_Optimizer {
 		// "Download all originals" streams a ZIP, so it can't use the JSON router.
 		add_action( 'admin_post_velox_originals_zip', array( __CLASS__, 'stream_originals_zip' ) );
 
+		// Every image wider than KEEP_WEBP_OVER always has a full-size original:
+		// a big WebP upload is copied to the backup straight away, and big WebPs
+		// already in the library are copied in the background, a batch an hour.
+		add_filter( 'wp_generate_attachment_metadata', array( $this, 'backup_large_upload' ), 30, 2 );
+		add_action( self::BACKFILL_CRON, array( __CLASS__, 'backfill' ) );
+		if ( is_admin() && '1' !== get_option( self::BACKFILL_DONE ) && ! wp_next_scheduled( self::BACKFILL_CRON ) ) {
+			wp_schedule_event( time() + 60, 'hourly', self::BACKFILL_CRON );
+		}
+
 		// Show a Velox line under the "Add media files" uploader.
 		if ( is_admin() && Velox_Settings::enabled( 'image_webp', 'module_images' ) ) {
 			add_action( 'post-upload-ui', array( $this, 'upload_hint' ) );
@@ -228,7 +237,12 @@ class Velox_Image_Optimizer {
 			if ( 'archive' === $mode ) {
 				self::archive_original( $attachment_id, $orig );
 			} elseif ( 'delete' === $mode && $orig === $file ) {
-				@unlink( $orig ); // phpcs:ignore
+				// Big originals are kept no matter what — into the backup instead.
+				if ( self::is_large_file( $orig ) ) {
+					self::archive_original( $attachment_id, $orig );
+				} else {
+					@unlink( $orig ); // phpcs:ignore
+				}
 			}
 		}
 
@@ -802,7 +816,9 @@ class Velox_Image_Optimizer {
 	 * Original files: keep beside the WebP, or move to a private backup
 	 * ------------------------------------------------------------- */
 
-	const KEEP_WEBP_OVER = 1000;             // a WebP wider than this is backed up before re-convert overwrites it
+	const KEEP_WEBP_OVER = 1000;             // any image wider than this always has a full-size original saved
+	const BACKFILL_CRON  = 'velox_orig_backfill';
+	const BACKFILL_DONE  = 'velox_orig_backfill_done';
 	const ORIG_META   = '_velox_original';      // archive-relative paths of this image's originals
 	const ORIG_TOKEN  = 'velox_originals_token'; // random suffix that makes the folder unguessable
 
@@ -845,12 +861,13 @@ class Velox_Image_Optimizer {
 	}
 
 	/**
-	 * Move one original into the backup, mirroring its uploads path
-	 * (2026/10/photo.jpg → velox-originals-…/2026/10/photo.jpg), and remember it.
+	 * Move (or, with $copy, copy) one original into the backup, mirroring its
+	 * uploads path (2026/10/photo.jpg → velox-originals-…/2026/10/photo.jpg), and
+	 * remember it on the attachment.
 	 *
-	 * @return string|false New path, or false if it couldn't be moved (it stays put).
+	 * @return string|false New path, or false if it couldn't be stored (the file stays put).
 	 */
-	public static function archive_original( $attachment_id, $file ) {
+	public static function archive_original( $attachment_id, $file, $copy = false ) {
 		$up   = wp_upload_dir();
 		$base = trailingslashit( wp_normalize_path( $up['basedir'] ) );
 		$norm = wp_normalize_path( $file );
@@ -865,7 +882,11 @@ class Velox_Image_Optimizer {
 			$rel  = substr( wp_normalize_path( $dest ), strlen( trailingslashit( wp_normalize_path( $dir ) ) ) );
 		}
 		wp_mkdir_p( dirname( $dest ) );
-		if ( ! @rename( $file, $dest ) ) { // phpcs:ignore
+		if ( $copy ) {
+			if ( ! @copy( $file, $dest ) ) { // phpcs:ignore
+				return false;
+			}
+		} elseif ( ! @rename( $file, $dest ) ) { // phpcs:ignore
 			if ( ! @copy( $file, $dest ) ) { // phpcs:ignore
 				return false;
 			}
@@ -929,14 +950,88 @@ class Velox_Image_Optimizer {
 		return $best;
 	}
 
-	/** Converted attachment IDs that are WebP now (replace mode). */
-	private static function converted_webp_ids() {
+	/**
+	 * Every WebP attachment — converted by Velox, uploaded as WebP, or converted
+	 * by something else. Originals can exist (or be owed) for any of them.
+	 */
+	private static function webp_ids() {
 		global $wpdb;
-		return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
-			"SELECT p.ID FROM {$wpdb->posts} p INNER JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s
-			 WHERE p.post_type = 'attachment' AND p.post_mime_type = 'image/webp'",
-			self::META_KEY
-		) ) );
+		return array_map( 'intval', $wpdb->get_col(
+			"SELECT ID FROM {$wpdb->posts} WHERE post_type = 'attachment' AND post_mime_type = 'image/webp'"
+		) );
+	}
+
+	/** Is this image wider than KEEP_WEBP_OVER? (Reads only the header.) */
+	private static function is_large_file( $file ) {
+		$i = $file && is_file( $file ) ? @getimagesize( $file ) : false; // phpcs:ignore
+		return $i && (int) $i[0] > self::KEEP_WEBP_OVER;
+	}
+
+	/** Width from the attachment metadata when we have it (no disk read), else from the file. */
+	private static function is_large_attachment( $attachment_id, $file ) {
+		$meta = wp_get_attachment_metadata( $attachment_id );
+		if ( ! empty( $meta['width'] ) ) {
+			return (int) $meta['width'] > self::KEEP_WEBP_OVER;
+		}
+		return self::is_large_file( $file );
+	}
+
+	/** Big WebPs that don't have any original yet (neither beside them nor in the backup). */
+	private static function unbacked_large_ids() {
+		$out = array();
+		foreach ( self::webp_ids() as $id ) {
+			$file = get_attached_file( $id );
+			if ( $file && is_file( $file ) && self::is_large_attachment( $id, $file ) && '' === self::original_source( $id, $file ) ) {
+				$out[] = $id;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Copy big WebPs that have no original into the backup, a batch at a time.
+	 * A copy, not a move: the site keeps using the live file.
+	 *
+	 * @return array{backed_up:int,failed:int,remaining:int}
+	 */
+	public static function backup_large( $limit = 25 ) {
+		$todo   = self::unbacked_large_ids();
+		$done   = 0;
+		$failed = 0;
+		foreach ( array_slice( $todo, 0, max( 1, (int) $limit ) ) as $id ) {
+			if ( self::archive_original( $id, get_attached_file( $id ), true ) ) {
+				$done++;
+			} else {
+				$failed++;
+			}
+		}
+		return array( 'backed_up' => $done, 'failed' => $failed, 'remaining' => max( 0, count( $todo ) - $done ) );
+	}
+
+	/**
+	 * Hourly background run until every big WebP has an original. Stops itself
+	 * when nothing is left — or when a run makes no progress (e.g. the backup
+	 * folder isn't writable), so it never loops forever; "Back up now" retries.
+	 */
+	public static function backfill() {
+		$res = self::backup_large( 100 );
+		if ( 0 === $res['remaining'] || 0 === $res['backed_up'] ) {
+			update_option( self::BACKFILL_DONE, '1', false );
+			wp_clear_scheduled_hook( self::BACKFILL_CRON );
+		}
+	}
+
+	/** New upload: a WebP wider than KEEP_WEBP_OVER gets its full-size copy saved immediately. */
+	public function backup_large_upload( $metadata, $attachment_id ) {
+		if ( self::$busy ) {
+			return $metadata; // our own regeneration during a conversion
+		}
+		$file = get_attached_file( $attachment_id );
+		if ( $file && preg_match( '/\.webp$/i', $file ) && ! empty( $metadata['width'] ) && (int) $metadata['width'] > self::KEEP_WEBP_OVER
+			&& '' === self::original_source( $attachment_id, $file ) ) {
+			self::archive_original( $attachment_id, $file, true );
+		}
+		return $metadata;
 	}
 
 	/**
@@ -945,9 +1040,12 @@ class Velox_Image_Optimizer {
 	 * @return array{loose:int,loose_bytes:int,archived:int,archived_bytes:int}
 	 */
 	public static function originals_stats() {
-		$st = array( 'loose' => 0, 'loose_bytes' => 0, 'archived' => 0, 'archived_bytes' => 0 );
-		foreach ( self::converted_webp_ids() as $id ) {
+		$st = array( 'loose' => 0, 'loose_bytes' => 0, 'archived' => 0, 'archived_bytes' => 0, 'unbacked' => 0 );
+		foreach ( self::webp_ids() as $id ) {
 			$file = get_attached_file( $id );
+			if ( $file && is_file( $file ) && self::is_large_attachment( $id, $file ) && '' === self::original_source( $id, $file ) ) {
+				$st['unbacked']++;
+			}
 			if ( $file ) {
 				foreach ( self::loose_originals( $file ) as $p ) {
 					$st['loose']++;
@@ -972,7 +1070,7 @@ class Velox_Image_Optimizer {
 		$moved = 0;
 		$failed = 0;
 		$todo  = array();
-		foreach ( self::converted_webp_ids() as $id ) {
+		foreach ( self::webp_ids() as $id ) {
 			$file = get_attached_file( $id );
 			foreach ( $file ? self::loose_originals( $file ) : array() as $p ) {
 				$todo[] = array( $id, $p );
@@ -993,7 +1091,7 @@ class Velox_Image_Optimizer {
 		$up   = trailingslashit( wp_normalize_path( wp_upload_dir()['basedir'] ) );
 		$arch = trailingslashit( wp_normalize_path( self::archive_dir() ) );
 		$out  = array();
-		foreach ( self::converted_webp_ids() as $id ) {
+		foreach ( self::webp_ids() as $id ) {
 			$file  = get_attached_file( $id );
 			$paths = array_merge( $file ? self::loose_originals( $file ) : array(), self::archived_originals( $id ) );
 			foreach ( $paths as $p ) {

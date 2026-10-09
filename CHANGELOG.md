@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.14.1 — Every image over 1000 px always has an original
+- **Big images always get a full-size original saved, no matter where they came from.** Until now Velox only kept originals of images it converted itself, so a library of WebPs uploaded as WebP (or converted by another tool) showed almost no originals. Now every WebP wider than 1000 px gets a full-size copy in the private originals backup.
+- **Existing images are backed up automatically** in the background, a batch every hour until they're all done. **Back up now** on Images → Original files does it straight away. These are copies: your site keeps using the live files.
+- **New uploads:** a WebP wider than 1000 px is backed up the moment it's uploaded.
+- **Nothing big is deleted.** Even the old hidden "delete originals after conversion" switch now keeps any original wider than 1000 px (it moves it into the backup). Smaller ones are still deleted under that setting.
+- The Original files panel counts all of these and shows how many big images are still waiting for a backup. The ZIP download includes them, and Re-convert builds from them.
+
 ## 4.14.0 — Comment protection
 - **New: Comment protection** (Utilities → Security). It's **on by default on every site**, because spam comments aren't just noise: their links lead to phishing and malware pages.
 - **Spam bots are kept out without a CAPTCHA.** Every comment form, including Oxygen's and hand-built theme forms, gets a hidden token that only a real browser on your page fills in, plus a trap field only bots fill. Bots that post directly, fill the trap or submit in under 2 seconds are refused before anything is saved. Visitors notice nothing. It keeps working with page caching.

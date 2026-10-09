@@ -8937,6 +8937,7 @@
 		}
 		var stats = document.getElementById( 'vxorig-stats' );
 		var moveB = document.getElementById( 'vxorig-move' );
+		var backB = document.getElementById( 'vxorig-backup' );
 		var zipA  = document.getElementById( 'vxorig-zip' );
 		var segs  = $$( '[data-orig-mode]', box );
 		var moving = false;
@@ -8945,6 +8946,7 @@
 			loose_bytes: parseInt( box.getAttribute( 'data-loose-bytes' ), 10 ) || 0,
 			archived: parseInt( box.getAttribute( 'data-archived' ), 10 ) || 0,
 			archived_bytes: parseInt( box.getAttribute( 'data-archived-bytes' ), 10 ) || 0,
+			unbacked: parseInt( box.getAttribute( 'data-unbacked' ), 10 ) || 0,
 		};
 
 		function size( b ) {
@@ -8965,6 +8967,13 @@
 				if ( st.archived ) { parts.push( vxT( '%s in the backup', st.archived ) ); }
 				if ( st.loose ) { parts.push( vxT( '%s next to their WebP', st.loose ) ); }
 				stats.textContent = vxT( '%s originals · %s', total, size( st.loose_bytes + st.archived_bytes ) ) + ' — ' + parts.join( ', ' );
+			}
+			if ( st.unbacked ) {
+				stats.textContent += ( total ? ' · ' : ' ' ) + vxT( '%s large images still being backed up', st.unbacked );
+			}
+			backB.hidden = ! st.unbacked;
+			if ( st.unbacked && ! moving ) {
+				backB.textContent = vxT( 'Back up %s now', st.unbacked );
 			}
 			var showMove = 'archive' === mode() && st.loose > 0;
 			moveB.hidden = ! showMove;
@@ -8998,6 +9007,37 @@
 				return;
 			}
 			toast( vxT( 'Building the ZIP — the download starts in a moment.' ), 'info' );
+		} );
+
+		// Big WebPs with no original: copied into the backup (the cron does this
+		// hourly on its own — this just does it now).
+		backB.addEventListener( 'click', function () {
+			if ( moving ) { return; }
+			moving = true;
+			backB.disabled = true;
+			var done = 0;
+			var failed = 0;
+			( function step() {
+				backB.textContent = vxT( 'Backing up… %s left', st.unbacked );
+				api( 'originals_backup', {} )
+					.then( function ( d ) {
+						done   += d.backed_up;
+						failed += d.failed;
+						st = d.stats;
+						render();
+						if ( d.remaining > 0 && d.backed_up > 0 ) { step(); return; }
+						moving = false;
+						backB.disabled = false;
+						render();
+						toast( failed ? vxT( 'Backed up %s — %s could not be copied. Check that the uploads folder is writable.', done, failed ) : vxT( 'Backed up %s large images.', done ), failed ? 'warn' : 'success' );
+					} )
+					.catch( function ( e ) {
+						moving = false;
+						backB.disabled = false;
+						render();
+						toast( e.message, 'error' );
+					} );
+			} )();
 		} );
 
 		moveB.addEventListener( 'click', function () {
