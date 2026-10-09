@@ -40,6 +40,15 @@ class Velox_Image_Optimizer {
 		// Clean up webp twins when an attachment is deleted.
 		add_action( 'delete_attachment', array( $this, 'on_delete' ) );
 
+		// A request for a .jpg/.png that's no longer there (its original was moved
+		// to the backup, or it was an old thumbnail rebuilt as WebP) — send it to
+		// the WebP instead of a 404. Covers links hard-coded in Oxygen CSS/content.
+		if ( ! is_admin() ) {
+			add_action( 'template_redirect', array( $this, 'redirect_missing_original' ), 0 );
+		}
+		// "Download all originals" streams a ZIP, so it can't use the JSON router.
+		add_action( 'admin_post_velox_originals_zip', array( __CLASS__, 'stream_originals_zip' ) );
+
 		// Show a Velox line under the "Add media files" uploader.
 		if ( is_admin() && Velox_Settings::enabled( 'image_webp', 'module_images' ) ) {
 			add_action( 'post-upload-ui', array( $this, 'upload_hint' ) );
@@ -159,14 +168,17 @@ class Velox_Image_Optimizer {
 	 * Replace the attachment's file (and thumbnails) with WebP in place.
 	 * The image is resized to the configured width first (down-only, height auto).
 	 */
-	private function replace_inplace( $attachment_id, $file, $quality ) {
+	private function replace_inplace( $attachment_id, $file, $quality, $dest = null ) {
 		$do_webp = (bool) Velox_Settings::get( 'image_webp', true );
 		if ( ! $do_webp ) {
 			return new WP_Error( 'no_format', __( 'Enable WebP output in Images settings first.', 'velox' ) );
 		}
 
 		$orig_bytes = (int) filesize( $file );
-		$dest       = preg_replace( '/\.(jpe?g|png)$/i', '.webp', $file );
+		// The WebP goes next to the attachment's CURRENT file. Normally that's beside
+		// the source, but a re-convert can read its source from the originals backup.
+		$current    = get_attached_file( $attachment_id );
+		$dest       = $dest ? $dest : preg_replace( '/\.(jpe?g|png)$/i', '.webp', $file );
 
 		if ( ! $this->encode_webp( $file, $dest, $quality ) || ! file_exists( $dest ) ) {
 			return new WP_Error( 'failed', __( 'Conversion failed. Check that GD or Imagick supports WebP on this server.', 'velox' ) );
@@ -186,7 +198,7 @@ class Velox_Image_Optimizer {
 
 		// Remove the old thumbnails (they're rebuilt as WebP below).
 		$old_meta = wp_get_attachment_metadata( $attachment_id );
-		$base_dir = trailingslashit( dirname( $file ) );
+		$base_dir = trailingslashit( dirname( $current ? $current : $file ) );
 		if ( ! empty( $old_meta['sizes'] ) ) {
 			foreach ( $old_meta['sizes'] as $size ) {
 				if ( ! empty( $size['file'] ) && file_exists( $base_dir . $size['file'] ) ) {
@@ -194,11 +206,30 @@ class Velox_Image_Optimizer {
 				}
 			}
 		}
-		// Keep the original file on disk as a fallback (default) so hard-coded links
-		// and browsers without WebP support still resolve; only delete it if the user
-		// explicitly turned the fallback off.
-		if ( ! (bool) Velox_Settings::get( 'webp_keep_original', true ) && $file !== $dest && file_exists( $file ) ) {
-			@unlink( $file );
+		// What happens to the original JPG/PNG: kept beside the WebP (default — old
+		// links and the re-convert tool can still use it), moved into the private
+		// originals backup, or (legacy hidden switch) deleted.
+		$mode     = self::originals_mode();
+		$leftover = array();
+		if ( $file !== $dest && ! self::is_archived( $file ) ) {
+			$leftover[] = $file;
+		}
+		// WordPress's untouched full-size upload behind a "-scaled" copy is an original too.
+		if ( ! empty( $old_meta['original_image'] ) ) {
+			$big = $base_dir . $old_meta['original_image'];
+			if ( $big !== $file && file_exists( $big ) && ! self::is_archived( $big ) ) {
+				$leftover[] = $big;
+			}
+		}
+		foreach ( $leftover as $orig ) {
+			if ( ! file_exists( $orig ) ) {
+				continue;
+			}
+			if ( 'archive' === $mode ) {
+				self::archive_original( $attachment_id, $orig );
+			} elseif ( 'delete' === $mode && $orig === $file ) {
+				@unlink( $orig ); // phpcs:ignore
+			}
 		}
 
 		// Point the attachment at the WebP, fix its mime type, and rebuild thumbnails.
@@ -631,7 +662,7 @@ class Velox_Image_Optimizer {
 				'h'        => $h,
 				'bytes'    => $bytes,
 				'ext'      => 'jpeg' === $ext ? 'jpg' : $ext,
-				'original' => 'webp' === $ext && $file ? (bool) self::original_for( $file ) : in_array( $ext, array( 'jpg', 'jpeg', 'png' ), true ),
+				'original' => 'webp' === $ext && $file ? '' !== self::original_source( $id, $file ) : in_array( $ext, array( 'jpg', 'jpeg', 'png' ), true ),
 				'value'    => $value,
 			);
 		}
@@ -641,24 +672,6 @@ class Velox_Image_Optimizer {
 		return $out;
 	}
 
-	/**
-	 * The kept original (.jpg/.png) next to a converted WebP, if Velox kept one.
-	 * Also checks the name WordPress used before it made a "-scaled" copy.
-	 */
-	private static function original_for( $webp_file ) {
-		$stems = array( preg_replace( '/\.webp$/i', '', $webp_file ) );
-		if ( preg_match( '/-scaled$/', $stems[0] ) ) {
-			$stems[] = substr( $stems[0], 0, -7 );
-		}
-		foreach ( $stems as $stem ) {
-			foreach ( array( '.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG' ) as $ext ) {
-				if ( file_exists( $stem . $ext ) ) {
-					return $stem . $ext;
-				}
-			}
-		}
-		return '';
-	}
 
 	/**
 	 * Re-convert one image with one-off settings (nothing is saved to the global
@@ -712,7 +725,11 @@ class Velox_Image_Optimizer {
 		}
 
 		// Already WebP. Best case: Velox kept the original — rebuild from that.
-		$original = self::original_for( $file );
+		// One from the backup folder writes over the current WebP in place.
+		$original = self::original_source( $attachment_id, $file );
+		if ( '' !== $original && self::is_archived( $original ) ) {
+			return $this->replace_inplace( $attachment_id, $original, $quality, $file );
+		}
 		if ( '' !== $original ) {
 			$res = $this->replace_inplace( $attachment_id, $original, $quality );
 			$new = get_attached_file( $attachment_id );
@@ -771,6 +788,296 @@ class Velox_Image_Optimizer {
 		);
 		update_post_meta( $attachment_id, self::META_KEY, $stats );
 		return $stats;
+	}
+
+	/* ----------------------------------------------------------------
+	 * Original files: keep beside the WebP, or move to a private backup
+	 * ------------------------------------------------------------- */
+
+	const ORIG_META   = '_velox_original';      // archive-relative paths of this image's originals
+	const ORIG_TOKEN  = 'velox_originals_token'; // random suffix that makes the folder unguessable
+
+	/** 'keep' | 'archive' | 'delete' (the last only via the old hidden webp_keep_original switch). */
+	public static function originals_mode() {
+		$m = (string) Velox_Settings::get( 'image_originals', 'keep' );
+		if ( 'archive' === $m ) {
+			return 'archive';
+		}
+		return Velox_Settings::get( 'webp_keep_original', true ) ? 'keep' : 'delete';
+	}
+
+	/**
+	 * The private originals folder inside uploads. Its name carries a random token
+	 * (nginx ignores .htaccess, so the name itself must not be guessable) and it's
+	 * also sealed with deny rules + an index.php for Apache/LiteSpeed.
+	 */
+	public static function archive_dir() {
+		$token = get_option( self::ORIG_TOKEN );
+		if ( ! $token ) {
+			$token = strtolower( wp_generate_password( 16, false ) );
+			update_option( self::ORIG_TOKEN, $token, false );
+		}
+		$up  = wp_upload_dir();
+		$dir = trailingslashit( $up['basedir'] ) . 'velox-originals-' . $token;
+		if ( ! is_dir( $dir ) ) {
+			wp_mkdir_p( $dir );
+		}
+		if ( ! file_exists( $dir . '/.htaccess' ) ) {
+			@file_put_contents( $dir . '/.htaccess', "# Velox: original images backup — never served to visitors.\n<IfModule mod_authz_core.c>\n\tRequire all denied\n</IfModule>\n<IfModule !mod_authz_core.c>\n\tOrder allow,deny\n\tDeny from all\n</IfModule>\n" ); // phpcs:ignore
+		}
+		if ( ! file_exists( $dir . '/index.php' ) ) {
+			@file_put_contents( $dir . '/index.php', "<?php\n// Silence is golden.\n" ); // phpcs:ignore
+		}
+		return $dir;
+	}
+
+	private static function is_archived( $path ) {
+		return false !== strpos( wp_normalize_path( (string) $path ), '/velox-originals-' );
+	}
+
+	/**
+	 * Move one original into the backup, mirroring its uploads path
+	 * (2026/10/photo.jpg → velox-originals-…/2026/10/photo.jpg), and remember it.
+	 *
+	 * @return string|false New path, or false if it couldn't be moved (it stays put).
+	 */
+	public static function archive_original( $attachment_id, $file ) {
+		$up   = wp_upload_dir();
+		$base = trailingslashit( wp_normalize_path( $up['basedir'] ) );
+		$norm = wp_normalize_path( $file );
+		if ( 0 !== strpos( $norm, $base ) || ! is_file( $file ) ) {
+			return false;
+		}
+		$rel  = substr( $norm, strlen( $base ) );
+		$dir  = self::archive_dir();
+		$dest = $dir . '/' . $rel;
+		if ( file_exists( $dest ) ) { // never overwrite an earlier original
+			$dest = preg_replace( '/(\.[a-z0-9]+)$/i', '-' . time() . '$1', $dest );
+			$rel  = substr( wp_normalize_path( $dest ), strlen( trailingslashit( wp_normalize_path( $dir ) ) ) );
+		}
+		wp_mkdir_p( dirname( $dest ) );
+		if ( ! @rename( $file, $dest ) ) { // phpcs:ignore
+			if ( ! @copy( $file, $dest ) ) { // phpcs:ignore
+				return false;
+			}
+			@unlink( $file ); // phpcs:ignore
+		}
+		$list   = get_post_meta( $attachment_id, self::ORIG_META, true );
+		$list   = is_array( $list ) ? $list : array();
+		$list[] = $rel;
+		update_post_meta( $attachment_id, self::ORIG_META, array_values( array_unique( $list ) ) );
+		return $dest;
+	}
+
+	/** Absolute paths of this attachment's originals in the backup (existing files only). */
+	public static function archived_originals( $attachment_id ) {
+		$list = get_post_meta( $attachment_id, self::ORIG_META, true );
+		if ( ! is_array( $list ) || ! $list ) {
+			return array();
+		}
+		$dir = self::archive_dir();
+		$out = array();
+		foreach ( $list as $rel ) {
+			$p = $dir . '/' . ltrim( (string) $rel, '/' );
+			if ( false === strpos( $rel, '..' ) && is_file( $p ) ) {
+				$out[] = $p;
+			}
+		}
+		return $out;
+	}
+
+	/** Originals still lying next to a converted WebP (the file, and any pre-"-scaled" upload). */
+	private static function loose_originals( $webp_file ) {
+		$stems = array( preg_replace( '/\.webp$/i', '', $webp_file ) );
+		if ( preg_match( '/-scaled$/', $stems[0] ) ) {
+			$stems[] = substr( $stems[0], 0, -7 );
+		}
+		$out = array();
+		foreach ( $stems as $stem ) {
+			foreach ( array( '.jpg', '.jpeg', '.png', '.JPG', '.JPEG', '.PNG' ) as $ext ) {
+				// Keyed case-insensitively: on Windows/macOS hosts "a.jpg" and "a.JPG"
+				// are the same file and must not be counted (or moved) twice.
+				if ( is_file( $stem . $ext ) && ! isset( $out[ strtolower( $stem . $ext ) ] ) ) {
+					$out[ strtolower( $stem . $ext ) ] = $stem . $ext;
+				}
+			}
+		}
+		return array_values( $out );
+	}
+
+	/** Best source to rebuild from: the largest original we have, backup or beside the file. */
+	private static function original_source( $attachment_id, $webp_file ) {
+		$all  = array_merge( self::archived_originals( $attachment_id ), self::loose_originals( $webp_file ) );
+		$best = '';
+		$size = -1;
+		foreach ( $all as $p ) {
+			$s = (int) @filesize( $p ); // phpcs:ignore
+			if ( $s > $size ) {
+				$best = $p;
+				$size = $s;
+			}
+		}
+		return $best;
+	}
+
+	/** Converted attachment IDs that are WebP now (replace mode). */
+	private static function converted_webp_ids() {
+		global $wpdb;
+		return array_map( 'intval', $wpdb->get_col( $wpdb->prepare(
+			"SELECT p.ID FROM {$wpdb->posts} p INNER JOIN {$wpdb->postmeta} m ON m.post_id = p.ID AND m.meta_key = %s
+			 WHERE p.post_type = 'attachment' AND p.post_mime_type = 'image/webp'",
+			self::META_KEY
+		) ) );
+	}
+
+	/**
+	 * How many originals exist, where, and how much space they take.
+	 *
+	 * @return array{loose:int,loose_bytes:int,archived:int,archived_bytes:int}
+	 */
+	public static function originals_stats() {
+		$st = array( 'loose' => 0, 'loose_bytes' => 0, 'archived' => 0, 'archived_bytes' => 0 );
+		foreach ( self::converted_webp_ids() as $id ) {
+			$file = get_attached_file( $id );
+			if ( $file ) {
+				foreach ( self::loose_originals( $file ) as $p ) {
+					$st['loose']++;
+					$st['loose_bytes'] += (int) @filesize( $p ); // phpcs:ignore
+				}
+			}
+			foreach ( self::archived_originals( $id ) as $p ) {
+				$st['archived']++;
+				$st['archived_bytes'] += (int) @filesize( $p ); // phpcs:ignore
+			}
+		}
+		return $st;
+	}
+
+	/**
+	 * Move the originals of already-converted images into the backup, a batch at a
+	 * time (the admin screen calls this until nothing is left).
+	 *
+	 * @return array{moved:int,failed:int,remaining:int}
+	 */
+	public static function archive_existing( $limit = 25 ) {
+		$moved = 0;
+		$failed = 0;
+		$todo  = array();
+		foreach ( self::converted_webp_ids() as $id ) {
+			$file = get_attached_file( $id );
+			foreach ( $file ? self::loose_originals( $file ) : array() as $p ) {
+				$todo[] = array( $id, $p );
+			}
+		}
+		foreach ( array_slice( $todo, 0, max( 1, (int) $limit ) ) as $job ) {
+			if ( self::archive_original( $job[0], $job[1] ) ) {
+				$moved++;
+			} else {
+				$failed++;
+			}
+		}
+		return array( 'moved' => $moved, 'failed' => $failed, 'remaining' => max( 0, count( $todo ) - $moved - $failed ) );
+	}
+
+	/** Every original Velox holds, as [absolute path, path inside the ZIP]. */
+	private static function all_originals() {
+		$up   = trailingslashit( wp_normalize_path( wp_upload_dir()['basedir'] ) );
+		$arch = trailingslashit( wp_normalize_path( self::archive_dir() ) );
+		$out  = array();
+		foreach ( self::converted_webp_ids() as $id ) {
+			$file  = get_attached_file( $id );
+			$paths = array_merge( $file ? self::loose_originals( $file ) : array(), self::archived_originals( $id ) );
+			foreach ( $paths as $p ) {
+				$n     = wp_normalize_path( $p );
+				$rel   = 0 === strpos( $n, $arch ) ? substr( $n, strlen( $arch ) ) : ( 0 === strpos( $n, $up ) ? substr( $n, strlen( $up ) ) : basename( $n ) );
+				$out[] = array( $p, $rel );
+			}
+		}
+		return $out;
+	}
+
+	/** admin-post: build a ZIP of every original (same folder layout as uploads) and stream it. */
+	public static function stream_originals_zip() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_die( esc_html__( 'You are not allowed to do that.', 'velox' ), 403 );
+		}
+		check_admin_referer( 'velox_originals_zip' );
+		$files = self::all_originals();
+		if ( ! $files ) {
+			wp_die( esc_html__( 'There are no original images to download yet.', 'velox' ) );
+		}
+		if ( function_exists( 'set_time_limit' ) ) {
+			@set_time_limit( 0 ); // phpcs:ignore
+		}
+		$zip_path = wp_tempnam( 'velox-originals.zip' );
+		@unlink( $zip_path ); // phpcs:ignore -- ZipArchive wants to create it
+		$ok = false;
+		if ( class_exists( 'ZipArchive' ) ) {
+			$zip = new ZipArchive();
+			if ( true === $zip->open( $zip_path, ZipArchive::CREATE | ZipArchive::OVERWRITE ) ) {
+				foreach ( $files as $f ) {
+					$zip->addFile( $f[0], $f[1] );
+					if ( method_exists( $zip, 'setCompressionName' ) ) {
+						$zip->setCompressionName( $f[1], ZipArchive::CM_STORE ); // JPG/PNG are compressed already
+					}
+				}
+				$ok = $zip->close();
+			}
+		} else {
+			require_once ABSPATH . 'wp-admin/includes/class-pclzip.php';
+			$pz  = new PclZip( $zip_path );
+			$ok  = true;
+			foreach ( $files as $f ) {
+				$res = $pz->add( $f[0], PCLZIP_OPT_REMOVE_ALL_PATH, PCLZIP_OPT_ADD_PATH, trim( dirname( $f[1] ), './' ), PCLZIP_OPT_NO_COMPRESSION );
+				if ( 0 === $res ) {
+					$ok = false;
+					break;
+				}
+			}
+		}
+		if ( ! $ok || ! is_file( $zip_path ) ) {
+			@unlink( $zip_path ); // phpcs:ignore
+			wp_die( esc_html__( 'Could not build the ZIP file on this server.', 'velox' ) );
+		}
+		nocache_headers();
+		header( 'Content-Type: application/zip' );
+		header( 'Content-Disposition: attachment; filename="original-images-' . gmdate( 'Y-m-d' ) . '.zip"' );
+		header( 'Content-Length: ' . filesize( $zip_path ) );
+		while ( ob_get_level() ) {
+			ob_end_clean();
+		}
+		readfile( $zip_path ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		@unlink( $zip_path ); // phpcs:ignore
+		exit;
+	}
+
+	/**
+	 * Front end: a .jpg/.png under uploads that 404s but has a WebP twin → 301 to
+	 * the WebP. Old links (Oxygen CSS backgrounds, hard-coded <img>, other sites)
+	 * keep working after their original moved to the backup or a JPG thumbnail
+	 * was rebuilt as WebP. Only runs on a 404, so normal pages pay nothing.
+	 */
+	public function redirect_missing_original() {
+		if ( ! is_404() ) {
+			return;
+		}
+		$path = (string) wp_parse_url( isset( $_SERVER['REQUEST_URI'] ) ? wp_unslash( $_SERVER['REQUEST_URI'] ) : '', PHP_URL_PATH ); // phpcs:ignore
+		if ( ! preg_match( '/\.(jpe?g|png)$/i', $path ) || false !== strpos( $path, '..' ) ) {
+			return;
+		}
+		$up      = wp_upload_dir();
+		$up_path = (string) wp_parse_url( $up['baseurl'], PHP_URL_PATH );
+		if ( '' === $up_path || 0 !== strpos( $path, $up_path . '/' ) ) {
+			return;
+		}
+		$stem  = preg_replace( '/\.(jpe?g|png)$/i', '', $path );
+		$rel   = rawurldecode( substr( $stem, strlen( $up_path ) ) );
+		foreach ( array( '', '-scaled' ) as $suffix ) {
+			if ( is_file( $up['basedir'] . $rel . $suffix . '.webp' ) ) {
+				wp_safe_redirect( $stem . $suffix . '.webp', 301 );
+				exit;
+			}
+		}
 	}
 
 	/** All attachments Velox has converted, newest first — powers the converted-images screen. */
@@ -981,7 +1288,11 @@ class Velox_Image_Optimizer {
 				}
 			}
 		}
+		foreach ( self::archived_originals( $attachment_id ) as $orig ) {
+			@unlink( $orig ); // phpcs:ignore
+		}
 		delete_post_meta( $attachment_id, self::META_KEY );
+		delete_post_meta( $attachment_id, self::ORIG_META );
 	}
 
 	/* ----------------------------------------------------------------

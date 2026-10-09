@@ -3697,3 +3697,22 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 	.vxlg-size { display: none; }
 	.vxlg-bar { flex-direction: column; align-items: stretch; }
 }
+
+
+/* ======================================================================
+ * Images → Original files
+ * ====================================================================== */
+.vxorig-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--vx-s5); }
+.vxorig-head .velox-hint { margin: 4px 0 0; max-width: 560px; }
+.vxorig-head .vxck-seg { flex: none; }
+.vxorig-desc { margin: var(--vx-s4) 0 0; font-size: 13px; line-height: 1.55; color: var(--vx-ink-2); max-width: 680px; }
+.vxorig-note { margin: var(--vx-s3) 0 0; }
+.vxorig .velox-alert { margin: var(--vx-s3) 0 0; }
+.vxorig-foot { display: flex; align-items: center; justify-content: space-between; gap: var(--vx-s4); margin-top: var(--vx-s4); padding-top: var(--vx-s4); border-top: 1px solid var(--vx-line); }
+.vxorig-stats { font-size: 13px; color: var(--vx-ink-2); font-variant-numeric: tabular-nums; }
+.vxorig-acts { display: flex; gap: var(--vx-s2); flex: none; }
+.velox-btn.is-disabled { opacity: .4; pointer-events: none; }
+@media (max-width: 782px) {
+	.vxorig-head, .vxorig-foot { flex-direction: column; align-items: stretch; }
+	.vxorig-head .vxck-seg { align-self: flex-start; }
+}

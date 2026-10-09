@@ -243,6 +243,7 @@ class Velox_Settings {
 			'image_keep_exif'    => false, // strip camera/GPS metadata by default for smaller files
 			'image_max_width'    => 2560,  // downscale oversized uploads/conversions; 0 = off
 			'image_replace'      => true,  // replace originals with WebP in the media library (in-place)
+			'image_originals'    => 'keep', // keep | archive — where the original JPG/PNG goes after replace-mode conversion
 			'image_comparison'   => true,  // show the old/new comparator in the Images tab
 
 			// ---- Performance · General ----

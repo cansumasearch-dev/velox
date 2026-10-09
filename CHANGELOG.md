@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.13.0 — A private backup for your original images
+- **New: Original files** on the Images page. When an image becomes WebP, Velox keeps the original JPG/PNG, and now you choose where it goes. **Next to the WebP** is the default, the same as before. **Private backup** moves originals into a hidden folder in uploads that visitors can't open: it has a random name and is blocked from the web. Your site only uses the converted images.
+- **Download all (ZIP)** gives you every original in one file, in the same year/month folders as your uploads.
+- **Move existing originals to the backup** handles images that were converted before you switched. It runs in small batches, so big libraries don't time out.
+- **Old links keep working.** A link to a `.jpg`/`.png` that's no longer there gets sent to its WebP. That covers links hard-coded in Oxygen CSS or content, and other sites linking to your images. It also fixes old JPG thumbnail links, which have been broken since conversion started rebuilding thumbnails as WebP.
+- **Re-convert uses the backup.** Large images → Re-convert rebuilds from the original even when it lives in the backup, so images are never compressed twice. Deleting an image from the media library deletes its backed-up originals too.
+- WordPress's full-size original behind a "-scaled" copy is now treated as an original as well, so it's backed up instead of left behind.
+
 ## 4.12.0 — .htaccess editor, and a Large images finder with re-convert
 - **New: .htaccess editor** under Performance → .htaccess. It only appears with Risky mode on, and it starts **locked**: you see the file read-only until you click **Unlock for 10 minutes**. A countdown shows the time left, and then it locks itself again. The lock is enforced on the server, so an old open tab can't save after the time is up.
 - **The .htaccess editor protects your site.** Every save keeps the previous version (the last 5). Velox then loads your homepage, and if the change broke it (a 500 error, or a 403/404 where it worked before), the old version goes straight back. **Restore previous version** is always one click away. The editor respects `DISALLOW_FILE_EDIT`, and on multisite only network admins can use it.

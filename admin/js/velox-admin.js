@@ -8925,6 +8925,122 @@
 		load();
 	}
 
+	/* ----------------------------------------------------------------
+	 * Images → Original files: keep beside the WebP or move to a private
+	 * backup; move existing ones in batches; ZIP download is a plain link.
+	 * ------------------------------------------------------------- */
+
+	function initOriginals() {
+		var box = document.getElementById( 'velox-originals' );
+		if ( ! box ) {
+			return;
+		}
+		var stats = document.getElementById( 'vxorig-stats' );
+		var moveB = document.getElementById( 'vxorig-move' );
+		var zipA  = document.getElementById( 'vxorig-zip' );
+		var segs  = $$( '[data-orig-mode]', box );
+		var moving = false;
+		var st = {
+			loose: parseInt( box.getAttribute( 'data-loose' ), 10 ) || 0,
+			loose_bytes: parseInt( box.getAttribute( 'data-loose-bytes' ), 10 ) || 0,
+			archived: parseInt( box.getAttribute( 'data-archived' ), 10 ) || 0,
+			archived_bytes: parseInt( box.getAttribute( 'data-archived-bytes' ), 10 ) || 0,
+		};
+
+		function size( b ) {
+			if ( b >= 1073741824 ) { return ( b / 1073741824 ).toFixed( 1 ) + ' GB'; }
+			if ( b >= 1048576 ) { return ( b / 1048576 ).toFixed( 1 ) + ' MB'; }
+			return Math.max( 0, Math.round( b / 1024 ) ) + ' KB';
+		}
+		function mode() {
+			var a = box.querySelector( '[data-orig-mode].is-active' );
+			return a ? a.getAttribute( 'data-orig-mode' ) : 'keep';
+		}
+		function render() {
+			var total = st.loose + st.archived;
+			if ( ! total ) {
+				stats.textContent = vxT( 'No originals yet — they appear here as images are converted.' );
+			} else {
+				var parts = [];
+				if ( st.archived ) { parts.push( vxT( '%s in the backup', st.archived ) ); }
+				if ( st.loose ) { parts.push( vxT( '%s next to their WebP', st.loose ) ); }
+				stats.textContent = vxT( '%s originals · %s', total, size( st.loose_bytes + st.archived_bytes ) ) + ' — ' + parts.join( ', ' );
+			}
+			var showMove = 'archive' === mode() && st.loose > 0;
+			moveB.hidden = ! showMove;
+			if ( showMove && ! moving ) {
+				moveB.textContent = vxT( 'Move %s to the backup', st.loose );
+			}
+			zipA.classList.toggle( 'is-disabled', ! total );
+			zipA.setAttribute( 'aria-disabled', total ? 'false' : 'true' );
+		}
+
+		segs.forEach( function ( b ) {
+			b.addEventListener( 'click', function () {
+				if ( moving || b.classList.contains( 'is-active' ) ) { return; }
+				segs.forEach( function ( o ) {
+					var on = o === b;
+					o.classList.toggle( 'is-active', on );
+					o.setAttribute( 'aria-checked', on ? 'true' : 'false' );
+				} );
+				$$( '.vxorig-desc', box ).forEach( function ( d ) { d.hidden = d.getAttribute( 'data-for' ) !== mode(); } );
+				var legacy = document.getElementById( 'vxorig-legacy' );
+				if ( legacy ) { legacy.hidden = true; }
+				// webp_keep_original back on: picking either option means "keep them".
+				saveSettings( { image_originals: mode(), webp_keep_original: 1 }, vxT( 'Saved.' ) );
+				render();
+			} );
+		} );
+
+		zipA.addEventListener( 'click', function ( e ) {
+			if ( ! ( st.loose + st.archived ) ) {
+				e.preventDefault();
+				return;
+			}
+			toast( vxT( 'Building the ZIP — the download starts in a moment.' ), 'info' );
+		} );
+
+		moveB.addEventListener( 'click', function () {
+			if ( moving ) { return; }
+			moving = true;
+			moveB.disabled = true;
+			var moved = 0;
+			var failed = 0;
+			function step() {
+				moveB.textContent = vxT( 'Moving… %s left', st.loose );
+				api( 'originals_archive', {} )
+					.then( function ( d ) {
+						moved  += d.moved;
+						failed += d.failed;
+						st = d.stats;
+						render();
+						if ( d.remaining > 0 && d.moved > 0 ) {
+							step();
+							return;
+						}
+						finish();
+					} )
+					.catch( function ( e ) {
+						toast( e.message, 'error' );
+						finish();
+					} );
+			}
+			function finish() {
+				moving = false;
+				moveB.disabled = false;
+				render();
+				if ( failed ) {
+					toast( vxT( 'Moved %s originals — %s could not be moved and stayed where they were.', moved, failed ), 'warn' );
+				} else if ( moved ) {
+					toast( vxT( 'Moved %s originals to the backup.', moved ), 'success' );
+				}
+			}
+			step();
+		} );
+
+		render();
+	}
+
 	function veloxInit() {
 		initLangSwitch();
 		initErrorLog();
@@ -8940,6 +9056,7 @@
 		initPerformance();
 		initHtaccess();
 		initLargeImages();
+		initOriginals();
 		initDatabase();
 		initSeo();
 		initSeoHealth();

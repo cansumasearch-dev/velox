@@ -211,6 +211,42 @@ endif;
 	</div>
 </div>
 
+<!-- ============ Original files ============ -->
+<?php
+$orig_mode  = Velox_Image_Optimizer::originals_mode();
+$orig_stats = Velox_Image_Optimizer::originals_stats();
+$orig_zip   = wp_nonce_url( admin_url( 'admin-post.php?action=velox_originals_zip' ), 'velox_originals_zip' );
+?>
+<div class="velox-panel vxorig" id="velox-originals"
+	data-loose="<?php echo (int) $orig_stats['loose']; ?>" data-loose-bytes="<?php echo (int) $orig_stats['loose_bytes']; ?>"
+	data-archived="<?php echo (int) $orig_stats['archived']; ?>" data-archived-bytes="<?php echo (int) $orig_stats['archived_bytes']; ?>">
+	<div class="vxorig-head">
+		<div>
+			<h3 class="velox-panel-title"><?php esc_html_e('Original files', 'velox'); ?></h3>
+			<p class="velox-hint"><?php esc_html_e('When an image becomes WebP, Velox keeps its original JPG/PNG so nothing is ever lost. Choose where the originals live.', 'velox'); ?></p>
+		</div>
+		<span class="vxck-seg" role="radiogroup" aria-label="<?php esc_attr_e( 'Original files', 'velox' ); ?>">
+			<button type="button" class="vxck-seg-btn<?php echo 'archive' !== $orig_mode ? ' is-active' : ''; ?>" data-orig-mode="keep" role="radio" aria-checked="<?php echo 'archive' !== $orig_mode ? 'true' : 'false'; ?>"><?php esc_html_e('Next to the WebP', 'velox'); ?></button>
+			<button type="button" class="vxck-seg-btn<?php echo 'archive' === $orig_mode ? ' is-active' : ''; ?>" data-orig-mode="archive" role="radio" aria-checked="<?php echo 'archive' === $orig_mode ? 'true' : 'false'; ?>"><?php esc_html_e('Private backup', 'velox'); ?></button>
+		</span>
+	</div>
+	<p class="vxorig-desc" data-for="keep"<?php echo 'archive' === $orig_mode ? ' hidden' : ''; ?>><?php esc_html_e('The original stays in the same folder as its WebP. Simple — but it still fills up your uploads folder, and anyone with the old link can open it.', 'velox'); ?></p>
+	<p class="vxorig-desc" data-for="archive"<?php echo 'archive' !== $orig_mode ? ' hidden' : ''; ?>><?php esc_html_e('Originals move into a hidden backup folder that visitors can\'t open. Your site only uses the converted images, and old .jpg/.png links are sent to the WebP automatically.', 'velox'); ?></p>
+	<?php if ( 'delete' === $orig_mode ) : ?>
+		<div class="velox-alert velox-alert--warn" id="vxorig-legacy"><?php esc_html_e('Right now originals are deleted after conversion (an older setting). Pick one of the options above to keep them from now on.', 'velox'); ?></div>
+	<?php endif; ?>
+	<?php if ( empty( $s['image_replace'] ) ) : ?>
+		<p class="velox-hint vxorig-note"><?php esc_html_e('This applies when “Replace originals with WebP” is on. With it off, the originals are the files your site shows, so they stay where they are.', 'velox'); ?></p>
+	<?php endif; ?>
+	<div class="vxorig-foot">
+		<span class="vxorig-stats" id="vxorig-stats" aria-live="polite"></span>
+		<div class="vxorig-acts">
+			<button type="button" class="velox-btn velox-btn--primary" id="vxorig-move" hidden></button>
+			<a class="velox-btn velox-btn--ghost" id="vxorig-zip" href="<?php echo esc_url( $orig_zip ); ?>"><?php esc_html_e('Download all (ZIP)', 'velox'); ?></a>
+		</div>
+	</div>
+</div>
+
 <!-- ============ Quality & processing ============ -->
 <div class="velox-panel">
 	<h3 class="velox-panel-title"><?php esc_html_e('Quality &amp; processing', 'velox'); ?></h3>

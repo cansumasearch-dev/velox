@@ -167,6 +167,12 @@ class Velox_Ajax {
 				wp_send_json_success( array( 'items' => Velox_Image_Optimizer::large_images( $min, $by ) ) );
 				break;
 
+			case 'originals_archive':
+				$res = Velox_Image_Optimizer::archive_existing( 25 );
+				$res['stats'] = Velox_Image_Optimizer::originals_stats();
+				wp_send_json_success( $res );
+				break;
+
 			case 'reconvert_image':
 				$opt = new Velox_Image_Optimizer();
 				$this->respond( $opt->reconvert( (int) ( $_POST['id'] ?? 0 ), array(
