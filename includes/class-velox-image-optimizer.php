@@ -748,6 +748,14 @@ class Velox_Image_Optimizer {
 		$tmp = $file . '.velox-new.webp';
 		$ok  = $this->encode_webp( $src, $tmp, $quality ) && file_exists( $tmp ) && filesize( $tmp ) > 0;
 		@unlink( $src ); // phpcs:ignore
+		// A big WebP is somebody's only full-size copy — back it up before it's
+		// overwritten (into the originals backup, so re-convert and the ZIP see it).
+		// Small ones aren't worth keeping. If the backup fails, change nothing.
+		$dims = $ok ? @getimagesize( $file ) : false; // phpcs:ignore
+		if ( $ok && $dims && (int) $dims[0] > self::KEEP_WEBP_OVER && ! self::archive_original( $attachment_id, $file ) ) {
+			@unlink( $tmp ); // phpcs:ignore
+			return new WP_Error( 'no_backup', __( 'Could not keep a copy of the original, so the image was left as it is.', 'velox' ) );
+		}
 		if ( ! $ok || ! @rename( $tmp, $file ) ) { // phpcs:ignore
 			@unlink( $tmp ); // phpcs:ignore
 			return new WP_Error( 'failed', __( 'Conversion failed. Check that GD or Imagick supports WebP on this server.', 'velox' ) );
@@ -794,6 +802,7 @@ class Velox_Image_Optimizer {
 	 * Original files: keep beside the WebP, or move to a private backup
 	 * ------------------------------------------------------------- */
 
+	const KEEP_WEBP_OVER = 1000;             // a WebP wider than this is backed up before re-convert overwrites it
 	const ORIG_META   = '_velox_original';      // archive-relative paths of this image's originals
 	const ORIG_TOKEN  = 'velox_originals_token'; // random suffix that makes the folder unguessable
 

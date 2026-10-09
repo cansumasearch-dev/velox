@@ -120,7 +120,7 @@ class Velox_Cache {
 	 * keys (PageSpeed widget, language, mail, …) don't need a purge.
 	 */
 	public static function settings_affect_pages( array $before, array $after ) {
-		$prefixes = array( 'perf_', 'webp_', 'image_', 'cookie_', 'seo_', 'cache_', 'module_', 'util_', 'cf_', 'avif_' );
+		$prefixes = array( 'perf_', 'webp_', 'image_', 'cookie_', 'seo_', 'cache_', 'module_', 'util_', 'cf_', 'avif_', 'cg_' );
 		foreach ( $after as $key => $val ) {
 			if ( array_key_exists( $key, $before ) && $before[ $key ] === $val ) {
 				continue;

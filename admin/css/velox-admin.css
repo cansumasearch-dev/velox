@@ -3716,3 +3716,43 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 	.vxorig-head, .vxorig-foot { flex-direction: column; align-items: stretch; }
 	.vxorig-head .vxck-seg { align-self: flex-start; }
 }
+
+
+/* ======================================================================
+ * Utilities → Comment protection
+ * ====================================================================== */
+.vxcg-stats .v small.vxcg-sub { font-size: 12px; font-weight: 500; color: var(--vx-ink-3); }
+.vxcg-nums { display: grid; grid-template-columns: 1fr 1fr; gap: var(--vx-s4); margin-top: var(--vx-s4); }
+.vxcg-nums .velox-field { display: flex; flex-direction: column; gap: 6px; }
+.vxcg-nums .velox-hint { margin: 0; }
+.vxcg-inline { display: flex; align-items: center; gap: 8px; }
+.vxcg-step { display: flex; align-items: center; justify-content: space-between; gap: var(--vx-s4); padding: var(--vx-s4) 0; border-bottom: 1px solid var(--vx-line); }
+.vxcg-step--last { border-bottom: 0; padding-bottom: 0; }
+.vxcg-step-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vxcg-step-text strong { font-size: 13.5px; font-weight: 600; color: var(--vx-ink); }
+.vxcg-step-text .velox-hint { margin: 0; }
+.vxcg-step > .velox-btn, .vxcg-step > .velox-switch { flex: none; }
+.vxcg-result { margin: 0 0 var(--vx-s3); padding: var(--vx-s3) var(--vx-s4); background: var(--vx-n25); border: 1px solid var(--vx-line-2); border-radius: var(--vx-r-sm); }
+.vxcg-result-head { display: flex; align-items: center; justify-content: space-between; gap: var(--vx-s3); }
+.vxcg-result-head strong { font-size: 13.5px; color: var(--vx-ink); }
+.vxcg-ok { margin: 0; font-size: 13px; color: var(--vx-success); font-weight: 600; }
+.vxcg-list { list-style: none; margin: var(--vx-s3) 0 0; padding: 0; max-height: 300px; overflow: auto; }
+.vxcg-item { display: flex; flex-direction: column; gap: 3px; padding: 8px 0; border-top: 1px solid var(--vx-line); }
+.vxcg-item-meta { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--vx-ink-3); }
+.vxcg-item-meta strong { color: var(--vx-ink); font-weight: 600; max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.vxcg-item-text { font-size: 12.5px; color: var(--vx-ink-2); overflow-wrap: anywhere; }
+.vxcg-pill { font-size: 10.5px; font-weight: 700; padding: 1px 7px; border-radius: var(--vx-r-pill); background: var(--vx-n100); color: var(--vx-ink-2); }
+.vxcg-pill--approved { background: var(--vx-warning-tint); color: var(--vx-warning); }
+@media (max-width: 782px) {
+	.vxcg-nums { grid-template-columns: 1fr; }
+	.vxcg-step { flex-direction: column; align-items: flex-start; }
+}
+
+.vxlg-orig-hint { margin: var(--vx-s3) 0 0; }
+
+/* Panel header: title on the left, its switch / button / pills on the right.
+   Used by Login protection, Comment protection, Site scan, Shop, Reviews and
+   SEO — it had no rule at all, so the control dropped under the title. */
+.velox-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--vx-s3); margin-bottom: var(--vx-s3); }
+.velox-panel-head .velox-panel-title { margin: 0; }
+.velox-panel-head > .velox-switch { flex: none; }

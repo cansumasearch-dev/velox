@@ -378,6 +378,22 @@ class Velox_Ajax {
 				break;
 
 			/* -------- Login protection -------- */
+			case 'cg_scan':
+				wp_send_json_success( Velox_Comment_Guard::scan() );
+				break;
+
+			case 'cg_mark_spam':
+				$res          = Velox_Comment_Guard::mark_scanned_spam();
+				$res['stats'] = Velox_Comment_Guard::stats();
+				wp_send_json_success( $res );
+				break;
+
+			case 'cg_empty_spam':
+				$res          = Velox_Comment_Guard::delete_spam( 0, 500 );
+				$res['stats'] = Velox_Comment_Guard::stats();
+				wp_send_json_success( $res );
+				break;
+
 			case 'lg_unlock':
 				$k = isset( $_POST['key'] ) ? sanitize_text_field( wp_unslash( $_POST['key'] ) ) : '';
 				wp_send_json_success( array( 'ok' => Velox_Login_Guard::unlock( $k ) ) );

@@ -92,6 +92,14 @@ class Velox_Settings {
 			'loginguard_notify'        => true,
 			'loginguard_behind_proxy'  => false,
 			'util_sitescan'            => false,
+			// ---- Comment protection (on by default: invisible to visitors, protects every site) ----
+			'util_commentguard'        => true,
+			'cg_block_bots'            => true,  // token + honeypot + time check on every comment form
+			'cg_max_links'             => 1,     // more links than this → spam folder
+			'cg_strip_links'           => true,  // visitors' links shown as plain text (site, wp-admin, emails)
+			'cg_remove_url_field'      => true,  // no "Website" field on the comment form
+			'cg_block_pings'           => true,  // refuse trackbacks / pingbacks
+			'cg_autodelete_days'       => 7,     // empty spam older than N days (0 = never)
 			// ---- Shop ----
 			'util_shop'                => false,
 			'shop_currency'            => '€',

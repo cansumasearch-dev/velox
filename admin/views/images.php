@@ -115,6 +115,7 @@ if ( 'large' === $velox_view ) :
 				<label class="vxlg-toggle"><span class="velox-switch"><input type="checkbox" id="vxlg-lossless" <?php checked( ! empty( $s['image_lossless'] ) ); ?>><span class="velox-switch-track"></span></span><?php esc_html_e('Lossless', 'velox'); ?></label>
 				<label class="vxlg-toggle"><span class="velox-switch"><input type="checkbox" id="vxlg-exif" <?php checked( ! empty( $s['image_keep_exif'] ) ); ?>><span class="velox-switch-track"></span></span><?php esc_html_e('Keep EXIF', 'velox'); ?></label>
 			</div>
+			<p class="velox-hint vxlg-orig-hint"><?php esc_html_e('Originals: a JPG or PNG is always kept. A WebP wider than 1000 px with no original is backed up before it is re-converted; smaller WebPs are not.', 'velox'); ?></p>
 		</div>
 	</div>
 

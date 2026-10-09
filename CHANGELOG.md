@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.14.0 — Comment protection
+- **New: Comment protection** (Utilities → Security). It's **on by default on every site**, because spam comments aren't just noise: their links lead to phishing and malware pages.
+- **Spam bots are kept out without a CAPTCHA.** Every comment form, including Oxygen's and hand-built theme forms, gets a hidden token that only a real browser on your page fills in, plus a trap field only bots fill. Bots that post directly, fill the trap or submit in under 2 seconds are refused before anything is saved. Visitors notice nothing. It keeps working with page caching.
+- **Link spam goes straight to the spam folder**: comments with more links than allowed (1 by default) or forum `[url=]` codes. Trackbacks and pingbacks are refused.
+- **Spam links can't be clicked by accident.** Links in visitors' comments show as plain text on the site *and in the dashboard*, the author's "website" link is gone, and the Website field is removed. In WordPress's notification emails, outside links are defanged (`hxxps://bad-site[.]com`), while your own Approve / Trash / Spam links stay clickable. Comments by admins keep their links.
+- **Clean up what's already there.** **Scan comments** finds approved and waiting comments that break the rules and moves them to spam, where you can still restore them. **Empty spam** deletes the spam folder in batches, and spam is deleted automatically after 7 days.
+- A stats strip shows how many spam bots were stopped (in total and this week), what's in the spam folder and what's waiting for approval.
+- **Don't need comments?** The same screen can close them site-wide, even when the Performance module is off.
+- **Images:** a WebP **wider than 1000 px** with no original is now backed up to the originals backup before Re-convert shrinks it, so a later re-convert builds from the big copy. Smaller WebPs aren't backed up, and JPG/PNG originals are always kept as before.
+- Panel headers on Login protection, Site scan, Shop, Reviews and SEO now put their switch or button beside the title. It used to drop underneath, because that layout had no styling.
+
 ## 4.13.0 — A private backup for your original images
 - **New: Original files** on the Images page. When an image becomes WebP, Velox keeps the original JPG/PNG, and now you choose where it goes. **Next to the WebP** is the default, the same as before. **Private backup** moves originals into a hidden folder in uploads that visitors can't open: it has a random name and is blocked from the web. Your site only uses the converted images.
 - **Download all (ZIP)** gives you every original in one file, in the same year/month folders as your uploads.

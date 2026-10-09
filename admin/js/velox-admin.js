@@ -9041,6 +9041,119 @@
 		render();
 	}
 
+	/* ----------------------------------------------------------------
+	 * Utilities → Comment protection: scan existing comments, move matches
+	 * to spam, empty the spam folder. All batched server-side.
+	 * ------------------------------------------------------------- */
+
+	function initCommentGuard() {
+		var box = document.getElementById( 'vxcg-clean' );
+		if ( ! box ) {
+			return;
+		}
+		var scanB  = document.getElementById( 'vxcg-scan' );
+		var result = document.getElementById( 'vxcg-result' );
+		var emptyB = document.getElementById( 'vxcg-empty' );
+		// Same number format as the server-rendered stats (site language, not browser).
+		var lang = document.documentElement.lang || undefined;
+		function num( n ) { return Number( n ).toLocaleString( lang ); }
+
+		function el( tag, cls, text ) {
+			var n = document.createElement( tag );
+			if ( cls ) { n.className = cls; }
+			if ( null != text ) { n.textContent = text; }
+			return n;
+		}
+		function setStats( st ) {
+			if ( ! st ) { return; }
+			$$( '[data-cg-stat]' ).forEach( function ( n ) {
+				var k = n.getAttribute( 'data-cg-stat' );
+				if ( k in st ) { n.textContent = num( st[ k ] ); }
+			} );
+			emptyB.setAttribute( 'data-count', st.spam );
+			emptyB.disabled = ! st.spam;
+		}
+		function busy( btn, on ) {
+			btn.disabled = on;
+			btn.classList.toggle( 'is-loading', on );
+		}
+
+		function showScan( d ) {
+			result.textContent = '';
+			result.hidden = false;
+			if ( ! d.count ) {
+				result.appendChild( el( 'p', 'vxcg-ok', vxT( 'No spam found in your comments.' ) ) );
+				return;
+			}
+			var head = el( 'div', 'vxcg-result-head' );
+			head.appendChild( el( 'strong', null, vxT( '%s comments look like spam', d.count ) ) );
+			var move = el( 'button', 'velox-btn velox-btn--primary velox-btn--sm', vxT( 'Move %s to spam', d.count ) );
+			move.type = 'button';
+			head.appendChild( move );
+			result.appendChild( head );
+			var list = el( 'ul', 'vxcg-list' );
+			d.items.forEach( function ( it ) {
+				var li = el( 'li', 'vxcg-item' );
+				var meta = el( 'span', 'vxcg-item-meta' );
+				meta.appendChild( el( 'strong', null, it.author || vxT( 'Anonymous' ) ) );
+				meta.appendChild( el( 'span', null, it.date ) );
+				meta.appendChild( el( 'span', 'vxcg-pill vxcg-pill--' + it.status, 'approved' === it.status ? vxT( 'Approved' ) : vxT( 'Waiting' ) ) );
+				li.appendChild( meta );
+				li.appendChild( el( 'span', 'vxcg-item-text', it.excerpt ) );
+				list.appendChild( li );
+			} );
+			result.appendChild( list );
+			if ( d.count > d.items.length ) {
+				result.appendChild( el( 'p', 'velox-hint', vxT( '…and %s more.', d.count - d.items.length ) ) );
+			}
+			move.addEventListener( 'click', function () {
+				busy( move, true );
+				var total = 0;
+				( function step() {
+					api( 'cg_mark_spam', {} )
+						.then( function ( r ) {
+							total += r.moved;
+							setStats( r.stats );
+							if ( r.remaining > 0 && r.moved > 0 ) { step(); return; }
+							result.textContent = '';
+							result.appendChild( el( 'p', 'vxcg-ok', vxT( 'Moved %s comments to the spam folder.', total ) ) );
+							toast( vxT( 'Moved %s comments to the spam folder.', total ), 'success' );
+						} )
+						.catch( function ( e ) { busy( move, false ); toast( e.message, 'error' ); } );
+				} )();
+			} );
+		}
+
+		scanB.addEventListener( 'click', function () {
+			busy( scanB, true );
+			api( 'cg_scan', {} )
+				.then( showScan )
+				.catch( function ( e ) { toast( e.message, 'error' ); } )
+				.then( function () { busy( scanB, false ); } );
+		} );
+
+		emptyB.addEventListener( 'click', function () {
+			var n = parseInt( emptyB.getAttribute( 'data-count' ), 10 ) || 0;
+			if ( ! n || ! window.confirm( vxT( 'Delete all %s spam comments for good? This cannot be undone.', num( n ) ) ) ) {
+				return;
+			}
+			busy( emptyB, true );
+			var total = 0;
+			( function step() {
+				api( 'cg_empty_spam', {} )
+					.then( function ( r ) {
+						total += r.deleted;
+						setStats( r.stats );
+						if ( r.remaining > 0 && r.deleted > 0 ) { step(); return; }
+						busy( emptyB, false );
+						emptyB.disabled = ! r.stats.spam;
+						toast( vxT( 'Deleted %s spam comments.', num( total ) ), 'success' );
+					} )
+					.catch( function ( e ) { busy( emptyB, false ); toast( e.message, 'error' ); } );
+			} )();
+		} );
+	}
+
 	function veloxInit() {
 		initLangSwitch();
 		initErrorLog();
@@ -9057,6 +9170,7 @@
 		initHtaccess();
 		initLargeImages();
 		initOriginals();
+		initCommentGuard();
 		initDatabase();
 		initSeo();
 		initSeoHealth();

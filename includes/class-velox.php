@@ -254,6 +254,7 @@ final class Velox {
 		Velox_Reviews::init();
 		Velox_Shop::init();
 		Velox_Login_Guard::init();
+		Velox_Comment_Guard::init();
 		Velox_Reviews_Oxygen::init();
 		Velox_Scripts::init();
 		Velox_Cache::init();
