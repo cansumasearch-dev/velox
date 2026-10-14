@@ -2402,10 +2402,9 @@
 		function paint( d ) {
 			if ( bar ) { bar.style.width = ( d.percent || 0 ) + '%'; }
 			if ( label ) {
-				label.textContent = ( d.label || '' ) + ( d.found ? '  ·  ' + d.found + ' ' + vxT( 'so far' ) : '' );
+				label.textContent = ( d.label || '' ) + ( d.found ? '  ·  ' + vxT( '%s found so far', d.found ) : '' );
 			}
 		}
-
 		function next() {
 			return api( 'scan_step', {} ).then( function ( d ) {
 				paint( d );
@@ -2417,9 +2416,9 @@
 				return next();
 			} );
 		}
-
 		run.addEventListener( 'click', function () {
 			run.disabled = true;
+			run.classList.add( 'is-loading' );
 			if ( wrap ) { wrap.hidden = false; }
 			paint( { percent: 0, label: vxT( 'Starting…' ) } );
 			api( 'scan_start', {} )
@@ -2428,9 +2427,80 @@
 				.catch( function ( e ) {
 					toast( e.message, 'error' );
 					run.disabled = false;
+					run.classList.remove( 'is-loading' );
 					if ( wrap ) { wrap.hidden = true; }
 				} );
 		} );
+
+		function busy( btn, on ) {
+			btn.disabled = on;
+			btn.classList.toggle( 'is-loading', on );
+		}
+
+		/* Fix buttons: restore / quarantine / clean — addressed by the finding's index. */
+		$$( '[data-scan-fix]' ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				var item = btn.closest( '.vxsec-item' );
+				var kind = btn.getAttribute( 'data-scan-fix' );
+				if ( 'quarantine' === kind && '1' === btn.getAttribute( 'data-qrisk' ) &&
+					! window.confirm( vxT( 'Move this file into quarantine? If it belongs to your theme or a plugin, that part of the site may stop working until you put it back — the button to do that appears below.' ) ) ) {
+					return;
+				}
+				if ( 'clean' === kind && ! window.confirm( vxT( 'Remove the injected code from this page? The current version is saved as a revision first.' ) ) ) {
+					return;
+				}
+				busy( btn, true );
+				api( 'scan_fix', { index: item.getAttribute( 'data-index' ) } )
+					.then( function ( d ) {
+						toast( d.message, 'success' );
+						setTimeout( function () { location.reload(); }, 700 );
+					} )
+					.catch( function ( e ) {
+						busy( btn, false );
+						toast( e.message, 'error' );
+					} );
+			} );
+		} );
+
+		/* Quarantine: put back / delete for good. */
+		$$( '[data-q]' ).forEach( function ( btn ) {
+			btn.addEventListener( 'click', function () {
+				var item = btn.closest( '[data-qid]' );
+				var del  = 'delete' === btn.getAttribute( 'data-q' );
+				if ( del && ! window.confirm( vxT( 'Delete this file for good? This cannot be undone.' ) ) ) {
+					return;
+				}
+				busy( btn, true );
+				api( del ? 'scan_q_delete' : 'scan_q_restore', { id: item.getAttribute( 'data-qid' ) } )
+					.then( function ( d ) {
+						toast( d.message, 'success' );
+						setTimeout( function () { location.reload(); }, 600 );
+					} )
+					.catch( function ( e ) {
+						busy( btn, false );
+						toast( e.message, 'error' );
+					} );
+			} );
+		} );
+
+		/* After a hack: sign everyone out everywhere. */
+		var out = $( '#vxsec-logout' );
+		if ( out ) {
+			out.addEventListener( 'click', function () {
+				if ( ! window.confirm( vxT( 'Sign every user out on every device? You stay signed in here.' ) ) ) {
+					return;
+				}
+				busy( out, true );
+				api( 'scan_logout_all', {} )
+					.then( function ( d ) {
+						busy( out, false );
+						out.disabled = true;
+						out.textContent = vxT( 'Done' );
+						toast( d.message, 'success' );
+					} )
+					.catch( function ( e ) { busy( out, false ); toast( e.message, 'error' ); } );
+			} );
+		}
 	}
 
 	function initUtilities() {

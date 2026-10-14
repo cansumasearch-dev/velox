@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.15.0 — Security scan: is the site hacked, how, and how to fix it
+- **Site scan is now a full Security scan** (Utilities → Security), built the way Wordfence's scanner works. It answers whether the site is hacked, what was changed, how the hack works and what to do about it.
+- **WordPress core and every plugin from WordPress.org are checked file by file** against the official checksums. A changed file, or a PHP file the release never shipped, is a certain answer with no guessing.
+- **Everything WordPress.org can't vouch for is read for backdoors**: themes, premium plugins like Oxygen, mu-plugins and root files. The check looks for a deliberately tight set of tricks real malware uses: code hidden behind `eval(base64_decode(…))`, code run straight from a visitor's request, known web shells, hex-hidden includes, and PHP hidden in `.ico` files. In testing it caught every sample and raised **zero false alarms** across Velox's own 30k lines of code.
+- **The other places hacks live:** injected scripts and invisible iframes in pages, a hijacked site address, encoded payloads in settings, administrator accounts created in the last 14 days, and `.htaccess` tricks such as Google-only or phone-only redirects to spam sites, images run as PHP, and prepended malware files.
+- **Every finding says what it is, how it works, and shows the suspicious line.** Each one comes with a fix. **Restore original** replaces a changed core or plugin file with the original from WordPress.org, and only writes it if the checksum matches. **Quarantine** moves a bad file into a sealed folder where it can't run; it's never deleted on a guess, and **Put back** undoes it. **Remove injected code** cleans a page and keeps the old version as a revision.
+- **When the site is hacked, a "What to do now" checklist appears**: fix the findings, **Sign everyone out** (with a button that makes every stolen login worthless), change passwords, update everything, scan again.
+- **Hardening tips are listed separately**, such as pending updates, the theme/plugin file editor being on, or an "admin" account. They're never presented as an infection.
+- **Automatic scans** run every week (or every night), at night site time, and email you only when something new and serious turns up.
+- The screen says plainly what no scanner can promise: a clean result is strong evidence, not proof.
+
 ## 4.14.1 — Every image over 1000 px always has an original
 - **Big images always get a full-size original saved, no matter where they came from.** Until now Velox only kept originals of images it converted itself, so a library of WebPs uploaded as WebP (or converted by another tool) showed almost no originals. Now every WebP wider than 1000 px gets a full-size copy in the private originals backup.
 - **Existing images are backed up automatically** in the background, a batch every hour until they're all done. **Back up now** on Images → Original files does it straight away. These are copies: your site keeps using the live files.

@@ -3756,3 +3756,54 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-panel-head { display: flex; align-items: center; justify-content: space-between; gap: var(--vx-s3); margin-bottom: var(--vx-s3); }
 .velox-panel-head .velox-panel-title { margin: 0; }
 .velox-panel-head > .velox-switch { flex: none; }
+
+
+/* ======================================================================
+ * Utilities → Security scan
+ * ====================================================================== */
+.vxsec-status-main { display: flex; align-items: center; gap: var(--vx-s4); }
+.vxsec-status-ic { flex: none; width: 44px; height: 44px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--vx-n100); color: var(--vx-ink-2); }
+.vxsec-status--clean .vxsec-status-ic { background: var(--vx-success-tint); color: var(--vx-success); }
+.vxsec-status--danger .vxsec-status-ic { background: var(--vx-danger-tint); color: var(--vx-danger); }
+.vxsec-status--warn .vxsec-status-ic { background: var(--vx-warning-tint); color: var(--vx-warning); }
+.vxsec-status--danger { box-shadow: inset 3px 0 0 var(--vx-danger), var(--vx-shadow); }
+.vxsec-status-text { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.vxsec-headline { font-size: 18px; font-weight: 600; color: var(--vx-ink); letter-spacing: -0.01em; }
+.vxsec-status--danger .vxsec-headline { color: var(--vx-danger); }
+.vxsec-detail { font-size: 13px; color: var(--vx-ink-2); line-height: 1.5; }
+.vxsec-status-main > .velox-btn { flex: none; }
+.vxsec-progress { margin-top: var(--vx-s3); }
+
+.vxsec-steps { margin: var(--vx-s3) 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 13.5px; color: var(--vx-ink-2); line-height: 1.55; }
+.vxsec-steps strong { color: var(--vx-ink); font-weight: 600; }
+.vxsec-steps .velox-btn { margin-left: 6px; vertical-align: middle; }
+.vxsec-todo-foot { margin: var(--vx-s4) 0 0; }
+
+.vxsec-count { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; padding: 0 6px; margin-left: 6px; border-radius: var(--vx-r-pill); background: var(--vx-n100); color: var(--vx-ink-2); font-size: 11.5px; font-weight: 700; vertical-align: middle; }
+.vxsec-item { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--vx-s4); padding: var(--vx-s4) 0; border-top: 1px solid var(--vx-line); }
+.vxsec-group .velox-panel-title + .vxsec-item, #vxsec-quarantine .velox-hint + .vxsec-item { border-top: 0; }
+.vxsec-item.is-done { opacity: .55; }
+.vxsec-item-body { min-width: 0; flex: 1; }
+.vxsec-item-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.vxsec-item-title { font-size: 13.5px; font-weight: 600; color: var(--vx-ink); }
+.vxsec-path { font-family: var(--vx-mono); font-size: 12px; color: var(--vx-ink-2); background: var(--vx-n50); padding: 2px 6px; border-radius: var(--vx-r-xs); overflow-wrap: anywhere; }
+.vxsec-meta { font-size: 12px; color: var(--vx-ink-3); }
+.vxsec-what { margin: 6px 0 0; font-size: 13px; color: var(--vx-ink); line-height: 1.5; }
+.vxsec-how { margin: 4px 0 0; font-size: 12.5px; color: var(--vx-ink-2); line-height: 1.5; }
+.vxsec-code { margin-top: 8px; display: flex; gap: 10px; align-items: baseline; padding: 8px 10px; background: var(--vx-n900); border-radius: var(--vx-r-sm); overflow: hidden; }
+.vxsec-code code { font-family: var(--vx-mono); font-size: 12px; color: #f5f5f7; background: none; white-space: pre-wrap; overflow-wrap: anywhere; }
+.vxsec-line { flex: none; font-family: var(--vx-mono); font-size: 11px; color: var(--vx-n400); }
+.vxsec-item-acts { display: flex; flex-direction: column; gap: 6px; flex: none; align-items: stretch; }
+.vxsec-note { margin: 0 0 var(--vx-s2); }
+.vxsec-limits { margin: 0; }
+.vxsec-limits p { font-size: 13px; }
+@media (max-width: 782px) {
+	.vxsec-status-main { flex-wrap: wrap; }
+	.vxsec-item { flex-direction: column; }
+	.vxsec-item-acts { flex-direction: row; }
+}
+/* .velox-pill is declared twice in this file and the later, neutral one wins
+   over the earlier colour modifiers — restate them for the scan report. */
+.vxsec-item .velox-pill--bad  { background: var(--vx-danger-tint);  color: var(--vx-danger); }
+.vxsec-item .velox-pill--warn { background: var(--vx-warning-tint); color: var(--vx-warning); }
+.vxsec-item .velox-pill--ok   { background: var(--vx-success-tint); color: var(--vx-success); }

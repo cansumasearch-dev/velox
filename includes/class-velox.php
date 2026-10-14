@@ -43,6 +43,9 @@ final class Velox {
 	 *
 	 * @var array<string,string>|null|false  false = not yet resolved.
 	 */
+	/** @var bool Translate even outside wp-admin (cron jobs that write admin-facing text). */
+	public static $admin_text = false;
+
 	/** @var array<string,string>|null|false  false = dict not yet loaded from disk. */
 	private $vx_dict = false;
 	/** @var string|null  Resolved locale for this request (null = not yet resolved). */
@@ -61,7 +64,9 @@ final class Velox {
 	 */
 	private function get_dict() {
 		// Only translate inside wp-admin; the front end keeps the site language.
-		if ( ! function_exists( 'is_admin' ) || ! is_admin() ) {
+		// Background jobs that write admin-facing text (the nightly security scan
+		// and its alert email) opt in via $admin_text.
+		if ( ! self::$admin_text && ( ! function_exists( 'is_admin' ) || ! is_admin() ) ) {
 			return null;
 		}
 
@@ -255,6 +260,7 @@ final class Velox {
 		Velox_Shop::init();
 		Velox_Login_Guard::init();
 		Velox_Comment_Guard::init();
+		Velox_Site_Scan::init();
 		Velox_Reviews_Oxygen::init();
 		Velox_Scripts::init();
 		Velox_Cache::init();

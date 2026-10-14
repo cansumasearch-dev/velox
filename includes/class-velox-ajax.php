@@ -419,6 +419,22 @@ class Velox_Ajax {
 				wp_send_json_success( Velox_Site_Scan::step() );
 				break;
 
+			case 'scan_fix':
+				$this->respond( Velox_Site_Scan_Fix::apply( (int) ( $_POST['index'] ?? -1 ) ) );
+				break;
+
+			case 'scan_q_restore':
+				$this->respond( Velox_Site_Scan_Fix::restore_quarantined( sanitize_key( wp_unslash( $_POST['id'] ?? '' ) ) ) );
+				break;
+
+			case 'scan_q_delete':
+				$this->respond( Velox_Site_Scan_Fix::delete_quarantined( sanitize_key( wp_unslash( $_POST['id'] ?? '' ) ) ) );
+				break;
+
+			case 'scan_logout_all':
+				wp_send_json_success( Velox_Site_Scan_Fix::logout_all() );
+				break;
+
 			case 'scan_forget':
 				Velox_Site_Scan::forget();
 				wp_send_json_success( array( 'ok' => true ) );

@@ -92,6 +92,8 @@ class Velox_Settings {
 			'loginguard_notify'        => true,
 			'loginguard_behind_proxy'  => false,
 			'util_sitescan'            => false,
+			'scan_schedule'            => 'weekly', // off | daily | weekly — automatic security scan
+			'scan_email'               => true,     // email the admin when a scheduled scan finds something serious
 			// ---- Comment protection (on by default: invisible to visitors, protects every site) ----
 			'util_commentguard'        => true,
 			'cg_block_bots'            => true,  // token + honeypot + time check on every comment form
