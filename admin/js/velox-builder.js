@@ -111,15 +111,36 @@
 			this.future = []; return true; },
 		/* commit: fn mutates state; snapshot the RESULT so history holds real edit
 		   states. quiet=true (selection, hover) doesn't record history/log. */
-		commit:function ( fn, label ) { fn( this.state ); if ( label !== false ) { var pushed = this.snapshot(); if ( pushed ) { if ( label ) { this.log.push( { label:label, at:Date.now(), idx:this.history.length } ); if ( this.log.length > 120 ) { this.log.shift(); } this.emitLog(); } if ( this.onEdit ) { this.onEdit(); } } } this.emit(); },
+		commit:function ( fn, label ) {
+			fn( this.state );
+			if ( label !== false ) {
+				var pushed = this.snapshot();
+				if ( pushed ) {
+					// Undone steps are gone once something new is done: drop their
+					// History entries, or clicking them jumped to the wrong state.
+					var hl = this.history.length;
+					this.log = this.log.filter( function ( l ) { return l.idx < hl; } );
+					if ( label ) { this.log.push( { label:label, at:Date.now(), idx:hl } ); if ( this.log.length > 120 ) { this.log.shift(); } }
+					this.emitLog();
+					if ( this.onEdit ) { this.onEdit(); }
+				}
+			}
+			this.emit();
+		},
 		/* Undo/redo restore the document, not the place you are working in:
 		   the screen size and state you are editing stay as they are. */
 		keepContext:function ( next ) { var cur = this.state || {}; next.breakpoint = cur.breakpoint || 'base'; next.state = cur.state || 'normal'; if ( cur.selection && findNode( next.tree || [], cur.selection ) ) { next.selection = cur.selection; next.activeClass = cur.activeClass; } return next; },
-		undo:function () { if ( this.history.length <= 1 ) { return; } this.future.push( this.history.pop() ); this.state = this.keepContext( JSON.parse( this.history[ this.history.length - 1 ] ) ); if ( this.onEdit ) { this.onEdit(); } this.emit(); },
-		redo:function () { if ( ! this.future.length ) { return; } var s = this.future.pop(); this.history.push( s ); this.state = this.keepContext( JSON.parse( s ) ); if ( this.onEdit ) { this.onEdit(); } this.emit(); },
+		undo:function () { if ( this.history.length <= 1 ) { return; } this.future.push( this.history.pop() ); this.state = this.keepContext( JSON.parse( this.history[ this.history.length - 1 ] ) ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
+		redo:function () { if ( ! this.future.length ) { return; } var s = this.future.pop(); this.history.push( s ); this.state = this.keepContext( JSON.parse( s ) ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
 		/* Revert to a specific snapshot (session history). idx = history length at
 		   that point, so history[idx-1] is that state. */
-		revertTo:function ( idx ) { if ( idx < 1 || idx > this.history.length ) { return; } this.state = JSON.parse( this.history[ idx - 1 ] ); this.history = this.history.slice( 0, idx ); this.future = []; this.log = this.log.filter( function ( l ) { return l.idx <= idx; } ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
+		/* Going back to a point in History is itself a step: everything after it
+		   stays reachable with Undo, so one misclick can't throw work away. */
+		revertTo:function ( idx, label ) {
+			if ( idx < 1 || idx > this.history.length ) { return; }
+			var target = this.keepContext( JSON.parse( this.history[ idx - 1 ] ) );
+			this.commit( function ( s ) { Object.keys( s ).forEach( function ( k ) { delete s[ k ]; } ); Object.keys( target ).forEach( function ( k ) { s[ k ] = target[ k ]; } ); }, label || 'Revert' );
+		},
 		subscribe:function ( fn ) { this.listeners.push( fn ); },
 		subscribeLog:function ( fn ) { this.logListeners.push( fn ); },
 		emit:function () { for ( var i = 0; i < this.listeners.length; i++ ) { this.listeners[ i ]( this.state ); } },
@@ -385,7 +406,7 @@
 			// Google Reviews: labeled placeholder in the editor (real reviews render on the front end).
 			if ( node.el === 'Reviews' ) {
 				var rc = ( CFG.reviewConnections || [] ).filter( function ( c ) { return c.id === node.conn; } )[ 0 ];
-				var demoOn = !! ( node.settings && node.settings.demo );
+				var demoOn = !! ( node.settings && node.settings.demo && '0' !== String( node.settings.demo ) );
 				var label = node.conn
 					? ( T( 'Google Reviews' ) + ( rc ? ' · ' + escapeHtml( rc.name ) : '' ) )
 					: ( demoOn
@@ -456,13 +477,15 @@
 					return '<div id="' + node.id + '" class="' + cls + ' vx-slider" data-node="' + node.id + '"><span class="vb-img-ph">' + T( 'No slides yet — add some in Settings.' ) + '</span></div>';
 				}
 				var per = Math.max( 1, parseInt( sSet.perView, 10 ) || 1 );
-				var gapv = ( sSet.gap === undefined ? 16 : sSet.gap );
+				var gapv = parseFloat( sSet.gap );
+				if ( isNaN( gapv ) ) { gapv = 16; }
 				var slidesHtml = sItems.map( function ( it, i ) {
 					var sk = ( node.children || [] )[ i ];
 					var img = it.image ? '<img src="' + escapeHtml( it.image ) + '" alt="" loading="lazy">' : '';
-					var sinner = sk ? render( sk ) : (
-						( it.title ? '<strong>' + escapeHtml( it.title ) + '</strong>' : '' ) +
-						( it.body ? '<p>' + escapeHtml( it.body ) + '</p>' : '' ) );
+					// The item's own text shows, then whatever was dropped into it —
+					// an empty drop container used to hide the text completely.
+					var sinner = ( it.title ? '<strong>' + escapeHtml( it.title ) + '</strong>' : '' ) +
+						( it.body ? '<p>' + escapeHtml( it.body ) + '</p>' : '' ) + ( sk ? render( sk ) : '' );
 					return '<div class="vx-slide" style="flex:0 0 calc((100% - ' + ( ( per - 1 ) * gapv ) + 'px)/' + per + ')">' + img + sinner + '</div>';
 				} ).join( '' );
 				var ctrls = '';
@@ -483,7 +506,7 @@
 				var tabsPanels = tItems.map( function ( it, i ) {
 					var tk = ( node.children || [] )[ i ];
 					return '<div class="vx-tabp" role="tabpanel"' + ( i === active ? '' : ' hidden' ) + '>' +
-						( tk ? render( tk ) : escapeHtml( it.body || '' ) ) + '</div>';
+						( it.body ? '<p>' + escapeHtml( it.body ) + '</p>' : '' ) + ( tk ? render( tk ) : '' ) + '</div>';
 				} ).join( '' );
 				return '<div id="' + node.id + '" class="' + cls + ' vx-tabs' + ( 'left' === ( tSet.orient || 'top' ) ? ' vx-tabs-left' : '' ) + '" data-node="' + node.id + '">' +
 					'<div class="vx-tablist" role="tablist">' + tabsBtns + '</div><div class="vx-tabpanels">' + tabsPanels + '</div></div>';
@@ -491,12 +514,12 @@
 			if ( 'Accordion' === node.el || 'Faq' === node.el ) {
 				var accSet = node.settings || {};
 				var accItems = accSet.items || [];
-				var hTag = accSet.headingTag || 'h3';
+				var hTag = /^h[2-4]$/.test( accSet.headingTag || '' ) ? accSet.headingTag : 'h3';
 				var openFirst = accSet.firstOpen !== '' && accSet.firstOpen !== '0' && accSet.firstOpen !== undefined ? accSet.firstOpen : ( accSet.firstOpen === undefined && 'Accordion' === node.el ? '1' : '' );
 				var accHtml = accItems.map( function ( it, i ) {
 					var open = ( openFirst && 0 === i );
 					var kid = ( node.children || [] )[ i ];
-					var inner = kid ? render( kid ) : escapeHtml( it.body || '' );
+					var inner = ( it.body ? '<p>' + escapeHtml( it.body ) + '</p>' : '' ) + ( kid ? render( kid ) : '' );
 					return '<div class="vx-acc-item' + ( open ? ' is-open' : '' ) + '">' +
 						'<' + hTag + ' class="vx-acc-h"><button class="vx-acc-btn" type="button" aria-expanded="' + ( open ? 'true' : 'false' ) + '">' +
 							'<span class="vx-acc-t">' + escapeHtml( it.title || '' ) + '</span>' +
@@ -559,7 +582,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -630,6 +653,9 @@
 				}
 				var n = e.target.closest ? e.target.closest( '[data-node]' ) : null;
 				if ( n ) { e.preventDefault(); store.commit( function ( s ) { s.selection = n.getAttribute( 'data-node' ); resetActiveClass( s ); }, false ); }
+				// A click on empty canvas lets go of the selection, so the next
+				// element is added to the page itself, not into the last container.
+				else if ( store.state.selection ) { store.commit( function ( s ) { s.selection = null; s.activeClass = null; }, false ); }
 			} );
 			// Double-click a text-bearing element to edit its text right on the canvas.
 			doc.addEventListener( 'contextmenu', function ( e ) {
@@ -659,6 +685,7 @@
 		}
 		doc.getElementById( 'vb-style' ).textContent = genCSS();
 		schedulePreviewCss();
+		if ( doc.body && ! doc.__vbPrefs ) { doc.__vbPrefs = true; applyEditorPrefs(); applyPagePreview( store.state.page || {} ); }
 		// Page CSS from Page settings shows while editing, not only on the site.
 		var pcs = doc.getElementById( 'vb-page-css' ), pcss = ( store.state.page && store.state.page.css ) || '';
 		if ( pcs && pcs.textContent !== pcss ) { pcs.textContent = pcss; }
@@ -984,20 +1011,23 @@
 	/* Control fragments reused across many elements, so the shared behaviour
 	 * (triggers, placement, responsive visibility) stays defined in ONE place. */
 	var FRAG = {
-		trigger: function ( sec ) {
+		trigger: function ( sec, floating ) {
 			sec = sec || 'Trigger';
+			// A floating button or bar has nothing to click before it is shown —
+			// "a visitor clicks" hid it for good. Those start on page load.
+			var opts = [
+				[ 'click', 'A visitor clicks' ], [ 'load', 'The page loads' ],
+				[ 'delay', 'After a delay' ], [ 'scroll', 'After scrolling' ],
+				[ 'element', 'An element scrolls into view' ],
+				[ 'idle', 'After inactivity' ], [ 'exit', 'The visitor moves to leave' ]
+			];
 			return [
-				{ k:'trigType', t:'select', l:'Show when', d:'click', s:sec, o:[
-					[ 'click', 'A visitor clicks' ], [ 'load', 'The page loads' ],
-					[ 'delay', 'After a delay' ], [ 'scroll', 'After scrolling' ],
-					[ 'element', 'An element scrolls into view' ],
-					[ 'idle', 'After inactivity' ], [ 'exit', 'The visitor moves to leave' ]
-				] },
+				{ k:'trigType', t:'select', l:'Show when', d:floating ? 'load' : 'click', s:sec, o:floating ? opts.slice( 1 ) : opts },
 				{ k:'trigDelay', t:'num', l:'Delay', d:'3', s:sec, unit:'s', when:{ trigType:'delay' } },
 				{ k:'trigScroll', t:'num', l:'Scrolled past', d:'50', s:sec, unit:'%', when:{ trigType:'scroll' } },
 				{ k:'trigIdle', t:'num', l:'Idle for', d:'20', s:sec, unit:'s', when:{ trigType:'idle' } },
 				{ k:'trigTarget', t:'text', l:'Element selector', d:'', s:sec, when:{ trigType:'element' } },
-				{ k:'trigOnce', t:'select', l:'Show it', d:'session', s:sec, o:[
+				{ k:'trigOnce', t:'select', l:'Show it', d:floating ? 'always' : 'session', s:sec, o:[
 					[ 'always', 'Every time' ], [ 'session', 'Once per visit' ],
 					[ 'day', 'Once a day' ], [ 'ever', 'Once, ever' ]
 				] }
@@ -1043,7 +1073,7 @@
 			{ key:'heading', el:'Heading', tag:'h2', label:'Heading', cls:'.heading', rules:{ fontSize:'32', fontWeight:'700' }, text:'New heading' },
 			{ key:'text', el:'Text', tag:'p', label:'Text', cls:'.text', rules:{ fontSize:'16' }, text:'New text block.' },
 			{ key:'list', el:'Text', tag:'ul', label:'List', cls:'.list', rules:{ fontSize:'16' }, text:'<li>First item</li><li>Second item</li>' },
-			{ key:'quote', el:'Text', tag:'blockquote', label:'Quote', cls:'.quote', rules:{ fontSize:'20', paddingLeft:'20', borderWidth:'4', borderStyle:'solid', borderColor:'#2ab7f1' }, text:'A memorable quote.' }
+			{ key:'quote', el:'Text', tag:'blockquote', label:'Quote', cls:'.quote', rules:{ fontSize:'20', paddingLeft:'20', boxShadow:'inset 4px 0 0 #2ab7f1' }, text:'A memorable quote.' }
 		] },
 		{ name:'Links', icon:'link', items:[
 			{ key:'button', el:'Button', tag:'a', label:'Button', cls:'.btn', rules:{ display:'inline-block', paddingTop:'12', paddingBottom:'12', paddingLeft:'20', paddingRight:'20', borderRadius:'8', background:'#2ab7f1', color:'#04222f', textDecoration:'none' }, text:'Button' },
@@ -1182,17 +1212,17 @@
 			  settings:[
 				{ k:'ebLine', t:'segment', l:'Small line', d:'none', s:'Eyebrow',
 				  o:[ [ 'none', 'None' ], [ 'before', 'Before the text' ], [ 'after', 'After the text' ] ] },
-				{ k:'ebLineW', t:'num', l:'Line length', d:'24', unit:'px', s:'Eyebrow', when:{ ebLine:'before' } },
-				{ k:'ebLineColor', t:'color', l:'Line colour', d:'', s:'Eyebrow', when:{ ebLine:'before' } }
+				{ k:'ebLineW', t:'num', l:'Line length', d:'24', unit:'px', s:'Eyebrow', when:{ ebLine:[ 'before', 'after' ] } },
+				{ k:'ebLineColor', t:'color', l:'Line colour', d:'', s:'Eyebrow', when:{ ebLine:[ 'before', 'after' ] } }
 			  ], text:'ÜBER UNS' },
 			{ key:'pullquote', el:'Pullquote', tag:'blockquote', label:'Pull quote', cls:'.pull-quote', rules:{ fontSize:'26', fontWeight:'600', lineHeight:'1.4' },
 			  settings:[
 				{ k:'pqMark', t:'segment', l:'Quotation mark', d:'none', s:'Pull quote',
 				  o:[ [ 'none', 'None' ], [ 'before', 'Above' ], [ 'left', 'Beside' ] ] },
-				{ k:'pqMarkColor', t:'color', l:'Mark colour', d:'#2ab7f1', s:'Pull quote', when:{ pqMark:'before' } },
+				{ k:'pqMarkColor', t:'color', l:'Mark colour', d:'#2ab7f1', s:'Pull quote', when:{ pqMark:[ 'before', 'left' ] } },
 				{ k:'pqRule', t:'segment', l:'Accent line', d:'none', s:'Pull quote',
 				  o:[ [ 'none', 'None' ], [ 'left', 'Down the left' ], [ 'top', 'Above' ] ] },
-				{ k:'pqRuleColor', t:'color', l:'Line colour', d:'#2ab7f1', s:'Pull quote', when:{ pqRule:'left' } }
+				{ k:'pqRuleColor', t:'color', l:'Line colour', d:'#2ab7f1', s:'Pull quote', when:{ pqRule:[ 'left', 'top' ] } }
 			  ], text:'Ein hervorgehobenes Zitat.' },
 			{ key:'verticaltext', el:'Verticaltext', tag:'span', label:'Vertical text', cls:'.vertical-text', rules:{ fontSize:'14', letterSpacing:'2' }, text:'SCROLL',
 			  settings:[
@@ -1311,6 +1341,7 @@
 				] },
 				{ k:'subTrigger', t:'segment', l:'Submenus open on', d:'hover', s:'Submenus',
 				  o:[ [ 'hover', 'Hover' ], [ 'click', 'Click' ] ] },
+				{ k:'navLabel', t:'text', l:'Name for screen readers', d:'', s:'Accessibility', ph:'Footer' },
 				{ k:'sticky', t:'toggle', l:'Sticks to the top when scrolling', d:'', s:'Scrolling' },
 				{ k:'shrink', t:'toggle', l:'Shrinks once scrolled', d:'', s:'Scrolling', when:{ sticky:'1' } },
 				{ k:'hideDown', t:'toggle', l:'Hides when scrolling down', d:'', s:'Scrolling', when:{ sticky:'1' } },
@@ -1344,7 +1375,7 @@
 			{ key:'fab', el:'Fab', tag:'div', label:'Floating button', cls:'.fab',
 			  rules:{ display:'inline-flex' }, runtime:'floating', floating:true,
 			  settings:[].concat( [
-				{ k:'icon', t:'icon', l:'Icon', d:'chat', s:'Button' },
+				{ k:'icon', t:'icon', l:'Icon', d:'message', s:'Button' },
 				{ k:'label', t:'text', l:'Text beside the icon', d:'', s:'Button' },
 				{ k:'action', t:'select', l:'When clicked', d:'link', s:'Button', o:[
 					[ 'link', 'Open a link' ], [ 'call', 'Start a phone call' ],
@@ -1357,12 +1388,12 @@
 				{ k:'idle', t:'select', l:'Attention animation', d:'none', s:'Animation', o:[
 					[ 'none', 'None' ], [ 'pulse', 'Pulse' ], [ 'bounce', 'Bounce' ], [ 'shake', 'Shake' ]
 				] }
-			  ], FRAG.placement(), FRAG.trigger( 'When it appears' ), FRAG.visibility() ) },
+			  ], FRAG.placement(), FRAG.trigger( 'When it appears', true ), FRAG.visibility() ) },
 
 			{ key:'backtotop', el:'Backtotop', tag:'button', label:'Back to top', cls:'.back-to-top',
 			  rules:{ display:'grid' }, runtime:'floating', floating:true,
 			  settings:[].concat( [
-				{ k:'icon', t:'icon', l:'Icon', d:'chevron', s:'Button' },
+				{ k:'icon', t:'icon', l:'Icon', d:'chevron-up', s:'Button' },
 				{ k:'label', t:'text', l:'Screen-reader text', d:'Nach oben', s:'Button' }
 			  ], FRAG.placement(), [
 				{ k:'trigType', t:'select', l:'Show it', d:'scroll', s:'When it appears', o:[
@@ -1381,7 +1412,7 @@
 				  o:[ [ 'top', 'Top' ], [ 'bottom', 'Bottom' ] ] },
 				{ k:'sticky', t:'toggle', l:'Stays put while scrolling', d:'1', s:'Layout' },
 				{ k:'dismiss', t:'toggle', l:'Let visitors close it', d:'1', s:'Behaviour' }
-			  ], FRAG.trigger( 'When it appears' ), FRAG.visibility() ) },
+			  ], FRAG.trigger( 'When it appears', true ), FRAG.visibility() ) },
 
 			{ key:'stickybar', el:'Stickybar', tag:'div', label:'Sticky contact bar', cls:'.sticky-bar',
 			  rules:{ display:'grid', gridTemplateColumns:'repeat(3,1fr)' }, runtime:'floating', bar:true,
@@ -1440,15 +1471,15 @@
 				{ k:'edge', t:'segment', l:'Slides in from', d:'right', s:'Layout',
 				  o:[ [ 'left', 'Left' ], [ 'right', 'Right' ], [ 'top', 'Top' ], [ 'bottom', 'Bottom' ] ] },
 				{ k:'size', t:'num', l:'Width', d:'340', unit:'px', r:true, s:'Layout' },
-				{ k:'mode', t:'segment', l:'The page', d:'overlay', s:'Layout',
-				  o:[ [ 'overlay', 'Stays put' ], [ 'push', 'Gets pushed' ] ] },
 				{ k:'backdrop', t:'toggle', l:'Dim the page behind', d:'1', s:'Backdrop' },
 				{ k:'backColor', t:'color', l:'Dim colour', d:'rgba(0,0,0,.5)', s:'Backdrop', when:{ backdrop:'1' } },
 				{ k:'closeBack', t:'toggle', l:'Close when the dimmed area is clicked', d:'1', s:'Closing' },
 				{ k:'closeEsc', t:'toggle', l:'Close with the Escape key', d:'1', s:'Closing' },
 				{ k:'ms', t:'num', l:'Slide speed', d:'250', unit:'ms', s:'Animation' },
+				{ k:'closeBtn', t:'toggle', l:'Show a close button', d:'1', s:'Closing' },
 				{ k:'openWith', t:'text', l:'Opened by (CSS selector)', d:'', s:'Behaviour',
-				  ph:'.menu-toggle' }
+				  ph:'.menu-toggle' },
+				{ k:'dlgLabel', t:'text', l:'Name for screen readers', d:'', s:'Accessibility', ph:'Menu' }
 			  ] },
 			{ key:'modal', el:'Modal', tag:'div', label:'Popup / modal', cls:'.modal',
 			  rules:{ paddingTop:'32', paddingRight:'32', paddingBottom:'32', paddingLeft:'32', borderRadius:'16', background:'#ffffff', maxWidth:'520' },
@@ -1463,7 +1494,8 @@
 				{ k:'closeBack', t:'toggle', l:'Close when the dimmed area is clicked', d:'1', s:'Closing' },
 				{ k:'closeEsc', t:'toggle', l:'Close with the Escape key', d:'1', s:'Closing' },
 				{ k:'closeBtn', t:'toggle', l:'Show a close button', d:'1', s:'Closing' },
-				{ k:'ms', t:'num', l:'Speed', d:'250', unit:'ms', s:'Animation' }
+				{ k:'ms', t:'num', l:'Speed', d:'250', unit:'ms', s:'Animation' },
+				{ k:'dlgLabel', t:'text', l:'Name for screen readers', d:'', s:'Accessibility', ph:'Newsletter' }
 			] ) },
 			{ key:'dropdown', el:'Dropdown', tag:'div', label:'Dropdown', cls:'.dropdown',
 			  rules:{ paddingTop:'12', paddingRight:'12', paddingBottom:'12', paddingLeft:'12', borderRadius:'12', background:'#ffffff', minWidth:'200' },
@@ -1523,7 +1555,8 @@
 				{ k:'iconPos', t:'segment', l:'Icon side', d:'right', s:'Icon',
 				  o:[ [ 'left', 'Left' ], [ 'right', 'Right' ] ] },
 				{ k:'headingTag', t:'select', l:'Heading level', d:'h3', s:'Accessibility',
-				  o:[ [ 'h2', 'H2' ], [ 'h3', 'H3' ], [ 'h4', 'H4' ] ] }
+				  o:[ [ 'h2', 'H2' ], [ 'h3', 'H3' ], [ 'h4', 'H4' ] ] },
+				{ k:'faqSchema', t:'toggle', l:'Add FAQ markup for search engines', d:'', s:'SEO' }
 			  ] }
 		] },
 		{ name:'Template', icon:'layout', items:[
@@ -1587,6 +1620,15 @@
 				}
 			}
 			if ( cat.el === 'Reviews' ) { node.conn = ''; node.preset = ''; }
+			// Store every default the inspector shows. Left out, the page used the
+			// renderer's own fallback until the control was touched, and the two
+			// disagreed for several elements.
+			( cat.settings || [] ).forEach( function ( c ) {
+				if ( c.k && undefined !== c.d && '' !== c.d && 'items' !== c.k ) {
+					node.settings = node.settings || {};
+					if ( undefined === node.settings[ c.k ] ) { node.settings[ c.k ] = c.d; }
+				}
+			} );
 			// register the class + its starter rules (only if new)
 			ensureClass( s, cat.cls, { base: Object.assign( {}, cat.rules ) } );
 			if ( cat.text ) { s.content[ id ] = cat.text; }
@@ -2033,13 +2075,26 @@
 		var b = null;
 		try { b = JSON.parse( window.localStorage.getItem( backupKey() ) || 'null' ); } catch ( e ) {}
 		if ( ! b || ! b.model || contentSig( b.model ) === contentSig( store.state ) ) { return; }
-		var when = new Date( b.at ).toLocaleString();
-		if ( window.confirm( T( 'This browser has unsaved changes to this design from' ) + ' ' + when + '. ' + T( 'Restore them?' ) ) ) {
+		// A bar above the canvas, not a pop-up: it doesn't block, and the choice
+		// can be made after looking at the current version.
+		var stage = document.getElementById( 'vb-stage' ); if ( ! stage ) { return; }
+		var bar = document.getElementById( 'vb-restore' );
+		if ( ! bar ) { bar = document.createElement( 'div' ); bar.id = 'vb-restore'; bar.className = 'vb-restore'; stage.insertBefore( bar, stage.firstChild ); }
+		bar.innerHTML = '<span>' + T( 'This browser has unsaved changes to this design from' ) + ' <b>' + escapeHtml( new Date( b.at ).toLocaleString() ) + '</b>.</span>' +
+			'<button class="vb-btn vb-btn-primary" id="vb-restore-yes">' + T( 'Restore' ) + '</button>' +
+			'<button class="vb-btn vb-btn-ghost" id="vb-restore-no">' + T( 'Discard' ) + '</button>';
+		bar.__backup = b;
+		resizeCanvas();
+	}
+	function closeRestoreBar() { var bar = document.getElementById( 'vb-restore' ); if ( bar ) { bar.remove(); resizeCanvas(); } }
+	function restoreBackup() {
+		var bar = document.getElementById( 'vb-restore' ), b = bar && bar.__backup;
+		if ( b && b.model ) {
 			var m = b.model; delete m.changedClasses;
 			store.commit( function ( s ) { s.tree = m.tree || []; s.classes = m.classes || {}; s.content = m.content || {}; if ( m.page ) { s.page = m.page; } }, T( 'Restore unsaved changes' ) );
-		} else {
-			clearBackup();
+			toast( T( 'Restored. Save to keep it.' ) );
 		}
+		closeRestoreBar();
 	}
 	function markDirty() {
 		writeBackup();
@@ -2245,6 +2300,7 @@
 		// loading the page used to, so "Published" never showed after opening.
 		store.onEdit = markDirty;
 		window.addEventListener( 'beforeunload', function ( e ) {
+			flushGlobalSaves();
 			if ( dirty || saving ) { e.preventDefault(); e.returnValue = ''; return ''; }
 		} );
 		window.addEventListener( 'resize', function () { resizeCanvas(); } );
@@ -2323,7 +2379,7 @@
 				'<button class="vb-ic" id="vb-structure" title="' + T( 'Structure' ) + '">' + svg( 'structure', 16 ) + '</button>' +
 				'<a class="vb-ic" id="vb-reusables" href="' + ( CFG.reusablesUrl || '#' ) + '" title="' + T( 'Reusables' ) + '">' + svg( 'copy', 16 ) + '</a>' +
 				'<button class="vb-ic" id="vb-search" title="' + T( 'Switch page' ) + '">' + svg( 'search', 16 ) + '</button>' +
-				'<button class="vb-ic" id="vb-code" title="' + T( 'Page CSS / JS' ) + '">' + svg( 'code', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-code" title="' + T( 'Global CSS / JS (every page)' ) + '">' + svg( 'code', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-history" title="' + T( 'History' ) + '">' + svg( 'clock', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-settings" title="' + T( 'Settings' ) + '">' + svg( 'gear', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-tgl-right" title="' + T( 'Show right panel' ) + '">' + svg( 'panelright', 16 ) + '</button>' +
@@ -2368,8 +2424,18 @@
 	 * bar, Reusables sits with the other tool icons, and Settings was already in the
 	 * logo menu — no reason to carry it twice. */
 
+	var lastPageJSON = '';
 	function renderAll( state ) {
-		renderInspector( state ); renderTopbar( state ); renderCSSPanel(); applyDock();
+		renderInspector( state ); renderTopbar( state ); applyDock();
+		// Page settings changed underneath the panel (undo, discard, import):
+		// redraw it — unless you are typing in it right now.
+		var pj = JSON.stringify( state.page || {} );
+		if ( pj !== lastPageJSON ) {
+			lastPageJSON = pj;
+			var ae = document.activeElement;
+			if ( setShown && /^page/.test( setView ) && ! ( ae && ae.closest && ae.closest( '#vb-setpanel' ) ) ) { renderSettingsPanel(); }
+			applyPagePreview( state.page || {} );
+		}
 		if ( structShown ) { renderStructPanel(); }
 		injectCanvas();
 	}
@@ -2673,9 +2739,15 @@
 		var elNode = ensureEditingSelected(); if ( ! elNode ) { return; }
 		var doc = elNode.ownerDocument;
 		var argVal = '';
-		if ( arg ) { argVal = prompt( T( 'Enter the' ) + ' ' + arg + ':', '' ) || ''; }
+		if ( arg ) {
+			argVal = prompt( T( 'Enter the' ) + ' ' + arg + ':', '' );
+			// Cancelled or empty: a token without its field always renders nothing.
+			if ( ! argVal || ! argVal.trim() ) { return; }
+			argVal = argVal.trim();
+		}
 		var full = arg && argVal ? token + ':' + argVal : token;
-		var label = full.replace( /^post\.|^site\.|^author\.|^user\.|^featured\.|^archive\.|^php\./, '' );
+		// Only "post." is dropped: {author.name} and {user.name} must look different.
+		var label = full.replace( /^post\./, '' );
 		elNode.focus();
 		var span = doc.createElement( 'span' );
 		span.setAttribute( 'data-vx', full );
@@ -2759,15 +2831,19 @@
 	];
 	function aosSettingsHTML( node ) {
 		var a = node.aos || {};
+		if ( CFG.aosTypes && ! aosSettingsHTML.done ) {
+			aosSettingsHTML.done = true;
+			AOS_TYPES = [ [ '', 'Use site default' ], [ 'none', 'No animation' ] ].concat( Object.keys( CFG.aosTypes ).map( function ( k ) { return [ k, CFG.aosTypes[ k ] ]; } ) );
+		}
 		return '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'bolt', 14 ) + ' ' + T( 'Animate on scroll' ) + '</div>' +
 			'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Animation' ) + '</div>' +
 				'<select class="vb-inp" data-setaos="type">' + AOS_TYPES.map( function ( t ) {
 					return '<option value="' + t[ 0 ] + '"' + ( ( a.type || '' ) === t[ 0 ] ? ' selected' : '' ) + '>' + T( t[ 1 ] ) + '</option>';
 				} ).join( '' ) + '</select></div>' +
 			'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Duration' ) + '</div>' +
-				'<div class="vb-row"><input class="vb-inp num" data-setaos="duration" value="' + ( a.duration || '' ) + '" placeholder="' + T( 'default' ) + '"><span class="vb-unit-static">ms</span></div></div>' +
+				'<div class="vb-row"><input class="vb-inp num" data-setaos="duration" value="' + escapeHtml( a.duration || '' ) + '" placeholder="' + T( 'default' ) + '"><span class="vb-unit-static">ms</span></div></div>' +
 			'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Delay' ) + '</div>' +
-				'<div class="vb-row"><input class="vb-inp num" data-setaos="delay" value="' + ( a.delay || '' ) + '" placeholder="' + T( 'default' ) + '"><span class="vb-unit-static">ms</span></div></div>' +
+				'<div class="vb-row"><input class="vb-inp num" data-setaos="delay" value="' + escapeHtml( a.delay || '' ) + '" placeholder="' + T( 'default' ) + '"><span class="vb-unit-static">ms</span></div></div>' +
 			'<div class="vb-setnote">' + T( 'Animations do not play inside the editor — check the published page.' ) + '</div>' +
 		'</div>';
 	}
@@ -2863,8 +2939,14 @@
 	 * this is what keeps a 30-control element from looking like a cockpit. */
 	function ctrlVisible( node, c ) {
 		if ( ! c.when ) { return true; }
+		var d = elDef( node );
 		for ( var k in c.when ) {
-			if ( String( setVal( node, k, '' ) ) !== String( c.when[ k ] ) ) { return false; }
+			// An untouched parent control has its default value — checking against
+			// '' hid controls whose condition the default already meets.
+			var spec = d && d.settings ? d.settings.filter( function ( x ) { return x.k === k; } )[ 0 ] : null;
+			var val = String( setVal( node, k, spec && undefined !== spec.d ? spec.d : '' ) );
+			var want = [].concat( c.when[ k ] ).map( String );
+			if ( want.indexOf( val ) < 0 ) { return false; }
 		}
 		return true;
 	}
@@ -3115,16 +3197,28 @@
 	}
 	function saveGlobalJs() {
 		if ( ! CFG.ajaxurl ) { return; }
-		var st = document.getElementById( 'vb-js-status' ); if ( st ) { st.textContent = T( 'Saving…' ); }
+		var st = document.getElementById( 'vb-js-status' );
+		// Global scripts run on every page: never put a script with a syntax
+		// error live (half-typed code used to be published while typing).
+		for ( var ji = 0; ji < jsFiles.length; ji++ ) {
+			if ( ! jsFiles[ ji ].on ) { continue; }
+			try { new Function( jsFiles[ ji ].js || '' ); } // eslint-disable-line no-new-func
+			catch ( err ) { if ( st ) { st.textContent = T( 'Not saved — this script has an error:' ) + ' ' + err.message + ' (' + jsFiles[ ji ].name + ')'; } return; }
+		}
+		if ( st ) { st.textContent = T( 'Saving…' ); }
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_js_save' ); body.set( 'nonce', CFG.nonce || '' );
 		body.set( 'files', JSON.stringify( jsFiles ) );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { var s2 = document.getElementById( 'vb-js-status' ); if ( s2 ) { s2.textContent = res && res.success ? T( 'Saved — runs on every Velox page.' ) : ( ( res && res.data && res.data.message ) || T( 'Save failed' ) ); } } )
+			.then( function ( res ) {
+				var s2 = document.getElementById( 'vb-js-status' );
+				if ( res && res.success && res.data && res.data.files ) { jsFiles = res.data.files; }
+				if ( s2 ) { s2.textContent = res && res.success ? T( 'Saved — runs on every Velox page.' ) : saveErrorText( res ); }
+			} )
 			.catch( function () { var s2 = document.getElementById( 'vb-js-status' ); if ( s2 ) { s2.textContent = T( 'Save failed' ); } } );
 	}
-	function scheduleJsSave() { clearTimeout( jsSaveTimer ); jsSaveTimer = setTimeout( saveGlobalJs, 700 ); }
+	function scheduleJsSave() { clearTimeout( jsSaveTimer ); jsSaveTimer = setTimeout( function () { jsSaveTimer = null; saveGlobalJs(); }, 2000 ); }
 	/* Inject the concatenated global CSS live into the canvas iframe. */
 	function injectGlobalCss() {
 		var doc = document.getElementById( 'vb-canvas' ); doc = doc && doc.contentDocument; if ( ! doc ) { return; }
@@ -3149,10 +3243,31 @@
 		body.set( 'files', JSON.stringify( cssFiles ) );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { var s = document.getElementById( 'vb-css-status' ); if ( s ) { s.textContent = res && res.success ? T( 'Saved — applies to every page' ) : T( 'Save failed' ); } } )
+			.then( function ( res ) {
+				var s = document.getElementById( 'vb-css-status' );
+				if ( s ) { s.textContent = res && res.success ? T( 'Saved — applies to every page' ) : saveErrorText( res ); }
+			} )
 			.catch( function () { var s = document.getElementById( 'vb-css-status' ); if ( s ) { s.textContent = T( 'Save failed' ); } } );
 	}
-	function scheduleCssSave() { clearTimeout( cssSaveTimer ); cssSaveTimer = setTimeout( saveGlobalCss, 700 ); injectGlobalCss(); }
+	function scheduleCssSave() { clearTimeout( cssSaveTimer ); cssSaveTimer = setTimeout( function () { cssSaveTimer = null; saveGlobalCss(); }, 1500 ); injectGlobalCss(); }
+	/* Site-wide edits still waiting to be sent when the page is left: send them
+	 * with the browser's beacon, which survives the navigation. */
+	function flushGlobalSaves() {
+		if ( ! CFG.ajaxurl || ! navigator.sendBeacon ) { return; }
+		function beacon( doName, key, val ) {
+			var b = new URLSearchParams();
+			b.set( 'action', 'velox' ); b.set( 'do', doName ); b.set( 'nonce', CFG.nonce || '' ); b.set( key, val );
+			navigator.sendBeacon( CFG.ajaxurl, b );
+		}
+		if ( cssSaveTimer ) { clearTimeout( cssSaveTimer ); cssSaveTimer = null; beacon( 'builder_css_save', 'files', JSON.stringify( cssFiles ) ); }
+		if ( tokenTimer ) { clearTimeout( tokenTimer ); tokenTimer = null; beacon( 'builder_tokens_save', 'tokens', JSON.stringify( TOKENS ) ); }
+		if ( gsSaveTimer && GS ) { clearTimeout( gsSaveTimer ); gsSaveTimer = null; beacon( 'builder_global_styles_save', 'styles', JSON.stringify( GS ) ); }
+		if ( jsSaveTimer ) {
+			clearTimeout( jsSaveTimer ); jsSaveTimer = null;
+			var ok = jsFiles.every( function ( f ) { try { new Function( f.js || '' ); return true; } catch ( err ) { return ! f.on; } } ); // eslint-disable-line no-new-func
+			if ( ok ) { beacon( 'builder_js_save', 'files', JSON.stringify( jsFiles ) ); }
+		}
+	}
 
 
 	/* ---------- Settings panel ----------
@@ -3173,8 +3288,22 @@
 	function applyEditorPrefs() {
 		var app = document.querySelector( '.vb-app' );
 		if ( app ) { app.classList.toggle( 'vb-indicate', !! editorPrefs.indicateParents ); }
+		// The outline lives in the canvas document.
+		var fr = document.getElementById( 'vb-canvas' ), cb = fr && fr.contentDocument && fr.contentDocument.body;
+		if ( cb ) { cb.classList.toggle( 'vb-indicate', !! editorPrefs.indicateParents ); }
 	}
 	function pageSettings() { return ( store.state && store.state.page ) || {}; }
+	/* Page width and background from Page settings, shown in the canvas too. */
+	function applyPagePreview( ps ) {
+		var fr = document.getElementById( 'vb-canvas' ), doc = fr && fr.contentDocument; if ( ! doc ) { return; }
+		var tag = doc.getElementById( 'vb-pageset-css' );
+		if ( ! tag && doc.head ) { tag = doc.createElement( 'style' ); tag.id = 'vb-pageset-css'; doc.head.appendChild( tag ); }
+		if ( ! tag ) { return; }
+		var css = '';
+		if ( ps.width && /^\d+$/.test( String( ps.width ) ) ) { css += ':where(.velox-built .section > *,.velox-inner-content){max-width:' + ps.width + 'px;margin-left:auto;margin-right:auto}'; }
+		if ( ps.background ) { css += 'body.velox-built{background:' + String( ps.background ).replace( /[{};<>]/g, '' ) + '}'; }
+		tag.textContent = css;
+	}
 	function setPageSetting( key, val ) {
 		store.commit( function ( st ) {
 			st.page = st.page || {};
@@ -3258,8 +3387,7 @@
 		} else {
 			body = crumb( T( 'Editor settings' ) ) + '<div class="vb-set-body">' +
 				'<label class="vb-set-check"><input type="checkbox" data-setpref="indicateParents"' + ( editorPrefs.indicateParents ? ' checked' : '' ) + '><span>' + T( 'Indicate parent elements on hover' ) + '</span></label>' +
-				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Class suggestions' ) + '</div><div class="vb-row">' +
-					'<input class="vb-inp num" data-setpref="classLimit" value="' + ( editorPrefs.classLimit || '5' ) + '"></div></div>' +
+
 				'<div class="vb-setnote">' + T( 'These are your own preferences — they are stored in this browser and do not affect the site.' ) + '</div>' +
 			'</div>';
 		}
@@ -3296,10 +3424,25 @@
 		body.set( 'tokens', JSON.stringify( TOKENS ) );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { if ( res && res.success ) { if ( res.data && res.data.canvas_css ) { CFG.siteCss = res.data.canvas_css; } toast( T( 'Colours saved.' ) ); injectGlobalCss(); } } )
-			.catch( function () {} );
+			.then( function ( res ) {
+				if ( res && res.success ) {
+					if ( res.data && res.data.canvas_css ) { CFG.siteCss = res.data.canvas_css; }
+					if ( res.data && res.data.tokens ) {
+						TOKENS = res.data.tokens; CFG.tokens = res.data.tokens;
+						var tl = document.getElementById( 'vb-tokenlist' ), ae = document.activeElement;
+						if ( tl && ! ( ae && tl.contains( ae ) ) ) { tl.innerHTML = tokenRowsHTML(); }
+					}
+					toast( T( 'Colours saved.' ) ); injectGlobalCss();
+				} else { toast( saveErrorText( res ) ); }
+			} )
+			.catch( function () { toast( T( 'Save failed' ) ); } );
 	}
-	function scheduleTokenSave() { clearTimeout( tokenTimer ); tokenTimer = setTimeout( saveTokens, 600 ); }
+	function scheduleTokenSave() { clearTimeout( tokenTimer ); tokenTimer = setTimeout( function () { tokenTimer = null; saveTokens(); }, 1200 ); }
+	/* What went wrong, in words: an expired session is not a generic failure. */
+	function saveErrorText( res ) {
+		if ( -1 === res || '-1' === res || 0 === res || '0' === res ) { return T( 'Your session expired. Reload the page — your changes are kept in this browser.' ); }
+		return ( res && res.data && res.data.message ) || T( 'Save failed' );
+	}
 
 	/* ---------- Global styles, inside the editor ----------
 	 * The same model the admin screen edits, saved through the same endpoint, so
@@ -3328,7 +3471,7 @@
 		for ( var i = 0; i < p.length - 1; i++ ) { r[ p[ i ] ] = r[ p[ i ] ] || {}; r = r[ p[ i ] ]; }
 		r[ p[ p.length - 1 ] ] = val;
 		clearTimeout( gsSaveTimer );
-		gsSaveTimer = setTimeout( saveGlobalStyles, 500 );
+		gsSaveTimer = setTimeout( function () { gsSaveTimer = null; saveGlobalStyles(); }, 1200 );
 	}
 	function saveGlobalStyles() {
 		if ( ! CFG.ajaxurl || ! GS ) { return; }
@@ -3337,8 +3480,8 @@
 		body.set( 'styles', JSON.stringify( GS ) );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { if ( res && res.success ) { if ( res.data && res.data.canvas_css ) { CFG.siteCss = res.data.canvas_css; injectGlobalCss(); } toast( T( 'Global styles saved.' ) ); } } )
-			.catch( function () {} );
+			.then( function ( res ) { if ( res && res.success ) { if ( res.data && res.data.canvas_css ) { CFG.siteCss = res.data.canvas_css; injectGlobalCss(); } toast( T( 'Global styles saved.' ) ); } else { toast( saveErrorText( res ) ); } } )
+			.catch( function () { toast( T( 'Save failed' ) ); } );
 	}
 	function gsNum( path, label, unit ) {
 		return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><div class="vb-row">' +
@@ -3524,7 +3667,9 @@
 		var log = store.log;
 		var items = log.length
 			? log.slice().reverse().map( function ( l ) {
-				return '<button class="vb-hist-i" data-revert="' + l.idx + '"><span class="vb-hist-dot"></span><span class="vb-hist-l">' + escapeHtml( l.label ) + '</span><span class="vb-hist-t">' + timeAgo( l.at ) + '</span></button>';
+				// Undone steps (Redo brings them back) are shown dimmed.
+				var undone = l.idx > store.history.length;
+				return '<button class="vb-hist-i' + ( undone ? ' undone' : '' ) + '"' + ( undone ? ' disabled title="' + T( 'Undone — Redo brings it back' ) + '"' : '' ) + ' data-revert="' + l.idx + '"><span class="vb-hist-dot"></span><span class="vb-hist-l">' + escapeHtml( l.label ) + '</span><span class="vb-hist-t">' + timeAgo( l.at ) + '</span></button>';
 			} ).join( '' )
 			: '<div class="vb-hist-empty">' + T( 'No changes yet. Your edits this session will appear here.' ) + '</div>';
 		box.innerHTML =
@@ -3577,6 +3722,8 @@
 			if ( e.target.closest( '#vb-st-expand' ) ) { structSetAll( false ); return; }
 			if ( e.target.closest( '#vb-ie-struct' ) ) { structShown = true; closeAllPanels( 'struct' ); renderStructPanel(); return; }
 			if ( e.target.closest( '#vb-load-retry' ) ) { loadDoc( CFG.docId ); return; }
+			if ( e.target.closest( '#vb-restore-yes' ) ) { restoreBackup(); return; }
+			if ( e.target.closest( '#vb-restore-no' ) ) { clearBackup(); closeRestoreBar(); return; }
 			if ( e.target.closest( '#vb-discard' ) ) {
 				if ( ! window.confirm( T( 'Throw away every change that is not published yet, and go back to the version visitors see?' ) ) ) { return; }
 				var bdd = new URLSearchParams();
@@ -3625,7 +3772,8 @@
 				return;
 			}
 			if ( e.target.closest( '#vb-token-add' ) ) {
-				TOKENS.colors.push( { name:'colour-' + ( TOKENS.colors.length + 1 ), value:'#2ab7f1' } );
+				var tn = 1; while ( TOKENS.colors.some( function ( c ) { return c.name === 'colour-' + tn; } ) ) { tn++; }
+				TOKENS.colors.push( { name:'colour-' + tn, value:'#2ab7f1' } );
 				document.getElementById( 'vb-tokenlist' ).innerHTML = tokenRowsHTML(); saveTokens(); return;
 			}
 			var tdl = e.target.closest( '[data-tokendel]' );
@@ -3664,7 +3812,7 @@
 			var sv = e.target.closest( '[data-setview]' ); if ( sv ) { setView = sv.getAttribute( 'data-setview' ); renderSettingsPanel(); return; }
 			if ( e.target.closest( '#vb-history' ) ) { historyShown = ! historyShown; if ( historyShown ) { closeAllPanels( 'hist' ); } renderHistoryPanel(); return; }
 			if ( e.target.closest( '#vb-hist-close' ) ) { historyShown = false; renderHistoryPanel(); return; }
-			var hr = e.target.closest( '[data-revert]' ); if ( hr ) { store.revertTo( +hr.getAttribute( 'data-revert' ) ); return; }
+			var hr = e.target.closest( '[data-revert]' ); if ( hr ) { var hl = hr.querySelector( '.vb-hist-l' ); store.revertTo( +hr.getAttribute( 'data-revert' ), T( 'Back to' ) + ': ' + ( hl ? hl.textContent : '' ) ); return; }
 			if ( e.target.closest( '#vb-save' ) ) { saveDoc(); return; }
 			if ( e.target.closest( '#vb-publish' ) ) { publishDoc(); return; }
 			if ( e.target.closest( '#vb-pp-caret' ) || e.target.id === 'vb-title' && false ) { toggleSwitcher(); e.stopPropagation(); return; }
@@ -3735,7 +3883,13 @@
 		document.addEventListener( 'input', function ( e ) {
 			if ( e.target.id === 'vb-title' ) { docTitle = e.target.value.trim() || 'Untitled'; markDirty(); if ( everPublished ) { setSaveState( 'idle' ); } return; }
 			if ( e.target.id === 'vb-ap-search' ) { renderAddBody( e.target.value ); return; }
-			if ( e.target.id === 'vb-ps-search' ) { switcherQuery = e.target.value.trim(); renderSwitcher(); return; }
+			if ( e.target.id === 'vb-ps-search' ) {
+				switcherQuery = e.target.value.trim(); renderSwitcher();
+				// Older pages are not in the first list: ask the server too.
+				clearTimeout( switcherTimer );
+				if ( switcherQuery.length >= 2 ) { switcherTimer = setTimeout( function () { fetchSwitcher( switcherQuery ); }, 300 ); }
+				return;
+			}
 			if ( e.target.id === 'vb-css-code' ) { if ( cssFiles[ cssActive ] ) { cssFiles[ cssActive ].css = e.target.value; scheduleCssSave(); } return; }
 			if ( e.target.id === 'vb-js-code' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].js = e.target.value; scheduleJsSave(); } return; }
 			if ( e.target.id === 'vb-js-name' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].name = e.target.value; var jt = document.querySelector( '.vb-css-file.on span' ); if ( jt ) { jt.textContent = e.target.value; } scheduleJsSave(); } return; }
@@ -3766,7 +3920,13 @@
 				scheduleTokenSave(); return;
 			}
 			var tnm = e.target.closest( '[data-tokenname]' );
-			if ( tnm ) { TOKENS.colors[ +tnm.getAttribute( 'data-tokenname' ) ].name = e.target.value.trim(); scheduleTokenSave(); return; }
+			// Same rule as the server (lowercase letters, digits, - and _), so the
+			// name shown is the CSS variable the site really gets.
+			if ( tnm ) {
+				var clean = e.target.value.toLowerCase().replace( /[^a-z0-9_-]/g, '' );
+				if ( clean !== e.target.value ) { var cp = e.target.selectionStart; e.target.value = clean; try { e.target.setSelectionRange( cp - 1, cp - 1 ); } catch ( err ) {} }
+				TOKENS.colors[ +tnm.getAttribute( 'data-tokenname' ) ].name = clean; scheduleTokenSave(); return;
+			}
 			var tvl = e.target.closest( '[data-tokenval]' );
 			if ( tvl ) { TOKENS.colors[ +tvl.getAttribute( 'data-tokenval' ) ].value = e.target.value.trim(); scheduleTokenSave(); return; }
 			if ( e.target.id === 'vb-token-spacing' ) {
@@ -3897,6 +4057,13 @@
 			ta.dispatchEvent( new Event( 'input', { bubbles:true } ) );
 		} );
 		document.addEventListener( 'keydown', function ( e ) {
+			if ( 'Enter' === e.key && e.target && 'vb-ap-search' === e.target.id ) {
+				var first = document.querySelector( '#vb-addmenu .vb-ap-body [data-insert], #vb-addmenu .vb-ap-body [data-insert-reuse]' );
+				if ( first ) { e.preventDefault(); first.click(); }
+				return;
+			}
+		} );
+		document.addEventListener( 'keydown', function ( e ) {
 			var mod = e.metaKey || e.ctrlKey;
 			// Shift or Caps Lock makes e.key uppercase, so comparing to 's' missed
 			// and the keystroke fell through to the browser.
@@ -3912,13 +4079,29 @@
 			if ( mod && k === 'v' && ! typing ) { readSharedClipboard(); if ( clipboardNode ) { e.preventDefault(); pasteNode( store.state.selection ); } }
 			if ( mod && k === 'd' && ! typing && store.state && store.state.selection ) { e.preventDefault(); duplicateNode( store.state.selection ); }
 			if ( mod && k === '\\' ) { e.preventDefault(); if ( e.shiftKey ) { toggleRightStack(); } else { toggleLeftStack(); } }
-			if ( e.key === 'Escape' ) { closeAddMenu(); closeContextMenu(); closeIconPicker(); closeOxygenPicker(); }
+			if ( e.key === 'Escape' ) {
+				closeAddMenu(); closeContextMenu(); closeIconPicker(); closeOxygenPicker();
+				var ps2 = document.getElementById( 'vb-pageswitch' ); if ( ps2 ) { ps2.classList.remove( 'open' ); }
+				var dd3 = document.getElementById( 'vb-dyndata' ); if ( dd3 ) { dd3.classList.remove( 'open' ); }
+				if ( setShown && ! typing ) { setShown = false; renderSettingsPanel(); }
+			}
 			// Deleting the selected element is destructive, so it needs a deliberate
 			// keypress — not one that lands on <body> because a field just re-rendered
 			// under the cursor. Backspace no longer deletes; Delete does.
 			if ( e.key === 'Delete' && ! typing && ( e.target === document.body || e.target === document ) && store.state && store.state.selection ) { e.preventDefault(); deleteNode( store.state.selection ); }
 		}, true );
 		wireDrag();
+		// Paste an exported element (its JSON) straight onto the page.
+		document.addEventListener( 'paste', function ( e ) {
+			var tgt = e.target, typing = /^(INPUT|TEXTAREA|SELECT)$/.test( ( tgt && tgt.tagName ) || '' ) || ( tgt && tgt.isContentEditable ) || editing;
+			if ( typing || ! e.clipboardData ) { return; }
+			var txt = e.clipboardData.getData( 'text' ) || '', data = null;
+			try { data = JSON.parse( txt ); } catch ( err ) { return; }
+			if ( ! data || 'element' !== data.velox || ! data.node ) { return; }
+			e.preventDefault();
+			clipboardNode = data.node; clipboardContent = data.content || {}; clipboardClasses = data.classes || {};
+			pasteNode( store.state.selection );
+		} );
 		// Right-click context menu on layer tree + structure panel rows.
 		document.addEventListener( 'contextmenu', function ( e ) {
 			var row = e.target.closest( '.vb-tn, [data-stnode]' );
@@ -4035,6 +4218,7 @@
 			fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 				.then( function ( r ) { return r.json(); } )
 				.then( function ( res ) {
+					if ( ! res || ! res.success || ! res.data || ! ( +res.data.id > 0 ) ) { toast( saveErrorText( res ) ); return; }
 					if ( res && res.success && res.data ) {
 						// Carry the tree/classes/content locally as well, so the reusable is
 						// insertable straight away instead of only after a reload.
@@ -4055,7 +4239,7 @@
 						toast( T( 'Saved as reusable.' ) );
 					}
 				} )
-				.catch( function () {} );
+				.catch( function () { toast( T( 'Save failed' ) ); } );
 		}
 	}
 	/* Text/image content is stored per node id outside the tree, so a reusable
@@ -4125,7 +4309,7 @@
 	 * pasted into another page or kept outside the editor. */
 	function exportNode( id ) {
 		var n = findNode( store.state.tree, id ); if ( ! n ) { return; }
-		var payload = { velox:'element', version:1, node:n, classes:collectClasses( n, store.state ) };
+		var payload = { velox:'element', version:1, node:n, classes:collectClasses( n, store.state ), content:collectContentFor( n ) };
 		var text = JSON.stringify( payload, null, 2 );
 		if ( navigator.clipboard && navigator.clipboard.writeText ) {
 			navigator.clipboard.writeText( text ).then( function () { toast( T( 'Element JSON copied to clipboard.' ) ); } )
@@ -4233,32 +4417,41 @@
 		if ( viewAsRef ) { sel.value = viewAsRef; }
 		renderViewAsBar();
 	}
-	var viewAsLoading = false;
+	var viewAsLoading = false, viewAsRetryAt = 0;
 	function fetchViewAsList() {
-		if ( ! CFG.ajaxurl || viewAsList || viewAsLoading ) { return; }
+		// A failed load is tried again, but at most every 30 seconds.
+		if ( ! CFG.ajaxurl || viewAsList || viewAsLoading || Date.now() < viewAsRetryAt ) { return; }
 		viewAsLoading = true;
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_viewas_list' ); body.set( 'nonce', CFG.nonce || '' );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { viewAsList = ( res && res.success ) ? ( res.data.items || [] ) : []; refreshViewAs(); } )
-			.catch( function () { viewAsList = []; } );
+			.then( function ( res ) {
+				viewAsLoading = false;
+				if ( res && res.success ) { viewAsList = res.data.items || []; refreshViewAs(); }
+				else { viewAsRetryAt = Date.now() + 30000; }
+			} )
+			.catch( function () { viewAsLoading = false; viewAsRetryAt = Date.now() + 30000; } );
 	}
 	function clearViewAs() { viewAsRef = ''; viewAsDoc = null; viewAsHtml = ''; viewAsTitle = ''; renderViewAsBar(); injectCanvas(); }
+	var viewAsSeq = 0;
 	function setViewAs( ref ) {
 		viewAsRef = ref || '';
 		if ( ! viewAsRef ) { clearViewAs(); return; }
 		if ( ! CFG.ajaxurl ) { return; }
+		var vseq = ++viewAsSeq, vtitleSel = document.getElementById( 'vb-viewas' );
+		var vtitle = vtitleSel && vtitleSel.selectedIndex > 0 ? vtitleSel.options[ vtitleSel.selectedIndex ].text : '';
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_viewas_content' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'ref', viewAsRef );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) {
+				// A slower, older answer must not replace the page you picked last.
+				if ( vseq !== viewAsSeq ) { return; }
 				if ( ! res || ! res.success ) { toast( T( 'Could not load that page.' ) ); clearViewAs(); return; }
 				viewAsDoc = 'model' === res.data.type ? res.data.model : null;
 				viewAsHtml = 'html' === res.data.type ? ( res.data.html || '' ) : '';
-				var sel = document.getElementById( 'vb-viewas' );
-				viewAsTitle = sel && sel.selectedIndex > 0 ? sel.options[ sel.selectedIndex ].text : '';
+				viewAsTitle = vtitle;
 				renderViewAsBar();
 				injectCanvas();
 			} )
@@ -4331,7 +4524,7 @@
 	function closeOxygenPicker() { var b = document.getElementById( 'vb-oxypick' ); if ( b ) { b.classList.remove( 'open' ); b.innerHTML = ''; } }
 
 	/* ---------- page switcher ---------- */
-	var switcherData = null, switcherFilter = 'all', switcherQuery = '';
+	var switcherData = null, switcherFilter = 'all', switcherQuery = '', switcherTimer = null, switcherSeq = 0;
 	function toggleSwitcher() {
 		var d = document.getElementById( 'vb-pageswitch' );
 		if ( d.classList.contains( 'open' ) ) { d.classList.remove( 'open' ); return; }
@@ -4340,20 +4533,36 @@
 		var si = document.getElementById( 'vb-ps-search' ); if ( si ) { si.focus(); }
 		if ( ! switcherData ) { fetchSwitcher(); } else { renderSwitcher(); }
 	}
-	function fetchSwitcher() {
+	function fetchSwitcher( q ) {
 		if ( ! CFG.ajaxurl ) { return; }
+		var seq = ++switcherSeq;
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_switcher_list' ); body.set( 'nonce', CFG.nonce || '' );
+		if ( q ) { body.set( 's', q ); }
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { switcherData = res && res.success ? res.data : { velox:[], wp:[] }; renderSwitcher(); refreshViewAs(); } )
-			.catch( function () { switcherData = { velox:[], wp:[] }; renderSwitcher(); } );
+			.then( function ( res ) {
+				if ( seq !== switcherSeq ) { return; }
+				var data = res && res.success ? res.data : null;
+				if ( ! data ) { if ( ! switcherData ) { switcherData = { velox:[], wp:[] }; } renderSwitcher(); return; }
+				if ( q && switcherData ) {
+					// Merge search results into what is already listed.
+					[ 'velox', 'wp' ].forEach( function ( g ) {
+						var have = {}; ( switcherData[ g ] || [] ).forEach( function ( x ) { have[ x.id ] = 1; } );
+						( data[ g ] || [] ).forEach( function ( x ) { if ( ! have[ x.id ] ) { switcherData[ g ].push( x ); } } );
+					} );
+				} else { switcherData = data; }
+				renderSwitcher(); refreshViewAs();
+			} )
+			.catch( function () { if ( ! switcherData ) { switcherData = { velox:[], wp:[] }; } renderSwitcher(); } );
 	}
 	function renderSwitcher() {
 		var list = document.getElementById( 'vb-ps-list' ); if ( ! list || ! switcherData ) { return; }
 		var q = switcherQuery.toLowerCase(), f = switcherFilter;
 		var velox = ( switcherData.velox || [] ).filter( function ( d ) {
-			if ( f !== 'all' && d.kind !== f ) { return false; }
+			// "Posts" also finds Velox layouts attached to blog posts.
+			if ( 'post' === f ) { if ( 'post' !== d.ptype ) { return false; } }
+			else if ( f !== 'all' && d.kind !== f ) { return false; }
 			return ! q || d.title.toLowerCase().indexOf( q ) > -1;
 		} );
 		var wp = ( switcherData.wp || [] ).filter( function ( d ) {
@@ -4471,8 +4680,8 @@
 		var meta = BP_META[ canvasBp ] || BP_META.base;
 		var cs = window.getComputedStyle( stage );
 		var availW = stage.clientWidth - parseFloat( cs.paddingLeft ) - parseFloat( cs.paddingRight );
-		var bar = document.getElementById( 'vb-viewas-bar' ), info = document.getElementById( 'vb-bpinfo' );
-		var availH = stage.clientHeight - parseFloat( cs.paddingTop ) - parseFloat( cs.paddingBottom ) - ( bar ? bar.offsetHeight : 0 ) - ( info ? info.offsetHeight + 8 : 0 );
+		var bar = document.getElementById( 'vb-viewas-bar' ), info = document.getElementById( 'vb-bpinfo' ), rbar = document.getElementById( 'vb-restore' );
+		var availH = stage.clientHeight - parseFloat( cs.paddingTop ) - parseFloat( cs.paddingBottom ) - ( bar ? bar.offsetHeight : 0 ) - ( info ? info.offsetHeight + 8 : 0 ) - ( rbar ? rbar.offsetHeight + 8 : 0 );
 		var w = meta.view;
 		// Desktop on a big screen: use the room there is (never below 1400).
 		if ( 'base' === canvasBp ) { w = Math.max( Math.floor( BPX.xxl ) + 1, Math.floor( availW ) ); }
@@ -4729,6 +4938,9 @@
 			'.vb-brandmenu button.vb-bm-i{width:100%;background:none;border:none;cursor:pointer;font-family:inherit;text-align:left}',
 			'.vb-chip-el{border-style:dashed}.vb-chip-el.active{border-color:#e05fa3;color:#f4a3cd;background:rgba(224,95,163,.12)}',
 			'.vb-src.blue,.vb-src.pink{cursor:pointer}',
+			'.vb-restore{flex:0 0 auto;display:flex;align-items:center;gap:10px;margin:0 0 8px;padding:9px 12px;border-radius:10px;background:rgba(245,167,66,.14);border:1px solid rgba(245,167,66,.4);color:#f4f4f6;font-size:12.5px;max-width:100%}',
+			'.vb-restore span{flex:1}.vb-restore .vb-btn{padding:7px 12px}',
+			'.vb-hist-i.undone{opacity:.4;cursor:default}',
 			'.vb-media-row{gap:6px;align-items:center}.vb-media-row .vb-inp{flex:1;min-width:0}',
 			'.vb-media-th{flex:0 0 30px;width:30px;height:30px;border-radius:7px;background:#1a1b20 center/cover no-repeat;border:1px solid rgba(255,255,255,.1)}',
 			'.vb-media-btn{flex:0 0 auto;padding:7px 9px}',

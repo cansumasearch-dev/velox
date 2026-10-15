@@ -3544,4 +3544,21 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'no template' => 'keine Vorlage',
 	// Velox Builder element target
 	'Changes below apply to this element only.' => 'Änderungen unten gelten nur für dieses Element.',
+	// Velox Builder 4.19
+	'Add FAQ markup for search engines' => 'FAQ-Auszeichnung für Suchmaschinen hinzufügen',
+	'Back to' => 'Zurück zu',
+	'Discard' => 'Verwerfen',
+	'Global CSS / JS (every page)' => 'Globales CSS / JS (jede Seite)',
+	'Name for screen readers' => 'Name für Screenreader',
+	'Not saved — this script has an error:' => 'Nicht gespeichert – dieses Skript enthält einen Fehler:',
+	'Restored. Save to keep it.' => 'Wiederhergestellt. Speichern Sie, um es zu behalten.',
+	'Undone — Redo brings it back' => 'Rückgängig gemacht – „Wiederholen“ holt es zurück',
+	'replaced by a star icon' => 'durch ein Stern-Symbol ersetzt',
+	'Panel' => 'Panel',
+	'Dialog' => 'Dialog',
+	'Search: %s' => 'Suche: %s',
+	'Secondary' => 'Sekundär',
+	'The reusable could not be saved.' => 'Das wiederverwendbare Element konnte nicht gespeichert werden.',
+	// Velox Builder 4.19
+	'Tab %d' => 'Tab %d',
 );

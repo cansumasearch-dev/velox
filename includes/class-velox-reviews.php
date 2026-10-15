@@ -373,6 +373,11 @@ class Velox_Reviews {
 		$atts = shortcode_atts( array(
 			'connection' => '',
 			'preset'     => '',
+			// Set by the builder element; empty means "as the preset says".
+			'count'      => '',
+			'min_rating' => '',
+			'trim'       => '',
+			'layout'     => '',
 		), $atts, 'velox_reviews' );
 
 		$store = self::store();
@@ -383,6 +388,15 @@ class Velox_Reviews {
 		$preset = $store['presets'][ sanitize_key( $atts['preset'] ) ] ?? null;
 		$style  = $preset ? $preset['style'] : self::default_style();
 		$type   = $preset ? $preset['type'] : 'slider';
+		if ( '' !== $atts['count'] && (int) $atts['count'] > 0 ) {
+			$style['count'] = (int) $atts['count'];
+		}
+		if ( '' !== $atts['min_rating'] ) {
+			$style['min_rating'] = max( 0, min( 5, (int) $atts['min_rating'] ) );
+		}
+		if ( in_array( $atts['layout'], array( 'slider', 'static' ), true ) ) {
+			$type = $atts['layout'];
+		}
 
 		$reviews = self::get_reviews( $conn['id'] );
 		// Filter by min rating, cap by count.
@@ -390,6 +404,15 @@ class Velox_Reviews {
 			return $r['rating'] >= (int) $style['min_rating'];
 		} );
 		$reviews = array_slice( array_values( $reviews ), 0, max( 1, (int) $style['count'] ) );
+		$trim    = (int) $atts['trim'];
+		if ( $trim > 0 ) {
+			foreach ( $reviews as &$rv ) {
+				if ( mb_strlen( $rv['text'] ) > $trim ) {
+					$rv['text'] = rtrim( mb_substr( $rv['text'], 0, $trim ) ) . '…';
+				}
+			}
+			unset( $rv );
+		}
 		if ( empty( $reviews ) ) {
 			return current_user_can( 'manage_options' ) ? '<!-- velox_reviews: no reviews yet (cached) -->' : '';
 		}

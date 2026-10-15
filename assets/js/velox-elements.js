@@ -41,6 +41,18 @@
 		var v = parseInt( el.getAttribute( attr ), 10 );
 		return isNaN( v ) ? fallback : v;
 	}
+	// Tabs, sliders and accordions can be nested inside one another, so every
+	// lookup is scoped to the element's own parts — a plain querySelectorAll
+	// also matched the inner copy and threw the outer one's indexes off.
+	function own( root, sel ) {
+		try { return Array.prototype.slice.call( root.querySelectorAll( sel.replace( /(^|,)\s*/g, '$1:scope > ' ) ) ); }
+		catch ( e ) { return Array.prototype.slice.call( root.querySelectorAll( sel ) ); }
+	}
+	function ownOne( root, sel ) { return own( root, sel )[ 0 ] || null; }
+	function safeQuery( sel ) {
+		if ( ! sel ) { return null; }
+		try { return d.querySelector( sel ); } catch ( e ) { return null; }
+	}
 
 	/* ------------------------------------------------------------------ *
 	 * Disclosure / accordion / FAQ
@@ -113,7 +125,7 @@
 		if ( ! keys[ e.key ] ) { return; }
 		var root = btn.closest( '.vx-acc' );
 		if ( ! root ) { return; }
-		var btns = Array.prototype.slice.call( root.querySelectorAll( '.vx-acc-btn' ) );
+		var btns = own( root, '.vx-acc-item > .vx-acc-h > .vx-acc-btn' );
 		var i = btns.indexOf( btn );
 		var next = i;
 		if ( 'ArrowDown' === e.key ) { next = ( i + 1 ) % btns.length; }
@@ -145,9 +157,11 @@
 	 * Roving tabindex: exactly one tab is in the tab order, arrows move between
 	 * them. Tab from the tablist lands in the panel, not on the next tab.
 	 * ------------------------------------------------------------------ */
+	function tabsOf( root ) { return own( root, '.vx-tablist > .vx-tab' ); }
+	function panelsOf( root ) { return own( root, '.vx-tabpanels > .vx-tabp' ); }
 	function selectTab( root, index ) {
-		var tabs = root.querySelectorAll( '.vx-tab' );
-		var panels = root.querySelectorAll( '.vx-tabp' );
+		var tabs = tabsOf( root );
+		var panels = panelsOf( root );
 		if ( ! tabs.length ) { return; }
 		index = Math.max( 0, Math.min( index, tabs.length - 1 ) );
 		for ( var i = 0; i < tabs.length; i++ ) {
@@ -159,7 +173,7 @@
 		}
 	}
 	function tabIndex( root, tab ) {
-		return Array.prototype.indexOf.call( root.querySelectorAll( '.vx-tab' ), tab );
+		return tabsOf( root ).indexOf( tab );
 	}
 	on( 'click', '.vx-tab', function ( e, tab ) {
 		var root = tab.closest( '.vx-tabs' );
@@ -178,7 +192,7 @@
 		var vertical = root.classList.contains( 'vx-tabs-left' );
 		var next = { ArrowRight: ! vertical, ArrowLeft: ! vertical, ArrowDown: vertical, ArrowUp: vertical };
 		if ( ! next[ e.key ] && 'Home' !== e.key && 'End' !== e.key ) { return; }
-		var tabs = root.querySelectorAll( '.vx-tab' );
+		var tabs = tabsOf( root );
 		var i = tabIndex( root, tab ), to = i;
 		if ( 'ArrowRight' === e.key || 'ArrowDown' === e.key ) { to = ( i + 1 ) % tabs.length; }
 		if ( 'ArrowLeft' === e.key || 'ArrowUp' === e.key ) { to = ( i - 1 + tabs.length ) % tabs.length; }
@@ -211,8 +225,7 @@
 		if ( ! panel ) { return; }
 		var root = panel.closest( '.vx-tabs' );
 		if ( ! root || ! root.hasAttribute( 'data-vx-deeplink' ) ) { return; }
-		var panels = Array.prototype.slice.call( root.querySelectorAll( '.vx-tabp' ) );
-		selectTab( root, panels.indexOf( panel ) );
+		selectTab( root, panelsOf( root ).indexOf( panel ) );
 	}
 	window.addEventListener( 'hashchange', openTabFromHash );
 	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', openTabFromHash ); } else { openTabFromHash(); }
@@ -243,7 +256,16 @@
 			d.body.style.paddingRight = '';
 		}
 	}
-	function openOverlay( el, opener ) {
+	function syncToggles( el, open ) {
+		if ( ! el.id ) { return; }
+		var ts = d.querySelectorAll( '[data-vx-toggle]' );
+		for ( var i = 0; i < ts.length; i++ ) {
+			if ( ts[ i ].getAttribute( 'data-vx-toggle' ).replace( /^#/, '' ) === el.id ) {
+				ts[ i ].setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+			}
+		}
+	}
+	function openOverlay( el, opener, quiet ) {
 		if ( ! el || el.classList.contains( 'is-open' ) ) { return; }
 		el.__vxOpener = opener || d.activeElement;
 		el.hidden = false;
@@ -251,6 +273,7 @@
 		el.offsetHeight;
 		el.classList.add( 'is-open' );
 		el.setAttribute( 'aria-hidden', 'false' );
+		syncToggles( el, true );
 		if ( el.hasAttribute( 'data-vx-modal' ) ) {
 			openStack.push( el );
 			lockScroll( true );
@@ -258,7 +281,7 @@
 		// APG: do not focus the container itself — a large focusable box makes the
 		// focus position impossible to perceive. Prefer the close button, then the
 		// first control, then the heading.
-		var first = el.querySelector( '[data-vx-autofocus]' ) ||
+		var first = quiet ? null : el.querySelector( '[data-vx-autofocus]' ) ||
 			el.querySelector( '.vx-ov-close' ) || focusables( el )[ 0 ] ||
 			el.querySelector( 'h1,h2,h3' );
 		if ( first ) {
@@ -267,10 +290,12 @@
 		}
 		el.dispatchEvent( new CustomEvent( 'vx:open', { bubbles: true } ) );
 	}
-	function closeOverlay( el ) {
+	function closeOverlay( el, quiet ) {
 		if ( ! el || ! el.classList.contains( 'is-open' ) ) { return; }
 		el.classList.remove( 'is-open' );
 		el.setAttribute( 'aria-hidden', 'true' );
+		// The toggle button kept saying "expanded" after Escape.
+		syncToggles( el, false );
 		var i = openStack.indexOf( el );
 		if ( i > -1 ) { openStack.splice( i, 1 ); }
 		if ( ! openStack.length ) { lockScroll( false ); }
@@ -279,7 +304,7 @@
 		window.setTimeout( function () {
 			if ( ! el.classList.contains( 'is-open' ) ) { el.hidden = true; }
 		}, REDUCED ? 0 : ms );
-		if ( back && back.focus ) { back.focus(); }
+		if ( back && back.focus && ! quiet ) { back.focus(); }
 		el.dispatchEvent( new CustomEvent( 'vx:close', { bubbles: true } ) );
 	}
 	function overlayById( id ) { return id ? d.getElementById( id.replace( /^#/, '' ) ) : null; }
@@ -297,8 +322,39 @@
 		if ( ! el ) { return; }
 		e.preventDefault();
 		var open = el.classList.contains( 'is-open' );
-		t.setAttribute( 'aria-expanded', open ? 'false' : 'true' );
 		if ( open ) { closeOverlay( el ); } else { openOverlay( el, t ); }
+	} );
+	// "Opened by (CSS selector)": any matching element on the page opens it.
+	d.addEventListener( 'click', function ( e ) {
+		if ( ! e.target.closest ) { return; }
+		var ovs = d.querySelectorAll( '.vx-ov[data-vx-openwith]' );
+		for ( var i = 0; i < ovs.length; i++ ) {
+			var t = null;
+			try { t = e.target.closest( ovs[ i ].getAttribute( 'data-vx-openwith' ) ); } catch ( err ) { continue; }
+			if ( t && ! ovs[ i ].contains( t ) ) {
+				e.preventDefault();
+				openOverlay( ovs[ i ], t );
+				return;
+			}
+		}
+	} );
+	// A dropdown closes when the visitor clicks anywhere else.
+	d.addEventListener( 'click', function ( e ) {
+		var open = d.querySelectorAll( '.vx-dropdown.is-open' );
+		for ( var i = 0; i < open.length; i++ ) {
+			var wrap = open[ i ].closest( '.vx-dd-wrap' ) || open[ i ];
+			if ( ! wrap.contains( e.target ) ) { closeOverlay( open[ i ], true ); }
+		}
+	} );
+	// "Opens on: Hover" for dropdowns (pointer devices; click still works).
+	on( 'mouseenter', '.vx-dd-wrap[data-vx-hover]', function ( e, w ) {
+		if ( window.matchMedia && window.matchMedia( '(hover: none)' ).matches ) { return; }
+		var el = ownOne( w, '.vx-dropdown' );
+		if ( el ) { window.clearTimeout( w.__vxT ); openOverlay( el, null, true ); }
+	} );
+	on( 'mouseleave', '.vx-dd-wrap[data-vx-hover]', function ( e, w ) {
+		var el = ownOne( w, '.vx-dropdown' );
+		if ( el ) { w.__vxT = window.setTimeout( function () { closeOverlay( el, true ); }, 150 ); }
 	} );
 	on( 'click', '[data-vx-close]', function ( e, t ) {
 		var el = t.closest( '.vx-ov' ) || overlayById( t.getAttribute( 'data-vx-close' ) );
@@ -347,10 +403,10 @@
 	 * W3C APG Carousel pattern for the roles and the play/pause requirement.
 	 * ------------------------------------------------------------------ */
 	function slides( root ) {
-		return Array.prototype.slice.call( root.querySelectorAll( '.vx-slide' ) );
+		return own( root, '.vx-track > .vx-slide' );
 	}
 	function slideIndex( root ) {
-		var track = root.querySelector( '.vx-track' );
+		var track = ownOne( root, '.vx-track' );
 		if ( ! track ) { return 0; }
 		var list = slides( root );
 		var best = 0, dist = Infinity;
@@ -361,7 +417,7 @@
 		return best;
 	}
 	function goToSlide( root, i, smooth ) {
-		var track = root.querySelector( '.vx-track' );
+		var track = ownOne( root, '.vx-track' );
 		var list = slides( root );
 		if ( ! track || ! list.length ) { return; }
 		var loop = root.hasAttribute( 'data-vx-loop' );
@@ -372,7 +428,7 @@
 	function syncSlider( root ) {
 		var i = slideIndex( root );
 		var list = slides( root );
-		var dots = root.querySelectorAll( '.vx-dot' );
+		var dots = own( root, '.vx-controls > .vx-dots > .vx-dot' );
 		for ( var k = 0; k < dots.length; k++ ) {
 			var on = ( k === i );
 			dots[ k ].setAttribute( 'aria-selected', on ? 'true' : 'false' );
@@ -380,13 +436,16 @@
 			dots[ k ].classList.toggle( 'is-active', on );
 		}
 		if ( ! root.hasAttribute( 'data-vx-loop' ) ) {
-			var prev = root.querySelector( '.vx-prev' ), next = root.querySelector( '.vx-next' );
+			var prev = ownOne( root, '.vx-controls > .vx-arrows > .vx-prev' ), next = ownOne( root, '.vx-controls > .vx-arrows > .vx-next' );
 			if ( prev ) { prev.disabled = ( 0 === i ); }
 			if ( next ) { next.disabled = ( i >= list.length - 1 ); }
 		}
 		// Tell assistive tech which slide is showing without stealing focus.
-		var live = root.querySelector( '.vx-live' );
+		var live = ownOne( root, '.vx-live' );
 		if ( live ) { live.textContent = ( i + 1 ) + ' / ' + list.length; }
+		// The visible "2 of 5" counter never moved off "1 / 5".
+		var count = ownOne( root, '.vx-count' ) || ownOne( root, '.vx-controls > .vx-count' );
+		if ( count ) { count.textContent = ( i + 1 ) + ' / ' + list.length; }
 	}
 	on( 'click', '.vx-prev', function ( e, t ) {
 		var root = t.closest( '.vx-slider' ); if ( ! root ) { return; }
@@ -407,7 +466,7 @@
 		var i = slideIndex( root ) + ( 'ArrowRight' === e.key ? 1 : -1 );
 		goToSlide( root, i, true );
 		window.setTimeout( function () {
-			var active = root.querySelector( '.vx-dot.is-active' );
+			var active = ownOne( root, '.vx-controls > .vx-dots > .vx-dot.is-active' );
 			if ( active ) { active.focus(); }
 		}, 180 );
 	} );
@@ -424,13 +483,13 @@
 			goToSlide( root, slideIndex( root ) + 1, true );
 		}, ms );
 		root.classList.add( 'is-playing' );
-		var pp = root.querySelector( '.vx-play' );
+		var pp = ownOne( root, '.vx-controls > .vx-play' );
 		if ( pp ) { pp.setAttribute( 'aria-pressed', 'false' ); pp.setAttribute( 'aria-label', pp.getAttribute( 'data-vx-pause-label' ) || 'Pause' ); }
 	}
 	function stopAuto( root ) {
 		if ( root.__vxTimer ) { window.clearInterval( root.__vxTimer ); root.__vxTimer = null; }
 		root.classList.remove( 'is-playing' );
-		var pp = root.querySelector( '.vx-play' );
+		var pp = ownOne( root, '.vx-controls > .vx-play' );
 		if ( pp ) { pp.setAttribute( 'aria-pressed', 'true' ); pp.setAttribute( 'aria-label', pp.getAttribute( 'data-vx-play-label' ) || 'Play' ); }
 	}
 	on( 'click', '.vx-play', function ( e, t ) {
@@ -445,7 +504,7 @@
 			( function ( root ) {
 				if ( root.__vxInit ) { return; }
 				root.__vxInit = true;
-				var track = root.querySelector( '.vx-track' );
+				var track = ownOne( root, '.vx-track' );
 				if ( track ) {
 					var raf = null;
 					track.addEventListener( 'scroll', function () {
@@ -460,6 +519,9 @@
 					if ( root.__vxFocus && ! root.contains( d.activeElement ) && ! root.__vxPaused ) { root.__vxFocus = false; startAuto( root ); }
 				} );
 				syncSlider( root );
+				// With reduced motion nothing plays, so the button must offer
+				// "Play" rather than claim it can pause.
+				if ( REDUCED && root.hasAttribute( 'data-vx-auto' ) ) { stopAuto( root ); }
 				startAuto( root );
 			}( roots[ i ] ) );
 		}
@@ -528,7 +590,8 @@
 		}
 		if ( 'element' === type ) {
 			var sel = el.getAttribute( 'data-vx-target' );
-			var watch = sel ? d.querySelector( sel ) : null;
+			// An invalid selector threw here and stopped every trigger after it.
+			var watch = safeQuery( sel );
 			if ( ! watch || ! ( 'IntersectionObserver' in window ) ) { return; }
 			var io = new IntersectionObserver( function ( ents ) {
 				if ( ents[ 0 ].isIntersecting ) { io.disconnect(); go(); }
@@ -610,7 +673,7 @@
 	on( 'click', '[data-vx-scrollto]', function ( e, t ) {
 		e.preventDefault();
 		var sel = t.getAttribute( 'data-vx-scrollto' );
-		var target = ( '#top' === sel || ! sel ) ? null : d.querySelector( sel );
+		var target = ( '#top' === sel || ! sel ) ? null : safeQuery( sel );
 		if ( target ) { target.scrollIntoView( { behavior: REDUCED ? 'auto' : 'smooth', block: 'start' } ); }
 		else { window.scrollTo( { top: 0, behavior: REDUCED ? 'auto' : 'smooth' } ); }
 	} );
@@ -699,17 +762,31 @@
 			if ( ! navs[ i ].contains( e.target ) ) { closeSubmenus( navs[ i ] ); }
 		}
 	} );
+	function closeBurger( root, focus ) {
+		root.classList.remove( 'is-open' );
+		var b = root.querySelector( '.vx-burger' );
+		var list = root.querySelector( '.vx-nav-list' );
+		if ( b ) { b.setAttribute( 'aria-expanded', 'false' ); if ( focus ) { b.focus(); } }
+		if ( list && root.classList.contains( 'is-mobile' ) ) { list.hidden = true; }
+	}
 	d.addEventListener( 'keydown', function ( e ) {
 		if ( 'Escape' !== e.key ) { return; }
 		var open = d.querySelector( '.vx-sub-btn[aria-expanded="true"]' );
-		if ( ! open ) { return; }
-		toggleSubmenu( open, false );
-		open.focus();
+		if ( open ) {
+			toggleSubmenu( open, false );
+			open.focus();
+			return;
+		}
+		var nav = d.querySelector( '.vx-nav.is-mobile.is-open' );
+		if ( nav ) { closeBurger( nav, true ); }
 	} );
 	d.addEventListener( 'click', function ( e ) {
 		var navs = d.querySelectorAll( '.vx-nav' );
 		for ( var i = 0; i < navs.length; i++ ) {
-			if ( ! navs[ i ].contains( e.target ) ) { closeSubmenus( navs[ i ] ); }
+			if ( ! navs[ i ].contains( e.target ) ) {
+				closeSubmenus( navs[ i ] );
+				if ( navs[ i ].classList.contains( 'is-open' ) ) { closeBurger( navs[ i ], false ); }
+			}
 		}
 	} );
 

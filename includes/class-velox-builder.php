@@ -546,7 +546,7 @@ class Velox_Builder {
 			// Oxygen import: the page being opened (if it has an Oxygen layout)
 			// and whether the site has any Oxygen layouts at all.
 			'oxygenPost' => ( $post_id && class_exists( 'Velox_Builder_Oxygen' ) && Velox_Builder_Oxygen::has_layout( $post_id ) ) ? $post_id : 0,
-			'oxygenAny'  => class_exists( 'Velox_Builder_Oxygen' ) && Velox_Builder_Oxygen::sources() ? 1 : 0,
+			'oxygenAny'  => class_exists( 'Velox_Builder_Oxygen' ) && Velox_Builder_Oxygen::any() ? 1 : 0,
 			'reusables' => self::reusables_payload(),
 			'backUrl' => $back_url,
 			'frontUrl' => $front_url,
@@ -2193,7 +2193,7 @@ class Velox_Builder {
 			'classes' => is_array( $classes ) ? $classes : array(),
 			'content' => is_array( $content ) ? $content : array(),
 		) );
-		$wpdb->insert( self::table(), array(
+		$ok = $wpdb->insert( self::table(), array(
 			'kind'    => 'reusable',
 			'title'   => $title,
 			'status'  => 'published',
@@ -2202,6 +2202,11 @@ class Velox_Builder {
 			'created' => current_time( 'mysql' ),
 		) );
 		$id = (int) $wpdb->insert_id;
+		// The editor replaces the element with a link to this reusable — that
+		// must never happen when nothing was stored.
+		if ( false === $ok || ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'The reusable could not be saved.', 'velox' ) ), 500 );
+		}
 		wp_send_json_success( array( 'id' => $id, 'title' => $title ) );
 	}
 
@@ -2450,6 +2455,7 @@ class Velox_Builder {
 	public static function ajax_switcher_list() {
 		global $wpdb;
 		$out  = array( 'velox' => array(), 'wp' => array() );
+		$q    = isset( $_POST['s'] ) ? sanitize_text_field( wp_unslash( $_POST['s'] ) ) : '';
 		$docs = self::list_docs( null, 200 );
 		$bound = array(); // post_ids already built, to exclude from the WP list
 		foreach ( (array) $docs as $d ) {
@@ -2458,6 +2464,7 @@ class Velox_Builder {
 				'title'  => $d['title'] ? $d['title'] : __( 'Untitled', 'velox' ),
 				'kind'   => $d['kind'],
 				'status' => $d['status'],
+				'ptype'  => ( (int) $d['post_id'] ) ? get_post_type( (int) $d['post_id'] ) : '',
 				'url'    => self::edit_url( (int) $d['id'], $d['kind'] ),
 			);
 		}
@@ -2472,6 +2479,8 @@ class Velox_Builder {
 			'posts_per_page' => 40,
 			'orderby'        => 'modified',
 			'order'          => 'DESC',
+			// Searching finds older pages too, not only the 40 most recent.
+			's'              => $q,
 		) );
 		foreach ( (array) $posts as $p ) {
 			if ( isset( $bound[ $p->ID ] ) ) {

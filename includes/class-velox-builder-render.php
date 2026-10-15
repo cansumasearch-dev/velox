@@ -397,8 +397,8 @@ class Velox_Builder_Render {
 		$el  = $node['el'];
 
 		if ( 'Gradienttext' === $el ) {
-			$from  = self::el_set( $node, 'from', '#2ab7f1' );
-			$to    = self::el_set( $node, 'to', '#7b5cff' );
+			$from  = self::el_color( $node, 'from', '#2ab7f1' );
+			$to    = self::el_color( $node, 'to', '#7b5cff' );
 			$angle = (int) self::el_set( $node, 'angle', 90 );
 			self::$float_css .= $sel . '{background-image:linear-gradient(' . $angle . 'deg,'
 				. esc_attr( $from ) . ',' . esc_attr( $to ) . ');'
@@ -410,8 +410,8 @@ class Velox_Builder_Render {
 
 		if ( 'Outlinetext' === $el ) {
 			$w    = self::el_set_bp( $node, 'strokeW', 2 );
-			$col  = self::el_set( $node, 'strokeC', '#0b0f14' );
-			$fill = self::el_set( $node, 'fill', '' );
+			$col  = self::el_color( $node, 'strokeC', '#0b0f14' );
+			$fill = self::sanitize_value( (string) self::el_set( $node, 'fill', '' ) );
 			$mqs  = self::bp_map();
 			foreach ( array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' ) as $bp ) {
 				if ( ! isset( $w[ $bp ] ) ) {
@@ -429,7 +429,7 @@ class Velox_Builder_Render {
 		}
 
 		if ( 'Highlighttext' === $el ) {
-			$c     = self::el_set( $node, 'hlColor', '#ffe066' );
+			$c     = self::el_color( $node, 'hlColor', '#ffe066' );
 			$style = self::el_set( $node, 'hlStyle', 'full' );
 			if ( 'underline' === $style ) {
 				self::$float_css .= $sel . '{background:linear-gradient(' . esc_attr( $c ) . ',' . esc_attr( $c )
@@ -447,7 +447,7 @@ class Velox_Builder_Render {
 
 		if ( 'Dropcap' === $el ) {
 			$lines = self::el_set_bp( $node, 'capLines', 3 );
-			$col   = self::el_set( $node, 'capColor', '' );
+			$col   = self::sanitize_value( (string) self::el_set( $node, 'capColor', '' ) );
 			$wt    = self::el_set( $node, 'capWeight', '700' );
 			$mqs   = self::bp_map();
 			foreach ( array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' ) as $bp ) {
@@ -504,10 +504,10 @@ class Velox_Builder_Render {
 		}
 
 		if ( 'Skiplink' === $el ) {
-			$bg  = self::el_set( $node, 'skBg', '#0b0f14' );
-			$fg  = self::el_set( $node, 'skFg', '#ffffff' );
-			$top = (int) self::el_set( $node, 'skTop', 8 );
-			self::$float_css .= $sel . '{position:absolute;left:' . $top . 'px;top:-64px;z-index:1000;'
+			$bg  = self::el_color( $node, 'skBg', '#0b0f14' );
+			$fg  = self::el_color( $node, 'skFg', '#ffffff' );
+			$top = self::el_int( $node, 'skTop', 8 );
+			self::$float_css .= $sel . '{position:absolute;left:8px;top:-64px;z-index:1000;'
 				. 'padding:10px 16px;border-radius:6px;background:' . esc_attr( $bg ) . ';color:' . esc_attr( $fg )
 				. ';text-decoration:none;transition:top .15s}'
 				. $sel . ':focus{top:' . $top . 'px;outline:2px solid ' . esc_attr( $fg ) . ';outline-offset:2px}';
@@ -528,7 +528,7 @@ class Velox_Builder_Render {
 		}
 
 		if ( 'Avatargroup' === $el ) {
-			$ring  = self::el_set( $node, 'avRing', '#ffffff' );
+			$ring  = self::el_color( $node, 'avRing', '#ffffff' );
 			$ringW = (int) self::el_set( $node, 'avRingW', 2 );
 			$last  = 'last' === self::el_set( $node, 'avOrder', 'first' );
 			$size  = self::el_set_bp( $node, 'avSize', 40 );
@@ -546,11 +546,15 @@ class Velox_Builder_Render {
 				$mq = $mqs[ $bp ] ?? null;
 				self::$float_css .= $mq ? ( '@media ' . $mq . '{' . $rule . '}' ) : $rule;
 			}
-			// Without an explicit order the later avatars paint on top, which reads
-			// backwards when the group is meant to lead with the first face.
-			self::$float_css .= $last
-				? $sel . '{isolation:isolate}'
-				: $sel . '{isolation:isolate;flex-direction:row-reverse;justify-content:flex-end}';
+			// Later avatars paint on top by default. "Front avatar is the first one"
+			// reverses the stacking only — reversing the row as well put the faces
+			// in the wrong order and broke the overlap between the first two.
+			self::$float_css .= $sel . '{isolation:isolate}' . $sel . '>*{position:relative}';
+			if ( ! $last ) {
+				for ( $i = 1; $i <= 12; $i++ ) {
+					self::$float_css .= $sel . '>*:nth-child(' . $i . '){z-index:' . ( 13 - $i ) . '}';
+				}
+			}
 			return;
 		}
 
@@ -559,7 +563,7 @@ class Velox_Builder_Render {
 				return;
 			}
 			$ms = max( 300, (int) self::el_set( $node, 'skSpeed', 1400 ) );
-			$hi = self::el_set( $node, 'skHi', '#f6f8fb' );
+			$hi = self::el_color( $node, 'skHi', '#f6f8fb' );
 			self::$float_css .= $sel . '{background-image:linear-gradient(90deg,transparent,' . esc_attr( $hi )
 				. ',transparent);background-size:200% 100%;background-repeat:no-repeat;'
 				. 'animation:vx-shimmer ' . $ms . 'ms linear infinite}'
@@ -741,8 +745,14 @@ class Velox_Builder_Render {
 				if ( ! isset( $h[ $bp ] ) && ! isset( $g[ $bp ] ) ) {
 					continue;
 				}
-				$hh = (int) ( $h[ $bp ] ?? $defH );
-				$gg = (int) ( $g[ $bp ] ?? $defG );
+				// A breakpoint that only changes one of the two inherits the other
+				// from the nearest wider screen, not the element default.
+				$hh = $defH;
+				$gg = $defG;
+				foreach ( array_slice( $bps, 0, array_search( $bp, $bps, true ) + 1 ) as $b ) {
+					if ( isset( $h[ $b ] ) && '' !== (string) $h[ $b ] ) { $hh = (int) $h[ $b ]; }
+					if ( isset( $g[ $b ] ) && '' !== (string) $g[ $b ] ) { $gg = (int) $g[ $b ]; }
+				}
 				// A common height is the whole point: logos supplied at different
 				// pixel sizes otherwise sit at wildly different scales.
 				$emit( $bp, $sel . '{gap:' . $gg . 'px}'
@@ -762,7 +772,7 @@ class Velox_Builder_Render {
 			$mark = self::el_set( $node, 'pqMark', 'none' );
 			$rule = self::el_set( $node, 'pqRule', 'none' );
 			if ( 'before' === $mark || 'left' === $mark ) {
-				$c = self::el_set( $node, 'pqMarkColor', '#2ab7f1' );
+				$c = self::el_color( $node, 'pqMarkColor', '#2ab7f1' );
 				// A decorative glyph, so it is hidden from assistive tech.
 				self::$float_css .= $sel . '{position:relative}'
 					. $sel . '::before{content:"\201C";color:' . esc_attr( $c ) . ';font-size:2.5em;line-height:1;'
@@ -772,12 +782,13 @@ class Velox_Builder_Render {
 					. '}';
 			}
 			if ( 'left' === $rule ) {
-				$c = self::el_set( $node, 'pqRuleColor', '#2ab7f1' );
-				self::$float_css .= $sel . '{border-left:4px solid ' . esc_attr( $c ) . ';padding-left:20px}';
+				$c = self::el_color( $node, 'pqRuleColor', '#2ab7f1' );
+				self::$float_css .= $sel . '{border-left:4px solid ' . $c . ';padding-left:20px}';
 			} elseif ( 'top' === $rule ) {
-				$c = self::el_set( $node, 'pqRuleColor', '#2ab7f1' );
-				self::$float_css .= $sel . '::after{content:"";display:block;width:56px;height:3px;'
-					. 'background:' . esc_attr( $c ) . ';margin-top:16px}';
+				// "Above" was drawn with ::after, which put the line under the quote.
+				$c = self::el_color( $node, 'pqRuleColor', '#2ab7f1' );
+				self::$float_css .= $sel . '{background-image:linear-gradient(' . $c . ',' . $c . ');'
+					. 'background-size:56px 3px;background-repeat:no-repeat;background-position:0 0;padding-top:19px}';
 			}
 			return;
 		}
@@ -788,8 +799,8 @@ class Velox_Builder_Render {
 				return;
 			}
 			$w   = max( 4, (int) self::el_set( $node, 'ebLineW', 24 ) );
-			$c   = self::el_set( $node, 'ebLineColor', '' );
-			$col = '' !== $c ? esc_attr( $c ) : 'currentColor';
+			$c   = self::sanitize_value( (string) self::el_set( $node, 'ebLineColor', '' ) );
+			$col = '' !== $c ? $c : 'currentColor';
 			$pos = 'before' === $line ? '::before' : '::after';
 			$mar = 'before' === $line ? 'margin-right:10px' : 'margin-left:10px';
 			self::$float_css .= $sel . '{display:inline-flex;align-items:center}'
@@ -800,14 +811,74 @@ class Velox_Builder_Render {
 
 	private static function el_set_bp( $node, $key, $default = '' ) {
 		$s   = self::el_settings( $node );
-		$out = array( 'base' => self::el_set( $node, $key, $default ) );
+		// Responsive settings are numbers and sizes, never toggles, so a stored
+		// 0 is a real value here ("no gap") — mapping it to '' made every
+		// zero fall back to the default or inherit the wider screen's value.
+		$out = array( 'base' => array_key_exists( $key, $s ) ? $s[ $key ] : $default );
 		foreach ( array( 'xxl', 'xl', 'lg', 'md', 'sm' ) as $bp ) {
 			$k = $key . '@' . $bp;
 			if ( array_key_exists( $k, $s ) ) {
-				$out[ $bp ] = ( '0' === $s[ $k ] ) ? '' : $s[ $k ];
+				$out[ $bp ] = $s[ $k ];
 			}
 		}
 		return $out;
+	}
+
+	/** A number setting: an emptied field means the default, not 0. */
+	private static function el_int( $node, $key, $default ) {
+		$s = self::el_settings( $node );
+		$v = array_key_exists( $key, $s ) ? $s[ $key ] : $default;
+		return ( is_numeric( $v ) ) ? (int) $v : (int) $default;
+	}
+
+	/** A raw setting with 0 kept as 0 (for numbers such as delays). */
+	private static function el_raw( $node, $key, $default = '' ) {
+		$s = self::el_settings( $node );
+		return array_key_exists( $key, $s ) ? $s[ $key ] : $default;
+	}
+
+	/** A colour (or any single CSS value) from a setting, safe inside a rule. */
+	private static function el_color( $node, $key, $default ) {
+		$v = self::sanitize_value( (string) self::el_set( $node, $key, $default ) );
+		return '' !== $v ? $v : $default;
+	}
+
+	/** A size for the stylesheet: a number (px) or number+unit, else ''. */
+	private static function css_size( $v ) {
+		$v = strtolower( trim( (string) $v ) );
+		if ( preg_match( '/^\d+(\.\d+)?$/', $v ) ) {
+			return $v . 'px';
+		}
+		if ( preg_match( '/^\d+(\.\d+)?(px|%|rem|em|vw|vh|svh|dvh|ch)$|^auto$/', $v ) ) {
+			return $v;
+		}
+		return '';
+	}
+
+	/**
+	 * Whether a stored child really holds content. Every item of a nestable
+	 * element is created with an empty container, and treating that as content
+	 * hid the text typed into the item's own field.
+	 */
+	private static function has_kid( $kid ) {
+		return is_array( $kid ) && ! empty( $kid['children'] );
+	}
+
+	/** The trigger type that actually does something ('click' arms nothing). */
+	private static function trig_type( $node, $default = '' ) {
+		$t = (string) self::el_set( $node, 'trigType', $default );
+		if ( 'click' === $t ) {
+			return '';
+		}
+		// A floating button or bar shown on every page load needs no trigger at
+		// all — rendering it hidden only to unhide it with JavaScript made it
+		// flash in late (or never appear without scripts).
+		$el = $node['el'] ?? '';
+		if ( 'load' === $t && ! in_array( $el, array( 'Modal', 'Offcanvas' ), true )
+			&& 'always' === (string) self::el_set( $node, 'trigOnce', 'always' ) ) {
+			return '';
+		}
+		return $t;
 	}
 
 	private static function el_set( $node, $key, $default = '' ) {
@@ -842,9 +913,14 @@ class Velox_Builder_Render {
 		$icon_pos = self::el_set( $node, 'iconPos', 'right' );
 		$h_tag    = self::el_set( $node, 'headingTag', 'h3' );
 		$h_tag    = in_array( $h_tag, array( 'h2', 'h3', 'h4', 'h5' ), true ) ? $h_tag : 'h3';
-		$deeplink = self::el_set( $node, 'deepLink', '' );
+		$deeplink = self::el_set( $node, 'deepLink', $is_faq ? '' : '1' );
 		$first    = self::el_set( $node, 'firstOpen', $is_faq ? '' : '1' );
 		$base     = sanitize_html_class( $node['id'] ?? 'acc' );
+		// "Icon turns" was ignored: the stylesheet always rotated 180°.
+		$turn = self::el_int( $node, 'iconRotate', 180 );
+		if ( ! $is_faq && 180 !== $turn && '' !== $base ) {
+			self::$float_css .= '#' . $base . ' .vx-acc-item.is-open>.vx-acc-h .vx-acc-i{transform:rotate(' . $turn . 'deg)}';
+		}
 
 		$cls = $classes . ' vx-acc' . ( 'left' === $icon_pos ? ' vx-acc-left' : '' );
 		$out = '<div id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( trim( $cls ) ) . '"' .
@@ -855,7 +931,7 @@ class Velox_Builder_Render {
 		foreach ( array_values( $items ) as $i => $item ) {
 			$title = isset( $item['title'] ) ? (string) $item['title'] : '';
 			$body  = isset( $item['body'] ) ? (string) $item['body'] : '';
-			if ( '' === trim( $title ) && '' === trim( $body ) ) {
+			if ( '' === trim( $title ) && '' === trim( $body ) && ! self::has_kid( $node['children'][ $i ] ?? null ) ) {
 				continue;
 			}
 			$open   = ( $first && 0 === $i );
@@ -872,11 +948,13 @@ class Velox_Builder_Render {
 			$out .= '<div class="vx-acc-p" id="' . esc_attr( $pan_id ) . '" role="region" aria-labelledby="' . esc_attr( $btn_id ) . '"' . ( $open ? '' : ' hidden' ) . '>';
 			// A panel can hold real elements. children[i] belongs to item i; the
 			// plain text field stays as a fallback for simple content.
-			$kid = $node['children'][ $i ] ?? null;
-			$out .= $kid ? self::render_node( $kid, $doc ) : wp_kses_post( wpautop( $body ) );
+			$kid  = $node['children'][ $i ] ?? null;
+			$rich = self::has_kid( $kid ) ? self::render_node( $kid, $doc ) : '';
+			// The text field and dropped-in elements both show: the text first.
+			$out .= ( '' !== trim( $body ) ? wp_kses_post( wpautop( $body ) ) : '' ) . $rich;
 			$out .= '</div></div>';
 
-			$qa[] = array( 'q' => $title, 'a' => wp_strip_all_tags( $body ) );
+			$qa[] = array( 'q' => $title, 'a' => trim( wp_strip_all_tags( $body . ' ' . $rich ) ) );
 		}
 		$out .= '</div>';
 
@@ -906,10 +984,17 @@ class Velox_Builder_Render {
 	 * for mobile would double it for screen readers and search engines.
 	 */
 	private static function render_tabs( $node, $doc, $classes ) {
-		$items = (array) self::el_set( $node, 'items', array() );
-		$items = array_values( array_filter( $items, function ( $it ) {
-			return '' !== trim( (string) ( $it['title'] ?? '' ) ) || '' !== trim( (string) ( $it['body'] ?? '' ) );
-		} ) );
+		// Items keep their original index: children[i] belongs to item i, and
+		// re-numbering after dropping an empty item gave a tab its neighbour's
+		// content.
+		$items = array();
+		foreach ( (array) self::el_set( $node, 'items', array() ) as $orig => $it ) {
+			if ( '' !== trim( (string) ( $it['title'] ?? '' ) ) || '' !== trim( (string) ( $it['body'] ?? '' ) )
+				|| self::has_kid( $node['children'][ $orig ] ?? null ) ) {
+				$it['__i'] = $orig;
+				$items[]   = $it;
+			}
+		}
 		if ( ! $items ) {
 			return '';
 		}
@@ -922,6 +1007,7 @@ class Velox_Builder_Render {
 		$to_acc   = self::el_set( $node, 'toAccordion', '1' );
 		$deeplink = self::el_set( $node, 'deepLink', '' );
 		$base     = sanitize_html_class( $node['id'] ?? 'tabs' );
+		$ord      = count( $items );
 		$bp       = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'mobile' => 767 );
 
 		$cls = trim( $classes . ' vx-tabs' . ( 'left' === $orient ? ' vx-tabs-left' : '' ) );
@@ -933,19 +1019,22 @@ class Velox_Builder_Render {
 		$out .= '<div class="vx-tablist" role="tablist"' . ( 'left' === $orient ? ' aria-orientation="vertical"' : '' ) . '>';
 		foreach ( $items as $i => $item ) {
 			$on = ( $i === $start );
-			$out .= '<button type="button" class="vx-tab' . ( $on ? ' is-active' : '' ) . '" role="tab"' .
+			// The order lets the mobile accordion put each tab above its own panel.
+			$out .= '<button type="button" class="vx-tab' . ( $on ? ' is-active' : '' ) . '" role="tab" style="--vx-o:' . ( $i * 2 ) . '"' .
 				' id="' . esc_attr( $base . '-t' . $i ) . '"' .
 				' aria-selected="' . ( $on ? 'true' : 'false' ) . '"' .
 				' aria-controls="' . esc_attr( $base . '-tp' . $i ) . '"' .
-				' tabindex="' . ( $on ? '0' : '-1' ) . '">' . esc_html( (string) ( $item['title'] ?? '' ) ) . '</button>';
+				' tabindex="' . ( $on ? '0' : '-1' ) . '">' . esc_html( '' !== trim( (string) ( $item['title'] ?? '' ) ) ? (string) $item['title'] : sprintf( __( 'Tab %d', 'velox' ), $i + 1 ) ) . '</button>';
 		}
 		$out .= '</div><div class="vx-tabpanels">';
 		foreach ( $items as $i => $item ) {
 			$on = ( $i === $start );
-			$kid  = $node['children'][ $i ] ?? null;
-			$out .= '<div class="vx-tabp" role="tabpanel" id="' . esc_attr( $base . '-tp' . $i ) . '"' .
+			$kid  = $node['children'][ $item['__i'] ] ?? null;
+			$body = (string) ( $item['body'] ?? '' );
+			$out .= '<div class="vx-tabp" role="tabpanel" style="--vx-o:' . ( $i * 2 + 1 ) . '" id="' . esc_attr( $base . '-tp' . $i ) . '"' .
 				' aria-labelledby="' . esc_attr( $base . '-t' . $i ) . '" tabindex="0"' . ( $on ? '' : ' hidden' ) . '>' .
-				( $kid ? self::render_node( $kid, $doc ) : wp_kses_post( wpautop( (string) ( $item['body'] ?? '' ) ) ) ) . '</div>';
+				( '' !== trim( $body ) ? wp_kses_post( wpautop( $body ) ) : '' ) .
+				( self::has_kid( $kid ) ? self::render_node( $kid, $doc ) : '' ) . '</div>';
 		}
 		$out .= '</div></div>';
 		return $out;
@@ -965,7 +1054,7 @@ class Velox_Builder_Render {
 		self::$runtime_used[ $kind ]   = true;
 
 		$id       = sanitize_html_class( $node['id'] ?? $kind );
-		$ms       = (int) self::el_set( $node, 'ms', 'dropdown' === $kind ? 160 : 250 );
+		$ms       = self::el_int( $node, 'ms', 'dropdown' === $kind ? 160 : 250 );
 		$backdrop = 'dropdown' === $kind ? '' : self::el_set( $node, 'backdrop', '1' );
 		$kids     = self::render_tree( $node['children'] ?? array(), $doc );
 		$labelled = $id . '-label';
@@ -973,35 +1062,64 @@ class Velox_Builder_Render {
 		$attr = ' id="' . esc_attr( $id ) . '" data-vx-ms="' . $ms . '"';
 		if ( ! self::el_set( $node, 'closeEsc', '1' ) ) { $attr .= ' data-vx-noesc'; }
 		if ( ! self::el_set( $node, 'closeBack', '1' ) ) { $attr .= ' data-vx-nobackclose'; }
+		// "When it appears" and "Opened by" did nothing: neither was output.
+		if ( 'dropdown' !== $kind && self::trig_type( $node ) ) {
+			$attr .= self::floating_attrs( $node );
+		}
+		$with = trim( (string) self::el_set( $node, 'openWith', '' ) );
+		if ( 'offcanvas' === $kind && '' !== $with ) {
+			$attr .= ' data-vx-openwith="' . esc_attr( $with ) . '"';
+		}
 
 		// Size belongs on the PANEL. Putting it on the container left the panel at
 		// 100% of a full-viewport box, so it covered the backdrop entirely and
 		// clicking outside could never close it.
-		$panel_style = '';
-		$cls         = trim( $classes . ' vx-ov vx-' . $kind );
+		// The element's own classes (and its id styles, see generate_css) belong
+		// to the PANEL. On the full-screen container they turned the backdrop
+		// into a 520px white column at the edge of the page.
+		$panel_cls = trim( 'vx-ov-panel ' . $classes );
+		$cls       = 'vx-ov vx-' . $kind;
+		$mqs       = self::bp_map();
+		$psel      = '#' . $id . '>.vx-ov-panel';
 
 		if ( 'offcanvas' === $kind ) {
-			$edge         = self::el_set( $node, 'edge', 'right' );
-			$size         = (int) self::el_set( $node, 'size', 340 );
-			$cls         .= ' vx-oc-' . $edge;
-			$panel_style  = in_array( $edge, array( 'left', 'right' ), true )
-				? 'width:' . $size . 'px;max-width:100%;' : 'height:' . $size . 'px;width:100%;';
-			$attr        .= ' data-vx-modal';
+			$edge  = self::el_set( $node, 'edge', 'right' );
+			$edge  = in_array( $edge, array( 'left', 'right', 'top', 'bottom' ), true ) ? $edge : 'right';
+			$cls  .= ' vx-oc-' . $edge;
+			$side  = in_array( $edge, array( 'left', 'right' ), true );
+			foreach ( self::el_set_bp( $node, 'size', 340 ) as $bp => $v ) {
+				$v = ( 'base' === $bp && ! is_numeric( $v ) ) ? 340 : $v;
+				if ( ! is_numeric( $v ) ) {
+					continue;
+				}
+				$rule = $psel . ( $side ? '{width:' . (int) $v . 'px;max-width:100%}' : '{height:' . (int) $v . 'px;width:100%}' );
+				self::$float_css .= isset( $mqs[ $bp ] ) && $mqs[ $bp ] ? '@media ' . $mqs[ $bp ] . '{' . $rule . '}' : $rule;
+			}
+			$attr .= ' data-vx-modal';
 		} elseif ( 'modal' === $kind ) {
-			$cls        .= ' vx-modal-' . self::el_set( $node, 'pos', 'center' );
-			$panel_style = 'max-width:' . (int) self::el_set( $node, 'width', 520 ) . 'px;';
-			$attr       .= ' data-vx-modal';
+			$pos  = self::el_set( $node, 'pos', 'center' );
+			$cls .= ' vx-modal-' . ( in_array( $pos, array( 'center', 'top', 'bottom' ), true ) ? $pos : 'center' );
+			foreach ( self::el_set_bp( $node, 'width', 520 ) as $bp => $v ) {
+				$v = ( 'base' === $bp && ! is_numeric( $v ) ) ? 520 : $v;
+				if ( ! is_numeric( $v ) ) {
+					continue;
+				}
+				$rule = $psel . '{max-width:' . (int) $v . 'px}';
+				self::$float_css .= isset( $mqs[ $bp ] ) && $mqs[ $bp ] ? '@media ' . $mqs[ $bp ] . '{' . $rule . '}' : $rule;
+			}
+			$attr .= ' data-vx-modal';
 		} else {
-			$cls .= ' vx-dd-' . self::el_set( $node, 'align', 'left' );
+			$cls .= ' vx-dd-' . ( 'right' === self::el_set( $node, 'align', 'left' ) ? 'right' : 'left' );
 		}
+		$panel_style = '';
 
 		$out = '';
 
 		// A dropdown carries its own trigger button; the other two are opened by
 		// something else on the page.
 		if ( 'dropdown' === $kind ) {
-			$out .= '<div class="vx-dd-wrap">';
-			$out .= '<button type="button" class="vx-dd-btn" aria-expanded="false" aria-haspopup="true"' .
+			$out .= '<div class="vx-dd-wrap"' . ( 'hover' === self::el_set( $node, 'openOn', 'click' ) ? ' data-vx-hover' : '' ) . '>';
+			$out .= '<button type="button" class="vx-dd-btn" aria-expanded="false" aria-haspopup="dialog"' .
 				' aria-controls="' . esc_attr( $id ) . '" data-vx-toggle="' . esc_attr( $id ) . '">' .
 				esc_html( self::el_set( $node, 'label', 'Menü' ) ) .
 				'<span class="vx-dd-i" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>';
@@ -1012,18 +1130,22 @@ class Velox_Builder_Render {
 			' aria-labelledby="' . esc_attr( $labelled ) . '" aria-hidden="true" hidden>';
 
 		if ( $backdrop ) {
-			$bc   = self::sanitize_value( self::el_set( $node, 'backColor', 'rgba(0,0,0,.5)' ) );
+			$bc   = self::el_color( $node, 'backColor', 'modal' === $kind ? 'rgba(10,11,14,.6)' : 'rgba(0,0,0,.5)' );
 			$out .= '<div class="vx-ov-back" style="background:' . esc_attr( $bc ) . '"></div>';
 		}
-		$out .= '<div class="vx-ov-panel"' . ( $panel_style ? ' style="' . esc_attr( $panel_style ) . '"' : '' ) . '>';
+		$out .= '<div class="' . esc_attr( $panel_cls ) . '"' . ( $panel_style ? ' style="' . esc_attr( $panel_style ) . '"' : '' ) . '>';
 		if ( 'dropdown' !== $kind && self::el_set( $node, 'closeBtn', '1' ) ) {
 			$out .= '<button type="button" class="vx-ov-close" data-vx-close aria-label="' . esc_attr__( 'Close', 'velox' ) . '">' .
 				'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
 		}
 		// Screen readers need a name for the dialog even when the design has no
 		// visible heading.
-		$out .= '<span id="' . esc_attr( $labelled ) . '" class="vx-sr">' .
-			esc_html( self::el_set( $node, 'label', ucfirst( $kind ) ) ) . '</span>';
+		$names = array( 'offcanvas' => __( 'Panel', 'velox' ), 'modal' => __( 'Dialog', 'velox' ), 'dropdown' => __( 'Menu', 'velox' ) );
+		$name  = (string) self::el_set( $node, 'dlgLabel', '' );
+		if ( '' === trim( $name ) ) {
+			$name = 'dropdown' === $kind ? (string) self::el_set( $node, 'label', $names['dropdown'] ) : $names[ $kind ];
+		}
+		$out .= '<span id="' . esc_attr( $labelled ) . '" class="vx-sr">' . esc_html( $name ) . '</span>';
 		$out .= $kids . '</div></div>';
 
 		if ( 'dropdown' === $kind ) { $out .= '</div>'; }
@@ -1041,12 +1163,16 @@ class Velox_Builder_Render {
 	 * Roles follow the W3C APG Carousel pattern.
 	 */
 	private static function render_slider( $node, $doc, $classes ) {
-		$items = (array) self::el_set( $node, 'items', array() );
-		$items = array_values( array_filter( $items, function ( $it ) {
-			return '' !== trim( (string) ( $it['title'] ?? '' ) )
+		$items = array();
+		foreach ( (array) self::el_set( $node, 'items', array() ) as $orig => $it ) {
+			if ( '' !== trim( (string) ( $it['title'] ?? '' ) )
 				|| '' !== trim( (string) ( $it['body'] ?? '' ) )
-				|| '' !== trim( (string) ( $it['image'] ?? '' ) );
-		} ) );
+				|| '' !== trim( (string) ( $it['image'] ?? '' ) )
+				|| self::has_kid( $node['children'][ $orig ] ?? null ) ) {
+				$it['__i'] = $orig;
+				$items[]   = $it;
+			}
+		}
 		if ( ! $items ) {
 			return '';
 		}
@@ -1056,7 +1182,7 @@ class Velox_Builder_Render {
 		$gap    = (int) self::el_set( $node, 'gap', 16 );
 		$loop   = self::el_set( $node, 'loop', '' );
 		$auto   = self::el_set( $node, 'auto', '' );
-		$automs = max( 1500, (int) self::el_set( $node, 'autoMs', 5000 ) );
+		$automs = max( 1500, self::el_int( $node, 'autoMs', 5000 ) );
 		$arrows = self::el_set( $node, 'arrows', '1' );
 		$dots   = self::el_set( $node, 'dots', '1' );
 		$count  = self::el_set( $node, 'counter', '' );
@@ -1106,21 +1232,23 @@ class Velox_Builder_Render {
 			$p  = max( 1, (int) $val( 'perView', 1 ) );
 			$g  = (int) $val( 'gap', 16 );
 			$pk = (int) $val( 'peek', 0 );
-			$w  = trim( (string) $val( 'slideWidth', '' ) );
+			// Sizes reach a <style> block, so only plain lengths get through —
+			// a typed "}</style><script>" went out as-is before.
+			$w  = self::css_size( $val( 'slideWidth', '' ) );
 
 			// An explicit card width wins over slides-shown; otherwise the width
 			// is derived from the count, minus the gaps and any peek.
 			$basis = '' !== $w
-				? 'flex:0 0 ' . self::css_value( 'width', $w )
+				? 'flex:0 0 ' . $w
 				: 'flex:0 0 calc((100% - ' . ( ( $p - 1 ) * $g + $pk ) . 'px)/' . $p . ')';
 
 			$slide = $basis;
-			$mn = $val( 'slideMinWidth', '' );
-			$mx = $val( 'slideMaxWidth', '' );
-			$h  = $val( 'slideHeight', '' );
-			if ( '' !== $mn ) { $slide .= ';min-width:' . self::css_value( 'minWidth', $mn ); }
-			if ( '' !== $mx ) { $slide .= ';max-width:' . self::css_value( 'maxWidth', $mx ); }
-			if ( '' !== $h )  { $slide .= ';height:' . self::css_value( 'height', $h ); }
+			$mn = self::css_size( $val( 'slideMinWidth', '' ) );
+			$mx = self::css_size( $val( 'slideMaxWidth', '' ) );
+			$h  = self::css_size( $val( 'slideHeight', '' ) );
+			if ( '' !== $mn ) { $slide .= ';min-width:' . $mn; }
+			if ( '' !== $mx ) { $slide .= ';max-width:' . $mx; }
+			if ( '' !== $h )  { $slide .= ';height:' . $h; }
 
 			$rule = '#' . $id . ' .vx-track{gap:' . $g . 'px'
 				. ( $equal ? ';align-items:stretch' : ';align-items:flex-start' ) . '}'
@@ -1154,18 +1282,22 @@ class Velox_Builder_Render {
 				$out .= '<img src="' . esc_url( $item['image'] ) . '" alt=""' .
 					( 0 === $i ? ' fetchpriority="high"' : ' loading="lazy" decoding="async"' ) . '>';
 			}
-			$kid = $node['children'][ $i ] ?? null;
-			if ( $kid ) {
+			$kid = $node['children'][ $item['__i'] ] ?? null;
+			if ( ! empty( $item['title'] ) ) { $out .= '<strong class="vx-slide-t">' . esc_html( $item['title'] ) . '</strong>'; }
+			if ( ! empty( $item['body'] ) ) { $out .= wp_kses_post( wpautop( $item['body'] ) ); }
+			if ( self::has_kid( $kid ) ) {
 				$out .= self::render_node( $kid, $doc );
-			} else {
-				if ( ! empty( $item['title'] ) ) { $out .= '<strong class="vx-slide-t">' . esc_html( $item['title'] ) . '</strong>'; }
-				if ( ! empty( $item['body'] ) ) { $out .= wp_kses_post( wpautop( $item['body'] ) ); }
 			}
 			$out .= '</div>';
 		}
 		$out .= '</div>';
 
 		$out .= '<div class="vx-live vx-sr" aria-live="polite" aria-atomic="true">1 / ' . $total . '</div>';
+		// The counter was only printed inside the controls, so with arrows and
+		// dots switched off it never showed.
+		if ( $count && ! ( $arrows || $dots || $auto ) ) {
+			$out .= '<span class="vx-count" aria-hidden="true">1 / ' . $total . '</span>';
+		}
 
 		if ( $arrows || $dots || $auto ) {
 			$out .= '<div class="vx-controls">';
@@ -1203,30 +1335,54 @@ class Velox_Builder_Render {
 	/** Placement + trigger attributes shared by every floating element. */
 	private static function floating_attrs( $node ) {
 		$out = '';
-		$trig = self::el_set( $node, 'trigType', '' );
+		// Back to top shows after scrolling 25% unless told otherwise — the
+		// defaults the editor shows.
+		$is_top = 'Backtotop' === ( $node['el'] ?? '' );
+		$trig   = self::trig_type( $node, $is_top ? 'scroll' : '' );
 		if ( $trig ) {
 			$out .= ' data-vx-trig="' . esc_attr( $trig ) . '"' .
-				' data-vx-once="' . esc_attr( self::el_set( $node, 'trigOnce', 'always' ) ) . '"';
+				' data-vx-once="' . esc_attr( $is_top ? 'always' : self::el_set( $node, 'trigOnce', in_array( $node['el'] ?? '', array( 'Modal', 'Offcanvas' ), true ) ? 'session' : 'always' ) ) . '"';
+			$defs = array( 'trigDelay' => '', 'trigScroll' => $is_top ? '25' : '', 'trigIdle' => '', 'trigTarget' => '' );
 			foreach ( array( 'trigDelay' => 'delay', 'trigScroll' => 'scroll', 'trigIdle' => 'idle', 'trigTarget' => 'target' ) as $k => $a ) {
-				$v = self::el_set( $node, $k, '' );
+				$v = (string) self::el_raw( $node, $k, $defs[ $k ] );
 				if ( '' !== $v ) { $out .= ' data-vx-' . $a . '="' . esc_attr( $v ) . '"'; }
 			}
 		}
 		return $out;
 	}
-	private static function floating_style( $node ) {
+	private static function floating_style( $node, $sel = '' ) {
 		$ax = self::el_set( $node, 'anchorX', 'right' );
 		$ay = self::el_set( $node, 'anchorY', 'bottom' );
-		$ox = (int) self::el_set( $node, 'offsetX', 24 );
-		$oy = (int) self::el_set( $node, 'offsetY', 24 );
-		$z  = (int) self::el_set( $node, 'zIndex', 9990 );
+		$ox = self::el_int( $node, 'offsetX', 24 );
+		$oy = self::el_int( $node, 'offsetY', 24 );
+		$z  = self::el_int( $node, 'zIndex', 9990 );
 		$st = 'position:fixed;z-index:' . $z . ';';
-		if ( 'center' === $ax )      { $st .= 'left:50%;transform:translateX(-50%);'; }
+		// Centred with auto margins, not a transform: an attention animation
+		// animates transform and threw the button off centre.
+		if ( 'center' === $ax )      { $st .= 'left:0;right:0;margin-left:auto;margin-right:auto;width:max-content;'; }
 		elseif ( 'left' === $ax )    { $st .= 'left:' . $ox . 'px;'; }
 		else                         { $st .= 'right:' . $ox . 'px;'; }
-		if ( 'middle' === $ay )      { $st .= 'top:50%;'; }
+		if ( 'middle' === $ay )      { $st .= 'top:0;bottom:0;margin-top:auto;margin-bottom:auto;height:max-content;'; }
 		elseif ( 'top' === $ay )     { $st .= 'top:' . $oy . 'px;'; }
 		else                         { $st .= 'bottom:' . $oy . 'px;'; }
+		// The offsets are responsive settings: narrower screens get their own.
+		if ( '' !== $sel ) {
+			$mqs = self::bp_map();
+			$xs  = self::el_set_bp( $node, 'offsetX', 24 );
+			$ys  = self::el_set_bp( $node, 'offsetY', 24 );
+			foreach ( array( 'xxl', 'xl', 'lg', 'md', 'sm' ) as $bp ) {
+				$r = '';
+				if ( isset( $xs[ $bp ] ) && is_numeric( $xs[ $bp ] ) && 'center' !== $ax ) {
+					$r .= ( 'left' === $ax ? 'left:' : 'right:' ) . (int) $xs[ $bp ] . 'px;';
+				}
+				if ( isset( $ys[ $bp ] ) && is_numeric( $ys[ $bp ] ) && 'middle' !== $ay ) {
+					$r .= ( 'top' === $ay ? 'top:' : 'bottom:' ) . (int) $ys[ $bp ] . 'px;';
+				}
+				if ( '' !== $r && ! empty( $mqs[ $bp ] ) ) {
+					self::$float_css .= '@media ' . $mqs[ $bp ] . '{' . $sel . '{' . $r . '}}';
+				}
+			}
+		}
 		return $st;
 	}
 	/** Per-device hiding, as real CSS rather than a JS check. */
@@ -1255,8 +1411,8 @@ class Velox_Builder_Render {
 
 		if ( 'Progressbar' === $el ) {
 			$pos   = self::el_set( $node, 'pos', 'top' );
-			$thick = (int) self::el_set( $node, 'thickness', 4 );
-			$col   = self::sanitize_value( self::el_set( $node, 'color', '#2ab7f1' ) );
+			$thick = max( 1, self::el_int( $node, 'thickness', 4 ) );
+			$col   = self::el_color( $node, 'color', '#2ab7f1' );
 			self::$float_css .= $sel . '{position:fixed;left:0;right:0;' . ( 'bottom' === $pos ? 'bottom:0' : 'top:0' ) .
 				';height:' . $thick . 'px;z-index:9995;background:transparent}' .
 				$sel . ' .vx-progress-fill{height:100%;width:0;background:' . $col . ';transition:width .1s linear}';
@@ -1268,7 +1424,7 @@ class Velox_Builder_Render {
 		if ( 'Announcebar' === $el || 'Stickybar' === $el ) {
 			$pos    = self::el_set( $node, 'pos', 'Stickybar' === $el ? 'bottom' : 'top' );
 			$sticky = 'Stickybar' === $el ? '1' : self::el_set( $node, 'sticky', '1' );
-			$hidden = self::el_set( $node, 'trigType', '' ) ? ' hidden' : '';
+			$hidden = self::trig_type( $node ) ? ' hidden' : '';
 			if ( $sticky ) {
 				self::$float_css .= $sel . '{position:fixed;left:0;right:0;' . ( 'bottom' === $pos ? 'bottom:0' : 'top:0' ) . ';z-index:9992}';
 			}
@@ -1280,7 +1436,7 @@ class Velox_Builder_Render {
 
 			$inner = '';
 			if ( 'Announcebar' === $el ) {
-				$inner .= '<span class="vx-bar-text">' . esc_html( self::el_set( $node, 'text', '' ) ) . '</span>';
+				$inner .= '<span class="vx-bar-text">' . esc_html( self::el_set( $node, 'text', 'Kostenlose Beratung — jetzt anfragen' ) ) . '</span>';
 				$lt = self::el_set( $node, 'linkText', '' );
 				$lu = self::el_set( $node, 'linkUrl', '' );
 				if ( $lt && $lu ) { $inner .= ' <a class="vx-bar-link" href="' . esc_url( $lu ) . '">' . esc_html( $lt ) . '</a>'; }
@@ -1292,7 +1448,7 @@ class Velox_Builder_Render {
 				foreach ( (array) self::el_set( $node, 'items', array() ) as $item ) {
 					if ( empty( $item['title'] ) && empty( $item['href'] ) ) { continue; }
 					$ico = ( ! empty( $item['icon'] ) && class_exists( 'Velox_Icons' ) ) ? Velox_Icons::svg( $item['icon'], 18 ) : '';
-					$inner .= '<a class="vx-bar-btn" href="' . esc_url( $item['href'] ?? '#' ) . '">' .
+					$inner .= '<a class="vx-bar-btn" href="' . esc_url( self::link_value( (string) ( $item['href'] ?? '' ) ) ) . '">' .
 						( $ico ? '<span class="vx-bar-i" aria-hidden="true">' . $ico . '</span>' : '' ) .
 						esc_html( $item['title'] ?? '' ) . '</a>';
 				}
@@ -1302,11 +1458,11 @@ class Velox_Builder_Render {
 		}
 
 		// Floating button / back to top
-		self::$float_css .= $sel . '{' . self::floating_style( $node ) . '}' . self::visibility_css( $node, $sel );
+		self::$float_css .= $sel . '{' . self::floating_style( $node, $sel ) . '}' . self::visibility_css( $node, $sel );
 		$idle = self::el_set( $node, 'idle', 'none' );
 		if ( 'none' !== $idle ) { self::$runtime_used['fabanim'] = true; }
 
-		$label  = self::el_set( $node, 'label', '' );
+		$label  = self::el_set( $node, 'label', 'Backtotop' === $el ? 'Nach oben' : '' );
 		$action = self::el_set( $node, 'action', 'link' );
 		$target = self::el_set( $node, 'target', '' );
 		$href   = '#';
@@ -1323,18 +1479,22 @@ class Velox_Builder_Render {
 		$attr = ( 'button' === $tag ) ? ' type="button"' : ' href="' . esc_url( $href ) . '"';
 		$name = $label ? $label : ( 'Backtotop' === $el ? __( 'Back to top', 'velox' ) : __( 'Open', 'velox' ) );
 
-		$hidden = self::el_set( $node, 'trigType', '' ) ? ' hidden' : '';
+		$hidden = self::trig_type( $node, 'Backtotop' === $el ? 'scroll' : '' ) ? ' hidden' : '';
+		// Back to top's text is screen-reader text: it goes in the label only.
+		$sr_only = 'Backtotop' === $el;
 		$out  = '<' . $tag . ' id="' . esc_attr( $id ) . '" class="' . esc_attr( trim( $classes . ' vx-fab' . ( 'none' !== $idle ? ' vx-idle-' . $idle : '' ) ) ) . '"' .
 			$attr . $extra . self::floating_attrs( $node ) . $hidden .
-			( $label ? '' : ' aria-label="' . esc_attr( $name ) . '"' ) . '>';
+			( $label && ! $sr_only ? '' : ' aria-label="' . esc_attr( $sr_only && ! $label ? __( 'Back to top', 'velox' ) : $name ) . '"' ) . '>';
 		// Use the chosen icon; fall back to something sensible for the element.
 		$icon_name = self::el_set( $node, 'icon', '' );
+		// Old defaults that were never icon names.
+		$icon_name = array( 'chat' => 'message', 'chevron' => 'chevron-up' )[ $icon_name ] ?? $icon_name;
 		$icon_svg  = ( $icon_name && class_exists( 'Velox_Icons' ) ) ? Velox_Icons::svg( $icon_name, 20 ) : '';
 		if ( ! $icon_svg && class_exists( 'Velox_Icons' ) ) {
 			$icon_svg = Velox_Icons::svg( 'Backtotop' === $el ? 'chevron-up' : 'message', 20 );
 		}
 		$out .= '<span class="vx-fab-i" aria-hidden="true">' . $icon_svg . '</span>';
-		if ( $label ) { $out .= '<span class="vx-fab-l">' . esc_html( $label ) . '</span>'; }
+		if ( $label && ! $sr_only ) { $out .= '<span class="vx-fab-l">' . esc_html( $label ) . '</span>'; }
 		return $out . '</' . $tag . '>';
 	}
 
@@ -1361,12 +1521,31 @@ class Velox_Builder_Render {
 			$sep   = self::el_set( $node, 'sep', '/' );
 			$home  = self::el_set( $node, 'homeLabel', 'Start' );
 			$crumbs = array( array( 'name' => $home, 'url' => home_url( '/' ) ) );
-			$pid = get_queried_object_id();
-			if ( $pid ) {
+			$qo     = get_queried_object();
+			// On an archive the queried id is a TERM id: treating it as a post id
+			// showed the title of an unrelated post.
+			if ( $qo instanceof WP_Post ) {
+				$pid = (int) $qo->ID;
 				foreach ( array_reverse( get_post_ancestors( $pid ) ) as $anc ) {
 					$crumbs[] = array( 'name' => get_the_title( $anc ), 'url' => get_permalink( $anc ) );
 				}
 				$crumbs[] = array( 'name' => get_the_title( $pid ), 'url' => '' );
+			} elseif ( $qo instanceof WP_Term ) {
+				foreach ( array_reverse( get_ancestors( (int) $qo->term_id, $qo->taxonomy, 'taxonomy' ) ) as $anc ) {
+					$t = get_term( $anc, $qo->taxonomy );
+					if ( $t && ! is_wp_error( $t ) ) {
+						$l = get_term_link( $t );
+						$crumbs[] = array( 'name' => $t->name, 'url' => is_wp_error( $l ) ? '' : $l );
+					}
+				}
+				$crumbs[] = array( 'name' => $qo->name, 'url' => '' );
+			} elseif ( $qo instanceof WP_User ) {
+				$crumbs[] = array( 'name' => $qo->display_name, 'url' => '' );
+			} elseif ( is_search() ) {
+				/* translators: %s: the search query. */
+				$crumbs[] = array( 'name' => sprintf( __( 'Search: %s', 'velox' ), get_search_query() ), 'url' => '' );
+			} elseif ( is_404() ) {
+				$crumbs[] = array( 'name' => __( 'Page not found', 'velox' ), 'url' => '' );
 			}
 			$out = '<nav id="' . esc_attr( $id ) . '" class="' . esc_attr( trim( $classes . ' vx-crumbs' ) ) . '"' .
 				' aria-label="' . esc_attr__( 'Breadcrumb', 'velox' ) . '"><ol class="vx-crumb-list">';
@@ -1424,8 +1603,22 @@ class Velox_Builder_Render {
 			if ( self::el_set( $node, 'shrink', '' ) ) { self::$runtime_used['navshrink'] = true; }
 		}
 
-		$out  = '<nav class="' . esc_attr( trim( $classes . ' vx-nav' . ( $anchor ? ' vx-anchornav' : '' ) ) ) . '"' . $attr .
-			' aria-label="' . esc_attr( $anchor ? __( 'On this page', 'velox' ) : __( 'Main', 'velox' ) ) . '">';
+		// Every navbar was called "Main", so a footer menu repeated the main
+		// navigation's landmark name. A typed name wins; otherwise only the first
+		// navbar on the page is "Main".
+		$nav_name = trim( (string) self::el_set( $node, 'navLabel', '' ) );
+		if ( '' === $nav_name ) {
+			if ( $anchor ) {
+				$nav_name = __( 'On this page', 'velox' );
+			} else {
+				$nav_name = self::$main_nav_done ? __( 'Secondary', 'velox' ) : __( 'Main', 'velox' );
+				self::$main_nav_done = true;
+			}
+		}
+		// "A full screen panel" was a choice the renderer never read.
+		$full = ! $anchor && 'fullscreen' === self::el_set( $node, 'mobileStyle', 'dropdown' );
+		$out  = '<nav class="' . esc_attr( trim( $classes . ' vx-nav' . ( $anchor ? ' vx-anchornav' : '' ) . ( $full ? ' vx-nav-full' : '' ) ) ) . '"' . $attr .
+			' aria-label="' . esc_attr( $nav_name ) . '">';
 
 		if ( ! $anchor ) {
 			$out .= '<button type="button" class="vx-burger" aria-expanded="false" aria-controls="' . esc_attr( $id . '-list' ) . '"' .
@@ -1439,6 +1632,10 @@ class Velox_Builder_Render {
 			$title = (string) ( $item['title'] ?? '' );
 			$href  = (string) ( $item['href'] ?? '#' );
 			if ( '' === trim( $title ) ) { continue; }
+			// "Section ID" on an anchor nav: a bare id became http://leistungen.
+			if ( $anchor && '' !== $href && ! preg_match( '#^(\#|/|[a-z][a-z0-9+.-]*:)#i', $href ) ) {
+				$href = '#' . $href;
+			}
 			$subs  = array();
 			foreach ( array_filter( explode( ',', (string) ( $item['children'] ?? '' ) ) ) as $pair ) {
 				$bits = explode( '|', $pair );
@@ -1464,6 +1661,27 @@ class Velox_Builder_Render {
 	}
 
 
+	/** Whether the page already has its "Main" navigation landmark. */
+	private static $main_nav_done = false;
+
+	/**
+	 * A typed link: a phone number becomes tel:, an e-mail address mailto:.
+	 * esc_url() turned "+49 2131 000000" into http://+492131000000.
+	 */
+	private static function link_value( $v ) {
+		$v = trim( $v );
+		if ( '' === $v ) {
+			return '#';
+		}
+		if ( preg_match( '/^\+?[0-9][0-9 ()\/.-]{4,}$/', $v ) ) {
+			return 'tel:' . preg_replace( '/[^0-9+]/', '', $v );
+		}
+		if ( is_email( $v ) ) {
+			return 'mailto:' . $v;
+		}
+		return $v;
+	}
+
 	/** A WordPress menu, flattened to the item shape the nav renderer expects. */
 	private static function wp_menu_items( $location ) {
 		$out = array();
@@ -1474,6 +1692,17 @@ class Velox_Builder_Render {
 		} else {
 			$obj = wp_get_nav_menu_object( $location );
 			if ( $obj ) { $menu_id = (int) $obj->term_id; }
+		}
+		// Sites without theme menu locations (Oxygen, Velox-only) still have
+		// menus: fall back to the first assigned one, then to the first menu.
+		if ( ! $menu_id ) {
+			foreach ( (array) $locations as $mid ) {
+				if ( $mid ) { $menu_id = (int) $mid; break; }
+			}
+		}
+		if ( ! $menu_id ) {
+			$all = wp_get_nav_menus();
+			if ( $all && ! is_wp_error( $all ) ) { $menu_id = (int) $all[0]->term_id; }
 		}
 		if ( ! $menu_id ) {
 			return $out;
@@ -1507,16 +1736,32 @@ class Velox_Builder_Render {
 	/** Styling for a reviews block, from its settings. */
 	private static function reviews_css( $node, $sel ) {
 		$css    = '';
+		// Every rule targets the example markup (vx-rv-*) AND the real reviews
+		// (vxr-*): styling only ever reached the examples before.
+		$s      = function ( $a, $b ) use ( $sel ) { return $sel . ' ' . $a . ',' . $sel . ' ' . $b; };
 		$layout = self::el_set( $node, 'layout', 'grid' );
-		$gap    = (int) self::el_set( $node, 'gap', 20 );
-		$cols   = max( 1, (int) self::el_set( $node, 'columns', 3 ) );
-		if ( 'grid' === $layout ) {
-			$css .= $sel . ' .vx-rv-list{display:grid;grid-template-columns:repeat(' . $cols . ',minmax(0,1fr));gap:' . $gap . 'px}';
-		} elseif ( 'slider' === $layout ) {
-			$css .= $sel . ' .vx-rv-list{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:' . $gap . 'px}' .
-				$sel . ' .vx-rv-card{flex:0 0 min(320px,80%);scroll-snap-align:start}';
-		} else {
-			$css .= $sel . ' .vx-rv-list{display:flex;flex-direction:column;gap:' . $gap . 'px}';
+		$mqs    = self::bp_map();
+		$cols   = self::el_set_bp( $node, 'columns', 3 );
+		$gaps   = self::el_set_bp( $node, 'gap', 20 );
+		$sizes  = self::el_set_bp( $node, 'textSize', 14 );
+		$bps    = array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' );
+		$cc = 3;
+		$gg = 20;
+		foreach ( $bps as $bp ) {
+			if ( ! isset( $cols[ $bp ] ) && ! isset( $gaps[ $bp ] ) ) {
+				continue;
+			}
+			if ( isset( $cols[ $bp ] ) && is_numeric( $cols[ $bp ] ) ) { $cc = max( 1, (int) $cols[ $bp ] ); }
+			if ( isset( $gaps[ $bp ] ) && is_numeric( $gaps[ $bp ] ) ) { $gg = (int) $gaps[ $bp ]; }
+			if ( 'grid' === $layout ) {
+				$r = $s( '.vx-rv-list', '.velox-reviews-track' ) . '{display:grid;grid-template-columns:repeat(' . $cc . ',minmax(0,1fr));gap:' . $gg . 'px;transform:none}';
+			} elseif ( 'slider' === $layout ) {
+				$r = $sel . ' .vx-rv-list{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:' . $gg . 'px}' .
+					$sel . ' .vx-rv-card{flex:0 0 min(320px,80%);scroll-snap-align:start}';
+			} else {
+				$r = $s( '.vx-rv-list', '.velox-reviews-track' ) . '{display:flex;flex-direction:column;gap:' . $gg . 'px;transform:none}';
+			}
+			$css .= ! empty( $mqs[ $bp ] ) ? '@media ' . $mqs[ $bp ] . '{' . $r . '}' : $r;
 		}
 		$shadow = self::el_set( $node, 'shadow', 'soft' );
 		$shadows = array(
@@ -1524,22 +1769,28 @@ class Velox_Builder_Render {
 			'soft'   => '0 2px 10px rgba(0,0,0,.07)',
 			'strong' => '0 10px 30px rgba(0,0,0,.14)',
 		);
-		$card = 'background:' . self::sanitize_value( self::el_set( $node, 'cardBg', '#ffffff' ) ) . ';' .
-			'border-radius:' . (int) self::el_set( $node, 'cardRadius', 14 ) . 'px;' .
-			'padding:' . (int) self::el_set( $node, 'cardPad', 20 ) . 'px;' .
+		$card = 'background:' . self::el_color( $node, 'cardBg', '#ffffff' ) . ';' .
+			'border-radius:' . self::el_int( $node, 'cardRadius', 14 ) . 'px;' .
+			'padding:' . self::el_int( $node, 'cardPad', 20 ) . 'px;' .
 			'box-shadow:' . ( $shadows[ $shadow ] ?? $shadows['soft'] ) . ';';
 		$border = self::el_set( $node, 'cardBorder', '' );
 		if ( $border ) { $card .= 'border:1px solid ' . self::sanitize_value( $border ) . ';'; }
-		$css .= $sel . ' .vx-rv-card{' . $card . '}';
-		$css .= $sel . ' .vx-rv-stars{color:' . self::sanitize_value( self::el_set( $node, 'starColor', '#fbbc04' ) ) .
-			';font-size:' . (int) self::el_set( $node, 'starSize', 16 ) . 'px}';
-		$nc = self::el_set( $node, 'nameColor', '' );
-		if ( $nc ) { $css .= $sel . ' .vx-rv-name{color:' . self::sanitize_value( $nc ) . '}'; }
-		$tc = self::el_set( $node, 'textColor', '' );
-		$ts = (int) self::el_set( $node, 'textSize', 14 );
-		$css .= $sel . ' .vx-rv-text{font-size:' . $ts . 'px' . ( $tc ? ';color:' . self::sanitize_value( $tc ) : '' ) . '}';
-		foreach ( array( 'showAvatar' => '.vx-rv-av', 'showDate' => '.vx-rv-date', 'showLogo' => '.vx-rv-logo' ) as $k => $part ) {
-			if ( ! self::el_set( $node, $k, '1' ) ) { $css .= $sel . ' ' . $part . '{display:none}'; }
+		$css .= $s( '.vx-rv-card', '.vxr-card' ) . '{' . $card . '}';
+		$star = self::el_color( $node, 'starColor', '#fbbc04' );
+		$css .= $s( '.vx-rv-stars', '.vxr-stars' ) . '{color:' . $star . ';font-size:' . self::el_int( $node, 'starSize', 16 ) . 'px}'
+			. $sel . ' .vxr-star.is-on{color:' . $star . '}';
+		$nc = self::sanitize_value( (string) self::el_set( $node, 'nameColor', '' ) );
+		if ( $nc ) { $css .= $s( '.vx-rv-name', '.vxr-name' ) . '{color:' . $nc . '}'; }
+		$tc = self::sanitize_value( (string) self::el_set( $node, 'textColor', '' ) );
+		if ( $tc ) { $css .= $s( '.vx-rv-text', '.vxr-text' ) . '{color:' . $tc . '}'; }
+		foreach ( $bps as $bp ) {
+			if ( isset( $sizes[ $bp ] ) && is_numeric( $sizes[ $bp ] ) ) {
+				$r    = $s( '.vx-rv-text', '.vxr-text' ) . '{font-size:' . (int) $sizes[ $bp ] . 'px}';
+				$css .= ! empty( $mqs[ $bp ] ) ? '@media ' . $mqs[ $bp ] . '{' . $r . '}' : $r;
+			}
+		}
+		foreach ( array( 'showAvatar' => array( '.vx-rv-av', '.vxr-avatar' ), 'showDate' => array( '.vx-rv-date', '.vxr-date' ), 'showLogo' => array( '.vx-rv-logo', '.vxr-g' ) ) as $k => $part ) {
+			if ( ! self::el_set( $node, $k, '1' ) ) { $css .= $s( $part[0], $part[1] ) . '{display:none}'; }
 		}
 		return $css;
 	}
@@ -1718,11 +1969,15 @@ class Velox_Builder_Render {
 	}
 
 	/** Baseline CSS for runtime elements, so they look right before any styling. */
-	public static function element_base_css() {
+	public static function element_base_css( $part = 'all' ) {
 		// Per-element CSS ($float_css) is written by many elements that need no
 		// runtime at all — returning early here dropped it on every simple page.
 		if ( ! self::$runtime_used && '' === (string) self::$float_css ) {
 			return '';
+		}
+		// The per-instance rules (#id …) only, for after the class stylesheet.
+		if ( 'float' === $part ) {
+			return (string) self::$float_css;
 		}
 		$css = '';
 		if ( isset( self::$runtime_used['reviews'] ) ) {
@@ -1754,6 +2009,8 @@ class Velox_Builder_Render {
 				'.vx-nav.is-mobile .vx-nav-list[hidden]{display:none}' .
 				'.vx-nav.is-mobile .vx-nav-item{padding:10px 8px}' .
 				'.vx-nav.is-mobile .vx-submenu{position:static;box-shadow:none;padding-left:14px}' .
+				'.vx-nav-full.is-mobile .vx-nav-list{position:fixed;inset:0;z-index:9996;justify-content:center;align-items:center;padding:72px 24px;overflow:auto;font-size:1.25em;box-shadow:none}' .
+				'.vx-nav-full.is-mobile.is-open .vx-burger{position:fixed;top:14px;right:14px;z-index:9997}' .
 				'.vx-crumb-list{display:flex;flex-wrap:wrap;align-items:center;gap:8px;list-style:none;margin:0;padding:0}' .
 				'.vx-crumb{display:flex;align-items:center;gap:8px}' .
 				'.vx-anchornav a.is-current{font-weight:700}' .
@@ -1788,7 +2045,7 @@ class Velox_Builder_Render {
 		// nothing to do with navigation. It used to be emitted inside the block
 		// above, so on a page with no navigation element every one of those
 		// elements silently lost its styling.
-		if ( self::$float_css ) {
+		if ( self::$float_css && 'base' !== $part ) {
 			$css .= self::$float_css;
 		}
 		if ( isset( self::$runtime_used['slider'] ) ) {
@@ -1858,8 +2115,9 @@ class Velox_Builder_Render {
 				'.vx-tabp{padding:18px 4px}.vx-tabp[hidden]{display:none}' .
 				// Accordion fallback: the tab button moves above its own panel.
 				'@media (max-width:' . (int) $bp['mobile'] . 'px){' .
-					'.vx-tabs-acc{display:block}' .
+					'.vx-tabs-acc{display:flex;flex-direction:column}' .
 					'.vx-tabs-acc .vx-tablist,.vx-tabs-acc .vx-tabpanels{display:contents;border:none}' .
+					'.vx-tabs-acc .vx-tab,.vx-tabs-acc .vx-tabp{order:var(--vx-o,0)}' .
 					'.vx-tabs-acc .vx-tab{display:block;width:100%;border:none;border-top:1px solid rgba(0,0,0,.12);margin:0;text-align:left}' .
 					'.vx-tabs-acc .vx-tabp{padding:0 4px 16px}' .
 				'}';
@@ -1957,6 +2215,15 @@ class Velox_Builder_Render {
 <head>
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<?php
+	// Element defaults (.vx-fab, .vx-bar, .vx-video …) go BEFORE the class
+	// stylesheet: printed after it, they beat the user's own class styling
+	// (same specificity, later wins) — the editor showed it, the page did not.
+	$base_css = self::element_base_css( 'base' ) . ( self::$media_used ? self::media_element_css() : '' );
+	if ( '' !== $base_css ) {
+		echo '<style id="velox-element-base">' . $base_css . '</style>' . "\n"; // phpcs:ignore
+	}
+	?>
 	<?php if ( $css_url ) : ?>
 		<link rel="stylesheet" id="velox-builder-css" href="<?php echo esc_url( $css_url ); ?>">
 	<?php endif; ?>
@@ -2068,7 +2335,7 @@ class Velox_Builder_Render {
 		if ( ! empty( self::$page_settings['css'] ) ) {
 			$page_css .= str_ireplace( array( '</style', '<script' ), '', (string) self::$page_settings['css'] );
 		}
-		$gs = self::element_base_css() . self::global_styles_css() . ( self::$media_used ? self::media_element_css() : '' ) . ( self::$loop_used ? self::loop_css() : '' ) . $page_css;
+		$gs = self::element_base_css( 'float' ) . self::global_styles_css() . ( self::$loop_used ? self::loop_css() : '' ) . $page_css;
 		if ( '' !== $gs ) {
 			echo '<style id="velox-builder-global-styles">' . $gs . '</style>' . "\n"; // phpcs:ignore
 		}
@@ -2419,7 +2686,9 @@ class Velox_Builder_Render {
 				$body  = '<iframe src="' . esc_url( $emb ) . '" title="' . esc_attr( '' !== $title ? $title : __( 'Video', 'velox' ) ) . '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
 			} elseif ( '' !== $url ) {
 				$poster = (string) self::el_set( $node, 'poster', '' );
+				$vt     = (string) self::el_set( $node, 'title', '' );
 				$body   = '<video src="' . esc_url( $url ) . '"' . ( $poster ? ' poster="' . esc_url( $poster ) . '"' : '' )
+					. ( '' !== $vt ? ' aria-label="' . esc_attr( $vt ) . '"' : '' )
 					. ( $auto ? ' autoplay muted loop playsinline' : ' controls' ) . ' preload="metadata"></video>';
 			}
 			$attr = preg_replace( '/ class="/', ' class="vx-video ', $attr, 1, $hit );
@@ -2510,7 +2779,10 @@ class Velox_Builder_Render {
 			$rid = sanitize_html_class( $node['id'] ?? 'rv' );
 			self::$float_css .= self::reviews_css( $node, '#' . $rid );
 
-			if ( self::el_set( $node, 'demo', '' ) ) {
+			// Example reviews are a design aid. They were shown to every visitor —
+			// invented reviews on a live site are a legal problem — so they only
+			// ever appear in the editor and for logged-in admins.
+			if ( self::el_set( $node, 'demo', '' ) && ( self::$previewing || self::$css_only || current_user_can( 'edit_pages' ) ) ) {
 				self::$runtime_used['reviews'] = true;
 				return '<div' . $attr . '>' . self::reviews_demo( $node ) . '</div>';
 			}
@@ -2522,6 +2794,10 @@ class Velox_Builder_Render {
 			if ( $cnt ) { $sc .= ' count="' . $cnt . '"'; }
 			$min = (int) self::el_set( $node, 'minStars', 0 );
 			if ( $min ) { $sc .= ' min_rating="' . $min . '"'; }
+			$trim = (int) self::el_set( $node, 'trim', 0 );
+			if ( $trim ) { $sc .= ' trim="' . $trim . '"'; }
+			$lay = self::el_set( $node, 'layout', 'grid' );
+			$sc .= ' layout="' . ( 'slider' === $lay ? 'slider' : 'static' ) . '"';
 			$sc .= ']';
 			if ( self::$css_only ) {
 				return '';
@@ -2553,8 +2829,20 @@ class Velox_Builder_Render {
 				$wpm   = max( 50, (int) self::el_set( $node, 'wpm', 200 ) );
 				$floor = max( 0, (int) self::el_set( $node, 'rtMin', 1 ) );
 				$body  = (string) get_post_field( 'post_content', $pid );
+				// Velox pages keep their text in the builder document, not in
+				// post_content (which is empty), so count the document's text too.
+				$src  = self::$inner_doc ? self::$inner_doc : $doc;
+				if ( ! empty( $src['content'] ) && is_array( $src['content'] ) ) {
+					foreach ( $src['content'] as $txt ) {
+						if ( is_string( $txt ) && ! preg_match( '#^https?://\S+$#', $txt ) ) {
+							$body .= ' ' . $txt;
+						}
+					}
+				}
 				// Strip shortcodes and tags first or markup inflates the count.
-				$words = str_word_count( wp_strip_all_tags( strip_shortcodes( $body ) ) );
+				// str_word_count() split German words at every umlaut.
+				$plain = trim( wp_strip_all_tags( strip_shortcodes( $body ) ) );
+				$words = '' === $plain ? 0 : count( preg_split( '/\s+/u', $plain ) );
 				$mins  = (int) max( $floor, (int) ceil( $words / $wpm ) );
 				$parts = array_filter( array(
 					trim( (string) self::el_set( $node, 'rtBefore', '' ) ),
@@ -2590,7 +2878,9 @@ class Velox_Builder_Render {
 		// do_shortcode() comes after sanitising, so the stored text is still
 		// filtered but a registered shortcode is allowed to render.
 		$content = ( isset( $doc['content'][ $node['id'] ] ) && ! self::$css_only )
-			? do_shortcode( self::resolve_tokens( wp_kses_post( $doc['content'][ $node['id'] ] ) ) )
+			// Shortcodes first, then the data tokens: a value pulled in by a token
+			// (an author bio, a custom field) must never run a shortcode.
+			? self::resolve_tokens( do_shortcode( wp_kses_post( $doc['content'][ $node['id'] ] ) ) )
 			: '';
 		$kids    = self::render_tree( $node['children'] ?? array(), $doc );
 		if ( 'a' === $tag ) {
@@ -2634,18 +2924,32 @@ class Velox_Builder_Render {
 			case 'post.id':       return (string) $pid;
 			case 'post.type':     return esc_html( get_post_type( $pid ) );
 			case 'post.comments': return (string) get_comments_number( $pid );
-			case 'post.meta':     return $arg ? esc_html( get_post_meta( $pid, $arg, true ) ) : '';
-			case 'post.terms':    $t = get_the_category_list( ', ', '', $pid ); return $t ? $t : '';
-			case 'post.taxterms': return $arg ? strip_tags( get_the_term_list( $pid, $arg, '', ', ' ) ) : '';
-			case 'featured.title':   return esc_html( get_the_title( get_post_thumbnail_id( $pid ) ) );
-			case 'featured.caption': return esc_html( wp_get_attachment_caption( get_post_thumbnail_id( $pid ) ) );
-			case 'featured.alt':     return esc_html( get_post_meta( get_post_thumbnail_id( $pid ), '_wp_attachment_image_alt', true ) );
+			case 'post.meta':     return $arg ? self::scalar( get_post_meta( $pid, $arg, true ) ) : '';
+			case 'post.terms':
+				// Categories AND tags (the picker says so) — it showed categories only.
+				$parts = array();
+				foreach ( array( 'category', 'post_tag' ) as $tax ) {
+					$l = get_the_term_list( $pid, $tax, '', ', ' );
+					if ( $l && ! is_wp_error( $l ) ) {
+						$parts[] = $l;
+					}
+				}
+				return wp_kses_post( implode( ', ', $parts ) );
+			case 'post.taxterms':
+				// An unknown taxonomy returns a WP_Error — strip_tags() on that was a
+				// fatal error that took the whole page down.
+				$l = $arg ? get_the_term_list( $pid, $arg, '', ', ' ) : '';
+				return ( $l && ! is_wp_error( $l ) ) ? esc_html( wp_strip_all_tags( $l ) ) : '';
+			// With no featured image the id is 0, and get_the_title(0) is the PAGE title.
+			case 'featured.title':   $f = get_post_thumbnail_id( $pid ); return $f ? esc_html( get_the_title( $f ) ) : '';
+			case 'featured.caption': $f = get_post_thumbnail_id( $pid ); return $f ? esc_html( wp_get_attachment_caption( $f ) ) : '';
+			case 'featured.alt':     $f = get_post_thumbnail_id( $pid ); return $f ? esc_html( get_post_meta( $f, '_wp_attachment_image_alt', true ) ) : '';
 			case 'author.name':   return esc_html( get_the_author_meta( 'display_name', (int) get_post_field( 'post_author', $pid ) ) );
 			case 'author.bio':    return esc_html( get_the_author_meta( 'description', (int) get_post_field( 'post_author', $pid ) ) );
-			case 'author.meta':   return $arg ? esc_html( get_the_author_meta( $arg, (int) get_post_field( 'post_author', $pid ) ) ) : '';
+			case 'author.meta':   return ( $arg && self::safe_user_key( $arg ) ) ? self::scalar( get_the_author_meta( $arg, (int) get_post_field( 'post_author', $pid ) ) ) : '';
 			case 'user.name':     $u = wp_get_current_user(); return $u ? esc_html( $u->display_name ) : '';
 			case 'user.bio':      $u = wp_get_current_user(); return $u ? esc_html( $u->description ) : '';
-			case 'user.meta':     $u = wp_get_current_user(); return ( $u && $arg ) ? esc_html( get_user_meta( $u->ID, $arg, true ) ) : '';
+			case 'user.meta':     $u = wp_get_current_user(); return ( $u && $u->ID && $arg && self::safe_user_key( $arg ) ) ? self::scalar( get_user_meta( $u->ID, $arg, true ) ) : '';
 			case 'site.title':    return esc_html( get_bloginfo( 'name' ) );
 			case 'site.tagline':  return esc_html( get_bloginfo( 'description' ) );
 			case 'site.other':    return $arg ? esc_html( get_bloginfo( $arg ) ) : '';
@@ -2655,6 +2959,20 @@ class Velox_Builder_Render {
 			case 'php.return': return '';
 			default:           return '';
 		}
+	}
+
+	/** A meta value as safe text; arrays and objects print nothing. */
+	private static function scalar( $v ) {
+		return is_scalar( $v ) ? esc_html( (string) $v ) : '';
+	}
+
+	/** User fields a page may show — never passwords, sessions or keys. */
+	private static function safe_user_key( $key ) {
+		$key = strtolower( (string) $key );
+		if ( in_array( $key, array( 'user_pass', 'user_activation_key', 'session_tokens', 'user_email', 'user_login' ), true ) ) {
+			return false;
+		}
+		return ! preg_match( '/(pass|token|secret|session|capabilit|_key$|api)/', $key );
 	}
 
 	/** Render a WordPress-data element (post title / content / featured / menu). */
@@ -2783,7 +3101,10 @@ class Velox_Builder_Render {
 						$tree,
 						function ( $node ) use ( &$body, $key, $pseudo ) {
 							if ( ! empty( $node['overrides'][ $key ] ) && is_array( $node['overrides'][ $key ] ) ) {
-								$body .= '#' . sanitize_html_class( $node['id'] ) . $pseudo . '{' . self::decls( $node['overrides'][ $key ] ) . '}';
+								// A popup / panel / dropdown is styled on its panel, not on
+								// the full-screen container that carries the id.
+								$panel = isset( $node['el'] ) && in_array( $node['el'], array( 'Offcanvas', 'Modal', 'Dropdown' ), true );
+								$body .= '#' . sanitize_html_class( $node['id'] ) . ( $panel ? '>.vx-ov-panel' : '' ) . $pseudo . '{' . self::decls( $node['overrides'][ $key ] ) . '}';
 							}
 						}
 					);

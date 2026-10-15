@@ -73,13 +73,29 @@ class Velox_Builder_Oxygen {
 		return null !== self::v6_root( $post_id );
 	}
 
+	/**
+	 * Whether the site has any Oxygen / Breakdance layout at all. Asked on every
+	 * editor load, so the answer is cached for 12 hours.
+	 */
+	public static function any() {
+		$c = get_transient( 'velox_oxygen_any' );
+		if ( false !== $c ) {
+			return (bool) $c;
+		}
+		$any = (bool) self::sources();
+		set_transient( 'velox_oxygen_any', $any ? 1 : 0, 12 * HOUR_IN_SECONDS );
+		return $any;
+	}
+
 	/** Every post that holds an Oxygen layout (pages, posts, Oxygen templates). */
 	public static function sources() {
 		global $wpdb;
 		$rows = $wpdb->get_results(
 			"SELECT p.ID, p.post_title, p.post_type FROM {$wpdb->posts} p
 			 INNER JOIN {$wpdb->postmeta} m ON m.post_id = p.ID
-			 WHERE m.meta_key IN ('ct_builder_json','ct_builder_shortcodes','_oxygen_data','_breakdance_data') AND m.meta_value <> ''
+			 WHERE ( m.meta_key IN ('ct_builder_json','ct_builder_shortcodes','_oxygen_data','_breakdance_data')
+			         OR ( m.meta_key LIKE '\\_%data' AND m.meta_value LIKE '{\"tree\\_json\\_string%' ) )
+			   AND m.meta_value <> ''
 			   AND p.post_status IN ('publish','draft','private','future')
 			 GROUP BY p.ID ORDER BY p.post_type, p.post_title LIMIT 300",
 			ARRAY_A
@@ -89,7 +105,7 @@ class Velox_Builder_Oxygen {
 			$out[] = array(
 				'id'    => (int) $r['ID'],
 				'title' => '' !== $r['post_title'] ? $r['post_title'] : __( '(no title)', 'velox' ),
-				'type'  => 'ct_template' === $r['post_type'] ? __( 'Oxygen template', 'velox' ) : $r['post_type'],
+				'type'  => in_array( $r['post_type'], array( 'ct_template', 'oxygen_template', 'oxygen_header', 'oxygen_footer', 'breakdance_template', 'breakdance_header', 'breakdance_footer' ), true ) ? __( 'Oxygen template', 'velox' ) : $r['post_type'],
 			);
 		}
 		return $out;
@@ -110,6 +126,8 @@ class Velox_Builder_Oxygen {
 		self::$skipped  = array();
 		self::$count    = 0;
 		self::$page_css = '';
+		// A component that points back at this very post must not be inlined.
+		self::$block_stack = array( (int) $post_id => true );
 		// Ids must not collide with anything already on the page, including an
 		// earlier import, so every import gets its own short random prefix.
 		self::$prefix   = 'x' . substr( md5( uniqid( '', true ) ), 0, 4 );
@@ -167,6 +185,16 @@ class Velox_Builder_Oxygen {
 	 *   array( 'name' => 'ct_section', 'options' => array, 'content' => string, 'children' => array )
 	 */
 	private static function read_tree( $post_id ) {
+		// Oxygen 6 / Breakdance first: a site upgraded from classic Oxygen can
+		// still carry the old classic meta next to the current layout.
+		$root = self::v6_root( $post_id );
+		if ( null !== $root ) {
+			$out = array();
+			foreach ( (array) ( $root['children'] ?? array() ) as $child ) {
+				$out[] = array( '__v6' => true, 'raw' => $child );
+			}
+			return $out;
+		}
 		$json = get_post_meta( $post_id, 'ct_builder_json', true );
 		if ( is_string( $json ) && '' !== $json ) {
 			$data = json_decode( $json, true );
@@ -182,18 +210,20 @@ class Velox_Builder_Oxygen {
 		if ( is_string( $sc ) && false !== strpos( $sc, '[ct_' ) ) {
 			return self::parse_shortcodes( $sc );
 		}
-		$root = self::v6_root( $post_id );
-		if ( null !== $root ) {
-			$out = array();
-			foreach ( (array) ( $root['children'] ?? array() ) as $child ) {
-				$out[] = array( '__v6' => true, 'raw' => $child );
-			}
-			return $out;
-		}
 		return null;
 	}
 
-	/* ---------------------------------------------------- Oxygen 6 / Breakdance */
+	/* ---------------------------------------------------- Oxygen 6 / Breakdance
+	 * Format (Breakdance engine, which Oxygen 6 runs on with BREAKDANCE_MODE
+	 * 'oxygen'): post meta `_oxygen_data` (Oxygen 6) / `_breakdance_data`
+	 * holding {"tree_json_string": "<json>"}; the tree is {root:{id, data:{type,
+	 * properties}, children}}. Text at content.content.text, tag at
+	 * settings.advanced.tag (Breakdance Heading: content.content.tags), images at
+	 * content.image {from, media{id,url,alt,sizes}, url, alt (a MODE), custom_alt}.
+	 * Oxygen 6 elements carry no design of their own — they are styled by
+	 * selectors (option oxygen_oxy_selectors_json_string), referenced by id in
+	 * meta.classes, with properties keyed breakpoint first.
+	 * ------------------------------------------------------------------------- */
 
 	/** Breakpoint names in Oxygen 6 / Breakdance → Velox breakpoint keys. */
 	private static $V6_BP = array(
@@ -204,10 +234,63 @@ class Velox_Builder_Oxygen {
 		'breakpoint_phone_portrait'   => 'sm',
 	);
 
+	/** Oxygen 6 selectors (id → selector) and Breakdance classes (name → class). */
+	private static $selectors = null;
+	private static $bd_classes = null;
+	/** Components / global blocks being inlined (recursion guard). */
+	private static $block_stack = array();
+
+	/** Decode a JSON option that may be stored encoded twice. */
+	private static function json_option( $name ) {
+		$v = get_option( $name );
+		for ( $i = 0; $i < 3 && is_string( $v ); $i++ ) {
+			$d = json_decode( $v, true );
+			if ( null === $d ) {
+				$d = json_decode( wp_unslash( $v ), true );
+			}
+			if ( null === $d ) {
+				return array();
+			}
+			$v = $d;
+		}
+		return is_array( $v ) ? $v : array();
+	}
+
+	private static function load_selectors() {
+		if ( null !== self::$selectors ) {
+			return;
+		}
+		self::$selectors  = array();
+		self::$bd_classes = array();
+		foreach ( self::json_option( 'oxygen_oxy_selectors_json_string' ) as $sel ) {
+			if ( is_array( $sel ) && isset( $sel['id'] ) ) {
+				self::$selectors[ (string) $sel['id'] ] = $sel;
+			}
+		}
+		foreach ( array( 'oxygen_breakdance_classes_json_string', 'breakdance_breakdance_classes_json_string' ) as $opt ) {
+			foreach ( self::json_option( $opt ) as $cls ) {
+				if ( is_array( $cls ) && ! empty( $cls['name'] ) ) {
+					self::$bd_classes[ (string) $cls['name'] ] = $cls;
+				}
+			}
+		}
+	}
+
 	/** The root node of an Oxygen 6 / Breakdance layout, or null. */
 	private static function v6_root( $post_id ) {
-		foreach ( array( '_oxygen_data', '_breakdance_data' ) as $key ) {
+		// Any other "…data" meta holding the same {"tree_json_string": …} structure
+		// is accepted as well (prefixed installs).
+		$keys = array( '_oxygen_data', '_breakdance_data' );
+		foreach ( array_keys( (array) get_post_meta( (int) $post_id ) ) as $mk ) {
+			if ( ! in_array( $mk, $keys, true ) && preg_match( '/^_.*data$/', $mk ) ) {
+				$keys[] = $mk;
+			}
+		}
+		foreach ( $keys as $key ) {
 			$raw = get_post_meta( (int) $post_id, $key, true );
+			if ( is_string( $raw ) && false === strpos( $raw, 'tree_json_string' ) && '_oxygen_data' !== $key && '_breakdance_data' !== $key ) {
+				continue;
+			}
 			if ( is_array( $raw ) ) {
 				$data = $raw;
 			} elseif ( is_string( $raw ) && '' !== $raw ) {
@@ -231,6 +314,17 @@ class Velox_Builder_Oxygen {
 			}
 		}
 		return null;
+	}
+
+	/** Value at a dotted path, or null. */
+	private static function at( $arr, $path ) {
+		foreach ( explode( '.', $path ) as $k ) {
+			if ( ! is_array( $arr ) || ! array_key_exists( $k, $arr ) ) {
+				return null;
+			}
+			$arr = $arr[ $k ];
+		}
+		return $arr;
 	}
 
 	/** First string (or array, with $want_array) found under one of $keys, depth-first. */
@@ -262,14 +356,15 @@ class Velox_Builder_Oxygen {
 		if ( ! is_array( $n ) ) {
 			return null;
 		}
+		self::load_selectors();
 		$type  = (string) ( $n['data']['type'] ?? '' );
 		$short = strtolower( preg_replace( '/[^a-z0-9]/i', '', substr( $type, (int) strrpos( $type, '\\' ) ) ) );
 		$props = isset( $n['data']['properties'] ) && is_array( $n['data']['properties'] ) ? $n['data']['properties'] : array();
 		$id    = self::$prefix . base_convert( (string) self::$count, 10, 36 );
 		self::$count++;
-		$kids = function () use ( $n, &$model, $allow_inner ) {
+		$kids = function ( $children = null ) use ( $n, &$model, $allow_inner ) {
 			$out = array();
-			foreach ( (array) ( $n['children'] ?? array() ) as $c ) {
+			foreach ( (array) ( null === $children ? ( $n['children'] ?? array() ) : $children ) as $c ) {
 				$cn = self::node_v6( $c, $model, $allow_inner );
 				if ( $cn ) {
 					$out[] = $cn;
@@ -277,9 +372,10 @@ class Velox_Builder_Oxygen {
 			}
 			return $out;
 		};
-		$tg  = (string) self::v6_find( $props, array( 'tags', 'tag', 'htmlTag' ) );
+		$tg = (string) ( self::at( $props, 'content.content.tags' ) ?? self::at( $props, 'settings.advanced.tag' ) ?? self::v6_find( $props, array( 'tags', 'tag', 'htmlTag' ) ) );
 		$tag = preg_match( '/^(h[1-6]|p|div|span|section|header|footer|nav|article|aside|main|figure|ul|ol|li|blockquote)$/', $tg ) ? $tg : '';
-		$txt = (string) self::v6_find( $props, array( 'text', 'richText', 'html' ) );
+		$txt = self::at( $props, 'content.content.text' );
+		$txt = is_string( $txt ) ? $txt : (string) self::v6_find( $props, array( 'text', 'richText' ) );
 		$node = null;
 
 		switch ( $short ) {
@@ -288,24 +384,29 @@ class Velox_Builder_Oxygen {
 				$node = array( 'id' => $id, 'el' => 'Section', 'tag' => $tag ? $tag : 'section', 'classes' => array( '.oxy-section' ), 'children' => array( $wrap ) );
 				break;
 			case 'container':
+			case 'containershortcode':
 			case 'div':
 			case 'column':
 			case 'columns':
 			case 'containerlink':
+			case 'wrapperlink':
 			case 'linkwrapper':
-				$cls  = 'columns' === $short ? '.oxy-columns' : ( 'column' === $short ? '.oxy-column' : ( 'containerlink' === $short || 'linkwrapper' === $short ? '.oxy-linkbox' : '.oxy-div' ) );
-				$node = array( 'id' => $id, 'el' => 'Div', 'tag' => ( 'containerlink' === $short || 'linkwrapper' === $short ) ? 'a' : ( $tag ? $tag : 'div' ), 'classes' => array( $cls ), 'children' => $kids() );
+				$is_link = in_array( $short, array( 'containerlink', 'wrapperlink', 'linkwrapper' ), true );
+				$cls  = 'columns' === $short ? '.oxy-columns' : ( 'column' === $short ? '.oxy-column' : ( $is_link ? '.oxy-linkbox' : '.oxy-div' ) );
+				$node = array( 'id' => $id, 'el' => 'Div', 'tag' => $is_link ? 'a' : ( $tag ? $tag : 'div' ), 'classes' => array( $cls ), 'children' => $kids() );
 				break;
 			case 'heading':
-				$node = array( 'id' => $id, 'el' => 'Heading', 'tag' => $tag && 'h' === $tag[0] ? $tag : 'h2', 'classes' => array( '.oxy-heading' ), 'children' => array() );
+				// Breakdance's heading defaults to h1.
+				$node = array( 'id' => $id, 'el' => 'Heading', 'tag' => $tag && 'h' === $tag[0] ? $tag : 'h1', 'classes' => array( '.oxy-heading' ), 'children' => array() );
 				$model['content'][ $id ] = $txt;
 				break;
 			case 'text':
 			case 'richtext':
 			case 'paragraph':
-				// Oxygen 6 has no separate heading element: a Text set to h1–h6 is one.
+				// Oxygen 6 has no heading element: a Text set to h1–h6 is one. Both
+				// builders default a Text to <div>.
 				$is_h = $tag && 'h' === $tag[0];
-				$node = array( 'id' => $id, 'el' => $is_h ? 'Heading' : 'Text', 'tag' => $tag ? $tag : ( 'richtext' === $short ? 'div' : 'p' ), 'classes' => array( $is_h ? '.oxy-heading' : '.oxy-text' ), 'children' => array() );
+				$node = array( 'id' => $id, 'el' => $is_h ? 'Heading' : 'Text', 'tag' => $tag ? $tag : 'div', 'classes' => array( $is_h ? '.oxy-heading' : '.oxy-text' ), 'children' => array() );
 				$model['content'][ $id ] = $txt;
 				break;
 			case 'textlink':
@@ -314,39 +415,29 @@ class Velox_Builder_Oxygen {
 				$model['content'][ $id ] = '' !== $txt ? $txt : (string) self::v6_find( $props, array( 'label', 'title' ) );
 				break;
 			case 'image':
+			case 'image2':
+			case 'fimage':
 				$node = array( 'id' => $id, 'el' => 'Image', 'tag' => 'div', 'classes' => array( '.oxy-image' ), 'children' => array() );
-				$im   = self::v6_find( $props, array( 'image', 'media' ), true );
-				$att  = is_array( $im ) ? (int) ( $im['id'] ?? 0 ) : 0;
-				$src  = is_array( $im ) ? (string) ( $im['url'] ?? ( $im['sizes']['full']['url'] ?? '' ) ) : (string) self::v6_find( $props, array( 'url', 'src' ) );
-				if ( $att && wp_attachment_is_image( $att ) ) {
-					$node['att'] = $att;
-					$u = wp_get_attachment_image_url( $att, 'large' );
-					if ( $u ) {
-						$src = $u;
-					}
-				}
-				if ( '' !== $src ) {
-					$model['content'][ $id ] = esc_url_raw( $src );
-				}
-				$alt = is_array( $im ) ? (string) ( $im['alt'] ?? '' ) : '';
-				if ( '' === $alt ) {
-					$alt = (string) self::v6_find( $props, array( 'alt' ) );
-				}
-				if ( '' !== $alt ) {
-					$node['alt']       = sanitize_text_field( $alt );
-					$node['altCustom'] = true;
-				}
+				self::v6_image( $props, $node, $model, $id );
 				break;
 			case 'video':
 			case 'youtube':
+			case 'html5video':
+			case 'oembed':
 				$node = array( 'id' => $id, 'el' => 'Video', 'tag' => 'div', 'classes' => array(), 'children' => array() );
 				$vid  = self::v6_find( $props, array( 'video' ), true );
-				$url  = is_array( $vid ) ? (string) ( $vid['url'] ?? '' ) : (string) self::v6_find( $props, array( 'url', 'src' ) );
+				$url  = is_array( $vid ) ? (string) ( $vid['url'] ?? '' ) : (string) self::v6_find( $props, array( 'video_file_url', 'url', 'src', 'embed_url' ) );
 				$node['settings'] = array( 'url' => esc_url_raw( $url ) );
+				break;
+			case 'icon':
+			case 'svgicon':
+				$node = array( 'id' => $id, 'el' => 'Icon', 'tag' => 'span', 'classes' => array( '.icon' ), 'children' => array(), 'settings' => array( 'icon' => 'star' ) );
+				$model['classes']['.icon'] = $model['classes']['.icon'] ?? array( 'base' => array() );
+				self::$skipped[] = $type . ' (' . __( 'replaced by a star icon', 'velox' ) . ')';
 				break;
 			case 'htmlcode':
 			case 'code':
-				$html = (string) self::v6_find( $props, array( 'html', 'code', 'content' ) );
+				$html = (string) ( self::at( $props, 'content.content.html_code' ) ?? self::v6_find( $props, array( 'html_code', 'html', 'code' ) ) );
 				$html = preg_replace( '/<\?(php|=)?.*?(\?>|$)/s', '', $html );
 				if ( '' === trim( $html ) ) {
 					return null;
@@ -355,12 +446,13 @@ class Velox_Builder_Oxygen {
 				$model['content'][ $id ] = $html;
 				break;
 			case 'csscode':
-				$css = (string) self::v6_find( $props, array( 'css', 'code' ) );
+				$css = (string) ( self::at( $props, 'content.content.css_code' ) ?? self::v6_find( $props, array( 'css_code', 'css', 'code' ) ) );
 				if ( '' !== trim( $css ) ) {
 					self::$page_css .= "\n" . $css;
 				}
 				return null;
 			case 'phpcode':
+			case 'codeblock':
 			case 'javascriptcode':
 				self::$skipped[] = $type;
 				return null;
@@ -371,6 +463,21 @@ class Velox_Builder_Oxygen {
 				}
 				$node = array( 'id' => $id, 'el' => 'Text', 'tag' => 'div', 'classes' => array( '.oxy-text' ), 'children' => array() );
 				$model['content'][ $id ] = $sc;
+				break;
+			case 'component':
+			case 'globalblock':
+				// A component / global block is another post with its own tree:
+				// bring its elements in place.
+				$ref = self::at( $props, 'content.content.block.componentId' ) ?? self::at( $props, 'content.content.block' );
+				$bid = is_array( $ref ) ? (int) ( $ref['componentId'] ?? ( $ref['id'] ?? 0 ) ) : (int) $ref;
+				$broot = ( $bid && ! isset( self::$block_stack[ $bid ] ) && count( self::$block_stack ) < 5 ) ? self::v6_root( $bid ) : null;
+				if ( ! $broot ) {
+					self::$skipped[] = $type;
+					return null;
+				}
+				self::$block_stack[ $bid ] = true;
+				$node = array( 'id' => $id, 'el' => 'Div', 'tag' => 'div', 'classes' => array( '.oxy-div' ), 'children' => $kids( $broot['children'] ?? array() ) );
+				unset( self::$block_stack[ $bid ] );
 				break;
 			case 'templatecontentarea':
 			case 'postcontent':
@@ -393,25 +500,29 @@ class Velox_Builder_Oxygen {
 				}
 		}
 
+		// Breakdance elements carry their own design; Oxygen 6 elements don't.
 		$node['overrides'] = self::v6_styles( $props['design'] ?? array() );
 		if ( 'a' === $node['tag'] ) {
-			$link = self::v6_find( $props, array( 'link' ), true );
-			$url  = is_array( $link ) ? (string) ( $link['url'] ?? '' ) : (string) self::v6_find( $props, array( 'url', 'href' ) );
+			$link = self::at( $props, 'content.content.link' );
+			$link = is_array( $link ) ? $link : self::v6_find( $props, array( 'link' ), true );
+			$url  = is_array( $link ) ? (string) ( $link['url'] ?? '' ) : (string) ( self::at( $props, 'content.content.url' ) ?? self::v6_find( $props, array( 'url', 'href' ) ) );
 			$node['href'] = '' !== $url ? esc_url_raw( $url ) : '#';
-			if ( is_array( $link ) && ( ! empty( $link['openInNewTab'] ) || '_blank' === ( $link['target'] ?? '' ) ) ) {
+			$blank = ( is_array( $link ) && ( ! empty( $link['openInNewTab'] ) || '_blank' === ( $link['target'] ?? '' ) ) ) || ! empty( self::at( $props, 'content.content.open_in_new_tab' ) );
+			if ( $blank ) {
 				$node['target'] = '_blank';
 			}
 		}
-		// Classes Oxygen 6 calls "selectors"/"classes" on the element.
-		$classes = $n['data']['properties']['meta']['classes'] ?? ( $n['data']['classes'] ?? array() );
-		foreach ( (array) $classes as $c ) {
-			$c = sanitize_html_class( is_array( $c ) ? (string) ( $c['name'] ?? '' ) : (string) $c );
-			if ( '' !== $c ) {
-				$node['classes'][] = '.' . $c;
-				if ( ! isset( $model['classes'][ '.' . $c ] ) ) {
-					$model['classes'][ '.' . $c ] = array( 'base' => array() );
-				}
+		// Oxygen 6 selectors (by id) and Breakdance classes (by name), with styles.
+		foreach ( (array) ( self::at( $props, 'meta.classes' ) ?? array() ) as $sid ) {
+			$sel = self::$selectors[ (string) ( is_array( $sid ) ? ( $sid['id'] ?? '' ) : $sid ) ] ?? null;
+			if ( $sel ) {
+				self::add_selector_class( $node, $model, $sel );
 			}
+		}
+		foreach ( (array) ( self::at( $props, 'settings.advanced.classes' ) ?? array() ) as $cname ) {
+			$cname = (string) ( is_array( $cname ) ? ( $cname['name'] ?? '' ) : $cname );
+			$sel   = self::$bd_classes[ $cname ] ?? array( 'name' => $cname );
+			self::add_selector_class( $node, $model, $sel );
 		}
 		if ( empty( $node['classes'] ) ) {
 			$node['classes'] = array( '.oxy-div' );
@@ -419,16 +530,142 @@ class Velox_Builder_Oxygen {
 		return $node;
 	}
 
+	/** Image source and alt text (Oxygen Image / Breakdance Image2 / legacy Image). */
+	private static function v6_image( $props, &$node, &$model, $id ) {
+		$im    = self::at( $props, 'content.image' );
+		$media = is_array( $im ) && is_array( $im['media'] ?? null ) ? $im['media'] : null;
+		if ( ! $media ) {
+			// Legacy Breakdance Image: content.content.image {id, url, alt}.
+			$legacy = self::at( $props, 'content.content.image' );
+			$media  = is_array( $legacy ) ? $legacy : null;
+		}
+		$from = is_array( $im ) ? (string) ( $im['from'] ?? '' ) : '';
+		$att  = $media ? (int) ( $media['id'] ?? 0 ) : 0;
+		$src  = ( 'url' === $from && is_array( $im ) ) ? (string) ( $im['url'] ?? '' ) : ( $media ? (string) ( $media['url'] ?? ( $media['sizes']['full']['url'] ?? '' ) ) : '' );
+		if ( '' === $src && is_array( $im ) && ! empty( $im['url'] ) ) {
+			$src = (string) $im['url'];
+		}
+		if ( $att && wp_attachment_is_image( $att ) && 'url' !== $from ) {
+			$node['att'] = $att;
+			$u = wp_get_attachment_image_url( $att, 'large' );
+			if ( $u ) {
+				$src = $u;
+			}
+		}
+		if ( '' !== $src ) {
+			$model['content'][ $id ] = esc_url_raw( $src );
+		}
+		// content.image.alt is a MODE (from_media_library / custom / decorative),
+		// not the text — the text is in custom_alt.
+		$mode = is_array( $im ) ? (string) ( $im['alt'] ?? '' ) : '';
+		$alt  = null;
+		if ( 'custom' === $mode ) {
+			$alt = (string) ( $im['custom_alt'] ?? '' );
+		} elseif ( 'decorative' === $mode ) {
+			$alt = '';
+		} elseif ( 'url' === $from && is_array( $im ) && 'custom' === ( $im['alt_when_from_url'] ?? '' ) ) {
+			$alt = (string) ( $im['custom_alt_when_from_url'] ?? '' );
+		} elseif ( $media && ! empty( $media['alt'] ) && is_string( $media['alt'] ) ) {
+			$alt = (string) $media['alt'];
+		}
+		$legacy_alt = self::at( $props, 'content.content.alt' );
+		if ( null === $alt && is_array( $legacy_alt ) ) {
+			$alt = (string) ( $legacy_alt['custom_alt'] ?? ( $legacy_alt['alt'] ?? '' ) );
+		}
+		if ( null !== $alt ) {
+			$node['alt']       = sanitize_text_field( $alt );
+			$node['altCustom'] = true;
+		}
+	}
+
+	/** Bring one Oxygen selector / Breakdance class over, with its styles. */
+	private static function add_selector_class( &$node, &$model, $sel ) {
+		$name = sanitize_html_class( (string) ( $sel['name'] ?? '' ) );
+		if ( '' === $name ) {
+			return;
+		}
+		$key = '.' . $name;
+		if ( ! in_array( $key, $node['classes'], true ) ) {
+			$node['classes'][] = $key;
+		}
+		if ( isset( $model['classes'][ $key ] ) && ! empty( $model['classes'][ $key ]['base'] ) ) {
+			return;
+		}
+		$rules = self::selector_rules( $sel['properties'] ?? array(), '' );
+		foreach ( (array) ( $sel['children'] ?? array() ) as $child ) {
+			// "&:hover" style children become :hover rules.
+			if ( is_array( $child ) && preg_match( '/^&:(hover|focus|active)$/', (string) ( $child['name'] ?? '' ), $m ) ) {
+				foreach ( self::selector_rules( $child['properties'] ?? array(), $m[1] ) as $k => $r ) {
+					$rules[ $k ] = array_merge( $rules[ $k ] ?? array(), $r );
+				}
+			}
+		}
+		$model['classes'][ $key ] = $rules ? $rules : array( 'base' => array() );
+	}
+
 	/**
-	 * Oxygen 6 / Breakdance design properties → Velox rules per breakpoint.
-	 * Values sit under breakpoint keys deep inside groups (spacing → padding →
-	 * breakpoint_base → {top: {number, unit, style}}); the property is named by
-	 * the nearest key above the breakpoint.
+	 * Selector properties are breakpoint FIRST: properties.breakpoint_base.
+	 * typography.color — the reverse of element design. Returns Velox rules.
+	 */
+	private static function selector_rules( $props, $state ) {
+		$out = array();
+		foreach ( (array) $props as $bpk => $groups ) {
+			if ( ! isset( self::$V6_BP[ $bpk ] ) || ! is_array( $groups ) ) {
+				continue;
+			}
+			$bp   = self::$V6_BP[ $bpk ];
+			$key  = '' === $state ? $bp : $bp . ':' . $state;
+			$r    = array();
+			$val  = function ( $p ) use ( $groups ) {
+				return self::v6_value( self::at( $groups, $p ) );
+			};
+			$map = array(
+				'layout.display' => 'display', 'layout.flex_direction' => 'flexDirection',
+				'layout.flex_align.primary_axis' => 'justifyContent', 'layout.flex_align.cross_axis' => 'alignItems',
+				'layout.gap.column' => 'gap', 'layout.gap.row' => 'gap',
+				'size.width' => 'width', 'size.max_width' => 'maxWidth', 'size.min_width' => 'minWidth',
+				'size.height' => 'height', 'size.min_height' => 'minHeight', 'size.max_height' => 'maxHeight',
+				'typography.color' => 'color', 'typography.font_size' => 'fontSize', 'typography.font_weight' => 'fontWeight',
+				'typography.line_height' => 'lineHeight', 'typography.letter_spacing' => 'letterSpacing',
+				'typography.text_align' => 'textAlign', 'typography.font_family' => 'fontFamily',
+				'background.background_color' => 'background', 'borders.border_radius.all' => 'borderRadius',
+			);
+			foreach ( $map as $path => $prop ) {
+				if ( isset( $r[ $prop ] ) ) {
+					continue;
+				}
+				$v = $val( $path );
+				if ( '' !== $v ) {
+					$r[ $prop ] = 'fontFamily' === $prop ? $v : $v;
+				}
+			}
+			foreach ( array( 'padding', 'margin' ) as $box ) {
+				foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
+					$v = $val( 'spacing.spacing.' . $box . '.' . $side );
+					if ( '' !== $v ) {
+						$r[ $box . ucfirst( $side ) ] = $v;
+					}
+				}
+			}
+			if ( $r ) {
+				$out[ $key ] = $r;
+			}
+		}
+		return $out;
+	}
+
+	/**
+	 * Breakdance element design → Velox rules per breakpoint. Values sit either
+	 * under a breakpoint key (spacing.padding.breakpoint_base.{top…}) or plain
+	 * (background.color) — plain values count for every screen.
 	 */
 	private static function v6_styles( $design ) {
 		$out  = array();
 		$walk = function ( $node, $path ) use ( &$walk, &$out ) {
 			if ( ! is_array( $node ) ) {
+				if ( $path && ( is_string( $node ) || is_numeric( $node ) ) ) {
+					self::v6_put( $out, 'base', $path, $node );
+				}
 				return;
 			}
 			$bpkeys = array_intersect( array_keys( $node ), array_keys( self::$V6_BP ) );
@@ -438,10 +675,13 @@ class Velox_Builder_Oxygen {
 				}
 				return;
 			}
+			// A {number, unit, style} value with no breakpoint: base.
+			if ( isset( $node['style'] ) || isset( $node['number'] ) ) {
+				self::v6_put( $out, 'base', $path, $node );
+				return;
+			}
 			foreach ( $node as $k => $v ) {
-				if ( is_array( $v ) ) {
-					$walk( $v, array_merge( $path, array( (string) $k ) ) );
-				}
+				$walk( $v, array_merge( $path, array( (string) $k ) ) );
 			}
 		};
 		$walk( $design, array() );
@@ -450,7 +690,13 @@ class Velox_Builder_Oxygen {
 
 	/** Store one design value under its Velox property name. */
 	private static function v6_put( &$out, $bp, $path, $val ) {
-		$name = strtolower( preg_replace( '/[^a-z]/i', '', (string) end( $path ) ) );
+		$last = (string) end( $path );
+		// Hover variants (color_hover …) belong to :hover.
+		if ( '_hover' === substr( $last, -6 ) ) {
+			$last = substr( $last, 0, -6 );
+			$bp  .= ':hover';
+		}
+		$name = strtolower( preg_replace( '/[^a-z]/i', '', $last ) );
 		$all  = strtolower( implode( '.', $path ) );
 		$map  = array(
 			'fontsize' => 'fontSize', 'size' => 'fontSize', 'fontweight' => 'fontWeight', 'weight' => 'fontWeight',
@@ -458,6 +704,8 @@ class Velox_Builder_Oxygen {
 			'width' => 'width', 'maxwidth' => 'maxWidth', 'minwidth' => 'minWidth', 'height' => 'height', 'minheight' => 'minHeight',
 			'gap' => 'gap', 'radius' => 'borderRadius', 'borderradius' => 'borderRadius', 'color' => 'color',
 			'textcolor' => 'color', 'backgroundcolor' => 'background',
+			'margintop' => 'marginTop', 'marginbottom' => 'marginBottom', 'marginleft' => 'marginLeft', 'marginright' => 'marginRight',
+			'paddingtop' => 'paddingTop', 'paddingbottom' => 'paddingBottom', 'paddingleft' => 'paddingLeft', 'paddingright' => 'paddingRight',
 		);
 		if ( in_array( $name, array( 'padding', 'margin' ), true ) && is_array( $val ) ) {
 			foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
@@ -488,12 +736,12 @@ class Velox_Builder_Oxygen {
 			return trim( (string) $v );
 		}
 		if ( is_array( $v ) ) {
-			if ( isset( $v['style'] ) && is_scalar( $v['style'] ) ) {
+			if ( isset( $v['style'] ) && is_scalar( $v['style'] ) && '' !== (string) $v['style'] ) {
 				return trim( (string) $v['style'] );
 			}
 			if ( isset( $v['number'] ) && is_numeric( $v['number'] ) ) {
 				$u = isset( $v['unit'] ) ? (string) $v['unit'] : 'px';
-				return ( 'px' === $u || '' === $u ) ? (string) $v['number'] : $v['number'] . $u;
+				return $v['number'] . ( '' === $u ? 'px' : $u );
 			}
 		}
 		return '';
@@ -716,10 +964,10 @@ class Velox_Builder_Oxygen {
 				break;
 			case 'code_block':
 				$orig = $o['original'] ?? array();
-				$html = self::maybe_b64( $orig['code-php'] ?? '' );
+				$html = self::maybe_b64( $orig['code-php'] ?? ( $orig['code_php'] ?? '' ) );
 				// PHP cannot run in a Velox text block; keep the plain markup around it.
 				$html = preg_replace( '/<\?(php|=)?.*?(\?>|$)/s', '', $html );
-				$css  = self::maybe_b64( $orig['code-css'] ?? '' );
+				$css  = self::maybe_b64( $orig['code-css'] ?? ( $orig['code_css'] ?? '' ) );
 				if ( '' !== trim( $css ) ) {
 					self::$page_css .= "\n" . str_replace( '%%ELEMENT_ID%%', $id, $css );
 				}
