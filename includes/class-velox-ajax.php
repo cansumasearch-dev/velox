@@ -119,6 +119,18 @@ class Velox_Ajax {
 				Velox_Builder::ajax_switcher_list();
 				break;
 
+			case 'builder_discard_draft':
+				Velox_Builder::ajax_discard_draft();
+				break;
+
+			case 'builder_template_default':
+				Velox_Builder::ajax_template_default();
+				break;
+
+			case 'builder_preview_css':
+				Velox_Builder_Render::ajax_preview_css();
+				break;
+
 			case 'builder_oxygen_sources':
 				Velox_Builder_Oxygen::ajax_sources();
 				break;

@@ -536,7 +536,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-page-css"></style><style id="vb-style"></style></head><body></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -628,12 +628,37 @@
 			} );
 		}
 		doc.getElementById( 'vb-style' ).textContent = genCSS();
+		schedulePreviewCss();
 		// Page CSS from Page settings shows while editing, not only on the site.
 		var pcs = doc.getElementById( 'vb-page-css' ), pcss = ( store.state.page && store.state.page.css ) || '';
 		if ( pcs && pcs.textContent !== pcss ) { pcs.textContent = pcss; }
 		if ( ! doc.__vbSite ) { doc.__vbSite = true; injectGlobalCss(); }
 		var prev = doc.querySelector( '.vb-sel' ); if ( prev ) { prev.classList.remove( 'vb-sel' ); }
 		var selEl = doc.getElementById( store.state.selection ); if ( selEl ) { selEl.classList.add( 'vb-sel' ); }
+	}
+	/* Text effects, grid layouts, presets and similar elements get their CSS
+	 * from their settings, built by the same PHP the page uses. Ask for it
+	 * whenever the tree changes (debounced) and drop it into the canvas. */
+	var previewCssKey = '', previewCssTimer = null;
+	function schedulePreviewCss() {
+		if ( ! CFG.ajaxurl || ! store.state ) { return; }
+		var key = JSON.stringify( store.state.tree ) + JSON.stringify( store.state.content );
+		if ( key === previewCssKey ) { return; }
+		clearTimeout( previewCssTimer );
+		previewCssTimer = setTimeout( function () {
+			previewCssKey = key;
+			var body = new URLSearchParams();
+			body.set( 'action', 'velox' ); body.set( 'do', 'builder_preview_css' ); body.set( 'nonce', CFG.nonce || '' );
+			body.set( 'model', JSON.stringify( { tree:store.state.tree, content:store.state.content, classes:{} } ) );
+			fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+				.then( function ( r ) { return r.json(); } )
+				.then( function ( res ) {
+					var fr = document.getElementById( 'vb-canvas' ), cd = fr && fr.contentDocument;
+					var tag = cd && cd.getElementById( 'vb-preview-css' );
+					if ( tag && res && res.success ) { tag.textContent = res.data.css || ''; }
+				} )
+				.catch( function () {} );
+		}, 450 );
 	}
 	function resetActiveClass( s ) { var n = findNode( s.tree, s.selection ); s.activeClass = n && n.classes.length ? n.classes[ 0 ] : null; s.state = 'normal'; }
 
@@ -1614,6 +1639,7 @@
 		return copy;
 	}
 	function deleteNode( id ) {
+		if ( isItemContainer( store.state, id ) ) { toast( T( 'This holds one item’s content. Remove the item in the element’s Settings.' ) ); return; }
 		var delNode = findNode( store.state.tree, id );
 		var delLabel = T( 'Delete' ) + ' ' + ( ( delNode || {} ).el || 'element' );
 		store.commit( function ( s ) {
@@ -1628,8 +1654,17 @@
 	}
 
 	/* ---------- drag-reorder (layers panel) ---------- */
+	/* The container that holds one tab / accordion row / slide belongs to that
+	 * item. Moving or deleting it on its own put every later item's content on
+	 * the wrong panel — items are added, removed and reordered in Settings. */
+	function isItemContainer( s, id ) {
+		var parent = findParent( s.tree, id );
+		var d = parent ? elDef( parent ) : null;
+		return !! ( d && d.repeat && d.nestable );
+	}
 	function moveNode( dragId, targetId, position ) {
 		if ( dragId === targetId ) { return; }
+		if ( isItemContainer( store.state, dragId ) ) { toast( T( 'This holds one item’s content. Reorder items in the element’s Settings.' ) ); return; }
 		store.commit( function ( s ) {
 			var node = findNode( s.tree, dragId );
 			var target = findNode( s.tree, targetId );
@@ -1641,8 +1676,14 @@
 			if ( dp ) { dp.children.splice( dp.children.indexOf( node ), 1 ); }
 			else { s.tree.splice( s.tree.indexOf( node ), 1 ); }
 			// re-attach
-			// Inner Content must stay at page level wherever it is moved.
-			if ( 'InnerContent' === node.el ) { position = 'after'; }
+			// Inner Content must stay at page level wherever it is moved: next to
+			// the top-level element that contains the drop target.
+			if ( 'InnerContent' === node.el ) {
+				position = 'after';
+				var top = target, up;
+				while ( ( up = findParent( s.tree, top.id ) ) ) { top = up; }
+				target = top; targetId = top.id;
+			}
 			if ( position === 'inside' && isContainer( target ) ) {
 				target.children.push( node );
 			} else {
@@ -1661,7 +1702,19 @@
 	 * for while one is running is queued and runs right after (it used to be
 	 * dropped, or Publish ran without saving at all), and a failed save stops a
 	 * publish instead of publishing the old version. */
-	var saveWaiters = [], saveAgain = false;
+	var saveWaiters = [], saveAgain = false, hasDraft = false, baseClasses = {};
+	/* Which classes were edited since the last save, so the server can make
+	 * them the site-wide version when this document is published. */
+	function snapshotClasses() {
+		baseClasses = {};
+		var c = ( store.state && store.state.classes ) || {};
+		Object.keys( c ).forEach( function ( k ) { baseClasses[ k ] = JSON.stringify( c[ k ] ); } );
+	}
+	function changedClasses() {
+		var c = ( store.state && store.state.classes ) || {}, out = [];
+		Object.keys( c ).forEach( function ( k ) { if ( baseClasses[ k ] !== JSON.stringify( c[ k ] ) ) { out.push( k ); } } );
+		return out;
+	}
 	function persist( cb ) {
 		// The canvas is an iframe, and clicking a top-bar button does not reliably
 		// blur a contenteditable inside it — so the text you just typed was still
@@ -1676,6 +1729,8 @@
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_save' ); body.set( 'nonce', CFG.nonce || '' );
 		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', docKind );
 		body.set( 'data', sent );
+		var sentClasses = changedClasses();
+		body.set( 'changed_classes', JSON.stringify( sentClasses ) );
 		body.set( 'css_size', String( new Blob( [ genCSS() ] ).size ) ); if ( postId ) { body.set( 'post_id', postId ); }
 		function done( ok, res ) {
 			saving = false;
@@ -1683,6 +1738,10 @@
 				docId = res.data.id;
 				applyDocMeta( res.data );
 				if ( JSON.stringify( store.state ) === sent ) { dirty = false; }
+				sentClasses.forEach( function ( k ) { baseClasses[ k ] = JSON.stringify( ( store.state.classes || {} )[ k ] ); } );
+				var wasDraft = hasDraft;
+				hasDraft = !! res.data.has_draft;
+				if ( hasDraft && ! wasDraft ) { toast( T( 'Saved. Visitors still see the published version until you publish.' ) ); }
 			}
 			if ( saveAgain ) { persist(); return; }
 			setSaveState( ok ? 'saved' : 'error' );
@@ -1732,10 +1791,11 @@
 				showLoadState( '' );
 				docId = res.data.id; docTitle = res.data.title || 'Untitled'; pubStatus = res.data.status || 'draft'; pubUrl = res.data.url || '';
 				if ( res.data.kind ) { docKind = res.data.kind; }
-				everPublished = ( pubStatus === 'published' ); dirty = false;
+				everPublished = ( pubStatus === 'published' ); dirty = false; hasDraft = !! res.data.has_draft;
 				var ti = document.getElementById( 'vb-title' ); if ( ti ) { ti.value = docTitle; }
 				applyDocMeta( res.data );
 				store.init( res.data.model );
+				snapshotClasses();
 				document.title = docTitle + ' — Velox Builder';
 				setTimeout( function () { renderActions(); }, 30 );
 			} )
@@ -1768,7 +1828,7 @@
 				.then( function ( r ) { return r.json(); } )
 				.then( function ( res ) {
 					if ( res && res.success ) {
-						pubStatus = 'published'; pubUrl = res.data.url || '';
+						pubStatus = 'published'; pubUrl = res.data.url || ''; hasDraft = false;
 						// The page may have been created just now: point "Open frontend"
 						// and "View page" at it.
 						applyDocMeta( { post_id:res.data.post_id, url:res.data.url } );
@@ -1786,10 +1846,15 @@
 	 * are unsaved changes. */
 	function renderActions() {
 		var host = document.getElementById( 'vb-actions' ); if ( ! host ) { return; }
-		var live = pubStatus === 'published' && ! dirty;
+		// Saving never changes the live site; "Published" only shows when what is
+		// on the site is exactly what is in the editor.
+		var live = pubStatus === 'published' && ! dirty && ! hasDraft;
+		var pubLabel = live ? T( 'Published' ) : ( everPublished ? T( 'Publish changes' ) : T( 'Publish' ) );
+		var pubTip = live ? T( 'Visitors see exactly this version.' ) : ( everPublished ? T( 'Your saved changes are not live yet. Publish puts them on the site.' ) : T( 'Not on the site yet.' ) );
 		host.innerHTML =
-			'<button class="vb-btn vb-btn-ghost vb-save--' + _saveState + ( dirty ? ' is-dirty' : '' ) + '" id="vb-save" title="' + T( 'Save' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'S)">' + saveLabel() + '</button>' +
-			'<button class="vb-btn vb-btn-primary' + ( live ? ' is-live' : '' ) + '" id="vb-publish">' + ( live ? T( 'Published' ) : ( everPublished ? T( 'Update' ) : T( 'Publish' ) ) ) + '</button>';
+			'<button class="vb-btn vb-btn-ghost vb-save--' + _saveState + ( dirty ? ' is-dirty' : '' ) + '" id="vb-save" title="' + T( 'Save — only you see it until you publish' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'S)">' + saveLabel() + '</button>' +
+			'<button class="vb-btn vb-btn-primary' + ( live ? ' is-live' : '' ) + '" id="vb-publish" title="' + pubTip + '">' + pubLabel + '</button>';
+		var dd = document.getElementById( 'vb-discard' ); if ( dd ) { dd.style.display = ( hasDraft && pubStatus === 'published' ) ? '' : 'none'; }
 	}
 	var _saveState = 'idle';
 	function saveLabel() { return { idle:T( 'Save' ), saving:T( 'Saving…' ), saved:T( 'Saved' ), error:T( 'Save failed' ) }[ _saveState ] || T( 'Save' ); }
@@ -2022,7 +2087,7 @@
 		booted = true;
 		resizeCanvas( 'base' );
 		if ( CFG.docId ) { loadDoc( CFG.docId ); }
-		else { store.init( initialDoc ); }
+		else { store.init( initialDoc ); snapshotClasses(); }
 	}
 	function topbarHTML() {
 		return '<div class="vb-top">' +
@@ -2087,6 +2152,7 @@
 				'<a class="vb-bm-i" href="' + ( CFG.settingsUrl || '#' ) + '">' + svg( 'gear', 15 ) + ' ' + T( 'Velox Builder settings' ) + '</a>' +
 				'<a class="vb-bm-i" href="' + ( CFG.backUrl || '#' ) + '">' + svg( 'home', 15 ) + ' ' + T( 'Back to WordPress' ) + '</a>' +
 				( CFG.oxygenAny ? '<button class="vb-bm-i" data-oxy-pick>' + svg( 'download', 15 ) + ' ' + T( 'Import from Oxygen…' ) + '</button>' : '' ) +
+				'<button class="vb-bm-i" id="vb-discard" style="display:none">' + svg( 'undo', 15 ) + ' ' + T( 'Discard unpublished changes' ) + '</button>' +
 			'</div>' +
 			// page switcher (hidden until caret clicked)
 			'<div class="vb-pageswitch" id="vb-pageswitch">' +
@@ -3126,7 +3192,7 @@
 		}
 		if ( 'gs-width' === view ) {
 			return gsNum( 'width.page', 'Page width' ) + gsNum( 'width.tablet', 'Tablet at' ) +
-				gsNum( 'width.landscape', 'Landscape at' ) + gsNum( 'width.portrait', 'Portrait at' ) +
+				gsNum( 'width.landscape', 'Landscape at' ) +
 				'<div class="vb-setnote">' + T( 'Breakpoints apply to this preview and the front end together. Reload the editor after changing them.' ) + '</div>';
 		}
 		if ( 'gs-sections' === view ) {
@@ -3263,8 +3329,8 @@
 	function wireEvents() {
 		document.addEventListener( 'click', function ( e ) {
 			if ( e.target.closest( '[data-add]' ) ) { toggleAddMenu( e.target.closest( '[data-add]' ) ); return; }
-			var ins = e.target.closest( '[data-insert]' ); if ( ins ) { insertNode( ins.getAttribute( 'data-insert' ) ); closeAddMenu(); return; }
-			var insr = e.target.closest( '[data-insert-reuse]' ); if ( insr ) { insertReusable( +insr.getAttribute( 'data-insert-reuse' ) ); closeAddMenu(); return; }
+			var ins = e.target.closest( '[data-insert]' ); if ( ins ) { insertNode( ins.getAttribute( 'data-insert' ) ); if ( ! pinned.left ) { closeAddMenu(); } return; }
+			var insr = e.target.closest( '[data-insert-reuse]' ); if ( insr ) { insertReusable( +insr.getAttribute( 'data-insert-reuse' ) ); if ( ! pinned.left ) { closeAddMenu(); } return; }
 			var acc = e.target.closest( '[data-acc]' ); if ( acc ) { acc.parentElement.classList.toggle( 'closed' ); return; }
 			if ( e.target.closest( '[data-dup]' ) ) { duplicateNode( store.state.selection ); return; }
 			if ( e.target.closest( '[data-del]' ) ) { deleteNode( store.state.selection ); return; }
@@ -3302,6 +3368,15 @@
 			if ( e.target.closest( '#vb-st-expand' ) ) { structSetAll( false ); return; }
 			if ( e.target.closest( '#vb-ie-struct' ) ) { structShown = true; closeAllPanels( 'struct' ); renderStructPanel(); return; }
 			if ( e.target.closest( '#vb-load-retry' ) ) { loadDoc( CFG.docId ); return; }
+			if ( e.target.closest( '#vb-discard' ) ) {
+				if ( ! window.confirm( T( 'Throw away every change that is not published yet, and go back to the version visitors see?' ) ) ) { return; }
+				var bdd = new URLSearchParams();
+				bdd.set( 'action', 'velox' ); bdd.set( 'do', 'builder_discard_draft' ); bdd.set( 'nonce', CFG.nonce || '' ); bdd.set( 'id', docId );
+				fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:bdd.toString() } )
+					.then( function ( r ) { return r.json(); } )
+					.then( function ( res ) { if ( res && res.success ) { dirty = false; loadDoc( docId ); toast( T( 'Back to the published version.' ) ); } } );
+				return;
+			}
 			var oxp = e.target.closest( '[data-oxy-pick]' ); if ( oxp ) { closeAllPanels(); openOxygenPicker(); return; }
 			var oxi = e.target.closest( '[data-oxy-import]' ); if ( oxi ) { importOxygen( +oxi.getAttribute( 'data-oxy-import' ) ); closeOxygenPicker(); return; }
 			if ( e.target.closest( '#vb-oxy-close' ) || e.target.id === 'vb-oxypick' ) { closeOxygenPicker(); return; }
@@ -3720,6 +3795,17 @@
 						CFG.reusables = CFG.reusables || [];
 						CFG.reusables.push( { id:res.data.id, title:res.data.title, tree:[ JSON.parse( JSON.stringify( n ) ) ], classes:collectClassesFor( n ), content:collectContentFor( n ) } );
 						renderAddBody( '' );
+						// The element on this page now IS the reusable (a reference), so
+						// editing the reusable updates it here too — before, the page kept
+						// a disconnected copy with the same ids.
+						store.commit( function ( s ) {
+							var cur = findNode( s.tree, id ); if ( ! cur ) { return; }
+							var par = findParent( s.tree, id ), list = par ? par.children : s.tree;
+							var ref = { id:uid( 'reuse' ), el:'Reusable', tag:'div', ref:res.data.id, classes:[], overrides:{}, children:[] };
+							( function drop( x ) { delete s.content[ x.id ]; ( x.children || [] ).forEach( drop ); }( cur ) );
+							list.splice( list.indexOf( cur ), 1, ref );
+							s.selection = ref.id; resetActiveClass( s );
+						}, T( 'Make re-usable' ) );
 						toast( T( 'Saved as reusable.' ) );
 					}
 				} )
@@ -4460,7 +4546,7 @@
 			'.vb-tt-b{width:30px;height:30px;border-radius:7px;background:none;border:none;color:#dcdce2;cursor:pointer;display:grid;place-items:center}.vb-tt-b:hover{background:#313339;color:#f4f4f6}',
 			'.vb-tt-sep{width:1px;height:18px;background:rgba(255,255,255,.1);margin:0 4px}',
 			'.vb-tt-data{width:100%;margin-top:8px;display:flex;align-items:center;justify-content:center;gap:7px;padding:9px;border-radius:8px;background:#2a2c32;border:1px solid rgba(255,255,255,.09);color:#dcdce2;font-size:12px;font-weight:600;cursor:pointer}.vb-tt-data:hover{background:#313339;color:#f4f4f6}.vb-tt-data svg{color:#2ab7f1}',
-			'.vb-dyndata{position:absolute;top:54px;left:372px;bottom:0;width:340px;background:#232429;border-right:1px solid rgba(255,255,255,.12);box-shadow:8px 0 40px rgba(0,0,0,.5);z-index:140;display:none;flex-direction:column}',
+			'.vb-dyndata{position:absolute;top:54px;left:calc(372px + var(--vb-lw,0px));bottom:0;width:340px;background:#232429;border-right:1px solid rgba(255,255,255,.12);box-shadow:8px 0 40px rgba(0,0,0,.5);z-index:140;display:none;flex-direction:column}',
 			'.vb-dyndata.open{display:flex}',
 			'.vb-dd-top{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07)}.vb-dd-top b{font-size:13px}',
 			'.vb-dd-note{padding:10px 14px;font-size:11px;color:#a2a4ad;line-height:1.5;border-bottom:1px solid rgba(255,255,255,.07)}',

@@ -10,7 +10,7 @@ $s = Velox_Builder::settings();
 		<div><h1><?php esc_html_e( 'Settings', 'velox' ); ?></h1>
 		<p><?php esc_html_e( 'How Velox Builder outputs CSS and renders your pages.', 'velox' ); ?></p></div>
 		<div class="vba-head-actions">
-			<button class="vba-btn vba-btn-primary" id="vba-settings-save"><?php esc_html_e( 'Save changes', 'velox' ); ?></button>
+			<button type="button" class="vba-btn vba-btn-primary" id="vba-settings-save"><?php esc_html_e( 'Save changes', 'velox' ); ?></button>
 		</div>
 	</header>
 	<div class="vba-card">
@@ -41,17 +41,25 @@ $s = Velox_Builder::settings();
 </div>
 <script>
 ( function () {
-	var CFG = window.VELOX_BUILDER || {};
+	var T = {
+		saving: '<?php echo esc_js( __( 'Saving…', 'velox' ) ); ?>',
+		saved: '<?php echo esc_js( __( 'Saved', 'velox' ) ); ?>',
+		saveFailed: '<?php echo esc_js( __( 'Save failed', 'velox' ) ); ?>',
+		saveChanges: '<?php echo esc_js( __( 'Save changes', 'velox' ) ); ?>'
+	};
+	// The config is printed in the footer, after this script, so read it when used.
+	function cfg() { return window.VELOX_BUILDER || {}; }
 	document.getElementById( 'vba-settings-save' ).addEventListener( 'click', function () {
-		var btn = this; btn.textContent = 'Saving…';
+		var btn = this; btn.textContent = T.saving;
+		var C = cfg();
 		var body = new URLSearchParams();
-		body.set( 'action', 'velox' ); body.set( 'do', 'builder_settings_save' ); body.set( 'nonce', CFG.nonce || '' );
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_settings_save' ); body.set( 'nonce', C.nonce || '' );
 		body.set( 'css_mode', document.getElementById( 'vba-css-mode' ).value );
 		body.set( 'minify', document.getElementById( 'vba-minify' ).checked ? '1' : '' );
-		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+		fetch( C.ajaxurl || window.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { btn.textContent = res && res.success ? 'Saved' : 'Save failed'; setTimeout( function () { btn.textContent = 'Save changes'; }, 1500 ); } )
-			.catch( function () { btn.textContent = 'Save failed'; } );
+			.then( function ( res ) { btn.textContent = res && res.success ? T.saved : T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 1500 ); } )
+			.catch( function () { btn.textContent = T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 2500 ); } );
 	} );
 }() );
 </script>

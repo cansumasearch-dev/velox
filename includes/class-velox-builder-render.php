@@ -71,6 +71,11 @@ class Velox_Builder_Render {
 		);
 	}
 
+	/** Breakpoint key → media query, for the Classes screen's CSS editor. */
+	public static function media_queries() {
+		return self::bp_map();
+	}
+
 	/** camelCase model key → CSS property name (used by the class editor). */
 	public static function css_prop_name( $key ) {
 		return self::$CSS_PROP[ $key ] ?? '';
@@ -102,8 +107,16 @@ class Velox_Builder_Render {
 	 * over rendering: output our standalone template instead of the theme's.
 	 */
 	public static function maybe_render( $template ) {
+		self::$previewing = is_preview();
 		if ( ! is_singular() ) {
-			return $template;
+			// Templates made for 404, Search or Archives were offered on the
+			// Templates screen but never used — only single pages were handled.
+			$ctx = self::context_doc();
+			if ( ! $ctx ) {
+				return $template;
+			}
+			self::output_page( $ctx );
+			exit;
 		}
 		$post_id = get_queried_object_id();
 		// A password-protected page was rendered in full to anyone. Leave it to the
@@ -129,6 +142,100 @@ class Velox_Builder_Render {
 		exit;
 	}
 
+	/** True while rendering a preview (?preview=true): drafts are shown. */
+	private static $previewing = false;
+
+	/**
+	 * A stand-in document for a 404, search or archive screen: the template made
+	 * for it, with a list of posts (or a not-found message) in its Inner Content.
+	 */
+	private static function context_doc() {
+		if ( ! class_exists( 'Velox_Builder' ) || is_feed() || is_embed() || is_admin() ) {
+			return null;
+		}
+		if ( is_404() ) {
+			$ctx = array( 'error404' );
+		} elseif ( is_search() ) {
+			$ctx = array( 'search', 'archive' );
+		} elseif ( is_front_page() && is_home() ) {
+			$ctx = array( 'front_page', 'archive' );
+		} elseif ( is_home() || is_archive() ) {
+			$ctx = array( 'archive' );
+		} else {
+			return null;
+		}
+		$tpl = Velox_Builder::template_for_context( $ctx );
+		// Catch-all templates only take over these screens when "wrap pages
+		// without a Velox layout" is on — the same rule as for plain pages.
+		if ( ! $tpl && Velox_Builder::wrap_legacy() ) {
+			$tpl = Velox_Builder::template_for_context( array( 'catch_all' ) );
+		}
+		if ( ! $tpl ) {
+			return null;
+		}
+		self::$loop_used = true;
+		return array(
+			'tree'    => array(),
+			'classes' => array(),
+			'content' => array(),
+			'__id'    => 0,
+			'__file'  => '0-' . $ctx[0] . '-' . $tpl,
+			'__tpl'   => $tpl,
+			'__title' => wp_get_document_title(),
+			'__html'  => self::loop_html( $ctx[0] ),
+		);
+	}
+
+	/** The posts of the current archive / search, or the not-found message. */
+	private static function loop_html( $ctx ) {
+		if ( 'error404' === $ctx ) {
+			return '<div class="velox-404"><h1>' . esc_html__( 'Page not found', 'velox' ) . '</h1>'
+				. '<p>' . esc_html__( 'The page you are looking for does not exist or has moved.', 'velox' ) . '</p>'
+				. get_search_form( array( 'echo' => false ) ) . '</div>';
+		}
+		$head = '';
+		$desc = '';
+		if ( is_search() ) {
+			/* translators: %s: what was searched for. */
+			$head = esc_html( sprintf( __( 'Search results for “%s”', 'velox' ), get_search_query() ) );
+		} elseif ( is_archive() ) {
+			$head = wp_kses_post( get_the_archive_title() );
+			$desc = wp_kses_post( get_the_archive_description() );
+		}
+		$out = '<div class="velox-loop">';
+		if ( '' !== $head ) {
+			$out .= '<header class="velox-loop-head"><h1>' . $head . '</h1>' . ( '' !== $desc ? '<div class="velox-loop-desc">' . $desc . '</div>' : '' ) . '</header>';
+		}
+		if ( have_posts() ) {
+			$out .= '<div class="velox-loop-items">';
+			while ( have_posts() ) {
+				the_post();
+				$link = esc_url( get_permalink() );
+				$out .= '<article class="velox-loop-item">';
+				if ( has_post_thumbnail() ) {
+					$out .= '<a class="velox-loop-img" href="' . $link . '" tabindex="-1" aria-hidden="true">' . get_the_post_thumbnail( null, 'medium_large' ) . '</a>';
+				}
+				$out .= '<h2 class="velox-loop-title"><a href="' . $link . '">' . esc_html( get_the_title() ) . '</a></h2>'
+					. '<div class="velox-loop-meta">' . esc_html( get_the_date() ) . '</div>'
+					. '<div class="velox-loop-excerpt">' . wp_kses_post( get_the_excerpt() ) . '</div>'
+					. '</article>';
+			}
+			$out .= '</div>';
+			rewind_posts();
+			$pages = paginate_links( array( 'type' => 'list', 'prev_text' => '←', 'next_text' => '→' ) );
+			if ( $pages ) {
+				$out .= '<nav class="velox-loop-pages" aria-label="' . esc_attr__( 'More pages', 'velox' ) . '">' . $pages . '</nav>';
+			}
+		} else {
+			$out .= '<p class="velox-loop-none">' . esc_html__( 'Nothing found.', 'velox' ) . '</p>'
+				. ( is_search() ? get_search_form( array( 'echo' => false ) ) : '' );
+		}
+		return $out . '</div>';
+	}
+
+	/** Whether the archive/search list is on the page (for its base CSS). */
+	private static $loop_used = false;
+
 	/** Find a published document bound to this post, if any. */
 	private static function doc_for_post( $post_id ) {
 		global $wpdb;
@@ -149,9 +256,13 @@ class Velox_Builder_Render {
 				$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, data FROM {$t} WHERE id = %d AND status = 'published' AND kind = 'page' LIMIT 1", $meta_doc ), ARRAY_A );
 			}
 		}
-		// Logged-in editors previewing an unpublished layout should see it.
-		if ( ! $row && is_preview() && current_user_can( 'edit_post', $post_id ) ) {
-			$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, data FROM {$t} WHERE post_id = %d LIMIT 1", $post_id ), ARRAY_A );
+		// Logged-in editors previewing see the latest SAVED version — the draft
+		// of a published page, or a layout that was never published.
+		if ( is_preview() && current_user_can( 'edit_post', $post_id ) ) {
+			$prev = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, COALESCE( NULLIF( draft, '' ), data ) AS data FROM {$t} WHERE post_id = %d AND kind = 'page' LIMIT 1", $post_id ), ARRAY_A );
+			if ( $prev ) {
+				$row = $prev;
+			}
 		}
 		if ( ! $row ) {
 			return null;
@@ -231,6 +342,7 @@ class Velox_Builder_Render {
 			'classes'   => array(),
 			'content'   => array(),
 			'__id'      => 0,
+			'__file'    => '0-p' . (int) $post_id,
 			'__title'   => $post->post_title,
 			'__html'    => apply_filters( 'the_content', $post->post_content ),
 		);
@@ -1363,7 +1475,8 @@ class Velox_Builder_Render {
 			if ( ! empty( $kids[ (int) $o->ID ] ) ) {
 				$parts = array();
 				foreach ( $kids[ (int) $o->ID ] as $k ) {
-					$parts[] = str_replace( array( '|', ',' ), ' ', $k->title ) . '|' . $k->url;
+					// Children are packed as "title|url,…": a comma in a URL split it.
+					$parts[] = str_replace( array( '|', ',' ), ' ', $k->title ) . '|' . str_replace( array( ',', '|' ), array( '%2C', '%7C' ), $k->url );
 				}
 				$children = implode( ',', $parts );
 			}
@@ -1503,6 +1616,40 @@ class Velox_Builder_Render {
 			. '.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}'
 			. '.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}'
 			. '.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}';
+	}
+
+	/** Base look for the archive / search list and the 404 message. */
+	private static function loop_css() {
+		return '.velox-loop{display:flex;flex-direction:column;gap:28px}'
+			. '.velox-loop-head h1{margin:0 0 6px}.velox-loop-desc{opacity:.8}'
+			. '.velox-loop-items{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:28px}'
+			. '.velox-loop-item{display:flex;flex-direction:column;gap:8px}'
+			. '.velox-loop-img img{display:block;width:100%;height:auto;border-radius:10px;aspect-ratio:16/10;object-fit:cover}'
+			. '.velox-loop-title{margin:4px 0 0;font-size:1.25em;line-height:1.3}.velox-loop-title a{color:inherit;text-decoration:none}'
+			. '.velox-loop-meta{font-size:.85em;opacity:.65}.velox-loop-excerpt p{margin:0}'
+			. '.velox-loop-pages ul{display:flex;gap:6px;list-style:none;padding:0;margin:0;flex-wrap:wrap}'
+			. '.velox-loop-pages a,.velox-loop-pages span{display:inline-block;padding:6px 12px;border-radius:8px;border:1px solid rgba(0,0,0,.12);text-decoration:none;color:inherit}'
+			. '.velox-loop-pages .current{background:rgba(0,0,0,.08)}'
+			. '.velox-404{text-align:center;padding:80px 20px}.velox-404 h1{margin:0 0 10px}.velox-404 form{margin-top:20px}';
+	}
+
+	/**
+	 * The per-element CSS the page would get for a model (text effects, grids,
+	 * presets …), so the editor canvas shows those settings too. It used to be
+	 * built only on the page, so changing those settings did nothing on screen.
+	 */
+	public static function ajax_preview_css() {
+		$raw   = isset( $_POST['model'] ) ? wp_unslash( $_POST['model'] ) : '';
+		$model = json_decode( (string) $raw, true );
+		if ( ! is_array( $model ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid document data.', 'velox' ) ), 400 );
+		}
+		self::$float_css    = '';
+		self::$runtime_used = array();
+		ob_start();
+		self::render_tree( $model['tree'] ?? array(), $model );
+		ob_end_clean();
+		wp_send_json_success( array( 'css' => self::element_base_css() ) );
 	}
 
 	/** Embed URL for a YouTube / Vimeo link, or '' when it is neither. */
@@ -1693,9 +1840,9 @@ class Velox_Builder_Render {
 		// appending it after the template rather than silently losing it.
 		$template = null;
 		if ( class_exists( 'Velox_Builder' ) ) {
-			$tpl_id = Velox_Builder::template_for_post( get_queried_object_id() );
+			$tpl_id = isset( $doc['__tpl'] ) ? (int) $doc['__tpl'] : Velox_Builder::template_for_post( get_queried_object_id() );
 			if ( $tpl_id ) {
-				$template = Velox_Builder::doc_model( $tpl_id );
+				$template = Velox_Builder::doc_model( $tpl_id, self::$previewing );
 			}
 		}
 
@@ -1716,7 +1863,9 @@ class Velox_Builder_Render {
 		// roles stand down for this request.
 		$header = null;
 		$footer = null;
-		if ( ! $template && class_exists( 'Velox_Builder' ) ) {
+		// …and a page set to "No template" gets neither.
+		$opted_out = is_singular() && '-1' === (string) get_post_meta( get_queried_object_id(), '_velox_template', true );
+		if ( ! $template && ! $opted_out && class_exists( 'Velox_Builder' ) ) {
 			$roles  = Velox_Builder::roles();
 			$header = $roles['header'] ? Velox_Builder::doc_model( $roles['header'] ) : null;
 			$footer = $roles['footer'] ? Velox_Builder::doc_model( $roles['footer'] ) : null;
@@ -1737,6 +1886,11 @@ class Velox_Builder_Render {
 			$body .= self::render_tree( $template['tree'], $template );
 			if ( ! self::$inner_used ) {
 				$body .= self::render_tree( $doc['tree'], $doc );
+				// A template without an Inner Content slot still shows the list of
+				// posts (archives / search) rather than dropping it.
+				if ( empty( $doc['tree'] ) && ! empty( $doc['__html'] ) ) {
+					$body .= '<div class="velox-inner-content">' . $doc['__html'] . '</div>';
+				}
 			}
 			self::$inner_doc = null;
 		} else {
@@ -1862,7 +2016,7 @@ class Velox_Builder_Render {
 		if ( ! empty( self::$page_settings['css'] ) ) {
 			$page_css .= str_ireplace( array( '</style', '<script' ), '', (string) self::$page_settings['css'] );
 		}
-		$gs = self::element_base_css() . self::global_styles_css() . ( self::$media_used ? self::media_element_css() : '' ) . $page_css;
+		$gs = self::element_base_css() . self::global_styles_css() . ( self::$media_used ? self::media_element_css() : '' ) . ( self::$loop_used ? self::loop_css() : '' ) . $page_css;
 		if ( '' !== $gs ) {
 			echo '<style id="velox-builder-global-styles">' . $gs . '</style>' . "\n"; // phpcs:ignore
 		}
@@ -1921,8 +2075,10 @@ class Velox_Builder_Render {
 		if ( '' !== $decl ) { $out .= 'a{' . $decl . '}'; }
 		if ( '' !== $l['hover'] ) { $out .= 'a:hover{color:' . $l['hover'] . ';}'; }
 
-		if ( ! empty( $g['width']['page'] ) ) {
-			$out .= '.velox-built .section > *,.velox-inner-content{max-width:' . $px( $g['width']['page'] ) . ';margin-left:auto;margin-right:auto;}';
+		// "Leave empty to inherit": an empty page width means the default, not none.
+		$pw = ( '' === (string) ( $g['width']['page'] ?? '' ) ) ? '1200' : $g['width']['page'];
+		if ( ! empty( $pw ) ) {
+			$out .= '.velox-built .section > *,.velox-inner-content{max-width:' . $px( $pw ) . ';margin-left:auto;margin-right:auto;}';
 		}
 		foreach ( array( 'sections' => '.section', 'columns' => '.columns' ) as $key => $sel ) {
 			$p = $g[ $key ];
@@ -2176,8 +2332,12 @@ class Velox_Builder_Render {
 			if ( isset( self::$reuse_stack[ $ref ] ) || count( self::$reuse_stack ) > 8 ) {
 				return '';
 			}
-			$reuse = Velox_Builder::doc_model( $ref );
+			$reuse = Velox_Builder::doc_model( $ref, self::$previewing );
 			if ( ! $reuse || empty( $reuse['tree'] ) ) {
+				return '';
+			}
+			// A reusable that was never published is not on the site yet.
+			if ( isset( $reuse['__status'] ) && 'published' !== $reuse['__status'] && ! self::$previewing ) {
 				return '';
 			}
 			self::$reuse_stack[ $ref ] = true;
@@ -2434,24 +2594,26 @@ class Velox_Builder_Render {
 		// Gather every contributing model: the page, the reusables it references,
 		// and any extra models passed in (header/footer templates).
 		$models = array( $doc );
-		foreach ( self::collect_reusable_ids( $doc['tree'] ?? array() ) as $rid ) {
-			if ( class_exists( 'Velox_Builder' ) ) {
-				$rm = Velox_Builder::doc_model( $rid );
-				if ( $rm ) {
-					$models[] = $rm;
-				}
-			}
-		}
 		foreach ( (array) $extra as $em ) {
 			if ( is_array( $em ) ) {
 				$models[] = $em;
-				foreach ( self::collect_reusable_ids( $em['tree'] ?? array() ) as $rid2 ) {
-					if ( class_exists( 'Velox_Builder' ) ) {
-						$rm2 = Velox_Builder::doc_model( $rid2 );
-						if ( $rm2 ) {
-							$models[] = $rm2;
-						}
-					}
+			}
+		}
+		// Reusables referenced anywhere — including inside other reusables, whose
+		// classes were missed before — each counted once.
+		$seen  = array();
+		$queue = $models;
+		while ( $queue ) {
+			$m = array_shift( $queue );
+			foreach ( self::collect_reusable_ids( $m['tree'] ?? array() ) as $rid ) {
+				if ( isset( $seen[ $rid ] ) || ! class_exists( 'Velox_Builder' ) ) {
+					continue;
+				}
+				$seen[ $rid ] = true;
+				$rm = Velox_Builder::doc_model( $rid, self::$previewing );
+				if ( $rm ) {
+					$models[] = $rm;
+					$queue[]  = $rm;
 				}
 			}
 		}
@@ -2470,6 +2632,22 @@ class Velox_Builder_Render {
 			}
 			if ( ! empty( $m['tree'] ) ) {
 				$trees[] = $m['tree'];
+			}
+		}
+		// The site-wide version of a class wins over each document's own copy, so
+		// a class looks the same in the template, the page and every reusable. A
+		// class this (previewed) page changed but has not published keeps its own.
+		if ( class_exists( 'Velox_Builder' ) ) {
+			$pending = array();
+			foreach ( $models as $m ) {
+				foreach ( (array) ( $m['changedClasses'] ?? array() ) as $pc ) {
+					$pending[ (string) $pc ] = true;
+				}
+			}
+			foreach ( Velox_Builder::class_registry() as $cname => $rules ) {
+				if ( isset( $classes[ $cname ] ) && ! isset( $pending[ $cname ] ) ) {
+					$classes[ $cname ] = $rules;
+				}
 			}
 		}
 
@@ -2638,7 +2816,7 @@ class Velox_Builder_Render {
 		$id   = (int) ( $doc['__id'] ?? 0 );
 		// Pages wrapped by a catch-all template have no document of their own
 		// (id 0); they all shared doc-0.css and overwrote each other's CSS.
-		$slug = $id ? (string) $id : '0-p' . (int) get_queried_object_id();
+		$slug = $id ? (string) $id : preg_replace( '/[^a-z0-9-]/', '', (string) ( $doc['__file'] ?? '0-p' . (int) get_queried_object_id() ) );
 		$file = $dir . '/doc-' . $slug . '.css';
 		$hash = substr( md5( $css ), 0, 8 );
 

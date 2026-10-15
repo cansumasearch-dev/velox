@@ -41,6 +41,21 @@ class Velox_Reviews {
 			'connections' => array(),
 			'presets'     => array(),
 		) );
+		// Ids used to be generated with capital letters ('conn_aB3x…') but every
+		// lookup runs them through sanitize_key(), which lowercases — so a new
+		// connection or preset was "unknown" wherever it was used. Key everything
+		// by its lowercased id; old entries are found again without a re-save.
+		foreach ( array( 'connections', 'presets' ) as $group ) {
+			$fixed = array();
+			foreach ( (array) $store[ $group ] as $key => $item ) {
+				$k = sanitize_key( (string) $key );
+				if ( is_array( $item ) ) {
+					$item['id'] = $k;
+				}
+				$fixed[ $k ] = $item;
+			}
+			$store[ $group ] = $fixed;
+		}
 		// Built-in presets are merged in rather than written to the database, so
 		// they cannot be orphaned by an update and a site that has never opened
 		// this screen still has something to choose from. A saved preset with the
@@ -86,7 +101,7 @@ class Velox_Reviews {
 		}
 
 		$store = self::store();
-		$id    = isset( $data['id'] ) && $data['id'] ? sanitize_key( $data['id'] ) : 'conn_' . wp_generate_password( 8, false, false );
+		$id    = isset( $data['id'] ) && $data['id'] ? sanitize_key( $data['id'] ) : 'conn_' . strtolower( wp_generate_password( 8, false, false ) );
 
 		$store['connections'][ $id ] = array(
 			'id'        => $id,
@@ -118,7 +133,7 @@ class Velox_Reviews {
 			return array( 'ok' => false, 'error' => __( 'Please name this preset before saving.', 'velox' ) );
 		}
 		$store = self::store();
-		$id    = isset( $data['id'] ) && $data['id'] ? sanitize_key( $data['id'] ) : 'preset_' . wp_generate_password( 8, false, false );
+		$id    = isset( $data['id'] ) && $data['id'] ? sanitize_key( $data['id'] ) : 'preset_' . strtolower( wp_generate_password( 8, false, false ) );
 		$store['presets'][ $id ] = array(
 			'id'    => $id,
 			'name'  => $name,

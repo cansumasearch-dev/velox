@@ -7,24 +7,57 @@ $g      = Velox_Builder::global_styles();
 $tokens = Velox_Builder::tokens();
 $fonts  = Velox_Builder::fonts();
 $wopts  = array( '', '100', '200', '300', '400', '500', '600', '700', '800', '900' );
+$sides  = array(
+	'top'    => __( 'Top', 'velox' ),
+	'right'  => __( 'Right', 'velox' ),
+	'bottom' => __( 'Bottom', 'velox' ),
+	'left'   => __( 'Left', 'velox' ),
+);
 
-function velox_gs_num( $group, $key, $label, $val, $unit = 'px' ) {
+// The shipped defaults, read by asking for the styles with nothing saved. The
+// breakpoint fields show them as placeholders, and an empty one saves as that
+// default — so "leave it empty" really means "use the default".
+add_filter( 'pre_option_' . Velox_Builder::OPT_GLOBAL_STYLES, '__return_empty_array', 999 );
+$gd = Velox_Builder::global_styles();
+remove_filter( 'pre_option_' . Velox_Builder::OPT_GLOBAL_STYLES, '__return_empty_array', 999 );
+
+// Colour tokens, so a var(--name) value can still show its real colour.
+$tok_colors = array();
+foreach ( (array) ( $tokens['colors'] ?? array() ) as $c ) {
+	$tn = preg_replace( '/[^a-z0-9\-]/', '', strtolower( (string) ( $c['name'] ?? '' ) ) );
+	if ( $tn && ! empty( $c['value'] ) ) {
+		$tok_colors[ $tn ] = (string) $c['value'];
+	}
+}
+
+/**
+ * One numeric field. $placeholder shows what an empty field means; $fallback,
+ * when set, is what an empty field is saved as.
+ */
+function velox_gs_num( $group, $key, $label, $val, $unit = 'px', $placeholder = '', $fallback = '' ) {
 	?>
 	<label class="vba-gs-f">
 		<span class="vba-fl"><?php echo esc_html( $label ); ?></span>
 		<span class="vba-gs-in">
-			<input type="text" data-gs="<?php echo esc_attr( $group . '.' . $key ); ?>" value="<?php echo esc_attr( $val ); ?>">
+			<input type="text" data-gs="<?php echo esc_attr( $group . '.' . $key ); ?>" value="<?php echo esc_attr( $val ); ?>"<?php
+				echo '' !== (string) $placeholder ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
+				echo '' !== (string) $fallback ? ' data-gs-fallback="' . esc_attr( $fallback ) . '"' : '';
+			?>>
 			<?php if ( $unit ) : ?><i><?php echo esc_html( $unit ); ?></i><?php endif; ?>
 		</span>
 	</label>
 	<?php
 }
 function velox_gs_color( $group, $key, $label, $val ) {
+	// The picker only understands #rrggbb. Anything else (empty, var(), rgba(),
+	// a name) is resolved to its real colour in the browser; until then the
+	// swatch shows "not set" rather than a misleading black.
+	$hex = preg_match( '/^#[0-9a-f]{6}$/i', (string) $val ) ? strtolower( $val ) : '';
 	?>
 	<label class="vba-gs-f">
 		<span class="vba-fl"><?php echo esc_html( $label ); ?></span>
-		<span class="vba-gs-color">
-			<input type="color" class="vba-gs-swatch" value="<?php echo esc_attr( $val ? $val : '#000000' ); ?>">
+		<span class="vba-gs-color<?php echo $hex ? '' : ' is-unset'; ?>">
+			<input type="color" class="vba-gs-swatch" value="<?php echo esc_attr( $hex ? $hex : '#000000' ); ?>" aria-label="<?php echo esc_attr( $label ); ?>">
 			<input type="text" data-gs="<?php echo esc_attr( $group . '.' . $key ); ?>" value="<?php echo esc_attr( $val ); ?>" placeholder="<?php esc_attr_e( 'inherit', 'velox' ); ?>">
 		</span>
 	</label>
@@ -61,7 +94,7 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 		<div><h1><?php esc_html_e( 'Global styles', 'velox' ); ?></h1>
 		<p><?php esc_html_e( 'The defaults every built page inherits. Leave a field empty to inherit instead of forcing a value.', 'velox' ); ?></p></div>
 		<div class="vba-head-actions">
-			<button class="vba-btn vba-btn-primary" id="vba-gs-save"><?php esc_html_e( 'Save changes', 'velox' ); ?></button>
+			<button type="button" class="vba-btn vba-btn-primary" id="vba-gs-save"><?php esc_html_e( 'Save changes', 'velox' ); ?></button>
 		</div>
 	</header>
 
@@ -71,9 +104,9 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 		<div class="vba-gs-grid">
 			<?php
 			velox_gs_font( 'body', 'font', __( 'Font family', 'velox' ), $g['body']['font'], $fonts );
-			velox_gs_num( 'body', 'size', __( 'Font size', 'velox' ), $g['body']['size'] );
+			velox_gs_num( 'body', 'size', __( 'Font size', 'velox' ), $g['body']['size'], 'px', __( 'inherit', 'velox' ) );
 			velox_gs_weight( 'body', 'weight', $g['body']['weight'], $wopts );
-			velox_gs_num( 'body', 'lineHeight', __( 'Line height', 'velox' ), $g['body']['lineHeight'], '' );
+			velox_gs_num( 'body', 'lineHeight', __( 'Line height', 'velox' ), $g['body']['lineHeight'], '', __( 'inherit', 'velox' ) );
 			velox_gs_color( 'body', 'color', __( 'Colour', 'velox' ), $g['body']['color'] );
 			?>
 		</div>
@@ -88,9 +121,9 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 				<span class="vba-gs-tag"><?php echo esc_html( strtoupper( $tag ) ); ?></span>
 				<div class="vba-gs-grid">
 					<?php
-					velox_gs_num( 'headings.' . $tag, 'size', __( 'Size', 'velox' ), $h['size'] );
+					velox_gs_num( 'headings.' . $tag, 'size', __( 'Size', 'velox' ), $h['size'], 'px', __( 'inherit', 'velox' ) );
 					velox_gs_weight( 'headings.' . $tag, 'weight', $h['weight'], $wopts );
-					velox_gs_num( 'headings.' . $tag, 'lineHeight', __( 'Line height', 'velox' ), $h['lineHeight'], '' );
+					velox_gs_num( 'headings.' . $tag, 'lineHeight', __( 'Line height', 'velox' ), $h['lineHeight'], '', __( 'inherit', 'velox' ) );
 					velox_gs_color( 'headings.' . $tag, 'color', __( 'Colour', 'velox' ), $h['color'] );
 					?>
 				</div>
@@ -121,13 +154,15 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 		<p><?php esc_html_e( 'Breakpoints apply to the editor preview and the front end together.', 'velox' ); ?></p></div></div>
 		<div class="vba-gs-grid">
 			<?php
-			velox_gs_num( 'width', 'page', __( 'Page width', 'velox' ), $g['width']['page'] );
-			velox_gs_num( 'width', 'tablet', __( 'Tablet at', 'velox' ), $g['width']['tablet'] );
-			velox_gs_num( 'width', 'landscape', __( 'Landscape at', 'velox' ), $g['width']['landscape'] );
-			velox_gs_num( 'width', 'portrait', __( 'Portrait at', 'velox' ), $g['width']['portrait'] );
+			foreach ( array( 'page' => __( 'Page width', 'velox' ), 'tablet' => __( 'Tablet at', 'velox' ), 'landscape' => __( 'Landscape at', 'velox' ) ) as $wk => $wl ) {
+				$wdef = (string) ( $gd['width'][ $wk ] ?? '' );
+				velox_gs_num( 'width', $wk, $wl, $g['width'][ $wk ] ?? '', 'px', $wdef, $wdef );
+			}
 			?>
+			<?php // Nothing reads the old "Portrait at" width; it is carried along unchanged so saving here never alters it. ?>
+			<input type="hidden" data-gs="width.portrait" value="<?php echo esc_attr( $g['width']['portrait'] ?? '' ); ?>">
 		</div>
-		<p class="vba-hint" style="padding:0 18px 16px"><?php esc_html_e( 'Changing a breakpoint rewrites the media queries in every page stylesheet. Republish a page if it looks stale.', 'velox' ); ?></p>
+		<p class="vba-hint" style="padding:0 18px 16px"><?php esc_html_e( 'Leave a width empty to use the default shown in the field. Changing a breakpoint rewrites the media queries in every page stylesheet. Republish a page if it looks stale.', 'velox' ); ?></p>
 	</div>
 
 	<div class="vba-card">
@@ -181,16 +216,16 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 		<div class="vba-gs-row">
 			<span class="vba-gs-tag"><?php esc_html_e( 'Section', 'velox' ); ?></span>
 			<div class="vba-gs-grid">
-				<?php foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
-					velox_gs_num( 'sections', $side, ucfirst( $side ), $g['sections'][ $side ] );
+				<?php foreach ( $sides as $side => $side_label ) {
+					velox_gs_num( 'sections', $side, $side_label, $g['sections'][ $side ] ?? '', 'px', __( 'inherit', 'velox' ) );
 				} ?>
 			</div>
 		</div>
 		<div class="vba-gs-row">
 			<span class="vba-gs-tag"><?php esc_html_e( 'Columns', 'velox' ); ?></span>
 			<div class="vba-gs-grid">
-				<?php foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
-					velox_gs_num( 'columns', $side, ucfirst( $side ), $g['columns'][ $side ] );
+				<?php foreach ( $sides as $side => $side_label ) {
+					velox_gs_num( 'columns', $side, $side_label, $g['columns'][ $side ] ?? '', 'px', __( 'inherit', 'velox' ) );
 				} ?>
 			</div>
 		</div>
@@ -198,31 +233,82 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 </div>
 <script>
 ( function () {
-	var CFG = window.VELOX_BUILDER || {};
-	// Colour swatch and hex field stay in step with each other.
+	var T = {
+		saving: '<?php echo esc_js( __( 'Saving…', 'velox' ) ); ?>',
+		saved: '<?php echo esc_js( __( 'Saved', 'velox' ) ); ?>',
+		saveFailed: '<?php echo esc_js( __( 'Save failed', 'velox' ) ); ?>',
+		saveChanges: '<?php echo esc_js( __( 'Save changes', 'velox' ) ); ?>',
+		notSet: '<?php echo esc_js( __( 'Not set — inherits', 'velox' ) ); ?>'
+	};
+	var TOKENS = <?php echo wp_json_encode( (object) $tok_colors ); ?>;
+	// The config is printed in the footer, after this script, so read it when used.
+	function cfg() { return window.VELOX_BUILDER || {}; }
+
+	/* Resolve any CSS colour the browser understands (hex, rgb[a], hsl[a], a
+	   name, or var(--token)) to #rrggbb by letting it compute the colour on a
+	   hidden element. The host's sentinel colour tells "unresolvable" apart. */
+	var SENTINEL = 'rgb(1, 2, 3)';
+	var host = document.createElement( 'div' );
+	host.setAttribute( 'aria-hidden', 'true' );
+	host.style.cssText = 'position:absolute;left:-9999px;top:0;width:0;height:0;overflow:hidden;color:' + SENTINEL;
+	Object.keys( TOKENS ).forEach( function ( k ) { host.style.setProperty( '--' + k, TOKENS[ k ] ); } );
+	var probe = document.createElement( 'span' );
+	host.appendChild( probe );
+	document.body.appendChild( host );
+	function hex2( n ) { var h = Math.max( 0, Math.min( 255, Math.round( n ) ) ).toString( 16 ); return h.length < 2 ? '0' + h : h; }
+	function resolveColor( v ) {
+		v = ( v || '' ).trim();
+		if ( ! v ) { return ''; }
+		if ( /^#[0-9a-f]{6}$/i.test( v ) ) { return v.toLowerCase(); }
+		probe.style.color = '';
+		probe.style.color = v;
+		if ( ! probe.style.color ) { return ''; } // not a colour at all
+		var c = window.getComputedStyle( probe ).color;
+		if ( c === SENTINEL ) { return ''; } // unknown variable, inherit, …
+		var m = c.match( /rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)(?:\s*[,\/]\s*([\d.]+)(%)?)?/ );
+		if ( ! m ) { return ''; }
+		if ( undefined !== m[4] && 0 === parseFloat( m[4] ) ) { return ''; } // fully transparent
+		return '#' + hex2( +m[1] ) + hex2( +m[2] ) + hex2( +m[3] );
+	}
+	function syncSwatch( wrap ) {
+		var text = wrap.querySelector( '[data-gs]' ), sw = wrap.querySelector( '.vba-gs-swatch' );
+		var hex = resolveColor( text.value );
+		wrap.classList.toggle( 'is-unset', ! hex );
+		if ( hex ) { sw.value = hex; sw.title = text.value.trim(); } else { sw.title = T.notSet; }
+	}
+	[].forEach.call( document.querySelectorAll( '.vba-gs-color' ), syncSwatch );
+
+	// Picking a colour writes it into the text field; typing in the text field
+	// only moves the swatch. The text is never rewritten unless the picker is used.
 	document.addEventListener( 'input', function ( e ) {
+		var wrap = e.target.closest ? e.target.closest( '.vba-gs-color' ) : null;
+		if ( ! wrap ) { return; }
 		if ( e.target.classList.contains( 'vba-gs-swatch' ) ) {
-			e.target.parentElement.querySelector( '[data-gs]' ).value = e.target.value;
-		} else if ( e.target.hasAttribute( 'data-gs' ) && e.target.parentElement.classList.contains( 'vba-gs-color' ) ) {
-			var sw = e.target.parentElement.querySelector( '.vba-gs-swatch' );
-			if ( /^#[0-9a-f]{6}$/i.test( e.target.value ) ) { sw.value = e.target.value; }
+			wrap.querySelector( '[data-gs]' ).value = e.target.value;
+			wrap.classList.remove( 'is-unset' );
+			e.target.title = e.target.value;
+		} else if ( e.target.hasAttribute( 'data-gs' ) ) {
+			syncSwatch( wrap );
 		}
 	} );
 	document.getElementById( 'vba-gs-save' ).addEventListener( 'click', function () {
-		var btn = this; btn.textContent = 'Saving…';
+		var btn = this; btn.textContent = T.saving;
 		var out = {};
 		[].forEach.call( document.querySelectorAll( '[data-gs]' ), function ( el ) {
 			var path = el.getAttribute( 'data-gs' ).split( '.' ), ref = out;
 			for ( var i = 0; i < path.length - 1; i++ ) { ref[ path[ i ] ] = ref[ path[ i ] ] || {}; ref = ref[ path[ i ] ]; }
-			ref[ path[ path.length - 1 ] ] = el.value.trim();
+			var v = el.value.trim();
+			if ( '' === v && el.hasAttribute( 'data-gs-fallback' ) ) { v = el.getAttribute( 'data-gs-fallback' ); }
+			ref[ path[ path.length - 1 ] ] = v;
 		} );
+		var C = cfg();
 		var body = new URLSearchParams();
-		body.set( 'action', 'velox' ); body.set( 'do', 'builder_global_styles_save' ); body.set( 'nonce', CFG.nonce || '' );
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_global_styles_save' ); body.set( 'nonce', C.nonce || '' );
 		body.set( 'styles', JSON.stringify( out ) );
-		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+		fetch( C.ajaxurl || window.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { btn.textContent = res && res.success ? 'Saved' : 'Save failed'; setTimeout( function () { btn.textContent = 'Save changes'; }, 1500 ); } )
-			.catch( function () { btn.textContent = 'Save failed'; } );
+			.then( function ( res ) { btn.textContent = res && res.success ? T.saved : T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 1500 ); } )
+			.catch( function () { btn.textContent = T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 2500 ); } );
 	} );
 }() );
 </script>

@@ -247,8 +247,10 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 
 /* WordPress core ships `.wp-core-ui select{background:#fff}` at specificity
    (0,1,1), which repaints every select on these dark screens white. Everything
-   below is scoped under .velox-wrap purely to outrank it. */
-.velox-wrap .vba-doc-kind{
+   below is scoped under #velox-builder-admin purely to outrank it (and the
+   .vba-shell control layer further down). These rules used to be scoped under
+   .velox-wrap, which the Builder screens never render, so they never applied. */
+#velox-builder-admin .vba-doc-kind{
 	background-color:var(--vbb-raised,#1d1d24)!important;color:var(--vbb-text-2,#9d9da8)!important;
 	border:1px solid transparent!important;border-radius:20px!important;
 	font-size:11px;font-weight:600;line-height:1.4;
@@ -257,29 +259,29 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 	background-image:url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%239d9da8' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
 	background-repeat:no-repeat;background-position:right 8px center;
 }
-.velox-wrap .vba-doc-kind:hover{border-color:var(--vbb-line-2,rgba(255,255,255,.11));color:var(--vbb-text,#f4f4f6)}
-.velox-wrap .vba-doc-kind:focus{border-color:#2ab7f1;box-shadow:none;outline:none}
-.velox-wrap .vba-doc-kind.vba-type-template{background-color:rgba(160,107,255,.14)!important;color:#b98bff!important}
-.velox-wrap .vba-doc-kind.vba-type-reusable{background-color:rgba(42,183,241,.14)!important;color:#5cc9f5!important}
-.velox-wrap .vba-doc-kind option{background:#1d1d24;color:#f4f4f6}
+#velox-builder-admin .vba-doc-kind:hover{border-color:var(--vbb-line-2,rgba(255,255,255,.11));color:var(--vbb-text,#f4f4f6)}
+#velox-builder-admin .vba-doc-kind:focus{border-color:#2ab7f1;box-shadow:none;outline:none}
+#velox-builder-admin .vba-doc-kind.vba-type-template{background-color:rgba(160,107,255,.14)!important;color:#b98bff!important}
+#velox-builder-admin .vba-doc-kind.vba-type-reusable{background-color:rgba(42,183,241,.14)!important;color:#5cc9f5!important}
+#velox-builder-admin .vba-doc-kind option{background:#1d1d24;color:#f4f4f6}
 
 /* Same treatment for the selects and inputs on the Fonts screen. */
-.velox-wrap .vba-font-top input,
-.velox-wrap .vba-font-top select,
-.velox-wrap .vba-font-display{
+#velox-builder-admin .vba-font-top input,
+#velox-builder-admin .vba-font-top select,
+#velox-builder-admin .vba-font-display{
 	background-color:var(--vbb-panel-2,#17171d)!important;color:var(--vbb-text,#f4f4f6)!important;
 	border:1px solid var(--vbb-line,rgba(255,255,255,.07))!important;border-radius:8px!important;
 	box-shadow:none!important;min-height:0!important;height:auto!important;padding:8px 11px!important;font-size:13px;
 }
-.velox-wrap .vba-font-top select,.velox-wrap .vba-font-display{-webkit-appearance:none;appearance:none;cursor:pointer}
-.velox-wrap .vba-font-top select option,.velox-wrap .vba-font-display option{background:#17171d;color:#f4f4f6}
-.velox-wrap .vba-font-top input:focus,.velox-wrap .vba-font-top select:focus,.velox-wrap .vba-font-display:focus{border-color:#2ab7f1;outline:none;box-shadow:none}
+#velox-builder-admin .vba-font-top select,#velox-builder-admin .vba-font-display{-webkit-appearance:none;appearance:none;cursor:pointer}
+#velox-builder-admin .vba-font-top select option,#velox-builder-admin .vba-font-display option{background:#17171d;color:#f4f4f6}
+#velox-builder-admin .vba-font-top input:focus,#velox-builder-admin .vba-font-top select:focus,#velox-builder-admin .vba-font-display:focus{border-color:#2ab7f1;outline:none;box-shadow:none}
 
 /* The row is a flex line; nothing in it should be allowed to stretch. */
-.velox-wrap .vba-docrow .vba-doc-kind,
-.velox-wrap .vba-docrow .vba-doc-type,
-.velox-wrap .vba-docrow .vba-live,
-.velox-wrap .vba-docrow .vba-doc-status{flex:0 0 auto}
+#velox-builder-admin .vba-docrow .vba-doc-kind,
+#velox-builder-admin .vba-docrow .vba-doc-type,
+#velox-builder-admin .vba-docrow .vba-live,
+#velox-builder-admin .vba-docrow .vba-doc-status{flex:0 0 auto}
 
 /* ============================================================
    Velox Builder admin — form + typography layer.
@@ -342,7 +344,7 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-card-h{padding:16px 18px 12px}
 
 /* --- the type pill was a full-size form control; it should read as a chip --- */
-.velox-wrap .vba-doc-kind{
+#velox-builder-admin .vba-doc-kind{
 	padding:3px 20px 3px 9px!important;font-size:11px!important;line-height:1.5!important;
 	max-width:112px;background-position:right 6px center!important;
 }
@@ -367,15 +369,15 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 
 /* Template rows: the name is the anchor and must win the space; the purpose
    picker is a chip like the type picker on the overview, not a full control. */
-.velox-wrap .vba-tpl-purpose{
+#velox-builder-admin .vba-tpl-purpose{
 	flex:0 0 auto!important;width:auto!important;max-width:130px;
 	padding:4px 22px 4px 10px!important;font-size:11.5px!important;line-height:1.5!important;
 	background-color:var(--vbb-raised,#1d1d24)!important;color:var(--vbb-text-2,#9d9da8)!important;
 	border:1px solid transparent!important;border-radius:20px!important;min-height:0!important;height:auto!important;
 	background-position:right 7px center!important;box-shadow:none!important;
 }
-.velox-wrap .vba-tpl-purpose:hover{border-color:var(--vbb-line-2)!important;color:var(--vbb-text)!important}
-.velox-wrap .vba-tpl-purpose:focus{border-color:var(--vbb-accent)!important;box-shadow:none!important}
+#velox-builder-admin .vba-tpl-purpose:hover{border-color:var(--vbb-line-2)!important;color:var(--vbb-text)!important}
+#velox-builder-admin .vba-tpl-purpose:focus{border-color:var(--vbb-accent)!important;box-shadow:none!important}
 .vba-docrow .vba-doc-title{flex:1 1 auto;min-width:120px}
 .vba-docrow .vba-doc-meta{flex:0 0 auto;white-space:nowrap}
 
@@ -418,3 +420,44 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-used{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap;flex:0 0 auto;
 	background:rgba(42,183,241,.12);color:var(--vbb-accent);cursor:help}
 .vba-used-none{background:var(--vbb-raised,#1d1d24);color:var(--vbb-text-3);cursor:default}
+
+/* ---- Builder admin screens: publish state, inline save feedback, usage ---- */
+#velox-builder-admin [hidden]{display:none!important}
+/* Saved edits that are not live yet. */
+.vba-badge-changes{flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:.3px;padding:3px 8px;border-radius:6px;
+	white-space:nowrap;background:rgba(245,167,66,.14);color:var(--vbb-orange);cursor:help}
+/* A status chip that is a sentence, not a one-word state. */
+.vba-doc-status.vba-status-note{text-transform:none;letter-spacing:0;font-weight:600;white-space:nowrap}
+.vba-doc-status{flex:0 0 auto}
+/* "Saving… / Saved / Not saved" beside a control that saves on change. */
+.vba-inline-msg{flex:0 0 auto;font-size:11px;font-weight:600;color:var(--vbb-text-3);white-space:nowrap}
+.vba-inline-msg:empty{display:none}
+.vba-inline-msg.is-ok{color:var(--vbb-green)}
+.vba-inline-msg.is-err{color:var(--vbb-red)}
+/* The one forward action in a row of row actions (Publish, Edit class). */
+.vba-shell .vba-mini-go{background:var(--vbb-accent-soft);border-color:rgba(42,183,241,.35);color:var(--vbb-accent)}
+.vba-shell .vba-mini-go:hover{background:rgba(42,183,241,.24);color:#7fd3f7}
+.vba-mini:disabled,.vba-btn:disabled{opacity:.5;cursor:progress}
+.vba-shell select:disabled{opacity:.6;cursor:progress}
+.vba-filter:focus-visible,.vba-mini:focus-visible,.vba-btn:focus-visible{outline:2px solid var(--vbb-accent);outline-offset:2px}
+
+/* Reusables: the title line plus where the block is placed, as links. */
+.vba-doc-main{flex:1 1 auto;min-width:120px;display:flex;flex-direction:column;gap:2px}
+.vba-docrow .vba-doc-main .vba-doc-title{flex:0 0 auto;min-width:0}
+.vba-used-list{font-size:11.5px;line-height:1.45;color:var(--vbb-text-3)}
+.vba-shell .vba-used-list a{color:var(--vbb-text-2);text-decoration:none;border-bottom:1px dotted var(--vbb-line-2)}
+.vba-shell .vba-used-list a:hover{color:var(--vbb-accent);border-bottom-color:currentColor}
+.vba-used-lead{margin-right:4px}
+.vba-used-kind{color:var(--vbb-text-3)}
+.vba-used{cursor:default}
+
+/* Class editor: the breakpoints its media queries map to. */
+.vba-mq{font-family:var(--vbb-mono);font-size:11px;padding:1px 6px;border-radius:5px;background:rgba(15,17,21,.07);white-space:nowrap}
+
+/* Global styles: a colour that is empty or cannot be resolved shows as "not
+   set" (struck through) instead of pretending to be black. */
+.vba-gs-color{position:relative}
+.vba-gs-color.is-unset .vba-gs-swatch{opacity:.35}
+.vba-gs-color.is-unset::after{content:"";position:absolute;left:0;top:50%;width:34px;height:34px;transform:translateY(-50%);
+	border-radius:8px;pointer-events:none;
+	background:linear-gradient(135deg,transparent calc(50% - 1px),var(--vbb-red) calc(50% - 1px),var(--vbb-red) calc(50% + 1px),transparent calc(50% + 1px))}

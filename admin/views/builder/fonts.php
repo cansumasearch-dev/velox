@@ -2,7 +2,7 @@
 if ( ! defined( 'ABSPATH' ) ) {
 	exit;
 }
-/** Velox Builder — Fonts & icons: font families output on built pages. */
+/** Velox Builder — Fonts: font families output on built pages. */
 $fonts    = Velox_Builder::fonts();
 $weights  = array( '100', '200', '300', '400', '500', '600', '700', '800', '900' );
 $display  = Velox_Builder::font_display();
@@ -14,6 +14,7 @@ $displays = array(
 	'auto'     => __( 'auto — leave it to the browser', 'velox' ),
 );
 
+if ( ! function_exists( 'velox_font_row' ) ) {
 function velox_font_row( $f, $weights ) {
 	$f = wp_parse_args( (array) $f, array( 'name' => '', 'type' => 'google', 'url' => '', 'weights' => array( '400', '700' ), 'italic' => 0, 'preload' => array(), 'files' => array() ) );
 	$sel  = (array) $f['weights'];
@@ -24,7 +25,7 @@ function velox_font_row( $f, $weights ) {
 		<div class="vba-font-head">
 			<span class="vba-font-eyebrow"><?php esc_html_e( 'Font family', 'velox' ); ?></span>
 			<b class="vba-font-title"><?php echo esc_html( $name ); ?></b>
-			<button class="vba-mini vba-mini-del vba-font-del"><?php esc_html_e( 'Remove', 'velox' ); ?></button>
+			<button type="button" class="vba-mini vba-mini-del vba-font-del"><?php esc_html_e( 'Remove', 'velox' ); ?></button>
 		</div>
 
 		<div class="vba-font-top">
@@ -80,7 +81,7 @@ function velox_font_row( $f, $weights ) {
 					<div class="vba-localrow<?php echo in_array( $w, $sel, true ) ? '' : ' off'; ?>" data-weight="<?php echo esc_attr( $w ); ?>">
 						<span class="vba-localw"><?php echo esc_html( $w ); ?></span>
 						<input type="text" class="vba-font-file" value="<?php echo esc_attr( $has ); ?>" placeholder=".woff2 URL">
-						<button class="vba-mini vba-pickfont"><?php esc_html_e( 'Choose', 'velox' ); ?></button>
+						<button type="button" class="vba-mini vba-pickfont"><?php esc_html_e( 'Choose', 'velox' ); ?></button>
 					</div>
 				<?php endforeach; ?>
 			</div>
@@ -89,13 +90,14 @@ function velox_font_row( $f, $weights ) {
 	</div>
 	<?php
 }
+}
 ?>
 <div class="vba-shell">
 	<header class="vba-head">
-		<div><h1><?php esc_html_e( 'Fonts &amp; icons', 'velox' ); ?></h1>
+		<div><h1><?php esc_html_e( 'Fonts', 'velox' ); ?></h1>
 		<p><?php esc_html_e( 'Register font families, control exactly which weights load, and preload only what your first screen needs.', 'velox' ); ?></p></div>
 		<div class="vba-head-actions">
-			<button class="vba-btn vba-btn-primary" id="vba-fonts-save"><?php esc_html_e( 'Save changes', 'velox' ); ?></button>
+			<button type="button" class="vba-btn vba-btn-primary" id="vba-fonts-save"><?php esc_html_e( 'Save changes', 'velox' ); ?></button>
 		</div>
 	</header>
 
@@ -115,7 +117,7 @@ function velox_font_row( $f, $weights ) {
 		<div class="vba-card-h">
 			<div><h2><?php esc_html_e( 'Font families', 'velox' ); ?></h2>
 			<p><?php esc_html_e( 'Every extra weight is another file the visitor downloads, so tick only what you use.', 'velox' ); ?></p></div>
-			<button class="vba-btn vba-btn-ghost vba-btn-sm" id="vba-add-font"><?php esc_html_e( 'Add font', 'velox' ); ?></button>
+			<button type="button" class="vba-btn vba-btn-ghost vba-btn-sm" id="vba-add-font"><?php esc_html_e( 'Add font', 'velox' ); ?></button>
 		</div>
 		<div class="vba-fontlist" id="vba-fonts">
 			<?php
@@ -130,11 +132,30 @@ function velox_font_row( $f, $weights ) {
 		</div>
 	</div>
 </div>
+<?php // A clean row for "Add font" — never a copy of an existing family's weights, preloads or files. ?>
+<template id="vba-font-tpl"><?php velox_font_row( array(), $weights ); ?></template>
 <script>
 ( function () {
-	var CFG = window.VELOX_BUILDER || {};
+	var T = {
+		newFont: '<?php echo esc_js( __( 'New font', 'velox' ) ); ?>',
+		noMedia: '<?php echo esc_js( __( 'The media library is unavailable here.', 'velox' ) ); ?>',
+		chooseFile: '<?php echo esc_js( __( 'Choose a font file', 'velox' ) ); ?>',
+		useFile: '<?php echo esc_js( __( 'Use this file', 'velox' ) ); ?>',
+		saving: '<?php echo esc_js( __( 'Saving…', 'velox' ) ); ?>',
+		saved: '<?php echo esc_js( __( 'Saved', 'velox' ) ); ?>',
+		saveFailed: '<?php echo esc_js( __( 'Save failed', 'velox' ) ); ?>',
+		saveChanges: '<?php echo esc_js( __( 'Save changes', 'velox' ) ); ?>'
+	};
+	// The config is printed in the footer, after this script, so read it when used.
+	function cfg() { return window.VELOX_BUILDER || {}; }
 	var wrap = document.getElementById( 'vba-fonts' );
-	var TPL = wrap.firstElementChild ? wrap.firstElementChild.outerHTML : '';
+	var tplEl = document.getElementById( 'vba-font-tpl' );
+	var TPL = tplEl ? tplEl.innerHTML : '';
+	function freshRow() {
+		var holder = document.createElement( 'div' );
+		holder.innerHTML = TPL.trim();
+		return holder.firstElementChild;
+	}
 
 	/* Which blocks are relevant depends on the source, and the family name is
 	   echoed into the section labels so it is never ambiguous which font you
@@ -142,7 +163,7 @@ function velox_font_row( $f, $weights ) {
 	function syncRow( row ) {
 		var type = row.querySelector( '.vba-font-type' ).value;
 		row.setAttribute( 'data-type', type );
-		var name = row.querySelector( '.vba-font-name' ).value.trim() || 'New font';
+		var name = row.querySelector( '.vba-font-name' ).value.trim() || T.newFont;
 		row.querySelector( '.vba-font-title' ).textContent = name;
 		[].forEach.call( row.querySelectorAll( '.vba-font-inline' ), function ( e ) { e.textContent = name; } );
 		var loaded = [].filter.call( row.querySelectorAll( '.vba-w-load' ), function ( c ) { return c.checked; } )
@@ -160,24 +181,29 @@ function velox_font_row( $f, $weights ) {
 	syncAll();
 
 	document.getElementById( 'vba-add-font' ).addEventListener( 'click', function () {
-		wrap.insertAdjacentHTML( 'beforeend', TPL );
-		var row = wrap.lastElementChild;
-		row.querySelector( '.vba-font-name' ).value = '';
-		row.querySelector( '.vba-font-url' ).value = '';
+		var row = freshRow();
+		if ( ! row ) { return; }
+		wrap.appendChild( row );
 		syncRow( row );
+		var nm = row.querySelector( '.vba-font-name' );
+		if ( nm ) { nm.focus(); }
 	} );
 	wrap.addEventListener( 'click', function ( e ) {
 		var d = e.target.closest( '.vba-font-del' );
 		if ( d ) {
-			if ( wrap.children.length > 1 ) { d.closest( '.vba-font' ).remove(); }
-			else { d.closest( '.vba-font' ).querySelector( '.vba-font-name' ).value = ''; syncAll(); }
+			var gone = d.closest( '.vba-font' );
+			if ( wrap.querySelectorAll( '.vba-font' ).length > 1 ) { gone.remove(); return; }
+			// The last row is never removed — it is reset to a blank family instead,
+			// with every field (weights, italic, preloads, files, URL) back to default.
+			var blank = freshRow();
+			if ( blank ) { wrap.replaceChild( blank, gone ); syncRow( blank ); }
 			return;
 		}
 		var pick = e.target.closest( '.vba-pickfont' );
 		if ( pick ) {
 			e.preventDefault();
-			if ( ! window.wp || ! wp.media ) { alert( 'The media library is unavailable here.' ); return; }
-			var frame = wp.media( { title:'Choose a font file', multiple:false, button:{ text:'Use this file' } } );
+			if ( ! window.wp || ! wp.media ) { alert( T.noMedia ); return; }
+			var frame = wp.media( { title:T.chooseFile, multiple:false, button:{ text:T.useFile } } );
 			frame.on( 'select', function () {
 				var a = frame.state().get( 'selection' ).first().toJSON();
 				pick.closest( '.vba-localrow' ).querySelector( '.vba-font-file' ).value = a.url;
@@ -197,7 +223,7 @@ function velox_font_row( $f, $weights ) {
 	} );
 
 	document.getElementById( 'vba-fonts-save' ).addEventListener( 'click', function () {
-		var btn = this; btn.textContent = 'Saving…';
+		var btn = this; btn.textContent = T.saving;
 		var fonts = [].map.call( wrap.querySelectorAll( '.vba-font' ), function ( r ) {
 			var pick = function ( sel ) {
 				return [].filter.call( r.querySelectorAll( sel ), function ( c ) { return c.checked; } )
@@ -218,14 +244,15 @@ function velox_font_row( $f, $weights ) {
 				files: files
 			};
 		} ).filter( function ( f ) { return f.name; } );
+		var C = cfg();
 		var body = new URLSearchParams();
-		body.set( 'action', 'velox' ); body.set( 'do', 'builder_fonts_save' ); body.set( 'nonce', CFG.nonce || '' );
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_fonts_save' ); body.set( 'nonce', C.nonce || '' );
 		body.set( 'display', document.getElementById( 'vba-font-display' ).value );
 		body.set( 'fonts', JSON.stringify( fonts ) );
-		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+		fetch( C.ajaxurl || window.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { btn.textContent = res && res.success ? 'Saved' : 'Save failed'; setTimeout( function () { btn.textContent = 'Save changes'; }, 1500 ); } )
-			.catch( function () { btn.textContent = 'Save failed'; } );
+			.then( function ( res ) { btn.textContent = res && res.success ? T.saved : T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 1500 ); } )
+			.catch( function () { btn.textContent = T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 2500 ); } );
 	} );
 }() );
 </script>

@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Velox_Builder {
 
-	const DB_VERSION  = '1';
+	const DB_VERSION  = '2';
 	const VER_OPTION  = 'velox_builder_db';
 	const ENABLE_KEY  = 'module_builder';           // stored in Velox_Settings
 	const SLUG        = 'velox-builder';            // admin section slug
@@ -70,6 +70,11 @@ class Velox_Builder {
 
 	/** "Edit with Velox" meta box on the page/post editor (like Oxygen's). */
 	public function add_edit_metabox() {
+		// The builder needs manage_options; offering the button to editors who
+		// then hit "not allowed" was a dead end.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			return;
+		}
 		foreach ( array( 'page', 'post' ) as $type ) {
 			add_meta_box(
 				'velox-builder-edit',
@@ -261,7 +266,7 @@ class Velox_Builder {
 
 	/** Add an "Edit with Velox" row action in the Pages/Posts list tables. */
 	public function row_action( $actions, $post ) {
-		if ( current_user_can( 'edit_post', $post->ID ) && in_array( $post->post_type, array( 'page', 'post' ), true ) ) {
+		if ( current_user_can( 'manage_options' ) && in_array( $post->post_type, array( 'page', 'post' ), true ) ) {
 			$url                    = self::edit_url_for_post( $post->ID );
 			$actions['velox_edit']  = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Edit with Velox', 'velox' ) . '</a>';
 		}
@@ -279,7 +284,7 @@ class Velox_Builder {
 		} elseif ( is_singular() ) {
 			$post_id = get_queried_object_id();
 		}
-		if ( $post_id && current_user_can( 'edit_post', $post_id ) ) {
+		if ( $post_id && current_user_can( 'manage_options' ) ) {
 			$bar->add_node(
 				array(
 					'id'    => 'velox-builder-edit',
@@ -326,6 +331,7 @@ class Velox_Builder {
 				post_id BIGINT UNSIGNED NULL,
 				status VARCHAR(20) NOT NULL DEFAULT 'draft',
 				data LONGTEXT NULL,
+				draft LONGTEXT NULL,
 				css_size INT UNSIGNED NOT NULL DEFAULT 0,
 				priority INT NOT NULL DEFAULT 0,
 				updated DATETIME NULL,
@@ -341,8 +347,17 @@ class Velox_Builder {
 
 	/** Run install if the schema version changed (called on admin_init elsewhere). */
 	public static function maybe_upgrade() {
-		if ( get_option( self::VER_OPTION ) !== self::DB_VERSION ) {
+		$old = get_option( self::VER_OPTION );
+		if ( $old !== self::DB_VERSION ) {
 			self::install();
+			// Schema 2: Save keeps edits in `draft` and only Publish puts them live,
+			// for templates and reusables too. Until now those two were live as soon
+			// as they existed, whatever their status said — mark every existing one
+			// published so nothing that is on the site today disappears.
+			if ( $old && version_compare( (string) $old, '2', '<' ) ) {
+				global $wpdb;
+				$wpdb->query( 'UPDATE ' . self::table() . " SET status = 'published' WHERE kind IN ('template','reusable')" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			}
 		}
 	}
 
@@ -370,7 +385,7 @@ class Velox_Builder {
 			'reusables' => __( 'Reusables', 'velox' ),
 			'classes'   => __( 'Classes', 'velox' ),
 			'styles'    => __( 'Global styles', 'velox' ),
-			'fonts'     => __( 'Fonts & icons', 'velox' ),
+			'fonts'     => __( 'Fonts', 'velox' ),
 			'settings'  => __( 'Settings', 'velox' ),
 		);
 		foreach ( $subs as $key => $label ) {
@@ -384,9 +399,10 @@ class Velox_Builder {
 			);
 		}
 
-		// The editor route is registered but hidden from the menu (null parent).
+		// The editor route is registered but hidden from the menu (empty parent;
+		// null triggers deprecation notices in WordPress on PHP 8.1+).
 		add_submenu_page(
-			null,
+			'',
 			__( 'Velox Builder — Editor', 'velox' ),
 			__( 'Editor', 'velox' ),
 			'manage_options',
@@ -663,37 +679,61 @@ class Velox_Builder {
 		if ( ! is_object( $model ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid document data.', 'velox' ) ), 400 );
 		}
+		// Page JavaScript is printed as-is. Only someone allowed to post unfiltered
+		// HTML may add it (on multisite that is the super admin, not every admin).
+		if ( ! current_user_can( 'unfiltered_html' ) && isset( $model->page ) && is_object( $model->page ) ) {
+			unset( $model->page->js );
+		}
+		// Classes edited in this document become the site-wide version when it is
+		// published (see ajax_publish). Remember which, across saves.
+		$changed = isset( $_POST['changed_classes'] ) ? json_decode( wp_unslash( $_POST['changed_classes'] ), true ) : array();
+		$pending = isset( $model->changedClasses ) && is_array( $model->changedClasses ) ? $model->changedClasses : array();
+		foreach ( (array) $changed as $cname ) {
+			$cname = (string) $cname;
+			if ( '' !== $cname && '.' === $cname[0] && ! in_array( $cname, $pending, true ) ) {
+				$pending[] = $cname;
+			}
+		}
+		if ( $pending ) {
+			$model->changedClasses = array_values( $pending );
+		}
 		$data     = wp_json_encode( $model );
 		$css_size = isset( $_POST['css_size'] ) ? absint( $_POST['css_size'] ) : 0;
 		$post_id  = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
 		$now      = current_time( 'mysql' );
 		$t        = self::table();
 
-		if ( $id ) {
-			$fields  = array( 'title' => $title, 'kind' => $kind, 'data' => $data, 'css_size' => $css_size, 'updated' => $now );
-			$formats = array( '%s', '%s', '%s', '%d', '%s' );
+		// A page has ONE document: saving without an id for a page that already
+		// has one updates it instead of creating a duplicate.
+		if ( ! $id && $post_id ) {
+			$id = self::doc_id_for_post( $post_id );
+		}
+		$row = $id ? $wpdb->get_row( $wpdb->prepare( "SELECT id, status, kind FROM {$t} WHERE id = %d", $id ), ARRAY_A ) : null;
+
+		// Save is not Publish. A published document keeps what visitors see in
+		// `data` and collects edits in `draft`; Publish moves the draft live. A
+		// document that is not live yet simply saves to `data`.
+		$live = $row && 'published' === $row['status'];
+		if ( $row ) {
+			$fields  = array( 'title' => $title, 'kind' => $kind, 'css_size' => $css_size, 'updated' => $now );
+			$formats = array( '%s', '%s', '%d', '%s' );
+			if ( $live ) {
+				$fields['draft'] = $data;
+				$formats[]       = '%s';
+			} else {
+				$fields['data']  = $data;
+				$fields['draft'] = null;
+				$formats[]       = '%s';
+				$formats[]       = '%s';
+			}
 			if ( $post_id ) {
 				$fields['post_id'] = $post_id;
 				$formats[]         = '%d';
 			}
 			$wpdb->update( $t, $fields, array( 'id' => $id ), $formats, array( '%d' ) );
-			// Switching an existing document to "template" should behave the same
-			// as creating one: if there's no site default yet, this becomes it.
-			if ( 'template' === $kind && ! self::default_template() ) {
-				update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
+			if ( 'template' === $kind ) {
+				self::adopt_template( $id );
 			}
-		} elseif ( $post_id && self::doc_id_for_post( $post_id ) ) {
-			// A page has ONE document. Saving without an id for a page that already
-			// has one updates it instead of creating a duplicate the page would then
-			// be re-pointed at.
-			$id = self::doc_id_for_post( $post_id );
-			$wpdb->update(
-				$t,
-				array( 'title' => $title, 'kind' => $kind, 'data' => $data, 'css_size' => $css_size, 'updated' => $now ),
-				array( 'id' => $id ),
-				array( '%s', '%s', '%s', '%d', '%s' ),
-				array( '%d' )
-			);
 		} else {
 			$wpdb->insert(
 				$t,
@@ -704,62 +744,201 @@ class Velox_Builder {
 			if ( $post_id ) {
 				update_post_meta( $post_id, '_velox_builder_doc', $id );
 			}
-			// The first template anyone creates becomes the site-wide default, so
-			// pages built BEFORE it existed pick it up too — the default lives in
-			// one option, never copied onto individual pages.
-			if ( 'template' === $kind && ! self::default_template() ) {
-				update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
+			if ( 'template' === $kind ) {
+				self::adopt_template( $id );
 			}
 		}
 
-		// Regenerate the page's static CSS file so the front end reflects the save.
-		if ( class_exists( 'Velox_Builder_Render' ) ) {
-			Velox_Builder_Render::write_css_for( $id );
-		}
-		// A saved published page is what visitors get, so cached copies must go.
-		// Templates and reusables appear on many pages: clear everything.
 		$bound = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . $t . ' WHERE id = %d', $id ) );
-		if ( 'page' !== $kind ) {
-			self::purge_cache_for();
-		} elseif ( $bound ) {
-			self::purge_cache_for( $bound );
-		}
-
 		wp_send_json_success(
 			array(
-				'id'      => $id,
-				'title'   => $title,
-				'saved'   => $now,
-				'kind'    => $kind,
-				'post_id' => $bound,
-				'url'     => $bound ? get_permalink( $bound ) : '',
-				'preview' => $bound ? get_preview_post_link( $bound ) : '',
+				'id'        => $id,
+				'title'     => $title,
+				'saved'     => $now,
+				'kind'      => $kind,
+				'post_id'   => $bound,
+				'status'    => $live ? 'published' : 'draft',
+				'has_draft' => $live ? 1 : 0,
+				'url'       => $bound ? get_permalink( $bound ) : '',
+				'preview'   => $bound ? get_preview_post_link( $bound ) : '',
 			)
 		);
 	}
 
-	/** Load a document's model for the editor. */
+	/**
+	 * A document that becomes a template: it gets an explicit "catch-all" rule
+	 * (the Templates screen showed it as catch-all anyway), and the first
+	 * template on the site becomes the default.
+	 */
+	private static function adopt_template( $id ) {
+		$rules = self::template_rules();
+		if ( ! isset( $rules[ (int) $id ] ) ) {
+			self::set_template_purpose( $id, 'catch_all' );
+		}
+		if ( ! get_option( self::OPT_DEFAULT_TEMPLATE ) || ! self::default_template() ) {
+			update_option( self::OPT_DEFAULT_TEMPLATE, (int) $id, false );
+		}
+	}
+
+	/** Throw away unpublished changes: the editor gets the live version back. */
+	public static function ajax_discard_draft() {
+		global $wpdb;
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		if ( ! $id ) {
+			wp_send_json_error( array( 'message' => __( 'No document specified.', 'velox' ) ), 400 );
+		}
+		$wpdb->update( self::table(), array( 'draft' => null, 'updated' => current_time( 'mysql' ) ), array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
+		wp_send_json_success( array( 'id' => $id ) );
+	}
+
+	/** Make a template the site default (Templates screen). */
+	public static function ajax_template_default() {
+		global $wpdb;
+		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		$ok = $id ? (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . self::table() . " WHERE id = %d AND kind = 'template'", $id ) ) : 0;
+		if ( ! $ok ) {
+			wp_send_json_error( array( 'message' => __( 'Template not found.', 'velox' ) ), 404 );
+		}
+		self::set_default_template( $id );
+		self::purge_cache_for();
+		wp_send_json_success( array( 'id' => $id ) );
+	}
+
+	/* ------------------------------------------------------- global classes */
+
+	const OPT_CLASSES = 'velox_builder_classes';
+
+	/**
+	 * The site-wide copy of every class someone has edited. Each document also
+	 * keeps its own copy (so it stays self-contained), but on the page this copy
+	 * wins — the editor says "a change rewrites this class everywhere", and
+	 * before, the page's copy of a class silently beat the template's.
+	 */
+	public static function class_registry() {
+		$r = get_option( self::OPT_CLASSES, array() );
+		return is_array( $r ) ? $r : array();
+	}
+
+	/** Write classes into the registry (name => rules; null deletes). */
+	public static function registry_put( $classes ) {
+		$r = self::class_registry();
+		foreach ( (array) $classes as $name => $rules ) {
+			$name = (string) $name;
+			if ( '' === $name || '.' !== $name[0] ) {
+				continue;
+			}
+			if ( null === $rules ) {
+				unset( $r[ $name ] );
+				continue;
+			}
+			$clean = array();
+			foreach ( (array) $rules as $key => $props ) {
+				if ( ! preg_match( '/^[a-z]+(:[a-z][a-z0-9-]*(\([a-z0-9+\- ]*\))?)?$/i', (string) $key ) ) {
+					continue;
+				}
+				$out = array();
+				foreach ( (array) $props as $prop => $val ) {
+					if ( is_scalar( $val ) && preg_match( '/^[a-zA-Z]+$/', (string) $prop ) ) {
+						$out[ $prop ] = self::sanitize_css_value( (string) $val );
+					}
+				}
+				$clean[ $key ] = $out;
+			}
+			$r[ $name ] = $clean;
+		}
+		update_option( self::OPT_CLASSES, $r, false );
+	}
+
+	/**
+	 * Store a model (array form) as JSON with every map kept as an object, so an
+	 * empty one is written {} and not [] (see ajax_save for why that matters).
+	 */
+	public static function encode_model( $m ) {
+		$obj = function ( $v ) {
+			return (object) ( is_array( $v ) ? $v : array() );
+		};
+		$cls = array();
+		foreach ( (array) ( $m['classes'] ?? array() ) as $c => $by_key ) {
+			$k = array();
+			foreach ( (array) $by_key as $key => $props ) {
+				$k[ $key ] = $obj( $props );
+			}
+			$cls[ $c ] = (object) $k;
+		}
+		$m['classes'] = (object) $cls;
+		$m['content'] = $obj( $m['content'] ?? array() );
+		if ( isset( $m['page'] ) ) {
+			$m['page'] = $obj( $m['page'] );
+		}
+		$fix = function ( $nodes ) use ( &$fix, $obj ) {
+			$out = array();
+			foreach ( (array) $nodes as $n ) {
+				if ( ! is_array( $n ) ) {
+					continue;
+				}
+				$ov = array();
+				foreach ( (array) ( $n['overrides'] ?? array() ) as $key => $props ) {
+					$ov[ $key ] = $obj( $props );
+				}
+				$n['overrides'] = (object) $ov;
+				if ( isset( $n['settings'] ) ) {
+					$n['settings'] = $obj( $n['settings'] );
+				}
+				if ( isset( $n['aos'] ) ) {
+					$n['aos'] = $obj( $n['aos'] );
+				}
+				$n['children'] = $fix( $n['children'] ?? array() );
+				$out[] = $n;
+			}
+			return $out;
+		};
+		$m['tree'] = $fix( $m['tree'] ?? array() );
+		unset( $m['__id'], $m['__title'], $m['__kind'], $m['__status'] );
+		return wp_json_encode( $m );
+	}
+
+	/** Load a document's model for the editor (its draft, when there is one). */
 	public static function ajax_load() {
 		global $wpdb;
 		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
 		if ( ! $id ) {
 			wp_send_json_error( array( 'message' => __( 'No document specified.', 'velox' ) ), 400 );
 		}
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, title, kind, status, post_id, data FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, title, kind, status, post_id, data, draft FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A );
 		if ( ! $row ) {
 			wp_send_json_error( array( 'message' => __( 'Document not found.', 'velox' ) ), 404 );
 		}
+		$has_draft = null !== $row['draft'] && '' !== $row['draft'];
+		// Objects, so empty maps stay {} (see ajax_save).
+		$model = json_decode( $has_draft ? $row['draft'] : $row['data'] );
+		if ( ! is_object( $model ) ) {
+			$model = json_decode( (string) $row['data'] );
+		}
+		// The editor shows the site-wide version of each class, except the ones
+		// this document changed and has not published yet.
+		if ( is_object( $model ) && isset( $model->classes ) && is_object( $model->classes ) ) {
+			$pending = isset( $model->changedClasses ) && is_array( $model->changedClasses ) ? $model->changedClasses : array();
+			foreach ( self::class_registry() as $cname => $rules ) {
+				if ( property_exists( $model->classes, $cname ) && ! in_array( $cname, $pending, true ) ) {
+					$k = array();
+					foreach ( (array) $rules as $key => $props ) {
+						$k[ $key ] = (object) $props;
+					}
+					$model->classes->{$cname} = (object) $k;
+				}
+			}
+		}
 		wp_send_json_success(
 			array(
-				'id'     => (int) $row['id'],
-				'title'  => $row['title'],
-				'kind'   => $row['kind'],
-				'status' => $row['status'],
-				'post_id' => (int) $row['post_id'],
-				'url'    => $row['post_id'] ? get_permalink( (int) $row['post_id'] ) : '',
-				'preview' => $row['post_id'] ? get_preview_post_link( (int) $row['post_id'] ) : '',
-				// Objects, so empty maps stay {} (see ajax_save).
-				'model'  => json_decode( $row['data'] ),
+				'id'        => (int) $row['id'],
+				'title'     => $row['title'],
+				'kind'      => $row['kind'],
+				'status'    => $row['status'],
+				'has_draft' => $has_draft ? 1 : 0,
+				'post_id'   => (int) $row['post_id'],
+				'url'       => $row['post_id'] ? get_permalink( (int) $row['post_id'] ) : '',
+				'preview'   => $row['post_id'] ? get_preview_post_link( (int) $row['post_id'] ) : '',
+				'model'     => $model,
 			)
 		);
 	}
@@ -782,9 +961,9 @@ class Velox_Builder {
 		self::purge_orphans();
 		$t = self::table();
 		if ( $kind ) {
-			return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, post_id, css_size, updated FROM {$t} WHERE kind = %s ORDER BY updated DESC LIMIT %d", $kind, $limit ), ARRAY_A );
+			return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, post_id, css_size, updated, ( draft IS NOT NULL AND draft <> '' ) AS has_draft FROM {$t} WHERE kind = %s ORDER BY updated DESC LIMIT %d", $kind, $limit ), ARRAY_A );
 		}
-		return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, post_id, css_size, updated FROM {$t} ORDER BY updated DESC LIMIT %d", $limit ), ARRAY_A );
+		return $wpdb->get_results( $wpdb->prepare( "SELECT id, title, kind, status, post_id, css_size, updated, ( draft IS NOT NULL AND draft <> '' ) AS has_draft FROM {$t} ORDER BY updated DESC LIMIT %d", $limit ), ARRAY_A );
 	}
 
 	/* =====================================================================
@@ -870,7 +1049,9 @@ class Velox_Builder {
 	}
 
 	public static function ajax_js_save() {
-		if ( ! current_user_can( 'unfiltered_html' ) && ! current_user_can( 'manage_options' ) ) {
+		// Global scripts run on every page. manage_options alone is not enough on
+		// multisite, where only super admins may post unfiltered HTML.
+		if ( ! current_user_can( 'unfiltered_html' ) ) {
 			wp_send_json_error( array( 'message' => __( 'You are not allowed to add scripts.', 'velox' ) ), 403 );
 		}
 		$raw   = isset( $_POST['files'] ) ? wp_unslash( $_POST['files'] ) : '';
@@ -968,6 +1149,7 @@ class Velox_Builder {
 			}
 		}
 		update_option( self::OPT_TOKENS, $clean );
+		self::purge_cache_for();
 		wp_send_json_success( array( 'tokens' => $clean ) );
 	}
 
@@ -1031,6 +1213,10 @@ class Velox_Builder {
 	/** Breakpoints, used by the editor, the renderer and the class CSS parser. */
 	public static function breakpoints() {
 		$w = self::global_styles()['width'];
+		// "Leave empty to inherit" — an empty field collapsed the breakpoints to
+		// 320px / 240px, which switched every responsive rule off.
+		$w['tablet']    = ( '' === (string) ( $w['tablet'] ?? '' ) || (float) $w['tablet'] < 320 ) ? 991 : $w['tablet'];
+		$w['landscape'] = ( '' === (string) ( $w['landscape'] ?? '' ) || (float) $w['landscape'] < 240 ) ? 767 : $w['landscape'];
 		// Bootstrap 5 boundaries. lg/md stay tied to the editable global widths
 		// (which already sit on Bootstrap's 992/768 lines) so an existing site
 		// keeps the boundaries it was designed against; xxl, xl and sm are fixed
@@ -1059,7 +1245,8 @@ class Velox_Builder {
 			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
 		}
 		$num = function ( $v ) { return preg_replace( '/[^0-9.]/', '', (string) $v ); };
-		$col = function ( $v ) { $v = trim( (string) $v ); return preg_match( '/^(#[0-9a-f]{3,8}|rgba?\([\d\s,.%]+\)|var\(--[a-z0-9\-]+\)|)$/i', $v ) ? $v : ''; };
+		// hsl(), named colours and transparent were wiped on save.
+		$col = function ( $v ) { $v = trim( (string) $v ); return preg_match( '/^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s,.%\/a-z]+\)|var\(--[a-z0-9\-]+(\s*,\s*[#a-z0-9(),.%\s\/-]+)?\)|[a-z]{3,24}|)$/i', $v ) ? $v : ''; };
 		$txt = function ( $v ) { return sanitize_text_field( (string) $v ); };
 
 		$out = array(
@@ -1223,7 +1410,7 @@ class Velox_Builder {
 	public static function page_inventory() {
 		global $wpdb;
 		$t    = self::table();
-		$docs = $wpdb->get_results( "SELECT id, title, kind, status, post_id, updated FROM {$t} ORDER BY updated DESC", ARRAY_A );
+		$docs = $wpdb->get_results( "SELECT id, title, kind, status, post_id, updated, ( draft IS NOT NULL AND draft <> '' ) AS has_draft FROM {$t} ORDER BY updated DESC", ARRAY_A );
 		$out  = array();
 		$bound = array();
 
@@ -1239,8 +1426,10 @@ class Velox_Builder {
 				$live = Velox_Builder_Render::render_status( $pid );
 			} elseif ( 'page' === $d['kind'] ) {
 				$live = array( 'live' => false, 'reason' => __( 'Never published, so it has no URL yet. Open it and press Publish.', 'velox' ) );
-			} else {
+			} elseif ( 'published' === $d['status'] ) {
 				$live = array( 'live' => true, 'reason' => __( 'Building block — not served at a URL of its own.', 'velox' ) );
+			} else {
+				$live = array( 'live' => false, 'reason' => __( 'Not used on the site until it is published.', 'velox' ) );
 			}
 			$out[] = array(
 				'type'    => $d['kind'],                 // page | template | reusable
@@ -1251,6 +1440,7 @@ class Velox_Builder {
 				'post_id' => $pid,
 				'title'   => $d['title'] ? $d['title'] : __( 'Untitled', 'velox' ),
 				'status'  => $d['status'],
+				'has_draft' => (int) $d['has_draft'],
 				'updated' => $d['updated'],
 				'edit'    => self::edit_url( (int) $d['id'], $d['kind'] ),
 				'view'    => $pid ? get_permalink( $pid ) : '',
@@ -1314,9 +1504,10 @@ class Velox_Builder {
 			wp_send_json_error( array( 'message' => __( 'Invalid document type.', 'velox' ) ), 400 );
 		}
 		$wpdb->update( self::table(), array( 'kind' => $kind, 'updated' => current_time( 'mysql' ) ), array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
-		if ( 'template' === $kind && ! self::default_template() ) {
-			update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
+		if ( 'template' === $kind ) {
+			self::adopt_template( $id );
 		}
+		self::purge_cache_for();
 		wp_send_json_success( array( 'id' => $id, 'kind' => $kind ) );
 	}
 
@@ -1340,7 +1531,7 @@ class Velox_Builder {
 	public static function ajax_doc_duplicate() {
 		global $wpdb;
 		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
-		$row = $id ? $wpdb->get_row( $wpdb->prepare( 'SELECT title, kind, data, css_size FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A ) : null;
+		$row = $id ? $wpdb->get_row( $wpdb->prepare( 'SELECT title, kind, COALESCE( NULLIF( draft, \'\' ), data ) AS data, css_size FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A ) : null;
 		if ( ! $row ) {
 			wp_send_json_error( array( 'message' => __( 'Document not found.', 'velox' ) ), 404 );
 		}
@@ -1386,6 +1577,10 @@ class Velox_Builder {
 	/** The stored rules for one class, as editable CSS text. */
 	public static function class_css( $name ) {
 		global $wpdb;
+		$reg = self::class_registry();
+		if ( isset( $reg[ $name ] ) ) {
+			return self::rules_to_css( $name, $reg[ $name ] );
+		}
 		$rows = $wpdb->get_results( 'SELECT data FROM ' . self::table(), ARRAY_A );
 		foreach ( (array) $rows as $row ) {
 			$model = json_decode( $row['data'], true );
@@ -1420,8 +1615,13 @@ class Velox_Builder {
 				continue;
 			}
 			if ( 'base' !== $bp ) {
-				$bpx  = self::breakpoints();
-				$mq   = 'tablet' === $bp ? '(max-width: ' . $bpx['tablet'] . 'px)' : '(max-width: ' . $bpx['mobile'] . 'px)';
+				// Every breakpoint gets its REAL media query. All of them used to be
+				// written as the mobile one, and saving turned them into mobile rules.
+				$mqs  = Velox_Builder_Render::media_queries();
+				$mq   = $mqs[ $bp ] ?? '';
+				if ( ! $mq ) {
+					continue;
+				}
 				$out .= '@media ' . $mq . " {\n" . $sel . " {\n" . $body . "}\n}\n\n";
 			} else {
 				$out .= $sel . " {\n" . $body . "}\n\n";
@@ -1439,18 +1639,17 @@ class Velox_Builder {
 			wp_send_json_error( array( 'message' => __( 'Missing class name.', 'velox' ) ), 400 );
 		}
 		$rules = self::css_to_rules( $name, (string) $css );
-		$t     = self::table();
-		$rows  = $wpdb->get_results( "SELECT id, data FROM {$t}", ARRAY_A );
-		$hit   = 0;
-		foreach ( (array) $rows as $row ) {
-			$model = json_decode( $row['data'], true );
-			if ( ! is_array( $model ) || ! isset( $model['classes'][ $name ] ) ) {
-				continue;
+		$hit   = self::each_model(
+			function ( &$model ) use ( $name, $rules ) {
+				if ( ! isset( $model['classes'][ $name ] ) ) {
+					return false;
+				}
+				$model['classes'][ $name ] = $rules;
+				return true;
 			}
-			$model['classes'][ $name ] = $rules;
-			$wpdb->update( $t, array( 'data' => wp_json_encode( $model ), 'updated' => current_time( 'mysql' ) ), array( 'id' => (int) $row['id'] ), array( '%s', '%s' ), array( '%d' ) );
-			$hit++;
-		}
+		);
+		self::registry_put( array( $name => $rules ) );
+		self::purge_cache_for();
 		wp_send_json_success( array( 'name' => $name, 'docs' => $hit ) );
 	}
 
@@ -1472,8 +1671,7 @@ class Velox_Builder {
 			foreach ( $m as $mm ) {
 				// Match on the site's ACTUAL breakpoints, not the old fixed numbers —
 				// otherwise editing a class silently dropped its responsive rules.
-				$bpx = self::breakpoints();
-				$bp  = ( false !== strpos( $mm[1], (string) $bpx['tablet'] ) ) ? 'tablet' : ( ( false !== strpos( $mm[1], (string) $bpx['mobile'] ) ) ? 'mobile' : '' );
+				$bp = self::bp_for_media( $mm[1] );
 				if ( $bp ) {
 					$scoped[] = array( $bp, $mm[2] );
 				}
@@ -1514,6 +1712,23 @@ class Velox_Builder {
 		return $rules;
 	}
 
+	/** Which breakpoint key a "(max-width: N px)" media query stands for. */
+	private static function bp_for_media( $mq ) {
+		if ( ! preg_match( '/max-width\s*:\s*([\d.]+)\s*px/i', (string) $mq, $m ) ) {
+			return '';
+		}
+		$n = (float) $m[1];
+		foreach ( self::breakpoints() as $key => $px ) {
+			if ( in_array( $key, array( 'tablet', 'mobile' ), true ) ) {
+				continue;
+			}
+			if ( abs( (float) $px - $n ) < 1 ) {
+				return $key;
+			}
+		}
+		return '';
+	}
+
 	/** Strip anything that could break out of a declaration. */
 	private static function sanitize_css_value( $v ) {
 		$v = str_replace( array( '}', '{', '<', '>' ), '', (string) $v );
@@ -1544,50 +1759,87 @@ class Velox_Builder {
 		wp_send_json_success( array( 'class' => $cls, 'docs' => $changed ) );
 	}
 
-	/** Rename ($to string) or delete ($to null) a class across every document. */
-	private static function rewrite_class( $from, $to ) {
+	/**
+	 * Run $fn over every stored model — the live version and the draft — and
+	 * write back the ones it changed ($fn returns true). Returns how many
+	 * documents changed.
+	 */
+	private static function each_model( $fn ) {
 		global $wpdb;
 		$t       = self::table();
-		$rows    = $wpdb->get_results( "SELECT id, data FROM {$t}", ARRAY_A );
+		$rows    = $wpdb->get_results( "SELECT id, data, draft FROM {$t}", ARRAY_A );
 		$changed = 0;
 		foreach ( (array) $rows as $row ) {
-			$model = json_decode( $row['data'], true );
-			if ( ! is_array( $model ) || empty( $model['classes'] ) || ! isset( $model['classes'][ $from ] ) ) {
-				continue;
-			}
-			// rules map
-			if ( null === $to ) {
-				unset( $model['classes'][ $from ] );
-			} else {
-				$model['classes'][ $to ] = $model['classes'][ $from ];
-				unset( $model['classes'][ $from ] );
-			}
-			// node class references
-			self::walk_ref(
-				$model['tree'],
-				function ( &$node ) use ( $from, $to ) {
-					if ( empty( $node['classes'] ) ) {
-						return;
-					}
-					$out = array();
-					foreach ( $node['classes'] as $c ) {
-						if ( $c === $from ) {
-							if ( null !== $to ) {
-								$out[] = $to;
-							}
-						} else {
-							$out[] = $c;
-						}
-					}
-					$node['classes'] = $out;
+			$hit    = false;
+			$fields = array();
+			foreach ( array( 'data', 'draft' ) as $col ) {
+				if ( null === $row[ $col ] || '' === $row[ $col ] ) {
+					continue;
 				}
-			);
-			$wpdb->update( $t, array( 'data' => wp_json_encode( $model ), 'updated' => current_time( 'mysql' ) ), array( 'id' => $row['id'] ), array( '%s', '%s' ), array( '%d' ) );
-			if ( class_exists( 'Velox_Builder_Render' ) ) {
-				Velox_Builder_Render::write_css_for( (int) $row['id'] );
+				$model = json_decode( $row[ $col ], true );
+				if ( ! is_array( $model ) ) {
+					continue;
+				}
+				if ( $fn( $model ) ) {
+					$fields[ $col ] = self::encode_model( $model );
+					$hit            = true;
+				}
 			}
-			$changed++;
+			if ( $hit ) {
+				$fields['updated'] = current_time( 'mysql' );
+				$wpdb->update( $t, $fields, array( 'id' => (int) $row['id'] ) );
+				$changed++;
+			}
 		}
+		return $changed;
+	}
+
+	/** Rename ($to string) or delete ($to null) a class across every document. */
+	private static function rewrite_class( $from, $to ) {
+		$changed = self::each_model(
+			function ( &$model ) use ( $from, $to ) {
+				if ( empty( $model['classes'] ) || ! is_array( $model['classes'] ) || ! isset( $model['classes'][ $from ] ) ) {
+					return false;
+				}
+				// Renaming onto a class that already exists keeps that class's rules
+				// rather than overwriting them.
+				if ( null !== $to && ! isset( $model['classes'][ $to ] ) ) {
+					$model['classes'][ $to ] = $model['classes'][ $from ];
+				}
+				unset( $model['classes'][ $from ] );
+				if ( isset( $model['activeClass'] ) && $model['activeClass'] === $from ) {
+					$model['activeClass'] = $to;
+				}
+				if ( ! empty( $model['tree'] ) && is_array( $model['tree'] ) ) {
+					self::walk_ref(
+						$model['tree'],
+						function ( &$node ) use ( $from, $to ) {
+							if ( empty( $node['classes'] ) ) {
+								return;
+							}
+							$out = array();
+							foreach ( $node['classes'] as $c ) {
+								$c = ( $c === $from ) ? $to : $c;
+								if ( null !== $c && ! in_array( $c, $out, true ) ) {
+									$out[] = $c;
+								}
+							}
+							$node['classes'] = $out;
+						}
+					);
+				}
+				return true;
+			}
+		);
+		$reg = self::class_registry();
+		if ( isset( $reg[ $from ] ) ) {
+			$put = array( $from => null );
+			if ( null !== $to && ! isset( $reg[ $to ] ) ) {
+				$put[ $to ] = $reg[ $from ];
+			}
+			self::registry_put( $put );
+		}
+		self::purge_cache_for();
 		return $changed;
 	}
 
@@ -1611,9 +1863,21 @@ class Velox_Builder {
 		// If this doc is bound to a WP page/post, trash that post too (recoverable).
 		$post_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . self::table() . ' WHERE id = %d', $id ) );
 		$wpdb->delete( self::table(), array( 'id' => $id ), array( '%d' ) );
+		// Leave nothing behind: its template rule, the default pointer, its CSS file.
+		$rules = self::template_rules();
+		if ( isset( $rules[ $id ] ) ) {
+			unset( $rules[ $id ] );
+			update_option( self::OPT_TPL_RULES, $rules );
+		}
+		if ( (int) get_option( self::OPT_DEFAULT_TEMPLATE, 0 ) === $id ) {
+			delete_option( self::OPT_DEFAULT_TEMPLATE );
+		}
+		if ( class_exists( 'Velox_Builder_Render' ) ) {
+			Velox_Builder_Render::write_css_for( $id );
+		}
+		self::purge_cache_for();
 		if ( $post_id ) {
 			// Detach our hook first so trashing doesn't recurse back here.
-			remove_action( 'wp_trash_post', array( 'Velox_Builder', 'on_post_deleted' ) );
 			wp_trash_post( $post_id );
 			delete_post_meta( $post_id, '_velox_builder_doc' );
 		}
@@ -1659,27 +1923,63 @@ class Velox_Builder {
 	 * @return int Template doc id, or 0 for none.
 	 */
 	public static function template_for_post( $post_id ) {
+		$live   = self::live_templates();
 		$choice = get_post_meta( (int) $post_id, '_velox_template', true );
 		if ( '' !== $choice && null !== $choice ) {
 			$choice = (int) $choice;
 			if ( -1 === $choice ) {
 				return 0; // "No template" chosen deliberately.
 			}
-			if ( $choice > 0 ) {
-				global $wpdb;
-				$ok = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . self::table() . " WHERE id = %d AND kind = 'template'", $choice ) );
-				if ( $ok ) {
-					return $choice;
-				}
+			if ( $choice > 0 && in_array( $choice, $live, true ) ) {
+				return $choice;
 			}
 		}
-		// No explicit choice: let a template's stated purpose decide, and only
-		// fall back to "the site default" when nothing claims this page.
-		$by_purpose = self::template_by_purpose( $post_id );
+		// A template made for exactly this kind of page (front page, posts, pages)
+		// wins. Then the site default — it was losing to any catch-all rule, so
+		// the page editor said "Site default (A)" while the page showed B. Then
+		// any other catch-all template.
+		$by_purpose = self::template_by_purpose( $post_id, false );
 		if ( $by_purpose ) {
 			return $by_purpose;
 		}
-		return self::default_template();
+		$default = self::default_template();
+		if ( $default && in_array( $default, $live, true ) ) {
+			return $default;
+		}
+		return self::template_for_context( array( 'catch_all' ) );
+	}
+
+	/** Ids of templates that are published (only those apply on the site). */
+	public static function live_templates() {
+		static $cache = null;
+		if ( null === $cache ) {
+			global $wpdb;
+			$cache = array_map( 'intval', (array) $wpdb->get_col( 'SELECT id FROM ' . self::table() . " WHERE kind = 'template' AND status = 'published' ORDER BY id ASC" ) );
+		}
+		return $cache;
+	}
+
+	/** First published template whose purpose is in $purposes (in that order). */
+	public static function template_for_context( $purposes ) {
+		$rules = self::template_rules();
+		$live  = self::live_templates();
+		foreach ( (array) $purposes as $purpose ) {
+			foreach ( $rules as $doc_id => $p ) {
+				if ( $p === $purpose && in_array( (int) $doc_id, $live, true ) ) {
+					return (int) $doc_id;
+				}
+			}
+			// A template with no rule at all is shown as "Catch-all" on the
+			// Templates screen, so it counts as one here too.
+			if ( 'catch_all' === $purpose ) {
+				foreach ( $live as $tid ) {
+					if ( ! isset( $rules[ $tid ] ) ) {
+						return $tid;
+					}
+				}
+			}
+		}
+		return 0;
 	}
 
 	/** All templates, for the page-editor picker. */
@@ -1690,19 +1990,21 @@ class Velox_Builder {
 	}
 
 	/** Full decoded model for one document (tree + classes + content). */
-	public static function doc_model( $id ) {
+	public static function doc_model( $id, $prefer_draft = false ) {
 		global $wpdb;
-		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, title, kind, data FROM ' . self::table() . ' WHERE id = %d', (int) $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, title, kind, status, data, draft FROM ' . self::table() . ' WHERE id = %d', (int) $id ), ARRAY_A );
 		if ( ! $row ) {
 			return null;
 		}
-		$model = json_decode( $row['data'], true );
+		$use   = ( $prefer_draft && null !== $row['draft'] && '' !== $row['draft'] ) ? $row['draft'] : $row['data'];
+		$model = json_decode( (string) $use, true );
 		if ( ! is_array( $model ) ) {
 			return null;
 		}
 		$model['__id']    = (int) $row['id'];
 		$model['__title'] = $row['title'];
-		$model['__kind']  = $row['kind'];
+		$model['__kind']   = $row['kind'];
+		$model['__status'] = $row['status'];
 		return $model;
 	}
 
@@ -1720,9 +2022,8 @@ class Velox_Builder {
 		$rows = $wpdb->get_results( 'SELECT id, title, kind, data FROM ' . self::table(), ARRAY_A );
 		$out  = array();
 		foreach ( (array) $rows as $row ) {
-			if ( 'reusable' === $row['kind'] ) {
-				continue; // a reusable referencing itself is not "usage"
-			}
+			// Reusables inside reusables count too (a reusable referencing itself
+			// does not).
 			$model = json_decode( $row['data'], true );
 			if ( ! is_array( $model ) || empty( $model['tree'] ) ) {
 				continue;
@@ -1740,6 +2041,9 @@ class Velox_Builder {
 			};
 			$walk( $model['tree'] );
 			foreach ( array_keys( $found ) as $ref ) {
+				if ( (int) $ref === (int) $row['id'] ) {
+					continue;
+				}
 				$out[ $ref ][] = array(
 					'id'    => (int) $row['id'],
 					'title' => $row['title'] ? $row['title'] : __( 'Untitled', 'velox' ),
@@ -1752,12 +2056,19 @@ class Velox_Builder {
 
 	public static function reusables_payload() {
 		global $wpdb;
-		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, data FROM ' . self::table() . ' WHERE kind = %s ORDER BY title ASC', 'reusable' ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, data, draft FROM ' . self::table() . ' WHERE kind = %s ORDER BY title ASC', 'reusable' ), ARRAY_A );
 		$out  = array();
+		$reg  = self::class_registry();
 		foreach ( (array) $rows as $row ) {
-			$model = json_decode( $row['data'], true );
+			// The editor shows the latest version, saved or published.
+			$model = json_decode( ( null !== $row['draft'] && '' !== $row['draft'] ) ? $row['draft'] : $row['data'], true );
 			if ( ! is_array( $model ) ) {
 				continue;
+			}
+			foreach ( (array) ( $model['classes'] ?? array() ) as $cname => $rules ) {
+				if ( isset( $reg[ $cname ] ) ) {
+					$model['classes'][ $cname ] = $reg[ $cname ];
+				}
 			}
 			$out[] = array(
 				'id'      => (int) $row['id'],
@@ -1776,26 +2087,6 @@ class Velox_Builder {
 		return is_array( $r ) ? array_merge( array( 'header' => 0, 'footer' => 0 ), $r ) : array( 'header' => 0, 'footer' => 0 );
 	}
 
-	/** Set (or clear) a template's role as the site header or footer. */
-	public static function ajax_template_role() {		$id   = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
-		$role = isset( $_POST['role'] ) ? sanitize_key( wp_unslash( $_POST['role'] ) ) : '';
-		if ( ! in_array( $role, array( 'header', 'footer', 'none' ), true ) ) {
-			wp_send_json_error( array( 'message' => __( 'Invalid role.', 'velox' ) ), 400 );
-		}
-		$roles = self::roles();
-		// A template can hold at most one role; clear it from any other slot first.
-		foreach ( array( 'header', 'footer' ) as $slot ) {
-			if ( (int) $roles[ $slot ] === $id ) {
-				$roles[ $slot ] = 0;
-			}
-		}
-		if ( 'none' !== $role ) {
-			$roles[ $role ] = $id;
-		}
-		update_option( self::OPT_ROLES, $roles );
-		wp_send_json_success( array( 'roles' => $roles ) );
-	}
-
 	/** Save a node (with its classes) as a reusable document. */
 	public static function ajax_make_reusable() {
 		global $wpdb;
@@ -1808,7 +2099,7 @@ class Velox_Builder {
 		if ( ! is_array( $node ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid element.', 'velox' ) ), 400 );
 		}
-		$data = wp_json_encode( array(
+		$data = self::encode_model( array(
 			'tree'    => array( $node ),
 			'classes' => is_array( $classes ) ? $classes : array(),
 			'content' => is_array( $content ) ? $content : array(),
@@ -1951,34 +2242,21 @@ class Velox_Builder {
 	 * win: a Front page template beats a Pages template, which beats catch-all.
 	 * Returns 0 when nothing matches.
 	 */
-	public static function template_by_purpose( $post_id ) {
-		global $wpdb;
-		$rules = self::template_rules();
-		if ( ! $rules ) {
-			return 0;
-		}
+	public static function template_by_purpose( $post_id, $with_catch_all = true ) {
 		$post = get_post( $post_id );
 		if ( ! $post ) {
 			return 0;
 		}
 		$wanted = array();
-		if ( (int) get_option( 'page_on_front' ) === (int) $post_id ) {
+		// "Front page" only means something when a static page is the front page.
+		if ( 'page' === get_option( 'show_on_front' ) && (int) get_option( 'page_on_front' ) === (int) $post_id ) {
 			$wanted[] = 'front_page';
 		}
 		$wanted[] = ( 'post' === $post->post_type ) ? 'posts' : 'pages';
-		$wanted[] = 'catch_all';
-
-		// Only templates that still exist and are actually templates count.
-		$valid = $wpdb->get_col( "SELECT id FROM " . self::table() . " WHERE kind = 'template'" );
-		$valid = array_map( 'intval', (array) $valid );
-		foreach ( $wanted as $purpose ) {
-			foreach ( $rules as $doc_id => $p ) {
-				if ( $p === $purpose && in_array( (int) $doc_id, $valid, true ) ) {
-					return (int) $doc_id;
-				}
-			}
+		if ( $with_catch_all ) {
+			$wanted[] = 'catch_all';
 		}
-		return 0;
+		return self::template_for_context( $wanted );
 	}
 
 	public static function ajax_template_purpose() {
@@ -2003,8 +2281,8 @@ class Velox_Builder {
 		// A template starts with the Inner Content slot already in place — without
 		// it a template cannot show any page's content, which was the single most
 		// confusing thing about building one from scratch.
-		$data = wp_json_encode( array(
-			'tree'    => array( array( 'id' => 'innercontent-1', 'el' => 'InnerContent', 'tag' => 'div', 'classes' => array( '.inner-content' ), 'overrides' => array(), 'children' => array() ) ),
+		$data = self::encode_model( array(
+			'tree'    => array( array( 'id' => 'innercontent-' . strtolower( wp_generate_password( 6, false, false ) ), 'el' => 'InnerContent', 'tag' => 'div', 'classes' => array( '.inner-content' ), 'overrides' => array(), 'children' => array() ) ),
 			'classes' => array( '.inner-content' => array( 'base' => array( 'minHeight' => '200' ) ) ),
 			'content' => array(),
 		) );
@@ -2151,9 +2429,33 @@ class Velox_Builder {
 			wp_send_json_error( array( 'message' => __( 'Save the page before publishing.', 'velox' ) ), 400 );
 		}
 		$t   = self::table();
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, post_id, kind FROM {$t} WHERE id = %d", $id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, post_id, kind, data, draft FROM {$t} WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			wp_send_json_error( array( 'message' => __( 'Document not found.', 'velox' ) ), 404 );
+		}
+
+		// The saved draft becomes what visitors see, and the classes this document
+		// changed become the site-wide version of those classes.
+		$live  = ( null !== $row['draft'] && '' !== $row['draft'] ) ? $row['draft'] : $row['data'];
+		$model = json_decode( (string) $live, true );
+		$global_change = false;
+		if ( is_array( $model ) && ! empty( $model['changedClasses'] ) ) {
+			$put = array();
+			foreach ( (array) $model['changedClasses'] as $cname ) {
+				if ( isset( $model['classes'][ $cname ] ) ) {
+					$put[ $cname ] = $model['classes'][ $cname ];
+				}
+			}
+			if ( $put ) {
+				self::registry_put( $put );
+				$global_change = true;
+			}
+			unset( $model['changedClasses'] );
+			$live = self::encode_model( $model );
+		}
+		$wpdb->update( $t, array( 'data' => $live, 'draft' => null ), array( 'id' => $id ) );
+		if ( $global_change ) {
+			self::purge_cache_for();
 		}
 
 		// Only pages live at a URL. Templates and reusables are building blocks —
