@@ -119,6 +119,14 @@ class Velox_Ajax {
 				Velox_Builder::ajax_switcher_list();
 				break;
 
+			case 'builder_oxygen_sources':
+				Velox_Builder_Oxygen::ajax_sources();
+				break;
+
+			case 'builder_oxygen_import':
+				Velox_Builder_Oxygen::ajax_import();
+				break;
+
 			case 'builder_js_save':
 				Velox_Builder::ajax_js_save();
 				break;

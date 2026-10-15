@@ -22,6 +22,10 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Velox_Builder_Render {
 
 	/** camelCase model keys → real CSS properties (mirrors the editor). */
+	/** Reusables being rendered right now (recursion guard). */
+	private static $reuse_stack = array();
+	/** Whether a Video or Icon element is on the page. */
+	private static $media_used = false;
 	private static $CSS_PROP = array(
 		'display' => 'display', 'flexDirection' => 'flex-direction', 'flexWrap' => 'flex-wrap', 'alignItems' => 'align-items', 'justifyContent' => 'justify-content', 'gap' => 'gap',
 		'paddingTop' => 'padding-top', 'paddingRight' => 'padding-right', 'paddingBottom' => 'padding-bottom', 'paddingLeft' => 'padding-left',
@@ -102,6 +106,11 @@ class Velox_Builder_Render {
 			return $template;
 		}
 		$post_id = get_queried_object_id();
+		// A password-protected page was rendered in full to anyone. Leave it to the
+		// theme, which shows WordPress's password form.
+		if ( post_password_required( $post_id ) ) {
+			return $template;
+		}
 		$doc     = self::doc_for_post( $post_id );
 
 		if ( ! $doc ) {
@@ -130,14 +139,14 @@ class Velox_Builder_Render {
 		if ( $parent ) {
 			$post_id = (int) $parent;
 		}
-		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, data FROM {$t} WHERE post_id = %d AND status = 'published' LIMIT 1", $post_id ), ARRAY_A );
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, data FROM {$t} WHERE post_id = %d AND status = 'published' AND kind = 'page' LIMIT 1", $post_id ), ARRAY_A );
 		// Fall back to the binding stored on the post itself. The two can drift
 		// apart (a doc duplicated, a page restored from trash), and without this
 		// the visitor silently gets the theme with no clue why.
 		if ( ! $row ) {
 			$meta_doc = (int) get_post_meta( $post_id, '_velox_builder_doc', true );
 			if ( $meta_doc ) {
-				$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, data FROM {$t} WHERE id = %d AND status = 'published' LIMIT 1", $meta_doc ), ARRAY_A );
+				$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, data FROM {$t} WHERE id = %d AND status = 'published' AND kind = 'page' LIMIT 1", $meta_doc ), ARRAY_A );
 			}
 		}
 		// Logged-in editors previewing an unpublished layout should see it.
@@ -1456,9 +1465,64 @@ class Velox_Builder_Render {
 		}
 	}
 
+	/** Colour tokens and the spacing scale as CSS custom properties. */
+	public static function token_vars() {
+		$tokens = class_exists( 'Velox_Builder' ) ? Velox_Builder::tokens() : array();
+		$vars   = '';
+		foreach ( (array) ( $tokens['colors'] ?? array() ) as $c ) {
+			$name = preg_replace( '/[^a-z0-9\-]/', '', strtolower( (string) ( $c['name'] ?? '' ) ) );
+			$val  = self::sanitize_value( (string) ( $c['value'] ?? '' ) );
+			if ( $name && '' !== $val ) {
+				$vars .= '--' . $name . ':' . $val . ';';
+			}
+		}
+		$i = 0;
+		foreach ( (array) ( $tokens['spacing'] ?? array() ) as $s ) {
+			$s = preg_replace( '/[^0-9.]/', '', (string) $s );
+			if ( '' !== $s ) {
+				$vars .= '--space-' . $i . ':' . $s . 'px;';
+				$i++;
+			}
+		}
+		return $vars;
+	}
+
+	/**
+	 * What the editor canvas needs to look like the page: token variables and
+	 * the global styles. Without it var(--primary) rendered as nothing and the
+	 * global heading / body styles were missing while editing.
+	 */
+	public static function canvas_css() {
+		$vars = self::token_vars();
+		return ( '' !== $vars ? ':root{' . $vars . '}' : '' ) . self::global_styles_css() . self::media_element_css();
+	}
+
+	/** Base CSS for the Video and Icon elements (also used by the canvas). */
+	public static function media_element_css() {
+		return '.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}'
+			. '.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}'
+			. '.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}'
+			. '.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}';
+	}
+
+	/** Embed URL for a YouTube / Vimeo link, or '' when it is neither. */
+	public static function video_embed( $url, $autoplay = false ) {
+		$url = trim( (string) $url );
+		$q   = $autoplay ? '?autoplay=1&mute=1&loop=1&playsinline=1' : '';
+		if ( preg_match( '~(?:youtube\.com/(?:watch\?(?:.*&)?v=|embed/|shorts/|live/)|youtu\.be/)([A-Za-z0-9_-]{6,})~', $url, $m ) ) {
+			return 'https://www.youtube-nocookie.com/embed/' . $m[1] . ( $autoplay ? $q . '&playlist=' . $m[1] : '' );
+		}
+		if ( preg_match( '~vimeo\.com/(?:video/)?(\d+)~', $url, $m ) ) {
+			return 'https://player.vimeo.com/video/' . $m[1] . ( $autoplay ? '?autoplay=1&muted=1&loop=1&background=1' : '' );
+		}
+		return '';
+	}
+
 	/** Baseline CSS for runtime elements, so they look right before any styling. */
 	public static function element_base_css() {
-		if ( ! self::$runtime_used ) {
+		// Per-element CSS ($float_css) is written by many elements that need no
+		// runtime at all — returning early here dropped it on every simple page.
+		if ( ! self::$runtime_used && '' === (string) self::$float_css ) {
 			return '';
 		}
 		$css = '';
@@ -1770,23 +1834,7 @@ class Velox_Builder_Render {
 		if ( '' !== $face ) {
 			echo '<style id="velox-builder-fontface">' . $face . '</style>' . "\n"; // phpcs:ignore
 		}
-		$tokens = Velox_Builder::tokens();
-		$vars   = '';
-		foreach ( (array) ( $tokens['colors'] ?? array() ) as $c ) {
-			$name = preg_replace( '/[^a-z0-9\-]/', '', strtolower( $c['name'] ) );
-			$val  = self::sanitize_value( (string) $c['value'] );
-			if ( $name && '' !== $val ) {
-				$vars .= '--' . $name . ':' . $val . ';';
-			}
-		}
-		$i = 0;
-		foreach ( (array) ( $tokens['spacing'] ?? array() ) as $s ) {
-			$s = preg_replace( '/[^0-9.]/', '', (string) $s );
-			if ( '' !== $s ) {
-				$vars .= '--space-' . $i . ':' . $s . 'px;';
-				$i++;
-			}
-		}
+		$vars = self::token_vars();
 		if ( '' !== $vars ) {
 			echo '<style id="velox-builder-tokens">:root{' . $vars . '}</style>' . "\n"; // phpcs:ignore
 		}
@@ -1814,7 +1862,7 @@ class Velox_Builder_Render {
 		if ( ! empty( self::$page_settings['css'] ) ) {
 			$page_css .= str_ireplace( array( '</style', '<script' ), '', (string) self::$page_settings['css'] );
 		}
-		$gs = self::element_base_css() . self::global_styles_css() . $page_css;
+		$gs = self::element_base_css() . self::global_styles_css() . ( self::$media_used ? self::media_element_css() : '' ) . $page_css;
 		if ( '' !== $gs ) {
 			echo '<style id="velox-builder-global-styles">' . $gs . '</style>' . "\n"; // phpcs:ignore
 		}
@@ -2123,11 +2171,61 @@ class Velox_Builder_Render {
 			if ( ! $ref || ! class_exists( 'Velox_Builder' ) ) {
 				return '';
 			}
+			// A reusable that contains itself (directly or through another one)
+			// recursed until PHP ran out of memory — a white screen for the page.
+			if ( isset( self::$reuse_stack[ $ref ] ) || count( self::$reuse_stack ) > 8 ) {
+				return '';
+			}
 			$reuse = Velox_Builder::doc_model( $ref );
 			if ( ! $reuse || empty( $reuse['tree'] ) ) {
 				return '';
 			}
-			return '<div' . $attr . ' data-velox-reusable="' . $ref . '">' . self::render_tree( $reuse['tree'], $reuse ) . '</div>';
+			self::$reuse_stack[ $ref ] = true;
+			$inner = self::render_tree( $reuse['tree'], $reuse );
+			unset( self::$reuse_stack[ $ref ] );
+			return '<div' . $attr . ' data-velox-reusable="' . $ref . '">' . $inner . '</div>';
+		}
+
+		// Video: YouTube / Vimeo embed, or a self-hosted file.
+		if ( isset( $node['el'] ) && 'Video' === $node['el'] ) {
+			self::$media_used = true;
+			$url  = (string) self::el_set( $node, 'url', '' );
+			$auto = (bool) self::el_set( $node, 'autoplay', '' );
+			$body = '';
+			$emb  = self::video_embed( $url, $auto );
+			if ( $emb ) {
+				$title = (string) self::el_set( $node, 'title', '' );
+				$body  = '<iframe src="' . esc_url( $emb ) . '" title="' . esc_attr( '' !== $title ? $title : __( 'Video', 'velox' ) ) . '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>';
+			} elseif ( '' !== $url ) {
+				$poster = (string) self::el_set( $node, 'poster', '' );
+				$body   = '<video src="' . esc_url( $url ) . '"' . ( $poster ? ' poster="' . esc_url( $poster ) . '"' : '' )
+					. ( $auto ? ' autoplay muted loop playsinline' : ' controls' ) . ' preload="metadata"></video>';
+			}
+			$attr = preg_replace( '/ class="/', ' class="vx-video ', $attr, 1, $hit );
+			if ( ! $hit ) {
+				$attr .= ' class="vx-video"';
+			}
+			return '<div' . $attr . '>' . $body . '</div>';
+		}
+
+		// Icon: one of the built-in icons, sized by a setting.
+		if ( isset( $node['el'] ) && 'Icon' === $node['el'] ) {
+			self::$media_used = true;
+			$name = (string) self::el_set( $node, 'icon', 'star' );
+			$size = (int) self::el_set( $node, 'size', '32' );
+			$svg  = class_exists( 'Velox_Icons' ) ? Velox_Icons::svg( $name, $size > 0 ? $size : 32 ) : '';
+			$attr = preg_replace( '/ class="/', ' class="vx-icon ', $attr, 1, $hit );
+			if ( ! $hit ) {
+				$attr .= ' class="vx-icon"';
+			}
+			$label = (string) self::el_set( $node, 'label', '' );
+			$attr .= '' !== $label ? ' role="img" aria-label="' . esc_attr( $label ) . '"' : ' aria-hidden="true"';
+			$attr .= $size > 0 ? ' style="--vx-icon-size:' . $size . 'px"' : '';
+			$href  = isset( $node['href'] ) ? trim( (string) $node['href'] ) : '';
+			if ( '' !== $href ) {
+				return '<a' . $attr . ' href="' . esc_url( $href ) . '"' . ( ! empty( $node['target'] ) && '_blank' === $node['target'] ? ' target="_blank" rel="noopener"' : '' ) . '>' . $svg . '</a>';
+			}
+			return '<span' . $attr . '>' . $svg . '</span>';
 		}
 
 		// Image element: emit a real <img> from the stored URL (empty = nothing).
@@ -2137,8 +2235,22 @@ class Velox_Builder_Render {
 			// to survive to the page. It was hardcoded empty, which made every
 			// builder image invisible to search engines and screen readers alike.
 			$alt = isset( $node['alt'] ) ? sanitize_text_field( (string) $node['alt'] ) : '';
-			$img = $src ? '<img src="' . $src . '" alt="' . esc_attr( $alt ) . '"'
-				. ' style="display:block;max-width:100%;height:auto">' : '';
+			$att = isset( $node['att'] ) ? absint( $node['att'] ) : 0;
+			$img = '';
+			if ( $att && wp_attachment_is_image( $att ) ) {
+				// A media-library image: let WordPress build the tag, so the page gets
+				// srcset/sizes (phones download a small file), real width/height (no
+				// layout jump) and the library's alt text when none was typed here.
+				$attrs = array( 'style' => 'display:block;max-width:100%;height:auto' );
+				if ( '' !== $alt || ! empty( $node['altCustom'] ) ) {
+					$attrs['alt'] = $alt;
+				}
+				$img = wp_get_attachment_image( $att, 'large', false, $attrs );
+			}
+			if ( '' === $img && $src ) {
+				$img = '<img src="' . $src . '" alt="' . esc_attr( $alt ) . '"'
+					. ' style="display:block;max-width:100%;height:auto">';
+			}
 			return '<div' . $attr . '>' . $img . '</div>';
 		}
 
@@ -2226,7 +2338,7 @@ class Velox_Builder_Render {
 		// do_shortcode() comes after sanitising, so the stored text is still
 		// filtered but a registered shortcode is allowed to render.
 		$content = isset( $doc['content'][ $node['id'] ] )
-			? do_shortcode( wp_kses_post( self::resolve_tokens( $doc['content'][ $node['id'] ] ) ) )
+			? do_shortcode( self::resolve_tokens( wp_kses_post( $doc['content'][ $node['id'] ] ) ) )
 			: '';
 		$kids    = self::render_tree( $node['children'] ?? array(), $doc );
 		if ( 'a' === $tag ) {
@@ -2362,7 +2474,29 @@ class Velox_Builder_Render {
 		}
 
 		$out    = '';
-		$states = array( 'normal', 'hover', 'focus' );
+		// Every state actually used (:hover, :active, custom ones like
+		// :nth-child(2)) — a fixed list dropped everything else on the page.
+		$states = array( 'normal' => true );
+		$scan   = function ( $map ) use ( &$states ) {
+			foreach ( array_keys( (array) $map ) as $k ) {
+				$pos = strpos( (string) $k, ':' );
+				if ( false !== $pos ) {
+					$st = substr( (string) $k, $pos + 1 );
+					if ( preg_match( '/^[a-z][a-z0-9-]*(\([a-z0-9+\- ]*\))?$/i', $st ) ) {
+						$states[ $st ] = true;
+					}
+				}
+			}
+		};
+		foreach ( $classes as $byKey ) {
+			$scan( $byKey );
+		}
+		foreach ( $trees as $tree ) {
+			self::walk( $tree, function ( $node ) use ( $scan ) {
+				$scan( $node['overrides'] ?? array() );
+			} );
+		}
+		$states = array_keys( $states );
 		foreach ( self::bp_map() as $bp => $mq ) {
 			$body = '';
 			foreach ( $states as $state ) {
@@ -2431,7 +2565,19 @@ class Velox_Builder_Render {
 		$v = trim( $v );
 		// Strip anything that could break out of the declaration/rule.
 		$v = preg_replace( '/[{}<>;]/', '', $v );
-		if ( preg_match( '/(expression|javascript:|@import|url\s*\()/i', $v ) ) {
+		if ( preg_match( '/(expression|javascript:|@import|behaviou?r\s*:)/i', $v ) ) {
+			return '';
+		}
+		// Background images: allow url() only around a plain http(s) or relative
+		// address. Every url() used to be dropped, so a background image set in
+		// the editor (which showed it) never reached the page.
+		if ( preg_match_all( '/url\s*\(\s*([\'"]?)(.*?)\1\s*\)/i', $v, $m ) ) {
+			foreach ( $m[2] as $u ) {
+				if ( ! preg_match( '#^(https?://|/)[^\s\'"()\\\\]*$#i', $u ) ) {
+					return '';
+				}
+			}
+		} elseif ( preg_match( '/url\s*\(/i', $v ) ) {
 			return '';
 		}
 		return $v;
@@ -2490,7 +2636,10 @@ class Velox_Builder_Render {
 			return self::inline_fallback( $css );
 		}
 		$id   = (int) ( $doc['__id'] ?? 0 );
-		$file = $dir . '/doc-' . $id . '.css';
+		// Pages wrapped by a catch-all template have no document of their own
+		// (id 0); they all shared doc-0.css and overwrote each other's CSS.
+		$slug = $id ? (string) $id : '0-p' . (int) get_queried_object_id();
+		$file = $dir . '/doc-' . $slug . '.css';
 		$hash = substr( md5( $css ), 0, 8 );
 
 		// Only rewrite if content changed.
@@ -2499,7 +2648,7 @@ class Velox_Builder_Render {
 				return self::inline_fallback( $css );
 			}
 		}
-		return trailingslashit( $up['baseurl'] ) . 'velox/builder/doc-' . $id . '.css?v=' . $hash;
+		return trailingslashit( $up['baseurl'] ) . 'velox/builder/doc-' . $slug . '.css?v=' . $hash;
 	}
 
 	/** When we can't write a file, echo the CSS inline instead (still only-used). */
@@ -2526,7 +2675,16 @@ class Velox_Builder_Render {
 		if ( ! is_array( $model ) ) {
 			return false;
 		}
-		$model['__id'] = (int) $row['id'];
-		return self::ensure_css_file( $model );
+		// The page's file also carries its template / header / footer CSS, which
+		// only the page render knows. Rewriting it from the document alone dropped
+		// that, so delete it and let the next view build it complete.
+		$up = wp_upload_dir();
+		if ( empty( $up['error'] ) ) {
+			$file = trailingslashit( $up['basedir'] ) . 'velox/builder/doc-' . (int) $row['id'] . '.css';
+			if ( file_exists( $file ) ) {
+				wp_delete_file( $file );
+			}
+		}
+		return true;
 	}
 }

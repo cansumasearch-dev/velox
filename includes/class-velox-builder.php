@@ -51,9 +51,10 @@ class Velox_Builder {
 		add_action( 'add_meta_boxes', array( $this, 'add_edit_metabox' ) );
 		add_action( 'save_post', array( $this, 'save_template_choice' ) );
 
-		// Two-way delete sync: deleting/trashing a WP post removes its Velox doc.
+		// Two-way delete sync: deleting a WP post removes its Velox doc. Trashing
+		// does NOT — a page restored from the trash used to come back with its
+		// whole layout gone, because the trash hook deleted it permanently.
 		add_action( 'before_delete_post', array( __CLASS__, 'on_post_deleted' ) );
-		add_action( 'wp_trash_post', array( __CLASS__, 'on_post_deleted' ) );
 	}
 
 	/** When a WP page/post is deleted or trashed, drop its bound Velox document. */
@@ -432,6 +433,13 @@ class Velox_Builder {
 		$css_url = VELOX_ASSETS . 'css/velox-builder.css?v=' . VELOX_VERSION;
 		$js_url  = VELOX_ASSETS . 'js/velox-builder.js?v=' . VELOX_VERSION;
 		$post_id  = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
+		// Entering by page (…&post=7) when that page already has a Velox document —
+		// an old bookmark, the back button, a second tab: open THAT document. Before,
+		// the editor started empty and the next save created a second document for
+		// the same page and pointed the page at it, orphaning the real design.
+		if ( ! $doc_id && $post_id ) {
+			$doc_id = self::doc_id_for_post( $post_id );
+		}
 		// If we entered by doc id, find the WP post this doc is bound to (if any),
 		// so Exit destinations (frontend / backend / preview) still work.
 		if ( ! $post_id && $doc_id ) {
@@ -473,13 +481,36 @@ class Velox_Builder {
 			}
 		}
 		if ( ! $preview_url ) { $preview_url = $front_url; }
+		// The browser tab said "Untitled" for every document.
+		if ( '' !== $seed_title ) {
+			$title = $seed_title;
+		} elseif ( $doc_id ) {
+			global $wpdb;
+			$doc_title = (string) $wpdb->get_var( $wpdb->prepare( 'SELECT title FROM ' . self::table() . ' WHERE id = %d', $doc_id ) );
+			if ( '' !== $doc_title ) {
+				$title = $doc_title;
+			}
+		}
 		$boot = array(
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'velox_nonce' ),
 			'docId'   => $doc_id,
 			'postId'  => $post_id,
 			'seedTitle' => $seed_title,
-			'kind'    => isset( $_GET['kind'] ) ? sanitize_key( wp_unslash( $_GET['kind'] ) ) : 'page',
+			// The stored type wins over the URL. Opening a template without
+			// &kind=template used to boot it as a page, and the next save turned
+			// the template into a page for good.
+			'kind'    => in_array( $kind_now, array( 'page', 'template', 'reusable' ), true ) ? $kind_now : 'page',
+			// Colour tokens + spacing scale. Missing before, so the editor started
+			// with none, and touching Global styles saved that empty set over every
+			// colour the site had.
+			'tokens'  => self::tokens(),
+			// Token variables and global styles, so the canvas looks like the page.
+			'siteCss' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '',
+			// Oxygen import: the page being opened (if it has an Oxygen layout)
+			// and whether the site has any Oxygen layouts at all.
+			'oxygenPost' => ( $post_id && class_exists( 'Velox_Builder_Oxygen' ) && Velox_Builder_Oxygen::has_layout( $post_id ) ) ? $post_id : 0,
+			'oxygenAny'  => class_exists( 'Velox_Builder_Oxygen' ) && Velox_Builder_Oxygen::sources() ? 1 : 0,
 			'reusables' => self::reusables_payload(),
 			'backUrl' => $back_url,
 			'frontUrl' => $front_url,
@@ -515,9 +546,18 @@ class Velox_Builder {
 	<link rel="stylesheet" href="<?php echo esc_url( $css_url ); ?>">
 	<script>window.VELOX_BUILDER = <?php echo wp_json_encode( $boot ); ?>;</script>
 	<?php
-	// Print the media library styles + core scripts (jQuery, wp.media) into the head.
-	wp_print_styles( array( 'media-views', 'imgareaselect' ) );
-	wp_print_scripts( array( 'jquery', 'media-editor', 'media-views' ) );
+	// Print the media library styles + scripts into the head. These must be ALL
+	// of the scripts wp_enqueue_media() asks for: without media-audiovideo,
+	// wp.media.mixin is undefined, the media frame throws as soon as an image is
+	// clicked, "Use image" never enables — and no image could ever be changed.
+	wp_print_styles( array( 'media-views', 'imgareaselect', 'wp-mediaelement' ) );
+	// The shell is dark and wp-admin's own CSS is not loaded here, so the media
+	// window inherited white text on its white panels. Velox's resize/convert
+	// fields need scripts that only load on wp-admin screens; hide them here.
+	echo '<style id="velox-builder-media-fix">.media-modal,.media-modal-content{color:#1d2327;font-size:13px;line-height:1.4}'
+		. '.media-modal .screen-reader-text,.media-modal .screen-reader-text span{border:0;clip:rect(1px,1px,1px,1px);clip-path:inset(50%);height:1px;margin:-1px;overflow:hidden;padding:0;position:absolute;width:1px;word-wrap:normal!important}'
+		. '.media-modal .compat-field-velox_resize,.media-modal .compat-field-velox_convert{display:none}</style>' . "\n";
+	wp_print_scripts( array( 'jquery', 'media-editor', 'media-views', 'media-audiovideo', 'mce-view', 'image-edit' ) );
 	?>
 </head>
 <body class="velox-builder-body">
@@ -609,12 +649,18 @@ class Velox_Builder {
 		$id    = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
 		$title = isset( $_POST['title'] ) ? sanitize_text_field( wp_unslash( $_POST['title'] ) ) : __( 'Untitled', 'velox' );
 		$kind  = isset( $_POST['kind'] ) ? sanitize_key( wp_unslash( $_POST['kind'] ) ) : 'page';
+		if ( ! in_array( $kind, array( 'page', 'template', 'reusable' ), true ) ) {
+			$kind = 'page';
+		}
 
 		// The document model arrives as a JSON string. Keep it as text but verify
-		// it decodes so we never store a broken blob.
-		$raw = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : '';
-		$model = json_decode( $raw, true );
-		if ( null === $model || ! is_array( $model ) ) {
+		// it decodes so we never store a broken blob. Decoded as OBJECTS: decoding
+		// to PHP arrays turned every empty map ({}) into a list ([]) on the way
+		// back, and the editor then wrote keys onto a JS array that the next save
+		// silently dropped — an image picked, a style set, gone after saving.
+		$raw   = isset( $_POST['data'] ) ? wp_unslash( $_POST['data'] ) : '';
+		$model = json_decode( $raw );
+		if ( ! is_object( $model ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid document data.', 'velox' ) ), 400 );
 		}
 		$data     = wp_json_encode( $model );
@@ -636,6 +682,18 @@ class Velox_Builder {
 			if ( 'template' === $kind && ! self::default_template() ) {
 				update_option( self::OPT_DEFAULT_TEMPLATE, $id, false );
 			}
+		} elseif ( $post_id && self::doc_id_for_post( $post_id ) ) {
+			// A page has ONE document. Saving without an id for a page that already
+			// has one updates it instead of creating a duplicate the page would then
+			// be re-pointed at.
+			$id = self::doc_id_for_post( $post_id );
+			$wpdb->update(
+				$t,
+				array( 'title' => $title, 'kind' => $kind, 'data' => $data, 'css_size' => $css_size, 'updated' => $now ),
+				array( 'id' => $id ),
+				array( '%s', '%s', '%s', '%d', '%s' ),
+				array( '%d' )
+			);
 		} else {
 			$wpdb->insert(
 				$t,
@@ -658,8 +716,26 @@ class Velox_Builder {
 		if ( class_exists( 'Velox_Builder_Render' ) ) {
 			Velox_Builder_Render::write_css_for( $id );
 		}
+		// A saved published page is what visitors get, so cached copies must go.
+		// Templates and reusables appear on many pages: clear everything.
+		$bound = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . $t . ' WHERE id = %d', $id ) );
+		if ( 'page' !== $kind ) {
+			self::purge_cache_for();
+		} elseif ( $bound ) {
+			self::purge_cache_for( $bound );
+		}
 
-		wp_send_json_success( array( 'id' => $id, 'title' => $title, 'saved' => $now ) );
+		wp_send_json_success(
+			array(
+				'id'      => $id,
+				'title'   => $title,
+				'saved'   => $now,
+				'kind'    => $kind,
+				'post_id' => $bound,
+				'url'     => $bound ? get_permalink( $bound ) : '',
+				'preview' => $bound ? get_preview_post_link( $bound ) : '',
+			)
+		);
 	}
 
 	/** Load a document's model for the editor. */
@@ -679,8 +755,11 @@ class Velox_Builder {
 				'title'  => $row['title'],
 				'kind'   => $row['kind'],
 				'status' => $row['status'],
+				'post_id' => (int) $row['post_id'],
 				'url'    => $row['post_id'] ? get_permalink( (int) $row['post_id'] ) : '',
-				'model'  => json_decode( $row['data'], true ),
+				'preview' => $row['post_id'] ? get_preview_post_link( (int) $row['post_id'] ) : '',
+				// Objects, so empty maps stay {} (see ajax_save).
+				'model'  => json_decode( $row['data'] ),
 			)
 		);
 	}
@@ -2134,7 +2213,7 @@ class Velox_Builder {
 		);
 	}
 
-	/** Revert a document to draft — visitors fall back to the theme. */
+	/** Revert a document to draft and take its page offline. */
 	public static function ajax_unpublish() {
 		global $wpdb;
 		$id = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;

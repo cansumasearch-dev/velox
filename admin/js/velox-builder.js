@@ -15,7 +15,10 @@
 	'use strict';
 
 	var CFG = window.VELOX_BUILDER || {};
-	var T = window.veloxT || function ( s ) { return s; };
+	// The standalone shell has no wp-admin veloxT, so the editor was always in
+	// English. The dictionary is in the boot config — use it.
+	var T = window.veloxT || function ( s ) { return ( CFG.i18n && CFG.i18n[ s ] ) || s; };
+	var IS_MAC = /Mac|iP(hone|ad|od)/.test( navigator.platform || '' );
 
 	/* ---------- icons (real Velox/Lucide set) ---------- */
 	var ICON = {
@@ -70,7 +73,12 @@
 		// an empty <svg>.
 		wp:'<circle cx="12" cy="12" r="9"/><path d="m6.8 8.5 2.3 7.2 2.9-7.2 2.9 7.2 2.3-7.2"/>',
 		panelleft:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>',
-		panelright:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>'
+		panelright:'<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/>',
+		file:'<path d="M15 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7z"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/>',
+		laptop:'<path d="M18 5a2 2 0 0 1 2 2v8.5H4V7a2 2 0 0 1 2-2z"/><path d="M2 19h20"/>',
+		collapse:'<path d="m7 20 5-5 5 5"/><path d="m7 4 5 5 5-5"/>',
+		expand:'<path d="m7 15 5 5 5-5"/><path d="m7 9 5-5 5 5"/>',
+		download:'<path d="M12 15V3"/><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/>'
 	};
 	function svg( name, size ) {
 		size = size || 16;
@@ -86,24 +94,63 @@
 		init:function ( d ) {
 			// A document stored before a key existed must not break editing.
 			d = d || {};
-			if ( ! d.tree ) { d.tree = []; }
-			if ( ! d.classes ) { d.classes = {}; }
-			if ( ! d.content ) { d.content = {}; }
+			normalizeDoc( d );
+			repairIds( d );
+			// Always open at desktop, normal state: the breakpoint saved with the
+			// document could leave you editing "Mobile" while the canvas showed
+			// desktop, with every change going to the wrong rules.
+			d.breakpoint = 'base'; d.state = 'normal';
+			if ( d.selection && ! findNode( d.tree, d.selection ) ) { d.selection = null; d.activeClass = null; }
 			this.state = d; this.history = [ JSON.stringify( d ) ]; this.log = []; this.future = []; this.emitLog(); this.emit(); },
-		snapshot:function () { var snap = JSON.stringify( this.state ); if ( this.history[ this.history.length - 1 ] === snap ) { return false; } this.history.push( snap ); if ( this.history.length > 120 ) { this.history.shift(); } this.future = []; return true; },
+		snapshot:function () {
+			var snap = JSON.stringify( this.state ); if ( this.history[ this.history.length - 1 ] === snap ) { return false; }
+			this.history.push( snap );
+			// Dropping the oldest snapshot shifts every index by one; the History
+			// panel kept the old numbers and jumped to the wrong point.
+			if ( this.history.length > 120 ) { this.history.shift(); this.log = this.log.map( function ( l ) { return { label:l.label, at:l.at, idx:l.idx - 1 }; } ).filter( function ( l ) { return l.idx >= 1; } ); }
+			this.future = []; return true; },
 		/* commit: fn mutates state; snapshot the RESULT so history holds real edit
 		   states. quiet=true (selection, hover) doesn't record history/log. */
-		commit:function ( fn, label ) { fn( this.state ); if ( label !== false ) { var pushed = this.snapshot(); if ( pushed && label ) { this.log.push( { label:label, at:Date.now(), idx:this.history.length } ); if ( this.log.length > 120 ) { this.log.shift(); } this.emitLog(); } } this.emit(); },
-		undo:function () { if ( this.history.length <= 1 ) { return; } this.future.push( this.history.pop() ); this.state = JSON.parse( this.history[ this.history.length - 1 ] ); this.emit(); },
-		redo:function () { if ( ! this.future.length ) { return; } var s = this.future.pop(); this.history.push( s ); this.state = JSON.parse( s ); this.emit(); },
+		commit:function ( fn, label ) { fn( this.state ); if ( label !== false ) { var pushed = this.snapshot(); if ( pushed ) { if ( label ) { this.log.push( { label:label, at:Date.now(), idx:this.history.length } ); if ( this.log.length > 120 ) { this.log.shift(); } this.emitLog(); } if ( this.onEdit ) { this.onEdit(); } } } this.emit(); },
+		undo:function () { if ( this.history.length <= 1 ) { return; } this.future.push( this.history.pop() ); this.state = JSON.parse( this.history[ this.history.length - 1 ] ); if ( this.onEdit ) { this.onEdit(); } this.emit(); },
+		redo:function () { if ( ! this.future.length ) { return; } var s = this.future.pop(); this.history.push( s ); this.state = JSON.parse( s ); if ( this.onEdit ) { this.onEdit(); } this.emit(); },
 		/* Revert to a specific snapshot (session history). idx = history length at
 		   that point, so history[idx-1] is that state. */
-		revertTo:function ( idx ) { if ( idx < 1 || idx > this.history.length ) { return; } this.state = JSON.parse( this.history[ idx - 1 ] ); this.history = this.history.slice( 0, idx ); this.future = []; this.log = this.log.filter( function ( l ) { return l.idx <= idx; } ); this.emitLog(); this.emit(); },
+		revertTo:function ( idx ) { if ( idx < 1 || idx > this.history.length ) { return; } this.state = JSON.parse( this.history[ idx - 1 ] ); this.history = this.history.slice( 0, idx ); this.future = []; this.log = this.log.filter( function ( l ) { return l.idx <= idx; } ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
 		subscribe:function ( fn ) { this.listeners.push( fn ); },
 		subscribeLog:function ( fn ) { this.logListeners.push( fn ); },
 		emit:function () { for ( var i = 0; i < this.listeners.length; i++ ) { this.listeners[ i ]( this.state ); } },
 		emitLog:function () { for ( var i = 0; i < this.logListeners.length; i++ ) { this.logListeners[ i ]( this.log ); } }
 	};
+
+	/* Every map in a document must be an OBJECT. Documents saved by older
+	 * versions came back with empty maps as [] (PHP turned {} into a list), and
+	 * keys written onto a JS array survive in memory but vanish from
+	 * JSON.stringify — so an image picked or a style set was lost on save. This
+	 * repairs any such document on load. */
+	function asObj( v ) { return ( v && 'object' === typeof v && ! Array.isArray( v ) ) ? v : {}; }
+	function normalizeDoc( d ) {
+		if ( ! Array.isArray( d.tree ) ) { d.tree = []; }
+		d.content = asObj( d.content );
+		d.classes = asObj( d.classes );
+		Object.keys( d.classes ).forEach( function ( c ) {
+			d.classes[ c ] = asObj( d.classes[ c ] );
+			Object.keys( d.classes[ c ] ).forEach( function ( k ) { d.classes[ c ][ k ] = asObj( d.classes[ c ][ k ] ); } );
+		} );
+		if ( d.page !== undefined ) { d.page = asObj( d.page ); }
+		( function walk( nodes ) {
+			nodes.forEach( function ( n ) {
+				n.overrides = asObj( n.overrides );
+				Object.keys( n.overrides ).forEach( function ( k ) { n.overrides[ k ] = asObj( n.overrides[ k ] ); } );
+				if ( n.settings !== undefined ) { n.settings = asObj( n.settings ); }
+				if ( n.aos !== undefined ) { n.aos = asObj( n.aos ); }
+				if ( ! Array.isArray( n.classes ) ) { n.classes = []; }
+				if ( ! Array.isArray( n.children ) ) { n.children = []; }
+				walk( n.children );
+			} );
+		}( d.tree ) );
+		return d;
+	}
 
 	/* A new page starts empty — no demo content. */
 	var initialDoc = {
@@ -151,13 +198,21 @@
 	var BPX = ( CFG.breakpoints && CFG.breakpoints.lg )
 		? CFG.breakpoints
 		: { xxl:1399.98, xl:1199.98, lg:991.98, md:767.98, sm:575.98 };
+	/* The toolbar offers FOUR screen sizes on Bootstrap's lines: Desktop (base,
+	 * 1400 and up), Laptop (xxl, up to 1399), Tablet (lg, up to 991) and Mobile
+	 * (md, up to 767). xl and sm stay in the data model and keep rendering, so
+	 * nothing styled before disappears — they are just no longer offered. While
+	 * editing Mobile the preview is phone-sized, so sm rules are read as part of
+	 * Mobile and a Mobile edit replaces them (see clearShadowed). */
+	var BP_TOOLBAR = [ 'base', 'xxl', 'lg', 'md' ];
+	function bpNum( v ) { return Math.floor( v ); }
 	var BP_META = {
-		base:{ label:'Desktop',        mq:null,                                  px:'' },
-		xxl: { label:'XXL ≤' + BPX.xxl, mq:'(max-width: ' + BPX.xxl + 'px)', px:BPX.xxl },
-		xl:  { label:'XL ≤'  + BPX.xl,  mq:'(max-width: ' + BPX.xl  + 'px)', px:BPX.xl },
-		lg:  { label:'LG ≤'  + BPX.lg,  mq:'(max-width: ' + BPX.lg  + 'px)', px:BPX.lg },
-		md:  { label:'MD ≤'  + BPX.md,  mq:'(max-width: ' + BPX.md  + 'px)', px:BPX.md },
-		sm:  { label:'SM ≤'  + BPX.sm,  mq:'(max-width: ' + BPX.sm  + 'px)', px:BPX.sm }
+		base:{ label:T( 'Desktop' ), range:bpNum( BPX.xxl ) + 1 + 'px +', icon:'monitor', mq:null, px:'', view:1440 },
+		xxl: { label:T( 'Laptop' ), range:( bpNum( BPX.lg ) + 1 ) + '–' + bpNum( BPX.xxl ) + 'px', icon:'laptop', mq:'(max-width: ' + BPX.xxl + 'px)', px:BPX.xxl, view:1280 },
+		xl:  { label:'XL', range:'≤' + bpNum( BPX.xl ) + 'px', icon:'laptop', mq:'(max-width: ' + BPX.xl  + 'px)', px:BPX.xl, view:1180 },
+		lg:  { label:T( 'Tablet' ), range:( bpNum( BPX.md ) + 1 ) + '–' + bpNum( BPX.lg ) + 'px', icon:'tablet', mq:'(max-width: ' + BPX.lg  + 'px)', px:BPX.lg, view:820 },
+		md:  { label:T( 'Mobile' ), range:'≤' + bpNum( BPX.md ) + 'px', icon:'smartphone', mq:'(max-width: ' + BPX.md  + 'px)', px:BPX.md, view:390 },
+		sm:  { label:'SM', range:'≤' + bpNum( BPX.sm ) + 'px', icon:'smartphone', mq:'(max-width: ' + BPX.sm  + 'px)', px:BPX.sm, view:390 }
 	};
 	/* CSS emission order. Wider to narrower so the cascade works, with each
 	 * legacy key immediately before the modern breakpoint it aliases. */
@@ -176,7 +231,21 @@
 	/* ============================================================
 	   3. CASCADE RESOLVER
 	   ============================================================ */
-	function bpChain( bp ) { var i = BP_ORDER.indexOf( bp ), c = []; for ( var j = i; j >= 0; j-- ) { c.push( BP_ORDER[ j ] ); } return c; }
+	function bpChain( bp ) {
+		var i = BP_ORDER.indexOf( bp ), c = [];
+		if ( i < 0 ) { i = 0; }
+		for ( var j = i; j >= 0; j-- ) { c.push( BP_ORDER[ j ] ); }
+		// The Mobile preview is phone-sized, so sm rules apply in it: read them first.
+		if ( 'md' === bp ) { c.unshift( 'sm' ); }
+		return c;
+	}
+	/* Writing at Mobile replaces an older sm value for the same property — it
+	 * would otherwise keep winning on phones and the edit would seem to do nothing. */
+	function clearShadowed( map, key, prop ) {
+		if ( ! map || 0 !== String( key ).indexOf( 'md' ) ) { return; }
+		var sk = 'sm' + String( key ).slice( 2 );
+		if ( map[ sk ] ) { delete map[ sk ][ prop ]; }
+	}
 	function resolveProperty( node, bp, prop, state ) {
 		var S = store.state, chain = bpChain( bp ), b, k;
 		// When editing a pseudo-state, that state's keys win; otherwise fall to normal.
@@ -273,7 +342,7 @@
 				var kids = ( n.children || [] ).length ? renderReuseTree( n.children, r ) : '';
 				if ( n.el === 'Image' ) {
 					var s = ( r.content || {} )[ n.id ] || '';
-					return '<div id="' + n.id + '" class="' + cls + '">' + ( s ? '<img src="' + s + '" alt="" style="display:block;max-width:100%;height:auto">' : '' ) + '</div>';
+					return '<div id="' + n.id + '" class="' + cls + '">' + ( s ? '<img src="' + escapeHtml( s ) + '" alt="' + escapeHtml( n.alt || '' ) + '" style="display:block;max-width:100%;height:auto">' : '' ) + '</div>';
 				}
 				var t = ( r.content || {} )[ n.id ] || '';
 				return '<' + n.tag + ' id="' + n.id + '" class="' + cls + '">' + t + kids + '</' + n.tag + '>';
@@ -375,8 +444,8 @@
 					return '<div class="vx-slide" style="flex:0 0 calc((100% - ' + ( ( per - 1 ) * gapv ) + 'px)/' + per + ')">' + img + sinner + '</div>';
 				} ).join( '' );
 				var ctrls = '';
-				if ( sSet.arrows !== '' ) { ctrls += '<div class="vx-arrows"><button class="vx-prev" type="button">' + svg( 'chevron', 16 ) + '</button><button class="vx-next" type="button">' + svg( 'chevron', 16 ) + '</button></div>'; }
-				if ( sSet.dots !== '' ) { ctrls += '<div class="vx-dots">' + sItems.map( function ( x, i ) { return '<span class="vx-dot' + ( 0 === i ? ' is-active' : '' ) + '"></span>'; } ).join( '' ) + '</div>'; }
+				if ( sSet.arrows !== '' && sSet.arrows !== '0' ) { ctrls += '<div class="vx-arrows"><button class="vx-prev" type="button">' + svg( 'chevron', 16 ) + '</button><button class="vx-next" type="button">' + svg( 'chevron', 16 ) + '</button></div>'; }
+				if ( sSet.dots !== '' && sSet.dots !== '0' ) { ctrls += '<div class="vx-dots">' + sItems.map( function ( x, i ) { return '<span class="vx-dot' + ( 0 === i ? ' is-active' : '' ) + '"></span>'; } ).join( '' ) + '</div>'; }
 				return '<div id="' + node.id + '" class="' + cls + ' vx-slider" data-node="' + node.id + '">' +
 					'<div class="vx-track" style="gap:' + gapv + 'px">' + slidesHtml + '</div>' + ctrls + '</div>';
 			}
@@ -401,7 +470,7 @@
 				var accSet = node.settings || {};
 				var accItems = accSet.items || [];
 				var hTag = accSet.headingTag || 'h3';
-				var openFirst = accSet.firstOpen !== '' && accSet.firstOpen !== undefined ? accSet.firstOpen : ( 'Accordion' === node.el ? '1' : '' );
+				var openFirst = accSet.firstOpen !== '' && accSet.firstOpen !== '0' && accSet.firstOpen !== undefined ? accSet.firstOpen : ( accSet.firstOpen === undefined && 'Accordion' === node.el ? '1' : '' );
 				var accHtml = accItems.map( function ( it, i ) {
 					var open = ( openFirst && 0 === i );
 					var kid = ( node.children || [] )[ i ];
@@ -437,10 +506,23 @@
 				var wpl = { title:T( 'Post title' ), content:T( 'Post content' ), featured:T( 'Featured image' ), menu:T( 'Menu / Nav' ) }[ node.wp ] || 'WordPress';
 				return '<div id="' + node.id + '" class="' + cls + ' vb-ph-el" data-node="' + node.id + '"><span class="vb-ph-ic">' + svg( 'wp', 22 ) + '</span><span class="vb-ph-l">' + wpl + ' — ' + T( 'live WordPress data' ) + '</span></div>';
 			}
+			// Video: the real embed, with a cover so a click selects instead of playing.
+			if ( node.el === 'Video' ) {
+				var vurl = ( node.settings && node.settings.url ) || '';
+				var vemb = videoEmbed( vurl );
+				var vin = vemb ? '<iframe src="' + escapeHtml( vemb ) + '" loading="lazy" tabindex="-1"></iframe>'
+					: ( vurl ? '<video src="' + escapeHtml( vurl ) + '" muted preload="metadata"></video>'
+						: '<span class="vb-img-ph" style="position:absolute;inset:0;min-height:0">' + T( 'Double-click to add a video link' ) + '</span>' );
+				return '<div id="' + node.id + '" class="' + cls + ' vx-video" data-node="' + node.id + '">' + vin + '<span class="vb-cover"></span></div>';
+			}
+			if ( node.el === 'Icon' ) {
+				var iset = node.settings || {}, isize = parseInt( iset.size, 10 ) || 32;
+				return '<span id="' + node.id + '" class="' + cls + ' vx-icon" data-node="' + node.id + '" style="--vx-icon-size:' + isize + 'px">' + ( iconMarkup( iset.icon || 'star', isize ) || svg( 'star', isize ) ) + '</span>';
+			}
 			// Image element: render a real <img> when a src is stored, else a placeholder.
 			if ( node.el === 'Image' ) {
 				var src = S.content[ node.id ] || '';
-				var inner2 = src ? '<img src="' + src + '" alt="" style="display:block;max-width:100%;height:auto">' : '<span class="vb-img-ph">' + T( 'Double-click to choose an image' ) + '</span>';
+				var inner2 = src ? '<img src="' + escapeHtml( src ) + '" alt="' + escapeHtml( node.alt || '' ) + '" style="display:block;max-width:100%;height:auto">' : '<span class="vb-img-ph">' + T( 'Double-click to choose an image' ) + '</span>';
 				return '<div id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '">' + inner2 + '</div>';
 			}
 			var txt = S.content[ node.id ] || '';
@@ -454,7 +536,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}</style><style id="vb-style"></style></head><body></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-sel{outline:2px solid #2ab7f1}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-page-css"></style><style id="vb-style"></style></head><body></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -464,7 +546,16 @@
 		var html = genHTML();
 		// Empty page → friendly prompt instead of a blank white void.
 		if ( ! store.state.tree.length ) {
-			html = '<div class="vb-empty-canvas"><div class="vb-ec-inner"><b>' + T( 'Empty page' ) + '</b><p>' + T( 'Click “Add element” to start building.' ) + '</p></div></div>';
+			var ox = '';
+			if ( CFG.oxygenPost ) {
+				ox = '<div class="vb-ec-ox"><b style="display:block;color:#1f2933;margin-bottom:4px">' + T( 'This page was built with Oxygen.' ) + '</b>' +
+					T( 'Bring its layout over and keep editing it here. The Oxygen version stays untouched.' ) +
+					'<div class="vb-ec-acts" style="justify-content:flex-start"><button class="vb-ec-btn pri" data-oxy-import="' + CFG.oxygenPost + '">' + T( 'Import Oxygen layout' ) + '</button></div></div>';
+			} else if ( CFG.oxygenAny ) {
+				ox = '<div class="vb-ec-acts"><button class="vb-ec-btn" data-oxy-pick>' + T( 'Import from Oxygen…' ) + '</button></div>';
+			}
+			html = '<div class="vb-empty-canvas"><div class="vb-ec-inner"><b>' + T( 'Empty page' ) + '</b><p>' + T( 'Add your first element to start building.' ) + '</p>' +
+				'<div class="vb-ec-acts"><button class="vb-ec-btn pri" data-ec-add>' + T( 'Add element' ) + '</button><button class="vb-ec-btn" data-ec-insert="section">' + T( 'Add a section' ) + '</button></div>' + ox + '</div></div>';
 		}
 		if ( doc.body.getAttribute( 'data-html' ) !== html ) {
 			doc.body.innerHTML = html; doc.body.setAttribute( 'data-html', html );
@@ -478,9 +569,16 @@
 			// handler, so Ctrl+S and friends did nothing whenever the caret was on
 			// the page. Forward them, minus the ones that belong to typing.
 			doc.addEventListener( 'keydown', function ( e ) {
-				if ( ! ( e.metaKey || e.ctrlKey ) ) { return; }
 				var k = ( e.key || '' ).toLowerCase();
-				if ( [ 's', 'p', 'z', 'd', '\\' ].indexOf( k ) < 0 ) { return; }
+				// Delete / Ctrl+C / Ctrl+V did nothing once the canvas had focus —
+				// which it has after every click on an element. While a text is being
+				// edited they (and undo) belong to the text, not the page.
+				if ( ! ( e.metaKey || e.ctrlKey ) ) {
+					if ( editing || 'Delete' !== e.key ) { return; }
+				} else {
+					if ( [ 's', 'p', 'z', 'y', 'd', 'c', 'v', '\\' ].indexOf( k ) < 0 ) { return; }
+					if ( editing && [ 'z', 'y', 'c', 'v' ].indexOf( k ) > -1 ) { return; }
+				}
 				e.preventDefault();
 				document.dispatchEvent( new KeyboardEvent( 'keydown', {
 					key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey,
@@ -491,6 +589,15 @@
 			}, true );
 			doc.addEventListener( 'click', function ( e ) {
 				if ( e.target.isContentEditable ) { return; }
+				var ecb = e.target.closest ? e.target.closest( '[data-ec-add],[data-ec-insert],[data-oxy-import],[data-oxy-pick]' ) : null;
+				if ( ecb ) {
+					e.preventDefault();
+					if ( ecb.hasAttribute( 'data-ec-add' ) ) { toggleAddMenu(); }
+					else if ( ecb.hasAttribute( 'data-ec-insert' ) ) { insertNode( ecb.getAttribute( 'data-ec-insert' ) ); }
+					else if ( ecb.hasAttribute( 'data-oxy-import' ) ) { importOxygen( +ecb.getAttribute( 'data-oxy-import' ) ); }
+					else { openOxygenPicker(); }
+					return;
+				}
 				var n = e.target.closest ? e.target.closest( '[data-node]' ) : null;
 				if ( n ) { e.preventDefault(); store.commit( function ( s ) { s.selection = n.getAttribute( 'data-node' ); resetActiveClass( s ); }, false ); }
 			} );
@@ -502,7 +609,8 @@
 				var id = n.getAttribute( 'data-node' );
 				store.commit( function ( s ) { s.selection = id; resetActiveClass( s ); }, false );
 				var rect = document.getElementById( 'vb-canvas' ).getBoundingClientRect();
-				showContextMenu( rect.left + e.clientX, rect.top + e.clientY, id );
+				// The canvas is scaled to fit; iframe coordinates are unscaled.
+				showContextMenu( rect.left + e.clientX * canvasScale, rect.top + e.clientY * canvasScale, id );
 			} );
 			doc.addEventListener( 'dblclick', function ( e ) {
 				var n = e.target.closest ? e.target.closest( '[data-node]' ) : null;
@@ -511,11 +619,19 @@
 				if ( ! node ) { return; }
 				e.preventDefault();
 				if ( node.el === 'Image' ) { openMediaPicker( id ); return; }
+				if ( node.el === 'Icon' ) { openIconPicker( 'icon' ); return; }
 				if ( isContainer( node ) ) { return; } // only leaf/text nodes edit inline
+				// Elements drawn from their settings have nothing to type into:
+				// double-click opens their settings instead of corrupting them.
+				if ( ! canInlineEdit( node ) ) { inspTab = 'set'; renderInspector( store.state ); return; }
 				startInlineEdit( n, id );
 			} );
 		}
 		doc.getElementById( 'vb-style' ).textContent = genCSS();
+		// Page CSS from Page settings shows while editing, not only on the site.
+		var pcs = doc.getElementById( 'vb-page-css' ), pcss = ( store.state.page && store.state.page.css ) || '';
+		if ( pcs && pcs.textContent !== pcss ) { pcs.textContent = pcss; }
+		if ( ! doc.__vbSite ) { doc.__vbSite = true; injectGlobalCss(); }
 		var prev = doc.querySelector( '.vb-sel' ); if ( prev ) { prev.classList.remove( 'vb-sel' ); }
 		var selEl = doc.getElementById( store.state.selection ); if ( selEl ) { selEl.classList.add( 'vb-sel' ); }
 	}
@@ -568,7 +684,8 @@
 						node.removeChild( c );
 					} else {
 						// strip style/class except our dynamic-token spans + link href
-						if ( c.tagName === 'A' ) { var h = c.getAttribute( 'href' ); c.removeAttribute( 'style' ); if ( h ) { c.setAttribute( 'href', h ); } }
+						Array.prototype.slice.call( c.attributes ).forEach( function ( at ) { if ( /^on/i.test( at.name ) ) { c.removeAttribute( at.name ); } } );
+						if ( c.tagName === 'A' ) { var h = c.getAttribute( 'href' ); c.removeAttribute( 'style' ); if ( h && /^\s*(javascript|data|vbscript):/i.test( h ) ) { c.removeAttribute( 'href' ); } }
 						else if ( c.getAttribute( 'data-vx' ) ) { /* keep token span */ }
 						else { c.removeAttribute( 'style' ); c.removeAttribute( 'class' ); }
 					}
@@ -592,22 +709,46 @@
 		if ( ! window.wp || ! window.wp.media ) { alert( T( 'The media library is unavailable.' ) ); return; }
 		if ( ! mediaFrame ) {
 			mediaFrame = window.wp.media( { title: T( 'Choose an image' ), multiple: false, library: { type: 'image' }, button: { text: T( 'Use image' ) } } );
+			// Open on the media library, not on the empty "Upload files" tab.
+			mediaFrame.on( 'open', function () {
+				try { mediaFrame.content.mode( 'browse' ); } catch ( err ) {}
+			} );
 		}
 		// rebind select each open so it targets the right node
 		mediaFrame.off( 'select' );
 		mediaFrame.on( 'select', function () {
 			var a = mediaFrame.state().get( 'selection' ).first().toJSON();
 			var url = ( a.sizes && a.sizes.large ) ? a.sizes.large.url : a.url;
-			store.commit( function ( s ) { s.content[ id ] = url; s.selection = id; resetActiveClass( s ); } );
+			store.commit( function ( s ) {
+				s.content[ id ] = url;
+				// Keep WHICH media item this is, so the page can serve responsive
+				// sizes (srcset) and real width/height — and take its alt text from
+				// the media library unless one was typed for this placement.
+				var n = findNode( s.tree, id );
+				if ( n ) {
+					n.att = a.id || 0;
+					if ( ! n.altCustom ) { n.alt = a.alt || ''; }
+				}
+				s.selection = id; resetActiveClass( s );
+			}, T( 'Change image' ) );
 		} );
 		mediaFrame.open();
+		// Pre-select the image that is in place now, so "Replace" starts from it.
+		try {
+			var cur = findNode( store.state.tree, id );
+			var selc = mediaFrame.state().get( 'selection' );
+			selc.reset( cur && cur.att ? [ window.wp.media.attachment( cur.att ) ] : [] );
+		} catch ( err ) {}
 	}
 
 	function setProp( prop, value, elementOverride ) {
 		store.commit( function ( s ) {
 			var node = findNode( s.tree, s.selection ), key = ruleKey( s.breakpoint, s.state );
-			if ( elementOverride ) { node.overrides[ key ] = node.overrides[ key ] || {}; node.overrides[ key ][ prop ] = value; }
-			else { var c = s.activeClass; s.classes[ c ] = s.classes[ c ] || {}; s.classes[ c ][ key ] = s.classes[ c ][ key ] || {}; s.classes[ c ][ key ][ prop ] = value; }
+			if ( ! node ) { return; }
+			// No class to write to (a reusable, or every class removed): the change
+			// belongs to this element. It used to land in a class called "null".
+			if ( elementOverride || ! s.activeClass ) { node.overrides[ key ] = node.overrides[ key ] || {}; node.overrides[ key ][ prop ] = value; clearShadowed( node.overrides, key, prop ); }
+			else { var c = s.activeClass; s.classes[ c ] = s.classes[ c ] || {}; s.classes[ c ][ key ] = s.classes[ c ][ key ] || {}; s.classes[ c ][ key ][ prop ] = value; clearShadowed( s.classes[ c ], key, prop ); }
 		}, T( 'Style' ) + ': ' + prop );
 	}
 	/* ---------- value + unit ----------
@@ -624,7 +765,9 @@
 		// through "24p" on the way, and treating that as the number produced
 		// values like "24p%". A half-typed unit keeps the current one instead.
 		var m = v.match( /^(-?[\d.]+)\s*(.*)$/ );
-		if ( ! m ) { return { num:'', unit:fallback || 'px' }; }
+		// calc(), clamp(), var(--space-2) …: keep the value as typed. These used
+		// to parse as "nothing" and typing one deleted the property.
+		if ( ! m ) { return { num:v, unit:fallback || 'px', raw:true }; }
 		var num = m[ 1 ], suffix = ( m[ 2 ] || '' ).trim().toLowerCase();
 		if ( '' === suffix ) { return { num:num, unit:fallback || 'px' }; }
 		if ( UNITS.indexOf( suffix ) > -1 ) { return { num:num, unit:suffix }; }
@@ -633,6 +776,7 @@
 	function joinVal( num, unit ) {
 		if ( 'auto' === unit ) { return 'auto'; }
 		num = String( num == null ? '' : num ).trim();
+		if ( '' !== num && ! /^-?[\d.]+$/.test( num ) ) { return num; }
 		return '' === num ? '' : num + unit;
 	}
 	/* Picking a unit on an EMPTY field stores nothing, so the choice would be
@@ -659,14 +803,56 @@
 		delete pendingUnit[ prop ];
 		setProp( prop, next );
 	}
-	function removeProp( prop ) { store.commit( function ( s ) { var c = s.activeClass, key = ruleKey( s.breakpoint, s.state ); if ( s.classes[ c ] && s.classes[ c ][ key ] ) { delete s.classes[ c ][ key ][ prop ]; } } ); }
+	function removeProp( prop ) {
+		store.commit( function ( s ) {
+			var c = s.activeClass, key = ruleKey( s.breakpoint, s.state );
+			if ( ! c ) { var n = findNode( s.tree, s.selection ); if ( n && n.overrides[ key ] ) { delete n.overrides[ key ][ prop ]; clearShadowed( n.overrides, key, prop ); } return; }
+			if ( s.classes[ c ] && s.classes[ c ][ key ] ) { delete s.classes[ c ][ key ][ prop ]; }
+			clearShadowed( s.classes[ c ], key, prop );
+		}, T( 'Style' ) + ': ' + prop );
+	}
+	/* Live preview while a colour picker is being dragged: no commit (which
+	 * would rebuild the inspector and close the picker), just the canvas. The
+	 * real commit happens on "change". */
+	function previewProp( prop, value ) {
+		var s = store.state, node = findNode( s.tree, s.selection ); if ( ! node ) { return; }
+		var key = ruleKey( s.breakpoint, s.state ), map;
+		if ( ! s.activeClass ) { map = node.overrides; } else { s.classes[ s.activeClass ] = s.classes[ s.activeClass ] || {}; map = s.classes[ s.activeClass ]; }
+		map[ key ] = map[ key ] || {}; map[ key ][ prop ] = value;
+		injectCanvas();
+	}
 	/* rules for the "normal" state live under the plain breakpoint key (back-compat);
 	   pseudo-states get a suffixed key like "base:hover" / "tablet:focus". */
 	function ruleKey( bp, state ) { return ( ! state || state === 'normal' ) ? bp : bp + ':' + state; }
 
 	/* ---------- node operations (insert / duplicate / delete) ---------- */
-	var idSeq = 100;
-	function uid( base ) { idSeq += 1; return ( base || 'el' ) + '-' + idSeq.toString( 36 ); }
+	/* Element ids: "<type>-<session salt><counter>". The counter used to start at
+	 * 100 in every session and every document, so a new element reused an id
+	 * already on the page (two images sharing one picture), and a template and
+	 * a page could ship the same id. The salt makes each session's ids unique. */
+	var idSeq = 0, idSalt = ( Date.now() % 46656 ).toString( 36 ) + Math.random().toString( 36 ).slice( 2, 4 );
+	function uid( base ) { idSeq += 1; return String( base || 'el' ).toLowerCase().replace( /[^a-z0-9]/g, '' ) + '-' + idSalt + idSeq.toString( 36 ); }
+
+	/* Element ids are "<type>-<base36 counter>". The counter used to restart at
+	   100 every time the editor opened, so the first element added after a reload
+	   re-used an id already on the page — two images sharing "image-2u" share one
+	   picture, one selection and one delete. On load: move the counter past every
+	   id in the document, and give any duplicate that slipped in before this fix
+	   a fresh id (keeping its own content, so nothing changes visually). */
+	function repairIds( d ) {
+		var seen = {};
+		( function fix( nodes ) {
+			( nodes || [] ).forEach( function ( n ) {
+				if ( seen[ n.id ] ) {
+					var old = n.id;
+					n.id = uid( String( old ).replace( /-[^-]*$/, '' ) );
+					if ( d.content && Object.prototype.hasOwnProperty.call( d.content, old ) ) { d.content[ n.id ] = d.content[ old ]; }
+				}
+				seen[ n.id ] = true;
+				fix( n.children );
+			} );
+		} )( d.tree );
+	}
 
 	/* element catalog: what "Add" can insert. Each seeds a default class + rules. */
 	/* Element catalog, grouped into the accordion categories shown in the panel.
@@ -776,8 +962,19 @@
 		] },
 		{ name:'Media', icon:'image', items:[
 			{ key:'image', el:'Image', tag:'div', label:'Image', cls:'.image', rules:{} },
-			{ key:'video', el:'Video', tag:'div', label:'Video', cls:'.video', rules:{ background:'#0b0f14' }, text:'' },
-			{ key:'icon', el:'Icon', tag:'div', label:'Icon', cls:'.icon', rules:{ color:'#2ab7f1' }, text:'' }
+			{ key:'video', el:'Video', tag:'div', label:'Video', cls:'.video', rules:{ borderRadius:'12' },
+			  settings:[
+				{ k:'url', t:'text', l:'Video link', d:'', ph:'YouTube, Vimeo or .mp4 link', s:'Video' },
+				{ k:'title', t:'text', l:'Title (for screen readers)', d:'', s:'Video' },
+				{ k:'autoplay', t:'toggle', l:'Play muted on a loop, like a background', d:'', s:'Video' },
+				{ k:'poster', t:'text', l:'Cover image link (.mp4 only)', d:'', ph:'https://', s:'Video' }
+			  ] },
+			{ key:'icon', el:'Icon', tag:'span', label:'Icon', cls:'.icon', rules:{ color:'#2ab7f1' },
+			  settings:[
+				{ k:'icon', t:'icon', l:'Icon', d:'star', s:'Icon' },
+				{ k:'size', t:'num', l:'Size', d:'32', unit:'px', s:'Icon' },
+				{ k:'label', t:'text', l:'Meaning (leave empty if decorative)', d:'', s:'Icon' }
+			  ] }
 		] },
 		{ name:'WordPress', icon:'wp', items:[
 			{ key:'wp_title', el:'WP', tag:'h1', label:'Post title', cls:'.wp-title', rules:{ fontSize:'40', fontWeight:'800' }, wp:'title' },
@@ -1311,7 +1508,32 @@
 			s.selection = id; resetActiveClass( s );
 		}, T( 'Add' ) + ' ' + cat.label );
 	}
-	function isContainer( n ) { return n.el === 'Section' || n.el === 'Div' || n.el === 'Columns'; }
+	/* Everything the page renders children for can take children here. Only
+	 * Section / Div / Columns could, so a card, a popup or a split screen could
+	 * never be filled (Add and drag always put things next to them). */
+	var CONTAINER_EL = { Section:1, Div:1, Columns:1, Modal:1, Offcanvas:1, Dropdown:1, Card:1, Stack:1, Cluster:1,
+		Bento:1, Splitscreen:1, Sidebarlayout:1, Fullheight:1, Overlap:1, Ratiobox:1, Logostrip:1, Avatargroup:1,
+		Trustrow:1, Featuregrid:1, Statsrow:1, Ctaband:1, Callout:1, Emptystate:1, Noticebox:1, Iconbox:1,
+		Teammember:1, Casestudy:1 };
+	function isContainer( n ) {
+		if ( ! n || ! CONTAINER_EL[ n.el ] ) { return false; }
+		var d = elDef( n );
+		return ! ( d && d.repeat );
+	}
+	/* Elements drawn from their settings have no text of their own to edit. */
+	var NO_INLINE = { Reusable:1, Reviews:1, WP:1, Navbar:1, Anchornav:1, Breadcrumbs:1, Fab:1, Backtotop:1,
+		Announcebar:1, Stickybar:1, Progressbar:1, Slider:1, Tabs:1, Accordion:1, Faq:1, InnerContent:1,
+		Video:1, Icon:1, Image:1, Readingtime:1, Lastupdated:1, Skeleton:1, Anchortarget:1 };
+	function canInlineEdit( n ) { return !! n && ! NO_INLINE[ n.el ] && ! isContainer( n ); }
+	/* YouTube / Vimeo link → embed URL (same rules as the renderer). */
+	function videoEmbed( url ) {
+		url = String( url || '' ).trim();
+		var m = url.match( /(?:youtube\.com\/(?:watch\?(?:.*&)?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{6,})/ );
+		if ( m ) { return 'https://www.youtube-nocookie.com/embed/' + m[ 1 ]; }
+		m = url.match( /vimeo\.com\/(?:video\/)?(\d+)/ );
+		if ( m ) { return 'https://player.vimeo.com/video/' + m[ 1 ]; }
+		return '';
+	}
 	/* Add a class to the selected node (creating the class if new). */
 	function addClassToSelected() {
 		var name = prompt( T( 'Class name (letters, numbers, dashes):' ), '' );
@@ -1377,16 +1599,28 @@
 			s.selection = copy.id; resetActiveClass( s );
 		}, dupLabel );
 	}
-	function cloneWithNewIds( node, s ) {
-		var nid = uid( node.el.toLowerCase() );
-		if ( s.content[ node.id ] != null ) { s.content[ nid ] = s.content[ node.id ]; }
-		return { id:nid, el:node.el, tag:node.tag, classes:node.classes.slice(), overrides:JSON.parse( JSON.stringify( node.overrides || {} ) ), children:( node.children || [] ).map( function ( c ) { return cloneWithNewIds( c, s ); } ) };
+	/* A copy carries EVERYTHING — settings (slider slides, tab items), link,
+	 * image, alt text, animation, name. It used to copy only id/tag/classes/
+	 * overrides, so a duplicated slider came out empty and a button lost its link. */
+	function cloneWithNewIds( node, s, extraContent ) {
+		var copy = JSON.parse( JSON.stringify( node ) );
+		( function reid( n, src ) {
+			var nid = uid( n.el || 'el' );
+			var c = ( s.content[ src.id ] != null ) ? s.content[ src.id ] : ( extraContent ? extraContent[ src.id ] : undefined );
+			if ( c != null ) { s.content[ nid ] = c; }
+			n.id = nid;
+			( n.children || [] ).forEach( function ( k, i ) { reid( k, src.children[ i ] ); } );
+		}( copy, node ) );
+		return copy;
 	}
 	function deleteNode( id ) {
 		var delNode = findNode( store.state.tree, id );
 		var delLabel = T( 'Delete' ) + ' ' + ( ( delNode || {} ).el || 'element' );
 		store.commit( function ( s ) {
 			var parent = findParent( s.tree, id ), node = findNode( s.tree, id );
+			if ( ! node ) { return; }
+			// Its text and image go too, or a later element could pick them up.
+			( function drop( n ) { delete s.content[ n.id ]; ( n.children || [] ).forEach( drop ); }( node ) );
 			if ( parent ) { parent.children.splice( parent.children.indexOf( node ), 1 ); s.selection = parent.id; }
 			else { var i = s.tree.indexOf( node ); if ( i >= 0 ) { s.tree.splice( i, 1 ); } s.selection = s.tree.length ? s.tree[ Math.max( 0, i - 1 ) ].id : null; }
 			if ( s.selection ) { resetActiveClass( s ); }
@@ -1423,30 +1657,100 @@
 
 	/* ---------- persistence (save / load via AJAX) ---------- */
 	var docId = CFG.docId || 0, docTitle = ( CFG.seedTitle || 'Untitled' ), saving = false, postId = CFG.postId || 0, docKind = CFG.kind || 'page';
-	function saveDoc( silent ) {
+	/* One save path for Save, Ctrl+S, Publish and the type switch. A save asked
+	 * for while one is running is queued and runs right after (it used to be
+	 * dropped, or Publish ran without saving at all), and a failed save stops a
+	 * publish instead of publishing the old version. */
+	var saveWaiters = [], saveAgain = false;
+	function persist( cb ) {
 		// The canvas is an iframe, and clicking a top-bar button does not reliably
 		// blur a contenteditable inside it — so the text you just typed was still
 		// only in the DOM and never reached the model. Flush it first, always.
 		if ( editing ) { commitInlineEdit(); }
-		if ( saving || ! CFG.ajaxurl ) { return; }
-		saving = true; setSaveState( 'saving' );
+		if ( cb ) { saveWaiters.push( cb ); }
+		if ( ! CFG.ajaxurl || ! store.state ) { flushWaiters( false ); return; }
+		if ( saving ) { saveAgain = true; return; }
+		saving = true; saveAgain = false; setSaveState( 'saving' );
+		var sent = JSON.stringify( store.state );
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_save' ); body.set( 'nonce', CFG.nonce || '' );
 		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', docKind );
-		body.set( 'data', JSON.stringify( store.state ) );
+		body.set( 'data', sent );
 		body.set( 'css_size', String( new Blob( [ genCSS() ] ).size ) ); if ( postId ) { body.set( 'post_id', postId ); }
+		function done( ok, res ) {
+			saving = false;
+			if ( ok ) {
+				docId = res.data.id;
+				applyDocMeta( res.data );
+				if ( JSON.stringify( store.state ) === sent ) { dirty = false; }
+			}
+			if ( saveAgain ) { persist(); return; }
+			setSaveState( ok ? 'saved' : 'error' );
+			if ( ! ok ) { toast( ( res && res.data && res.data.message ) || T( 'Save failed' ) ); }
+			renderActions();
+			flushWaiters( ok );
+		}
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { saving = false; if ( res && res.success ) { docId = res.data.id; setSaveState( 'saved' ); } else { setSaveState( 'error' ); } } )
-			.catch( function () { saving = false; setSaveState( 'error' ); } );
+			.then( function ( res ) { done( !! ( res && res.success ), res ); } )
+			.catch( function () { done( false, null ); } );
+	}
+	function flushWaiters( ok ) { var w = saveWaiters; saveWaiters = []; w.forEach( function ( f ) { f( ok ); } ); }
+	function saveDoc() { persist(); }
+	/* What the server says about the document after a save/load/publish: its
+	 * page, that page's URL — so "Open frontend" goes to THIS page, not the
+	 * homepage it was pointed at when the editor opened on a brand-new page. */
+	function applyDocMeta( d ) {
+		if ( ! d ) { return; }
+		if ( d.post_id ) { postId = +d.post_id; }
+		if ( d.url ) { CFG.frontUrl = d.url; pubUrl = d.url; }
+		if ( d.preview ) { CFG.previewUrl = d.preview; } else if ( d.url ) { CFG.previewUrl = d.url; }
+		// Remember the document in the address bar, so a reload reopens it
+		// instead of starting a new, empty one.
+		if ( docId && String( CFG.docId || '' ) !== String( docId ) ) {
+			CFG.docId = docId;
+			try {
+				var u = new URL( window.location.href );
+				u.searchParams.set( 'doc', docId );
+				if ( 'page' !== docKind ) { u.searchParams.set( 'kind', docKind ); } else { u.searchParams.delete( 'kind' ); }
+				window.history.replaceState( null, '', u.toString() );
+			} catch ( e ) {}
+		}
+		setNavUrls();
 	}
 	function loadDoc( id ) {
 		if ( ! CFG.ajaxurl || ! id ) { return; }
+		showLoadState( 'loading' );
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_load' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'id', id );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { if ( res && res.success && res.data.model ) { docId = res.data.id; docTitle = res.data.title || 'Untitled'; pubStatus = res.data.status || 'draft'; pubUrl = res.data.url || ''; everPublished = ( pubStatus === 'published' ); dirty = false; var ti = document.getElementById( 'vb-title' ); if ( ti ) { ti.value = docTitle; } store.init( res.data.model ); setTimeout( function () { renderActions(); }, 30 ); } } );
+			.then( function ( res ) {
+				if ( ! res || ! res.success || ! res.data.model ) {
+					showLoadState( 'error', ( res && res.data && res.data.message ) || '' ); return;
+				}
+				showLoadState( '' );
+				docId = res.data.id; docTitle = res.data.title || 'Untitled'; pubStatus = res.data.status || 'draft'; pubUrl = res.data.url || '';
+				if ( res.data.kind ) { docKind = res.data.kind; }
+				everPublished = ( pubStatus === 'published' ); dirty = false;
+				var ti = document.getElementById( 'vb-title' ); if ( ti ) { ti.value = docTitle; }
+				applyDocMeta( res.data );
+				store.init( res.data.model );
+				document.title = docTitle + ' — Velox Builder';
+				setTimeout( function () { renderActions(); }, 30 );
+			} )
+			// A failed load must NEVER fall back to an empty page: the next Save
+			// would have written that empty page over the real layout.
+			.catch( function () { showLoadState( 'error', '' ); } );
+	}
+	function showLoadState( st, msg ) {
+		var stage = document.querySelector( '.vb-stage' ); if ( ! stage ) { return; }
+		var box = document.getElementById( 'vb-loadstate' );
+		if ( ! st ) { if ( box ) { box.remove(); } return; }
+		if ( ! box ) { box = document.createElement( 'div' ); box.id = 'vb-loadstate'; box.className = 'vb-loadstate'; stage.appendChild( box ); }
+		box.innerHTML = 'loading' === st
+			? '<div class="vb-ls-in"><span class="vb-ls-spin"></span><b>' + T( 'Loading the design…' ) + '</b></div>'
+			: '<div class="vb-ls-in"><b>' + T( 'This design could not be loaded.' ) + '</b><p>' + escapeHtml( msg || T( 'Nothing was changed. Check your connection and try again.' ) ) + '</p><button class="vb-btn vb-btn-primary" id="vb-load-retry">' + T( 'Try again' ) + '</button></div>';
 	}
 	/* ---------- Save / Publish action buttons (state-aware) ----------
 	   New page (never published): a single Publish button. After first publish
@@ -1463,28 +1767,40 @@
 			fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 				.then( function ( r ) { return r.json(); } )
 				.then( function ( res ) {
-					if ( res && res.success ) { pubStatus = 'published'; pubUrl = res.data.url || ''; setPubState( 'published' ); }
-					else { renderActions(); alert( ( res && res.data && res.data.message ) || T( 'Publish failed' ) ); }
+					if ( res && res.success ) {
+						pubStatus = 'published'; pubUrl = res.data.url || '';
+						// The page may have been created just now: point "Open frontend"
+						// and "View page" at it.
+						applyDocMeta( { post_id:res.data.post_id, url:res.data.url } );
+						setPubState( 'published' );
+						if ( res.data.url ) { toast( T( 'Published.' ) ); }
+					}
+					else { renderActions(); toast( ( res && res.data && res.data.message ) || T( 'Publish failed' ) ); }
 				} )
 				.catch( function () { renderActions(); } );
 		};
 		saveThen( afterSave );
 	}
+	/* Save is always there (a new page used to show only Publish, so a draft
+	 * could not be kept without putting it live), and shows a dot while there
+	 * are unsaved changes. */
 	function renderActions() {
 		var host = document.getElementById( 'vb-actions' ); if ( ! host ) { return; }
-		if ( ! everPublished ) {
-			host.innerHTML = '<button class="vb-btn vb-btn-primary" id="vb-publish">' + ( saving ? T( 'Publishing…' ) : T( 'Publish' ) ) + '</button>';
-		} else {
-			host.innerHTML =
-				'<button class="vb-btn vb-btn-ghost" id="vb-save">' + saveLabel() + '</button>' +
-				'<button class="vb-btn vb-btn-primary" id="vb-publish">' + ( pubStatus === 'published' && ! dirty ? T( 'Published' ) : T( 'Publish' ) ) + '</button>';
-			var pb = document.getElementById( 'vb-publish' );
-			if ( pubStatus === 'published' && ! dirty ) { pb.classList.add( 'is-live' ); }
-		}
+		var live = pubStatus === 'published' && ! dirty;
+		host.innerHTML =
+			'<button class="vb-btn vb-btn-ghost vb-save--' + _saveState + ( dirty ? ' is-dirty' : '' ) + '" id="vb-save" title="' + T( 'Save' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'S)">' + saveLabel() + '</button>' +
+			'<button class="vb-btn vb-btn-primary' + ( live ? ' is-live' : '' ) + '" id="vb-publish">' + ( live ? T( 'Published' ) : ( everPublished ? T( 'Update' ) : T( 'Publish' ) ) ) + '</button>';
 	}
 	var _saveState = 'idle';
 	function saveLabel() { return { idle:T( 'Save' ), saving:T( 'Saving…' ), saved:T( 'Saved' ), error:T( 'Save failed' ) }[ _saveState ] || T( 'Save' ); }
-	function setSaveState( s ) { _saveState = s; var el = document.getElementById( 'vb-save' ); if ( el ) { el.textContent = saveLabel(); el.className = 'vb-btn-save vb-save--' + s; } }
+	function setSaveState( s ) {
+		_saveState = s;
+		var el = document.getElementById( 'vb-save' ); if ( ! el ) { return; }
+		el.textContent = saveLabel();
+		[ 'idle', 'saving', 'saved', 'error' ].forEach( function ( k ) { el.classList.remove( 'vb-save--' + k ); } );
+		el.classList.add( 'vb-save--' + s );
+		el.classList.toggle( 'is-dirty', dirty );
+	}
 	function setPubState( state ) {
 		var view = document.getElementById( 'vb-view' );
 		if ( state === 'published' ) { everPublished = true; dirty = false; }
@@ -1493,21 +1809,15 @@
 		var pb = document.getElementById( 'vb-publish' );
 		if ( pb && state === 'publishing' ) { pb.textContent = T( 'Publishing…' ); pb.disabled = true; }
 	}
-	function markDirty() { dirty = true; if ( everPublished ) { renderActions(); } }
+	function markDirty() {
+		var was = dirty;
+		dirty = true;
+		if ( 'saved' === _saveState || 'error' === _saveState ) { _saveState = 'idle'; }
+		if ( ! was || 'idle' !== _saveState ) { renderActions(); }
+	}
 
 	/* ---------- publish ---------- */
-	function saveThen( cb ) {
-		if ( saving || ! CFG.ajaxurl ) { cb(); return; }
-		saving = true; setSaveState( 'saving' );
-		var body = new URLSearchParams();
-		body.set( 'action', 'velox' ); body.set( 'do', 'builder_save' ); body.set( 'nonce', CFG.nonce || '' );
-		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', docKind );
-		body.set( 'data', JSON.stringify( store.state ) ); body.set( 'css_size', String( new Blob( [ genCSS() ] ).size ) ); if ( postId ) { body.set( 'post_id', postId ); }
-		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
-			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { saving = false; if ( res && res.success ) { docId = res.data.id; setSaveState( 'saved' ); } cb(); } )
-			.catch( function () { saving = false; setSaveState( 'error' ); cb(); } );
-	}
+	function saveThen( cb ) { persist( function ( ok ) { if ( ok ) { cb(); } else { renderActions(); } } ); }
 
 	/* ============================================================
 	   UI
@@ -1623,6 +1933,7 @@
 		// while a panel floats over it, and give it back when the panel is pinned
 		// (pinned means it has its own space and nothing is covered).
 		app.classList.toggle( 'vb-hide-insp', floatLeft );
+		clearTimeout( applyDock._t ); applyDock._t = setTimeout( function () { resizeCanvas(); }, 190 );
 		var pins = document.querySelectorAll( '.vb-pinbtn' );
 		for ( var i = 0; i < pins.length; i++ ) {
 			var side = pins[ i ].getAttribute( 'data-pin' ) || 'right';
@@ -1636,12 +1947,13 @@
 	/* Right toggle = slide the whole right stack off / bring the last one back. */
 	function toggleRightStack() {
 		var right = openRightPanel();
-		if ( right ) { lastRightPanel = right; cssShown = false; historyShown = false; structShown = false; }
+		if ( right ) { lastRightPanel = right; cssShown = false; historyShown = false; structShown = false; setShown = false; }
 		else if ( lastRightPanel === 'css' ) { cssShown = true; }
 		else if ( lastRightPanel === 'hist' ) { historyShown = true; }
+		else if ( lastRightPanel === 'settings' ) { setShown = true; }
 		else { structShown = true; }
 		saveUiPrefs();
-		renderCSSPanel(); renderHistoryPanel(); renderStructPanel();
+		renderCSSPanel(); renderHistoryPanel(); renderStructPanel(); renderSettingsPanel();
 	}
 	/* Shared pin control for every panel header. */
 	function pinBtnHTML( side ) { return '<button class="vb-css-x vb-pinbtn" data-pin="' + ( side || 'right' ) + '">' + svg( 'pin', 14 ) + '</button>'; }
@@ -1655,7 +1967,9 @@
 			topbarHTML() +
 			'<div class="vb-body">' +
 				'<aside class="vb-inspector" id="vb-inspector"></aside>' +
-				'<main class="vb-stage"><div class="vb-viewas-bar" id="vb-viewas-bar"></div><iframe id="vb-canvas" title="Canvas"></iframe></main>' +
+				'<main class="vb-stage" id="vb-stage"><div class="vb-viewas-bar" id="vb-viewas-bar"></div>' +
+					'<div class="vb-bpinfo" id="vb-bpinfo"></div>' +
+					'<div class="vb-canvas-wrap" id="vb-canvas-wrap"><iframe id="vb-canvas" title="Canvas"></iframe></div></main>' +
 			'</div>' +
 			'<div class="vb-csspanel" id="vb-css"></div>' +
 			'<div class="vb-histpanel" id="vb-hist"></div>' +
@@ -1664,29 +1978,50 @@
 			'<div id="vb-dyndata-host"></div>' +
 			'<div class="vb-addmenu" id="vb-addmenu"></div>' +
 			'<div class="vb-scrim" id="vb-scrim"></div>' +
-			'<div class="vb-iconpick" id="vb-iconpick"></div>';
+			'<div class="vb-iconpick" id="vb-iconpick"></div>' +
+			'<div class="vb-modal" id="vb-oxypick"></div>';
 		injectStyles();
 		wireEvents();
 		applyDock();
 		applyEditorPrefs();
 		setNavUrls();
 		store.subscribe( renderAll );
-		store.subscribe( markDirty );
+		// Only real edits make the document "unsaved" — selecting an element or
+		// loading the page used to, so "Published" never showed after opening.
+		store.onEdit = markDirty;
+		window.addEventListener( 'beforeunload', function ( e ) {
+			if ( dirty || saving ) { e.preventDefault(); e.returnValue = ''; return ''; }
+		} );
+		window.addEventListener( 'resize', function () { resizeCanvas(); } );
 		store.subscribeLog( function () { if ( historyShown ) { renderHistoryPanel(); } } );
 		renderActions();
 		// Clicking anywhere in the editor chrome means the canvas lost focus:
 		// commit whatever was being typed rather than waiting for a blur that may
 		// never arrive.
+		// The rich-text toolbar and the data picker act ON the text being edited,
+		// so pressing them must not end the edit (or move the selection away).
 		document.addEventListener( 'mousedown', function ( e ) {
-			if ( editing && ! e.target.closest( '#vb-canvas' ) ) { commitInlineEdit(); }
+			var tool = e.target.closest( '.vb-tt-b, .vb-dd-chip, #vb-insertdata' );
+			if ( tool ) { e.preventDefault(); return; }
+			if ( editing && ! e.target.closest( '#vb-canvas' ) && ! e.target.closest( '.vb-texttool, #vb-dyndata' ) ) { commitInlineEdit(); }
 		}, true );
-		window.addEventListener( 'blur', function () { if ( editing ) { commitInlineEdit(); } } );
+		// The editor window blurs when focus moves INTO the canvas too — that must
+		// not end the edit that is just starting there.
+		window.addEventListener( 'blur', function () {
+			setTimeout( function () {
+				if ( editing && document.activeElement !== document.getElementById( 'vb-canvas' ) ) { commitInlineEdit(); }
+			}, 0 );
+		} );
 		var fr = document.getElementById( 'vb-canvas' );
 		fr.addEventListener( 'load', function () { canvasReady = true; if ( ! store.state ) { boot(); } else { injectCanvas(); } injectGlobalCss(); } );
 		setTimeout( function () { if ( ! store.state ) { boot(); } }, 60 );
 	}
+	var booted = false;
 	function boot() {
-		if ( CFG.docId ) { loadDoc( CFG.docId ); setTimeout( function () { if ( ! store.state ) { store.init( initialDoc ); } }, 1200 ); }
+		if ( booted ) { return; }
+		booted = true;
+		resizeCanvas( 'base' );
+		if ( CFG.docId ) { loadDoc( CFG.docId ); }
 		else { store.init( initialDoc ); }
 	}
 	function topbarHTML() {
@@ -1714,16 +2049,13 @@
 			// CENTER: breakpoints + undo/redo
 			'<div class="vb-tbc vb-tbc-center">' +
 				'<div class="vb-bp" id="vb-bp">' +
-					'<button data-bp="base" class="on" title="Desktop">' + svg( 'monitor', 15 ) + '</button>' +
-					'<button data-bp="xxl" title="' + BP_META.xxl.label + '">' + svg( 'monitor', 14 ) + '</button>' +
-					'<button data-bp="xl" title="' + BP_META.xl.label + '">' + svg( 'monitor', 13 ) + '</button>' +
-					'<button data-bp="lg" title="' + BP_META.lg.label + '">' + svg( 'tablet', 14 ) + '</button>' +
-					'<button data-bp="md" title="' + BP_META.md.label + '">' + svg( 'tablet', 13 ) + '</button>' +
-					'<button data-bp="sm" title="' + BP_META.sm.label + '">' + svg( 'smartphone', 14 ) + '</button>' +
+					BP_TOOLBAR.map( function ( k, i ) {
+						return '<button data-bp="' + k + '"' + ( 0 === i ? ' class="on"' : '' ) + ' title="' + escapeHtml( BP_META[ k ].label + ' · ' + BP_META[ k ].range ) + '">' + svg( BP_META[ k ].icon, 15 ) + '</button>';
+					} ).join( '' ) +
 				'</div>' +
 				'<div class="vb-tsep"></div>' +
-				'<button class="vb-ic" id="vb-undo" title="Undo">' + svg( 'undo', 16 ) + '</button>' +
-				'<button class="vb-ic" id="vb-redo" title="Redo">' + svg( 'redo', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-undo" title="' + T( 'Undo' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'Z)">' + svg( 'undo', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-redo" title="' + T( 'Redo' ) + ' (' + ( IS_MAC ? '⇧⌘' : 'Ctrl+Shift+' ) + 'Z)">' + svg( 'redo', 16 ) + '</button>' +
 			'</div>' +
 			// RIGHT: tool icons · [Save Publish View] · Exit-icon (with menu)
 			'<div class="vb-tbc">' +
@@ -1732,7 +2064,7 @@
 				'</span>' +
 				'<button class="vb-ic" id="vb-structure" title="' + T( 'Structure' ) + '">' + svg( 'structure', 16 ) + '</button>' +
 				'<a class="vb-ic" id="vb-reusables" href="' + ( CFG.reusablesUrl || '#' ) + '" title="' + T( 'Reusables' ) + '">' + svg( 'copy', 16 ) + '</a>' +
-				'<button class="vb-ic" id="vb-search" title="' + T( 'Search' ) + '">' + svg( 'search', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-search" title="' + T( 'Switch page' ) + '">' + svg( 'search', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-code" title="' + T( 'Page CSS / JS' ) + '">' + svg( 'code', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-history" title="' + T( 'History' ) + '">' + svg( 'clock', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-settings" title="' + T( 'Settings' ) + '">' + svg( 'gear', 16 ) + '</button>' +
@@ -1754,6 +2086,7 @@
 			'<div class="vb-brandmenu" id="vb-brandmenu">' +
 				'<a class="vb-bm-i" href="' + ( CFG.settingsUrl || '#' ) + '">' + svg( 'gear', 15 ) + ' ' + T( 'Velox Builder settings' ) + '</a>' +
 				'<a class="vb-bm-i" href="' + ( CFG.backUrl || '#' ) + '">' + svg( 'home', 15 ) + ' ' + T( 'Back to WordPress' ) + '</a>' +
+				( CFG.oxygenAny ? '<button class="vb-bm-i" data-oxy-pick>' + svg( 'download', 15 ) + ' ' + T( 'Import from Oxygen…' ) + '</button>' : '' ) +
 			'</div>' +
 			// page switcher (hidden until caret clicked)
 			'<div class="vb-pageswitch" id="vb-pageswitch">' +
@@ -1784,7 +2117,7 @@
 	function renderTopbar( state ) {
 		var b = document.querySelectorAll( '#vb-bp button' );
 		for ( var i = 0; i < b.length; i++ ) { b[ i ].classList.toggle( 'on', b[ i ].getAttribute( 'data-bp' ) === state.breakpoint ); }
-		var bpl = document.getElementById( 'vb-bplabel' ); if ( bpl ) { bpl.textContent = BP_META[ state.breakpoint ].label; }
+		if ( state.breakpoint !== canvasBp ) { resizeCanvas( state.breakpoint ); }
 		var ks = document.getElementById( 'vb-kind' ); if ( ks && ks.value !== docKind ) { ks.value = docKind; }
 		refreshViewAs();
 		document.getElementById( 'vb-undo' ).style.opacity = store.history.length > 1 ? 1 : 0.4;
@@ -1877,10 +2210,13 @@
 		var props = BOX_SIDES[ key ].props, val = joinVal( num, unit );
 		store.commit( function ( s ) {
 			var node = findNode( s.tree, s.selection ), rk = ruleKey( s.breakpoint, s.state );
-			var c = s.activeClass;
-			s.classes[ c ] = s.classes[ c ] || {}; s.classes[ c ][ rk ] = s.classes[ c ][ rk ] || {};
+			if ( ! node ) { return; }
+			var c = s.activeClass, map;
+			if ( c ) { s.classes[ c ] = s.classes[ c ] || {}; map = s.classes[ c ]; } else { map = node.overrides; }
+			map[ rk ] = map[ rk ] || {};
 			props.forEach( function ( pr ) {
-				if ( '' === val ) { delete s.classes[ c ][ rk ][ pr ]; } else { s.classes[ c ][ rk ][ pr ] = val; }
+				if ( '' === val ) { delete map[ rk ][ pr ]; } else { map[ rk ][ pr ] = val; }
+				clearShadowed( map, rk, pr );
 			} );
 		}, T( 'Style' ) + ': ' + key );
 	}
@@ -1889,25 +2225,27 @@
 	 * destroys the field you are typing in: focus falls back to <body>, so the
 	 * next Backspace hits the "delete element" shortcut instead of the input.
 	 * Remember which control had focus and where the caret was, and put it back. */
+	/* Every field kind the inspector draws — the Settings tab, the link, alt
+	 * text, animation and item fields were missing, so typing there lost focus
+	 * after one character or a short pause. */
+	var FOCUS_ATTRS = [ 'data-setnum', 'data-setbox', 'data-setunit', 'data-setboxunit', 'data-set', 'data-setel', 'data-sethref',
+		'data-repset', 'data-setaos', 'data-imgalt', 'data-setconn', 'data-setpreset', 'data-setwp' ];
 	function captureFocus() {
 		var el = document.activeElement;
 		if ( ! el || ! el.closest || ! el.closest( '#vb-inspector' ) ) { return null; }
-		var key = el.getAttribute( 'data-setnum' ) || el.getAttribute( 'data-set' ) ||
-			el.getAttribute( 'data-setbox' ) || el.getAttribute( 'data-setunit' ) ||
-			el.getAttribute( 'data-setboxunit' ) || el.id;
-		if ( ! key ) { return null; }
-		var attr = el.hasAttribute( 'data-setnum' ) ? 'data-setnum' :
-			el.hasAttribute( 'data-setbox' ) ? 'data-setbox' :
-			el.hasAttribute( 'data-setunit' ) ? 'data-setunit' :
-			el.hasAttribute( 'data-setboxunit' ) ? 'data-setboxunit' :
-			el.hasAttribute( 'data-set' ) ? 'data-set' : 'id';
+		var attr = null;
+		for ( var i = 0; i < FOCUS_ATTRS.length; i++ ) { if ( el.hasAttribute( FOCUS_ATTRS[ i ] ) ) { attr = FOCUS_ATTRS[ i ]; break; } }
+		var key = attr ? el.getAttribute( attr ) : el.id;
+		if ( ! attr ) { attr = 'id'; }
+		if ( ! key && 'data-sethref' !== attr ) { return null; }
 		var pos = null;
 		try { pos = el.selectionStart; } catch ( e ) {}
-		return { attr:attr, key:key, pos:pos };
+		return { attr:attr, key:key || '', pos:pos, tag:el.tagName.toLowerCase() };
 	}
 	function restoreFocus( f ) {
 		if ( ! f ) { return; }
-		var sel = 'id' === f.attr ? '#' + f.key : '[' + f.attr + '="' + f.key + '"]';
+		var q = window.CSS && CSS.escape ? CSS.escape( f.key ) : f.key.replace( /"/g, '\\"' );
+		var sel = 'id' === f.attr ? '#' + q : f.tag + '[' + f.attr + ( f.key ? '="' + f.key.replace( /"/g, '\\"' ) + '"' : '' ) + ']';
 		var el = document.querySelector( '#vb-inspector ' + sel );
 		if ( ! el ) { return; }
 		el.focus();
@@ -1915,13 +2253,46 @@
 			try { el.setSelectionRange( f.pos, f.pos ); } catch ( e ) {}
 		}
 	}
+	/* Nothing selected: the inspector used to fold away, which shifted the canvas
+	 * under the mouse on the next click (a double-click then hit something
+	 * else). It stays, and says what to do. */
+	function inspectorEmptyHTML( state ) {
+		var count = 0; walkTree( state.tree || [], function () { count++; } );
+		return '<div class="vb-insp-empty">' +
+			'<div class="vb-ie-ic">' + svg( 'move', 22 ) + '</div>' +
+			'<b>' + T( 'Nothing selected' ) + '</b>' +
+			'<p>' + T( 'Click an element on the canvas, or pick one in Structure, to style it here.' ) + '</p>' +
+			'<div class="vb-ie-acts"><button class="vb-btn vb-btn-primary" data-add>' + svg( 'plus', 14 ) + ' ' + T( 'Add element' ) + '</button>' +
+			'<button class="vb-btn vb-btn-ghost" id="vb-ie-struct">' + svg( 'structure', 14 ) + ' ' + T( 'Structure' ) + '</button></div>' +
+			'<div class="vb-ie-meta">' + count + ' ' + ( 1 === count ? T( 'element on this page' ) : T( 'elements on this page' ) ) + '</div>' +
+			'<div class="vb-ie-keys"><span><kbd>' + T( 'Double-click' ) + '</kbd> ' + T( 'edit text / change image' ) + '</span>' +
+			'<span><kbd>' + ( IS_MAC ? '⌘' : 'Ctrl' ) + '+D</kbd> ' + T( 'duplicate' ) + '</span>' +
+			'<span><kbd>' + T( 'Del' ) + '</kbd> ' + T( 'delete' ) + '</span>' +
+			'<span><kbd>' + ( IS_MAC ? '⌘' : 'Ctrl' ) + '+S</kbd> ' + T( 'save' ) + '</span></div>' +
+		'</div>';
+	}
+	function elLabel( node ) {
+		for ( var i = 0; i < CATALOG.length; i++ ) {
+			if ( CATALOG[ i ].el === node.el && ( ! CATALOG[ i ].wp || CATALOG[ i ].wp === node.wp ) ) { return T( CATALOG[ i ].label ); }
+		}
+		return node.el;
+	}
+	/* The site's colour tokens as one-click swatches under every colour field. */
+	function tokenSwatchesHTML( prop ) {
+		var cols = ( TOKENS && TOKENS.colors ) || [];
+		if ( ! cols.length ) { return ''; }
+		return '<div class="vb-tokswatch">' + cols.slice( 0, 12 ).map( function ( c ) {
+			return '<button type="button" class="vb-tsw" data-set="' + prop + '" data-val="var(--' + escapeHtml( c.name ) + ')" title="' + escapeHtml( c.name + ' · ' + c.value ) + '" style="background:' + escapeHtml( c.value ) + '"></button>';
+		} ).join( '' ) + '</div>';
+	}
 	function renderInspector( state ) {
 		var node = findNode( state.tree, state.selection ), insp = document.getElementById( 'vb-inspector' );
-		if ( ! node ) { insp.innerHTML = ''; lastInspNode = null; return; }
+		if ( ! node ) { insp.innerHTML = inspectorEmptyHTML( state ); lastInspNode = null; closeIconPicker(); return; }
 		// On selecting a NEW element that still needs setup (e.g. a Reviews element
 		// with no connection yet), jump straight to its Settings so the real
 		// options are visible instead of only style controls.
 		if ( node.id !== lastInspNode ) {
+			if ( lastInspNode ) { closeIconPicker(); }
 			lastInspNode = node.id;
 			pendingUnit = {};
 			if ( elementNeedsSetup( node ) ) { inspTab = 'set'; }
@@ -1935,7 +2306,8 @@
 		} ).join( '' );
 		chips += '<span class="vb-chip vb-chip-add" data-addclass>+ ' + T( 'class' ) + '</span>';
 		var acKind = node.classes.indexOf( ac ) === 0 ? 'base' : 'combo';
-		var imgBtn = node.el === 'Image' ? '<button class="vb-imgbtn" data-pickimg="' + node.id + '">' + svg( 'image', 15 ) + ' ' + ( store.state.content[ node.id ] ? T( 'Replace image' ) : T( 'Choose image' ) ) + '</button>' : '';
+		var imgBtn = node.el === 'Image' ? '<button class="vb-imgbtn" data-pickimg="' + node.id + '">' + svg( 'image', 15 ) + ' ' + ( store.state.content[ node.id ] ? T( 'Replace image' ) : T( 'Choose image' ) ) + '</button>' +
+			( store.state.content[ node.id ] ? '<label class="vb-imgalt"><span>' + T( 'Alt text' ) + '</span><input type="text" data-imgalt="' + node.id + '" value="' + escapeHtml( node.alt || '' ) + '" placeholder="' + T( 'Describe the image for search engines and screen readers' ) + '"></label>' : '' ) : '';
 
 		// Per-element inspector profiles: the ORDER groups appear in, and which of
 		// them count as "Essentials" for this element type. Text-like elements lead
@@ -1971,7 +2343,7 @@
 				// section shut underneath you.
 				var open = Object.prototype.hasOwnProperty.call( blockOpen, g.group ) ? blockOpen[ g.group ] : ( gi <= 1 );
 				var closed = open ? '' : ' closed';
-				body += '<div class="vb-block' + closed + '"><div class="vb-block-h" data-block><span class="vb-block-ic">' + svg( g.icon, 15 ) + '</span><b>' + g.group + '</b><span class="vb-block-cv">' + svg( 'chevron', 12 ) + '</span></div><div class="vb-block-b">';
+				body += '<div class="vb-block' + closed + '"><div class="vb-block-h" data-block="' + g.group + '"><span class="vb-block-ic">' + svg( g.icon, 15 ) + '</span><b>' + T( g.group ) + '</b><span class="vb-block-cv">' + svg( 'chevron', 12 ) + '</span></div><div class="vb-block-b">';
 				// Spacing and Size read as paired boxes rather than a stack of
 				// single fields — padding beside margin, width/min/max on a row.
 				if ( 'Spacing' === g.group ) { body += spacingBlockHTML( node, bp, st, ac ) + '</div></div>'; return; }
@@ -1986,30 +2358,32 @@
 					} else if ( it.type === 'text' ) {
 						ctrl = '<div class="vb-row"><input class="vb-inp" data-set="' + it.prop + '" value="' + ( val != null ? String( val ).replace( /"/g, '&quot;' ) : '' ) + '" placeholder="' + ( it.ph || '' ) + '"></div>';
 					} else if ( it.type === 'color' ) {
-						var hex = ( val && val[ 0 ] === '#' ) ? val : '#000000';
-						ctrl = '<div class="vb-row"><input type="color" class="vb-swatch" data-setcolor="' + it.prop + '" value="' + hex + '"><input class="vb-inp" data-set="' + it.prop + '" value="' + ( val != null ? val : '' ) + '" placeholder="—"></div>';
+						var hex = ( val && /^#[0-9a-f]{6}$/i.test( val ) ) ? val : '#000000';
+						var sw = tokenSwatchesHTML( it.prop );
+						ctrl = '<div class="vb-row"><input type="color" class="vb-swatch" data-setcolor="' + it.prop + '" value="' + hex + '"><input class="vb-inp" data-set="' + it.prop + '" value="' + escapeHtml( val != null ? val : '' ) + '" placeholder="—"></div>' + sw;
 					}
-					body += '<div class="vb-f"><div class="vb-f-lbl"><span class="vb-src ' + dot.cls + '" title="' + dot.tip + '"></span> ' + it.label + '</div>' + ctrl + '</div>';
+					body += '<div class="vb-f"><div class="vb-f-lbl"><span class="vb-src ' + dot.cls + '" title="' + dot.tip + '"></span> ' + T( it.label ) + '</div>' + ctrl + '</div>';
 				} );
 				body += '</div></div>';
 			} );
 		}
 		var keepFocus = captureFocus();
 		insp.innerHTML =
-			'<div class="vb-insp-head"><span class="vb-insp-ic">' + svg( elIcon( node.el ), 16 ) + '</span><div class="vb-insp-tx"><b>' + node.el + '</b><small>#' + node.id + ' · ' + node.tag + '</small></div>' +
+			'<div class="vb-insp-head"><span class="vb-insp-ic">' + svg( elIcon( node.el ), 16 ) + '</span><div class="vb-insp-tx"><b>' + escapeHtml( node.name || elLabel( node ) ) + '</b><small>' + escapeHtml( ( node.name ? elLabel( node ) + ' · ' : '' ) + '<' + node.tag + '>' ) + '</small></div>' +
 				'<span class="vb-insp-acts"><button class="vb-ia" data-dup title="' + T( 'Duplicate' ) + '">' + svg( 'copy', 14 ) + '</button><button class="vb-ia vb-ia-del" data-del title="' + T( 'Delete' ) + '">' + svg( 'trash', 14 ) + '</button></span></div>' +
 			// Classes and state are two separate concerns, so they get two cards.
 			// The old layout printed the active class twice (a big card AND a chip)
 			// and never said that editing a class hits every element using it.
 			'<div class="vb-classbar"><div class="vb-chips">' + chips + '</div>' +
-				'<div class="vb-cb-say">' + T( 'Any change below rewrites' ) + ' <b>' + ac + '</b> ' + T( 'everywhere it is used.' ) + '</div>' +
+				( ac ? '<div class="vb-cb-say">' + T( 'Any change below rewrites' ) + ' <b>' + escapeHtml( ac ) + '</b> ' + T( 'everywhere it is used.' ) + '</div>'
+					: '<div class="vb-cb-say">' + T( 'No class: changes below apply to this element only.' ) + '</div>' ) +
 			'</div>' +
 			'<div class="vb-statebar"><div class="vb-cb-l">' + T( 'State' ) + '</div>' +
 				'<div class="vb-states">' +
 					[ 'normal', 'hover', 'focus', 'active' ].concat( customStates ).map( function ( s2 ) { return '<button class="vb-state' + ( st === s2 ? ' on' : '' ) + '" data-state="' + s2 + '">' + ( s2 === 'normal' ? T( 'normal' ) : ':' + s2 ) + '</button>'; } ).join( '' ) +
 					'<button class="vb-state vb-state-add" id="vb-addstate" title="' + T( 'Add custom state' ) + '">' + svg( 'plus', 12 ) + '</button>' +
 				'</div>' +
-				'<div class="vb-bp-note">' + ( st !== 'normal' ? T( 'Editing' ) + ' :' + st + ' — ' + T( 'falls back to normal' ) : ( bp === 'base' ? T( 'Editing at desktop' ) : T( 'Editing at' ) + ' ' + bp ) ) + '</div>' +
+				'<div class="vb-bp-note">' + ( st !== 'normal' ? T( 'Editing' ) + ' :' + escapeHtml( st ) + ' — ' + T( 'falls back to normal' ) : ( bp === 'base' ? T( 'Editing at desktop' ) : T( 'Editing at' ) + ' ' + escapeHtml( ( BP_META[ bp ] || BP_META.base ).label + ' · ' + ( BP_META[ bp ] || BP_META.base ).range ) ) ) + '</div>' +
 			'</div>' +
 			textToolbarHTML( node ) +
 			'<div class="vb-tabs">' +
@@ -2033,6 +2407,8 @@
 		return elNode;
 	}
 	function applyFormat( cmd ) {
+		var align = { justifyLeft:'left', justifyCenter:'center', justifyRight:'right' }[ cmd ];
+		if ( align ) { if ( editing ) { commitInlineEdit(); } setProp( 'textAlign', align ); return; }
 		var elNode = ensureEditingSelected(); if ( ! elNode ) { return; }
 		var doc = elNode.ownerDocument;
 		elNode.focus();
@@ -2098,9 +2474,9 @@
 		var groups = DATA_GROUPS.map( function ( g ) {
 			var chips = g.items.map( function ( it ) {
 				var badge = it.live ? '' : '<span class="vb-dd-soon" title="' + T( 'Inserted as placeholder' ) + '">•</span>';
-				return '<button class="vb-dd-chip" data-dd="' + it.t + '"' + ( it.arg ? ' data-arg="' + it.arg + '"' : '' ) + '>' + escapeHtml( it.l ) + badge + '</button>';
+				return '<button class="vb-dd-chip" data-dd="' + it.t + '"' + ( it.arg ? ' data-arg="' + it.arg + '"' : '' ) + '>' + escapeHtml( T( it.l ) ) + badge + '</button>';
 			} ).join( '' );
-			return '<div class="vb-dd-g"><div class="vb-dd-gh">' + g.name + '</div><div class="vb-dd-chips">' + chips + '</div></div>';
+			return '<div class="vb-dd-g"><div class="vb-dd-gh">' + T( g.name ) + '</div><div class="vb-dd-chips">' + chips + '</div></div>';
 		} ).join( '' );
 		return '<div class="vb-dyndata" id="vb-dyndata">' +
 			'<div class="vb-dd-top"><b>' + T( 'Insert Dynamic Data' ) + '</b><button class="vb-css-x" id="vb-dd-close">' + svg( 'x', 14 ) + '</button></div>' +
@@ -2488,6 +2864,8 @@
 		var tag = doc.getElementById( 'vb-global-css' );
 		if ( ! tag ) { tag = doc.createElement( 'style' ); tag.id = 'vb-global-css'; doc.head.appendChild( tag ); }
 		tag.textContent = cssFiles.map( function ( f ) { return f.css || ''; } ).join( '\n' );
+		var site = doc.getElementById( 'vb-site-css' );
+		if ( site && site.textContent !== ( CFG.siteCss || '' ) ) { site.textContent = CFG.siteCss || ''; }
 	}
 	function saveGlobalCss() {
 		if ( ! CFG.ajaxurl ) { return; }
@@ -2772,7 +3150,19 @@
 	}
 
 	/* ---------- Structure panel (collapsible full-page outline) ---------- */
-	var structShown = false, structCollapsed = {};
+	var structShown = false, structCollapsed = {}, structFollowed = null;
+	/* Collapse / expand every branch at once. */
+	function structSetAll( collapsed ) {
+		structCollapsed = {};
+		if ( collapsed && store.state ) {
+			walkTree( store.state.tree, function ( n ) {
+				var d = elDef( n );
+				if ( ( n.children && n.children.length ) || ( d && d.repeat && n.settings && n.settings.items && n.settings.items.length ) ) { structCollapsed[ n.id ] = true; }
+			} );
+		}
+		structFollowed = store.state ? store.state.selection : null;
+		renderStructPanel();
+	}
 	function renderStructPanel() {
 		var box = document.getElementById( 'vb-struct' ); if ( ! box ) { return; }
 		if ( ! structShown ) { box.style.display = 'none'; applyDock(); return; }
@@ -2816,10 +3206,31 @@
 		}
 		var html2;
 		var tree = store.state ? store.state.tree : [];
+		// The selected element is always visible: open every collapsed parent.
+		if ( sel && sel !== structFollowed ) {
+			structFollowed = sel;
+			( function open( nodes, path ) {
+				for ( var i = 0; i < nodes.length; i++ ) {
+					if ( nodes[ i ].id === sel ) { path.forEach( function ( pid ) { delete structCollapsed[ pid ]; } ); return true; }
+					if ( nodes[ i ].children && open( nodes[ i ].children, path.concat( nodes[ i ].id ) ) ) { return true; }
+				}
+				return false;
+			}( tree, [] ) );
+		}
 		var body = tree.length ? tree.map( function ( n ) { return row( n, 0 ); } ).join( '' ) : '<div class="vb-hist-empty">' + T( 'Nothing on the page yet.' ) + '</div>';
+		var keepScroll = box.querySelector( '.vb-st-tree' ); keepScroll = keepScroll ? keepScroll.scrollTop : 0;
 		box.innerHTML =
-			'<div class="vb-hist-top"><b>' + T( 'Structure' ) + '</b><span class="vb-p-acts">' + pinBtnHTML() + '<button class="vb-css-x" id="vb-struct-close">' + svg( 'x', 14 ) + '</button></span></div>' +
+			'<div class="vb-hist-top"><b>' + T( 'Structure' ) + '</b><span class="vb-p-acts">' +
+				'<button class="vb-css-x" id="vb-st-expand" title="' + T( 'Expand all' ) + '">' + svg( 'expand', 14 ) + '</button>' +
+				'<button class="vb-css-x" id="vb-st-collapse" title="' + T( 'Collapse all' ) + '">' + svg( 'collapse', 14 ) + '</button>' +
+				pinBtnHTML() + '<button class="vb-css-x" id="vb-struct-close">' + svg( 'x', 14 ) + '</button></span></div>' +
 			'<div class="vb-st-tree">' + body + '</div>';
+		var stTree = box.querySelector( '.vb-st-tree' ); if ( stTree ) { stTree.scrollTop = keepScroll; }
+		var selRow = box.querySelector( '.vb-st-row.sel' );
+		if ( selRow && stTree ) {
+			var rr = selRow.getBoundingClientRect(), tr = stTree.getBoundingClientRect();
+			if ( rr.top < tr.top || rr.bottom > tr.bottom ) { selRow.scrollIntoView( { block:'nearest' } ); }
+		}
 		applyDock();
 	}
 
@@ -2887,6 +3298,13 @@
 			if ( ! e.target.closest( '.vb-exitwrap' ) ) { var em2 = document.getElementById( 'vb-exitmenu' ); if ( em2 ) { em2.classList.remove( 'open' ); } }
 			if ( e.target.closest( '#vb-structure' ) ) { structShown = ! structShown; if ( structShown ) { closeAllPanels( 'struct' ); } renderStructPanel(); return; }
 			if ( e.target.closest( '#vb-struct-close' ) ) { structShown = false; renderStructPanel(); return; }
+			if ( e.target.closest( '#vb-st-collapse' ) ) { structSetAll( true ); return; }
+			if ( e.target.closest( '#vb-st-expand' ) ) { structSetAll( false ); return; }
+			if ( e.target.closest( '#vb-ie-struct' ) ) { structShown = true; closeAllPanels( 'struct' ); renderStructPanel(); return; }
+			if ( e.target.closest( '#vb-load-retry' ) ) { loadDoc( CFG.docId ); return; }
+			var oxp = e.target.closest( '[data-oxy-pick]' ); if ( oxp ) { closeAllPanels(); openOxygenPicker(); return; }
+			var oxi = e.target.closest( '[data-oxy-import]' ); if ( oxi ) { importOxygen( +oxi.getAttribute( 'data-oxy-import' ) ); closeOxygenPicker(); return; }
+			if ( e.target.closest( '#vb-oxy-close' ) || e.target.id === 'vb-oxypick' ) { closeOxygenPicker(); return; }
 			var stc = e.target.closest( '[data-stcaret]' ); if ( stc ) { var sid = stc.getAttribute( 'data-stcaret' ); structCollapsed[ sid ] = ! structCollapsed[ sid ]; renderStructPanel(); e.stopPropagation(); return; }
 			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) { store.commit( function ( s ) { s.selection = stn.getAttribute( 'data-stnode' ); resetActiveClass( s ); }, false ); return; }
 			if ( e.target.closest( '#vb-settings' ) ) { setShown = ! setShown; if ( setShown ) { closeAllPanels( 'settings' ); setView = 'root'; } renderSettingsPanel(); return; }
@@ -2955,9 +3373,8 @@
 			var stit = e.target.closest( '[data-stitem]' );
 			if ( stit ) {
 				var ip = stit.getAttribute( 'data-stitem' ).split( ':' );
-				selectNode( ip[ 0 ] );
 				inspTab = 'set';
-				renderInspector();
+				store.commit( function ( s ) { s.selection = ip[ 0 ]; resetActiveClass( s ); }, false );
 				return;
 			}
 			var sv = e.target.closest( '[data-setview]' ); if ( sv ) { setView = sv.getAttribute( 'data-setview' ); renderSettingsPanel(); return; }
@@ -2984,6 +3401,7 @@
 				closeContextMenu();
 				if ( act === 'copy' ) { copyNode( tid ); toast( T( 'Copied.' ) ); }
 				else if ( act === 'paste' ) { pasteNode( tid ); }
+				else if ( act === 'settings' ) { inspTab = 'set'; store.commit( function ( s ) { s.selection = tid; resetActiveClass( s ); }, false ); }
 				else if ( act === 'dup' ) { duplicateNode( tid ); }
 				else if ( act === 'reuse' ) { makeReusableFromNode( tid ); }
 				else if ( act === 'rename' ) { renameNode( tid ); }
@@ -3000,8 +3418,8 @@
 			var blk = e.target.closest( '[data-block]' ); if ( blk ) {
 				var wrap = blk.parentElement;
 				wrap.classList.toggle( 'closed' );
-				var nm = blk.querySelector( 'b' );
-				if ( nm ) { blockOpen[ nm.textContent ] = ! wrap.classList.contains( 'closed' ); }
+				var nm = blk.getAttribute( 'data-block' ) || ( blk.querySelector( 'b' ) || {} ).textContent;
+				if ( nm ) { blockOpen[ nm ] = ! wrap.classList.contains( 'closed' ); }
 				return;
 			}
 			if ( e.target.closest( '#vb-addstate' ) ) {
@@ -3011,7 +3429,7 @@
 			}
 			var stbtn = e.target.closest( '[data-state]' ); if ( stbtn ) { store.commit( function ( s ) { s.state = stbtn.getAttribute( 'data-state' ); }, false ); return; }
 			var seg = e.target.closest( '[data-set][data-val]' ); if ( seg ) { setProp( seg.getAttribute( 'data-set' ), seg.getAttribute( 'data-val' ) ); return; }
-			var bp = e.target.closest( '#vb-bp button' ); if ( bp ) { store.commit( function ( s ) { s.breakpoint = bp.getAttribute( 'data-bp' ); }, false ); resizeCanvas( bp.getAttribute( 'data-bp' ) ); return; }
+			var bp = e.target.closest( '#vb-bp button' ); if ( bp ) { resizeCanvas( bp.getAttribute( 'data-bp' ) ); store.commit( function ( s ) { s.breakpoint = bp.getAttribute( 'data-bp' ); }, false ); return; }
 			if ( ! e.target.closest( '.vb-addmenu' ) ) { closeAddMenu(); }
 		} );
 		document.addEventListener( 'input', function ( e ) {
@@ -3025,8 +3443,10 @@
 			if ( e.target.id === 'vb-css-name' ) { if ( cssFiles[ cssActive ] ) { cssFiles[ cssActive ].name = e.target.value; var tab = document.querySelector( '.vb-css-file.on span' ); if ( tab ) { tab.textContent = e.target.value; } scheduleCssSave(); } return; }
 			if ( e.target.id === 'vb-ip-search' ) { iconFilter = e.target.value.trim(); renderIconPicker();
 				var sf = document.getElementById( 'vb-ip-search' ); if ( sf ) { sf.focus(); sf.setSelectionRange( sf.value.length, sf.value.length ); } return; }
+			// Checkboxes are handled on "change". Letting "input" through as well
+			// stored "on" 250 ms later, so a switched-off toggle came back on.
 			var einp = e.target.closest( 'input[data-setel], textarea[data-setel]' );
-			if ( einp && ! einp.hasAttribute( 'data-segval' ) ) {
+			if ( einp && 'checkbox' !== einp.type && ! einp.hasAttribute( 'data-segval' ) ) {
 				var ek = einp.getAttribute( 'data-setel' ), ev = e.target.value;
 				clearTimeout( dbTimer ); dbTimer = setTimeout( function () { setElSetting( ek, ev.trim ? ev.trim() : ev ); }, 250 );
 				return;
@@ -3075,7 +3495,7 @@
 			if ( pgi ) { var pv2 = e.target.value.trim(); clearTimeout( dbTimer ); dbTimer = setTimeout( function () { setPageSetting( pgi.getAttribute( 'data-setpage' ), pv2 ); }, 250 ); return; }
 			var aoi = e.target.closest( 'input[data-setaos]' );
 			if ( aoi ) { var av = e.target.value.trim(); clearTimeout( dbTimer ); dbTimer = setTimeout( function () { setAos( aoi.getAttribute( 'data-setaos' ), av ); }, 200 ); return; }
-			if ( e.target.hasAttribute( 'data-sethref' ) ) { var hv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.href = hv; } } ); return; }
+			if ( e.target.hasAttribute( 'data-sethref' ) ) { var hv = e.target.value.trim(); clearTimeout( dbTimer ); dbTimer = setTimeout( function () { store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.href = hv; } }, T( 'Link' ) ); }, 300 ); return; }
 			if ( e.target.hasAttribute( 'data-setconn' ) ) { var cv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.conn = cv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setpreset' ) ) { var pv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.preset = pv; } } ); return; }
 			if ( e.target.hasAttribute( 'data-setwp' ) ) { var wv = e.target.value; store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.wp = wv; } } ); return; }
@@ -3102,10 +3522,21 @@
 				dbTimer = setTimeout( function () { if ( out === '' ) { removeProp( n.getAttribute( 'data-setnum' ) ); } else { setProp( n.getAttribute( 'data-setnum' ), out ); } }, 150 );
 				return;
 			}
-			var c = e.target.closest( '[data-setcolor]' ); if ( c ) { setProp( c.getAttribute( 'data-setcolor' ), e.target.value ); return; }
+			// Colour picker: preview while dragging, commit on "change" — committing
+			// every tick rebuilt the panel, closed the picker and filled History.
+			var c = e.target.closest( '[data-setcolor]' );
+			if ( c ) { previewProp( c.getAttribute( 'data-setcolor' ), e.target.value ); var ct2 = c.parentElement && c.parentElement.querySelector( 'input[data-set]' ); if ( ct2 ) { ct2.value = e.target.value; } return; }
 			var t = e.target.closest( 'input.vb-inp[data-set]' ); if ( t ) { clearTimeout( dbTimer ); dbTimer = setTimeout( function () { setProp( t.getAttribute( 'data-set' ), e.target.value ); }, 150 ); return; }
 		} );
 		document.addEventListener( 'change', function ( e ) {
+			var cchg = e.target.closest( '[data-setcolor]' );
+			if ( cchg ) { setProp( cchg.getAttribute( 'data-setcolor' ), e.target.value ); return; }
+			var ia = e.target.closest( '[data-imgalt]' );
+			if ( ia ) {
+				var aid = ia.getAttribute( 'data-imgalt' ), av = ia.value.trim();
+				store.commit( function ( s ) { var n = findNode( s.tree, aid ); if ( n ) { n.alt = av; n.altCustom = true; } }, T( 'Alt text' ) );
+				return;
+			}
 			var u = e.target.closest( '[data-setunit]' );
 			if ( u ) { setUnit( u.getAttribute( 'data-setunit' ), e.target.value ); return; }
 			var bu = e.target.closest( '[data-setboxunit]' );
@@ -3161,18 +3592,20 @@
 			// and the keystroke fell through to the browser.
 			var k = ( e.key || '' ).toLowerCase();
 			var typing = editing || /^(INPUT|TEXTAREA|SELECT)$/.test( ( e.target.tagName || '' ) ) || e.target.isContentEditable;
-			if ( mod && k === 'z' ) { e.preventDefault(); if ( e.shiftKey ) { store.redo(); } else { store.undo(); } }
+			// Inside a text field Ctrl+Z undoes the typing, not the page.
+			if ( mod && k === 'z' && ! typing ) { e.preventDefault(); if ( e.shiftKey ) { store.redo(); } else { store.undo(); } }
+			if ( mod && k === 'y' && ! typing ) { e.preventDefault(); store.redo(); }
 			if ( mod && k === 's' ) { e.preventDefault(); saveDoc(); }
 			if ( mod && k === 'p' ) { e.preventDefault(); publishDoc(); }
 			if ( mod && k === 'c' && ! typing && store.state && store.state.selection ) { e.preventDefault(); copyNode( store.state.selection ); toast( T( 'Copied.' ) ); }
-			if ( mod && k === 'v' && ! typing && clipboardNode ) { e.preventDefault(); pasteNode( ctxHoverId || store.state.selection ); }
+			if ( mod && k === 'v' && ! typing && clipboardNode ) { e.preventDefault(); pasteNode( store.state.selection ); }
 			if ( mod && k === 'd' && ! typing && store.state && store.state.selection ) { e.preventDefault(); duplicateNode( store.state.selection ); }
 			if ( mod && k === '\\' ) { e.preventDefault(); if ( e.shiftKey ) { toggleRightStack(); } else { toggleLeftStack(); } }
-			if ( e.key === 'Escape' ) { closeAddMenu(); closeContextMenu(); }
+			if ( e.key === 'Escape' ) { closeAddMenu(); closeContextMenu(); closeIconPicker(); closeOxygenPicker(); }
 			// Deleting the selected element is destructive, so it needs a deliberate
 			// keypress — not one that lands on <body> because a field just re-rendered
 			// under the cursor. Backspace no longer deletes; Delete does.
-			if ( e.key === 'Delete' && ! typing && e.target === document.body && store.state && store.state.selection ) { e.preventDefault(); deleteNode( store.state.selection ); }
+			if ( e.key === 'Delete' && ! typing && ( e.target === document.body || e.target === document ) && store.state && store.state.selection ) { e.preventDefault(); deleteNode( store.state.selection ); }
 		}, true );
 		wireDrag();
 		// Right-click context menu on layer tree + structure panel rows.
@@ -3209,15 +3642,15 @@
 	function addBodyHTML( filter ) {
 		var q = ( filter || '' ).toLowerCase();
 		var body = accGroups().map( function ( g, gi ) {
-			var items = g.items.filter( function ( it ) { return ! q || it.label.toLowerCase().indexOf( q ) > -1; } );
+			var items = g.items.filter( function ( it ) { return ! q || it.label.toLowerCase().indexOf( q ) > -1 || T( it.label ).toLowerCase().indexOf( q ) > -1; } );
 			if ( ! items.length ) { return ''; }
 			var open = q ? true : gi < 2;
 			var cells = items.map( function ( it ) {
 				var attr = g.reuse ? 'data-insert-reuse="' + it.reuseId + '"' : 'data-insert="' + it.key + '"';
 				var badge = it.badge ? '<span class="vb-el-badge">' + it.badge + '</span>' : '';
-				return '<button class="vb-el" ' + attr + '><span class="vb-el-ic">' + svg( elIcon( it.el ), 18 ) + '</span><span class="vb-el-l">' + escapeHtml( it.label ) + badge + '</span></button>';
+				return '<button class="vb-el" ' + attr + '><span class="vb-el-ic">' + svg( elIcon( it.el ), 18 ) + '</span><span class="vb-el-l">' + escapeHtml( g.reuse ? it.label : T( it.label ) ) + badge + '</span></button>';
 			} ).join( '' );
-			return '<div class="vb-acc' + ( open ? '' : ' closed' ) + '"><div class="vb-acc-h" data-acc><span class="vb-acc-ic">' + svg( g.icon, 17 ) + '</span><b>' + g.name + '</b><span class="vb-acc-ct">' + items.length + '</span><span class="vb-acc-cv">' + svg( 'chevron', 12 ) + '</span></div><div class="vb-acc-b">' + cells + '</div></div>';
+			return '<div class="vb-acc' + ( open ? '' : ' closed' ) + '"><div class="vb-acc-h" data-acc><span class="vb-acc-ic">' + svg( g.icon, 17 ) + '</span><b>' + T( g.name ) + '</b><span class="vb-acc-ct">' + items.length + '</span><span class="vb-acc-cv">' + svg( 'chevron', 12 ) + '</span></div><div class="vb-acc-b">' + cells + '</div></div>';
 		} ).join( '' );
 		return body || '<div class="vb-ap-none">' + T( 'No elements match.' ) + '</div>';
 	}
@@ -3249,16 +3682,19 @@
 	function closeAddMenu() { var m = document.getElementById( 'vb-addmenu' ); if ( m ) { m.classList.remove( 'open' ); } applyDock(); }
 
 	/* ---------- clipboard, context menu, keyboard shortcuts ---------- */
-	var clipboardNode = null, ctxHoverId = null;
+	var clipboardNode = null, clipboardContent = {}, clipboardClasses = {}, ctxHoverId = null;
 	function copyNode( id ) {
 		var n = findNode( store.state.tree, id ); if ( ! n ) { return; }
 		clipboardNode = JSON.parse( JSON.stringify( n ) );
+		clipboardContent = collectContentFor( n );
+		clipboardClasses = collectClassesFor( n );
 	}
 	/* Paste as a child of target container, or as a sibling if target is a leaf. */
 	function pasteNode( targetId ) {
 		if ( ! clipboardNode ) { return; }
-		var copy = cloneWithNewIds( clipboardNode, store.state );
+		var copy = cloneWithNewIds( clipboardNode, store.state, clipboardContent );
 		store.commit( function ( s ) {
+			Object.keys( clipboardClasses ).forEach( function ( c ) { if ( ! s.classes[ c ] ) { s.classes[ c ] = JSON.parse( JSON.stringify( clipboardClasses[ c ] ) ); } } );
 			var target = targetId ? findNode( s.tree, targetId ) : null;
 			if ( target && isContainer( target ) ) { target.children.push( copy ); }
 			else if ( target ) { var par = findParent( s.tree, targetId ); if ( par ) { par.children.splice( par.children.indexOf( target ) + 1, 0, copy ); } else { var i = s.tree.indexOf( target ); s.tree.splice( i + 1, 0, copy ); } }
@@ -3312,18 +3748,18 @@
 		var menu = document.createElement( 'div' );
 		menu.className = 'vb-ctx'; menu.id = 'vb-ctx';
 		var items = [
-			{ a:'copy', ic:'copy', l:T( 'Copy' ), k:'⌘C' },
-			{ a:'paste', ic:'clipboard', l:T( 'Paste' ), k:'⌘V', off:! clipboardNode },
-			{ a:'dup', ic:'copy', l:T( 'Duplicate' ) },
-			{ a:'del', ic:'trash', l:T( 'Delete' ), k:'⌫', danger:true },
+			{ a:'copy', ic:'copy', l:T( 'Copy' ), k:( IS_MAC ? '⌘C' : 'Ctrl+C' ) },
+			{ a:'paste', ic:'clipboard', l:T( 'Paste' ), k:( IS_MAC ? '⌘V' : 'Ctrl+V' ), off:! clipboardNode },
+			{ a:'dup', ic:'copy', l:T( 'Duplicate' ), k:( IS_MAC ? '⌘D' : 'Ctrl+D' ) },
+			{ a:'settings', ic:'gear', l:T( 'Settings' ) },
+			{ a:'del', ic:'trash', l:T( 'Delete' ), k:'Del', danger:true },
 			{ sep:true },
 			{ a:'rename', ic:'type', l:T( 'Rename' ) },
 			{ a:'export', ic:'external', l:T( 'Export' ) },
 			{ a:'wrap', ic:'div', l:T( 'Wrap with div' ) },
 			{ sep:true },
 			{ a:'hide', ic:'eye', l:node && node.hidden ? T( 'Show' ) : T( 'Hide' ) },
-			{ a:'reuse', ic:'star', l:T( 'Make re-usable' ) },
-			{ a:'cond', ic:'bolt', l:T( 'Conditions' ), soon:true, off:true }
+			{ a:'reuse', ic:'star', l:T( 'Make re-usable' ) }
 		];
 		menu.innerHTML = items.map( function ( it ) {
 			if ( it.sep ) { return '<div class="vb-ctx-sep"></div>'; }
@@ -3337,7 +3773,7 @@
 		menu.style.left = Math.min( x, window.innerWidth - mw - 8 ) + 'px';
 		menu.style.top = Math.min( y, window.innerHeight - mh - 8 ) + 'px';
 	}
-	function closeContextMenu() { var m = document.getElementById( 'vb-ctx' ); if ( m ) { m.remove(); } }
+	function closeContextMenu() { var m = document.getElementById( 'vb-ctx' ); if ( m ) { m.remove(); } ctxHoverId = null; }
 
 	/* ---------- context-menu actions (rename / export / wrap / hide) ---------- */
 	/* A custom label only affects how the element reads in the tree, Structure and
@@ -3389,8 +3825,10 @@
 			var list = parent ? parent.children : s.tree;
 			var i = list.indexOf( target ); if ( i < 0 ) { return; }
 			var wrapId = uid( 'div' );
-			if ( ! s.classes.div ) { s.classes.div = { base:{ display:'block' } }; }
-			list.splice( i, 1, { id:wrapId, el:'Div', tag:'div', classes:[ 'div' ], overrides:{}, children:[ target ] } );
+			// '.block' is the Div element's own class. This used 'div' (no dot),
+			// which rendered as class "iv" and a global div{} rule.
+			if ( ! s.classes[ '.block' ] ) { s.classes[ '.block' ] = { base:{} }; }
+			list.splice( i, 1, { id:wrapId, el:'Div', tag:'div', classes:[ '.block' ], overrides:{}, children:[ target ] } );
 			s.selection = wrapId; resetActiveClass( s );
 		}, T( 'Wrap with div' ) );
 	}
@@ -3460,8 +3898,10 @@
 		if ( viewAsRef ) { sel.value = viewAsRef; }
 		renderViewAsBar();
 	}
+	var viewAsLoading = false;
 	function fetchViewAsList() {
-		if ( ! CFG.ajaxurl || viewAsList ) { return; }
+		if ( ! CFG.ajaxurl || viewAsList || viewAsLoading ) { return; }
+		viewAsLoading = true;
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_viewas_list' ); body.set( 'nonce', CFG.nonce || '' );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
@@ -3502,6 +3942,58 @@
 			'<span class="vb-va-note">' + T( 'This content is not part of the template and is not saved.' ) + '</span>' +
 			'<button class="vb-va-x" id="vb-viewas-clear">' + T( 'Stop preview' ) + '</button>';
 	}
+
+	/* ---------- Oxygen import ----------
+	 * Pages built with Oxygen keep their layout in Oxygen's own data, so to Velox
+	 * they looked empty. The server converts that layout to a Velox document;
+	 * here it is added to the page (into an empty page, or after what is there). */
+	var oxySources = null;
+	function importOxygen( postIdToImport ) {
+		if ( ! CFG.ajaxurl || ! postIdToImport ) { return; }
+		toast( T( 'Importing the Oxygen layout…' ) );
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_oxygen_import' ); body.set( 'nonce', CFG.nonce || '' );
+		body.set( 'post', postIdToImport ); if ( 'template' === docKind ) { body.set( 'inner', '1' ); }
+		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) {
+				if ( ! res || ! res.success || ! res.data.model ) { toast( ( res && res.data && res.data.message ) || T( 'The Oxygen layout could not be imported.' ) ); return; }
+				var m = normalizeDoc( res.data.model );
+				if ( ! m.tree.length ) { toast( T( 'That Oxygen layout is empty.' ) ); return; }
+				store.commit( function ( s ) {
+					Object.keys( m.classes ).forEach( function ( c ) { if ( ! s.classes[ c ] ) { s.classes[ c ] = m.classes[ c ]; } } );
+					Object.keys( m.content ).forEach( function ( k ) { s.content[ k ] = m.content[ k ]; } );
+					m.tree.forEach( function ( n ) { s.tree.push( n ); } );
+					if ( m.page && m.page.css ) { s.page = s.page || {}; s.page.css = ( s.page.css ? s.page.css + '\n' : '' ) + m.page.css; }
+					s.selection = m.tree[ 0 ].id; resetActiveClass( s );
+				}, T( 'Import from Oxygen' ) );
+				var msg = T( 'Imported' ) + ' ' + res.data.count + ' ' + T( 'elements from Oxygen.' );
+				if ( res.data.skipped && res.data.skipped.length ) { msg += ' ' + T( 'Not converted (kept as containers or text):' ) + ' ' + res.data.skipped.join( ', ' ); }
+				toast( msg );
+			} )
+			.catch( function () { toast( T( 'The Oxygen layout could not be imported.' ) ); } );
+	}
+	function openOxygenPicker() {
+		var box = document.getElementById( 'vb-oxypick' ); if ( ! box ) { return; }
+		box.classList.add( 'open' );
+		box.innerHTML = '<div class="vb-modal-card"><div class="vb-hist-top"><b>' + T( 'Import from Oxygen' ) + '</b><button class="vb-css-x" id="vb-oxy-close">' + svg( 'x', 14 ) + '</button></div>' +
+			'<div class="vb-hist-note">' + T( 'Pick a page or template built with Oxygen. Its layout is added to this page; the Oxygen version is not changed.' ) + '</div>' +
+			'<div class="vb-modal-list" id="vb-oxy-list"><div class="vb-ps-loading">' + T( 'Loading…' ) + '</div></div></div>';
+		if ( oxySources ) { renderOxygenList(); return; }
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_oxygen_sources' ); body.set( 'nonce', CFG.nonce || '' );
+		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) { oxySources = ( res && res.success && res.data.sources ) || []; renderOxygenList(); } )
+			.catch( function () { oxySources = []; renderOxygenList(); } );
+	}
+	function renderOxygenList() {
+		var l = document.getElementById( 'vb-oxy-list' ); if ( ! l ) { return; }
+		l.innerHTML = oxySources.length ? oxySources.map( function ( o ) {
+			return '<button class="vb-ps-i" data-oxy-import="' + o.id + '"><span class="vb-ps-ic">' + svg( 'file', 15 ) + '</span><span class="vb-ps-t">' + escapeHtml( o.title ) + '</span><span class="vb-ps-badge b-wp">' + escapeHtml( o.type ) + '</span></button>';
+		} ).join( '' ) : '<div class="vb-ps-loading">' + T( 'No Oxygen layouts found on this site.' ) + '</div>';
+	}
+	function closeOxygenPicker() { var b = document.getElementById( 'vb-oxypick' ); if ( b ) { b.classList.remove( 'open' ); b.innerHTML = ''; } }
 
 	/* ---------- page switcher ---------- */
 	var switcherData = null, switcherFilter = 'all', switcherQuery = '';
@@ -3638,10 +4130,34 @@
 		var marks = document.querySelectorAll( '.drop-before,.drop-after,.drop-inside,.drop-root' );
 		for ( var i = 0; i < marks.length; i++ ) { marks[ i ].classList.remove( 'drop-before', 'drop-after', 'drop-inside', 'drop-root' ); }
 	}
+	/* The canvas renders at the REAL width of the chosen screen and is scaled
+	 * down to fit the stage. It used to be "100% of whatever space is left, max
+	 * 1200px", so on a normal monitor "Desktop" was ~1000px wide and laptop
+	 * rules applied while you were styling desktop. */
+	var canvasBp = 'base', canvasScale = 1;
 	function resizeCanvas( bp ) {
-		var fr = document.getElementById( 'vb-canvas' );
-		var px = ( BP_META[ bp ] && BP_META[ bp ].px ) ? BP_META[ bp ].px : '';
-		fr.style.maxWidth = px ? ( px + 'px' ) : '';
+		if ( bp ) { canvasBp = bp; }
+		var fr = document.getElementById( 'vb-canvas' ), wrap = document.getElementById( 'vb-canvas-wrap' ), stage = document.getElementById( 'vb-stage' );
+		if ( ! fr || ! wrap || ! stage ) { return; }
+		var meta = BP_META[ canvasBp ] || BP_META.base;
+		var cs = window.getComputedStyle( stage );
+		var availW = stage.clientWidth - parseFloat( cs.paddingLeft ) - parseFloat( cs.paddingRight );
+		var bar = document.getElementById( 'vb-viewas-bar' ), info = document.getElementById( 'vb-bpinfo' );
+		var availH = stage.clientHeight - parseFloat( cs.paddingTop ) - parseFloat( cs.paddingBottom ) - ( bar ? bar.offsetHeight : 0 ) - ( info ? info.offsetHeight + 8 : 0 );
+		var w = meta.view;
+		// Desktop on a big screen: use the room there is (never below 1400).
+		if ( 'base' === canvasBp ) { w = Math.max( Math.floor( BPX.xxl ) + 1, Math.floor( availW ) ); }
+		var scale = availW > 0 ? Math.min( 1, availW / w ) : 1;
+		canvasScale = scale;
+		var h = Math.max( 300, availH / scale );
+		fr.style.width = w + 'px'; fr.style.height = h + 'px';
+		fr.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
+		wrap.style.width = Math.round( w * scale ) + 'px'; wrap.style.height = Math.round( h * scale ) + 'px';
+		if ( info ) {
+			info.innerHTML = svg( meta.icon, 13 ) + '<b>' + escapeHtml( meta.label ) + '</b><span>' + w + ' px</span>' +
+				( scale < 1 ? '<span class="vb-bpi-z">' + Math.round( scale * 100 ) + '%</span>' : '' ) +
+				'<span class="vb-bpi-r">' + ( 'base' === canvasBp ? T( 'Styles here apply everywhere unless a smaller screen changes them.' ) : T( 'Changes here apply to' ) + ' ' + escapeHtml( meta.range ) ) + '</span>';
+		}
 	}
 
 	function injectStyles() {
@@ -3713,7 +4229,7 @@
 			'.vb-editing{display:flex;flex-direction:column;justify-content:center;padding:0 10px}',
 			'.vb-title{background:transparent;border:1px solid transparent;border-radius:8px;color:#f4f4f6;font-size:13px;font-weight:600;padding:7px 11px;width:190px;outline:none;transition:.1s;font-family:inherit}',
 			'.vb-title:hover{background:#313339}',
-			'.vb-title:focus{background:#313339;border-color:#2ab7f1;width:230px}',
+			'.vb-title:focus{background:#313339;border-color:#2ab7f1}',
 			'.vb-title::placeholder{color:#8b8d96;font-weight:500}',
 			'.vb-editing small{font-size:9px;color:#8b8d96;line-height:1}.vb-editing b{font-size:12px;font-weight:600}',
 			'.vb-spring{flex:1}',
@@ -3746,11 +4262,10 @@
 			// by applyDock() and are 0 whenever nothing is pinned+open.
 			'.vb-body{flex:1;display:grid;grid-template-columns:372px minmax(0,1fr);min-height:0;width:100%;box-sizing:border-box;padding-left:var(--vb-lw,0);padding-right:var(--vb-rw,0);transition:padding .16s ease,grid-template-columns .16s ease}',
 			'.vb-app.vb-lcol .vb-body{grid-template-columns:0 minmax(0,1fr)}',
-			// Nothing selected means the inspector has nothing to say, so it gives its
-			// column back to the canvas instead of sitting there empty.
-			'.vb-app.vb-nosel .vb-body{grid-template-columns:0 minmax(0,1fr)}',
-			'.vb-app.vb-lcol .vb-inspector,.vb-app.vb-nosel .vb-inspector{overflow:hidden;border-right-color:transparent}',
-			'.vb-app.vb-lcol .vb-dyndata,.vb-app.vb-nosel .vb-dyndata{left:0}',
+			// The inspector keeps its column when nothing is selected (it shows a
+			// short guide instead), so the canvas never jumps under the mouse.
+			'.vb-app.vb-lcol .vb-inspector{overflow:hidden;border-right-color:transparent}',
+			'.vb-app.vb-lcol .vb-dyndata{left:0}',
 			// Pinned panels sit flush against the canvas — the overlay shadow would
 			// read as "floating on top", which is exactly what pinning undoes.
 			'.vb-app.vb-pin-right .vb-csspanel,.vb-app.vb-pin-right .vb-histpanel,.vb-app.vb-pin-right .vb-structpanel,.vb-app.vb-pin-right .vb-setpanel{box-shadow:none;border-left-color:rgba(255,255,255,.07)}',
@@ -3758,7 +4273,7 @@
 			// Scrim only appears for UNPINNED panels — a pinned panel owns its own
 			// space, so dimming the canvas there would be wrong.
 			'.vb-app.vb-hide-insp .vb-inspector{visibility:hidden}',
-						'.vb-scrim{position:absolute;top:54px;left:0;right:0;bottom:0;background:rgba(10,11,14,.86);z-index:110;opacity:0;pointer-events:none;transition:opacity .16s}',
+						'.vb-scrim{position:absolute;top:54px;left:0;right:0;bottom:0;background:rgba(10,11,14,.5);z-index:110;opacity:0;pointer-events:none;transition:opacity .16s}',
 			'.vb-scrim.on{opacity:1;pointer-events:auto}',
 			'.vb-setpanel{position:absolute;top:54px;right:0;bottom:0;width:340px;background:#232429;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
 			'.vb-set-body{flex:1;overflow:auto;padding:12px 14px}',
@@ -3825,7 +4340,7 @@
 			'.vb-viewas optgroup{font-size:11px;color:#8b8d96}',
 			// A dropdown alone is too quiet a signal that the canvas is showing
 			// someone else's content, so the preview announces itself.
-			'.vb-viewas-bar{display:none;align-items:center;gap:10px;width:100%;max-width:1200px;margin:0 0 12px;padding:9px 13px;border-radius:10px;background:rgba(160,107,255,.14);border:1px solid rgba(160,107,255,.4);box-sizing:border-box}',
+			'.vb-viewas-bar{flex:0 0 auto;display:none;align-items:center;gap:10px;width:100%;max-width:1200px;margin:0 0 12px;padding:9px 13px;border-radius:10px;background:rgba(160,107,255,.14);border:1px solid rgba(160,107,255,.4);box-sizing:border-box}',
 			'.vb-viewas-bar.on{display:flex}',
 			'.vb-viewas-bar b{font-size:12.5px;color:#c9adff;font-weight:650}',
 			'.vb-va-dot{width:7px;height:7px;border-radius:50%;background:#a06bff;box-shadow:0 0 8px #a06bff;flex:0 0 auto}',
@@ -3855,8 +4370,35 @@
 			'.vb-tn.drop-before{box-shadow:inset 0 2px 0 #2ab7f1}',
 			'.vb-tn.drop-after{box-shadow:inset 0 -2px 0 #2ab7f1}',
 			'.vb-tn.drop-inside{background:rgba(42,183,241,.14);box-shadow:inset 0 0 0 1px rgba(42,183,241,.5)}',
-			'.vb-stage{background:#16161b;display:flex;flex-direction:column;align-items:center;min-height:0;overflow:auto;padding:16px}',
-			'#vb-canvas{width:100%;max-width:1200px;min-height:78vh;background:#fff;border:none;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.5);transition:max-width .25s}',
+			'.vb-stage{background:#16161b;display:flex;flex-direction:column;align-items:center;min-height:0;overflow:hidden;padding:12px 16px 16px;position:relative}',
+			'.vb-canvas-wrap{position:relative;flex:0 0 auto;border-radius:10px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.5);background:#fff;transition:width .2s ease}',
+			'#vb-canvas{display:block;background:#fff;border:none;transform-origin:0 0}',
+			'.vb-bpinfo{flex:0 0 auto;display:flex;align-items:center;gap:8px;margin:0 0 8px;font-size:11.5px;color:#8b8d96;max-width:100%;white-space:nowrap;overflow:hidden}',
+			'.vb-bpinfo svg{color:#2ab7f1;flex:0 0 auto}.vb-bpinfo b{color:#dcdce2;font-weight:600}',
+			'.vb-bpinfo span{padding:2px 7px;border-radius:6px;background:#232429}',
+			'.vb-bpinfo .vb-bpi-z{color:#f5a742}',
+			'.vb-bpinfo .vb-bpi-r{background:none;padding:0;overflow:hidden;text-overflow:ellipsis}',
+			'.vb-loadstate{position:absolute;inset:0;display:grid;place-items:center;background:rgba(22,22,27,.92);z-index:20}',
+			'.vb-ls-in{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;max-width:360px;color:#dcdce2}',
+			'.vb-ls-in b{font-size:14px}.vb-ls-in p{margin:0;color:#8b8d96;font-size:12.5px;line-height:1.5}',
+			'.vb-ls-spin{width:26px;height:26px;border-radius:50%;border:3px solid rgba(42,183,241,.25);border-top-color:#2ab7f1;animation:vbSpin .8s linear infinite}',
+			'@keyframes vbSpin{to{transform:rotate(360deg)}}',
+			'.vb-insp-empty{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:34px 22px;color:#aeb0b8}',
+			'.vb-ie-ic{width:46px;height:46px;border-radius:13px;background:#2a2c32;display:grid;place-items:center;color:#2ab7f1}',
+			'.vb-insp-empty b{font-size:14px;color:#f4f4f6}.vb-insp-empty p{margin:0;font-size:12.5px;line-height:1.55;max-width:260px}',
+			'.vb-ie-acts{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;justify-content:center}.vb-ie-acts .vb-btn{gap:6px}',
+			'.vb-ie-meta{font-size:11px;color:#6d6f78}',
+			'.vb-ie-keys{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07);width:100%;font-size:11.5px;text-align:left}',
+			'.vb-ie-keys kbd{display:inline-block;min-width:22px;padding:2px 6px;margin-right:6px;border-radius:5px;background:#2a2c32;border:1px solid rgba(255,255,255,.1);color:#dcdce2;font:600 10.5px/1.4 ui-monospace,Menlo,monospace;text-align:center}',
+			'.vb-tokswatch{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}',
+			'.vb-tsw{width:18px;height:18px;border-radius:5px;border:1px solid rgba(255,255,255,.18);cursor:pointer;padding:0}.vb-tsw:hover{transform:scale(1.12);border-color:#2ab7f1}',
+			'.vb-modal{position:fixed;inset:0;background:rgba(10,11,14,.6);z-index:400;display:none;align-items:center;justify-content:center}',
+			'.vb-modal.open{display:flex}',
+			'.vb-modal-card{width:440px;max-width:calc(100vw - 32px);max-height:70vh;display:flex;flex-direction:column;background:#232429;border:1px solid rgba(255,255,255,.12);border-radius:14px;box-shadow:0 30px 80px rgba(0,0,0,.6);overflow:hidden}',
+			'.vb-modal-list{overflow:auto;padding:6px}',
+			'.vb-modal-list .vb-ps-i{width:100%;border:none;background:none;color:#dcdce2;font:inherit;text-align:left}',
+			'.vb-brandmenu button.vb-bm-i{width:100%;background:none;border:none;cursor:pointer;font-family:inherit;text-align:left}',
+			'#vb-save.is-dirty::after{content:"";width:7px;height:7px;border-radius:50%;background:#f5a742;margin-left:7px;display:inline-block}',
 			'.vb-csspanel{position:absolute;top:54px;right:0;bottom:0;width:380px;background:#232429;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
 			'.vb-css-top{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07)}.vb-css-top b{font-size:13px}',
 			'.vb-css-x{background:none;border:none;color:#8b8d96;cursor:pointer;display:grid;place-items:center;padding:4px;border-radius:6px}.vb-css-x:hover{background:#3c3e46;color:#f4f4f6}',
@@ -3940,6 +4482,10 @@
 			'.vb-setnote{font-size:11px;color:#a2a4ad;line-height:1.5;margin:2px 0 10px}',
 			'.vb-imgbtn{display:flex;align-items:center;justify-content:center;gap:8px;width:calc(100% - 24px);margin:8px 12px 0;padding:10px;border-radius:10px;background:#313339;border:1px solid rgba(255,255,255,.07);color:#f4f4f6;font-size:12.5px;font-weight:600;cursor:pointer}',
 			'.vb-imgbtn:hover{background:#3c3e46}',
+			'.vb-imgalt{display:flex;flex-direction:column;gap:6px;margin:10px 12px 0}',
+			'.vb-imgalt span{font-size:11px;font-weight:600;letter-spacing:.02em;color:#9a9ba3}',
+			'.vb-imgalt input{width:100%;box-sizing:border-box;padding:8px 10px;border-radius:8px;background:#26272c;border:1px solid rgba(255,255,255,.09);color:#f4f4f6;font-size:12.5px;outline:none}',
+			'.vb-imgalt input:focus{border-color:#2ab7f1;box-shadow:0 0 0 2px rgba(42,183,241,.35)}',
 			'.vb-cb-l{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#8b8d96;margin-bottom:9px}',
 			'.vb-active-class{display:flex;align-items:center;gap:10px;padding:11px 12px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:10px;margin-bottom:10px}',
 			'.vb-ac-dot{width:9px;height:9px;border-radius:3px}',
@@ -3970,7 +4516,7 @@
 			'.vb-bx-i input::placeholder{color:#5f626b;font-size:11px}',
 			// the source dot sits inside the field so each side still shows where its value comes from
 			'.vb-bx-i .vb-src{position:absolute;left:6px;top:50%;transform:translateY(-50%);z-index:1}',
-			'.vb-bx-i .vb-unit{min-width:30px;width:30px;border:none;border-left:1px solid rgba(255,255,255,.07);border-radius:0;padding:0 2px;font-size:9.5px}',
+			'.vb-bx-i .vb-unit{min-width:36px;width:36px;border:none;border-left:1px solid rgba(255,255,255,.07);border-radius:0;padding:0 2px;font-size:10.5px}',
 			'.vb-bx-all input{padding-left:15px}',
 			'.vb-bx-tri{display:grid;grid-template-columns:1fr 1fr 1fr;gap:5px}',
 			'.vb-bx-lab{display:block;font-size:10.5px;color:#8b8d96;margin-bottom:6px}',
