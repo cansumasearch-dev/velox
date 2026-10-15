@@ -70,6 +70,14 @@ class Velox_Reviews {
 	}
 
 	public static function save_store( $store ) {
+		// Built-in presets are merged in by store() on every read; writing them
+		// back froze their names (in whatever language the admin used) and kept
+		// later improvements to them from ever arriving.
+		foreach ( (array) ( $store['presets'] ?? array() ) as $pid => $preset ) {
+			if ( is_array( $preset ) && ! empty( $preset['builtin'] ) ) {
+				unset( $store['presets'][ $pid ] );
+			}
+		}
 		update_option( self::OPTION, $store, false );
 	}
 

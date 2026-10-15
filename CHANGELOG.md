@@ -4,6 +4,27 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.18.0 — Velox Builder: second full review, everything it found fixed
+- **Adding an element can no longer reset a class for the whole site.** A new Heading (or any element whose class the page didn't have yet) started from the starter style and, on publish, overwrote the site-wide version of that class — every heading on the site could jump back to 32px. New classes now start from the site's version and only count as changed once you change them. Publish also tells you which classes it updates site-wide and asks first.
+- **Class edits are no longer dropped or re-applied later.** The list of classes waiting to go site-wide is kept on the server; an edit no longer disappears after a second save, and an old edit can't overwrite a newer one from another page.
+- **Fast typing is safe.** Typing in one field and quickly moving to the next (or clicking another element) lost the first edit or wrote it to the wrong element. Every field now commits on its own, before anything else changes.
+- **Publish keeps track of edits made while it ran**, so "Published" and the leave-page warning are always right. Unsaved work is also kept in the browser and offered back after a crash or an expired session.
+- **Drafts stay private:** adding `?preview=true` to a URL showed unpublished drafts to anyone and could overwrite the live CSS file. Only people who can edit see drafts now, and previews never touch the live files.
+- **Updating by deactivate → upload → activate** no longer skips the step that keeps templates and reusables on the site.
+- **Changing a page into a template or reusable** unlinks it from its WordPress page and makes it a draft until you publish it (it used to go live everywhere at once). Emptying the trash of that old page no longer deletes the template.
+- **Security:** an element saved with a `<script>` tag can no longer run script on the page.
+- **Shops are left alone:** the Archives template only applies to blog archives and search, never to WooCommerce or other custom archives; wrapping pages without a Velox layout only applies to pages and posts.
+- **Editing imported Oxygen elements** changes that element (its own styles), not every element sharing its class. A new **This element** button in the class bar styles just the selected element.
+- **Lists** keep their bullets when edited on the canvas (Enter adds a bullet, Ctrl+Enter finishes). **Bold, italic and links** work on selected text.
+- **Undo/Redo** keep the screen size and state you're editing. **Copy/paste works between pages.** The inspector shows the value that really wins on smaller screens.
+- **Tabs, accordions and sliders** can't get their content mixed up through duplicate or drag anymore. Inner Content can't be duplicated or wrapped.
+- **Global styles never beat your element styles:** a link hover colour overrode button colours and the default section padding overrode the padding you set. Global styles are now defaults only.
+- **The editor shows what the page shows:** your fonts, reusables and "View as" pages styled and drawn properly (videos, icons, sliders included), new colour tokens and global styles straight away.
+- **Images:** pick slide images and video covers from the media library, choose the file size to load, load right away (for the first screen) or lazily, add a link and a caption.
+- **Oxygen 6 import:** pages built with the new Oxygen (and Breakdance) can be imported too, next to classic Oxygen.
+- **Smaller fixes:** renaming a class to its own name no longer deletes it; class CSS with two blocks for the same screen size is merged; saving fonts or builder settings clears the cache; linked icons are announced as links; scroll animation now also works on images, videos, icons and reusables; built-in review presets are no longer frozen; Tab inserts a tab in the code boxes; a click on the active option clears it and a click on a blue/pink dot removes that value; the box fields show "mixed" when sides differ; Escape works on the canvas; publishing by keyboard is Ctrl+Shift+P.
+- **Admin screens:** the Templates screen explains exactly which template a page gets; the page editor says which template is used right now and marks drafts; the type-change warning says what really happens.
+
 ## 4.17.0 — Velox Builder: drafts, archive templates, one set of classes
 - **Save no longer changes the live site.** Save keeps your work private; **Publish changes** puts it live. "View page" shows the saved version to you, visitors keep the published one, and the logo menu has **Discard unpublished changes** to go back to what visitors see. This applies to pages, templates and reusables alike. Templates and reusables that were already on your site stay published; new ones are used once you publish them.
 - **404, Search and Archive templates work.** They could be chosen on the Templates screen but were never used. A 404 template shows on missing pages (still answering 404), a Search or Archives template shows search results, categories, tags, dates and the blog with a post list (image, title, date, excerpt, page numbers) in its Inner Content.

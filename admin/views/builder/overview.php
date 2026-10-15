@@ -186,7 +186,7 @@ $status_label = array(
 		unpublishReusable: '<?php echo esc_js( __( 'Unpublish this reusable? Pages that place it stop showing it until you publish it again.', 'velox' ) ); ?>',
 		deleteBound: '<?php /* translators: %s: document title. */ echo esc_js( __( 'Delete “%s”? This also trashes the WordPress page it is bound to.', 'velox' ) ); ?>',
 		deleteDoc: '<?php /* translators: %s: document title. */ echo esc_js( __( 'Delete “%s”? This cannot be undone.', 'velox' ) ); ?>',
-		kindLive: '<?php /* translators: %s: document title. */ echo esc_js( __( '“%s” is a published page. As a template or reusable it is no longer served at its address, so visitors would see your theme there instead. Change the type anyway?', 'velox' ) ); ?>'
+		kindLive: '<?php /* translators: %s: document title. */ echo esc_js( __( '“%s” is a published page. Changing its type unlinks it from its WordPress page (visitors see your theme at that address) and turns it into an unpublished draft — publish it again to use it. Change the type anyway?', 'velox' ) ); ?>'
 	};
 	// The config is printed in the footer, after this script, so read it when used.
 	function cfg() { return window.VELOX_BUILDER || {}; }

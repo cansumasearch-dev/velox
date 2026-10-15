@@ -22,6 +22,8 @@ if ( ! defined( 'ABSPATH' ) ) {
 class Velox_Builder_Render {
 
 	/** camelCase model keys → real CSS properties (mirrors the editor). */
+	/** True while building only the CSS for the editor preview. */
+	private static $css_only = false;
 	/** Reusables being rendered right now (recursion guard). */
 	private static $reuse_stack = array();
 	/** Whether a Video or Icon element is on the page. */
@@ -107,7 +109,10 @@ class Velox_Builder_Render {
 	 * over rendering: output our standalone template instead of the theme's.
 	 */
 	public static function maybe_render( $template ) {
-		self::$previewing = is_preview();
+		// ?preview=true is just a query string anyone can add; only someone who
+		// may edit the content gets to see unpublished drafts.
+		self::$previewing = is_preview() && is_user_logged_in()
+			&& ( is_singular() ? current_user_can( 'edit_post', get_queried_object_id() ) : current_user_can( 'manage_options' ) );
 		if ( ! is_singular() ) {
 			// Templates made for 404, Search or Archives were offered on the
 			// Templates screen but never used — only single pages were handled.
@@ -159,9 +164,17 @@ class Velox_Builder_Render {
 			$ctx = array( 'search', 'archive' );
 		} elseif ( is_front_page() && is_home() ) {
 			$ctx = array( 'front_page', 'archive' );
-		} elseif ( is_home() || is_archive() ) {
+		} elseif ( is_home() || is_category() || is_tag() || is_date() || is_author() || is_post_type_archive( 'post' ) ) {
 			$ctx = array( 'archive' );
 		} else {
+			// Shops, product categories and other custom archives have their own
+			// templates (prices, add to cart…) — a blog post list would break them.
+			return null;
+		}
+		if ( function_exists( 'is_woocommerce' ) && ( is_woocommerce() || is_cart() || is_checkout() || is_account_page() ) ) {
+			return null;
+		}
+		if ( ! apply_filters( 'velox_builder_context_template', true, $ctx[0] ) ) {
 			return null;
 		}
 		$tpl = Velox_Builder::template_for_context( $ctx );
@@ -329,12 +342,17 @@ class Velox_Builder_Render {
 		if ( '-1' === (string) $choice ) {
 			return null; // explicitly opted out
 		}
-		$tpl_id = Velox_Builder::template_for_post( $post_id );
-		if ( ! $tpl_id || ! Velox_Builder::template_has_inner( $tpl_id ) ) {
+		$post = get_post( $post_id );
+		// Only pages and posts: products, attachments and other post types have
+		// their own templates that a plain content wrapper would break.
+		if ( ! $post || ! in_array( $post->post_type, (array) apply_filters( 'velox_builder_wrap_post_types', array( 'page', 'post' ) ), true ) ) {
 			return null;
 		}
-		$post = get_post( $post_id );
-		if ( ! $post ) {
+		if ( function_exists( 'is_woocommerce' ) && ( is_cart() || is_checkout() || is_account_page() ) ) {
+			return null;
+		}
+		$tpl_id = Velox_Builder::template_for_post( $post_id );
+		if ( ! $tpl_id || ! Velox_Builder::template_has_inner( $tpl_id ) ) {
 			return null;
 		}
 		return array(
@@ -1607,7 +1625,38 @@ class Velox_Builder_Render {
 	 */
 	public static function canvas_css() {
 		$vars = self::token_vars();
-		return ( '' !== $vars ? ':root{' . $vars . '}' : '' ) . self::global_styles_css() . self::media_element_css();
+		return ( '' !== $vars ? ':root{' . $vars . '}' : '' ) . self::canvas_fonts()['face'] . self::global_styles_css() . self::media_element_css();
+	}
+
+	/**
+	 * The site's fonts for the editor canvas: stylesheet links (Google, hosted)
+	 * and @font-face rules for self-hosted files — the same sources the page
+	 * head uses, so text in the editor is set in the real font.
+	 */
+	public static function canvas_fonts() {
+		$links = array();
+		$face  = '';
+		if ( ! class_exists( 'Velox_Builder' ) ) {
+			return array( 'links' => $links, 'face' => $face );
+		}
+		foreach ( Velox_Builder::fonts() as $f ) {
+			$type = $f['type'] ?? '';
+			if ( 'local' === $type && ! empty( $f['files'] ) ) {
+				foreach ( (array) $f['files'] as $w => $url ) {
+					if ( ! $url ) {
+						continue;
+					}
+					$fmt   = self::font_format( $url );
+					$face .= "@font-face{font-family:'" . str_replace( "'", '', (string) $f['name'] ) . "';font-style:normal;font-weight:" . (int) $w
+						. ";font-display:swap;src:url('" . esc_url( $url ) . "')" . ( $fmt ? " format('" . $fmt . "')" : '' ) . ';}';
+				}
+			} elseif ( 'google' === $type && ! empty( $f['name'] ) ) {
+				$links[] = self::google_font_url( $f );
+			} elseif ( 'url' === $type && ! empty( $f['url'] ) ) {
+				$links[] = esc_url_raw( $f['url'] );
+			}
+		}
+		return array( 'links' => array_values( array_filter( $links ) ), 'face' => $face );
 	}
 
 	/** Base CSS for the Video and Icon elements (also used by the canvas). */
@@ -1646,9 +1695,12 @@ class Velox_Builder_Render {
 		}
 		self::$float_css    = '';
 		self::$runtime_used = array();
+		// Only the CSS is wanted: no shortcodes, menus or post content are run.
+		self::$css_only = true;
 		ob_start();
 		self::render_tree( $model['tree'] ?? array(), $model );
 		ob_end_clean();
+		self::$css_only = false;
 		wp_send_json_success( array( 'css' => self::element_base_css() ) );
 	}
 
@@ -1995,7 +2047,7 @@ class Velox_Builder_Render {
 		// Per-page overrides sit after the global styles so a page can win.
 		$page_css = '';
 		if ( ! empty( self::$page_settings['width'] ) ) {
-			$page_css .= '.velox-built .section > *,.velox-inner-content{max-width:' . (int) self::$page_settings['width'] . 'px;margin-left:auto;margin-right:auto;}';
+			$page_css .= ':where(.velox-built .section > *,.velox-inner-content){max-width:' . (int) self::$page_settings['width'] . 'px;margin-left:auto;margin-right:auto;}';
 		}
 		$ov = self::$page_settings['overlay'] ?? '';
 		if ( $ov ) {
@@ -2064,21 +2116,25 @@ class Velox_Builder_Render {
 			if ( ! empty( $h['weight'] ) ) { $decl .= 'font-weight:' . (int) $h['weight'] . ';'; }
 			if ( ! empty( $h['lineHeight'] ) ) { $decl .= 'line-height:' . $h['lineHeight'] . ';'; }
 			if ( ! empty( $h['color'] ) ) { $decl .= 'color:' . $h['color'] . ';'; }
-			if ( '' !== $decl ) { $out .= $tag . '{' . $decl . '}'; }
+			if ( '' !== $decl ) { $out .= ':where(' . $tag . '){' . $decl . '}'; }
 		}
 
+		// Global styles are defaults: wrapped in :where() they carry no weight, so
+		// anything set on an element or class in the editor always wins — before,
+		// "a:hover" beat a button's own hover colour and the section padding beat
+		// the padding you set on a section.
 		$l = $g['links'];
 		$decl = '';
 		if ( '' !== $l['color'] ) { $decl .= 'color:' . $l['color'] . ';'; }
 		if ( '' !== $l['decoration'] ) { $decl .= 'text-decoration:' . $l['decoration'] . ';'; }
 		if ( '' !== $l['weight'] ) { $decl .= 'font-weight:' . (int) $l['weight'] . ';'; }
-		if ( '' !== $decl ) { $out .= 'a{' . $decl . '}'; }
-		if ( '' !== $l['hover'] ) { $out .= 'a:hover{color:' . $l['hover'] . ';}'; }
+		if ( '' !== $decl ) { $out .= ':where(a){' . $decl . '}'; }
+		if ( '' !== $l['hover'] ) { $out .= ':where(a:hover){color:' . $l['hover'] . ';}'; }
 
 		// "Leave empty to inherit": an empty page width means the default, not none.
 		$pw = ( '' === (string) ( $g['width']['page'] ?? '' ) ) ? '1200' : $g['width']['page'];
 		if ( ! empty( $pw ) ) {
-			$out .= '.velox-built .section > *,.velox-inner-content{max-width:' . $px( $pw ) . ';margin-left:auto;margin-right:auto;}';
+			$out .= ':where(.velox-built .section > *,.velox-inner-content){max-width:' . $px( $pw ) . ';margin-left:auto;margin-right:auto;}';
 		}
 		foreach ( array( 'sections' => '.section', 'columns' => '.columns' ) as $key => $sel ) {
 			$p = $g[ $key ];
@@ -2086,7 +2142,7 @@ class Velox_Builder_Render {
 			foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
 				if ( '' !== ( $p[ $side ] ?? '' ) ) { $decl .= 'padding-' . $side . ':' . $px( $p[ $side ] ) . ';'; }
 			}
-			if ( '' !== $decl ) { $out .= $sel . '{' . $decl . '}'; }
+			if ( '' !== $decl ) { $out .= ':where(' . $sel . '){' . $decl . '}'; }
 		}
 		return $out;
 	}
@@ -2284,8 +2340,10 @@ class Velox_Builder_Render {
 			}
 			return '<div id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( implode( ' ', array_filter( $classes ) ) ) . '">' . $inner . '</div>';
 		}
+		// Only real layout/text tags. Any [a-z0-9] tag was accepted, so a node
+		// saved as <script> ran its text as code — around the unfiltered_html rule.
 		$tag = preg_replace( '/[^a-z0-9]/', '', strtolower( $node['tag'] ?? 'div' ) );
-		if ( '' === $tag ) {
+		if ( ! in_array( $tag, array( 'div', 'section', 'header', 'footer', 'main', 'article', 'aside', 'nav', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'p', 'span', 'a', 'ul', 'ol', 'li', 'figure', 'figcaption', 'blockquote', 'button', 'label', 'strong', 'em', 'small', 'time', 'address', 'mark', 'b', 'i', 'u', 's', 'cite', 'q', 'dl', 'dt', 'dd', 'details', 'summary' ), true ) ) {
 			$tag = 'div';
 		}
 		$classes = array();
@@ -2319,6 +2377,9 @@ class Velox_Builder_Render {
 		if ( $classes ) {
 			$attr .= ' class="' . esc_attr( implode( ' ', $classes ) ) . '"';
 		}
+		// Part of the attributes from here on, so images, videos, icons,
+		// reusables and WordPress-data elements animate too (they returned early).
+		$attr .= $aos_attr;
 
 		// Reusable element: pull the referenced reusable document and render its
 		// tree inline (by reference — editing the reusable updates every page).
@@ -2379,9 +2440,14 @@ class Velox_Builder_Render {
 				$attr .= ' class="vx-icon"';
 			}
 			$label = (string) self::el_set( $node, 'label', '' );
-			$attr .= '' !== $label ? ' role="img" aria-label="' . esc_attr( $label ) . '"' : ' aria-hidden="true"';
-			$attr .= $size > 0 ? ' style="--vx-icon-size:' . $size . 'px"' : '';
 			$href  = isset( $node['href'] ) ? trim( (string) $node['href'] ) : '';
+			if ( '' !== $href ) {
+				// A link must stay a link for screen readers, with a name.
+				$attr .= ' aria-label="' . esc_attr( '' !== $label ? $label : str_replace( '-', ' ', $name ) ) . '"';
+			} else {
+				$attr .= '' !== $label ? ' role="img" aria-label="' . esc_attr( $label ) . '"' : ' aria-hidden="true"';
+			}
+			$attr .= $size > 0 ? ' style="--vx-icon-size:' . $size . 'px"' : '';
 			if ( '' !== $href ) {
 				return '<a' . $attr . ' href="' . esc_url( $href ) . '"' . ( ! empty( $node['target'] ) && '_blank' === $node['target'] ? ' target="_blank" rel="noopener"' : '' ) . '>' . $svg . '</a>';
 			}
@@ -2397,6 +2463,9 @@ class Velox_Builder_Render {
 			$alt = isset( $node['alt'] ) ? sanitize_text_field( (string) $node['alt'] ) : '';
 			$att = isset( $node['att'] ) ? absint( $node['att'] ) : 0;
 			$img = '';
+			$size    = (string) self::el_set( $node, 'imgSize', 'large' );
+			$size    = in_array( $size, array( 'medium', 'medium_large', 'large', 'full' ), true ) ? $size : 'large';
+			$loading = (string) self::el_set( $node, 'loading', '' );
 			if ( $att && wp_attachment_is_image( $att ) ) {
 				// A media-library image: let WordPress build the tag, so the page gets
 				// srcset/sizes (phones download a small file), real width/height (no
@@ -2405,11 +2474,28 @@ class Velox_Builder_Render {
 				if ( '' !== $alt || ! empty( $node['altCustom'] ) ) {
 					$attrs['alt'] = $alt;
 				}
-				$img = wp_get_attachment_image( $att, 'large', false, $attrs );
+				// "Right away" for a hero image above the fold; WordPress would
+				// otherwise lazy-load it and delay the largest paint.
+				if ( 'eager' === $loading ) {
+					$attrs['loading']       = 'eager';
+					$attrs['fetchpriority'] = 'high';
+				} elseif ( 'lazy' === $loading ) {
+					$attrs['loading'] = 'lazy';
+				}
+				$img = wp_get_attachment_image( $att, $size, false, $attrs );
 			}
 			if ( '' === $img && $src ) {
-				$img = '<img src="' . $src . '" alt="' . esc_attr( $alt ) . '"'
+				$img = '<img src="' . $src . '" alt="' . esc_attr( $alt ) . '" decoding="async"'
+					. ( 'eager' === $loading ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"' )
 					. ' style="display:block;max-width:100%;height:auto">';
+			}
+			$href = isset( $node['href'] ) ? trim( (string) $node['href'] ) : '';
+			if ( '' !== $img && '' !== $href ) {
+				$img = '<a href="' . esc_url( $href ) . '"' . ( ! empty( $node['target'] ) && '_blank' === $node['target'] ? ' target="_blank" rel="noopener"' : '' ) . '>' . $img . '</a>';
+			}
+			$caption = trim( (string) self::el_set( $node, 'caption', '' ) );
+			if ( '' !== $img && '' !== $caption ) {
+				return '<figure' . $attr . ' style="margin:0">' . $img . '<figcaption>' . esc_html( $caption ) . '</figcaption></figure>';
 			}
 			return '<div' . $attr . '>' . $img . '</div>';
 		}
@@ -2437,11 +2523,17 @@ class Velox_Builder_Render {
 			$min = (int) self::el_set( $node, 'minStars', 0 );
 			if ( $min ) { $sc .= ' min_rating="' . $min . '"'; }
 			$sc .= ']';
+			if ( self::$css_only ) {
+				return '';
+			}
 			return '<div' . $attr . '>' . do_shortcode( $sc ) . '</div>';
 		}
 
 		// WordPress-data elements: pull live data from the bound/current post.
 		if ( isset( $node['el'] ) && 'WP' === $node['el'] ) {
+			if ( self::$css_only ) {
+				return '';
+			}
 			return self::render_wp_node( $node, $attr, $tag );
 		}
 
@@ -2497,7 +2589,7 @@ class Velox_Builder_Render {
 		// contact form, a gallery or anything else placed this way never ran.
 		// do_shortcode() comes after sanitising, so the stored text is still
 		// filtered but a registered shortcode is allowed to render.
-		$content = isset( $doc['content'][ $node['id'] ] )
+		$content = ( isset( $doc['content'][ $node['id'] ] ) && ! self::$css_only )
 			? do_shortcode( self::resolve_tokens( wp_kses_post( $doc['content'][ $node['id'] ] ) ) )
 			: '';
 		$kids    = self::render_tree( $node['children'] ?? array(), $doc );
@@ -2508,7 +2600,7 @@ class Velox_Builder_Render {
 				$attr .= ' target="_blank" rel="noopener"';
 			}
 		}
-		return '<' . $tag . $attr . $aos_attr . '>' . $content . $kids . '</' . $tag . '>';
+		return '<' . $tag . $attr . '>' . $content . $kids . '</' . $tag . '>';
 	}
 
 	/**
@@ -2796,6 +2888,11 @@ class Velox_Builder_Render {
 	public static function ensure_css_file( $doc, $extra = array() ) {
 		$css = self::generate_css( $doc, $extra );
 		$set = class_exists( 'Velox_Builder' ) ? Velox_Builder::settings() : array();
+		// A preview must never overwrite the shared CSS file the live (and cached)
+		// page links to — print its CSS inline instead.
+		if ( self::$previewing ) {
+			return self::inline_fallback( $css );
+		}
 
 		// These three settings existed on the Settings screen but were never read
 		// by anything — set them and nothing happened. Now they do.

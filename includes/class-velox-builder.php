@@ -64,7 +64,9 @@ class Velox_Builder {
 		if ( ! $post_id ) {
 			return;
 		}
-		$wpdb->delete( self::table(), array( 'post_id' => $post_id ), array( '%d' ) );
+		// Only the page layout belongs to the post. A template or reusable that was
+		// once a page must not vanish when its old page is emptied from the trash.
+		$wpdb->delete( self::table(), array( 'post_id' => $post_id, 'kind' => 'page' ), array( '%d', '%s' ) );
 		delete_post_meta( $post_id, '_velox_builder_doc' );
 	}
 
@@ -143,10 +145,22 @@ class Velox_Builder {
 					: __( 'Site default (none set)', 'velox' ) )
 				. '</option>';
 			echo '<option value="-1"' . selected( -1, $choice, false ) . '>' . esc_html__( 'No template — this page only', 'velox' ) . '</option>';
+			$live = self::live_templates();
 			foreach ( $templates as $t ) {
-				echo '<option value="' . esc_attr( $t['id'] ) . '"' . selected( (int) $t['id'], $choice, false ) . '>' . esc_html( $t['title'] ) . '</option>';
+				$draft = ! in_array( (int) $t['id'], $live, true );
+				echo '<option value="' . esc_attr( $t['id'] ) . '"' . selected( (int) $t['id'], $choice, false ) . '>' . esc_html( $t['title'] . ( $draft ? ' ' . __( '(draft — not used until published)', 'velox' ) : '' ) ) . '</option>';
 			}
 			echo '</select>';
+			// Say which template this page actually gets right now — "Site default"
+			// is not the answer when a Pages or Front page template claims it.
+			$in_use = self::template_for_post( $post->ID );
+			$in_use_title = '';
+			foreach ( $templates as $t ) {
+				if ( (int) $t['id'] === $in_use ) {
+					$in_use_title = $t['title'];
+				}
+			}
+			echo '<p style="margin:8px 0 0"><strong>' . esc_html__( 'Used right now:', 'velox' ) . '</strong> ' . esc_html( $in_use_title ? $in_use_title : __( 'no template', 'velox' ) ) . '</p>';
 			echo '<p style="color:#787c82;margin:8px 0 0">' . esc_html__( 'The template supplies the shared navbar, footer and anything else around the page. This page renders inside the template\'s Inner Content element.', 'velox' ) . '</p>';
 
 			// Saying "this page uses template X" while the page has no Velox layout
@@ -322,6 +336,12 @@ class Velox_Builder {
 		require_once ABSPATH . 'wp-admin/includes/upgrade.php';
 		$charset = $wpdb->get_charset_collate();
 		$t       = self::table();
+		// Schema 2 (the `draft` column) also changed what "draft" means for
+		// templates and reusables. Detect an older table by its columns, not by
+		// the version option — activation runs install() first and would set
+		// that option before the migration below ever saw the old version.
+		$had_table = ( $t === $wpdb->get_var( $wpdb->prepare( 'SHOW TABLES LIKE %s', $t ) ) );
+		$had_draft = $had_table && (bool) $wpdb->get_var( "SHOW COLUMNS FROM {$t} LIKE 'draft'" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		dbDelta(
 			"CREATE TABLE {$t} (
@@ -342,22 +362,18 @@ class Velox_Builder {
 			) {$charset};"
 		);
 
+		if ( $had_table && ! $had_draft ) {
+			// Templates and reusables were live whatever their status said; mark
+			// them published so nothing that is on the site today disappears.
+			$wpdb->query( "UPDATE {$t} SET status = 'published' WHERE kind IN ('template','reusable')" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
 		update_option( self::VER_OPTION, self::DB_VERSION );
 	}
 
 	/** Run install if the schema version changed (called on admin_init elsewhere). */
 	public static function maybe_upgrade() {
-		$old = get_option( self::VER_OPTION );
-		if ( $old !== self::DB_VERSION ) {
-			self::install();
-			// Schema 2: Save keeps edits in `draft` and only Publish puts them live,
-			// for templates and reusables too. Until now those two were live as soon
-			// as they existed, whatever their status said — mark every existing one
-			// published so nothing that is on the site today disappears.
-			if ( $old && version_compare( (string) $old, '2', '<' ) ) {
-				global $wpdb;
-				$wpdb->query( 'UPDATE ' . self::table() . " SET status = 'published' WHERE kind IN ('template','reusable')" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			}
+		if ( get_option( self::VER_OPTION ) !== self::DB_VERSION ) {
+			self::install(); // includes the schema-2 migration (see install()).
 		}
 	}
 
@@ -521,8 +537,12 @@ class Velox_Builder {
 			// with none, and touching Global styles saved that empty set over every
 			// colour the site had.
 			'tokens'  => self::tokens(),
+			// The site-wide version of each class, so a class added to this
+			// document starts from what the rest of the site uses.
+			'classRegistry' => (object) self::class_registry(),
 			// Token variables and global styles, so the canvas looks like the page.
 			'siteCss' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '',
+			'fontLinks' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_fonts()['links'] : array(),
 			// Oxygen import: the page being opened (if it has an Oxygen layout)
 			// and whether the site has any Oxygen layouts at all.
 			'oxygenPost' => ( $post_id && class_exists( 'Velox_Builder_Oxygen' ) && Velox_Builder_Oxygen::has_layout( $post_id ) ) ? $post_id : 0,
@@ -685,9 +705,23 @@ class Velox_Builder {
 			unset( $model->page->js );
 		}
 		// Classes edited in this document become the site-wide version when it is
-		// published (see ajax_publish). Remember which, across saves.
+		// published (see ajax_publish). The pending list is kept on the SERVER
+		// (in the stored row) — the copy inside the posted model could be stale
+		// and re-queue classes that were already published.
+		unset( $model->changedClasses );
 		$changed = isset( $_POST['changed_classes'] ) ? json_decode( wp_unslash( $_POST['changed_classes'] ), true ) : array();
-		$pending = isset( $model->changedClasses ) && is_array( $model->changedClasses ) ? $model->changedClasses : array();
+		$pending = array();
+		$pre_id  = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
+		if ( $pre_id ) {
+			$stored = $wpdb->get_row( $wpdb->prepare( 'SELECT status, data, draft FROM ' . self::table() . ' WHERE id = %d', $pre_id ), ARRAY_A );
+			if ( $stored ) {
+				$src = ( 'published' === $stored['status'] && null !== $stored['draft'] && '' !== $stored['draft'] ) ? $stored['draft'] : ( 'published' === $stored['status'] ? '' : $stored['data'] );
+				$dec = $src ? json_decode( $src, true ) : null;
+				if ( is_array( $dec ) && ! empty( $dec['changedClasses'] ) && is_array( $dec['changedClasses'] ) ) {
+					$pending = array_values( array_map( 'strval', $dec['changedClasses'] ) );
+				}
+			}
+		}
 		foreach ( (array) $changed as $cname ) {
 			$cname = (string) $cname;
 			if ( '' !== $cname && '.' === $cname[0] && ! in_array( $cname, $pending, true ) ) {
@@ -699,7 +733,8 @@ class Velox_Builder {
 		}
 		$data     = wp_json_encode( $model );
 		$css_size = isset( $_POST['css_size'] ) ? absint( $_POST['css_size'] ) : 0;
-		$post_id  = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+		// Only a page is bound to a WordPress post.
+		$post_id  = ( 'page' === $kind && isset( $_POST['post_id'] ) ) ? absint( $_POST['post_id'] ) : 0;
 		$now      = current_time( 'mysql' );
 		$t        = self::table();
 
@@ -709,6 +744,11 @@ class Velox_Builder {
 			$id = self::doc_id_for_post( $post_id );
 		}
 		$row = $id ? $wpdb->get_row( $wpdb->prepare( "SELECT id, status, kind FROM {$t} WHERE id = %d", $id ), ARRAY_A ) : null;
+		// Switching the type in the editor: same rules as on the Overview.
+		if ( $row && $row['kind'] !== $kind ) {
+			self::change_kind( $id, $kind );
+			$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, status, kind FROM {$t} WHERE id = %d", $id ), ARRAY_A );
+		}
 
 		// Save is not Publish. A published document keeps what visitors see in
 		// `data` and collects edits in `draft`; Publish moves the draft live. A
@@ -753,6 +793,7 @@ class Velox_Builder {
 		wp_send_json_success(
 			array(
 				'id'        => $id,
+				'pending_classes' => $pending,
 				'title'     => $title,
 				'saved'     => $now,
 				'kind'      => $kind,
@@ -777,6 +818,38 @@ class Velox_Builder {
 		}
 		if ( ! get_option( self::OPT_DEFAULT_TEMPLATE ) || ! self::default_template() ) {
 			update_option( self::OPT_DEFAULT_TEMPLATE, (int) $id, false );
+		}
+	}
+
+	/**
+	 * Turn a document into another type. A page that becomes a template or
+	 * reusable lets go of its WordPress page and starts as a draft — it used to
+	 * stay bound to the page and go live everywhere at once.
+	 */
+	public static function change_kind( $id, $kind ) {
+		global $wpdb;
+		$t   = self::table();
+		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, kind, post_id, data, draft FROM {$t} WHERE id = %d", $id ), ARRAY_A );
+		if ( ! $row || $row['kind'] === $kind ) {
+			return;
+		}
+		$fields = array( 'kind' => $kind, 'updated' => current_time( 'mysql' ) );
+		if ( 'page' !== $kind ) {
+			if ( (int) $row['post_id'] ) {
+				delete_post_meta( (int) $row['post_id'], '_velox_builder_doc' );
+				self::purge_cache_for( (int) $row['post_id'] );
+			}
+			$fields['post_id'] = null;
+			$fields['status']  = 'draft';
+			// The latest saved version becomes the (unpublished) content.
+			if ( null !== $row['draft'] && '' !== $row['draft'] ) {
+				$fields['data'] = $row['draft'];
+			}
+			$fields['draft'] = null;
+		}
+		$wpdb->update( $t, $fields, array( 'id' => (int) $id ) );
+		if ( 'template' === $kind ) {
+			self::adopt_template( $id );
 		}
 	}
 
@@ -935,6 +1008,7 @@ class Velox_Builder {
 				'kind'      => $row['kind'],
 				'status'    => $row['status'],
 				'has_draft' => $has_draft ? 1 : 0,
+				'pending_classes' => ( is_object( $model ) && isset( $model->changedClasses ) && is_array( $model->changedClasses ) ) ? array_values( $model->changedClasses ) : array(),
 				'post_id'   => (int) $row['post_id'],
 				'url'       => $row['post_id'] ? get_permalink( (int) $row['post_id'] ) : '',
 				'preview'   => $row['post_id'] ? get_preview_post_link( (int) $row['post_id'] ) : '',
@@ -1150,7 +1224,7 @@ class Velox_Builder {
 		}
 		update_option( self::OPT_TOKENS, $clean );
 		self::purge_cache_for();
-		wp_send_json_success( array( 'tokens' => $clean ) );
+		wp_send_json_success( array( 'tokens' => $clean, 'canvas_css' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '' ) );
 	}
 
 	const OPT_FONT_DISPLAY = 'velox_builder_font_display';
@@ -1289,7 +1363,7 @@ class Velox_Builder {
 		}
 		update_option( self::OPT_GLOBAL_STYLES, $out );
 		self::purge_cache_for();
-		wp_send_json_success( array( 'styles' => $out ) );
+		wp_send_json_success( array( 'styles' => $out, 'canvas_css' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '' ) );
 	}
 
 	public static function ajax_fonts_save() {
@@ -1352,6 +1426,8 @@ class Velox_Builder {
 			}
 		}
 		update_option( self::OPT_FONTS, $clean );
+		// Fonts are in every page's head — cached pages must be rebuilt.
+		self::purge_cache_for();
 		wp_send_json_success( array( 'fonts' => $clean ) );
 	}
 
@@ -1362,6 +1438,7 @@ class Velox_Builder {
 		// lives in Global styles, so this writes there instead of shadowing it.
 		$container = isset( $_POST['container'] ) ? preg_replace( '/[^0-9]/', '', wp_unslash( $_POST['container'] ) ) : '';
 		update_option( self::OPT_SETTINGS, array( 'css_mode' => $css_mode, 'minify' => $minify ) );
+		self::purge_cache_for();
 		if ( '' !== $container ) {
 			$gs = self::global_styles();
 			$gs['width']['page'] = $container;
@@ -1377,7 +1454,9 @@ class Velox_Builder {
 	   ===================================================================== */
 	public static function all_classes() {
 		global $wpdb;
-		$rows  = $wpdb->get_results( 'SELECT id, title, data FROM ' . self::table(), ARRAY_A );
+		// Saved-but-unpublished versions count too: a class that only exists in a
+		// draft is still a class you can edit here.
+		$rows  = $wpdb->get_results( "SELECT id, title, COALESCE( NULLIF( draft, '' ), data ) AS data FROM " . self::table(), ARRAY_A );
 		$index = array(); // class => array( count, docs[] )
 		foreach ( (array) $rows as $row ) {
 			$model = json_decode( $row['data'], true );
@@ -1503,10 +1582,7 @@ class Velox_Builder {
 		if ( ! $id || ! in_array( $kind, array( 'page', 'template', 'reusable' ), true ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid document type.', 'velox' ) ), 400 );
 		}
-		$wpdb->update( self::table(), array( 'kind' => $kind, 'updated' => current_time( 'mysql' ) ), array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
-		if ( 'template' === $kind ) {
-			self::adopt_template( $id );
-		}
+		self::change_kind( $id, $kind );
 		self::purge_cache_for();
 		wp_send_json_success( array( 'id' => $id, 'kind' => $kind ) );
 	}
@@ -1601,6 +1677,11 @@ class Velox_Builder {
 			}
 			$parts = explode( ':', $key );
 			$bp    = $parts[0];
+			// Old documents keep tablet/mobile keys: show them as the breakpoints
+			// they are now (lg/md), so they round-trip into the right place.
+			if ( 'tablet' === $bp || 'mobile' === $bp ) {
+				$bp = 'tablet' === $bp ? 'lg' : 'md';
+			}
 			$state = isset( $parts[1] ) ? ':' . $parts[1] : '';
 			$sel   = $name . $state;
 			$body  = '';
@@ -1705,7 +1786,9 @@ class Velox_Builder {
 					}
 				}
 				if ( $props ) {
-					$rules[ $key ] = $props;
+					// Two blocks for the same breakpoint/state (an old tablet/mobile
+					// block next to its lg/md twin) are merged, not overwritten.
+					$rules[ $key ] = array_merge( $rules[ $key ] ?? array(), $props );
 				}
 			}
 		}
@@ -1745,6 +1828,11 @@ class Velox_Builder {
 		$to   = '.' . sanitize_html_class( ltrim( $to, '.' ) );
 		if ( ! $from || '.' === $to ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid class name.', 'velox' ) ), 400 );
+		}
+		$from = '.' . ltrim( $from, '.' );
+		if ( $from === $to ) {
+			// Nothing to do — "renaming" a class to its own name deleted it.
+			wp_send_json_success( array( 'from' => $from, 'to' => $to, 'docs' => 0 ) );
 		}
 		$changed = self::rewrite_class( $from, $to );
 		wp_send_json_success( array( 'from' => $from, 'to' => $to, 'docs' => $changed ) );
@@ -1861,7 +1949,7 @@ class Velox_Builder {
 			wp_send_json_error( array( 'message' => __( 'No document specified.', 'velox' ) ), 400 );
 		}
 		// If this doc is bound to a WP page/post, trash that post too (recoverable).
-		$post_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . self::table() . ' WHERE id = %d', $id ) );
+		$post_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . self::table() . " WHERE id = %d AND kind = 'page'", $id ) );
 		$wpdb->delete( self::table(), array( 'id' => $id ), array( '%d' ) );
 		// Leave nothing behind: its template rule, the default pointer, its CSS file.
 		$rules = self::template_rules();
@@ -2056,7 +2144,7 @@ class Velox_Builder {
 
 	public static function reusables_payload() {
 		global $wpdb;
-		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, data, draft FROM ' . self::table() . ' WHERE kind = %s ORDER BY title ASC', 'reusable' ), ARRAY_A );
+		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, status, data, draft FROM ' . self::table() . ' WHERE kind = %s ORDER BY title ASC', 'reusable' ), ARRAY_A );
 		$out  = array();
 		$reg  = self::class_registry();
 		foreach ( (array) $rows as $row ) {
@@ -2073,6 +2161,7 @@ class Velox_Builder {
 			$out[] = array(
 				'id'      => (int) $row['id'],
 				'title'   => $row['title'] ? $row['title'] : __( 'Untitled', 'velox' ),
+				'status'  => $row['status'],
 				'tree'    => $model['tree'] ?? array(),
 				'classes' => $model['classes'] ?? array(),
 				'content' => $model['content'] ?? array(),

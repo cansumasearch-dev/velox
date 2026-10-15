@@ -9,6 +9,8 @@
  * served by Velox.
  *
  * Sources, newest first:
+ *   _oxygen_data           Oxygen 6 (built on the Breakdance engine) — a JSON
+ *   _breakdance_data       tree of typed elements with nested properties.
  *   ct_builder_json        Oxygen 4.x — a JSON tree.
  *   ct_builder_shortcodes  Oxygen 2.x/3.x (and 4.x keeps it too) — nested
  *                          [ct_*] shortcodes, each carrying ct_options JSON.
@@ -65,7 +67,10 @@ class Velox_Builder_Oxygen {
 			return true;
 		}
 		$sc = get_post_meta( $post_id, 'ct_builder_shortcodes', true );
-		return is_string( $sc ) && false !== strpos( $sc, '[ct_' );
+		if ( is_string( $sc ) && false !== strpos( $sc, '[ct_' ) ) {
+			return true;
+		}
+		return null !== self::v6_root( $post_id );
 	}
 
 	/** Every post that holds an Oxygen layout (pages, posts, Oxygen templates). */
@@ -74,7 +79,7 @@ class Velox_Builder_Oxygen {
 		$rows = $wpdb->get_results(
 			"SELECT p.ID, p.post_title, p.post_type FROM {$wpdb->posts} p
 			 INNER JOIN {$wpdb->postmeta} m ON m.post_id = p.ID
-			 WHERE m.meta_key IN ('ct_builder_json','ct_builder_shortcodes') AND m.meta_value <> ''
+			 WHERE m.meta_key IN ('ct_builder_json','ct_builder_shortcodes','_oxygen_data','_breakdance_data') AND m.meta_value <> ''
 			   AND p.post_status IN ('publish','draft','private','future')
 			 GROUP BY p.ID ORDER BY p.post_type, p.post_title LIMIT 300",
 			ARRAY_A
@@ -128,7 +133,7 @@ class Velox_Builder_Oxygen {
 		$model['classes']['.oxy-image']   = array( 'base' => array() );
 
 		foreach ( $nodes as $n ) {
-			$c = self::node( $n, $model, $allow_inner );
+			$c = isset( $n['__v6'] ) ? self::node_v6( $n['raw'], $model, $allow_inner ) : self::node( $n, $model, $allow_inner );
 			if ( $c ) {
 				$model['tree'][] = $c;
 			}
@@ -177,7 +182,321 @@ class Velox_Builder_Oxygen {
 		if ( is_string( $sc ) && false !== strpos( $sc, '[ct_' ) ) {
 			return self::parse_shortcodes( $sc );
 		}
+		$root = self::v6_root( $post_id );
+		if ( null !== $root ) {
+			$out = array();
+			foreach ( (array) ( $root['children'] ?? array() ) as $child ) {
+				$out[] = array( '__v6' => true, 'raw' => $child );
+			}
+			return $out;
+		}
 		return null;
+	}
+
+	/* ---------------------------------------------------- Oxygen 6 / Breakdance */
+
+	/** Breakpoint names in Oxygen 6 / Breakdance → Velox breakpoint keys. */
+	private static $V6_BP = array(
+		'breakpoint_base'             => 'base',
+		'breakpoint_tablet_landscape' => 'xl',
+		'breakpoint_tablet_portrait'  => 'lg',
+		'breakpoint_phone_landscape'  => 'md',
+		'breakpoint_phone_portrait'   => 'sm',
+	);
+
+	/** The root node of an Oxygen 6 / Breakdance layout, or null. */
+	private static function v6_root( $post_id ) {
+		foreach ( array( '_oxygen_data', '_breakdance_data' ) as $key ) {
+			$raw = get_post_meta( (int) $post_id, $key, true );
+			if ( is_array( $raw ) ) {
+				$data = $raw;
+			} elseif ( is_string( $raw ) && '' !== $raw ) {
+				$data = json_decode( $raw, true );
+				if ( ! is_array( $data ) ) {
+					$data = json_decode( wp_unslash( $raw ), true );
+				}
+			} else {
+				continue;
+			}
+			if ( ! is_array( $data ) ) {
+				continue;
+			}
+			if ( isset( $data['tree_json_string'] ) && is_string( $data['tree_json_string'] ) ) {
+				$tree = json_decode( $data['tree_json_string'], true );
+				$data = is_array( $tree ) ? $tree : array();
+			}
+			$root = $data['root'] ?? ( isset( $data['children'] ) ? $data : null );
+			if ( is_array( $root ) && ! empty( $root['children'] ) ) {
+				return $root;
+			}
+		}
+		return null;
+	}
+
+	/** First string (or array, with $want_array) found under one of $keys, depth-first. */
+	private static function v6_find( $props, $keys, $want_array = false ) {
+		if ( ! is_array( $props ) ) {
+			return null;
+		}
+		foreach ( $keys as $k ) {
+			if ( array_key_exists( $k, $props ) ) {
+				$v = $props[ $k ];
+				if ( $want_array ? is_array( $v ) : ( is_string( $v ) || is_numeric( $v ) ) ) {
+					return $v;
+				}
+			}
+		}
+		foreach ( $props as $k => $v ) {
+			if ( is_array( $v ) && 'design' !== $k ) {
+				$hit = self::v6_find( $v, $keys, $want_array );
+				if ( null !== $hit ) {
+					return $hit;
+				}
+			}
+		}
+		return null;
+	}
+
+	/** One Oxygen 6 / Breakdance element → Velox node. */
+	private static function node_v6( $n, &$model, $allow_inner ) {
+		if ( ! is_array( $n ) ) {
+			return null;
+		}
+		$type  = (string) ( $n['data']['type'] ?? '' );
+		$short = strtolower( preg_replace( '/[^a-z0-9]/i', '', substr( $type, (int) strrpos( $type, '\\' ) ) ) );
+		$props = isset( $n['data']['properties'] ) && is_array( $n['data']['properties'] ) ? $n['data']['properties'] : array();
+		$id    = self::$prefix . base_convert( (string) self::$count, 10, 36 );
+		self::$count++;
+		$kids = function () use ( $n, &$model, $allow_inner ) {
+			$out = array();
+			foreach ( (array) ( $n['children'] ?? array() ) as $c ) {
+				$cn = self::node_v6( $c, $model, $allow_inner );
+				if ( $cn ) {
+					$out[] = $cn;
+				}
+			}
+			return $out;
+		};
+		$tg  = (string) self::v6_find( $props, array( 'tags', 'tag', 'htmlTag' ) );
+		$tag = preg_match( '/^(h[1-6]|p|div|span|section|header|footer|nav|article|aside|main|figure|ul|ol|li|blockquote)$/', $tg ) ? $tg : '';
+		$txt = (string) self::v6_find( $props, array( 'text', 'richText', 'html' ) );
+		$node = null;
+
+		switch ( $short ) {
+			case 'section':
+				$wrap = array( 'id' => $id . 'w', 'el' => 'Div', 'tag' => 'div', 'classes' => array( '.oxy-wrap' ), 'overrides' => array(), 'children' => $kids() );
+				$node = array( 'id' => $id, 'el' => 'Section', 'tag' => $tag ? $tag : 'section', 'classes' => array( '.oxy-section' ), 'children' => array( $wrap ) );
+				break;
+			case 'container':
+			case 'div':
+			case 'column':
+			case 'columns':
+			case 'containerlink':
+			case 'linkwrapper':
+				$cls  = 'columns' === $short ? '.oxy-columns' : ( 'column' === $short ? '.oxy-column' : ( 'containerlink' === $short || 'linkwrapper' === $short ? '.oxy-linkbox' : '.oxy-div' ) );
+				$node = array( 'id' => $id, 'el' => 'Div', 'tag' => ( 'containerlink' === $short || 'linkwrapper' === $short ) ? 'a' : ( $tag ? $tag : 'div' ), 'classes' => array( $cls ), 'children' => $kids() );
+				break;
+			case 'heading':
+				$node = array( 'id' => $id, 'el' => 'Heading', 'tag' => $tag && 'h' === $tag[0] ? $tag : 'h2', 'classes' => array( '.oxy-heading' ), 'children' => array() );
+				$model['content'][ $id ] = $txt;
+				break;
+			case 'text':
+			case 'richtext':
+			case 'paragraph':
+				// Oxygen 6 has no separate heading element: a Text set to h1–h6 is one.
+				$is_h = $tag && 'h' === $tag[0];
+				$node = array( 'id' => $id, 'el' => $is_h ? 'Heading' : 'Text', 'tag' => $tag ? $tag : ( 'richtext' === $short ? 'div' : 'p' ), 'classes' => array( $is_h ? '.oxy-heading' : '.oxy-text' ), 'children' => array() );
+				$model['content'][ $id ] = $txt;
+				break;
+			case 'textlink':
+			case 'button':
+				$node = array( 'id' => $id, 'el' => 'Button', 'tag' => 'a', 'classes' => array( 'button' === $short ? '.oxy-button' : '.oxy-link' ), 'children' => array() );
+				$model['content'][ $id ] = '' !== $txt ? $txt : (string) self::v6_find( $props, array( 'label', 'title' ) );
+				break;
+			case 'image':
+				$node = array( 'id' => $id, 'el' => 'Image', 'tag' => 'div', 'classes' => array( '.oxy-image' ), 'children' => array() );
+				$im   = self::v6_find( $props, array( 'image', 'media' ), true );
+				$att  = is_array( $im ) ? (int) ( $im['id'] ?? 0 ) : 0;
+				$src  = is_array( $im ) ? (string) ( $im['url'] ?? ( $im['sizes']['full']['url'] ?? '' ) ) : (string) self::v6_find( $props, array( 'url', 'src' ) );
+				if ( $att && wp_attachment_is_image( $att ) ) {
+					$node['att'] = $att;
+					$u = wp_get_attachment_image_url( $att, 'large' );
+					if ( $u ) {
+						$src = $u;
+					}
+				}
+				if ( '' !== $src ) {
+					$model['content'][ $id ] = esc_url_raw( $src );
+				}
+				$alt = is_array( $im ) ? (string) ( $im['alt'] ?? '' ) : '';
+				if ( '' === $alt ) {
+					$alt = (string) self::v6_find( $props, array( 'alt' ) );
+				}
+				if ( '' !== $alt ) {
+					$node['alt']       = sanitize_text_field( $alt );
+					$node['altCustom'] = true;
+				}
+				break;
+			case 'video':
+			case 'youtube':
+				$node = array( 'id' => $id, 'el' => 'Video', 'tag' => 'div', 'classes' => array(), 'children' => array() );
+				$vid  = self::v6_find( $props, array( 'video' ), true );
+				$url  = is_array( $vid ) ? (string) ( $vid['url'] ?? '' ) : (string) self::v6_find( $props, array( 'url', 'src' ) );
+				$node['settings'] = array( 'url' => esc_url_raw( $url ) );
+				break;
+			case 'htmlcode':
+			case 'code':
+				$html = (string) self::v6_find( $props, array( 'html', 'code', 'content' ) );
+				$html = preg_replace( '/<\?(php|=)?.*?(\?>|$)/s', '', $html );
+				if ( '' === trim( $html ) ) {
+					return null;
+				}
+				$node = array( 'id' => $id, 'el' => 'Text', 'tag' => 'div', 'classes' => array( '.oxy-text' ), 'children' => array() );
+				$model['content'][ $id ] = $html;
+				break;
+			case 'csscode':
+				$css = (string) self::v6_find( $props, array( 'css', 'code' ) );
+				if ( '' !== trim( $css ) ) {
+					self::$page_css .= "\n" . $css;
+				}
+				return null;
+			case 'phpcode':
+			case 'javascriptcode':
+				self::$skipped[] = $type;
+				return null;
+			case 'shortcode':
+				$sc = (string) self::v6_find( $props, array( 'shortcode', 'code', 'text' ) );
+				if ( '' === trim( $sc ) ) {
+					return null;
+				}
+				$node = array( 'id' => $id, 'el' => 'Text', 'tag' => 'div', 'classes' => array( '.oxy-text' ), 'children' => array() );
+				$model['content'][ $id ] = $sc;
+				break;
+			case 'templatecontentarea':
+			case 'postcontent':
+			case 'innercontent':
+				if ( ! $allow_inner ) {
+					return null;
+				}
+				$node = array( 'id' => $id, 'el' => 'InnerContent', 'tag' => 'div', 'classes' => array( '.inner-content' ), 'children' => array() );
+				$model['classes']['.inner-content'] = array( 'base' => array() );
+				break;
+			default:
+				self::$skipped[] = $type;
+				if ( ! empty( $n['children'] ) ) {
+					$node = array( 'id' => $id, 'el' => 'Div', 'tag' => 'div', 'classes' => array( '.oxy-div' ), 'children' => $kids() );
+				} elseif ( '' !== trim( wp_strip_all_tags( $txt ) ) ) {
+					$node = array( 'id' => $id, 'el' => 'Text', 'tag' => 'div', 'classes' => array( '.oxy-text' ), 'children' => array() );
+					$model['content'][ $id ] = $txt;
+				} else {
+					return null;
+				}
+		}
+
+		$node['overrides'] = self::v6_styles( $props['design'] ?? array() );
+		if ( 'a' === $node['tag'] ) {
+			$link = self::v6_find( $props, array( 'link' ), true );
+			$url  = is_array( $link ) ? (string) ( $link['url'] ?? '' ) : (string) self::v6_find( $props, array( 'url', 'href' ) );
+			$node['href'] = '' !== $url ? esc_url_raw( $url ) : '#';
+			if ( is_array( $link ) && ( ! empty( $link['openInNewTab'] ) || '_blank' === ( $link['target'] ?? '' ) ) ) {
+				$node['target'] = '_blank';
+			}
+		}
+		// Classes Oxygen 6 calls "selectors"/"classes" on the element.
+		$classes = $n['data']['properties']['meta']['classes'] ?? ( $n['data']['classes'] ?? array() );
+		foreach ( (array) $classes as $c ) {
+			$c = sanitize_html_class( is_array( $c ) ? (string) ( $c['name'] ?? '' ) : (string) $c );
+			if ( '' !== $c ) {
+				$node['classes'][] = '.' . $c;
+				if ( ! isset( $model['classes'][ '.' . $c ] ) ) {
+					$model['classes'][ '.' . $c ] = array( 'base' => array() );
+				}
+			}
+		}
+		if ( empty( $node['classes'] ) ) {
+			$node['classes'] = array( '.oxy-div' );
+		}
+		return $node;
+	}
+
+	/**
+	 * Oxygen 6 / Breakdance design properties → Velox rules per breakpoint.
+	 * Values sit under breakpoint keys deep inside groups (spacing → padding →
+	 * breakpoint_base → {top: {number, unit, style}}); the property is named by
+	 * the nearest key above the breakpoint.
+	 */
+	private static function v6_styles( $design ) {
+		$out  = array();
+		$walk = function ( $node, $path ) use ( &$walk, &$out ) {
+			if ( ! is_array( $node ) ) {
+				return;
+			}
+			$bpkeys = array_intersect( array_keys( $node ), array_keys( self::$V6_BP ) );
+			if ( $bpkeys ) {
+				foreach ( $bpkeys as $bk ) {
+					self::v6_put( $out, self::$V6_BP[ $bk ], $path, $node[ $bk ] );
+				}
+				return;
+			}
+			foreach ( $node as $k => $v ) {
+				if ( is_array( $v ) ) {
+					$walk( $v, array_merge( $path, array( (string) $k ) ) );
+				}
+			}
+		};
+		$walk( $design, array() );
+		return $out;
+	}
+
+	/** Store one design value under its Velox property name. */
+	private static function v6_put( &$out, $bp, $path, $val ) {
+		$name = strtolower( preg_replace( '/[^a-z]/i', '', (string) end( $path ) ) );
+		$all  = strtolower( implode( '.', $path ) );
+		$map  = array(
+			'fontsize' => 'fontSize', 'size' => 'fontSize', 'fontweight' => 'fontWeight', 'weight' => 'fontWeight',
+			'lineheight' => 'lineHeight', 'letterspacing' => 'letterSpacing', 'textalign' => 'textAlign', 'align' => 'textAlign',
+			'width' => 'width', 'maxwidth' => 'maxWidth', 'minwidth' => 'minWidth', 'height' => 'height', 'minheight' => 'minHeight',
+			'gap' => 'gap', 'radius' => 'borderRadius', 'borderradius' => 'borderRadius', 'color' => 'color',
+			'textcolor' => 'color', 'backgroundcolor' => 'background',
+		);
+		if ( in_array( $name, array( 'padding', 'margin' ), true ) && is_array( $val ) ) {
+			foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
+				if ( isset( $val[ $side ] ) ) {
+					$v = self::v6_value( $val[ $side ] );
+					if ( '' !== $v ) {
+						$out[ $bp ][ $name . ucfirst( $side ) ] = $v;
+					}
+				}
+			}
+			return;
+		}
+		if ( 'color' === $name && false !== strpos( $all, 'background' ) ) {
+			$name = 'backgroundcolor';
+		}
+		if ( ! isset( $map[ $name ] ) ) {
+			return;
+		}
+		$v = self::v6_value( $val );
+		if ( '' !== $v ) {
+			$out[ $bp ][ $map[ $name ] ] = $v;
+		}
+	}
+
+	/** A Breakdance value: a plain string, or {number, unit, style}. */
+	private static function v6_value( $v ) {
+		if ( is_string( $v ) || is_numeric( $v ) ) {
+			return trim( (string) $v );
+		}
+		if ( is_array( $v ) ) {
+			if ( isset( $v['style'] ) && is_scalar( $v['style'] ) ) {
+				return trim( (string) $v['style'] );
+			}
+			if ( isset( $v['number'] ) && is_numeric( $v['number'] ) ) {
+				$u = isset( $v['unit'] ) ? (string) $v['unit'] : 'px';
+				return ( 'px' === $u || '' === $u ) ? (string) $v['number'] : $v['number'] . $u;
+			}
+		}
+		return '';
 	}
 
 	private static function from_json( $kids ) {

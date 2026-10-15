@@ -160,6 +160,8 @@ foreach ( $classes as $name => $info ) {
 
 		if ( e.target.closest( '#vba-cm-save' ) ) {
 			var newName = document.getElementById( 'vba-cm-name' ).value.trim();
+			// Same class with or without the dot: not a rename.
+			if ( newName ) { newName = '.' + newName.replace( /^\.+/, '' ); }
 			var css = document.getElementById( 'vba-cm-css' ).value;
 			var msg = document.getElementById( 'vba-cm-msg' );
 			msg.textContent = T.saving;

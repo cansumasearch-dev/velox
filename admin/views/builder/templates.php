@@ -33,8 +33,8 @@ $short = array(
 	<div class="vba-card">
 		<div class="vba-card-h">
 			<div><h2><?php esc_html_e( 'Your templates', 'velox' ); ?></h2>
-			<p><?php esc_html_e( 'When more than one could apply, the most specific wins: Front page beats Pages, which beats Catch-all.', 'velox' ); ?></p>
-			<p><?php esc_html_e( 'Catch-all means: used for anything no more specific template claims. If no template matches a page at all, the site default is used. Only published templates are used on the site.', 'velox' ); ?></p></div>
+			<p><?php esc_html_e( 'Which template a page gets: the one chosen on the page itself; otherwise a template made for it (Front page, then Posts or Pages); otherwise the site default; otherwise a Catch-all template. 404, Search and Archives templates are used for those screens.', 'velox' ); ?></p>
+			<p><?php esc_html_e( 'Only published templates are used on the site.', 'velox' ); ?></p></div>
 		</div>
 
 		<?php if ( empty( $docs ) ) : ?>
