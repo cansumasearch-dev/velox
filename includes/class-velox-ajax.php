@@ -331,11 +331,31 @@ class Velox_Ajax {
 				wp_send_json_success( $mm->list_media( $page, $per, $s, $type ) );
 				break;
 
-			case 'media_zip':
-				$ids = isset( $_POST['ids'] ) ? (array) wp_unslash( $_POST['ids'] ) : array();
-				$res = ( new Velox_Media_Manager() )->build_zip( $ids );
+			case 'media_ids':
+				wp_send_json_success( array(
+					'ids' => ( new Velox_Media_Manager() )->media_ids(
+						sanitize_text_field( $_POST['search'] ?? '' ),
+						sanitize_key( $_POST['type'] ?? 'all' )
+					),
+				) );
+				break;
+
+			case 'media_zip_start':
+			case 'media_zip_add':
+			case 'media_zip_finish':
+				$mm    = new Velox_Media_Manager();
+				$token = sanitize_key( $_POST['token'] ?? '' );
+				if ( 'media_zip_start' === $do ) {
+					$res = $mm->zip_start();
+				} elseif ( 'media_zip_add' === $do ) {
+					// A comma list in one field: an array of thousands of ids would
+					// run into PHP's max_input_vars.
+					$res = $mm->zip_add( $token, explode( ',', (string) wp_unslash( $_POST['ids'] ?? '' ) ) );
+				} else {
+					$res = $mm->zip_finish( $token );
+				}
 				if ( empty( $res['ok'] ) ) {
-					wp_send_json_error( array( 'message' => isset( $res['message'] ) ? $res['message'] : 'Could not build the download.' ) );
+					wp_send_json_error( array( 'message' => isset( $res['message'] ) ? $res['message'] : __( 'Could not build the download.', 'velox' ) ) );
 				}
 				wp_send_json_success( $res );
 				break;

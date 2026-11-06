@@ -3561,4 +3561,21 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'The reusable could not be saved.' => 'Das wiederverwendbare Element konnte nicht gespeichert werden.',
 	// Velox Builder 4.19
 	'Tab %d' => 'Tab %d',
+	// Media editor 4.19.1
+	'%d row loaded from %s. Check it below, then apply.' => '%d Zeile aus %s geladen. Prüfen Sie sie unten und wenden Sie sie dann an.',
+	'Upload a text file' => 'Textdatei hochladen',
+	'Or paste the rows' => 'Oder die Zeilen einfügen',
+	'image selected' => 'Bild ausgewählt',
+	'images selected' => 'Bilder ausgewählt',
+	'alt text & titles come along in a text file' => 'Alt-Texte und Titel kommen in einer Textdatei mit',
+	'%d of %d images downloaded. Not readable on the server:' => '%d von %d Bildern heruntergeladen. Auf dem Server nicht lesbar:',
+	'No rows found in this file. Each row needs a | between filename and alt text.' => 'In dieser Datei wurden keine Zeilen gefunden. Jede Zeile braucht ein | zwischen Dateiname und Alt-Text.',
+	'%d rows loaded from %s. Check them below, then apply.' => '%d Zeilen aus %s geladen. Prüfen Sie sie unten und wenden Sie sie dann an.',
+	'Upload a text file or paste some rows first.' => 'Laden Sie zuerst eine Textdatei hoch oder fügen Sie Zeilen ein.',
+	'Zip support (ZipArchive) is not available on this server.' => 'Zip-Unterstützung (ZipArchive) ist auf diesem Server nicht verfügbar.',
+	'Could not create a temporary folder in uploads.' => 'Im Upload-Ordner konnte kein temporärer Ordner angelegt werden.',
+	'This download has expired. Please start it again.' => 'Dieser Download ist abgelaufen. Bitte starten Sie ihn erneut.',
+	'Could not write the zip file. Is the disk full?' => 'Die Zip-Datei konnte nicht geschrieben werden. Ist der Speicher voll?',
+	'None of the selected images could be read from disk.' => 'Keines der ausgewählten Bilder konnte vom Datenträger gelesen werden.',
+	'The zip file came out incomplete. Please try again.' => 'Die Zip-Datei ist unvollständig. Bitte versuchen Sie es erneut.',
 );

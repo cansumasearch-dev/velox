@@ -103,7 +103,15 @@ if ( ! defined( 'ABSPATH' ) ) {
 	<div class="velox-modal-box velox-modal-box--lg">
 		<h3 class="velox-panel-title"><?php esc_html_e('Bulk import — pipe format', 'velox'); ?></h3>
 		<p class="velox-hint"><?php printf( esc_html__( 'One row per image: %s. Filenames are matched to your library; a header row is ignored.', 'velox' ), '<code>' . esc_html__( 'Dateiname | Alt-Text | Titel', 'velox' ) . '</code>' ); ?></p>
-		<textarea id="velox-pipe-text" class="velox-textarea" rows="12" placeholder="erste-hilfe-kurs-neuss-team.webp | Team beim Erste-Hilfe-Kurs in Neuss | Erste-Hilfe-Kurs Neuss"></textarea>
+		<div class="velox-field">
+			<span class="velox-field-label"><?php esc_html_e('Upload a text file', 'velox'); ?></span>
+			<input type="file" class="velox-file" id="velox-pipe-file" accept=".txt,text/plain">
+			<span class="velox-hint" id="velox-pipe-filemsg" aria-live="polite"></span>
+		</div>
+		<div class="velox-field">
+			<label class="velox-field-label" for="velox-pipe-text"><?php esc_html_e('Or paste the rows', 'velox'); ?></label>
+			<textarea id="velox-pipe-text" class="velox-textarea" rows="12" placeholder="erste-hilfe-kurs-neuss-team.webp | Team beim Erste-Hilfe-Kurs in Neuss | Erste-Hilfe-Kurs Neuss"></textarea>
+		</div>
 		<div class="velox-actions">
 			<button class="velox-btn velox-btn--primary" id="velox-pipe-apply"><?php esc_html_e('Apply to library', 'velox'); ?></button>
 			<button class="velox-btn velox-btn--ghost" id="velox-pipe-cancel"><?php esc_html_e('Close', 'velox'); ?></button>

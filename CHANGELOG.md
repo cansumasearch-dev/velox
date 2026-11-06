@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.19.1 — Media Editor: downloads get every image, bulk import takes a text file
+- **Downloading images now gives you every image you selected.** Only the first selected image made it into the zip (plus the text file), whatever you ticked. The zip now holds all of them, however many there are: it is built in batches with a progress count so big selections can't time out, and it is checked before you get it. If a file is missing on the server, you are told which one instead of getting a quietly shorter zip.
+- **"Select all" means all.** It selects every image in the library (or in your search), not just the page you are looking at, and shows how many. Ticks also stay when you change pages or search.
+- **Images with the same filename are all kept.** Two files called `logo.jpg` from different months no longer overwrite each other, including names that differ only in upper and lower case.
+- **Bulk import can read a .txt file.** Upload a file or paste the rows as before. The rows land in the box so you can check them before applying, and umlauts survive whichever way Notepad or Excel saved the file. The `alt-text-and-titles.txt` from a download works directly.
+
 ## 4.19.0 — Velox Builder: every element audited, Oxygen 6 import rebuilt
 - **Oxygen 6 and Breakdance pages import properly.** The importer now reads the real format: classes and their styles from Oxygen's selectors (and Breakdance's classes), per-screen values, hover styles, images from the media library or a URL with the right alt text, links that open in a new tab, components and global blocks (their content is brought in), and the HTML/CSS code blocks. A page that still carries old classic-Oxygen data next to its Oxygen 6 layout now imports the current layout.
 - **Accordion, FAQ, Tabs and Slider show their text.** The text typed into an item's own fields was hidden behind its (empty) drop area, both in the editor and on the page. Text and dropped-in elements now both show. A tab or slide with an empty title no longer shifts the content of the ones after it.

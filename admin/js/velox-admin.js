@@ -641,7 +641,10 @@
 			return;
 		}
 
-		var state = { page: 1, pages: 1, search: '', perPage: 20 };
+		var state = { page: 1, pages: 1, search: '', perPage: 20, total: 0 };
+		// Ticked images, by id. Kept here and not read from the grid: the grid only
+		// holds one page, and ticks have to survive paging and searching.
+		var picked = {};
 		var prev = $( '#velox-media-prev' );
 		var next = $( '#velox-media-next' );
 		var pageInfo = $( '#velox-media-pageinfo' );
@@ -680,6 +683,7 @@
 			api( 'list_media', { page: state.page, search: state.search, per_page: state.perPage } )
 				.then( function ( d ) {
 					state.pages = d.total_pages || 1;
+					state.total = d.total || 0;
 					render( d.items || [] );
 					if ( pageInfo ) {
 						pageInfo.textContent =
@@ -706,13 +710,13 @@
 			gridEl.innerHTML = items
 				.map( function ( it ) {
 					return (
-						'<div class="velox-media-card" data-id="' +
+						'<div class="velox-media-card' + ( picked[ it.id ] ? ' is-selected' : '' ) + '" data-id="' +
 						it.id +
 						'" data-w="' + ( it.width || 0 ) + '" data-h="' + ( it.height || 0 ) +
 						'" data-full="' + escapeHtml( it.full || it.thumb || '' ) +
 						'" data-name="' + escapeHtml( it.filename || '' ) + '">' +
 						'<div class="velox-media-thumb">' +
-						'<input type="checkbox" class="velox-media-select" value="' + it.id + '" aria-label="' + vxT( "Select image" ) + '">' +
+						'<input type="checkbox" class="velox-media-select" value="' + it.id + '"' + ( picked[ it.id ] ? ' checked' : '' ) + ' aria-label="' + vxT( "Select image" ) + '">' +
 						'<img src="' +
 						escapeHtml( it.thumb || it.full ) +
 						'" alt="" loading="lazy" class="velox-media-open" title="' + vxT( "Click to resize" ) + '">' +
@@ -808,40 +812,86 @@
 		var dlGo       = $( '#velox-media-dl-go' );
 		var selCount   = $( '#velox-media-selcount' );
 
-		function selectedIds() { return $$( '.velox-media-select:checked', gridEl ).map( function ( c ) { return c.value; } ); }
+		var allPicked  = null; // what "Select all" last picked: { search, ids }
+
+		function selectedIds() { return Object.keys( picked ); }
+		function isAllPicked() {
+			return !! allPicked && allPicked.search === state.search && allPicked.ids.length > 0 &&
+				allPicked.ids.every( function ( id ) { return picked[ id ]; } );
+		}
 		function updateSel() {
 			var n = selectedIds().length;
 			if ( dlGo ) { dlGo.disabled = n === 0; dlGo.textContent = vxT( 'Download selected' ) + ( n ? ' (' + n + ')' : '' ); }
-			if ( selCount ) { selCount.textContent = n ? ( n + ' image' + ( n === 1 ? '' : 's' ) + ' selected · alt text & titles come along in a text file' ) : vxT( 'Tick the images you want, then download. Alt text & titles come along in a text file.' ); }
+			if ( selCount ) { selCount.textContent = n ? ( n + ' ' + vxT( 1 === n ? 'image selected' : 'images selected' ) + ' · ' + vxT( 'alt text & titles come along in a text file' ) ) : vxT( 'Tick the images you want, then download. Alt text & titles come along in a text file.' ); }
 			if ( selAllBtn ) {
-				var boxes = $$( '.velox-media-select', gridEl );
-				selAllBtn.textContent = ( boxes.length && boxes.every( function ( b ) { return b.checked; } ) ) ? vxT( 'Deselect all' ) : vxT( 'Select all' );
+				selAllBtn.textContent = isAllPicked() ? vxT( 'Deselect all' ) : vxT( 'Select all' ) + ( state.total ? ' (' + state.total + ')' : '' );
 			}
+		}
+		function syncBoxes() {
+			$$( '.velox-media-select', gridEl ).forEach( function ( b ) {
+				b.checked = !! picked[ b.value ];
+				b.closest( '.velox-media-card' ).classList.toggle( 'is-selected', b.checked );
+			} );
 		}
 		function enterSelect() { selecting = true; gridEl.classList.add( 'is-selecting' ); if ( selBar ) { selBar.hidden = false; } if ( dlBtn ) { dlBtn.hidden = true; } updateSel(); }
 		function exitSelect() {
 			selecting = false; gridEl.classList.remove( 'is-selecting' );
 			if ( selBar ) { selBar.hidden = true; }
 			if ( dlBtn ) { dlBtn.hidden = false; }
-			$$( '.velox-media-select', gridEl ).forEach( function ( c ) { c.checked = false; } );
-			$$( '.velox-media-card', gridEl ).forEach( function ( c ) { c.classList.remove( 'is-selected' ); } );
+			picked = {};
+			allPicked = null;
+			syncBoxes();
 		}
 		if ( dlBtn ) { dlBtn.addEventListener( 'click', enterSelect ); }
 		if ( selCancel ) { selCancel.addEventListener( 'click', exitSelect ); }
 		if ( selAllBtn ) {
+			// Every image matching the search, on every page — not just the page
+			// that happens to be showing.
 			selAllBtn.addEventListener( 'click', function () {
-				var boxes = $$( '.velox-media-select', gridEl );
-				var allOn = boxes.length && boxes.every( function ( b ) { return b.checked; } );
-				boxes.forEach( function ( b ) { b.checked = ! allOn; b.closest( '.velox-media-card' ).classList.toggle( 'is-selected', b.checked ); } );
-				updateSel();
+				if ( isAllPicked() ) {
+					allPicked.ids.forEach( function ( id ) { delete picked[ id ]; } );
+					allPicked = null;
+					syncBoxes();
+					updateSel();
+					return;
+				}
+				selAllBtn.disabled = true;
+				api( 'media_ids', { search: state.search } )
+					.then( function ( d ) {
+						var ids = d.ids || [];
+						ids.forEach( function ( id ) { picked[ id ] = true; } );
+						allPicked = { search: state.search, ids: ids };
+						syncBoxes();
+						updateSel();
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { selAllBtn.disabled = false; } );
 			} );
 		}
 		gridEl.addEventListener( 'change', function ( e ) {
 			var b = e.target.closest ? e.target.closest( '.velox-media-select' ) : null;
 			if ( ! b ) { return; }
+			if ( b.checked ) { picked[ b.value ] = true; } else { delete picked[ b.value ]; }
 			b.closest( '.velox-media-card' ).classList.toggle( 'is-selected', b.checked );
 			updateSel();
 		} );
+
+		/* The zip is built a batch at a time, so a big selection can't time out. */
+		function buildZip( ids, onStep ) {
+			return api( 'media_zip_start' ).then( function ( job ) {
+				var rest = ids.slice();
+				function step() {
+					if ( ! rest.length ) { return api( 'media_zip_finish', { token: job.token } ); }
+					return api( 'media_zip_add', { token: job.token, ids: rest.slice( 0, 150 ).join( ',' ) } ).then( function ( r ) {
+						if ( ! r.done ) { throw new Error( vxT( 'Could not build the download.' ) ); }
+						rest = rest.slice( r.done );
+						onStep( ids.length - rest.length );
+						return step();
+					} );
+				}
+				return step();
+			} );
+		}
 		if ( dlGo ) {
 			dlGo.addEventListener( 'click', function () {
 				var ids = selectedIds();
@@ -849,19 +899,21 @@
 				dlGo.disabled = true;
 				var orig = dlGo.textContent;
 				dlGo.textContent = vxT( 'Preparing…' );
-				api( 'media_zip', { ids: ids } )
+				buildZip( ids, function ( n ) { dlGo.textContent = vxT( 'Preparing…' ) + ' ' + n + ' / ' + ids.length; } )
 					.then( function ( r ) {
-						if ( r && r.url ) {
-							var a = document.createElement( 'a' );
-							a.href = r.url; a.download = r.filename || '';
-							document.body.appendChild( a ); a.click(); a.remove();
-							toast( vxT( 'Download ready — ' ) + ( r.count || ids.length ) + ' image' + ( ( r.count || ids.length ) === 1 ? '' : 's' ) + '.', 'success' );
+						var a = document.createElement( 'a' );
+						a.href = r.url; a.download = r.filename || '';
+						document.body.appendChild( a ); a.click(); a.remove();
+						var failed = r.failed || [];
+						if ( failed.length ) {
+							// Never quietly short: say what is missing from the zip.
+							toast( vxT( '%d of %d images downloaded. Not readable on the server:', r.count, r.requested ) + ' ' + failed.slice( 0, 5 ).join( ', ' ) + ( failed.length > 5 ? ' …' : '' ), 'warn' );
 						} else {
-							toast( vxT( 'Could not build the download.' ), 'error' );
+							toast( vxT( 'Download ready — ' ) + r.count + ' image' + ( 1 === r.count ? '' : 's' ) + '.', 'success' );
 						}
 					} )
 					.catch( function ( e ) { toast( e.message, 'error' ); } )
-					.then( function () { dlGo.disabled = false; dlGo.textContent = orig; } );
+					.then( function () { dlGo.disabled = false; dlGo.textContent = orig; updateSel(); } );
 			} );
 		}
 
@@ -1035,6 +1087,40 @@
 		var pipeApply = $( '#velox-pipe-apply' );
 		var pipeCancel = $( '#velox-pipe-cancel' );
 		var pipeResult = $( '#velox-pipe-result' );
+		var pipeFile = $( '#velox-pipe-file' );
+		var pipeFileMsg = $( '#velox-pipe-filemsg' );
+
+		/* Notepad and Excel save as UTF-8, UTF-16 or Windows-1252 depending on the
+		 * version; reading them all as UTF-8 would break every umlaut. */
+		function decodeText( buf ) {
+			var b = new Uint8Array( buf );
+			if ( b.length > 1 && 0xFF === b[0] && 0xFE === b[1] ) { return new TextDecoder( 'utf-16le' ).decode( buf ); }
+			if ( b.length > 1 && 0xFE === b[0] && 0xFF === b[1] ) { return new TextDecoder( 'utf-16be' ).decode( buf ); }
+			try { return new TextDecoder( 'utf-8', { fatal: true } ).decode( buf ); }
+			catch ( e ) { return new TextDecoder( 'windows-1252' ).decode( buf ); }
+		}
+		if ( pipeFile ) {
+			// Lets the same file be picked again after it was edited.
+			pipeFile.addEventListener( 'click', function () { pipeFile.value = ''; } );
+			pipeFile.addEventListener( 'change', function () {
+				var f = pipeFile.files && pipeFile.files[0];
+				if ( ! f ) { return; }
+				if ( pipeResult ) { pipeResult.textContent = ''; }
+				f.arrayBuffer().then( function ( buf ) {
+					var text = decodeText( buf ).replace( /^\uFEFF/, '' );
+					var rows = text.split( /\r\n|\r|\n/ ).filter( function ( l ) {
+						return l.indexOf( '|' ) > -1 && ! /^\s*Dateiname\b/i.test( l );
+					} ).length;
+					if ( ! rows ) {
+						if ( pipeFileMsg ) { pipeFileMsg.textContent = vxT( 'No rows found in this file. Each row needs a | between filename and alt text.' ); }
+						return;
+					}
+					// Into the box, so it can be checked and edited before applying.
+					if ( pipeText ) { pipeText.value = text; }
+					if ( pipeFileMsg ) { pipeFileMsg.textContent = vxT( 1 === rows ? '%d row loaded from %s. Check it below, then apply.' : '%d rows loaded from %s. Check them below, then apply.', rows, f.name ); }
+				} ).catch( function ( e ) { toast( e.message, 'error' ); } );
+			} );
+		}
 
 		if ( pipeExport ) {
 			pipeExport.addEventListener( 'click', function () {
@@ -1078,6 +1164,10 @@
 		}
 		if ( pipeApply ) {
 			pipeApply.addEventListener( 'click', function () {
+				if ( ! pipeText || ! pipeText.value.trim() ) {
+					toast( vxT( 'Upload a text file or paste some rows first.' ), 'warn' );
+					return;
+				}
 				pipeApply.disabled = true;
 				pipeApply.textContent = vxT( 'Applying…' );
 				api( 'import_pipe', { text: pipeText ? pipeText.value : '' } )
