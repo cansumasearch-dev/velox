@@ -45,6 +45,8 @@ if ( $velox_keep ) {
 // Core options + version flags + logs.
 $velox_options = array(
 	'velox_settings', 'velox_settings_schema', 'velox_local_fonts', 'velox_blueprints',
+	'velox_fonts_optimized', 'velox_fonts_optimized_front', 'velox_fonts_preload', 'velox_fonts_unload',
+	'velox_fonts_meta', 'velox_fonts_failures', 'velox_fonts_checker', 'velox_fonts_seen',
 	'velox_redirects_map', 'velox_redirects_db', 'velox_activity_db', 'velox_assets_seen',
 	'velox_script_rules', 'velox_forms', 'velox_forms_db', 'velox_mail_db',
 	'velox_snippets_db', 'velox_snippets_safe', 'velox_snippets_panic',
@@ -79,17 +81,16 @@ if ( ! empty( $uploads['basedir'] ) ) {
 	foreach ( array( 'velox-css', 'velox-fonts', 'velox-tmp' ) as $folder ) {
 		$dir = trailingslashit( $uploads['basedir'] ) . $folder;
 		if ( is_dir( $dir ) ) {
-			$files = glob( trailingslashit( $dir ) . '*' );
-			if ( is_array( $files ) ) {
-				foreach ( $files as $f ) {
-					if ( is_file( $f ) ) {
-						@unlink( $f );
-					}
-				}
+			// Recursive: local fonts live in one sub-folder per stylesheet.
+			$it = new RecursiveIteratorIterator( new RecursiveDirectoryIterator( $dir, FilesystemIterator::SKIP_DOTS ), RecursiveIteratorIterator::CHILD_FIRST );
+			foreach ( $it as $f ) {
+				$f->isDir() ? @rmdir( $f->getPathname() ) : @unlink( $f->getPathname() );
 			}
 			@rmdir( $dir );
 		}
 	}
 }
+
+@unlink( WP_CONTENT_DIR . '/velox-fonts-debug.log' );
 
 // Note: your media, WebP files and the EXIF/resize work stay exactly where they are.

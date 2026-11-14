@@ -137,12 +137,12 @@ class Velox_Performance {
 		}
 
 		// ---- Fonts ----
-		if ( $this->on( 'perf_fonts_preconnect' ) ) {
+		// Local fonts never talk to Google, so nothing to preconnect to.
+		if ( $this->on( 'perf_fonts_preconnect' ) && ! $this->on( 'perf_local_fonts' ) ) {
 			add_action( 'wp_head', array( $this, 'fonts_preconnect' ), 1 );
 		}
-		if ( $this->on( 'perf_fonts_display_swap' ) ) {
-			add_filter( 'style_loader_src', array( $this, 'google_font_display_swap' ), 20 );
-		}
+		// font-display for remote Google Fonts is handled by Velox_Fonts with the
+		// chosen strategy; the old always-swap filter overrode "Off".
 		if ( ! empty( $this->s['perf_preload_fonts'] ) ) {
 			add_action( 'wp_head', array( $this, 'preload_fonts' ), 2 );
 		}

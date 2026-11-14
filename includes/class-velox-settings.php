@@ -319,6 +319,12 @@ class Velox_Settings {
 			'perf_fonts_display_swap'    => true,
 			'perf_font_display'          => 'swap',
 			'perf_local_fonts'           => false, // host Google Fonts locally (OMGF-style)
+			'perf_fonts_test_mode'       => false, // optimized fonts only for admins / ?vxfonts=1
+			'perf_fonts_subsets'         => 'latin,latin-ext', // used subsets, comma-separated
+			'perf_fonts_legacy'          => false, // older user agent: legacy browsers, no variable fonts
+			'perf_fonts_compat'          => false, // Divi / Elementor handle fix
+			'perf_fonts_adminbar_off'    => false, // hide "Optimize fonts on this page" + the checker
+			'perf_fonts_debug'           => false, // write wp-content/velox-fonts-debug.log
 			'perf_preload_fonts'         => '',    // one font URL per line
 			'perf_font_block'            => '',    // block fonts by family name or URL, one per line
 			'perf_system_fonts'          => false, // skip web fonts, use the system stack
@@ -388,7 +394,7 @@ class Velox_Settings {
 			),
 			'fonts' => array(
 				'label' => 'Fonts',
-				'keys'  => array( 'perf_fonts_preconnect', 'perf_font_display', 'perf_local_fonts', 'perf_preload_fonts', 'perf_system_fonts' ),
+				'keys'  => array( 'perf_local_fonts', 'perf_font_display', 'perf_fonts_test_mode', 'perf_fonts_preconnect', 'perf_preload_fonts', 'perf_system_fonts' ),
 			),
 			'preload' => array(
 				'label' => 'Preload & Network',

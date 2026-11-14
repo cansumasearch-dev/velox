@@ -1351,55 +1351,229 @@
 			} );
 		}
 
-		/* Local fonts: scan & download / remove */
-		var fScan = $( '#velox-fonts-scan' );
-		var fClear = $( '#velox-fonts-clear' );
-		var fStatus = $( '#velox-fonts-status' );
-		if ( fScan ) {
-			fScan.addEventListener( 'click', function () {
-				fScan.disabled = true;
-				fScan.textContent = vxT( 'Scanning…' );
-				if ( fStatus ) {
-					fStatus.innerHTML = '<span class="velox-hint">Loading your front page and downloading fonts…</span>';
+		/* Local fonts — works like OMGF: cache status, Load early / Don't load,
+		 * Save & optimize, Refresh / Empty cache, used subsets. */
+		( function () {
+			var root = $( '#velox-lf' );
+			if ( ! root ) { return; }
+			var dataEl = $( '#velox-lf-data' );
+			var D = {};
+			try { D = JSON.parse( dataEl ? dataEl.textContent : '{}' ) || {}; } catch ( e ) { D = {}; }
+			var notices = $( '#velox-lf-notices' ), statusEl = $( '#velox-lf-status' ), tableEl = $( '#velox-lf-table' );
+			var btnOpt = $( '#velox-lf-optimize' ), btnRef = $( '#velox-lf-refresh' ), btnEmpty = $( '#velox-lf-empty' );
+			var STATES = {
+				found: [ 'ok', vxT( 'Found' ) ], unloaded: [ 'muted', vxT( 'Unloaded' ) ], stale: [ 'warn', vxT( 'Stale' ) ],
+				unused: [ 'muted', vxT( 'Unused' ) ], 'not-found': [ 'bad', vxT( 'Not found' ) ]
+			};
+			function localOn() { var t = $( '[data-setting="perf_local_fonts"]' ); return !! ( t && t.checked ); }
+			function has( obj, h, f, v ) { return !! ( obj && obj[ h ] && obj[ h ][ f ] && obj[ h ][ f ].map( String ).indexOf( String( v ) ) > -1 ); }
+			function notice( cls, html ) { return '<div class="velox-lf-notice is-' + cls + '">' + html + '</div>'; }
+
+			function renderNotices() {
+				var st = D.status || {}, out = '';
+				var fonts = D.fonts || {}, nFonts = Object.keys( fonts ).length;
+				if ( ! localOn() ) {
+					out += notice( 'info', vxT( 'Switch on "Host Google Fonts locally" above, then click Save & optimize.' ) );
+				} else if ( ! st.has_run ) {
+					out += notice( 'info', '<strong>' + vxT( 'Let\'s get started!' ) + '</strong> ' + vxT( 'Click Save & optimize: Velox loads your front page, downloads every Google Font it uses and lists them below. The list grows on its own as other pages are visited.' ) );
 				}
-				api( 'localize_fonts', {} )
-					.then( function ( d ) {
-						toast( ( d && d.message ) || vxT( 'Fonts hosted locally.' ) );
-						if ( fStatus ) {
-							var fam = d && d.families && d.families.length ? ' — ' + d.families.join( ', ' ) : '';
-							fStatus.innerHTML = '<span class="velox-fonts-ok">✓ ' + ( ( d && d.files ) || 0 ) + ' font file(s) hosted locally' + escapeHtml( fam ) + '</span>';
-						}
-					} )
-					.catch( function ( e ) {
-						toast( e.message, 'error' );
-						if ( fStatus ) {
-							fStatus.innerHTML = '<span class="velox-hint">' + escapeHtml( e.message ) + '</span>';
-						}
-					} )
-					.then( function () {
-						fScan.disabled = false;
-						fScan.textContent = vxT( 'Scan & download fonts' );
+				if ( D.test ) {
+					out += notice( 'warn', vxT( 'Test Mode is on: only logged-in administrators (or URLs with ?vxfonts=1) get the local fonts.' ) );
+				}
+				if ( st.stale ) {
+					out += notice( 'warn', vxT( 'The cached stylesheets don\'t reflect the current settings. Refresh the cache to apply them.' ) );
+				}
+				if ( D.failures && D.failures.length ) {
+					out += notice( 'warn', '<strong>' + vxT( 'Some font files could not be downloaded:' ) + '</strong><ul>' + D.failures.map( function ( f ) {
+						return '<li>' + escapeHtml( f.family + ' — ' + f.error ) + '</li>';
+					} ).join( '' ) + '</ul><button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-lf-dismiss="failures">' + vxT( 'Dismiss' ) + '</button>' );
+				}
+				var chk = D.checker || {}, chkUrls = Object.keys( chk );
+				if ( chkUrls.length ) {
+					out += notice( 'warn', '<strong>' + vxT( 'Velox wasn\'t able to process all Google Fonts on your site.' ) + '</strong> ' +
+						vxT( 'These were still loaded from Google (for example by a script or an @import):' ) + '<ul>' + chkUrls.map( function ( u ) {
+							return '<li><code>' + escapeHtml( u ) + '</code> — ' + escapeHtml( ( chk[ u ] || [] ).join( ', ' ) ) + '</li>';
+						} ).join( '' ) + '</ul><button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" data-lf-dismiss="checker">' + vxT( 'Mark as fixed' ) + '</button>' );
+				} else if ( localOn() && st.has_run && nFonts ) {
+					out += notice( 'ok', vxT( 'All Google Fonts on your site are stored on your server.' ) );
+				} else if ( localOn() && st.has_run && ! nFonts ) {
+					out += notice( 'warn', vxT( 'No Google Fonts were found on your front page yet. If your site uses them, open a page that does (they are added as they are found), or check the debug log.' ) );
+				}
+				notices.innerHTML = out;
+			}
+
+			function renderStatus() {
+				var rows = ( D.status && D.status.rows ) || [];
+				if ( ! rows.length ) {
+					statusEl.innerHTML = '<span class="velox-hint">' + vxT( 'Nothing cached yet.' ) + '</span>';
+					return;
+				}
+				statusEl.innerHTML = rows.map( function ( r ) {
+					var s = STATES[ r.state ] || [ 'muted', r.state ];
+					return '<div class="velox-lf-status-row"><strong>' + escapeHtml( r.handle ) + '</strong>' +
+						'<span class="velox-pill velox-pill--' + s[0] + '">' + escapeHtml( s[1] ) + '</span>' +
+						'<code>' + escapeHtml( r.path ) + '</code>' +
+						'<a data-lf-config="' + escapeHtml( r.handle ) + '">' + vxT( 'Configure' ) + '</a>' +
+						'<a data-lf-remove="' + escapeHtml( r.handle ) + '">' + vxT( 'Remove' ) + '</a></div>';
+				} ).join( '' );
+			}
+
+			function renderTable() {
+				var fonts = D.fonts || {}, handles = Object.keys( fonts );
+				if ( ! handles.length ) {
+					tableEl.innerHTML = '<div class="velox-lf-empty">' + vxT( 'After clicking Save & optimize, this section lists every Google Font requested on your site, with its styles and weights. The list grows as other Google Fonts stylesheets are found on other pages.' ) + '</div>';
+					return;
+				}
+				var html = '<table class="velox-lf-table"><thead><tr><th>' + vxT( 'Local fonts' ) + '</th><th>' + vxT( 'Style' ) + '</th><th>' + vxT( 'Weight' ) +
+					'</th><th class="velox-lf-c">' + vxT( 'Load early' ) + '</th><th class="velox-lf-c">' + vxT( 'Don\'t load' ) + '</th></tr></thead><tbody>';
+				handles.forEach( function ( h ) {
+					html += '<tr class="velox-lf-handle" id="velox-lf-h-' + escapeHtml( h ) + '"><td colspan="5">' + vxT( 'Stylesheet handle:' ) + ' ' + escapeHtml( h ) + '</td></tr>';
+					Object.keys( fonts[ h ] ).forEach( function ( f ) {
+						var font = fonts[ h ][ f ];
+						html += '<tr class="velox-lf-family"><td colspan="5">' + escapeHtml( font.family ) +
+							'<span class="velox-lf-links">(<a data-lf-bulk="italic" data-h="' + escapeHtml( h ) + '" data-f="' + escapeHtml( f ) + '" title="' + escapeHtml( vxT( 'In most situations you can safely unload all italic styles. Modern browsers can mimic italics.' ) ) + '">' + vxT( 'Unload italics' ) + '</a> | ' +
+							'<a data-lf-bulk="all" data-h="' + escapeHtml( h ) + '" data-f="' + escapeHtml( f ) + '">' + vxT( 'Unload all' ) + '</a> | ' +
+							'<a data-lf-bulk="none" data-h="' + escapeHtml( h ) + '" data-f="' + escapeHtml( f ) + '">' + vxT( 'Load all' ) + '</a>)</span></td></tr>';
+						var seen = {};
+						Object.keys( font.variants || {} ).forEach( function ( k ) {
+							var v = font.variants[ k ];
+							if ( seen[ v.id ] ) { return; } // one row per weight + style, all subsets together
+							seen[ v.id ] = true;
+							var pre = has( D.preload, h, f, v.id ), unl = has( D.unload, h, f, v.id );
+							var attrs = ' data-h="' + escapeHtml( h ) + '" data-f="' + escapeHtml( f ) + '" value="' + escapeHtml( v.id ) + '"';
+							html += '<tr><td></td><td>' + escapeHtml( v.fontStyle ) + '</td><td>' + escapeHtml( v.fontWeight ) + '</td>' +
+								'<td class="velox-lf-c"><input type="checkbox" class="velox-lf-pre"' + attrs + ( pre ? ' checked' : '' ) + ( unl ? ' disabled' : '' ) + ' aria-label="' + escapeHtml( vxT( 'Load early' ) + ' ' + font.family + ' ' + v.fontWeight + ' ' + v.fontStyle ) + '"></td>' +
+								'<td class="velox-lf-c"><input type="checkbox" class="velox-lf-unl"' + attrs + ( unl ? ' checked' : '' ) + ( pre ? ' disabled' : '' ) + ' aria-label="' + escapeHtml( vxT( 'Don\'t load' ) + ' ' + font.family + ' ' + v.fontWeight + ' ' + v.fontStyle ) + '"></td></tr>';
+						} );
 					} );
+				} );
+				tableEl.innerHTML = html + '</tbody></table><div id="velox-lf-prewarn"></div>';
+				preWarn();
+			}
+			function preWarn() {
+				var n = $$( '.velox-lf-pre:checked', tableEl ).length, w = $( '#velox-lf-prewarn' );
+				if ( w ) { w.innerHTML = n >= 5 ? notice( 'warn', vxT( 'Wow! That\'s a lot of preloads! Preloading too many fonts slows the page down — only preload fonts used above the fold.' ) ) : ''; }
+			}
+			function renderAll() { renderNotices(); renderStatus(); renderTable(); }
+			function collect( cls ) {
+				var out = {};
+				$$( cls + ':checked', tableEl ).forEach( function ( cb ) {
+					var h = cb.getAttribute( 'data-h' ), f = cb.getAttribute( 'data-f' );
+					out[ h ] = out[ h ] || {}; out[ h ][ f ] = out[ h ][ f ] || [];
+					out[ h ][ f ].push( cb.value );
+				} );
+				return out;
+			}
+			function busy( btn, on, label ) {
+				[ btnOpt, btnRef, btnEmpty ].forEach( function ( b ) { if ( b ) { b.disabled = on; } } );
+				if ( btn ) {
+					if ( on ) { btn.__t = btn.textContent; btn.textContent = label; } else if ( btn.__t ) { btn.textContent = btn.__t; }
+				}
+			}
+			function run( btn, action, payload, label ) {
+				busy( btn, true, label );
+				return api( action, payload || {} )
+					.then( function ( r ) {
+						if ( r && r.data ) { D = r.data; }
+						renderAll();
+						toast( ( r && r.message ) || vxT( 'Done.' ), 'success' );
+					} )
+					.catch( function ( e ) { toast( e.message, 'error' ); } )
+					.then( function () { busy( btn, false ); } );
+			}
+
+			tableEl.addEventListener( 'change', function ( e ) {
+				var cb = e.target;
+				if ( ! cb.classList ) { return; }
+				var other = cb.classList.contains( 'velox-lf-pre' ) ? '.velox-lf-unl' : ( cb.classList.contains( 'velox-lf-unl' ) ? '.velox-lf-pre' : '' );
+				if ( ! other ) { return; }
+				// Load early and Don't load exclude each other.
+				var twin = cb.closest( 'tr' ).querySelector( other );
+				if ( twin ) { twin.disabled = cb.checked; }
+				preWarn();
 			} );
-		}
-		if ( fClear ) {
-			fClear.addEventListener( 'click', function () {
-				fClear.disabled = true;
-				api( 'clear_local_fonts', {} )
-					.then( function ( d ) {
-						toast( ( d && d.message ) || vxT( 'Local fonts removed.' ) );
-						if ( fStatus ) {
-							fStatus.innerHTML = '<span class="velox-hint">No fonts hosted locally yet. Enable the toggle, then scan.</span>';
-						}
-					} )
-					.catch( function ( e ) {
-						toast( e.message, 'error' );
-					} )
-					.then( function () {
-						fClear.disabled = false;
+			root.addEventListener( 'click', function ( e ) {
+				var t = e.target.closest ? e.target.closest( '[data-lf-bulk],[data-lf-config],[data-lf-remove],[data-lf-dismiss]' ) : null;
+				if ( ! t ) { return; }
+				e.preventDefault();
+				if ( t.hasAttribute( 'data-lf-bulk' ) ) {
+					var mode = t.getAttribute( 'data-lf-bulk' );
+					$$( '.velox-lf-unl[data-h="' + t.getAttribute( 'data-h' ) + '"][data-f="' + t.getAttribute( 'data-f' ) + '"]', tableEl ).forEach( function ( cb ) {
+						var want = 'none' === mode ? false : ( 'all' === mode ? true : ( /italic/.test( cb.value ) ? true : cb.checked ) );
+						if ( cb.checked !== want ) { cb.checked = want; cb.dispatchEvent( new Event( 'change', { bubbles: true } ) ); }
 					} );
+				} else if ( t.hasAttribute( 'data-lf-config' ) ) {
+					var row = document.getElementById( 'velox-lf-h-' + t.getAttribute( 'data-lf-config' ) );
+					if ( row ) { row.scrollIntoView( { behavior: 'smooth', block: 'center' } ); }
+				} else if ( t.hasAttribute( 'data-lf-remove' ) ) {
+					run( null, 'fonts_remove', { handle: t.getAttribute( 'data-lf-remove' ) } );
+				} else {
+					run( null, 'fonts_dismiss', { what: t.getAttribute( 'data-lf-dismiss' ) } );
+				}
 			} );
-		}
+			if ( btnOpt ) {
+				btnOpt.addEventListener( 'click', function () {
+					if ( ! localOn() ) { toast( vxT( 'Switch on "Host Google Fonts locally" first.' ), 'warn' ); return; }
+					run( btnOpt, 'fonts_save_manage', { preload: JSON.stringify( collect( '.velox-lf-pre' ) ), unload: JSON.stringify( collect( '.velox-lf-unl' ) ) }, vxT( 'Optimizing…' ) );
+				} );
+			}
+			if ( btnRef ) {
+				btnRef.addEventListener( 'click', function () {
+					if ( ! localOn() ) { toast( vxT( 'Switch on "Host Google Fonts locally" first.' ), 'warn' ); return; }
+					run( btnRef, 'fonts_refresh', {}, vxT( 'Refreshing…' ) );
+				} );
+			}
+			if ( btnEmpty ) {
+				btnEmpty.addEventListener( 'click', function () {
+					if ( ! window.confirm( vxT( 'Empty the font cache? This deletes every downloaded font and your Load early / Don\'t load choices. Pages use Google Fonts again until the next Save & optimize.' ) ) ) { return; }
+					run( btnEmpty, 'fonts_empty', {}, vxT( 'Emptying…' ) );
+				} );
+			}
+
+			/* Used subsets: chips → one comma list. Latin Extended and Vietnamese
+			 * need Latin, so they bring it along. */
+			var subIn = $( '#velox-lf-subsets' );
+			$$( '.velox-lf-subsets .velox-chip' ).forEach( function ( chip ) {
+				chip.addEventListener( 'click', function () {
+					var on = ! chip.classList.contains( 'is-active' );
+					chip.classList.toggle( 'is-active', on );
+					chip.setAttribute( 'aria-pressed', on ? 'true' : 'false' );
+					var k = chip.getAttribute( 'data-subset' );
+					if ( on && ( 'latin-ext' === k || 'vietnamese' === k ) ) {
+						var lat = $( '.velox-lf-subsets .velox-chip[data-subset="latin"]' );
+						if ( lat ) { lat.classList.add( 'is-active' ); lat.setAttribute( 'aria-pressed', 'true' ); }
+					}
+					var list = $$( '.velox-lf-subsets .velox-chip.is-active' ).map( function ( c ) { return c.getAttribute( 'data-subset' ); } );
+					if ( ! list.length ) {
+						toast( vxT( 'Keep at least one subset.' ), 'warn' );
+						chip.classList.add( 'is-active' ); chip.setAttribute( 'aria-pressed', 'true' );
+						return;
+					}
+					if ( subIn ) { subIn.value = list.join( ',' ); }
+					api( 'save_settings', { perf_fonts_subsets: list.join( ',' ) } )
+						.then( function () { return api( 'fonts_data' ); } )
+						.then( function ( d ) { D = d; renderNotices(); renderStatus(); toast( vxT( 'Saved.' ), 'success' ); } )
+						.catch( function ( e ) { toast( e.message, 'error' ); } );
+				} );
+			} );
+
+			/* Settings that change what is shown here. */
+			document.addEventListener( 'change', function ( e ) {
+				var k = e.target && e.target.getAttribute ? e.target.getAttribute( 'data-setting' ) : '';
+				if ( 'perf_fonts_debug' === k ) { var lg = $( '#velox-lf-log' ); if ( lg ) { lg.hidden = ! e.target.checked; } }
+				if ( 'perf_local_fonts' === k || 'perf_fonts_test_mode' === k || 'perf_fonts_legacy' === k || 'perf_fonts_compat' === k || 'perf_font_display' === k ) {
+					// Let the auto-save land first, then re-read.
+					setTimeout( function () { api( 'fonts_data' ).then( function ( d ) { D = d; renderNotices(); renderStatus(); } ).catch( function () {} ); }, 900 );
+				}
+			} );
+			var delLog = $( '#velox-lf-dellog' );
+			if ( delLog ) {
+				delLog.addEventListener( 'click', function () {
+					api( 'fonts_delete_log' ).then( function () { toast( vxT( 'Log deleted.' ), 'success' ); } ).catch( function ( e ) { toast( e.message, 'error' ); } );
+				} );
+			}
+			renderAll();
+		}() );
 
 		/* Font detector (9b): list every @font-face, toggle preload per file. */
 		var fDetect = $( '#velox-font-detect' );

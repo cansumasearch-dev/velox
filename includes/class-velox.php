@@ -230,6 +230,7 @@ final class Velox {
 		if ( Velox_Settings::get( 'module_performance' ) ) {
 			$this->performance = new Velox_Performance();
 			new Velox_Fonts();
+			Velox_Local_Fonts::init();
 			new Velox_CSS();
 		}
 		if ( Velox_Settings::get( 'module_database' ) ) {

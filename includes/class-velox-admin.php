@@ -32,6 +32,8 @@ class Velox_Admin {
 		// links post to — so these register in every context.
 		add_action( 'admin_bar_menu', array( $this, 'admin_bar' ), 80 );
 		add_action( 'admin_post_velox_cache', array( $this, 'handle_cache_action' ) );
+		// Clears the cache in place (loader + confirmation) instead of reloading.
+		add_action( 'wp_after_admin_bar_render', array( $this, 'admin_bar_cache_script' ) );
 
 		// Everything else is only needed inside wp-admin.
 		if ( ! is_admin() ) {
@@ -206,8 +208,8 @@ class Velox_Admin {
 		<?php
 	}
 
-	/** Top admin-bar entry: full Velox menu + Performance & Cache submenu, with a
-	 *  sibling Maintenance node (settings + activate/deactivate). */
+	/** Top admin-bar entries: the Velox menu, then Velox Performance (settings +
+	 *  every cache action) and Velox Maintenance as siblings next to it. */
 	public function admin_bar( $bar ) {
 		if ( ! current_user_can( 'manage_options' ) ) {
 			return;
@@ -247,27 +249,50 @@ class Velox_Admin {
 			$order += 10;
 		}
 
-		// --- Performance & Cache submenu (nested under Velox) ---
+		// --- Velox Performance: its own top-level entry next to Velox, so clearing
+		// the cache is one hover away instead of two levels deep ---
+		$perf_url = admin_url( 'admin.php?page=' . $this->page_slug( 'performance' ) );
 		$bar->add_node( array(
-			'id'     => 'velox-perfcache',
-			'parent' => 'velox',
-			'title'  => 'Performance &amp; Cache',
-			'href'   => admin_url( 'admin.php?page=' . $this->page_slug( 'performance' ) ),
+			'id'    => 'velox-performance',
+			'title' => '<span class="ab-icon dashicons dashicons-performance" aria-hidden="true" style="top:2px;"></span>' . esc_html__( 'Velox Performance', 'velox' ),
+			'href'  => $perf_url,
+		) );
+		$bar->add_node( array(
+			'id'     => 'velox-pc-settings',
+			'parent' => 'velox-performance',
+			'title'  => esc_html__( 'Performance settings', 'velox' ),
+			'href'   => $perf_url,
 		) );
 		$cache_items = array(
-			'Performance settings' => admin_url( 'admin.php?page=' . $this->page_slug( 'performance' ) ),
-			'Clear all cache'        => $this->cache_url( 'all' ),
-			'Clear minified CSS / JS'=> $this->cache_url( 'minified' ),
-			'Regenerate Oxygen CSS'  => $this->cache_url( 'oxygen' ),
-			'Clear Cloudflare cache' => $this->cache_url( 'cloudflare' ),
-			'Clear Velox cache'      => $this->cache_url( 'velox' ),
+			'all'        => __( 'Clear all cache', 'velox' ),
+			'minified'   => __( 'Clear minified CSS / JS', 'velox' ),
+			'oxygen'     => __( 'Regenerate Oxygen CSS', 'velox' ),
+			'cloudflare' => __( 'Clear Cloudflare cache', 'velox' ),
+			'velox'      => __( 'Clear Velox cache', 'velox' ),
 		);
-		foreach ( $cache_items as $label => $href ) {
+		foreach ( $cache_items as $which => $label ) {
 			$bar->add_node( array(
-				'id'     => 'velox-pc-' . sanitize_title( $label ),
-				'parent' => 'velox-perfcache',
-				'title'  => $label,
-				'href'   => $href,
+				'id'     => 'velox-pc-' . $which,
+				'parent' => 'velox-performance',
+				'title'  => esc_html( $label ),
+				// The link still works without JavaScript; with it, the click is
+				// taken over by admin_bar_cache_script().
+				'href'   => $this->cache_url( $which ),
+				'meta'   => array( 'class' => 'velox-bar-cache' ),
+			) );
+		}
+
+		// Fonts: re-optimize the page being viewed (front end only), like OMGF's
+		// "Optimize this page".
+		if ( ! is_admin() && Velox_Settings::get( 'module_performance' ) && Velox_Settings::get( 'perf_local_fonts', false ) && ! Velox_Settings::get( 'perf_fonts_adminbar_off', false )
+			&& class_exists( 'Velox_Local_Fonts' ) ) {
+			$here = ( is_ssl() ? 'https://' : 'http://' ) . ( isset( $_SERVER['HTTP_HOST'] ) ? sanitize_text_field( wp_unslash( $_SERVER['HTTP_HOST'] ) ) : '' ) . ( isset( $_SERVER['REQUEST_URI'] ) ? esc_url_raw( wp_unslash( $_SERVER['REQUEST_URI'] ) ) : '/' );
+			$here = remove_query_arg( array( Velox_Local_Fonts::RUN_ARG, 'nocache' ), $here );
+			$bar->add_node( array(
+				'id'     => 'velox-pc-fonts',
+				'parent' => 'velox-performance',
+				'title'  => esc_html__( 'Optimize fonts on this page', 'velox' ),
+				'href'   => Velox_Local_Fonts::optimize_page_url( $here ),
 			) );
 		}
 
@@ -297,6 +322,129 @@ class Velox_Admin {
 			'title'  => $maint_on ? 'Deactivate' : 'Activate',
 			'href'   => $maint_toggle,
 		) );
+	}
+
+	/**
+	 * Admin-bar cache links: clear in place with a loader, then confirm in a
+	 * popup — no page reload, works in wp-admin and on the front end alike.
+	 */
+	public function admin_bar_cache_script() {
+		if ( ! current_user_can( 'manage_options' ) || ! is_admin_bar_showing() ) {
+			return;
+		}
+		$cfg = array(
+			'ajax'  => admin_url( 'admin-ajax.php' ),
+			'nonce' => wp_create_nonce( 'velox_nonce' ),
+			// Google Fonts checker: on the front end, report fonts the browser still
+			// loaded from Google (what OMGF's checker does).
+			'check' => ! is_admin() && Velox_Settings::get( 'perf_local_fonts', false ) && ! Velox_Settings::get( 'perf_fonts_adminbar_off', false ),
+			'i18n'  => array(
+				'working' => __( 'Clearing cache…', 'velox' ),
+				'done'    => __( 'Cache removed', 'velox' ),
+				'failed'  => __( 'Could not clear the cache', 'velox' ),
+				'ok'      => __( 'OK', 'velox' ),
+				'neterr'  => __( 'The server did not answer. Please try again.', 'velox' ),
+			),
+		);
+		?>
+<style id="velox-cc-css">
+#velox-cc{position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;background:rgba(15,18,24,.45);font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+#velox-cc[hidden]{display:none}
+#velox-cc .vcc-box{background:#fff;color:#1d2327;border-radius:16px;box-shadow:0 20px 50px rgba(0,0,0,.25);padding:28px 28px 22px;width:min(380px,calc(100vw - 32px));text-align:center}
+#velox-cc .vcc-spin{width:38px;height:38px;margin:4px auto 14px;border-radius:50%;border:3px solid #e6eef3;border-top-color:#2ab7f1;animation:vcc-spin .8s linear infinite}
+#velox-cc .vcc-ic{width:44px;height:44px;margin:0 auto 12px;border-radius:50%;display:grid;place-items:center;font-size:22px;font-weight:700;color:#fff;background:#22a06b}
+#velox-cc.is-err .vcc-ic{background:#d63638}
+#velox-cc .vcc-t{margin:0 0 6px;font-size:17px;font-weight:600}
+#velox-cc .vcc-m{margin:0 0 18px;color:#50575e;font-size:13px}
+#velox-cc .vcc-ok{min-width:96px;padding:9px 18px;border:0;border-radius:8px;background:#1d2327;color:#fff;font:inherit;font-weight:600;cursor:pointer}
+#velox-cc .vcc-ok:focus-visible{outline:2px solid #2ab7f1;outline-offset:2px}
+@keyframes vcc-spin{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){#velox-cc .vcc-spin{animation-duration:2s}}
+</style>
+<script id="velox-cc-js">
+( function () {
+	var C = <?php echo wp_json_encode( $cfg ); ?>, box = null, busy = false, back = null;
+	function el() {
+		if ( box ) { return box; }
+		box = document.createElement( 'div' );
+		box.id = 'velox-cc';
+		box.hidden = true;
+		box.setAttribute( 'role', 'dialog' );
+		box.setAttribute( 'aria-modal', 'true' );
+		box.setAttribute( 'aria-labelledby', 'velox-cc-t' );
+		box.innerHTML = '<div class="vcc-box"><div class="vcc-spin" aria-hidden="true"></div><div class="vcc-ic" aria-hidden="true"></div>' +
+			'<p class="vcc-t" id="velox-cc-t"></p><p class="vcc-m" aria-live="polite"></p><button type="button" class="vcc-ok"></button></div>';
+		document.body.appendChild( box );
+		box.querySelector( '.vcc-ok' ).textContent = C.i18n.ok;
+		box.querySelector( '.vcc-ok' ).addEventListener( 'click', close );
+		box.addEventListener( 'click', function ( e ) { if ( e.target === box && ! busy ) { close(); } } );
+		document.addEventListener( 'keydown', function ( e ) { if ( 'Escape' === e.key && ! box.hidden && ! busy ) { close(); } } );
+		return box;
+	}
+	function show( state, title, msg ) {
+		var b = el();
+		b.hidden = false;
+		b.className = 'error' === state ? 'is-err' : '';
+		b.querySelector( '.vcc-spin' ).style.display = 'loading' === state ? '' : 'none';
+		b.querySelector( '.vcc-ic' ).style.display = 'loading' === state ? 'none' : '';
+		b.querySelector( '.vcc-ic' ).textContent = 'error' === state ? '!' : '✓';
+		b.querySelector( '.vcc-ok' ).style.display = 'loading' === state ? 'none' : '';
+		b.querySelector( '.vcc-t' ).textContent = title;
+		b.querySelector( '.vcc-m' ).textContent = msg || '';
+		if ( 'loading' !== state ) { b.querySelector( '.vcc-ok' ).focus(); }
+	}
+	function close() {
+		if ( box ) { box.hidden = true; }
+		if ( back && back.focus ) { back.focus(); }
+	}
+	if ( C.check && window.performance && performance.getEntriesByType ) {
+		window.addEventListener( 'load', function () {
+			setTimeout( function () {
+				var left = performance.getEntriesByType( 'resource' ).map( function ( r ) { return r.name; } ).filter( function ( u ) {
+					return /\/\/fonts\.googleapis\.com\/(css|icon)|\/\/fonts\.gstatic\.com\//.test( u );
+				} );
+				if ( ! left.length ) { return; }
+				var b = new FormData();
+				b.append( 'action', 'velox' ); b.append( 'do', 'fonts_checker' ); b.append( 'nonce', C.nonce );
+				b.append( 'urls', JSON.stringify( left.slice( 0, 10 ) ) ); b.append( 'path', location.pathname );
+				fetch( C.ajax, { method: 'POST', credentials: 'same-origin', body: b } );
+			}, 1500 );
+		} );
+	}
+	document.addEventListener( 'click', function ( e ) {
+		var a = e.target.closest ? e.target.closest( '#wpadminbar .velox-bar-cache > a' ) : null;
+		if ( ! a || busy || e.ctrlKey || e.metaKey || e.shiftKey ) { return; }
+		var which = ( a.href.match( /[?&]which=([a-z0-9_-]+)/ ) || [] )[1];
+		if ( ! which ) { return; }
+		e.preventDefault();
+		busy = true;
+		back = document.activeElement;
+		show( 'loading', C.i18n.working );
+		var body = new FormData();
+		body.append( 'action', 'velox' );
+		body.append( 'do', 'clear_cache' );
+		body.append( 'nonce', C.nonce );
+		body.append( 'which', which );
+		body.append( 'url', location.href );
+		var started = Date.now();
+		fetch( C.ajax, { method: 'POST', credentials: 'same-origin', body: body } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( j ) {
+				var d = ( j && j.data ) || {};
+				return { ok: !! ( j && j.success ), msg: d.message || '' };
+			}, function () { return { ok: false, msg: C.i18n.neterr }; } )
+			.then( function ( res ) {
+				// Keep the loader up long enough to be seen, so a fast purge
+				// doesn't look like nothing happened.
+				setTimeout( function () {
+					busy = false;
+					show( res.ok ? 'done' : 'error', res.ok ? C.i18n.done : C.i18n.failed, res.msg );
+				}, Math.max( 0, 500 - ( Date.now() - started ) ) );
+			} );
+	} );
+}() );
+</script>
+		<?php
 	}
 
 	private function cache_url( $which ) {

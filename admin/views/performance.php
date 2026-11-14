@@ -72,15 +72,20 @@ $fields = array(
 	'perf_content_visibility_selector' => array( 'textarea', 'Lazy-render selectors', 'CSS selector(s) to apply lazy-render to, one per line (e.g. .footer, .ct-section).' ),
 
 	// Fonts
-	'perf_fonts_preconnect'      => array( 'switch', 'Preconnect Google Fonts', 'Adds preconnect to fonts.googleapis.com and fonts.gstatic.com.' ),
-	'perf_font_display'          => array( 'select', 'font-display strategy', 'How text renders while a web font loads. Applied to your Google Fonts via the display= parameter. "Swap" is the safe default (shows fallback text immediately, then swaps in the web font).', array(
-		'off'      => 'Off — leave the font default',
-		'swap'     => 'Swap — show text immediately, then swap (recommended)',
-		'fallback' => 'Fallback — very brief block, then swap',
-		'optional' => 'Optional — skip the swap on slow networks (no layout shift)',
-		'block'    => 'Block — hide text until the font loads',
+	'perf_fonts_preconnect'      => array( 'switch', 'Preconnect Google Fonts', 'Adds preconnect to fonts.googleapis.com and fonts.gstatic.com. Only used while fonts are not hosted locally — local fonts never contact Google.' ),
+	'perf_font_display'          => array( 'select', 'Font-Display Option', 'Select which value to set the font-display attribute to. Defaults to Swap (recommended).', array(
+		'swap'     => 'Swap (recommended)',
+		'auto'     => 'Auto',
+		'block'    => 'Block',
+		'fallback' => 'Fallback',
+		'optional' => 'Optional',
 	) ),
-	'perf_local_fonts'           => array( 'switch', 'Host Google Fonts locally', 'Downloads your Google Fonts and serves them from your own server — kills the third-party request and speeds up first paint. Click "Scan & download" below after enabling.' ),
+	'perf_local_fonts'           => array( 'switch', 'Host Google Fonts locally', 'Replaces every Google Fonts stylesheet (e.g. https://fonts.googleapis.com/css?family=Open+Sans) on every page with a copy hosted on this site — no request to Google, GDPR/DSGVO compliant. Works like OMGF: click Save & optimize below after switching it on.' ),
+	'perf_fonts_test_mode'       => array( 'switch', 'Test Mode', 'With this setting enabled, the local fonts are only used for logged in administrators or when ?vxfonts=1 is added to a URL in the front end.' ),
+	'perf_fonts_legacy'          => array( 'switch', 'Legacy Browser Compatibility', 'Enable this option to use an older (Windows 7) User-Agent to add support for legacy browsers. Enabling this option negatively impacts file compression and disables Variable Fonts support. Default: off.' ),
+	'perf_fonts_compat'          => array( 'switch', 'Divi / Elementor Compatibility', 'Divi and Elementor use the same handle for Google Fonts stylesheets with different configurations. This keeps those stylesheets apart so they are processed correctly. Enable this if you see some fonts not appearing correctly. Default: off.' ),
+	'perf_fonts_adminbar_off'    => array( 'switch', 'Disable Admin Bar Menu', 'This hides "Optimize fonts on this page" in the admin bar and stops the Google Fonts checker from running in the front end.' ),
+	'perf_fonts_debug'           => array( 'switch', 'Debug Mode', 'Writes what the font optimizer does to wp-content/velox-fonts-debug.log (max. 1 MB). Only switch this on when you are tracking down a problem.' ),
 	'perf_preload_fonts'         => array( 'textarea', 'Preload fonts', 'One font URL per line (.woff2 recommended). Preload only the 1–2 above-the-fold fonts.' ),
 	'perf_system_fonts'          => array( 'switch', 'Use system fonts', 'Skips web fonts and uses the visitor\'s own system stack — zero font requests. This overrides theme fonts, so check your design after turning it on.' ),
 
@@ -397,21 +402,40 @@ $risky_on = ! empty( $s['perf_risky_mode'] );
 							<p class="velox-hint"><?php esc_html_e('Auto-learn needs no action — it optimizes each page after a few visits and keeps improving. Use Scan only for the Cloudflare or Local engines. Clear/Reset after a design change or if something looks off.', 'velox'); ?></p>
 						</div>
 					<?php endif; ?>
-					<?php if ( 'fonts' === $id ) :
-						$font_status = Velox_Fonts::status(); ?>
-						<div class="velox-fonts-tool">
-							<div class="velox-fonts-status" id="velox-fonts-status">
-								<?php if ( ! empty( $font_status['active'] ) ) : ?>
-									<span class="velox-fonts-ok">✓ <?php echo (int) $font_status['files']; ?> font file(s) hosted locally<?php echo ! empty( $font_status['families'] ) ? ' — ' . esc_html( implode( ', ', $font_status['families'] ) ) : ''; ?></span>
-								<?php else : ?>
-									<span class="velox-hint"><?php esc_html_e('No fonts hosted locally yet. Enable the toggle, then scan.', 'velox'); ?></span>
-								<?php endif; ?>
-							</div>
+					<?php if ( 'fonts' === $id && class_exists( 'Velox_Local_Fonts' ) ) :
+						$lf_subsets = Velox_Local_Fonts::subsets(); ?>
+						<div class="velox-fonts-tool velox-lf" id="velox-lf">
+							<script type="application/json" id="velox-lf-data"><?php echo wp_json_encode( Velox_Local_Fonts::admin_data() ); ?></script>
+							<div id="velox-lf-notices"></div>
+							<h4 class="velox-lf-h"><?php esc_html_e('Cache status', 'velox'); ?></h4>
+							<div id="velox-lf-status" class="velox-lf-status"></div>
 							<div class="velox-fonts-btns">
-								<button class="velox-btn velox-btn--primary" id="velox-fonts-scan"><?php esc_html_e('Scan &amp; download fonts', 'velox'); ?></button>
-								<button class="velox-btn velox-btn--ghost" id="velox-fonts-clear"><?php esc_html_e('Remove local fonts', 'velox'); ?></button>
+								<button type="button" class="velox-btn velox-btn--primary" id="velox-lf-optimize"><?php esc_html_e('Save &amp; optimize', 'velox'); ?></button>
+								<button type="button" class="velox-btn velox-btn--ghost" id="velox-lf-refresh"><?php esc_html_e('Refresh cache (and keep settings)', 'velox'); ?></button>
+								<button type="button" class="velox-btn velox-btn--ghost" id="velox-lf-empty"><?php esc_html_e('Empty cache', 'velox'); ?></button>
 							</div>
-							<p class="velox-hint"><?php esc_html_e('Velox loads your front page, finds the Google Fonts it uses, downloads the woff2 files into your uploads folder and serves those instead. Re-scan after you change fonts.', 'velox'); ?></p>
+
+							<h4 class="velox-lf-h"><?php esc_html_e('Optimize local fonts', 'velox'); ?></h4>
+							<p class="velox-hint"><?php printf( esc_html__( '%1$s preloads a font file before the page renders — only use it for fonts visible above the fold. %2$s stops a font Velox found from loading at all, to save bandwidth. Click %3$s to apply.', 'velox' ), '<strong>' . esc_html__( 'Load early', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'Don\'t load', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'Save &amp; optimize', 'velox' ) . '</strong>' ); ?></p>
+							<div id="velox-lf-table"></div>
+						</div>
+
+						<div class="velox-fonts-tool velox-lf-adv">
+							<h4 class="velox-lf-h"><?php esc_html_e('Advanced', 'velox'); ?></h4>
+							<div class="velox-field">
+								<span class="velox-field-label"><?php esc_html_e('Used Subset(s)', 'velox'); ?> <span class="velox-info" tabindex="0" data-tip="<?php esc_attr_e( 'A subset is a (limited) set of characters belonging to an alphabet. Default: latin, latin-ext. Limit the selection to subsets your site actually uses. Selecting too many subsets can negatively impact performance! Latin Extended and Vietnamese are add-ons for Latin and can\'t be used by themselves.', 'velox' ); ?>">i</span></span>
+								<input type="hidden" id="velox-lf-subsets" value="<?php echo esc_attr( implode( ',', $lf_subsets ) ); ?>">
+								<div class="velox-chips velox-lf-subsets" role="group" aria-label="<?php esc_attr_e( 'Used subsets', 'velox' ); ?>">
+									<?php foreach ( Velox_Local_Fonts::SUBSETS as $sk => $sl ) : ?>
+										<button type="button" class="velox-chip<?php echo in_array( $sk, $lf_subsets, true ) ? ' is-active' : ''; ?>" data-subset="<?php echo esc_attr( $sk ); ?>" aria-pressed="<?php echo in_array( $sk, $lf_subsets, true ) ? 'true' : 'false'; ?>"><?php echo esc_html( $sl ); ?></button>
+									<?php endforeach; ?>
+								</div>
+							</div>
+							<?php foreach ( array( 'perf_fonts_legacy', 'perf_fonts_compat', 'perf_fonts_adminbar_off', 'perf_fonts_debug' ) as $lfk ) { velox_perf_field( $lfk, $fields[ $lfk ], $s ); } ?>
+							<div class="velox-fonts-btns velox-lf-log" id="velox-lf-log"<?php echo empty( $s['perf_fonts_debug'] ) ? ' hidden' : ''; ?>>
+								<a class="velox-btn velox-btn--ghost velox-btn--sm" href="<?php echo esc_url( wp_nonce_url( admin_url( 'admin-post.php?action=velox_fonts_log' ), 'velox_fonts_log' ) ); ?>"><?php esc_html_e('Download log', 'velox'); ?></a>
+								<button type="button" class="velox-btn velox-btn--ghost velox-btn--sm" id="velox-lf-dellog"><?php esc_html_e('Delete log', 'velox'); ?></button>
+							</div>
 						</div>
 						<div class="velox-fonts-tool">
 							<div class="velox-fonts-status"><strong style="font-size:13px;"><?php esc_html_e('Font manager', 'velox'); ?></strong><br><span class="velox-hint"><?php printf( esc_html__( 'Detects every font your site loads. For each one: %1$s starts it loading immediately (only worth it for the 1–2 fonts visible above the fold), and %2$s stops a Google-hosted font from loading at all. Local/builder fonts can be preloaded but not blocked.', 'velox' ), '<strong>' . esc_html__( 'Preload', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'Block', 'velox' ) . '</strong>' ); ?></span></div>

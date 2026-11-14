@@ -3807,3 +3807,29 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .vxsec-item .velox-pill--bad  { background: var(--vx-danger-tint);  color: var(--vx-danger); }
 .vxsec-item .velox-pill--warn { background: var(--vx-warning-tint); color: var(--vx-warning); }
 .vxsec-item .velox-pill--ok   { background: var(--vx-success-tint); color: var(--vx-success); }
+
+/* ---- Local fonts (OMGF-style) ---- */
+.velox-lf-h { margin: 18px 0 8px; font-size: 13px; font-weight: 700; color: var(--vx-ink); }
+.velox-lf-h:first-of-type { margin-top: 4px; }
+.velox-lf-status { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; font-size: 13px; }
+.velox-lf-status-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.velox-lf-status-row code { font-size: 12px; }
+.velox-lf-status-row a, .velox-lf-links a { color: var(--vx-primary-ink); cursor: pointer; text-decoration: underline; }
+.velox-lf-notice { margin: 0 0 10px; padding: 10px 14px; border-radius: var(--vx-r-sm); font-size: 13px; line-height: 1.5; border: 1px solid var(--vx-line); background: var(--vx-bg); }
+.velox-lf-notice.is-ok { background: var(--vx-success-tint); border-color: transparent; color: var(--vx-success); }
+.velox-lf-notice.is-warn { background: var(--vx-warning-tint); border-color: transparent; color: #8a6d1a; }
+.velox-lf-notice.is-info { background: var(--vx-primary-tint); border-color: transparent; color: var(--vx-primary-ink); }
+.velox-lf-notice ul { margin: 6px 0 0 18px; padding: 0; }
+.velox-lf-notice button { margin-left: 8px; }
+.velox-lf-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.velox-lf-table th { text-align: left; font-weight: 600; color: var(--vx-ink-2); padding: 8px 10px; border-bottom: 1px solid var(--vx-line); }
+.velox-lf-table td { padding: 7px 10px; border-bottom: 1px solid var(--vx-line); }
+.velox-lf-table .velox-lf-handle td { background: var(--vx-bg); font-weight: 600; color: var(--vx-ink-2); }
+.velox-lf-table .velox-lf-family td { font-style: italic; font-weight: 600; color: var(--vx-ink); }
+.velox-lf-table .velox-lf-links { font-style: normal; font-weight: 400; font-size: 12px; margin-left: 8px; }
+.velox-lf-table td.velox-lf-c { text-align: center; width: 110px; }
+.velox-lf-table input[type=checkbox] { width: 16px; height: 16px; cursor: pointer; }
+.velox-lf-table input[type=checkbox]:disabled { cursor: not-allowed; opacity: .4; }
+.velox-lf-empty { padding: 14px; border: 1px dashed var(--vx-line-2); border-radius: var(--vx-r-sm); color: var(--vx-ink-2); font-size: 13px; }
+.velox-lf-subsets { margin-top: 6px; }
+@media (max-width: 782px) { .velox-lf-table td.velox-lf-c { width: auto; } }

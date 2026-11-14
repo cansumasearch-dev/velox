@@ -4,6 +4,22 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.20.0 — Velox Performance in the admin bar, local Google Fonts that work like OMGF
+- **Velox Performance has its own spot in the admin bar**, right next to Velox: performance settings and every cache action are one hover away instead of two levels deep.
+- **Clearing the cache shows what is happening.** A loader appears while the cache clears, then a popup confirms "Cache removed" (or says clearly what went wrong). No page reload, in the admin and on the front end.
+- **Local Google Fonts now work the way OMGF does, setting for setting:**
+  - Every page is processed. Each Google Fonts stylesheet (also Bunny Fonts and fonts-api.wp.com) is replaced in place by a copy on your own server. That includes ones printed directly by Oxygen, the Velox builder or a theme, which the old "Scan & download" never reached.
+  - Fonts on other pages are picked up automatically as those pages are visited.
+  - Preconnect / dns-prefetch / preload hints to Google are removed, so visitors' browsers don't contact Google at all (GDPR/DSGVO).
+  - **Font-Display Option** (Swap / Auto / Block / Fallback / Optional) is applied to every local font.
+  - **Used Subset(s)**: only the alphabets you need are downloaded (default Latin + Latin Extended).
+  - **Load early / Don't load** per font weight and style, plus Unload italics / Unload all / Load all. Stylesheets with everything unloaded are dropped from the page.
+  - **Cache status** per stylesheet, with **Save & optimize**, **Refresh cache (and keep settings)** and **Empty cache**.
+  - **Test Mode**, **Legacy Browser Compatibility**, **Divi / Elementor Compatibility**, **Disable Admin Bar Menu** and **Debug Mode** with a downloadable log.
+  - **"Optimize fonts on this page"** in the admin bar, and a checker that reports Google Fonts still loaded by scripts.
+  - Save & optimize also works on servers that can't load their own pages: known stylesheets are rebuilt directly.
+  - Page caches are cleared after optimizing, and the fonts are refreshed automatically after theme switches and builder saves.
+
 ## 4.19.1 — Media Editor: downloads get every image, bulk import takes a text file
 - **Downloading images now gives you every image you selected.** Only the first selected image made it into the zip (plus the text file), whatever you ticked. The zip now holds all of them, however many there are: it is built in batches with a progress count so big selections can't time out, and it is checked before you get it. If a file is missing on the server, you are told which one instead of getting a quietly shorter zip.
 - **"Select all" means all.** It selects every image in the library (or in your search), not just the page you are looking at, and shows how many. Ticks also stay when you change pages or search.

@@ -413,6 +413,56 @@ class Velox_Ajax {
 				wp_send_json_success( $res );
 				break;
 
+			/* -------- Local fonts (OMGF-style) -------- */
+			case 'fonts_data':
+				wp_send_json_success( Velox_Local_Fonts::admin_data() );
+				break;
+
+			case 'fonts_save_manage':
+				$pre = json_decode( wp_unslash( $_POST['preload'] ?? '{}' ), true );
+				$unl = json_decode( wp_unslash( $_POST['unload'] ?? '{}' ), true );
+				Velox_Local_Fonts::save_manage( is_array( $pre ) ? $pre : array(), is_array( $unl ) ? $unl : array() );
+				$res = Velox_Local_Fonts::run_optimize();
+				if ( empty( $res['ok'] ) ) {
+					wp_send_json_error( $res );
+				}
+				wp_send_json_success( array_merge( $res, array( 'data' => Velox_Local_Fonts::admin_data() ) ) );
+				break;
+
+			case 'fonts_refresh':
+				$res = Velox_Local_Fonts::refresh_cache();
+				if ( empty( $res['ok'] ) ) {
+					wp_send_json_error( $res );
+				}
+				wp_send_json_success( array_merge( $res, array( 'data' => Velox_Local_Fonts::admin_data() ) ) );
+				break;
+
+			case 'fonts_empty':
+				wp_send_json_success( array_merge( Velox_Local_Fonts::empty_cache(), array( 'data' => Velox_Local_Fonts::admin_data() ) ) );
+				break;
+
+			case 'fonts_remove':
+				Velox_Local_Fonts::remove_stylesheet( sanitize_key( $_POST['handle'] ?? '' ) );
+				wp_send_json_success( array( 'data' => Velox_Local_Fonts::admin_data() ) );
+				break;
+
+			case 'fonts_dismiss':
+				delete_option( 'failures' === ( $_POST['what'] ?? '' ) ? Velox_Local_Fonts::OPT_FAIL : Velox_Local_Fonts::OPT_CHECK );
+				wp_send_json_success( array( 'data' => Velox_Local_Fonts::admin_data() ) );
+				break;
+
+			case 'fonts_checker':
+				$urls = json_decode( wp_unslash( $_POST['urls'] ?? '[]' ), true );
+				$path = sanitize_text_field( wp_unslash( $_POST['path'] ?? '/' ) );
+				Velox_Local_Fonts::record_checker( is_array( $urls ) ? array_slice( $urls, 0, 10 ) : array(), substr( $path, 0, 200 ) );
+				wp_send_json_success();
+				break;
+
+			case 'fonts_delete_log':
+				Velox_Local_Fonts::delete_log();
+				wp_send_json_success();
+				break;
+
 			case 'clear_used_css':
 				wp_send_json_success( Velox_CSS::clear_cache() );
 				break;
