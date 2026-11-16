@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.20.1 — Save with Ctrl+S everywhere in Velox
+- **Ctrl+S (Cmd+S on Mac) saves on every Velox screen** instead of opening the browser's "Save page as". It saves what you were just working on: an open popup, the media card or form section you edited, or the screen's settings (including a value you were still typing). Buttons that do more than save, like activating a snippet or applying a preset, are never pressed by the shortcut. Screens with nothing to save say so.
+
 ## 4.20.0 — Velox Performance in the admin bar, local Google Fonts that work like OMGF
 - **Velox Performance has its own spot in the admin bar**, right next to Velox: performance settings and every cache action are one hover away instead of two levels deep.
 - **Clearing the cache shows what is happening.** A loader appears while the cache clears, then a popup confirms "Cache removed" (or says clearly what went wrong). No page reload, in the admin and on the front end.

@@ -3643,4 +3643,6 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Emptying…' => 'Wird geleert…',
 	'Keep at least one subset.' => 'Behalten Sie mindestens einen Zeichensatz.',
 	'Log deleted.' => 'Protokoll gelöscht.',
+	// Ctrl+S 4.20.1
+	'There is nothing to save on this screen.' => 'Auf dieser Seite gibt es nichts zu speichern.',
 );

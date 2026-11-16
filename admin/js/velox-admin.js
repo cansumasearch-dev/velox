@@ -9528,7 +9528,106 @@
 		} );
 	}
 
+	/* ----------------------------------------------------------------
+	 * Ctrl+S / Cmd+S saves on every Velox screen.
+	 *
+	 * What it saves, in this order:
+	 *  1. an open popup's save button,
+	 *  2. the save button nearest to what you last changed (or where the
+	 *     cursor is) — a media card, a form section, a settings panel,
+	 *  3. the screen's settings fields, saved straight away (screens that
+	 *     normally save on their own — this also catches a half-typed value).
+	 * Editors with their own shortcut (Velox Builder, .htaccess) keep theirs.
+	 * ------------------------------------------------------------- */
+	function initSaveShortcut() {
+		var lastEdited = null;
+		function remember( e ) {
+			var t = e.target;
+			if ( t && t.closest && t.closest( 'input,textarea,select,[contenteditable="true"]' ) ) { lastEdited = t; }
+		}
+		document.addEventListener( 'input', remember, true );
+		document.addEventListener( 'change', remember, true );
+
+		function visible( el ) {
+			return !! ( el && ( el.offsetWidth || el.offsetHeight || el.getClientRects().length ) ) && ! el.closest( '[hidden]' );
+		}
+		var SAVE_SEL = '[data-vx-save],.velox-util-save,.velox-media-save,button[id*="save"],a[id*="save"]';
+		// Never pressed by a shortcut: these do more than save.
+		var SKIP = /tpl|template|blueprint|import|apply|activate|-as-|reset|delete|export/i;
+		function candidates( scope ) {
+			return Array.prototype.filter.call( scope.querySelectorAll( SAVE_SEL ), function ( b ) {
+				return visible( b ) && ! b.disabled && ! SKIP.test( b.id || '' ) && ! b.closest( '#wpadminbar' );
+			} );
+		}
+		function score( b ) {
+			var n = 0;
+			if ( b.hasAttribute( 'data-vx-save' ) ) { n += 100; }
+			if ( /save-only$/i.test( b.id || '' ) ) { n += 30; } // a snippet saves without being switched on
+			if ( b.classList.contains( 'velox-btn--primary' ) || b.classList.contains( 'vba-btn-primary' ) ) { n += 20; }
+			if ( /-save$/i.test( b.id || '' ) || b.classList.contains( 'velox-util-save' ) ) { n += 10; }
+			return n;
+		}
+		function best( list ) {
+			return list.slice().sort( function ( a, b ) { return score( b ) - score( a ); } )[0] || null;
+		}
+		/** Walk up from an element to the nearest container that has a save button. */
+		function nearest( el, stopAt ) {
+			var node = el && el.parentElement;
+			while ( node && node !== stopAt && node !== document.body ) {
+				var c = candidates( node );
+				if ( c.length ) { return best( c ); }
+				node = node.parentElement;
+			}
+			return null;
+		}
+		function openModal() {
+			var list = Array.prototype.filter.call(
+				document.querySelectorAll( '.velox-modal, .vba-modal, [role="dialog"], [aria-modal="true"]' ),
+				function ( m ) { return visible( m ) && ! m.closest( '#wpadminbar' ); }
+			);
+			return list.length ? list[ list.length - 1 ] : null;
+		}
+
+		window.addEventListener( 'keydown', function ( e ) {
+			if ( ! ( e.ctrlKey || e.metaKey ) || e.altKey || 's' !== ( e.key || '' ).toLowerCase() ) { return; }
+			if ( e.defaultPrevented ) { return; } // a screen with its own Ctrl+S already handled it
+			e.preventDefault(); // never the browser's "Save page as…"
+
+			var modal = openModal();
+			var from  = ( lastEdited && document.contains( lastEdited ) && visible( lastEdited ) ) ? lastEdited : document.activeElement;
+			if ( modal && ( ! from || ! modal.contains( from ) ) ) { from = null; }
+			var root = modal || document;
+
+			var btn = from && from !== document.body ? nearest( from, modal ) : null;
+			if ( ! btn ) {
+				var all = candidates( root );
+				// One obvious save button on the screen (or in the popup): use it.
+				if ( 1 === all.length || ( modal && all.length ) ) { btn = best( all ); }
+				else if ( all.length > 1 ) {
+					var top = best( all );
+					// Two copies of the same button (top and bottom of a form) are one choice.
+					var tie = all.some( function ( b ) {
+						return b !== top && score( b ) === score( top ) && ( b.textContent || '' ).trim() !== ( top.textContent || '' ).trim();
+					} );
+					if ( ! tie ) { btn = top; }
+				}
+			}
+			if ( btn ) {
+				btn.click();
+				return;
+			}
+			// Screens that save as you go: save every setting on screen right now.
+			var fields = ( modal || document ).querySelectorAll( '[data-setting]' );
+			if ( fields.length ) {
+				saveSettings( collectSettings( modal || document ), vxT( 'Saved.' ) );
+				return;
+			}
+			toast( vxT( 'There is nothing to save on this screen.' ), 'info' );
+		} );
+	}
+
 	function veloxInit() {
+		initSaveShortcut();
 		initLangSwitch();
 		initErrorLog();
 		initSidebar();

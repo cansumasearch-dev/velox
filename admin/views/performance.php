@@ -410,7 +410,7 @@ $risky_on = ! empty( $s['perf_risky_mode'] );
 							<h4 class="velox-lf-h"><?php esc_html_e('Cache status', 'velox'); ?></h4>
 							<div id="velox-lf-status" class="velox-lf-status"></div>
 							<div class="velox-fonts-btns">
-								<button type="button" class="velox-btn velox-btn--primary" id="velox-lf-optimize"><?php esc_html_e('Save &amp; optimize', 'velox'); ?></button>
+								<button type="button" class="velox-btn velox-btn--primary" id="velox-lf-optimize" data-vx-save><?php esc_html_e('Save &amp; optimize', 'velox'); ?></button>
 								<button type="button" class="velox-btn velox-btn--ghost" id="velox-lf-refresh"><?php esc_html_e('Refresh cache (and keep settings)', 'velox'); ?></button>
 								<button type="button" class="velox-btn velox-btn--ghost" id="velox-lf-empty"><?php esc_html_e('Empty cache', 'velox'); ?></button>
 							</div>
