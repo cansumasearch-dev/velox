@@ -44,8 +44,20 @@ class Velox_Builder_Render {
 		'objectFit' => 'object-fit', 'alignSelf' => 'align-self', 'justifySelf' => 'justify-self',
 		'fontFamily' => 'font-family', 'fontStyle' => 'font-style', 'whiteSpace' => 'white-space',
 		'textWrap' => 'text-wrap', 'gridColumn' => 'grid-column', 'gridRow' => 'grid-row',
+		// 4.21 style panel additions (kept in step with CSS_PROP in velox-builder.js).
+		'top' => 'top', 'right' => 'right', 'bottom' => 'bottom', 'left' => 'left',
+		'order' => 'order', 'flexGrow' => 'flex-grow', 'flexShrink' => 'flex-shrink', 'flexBasis' => 'flex-basis',
+		'rowGap' => 'row-gap', 'columnGap' => 'column-gap', 'gridTemplateRows' => 'grid-template-rows', 'alignContent' => 'align-content',
+		'textShadow' => 'text-shadow', 'wordSpacing' => 'word-spacing',
+		'backgroundImage' => 'background-image', 'backgroundSize' => 'background-size', 'backgroundPosition' => 'background-position', 'backgroundRepeat' => 'background-repeat',
+		'transform' => 'transform', 'transition' => 'transition', 'filter' => 'filter', 'backdropFilter' => 'backdrop-filter', 'cursor' => 'cursor', 'mixBlendMode' => 'mix-blend-mode', 'objectPosition' => 'object-position',
+		'borderTopLeftRadius' => 'border-top-left-radius', 'borderTopRightRadius' => 'border-top-right-radius',
+		'borderBottomRightRadius' => 'border-bottom-right-radius', 'borderBottomLeftRadius' => 'border-bottom-left-radius',
 	);
-	private static $UNIT = array( 'gap', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'fontSize', 'letterSpacing', 'borderWidth', 'borderRadius', 'padding', 'margin' );
+	private static $UNIT = array( 'gap', 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft', 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight', 'fontSize', 'letterSpacing', 'borderWidth', 'borderRadius', 'padding', 'margin',
+		'top', 'right', 'bottom', 'left', 'flexBasis', 'rowGap', 'columnGap', 'wordSpacing', 'borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomRightRadius', 'borderBottomLeftRadius' );
+	/** Shorthands are written before the longhands they would otherwise reset. */
+	private static $SHORTHAND = array( 'background' => 1, 'padding' => 1, 'margin' => 1, 'borderRadius' => 1 );
 	/** Media queries, built from the editable breakpoints. */
 	private static function bp_map() {
 		$b = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array();
@@ -2647,6 +2659,7 @@ class Velox_Builder_Render {
 		// Part of the attributes from here on, so images, videos, icons,
 		// reusables and WordPress-data elements animate too (they returned early).
 		$attr .= $aos_attr;
+		$attr .= self::custom_attrs( $node );
 
 		// Reusable element: pull the referenced reusable document and render its
 		// tree inline (by reference — editing the reusable updates every page).
@@ -3115,6 +3128,65 @@ class Velox_Builder_Render {
 			}
 			$out .= $mq ? '@media ' . $mq . '{' . $body . '}' : $body;
 		}
+		// Element custom CSS (Settings → Custom CSS) last, so it refines the
+		// class rules. Hidden elements are not on the page, so neither is theirs.
+		foreach ( $trees as $tree ) {
+			self::walk(
+				$tree,
+				function ( $node ) use ( &$out ) {
+					if ( empty( $node['hidden'] ) ) {
+						$out .= self::element_css( $node );
+					}
+				}
+			);
+		}
+		return $out;
+	}
+
+	/**
+	 * One element's custom CSS. %root% (or "selector") stands for the element;
+	 * bare declarations apply to the element itself. Same rules as the page's
+	 * own custom CSS: it is CSS, so it can't open a tag.
+	 */
+	private static function element_css( $node ) {
+		$css = isset( $node['css'] ) && is_string( $node['css'] ) ? trim( $node['css'] ) : '';
+		$id  = sanitize_html_class( $node['id'] ?? '' );
+		if ( '' === $css || '' === $id ) {
+			return '';
+		}
+		$css = str_ireplace( array( '</style', '<style', '</script', '<script' ), '', $css );
+		$sel = '#' . $id;
+		if ( false === strpos( $css, '{' ) ) {
+			return $sel . '{' . $css . '}';
+		}
+		return preg_replace( '/%root%|\bselector\b/', $sel, $css );
+	}
+
+	/**
+	 * Custom HTML attributes (Settings → Attributes). Plain names only, never an
+	 * event handler, never id/class (Velox owns those); link-type values go
+	 * through esc_url so a javascript: address can't sneak in.
+	 */
+	private static function custom_attrs( $node ) {
+		if ( empty( $node['attrs'] ) || ! is_array( $node['attrs'] ) ) {
+			return '';
+		}
+		$out = '';
+		foreach ( array_slice( $node['attrs'], 0, 30 ) as $a ) {
+			$a = (array) $a;
+			$n = trim( (string) ( $a['n'] ?? '' ) );
+			if ( ! preg_match( '/^[a-zA-Z_][a-zA-Z0-9_.:-]{0,60}$/', $n ) || preg_match( '/^on/i', $n ) || in_array( strtolower( $n ), array( 'id', 'class', 'data-node', 'contenteditable' ), true ) ) {
+				continue;
+			}
+			$v = (string) ( $a['v'] ?? '' );
+			if ( preg_match( '/^(href|src|action|formaction|xlink:href)$/i', $n ) ) {
+				$v = esc_url( $v );
+				if ( '' === $v ) {
+					continue;
+				}
+			}
+			$out .= ' ' . $n . ( '' === $v ? '' : '="' . esc_attr( $v ) . '"' );
+		}
 		return $out;
 	}
 
@@ -3133,8 +3205,16 @@ class Velox_Builder_Render {
 	}
 
 	private static function decls( $rules ) {
-		$out = '';
-		foreach ( (array) $rules as $prop => $val ) {
+		$out   = '';
+		$rules = (array) $rules;
+		// Shorthands first ("background" after "background-image" wipes the image).
+		uksort(
+			$rules,
+			function ( $a, $b ) {
+				return ( isset( self::$SHORTHAND[ $b ] ) ? 1 : 0 ) - ( isset( self::$SHORTHAND[ $a ] ) ? 1 : 0 );
+			}
+		);
+		foreach ( $rules as $prop => $val ) {
 			if ( ! isset( self::$CSS_PROP[ $prop ] ) ) {
 				continue; // only known properties reach CSS — no injection surface
 			}

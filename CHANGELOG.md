@@ -4,6 +4,41 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.21.0 — Velox Builder: cleaner editor, full style panel, no dead ends
+Measured against Elementor, Bricks, Oxygen 6, Breakdance and Webflow, then every one of the 71 elements was inserted, styled, set up, undone and published in a test site.
+- **A calmer, denser editor.**
+  - The top bar is slimmer.
+  - The style panel is narrower, so the canvas gets more room.
+  - Controls have one height, labels sit beside short fields, and sections are separated by lines instead of boxes inside boxes.
+  - The tabs stay pinned at the top while you scroll.
+- **Only the controls that apply are shown.**
+  - Flex options appear for a flex box, grid options for a grid.
+  - Child options (grow, order, align self, grid column) appear when the parent lays its children out.
+  - Offsets appear once an element is positioned.
+  - Anything that already has a value always stays visible.
+- **The style panel now has what other builders have:**
+  - Position (static / relative / absolute / fixed / sticky) with top, right, bottom, left and z-index; overflow.
+  - Font family, every font weight from 100 to 900, italic, wrapping and text shadow.
+  - Background images and gradients (pick one from the media library), with size, position and repeat.
+  - Corner-by-corner radius.
+  - A new Effects group: transform, transition, filter, backdrop filter, blend mode and cursor.
+  - Grid rows, row and column gap, aspect ratio and object fit.
+- **Custom CSS and HTML attributes per element** (Settings tab).
+  - `%root%` stands for the element.
+  - Attributes like aria-label, data-* or rel go straight onto the element. Event handlers are refused.
+- **You can always see where you are.**
+  - The selected element shows a name tag on the canvas with select-parent, duplicate and delete.
+  - A breadcrumb above the canvas shows the path, and every step is clickable.
+- **Keyboard:**
+  - Escape selects the parent (and then nothing).
+  - Ctrl/Cmd+Shift+arrows walk the structure.
+  - Arrow keys change number fields by 1 (Shift 10, Alt 0.1).
+- **Empty containers can be seen and used.** An empty Div, Grid, Stack, Bento grid and so on used to collapse to zero height, so you could not click or drop into it. It now shows a labelled area in the editor (the page itself is unchanged). Anchor targets get a small marker.
+- **The add-element panel no longer covers the page.** It takes the place of the style panel instead of dimming the canvas, so you see what you just inserted.
+- **Structure works beside the canvas.** It no longer dims the page, and hovering a row outlines that element.
+- **No more browser pop-ups.** Adding a class or a custom state, links in text, naming a reusable, renaming, deleting files, discarding changes and the publish warning now use Velox's own dialog (Enter confirms, Escape cancels). The browser's prompt could be blocked, which made Publish silently do nothing.
+- **Fix:** Payment icons can hold elements, like Trust badges.
+
 ## 4.20.1 — Save with Ctrl+S everywhere in Velox
 - **Ctrl+S (Cmd+S on Mac) saves on every Velox screen** instead of opening the browser's "Save page as". It saves what you were just working on: an open popup, the media card or form section you edited, or the screen's settings (including a value you were still typing). Buttons that do more than save, like activating a snippet or applying a preset, are never pressed by the shortcut. Screens with nothing to save say so.
 
