@@ -314,6 +314,21 @@
 		return { value:null, source:'none' };
 	}
 	function bpName( k ) { return ( BP_META[ k ] && BP_META[ k ].label ) || k; }
+	/* A value that comes from somewhere else (another class, a larger screen,
+	 * the normal state while editing :hover) is shown as a grey placeholder, not
+	 * as if it were set here (Oxygen 6, Breakdance 3, Webflow). Typing overrides it. */
+	function inheritedHere( res, bp, st ) {
+		if ( ! res || 'none' === res.source ) { return false; }
+		if ( st && 'normal' !== st && ! res.st ) { return true; }
+		if ( 'element' === res.source ) { return res.bp !== bp; }
+		var ac = store.state && store.state.activeClass;
+		if ( '#' === ac || ! ac ) { return true; }
+		return res.cls !== ac || res.bp !== bp;
+	}
+	function inhDot( dot, res, st ) {
+		if ( st && 'normal' !== st && ! res.st ) { return { cls:'orange', tip:T( 'Inherited from the normal state' ) + ' — ' + T( 'set here to override' ) }; }
+		return dot;
+	}
 	function dotFor( res, activeClass, bp ) {
 		if ( res.source === 'none' ) { return { cls:'none', tip:T( 'Not set' ) }; }
 		if ( res.source === 'element' ) { return { cls:'pink', tip: ( res.bp === bp ? T( 'Set on this element only' ) : T( 'Set on this element only, from' ) + ' ' + bpName( res.bp ) ) + ' · ' + T( 'click to remove' ) }; }
@@ -636,7 +651,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-empty-box,[data-node].vb-empty-soft{outline:1px dashed #c3cad3;outline-offset:-1px;background-color:rgba(42,183,241,.035)}[data-node].vb-empty-box{min-height:88px}[data-node].vb-empty-box:hover,[data-node].vb-empty-soft:hover{outline-color:#2ab7f1}[data-node].vb-empty-box::after{content:attr(data-vb-empty);display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:88px;width:100%;padding:12px;grid-column:1/-1;flex:1 1 100%;font:500 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none;color:#8a94a0;pointer-events:none}[data-node].vb-anchor-mark{display:block!important;min-height:22px;outline:1px dashed #c3cad3;outline-offset:-1px}[data-node].vb-anchor-mark::after{content:attr(data-vb-anchor);display:block;padding:3px 8px;font:500 11px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#8a94a0;letter-spacing:0;text-transform:none}[data-node].vb-hov{outline:1px solid #2ab7f1!important}[data-node].vb-sel{outline:2px solid #2ab7f1}#vb-selbadge{position:absolute;z-index:2147483000;display:none;align-items:center;gap:1px;height:22px;padding:0 2px 0 8px;background:#2ab7f1;color:#04222f;font:600 11px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:4px 4px 0 0;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);user-select:none;letter-spacing:0;text-transform:none;text-align:left}#vb-selbadge.is-inside{border-radius:0 0 4px 0}#vb-selbadge .vb-sb-l{padding-right:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis}#vb-selbadge button{display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:#04222f;cursor:pointer}#vb-selbadge button:hover{background:rgba(4,34,47,.16)}#vb-selbadge button[data-sb=parent] svg{transform:rotate(180deg)}#vb-selbadge svg{display:block}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-empty-box,[data-node].vb-empty-soft{outline:1px dashed #c3cad3;outline-offset:-1px;background-color:rgba(42,183,241,.035)}[data-node].vb-empty-box{min-height:88px}[data-node].vb-empty-box:hover,[data-node].vb-empty-soft:hover{outline-color:#2ab7f1}[data-node].vb-empty-box::after{content:attr(data-vb-empty);display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:88px;width:100%;padding:12px;grid-column:1/-1;flex:1 1 100%;font:500 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none;color:#8a94a0;pointer-events:none}[data-node].vb-anchor-mark{display:block!important;min-height:22px;outline:1px dashed #c3cad3;outline-offset:-1px}[data-node].vb-anchor-mark::after{content:attr(data-vb-anchor);display:block;padding:3px 8px;font:500 11px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#8a94a0;letter-spacing:0;text-transform:none}[data-node].vb-hov{outline:1px solid #2ab7f1!important}[data-node].vb-sel{outline:2px solid #2ab7f1}a,img{-webkit-user-drag:none}html.vb-dnd,html.vb-dnd *{cursor:grabbing!important;user-select:none!important}html.vb-dnd-no,html.vb-dnd-no *{cursor:not-allowed!important}#vb-dropmark{position:absolute;z-index:2147483001;display:none;pointer-events:none;background:#2ab7f1}#vb-dropmark.is-h{height:calc(2px * var(--k,1));margin-top:calc(-1px * var(--k,1))}#vb-dropmark.is-v{width:calc(2px * var(--k,1));margin-left:calc(-1px * var(--k,1))}#vb-dropmark.is-h::before,#vb-dropmark.is-v::before{content:"";position:absolute;width:calc(8px * var(--k,1));height:calc(8px * var(--k,1));border-radius:50%;background:#2ab7f1;box-shadow:0 0 0 calc(2px * var(--k,1)) #fff}#vb-dropmark.is-h::before{left:calc(-4px * var(--k,1));top:calc(-3px * var(--k,1))}#vb-dropmark.is-v::before{top:calc(-4px * var(--k,1));left:calc(-3px * var(--k,1))}#vb-dropmark.is-box{background:rgba(42,183,241,.12);outline:calc(2px * var(--k,1)) solid #2ab7f1;outline-offset:calc(-2px * var(--k,1))}#vb-selbadge .vb-sb-move{cursor:grab;margin-left:-6px}#vb-selbadge{position:absolute;z-index:2147483000;display:none;align-items:center;gap:1px;height:22px;padding:0 2px 0 8px;background:#2ab7f1;color:#04222f;font:600 11px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:4px 4px 0 0;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);user-select:none;letter-spacing:0;text-transform:none;text-align:left}#vb-selbadge.is-inside{border-radius:0 0 4px 0}#vb-selbadge .vb-sb-l{padding-right:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis}#vb-selbadge button{display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:#04222f;cursor:pointer}#vb-selbadge button:hover{background:rgba(4,34,47,.16)}#vb-selbadge button[data-sb=parent] svg{transform:rotate(180deg)}#vb-selbadge svg{display:block}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -675,15 +690,16 @@
 				// edited they (and undo) belong to the text, not the page.
 				if ( ! ( e.metaKey || e.ctrlKey ) ) {
 					if ( 'Escape' === e.key && ! editing ) { onEscape( false ); return; }
-					if ( editing || 'Delete' !== e.key ) { return; }
+					var zoomKey = e.shiftKey && ( 'Digit1' === e.code || 'Digit0' === e.code );
+					if ( editing || ( 'Delete' !== e.key && ! zoomKey ) ) { return; }
 				} else {
-					if ( [ 's', 'p', 'z', 'y', 'd', 'c', 'v', '\\', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright' ].indexOf( k ) < 0 ) { return; }
+					if ( [ 's', 'p', 'z', 'y', 'd', 'c', 'v', 'k', '\\', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright' ].indexOf( k ) < 0 ) { return; }
 					if ( 0 === k.indexOf( 'arrow' ) && ( editing || ! e.shiftKey ) ) { return; }
 					if ( editing && [ 'z', 'y', 'c', 'v' ].indexOf( k ) > -1 ) { return; }
 				}
 				e.preventDefault();
 				document.dispatchEvent( new KeyboardEvent( 'keydown', {
-					key: e.key, ctrlKey: e.ctrlKey, metaKey: e.metaKey,
+					key: e.key, code: e.code, ctrlKey: e.ctrlKey, metaKey: e.metaKey,
 					shiftKey: e.shiftKey, altKey: e.altKey, bubbles: true, cancelable: true
 				} ) );
 			// Capture phase: the inline-edit key handler on the element calls
@@ -696,7 +712,10 @@
 				[ 'vb-brandmenu', 'vb-exitmenu', 'vb-pageswitch' ].forEach( function ( mid ) { var m = document.getElementById( mid ); if ( m ) { m.classList.remove( 'open' ); } } );
 			}, true );
 			doc.addEventListener( 'scroll', function () { positionBadge(); }, { passive:true } );
+			wireCanvasDocDrag( doc );
 			doc.addEventListener( 'click', function ( e ) {
+				// The click that ends a drag is not a selection.
+				if ( dndSuppress ) { e.preventDefault(); e.stopPropagation(); dndSuppress = false; return; }
 				var sb = e.target.closest ? e.target.closest( '#vb-selbadge [data-sb]' ) : null;
 				if ( sb ) {
 					e.preventDefault(); e.stopPropagation();
@@ -1656,7 +1675,7 @@
 		walkTree( store.state.tree, function ( n ) { if ( 'InnerContent' === n.el ) { found = true; } } );
 		return found;
 	}
-	function insertNode( catKey ) {
+	function insertNode( catKey, place ) {
 		var cat = CATALOG.filter( function ( c ) { return c.key === catKey; } )[ 0 ] || CATALOG[ 0 ];
 		// An element made of items should arrive with a few, not empty — an empty
 		// accordion on the canvas tells you nothing about what it will look like.
@@ -1718,7 +1737,8 @@
 			if ( cat.text ) { s.content[ id ] = cat.text; }
 			// insert after the current selection's parent context, else append to root
 			var sel = findNode( s.tree, s.selection );
-			if ( sel && isContainer( sel ) ) { sel.children.push( node ); }
+			if ( place ) { attachAt( s, node, place ); }
+			else if ( sel && isContainer( sel ) ) { sel.children.push( node ); }
 			else {
 				var parent = findParent( s.tree, s.selection );
 				if ( parent ) { var i = parent.children.indexOf( sel ); parent.children.splice( i + 1, 0, node ); }
@@ -2476,6 +2496,7 @@
 			'<div id="vb-dyndata-host"></div>' +
 			'<div class="vb-addmenu" id="vb-addmenu"></div>' +
 			'<div class="vb-scrim" id="vb-scrim"></div>' +
+			'<div class="vb-iresize" id="vb-iresize" title="' + T( 'Drag to resize · double-click to reset' ) + '"></div>' +
 			'<div class="vb-iconpick" id="vb-iconpick"></div>' +
 			'<div class="vb-modal" id="vb-oxypick"></div>';
 		injectStyles();
@@ -2565,7 +2586,7 @@
 					'<select class="vb-viewas" id="vb-viewas" title="' + T( 'Preview this template with a page\'s content' ) + '"><option value="">' + T( 'View as…' ) + '</option></select>' +
 				'</span>' +
 				'<button class="vb-ic" id="vb-structure" title="' + T( 'Structure' ) + '">' + svg( 'structure', 16 ) + '</button>' +
-				'<a class="vb-ic" id="vb-reusables" href="' + ( CFG.reusablesUrl || '#' ) + '" title="' + T( 'Reusables' ) + '">' + svg( 'copy', 16 ) + '</a>' +
+				'<a class="vb-ic" id="vb-reusables" target="_blank" rel="noopener" href="' + ( CFG.reusablesUrl || '#' ) + '" title="' + T( 'Reusables' ) + '">' + svg( 'copy', 16 ) + '</a>' +
 				'<button class="vb-ic" id="vb-search" title="' + T( 'Switch page' ) + '">' + svg( 'search', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-code" title="' + T( 'Global CSS / JS (every page)' ) + '">' + svg( 'code', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-history" title="' + T( 'History' ) + '">' + svg( 'clock', 16 ) + '</button>' +
@@ -2668,13 +2689,13 @@
 	function saveBoxMode() { try { window.localStorage.setItem( 'velox_builder_boxmode', JSON.stringify( boxMode ) ); } catch ( e ) {} }
 
 	function boxInput( prop, node, bp, st, ac, ph ) {
-		var res = resolveProperty( node, bp, prop, st ), dot = dotFor( res, ac, bp );
-		var sv = splitVal( res.value, 'px' );
+		var res = resolveProperty( node, bp, prop, st ), dot = inhDot( dotFor( res, ac, bp ), res, st );
+		var sv = splitVal( res.value, 'px' ), inh = inheritedHere( res, bp, st );
 		// The side stays named once a value replaces the placeholder.
 		var side = BOX_SIDE_LETTER[ prop ] ? '<i class="vb-bx-side" aria-hidden="true">' + BOX_SIDE_LETTER[ prop ] + '</i>' : '';
 		return '<span class="vb-bx-i' + ( side ? ' has-side' : '' ) + '" title="' + ( ph || prop ) + '">' +
 			'<span class="vb-src ' + dot.cls + '" title="' + dot.tip + '"></span>' + side +
-			'<input data-setnum="' + prop + '" value="' + sv.num + '" placeholder="' + ( ph || '—' ) + '">' +
+			'<input data-setnum="' + prop + '" value="' + ( inh ? '' : sv.num ) + '" placeholder="' + escapeHtml( inh && '' !== sv.num ? sv.num : ( ph || '—' ) ) + '">' +
 			unitSelectHTML( prop, sv.unit ) + '</span>';
 	}
 	/* In "All" mode the first side drives the others, so the value shown is the
@@ -2875,13 +2896,15 @@
 			bgimage: !! cssNow( 'backgroundImage' ) && 'none' !== cssNow( 'backgroundImage' )
 		};
 		function itemHTML( it ) {
-			var res = resolveProperty( node, bp, it.prop, st ), dot = dotFor( res, ac, bp ), val = res.value, ctrl = '';
+			var res = resolveProperty( node, bp, it.prop, st ), val = res.value, ctrl = '';
+			var inh = inheritedHere( res, bp, st ), dot = inhDot( dotFor( res, ac, bp ), res, st );
 			if ( it.when && ! WHEN[ it.when ] && ( val == null || '' === val ) ) { return ''; }
+			var shown = inh ? '' : ( val != null ? String( val ) : '' );
 			if ( it.type === 'seg' ) {
-				ctrl = '<div class="vb-seg">' + it.opts.map( function ( o ) { return '<button class="' + ( val === o ? 'on' : '' ) + '" data-set="' + it.prop + '" data-val="' + o + '" title="' + o + '">' + o.replace( 'flex-', '' ).replace( 'space-', '' ) + '</button>'; } ).join( '' ) + '</div>';
+				ctrl = '<div class="vb-seg">' + it.opts.map( function ( o ) { return '<button class="' + ( val === o ? ( inh ? 'inh' : 'on' ) : '' ) + '" data-set="' + it.prop + '" data-val="' + o + '" title="' + o + ( val === o && inh ? ' · ' + T( 'inherited' ) : '' ) + '">' + o.replace( 'flex-', '' ).replace( 'space-', '' ) + '</button>'; } ).join( '' ) + '</div>';
 			} else if ( it.type === 'num' ) {
 				var sv = splitVal( val, it.unit );
-				ctrl = '<div class="vb-row"><input class="vb-inp num" data-setnum="' + it.prop + '" value="' + sv.num + '" placeholder="—">' + unitSelectHTML( it.prop, sv.unit ) + '</div>';
+				ctrl = '<div class="vb-row"><input class="vb-inp num" data-setnum="' + it.prop + '" value="' + ( inh ? '' : sv.num ) + '" placeholder="' + ( inh && '' !== sv.num ? escapeHtml( sv.num ) : '—' ) + '">' + unitSelectHTML( it.prop, sv.unit ) + '</div>';
 			} else if ( it.type === 'select' || it.type === 'font' ) {
 				var opts = it.opts;
 				if ( it.type === 'font' ) {
@@ -2890,17 +2913,17 @@
 				}
 				var known = opts.some( function ( o ) { return String( o[ 0 ] ) === String( val == null ? '' : val ); } );
 				if ( ! known && val ) { opts = opts.concat( [ [ val, val ] ] ); }
-				ctrl = '<div class="vb-row"><select class="vb-inp" data-setsel="' + it.prop + '">' + opts.map( function ( o ) {
+				ctrl = '<div class="vb-row"><select class="vb-inp' + ( inh ? ' is-inh' : '' ) + '" data-setsel="' + it.prop + '"' + ( inh ? ' title="' + T( 'inherited' ) + '"' : '' ) + '>' + opts.map( function ( o ) {
 					return '<option value="' + escapeHtml( o[ 0 ] ) + '"' + ( String( o[ 0 ] ) === String( val == null ? '' : val ) ? ' selected' : '' ) + '>' + escapeHtml( o[ 1 ] ) + '</option>';
 				} ).join( '' ) + '</select></div>';
 			} else if ( it.type === 'bgimage' ) {
-				ctrl = '<div class="vb-row vb-media-row"><input class="vb-inp" data-set="' + it.prop + '" value="' + escapeHtml( val != null ? val : '' ) + '" placeholder="' + escapeHtml( it.ph || '' ) + '" spellcheck="false">' +
+				ctrl = '<div class="vb-row vb-media-row"><input class="vb-inp" data-set="' + it.prop + '" value="' + escapeHtml( shown ) + '" placeholder="' + escapeHtml( inh ? val : ( it.ph || '' ) ) + '" spellcheck="false">' +
 					'<button type="button" class="vb-btn vb-btn-ghost vb-media-btn" data-mediapick="css:' + it.prop + '" title="' + T( 'Choose from the media library' ) + '">' + svg( 'image', 13 ) + '</button></div>';
 			} else if ( it.type === 'text' ) {
-				ctrl = '<div class="vb-row"><input class="vb-inp" data-set="' + it.prop + '" value="' + ( val != null ? String( val ).replace( /"/g, '&quot;' ) : '' ) + '" placeholder="' + ( it.ph || '' ) + '" spellcheck="false"></div>';
+				ctrl = '<div class="vb-row"><input class="vb-inp" data-set="' + it.prop + '" value="' + escapeHtml( shown ) + '" placeholder="' + escapeHtml( inh ? val : ( it.ph || '' ) ) + '" spellcheck="false"></div>';
 			} else if ( it.type === 'color' ) {
 				var hex = ( val && /^#[0-9a-f]{6}$/i.test( val ) ) ? val : '#000000';
-				ctrl = '<div class="vb-row"><input type="color" class="vb-swatch" data-setcolor="' + it.prop + '" value="' + hex + '"><input class="vb-inp" data-set="' + it.prop + '" value="' + escapeHtml( val != null ? val : '' ) + '" placeholder="—"></div>' + tokenSwatchesHTML( it.prop );
+				ctrl = '<div class="vb-row"><input type="color" class="vb-swatch" data-setcolor="' + it.prop + '" value="' + hex + '"><input class="vb-inp" data-set="' + it.prop + '" value="' + escapeHtml( shown ) + '" placeholder="' + escapeHtml( inh ? val : '—' ) + '"></div>' + tokenSwatchesHTML( it.prop );
 			}
 			return '<div class="vb-f vb-f-' + it.type + '"><div class="vb-f-lbl"><span class="vb-src ' + dot.cls + '" title="' + dot.tip + '"></span> ' + T( it.label ) + '</div>' + ctrl + '</div>';
 		}
@@ -4125,6 +4148,8 @@
 				else if ( act === 'paste' ) { pasteNode( tid ); }
 				else if ( act === 'settings' ) { inspTab = 'set'; store.commit( function ( s ) { s.selection = tid; resetActiveClass( s ); }, false ); }
 				else if ( act === 'dup' ) { duplicateNode( tid ); }
+				else if ( act === 'copystyle' ) { copyStyle( tid ); }
+				else if ( act === 'pastestyle' ) { pasteStyle( tid ); }
 				else if ( act === 'reuse' ) { makeReusableFromNode( tid ); }
 				else if ( act === 'rename' ) { renameNode( tid ); }
 				else if ( act === 'export' ) { exportNode( tid ); }
@@ -4344,6 +4369,7 @@
 			var ao = e.target.closest( '[data-setaos]' );
 			if ( ao ) { setAos( ao.getAttribute( 'data-setaos' ), e.target.value.trim() ); return; }
 			if ( e.target.id === 'vb-viewas' ) { setViewAs( e.target.value ); return; }
+			if ( e.target.id === 'vb-zoom' ) { setZoom( e.target.value ); return; }
 			if ( e.target.id === 'vb-kind' ) {
 				docKind = e.target.value;
 				// Changing the type isn't a state commit, so nothing re-renders on
@@ -4410,6 +4436,15 @@
 			// and the keystroke fell through to the browser.
 			var k = ( e.key || '' ).toLowerCase();
 			var typing = editing || /^(INPUT|TEXTAREA|SELECT)$/.test( ( e.target.tagName || '' ) ) || e.target.isContentEditable;
+			if ( mod && k === 'k' && ! e.shiftKey && ! e.altKey ) { e.preventDefault(); openCmdk(); return; }
+			// While the command search or a dialog is open, it owns the keyboard.
+			if ( document.querySelector( '.vb-cmdk.open, .vb-ask.open' ) ) { if ( mod && k === 's' ) { e.preventDefault(); } return; }
+			if ( mod && e.shiftKey && ! typing && ( k === 'c' || k === 'v' ) && store.state && store.state.selection ) {
+				e.preventDefault(); e.stopImmediatePropagation();
+				if ( k === 'c' ) { copyStyle( store.state.selection ); } else { pasteStyle( store.state.selection ); }
+				return;
+			}
+			if ( ! mod && e.shiftKey && ! typing && ( 'Digit1' === e.code || 'Digit0' === e.code ) ) { e.preventDefault(); setZoom( 'Digit1' === e.code ? 'fit' : 1 ); return; }
 			// Inside a text field Ctrl+Z undoes the typing, not the page.
 			if ( mod && k === 'z' && ! typing ) { e.preventDefault(); if ( e.shiftKey ) { store.redo(); } else { store.undo(); } }
 			if ( mod && k === 'y' && ! typing ) { e.preventDefault(); store.redo(); }
@@ -4436,6 +4471,8 @@
 			if ( e.key === 'Delete' && ! typing && ( e.target === document.body || e.target === document ) && store.state && store.state.selection ) { e.preventDefault(); deleteNode( store.state.selection ); }
 		}, true );
 		wireDrag();
+		wireCanvasDrag();
+		wireInspectorResize();
 		// Paste an exported element (its JSON) straight onto the page.
 		document.addEventListener( 'paste', function ( e ) {
 			var tgt = e.target, typing = /^(INPUT|TEXTAREA|SELECT)$/.test( ( tgt && tgt.tagName ) || '' ) || ( tgt && tgt.isContentEditable ) || editing;
@@ -4617,6 +4654,8 @@
 			{ a:'copy', ic:'copy', l:T( 'Copy' ), k:( IS_MAC ? '⌘C' : 'Ctrl+C' ) },
 			{ a:'paste', ic:'clipboard', l:T( 'Paste' ), k:( IS_MAC ? '⌘V' : 'Ctrl+V' ), off:! clipboardNode },
 			{ a:'dup', ic:'copy', l:T( 'Duplicate' ), k:( IS_MAC ? '⌘D' : 'Ctrl+D' ) },
+			{ a:'copystyle', ic:'droplet', l:T( 'Copy style' ), k:( IS_MAC ? '⇧⌘C' : 'Ctrl+Shift+C' ) },
+			{ a:'pastestyle', ic:'droplet', l:T( 'Paste style' ), k:( IS_MAC ? '⇧⌘V' : 'Ctrl+Shift+V' ), off:! readStyleClip() },
 			{ a:'settings', ic:'gear', l:T( 'Settings' ) },
 			{ a:'del', ic:'trash', l:T( 'Delete' ), k:'Del', danger:true },
 			{ sep:true },
@@ -4635,7 +4674,7 @@
 				( it.k ? '<span class="vb-ctx-k">' + it.k + '</span>' : '' ) + '</button>';
 		} ).join( '' );
 		document.body.appendChild( menu );
-		var mw = 212, mh = menu.offsetHeight || 200;
+		var mw = menu.offsetWidth || 240, mh = menu.offsetHeight || 200;
 		menu.style.left = Math.min( x, window.innerWidth - mw - 8 ) + 'px';
 		menu.style.top = Math.min( y, window.innerHeight - mh - 8 ) + 'px';
 	}
@@ -5035,7 +5074,8 @@
 		var w = meta.view;
 		// Desktop on a big screen: use the room there is (never below 1400).
 		if ( 'base' === canvasBp ) { w = Math.max( Math.floor( BPX.xxl ) + 1, Math.floor( availW ) ); }
-		var scale = availW > 0 ? Math.min( 1, availW / w ) : 1;
+		var fit = availW > 0 ? Math.min( 1, availW / w ) : 1;
+		var scale = canvasZoom || fit;
 		canvasScale = scale;
 		var h = Math.max( 300, availH / scale );
 		fr.style.width = w + 'px'; fr.style.height = h + 'px';
@@ -5043,7 +5083,10 @@
 		wrap.style.width = Math.round( w * scale ) + 'px'; wrap.style.height = Math.round( h * scale ) + 'px';
 		if ( info ) {
 			info.innerHTML = svg( meta.icon, 13 ) + '<b>' + escapeHtml( meta.label ) + '</b><span>' + w + ' px</span>' +
-				( scale < 1 ? '<span class="vb-bpi-z">' + Math.round( scale * 100 ) + '%</span>' : '' ) +
+				'<select class="vb-zoom' + ( canvasZoom ? ' is-set' : '' ) + '" id="vb-zoom" title="' + T( 'Zoom' ) + ' (⇧1 ' + T( 'fit' ) + ', ⇧0 100%)">' +
+					'<option value="fit"' + ( canvasZoom ? '' : ' selected' ) + '>' + T( 'Fit' ) + ' · ' + Math.round( fit * 100 ) + '%</option>' +
+					[ 0.5, 0.75, 1, 1.25, 1.5 ].map( function ( z ) { return '<option value="' + z + '"' + ( canvasZoom === z ? ' selected' : '' ) + '>' + Math.round( z * 100 ) + '%</option>'; } ).join( '' ) +
+				'</select>' +
 				'<span class="vb-bpi-r">' + ( 'base' === canvasBp ? T( 'Styles here apply everywhere unless a smaller screen changes them.' ) : T( 'Changes here apply to' ) + ' ' + escapeHtml( meta.range ) ) + '</span>' +
 				'<span class="vb-crumbs" id="vb-crumbs"></span>';
 		}
@@ -5094,7 +5137,8 @@
 			doc.documentElement.appendChild( b );
 		}
 		var hasParent = nodePath( id ).length > 1;
-		var html = '<span class="vb-sb-l">' + escapeHtml( node.name || elLabel( node ) ) + '</span>' +
+		var html = '<button type="button" class="vb-sb-move" data-sb="move" title="' + T( 'Drag to move' ) + '">' + svg( 'move', 12 ) + '</button>' +
+			'<span class="vb-sb-l">' + escapeHtml( node.name || elLabel( node ) ) + '</span>' +
 			( hasParent ? '<button type="button" data-sb="parent" title="' + T( 'Select parent' ) + ' (Esc)">' + svg( 'chevron', 12 ) + '</button>' : '' ) +
 			'<button type="button" data-sb="dup" title="' + T( 'Duplicate' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'D)">' + svg( 'copy', 12 ) + '</button>' +
 			'<button type="button" data-sb="del" title="' + T( 'Delete' ) + ' (Del)">' + svg( 'trash', 12 ) + '</button>';
@@ -5112,6 +5156,7 @@
 	/* Escape: close what is open first; with nothing open climb to the parent,
 	 * and from the top level let go of the selection. */
 	function onEscape( typing ) {
+		if ( dnd || dndPend ) { return; } // Escape during a drag only cancels the drag
 		var open = addMenuOpen() || !! document.getElementById( 'vb-ctx' ) || !! iconPickFor ||
 			!! document.querySelector( '#vb-oxypick.open, #vb-pageswitch.open, #vb-dyndata.open, #vb-brandmenu.open, #vb-exitmenu.open' );
 		closeAddMenu(); closeContextMenu(); closeIconPicker(); closeOxygenPicker();
@@ -5122,6 +5167,411 @@
 	}
 	/* Ctrl/Cmd+Shift+arrows walk the tree (Bricks): ← parent, → first child,
 	 * ↑ / ↓ previous / next sibling. */
+	/* Put a node at a drop position: { target:id|null, pos:'before'|'after'|'inside' }.
+	 * No target = the end of the page. */
+	function attachAt( s, node, place ) {
+		var t = place.target ? findNode( s.tree, place.target ) : null;
+		if ( ! t ) { s.tree.push( node ); return; }
+		if ( 'inside' === place.pos ) { if ( isContainer( t ) || isItemContainer( s, t.id ) ) { t.children.push( node ); } else { s.tree.push( node ); } return; }
+		var tp = findParent( s.tree, t.id ), arr = tp ? tp.children : s.tree, idx = arr.indexOf( t );
+		arr.splice( 'before' === place.pos ? idx : idx + 1, 0, node );
+	}
+
+	/* ================= drag and drop on the canvas =================
+	 * Drag a tile from Add element onto the page, or drag the selected element
+	 * (or the move handle on its name tag) to a new place. A 2px line with a dot
+	 * shows where it lands; an empty container lights up as a whole (Atlassian /
+	 * Bricks pattern). 5px before a press becomes a drag, Escape cancels, the
+	 * canvas scrolls when you near its top or bottom edge. */
+	var dnd = null, dndPend = null, dndSuppress = false;
+	function canvasFrame() { return document.getElementById( 'vb-canvas' ); }
+	function axisOf( el ) {
+		if ( ! el || ! el.ownerDocument ) { return 'y'; }
+		var cs = el.ownerDocument.defaultView.getComputedStyle( el );
+		if ( /flex/.test( cs.display ) ) { return 0 === cs.flexDirection.indexOf( 'row' ) ? 'x' : 'y'; }
+		if ( /grid/.test( cs.display ) ) { return /\s/.test( String( cs.gridTemplateColumns ).trim() ) ? 'x' : 'y'; }
+		return 'y';
+	}
+	function dropAt( doc, x, y ) {
+		var win = doc.defaultView;
+		if ( x < 0 || y < 0 || x > win.innerWidth || y > win.innerHeight ) { return null; }
+		var hit = doc.elementFromPoint( x, y );
+		var el = hit && hit.closest ? hit.closest( '[data-node]' ) : null;
+		if ( dnd && 'move' === dnd.kind && el ) {
+			var me = doc.getElementById( dnd.id );
+			if ( me && ( me === el || me.contains( el ) ) ) { return { invalid:true }; }
+		}
+		if ( ! el ) { return { target:null, pos:'end' }; }
+		var id = el.getAttribute( 'data-node' ), node = findNode( store.state.tree, id );
+		if ( ! node ) { return null; }
+		var r = el.getBoundingClientRect(), pAxis = axisOf( el.parentElement ), box = isItemContainer( store.state, id );
+		function side( rect, axis ) { return 'x' === axis ? ( x < rect.left + rect.width / 2 ? 'before' : 'after' ) : ( y < rect.top + rect.height / 2 ? 'before' : 'after' ); }
+		if ( isContainer( node ) || box ) {
+			var edge = Math.min( 12, ( 'x' === pAxis ? r.width : r.height ) * 0.2 );
+			if ( ! box ) {
+				if ( 'x' === pAxis ? x < r.left + edge : y < r.top + edge ) { return { target:id, pos:'before', el:el, axis:pAxis }; }
+				if ( 'x' === pAxis ? x > r.right - edge : y > r.bottom - edge ) { return { target:id, pos:'after', el:el, axis:pAxis }; }
+			}
+			var kids = Array.prototype.filter.call( el.children, function ( c ) {
+				return c.hasAttribute && c.hasAttribute( 'data-node' ) && ! ( dnd && 'move' === dnd.kind && c.id === dnd.id );
+			} );
+			if ( ! kids.length ) { return { target:id, pos:'inside', el:el }; }
+			var cAxis = axisOf( el );
+			for ( var i = 0; i < kids.length; i++ ) {
+				var kr = kids[ i ].getBoundingClientRect();
+				// Rows that wrap: above this row, or on it and left of the middle.
+				if ( 'x' === cAxis ? ( y < kr.top || ( y <= kr.bottom && x < kr.left + kr.width / 2 ) ) : y < kr.top + kr.height / 2 ) {
+					return { target:kids[ i ].id, pos:'before', el:kids[ i ], axis:cAxis };
+				}
+			}
+			var last = kids[ kids.length - 1 ];
+			return { target:last.id, pos:'after', el:last, axis:cAxis };
+		}
+		return { target:id, pos:side( r, pAxis ), el:el, axis:pAxis };
+	}
+	function dropMark( doc, d ) {
+		var m = doc.getElementById( 'vb-dropmark' );
+		if ( ! m ) { m = doc.createElement( 'div' ); m.id = 'vb-dropmark'; doc.documentElement.appendChild( m ); }
+		if ( ! d || d.invalid ) { m.style.display = 'none'; doc.documentElement.classList.toggle( 'vb-dnd-no', !! ( d && d.invalid ) ); return; }
+		doc.documentElement.classList.remove( 'vb-dnd-no' );
+		var win = doc.defaultView, k = canvasScale > 0 ? 1 / canvasScale : 1, rr;
+		m.style.setProperty( '--k', k );
+		if ( null === d.target ) {
+			var lastTop = doc.body.lastElementChild;
+			rr = lastTop ? lastTop.getBoundingClientRect() : { left:0, right:win.innerWidth, top:0, bottom:0, width:win.innerWidth };
+			d = { pos:'after', axis:'y', rect:rr };
+		}
+		rr = d.rect || d.el.getBoundingClientRect();
+		m.className = 'inside' === d.pos ? 'is-box' : ( 'x' === d.axis ? 'is-v' : 'is-h' );
+		m.style.display = 'block';
+		if ( 'inside' === d.pos ) {
+			m.style.left = ( rr.left + win.scrollX ) + 'px'; m.style.top = ( rr.top + win.scrollY ) + 'px';
+			m.style.width = rr.width + 'px'; m.style.height = rr.height + 'px';
+		} else if ( 'x' === d.axis ) {
+			m.style.left = ( ( 'before' === d.pos ? rr.left : rr.right ) + win.scrollX ) + 'px'; m.style.top = ( rr.top + win.scrollY ) + 'px';
+			m.style.width = ''; m.style.height = rr.height + 'px';
+		} else {
+			m.style.left = ( rr.left + win.scrollX ) + 'px'; m.style.top = ( ( 'before' === d.pos ? rr.top : rr.bottom ) + win.scrollY ) + 'px';
+			m.style.width = rr.width + 'px'; m.style.height = '';
+		}
+	}
+	function dndGhost( label, px, py ) {
+		var g = document.getElementById( 'vb-dndghost' );
+		if ( ! g ) { g = document.createElement( 'div' ); g.id = 'vb-dndghost'; ( document.querySelector( '.vb-app' ) || document.body ).appendChild( g ); }
+		if ( null === label ) { g.style.display = 'none'; return; }
+		if ( g.textContent !== label ) { g.textContent = label; }
+		g.style.display = 'block'; g.style.left = ( px + 14 ) + 'px'; g.style.top = ( py + 10 ) + 'px';
+	}
+	/* Pointer position → canvas coordinates. The canvas iframe is scaled to fit,
+	 * so a point on the editor page is divided back by the scale. */
+	function toCanvas( clientX, clientY, inCanvas ) {
+		if ( inCanvas ) { return { x:clientX, y:clientY }; }
+		var r = canvasFrame().getBoundingClientRect();
+		return { x:( clientX - r.left ) / canvasScale, y:( clientY - r.top ) / canvasScale };
+	}
+	function toEditor( x, y ) {
+		var r = canvasFrame().getBoundingClientRect();
+		return { x:r.left + x * canvasScale, y:r.top + y * canvasScale };
+	}
+	function dndStart( p ) {
+		dnd = p; dndPend = null;
+		var doc = canvasFrame().contentDocument;
+		doc.documentElement.classList.add( 'vb-dnd' );
+		document.documentElement.classList.add( 'vb-dnd' );
+		try { doc.getSelection().removeAllRanges(); } catch ( err ) {}
+		var b = doc.getElementById( 'vb-selbadge' ); if ( b ) { b.style.display = 'none'; }
+	}
+	function dndMove( x, y ) {
+		if ( ! dnd ) { return; }
+		var doc = canvasFrame().contentDocument, ed = toEditor( x, y );
+		dnd.x = x; dnd.y = y;
+		dndGhost( dnd.label, ed.x, ed.y );
+		dnd.drop = dropAt( doc, x, y );
+		dropMark( doc, dnd.drop );
+		// Near the top / bottom edge: scroll the page under the pointer.
+		var h = doc.defaultView.innerHeight, edge = 48 / ( canvasScale || 1 );
+		dnd.scroll = y < edge && y > -20 ? -1 : ( y > h - edge && y < h + 20 ? 1 : 0 );
+		if ( dnd.scroll && ! dnd.timer ) {
+			dnd.timer = setInterval( function () {
+				if ( ! dnd || ! dnd.scroll ) { clearInterval( dnd && dnd.timer ); if ( dnd ) { dnd.timer = null; } return; }
+				doc.defaultView.scrollBy( 0, dnd.scroll * 14 / ( canvasScale || 1 ) );
+				dnd.drop = dropAt( doc, dnd.x, dnd.y ); dropMark( doc, dnd.drop );
+			}, 16 );
+		}
+	}
+	function dndEnd( cancel ) {
+		var d = dnd; dnd = null; dndPend = null;
+		var doc = canvasFrame() && canvasFrame().contentDocument;
+		if ( d && d.timer ) { clearInterval( d.timer ); }
+		dndGhost( null );
+		if ( doc ) { dropMark( doc, null ); doc.documentElement.classList.remove( 'vb-dnd', 'vb-dnd-no' ); }
+		document.documentElement.classList.remove( 'vb-dnd' );
+		if ( ! d ) { return; }
+		dndSuppress = true; setTimeout( function () { dndSuppress = false; }, 0 );
+		var drop = d.drop;
+		if ( cancel || ! drop || drop.invalid ) { positionBadge(); return; }
+		var place = { target:drop.target, pos:drop.pos };
+		if ( 'new' === d.kind ) { insertNode( d.key, place ); if ( ! pinned.left ) { closeAddMenu(); } return; }
+		if ( null === drop.target ) { moveToRootEnd( d.id ); return; }
+		moveNode( d.id, drop.target, drop.pos );
+	}
+	function wireCanvasDrag() {
+		// From the add panel (editor page). Pointer capture keeps the events here
+		// while the pointer travels over the canvas iframe.
+		document.addEventListener( 'pointerdown', function ( e ) {
+			if ( 0 !== e.button ) { return; }
+			var tile = e.target.closest( '#vb-addmenu [data-insert]' );
+			if ( ! tile ) { return; }
+			dndPend = { kind:'new', key:tile.getAttribute( 'data-insert' ), label:'+ ' + ( tile.textContent || '' ).trim(), sx:e.clientX, sy:e.clientY, el:tile, editor:true };
+		} );
+		document.addEventListener( 'pointermove', function ( e ) {
+			if ( dndPend && dndPend.editor && ! dnd ) {
+				if ( Math.abs( e.clientX - dndPend.sx ) + Math.abs( e.clientY - dndPend.sy ) < 6 ) { return; }
+				try { dndPend.el.setPointerCapture( e.pointerId ); } catch ( err ) {}
+				dndStart( dndPend );
+			}
+			if ( dnd && dnd.editor ) { var c = toCanvas( e.clientX, e.clientY ); dndMove( c.x, c.y ); }
+		} );
+		document.addEventListener( 'pointerup', function () { if ( dnd && dnd.editor ) { dndEnd( false ); } dndPend = null; } );
+		document.addEventListener( 'pointercancel', function () { if ( dnd && dnd.editor ) { dndEnd( true ); } dndPend = null; } );
+		// A drag ends in a click on the tile; that click must not insert again.
+		document.addEventListener( 'click', function ( e ) { if ( dndSuppress ) { e.stopPropagation(); e.preventDefault(); dndSuppress = false; } }, true );
+		document.addEventListener( 'keydown', function ( e ) { if ( dnd && 'Escape' === e.key ) { e.preventDefault(); e.stopPropagation(); dndEnd( true ); } }, true );
+	}
+	/* Inside the canvas document: drag the selected element itself, or the move
+	 * handle on its name tag. */
+	function wireCanvasDocDrag( doc ) {
+		doc.addEventListener( 'pointerdown', function ( e ) {
+			if ( 0 !== e.button || editing ) { return; }
+			var handle = e.target.closest ? e.target.closest( '#vb-selbadge [data-sb="move"]' ) : null;
+			var sid = store.state && store.state.selection, node = sid ? findNode( store.state.tree, sid ) : null;
+			if ( ! node ) { return; }
+			var selEl = doc.getElementById( sid );
+			if ( ! handle && ! ( selEl && e.target.closest && e.target.closest( '[data-node]' ) === selEl ) ) { return; }
+			if ( e.target.isContentEditable ) { return; }
+			dndPend = { kind:'move', id:sid, label:node.name || elLabel( node ), sx:e.clientX, sy:e.clientY, el:handle || selEl, editor:false };
+			if ( handle ) { e.preventDefault(); }
+		} );
+		doc.addEventListener( 'pointermove', function ( e ) {
+			if ( dndPend && ! dndPend.editor && ! dnd ) {
+				if ( Math.abs( e.clientX - dndPend.sx ) + Math.abs( e.clientY - dndPend.sy ) < 6 ) { return; }
+				try { dndPend.el.setPointerCapture( e.pointerId ); } catch ( err ) {}
+				dndStart( dndPend );
+			}
+			if ( dnd && ! dnd.editor ) { dndMove( e.clientX, e.clientY ); }
+		} );
+		doc.addEventListener( 'pointerup', function () { if ( dnd && ! dnd.editor ) { dndEnd( false ); } dndPend = null; } );
+		doc.addEventListener( 'pointercancel', function () { if ( dnd && ! dnd.editor ) { dndEnd( true ); } dndPend = null; } );
+		// No native drag of links and images: it would steal the pointer.
+		doc.addEventListener( 'dragstart', function ( e ) { e.preventDefault(); } );
+		doc.addEventListener( 'keydown', function ( e ) { if ( dnd && 'Escape' === e.key ) { e.preventDefault(); e.stopPropagation(); dndEnd( true ); } }, true );
+	}
+
+	/* ================= copy / paste style =================
+	 * Copies the element's own styles and its classes; pasting adds the classes
+	 * (with their rules when this page doesn't know them yet) and replaces the
+	 * element's own styles. Works across pages (it lives in localStorage). */
+	var STYLE_CLIP_KEY = 'velox_builder_style_clip';
+	function readStyleClip() { try { return JSON.parse( window.localStorage.getItem( STYLE_CLIP_KEY ) || 'null' ); } catch ( e ) { return null; } }
+	function copyStyle( id ) {
+		var n = findNode( store.state.tree, id ); if ( ! n ) { return; }
+		var rules = {};
+		n.classes.forEach( function ( c ) { if ( store.state.classes[ c ] ) { rules[ c ] = store.state.classes[ c ]; } } );
+		var clip = { classes:n.classes.slice(), rules:rules, overrides:JSON.parse( JSON.stringify( n.overrides || {} ) ), css:n.css || '' };
+		try { window.localStorage.setItem( STYLE_CLIP_KEY, JSON.stringify( clip ) ); } catch ( e ) {}
+		toast( T( 'Style copied.' ) );
+	}
+	function pasteStyle( id ) {
+		var clip = readStyleClip();
+		if ( ! clip ) { toast( T( 'Copy a style first (Ctrl+Shift+C).' ) ); return; }
+		store.commit( function ( s ) {
+			var n = findNode( s.tree, id ); if ( ! n ) { return; }
+			( clip.classes || [] ).forEach( function ( c ) {
+				if ( ! /^\.[A-Za-z0-9_-]+$/.test( c ) ) { return; }
+				ensureClass( s, c, JSON.parse( JSON.stringify( ( clip.rules || {} )[ c ] || { base:{} } ) ) );
+				if ( n.classes.indexOf( c ) < 0 ) { n.classes.push( c ); }
+			} );
+			n.overrides = JSON.parse( JSON.stringify( clip.overrides || {} ) );
+			if ( clip.css ) { n.css = clip.css; }
+			if ( s.selection === id ) { resetActiveClass( s ); }
+		}, T( 'Paste style' ) );
+	}
+
+	/* ================= canvas zoom =================
+	 * Fit (default) scales the page to the room there is; a fixed zoom shows it
+	 * at that size and the stage scrolls. Shift+1 = fit, Shift+0 = 100 %. The
+	 * browser's own Ctrl +/- stays free for zooming the whole editor. */
+	var canvasZoom = null;
+	function setZoom( z ) { canvasZoom = ( 'fit' === z || ! z ) ? null : Math.max( 0.25, Math.min( 2, +z ) ); resizeCanvas(); }
+
+	/* ================= resizable style panel ================= */
+	var IW_KEY = 'velox_builder_iw', IW_MIN = 280, IW_MAX = 520, IW_DEF = 320;
+	function setInspectorWidth( w, save ) {
+		var app = document.querySelector( '.vb-app' ); if ( ! app ) { return; }
+		w = Math.round( Math.max( IW_MIN, Math.min( IW_MAX, w ) ) );
+		app.style.setProperty( '--vb-iw', w + 'px' );
+		PANEL_W.add = w;
+		if ( save ) { try { window.localStorage.setItem( IW_KEY, String( w ) ); } catch ( e ) {} }
+	}
+	function wireInspectorResize() {
+		try { var saved = parseInt( window.localStorage.getItem( IW_KEY ), 10 ); if ( saved ) { setInspectorWidth( saved, false ); } } catch ( e ) {}
+		var h = document.getElementById( 'vb-iresize' ); if ( ! h ) { return; }
+		var raf = 0;
+		h.addEventListener( 'pointerdown', function ( e ) {
+			if ( 0 !== e.button ) { return; }
+			e.preventDefault();
+			h.setPointerCapture( e.pointerId );
+			h.classList.add( 'on' ); document.documentElement.classList.add( 'vb-resizing' );
+			var lw = parseFloat( getComputedStyle( document.querySelector( '.vb-app' ) ).getPropertyValue( '--vb-lw' ) ) || 0;
+			function mv( ev ) {
+				setInspectorWidth( ev.clientX - lw, false );
+				if ( ! raf ) { raf = requestAnimationFrame( function () { raf = 0; resizeCanvas(); } ); }
+			}
+			function up( ev ) {
+				h.removeEventListener( 'pointermove', mv ); h.removeEventListener( 'pointerup', up );
+				h.classList.remove( 'on' ); document.documentElement.classList.remove( 'vb-resizing' );
+				setInspectorWidth( ev.clientX - lw, true ); resizeCanvas();
+			}
+			h.addEventListener( 'pointermove', mv ); h.addEventListener( 'pointerup', up );
+		} );
+		h.addEventListener( 'dblclick', function () { setInspectorWidth( IW_DEF, true ); resizeCanvas(); } );
+	}
+
+	/* ================= command palette (Ctrl/Cmd+K) =================
+	 * Every element, action, panel and screen size, searchable, with its
+	 * shortcut shown so the palette teaches the shortcuts (Superhuman, Bricks). */
+	var cmdkPrev = null, cmdkIdx = 0, cmdkList = [];
+	function cmdkCommands() {
+		var M = IS_MAC ? '⌘' : 'Ctrl+', MS = IS_MAC ? '⇧⌘' : 'Ctrl+Shift+', L = [];
+		var sel = store.state && store.state.selection, selNode = sel ? findNode( store.state.tree, sel ) : null;
+		function add( g, l, run, k, kw ) { L.push( { g:g, l:l, run:run, k:k || '', kw:( kw || '' ) } ); }
+		function click( id ) { return function () { var b = document.getElementById( id ); if ( b ) { b.click(); } }; }
+		var A = T( 'Actions' ), P = T( 'Panels' ), V = T( 'View' ), E = T( 'Add element' ), S = T( 'Selected element' );
+		add( A, T( 'Save' ), saveDoc, M + 'S' );
+		add( A, T( 'Publish' ), publishDoc, MS + 'P' );
+		add( A, T( 'Undo' ), function () { store.undo(); }, M + 'Z' );
+		add( A, T( 'Redo' ), function () { store.redo(); }, MS + 'Z' );
+		if ( selNode ) {
+			add( S, T( 'Duplicate' ), function () { duplicateNode( sel ); }, M + 'D' );
+			add( S, T( 'Delete' ), function () { deleteNode( sel ); }, 'Del', 'remove' );
+			add( S, T( 'Select parent' ), function () { selectRelative( 'parent' ); }, 'Esc' );
+			add( S, T( 'Copy style' ), function () { copyStyle( sel ); }, MS + 'C' );
+			if ( readStyleClip() ) { add( S, T( 'Paste style' ), function () { pasteStyle( sel ); }, MS + 'V' ); }
+			add( S, T( 'Add a class' ), addClassToSelected, '', 'class' );
+			add( S, T( 'Rename element' ), function () { renameNode( sel ); } );
+			add( S, T( 'Wrap with div' ), function () { wrapNodeInDiv( sel ); } );
+			add( S, selNode.hidden ? T( 'Show' ) : T( 'Hide' ), function () { toggleNodeHidden( sel ); } );
+			add( S, T( 'Save as reusable' ), function () { makeReusableFromNode( sel ); } );
+			add( S, T( 'Settings' ), function () { inspTab = 'set'; renderInspector( store.state ); } );
+		}
+		add( P, T( 'Add element' ), function () { toggleAddMenu(); } );
+		add( P, T( 'Structure' ), click( 'vb-structure' ), '', 'navigator layers tree' );
+		add( P, T( 'Global CSS / JS (every page)' ), click( 'vb-code' ), '', 'code css javascript' );
+		add( P, T( 'History' ), click( 'vb-history' ) );
+		add( P, T( 'Settings' ), click( 'vb-settings' ), '', 'page global styles' );
+		add( P, T( 'Switch page' ), function () { toggleSwitcher(); }, '', 'open page post template' );
+		BP_TOOLBAR.forEach( function ( bp ) {
+			add( V, BP_META[ bp ].label + ' · ' + BP_META[ bp ].range, function () { var b = document.querySelector( '#vb-bp button[data-bp="' + bp + '"]' ); if ( b ) { b.click(); } }, '', 'breakpoint screen responsive' );
+		} );
+		add( V, T( 'Zoom to fit' ), function () { setZoom( 'fit' ); }, '⇧1' );
+		add( V, T( 'Zoom to 100%' ), function () { setZoom( 1 ); }, '⇧0' );
+		add( V, T( 'View page' ), click( 'vb-view' ), '', 'preview frontend' );
+		CAT_GROUPS.forEach( function ( g ) {
+			g.items.forEach( function ( it ) {
+				if ( 'InnerContent' === it.el && 'template' !== docKind ) { return; }
+				add( E, T( it.label ), function () { insertNode( it.key ); }, '', T( g.name ) + ' ' + it.key );
+			} );
+		} );
+		return L;
+	}
+	function cmdkScore( c, q ) {
+		if ( ! q ) { return 1; }
+		var l = c.l.toLowerCase(), all = ( l + ' ' + c.kw + ' ' + c.g ).toLowerCase(), words = q.split( /\s+/ ), sc = 0;
+		for ( var i = 0; i < words.length; i++ ) {
+			var w = words[ i ]; if ( ! w ) { continue; }
+			if ( 0 === l.indexOf( w ) ) { sc += 4; }
+			else if ( ( ' ' + l ).indexOf( ' ' + w ) > -1 ) { sc += 3; }
+			else if ( all.indexOf( w ) > -1 ) { sc += 1; }
+			else {
+				// letters in order (fuzzy): "hdg" finds Heading
+				var j = 0; for ( var ch = 0; ch < l.length && j < w.length; ch++ ) { if ( l[ ch ] === w[ j ] ) { j++; } }
+				if ( j < w.length ) { return 0; }
+				sc += 0.5;
+			}
+		}
+		return sc;
+	}
+	function renderCmdk() {
+		var box = document.getElementById( 'vb-cmdk' ); if ( ! box ) { return; }
+		var q = ( document.getElementById( 'vb-cmdk-in' ).value || '' ).trim().toLowerCase();
+		var all = cmdkCommands(), list;
+		if ( ! q ) {
+			var top = [ 'section', 'div', 'heading', 'text', 'button', 'image' ];
+			list = all.filter( function ( c ) { return c.g !== T( 'Add element' ); } )
+				.concat( all.filter( function ( c ) { return c.g === T( 'Add element' ) && top.some( function ( k ) { return ( ' ' + c.kw + ' ' ).indexOf( ' ' + k + ' ' ) > -1; } ); } ) );
+		} else {
+			list = all.map( function ( c, i ) { return { c:c, s:cmdkScore( c, q ), i:i }; } )
+				.filter( function ( x ) { return x.s > 0; } )
+				.sort( function ( a, b ) { return b.s - a.s || a.i - b.i; } )
+				.map( function ( x ) { return x.c; } );
+		}
+		cmdkList = list.slice( 0, 60 );
+		cmdkIdx = Math.min( cmdkIdx, Math.max( 0, cmdkList.length - 1 ) );
+		var ul = document.getElementById( 'vb-cmdk-list' );
+		ul.innerHTML = cmdkList.length ? cmdkList.map( function ( c, i ) {
+			return '<button type="button" class="vb-cmdk-i' + ( i === cmdkIdx ? ' on' : '' ) + '" data-cmdk="' + i + '" role="option" aria-selected="' + ( i === cmdkIdx ) + '">' +
+				'<span class="vb-cmdk-l">' + escapeHtml( c.l ) + '</span><span class="vb-cmdk-g">' + escapeHtml( c.g ) + '</span>' +
+				( c.k ? '<kbd>' + escapeHtml( c.k ) + '</kbd>' : '' ) + '</button>';
+		} ).join( '' ) : '<div class="vb-cmdk-none">' + T( 'Nothing found.' ) + '</div>';
+		var on = ul.querySelector( '.on' ); if ( on && on.scrollIntoView ) { on.scrollIntoView( { block:'nearest' } ); }
+	}
+	function openCmdk() {
+		var box = document.getElementById( 'vb-cmdk' );
+		if ( box && box.classList.contains( 'open' ) ) { closeCmdk(); return; }
+		if ( editing ) { commitInlineEdit(); }
+		flushPending();
+		cmdkPrev = document.activeElement;
+		if ( ! box ) {
+			box = document.createElement( 'div' ); box.id = 'vb-cmdk'; box.className = 'vb-cmdk';
+			box.innerHTML = '<div class="vb-cmdk-card" role="dialog" aria-modal="true" aria-label="' + T( 'Command search' ) + '">' +
+				'<div class="vb-cmdk-s">' + svg( 'search', 15 ) + '<input id="vb-cmdk-in" autocomplete="off" spellcheck="false" placeholder="' + T( 'Search elements, actions, panels…' ) + '"><kbd>Esc</kbd></div>' +
+				'<div class="vb-cmdk-list" id="vb-cmdk-list" role="listbox"></div></div>';
+			( document.querySelector( '.vb-app' ) || document.body ).appendChild( box );
+			var inp = box.querySelector( '#vb-cmdk-in' );
+			inp.addEventListener( 'input', function () { cmdkIdx = 0; renderCmdk(); } );
+			inp.addEventListener( 'keydown', function ( e ) {
+				if ( 'ArrowDown' === e.key || 'ArrowUp' === e.key ) {
+					e.preventDefault();
+					cmdkIdx = ( cmdkIdx + ( 'ArrowDown' === e.key ? 1 : -1 ) + cmdkList.length ) % Math.max( 1, cmdkList.length );
+					renderCmdk();
+				} else if ( 'Enter' === e.key ) { e.preventDefault(); runCmdk( cmdkIdx ); }
+				else if ( 'Escape' === e.key ) { e.preventDefault(); e.stopPropagation(); closeCmdk(); }
+			} );
+			box.addEventListener( 'mousedown', function ( e ) { if ( e.target === box ) { e.preventDefault(); closeCmdk(); } } );
+			box.addEventListener( 'click', function ( e ) { var b = e.target.closest( '[data-cmdk]' ); if ( b ) { runCmdk( +b.getAttribute( 'data-cmdk' ) ); } } );
+			box.addEventListener( 'mousemove', function ( e ) {
+				var b = e.target.closest( '[data-cmdk]' ); if ( ! b ) { return; }
+				var i = +b.getAttribute( 'data-cmdk' ); if ( i === cmdkIdx ) { return; }
+				var old = box.querySelector( '.vb-cmdk-i.on' ); if ( old ) { old.classList.remove( 'on' ); }
+				b.classList.add( 'on' ); cmdkIdx = i;
+			} );
+		}
+		box.classList.add( 'open' );
+		var input = box.querySelector( '#vb-cmdk-in' ); input.value = ''; cmdkIdx = 0;
+		renderCmdk();
+		setTimeout( function () { input.focus(); }, 0 );
+	}
+	function closeCmdk( keepFocus ) {
+		var box = document.getElementById( 'vb-cmdk' ); if ( ! box ) { return; }
+		box.classList.remove( 'open' );
+		if ( ! keepFocus ) { try { if ( cmdkPrev && document.contains( cmdkPrev ) ) { cmdkPrev.focus(); } } catch ( e ) {} }
+	}
+	function runCmdk( i ) {
+		var c = cmdkList[ i ]; if ( ! c ) { return; }
+		closeCmdk( true );
+		try { c.run(); } catch ( e ) {}
+	}
+
 	function selectRelative( dir ) {
 		var id = store.state && store.state.selection; if ( ! id ) { return; }
 		var path = nodePath( id ), node = path[ path.length - 1 ], parent = path[ path.length - 2 ];
@@ -5626,6 +6076,10 @@
 			'.vb-seg button{min-width:0;height:24px;padding:0 4px;border-radius:5px;font-size:11px;font-weight:500;color:var(--vb-tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
 			'.vb-seg button:hover:not(.on){color:var(--vb-tx1);background:var(--vb-bg2)}',
 			'.vb-seg button.on{background:var(--vb-bg4);color:var(--vb-tx1);box-shadow:inset 0 0 0 1px rgba(42,183,241,.45)}',
+			// inherited: visible, but plainly not set here
+			'.vb-seg button.inh{color:var(--vb-tx1);box-shadow:inset 0 0 0 1px rgba(245,167,66,.45)}',
+			'select.vb-inp.is-inh{color:var(--vb-tx3)}',
+			'.vb-inp::placeholder,.vb-bx-i input::placeholder{color:#8b8d96}',
 			// spacing: padding then margin, each side in a 2 x 2 grid (T R / B L)
 			'.vb-bx-pair{grid-template-columns:minmax(0,1fr);gap:14px}',
 			'.vb-bx-h{margin-bottom:6px}.vb-bx-h b{font-size:12px;font-weight:500;color:var(--vb-tx2)}',
@@ -5687,7 +6141,44 @@
 			'.vb-ask-ul{margin:0;padding:8px 10px 8px 26px;max-height:140px;overflow:auto;border-radius:8px;background:var(--vb-bg0);font:12px/1.6 ui-monospace,Menlo,monospace;color:var(--vb-acct)}',
 			'.vb-ask-card .vb-inp{height:34px;font-size:13px}',
 			'.vb-ask-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}',
-			'.vb-ask-acts .vb-btn{height:32px}'
+			'.vb-ask-acts .vb-btn{height:32px}',
+			// zoom picker in the canvas bar
+			'.vb-zoom{height:22px;padding:0 6px;border-radius:6px;border:0;background:#232429;color:#f5a742;font-size:11.5px;font-family:inherit;cursor:pointer;-webkit-appearance:none;appearance:none;outline:none}',
+			'.vb-zoom.is-set{color:var(--vb-acct)}.vb-zoom:hover{background:var(--vb-bg3)}.vb-zoom:focus-visible{box-shadow:0 0 0 2px var(--vb-acc)}',
+			'.vb-zoom option{background:#232429;color:#ececef}',
+			'.vb-stage{overflow:auto;align-items:safe center}',
+			// resize handle on the style panel's edge
+			'.vb-iresize{position:absolute;top:48px;bottom:0;left:calc(var(--vb-lw,0px) + var(--vb-iw) - 3px);width:6px;z-index:116;cursor:col-resize}',
+			'.vb-iresize::after{content:"";position:absolute;top:0;bottom:0;left:2px;width:2px;background:transparent;transition:background .15s}',
+			'.vb-iresize:hover::after,.vb-iresize.on::after{background:var(--vb-acc)}',
+			'.vb-app.vb-lcol .vb-iresize,.vb-app.vb-hide-insp .vb-iresize{display:none}',
+			'html.vb-resizing,html.vb-resizing *{cursor:col-resize!important;user-select:none!important}html.vb-resizing #vb-canvas{pointer-events:none}',
+			// The panel follows the pointer exactly while it is dragged.
+			'html.vb-resizing .vb-body,html.vb-resizing .vb-canvas-wrap{transition:none!important}',
+			// drag and drop
+			'#vb-dndghost{position:fixed;z-index:10001;display:none;pointer-events:none;padding:5px 10px;border-radius:6px;background:var(--vb-acc);color:#04222f;font-size:12px;font-weight:600;box-shadow:0 6px 20px rgba(0,0,0,.35);white-space:nowrap}',
+			'html.vb-dnd,html.vb-dnd *{cursor:grabbing!important;user-select:none!important}',
+			'.vb-el{user-select:none;touch-action:none}',
+			'.vb-st-row{position:relative}',
+			'.vb-st-row.drop-before,.vb-st-row.drop-after{box-shadow:none}',
+			'.vb-st-row.drop-before::before,.vb-st-row.drop-after::before{content:"";position:absolute;left:6px;right:6px;height:2px;background:var(--vb-acc);pointer-events:none}',
+			'.vb-st-row.drop-before::before{top:-1px}.vb-st-row.drop-after::before{bottom:-1px}',
+			'.vb-st-row.drop-before::after,.vb-st-row.drop-after::after{content:"";position:absolute;left:2px;width:8px;height:8px;border-radius:50%;background:var(--vb-acc);pointer-events:none}',
+			'.vb-st-row.drop-before::after{top:-4px}.vb-st-row.drop-after::after{bottom:-4px}',
+			// command palette
+			'.vb-cmdk{position:fixed;inset:0;z-index:10000;display:none;align-items:flex-start;justify-content:center;padding-top:12vh;background:rgba(8,9,12,.5)}',
+			'.vb-cmdk.open{display:flex}',
+			'.vb-cmdk-card{width:560px;max-width:calc(100vw - 32px);background:var(--vb-bg1);border:1px solid var(--vb-line2);border-radius:12px;box-shadow:0 24px 64px rgba(0,0,0,.55);overflow:hidden;color:var(--vb-tx1)}',
+			'.vb-cmdk-s{display:flex;align-items:center;gap:10px;padding:0 14px;height:48px;border-bottom:1px solid var(--vb-line)}.vb-cmdk-s svg{color:var(--vb-tx3)}',
+			'.vb-cmdk-s input{flex:1;height:100%;background:none;border:0;outline:none;color:var(--vb-tx1);font-size:14px}',
+			'.vb-cmdk-s input::placeholder{color:var(--vb-tx3)}',
+			'.vb-cmdk kbd{font:600 10.5px/1 ui-monospace,Menlo,monospace;color:var(--vb-tx2);background:var(--vb-bg2);border:1px solid var(--vb-line2);border-radius:4px;padding:3px 5px;white-space:nowrap}',
+			'.vb-cmdk-list{max-height:min(420px,60vh);overflow:auto;padding:6px}',
+			'.vb-cmdk-i{display:flex;align-items:center;gap:10px;width:100%;height:36px;padding:0 10px;border:0;border-radius:7px;background:none;color:var(--vb-tx1);font-size:13px;text-align:left;cursor:pointer}',
+			'.vb-cmdk-i.on{background:var(--vb-bg3)}',
+			'.vb-cmdk-l{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+			'.vb-cmdk-g{font-size:11px;color:var(--vb-tx3)}',
+			'.vb-cmdk-none{padding:24px;text-align:center;color:var(--vb-tx3);font-size:12.5px}'
 		].join( '' );
 		var s = document.createElement( 'style' ); s.id = 'vb-editor-style'; s.textContent = css; document.head.appendChild( s );
 	}

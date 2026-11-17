@@ -4,6 +4,27 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.22.0 — Velox Builder: drag and drop on the canvas, Ctrl+K, zoom, copy and paste styles
+- **Drag and drop on the canvas.**
+  - Drag any tile from Add element straight onto the page.
+  - To move an element, drag it once it is selected, or use the handle on its name tag.
+  - A line with a dot shows exactly where it will land; an empty container lights up as a whole.
+  - Rows and grids are understood, so you can drop between cards that sit side by side.
+  - The page scrolls when you drag near its top or bottom edge.
+  - Escape cancels the drag, and a drop into the element itself is refused.
+  - Drop lines in Structure got the same look.
+- **Command search (Ctrl/Cmd+K).** One search for every element, action, panel and screen size, with the shortcut shown next to each. "hdg" finds Heading.
+- **Zoom.**
+  - Pick Fit, 50, 75, 100, 125 or 150 % in the bar above the canvas.
+  - Shift+1 fits the page and Shift+0 shows it at 100 %.
+  - The browser's own Ctrl +/- stays free for zooming the editor itself.
+- **The style panel can be resized.** Drag its edge (280–520 px); double-click to reset. The width is remembered.
+- **Copy and paste styles** with Ctrl/Cmd+Shift+C and Ctrl/Cmd+Shift+V, or from the right-click menu. Classes and the element's own styles carry over, also between pages.
+- **Inherited values are shown as grey placeholders.** A value that comes from another class, a larger screen or the normal state no longer looks as if it were set here. Typing overrides it, and inherited options are outlined in amber.
+- The Reusables icon now opens in a new tab instead of leaving the editor.
+- **Fix: bulk-deleting unused media** removed only the first ticked file; it now deletes all of them.
+- **Fix: saving a plugin blueprint** glued the plugin list into one broken name ("abc" instead of a, b, c).
+
 ## 4.21.0 — Velox Builder: cleaner editor, full style panel, no dead ends
 Measured against Elementor, Bricks, Oxygen 6, Breakdance and Webflow, then every one of the 71 elements was inserted, styled, set up, undone and published in a test site.
 - **A calmer, denser editor.**

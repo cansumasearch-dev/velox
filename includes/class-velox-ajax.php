@@ -700,7 +700,11 @@ class Velox_Ajax {
 				break;
 
 			case 'media_delete':
-				$ids = isset( $_POST['ids'] ) ? array_map( 'absint', (array) wp_unslash( $_POST['ids'] ) ) : array();
+				// FormData sends a list as "12,15,19"; reading it as one value deleted
+				// only the first ticked file.
+				$raw = isset( $_POST['ids'] ) ? wp_unslash( $_POST['ids'] ) : array();
+				$raw = is_array( $raw ) ? $raw : explode( ',', (string) $raw );
+				$ids = array_values( array_unique( array_filter( array_map( 'absint', $raw ) ) ) );
 				wp_send_json_success( Velox_Utilities::delete_media( $ids ) );
 				break;
 
@@ -721,7 +725,10 @@ class Velox_Ajax {
 
 			case 'blueprint_save':
 				$name  = isset( $_POST['name'] ) ? wp_unslash( $_POST['name'] ) : '';
-				$slugs = isset( $_POST['slugs'] ) ? (array) wp_unslash( $_POST['slugs'] ) : array();
+				// FormData sends the list as "a,b,c"; sanitize_key then glued it into
+				// one broken slug "abc". Split it first.
+				$slugs = isset( $_POST['slugs'] ) ? wp_unslash( $_POST['slugs'] ) : array();
+				$slugs = is_array( $slugs ) ? $slugs : explode( ',', (string) $slugs );
 				wp_send_json_success( Velox_Utilities::save_blueprint( $name, $slugs ) );
 				break;
 
