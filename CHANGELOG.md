@@ -4,6 +4,40 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.23.0 — Velox Builder: every element starts styled, property search, multi-select, class lock
+- **Every element arrives looking finished, and every starting value can be changed.**
+  - Buttons come with padding, colours, rounding, font weight and a hover colour.
+  - Text and headings come with line height and spacing below.
+  - A Div block is a column with a gap; columns and grids have gaps.
+  - Cards come with a shadow, which deepens on hover.
+  - Badges, callouts, notice boxes, CTA bands and empty states get their own colours and borders.
+  - The values sit in the element's class and show in the style panel like anything you set yourself. Classes that already exist keep their rules.
+- **No more blank fields.** A property nobody set shows the value in effect right now in grey: the font, text colour and size from Global styles, margin 0, the display mode. Type to replace it.
+- **Find a property** at the top of the style panel (Ctrl/Cmd+Shift+F). "radius", "shadow", "z", "bg" and "uppercase" jump straight to the field, also on the Essentials tab, and a matching option shows even where it would normally be hidden.
+- **Colours:** the colours you used recently sit next to your site colours, plus a screen eyedropper (in Chrome and Edge).
+- **Number fields:**
+  - Drag a number field's label left or right to change it (Shift = ×10, Alt = 0.1), or Alt-drag the field itself.
+  - Type a sum ("16*2", "48/3+4"); it is worked out when you leave the field.
+  - Mixed units ("100%-20px") become calc(100% - 20px).
+- **Several elements at once.**
+  - Ctrl/Cmd/Shift-click on the canvas or in Structure to select several.
+  - Delete, Duplicate, Paste style and the move keys act on all of them, and so do styles set on "This element".
+- **Move with the keyboard:**
+  - Alt+↑/↓ moves an element past its neighbour.
+  - Alt+← moves it out of its parent.
+  - Alt+→ moves it into the element above.
+  - Also in the right-click menu and Ctrl+K.
+- **Structure works with the keyboard and screen readers:**
+  - ↑/↓ moves between rows.
+  - → opens a row or goes to its first child; ← closes it or goes to the parent.
+  - Home/End, F2 to rename, Delete.
+  - Proper tree roles for screen readers.
+- **Lock a class** (padlock beside the class) so it can't be changed by accident.
+- **Override warning:** when this element's own styles override the class you are editing, the panel says so and offers "Move to class" or "Remove".
+- Thin elements such as a 1px divider are easy to click in the editor.
+- "Wrap with div" uses the Div block's starting styles.
+- Checked on a 550-element page with 1,500 classes: selecting and editing stay under 60 ms.
+
 ## 4.22.0 — Velox Builder: drag and drop on the canvas, Ctrl+K, zoom, copy and paste styles
 - **Drag and drop on the canvas.**
   - Drag any tile from Add element straight onto the page.
