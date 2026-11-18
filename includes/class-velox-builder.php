@@ -681,6 +681,7 @@ class Velox_Builder {
 				'ajaxurl'  => admin_url( 'admin-ajax.php' ),
 				'nonce'    => wp_create_nonce( 'velox_nonce' ),
 				'editBase' => admin_url( 'admin.php?page=' . self::EDIT_SLUG ),
+				'i18n'     => array( 'more' => __( 'More actions', 'velox' ) ),
 			)
 		);
 	}

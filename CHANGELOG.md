@@ -4,6 +4,22 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.27.0 — Velox Builder redesign: inspector, Add panel, Structure, admin screens
+- **Inspector.**
+  - Every element shows its sections in the same order (Layout, Spacing, Size, Position, Typography, Background & effects, Border, Effects). They used to move around per element type. The sections that matter most for the element still open first.
+  - Each section header shows how many properties are set at the current screen size and state, with a one-click reset (Ctrl+Z undoes it).
+  - **Set only** next to the property search shows only what is set; the choice is remembered.
+  - The tab underline slides between Essentials, All styles and Settings. The element header and the class and state controls were tidied up.
+- **Structure search.** Plain text matches names, classes and text; `tag:h2`, `.card` / `class:card` and `#id` narrow it. Matches keep their parents (faded) for context. Rows now show indentation guide lines.
+- **Add panel.** Two-column tiles with crisp 20px icons and a subtle lift on hover.
+- **One palette in the editor:** the panels now use the same dark surfaces as the new top bar.
+- **Admin screens restyled:**
+  - Larger page titles.
+  - Fixed-height buttons (36px, and 28px for row actions); primary buttons are the bright Velox blue with dark text.
+  - Lists with hairline separators, pill badges with status dots, pill filters, 36px fields, and cards with a soft inset edge.
+  - Checked for contrast and for phone width on all seven screens.
+- **Row actions:** Edit, View and Publish stay visible; Rename, Duplicate, WordPress, Unpublish, Make default and Delete move into a "⋯" menu. It works with the keyboard (arrow keys, Escape). Rows no longer run off the screen.
+
 ## 4.26.0 — Velox Builder: new top bar, one icon set, saved vs live, loading screen
 - **New top bar.**
   - Left: logo menu, panel toggle, "+ Add", the page title with a status pill (Live / Unpublished changes / Unsaved / Draft), page switcher, document type and undo/redo.

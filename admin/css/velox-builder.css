@@ -15,8 +15,10 @@
 @font-face{font-family:"Velox Geist Mono";font-style:normal;font-weight:100 900;font-display:swap;src:url(../../assets/fonts/geist-mono-latin-wght-normal.woff2) format("woff2-variations"),url(../../assets/fonts/geist-mono-latin-wght-normal.woff2) format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD}
 @font-face{font-family:"Velox Geist Mono";font-style:normal;font-weight:100 900;font-display:swap;src:url(../../assets/fonts/geist-mono-latin-ext-wght-normal.woff2) format("woff2-variations"),url(../../assets/fonts/geist-mono-latin-ext-wght-normal.woff2) format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF}
 :root{
-	--vbb-void:#0a0a0c;--vbb-panel:#121216;--vbb-panel-2:#17171d;
-	--vbb-raised:#1d1d24;--vbb-raised-2:#26262f;--vbb-active:#2e2e39;
+	/* Surfaces from the design spec (notes/design-spec-2026-11.md): base, panel, raised, overlay. */
+	--vbb-void:#0e1014;--vbb-panel:#14161b;--vbb-panel-2:#1a1d23;
+	--vbb-raised:#1a1d23;--vbb-raised-2:#20232a;--vbb-active:#2a2e36;
+	--vbb-ease:cubic-bezier(.16,1,.3,1);
 	--vbb-line:rgba(255,255,255,.07);--vbb-line-2:rgba(255,255,255,.11);
 	--vbb-text:#f4f4f6;--vbb-text-2:#9d9da8;--vbb-text-3:#85858f; /* text-3 was #606069: 3:1 on the panels, under the 4.5:1 body text needs */
 	--vbb-accent:#2ab7f1;--vbb-accent-2:#a06bff;
@@ -543,4 +545,124 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 	#vba-font-display{max-width:100%!important;width:100%}
 	.vba-toolbar{flex-wrap:wrap}
 	.vba-search{flex:1 1 100%;min-width:0;max-width:none}
+}
+
+/* =====================================================================
+   4.27 — admin screens to the design spec (notes/design-spec-2026-11.md).
+   Last in the file on purpose: it supersedes the earlier layers above.
+   ===================================================================== */
+.vba-shell{max-width:1200px;padding:40px 32px 64px}
+.vba-head{align-items:flex-end;margin-bottom:28px}
+.vba-head h1{font-size:28px;font-weight:600;letter-spacing:-.035em;line-height:1.15}
+.vba-head p{font-size:14px;margin-top:6px;max-width:72ch}
+.vba-head-actions{gap:8px}
+
+/* buttons: height-driven, centred, one easing */
+.vba-btn{height:36px;padding:0 14px;gap:6px;border:0;border-radius:8px;font:500 13px/1 var(--vbb-font);letter-spacing:-.005em;
+	transition:background .12s var(--vbb-ease),box-shadow .12s var(--vbb-ease),color .12s var(--vbb-ease),transform .08s var(--vbb-ease)}
+.vba-btn svg{width:16px;height:16px}
+.vba-btn:active{transform:scale(.97)}
+.vba-btn-sm{height:32px;padding:0 12px;font-size:12.5px}
+.vba-btn-primary,.vba-shell a.vba-btn-primary,.vba-shell a.vba-btn-primary:visited{background:#2ab7f1;color:#06141b;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 1px 2px rgba(0,0,0,.35)}
+.vba-btn-primary:hover,.vba-shell a.vba-btn-primary:hover,.vba-shell a.vba-btn-primary:focus{background:#45c2f4;color:#06141b}
+.vba-btn-ghost,.vba-shell a.vba-btn-ghost{background:rgba(255,255,255,.04);color:var(--vbb-text);border:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.vba-btn-ghost:hover,.vba-shell a.vba-btn-ghost:hover{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16);color:var(--vbb-text)}
+.vba-mini,.vba-shell .vba-mini{height:28px;padding:0 10px;display:inline-flex;align-items:center;gap:6px;border:0;border-radius:7px;background:transparent;
+	box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);font:500 12px/1 var(--vbb-font);color:var(--vbb-text-2);text-decoration:none;
+	transition:background .12s var(--vbb-ease),color .12s var(--vbb-ease),box-shadow .12s var(--vbb-ease)}
+.vba-mini:hover,.vba-shell .vba-mini:hover{background:rgba(255,255,255,.06);color:var(--vbb-text);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}
+.vba-shell .vba-mini-go{background:rgba(42,183,241,.12);box-shadow:inset 0 0 0 1px rgba(42,183,241,.35);color:#7fd3f7}
+.vba-shell .vba-mini-go:hover{background:rgba(42,183,241,.2);color:#a5e1fa}
+.vba-mini-del:hover,.vba-shell .vba-mini-del:hover{background:rgba(245,106,92,.12);box-shadow:inset 0 0 0 1px rgba(245,106,92,.35);color:#ff8a7e}
+
+/* cards + stats: one level, inset ring, top highlight */
+.vba-card{background:var(--vbb-panel);border:0;border-radius:16px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.04)}
+.vba-card-h{padding:20px 20px 12px}
+.vba-card-h h2{font-size:16px;font-weight:600;letter-spacing:-.01em}
+.vba-card-h p{font-size:13px}
+.vba-stats{gap:12px;margin-bottom:16px}
+.vba-stat{background:var(--vbb-panel);border:0;border-radius:12px;padding:20px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.07),inset 0 1px 0 rgba(255,255,255,.04);
+	transition:box-shadow .16s var(--vbb-ease),transform .16s var(--vbb-ease)}
+.vba-stat:hover{box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),inset 0 1px 0 rgba(255,255,255,.05);transform:translateY(-1px)}
+.vba-stat-ic{width:36px;height:36px;border-radius:10px;background:rgba(42,183,241,.12);color:#7fd3f7;box-shadow:inset 0 0 0 1px rgba(42,183,241,.22)}
+.vba-stat-v,.vba-shell .vba-stat-v{font-size:28px;font-weight:600;letter-spacing:-.03em;font-variant-numeric:tabular-nums;line-height:1.1;margin-top:14px}
+.vba-stat-l,.vba-shell .vba-stat-l{font-size:12.5px;margin-top:4px}
+
+/* toolbar: pill filters, 36px search */
+.vba-toolbar{padding:0 20px 12px;gap:12px}
+.vba-filters{gap:6px}
+.vba-filter,.vba-shell .vba-filter{height:28px;padding:0 10px;gap:6px;border:0;border-radius:999px;background:transparent;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1);
+	font:500 12px/1 var(--vbb-font);color:var(--vbb-text-2);transition:background .12s var(--vbb-ease),color .12s var(--vbb-ease)}
+.vba-filter:hover,.vba-shell .vba-filter:hover{background:rgba(255,255,255,.05);color:var(--vbb-text)}
+.vba-filter.on,.vba-shell .vba-filter.on{background:rgba(255,255,255,.09);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);color:var(--vbb-text)}
+.vba-filter-n{background:rgba(255,255,255,.08);color:var(--vbb-text-2);font-size:10.5px;font-weight:600;padding:0 6px;height:18px;line-height:18px;border-radius:999px;font-variant-numeric:tabular-nums}
+.vba-filter.on .vba-filter-n{background:rgba(42,183,241,.2);color:#7fd3f7}
+.vba-search{height:36px;border:0;border-radius:8px;background:rgba(255,255,255,.03);box-shadow:inset 0 0 0 1px rgba(255,255,255,.08)}
+.vba-search:focus-within{box-shadow:inset 0 0 0 1px var(--vbb-accent),0 0 0 3px rgba(42,183,241,.18)}
+
+/* list rows: hairline separators, 52px, actions on the right */
+.vba-doclist,.vba-classlist{padding:0 8px 8px}
+.vba-docrow{min-height:52px;padding:8px 12px;gap:12px;border-radius:10px;transition:background .12s var(--vbb-ease)}
+.vba-docrow+.vba-docrow,.vba-class-row+.vba-class-row{box-shadow:0 -1px 0 rgba(255,255,255,.05)}
+.vba-docrow:hover{background:rgba(255,255,255,.03);box-shadow:none}
+.vba-docrow:hover+.vba-docrow{box-shadow:none}
+.vba-docrow:focus-within{box-shadow:inset 0 0 0 2px rgba(42,183,241,.5)}
+.vba-shell .vba-doc-title{font-size:14px;font-weight:500;letter-spacing:-.01em}
+.vba-shell .vba-doc-meta{font-size:12px;font-variant-numeric:tabular-nums}
+.vba-class-row{min-height:48px;padding:8px 12px;border-radius:10px}
+.vba-class-row:hover{background:rgba(255,255,255,.03)}
+
+/* badges: 20px pills, status dots */
+.vba-doc-status,.vba-live,.vba-doc-type{height:20px;padding:0 8px;display:inline-flex;align-items:center;gap:6px;border-radius:999px;
+	font:500 11px/1 var(--vbb-font);text-transform:none;letter-spacing:0;white-space:nowrap}
+.vba-status-published::before,.vba-live-yes::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.vba-status-published{background:rgba(67,209,127,.12);color:#6fe0a0}
+.vba-status-draft{background:rgba(255,255,255,.06);color:var(--vbb-text-2)}
+.vba-live-yes{background:rgba(67,209,127,.12);color:#6fe0a0}
+.vba-live-no{background:rgba(245,106,92,.12);color:#ff8a7e}
+.vba-badge-changes{height:20px;padding:0 8px;display:inline-flex;align-items:center;border-radius:999px;background:rgba(42,183,241,.12);color:#7fd3f7;font:500 11px/1 var(--vbb-font)}
+
+/* inputs: 36px */
+.vba-shell input[type=text],.vba-shell input[type=search],.vba-shell input[type=number],.vba-shell input[type=url],.vba-shell input[type=email],.vba-shell select{min-height:36px}
+.vba-shell input:focus,.vba-shell select:focus,.vba-shell textarea:focus{box-shadow:0 0 0 3px rgba(42,183,241,.18)!important}
+
+/* settings rows, empty states */
+.vba-setting{padding:20px}
+.vba-setting-tx b{font-size:14px;font-weight:500}
+.vba-setting-tx span{font-size:13px;line-height:1.5}
+.vba-empty-ic{width:48px;height:48px;border-radius:12px;background:rgba(42,183,241,.12);color:#7fd3f7;box-shadow:inset 0 0 0 1px rgba(42,183,241,.25)}
+.vba-empty b,.vba-shell .vba-empty b{font-size:16px;font-weight:600}
+.vba-empty p{font-size:13px;line-height:1.5}
+
+/* modals: spec radius and header height */
+.vba-modal-box{border-radius:16px}
+.vba-modal-h{height:56px;padding:0 20px}
+.vba-modal-f{min-height:64px;padding:0 20px}
+
+/* "⋯" row menu */
+.vba-more{position:relative;display:inline-flex}
+.vba-more-btn{width:28px;padding:0!important;justify-content:center}
+.vba-more-menu{position:fixed;z-index:100010;min-width:180px;padding:6px;border-radius:12px;background:#20232a;
+	box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 8px 24px -8px rgba(0,0,0,.6),0 24px 48px -16px rgba(0,0,0,.5);
+	display:none;flex-direction:column;gap:2px;opacity:0;transform:translateY(4px) scale(.98);transform-origin:top right;
+	transition:opacity .16s var(--vbb-ease),transform .16s var(--vbb-ease)}
+.vba-more-menu.open{display:flex;opacity:1;transform:none}
+.vba-shell .vba-more-menu .vba-more-i{width:100%;height:32px;justify-content:flex-start;padding:0 10px;box-shadow:none;border-radius:7px;background:transparent;font-size:13px;color:var(--vbb-text)}
+.vba-shell .vba-more-menu .vba-more-i:hover,.vba-shell .vba-more-menu .vba-more-i:focus-visible{background:rgba(255,255,255,.07);box-shadow:none;outline:none}
+.vba-shell .vba-more-menu .vba-mini-del{color:#ff8a7e}
+.vba-shell .vba-more-menu .vba-mini-del:hover{background:rgba(245,106,92,.12)}
+.vba-more-menu .vba-mini-del{margin-top:4px;position:relative}
+.vba-more-menu .vba-mini-del::before{content:"";position:absolute;left:6px;right:6px;top:-4px;height:1px;background:rgba(255,255,255,.08)}
+@starting-style{.vba-more-menu.open{opacity:0;transform:translateY(4px) scale(.98)}}
+
+@media (prefers-reduced-motion:reduce){.vba-btn,.vba-stat,.vba-mini,.vba-filter,.vba-docrow{transition:none}.vba-btn:active{transform:none}.vba-stat:hover{transform:none}}
+
+/* phones: keep the wrapping layout from the earlier block */
+@media screen and (max-width:782px){
+	.vba-shell{padding:24px 16px 48px}
+	.vba-head{align-items:flex-start}
+	.vba-head h1{font-size:24px}
+	.vba-toolbar{padding:0 12px 12px}
+	.vba-doclist,.vba-classlist{padding:0 4px 8px}
+	.vba-docrow{flex-wrap:wrap}
 }

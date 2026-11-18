@@ -189,9 +189,75 @@
 		if ( ! root ) {
 			return;
 		}
-		// Foundation: nothing heavy yet. Hook point for list actions, filters,
-		// and the class manager once those screens are built out.
+		moreMenus( root );
 	}
+
+	/* Row actions: Edit / View / Publish stay visible, the rest moves into a "⋯"
+	 * menu (Linear / Vercel). Rows had up to seven buttons and ran off the card.
+	 * The buttons are moved, not copied, so every existing click handler (they
+	 * are delegated on document) keeps working, including hidden ones such as
+	 * "Make default" on the default template. */
+	var DOTS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/></svg>';
+	var openMenu = null;
+	function keep( el ) {
+		if ( el.classList.contains( 'vba-mini-go' ) ) { return true; }            // Publish
+		if ( 'A' === el.tagName && '_blank' === el.getAttribute( 'target' ) ) { return true; } // View
+		if ( 'A' === el.tagName && el === el.parentNode.querySelector( 'a.vba-mini' ) ) { return true; } // Edit / Build
+		return false;
+	}
+	function moreMenus( root ) {
+		var label = ( CFG.i18n && CFG.i18n.more ) || 'More actions';
+		[].slice.call( root.querySelectorAll( '.vba-doc-actions' ) ).forEach( function ( box, n ) {
+			var rest = [].slice.call( box.children ).filter( function ( el ) { return ! keep( el ); } );
+			if ( ! rest.length ) { return; }
+			var wrap = document.createElement( 'span' ); wrap.className = 'vba-more';
+			var btn = document.createElement( 'button' );
+			btn.type = 'button'; btn.className = 'vba-mini vba-more-btn'; btn.innerHTML = DOTS;
+			btn.setAttribute( 'aria-haspopup', 'menu' ); btn.setAttribute( 'aria-expanded', 'false' ); btn.setAttribute( 'aria-label', label ); btn.title = label;
+			var menu = document.createElement( 'div' ); menu.className = 'vba-more-menu'; menu.setAttribute( 'role', 'menu' ); menu.id = 'vba-more-' + n;
+			btn.setAttribute( 'aria-controls', menu.id );
+			rest.forEach( function ( el ) { el.classList.add( 'vba-more-i' ); el.setAttribute( 'role', 'menuitem' ); menu.appendChild( el ); } );
+			wrap.appendChild( btn ); wrap.appendChild( menu ); box.appendChild( wrap );
+		} );
+	}
+	function closeMenu() {
+		if ( ! openMenu ) { return; }
+		openMenu.menu.classList.remove( 'open' ); openMenu.btn.setAttribute( 'aria-expanded', 'false' );
+		openMenu = null;
+	}
+	function place( btn, menu ) {
+		// Fixed, so a card's overflow never clips it; flips up near the bottom.
+		var r = btn.getBoundingClientRect();
+		menu.style.right = Math.max( 8, window.innerWidth - r.right ) + 'px';
+		menu.style.left = 'auto';
+		var h = menu.offsetHeight || 220;
+		menu.style.top = ( r.bottom + 6 + h > window.innerHeight ? Math.max( 8, r.top - 6 - h ) : r.bottom + 6 ) + 'px';
+	}
+	document.addEventListener( 'click', function ( e ) {
+		var btn = e.target.closest && e.target.closest( '.vba-more-btn' );
+		if ( btn ) {
+			var menu = btn.nextElementSibling, was = openMenu && openMenu.menu === menu;
+			closeMenu();
+			if ( ! was ) {
+				menu.classList.add( 'open' ); place( btn, menu ); btn.setAttribute( 'aria-expanded', 'true' );
+				openMenu = { btn:btn, menu:menu };
+				var first = menu.querySelector( '.vba-more-i:not([hidden])' ); if ( first ) { first.focus(); }
+			}
+			return;
+		}
+		// A choice inside the menu runs its own handler; then the menu closes.
+		if ( openMenu && ! ( e.target.closest && e.target.closest( '.vba-more-menu' ) ) ) { closeMenu(); }
+		else if ( openMenu && e.target.closest( '.vba-more-i' ) ) { setTimeout( closeMenu, 0 ); }
+	} );
+	document.addEventListener( 'keydown', function ( e ) {
+		if ( ! openMenu ) { return; }
+		var items = [].slice.call( openMenu.menu.querySelectorAll( '.vba-more-i:not([hidden])' ) ), i = items.indexOf( document.activeElement );
+		if ( 'Escape' === e.key ) { var b = openMenu.btn; closeMenu(); b.focus(); e.preventDefault(); }
+		else if ( 'ArrowDown' === e.key ) { e.preventDefault(); ( items[ i + 1 ] || items[ 0 ] ).focus(); }
+		else if ( 'ArrowUp' === e.key ) { e.preventDefault(); ( items[ i - 1 ] || items[ items.length - 1 ] ).focus(); }
+	} );
+	window.addEventListener( 'scroll', closeMenu, true );
+	window.addEventListener( 'resize', closeMenu );
 
 	if ( document.readyState === 'loading' ) {
 		document.addEventListener( 'DOMContentLoaded', boot );

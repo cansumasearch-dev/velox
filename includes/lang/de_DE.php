@@ -3787,4 +3787,18 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Popular' => 'Beliebt',
 	'Loading icons…' => 'Icons werden geladen…',
 	'more — type to narrow the search.' => 'weitere – tippen, um die Suche einzugrenzen.',
+	// Velox Builder 4.27
+	'set here' => 'hier gesetzt',
+	'Reset this section' => 'Diesen Bereich zurücksetzen',
+	'Show only what is set here' => 'Nur zeigen, was hier gesetzt ist',
+	'Set only' => 'Nur gesetzte',
+	'Nothing is set here yet at this screen size and state.' => 'Bei dieser Bildschirmgröße und diesem Zustand ist hier noch nichts gesetzt.',
+	'Search… (tag:h2, .class, #id)' => 'Suchen… (tag:h2, .klasse, #id)',
+	'Nothing matches' => 'Nichts passt zu',
+	'More actions' => 'Weitere Aktionen',
+	'Velox menu' => 'Velox-Menü',
+	'Screen size' => 'Bildschirmgröße',
+	'Unsaved' => 'Nicht gespeichert',
+	'You have changes that are not saved yet.' => 'Sie haben Änderungen, die noch nicht gespeichert sind.',
+	'Saved, but not live yet — only you see these changes.' => 'Gespeichert, aber noch nicht live – nur Sie sehen diese Änderungen.',
 );
