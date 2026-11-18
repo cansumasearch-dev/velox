@@ -58,6 +58,8 @@
 		structure:'<path fill-rule="evenodd" d="M6 3.5A1.5 1.5 0 0 1 7.5 2h1A1.5 1.5 0 0 1 10 3.5v1A1.5 1.5 0 0 1 8.5 6v1H14a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0v-1A.5.5 0 0 1 2 7h5.5V6A1.5 1.5 0 0 1 6 4.5zM8.5 5a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5zM0 11.5A1.5 1.5 0 0 1 1.5 10h1A1.5 1.5 0 0 1 4 11.5v1A1.5 1.5 0 0 1 2.5 14h-1A1.5 1.5 0 0 1 0 12.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm4.5.5A1.5 1.5 0 0 1 7.5 10h1a1.5 1.5 0 0 1 1.5 1.5v1A1.5 1.5 0 0 1 8.5 14h-1A1.5 1.5 0 0 1 6 12.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm4.5.5a1.5 1.5 0 0 1 1.5-1.5h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/>',
 		exit:'<path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/>',
 		external:'<path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5"/><path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0z"/>',
+		eyeslash:'<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/> <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/> <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>',
+		signpost:'<path d="M7 7V1.414a1 1 0 0 1 2 0V2h5a1 1 0 0 1 .8.4l.975 1.3a.5.5 0 0 1 0 .6L14.8 5.6a1 1 0 0 1-.8.4H9v10H7v-5H2a1 1 0 0 1-.8-.4L.225 9.3a.5.5 0 0 1 0-.6L1.2 7.4A1 1 0 0 1 2 7zm1 3V8H2l-.75 1L2 10zm0-5h6l.75-1L14 3H8z"/>',
 		eye:'<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>',
 		bold:'<path d="M8.21 13c2.106 0 3.412-1.087 3.412-2.823 0-1.306-.984-2.283-2.324-2.386v-.055a2.176 2.176 0 0 0 1.852-2.14c0-1.51-1.162-2.46-3.014-2.46H3.843V13zM5.908 4.674h1.696c.963 0 1.517.451 1.517 1.244 0 .834-.629 1.32-1.73 1.32H5.908V4.673zm0 6.788V8.598h1.73c1.217 0 1.88.492 1.88 1.415 0 .943-.643 1.449-1.832 1.449H5.907z"/>',
 		italic:'<path d="M7.991 11.674 9.53 4.455c.123-.595.246-.71 1.347-.807l.11-.52H7.211l-.11.52c1.06.096 1.128.212 1.005.807L6.57 11.674c-.123.595-.246.71-1.346.806l-.11.52h3.774l.11-.52c-1.06-.095-1.129-.211-1.006-.806z"/>',
@@ -573,6 +575,7 @@
 			// Hidden elements stay visible-but-ghosted in the canvas so you can still
 			// select and unhide them; the front-end renderer skips them entirely.
 			if ( node.hidden ) { cls += ' vb-is-hidden'; }
+			if ( condCount( node.cond ) ) { cls += ' vb-has-cond'; }
 			var kids = node.children.map( render ).join( '' );
 			// Reusable: render the referenced block inline, framed + non-interactive.
 			if ( node.el === 'Reusable' ) {
@@ -770,7 +773,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-empty-box,[data-node].vb-empty-soft{outline:1px dashed #c3cad3;outline-offset:-1px;background-color:rgba(42,183,241,.035)}[data-node].vb-empty-box{min-height:88px}[data-node].vb-empty-box:hover,[data-node].vb-empty-soft:hover{outline-color:#2ab7f1}[data-node].vb-empty-box::after{content:attr(data-vb-empty);display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:88px;width:100%;padding:12px;grid-column:1/-1;flex:1 1 100%;font:500 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none;color:#8a94a0;pointer-events:none}[data-node].vb-anchor-mark{display:block!important;min-height:22px;outline:1px dashed #c3cad3;outline-offset:-1px}[data-node].vb-anchor-mark::after{content:attr(data-vb-anchor);display:block;padding:3px 8px;font:500 11px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#8a94a0;letter-spacing:0;text-transform:none}[data-node].vb-hov{outline:1px solid #2ab7f1!important}[data-node].vb-msel{outline:2px dashed #2ab7f1!important;outline-offset:-2px}[data-node].vb-thin{position:relative}[data-node].vb-thin::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}[data-node].vb-sel{outline:2px solid #2ab7f1}a,img{-webkit-user-drag:none}html.vb-dnd,html.vb-dnd *{cursor:grabbing!important;user-select:none!important}html.vb-dnd-no,html.vb-dnd-no *{cursor:not-allowed!important}#vb-dropmark{position:absolute;z-index:2147483001;display:none;pointer-events:none;background:#2ab7f1}#vb-dropmark.is-h{height:calc(2px * var(--k,1));margin-top:calc(-1px * var(--k,1))}#vb-dropmark.is-v{width:calc(2px * var(--k,1));margin-left:calc(-1px * var(--k,1))}#vb-dropmark.is-h::before,#vb-dropmark.is-v::before{content:"";position:absolute;width:calc(8px * var(--k,1));height:calc(8px * var(--k,1));border-radius:50%;background:#2ab7f1;box-shadow:0 0 0 calc(2px * var(--k,1)) #fff}#vb-dropmark.is-h::before{left:calc(-4px * var(--k,1));top:calc(-3px * var(--k,1))}#vb-dropmark.is-v::before{top:calc(-4px * var(--k,1));left:calc(-3px * var(--k,1))}#vb-dropmark.is-box{background:rgba(42,183,241,.12);outline:calc(2px * var(--k,1)) solid #2ab7f1;outline-offset:calc(-2px * var(--k,1))}#vb-selbadge .vb-sb-move{cursor:grab;margin-left:-6px}#vb-selbadge{position:absolute;z-index:2147483000;display:none;align-items:center;gap:1px;height:22px;padding:0 2px 0 8px;background:#2ab7f1;color:#04222f;font:600 11px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:4px 4px 0 0;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);user-select:none;letter-spacing:0;text-transform:none;text-align:left}#vb-selbadge.is-inside{border-radius:0 0 4px 0}#vb-selbadge .vb-sb-l{padding-right:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis}#vb-selbadge button{display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:#04222f;cursor:pointer}#vb-selbadge button:hover{background:rgba(4,34,47,.16)}#vb-selbadge button[data-sb=parent] svg{transform:rotate(180deg)}#vb-selbadge svg{display:block}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 "Velox Geist Mono",ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-empty-box,[data-node].vb-empty-soft{outline:1px dashed #c3cad3;outline-offset:-1px;background-color:rgba(42,183,241,.035)}[data-node].vb-empty-box{min-height:88px}[data-node].vb-empty-box:hover,[data-node].vb-empty-soft:hover{outline-color:#2ab7f1}[data-node].vb-empty-box::after{content:attr(data-vb-empty);display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:88px;width:100%;padding:12px;grid-column:1/-1;flex:1 1 100%;font:500 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none;color:#8a94a0;pointer-events:none}[data-node].vb-anchor-mark{display:block!important;min-height:22px;outline:1px dashed #c3cad3;outline-offset:-1px}[data-node].vb-anchor-mark::after{content:attr(data-vb-anchor);display:block;padding:3px 8px;font:500 11px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#8a94a0;letter-spacing:0;text-transform:none}[data-node].vb-hov{outline:1px solid #2ab7f1!important}[data-node].vb-msel{outline:2px dashed #2ab7f1!important;outline-offset:-2px}[data-node].vb-thin{position:relative}[data-node].vb-thin::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}[data-node].vb-sel{outline:2px solid #2ab7f1}a,img{-webkit-user-drag:none}html.vb-dnd,html.vb-dnd *{cursor:grabbing!important;user-select:none!important}html.vb-dnd-no,html.vb-dnd-no *{cursor:not-allowed!important}#vb-dropmark{position:absolute;z-index:2147483001;display:none;pointer-events:none;background:#2ab7f1}#vb-dropmark.is-h{height:calc(2px * var(--k,1));margin-top:calc(-1px * var(--k,1))}#vb-dropmark.is-v{width:calc(2px * var(--k,1));margin-left:calc(-1px * var(--k,1))}#vb-dropmark.is-h::before,#vb-dropmark.is-v::before{content:"";position:absolute;width:calc(8px * var(--k,1));height:calc(8px * var(--k,1));border-radius:50%;background:#2ab7f1;box-shadow:0 0 0 calc(2px * var(--k,1)) #fff}#vb-dropmark.is-h::before{left:calc(-4px * var(--k,1));top:calc(-3px * var(--k,1))}#vb-dropmark.is-v::before{top:calc(-4px * var(--k,1));left:calc(-3px * var(--k,1))}#vb-dropmark.is-box{background:rgba(42,183,241,.12);outline:calc(2px * var(--k,1)) solid #2ab7f1;outline-offset:calc(-2px * var(--k,1))}#vb-selbadge .vb-sb-move{cursor:grab;margin-left:-6px}#vb-selbadge{position:absolute;z-index:2147483000;display:none;align-items:center;gap:1px;height:22px;padding:0 2px 0 8px;background:#2ab7f1;color:#04222f;font:600 11px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:4px 4px 0 0;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);user-select:none;letter-spacing:0;text-transform:none;text-align:left}#vb-selbadge.is-inside{border-radius:0 0 4px 0}#vb-selbadge .vb-sb-l{padding-right:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis}#vb-selbadge button{display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:#04222f;cursor:pointer}#vb-selbadge button:hover{background:rgba(4,34,47,.16)}#vb-selbadge button[data-sb=parent] svg{transform:rotate(180deg)}#vb-selbadge svg{display:block}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vb-has-cond:not(.vb-sel):not(.vb-hov){outline:1px dashed rgba(160,107,255,.75);outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 "Velox Geist Mono",ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -3138,7 +3141,7 @@
 	 * text, animation and item fields were missing, so typing there lost focus
 	 * after one character or a short pause. */
 	var FOCUS_ATTRS = [ 'data-setnum', 'data-setbox', 'data-setunit', 'data-setboxunit', 'data-set', 'data-setel', 'data-sethref',
-		'data-repset', 'data-setaos', 'data-imgalt', 'data-setconn', 'data-setpreset', 'data-setwp', 'data-elcss', 'data-attrn', 'data-attrv', 'data-setsel', 'data-sfilter' ];
+		'data-repset', 'data-setaos', 'data-imgalt', 'data-setconn', 'data-setpreset', 'data-setwp', 'data-elcss', 'data-attrn', 'data-attrv', 'data-setsel', 'data-sfilter', 'data-cond' ];
 	function captureFocus() {
 		var el = document.activeElement;
 		if ( ! el || ! el.closest || ! el.closest( '#vb-inspector' ) ) { return null; }
@@ -3910,6 +3913,9 @@
 		// ---- animate on scroll, available on every element ----
 		s += aosSettingsHTML( node );
 
+		// ---- conditions: who sees this element, where and when ----
+		s += condSectionHTML( node );
+
 		// ---- HTML attributes (aria-*, data-*, rel, title…) ----
 		var attrs = node.attrs || [];
 		s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'code', 14 ) + ' ' + T( 'Attributes' ) + '</div>' +
@@ -4115,6 +4121,166 @@
 		return '<div class="vb-set-crumb"><button class="vb-set-back" data-setview="root">' + svg( 'chevron', 12 ) + '</button>' +
 			'<span>' + T( 'All settings' ) + '</span><i>/</i><b>' + label + '</b></div>';
 	}
+	/* ---------- element conditions ----------
+	 * node.cond = list of rule sets. The element shows when ANY set passes; a
+	 * set passes when ALL its rules pass. Checked on the server
+	 * (Velox_Builder_Conditions), so an element that does not pass is not sent
+	 * to the browser at all. In the editor every element always shows. */
+	var CONDCFG = CFG.conditions || { roles:[], postTypes:[], tz:'', now:'' };
+	var COND_TYPES = [
+		[ 'user', 'Logged in or out', 'Visitor' ], [ 'role', 'User role', 'Visitor' ], [ 'usermeta', 'User field', 'Visitor' ],
+		[ 'context', 'Type of page', 'Content' ], [ 'posttype', 'Post type', 'Content' ], [ 'page', 'Specific pages', 'Content' ], [ 'meta', 'Custom field', 'Content' ],
+		[ 'date', 'Date', 'Date and time' ], [ 'weekday', 'Day of the week', 'Date and time' ], [ 'time', 'Time of day', 'Date and time' ],
+		[ 'param', 'URL parameter', 'Request' ], [ 'cookie', 'Cookie', 'Request' ], [ 'referrer', 'Came from', 'Request' ]
+	];
+	var COND_IS = [ [ 'is', 'is' ], [ 'not', 'is not' ] ];
+	var COND_VALUE_OPS = [ [ 'eq', 'equals' ], [ 'neq', 'does not equal' ], [ 'contains', 'contains' ], [ 'notcontains', 'does not contain' ],
+		[ 'exists', 'exists' ], [ 'missing', 'does not exist' ], [ 'empty', 'is empty' ], [ 'notempty', 'is not empty' ], [ 'gt', 'is greater than' ], [ 'lt', 'is less than' ] ];
+	var COND_OPS = {
+		user: [ [ 'in', 'is logged in' ], [ 'out', 'is logged out' ] ], role: COND_IS, posttype: COND_IS, context: COND_IS, page: COND_IS, weekday: COND_IS,
+		date: [ [ 'after', 'from' ], [ 'before', 'until' ] ], time: [ [ 'between', 'between' ], [ 'outside', 'outside' ] ],
+		referrer: [ [ 'contains', 'contains' ], [ 'notcontains', 'does not contain' ] ],
+		param: COND_VALUE_OPS, cookie: COND_VALUE_OPS, meta: COND_VALUE_OPS, usermeta: COND_VALUE_OPS
+	};
+	var COND_NOVALUE = [ 'exists', 'missing', 'empty', 'notempty' ];
+	var COND_KEYED = [ 'param', 'cookie', 'meta', 'usermeta' ];
+	var COND_VOLATILE = [ 'date', 'weekday', 'time', 'param', 'cookie', 'referrer' ];
+	var COND_CONTEXTS = [ [ 'front', 'Front page' ], [ 'blog', 'Blog page' ], [ 'single', 'Single post' ], [ 'page', 'Page' ], [ 'singular', 'Any single item' ],
+		[ 'archive', 'Archive' ], [ 'search', 'Search results' ], [ '404', 'Not found (404)' ] ];
+	var COND_DAYS = [ [ '1', 'Mo' ], [ '2', 'Tu' ], [ '3', 'We' ], [ '4', 'Th' ], [ '5', 'Fr' ], [ '6', 'Sa' ], [ '7', 'Su' ] ];
+
+	function condRuleOk( r ) {
+		if ( ! r || ! r.t ) { return false; }
+		var v = String( r.v || '' ).trim();
+		if ( 'user' === r.t ) { return true; }
+		if ( 'time' === r.t ) { return !! v && !! String( r.v2 || '' ).trim(); }
+		if ( COND_KEYED.indexOf( r.t ) > -1 ) { return !! String( r.k || '' ).trim() && ( COND_NOVALUE.indexOf( r.op ) > -1 || !! v ); }
+		return !! v;
+	}
+	function condCount( cond ) {
+		var n = 0;
+		( Array.isArray( cond ) ? cond : [] ).forEach( function ( set ) { ( Array.isArray( set ) ? set : [] ).forEach( function ( r ) { if ( condRuleOk( r ) ) { n++; } } ); } );
+		return n;
+	}
+	function condLabel( list, v ) { var o = list.filter( function ( x ) { return x[ 0 ] === v; } )[ 0 ]; return o ? T( o[ 1 ] ) : v; }
+	function condOpLabel( r ) { return condLabel( COND_OPS[ r.t ] || [], r.op || ( COND_OPS[ r.t ] || [ [ '' ] ] )[ 0 ][ 0 ] ); }
+	function condValueText( r ) {
+		var v = String( r.v || '' );
+		if ( 'role' === r.t ) { return condLabel( CONDCFG.roles.map( function ( o ) { return [ o.v, o.l ]; } ), v ); }
+		if ( 'posttype' === r.t ) { return condLabel( CONDCFG.postTypes.map( function ( o ) { return [ o.v, o.l ]; } ), v ); }
+		if ( 'context' === r.t ) { return condLabel( COND_CONTEXTS, v ); }
+		if ( 'weekday' === r.t ) { return v.split( ',' ).filter( Boolean ).map( function ( d ) { return condLabel( COND_DAYS, d ); } ).join( ', ' ); }
+		if ( 'date' === r.t ) { return v.replace( 'T', ' ' ); }
+		if ( 'time' === r.t ) { return v + '–' + String( r.v2 || '' ); }
+		return '“' + v + '”';
+	}
+	/** One rule in plain words: "User role is Editor", "URL parameter ref equals “ads”". */
+	function condRuleText( r ) {
+		var name = condLabel( COND_TYPES, r.t );
+		if ( 'user' === r.t ) { return T( 'Visitor' ) + ' ' + condOpLabel( r ); }
+		if ( COND_KEYED.indexOf( r.t ) > -1 ) { name += ' ' + String( r.k || '' ); }
+		return name + ' ' + condOpLabel( r ) + ( COND_NOVALUE.indexOf( r.op ) > -1 ? '' : ' ' + condValueText( r ) );
+	}
+	function condSummary( cond ) {
+		return ( Array.isArray( cond ) ? cond : [] ).map( function ( set ) {
+			return ( Array.isArray( set ) ? set : [] ).filter( condRuleOk ).map( condRuleText ).join( ' ' + T( 'and' ) + ' ' );
+		} ).filter( Boolean ).join( ', ' + T( 'or' ) + ' ' );
+	}
+	function condOptions( list, cur, ph ) {
+		return ( ph ? '<option value=""' + ( cur ? '' : ' selected' ) + '>' + escapeHtml( ph ) + '</option>' : '' ) + list.map( function ( o ) {
+			return '<option value="' + escapeHtml( o[ 0 ] ) + '"' + ( String( cur ) === o[ 0 ] ? ' selected' : '' ) + '>' + escapeHtml( T( o[ 1 ] ) ) + '</option>';
+		} ).join( '' );
+	}
+	function condRuleHTML( r, si, ri ) {
+		var p = si + ',' + ri, ops = COND_OPS[ r.t ] || COND_IS, op = r.op || ops[ 0 ][ 0 ];
+		var typeSel = '<select class="vb-inp vb-cond-t" data-cond="' + p + ',t" aria-label="' + T( 'Condition' ) + '">' +
+			[ 'Visitor', 'Content', 'Date and time', 'Request' ].map( function ( g ) {
+				return '<optgroup label="' + escapeHtml( T( g ) ) + '">' + COND_TYPES.filter( function ( x ) { return x[ 2 ] === g; } ).map( function ( x ) {
+					return '<option value="' + x[ 0 ] + '"' + ( x[ 0 ] === r.t ? ' selected' : '' ) + '>' + escapeHtml( T( x[ 1 ] ) ) + '</option>';
+				} ).join( '' ) + '</optgroup>';
+			} ).join( '' ) + '</select>';
+		var opSel = '<select class="vb-inp vb-cond-op" data-cond="' + p + ',op" aria-label="' + T( 'Comparison' ) + '">' + condOptions( ops, op ) + '</select>';
+		var txt = function ( f, val, ph, type ) {
+			return '<input class="vb-inp" type="' + ( type || 'text' ) + '" data-cond="' + p + ',' + f + '" value="' + escapeHtml( val || '' ) + '" placeholder="' + escapeHtml( ph || '' ) + '" spellcheck="false">';
+		};
+		var val = '';
+		switch ( r.t ) {
+			case 'role': val = '<select class="vb-inp" data-cond="' + p + ',v">' + condOptions( CONDCFG.roles.map( function ( o ) { return [ o.v, o.l ]; } ), r.v, T( 'Pick a role' ) ) + '</select>'; break;
+			case 'posttype': val = '<select class="vb-inp" data-cond="' + p + ',v">' + condOptions( CONDCFG.postTypes.map( function ( o ) { return [ o.v, o.l ]; } ), r.v, T( 'Pick a post type' ) ) + '</select>'; break;
+			case 'context': val = '<select class="vb-inp" data-cond="' + p + ',v">' + condOptions( COND_CONTEXTS, r.v, T( 'Pick a type of page' ) ) + '</select>'; break;
+			case 'page': val = txt( 'v', r.v, T( 'Page IDs, e.g. 12, 40' ) ); break;
+			case 'date': val = txt( 'v', r.v, '', 'datetime-local' ); break;
+			case 'time': val = '<span class="vb-cond-pair">' + txt( 'v', r.v, '09:00', 'time' ) + '<i>–</i>' + txt( 'v2', r.v2, '17:00', 'time' ) + '</span>'; break;
+			case 'weekday':
+				var on = String( r.v || '' ).split( ',' );
+				val = '<div class="vb-seg vb-cond-days">' + COND_DAYS.map( function ( d ) {
+					return '<button type="button" class="' + ( on.indexOf( d[ 0 ] ) > -1 ? 'on' : '' ) + '" data-condday="' + p + '" data-day="' + d[ 0 ] + '" aria-pressed="' + ( on.indexOf( d[ 0 ] ) > -1 ) + '">' + T( d[ 1 ] ) + '</button>';
+				} ).join( '' ) + '</div>'; break;
+			case 'referrer': val = txt( 'v', r.v, T( 'e.g. google.' ) ); break;
+			case 'user': break;
+			default: if ( COND_NOVALUE.indexOf( op ) < 0 ) { val = txt( 'v', r.v, T( 'value' ) ); }
+		}
+		var key = COND_KEYED.indexOf( r.t ) > -1
+			? txt( 'k', r.k, { param:T( 'parameter name, e.g. ref' ), cookie:T( 'cookie name' ), meta:T( 'field name (meta key)' ), usermeta:T( 'field name (meta key)' ) }[ r.t ] )
+			: '';
+		var wide = 'weekday' === r.t || 'time' === r.t || 'date' === r.t || ! val;
+		return '<div class="vb-cond-rule' + ( condRuleOk( r ) ? '' : ' is-incomplete' ) + '">' +
+			'<div class="vb-cond-top">' + typeSel + '<button class="vb-css-del" data-conddel="' + p + '" title="' + T( 'Remove' ) + '">' + svg( 'trash', 12 ) + '</button></div>' +
+			( key ? '<div class="vb-cond-row">' + key + '</div>' : '' ) +
+			'<div class="vb-cond-row' + ( wide ? ' is-stack' : '' ) + '">' + opSel + val + '</div>' +
+		'</div>';
+	}
+	function condSectionHTML( node ) {
+		var sets = Array.isArray( node.cond ) ? node.cond : [], n = condCount( sets ), all = [];
+		sets.forEach( function ( set ) { ( set || [] ).forEach( function ( r ) { all.push( r ); } ); } );
+		var h = '<div class="vb-setsec vb-cond"><div class="vb-setsec-h">' + svg( 'signpost', 14 ) + ' ' + T( 'Conditions' ) +
+			( n ? '<span class="vb-cond-n">' + n + '</span>' : '' ) + '</div>';
+		if ( ! sets.length ) {
+			return h + '<div class="vb-setnote">' + T( 'Show this element only to some visitors, on some pages or at some times. Without conditions it always shows.' ) + '</div>' +
+				'<button class="vb-set-nav vb-set-add" data-condor>' + svg( 'plus', 13 ) + '<span>' + T( 'Add condition' ) + '</span></button></div>';
+		}
+		h += n ? '<div class="vb-cond-sum"><b>' + T( 'Shows when' ) + '</b> ' + escapeHtml( condSummary( sets ) ) + '</div>'
+			: '<div class="vb-cond-sum is-off">' + T( 'Finish a rule to switch the conditions on. Until then the element always shows.' ) + '</div>';
+		h += sets.map( function ( set, si ) {
+			return ( si ? '<div class="vb-cond-or"><span>' + T( 'or' ) + '</span></div>' : '' ) +
+				'<div class="vb-cond-set">' + ( set || [] ).map( function ( r, ri ) {
+					return ( ri ? '<div class="vb-cond-and">' + T( 'and' ) + '</div>' : '' ) + condRuleHTML( r, si, ri );
+				} ).join( '' ) +
+				'<button class="vb-cond-addand" data-condand="' + si + '">' + svg( 'plus', 12 ) + T( 'And' ) + '</button></div>';
+		} ).join( '' );
+		h += '<button class="vb-set-nav vb-set-add" data-condor>' + svg( 'plus', 13 ) + '<span>' + T( 'Add “or” group' ) + '</span></button>';
+		var notes = [ T( 'Checked on the server: when the rules do not match, the element is not sent to the browser at all. In the editor it always shows.' ) ];
+		if ( all.some( function ( r ) { return 'date' === r.t || 'time' === r.t || 'weekday' === r.t; } ) ) {
+			notes.push( T( 'Dates and times use the site time zone' ) + ' (' + escapeHtml( CONDCFG.tz || 'UTC' ) + ', ' + T( 'now' ) + ' ' + escapeHtml( String( CONDCFG.now || '' ).replace( 'T', ' ' ) ) + ').' );
+		}
+		if ( all.some( function ( r ) { return COND_VOLATILE.indexOf( r.t ) > -1; } ) ) {
+			notes.push( T( 'Pages with date, time, URL or cookie rules are not stored in the page cache, so every visitor gets the right version.' ) );
+		}
+		return h + notes.map( function ( t ) { return '<div class="vb-setnote">' + t + '</div>'; } ).join( '' ) + '</div>';
+	}
+	/** Change the selected element's conditions; drops empty sets and the whole list when empty. */
+	function editCond( fn, label ) {
+		store.commit( function ( s ) {
+			var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
+			var c = JSON.parse( JSON.stringify( Array.isArray( n.cond ) ? n.cond : [] ) );
+			fn( c );
+			c = c.filter( function ( set ) { return Array.isArray( set ) && set.length; } );
+			if ( c.length ) { n.cond = c; } else { delete n.cond; }
+		}, label || T( 'Conditions' ) );
+	}
+	function condSetField( p, val ) {
+		var a = p.split( ',' ), si = +a[ 0 ], ri = +a[ 1 ], f = a[ 2 ];
+		editCond( function ( c ) {
+			var r = c[ si ] && c[ si ][ ri ]; if ( ! r ) { return; }
+			if ( 't' === f ) {
+				if ( r.t === val ) { return; }
+				c[ si ][ ri ] = { t:val, op:( COND_OPS[ val ] || COND_IS )[ 0 ][ 0 ] };
+				return;
+			}
+			if ( '' === val ) { delete r[ f ]; } else { r[ f ] = val; }
+		} );
+	}
+
 	function renderSettingsPanel() {
 		var box = document.getElementById( 'vb-setpanel' ); if ( ! box ) { return; }
 		if ( ! setShown ) { box.style.display = 'none'; applyDock(); return; }
@@ -4454,7 +4620,8 @@
 			var collapsed = ! vis && !! structCollapsed[ node.id ];
 			var name = ( node.name || node.el || 'El' ) + ( node.classes && node.classes[ 0 ] ? ' · ' + node.classes[ 0 ] : '' );
 			var caret = hasKids ? '<span class="vb-st-caret' + ( collapsed ? ' closed' : '' ) + '" data-stcaret="' + node.id + '">' + svg( 'chevron', 11 ) + '</span>' : '<span class="vb-st-spacer"></span>';
-			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( multi.indexOf( node.id ) > -1 && node.id !== sel ? ' msel' : '' ) + ( node.hidden ? ' hid' : '' ) + ( vis && ! vis.hits[ node.id ] ? ' ctx' : '' ) + '" data-stnode="' + node.id + '" draggable="true" role="treeitem" aria-level="' + ( depth + 1 ) + '" aria-selected="' + ( node.id === sel ? 'true' : 'false' ) + '"' + ( hasKids ? ' aria-expanded="' + ( collapsed ? 'false' : 'true' ) + '"' : '' ) + ' tabindex="' + ( node.id === sel ? '0' : '-1' ) + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px;--d:' + depth + '">' + caret + '<span class="vb-st-ic">' + svg( nodeIcon( node ), 16 ) + '</span><span class="vb-st-l">' + escapeHtml( name ) + '</span></div>';
+			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( multi.indexOf( node.id ) > -1 && node.id !== sel ? ' msel' : '' ) + ( node.hidden ? ' hid' : '' ) + ( vis && ! vis.hits[ node.id ] ? ' ctx' : '' ) + '" data-stnode="' + node.id + '" draggable="true" role="treeitem" aria-level="' + ( depth + 1 ) + '" aria-selected="' + ( node.id === sel ? 'true' : 'false' ) + '"' + ( hasKids ? ' aria-expanded="' + ( collapsed ? 'false' : 'true' ) + '"' : '' ) + ' tabindex="' + ( node.id === sel ? '0' : '-1' ) + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px;--d:' + depth + '">' + caret + '<span class="vb-st-ic">' + svg( nodeIcon( node ), 16 ) + '</span><span class="vb-st-l">' + escapeHtml( name ) + '</span>' +
+				( condCount( node.cond ) ? '<span class="vb-st-cond" title="' + escapeHtml( T( 'Shows when' ) + ' ' + condSummary( node.cond ) ) + '">' + svg( 'signpost', 12 ) + '</span>' : '' ) + '</div>';
 			if ( collapsed ) { return html; }
 
 			if ( items ) {
@@ -4675,6 +4842,35 @@
 					}
 				}, 'Add item' ); return;
 			}
+			if ( e.target.closest( '[data-condor]' ) ) {
+				editCond( function ( c ) { c.push( [ { t:'user', op:'in' } ] ); } );
+				return;
+			}
+			var cand = e.target.closest( '[data-condand]' );
+			if ( cand ) {
+				var csi = +cand.getAttribute( 'data-condand' );
+				editCond( function ( c ) { if ( c[ csi ] ) { c[ csi ].push( { t:'user', op:'in' } ); } } );
+				return;
+			}
+			var cdel = e.target.closest( '[data-conddel]' );
+			if ( cdel ) {
+				var cdp = cdel.getAttribute( 'data-conddel' ).split( ',' );
+				editCond( function ( c ) { if ( c[ +cdp[ 0 ] ] ) { c[ +cdp[ 0 ] ].splice( +cdp[ 1 ], 1 ); } } );
+				return;
+			}
+			var cday = e.target.closest( '[data-condday]' );
+			if ( cday ) {
+				var cdy = cday.getAttribute( 'data-condday' ).split( ',' ), dd = cday.getAttribute( 'data-day' );
+				editCond( function ( c ) {
+					var r = c[ +cdy[ 0 ] ] && c[ +cdy[ 0 ] ][ +cdy[ 1 ] ]; if ( ! r ) { return; }
+					var days = String( r.v || '' ).split( ',' ).filter( Boolean );
+					var at = days.indexOf( dd );
+					if ( at > -1 ) { days.splice( at, 1 ); } else { days.push( dd ); }
+					days.sort();
+					if ( days.length ) { r.v = days.join( ',' ); } else { delete r.v; }
+				} );
+				return;
+			}
 			if ( e.target.closest( '[data-attradd]' ) ) {
 				store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.attrs = ( n.attrs || [] ).concat( [ { n:'', v:'' } ] ); } }, T( 'Attributes' ) );
 				setTimeout( function () { var f = document.querySelectorAll( '[data-attrn]' ); if ( f.length ) { f[ f.length - 1 ].focus(); } }, 0 );
@@ -4849,6 +5045,12 @@
 				}, 400 );
 				return;
 			}
+			var cin = e.target.closest( 'input[data-cond]' );
+			if ( cin && 'text' === cin.type ) {
+				var cinp = cin.getAttribute( 'data-cond' ), cinv = cin.value;
+				debounceCommit( fieldKey( cin ), function () { condSetField( cinp, 'k' === cinp.split( ',' )[ 2 ] ? cinv.trim() : cinv ); }, 300 );
+				return;
+			}
 			var atf = e.target.closest( '[data-attrn], [data-attrv]' );
 			if ( atf ) {
 				var isName = atf.hasAttribute( 'data-attrn' ), ai = +( atf.getAttribute( isName ? 'data-attrn' : 'data-attrv' ) ), av2 = e.target.value;
@@ -4943,6 +5145,11 @@
 			var t = e.target.closest( 'input.vb-inp[data-set]' ); if ( t ) { debounceCommit( fieldKey( e.target ), function () { setProp( t.getAttribute( 'data-set' ), e.target.value ); }, 150 ); return; }
 		} );
 		document.addEventListener( 'change', function ( e ) {
+			var cch = e.target.closest( '[data-cond]' );
+			if ( cch ) {
+				if ( 'text' !== cch.type ) { condSetField( cch.getAttribute( 'data-cond' ), cch.value ); }
+				return;
+			}
 			var cchg = e.target.closest( '[data-setcolor]' );
 			if ( cchg ) { setProp( cchg.getAttribute( 'data-setcolor' ), e.target.value ); return; }
 			var ia = e.target.closest( '[data-imgalt]' );
@@ -7197,6 +7404,21 @@
 			'.vb-inp{background:var(--vb-bg2);border-color:var(--vb-line2)}',
 			'.vb-inp:focus{border-color:var(--vb-acc);box-shadow:0 0 0 3px rgba(42,183,241,.18)}',
 			'@media (prefers-reduced-motion:reduce){.vb-tab-ind,.vb-block-cv{transition:none}}',
+			'.vb-cond-n{margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:rgba(160,107,255,.18);color:#c4a3ff;font:600 11px/18px var(--vb-font,inherit);text-align:center}',
+			'.vb-cond-sum{margin:0 0 10px;padding:8px 10px;border-radius:8px;background:rgba(160,107,255,.08);border:1px solid rgba(160,107,255,.22);color:#d6dae2;font-size:12px;line-height:1.5}',
+			'.vb-cond-sum b{color:#c4a3ff;font-weight:600}.vb-cond-sum.is-off{background:transparent;border-style:dashed;color:#8a8d94}',
+			'.vb-cond-set{display:flex;flex-direction:column;gap:6px;padding:8px;border:1px solid var(--vb-bg4,#2a2e36);border-radius:10px;background:var(--vb-bg1,#14161b)}',
+			'.vb-cond-rule{display:flex;flex-direction:column;gap:6px}.vb-cond-rule.is-incomplete .vb-cond-t{border-color:rgba(245,167,66,.55)}',
+			'.vb-cond-top,.vb-cond-row{display:flex;gap:6px;align-items:center;min-width:0}.vb-cond-top>select{flex:1;min-width:0}',
+			'.vb-cond-row>*{flex:1 1 0;min-width:0}.vb-cond-row.is-stack{flex-wrap:wrap}.vb-cond-row.is-stack>*{flex:1 1 100%}',
+			'.vb-cond-pair{display:flex;align-items:center;gap:6px}.vb-cond-pair>input{flex:1;min-width:0}.vb-cond-pair i{color:#8a8d94;font-style:normal}',
+			'.vb-cond-days{display:grid!important;grid-template-columns:repeat(7,1fr)}.vb-cond-days button{padding:0!important;min-width:0}',
+			'.vb-cond-and{align-self:flex-start;padding:0 7px;border-radius:5px;background:var(--vb-bg3,#20232a);color:#a5a9b2;font:600 10px/18px var(--vb-font,inherit);text-transform:uppercase;letter-spacing:.04em}',
+			'.vb-cond-or{display:flex;align-items:center;gap:8px;margin:8px 0;color:#c4a3ff;font:600 10px/1 var(--vb-font,inherit);text-transform:uppercase;letter-spacing:.06em}',
+			'.vb-cond-or::before,.vb-cond-or::after{content:"";flex:1;height:1px;background:rgba(160,107,255,.3)}',
+			'.vb-cond-addand{display:inline-flex;align-items:center;gap:4px;align-self:flex-start;height:24px;padding:0 8px;border:1px dashed var(--vb-bg4,#2a2e36);border-radius:6px;background:transparent;color:#a5a9b2;font:500 12px/1 var(--vb-font,inherit);cursor:pointer}',
+			'.vb-cond-addand:hover{border-color:#a06bff;color:#e9ebf0}.vb-cond .vb-set-add{margin-top:8px}',
+			'.vb-st-cond{display:inline-flex;margin-left:auto;padding-left:6px;color:#c4a3ff;flex:0 0 auto}',
 			'.vb-unit.is-token{color:#c4a3ff!important;background-color:rgba(160,107,255,.12)!important;font-weight:600}',
 			'.vb-unit optgroup{color:#8a8d94;font-style:normal}.vb-unit option{color:#e9ebf0;background:#1a1d23}',
 			/* ===== 4.27 Add panel + Structure ===== */

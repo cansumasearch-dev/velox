@@ -4,6 +4,18 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.29.0 — Velox Builder: element conditions
+- **Show an element only to some visitors, on some pages or at some times.** Every element has a Conditions section in its Settings tab.
+  - **Visitor:** logged in or out, user role, any user field.
+  - **Content:** type of page (front page, blog, single post, archive, search, 404 …), post type, specific page IDs, any custom field.
+  - **Date and time:** from or until a date, days of the week, a time of day (overnight ranges such as 22:00–06:00 work), all in the site time zone.
+  - **Request:** URL parameter, cookie, or the site the visitor came from.
+  - Field comparisons: equals, contains, exists, is empty, greater or less than, and their opposites.
+- **And / or.** Rules in one group must all match; add an "or" group for another way in. A summary at the top says in plain words when the element shows.
+- **Checked on the server.** An element that does not match is not sent to the browser at all, children included. That is not the same as hiding it with CSS. In the editor every element always shows; elements with conditions get a dashed purple outline on the canvas and a signpost icon in Structure.
+- **Safe with caching.** Pages that use date, time, URL or cookie rules are kept out of the page cache, so nobody gets someone else's version. Rules about the logged-in user leave the cache alone, because logged-in visitors are never served from it.
+- A rule that is not filled in yet is ignored instead of hiding the element. Passwords, sessions and keys can never be used in a user-field rule.
+
 ## 4.28.0 — Velox Builder: design tokens with fluid type and spacing scales
 - **Fluid type scale.**
   - Set a base size and a ratio for the smallest and the largest screen. Velox writes `--text-xs` … `--text-6xl` as `clamp()` values, so font sizes grow smoothly with the screen without breakpoints (the Utopia method).

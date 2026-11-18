@@ -558,6 +558,8 @@ class Velox_Builder {
 			'tokens'  => self::tokens(),
 			// Every token (colours, fluid type and spacing steps, custom) for the pickers.
 			'tokenList' => self::token_list(),
+			// Roles, post types and the site clock for the Conditions section.
+			'conditions' => class_exists( 'Velox_Builder_Conditions' ) ? Velox_Builder_Conditions::editor_data() : array(),
 			// The site-wide version of each class, so a class added to this
 			// document starts from what the rest of the site uses.
 			'classRegistry' => (object) self::class_registry(),

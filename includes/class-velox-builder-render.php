@@ -2593,6 +2593,11 @@ class Velox_Builder_Render {
 		if ( ! empty( $node['hidden'] ) ) {
 			return '';
 		}
+		// Conditions (who, where, when) are checked here, on the server: an element
+		// that does not pass is never sent to the browser, children included.
+		if ( ! empty( $node['cond'] ) && class_exists( 'Velox_Builder_Conditions' ) && ! Velox_Builder_Conditions::passes( $node['cond'] ) ) {
+			return '';
+		}
 		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Navbar', 'Breadcrumbs', 'Anchornav' ), true ) ) {
 			$nc = array();
 			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $nc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
