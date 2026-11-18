@@ -891,6 +891,9 @@ class Velox_Builder {
 		} else {
 			// No longer a template: drop its purpose rule and the default pointer,
 			// so they cannot come back to life if it is turned into a template later.
+			if ( class_exists( 'Velox_Builder_Templates' ) ) {
+				Velox_Builder_Templates::forget( $id );
+			}
 			$rules = self::template_rules();
 			if ( isset( $rules[ (int) $id ] ) ) {
 				unset( $rules[ (int) $id ] );
@@ -2160,6 +2163,9 @@ class Velox_Builder {
 		$post_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . self::table() . " WHERE id = %d AND kind = 'page'", $id ) );
 		$wpdb->delete( self::table(), array( 'id' => $id ), array( '%d' ) );
 		// Leave nothing behind: its template rule, the default pointer, its CSS file.
+		if ( class_exists( 'Velox_Builder_Templates' ) ) {
+			Velox_Builder_Templates::forget( $id );
+		}
 		$rules = self::template_rules();
 		if ( isset( $rules[ $id ] ) ) {
 			unset( $rules[ $id ] );
@@ -2238,6 +2244,13 @@ class Velox_Builder {
 			}
 			if ( $choice > 0 && in_array( $choice, $live, true ) ) {
 				return $choice;
+			}
+		}
+		// A template's own rules ("Use on … but not on …") come next.
+		if ( class_exists( 'Velox_Builder_Templates' ) ) {
+			$ruled = Velox_Builder_Templates::match( Velox_Builder_Templates::ctx_post( $post_id ) );
+			if ( $ruled ) {
+				return $ruled['id'];
 			}
 		}
 		// A template made for exactly this kind of page (front page, posts, pages)

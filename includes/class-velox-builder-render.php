@@ -217,6 +217,25 @@ class Velox_Builder_Render {
 		if ( ! class_exists( 'Velox_Builder' ) || is_feed() || is_embed() || is_admin() ) {
 			return null;
 		}
+		// A template whose rules name this screen takes it, even a custom post
+		// type archive or a shop category: someone asked for it explicitly.
+		if ( class_exists( 'Velox_Builder_Templates' ) && ! ( function_exists( 'is_cart' ) && ( is_cart() || is_checkout() || is_account_page() ) ) ) {
+			$ruled = Velox_Builder_Templates::match( Velox_Builder_Templates::ctx_request() );
+			if ( $ruled ) {
+				$name = is_404() ? 'error404' : ( is_search() ? 'search' : 'archive' );
+				self::$loop_used = true;
+				return array(
+					'tree'    => array(),
+					'classes' => array(),
+					'content' => array(),
+					'__id'    => 0,
+					'__file'  => '0-' . $name . '-' . $ruled['id'],
+					'__tpl'   => $ruled['id'],
+					'__title' => wp_get_document_title(),
+					'__html'  => self::loop_html( $name ),
+				);
+			}
+		}
 		if ( is_404() ) {
 			$ctx = array( 'error404' );
 		} elseif ( is_search() ) {
@@ -2709,6 +2728,7 @@ class Velox_Builder_Render {
 		// reusables and WordPress-data elements animate too (they returned early).
 		$attr .= $aos_attr;
 		$attr .= self::custom_attrs( $node );
+		$attr .= self::site_part( $node, $id );
 
 		// Reusable element: pull the referenced reusable document and render its
 		// tree inline (by reference — editing the reusable updates every page).
@@ -2963,6 +2983,81 @@ class Velox_Builder_Render {
 		return '<' . $tag . $attr . '>' . $content . $kids . '</' . $tag . '>' . $after;
 	}
 
+	/**
+	 * Site header / footer options on a section or box (node.hdr):
+	 * sticky, hide when scrolling down, shrink, background and shadow once
+	 * scrolled, transparent over the first section, z-index; or a footer that
+	 * stays at the bottom of short pages.
+	 */
+	private static function site_part( $node, $id ) {
+		$h = $node['hdr'] ?? null;
+		if ( ! is_array( $h ) || '' === $id || ! in_array( $h['mode'] ?? '', array( 'header', 'footer' ), true ) ) {
+			return '';
+		}
+		// The same box twice on a page (a reusable used twice) needs its CSS once.
+		static $done = array();
+		$first        = ! isset( $done[ $id ] );
+		$done[ $id ]  = true;
+		$sel = '#' . $id;
+		if ( 'footer' === $h['mode'] ) {
+			if ( ! empty( $h['bottom'] ) && $first ) {
+				// The page becomes a column; the footer's top margin soaks up the
+				// spare height, so it sits at the bottom of short pages.
+				self::$float_css .= 'body.velox-built{display:flex;flex-direction:column;min-height:calc(100vh - var(--wp-admin--admin-bar--height,0px))}'
+					. 'body.velox-built>*{flex-shrink:0}' . $sel . '{margin-top:auto}';
+			}
+			return '';
+		}
+		$z      = isset( $h['z'] ) && '' !== $h['z'] ? max( 0, min( 99999, (int) $h['z'] ) ) : 100;
+		$sticky = ! empty( $h['sticky'] );
+		$over   = in_array( $h['overlay'] ?? '', array( 'always', 'tablet', 'desktop' ), true ) ? $h['overlay'] : '';
+		$attr   = ' data-vx-header';
+		$css    = $sel . '{z-index:' . $z . ';transition:background-color .25s ease,box-shadow .25s ease,padding .25s ease,transform .3s ease}';
+		if ( $sticky ) {
+			$attr .= ' data-vx-sticky data-vx-shrink-at="' . max( 0, (int) ( $h['at'] ?? 60 ) ) . '"';
+			if ( ! empty( $h['up'] ) ) {
+				$attr .= ' data-vx-hide-down';
+				$css  .= $sel . '.is-hidden{transform:translateY(-100%)}';
+			}
+			$css .= $sel . '{position:sticky;top:0}';
+			// Logged-in visitors see the admin bar: stick below it, not under it.
+			$css .= '.admin-bar ' . $sel . '{top:var(--wp-admin--admin-bar--height,0px)}';
+			if ( isset( $h['pad'] ) && '' !== $h['pad'] ) {
+				$p    = max( 0, min( 200, (int) $h['pad'] ) );
+				$css .= $sel . '.is-stuck{padding-top:' . $p . 'px;padding-bottom:' . $p . 'px}';
+			}
+			$bg = self::sanitize_value( (string) ( $h['bg'] ?? '' ) );
+			if ( '' !== $bg ) {
+				$css .= $sel . '.is-stuck{background:' . $bg . '}';
+			}
+			if ( ! empty( $h['shadow'] ) ) {
+				$css .= $sel . '.is-stuck{box-shadow:0 6px 24px rgba(0,0,0,.08)}';
+			}
+			self::$runtime_used['header'] = true;
+		}
+		if ( $over ) {
+			// Out of the flow, so the first section starts at the very top. A
+			// sticky header that floats over the hero has to be fixed instead.
+			// :not(.is-stuck) outranks the box's own background (same #id, printed
+			// later) and steps aside once the scrolled background takes over.
+			$rule = $sel . '{position:' . ( $sticky ? 'fixed' : 'absolute' ) . ';top:0;left:0;right:0}'
+				. $sel . ':not(.is-stuck){background:transparent}'
+				. ( $sticky ? '.admin-bar ' . $sel . '{top:var(--wp-admin--admin-bar--height,0px)}' : '' );
+			if ( 'always' === $over ) {
+				$css .= $rule;
+			} else {
+				$b    = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991, 'mobile' => 767 );
+				$min  = 'desktop' === $over ? (int) $b['tablet'] + 1 : (int) $b['mobile'] + 1;
+				$css .= '@media (min-width:' . $min . 'px){' . $rule . '}';
+			}
+		}
+		$css .= '@media (prefers-reduced-motion:reduce){' . $sel . '{transition:none}}';
+		if ( $first ) {
+			self::$float_css .= $css;
+		}
+		return $attr;
+	}
+
 	/** A link field's address; {post.url} and the other dynamic links resolve to the current item. */
 	private static function link_href( $href ) {
 		$href = trim( (string) $href );
@@ -2994,6 +3089,19 @@ class Velox_Builder_Render {
 	/** Extra CSS that belongs to elements on this page (loop pagination and the like). */
 	public static function add_css( $css ) {
 		self::$float_css .= (string) $css;
+	}
+
+	/** How much element CSS has been collected so far (see css_trim). */
+	public static function css_mark() {
+		return strlen( self::$float_css );
+	}
+
+	/**
+	 * Drop element CSS collected after a mark. A loop renders the same elements
+	 * once per item; their CSS is the same every time, so only the first copy stays.
+	 */
+	public static function css_trim( $mark ) {
+		self::$float_css = substr( self::$float_css, 0, (int) $mark );
 	}
 
 	private static function token_value( $token ) {

@@ -58,6 +58,7 @@
 		structure:'<path fill-rule="evenodd" d="M6 3.5A1.5 1.5 0 0 1 7.5 2h1A1.5 1.5 0 0 1 10 3.5v1A1.5 1.5 0 0 1 8.5 6v1H14a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0v-1A.5.5 0 0 1 2 7h5.5V6A1.5 1.5 0 0 1 6 4.5zM8.5 5a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5zM0 11.5A1.5 1.5 0 0 1 1.5 10h1A1.5 1.5 0 0 1 4 11.5v1A1.5 1.5 0 0 1 2.5 14h-1A1.5 1.5 0 0 1 0 12.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm4.5.5A1.5 1.5 0 0 1 7.5 10h1a1.5 1.5 0 0 1 1.5 1.5v1A1.5 1.5 0 0 1 8.5 14h-1A1.5 1.5 0 0 1 6 12.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm4.5.5a1.5 1.5 0 0 1 1.5-1.5h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/>',
 		exit:'<path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/>',
 		external:'<path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5"/><path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0z"/>',
+		pinangle:'<path d="M9.828.722a.5.5 0 0 1 .354.146l4.95 4.95a.5.5 0 0 1 0 .707c-.48.48-1.072.588-1.503.588-.177 0-.335-.018-.46-.039l-3.134 3.134a6 6 0 0 1 .16 1.013c.046.702-.032 1.687-.72 2.375a.5.5 0 0 1-.707 0l-2.829-2.828-3.182 3.182c-.195.195-1.219.902-1.414.707s.512-1.22.707-1.414l3.182-3.182-2.828-2.829a.5.5 0 0 1 0-.707c.688-.688 1.673-.767 2.375-.72a6 6 0 0 1 1.013.16l3.134-3.133a3 3 0 0 1-.04-.461c0-.43.108-1.022.589-1.503a.5.5 0 0 1 .353-.146m.122 2.112v-.002zm0-.002v.002a.5.5 0 0 1-.122.51L6.293 6.878a.5.5 0 0 1-.511.12H5.78l-.014-.004a5 5 0 0 0-.288-.076 5 5 0 0 0-.765-.116c-.422-.028-.836.008-1.175.15l5.51 5.509c.141-.34.177-.753.149-1.175a5 5 0 0 0-.192-1.054l-.004-.013v-.001a.5.5 0 0 1 .12-.512l3.536-3.535a.5.5 0 0 1 .532-.115l.096.022c.087.017.208.034.344.034q.172.002.343-.04L9.927 2.028q-.042.172-.04.343a1.8 1.8 0 0 0 .062.46z"/>',
 		repeat:'<path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41m-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9"/> <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5 5 0 0 0 8 3M3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9z"/>',
 		eyeslash:'<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/> <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/> <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>',
 		signpost:'<path d="M7 7V1.414a1 1 0 0 1 2 0V2h5a1 1 0 0 1 .8.4l.975 1.3a.5.5 0 0 1 0 .6L14.8 5.6a1 1 0 0 1-.8.4H9v10H7v-5H2a1 1 0 0 1-.8-.4L.225 9.3a.5.5 0 0 1 0-.6L1.2 7.4A1 1 0 0 1 2 7zm1 3V8H2l-.75 1L2 10zm0-5h6l.75-1L14 3H8z"/>',
@@ -3152,7 +3153,7 @@
 	 * text, animation and item fields were missing, so typing there lost focus
 	 * after one character or a short pause. */
 	var FOCUS_ATTRS = [ 'data-setnum', 'data-setbox', 'data-setunit', 'data-setboxunit', 'data-set', 'data-setel', 'data-sethref',
-		'data-repset', 'data-setaos', 'data-imgalt', 'data-setconn', 'data-setpreset', 'data-setwp', 'data-elcss', 'data-attrn', 'data-attrv', 'data-setsel', 'data-sfilter', 'data-cond', 'data-loop' ];
+		'data-repset', 'data-setaos', 'data-imgalt', 'data-setconn', 'data-setpreset', 'data-setwp', 'data-elcss', 'data-attrn', 'data-attrv', 'data-setsel', 'data-sfilter', 'data-cond', 'data-loop', 'data-hdr' ];
 	function captureFocus() {
 		var el = document.activeElement;
 		if ( ! el || ! el.closest || ! el.closest( '#vb-inspector' ) ) { return null; }
@@ -3935,6 +3936,9 @@
 		// ---- animate on scroll, available on every element ----
 		s += aosSettingsHTML( node );
 
+		// ---- site header / footer behaviour ----
+		s += partSectionHTML( node );
+
 		// ---- query loop: repeat the children for each post / term / user ----
 		s += loopSectionHTML( node );
 
@@ -4459,6 +4463,55 @@
 		}, T( 'Query loop' ) );
 	}
 
+	/* ---------- site header / footer ----------
+	 * A section or box can be the site header (sticky, hide on scroll down,
+	 * shrink, background once scrolled, transparent over the first section)
+	 * or the site footer (stays at the bottom of short pages). Stored as
+	 * node.hdr and turned into CSS + data attributes on the published page. */
+	function partSectionHTML( node ) {
+		if ( [ 'Section', 'Div' ].indexOf( node.el ) < 0 ) { return ''; }
+		var h = node.hdr || {}, mode = h.mode || '';
+		var chk = function ( f, label ) { return '<label class="vb-set-check"><input type="checkbox" data-hdr="' + f + '"' + ( h[ f ] ? ' checked' : '' ) + '><span>' + T( label ) + '</span></label>'; };
+		var inp = function ( f, label, ph, unit ) {
+			return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><div class="vb-row"><input class="vb-inp' + ( unit ? ' num' : '' ) + '" data-hdr="' + f + '" value="' + escapeHtml( h[ f ] == null ? '' : h[ f ] ) + '" placeholder="' + escapeHtml( ph || '' ) + '" spellcheck="false">' + ( unit ? '<span class="vb-unit-static">' + unit + '</span>' : '' ) + '</div></div>';
+		};
+		var out = '<div class="vb-setsec vb-partsec"><div class="vb-setsec-h">' + svg( 'pinangle', 14 ) + ' ' + T( 'Site header / footer' ) + '</div>' +
+			'<div class="vb-f"><div class="vb-f-lbl">' + T( 'This box is' ) + '</div><select class="vb-inp" data-hdr="mode">' +
+			[ [ '', 'A normal box' ], [ 'header', 'The site header' ], [ 'footer', 'The site footer' ] ].map( function ( o ) {
+				return '<option value="' + o[ 0 ] + '"' + ( mode === o[ 0 ] ? ' selected' : '' ) + '>' + escapeHtml( T( o[ 1 ] ) ) + '</option>';
+			} ).join( '' ) + '</select></div>';
+		if ( 'header' === mode ) {
+			out += chk( 'sticky', 'Stick to the top while scrolling' );
+			if ( h.sticky ) {
+				out += chk( 'up', 'Hide when scrolling down, show when scrolling up' );
+				out += '<div class="vb-loop-pair">' + inp( 'at', 'Change after', '60', 'px' ) + inp( 'pad', 'Padding when scrolled', T( 'unchanged' ), 'px' ) + '</div>';
+				out += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Background when scrolled' ) + '</div><div class="vb-row">' +
+					'<input type="color" class="vb-swatch" data-hdrswatch value="' + ( /^#[0-9a-f]{6}$/i.test( h.bg || '' ) ? h.bg : '#ffffff' ) + '">' +
+					'<input class="vb-inp" data-hdr="bg" value="' + escapeHtml( h.bg || '' ) + '" placeholder="' + T( 'unchanged' ) + '" spellcheck="false"></div></div>';
+				out += chk( 'shadow', 'Shadow when scrolled' );
+			}
+			out += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Transparent over the first section' ) + '</div><select class="vb-inp" data-hdr="overlay">' +
+				[ [ '', 'Never' ], [ 'always', 'Always' ], [ 'tablet', 'Tablet and up' ], [ 'desktop', 'Desktop only' ] ].map( function ( o ) {
+					return '<option value="' + o[ 0 ] + '"' + ( ( h.overlay || '' ) === o[ 0 ] ? ' selected' : '' ) + '>' + escapeHtml( T( o[ 1 ] ) ) + '</option>';
+				} ).join( '' ) + '</select></div>';
+			out += inp( 'z', 'Layer (z-index)', '100' );
+			out += '<div class="vb-setnote">' + T( 'Put this box at the top of a template. The scroll effects show on the published page, not in the editor.' ) + '</div>';
+		} else if ( 'footer' === mode ) {
+			out += chk( 'bottom', 'Keep at the bottom of short pages' );
+			out += '<div class="vb-setnote">' + T( 'Works when this box is the last top-level box of the page or template.' ) + '</div>';
+		}
+		return out + '</div>';
+	}
+	function setPartField( f, v ) {
+		store.commit( function ( s ) {
+			var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
+			var h = Object.assign( {}, n.hdr || {} );
+			if ( 'mode' === f ) { h = v ? { mode:v } : {}; }
+			else if ( '' === v || false === v ) { delete h[ f ]; } else { h[ f ] = v; }
+			if ( h.mode ) { n.hdr = h; } else { delete n.hdr; }
+		}, T( 'Site header / footer' ) );
+	}
+
 	function renderSettingsPanel() {
 		var box = document.getElementById( 'vb-setpanel' ); if ( ! box ) { return; }
 		if ( ! setShown ) { box.style.display = 'none'; applyDock(); return; }
@@ -4799,6 +4852,7 @@
 			var name = ( node.name || node.el || 'El' ) + ( node.classes && node.classes[ 0 ] ? ' · ' + node.classes[ 0 ] : '' );
 			var caret = hasKids ? '<span class="vb-st-caret' + ( collapsed ? ' closed' : '' ) + '" data-stcaret="' + node.id + '">' + svg( 'chevron', 11 ) + '</span>' : '<span class="vb-st-spacer"></span>';
 			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( multi.indexOf( node.id ) > -1 && node.id !== sel ? ' msel' : '' ) + ( node.hidden ? ' hid' : '' ) + ( vis && ! vis.hits[ node.id ] ? ' ctx' : '' ) + '" data-stnode="' + node.id + '" draggable="true" role="treeitem" aria-level="' + ( depth + 1 ) + '" aria-selected="' + ( node.id === sel ? 'true' : 'false' ) + '"' + ( hasKids ? ' aria-expanded="' + ( collapsed ? 'false' : 'true' ) + '"' : '' ) + ' tabindex="' + ( node.id === sel ? '0' : '-1' ) + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px;--d:' + depth + '">' + caret + '<span class="vb-st-ic">' + svg( nodeIcon( node ), 16 ) + '</span><span class="vb-st-l">' + escapeHtml( name ) + '</span>' +
+				( node.hdr && node.hdr.mode ? '<span class="vb-st-cond vb-st-part" title="' + escapeHtml( 'footer' === node.hdr.mode ? T( 'Site footer' ) : T( 'Site header' ) ) + '">' + svg( 'pinangle', 12 ) + '</span>' : '' ) +
 				( loopOn( node ) ? '<span class="vb-st-cond vb-st-loop" title="' + escapeHtml( T( 'Query loop' ) + ': ' + loopSummary( node.loop ) ) + '">' + svg( 'repeat', 12 ) + '</span>' : '' ) +
 				( condCount( node.cond ) ? '<span class="vb-st-cond" title="' + escapeHtml( T( 'Shows when' ) + ' ' + condSummary( node.cond ) ) + '">' + svg( 'signpost', 12 ) + '</span>' : '' ) + '</div>';
 			if ( collapsed ) { return html; }
@@ -5224,6 +5278,12 @@
 				}, 400 );
 				return;
 			}
+			var hin = e.target.closest( 'input[data-hdr]' );
+			if ( hin && 'checkbox' !== hin.type ) {
+				var hf = hin.getAttribute( 'data-hdr' ), hv = hin.value.trim();
+				debounceCommit( fieldKey( hin ), function () { setPartField( hf, hv ); }, 350 );
+				return;
+			}
 			var lin = e.target.closest( 'input[data-loop]' );
 			if ( lin && 'checkbox' !== lin.type ) {
 				var lf = lin.getAttribute( 'data-loop' ), lv = lin.value.trim();
@@ -5330,6 +5390,13 @@
 			var t = e.target.closest( 'input.vb-inp[data-set]' ); if ( t ) { debounceCommit( fieldKey( e.target ), function () { setProp( t.getAttribute( 'data-set' ), e.target.value ); }, 150 ); return; }
 		} );
 		document.addEventListener( 'change', function ( e ) {
+			var hch = e.target.closest( '[data-hdr]' );
+			if ( hch ) {
+				if ( 'checkbox' === hch.type ) { setPartField( hch.getAttribute( 'data-hdr' ), hch.checked ? '1' : '' ); }
+				else if ( 'SELECT' === hch.tagName ) { setPartField( hch.getAttribute( 'data-hdr' ), hch.value ); }
+				return;
+			}
+			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-hdrswatch' ) ) { setPartField( 'bg', e.target.value ); return; }
 			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-loopon' ) ) {
 				var lon = e.target.checked;
 				store.commit( function ( s ) {
@@ -7615,6 +7682,7 @@
 			'@media (prefers-reduced-motion:reduce){.vb-tab-ind,.vb-block-cv{transition:none}}',
 			'.vb-loop-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}.vb-loop-pair>.vb-f{min-width:0}.vb-loop-pair .vb-inp{width:100%!important;min-width:0!important;max-width:100%}',
 			'.vb-loop-meta{margin:6px 0 2px;padding:7px 10px;border-radius:8px;background:rgba(32,178,140,.1);border:1px solid rgba(32,178,140,.28);color:#7fe0c3;font-size:12px}',
+			'.vb-st-part{color:#f5b85a}.vb-st-part+.vb-st-cond{margin-left:0}',
 			'.vb-st-loop{color:#5fd4b0}.vb-st-loop+.vb-st-cond{margin-left:0}',
 			'.vb-cond-n{margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:rgba(160,107,255,.18);color:#c4a3ff;font:600 11px/18px var(--vb-font,inherit);text-align:center}',
 			'.vb-cond-sum{margin:0 0 10px;padding:8px 10px;border-radius:8px;background:rgba(160,107,255,.08);border:1px solid rgba(160,107,255,.22);color:#d6dae2;font-size:12px;line-height:1.5}',

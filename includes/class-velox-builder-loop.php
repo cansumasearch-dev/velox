@@ -311,10 +311,17 @@ class Velox_Builder_Loop {
 		$saved = $GLOBALS['post'] ?? null;
 		$html  = '';
 		$i     = 0;
+		$mark  = null;
 		foreach ( $res['items'] as $item ) {
 			self::enter( $item, ++$i );
 			$html .= Velox_Builder_Render::render_tree( $kids, $doc );
 			self::leave();
+			// Element CSS is per element, not per item: keep the first copy only.
+			if ( null === $mark ) {
+				$mark = Velox_Builder_Render::css_mark();
+			} else {
+				Velox_Builder_Render::css_trim( $mark );
+			}
 		}
 		// Back to the page's own post for everything after the loop.
 		$GLOBALS['post'] = $saved; // phpcs:ignore WordPress.WP.GlobalVariablesOverride

@@ -200,6 +200,7 @@
 	var DOTS = '<svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/></svg>';
 	var openMenu = null;
 	function keep( el ) {
+		if ( el.hasAttribute( 'data-keep' ) ) { return true; }                    // marked to stay visible
 		if ( el.classList.contains( 'vba-mini-go' ) ) { return true; }            // Publish
 		if ( 'A' === el.tagName && '_blank' === el.getAttribute( 'target' ) ) { return true; } // View
 		if ( 'A' === el.tagName && el === el.parentNode.querySelector( 'a.vba-mini' ) ) { return true; } // Edit / Build

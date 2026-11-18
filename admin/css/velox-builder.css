@@ -697,3 +697,36 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 	.vba-doclist,.vba-classlist{padding:0 4px 8px}
 	.vba-docrow{flex-wrap:wrap}
 }
+
+/* ---- 4.31 Templates: "Which template is used here?" and "Where to use" rules ---- */
+.vba-tpltest-row{display:flex;gap:8px;padding:0 20px 16px}
+.vba-tpltest-row .vba-input{flex:1;min-width:0;font-family:var(--vbb-mono);font-size:13px}
+.vba-tpltest-out{margin:0 20px 18px;padding:12px 14px;border-radius:var(--vbb-r-md);background:var(--vbb-raised);border:1px solid var(--vbb-line);color:var(--vbb-text-2);font-size:13px;line-height:1.55}
+.vba-tpltest-out.is-err{border-color:rgba(245,106,92,.4);color:#ff9b90}
+.vba-tt-main{color:var(--vbb-text)}.vba-tt-main b{font-weight:600}
+.vba-tt-main a{color:#7fd3f7;text-decoration:none}.vba-tt-main a:hover{text-decoration:underline}
+.vba-tt-why{margin-top:4px}.vba-tt-note{margin-top:6px;color:var(--vbb-orange)}.vba-tt-also{margin-top:6px;color:var(--vbb-text-3)}
+.vba-tpl-rulesum{display:inline-flex;align-items:center;gap:5px;min-width:0;max-width:280px;padding:0 8px;height:22px;border-radius:6px;background:rgba(67,209,127,.1);color:#7ee0a6;font-size:12px;white-space:nowrap}
+.vba-tpl-rulesum span{overflow:hidden;text-overflow:ellipsis}
+.vba-tpl-rulesum[hidden]{display:none}
+.vba-docrow.is-flash{box-shadow:inset 0 0 0 1px var(--vbb-accent);background:var(--vbb-accent-soft)}
+.vba-rules-b{display:flex;flex-direction:column;gap:8px;overflow:auto}
+.vba-rules-b>.vba-fl{margin-top:8px}
+.vba-rules-list{display:flex;flex-direction:column;gap:8px}
+.vba-rules-list .vba-hint{margin:0}
+.vba-rule-row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.4fr) 32px;gap:8px;align-items:center}
+.vba-rule-val{display:flex;gap:8px;min-width:0}
+.vba-rule-val .vba-input{flex:1;min-width:0;width:100%}
+.vba-rule-row.is-bad .vba-rule-val .vba-input{border-color:rgba(245,167,66,.6)}
+.vba-rule-row .vba-mini-del{width:32px;height:32px;padding:0;justify-content:center;font-size:18px;line-height:1}
+.vba-rules-add{align-self:flex-start}
+.vba-rules-2col{display:grid;grid-template-columns:minmax(0,1fr) 140px;gap:12px;margin-top:8px}
+.vba-rules-2col .vba-input{width:100%}
+@media screen and (max-width:640px){
+	.vba-rule-row{grid-template-columns:minmax(0,1fr) 32px}
+	.vba-rule-val{grid-column:1/2;grid-row:2;flex-direction:column}
+	.vba-rules-2col{grid-template-columns:1fr}
+	.vba-tpltest-row{flex-direction:column}
+}
+/* WordPress colours a focused <select> dark blue (#0a4b78): unreadable on the dark fields. */
+body select.vba-input:focus,body select.vba-tpl-purpose:focus,body .vba-shell select:focus,body .vba-modal select:focus{color:var(--vbb-text)}

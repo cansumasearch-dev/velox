@@ -4,6 +4,25 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.31.0 — Velox Builder: template rules, template checker, site header and footer
+- **Where to use.** Every template on the Templates screen has a "Where to use" button.
+  - **Use on:** entire site; front page; blog page; any single post or page; single items of a post type; specific posts or pages; child pages of a page; posts in a category or term; any archive; a category, tag or term archive (all terms or chosen ones); a post type archive; author archives; date archives; search results; the 404 page; or an address pattern such as `/shop/*`.
+  - **But not on:** the same choices as exceptions.
+  - **For:** everyone, logged-in visitors only or logged-out visitors only.
+  - **Priority:** when two templates match, the higher priority wins. On a tie the more specific rule wins: a single page beats a post type, which beats the entire site.
+  - A template chosen on the page itself still wins. Without rules a template works by its purpose exactly as before.
+  - Templates with rules can also take over screens the purposes never covered, such as custom post type archives.
+  - The rules show as a short summary next to each template. They are removed when the template is deleted or turned into a page.
+- **"Which template is used here?"** Paste any address of the site on the Templates screen. Velox says which template it gets and why: the page's own choice, a rule, a purpose, the site default or the catch-all. It also lists other templates whose rules match, and notes when a page has no Velox layout.
+- **Site header.** Any section or box can be marked as the site header in its Settings tab:
+  - stick to the top while scrolling, below the admin bar for logged-in users;
+  - hide when scrolling down and come back when scrolling up;
+  - after a set distance: smaller padding, a background colour and a shadow;
+  - transparent over the first section, always or from tablet or desktop width up;
+  - its own layer (z-index).
+- **Site footer.** A box marked as the site footer can stay at the bottom of short pages.
+- **Fixes:** CSS of elements inside a query loop was written once per item, now once. Focused dropdowns on the Velox admin screens were dark blue on dark and unreadable.
+
 ## 4.30.0 — Velox Builder: query loop
 - **Repeat a design for every post, term or user.** Any section, div, grid or columns box has a Query loop section in its Settings tab. Switch it on and everything inside the box repeats once per item.
   - **Posts:** any public post type.

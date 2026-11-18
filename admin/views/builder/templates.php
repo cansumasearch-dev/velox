@@ -30,10 +30,22 @@ $short = array(
 		</div>
 	</header>
 
+	<div class="vba-card vba-tpltest">
+		<div class="vba-card-h">
+			<div><h2><?php esc_html_e( 'Which template is used here?', 'velox' ); ?></h2>
+			<p><?php esc_html_e( 'Paste any address on this site to see which template it gets, and why.', 'velox' ); ?></p></div>
+		</div>
+		<form class="vba-tpltest-row" id="vba-tpltest">
+			<input type="text" class="vba-input" id="vba-tpltest-url" placeholder="<?php echo esc_attr( home_url( '/' ) ); ?>…" aria-label="<?php esc_attr_e( 'Address to check', 'velox' ); ?>" spellcheck="false">
+			<button type="submit" class="vba-btn vba-btn-primary"><?php esc_html_e( 'Check', 'velox' ); ?></button>
+		</form>
+		<div class="vba-tpltest-out" id="vba-tpltest-out" aria-live="polite" hidden></div>
+	</div>
+
 	<div class="vba-card">
 		<div class="vba-card-h">
 			<div><h2><?php esc_html_e( 'Your templates', 'velox' ); ?></h2>
-			<p><?php esc_html_e( 'Which template a page gets: the one chosen on the page itself; otherwise a template made for it (Front page, then Posts or Pages); otherwise the site default; otherwise a Catch-all template. 404, Search and Archives templates are used for those screens.', 'velox' ); ?></p>
+			<p><?php esc_html_e( 'Which template a page gets: the one chosen on the page itself; otherwise a template whose “Where to use” rules match; otherwise a template made for it (Front page, then Posts or Pages); otherwise the site default; otherwise a Catch-all template. 404, Search and Archives templates are used for those screens.', 'velox' ); ?></p>
 			<p><?php esc_html_e( 'Only published templates are used on the site.', 'velox' ); ?></p></div>
 		</div>
 
@@ -55,6 +67,8 @@ $short = array(
 					<div class="vba-docrow" data-doc="<?php echo $id; ?>">
 						<span class="vba-doc-ic"><?php echo Velox_Admin::icon( 'grid', 15 ); // phpcs:ignore ?></span>
 						<a class="vba-doc-title" href="<?php echo esc_url( Velox_Builder::edit_url( $id, 'template' ) ); ?>"><?php echo esc_html( $d['title'] ? $d['title'] : __( 'Untitled', 'velox' ) ); ?></a>
+						<?php $rsum = class_exists( 'Velox_Builder_Templates' ) ? Velox_Builder_Templates::summary( $id ) : ''; ?>
+						<span class="vba-tpl-rulesum" data-tpl-rulesum="<?php echo $id; ?>" title="<?php echo esc_attr( $rsum ); ?>"<?php echo '' === $rsum ? ' hidden' : ''; ?>><?php echo Velox_Admin::icon( 'check', 12 ); // phpcs:ignore ?> <span><?php echo esc_html( $rsum ); ?></span></span>
 
 						<select class="vba-tpl-purpose" data-tpl-purpose="<?php echo $id; ?>" data-prev="<?php echo esc_attr( $pur ); ?>"
 							title="<?php echo esc_attr( $purposes[ $pur ] ?? __( 'What this template is for', 'velox' ) ); ?>"
@@ -82,6 +96,7 @@ $short = array(
 
 						<span class="vba-doc-actions">
 							<a class="vba-mini" href="<?php echo esc_url( Velox_Builder::edit_url( $id, 'template' ) ); ?>"><?php esc_html_e( 'Edit', 'velox' ); ?></a>
+							<button type="button" class="vba-mini" data-tpl-rules="<?php echo $id; ?>" data-keep title="<?php esc_attr_e( 'Choose exactly where this template is used', 'velox' ); ?>"><?php esc_html_e( 'Where to use', 'velox' ); ?></button>
 							<?php if ( $published ) : ?>
 								<button type="button" class="vba-mini" data-doc-unpublish="<?php echo $id; ?>"><?php esc_html_e( 'Unpublish', 'velox' ); ?></button>
 							<?php else : ?>
@@ -127,6 +142,76 @@ $short = array(
 	</div>
 </div>
 
+<!-- Where to use: include rules, exceptions, priority, visitors. -->
+<div class="vba-modal" id="vba-rules-modal" hidden>
+	<div class="vba-modal-back" data-close-rules></div>
+	<div class="vba-modal-box vba-rules-box" style="width:min(640px,94vw);height:auto;max-height:90vh">
+		<div class="vba-modal-h">
+			<b id="vba-rules-title"><?php esc_html_e( 'Where to use this template', 'velox' ); ?></b>
+			<button type="button" class="vba-modal-x" data-close-rules aria-label="<?php esc_attr_e( 'Close', 'velox' ); ?>">&times;</button>
+		</div>
+		<div class="vba-modal-b vba-rules-b">
+			<div class="vba-fl"><?php esc_html_e( 'Use on', 'velox' ); ?></div>
+			<div class="vba-rules-list" id="vba-rules-inc"></div>
+			<button type="button" class="vba-btn vba-btn-ghost vba-rules-add" data-rule-add="inc"><?php echo Velox_Admin::icon( 'plus', 14 ); // phpcs:ignore ?> <?php esc_html_e( 'Add a place', 'velox' ); ?></button>
+			<div class="vba-fl"><?php esc_html_e( 'But not on', 'velox' ); ?></div>
+			<div class="vba-rules-list" id="vba-rules-exc"></div>
+			<button type="button" class="vba-btn vba-btn-ghost vba-rules-add" data-rule-add="exc"><?php echo Velox_Admin::icon( 'plus', 14 ); // phpcs:ignore ?> <?php esc_html_e( 'Add an exception', 'velox' ); ?></button>
+			<div class="vba-rules-2col">
+				<div>
+					<label class="vba-fl" for="vba-rules-who"><?php esc_html_e( 'For', 'velox' ); ?></label>
+					<select id="vba-rules-who" class="vba-input">
+						<option value=""><?php esc_html_e( 'Everyone', 'velox' ); ?></option>
+						<option value="in"><?php esc_html_e( 'Logged-in visitors only', 'velox' ); ?></option>
+						<option value="out"><?php esc_html_e( 'Logged-out visitors only', 'velox' ); ?></option>
+					</select>
+				</div>
+				<div>
+					<label class="vba-fl" for="vba-rules-pri"><?php esc_html_e( 'Priority', 'velox' ); ?></label>
+					<input type="number" id="vba-rules-pri" class="vba-input" value="0" min="-100" max="100" step="1">
+				</div>
+			</div>
+			<p class="vba-hint"><?php esc_html_e( 'When two templates match the same page, the higher priority wins; on a tie, the more specific rule wins (a single page beats a post type, which beats the entire site). A template chosen on the page itself always wins.', 'velox' ); ?></p>
+			<p class="vba-hint"><?php esc_html_e( 'Rules apply once the template is published. With no “Use on” rules, the template works by its purpose as before.', 'velox' ); ?></p>
+		</div>
+		<div class="vba-modal-f">
+			<span class="vba-modal-msg" id="vba-rules-msg"></span>
+			<button type="button" class="vba-btn vba-btn-ghost" data-close-rules><?php esc_html_e( 'Cancel', 'velox' ); ?></button>
+			<button type="button" class="vba-btn vba-btn-primary" id="vba-rules-save"><?php esc_html_e( 'Save', 'velox' ); ?></button>
+		</div>
+	</div>
+</div>
+<?php
+$vba_rules = array();
+foreach ( $docs as $d ) {
+	$vba_rules[ (int) $d['id'] ] = class_exists( 'Velox_Builder_Templates' ) ? Velox_Builder_Templates::get( (int) $d['id'] ) : null;
+}
+?>
+<script>
+window.VBA_TPL = <?php echo wp_json_encode( array(
+	'rules' => (object) $vba_rules,
+	'data'  => class_exists( 'Velox_Builder_Templates' ) ? Velox_Builder_Templates::admin_data() : array(),
+	'i18n'  => array(
+		'ids'       => __( 'IDs, e.g. 12, 40', 'velox' ),
+		'terms'     => __( 'slugs or IDs, e.g. news, 12', 'velox' ),
+		'allTerms'  => __( 'all (or slugs / IDs)', 'velox' ),
+		'url'       => __( '/shop/*', 'velox' ),
+		'remove'    => __( 'Remove', 'velox' ),
+		'none'      => __( 'No rules: the template works by its purpose.', 'velox' ),
+		'noExc'     => __( 'No exceptions.', 'velox' ),
+		'checking'  => __( 'Checking…', 'velox' ),
+		'uses'      => __( 'uses', 'velox' ),
+		'noTpl'     => __( 'gets no Velox template.', 'velox' ),
+		'why'       => __( 'Why:', 'velox' ),
+		'also'      => __( 'Rules of these templates also match:', 'velox' ),
+		'draft'     => __( 'draft, not used', 'velox' ),
+		'priority'  => __( 'priority', 'velox' ),
+		'edit'      => __( 'Edit', 'velox' ),
+		'title'     => __( 'Where to use “%s”', 'velox' ),
+		'needValue' => __( 'Fill in the highlighted fields first.', 'velox' ),
+	),
+) ); ?>;
+</script>
 <script>
 ( function () {
 	var T = {
@@ -284,6 +369,145 @@ $short = array(
 			}
 		} );
 	} );
-	document.addEventListener( 'keydown', function ( e ) { if ( e.key === 'Escape' ) { modal.hidden = true; } } );
+	document.addEventListener( 'keydown', function ( e ) { if ( e.key === 'Escape' ) { modal.hidden = true; rmodal.hidden = true; } } );
+
+	/* ---- Where to use: rule editor ---- */
+	var TPL = window.VBA_TPL || { rules:{}, data:{ types:[], postTypes:[], taxonomies:[] }, i18n:{} }, L = TPL.i18n;
+	var rmodal = document.getElementById( 'vba-rules-modal' ), editing = 0, draft = null;
+	function esc( s ) { return String( s == null ? '' : s ).replace( /[&<>"]/g, function ( c ) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ c ]; } ); }
+	function opts( list, cur, filter ) {
+		return list.filter( filter || function () { return true; } ).map( function ( o ) { return '<option value="' + esc( o.v ) + '"' + ( String( cur ) === o.v ? ' selected' : '' ) + '>' + esc( o.l ) + '</option>'; } ).join( '' );
+	}
+	function needs( t ) {
+		return { posttype:'pt', ptarchive:'pta', page:'ids', child:'ids', interm:'tax+terms', tax:'tax+terms?', url:'url' }[ t ] || '';
+	}
+	function ruleOk( r ) {
+		var n = needs( r.t );
+		if ( ! n ) { return true; }
+		if ( 'tax+terms' === n ) { return !! r.v && !! String( r.v2 || '' ).trim(); }
+		return !! String( r.v || '' ).trim();
+	}
+	function rowHTML( r, list, i ) {
+		var n = needs( r.t ), D = TPL.data, val = '';
+		if ( 'pt' === n ) { val = '<select class="vba-input" data-rv="v">' + opts( D.postTypes, r.v ) + '</select>'; }
+		else if ( 'pta' === n ) { val = '<select class="vba-input" data-rv="v">' + opts( D.postTypes, r.v, function ( o ) { return o.archive; } ) + '</select>'; }
+		else if ( 'ids' === n ) { val = '<input class="vba-input" data-rv="v" value="' + esc( r.v ) + '" placeholder="' + esc( L.ids ) + '">'; }
+		else if ( 'url' === n ) { val = '<input class="vba-input" data-rv="v" value="' + esc( r.v ) + '" placeholder="' + esc( L.url ) + '" spellcheck="false">'; }
+		else if ( 0 === n.indexOf( 'tax' ) ) {
+			val = '<select class="vba-input" data-rv="v">' + opts( D.taxonomies, r.v ) + '</select>' +
+				'<input class="vba-input" data-rv="v2" value="' + esc( r.v2 ) + '" placeholder="' + esc( 'tax+terms' === n ? L.terms : L.allTerms ) + '" spellcheck="false">';
+		}
+		return '<div class="vba-rule-row' + ( ruleOk( r ) ? '' : ' is-bad' ) + '" data-rule="' + list + ':' + i + '">' +
+			'<select class="vba-input vba-rule-t" data-rv="t">' + opts( D.types, r.t ) + '</select>' +
+			( val ? '<span class="vba-rule-val">' + val + '</span>' : '<span class="vba-rule-val"></span>' ) +
+			'<button type="button" class="vba-mini vba-mini-del" data-rule-del="' + list + ':' + i + '" aria-label="' + esc( L.remove ) + '">&times;</button></div>';
+	}
+	function drawRules() {
+		[ 'inc', 'exc' ].forEach( function ( k ) {
+			var box = document.getElementById( 'vba-rules-' + k );
+			box.innerHTML = draft[ k ].length ? draft[ k ].map( function ( r, i ) { return rowHTML( r, k, i ); } ).join( '' )
+				: '<p class="vba-hint">' + esc( 'inc' === k ? L.none : L.noExc ) + '</p>';
+		} );
+	}
+	function firstVal( t ) {
+		var D = TPL.data;
+		if ( 'posttype' === t ) { return ( D.postTypes[ 0 ] || {} ).v || 'post'; }
+		if ( 'ptarchive' === t ) { var a = D.postTypes.filter( function ( o ) { return o.archive; } )[ 0 ]; return a ? a.v : ''; }
+		if ( 'interm' === t || 'tax' === t ) { return ( D.taxonomies[ 0 ] || {} ).v || 'category'; }
+		return '';
+	}
+	document.addEventListener( 'click', function ( e ) {
+		var ob = e.target.closest( '[data-tpl-rules]' );
+		if ( ob ) {
+			editing = +ob.getAttribute( 'data-tpl-rules' );
+			var cur = TPL.rules[ editing ] || {};
+			draft = { inc:( cur.inc || [] ).map( function ( r ) { return Object.assign( {}, r ); } ), exc:( cur.exc || [] ).map( function ( r ) { return Object.assign( {}, r ); } ) };
+			var name = ( ob.closest( '.vba-docrow' ).querySelector( '.vba-doc-title' ) || {} ).textContent || '';
+			document.getElementById( 'vba-rules-title' ).textContent = String( L.title || '%s' ).replace( '%s', name.trim() );
+			document.getElementById( 'vba-rules-who' ).value = cur.who || '';
+			document.getElementById( 'vba-rules-pri' ).value = cur.pri || 0;
+			document.getElementById( 'vba-rules-msg' ).textContent = '';
+			drawRules();
+			rmodal.hidden = false;
+			var f = rmodal.querySelector( '.vba-rule-t, [data-rule-add]' ); if ( f ) { f.focus(); }
+			return;
+		}
+		if ( e.target.closest( '[data-close-rules]' ) ) { rmodal.hidden = true; return; }
+		var ad = e.target.closest( '[data-rule-add]' );
+		if ( ad ) {
+			var k = ad.getAttribute( 'data-rule-add' ), t = 'inc' === k && ! draft.inc.length ? 'entire' : 'page';
+			draft[ k ].push( { t:t, v:firstVal( t ), v2:'' } );
+			drawRules();
+			var rows = document.querySelectorAll( '#vba-rules-' + k + ' .vba-rule-t' ); if ( rows.length ) { rows[ rows.length - 1 ].focus(); }
+			return;
+		}
+		var rd = e.target.closest( '[data-rule-del]' );
+		if ( rd ) {
+			var pp = rd.getAttribute( 'data-rule-del' ).split( ':' );
+			draft[ pp[ 0 ] ].splice( +pp[ 1 ], 1 );
+			drawRules();
+			return;
+		}
+		if ( e.target.closest( '#vba-rules-save' ) ) {
+			var msg = document.getElementById( 'vba-rules-msg' );
+			if ( draft.inc.concat( draft.exc ).some( function ( r ) { return ! ruleOk( r ); } ) ) { msg.textContent = L.needValue; drawRules(); return; }
+			msg.textContent = T.saving;
+			var data = { inc:draft.inc, exc:draft.exc, who:document.getElementById( 'vba-rules-who' ).value, pri:+document.getElementById( 'vba-rules-pri' ).value || 0 };
+			post( 'builder_template_rules_save', { id:editing, rules:JSON.stringify( data ) }, function ( res ) {
+				if ( ! res || ! res.success ) { msg.textContent = errMsg( res, T.notSaved ); return; }
+				TPL.rules[ editing ] = res.data.rules;
+				var sum = document.querySelector( '[data-tpl-rulesum="' + editing + '"]' );
+				if ( sum ) { sum.hidden = ! res.data.summary; sum.title = res.data.summary; sum.querySelector( 'span' ).textContent = res.data.summary; }
+				rmodal.hidden = true;
+			} );
+		}
+	} );
+	function onRuleField( e ) {
+		var row = e.target.closest( '[data-rule]' ), f = e.target.getAttribute( 'data-rv' );
+		if ( ! row || ! f ) { return; }
+		var pp = row.getAttribute( 'data-rule' ).split( ':' ), r = draft[ pp[ 0 ] ][ +pp[ 1 ] ];
+		if ( 't' === f ) {
+			r.t = e.target.value; r.v = firstVal( r.t ); r.v2 = '';
+			drawRules();
+			var again = document.querySelector( '[data-rule="' + pp[ 0 ] + ':' + pp[ 1 ] + '"] [data-rv="t"]' ); if ( again ) { again.focus(); }
+			return;
+		}
+		r[ f ] = e.target.value;
+		row.classList.toggle( 'is-bad', ! ruleOk( r ) );
+	}
+	rmodal.addEventListener( 'change', onRuleField );
+	rmodal.addEventListener( 'input', function ( e ) { if ( 'INPUT' === e.target.tagName ) { onRuleField( e ); } } );
+
+	/* ---- Which template is used here? ---- */
+	var tform = document.getElementById( 'vba-tpltest' );
+	if ( tform ) {
+		tform.addEventListener( 'submit', function ( e ) {
+			e.preventDefault();
+			var out = document.getElementById( 'vba-tpltest-out' ), url = document.getElementById( 'vba-tpltest-url' ).value.trim();
+			if ( ! url ) { return; }
+			out.hidden = false; out.className = 'vba-tpltest-out'; out.textContent = L.checking;
+			post( 'builder_template_test', { url:url }, function ( res ) {
+				if ( ! res || ! res.success ) { out.className = 'vba-tpltest-out is-err'; out.textContent = errMsg( res, T.dlgError ); return; }
+				var d = res.data, h = '<div class="vba-tt-main"><b>' + esc( d.what ) + '</b> ';
+				h += d.id ? esc( L.uses ) + ' <a href="#" data-tt-go="' + d.id + '"><b>' + esc( d.title ) + '</b></a>.' : esc( L.noTpl );
+				h += '</div><div class="vba-tt-why">' + esc( L.why ) + ' ' + esc( d.why ) + '</div>';
+				if ( d.note ) { h += '<div class="vba-tt-note">' + esc( d.note ) + '</div>'; }
+				var others = ( d.matches || [] ).filter( function ( m ) { return m.id !== d.id; } );
+				if ( others.length ) {
+					h += '<div class="vba-tt-also">' + esc( L.also ) + ' ' + others.map( function ( m ) {
+						return esc( m.title ) + ' (' + esc( L.priority ) + ' ' + m.pri + ( m.live ? '' : ', ' + esc( L.draft ) ) + ')';
+					} ).join( ', ' ) + '</div>';
+				}
+				out.innerHTML = h;
+			} );
+		} );
+		document.addEventListener( 'click', function ( e ) {
+			var go = e.target.closest( '[data-tt-go]' );
+			if ( ! go ) { return; }
+			e.preventDefault();
+			var row = document.querySelector( '.vba-docrow[data-doc="' + go.getAttribute( 'data-tt-go' ) + '"]' );
+			if ( row ) { row.scrollIntoView( { block:'center', behavior:'smooth' } ); row.classList.add( 'is-flash' ); setTimeout( function () { row.classList.remove( 'is-flash' ); }, 1600 ); }
+		} );
+	}
 }() );
 </script>
