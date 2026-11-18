@@ -16,7 +16,7 @@ $kind_label = array(
 		<div><h1><?php esc_html_e( 'Reusables', 'velox' ); ?></h1>
 		<p><?php esc_html_e( 'Build a block once, drop it into any page, and edit it in one place to update it everywhere.', 'velox' ); ?></p></div>
 		<div class="vba-head-actions">
-			<a class="vba-btn vba-btn-primary" href="<?php echo esc_url( $new_url ); ?>"><?php echo Velox_Admin::icon( 'plug', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'New reusable', 'velox' ); ?></a>
+			<a class="vba-btn vba-btn-primary" href="<?php echo esc_url( $new_url ); ?>"><?php echo Velox_Admin::icon( 'plus', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'New reusable', 'velox' ); ?></a>
 		</div>
 	</header>
 	<div class="vba-card">
@@ -109,7 +109,15 @@ $kind_label = array(
 		unpublishAsk: '<?php echo esc_js( __( 'Unpublish this reusable? Pages that place it stop showing it until you publish it again.', 'velox' ) ); ?>',
 		deleteAsk: '<?php echo esc_js( __( 'Delete this reusable?', 'velox' ) ); ?>',
 		deleteUsedOne: '<?php echo esc_js( __( 'This reusable is used in 1 place. Deleting it removes the block from there. Continue?', 'velox' ) ); ?>',
-		deleteUsedMany: '<?php /* translators: %s: number of pages and templates. */ echo esc_js( __( 'This reusable is used in %s places. Deleting it removes the block from all of them. Continue?', 'velox' ) ); ?>'
+		deleteUsedMany: '<?php /* translators: %s: number of pages and templates. */ echo esc_js( __( 'This reusable is used in %s places. Deleting it removes the block from all of them. Continue?', 'velox' ) ); ?>',
+		dlgCancel: '<?php echo esc_js( __( 'Cancel', 'velox' ) ); ?>',
+		dlgOk: '<?php echo esc_js( __( 'OK', 'velox' ) ); ?>',
+		dlgError: '<?php echo esc_js( __( 'Something went wrong', 'velox' ) ); ?>',
+		dlgRename: '<?php echo esc_js( __( 'Rename', 'velox' ) ); ?>',
+		dlgUnpublishTitle: '<?php echo esc_js( __( 'Unpublish?', 'velox' ) ); ?>',
+		dlgUnpublish: '<?php echo esc_js( __( 'Unpublish', 'velox' ) ); ?>',
+		dlgDeleteTitle: '<?php echo esc_js( __( 'Delete reusable?', 'velox' ) ); ?>',
+		dlgDelete: '<?php echo esc_js( __( 'Delete', 'velox' ) ); ?>'
 	};
 	// The config is printed in the footer, after this script, so read it when used.
 	function cfg() { return window.VELOX_BUILDER || {}; }
@@ -122,37 +130,49 @@ $kind_label = array(
 			.then( function ( r ) { return r.json(); } ).then( cb ).catch( function () { cb( { success:false } ); } );
 	}
 	function errMsg( res, fallback ) { return ( res && res.data && res.data.message ) || fallback; }
+	// In-app dialogs. velox-builder-admin.js loads in the footer, after this
+	// script, so resolve it when used; native dialogs only if it is missing.
+	function dlg() {
+		return window.vbaDialog || {
+			confirm: function ( o, yes, no ) { if ( window.confirm( o.text ) ) { yes(); } else if ( no ) { no(); } },
+			prompt: function ( o, cb ) { var v = window.prompt( o.text, o.value || '' ); v = null === v ? '' : String( v ).trim(); if ( v ) { cb( v ); } },
+			alert: function ( o ) { window.alert( o.text ); }
+		};
+	}
+	function fail( text ) { dlg().alert( { title:T.dlgError, text:text, ok:T.dlgOk } ); }
 	document.addEventListener( 'click', function ( e ) {
 		var pb = e.target.closest( '[data-doc-publish]' );
 		if ( pb ) {
 			pb.disabled = true;
 			post( 'builder_publish', { id:pb.getAttribute( 'data-doc-publish' ) }, function ( r ) {
-				if ( r && r.success ) { location.reload(); } else { pb.disabled = false; alert( errMsg( r, T.publishFailed ) ); }
+				if ( r && r.success ) { location.reload(); } else { pb.disabled = false; fail( errMsg( r, T.publishFailed ) ); }
 			} );
 			return;
 		}
 		var up = e.target.closest( '[data-doc-unpublish]' );
 		if ( up ) {
-			if ( ! confirm( T.unpublishAsk ) ) { return; }
-			post( 'builder_unpublish', { id:up.getAttribute( 'data-doc-unpublish' ) }, function ( r ) {
-				if ( r && r.success ) { location.reload(); } else { alert( errMsg( r, T.unpublishFailed ) ); }
+			dlg().confirm( { title:T.dlgUnpublishTitle, text:T.unpublishAsk, ok:T.dlgUnpublish, cancel:T.dlgCancel, danger:true }, function () {
+				post( 'builder_unpublish', { id:up.getAttribute( 'data-doc-unpublish' ) }, function ( r ) {
+					if ( r && r.success ) { location.reload(); } else { fail( errMsg( r, T.unpublishFailed ) ); }
+				} );
 			} );
 			return;
 		}
 		var rn = e.target.closest( '[data-doc-rename]' );
 		if ( rn ) {
 			var row = rn.closest( '.vba-docrow' ), cur = row.querySelector( '.vba-doc-title' ).textContent.trim();
-			var nn = prompt( T.renameTo, cur );
-			if ( ! nn || nn === cur ) { return; }
-			post( 'builder_doc_rename', { id:rn.getAttribute( 'data-doc-rename' ), title:nn }, function ( r ) {
-				if ( r && r.success ) { location.reload(); } else { alert( errMsg( r, T.renameFailed ) ); }
+			dlg().prompt( { title:T.dlgRename, text:T.renameTo, value:cur, ok:T.dlgRename, cancel:T.dlgCancel }, function ( nn ) {
+				if ( ! nn || nn === cur ) { return; }
+				post( 'builder_doc_rename', { id:rn.getAttribute( 'data-doc-rename' ), title:nn }, function ( r ) {
+					if ( r && r.success ) { location.reload(); } else { fail( errMsg( r, T.renameFailed ) ); }
+				} );
 			} );
 			return;
 		}
 		var dp = e.target.closest( '[data-doc-duplicate]' );
 		if ( dp ) {
 			post( 'builder_doc_duplicate', { id:dp.getAttribute( 'data-doc-duplicate' ) }, function ( r ) {
-				if ( r && r.success ) { location.reload(); } else { alert( errMsg( r, T.duplicateFailed ) ); }
+				if ( r && r.success ) { location.reload(); } else { fail( errMsg( r, T.duplicateFailed ) ); }
 			} );
 			return;
 		}
@@ -162,9 +182,10 @@ $kind_label = array(
 			// say how many places before asking.
 			var n = parseInt( dl.getAttribute( 'data-used' ) || '0', 10 );
 			var msg = n ? ( 1 === n ? T.deleteUsedOne : T.deleteUsedMany.replace( '%s', String( n ) ) ) : T.deleteAsk;
-			if ( ! confirm( msg ) ) { return; }
-			post( 'builder_doc_delete', { id:dl.getAttribute( 'data-doc-delete' ) }, function ( r ) {
-				if ( r && r.success ) { location.reload(); } else { alert( errMsg( r, T.deleteFailed ) ); }
+			dlg().confirm( { title:T.dlgDeleteTitle, text:msg, ok:T.dlgDelete, cancel:T.dlgCancel, danger:true }, function () {
+				post( 'builder_doc_delete', { id:dl.getAttribute( 'data-doc-delete' ) }, function ( r ) {
+					if ( r && r.success ) { location.reload(); } else { fail( errMsg( r, T.deleteFailed ) ); }
+				} );
 			} );
 		}
 	} );

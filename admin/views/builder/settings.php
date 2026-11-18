@@ -22,8 +22,12 @@ $s = Velox_Builder::settings();
 			</select>
 		</div>
 		<div class="vba-setting">
-			<div class="vba-setting-tx"><b><?php esc_html_e( 'Minify CSS', 'velox' ); ?></b><span><?php esc_html_e( 'Strip whitespace from generated CSS.', 'velox' ); ?></span></div>
+			<div class="vba-setting-tx"><b><?php esc_html_e( 'Minify CSS', 'velox' ); ?></b><span><?php esc_html_e( 'Strip whitespace from generated CSS. Off writes it readable, one property per line.', 'velox' ); ?></span></div>
 			<label class="vba-switch"><input type="checkbox" id="vba-minify" <?php checked( $s['minify'], 1 ); ?>><span></span></label>
+		</div>
+		<div class="vba-setting">
+			<div class="vba-setting-tx"><b><?php esc_html_e( 'Use templates on pages not built with Velox', 'velox' ); ?></b><span><?php esc_html_e( 'Pages and posts made in the WordPress editor get your template (navbar, footer) with their content in its Inner Content slot. Off: they keep the theme.', 'velox' ); ?></span></div>
+			<label class="vba-switch"><input type="checkbox" id="vba-wrap-legacy" <?php checked( (int) get_option( 'velox_builder_wrap_legacy', 0 ), 1 ); ?>><span></span></label>
 		</div>
 		<div class="vba-setting">
 			<div class="vba-setting-tx"><b><?php esc_html_e( 'Page width', 'velox' ); ?></b><span><?php
@@ -33,7 +37,9 @@ $s = Velox_Builder::settings();
 			<a class="vba-btn vba-btn-ghost vba-btn-sm" href="<?php echo esc_url( admin_url( 'admin.php?page=' . Velox_Builder::SLUG . '-styles' ) ); ?>">
 				<?php
 				$gw = Velox_Builder::global_styles()['width']['page'];
-				echo esc_html( $gw ? sprintf( __( 'Currently %spx — edit', 'velox' ), $gw ) : __( 'Set it in Global styles', 'velox' ) );
+				// The width may carry its own unit (70rem, 90%); a bare number is px.
+				$gw = ( '' !== (string) $gw && is_numeric( $gw ) ) ? $gw . 'px' : $gw;
+				echo esc_html( $gw ? sprintf( __( 'Currently %s — edit', 'velox' ), $gw ) : __( 'Set it in Global styles', 'velox' ) );
 				?>
 			</a>
 		</div>
@@ -56,6 +62,7 @@ $s = Velox_Builder::settings();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_settings_save' ); body.set( 'nonce', C.nonce || '' );
 		body.set( 'css_mode', document.getElementById( 'vba-css-mode' ).value );
 		body.set( 'minify', document.getElementById( 'vba-minify' ).checked ? '1' : '' );
+		body.set( 'wrap_legacy', document.getElementById( 'vba-wrap-legacy' ).checked ? '1' : '0' );
 		fetch( C.ajaxurl || window.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) { btn.textContent = res && res.success ? T.saved : T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 1500 ); } )

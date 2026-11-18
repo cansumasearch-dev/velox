@@ -80,7 +80,18 @@ $vx_modules = array(
 				<div class="velox-util-ic"><?php echo Velox_Admin::icon( $t['icon'], 20 ); ?></div>
 				<?php if ( $ready && '' !== $enable ) : ?>
 					<label class="velox-switch">
-						<input type="checkbox" class="velox-util-toggle" data-key="<?php echo esc_attr( $enable ); ?>" data-tool="<?php echo esc_attr( $id ); ?>" data-dangerous="<?php echo $danger ? '1' : '0'; ?>" data-acked="<?php echo $acked ? '1' : '0'; ?>" <?php checked( $on ); ?>>
+						<input type="checkbox" class="velox-util-toggle" data-key="<?php echo esc_attr( $enable ); ?>" data-tool="<?php echo esc_attr( $id ); ?>" data-dangerous="<?php echo $danger ? '1' : '0'; ?>" data-acked="<?php echo $acked ? '1' : '0'; ?>"<?php
+							// Switching the Builder off sends every built page back to the theme,
+							// where its WordPress content is empty. Say so before it happens.
+							if ( 'module_builder' === $enable && $on && class_exists( 'Velox_Builder' ) ) {
+								global $wpdb;
+								$vx_live = (int) $wpdb->get_var( 'SELECT COUNT(*) FROM ' . Velox_Builder::table() . " WHERE kind = 'page' AND status = 'published' AND post_id > 0" );
+								if ( $vx_live ) {
+									/* translators: %d: number of published Velox pages. */
+									echo ' data-off-warn="' . esc_attr( sprintf( _n( '%d page is built with Velox Builder. While the Builder is off, visitors see that page without its layout (usually empty). Turn it off anyway?', '%d pages are built with Velox Builder. While the Builder is off, visitors see those pages without their layout (usually empty). Turn it off anyway?', $vx_live, 'velox' ), $vx_live ) ) . '"';
+								}
+							}
+						?> <?php checked( $on ); ?>>
 						<span class="velox-switch-track"></span>
 					</label>
 				<?php elseif ( ! $ready ) : ?>

@@ -4,6 +4,24 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.25.0 — Velox Builder: everything around the editor tested and fixed
+- **Fixed: units in Global styles broke the site.** Typing `1.125rem` as the body size saved 1.125px text on every page, a `26px` line height became 26 times the font size, and `clamp(28px, 4vw, 40px)` became 28440px. Sizes, line heights, page width and section/column spacing now keep their unit. Junk values are ignored.
+- **Fixed: Minify CSS off did nothing.** The CSS was compact either way; off now writes readable CSS, one property per line.
+- **Fixed: templates on non-Velox pages could be switched on but never off.** The switch now lives in Builder → Settings. The page meta box links there and reports a failed save instead of reloading as if it had worked.
+- **Fixed: changing the type of a published reusable or template took it off the site without a word.** It now asks first, like pages already did. A template or reusable turned into a page no longer shows "Published" without having a page, and its old template rule is removed. Existing documents in that state are repaired on update.
+- **Fixed: deleting a page left its CSS file behind** (and a template its per-screen CSS files).
+- **Fixed: the Overview search could not find titles with umlauts** ("Über uns").
+- **Fixed: the class editor opened classes that only exist in unpublished changes with empty CSS.** Unsafe values (`expression()`, `javascript:`) are dropped completely instead of leaving an empty `color: ;` line. Reusable usage counts now include placements that are not published yet.
+- **Fonts:** files for weights that are not ticked are no longer declared. The italic tick is hidden for self-hosted fonts, where it could do nothing. Google Fonts preconnect hints are printed once, not twice, when Velox Performance is on.
+- **Turning the Builder off now warns** when pages are built with it (visitors would see them without their layout).
+- **In-app dialogs.** Rename, delete, unpublish and type changes use the builder's own dialog instead of the browser's grey pop-ups, with a red button for anything destructive.
+- **Look and feel of the admin screens:**
+  - Bootstrap Icons on every Velox screen, matching the editor; "New …" buttons get a plus instead of a plug.
+  - The New template and class editor windows are dark like the rest; their titles were white on white.
+  - Buttons never wrap, only one "New page" button on the Overview, readable contrast for muted text, primary buttons, row actions and badges.
+  - The list screens work on phones; rows and their buttons wrap instead of running off the screen.
+- Smaller fixes: renaming a page clears its page cache; "Edit with Velox" in the admin bar only shows for pages and posts; creating a template with an unknown purpose is refused.
+
 ## 4.24.0 — Velox Builder: Bootstrap icons, styling lands where you expect, fixes from a full test pass
 - **New icons.** The whole editor uses Bootstrap Icons: top bar, panels, menus and the style panel. Every element type has its own icon in Add element, Structure and the style panel header, so a button, a badge and a card are easy to tell apart.
 - **Fixed: styling an element could change other elements.** When you clicked an element again, the style panel jumped back to its first class. Changes then went into that shared class (for example `.block`) and changed every element using it. The panel now remembers per element whether you were styling a class or "This element".

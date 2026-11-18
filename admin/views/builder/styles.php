@@ -34,6 +34,7 @@ foreach ( (array) ( $tokens['colors'] ?? array() ) as $c ) {
  * One numeric field. $placeholder shows what an empty field means; $fallback,
  * when set, is what an empty field is saved as.
  */
+if ( ! function_exists( 'velox_gs_num' ) ) {
 function velox_gs_num( $group, $key, $label, $val, $unit = 'px', $placeholder = '', $fallback = '' ) {
 	?>
 	<label class="vba-gs-f">
@@ -43,11 +44,13 @@ function velox_gs_num( $group, $key, $label, $val, $unit = 'px', $placeholder = 
 				echo '' !== (string) $placeholder ? ' placeholder="' . esc_attr( $placeholder ) . '"' : '';
 				echo '' !== (string) $fallback ? ' data-gs-fallback="' . esc_attr( $fallback ) . '"' : '';
 			?>>
-			<?php if ( $unit ) : ?><i><?php echo esc_html( $unit ); ?></i><?php endif; ?>
+			<?php if ( $unit ) : ?><i<?php echo preg_match( '/[a-z%(]/i', (string) $val ) ? ' hidden' : ''; ?>><?php echo esc_html( $unit ); ?></i><?php endif; ?>
 		</span>
 	</label>
 	<?php
 }
+}
+if ( ! function_exists( 'velox_gs_color' ) ) {
 function velox_gs_color( $group, $key, $label, $val ) {
 	// The picker only understands #rrggbb. Anything else (empty, var(), rgba(),
 	// a name) is resolved to its real colour in the browser; until then the
@@ -63,6 +66,8 @@ function velox_gs_color( $group, $key, $label, $val ) {
 	</label>
 	<?php
 }
+}
+if ( ! function_exists( 'velox_gs_weight' ) ) {
 function velox_gs_weight( $group, $key, $val, $wopts ) {
 	?>
 	<label class="vba-gs-f">
@@ -75,6 +80,8 @@ function velox_gs_weight( $group, $key, $val, $wopts ) {
 	</label>
 	<?php
 }
+}
+if ( ! function_exists( 'velox_gs_font' ) ) {
 function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 	?>
 	<label class="vba-gs-f">
@@ -87,6 +94,7 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 		</select>
 	</label>
 	<?php
+}
 }
 ?>
 <div class="vba-shell">
@@ -309,6 +317,15 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) { btn.textContent = res && res.success ? T.saved : T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 1500 ); } )
 			.catch( function () { btn.textContent = T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 2500 ); } );
+	} );
+}() );
+</script>
+<script>
+( function () {
+	// Sizes accept units (1.125rem, clamp(...)); the px hint only applies to bare numbers.
+	document.querySelectorAll( '.vba-gs-in input[data-gs]' ).forEach( function ( i ) {
+		var u = i.parentNode.querySelector( 'i' ); if ( ! u ) { return; }
+		i.addEventListener( 'input', function () { u.hidden = /[a-z%(]/i.test( i.value ); } );
 	} );
 }() );
 </script>

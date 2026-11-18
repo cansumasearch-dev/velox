@@ -84,7 +84,7 @@ if ( ! function_exists( 'velox_side_util_item' ) ) {
 			<span class="velox-side-name"><?php esc_html_e('Velox', 'velox'); ?></span>
 			<span class="velox-ver">v<?php echo esc_html( VELOX_VERSION ); ?></span>
 			<button type="button" class="velox-side-collapse" id="velox-side-collapse" aria-label="Collapse menu" title="<?php esc_attr_e('Collapse menu', 'velox'); ?>">
-				<svg class="velox-ic" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 6l-6 6 6 6"/></svg>
+				<svg class="velox-ic" viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/></svg>
 			</button>
 		</div>
 

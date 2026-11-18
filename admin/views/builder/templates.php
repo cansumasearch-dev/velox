@@ -25,7 +25,7 @@ $short = array(
 		</div>
 		<div class="vba-head-actions">
 			<button type="button" class="vba-btn vba-btn-primary" id="vba-new-template">
-				<?php echo Velox_Admin::icon( 'plug', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'New template', 'velox' ); ?>
+				<?php echo Velox_Admin::icon( 'plus', 15 ); // phpcs:ignore ?> <?php esc_html_e( 'New template', 'velox' ); ?>
 			</button>
 		</div>
 	</header>
@@ -121,7 +121,7 @@ $short = array(
 		</div>
 		<div class="vba-modal-f">
 			<span class="vba-modal-msg" id="vba-tpl-msg"></span>
-			<button type="button" class="vba-btn" data-close-modal><?php esc_html_e( 'Cancel', 'velox' ); ?></button>
+			<button type="button" class="vba-btn vba-btn-ghost" data-close-modal><?php esc_html_e( 'Cancel', 'velox' ); ?></button>
 			<button type="button" class="vba-btn vba-btn-primary" id="vba-tpl-create"><?php esc_html_e( 'Create and open', 'velox' ); ?></button>
 		</div>
 	</div>
@@ -144,7 +144,15 @@ $short = array(
 		defaultFailed: '<?php echo esc_js( __( 'Could not make it the default', 'velox' ) ); ?>',
 		saving: '<?php echo esc_js( __( 'Saving…', 'velox' ) ); ?>',
 		saved: '<?php echo esc_js( __( 'Saved', 'velox' ) ); ?>',
-		notSaved: '<?php echo esc_js( __( 'Not saved', 'velox' ) ); ?>'
+		notSaved: '<?php echo esc_js( __( 'Not saved', 'velox' ) ); ?>',
+		dlgCancel: '<?php echo esc_js( __( 'Cancel', 'velox' ) ); ?>',
+		dlgOk: '<?php echo esc_js( __( 'OK', 'velox' ) ); ?>',
+		dlgError: '<?php echo esc_js( __( 'Something went wrong', 'velox' ) ); ?>',
+		dlgRename: '<?php echo esc_js( __( 'Rename', 'velox' ) ); ?>',
+		dlgUnpublishTitle: '<?php echo esc_js( __( 'Unpublish?', 'velox' ) ); ?>',
+		dlgUnpublish: '<?php echo esc_js( __( 'Unpublish', 'velox' ) ); ?>',
+		dlgDeleteTitle: '<?php echo esc_js( __( 'Delete template?', 'velox' ) ); ?>',
+		dlgDelete: '<?php echo esc_js( __( 'Delete', 'velox' ) ); ?>'
 	};
 	// The config is printed in the footer, after this script, so read it when used.
 	function cfg() { return window.VELOX_BUILDER || {}; }
@@ -157,6 +165,16 @@ $short = array(
 			.then( function ( r ) { return r.json(); } ).then( cb ).catch( function () { cb( { success:false } ); } );
 	}
 	function errMsg( res, fallback ) { return ( res && res.data && res.data.message ) || fallback; }
+	// In-app dialogs. velox-builder-admin.js loads in the footer, after this
+	// script, so resolve it when used; native dialogs only if it is missing.
+	function dlg() {
+		return window.vbaDialog || {
+			confirm: function ( o, yes, no ) { if ( window.confirm( o.text ) ) { yes(); } else if ( no ) { no(); } },
+			prompt: function ( o, cb ) { var v = window.prompt( o.text, o.value || '' ); v = null === v ? '' : String( v ).trim(); if ( v ) { cb( v ); } },
+			alert: function ( o ) { window.alert( o.text ); }
+		};
+	}
+	function fail( text ) { dlg().alert( { title:T.dlgError, text:text, ok:T.dlgOk } ); }
 	var modal = document.getElementById( 'vba-tpl-modal' );
 	document.addEventListener( 'click', function ( e ) {
 		if ( e.target.closest( '#vba-new-template' ) || e.target.closest( '#vba-new-template-2' ) ) {
@@ -183,7 +201,7 @@ $short = array(
 			df.disabled = true;
 			post( 'builder_template_default', { id:id }, function ( res ) {
 				df.disabled = false;
-				if ( ! res || ! res.success ) { alert( errMsg( res, T.defaultFailed ) ); return; }
+				if ( ! res || ! res.success ) { fail( errMsg( res, T.defaultFailed ) ); return; }
 				// Move the badge: exactly one row is the default at a time.
 				document.querySelectorAll( '.vba-docrow[data-doc]' ).forEach( function ( row ) {
 					var isDef = row.getAttribute( 'data-doc' ) === String( ( res.data && res.data.id ) || id );
@@ -199,40 +217,43 @@ $short = array(
 		if ( pb ) {
 			pb.disabled = true;
 			post( 'builder_publish', { id:pb.getAttribute( 'data-doc-publish' ) }, function ( res ) {
-				if ( res && res.success ) { location.reload(); } else { pb.disabled = false; alert( errMsg( res, T.publishFailed ) ); }
+				if ( res && res.success ) { location.reload(); } else { pb.disabled = false; fail( errMsg( res, T.publishFailed ) ); }
 			} );
 			return;
 		}
 		var up = e.target.closest( '[data-doc-unpublish]' );
 		if ( up ) {
-			if ( ! confirm( T.unpublishAsk ) ) { return; }
-			post( 'builder_unpublish', { id:up.getAttribute( 'data-doc-unpublish' ) }, function ( res ) {
-				if ( res && res.success ) { location.reload(); } else { alert( errMsg( res, T.unpublishFailed ) ); }
+			dlg().confirm( { title:T.dlgUnpublishTitle, text:T.unpublishAsk, ok:T.dlgUnpublish, cancel:T.dlgCancel, danger:true }, function () {
+				post( 'builder_unpublish', { id:up.getAttribute( 'data-doc-unpublish' ) }, function ( res ) {
+					if ( res && res.success ) { location.reload(); } else { fail( errMsg( res, T.unpublishFailed ) ); }
+				} );
 			} );
 			return;
 		}
 		var rn = e.target.closest( '[data-doc-rename]' );
 		if ( rn ) {
 			var row = rn.closest( '.vba-docrow' ), cur = row.querySelector( '.vba-doc-title' ).textContent.trim();
-			var nn = prompt( T.renameTo, cur );
-			if ( ! nn || nn === cur ) { return; }
-			post( 'builder_doc_rename', { id:rn.getAttribute( 'data-doc-rename' ), title:nn }, function ( r2 ) {
-				if ( r2 && r2.success ) { location.reload(); } else { alert( errMsg( r2, T.renameFailed ) ); }
+			dlg().prompt( { title:T.dlgRename, text:T.renameTo, value:cur, ok:T.dlgRename, cancel:T.dlgCancel }, function ( nn ) {
+				if ( ! nn || nn === cur ) { return; }
+				post( 'builder_doc_rename', { id:rn.getAttribute( 'data-doc-rename' ), title:nn }, function ( r2 ) {
+					if ( r2 && r2.success ) { location.reload(); } else { fail( errMsg( r2, T.renameFailed ) ); }
+				} );
 			} );
 			return;
 		}
 		var dp = e.target.closest( '[data-doc-duplicate]' );
 		if ( dp ) {
 			post( 'builder_doc_duplicate', { id:dp.getAttribute( 'data-doc-duplicate' ) }, function ( r2 ) {
-				if ( r2 && r2.success ) { location.reload(); } else { alert( errMsg( r2, T.duplicateFailed ) ); }
+				if ( r2 && r2.success ) { location.reload(); } else { fail( errMsg( r2, T.duplicateFailed ) ); }
 			} );
 			return;
 		}
 		var dl = e.target.closest( '[data-doc-delete]' );
 		if ( dl ) {
-			if ( ! confirm( T.deleteAsk ) ) { return; }
-			post( 'builder_doc_delete', { id:dl.getAttribute( 'data-doc-delete' ) }, function ( r2 ) {
-				if ( r2 && r2.success ) { location.reload(); } else { alert( errMsg( r2, T.deleteFailed ) ); }
+			dlg().confirm( { title:T.dlgDeleteTitle, text:T.deleteAsk, ok:T.dlgDelete, cancel:T.dlgCancel, danger:true }, function () {
+				post( 'builder_doc_delete', { id:dl.getAttribute( 'data-doc-delete' ) }, function ( r2 ) {
+					if ( r2 && r2.success ) { location.reload(); } else { fail( errMsg( r2, T.deleteFailed ) ); }
+				} );
 			} );
 		}
 	} );

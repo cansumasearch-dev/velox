@@ -1271,6 +1271,11 @@ evts.forEach(function(e){window.addEventListener(e,fire,{passive:true});});
 	/* ---------------------------------------------------------------- Fonts */
 
 	public function fonts_preconnect() {
+		// Builder pages print the same two hints first; print them only once.
+		if ( ! empty( $GLOBALS['velox_fonts_preconnected'] ) ) {
+			return;
+		}
+		$GLOBALS['velox_fonts_preconnected'] = true;
 		echo '<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>' . "\n";
 		echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
 	}

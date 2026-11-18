@@ -108,7 +108,7 @@ foreach ( $classes as $name => $info ) {
 		</div>
 		<div class="vba-modal-f">
 			<span class="vba-modal-msg" id="vba-cm-msg"></span>
-			<button type="button" class="vba-btn" data-close-modal><?php esc_html_e( 'Cancel', 'velox' ); ?></button>
+			<button type="button" class="vba-btn vba-btn-ghost" data-close-modal><?php esc_html_e( 'Cancel', 'velox' ); ?></button>
 			<button type="button" class="vba-btn vba-btn-primary" id="vba-cm-save"><?php esc_html_e( 'Save changes', 'velox' ); ?></button>
 		</div>
 	</div>
@@ -125,7 +125,14 @@ foreach ( $classes as $name => $info ) {
 		deleteFailed: '<?php echo esc_js( __( 'Delete failed', 'velox' ) ); ?>',
 		deleteAsk: '<?php /* translators: %s: class name, e.g. .hero */ echo esc_js( __( 'Delete %s from every page? This removes its styles.', 'velox' ) ); ?>',
 		deleteStarter: '<?php /* translators: %s: class name, e.g. .section */ echo esc_js( __( '%s is a Velox starter class: elements get it automatically when you add them, and it carries their default look. Deleting it strips those styles from every page that uses it. To confirm, type the class name:', 'velox' ) ); ?>',
-		noMatch: '<?php echo esc_js( __( 'The name did not match, so nothing was deleted.', 'velox' ) ); ?>'
+		noMatch: '<?php echo esc_js( __( 'The name did not match, so nothing was deleted.', 'velox' ) ); ?>',
+		dlgCancel: '<?php echo esc_js( __( 'Cancel', 'velox' ) ); ?>',
+		dlgOk: '<?php echo esc_js( __( 'OK', 'velox' ) ); ?>',
+		dlgError: '<?php echo esc_js( __( 'Something went wrong', 'velox' ) ); ?>',
+		dlgDeleteTitle: '<?php echo esc_js( __( 'Delete class?', 'velox' ) ); ?>',
+		dlgDeleteStarterTitle: '<?php echo esc_js( __( 'Delete starter class?', 'velox' ) ); ?>',
+		dlgDelete: '<?php echo esc_js( __( 'Delete', 'velox' ) ); ?>',
+		dlgNothingDeleted: '<?php echo esc_js( __( 'Nothing deleted', 'velox' ) ); ?>'
 	};
 	// The config is printed in the footer, after this script, so read it when used.
 	function cfg() { return window.VELOX_BUILDER || {}; }
@@ -136,6 +143,15 @@ foreach ( $classes as $name => $info ) {
 		Object.keys( data ).forEach( function ( k ) { body.set( k, data[ k ] ); } );
 		fetch( C.ajaxurl || window.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } ).then( cb ).catch( function () { cb( { success:false } ); } );
+	}
+	// In-app dialogs. velox-builder-admin.js loads in the footer, after this
+	// script, so resolve it when used; native dialogs only if it is missing.
+	function dlg() {
+		return window.vbaDialog || {
+			confirm: function ( o, yes, no ) { if ( window.confirm( o.text ) ) { yes(); } else if ( no ) { no(); } },
+			prompt: function ( o, cb ) { var v = window.prompt( o.text, o.value || '' ); v = null === v ? '' : String( v ).trim(); if ( v ) { cb( v ); } },
+			alert: function ( o ) { window.alert( o.text ); }
+		};
 	}
 	var modal = document.getElementById( 'vba-class-modal' );
 	var original = '';
@@ -180,17 +196,21 @@ foreach ( $classes as $name => $info ) {
 		var dl = e.target.closest( '[data-delclass]' );
 		if ( dl ) {
 			var cls = dl.getAttribute( 'data-delclass' );
+			var del = function () {
+				post( 'builder_class_delete', { 'class':cls }, function ( res ) {
+					if ( res && res.success ) { location.reload(); } else { dlg().alert( { title:T.dlgError, text:( res && res.data && res.data.message ) || T.deleteFailed, ok:T.dlgOk } ); }
+				} );
+			};
 			if ( '1' === dl.getAttribute( 'data-starter' ) ) {
 				// Starter classes style every element of their kind, so a plain
 				// OK/Cancel is too easy to click through: make them type the name.
-				var typed = prompt( T.deleteStarter.replace( '%s', cls ), '' );
-				if ( null === typed ) { return; }
-				typed = typed.trim();
-				if ( typed !== cls && '.' + typed !== cls ) { alert( T.noMatch ); return; }
-			} else if ( ! confirm( T.deleteAsk.replace( '%s', cls ) ) ) { return; }
-			post( 'builder_class_delete', { 'class':cls }, function ( res ) {
-				if ( res && res.success ) { location.reload(); } else { alert( ( res && res.data && res.data.message ) || T.deleteFailed ); }
-			} );
+				dlg().prompt( { title:T.dlgDeleteStarterTitle, text:T.deleteStarter.replace( '%s', cls ), value:'', ok:T.dlgDelete, cancel:T.dlgCancel, danger:true }, function ( typed ) {
+					if ( typed !== cls && '.' + typed !== cls ) { dlg().alert( { title:T.dlgNothingDeleted, text:T.noMatch, ok:T.dlgOk } ); return; }
+					del();
+				} );
+			} else {
+				dlg().confirm( { title:T.dlgDeleteTitle, text:T.deleteAsk.replace( '%s', cls ), ok:T.dlgDelete, cancel:T.dlgCancel, danger:true }, del );
+			}
 			return;
 		}
 		var cf = e.target.closest( '[data-cfilter]' );

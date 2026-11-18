@@ -10,7 +10,7 @@
 	--vbb-void:#0a0a0c;--vbb-panel:#121216;--vbb-panel-2:#17171d;
 	--vbb-raised:#1d1d24;--vbb-raised-2:#26262f;--vbb-active:#2e2e39;
 	--vbb-line:rgba(255,255,255,.07);--vbb-line-2:rgba(255,255,255,.11);
-	--vbb-text:#f4f4f6;--vbb-text-2:#9d9da8;--vbb-text-3:#606069;
+	--vbb-text:#f4f4f6;--vbb-text-2:#9d9da8;--vbb-text-3:#85858f; /* text-3 was #606069: 3:1 on the panels, under the 4.5:1 body text needs */
 	--vbb-accent:#2ab7f1;--vbb-accent-2:#a06bff;
 	--vbb-accent-soft:rgba(42,183,241,.14);
 	--vbb-green:#43d17f;--vbb-orange:#f5a742;--vbb-red:#f56a5c;
@@ -55,12 +55,12 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-head p{font-size:13px;color:var(--vbb-text-3);margin:3px 0 0}
 .vba-head-actions{margin-left:auto;display:flex;gap:10px}
 
-.vba-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border-radius:var(--vbb-r-md);
+.vba-btn{display:inline-flex;align-items:center;gap:7px;white-space:nowrap;flex:none;padding:9px 16px;border-radius:var(--vbb-r-md);
 	font-size:13px;font-weight:600;text-decoration:none;transition:.13s;cursor:pointer;border:none;line-height:1}
 .vba-btn svg{width:15px;height:15px}
-.vba-btn-primary{background:linear-gradient(180deg,#218ec4,#1a789f);color:#eef7fc;
+.vba-btn-primary{background:linear-gradient(180deg,#1877a6,#135f85);color:#fff; /* white on the lighter blue was 3.4:1 */
 	box-shadow:0 2px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08)}
-.vba-btn-primary:hover{background:linear-gradient(180deg,#2597ce,#1d82ab);color:#fff}
+.vba-btn-primary:hover{background:linear-gradient(180deg,#1b82b5,#166a94);color:#fff}
 .vba-btn-ghost{background:var(--vbb-panel);border:1px solid var(--vbb-line);color:var(--vbb-text-2)}
 .vba-btn-ghost:hover{border-color:var(--vbb-line-2);color:var(--vbb-text)}
 .vba-btn-sm{padding:6px 12px;font-size:12px}
@@ -122,7 +122,7 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-class-name{ font-family:var(--vbb-mono);font-size:13px;color:var(--vbb-accent);font-weight:600; }
 .vba-class-meta{ font-size:12px;color:var(--vbb-text-2); }
 .vba-class-actions{ display:flex;gap:6px;justify-content:flex-end; }
-.vba-mini{ padding:6px 11px;border-radius:7px;background:var(--vbb-raised);border:1px solid var(--vbb-line);color:var(--vbb-text-2);font-size:11.5px;font-weight:600;cursor:pointer; }
+.vba-mini{ white-space:nowrap;flex:none;padding:6px 11px;border-radius:7px;background:var(--vbb-raised);border:1px solid var(--vbb-line);color:var(--vbb-text-2);font-size:11.5px;font-weight:600;cursor:pointer; }
 .vba-mini:hover{ background:var(--vbb-raised-2);color:var(--vbb-text); }
 .vba-mini-del:hover{ background:rgba(245,106,92,.15);color:var(--vbb-red);border-color:transparent; }
 
@@ -172,40 +172,83 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-search svg{color:var(--vx-text-3,#9aa0a6);flex:0 0 auto}
 .vba-search input{border:none;outline:none;background:none;font-size:13px;width:100%;font-family:inherit}
 .vba-doc-type{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;background:var(--vx-surface-2,#f4f5f7);color:var(--vx-text-2,#6b7280)}
-.vba-type-template{background:rgba(160,107,255,.12);color:#7c4ddb}
+.vba-type-template{background:rgba(160,107,255,.12);color:#b98bff}
 .vba-type-reusable{background:rgba(42,183,241,.12);color:#0e7fb3}
 .vba-type-legacy{background:transparent;color:var(--vx-text-3,#9aa0a6);border:1px dashed var(--vx-line-2,#e3e4e8)}
 /* Always visible: the whole point of this screen is having the buttons there.
    Muted by default, full contrast on row hover. */
-.vba-doc-actions{display:flex;align-items:center;gap:4px;margin-left:auto;opacity:.62;transition:opacity .12s}
+.vba-doc-actions{display:flex;align-items:center;gap:4px;margin-left:auto} /* were dimmed to 62% until hover: unreadable at rest */
 .vba-docrow:hover .vba-doc-actions,.vba-docrow:focus-within .vba-doc-actions{opacity:1}
 .vba-docrow{align-items:center}
 .vba-doc-title{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vba-nores{padding:26px;text-align:center;color:var(--vx-text-3,#9aa0a6);font-size:13px}
 .vba-origin{font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
-.vba-origin-mine{background:rgba(42,183,241,.12);color:#0e7fb3}
-.vba-origin-default{background:var(--vx-surface-2,#f4f5f7);color:var(--vx-text-3,#9aa0a6)}
+/* Dark-UI badges: the default one was a white pill, the blue text too dark to read on black. */
+.vba-origin-mine{background:rgba(42,183,241,.12);color:#6fd0f7}
+.vba-origin-default{background:var(--vbb-raised);color:var(--vbb-text-2)}
 /* modal */
 .vba-modal{position:fixed;inset:0;z-index:100000;display:grid;place-items:center}
 .vba-modal[hidden]{display:none}
-.vba-modal-back{position:absolute;inset:0;background:rgba(15,17,21,.55)}
-.vba-modal-box{position:relative;width:min(680px,92vw);max-height:88vh;display:flex;flex-direction:column;
-  background:#fff;border-radius:16px;box-shadow:0 30px 80px rgba(0,0,0,.3);overflow:hidden}
-.vba-modal-h{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--vx-line-2,#e3e4e8)}
-.vba-modal-h b{font-size:15px;font-family:ui-monospace,Menlo,monospace}
-.vba-modal-x{background:none;border:none;font-size:22px;line-height:1;color:var(--vx-text-3,#9aa0a6);cursor:pointer;padding:0 4px}
-.vba-modal-x:hover{color:var(--vx-text,#1f2329)}
-.vba-modal-b{padding:18px 20px;overflow:auto;flex:1}
-.vba-fl{display:block;font-size:12px;font-weight:600;color:var(--vx-text-2,#6b7280);margin:0 0 6px}
-.vba-modal-b .vba-input{width:100%;padding:10px 13px;border:1px solid var(--vx-line-2,#e3e4e8);border-radius:8px;font-size:14px;
-  font-family:ui-monospace,Menlo,monospace;margin-bottom:16px;box-sizing:border-box}
-.vba-modal-b .vba-input:focus{border-color:var(--vx-primary,#2ab7f1);outline:none}
-.vba-code{width:100%;box-sizing:border-box;padding:14px;border:1px solid var(--vx-line-2,#e3e4e8);border-radius:10px;
-  background:#0f1115;color:#e6f7ff;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.7;resize:vertical;outline:none}
-.vba-code:focus{border-color:var(--vx-primary,#2ab7f1)}
-.vba-hint{font-size:12px;color:var(--vx-text-3,#9aa0a6);margin:10px 0 0}
-.vba-modal-f{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--vx-line-2,#e3e4e8);background:var(--vx-surface-2,#f8f9fb)}
-.vba-modal-msg{flex:1;font-size:12.5px;color:var(--vx-text-2,#6b7280)}
+/* Dark like the rest of the builder. These were left over from a light theme:
+   the New template and class editor boxes were white, and their titles near-white
+   on white. */
+.vba-modal-back{position:absolute;inset:0;background:rgba(5,5,7,.62)}
+.vba-modal-box{position:relative;width:min(680px,92vw);max-height:88vh;display:flex;flex-direction:column;box-sizing:border-box;
+  background:var(--vbb-panel);color:var(--vbb-text);border:1px solid var(--vbb-line-2);border-radius:var(--vbb-r-lg);
+  box-shadow:0 30px 80px rgba(0,0,0,.55);overflow:hidden;font-family:var(--vbb-font);font-size:13px;line-height:1.5}
+.vba-modal-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 20px;border-bottom:1px solid var(--vbb-line)}
+.vba-modal-h b{font-size:15px;font-weight:650;color:var(--vbb-text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vba-modal-x{background:none;border:none;font-size:22px;line-height:1;color:var(--vbb-text-3);cursor:pointer;padding:0 4px;border-radius:6px}
+.vba-modal-x:hover{color:var(--vbb-text)}
+.vba-modal-x:focus-visible{outline:2px solid var(--vbb-accent);outline-offset:2px}
+.vba-modal-b{padding:18px 20px;overflow:auto;overflow-x:hidden;flex:1}
+.vba-fl{display:block;font-size:12px;font-weight:600;color:var(--vbb-text-2);margin:0 0 6px}
+.vba-modal-b .vba-input,.vba-modal-b select{display:block;width:100%;margin:0 0 16px;padding:9px 12px;min-height:38px;box-sizing:border-box;
+  background:var(--vbb-void);color:var(--vbb-text);border:1px solid var(--vbb-line-2);border-radius:var(--vbb-r-md);
+  font-size:13px;font-family:var(--vbb-font);box-shadow:none;outline:none;max-width:none}
+.vba-modal-b select,.vba-modal-b select.vba-input{-webkit-appearance:none;appearance:none;padding-right:34px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 16 16' fill='%239d9da8'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center}
+.vba-modal-b .vba-input::placeholder{color:var(--vbb-text-3)}
+.vba-modal-b .vba-input:focus,.vba-modal-b select:focus{border-color:var(--vbb-accent);box-shadow:0 0 0 3px rgba(42,183,241,.14)}
+.vba-code{width:100%;box-sizing:border-box;padding:14px;border:1px solid var(--vbb-line-2);border-radius:10px;
+  background:var(--vbb-void);color:#e6f7ff;font-family:ui-monospace,Menlo,monospace;font-size:13px;line-height:1.7;resize:vertical;outline:none}
+.vba-code:focus{border-color:var(--vbb-accent)}
+.vba-hint{font-size:12px;color:var(--vbb-text-3);margin:10px 0 0;line-height:1.55}
+.vba-modal-f{display:flex;align-items:center;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--vbb-line);background:var(--vbb-panel-2)}
+.vba-modal-msg{flex:1;font-size:12.5px;color:var(--vbb-text-2)}
+
+/* Shared confirm / prompt / alert (window.vbaDialog in velox-builder-admin.js).
+   Same .vba-modal markup as the template and class editors. It is appended to
+   <body>, outside #velox-builder-admin, so it carries its own dark builder
+   colours, font and box-sizing instead of inheriting them. */
+.vba-dialog,.vba-dialog *{box-sizing:border-box}
+.vba-dialog [hidden]{display:none!important}
+.vba-dialog .vba-modal-back{background:rgba(5,5,7,.62)}
+.vba-dialog .vba-modal-box{width:min(460px,92vw);height:auto;background:var(--vbb-panel);color:var(--vbb-text);
+	border:1px solid var(--vbb-line-2);border-radius:var(--vbb-r-lg);box-shadow:0 30px 80px rgba(0,0,0,.55);
+	font-family:var(--vbb-font);font-size:13px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.vba-dialog .vba-modal-h{border-bottom-color:var(--vbb-line)}
+.vba-dialog .vba-modal-h b{font-family:var(--vbb-font);font-size:15px;font-weight:650;color:var(--vbb-text);
+	min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vba-dialog .vba-modal-x{color:var(--vbb-text-3)}
+.vba-dialog .vba-modal-x:hover{color:var(--vbb-text)}
+.vba-dialog .vba-modal-b{padding:18px 20px;overflow-x:hidden}
+/* wp-admin gives text inputs a 1px side margin, which overflowed the box by 2px. */
+.vba-dialog .vba-modal-b .vba-input{width:100%;margin-left:0;margin-right:0}
+.vba-dialog-text{margin:0;color:var(--vbb-text-2);font-size:13px;line-height:1.55;white-space:pre-line;overflow-wrap:anywhere}
+.vba-dialog .vba-dialog-text + .vba-input{margin-top:14px}
+.vba-dialog .vba-modal-b .vba-input{display:block;margin-bottom:0;background:var(--vbb-void);color:var(--vbb-text);
+	border:1px solid var(--vbb-line-2);border-radius:var(--vbb-r-md);padding:9px 12px;font-size:13px;font-family:var(--vbb-font);
+	min-height:0;box-shadow:none}
+.vba-dialog .vba-modal-b .vba-input::placeholder{color:var(--vbb-text-3)}
+.vba-dialog .vba-modal-b .vba-input:focus{border-color:var(--vbb-accent);box-shadow:0 0 0 3px rgba(42,183,241,.14)}
+.vba-dialog .vba-modal-f{border-top-color:var(--vbb-line);background:var(--vbb-panel-2)}
+/* Destructive confirm: delete, unpublish, type change of something published. */
+.vba-btn-danger{background:linear-gradient(180deg,#d9483b,#b93a2f);color:#fff;
+	box-shadow:0 2px 12px rgba(0,0,0,.35),inset 0 1px 0 rgba(255,255,255,.08)}
+.vba-btn-danger:hover{background:linear-gradient(180deg,#e2564a,#c44236);color:#fff}
+.vba-dialog .vba-btn-danger:focus-visible{outline:2px solid var(--vbb-red);outline-offset:2px}
 
 .vba-class-actions{display:flex;align-items:center;gap:4px;justify-content:flex-end}
 
@@ -295,6 +338,13 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-card-h h2{color:var(--vbb-text)}
 .vba-card-h p,.vba-head p{color:var(--vbb-text-3)}
 .vba-shell a{color:var(--vbb-accent)}
+/* Link-styled buttons keep their button colours: "New page" was #2ab7f1 text on a blue fill. */
+.vba-shell a.vba-btn-primary,.vba-shell a.vba-btn-primary:visited{color:#eef7fc}
+.vba-shell a.vba-btn-primary:hover,.vba-shell a.vba-btn-primary:focus{color:#fff}
+.vba-shell a.vba-btn-ghost,.vba-shell a.vba-btn-ghost:visited{color:var(--vbb-text-2)}
+.vba-shell a.vba-btn-ghost:hover{color:var(--vbb-text)}
+.vba-shell a.vba-mini,.vba-shell a.vba-mini:visited{color:var(--vbb-text-2)}
+.vba-shell a.vba-mini:hover{color:var(--vbb-text)}
 .vba-shell hr{border-color:var(--vbb-line)}
 
 /* --- one control style for every text-ish input on these screens --- */
@@ -371,7 +421,7 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
    picker is a chip like the type picker on the overview, not a full control. */
 #velox-builder-admin .vba-tpl-purpose{
 	flex:0 0 auto!important;width:auto!important;max-width:130px;
-	padding:4px 22px 4px 10px!important;font-size:11.5px!important;line-height:1.5!important;
+	padding:4px 26px 4px 10px!important;font-size:11.5px!important;line-height:1.5!important;
 	background-color:var(--vbb-raised,#1d1d24)!important;color:var(--vbb-text-2,#9d9da8)!important;
 	border:1px solid transparent!important;border-radius:20px!important;min-height:0!important;height:auto!important;
 	background-position:right 7px center!important;box-shadow:none!important;
@@ -394,6 +444,8 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-font-block .vba-hint{margin-top:8px}
 /* Source decides which blocks make sense. */
 .vba-font[data-type="local"] .vba-only-url{display:none}
+/* Self-hosted fonts have one file per weight and no italic files, so the tick could do nothing. */
+.vba-font[data-type="local"] .vba-w-ital{display:none}
 .vba-font:not([data-type="local"]) .vba-only-local{display:none}
 .vba-font[data-type="google"] .vba-only-url{display:none}
 /* A weight that isn't being loaded can't be preloaded or given a file. */
@@ -461,3 +513,24 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-gs-color.is-unset::after{content:"";position:absolute;left:0;top:50%;width:34px;height:34px;transform:translateY(-50%);
 	border-radius:8px;pointer-events:none;
 	background:linear-gradient(135deg,transparent calc(50% - 1px),var(--vbb-red) calc(50% - 1px),var(--vbb-red) calc(50% + 1px),transparent calc(50% + 1px))}
+
+/* Phones and narrow tablets. Every list row stayed one long line, with its
+   action buttons running up to ~1000px off-screen; the stat tiles and the
+   font-display select overflowed too. */
+@media screen and (max-width:782px){
+	.vba-shell{padding:22px 16px 48px}
+	.vba-head{flex-wrap:wrap}
+	.vba-head-actions{margin-left:0}
+	.vba-stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+	.vba-docrow{flex-wrap:wrap;row-gap:8px}
+	.vba-docrow .vba-doc-title,.vba-docrow .vba-doc-main{flex:1 1 100%;min-width:0}
+	.vba-docrow .vba-doc-meta{white-space:normal}
+	.vba-doc-actions{flex:1 1 100%;flex-wrap:wrap;margin-left:0;opacity:1}
+	.vba-class-head{display:none}
+	.vba-class-row{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+	.vba-class-row > :first-child{flex:1 1 100%;min-width:0}
+	.vba-class-actions{margin-left:auto}
+	#vba-font-display{max-width:100%!important;width:100%}
+	.vba-toolbar{flex-wrap:wrap}
+	.vba-search{flex:1 1 100%;min-width:0;max-width:none}
+}

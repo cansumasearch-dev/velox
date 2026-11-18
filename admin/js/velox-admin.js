@@ -2795,6 +2795,8 @@
 					} );
 					return;
 				}
+				var offWarn = box.getAttribute( 'data-off-warn' );
+				if ( ! on && offWarn && ! window.confirm( offWarn ) ) { box.checked = true; return; }
 				commit( on );
 			} );
 		} );

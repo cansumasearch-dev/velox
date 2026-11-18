@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Velox_Builder {
 
-	const DB_VERSION  = '2';
+	const DB_VERSION  = '3';
 	const VER_OPTION  = 'velox_builder_db';
 	const ENABLE_KEY  = 'module_builder';           // stored in Velox_Settings
 	const SLUG        = 'velox-builder';            // admin section slug
@@ -183,6 +183,10 @@ class Velox_Builder {
 					echo esc_html__( 'The template has no Inner Content element, so there is nowhere to put this page\'s content. Add one to the template and this page will render inside it.', 'velox' );
 					echo '</p>';
 				}
+				if ( self::wrap_legacy() ) {
+					// It could be switched on here, but not off anywhere. Say where.
+					echo '<p style="color:#787c82;margin:8px 0 0">' . esc_html__( 'Pages without a Velox layout use your template.', 'velox' ) . ' <a href="' . esc_url( admin_url( 'admin.php?page=' . self::SLUG . '-settings' ) ) . '">' . esc_html__( 'Change this in Builder settings', 'velox' ) . '</a></p>';
+				}
 				?>
 				<script>
 				( function () {
@@ -197,7 +201,12 @@ class Velox_Builder {
 						body.set( 'on', cb.checked ? '1' : '' );
 						fetch( ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 							.then( function ( r ) { return r.json(); } )
-							.then( function () { location.reload(); } )
+							.then( function ( res ) {
+								// A failed save reloaded too, so it looked like it had worked.
+								if ( res && res.success ) { location.reload(); return; }
+								cb.checked = ! cb.checked;
+								msg.textContent = ( res && res.data && res.data.message ) || '<?php echo esc_js( __( 'Save failed', 'velox' ) ); ?>';
+							} )
 							.catch( function () { msg.textContent = '<?php echo esc_js( __( 'Save failed', 'velox' ) ); ?>'; } );
 					} );
 				}() );
@@ -298,6 +307,11 @@ class Velox_Builder {
 		} elseif ( is_singular() ) {
 			$post_id = get_queried_object_id();
 		}
+		// Pages and posts only, like the row action and the meta box: a product or
+		// other custom post type cannot be rendered by Velox.
+		if ( $post_id && ! in_array( get_post_type( $post_id ), array( 'page', 'post' ), true ) ) {
+			$post_id = 0;
+		}
 		if ( $post_id && current_user_can( 'manage_options' ) ) {
 			$bar->add_node(
 				array(
@@ -366,6 +380,11 @@ class Velox_Builder {
 			// Templates and reusables were live whatever their status said; mark
 			// them published so nothing that is on the site today disappears.
 			$wpdb->query( "UPDATE {$t} SET status = 'published' WHERE kind IN ('template','reusable')" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+		if ( $had_table ) {
+			// Schema 3: a template or reusable changed into a page kept "published"
+			// although it had no WordPress page (fixed in change_kind()). Repair those.
+			$wpdb->query( "UPDATE {$t} SET status = 'draft' WHERE kind = 'page' AND status = 'published' AND ( post_id IS NULL OR post_id = 0 )" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		}
 		update_option( self::VER_OPTION, self::DB_VERSION );
 	}
@@ -847,9 +866,33 @@ class Velox_Builder {
 			}
 			$fields['draft'] = null;
 		}
+		if ( 'page' === $kind && ! (int) $row['post_id'] ) {
+			// A template or reusable turned into a page has no WordPress page yet.
+			// It showed "Published" next to "Not on your site", with no way to
+			// publish it from the list. It is a draft until published in the editor.
+			$fields['status'] = 'draft';
+		}
 		$wpdb->update( $t, $fields, array( 'id' => (int) $id ) );
 		if ( 'template' === $kind ) {
 			self::adopt_template( $id );
+		} else {
+			// No longer a template: drop its purpose rule and the default pointer,
+			// so they cannot come back to life if it is turned into a template later.
+			$rules = self::template_rules();
+			if ( isset( $rules[ (int) $id ] ) ) {
+				unset( $rules[ (int) $id ] );
+				update_option( self::OPT_TPL_RULES, $rules );
+			}
+			if ( (int) get_option( self::OPT_DEFAULT_TEMPLATE, 0 ) === (int) $id ) {
+				delete_option( self::OPT_DEFAULT_TEMPLATE );
+			}
+		}
+		if ( 'page' === $row['kind'] && (int) $row['post_id'] && 'page' !== $kind ) {
+			// The WordPress page Velox made for this layout would stay online empty.
+			$p = get_post( (int) $row['post_id'] );
+			if ( $p && 'publish' === $p->post_status && '' === trim( (string) $p->post_content ) ) {
+				wp_update_post( array( 'ID' => $p->ID, 'post_status' => 'draft' ) );
+			}
 		}
 	}
 
@@ -1319,14 +1362,25 @@ class Velox_Builder {
 			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
 		}
 		$num = function ( $v ) { return preg_replace( '/[^0-9.]/', '', (string) $v ); };
+		// Sizes, line heights and spacing keep their unit. Stripping it turned 1.125rem
+		// into 1.125px body text, a 26px line height into 26 (26 times the font size)
+		// and clamp(28px, 4vw, 40px) into 28440px.
+		$len = function ( $v ) {
+			$v = strtolower( trim( (string) $v ) );
+			if ( '' === $v ) { return ''; }
+			if ( preg_match( '/^-?\d*\.?\d+(px|rem|em|%|vw|vh|vmin|vmax|svh|dvh|ch|ex|lh)?$/', $v ) ) { return $v; }
+			if ( preg_match( '/^(clamp|min|max|calc)\([0-9a-z.,%+\-*\/\s()]+\)$/', $v ) && substr_count( $v, '(' ) === substr_count( $v, ')' ) ) { return preg_replace( '/\s+/', ' ', $v ); }
+			// "16 px" still means 16; anything with a function or stray words is ignored.
+			return preg_match( '/^-?[\d.]+\s*[a-z%]*$/', $v ) ? preg_replace( '/[^0-9.]/', '', $v ) : '';
+		};
 		// hsl(), named colours and transparent were wiped on save.
 		$col = function ( $v ) { $v = trim( (string) $v ); return preg_match( '/^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s,.%\/a-z]+\)|var\(--[a-z0-9\-]+(\s*,\s*[#a-z0-9(),.%\s\/-]+)?\)|[a-z]{3,24}|)$/i', $v ) ? $v : ''; };
 		$txt = function ( $v ) { return sanitize_text_field( (string) $v ); };
 
 		$out = array(
 			'body'     => array(
-				'font' => $txt( $in['body']['font'] ?? '' ), 'size' => $num( $in['body']['size'] ?? '' ),
-				'weight' => $num( $in['body']['weight'] ?? '' ), 'lineHeight' => $num( $in['body']['lineHeight'] ?? '' ),
+				'font' => $txt( $in['body']['font'] ?? '' ), 'size' => $len( $in['body']['size'] ?? '' ),
+				'weight' => $num( $in['body']['weight'] ?? '' ), 'lineHeight' => $len( $in['body']['lineHeight'] ?? '' ),
 				'color' => $col( $in['body']['color'] ?? '' ),
 			),
 			'headings' => array( 'font' => $txt( $in['headings']['font'] ?? '' ) ),
@@ -1336,7 +1390,7 @@ class Velox_Builder {
 				'weight' => $num( $in['links']['weight'] ?? '' ),
 			),
 			'width'    => array(
-				'page' => $num( $in['width']['page'] ?? '' ), 'tablet' => $num( $in['width']['tablet'] ?? '' ),
+				'page' => $len( $in['width']['page'] ?? '' ), 'tablet' => $num( $in['width']['tablet'] ?? '' ),
 				'landscape' => $num( $in['width']['landscape'] ?? '' ), 'portrait' => $num( $in['width']['portrait'] ?? '' ),
 			),
 			'sections' => array(), 'columns' => array(),
@@ -1352,13 +1406,13 @@ class Velox_Builder {
 		);
 		foreach ( array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ) as $tag ) {
 			$out['headings'][ $tag ] = array(
-				'size' => $num( $in['headings'][ $tag ]['size'] ?? '' ), 'weight' => $num( $in['headings'][ $tag ]['weight'] ?? '' ),
-				'lineHeight' => $num( $in['headings'][ $tag ]['lineHeight'] ?? '' ), 'color' => $col( $in['headings'][ $tag ]['color'] ?? '' ),
+				'size' => $len( $in['headings'][ $tag ]['size'] ?? '' ), 'weight' => $num( $in['headings'][ $tag ]['weight'] ?? '' ),
+				'lineHeight' => $len( $in['headings'][ $tag ]['lineHeight'] ?? '' ), 'color' => $col( $in['headings'][ $tag ]['color'] ?? '' ),
 			);
 		}
 		foreach ( array( 'sections', 'columns' ) as $g ) {
 			foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
-				$out[ $g ][ $side ] = $num( $in[ $g ][ $side ] ?? '' );
+				$out[ $g ][ $side ] = $len( $in[ $g ][ $side ] ?? '' );
 			}
 		}
 		update_option( self::OPT_GLOBAL_STYLES, $out );
@@ -1409,7 +1463,9 @@ class Velox_Builder {
 			foreach ( (array) ( $f['files'] ?? array() ) as $w => $url ) {
 				$w   = (string) (int) $w;
 				$url = esc_url_raw( $url );
-				if ( in_array( $w, $ok_weights, true ) && $url ) {
+				// Only for weights that are ticked: a file kept for an unticked weight was
+				// still declared with @font-face on every page.
+				if ( in_array( $w, $weights, true ) && $url ) {
 					$files[ $w ] = $url;
 				}
 			}
@@ -1438,7 +1494,11 @@ class Velox_Builder {
 		// lives in Global styles, so this writes there instead of shadowing it.
 		$container = isset( $_POST['container'] ) ? preg_replace( '/[^0-9]/', '', wp_unslash( $_POST['container'] ) ) : '';
 		update_option( self::OPT_SETTINGS, array( 'css_mode' => $css_mode, 'minify' => $minify ) );
-		self::purge_cache_for();
+		// Wrapping non-Velox pages could be switched on from a page's meta box but
+		// switched off nowhere. Settings is its home now.
+		if ( isset( $_POST['wrap_legacy'] ) ) {
+			update_option( self::OPT_WRAP_LEGACY, '1' === (string) $_POST['wrap_legacy'] ? 1 : 0 );
+		}
 		if ( '' !== $container ) {
 			$gs = self::global_styles();
 			$gs['width']['page'] = $container;
@@ -1599,6 +1659,7 @@ class Velox_Builder {
 		$post_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . self::table() . ' WHERE id = %d', $id ) );
 		if ( $post_id && get_post( $post_id ) ) {
 			wp_update_post( array( 'ID' => $post_id, 'post_title' => $title ) );
+			self::purge_cache_for( $post_id );
 		}
 		wp_send_json_success( array( 'id' => $id, 'title' => $title ) );
 	}
@@ -1657,7 +1718,9 @@ class Velox_Builder {
 		if ( isset( $reg[ $name ] ) ) {
 			return self::rules_to_css( $name, $reg[ $name ] );
 		}
-		$rows = $wpdb->get_results( 'SELECT data FROM ' . self::table(), ARRAY_A );
+		// Same source as the class list (latest saved version first): a class that so
+		// far only exists in unpublished changes used to open with empty CSS.
+		$rows = $wpdb->get_results( "SELECT COALESCE( NULLIF( draft, '' ), data ) AS data FROM " . self::table(), ARRAY_A );
 		foreach ( (array) $rows as $row ) {
 			$model = json_decode( $row['data'], true );
 			if ( ! is_array( $model ) || empty( $model['classes'][ $name ] ) ) {
@@ -1687,7 +1750,7 @@ class Velox_Builder {
 			$body  = '';
 			foreach ( $props as $p => $v ) {
 				$css = Velox_Builder_Render::css_prop_name( $p );
-				if ( ! $css ) {
+				if ( ! $css || '' === trim( (string) $v ) ) {
 					continue;
 				}
 				$body .= "\t" . $css . ': ' . Velox_Builder_Render::css_value( $p, $v ) . ";\n";
@@ -1781,8 +1844,11 @@ class Velox_Builder {
 					}
 					list( $p, $v ) = array_map( 'trim', explode( ':', $decl, 2 ) );
 					$model_key = Velox_Builder_Render::model_prop_name( $p );
-					if ( $model_key && '' !== $v ) {
-						$props[ $model_key ] = self::sanitize_css_value( $v );
+					// A value the sanitizer blanks (expression(), javascript:) is dropped
+					// entirely; it used to stay as an empty "color: ;" line.
+					$clean = ( $model_key && '' !== $v ) ? self::sanitize_css_value( $v ) : '';
+					if ( '' !== trim( (string) $clean ) ) {
+						$props[ $model_key ] = $clean;
 					}
 				}
 				if ( $props ) {
@@ -1960,12 +2026,22 @@ class Velox_Builder {
 		if ( (int) get_option( self::OPT_DEFAULT_TEMPLATE, 0 ) === $id ) {
 			delete_option( self::OPT_DEFAULT_TEMPLATE );
 		}
-		if ( class_exists( 'Velox_Builder_Render' ) ) {
-			Velox_Builder_Render::write_css_for( $id );
+		// The CSS files: doc-{id}.css, plus the per-screen files a template wrote
+		// (doc-0-archive-{id}.css …). write_css_for() cannot do this any more: it
+		// looks the row up, and the row is already gone.
+		$up = wp_upload_dir();
+		if ( empty( $up['error'] ) ) {
+			$dir = trailingslashit( $up['basedir'] ) . 'velox/builder/';
+			$old = array_merge( array( $dir . 'doc-' . $id . '.css' ), (array) glob( $dir . 'doc-0-*-' . $id . '.css' ) );
+			foreach ( $old as $file ) {
+				if ( $file && is_file( $file ) ) {
+					wp_delete_file( $file );
+				}
+			}
 		}
 		self::purge_cache_for();
 		if ( $post_id ) {
-			// Detach our hook first so trashing doesn't recurse back here.
+			// Trashing does not fire before_delete_post, so this cannot loop back.
 			wp_trash_post( $post_id );
 			delete_post_meta( $post_id, '_velox_builder_doc' );
 		}
@@ -2107,12 +2183,17 @@ class Velox_Builder {
 	 */
 	public static function reusable_usage() {
 		global $wpdb;
-		$rows = $wpdb->get_results( 'SELECT id, title, kind, data FROM ' . self::table(), ARRAY_A );
+		$rows = $wpdb->get_results( 'SELECT id, title, kind, data, draft FROM ' . self::table(), ARRAY_A );
 		$out  = array();
 		foreach ( (array) $rows as $row ) {
 			// Reusables inside reusables count too (a reusable referencing itself
-			// does not).
+			// does not). Placements that are only in unpublished changes count as
+			// well, so the delete warning never says "unused" too early.
 			$model = json_decode( $row['data'], true );
+			$draft = ( null !== $row['draft'] && '' !== $row['draft'] ) ? json_decode( $row['draft'], true ) : null;
+			if ( is_array( $draft ) && ! empty( $draft['tree'] ) ) {
+				$model = is_array( $model ) && ! empty( $model['tree'] ) ? array( 'tree' => array_merge( $model['tree'], $draft['tree'] ) ) : $draft;
+			}
 			if ( ! is_array( $model ) || empty( $model['tree'] ) ) {
 				continue;
 			}
@@ -2370,6 +2451,9 @@ class Velox_Builder {
 		$purpose = isset( $_POST['purpose'] ) ? sanitize_key( wp_unslash( $_POST['purpose'] ) ) : 'catch_all';
 		if ( '' === $title ) {
 			wp_send_json_error( array( 'message' => __( 'Give the template a name.', 'velox' ) ), 400 );
+		}
+		if ( ! array_key_exists( $purpose, self::template_purposes() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid template purpose.', 'velox' ) ), 400 );
 		}
 		$now  = current_time( 'mysql' );
 		// A template starts with the Inner Content slot already in place — without

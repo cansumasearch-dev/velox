@@ -50,7 +50,7 @@ $scope_opts = array(
 
 	<div class="velox-snip-edbar">
 		<a class="velox-snip-back" href="<?php echo esc_url( Velox_Snippets::list_url() ); ?>">
-			<svg class="velox-ic" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+			<svg class="velox-ic" viewBox="0 0 16 16" width="15" height="15" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/></svg>
 			<?php esc_html_e('All snippets', 'velox'); ?>
 		</a>
 		<span class="velox-snip-edbar-title">

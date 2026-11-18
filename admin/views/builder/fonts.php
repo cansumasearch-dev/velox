@@ -144,8 +144,15 @@ function velox_font_row( $f, $weights ) {
 		saving: '<?php echo esc_js( __( 'Saving…', 'velox' ) ); ?>',
 		saved: '<?php echo esc_js( __( 'Saved', 'velox' ) ); ?>',
 		saveFailed: '<?php echo esc_js( __( 'Save failed', 'velox' ) ); ?>',
-		saveChanges: '<?php echo esc_js( __( 'Save changes', 'velox' ) ); ?>'
+		saveChanges: '<?php echo esc_js( __( 'Save changes', 'velox' ) ); ?>',
+		dlgOk: '<?php echo esc_js( __( 'OK', 'velox' ) ); ?>',
+		dlgError: '<?php echo esc_js( __( 'Something went wrong', 'velox' ) ); ?>'
 	};
+	// In-app dialogs. velox-builder-admin.js loads in the footer, after this
+	// script, so resolve it when used; native alert only if it is missing.
+	function dlg() {
+		return window.vbaDialog || { alert: function ( o ) { window.alert( o.text ); } };
+	}
 	// The config is printed in the footer, after this script, so read it when used.
 	function cfg() { return window.VELOX_BUILDER || {}; }
 	var wrap = document.getElementById( 'vba-fonts' );
@@ -202,7 +209,7 @@ function velox_font_row( $f, $weights ) {
 		var pick = e.target.closest( '.vba-pickfont' );
 		if ( pick ) {
 			e.preventDefault();
-			if ( ! window.wp || ! wp.media ) { alert( T.noMedia ); return; }
+			if ( ! window.wp || ! wp.media ) { dlg().alert( { title:T.dlgError, text:T.noMedia, ok:T.dlgOk } ); return; }
 			var frame = wp.media( { title:T.chooseFile, multiple:false, button:{ text:T.useFile } } );
 			frame.on( 'select', function () {
 				var a = frame.state().get( 'selection' ).first().toJSON();

@@ -37,7 +37,7 @@ $safe_mode = Velox_Snippets::safe_mode();
 		<p class="velox-sub"><?php esc_html_e('Add PHP, CSS, JS or HTML that runs by location and priority. A bad PHP snippet auto-disables, and Safe Mode keeps a crash from ever locking you out.', 'velox'); ?></p>
 	</div>
 	<button class="velox-btn velox-btn--primary" id="velox-snip-add-btn" type="button">
-		<svg class="velox-ic" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+		<svg class="velox-ic" viewBox="0 0 16 16" width="16" height="16" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2"/></svg>
 		<?php esc_html_e('Add snippet', 'velox'); ?>
 	</button>
 </div>

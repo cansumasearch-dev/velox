@@ -2273,7 +2273,9 @@ class Velox_Builder_Render {
 		}
 		// Google serves the CSS from one host and the font files from another, so
 		// warming both saves a round trip before the text can paint.
-		if ( $has_goog ) {
+		// Velox Performance may already have printed the same two hints.
+		if ( $has_goog && empty( $GLOBALS['velox_fonts_preconnected'] ) ) {
+			$GLOBALS['velox_fonts_preconnected'] = true;
 			echo '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n";
 			echo '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n";
 		}
@@ -3286,6 +3288,48 @@ class Velox_Builder_Render {
 		return trim( preg_replace( '/\s+/', ' ', $css ) );
 	}
 
+	/**
+	 * Readable CSS: one declaration per line, nested blocks indented. The
+	 * generator writes compact CSS, so without this "Minify CSS: off" changed
+	 * nothing. Braces and semicolons inside strings or url()/var() stay put.
+	 */
+	public static function pretty_css( $css ) {
+		$css   = trim( (string) $css );
+		$out   = '';
+		$depth = 0;
+		$paren = 0;
+		$quote = '';
+		$pad   = function ( $d ) { return str_repeat( "\t", max( 0, $d ) ); };
+		$len   = strlen( $css );
+		for ( $i = 0; $i < $len; $i++ ) {
+			$c = $css[ $i ];
+			if ( '' !== $quote ) {
+				$out .= $c;
+				if ( $c === $quote && '\\' !== $css[ $i - 1 ] ) { $quote = ''; }
+				continue;
+			}
+			if ( '"' === $c || "'" === $c ) { $quote = $c; $out .= $c; continue; }
+			if ( '(' === $c ) { $paren++; }
+			if ( ')' === $c ) { $paren = max( 0, $paren - 1 ); }
+			if ( $paren ) { $out .= $c; continue; }
+			if ( '{' === $c ) {
+				$depth++;
+				$out = rtrim( $out ) . " {\n" . $pad( $depth );
+			} elseif ( ';' === $c ) {
+				$out = rtrim( $out ) . ";\n" . $pad( $depth );
+			} elseif ( '}' === $c ) {
+				$depth = max( 0, $depth - 1 );
+				$body  = rtrim( $out );
+				$out   = $body . ( '{' === substr( $body, -1 ) || ';' === substr( $body, -1 ) || '}' === substr( $body, -1 ) ? '' : ';' ) . "\n" . $pad( $depth ) . "}\n" . $pad( $depth );
+			} elseif ( ( ' ' === $c || "\n" === $c || "\t" === $c ) && ( "\t" === substr( $out, -1 ) || "\n" === substr( $out, -1 ) ) ) {
+				continue; // no stray spaces at line starts
+			} else {
+				$out .= $c;
+			}
+		}
+		return trim( preg_replace( "/\n\s*\n+/", "\n", $out ) ) . "\n";
+	}
+
 	public static function ensure_css_file( $doc, $extra = array() ) {
 		$css = self::generate_css( $doc, $extra );
 		$set = class_exists( 'Velox_Builder' ) ? Velox_Builder::settings() : array();
@@ -3297,9 +3341,7 @@ class Velox_Builder_Render {
 
 		// These three settings existed on the Settings screen but were never read
 		// by anything — set them and nothing happened. Now they do.
-		if ( ! empty( $set['minify'] ) ) {
-			$css = self::minify_css( $css );
-		}
+		$css = ! isset( $set['minify'] ) || ! empty( $set['minify'] ) ? self::minify_css( $css ) : self::pretty_css( $css );
 		if ( 'inline' === ( $set['css_mode'] ?? 'file' ) ) {
 			return self::inline_fallback( $css );
 		}
