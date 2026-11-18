@@ -422,6 +422,7 @@ class Velox_Builder {
 			'overview'  => __( 'Overview', 'velox' ),
 			'templates' => __( 'Templates', 'velox' ),
 			'reusables' => __( 'Reusables', 'velox' ),
+			'popups'    => __( 'Popups', 'velox' ),
 			'classes'   => __( 'Classes', 'velox' ),
 			'styles'    => __( 'Global styles', 'velox' ),
 			'fonts'     => __( 'Fonts', 'velox' ),

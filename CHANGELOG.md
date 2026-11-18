@@ -4,6 +4,25 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.36.0 — Velox Builder: popups
+- **Ready-made popups** in Add → Interactive, each with its design inside and sensible triggers:
+  - **Announcement:** after 2 seconds, once per visit.
+  - **Newsletter:** at 50% scroll, once every 14 days, never again after a click inside, with a place for your form shortcode.
+  - **Exit offer:** when the visitor moves to leave, once every 30 days, never again after a click inside.
+  - On a German site the starter text is in German.
+- **New trigger settings** for popups, floating buttons and bars:
+  - **Once every few days:** you choose the number of days.
+  - **Only after this many pages in the visit:** for example, show the offer on the third page someone views.
+  - **Show on:** every screen, desktop only, or tablet and phone only.
+- **New popup settings:**
+  - **Never show it again after a click on a link or button in it:** someone who signed up or took the offer is not asked again. This wins over the frequency.
+  - **Close by itself after N seconds.**
+- **Links can open popups.** A link to `#popup-id` (or an address ending in it) opens that popup, also on a fresh page load.
+- **Popups screen** (Velox Builder → Popups): every popup and slide-in panel on the site. Each row shows when it appears, how often, its extras, and where it lives (a page, or a template or component and so every page using it). It also shows whether it is live, with Edit and a Preview link that opens the page with the popup open.
+- **Fixes:**
+  - A popup opened by a `#link` when a page loaded threw an error.
+  - "Close by itself" did not work for popups that open as the page loads.
+
 ## 4.35.0 — Velox Builder: interactions
 - **Make the page react, without code.** Every element has an Interactions section in its Settings tab.
   - **When it** is clicked, is hovered, scrolls into view, the page loads, or the page is scrolled past a point.

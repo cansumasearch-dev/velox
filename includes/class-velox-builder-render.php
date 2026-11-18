@@ -1145,6 +1145,14 @@ class Velox_Builder_Render {
 		if ( 'dropdown' !== $kind && self::trig_type( $node ) ) {
 			$attr .= self::floating_attrs( $node );
 		}
+		// Never again after a click inside; close by itself after N seconds.
+		if ( 'dropdown' !== $kind && self::el_set( $node, 'stopOnClick', '' ) ) {
+			$attr .= ' data-vx-stopclick';
+		}
+		$auto = (float) self::el_raw( $node, 'autoClose', '' );
+		if ( 'dropdown' !== $kind && $auto > 0 ) {
+			$attr .= ' data-vx-autoclose="' . min( 600, $auto ) . '"';
+		}
 		$with = trim( (string) self::el_set( $node, 'openWith', '' ) );
 		if ( 'offcanvas' === $kind && '' !== $with ) {
 			$attr .= ' data-vx-openwith="' . esc_attr( $with ) . '"';
@@ -1425,6 +1433,21 @@ class Velox_Builder_Render {
 			foreach ( array( 'trigDelay' => 'delay', 'trigScroll' => 'scroll', 'trigIdle' => 'idle', 'trigTarget' => 'target' ) as $k => $a ) {
 				$v = (string) self::el_raw( $node, $k, $defs[ $k ] );
 				if ( '' !== $v ) { $out .= ' data-vx-' . $a . '="' . esc_attr( $v ) . '"'; }
+			}
+			// "For a number of days", "after N pages in this visit", "on these screens".
+			$days = (int) self::el_raw( $node, 'trigDays', '7' );
+			if ( 'days' === (string) self::el_set( $node, 'trigOnce', '' ) ) {
+				$out .= ' data-vx-days="' . max( 1, min( 3650, $days ) ) . '"';
+			}
+			$pages = (int) self::el_raw( $node, 'trigPages', '' );
+			if ( $pages > 1 ) {
+				$out .= ' data-vx-pages="' . min( 100, $pages ) . '"';
+			}
+			$dev = (string) self::el_set( $node, 'trigDevice', '' );
+			if ( in_array( $dev, array( 'desktop', 'mobile' ), true ) ) {
+				$b    = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991 );
+				$tab  = (int) ( $b['tablet'] ?? 991 );
+				$out .= ' data-vx-mq="' . esc_attr( 'desktop' === $dev ? '(min-width: ' . ( $tab + 1 ) . 'px)' : '(max-width: ' . $tab . 'px)' ) . '"';
 			}
 		}
 		return $out;
@@ -2328,6 +2351,8 @@ class Velox_Builder_Render {
 		if ( ! class_exists( 'Velox_Builder' ) ) {
 			return;
 		}
+		// Pages seen in this visit, for popups set to "after N pages".
+		echo '<script>try{sessionStorage.setItem("vx_pv",(parseInt(sessionStorage.getItem("vx_pv"),10)||0)+1)}catch(e){}</script>' . "\n"; // phpcs:ignore
 		$fonts    = Velox_Builder::fonts();
 		$has_goog = false;
 		foreach ( $fonts as $f ) {

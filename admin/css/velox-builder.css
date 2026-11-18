@@ -738,3 +738,10 @@ body select.vba-input:focus,body select.vba-tpl-purpose:focus,body .vba-shell se
 .vba-role-pub{display:inline-flex;align-items:center;gap:6px;color:var(--vbb-text-2);font-size:13px;white-space:nowrap}
 .vba-role-pub input:disabled+*{opacity:.5}
 .vba-roles-hint{margin:0;padding:4px 20px 18px}
+
+/* ---- 4.36 Popups overview ---- */
+.vba-poprow{align-items:center}
+.vba-pop-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 280px}
+.vba-pop-main .vba-doc-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vba-pop-when{color:var(--vbb-text-2);font-size:12px;line-height:1.45}
+.vba-pop-where{color:var(--vbb-text-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}

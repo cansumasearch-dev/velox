@@ -142,6 +142,10 @@
 		var target = null;
 		try { target = d.querySelector( window.location.hash ); } catch ( err ) { return; }
 		if ( ! target ) { return; }
+		// A link to a popup or panel (#its-id) opens it.
+		// Deferred one tick: on page load this runs before the rest of the file
+		// (the open-popup stack) is set up.
+		if ( target.classList && target.classList.contains( 'vx-ov' ) ) { window.setTimeout( function () { openOverlay( target, null ); }, 0 ); return; }
 		var item = target.closest ? target.closest( '.vx-acc-item' ) : null;
 		if ( ! item ) { return; }
 		var root = item.closest( '.vx-acc' );
@@ -289,6 +293,13 @@
 			first.focus();
 		}
 		el.dispatchEvent( new CustomEvent( 'vx:open', { bubbles: true } ) );
+		// Popups that close by themselves. Here, not in a vx:open listener: a
+		// popup opened on page load opens before later listeners exist.
+		var auto = parseFloat( el.getAttribute( 'data-vx-autoclose' ) );
+		if ( auto > 0 ) {
+			window.clearTimeout( el.__vxAuto );
+			el.__vxAuto = window.setTimeout( function () { if ( el.classList.contains( 'is-open' ) ) { closeOverlay( el, true ); } }, auto * 1000 );
+		}
 	}
 	function closeOverlay( el, quiet ) {
 		if ( ! el || ! el.classList.contains( 'is-open' ) ) { return; }
@@ -543,26 +554,40 @@
 	function markSeen( key, scope ) {
 		try {
 			if ( 'session' === scope ) { window.sessionStorage.setItem( 'vx_seen_' + key, '1' ); }
-			else if ( 'day' === scope ) { window.localStorage.setItem( 'vx_seen_' + key, String( Date.now() ) ); }
+			else if ( 'day' === scope || 'days' === scope ) { window.localStorage.setItem( 'vx_seen_' + key, String( Date.now() ) ); }
 			else if ( 'ever' === scope ) { window.localStorage.setItem( 'vx_seen_' + key, '1' ); }
 		} catch ( e ) {}
 	}
-	function alreadyShown( key, scope ) {
+	function alreadyShown( key, scope, days ) {
 		try {
 			if ( 'always' === scope || ! scope ) { return false; }
 			if ( 'session' === scope ) { return !! window.sessionStorage.getItem( 'vx_seen_' + key ); }
 			var v = window.localStorage.getItem( 'vx_seen_' + key );
 			if ( ! v ) { return false; }
 			if ( 'ever' === scope ) { return true; }
-			return ( Date.now() - parseInt( v, 10 ) ) < 86400000;   // within the day
+			var span = 'days' === scope ? Math.max( 1, days || 7 ) * 86400000 : 86400000;
+			return ( Date.now() - parseInt( v, 10 ) ) < span;
 		} catch ( e ) { return false; }
+	}
+	/* "Never again" after a click inside wins over every frequency. */
+	function stopped( key ) {
+		try { return !! window.localStorage.getItem( 'vx_stop_' + key ); } catch ( e ) { return false; }
+	}
+	/* Pages seen in this visit (counted in the page head, see print_global_head). */
+	function pageViews() {
+		try { return parseInt( window.sessionStorage.getItem( 'vx_pv' ), 10 ) || 1; } catch ( e ) { return 1; }
 	}
 	/** Run `fire` when the configured trigger happens. Returns a teardown. */
 	function armTrigger( el, fire ) {
 		var type  = el.getAttribute( 'data-vx-trig' ) || 'click';
 		var scope = el.getAttribute( 'data-vx-once' ) || 'always';
 		var key   = el.id || el.getAttribute( 'data-vx-key' ) || 'vx';
-		if ( alreadyShown( key, scope ) ) { return; }
+		if ( stopped( key ) ) { return; }
+		if ( alreadyShown( key, scope, num( el, 'data-vx-days', 7 ) ) ) { return; }
+		// Only after a number of pages in this visit, and only on the chosen screens.
+		if ( pageViews() < num( el, 'data-vx-pages', 0 ) ) { return; }
+		var mq = el.getAttribute( 'data-vx-mq' );
+		if ( mq && window.matchMedia && ! window.matchMedia( mq ).matches ) { return; }
 		// A dismissal is remembered for the session regardless of frequency.
 		if ( alreadyShown( key, 'session' ) ) { return; }
 
@@ -654,6 +679,13 @@
 	}
 	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', initTriggered ); } else { initTriggered(); }
 
+	/* A click on a link or button inside a popup can mean "done" (signed up,
+	 * took the offer): never show it automatically again. */
+	on( 'click', '.vx-ov[data-vx-stopclick] a[href], .vx-ov[data-vx-stopclick] button, .vx-ov[data-vx-stopclick] input[type=submit]', function ( e, t ) {
+		if ( t.closest( '[data-vx-close]' ) || t.classList.contains( 'vx-ov-close' ) ) { return; }
+		var ov = t.closest( '.vx-ov' );
+		try { window.localStorage.setItem( 'vx_stop_' + ( ov.id || 'vx' ), '1' ); } catch ( err ) {}
+	} );
 	/* Dismissible bars remember the dismissal for the configured scope. */
 	on( 'click', '[data-vx-dismiss]', function ( e, t ) {
 		var bar = t.closest( '.vx-bar' ) || t.closest( '[data-vx-dismiss-target]' );

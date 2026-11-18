@@ -1360,8 +1360,11 @@
 				{ k:'trigTarget', t:'text', l:'Element selector', d:'', s:sec, when:{ trigType:'element' } },
 				{ k:'trigOnce', t:'select', l:'Show it', d:floating ? 'always' : 'session', s:sec, o:[
 					[ 'always', 'Every time' ], [ 'session', 'Once per visit' ],
-					[ 'day', 'Once a day' ], [ 'ever', 'Once, ever' ]
-				] }
+					[ 'day', 'Once a day' ], [ 'days', 'Once every few days' ], [ 'ever', 'Once, ever' ]
+				] },
+				{ k:'trigDays', t:'num', l:'Not again for', d:'7', s:sec, unit:'days', when:{ trigOnce:'days' } },
+				{ k:'trigPages', t:'num', l:'Only after this many pages in the visit', d:'', s:sec, ph:'1' },
+				{ k:'trigDevice', t:'select', l:'Show on', d:'', s:sec, o:[ [ '', 'Every screen' ], [ 'desktop', 'Desktop only' ], [ 'mobile', 'Tablet and phone only' ] ] }
 			];
 		},
 		placement: function () {
@@ -1825,6 +1828,8 @@
 				{ k:'closeBack', t:'toggle', l:'Close when the dimmed area is clicked', d:'1', s:'Closing' },
 				{ k:'closeEsc', t:'toggle', l:'Close with the Escape key', d:'1', s:'Closing' },
 				{ k:'closeBtn', t:'toggle', l:'Show a close button', d:'1', s:'Closing' },
+				{ k:'autoClose', t:'num', l:'Close by itself after', d:'', unit:'s', s:'Closing', ph:'never' },
+				{ k:'stopOnClick', t:'toggle', l:'Never show it again after a click on a link or button in it', d:'', s:'When it appears' },
 				{ k:'ms', t:'num', l:'Speed', d:'250', unit:'ms', s:'Animation' },
 				{ k:'dlgLabel', t:'text', l:'Name for screen readers', d:'', s:'Accessibility', ph:'Newsletter' }
 			] ) },
@@ -1957,6 +1962,27 @@
 		} );
 	} );
 	// flat lookup used by insertNode
+	/* Ready-made popups: the modal with a design inside and sensible triggers. */
+	( function () {
+		var grp = CAT_GROUPS.filter( function ( g ) { return 'Interactive' === g.name; } )[ 0 ];
+		var modal = grp && grp.items.filter( function ( i ) { return 'modal' === i.key; } )[ 0 ];
+		if ( ! modal ) { return; }
+		function preset( key, label, settings, kids ) { return Object.assign( {}, modal, { key:key, label:label, kit:{ settings:settings, kids:kids } } ); }
+		grp.items.splice( grp.items.indexOf( modal ) + 1, 0,
+			preset( 'popup_announce', 'Popup: announcement', { trigType:'delay', trigDelay:'2', trigOnce:'session' }, [
+				{ key:'heading', tag:'h2', text:'Something new' },
+				{ key:'text', text:'Tell visitors about a sale, an event or news. Keep it short.' },
+				{ key:'button', text:'Find out more', href:'#' } ] ),
+			preset( 'popup_news', 'Popup: newsletter', { trigType:'scroll', trigScroll:'50', trigOnce:'days', trigDays:'14', stopOnClick:'1' }, [
+				{ key:'heading', tag:'h2', text:'Stay in the loop' },
+				{ key:'text', text:'One short email a month. No spam, unsubscribe any time.' },
+				{ key:'text', text:'Put your sign-up form here: paste its shortcode from Velox → Forms.' } ] ),
+			preset( 'popup_exit', 'Popup: exit offer', { trigType:'exit', trigOnce:'days', trigDays:'30', stopOnClick:'1' }, [
+				{ key:'heading', tag:'h2', text:'Before you go…' },
+				{ key:'text', text:'Take 10% off your first order with the code WELCOME10.' },
+				{ key:'button', text:'Claim the offer', href:'#' } ] )
+		);
+	}() );
 	var CATALOG = ( function () { var a = []; CAT_GROUPS.forEach( function ( g ) { a = a.concat( g.items ); } ); return a; }() );
 	/* The element's own icon: the catalogue entry with the same element type
 	 * and first class (Grid, Spacer and Divider are all Div elements). */
@@ -2034,6 +2060,19 @@
 					if ( undefined === node.settings[ c.k ] ) { node.settings[ c.k ] = c.d; }
 				}
 			} );
+			// A ready-made design brings its settings and its elements.
+			if ( cat.kit ) {
+				node.settings = Object.assign( node.settings || {}, cat.kit.settings || {} );
+				node.children = ( cat.kit.kids || [] ).map( function ( k ) {
+					var kc = CATALOG.filter( function ( c ) { return c.key === k.key; } )[ 0 ];
+					var kid = uid( k.key );
+					ensureClass( s, kc.cls, { base:Object.assign( {}, kc.rules ) } );
+					var kn = { id:kid, el:kc.el, tag:k.tag || kc.tag, classes:[ kc.cls ], overrides:{}, children:[] };
+					if ( k.href ) { kn.href = k.href; }
+					s.content[ kid ] = T( k.text || kc.text || '' );
+					return kn;
+				} );
+			}
 			// register the class + its starter rules (only if new)
 			var startRules = { base: Object.assign( {}, cat.rules ) };
 			if ( cat.hover ) { startRules[ 'base:hover' ] = Object.assign( {}, cat.hover ); }
