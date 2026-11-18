@@ -123,8 +123,25 @@ class Velox_Builder_Render {
 	public static function maybe_render( $template ) {
 		// ?preview=true is just a query string anyone can add; only someone who
 		// may edit the content gets to see unpublished drafts.
-		self::$previewing = is_preview() && is_user_logged_in()
+		// Saved changes are visible to the people who can edit them and to nobody
+		// else: visitors keep the published version until Publish is pressed.
+		// Someone who may edit sees the saved version on the real page (not only
+		// in ?preview); ?velox_live=1 shows them exactly what visitors see.
+		$can_edit = is_user_logged_in()
 			&& ( is_singular() ? current_user_can( 'edit_post', get_queried_object_id() ) : current_user_can( 'manage_options' ) );
+		self::$live_view  = $can_edit && isset( $_GET['velox_live'] ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		self::$previewing = $can_edit && ! self::$live_view;
+		if ( $can_edit ) {
+			// Never let a page cache keep an editor's view: with "cache logged-in
+			// users" on, saved changes could otherwise reach visitors.
+			if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+				define( 'DONOTCACHEPAGE', true );
+			}
+			if ( ! headers_sent() ) {
+				nocache_headers();
+			}
+			add_action( 'admin_bar_menu', array( __CLASS__, 'admin_bar_view_switch' ), 91 );
+		}
 		if ( ! is_singular() ) {
 			// Templates made for 404, Search or Archives were offered on the
 			// Templates screen but never used — only single pages were handled.
@@ -161,6 +178,36 @@ class Velox_Builder_Render {
 
 	/** True while rendering a preview (?preview=true): drafts are shown. */
 	private static $previewing = false;
+	/** An editor asked to see the page as visitors do (?velox_live=1). */
+	private static $live_view = false;
+	/** Set once a Velox document actually rendered this request. */
+	private static $rendered_doc = false;
+
+	/**
+	 * Admin bar: which version an editor is looking at, and a switch to the other.
+	 * Only on pages Velox renders.
+	 */
+	public static function admin_bar_view_switch( $bar ) {
+		if ( ! self::$rendered_doc ) {
+			return;
+		}
+		$here = remove_query_arg( array( 'velox_live', 'preview', 'preview_id', 'preview_nonce' ) );
+		if ( self::$live_view ) {
+			$bar->add_node( array(
+				'id'    => 'velox-view',
+				'title' => '<span class="ab-icon dashicons dashicons-visibility" style="margin-top:2px"></span>' . esc_html__( 'Live version', 'velox' ),
+				'href'  => $here,
+				'meta'  => array( 'title' => __( 'You see what visitors see. Click to show your saved, unpublished changes.', 'velox' ) ),
+			) );
+		} else {
+			$bar->add_node( array(
+				'id'    => 'velox-view',
+				'title' => '<span class="ab-icon dashicons dashicons-edit" style="margin-top:2px"></span>' . esc_html__( 'Saved changes', 'velox' ),
+				'href'  => add_query_arg( 'velox_live', '1', $here ),
+				'meta'  => array( 'title' => __( 'You see your saved changes; visitors see them once you publish. Click to see the live version.', 'velox' ) ),
+			) );
+		}
+	}
 
 	/**
 	 * A stand-in document for a 404, search or archive screen: the template made
@@ -283,7 +330,8 @@ class Velox_Builder_Render {
 		}
 		// Logged-in editors previewing see the latest SAVED version — the draft
 		// of a published page, or a layout that was never published.
-		if ( is_preview() && current_user_can( 'edit_post', $post_id ) ) {
+		// (On the normal URL too now — see maybe_render(); ?velox_live=1 opts out.)
+		if ( self::$previewing && current_user_can( 'edit_post', $post_id ) ) {
 			$prev = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, COALESCE( NULLIF( draft, '' ), data ) AS data FROM {$t} WHERE post_id = %d AND kind = 'page' LIMIT 1", $post_id ), ARRAY_A );
 			if ( $prev ) {
 				$row = $prev;
@@ -955,7 +1003,7 @@ class Velox_Builder_Render {
 			$out .= '<button class="vx-acc-btn" type="button" id="' . esc_attr( $btn_id ) . '"' .
 				' aria-expanded="' . ( $open ? 'true' : 'false' ) . '" aria-controls="' . esc_attr( $pan_id ) . '">';
 			$out .= '<span class="vx-acc-t">' . esc_html( $title ) . '</span>';
-			$out .= '<span class="vx-acc-i" aria-hidden="true"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span>';
+			$out .= '<span class="vx-acc-i" aria-hidden="true">' . Velox_Icons::svg( 'chevron-down', 15 ) . '</span>';
 			$out .= '</button></' . $h_tag . '>';
 			$out .= '<div class="vx-acc-p" id="' . esc_attr( $pan_id ) . '" role="region" aria-labelledby="' . esc_attr( $btn_id ) . '"' . ( $open ? '' : ' hidden' ) . '>';
 			// A panel can hold real elements. children[i] belongs to item i; the
@@ -1134,7 +1182,7 @@ class Velox_Builder_Render {
 			$out .= '<button type="button" class="vx-dd-btn" aria-expanded="false" aria-haspopup="dialog"' .
 				' aria-controls="' . esc_attr( $id ) . '" data-vx-toggle="' . esc_attr( $id ) . '">' .
 				esc_html( self::el_set( $node, 'label', 'Menü' ) ) .
-				'<span class="vx-dd-i" aria-hidden="true"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg></span></button>';
+				'<span class="vx-dd-i" aria-hidden="true">' . Velox_Icons::svg( 'chevron-down', 14 ) . '</span></button>';
 		}
 
 		$out .= '<div class="' . esc_attr( $cls ) . '"' . $attr . ' role="dialog"' .
@@ -1148,7 +1196,7 @@ class Velox_Builder_Render {
 		$out .= '<div class="' . esc_attr( $panel_cls ) . '"' . ( $panel_style ? ' style="' . esc_attr( $panel_style ) . '"' : '' ) . '>';
 		if ( 'dropdown' !== $kind && self::el_set( $node, 'closeBtn', '1' ) ) {
 			$out .= '<button type="button" class="vx-ov-close" data-vx-close aria-label="' . esc_attr__( 'Close', 'velox' ) . '">' .
-				'<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+				'' . Velox_Icons::svg( 'x-lg', 16 ) . '</button>';
 		}
 		// Screen readers need a name for the dialog even when the design has no
 		// visible heading.
@@ -1334,8 +1382,8 @@ class Velox_Builder_Render {
 			if ( $count ) { $out .= '<span class="vx-count" aria-hidden="true">1 / ' . $total . '</span>'; }
 			if ( $arrows ) {
 				$out .= '<div class="vx-arrows">' .
-					'<button type="button" class="vx-prev" aria-label="' . esc_attr__( 'Previous slide', 'velox' ) . '"' . ( $loop ? '' : ' disabled' ) . '><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m15 18-6-6 6-6"/></svg></button>' .
-					'<button type="button" class="vx-next" aria-label="' . esc_attr__( 'Next slide', 'velox' ) . '"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="m9 18 6-6-6-6"/></svg></button>' .
+					'<button type="button" class="vx-prev" aria-label="' . esc_attr__( 'Previous slide', 'velox' ) . '"' . ( $loop ? '' : ' disabled' ) . '>' . Velox_Icons::svg( 'chevron-left', 16 ) . '</button>' .
+					'<button type="button" class="vx-next" aria-label="' . esc_attr__( 'Next slide', 'velox' ) . '">' . Velox_Icons::svg( 'chevron-right', 16 ) . '</button>' .
 					'</div>';
 			}
 			$out .= '</div>';
@@ -1454,7 +1502,7 @@ class Velox_Builder_Render {
 				if ( $lt && $lu ) { $inner .= ' <a class="vx-bar-link" href="' . esc_url( $lu ) . '">' . esc_html( $lt ) . '</a>'; }
 				if ( self::el_set( $node, 'dismiss', '1' ) ) {
 					$inner .= '<button type="button" class="vx-bar-x" data-vx-dismiss aria-label="' . esc_attr__( 'Close', 'velox' ) . '">' .
-						'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button>';
+						'' . Velox_Icons::svg( 'x-lg', 14 ) . '</button>';
 				}
 			} else {
 				foreach ( (array) self::el_set( $node, 'items', array() ) as $item ) {
@@ -1660,7 +1708,7 @@ class Velox_Builder_Render {
 				$sid  = $id . '-s' . $i;
 				$out .= '<button type="button" class="vx-sub-btn" aria-expanded="false" aria-controls="' . esc_attr( $sid ) . '"' .
 					' aria-label="' . esc_attr( sprintf( __( 'Show submenu of %s', 'velox' ), $title ) ) . '">' .
-					'<span aria-hidden="true"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></span></button>';
+					'<span aria-hidden="true">' . Velox_Icons::svg( 'chevron-down', 12 ) . '</span></button>';
 				$out .= '<ul class="vx-submenu" id="' . esc_attr( $sid ) . '" hidden>';
 				foreach ( $subs as $sub ) {
 					$out .= '<li><a href="' . esc_url( $sub[1] ) . '">' . esc_html( $sub[0] ) . '</a></li>';
@@ -2150,6 +2198,7 @@ class Velox_Builder_Render {
 
 	/** Print the full standalone HTML document. */
 	private static function output_page( $doc ) {
+		self::$rendered_doc = true;
 		self::$page_settings = isset( $doc['page'] ) && is_array( $doc['page'] ) ? $doc['page'] : array();
 		// The template's own CSS and JS used to be dropped on the floor: only the
 		// page being rendered was consulted. That forced every shell style to be

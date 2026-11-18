@@ -4,6 +4,24 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.26.0 — Velox Builder: new top bar, one icon set, saved vs live, loading screen
+- **New top bar.**
+  - Left: logo menu, panel toggle, "+ Add", the page title with a status pill (Live / Unpublished changes / Unsaved / Draft), page switcher, document type and undo/redo.
+  - Centre: screen sizes as a segmented control with a sliding marker.
+  - Right: tools, then View, Save and Publish.
+  - Every control is 32px high and its label is centred. On narrower screens labels turn into icons; nothing disappears.
+- **One icon set everywhere.** The icons you place on pages now come from Bootstrap Icons too, the same set as the editor: 2,050 icons, with categories and search by tag ("phone" finds the telephone). They ship with the plugin (no CDN). Icons already on your pages keep working. Frontend accordions, dropdowns, slider arrows and close buttons use the same set.
+- **Sharper icons.** Icons are drawn at 12/16/20px, where Bootstrap Icons land on whole pixels. At 14–15px they smeared; the gear looked broken.
+- **Geist** (self-hosted) for the editor and the admin screens, so they look the same on every computer. Windows used to fall back to Segoe UI, which sat button text off-centre.
+- **Saved changes are for you, published changes are for everyone.**
+  - Logged-in editors see their saved, unpublished changes on the real page; visitors only see them after Publish.
+  - An admin-bar switch shows which version you are looking at.
+  - "View page" in the editor offers "Live version" and "Saved changes".
+  - Pages showing saved changes are never cached.
+- **Loading screen** when the editor opens, when you switch pages and when you leave. It shows the real steps (editor, page data, canvas, fonts and images), a progress bar and a running timer, and ends with "Ready in X s".
+- **Close button on the selected element.** It deselects the element; with the Add panel open, the inspector steps aside so only the Add panel is left.
+- **The inspector keeps the same width** on Essentials, All styles and Settings. The scrollbar no longer takes width from the panel.
+
 ## 4.25.0 — Velox Builder: everything around the editor tested and fixed
 - **Fixed: units in Global styles broke the site.** Typing `1.125rem` as the body size saved 1.125px text on every page, a `26px` line height became 26 times the font size, and `clamp(28px, 4vw, 40px)` became 28440px. Sizes, line heights, page width and section/column spacing now keep their unit. Junk values are ignored.
 - **Fixed: Minify CSS off did nothing.** The CSS was compact either way; off now writes readable CSS, one property per line.

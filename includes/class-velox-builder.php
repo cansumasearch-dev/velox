@@ -578,7 +578,9 @@ class Velox_Builder {
 			'globalStyles' => self::global_styles(),
 			'aosTypes'    => self::aos_types(),
 			'fontNames'   => wp_list_pluck( self::fonts(), 'name' ),
-			'icons'       => class_exists( 'Velox_Icons' ) ? Velox_Icons::all() : array(),
+			// Bootstrap Icons load lazily from this file; the aliases keep old icon names working.
+			'iconsUrl'    => class_exists( 'Velox_Icons' ) ? Velox_Icons::bundle_url() : '',
+			'iconAliases' => class_exists( 'Velox_Icons' ) ? (object) Velox_Icons::aliases() : (object) array(),
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'reviewConnections' => self::review_connections(),
 			'reviewPresets' => self::review_presets(),
@@ -617,10 +619,14 @@ class Velox_Builder {
 </head>
 <body class="velox-builder-body">
 	<div id="velox-builder-root">
-		<div class="vb-boot">
-			<div class="vb-boot-mark">V</div>
-			<div class="vb-boot-text"><?php esc_html_e( 'Loading builder…', 'velox' ); ?></div>
+		<?php /* Same look as the editor's own loading screen, which takes over once the script has loaded. */ ?>
+		<div class="vb-boot" role="status" aria-live="polite">
+			<div class="vb-boot-mark"><svg viewBox="0 0 32 32" width="28" height="28" aria-hidden="true"><path d="M4 6l8 18 8-18h-4.2L12 16.5 8.2 6H4z" fill="#2ab7f1"/><path d="M20 6l-3.4 7.6L20.7 24 28 6h-8z" fill="#a06bff"/></svg></div>
+			<div class="vb-boot-text"><?php echo esc_html( '' !== $seed_title ? sprintf( /* translators: %s: page title */ __( 'Opening “%s”', 'velox' ), $seed_title ) : __( 'Opening the editor', 'velox' ) ); ?></div>
+			<div class="vb-boot-bar"><i></i></div>
+			<div class="vb-boot-meta"><span><?php esc_html_e( 'Loading the editor', 'velox' ); ?></span><span id="vb-boot-time">0.0 s</span></div>
 		</div>
+		<script>( function () { var el = document.getElementById( 'vb-boot-time' ), p = window.performance; var iv = setInterval( function () { if ( ! document.body.contains( el ) ) { clearInterval( iv ); return; } el.textContent = ( ( p && p.now ? p.now() : 0 ) / 1000 ).toFixed( 1 ) + ' s'; }, 100 ); }() );</script>
 	</div>
 	<?php
 	// Media modal Backbone templates live in the admin footer normally; print them here.

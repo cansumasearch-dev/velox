@@ -160,7 +160,12 @@
 	};
 	Object.keys( EL_ICON ).forEach( function ( k ) { ICON[ k ] = EL_ICON[ k ]; } );
 	function svg( name, size ) {
+		// Bootstrap Icons are drawn on a 16-unit grid: at 16px every line lands on a
+		// whole pixel; at 13-15px they fall between pixels and smear (the gear looked
+		// like it "had a stroke"). Snap to crisp sizes: 12 for chevrons and tiny
+		// marks, 16 for every normal icon, 20 for large tiles.
 		size = size || 16;
+		size = size <= 12 ? 12 : ( size <= 17 ? 16 : ( size <= 21 ? 20 : size ) );
 		return '<svg width="' + size + '" height="' + size + '" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true" focusable="false">' + ( ICON[ name ] || '' ) + '</svg>';
 	}
 	function elIcon( n ) { return { Section:'layout', Heading:'type', Text:'type', Button:'link', Div:'layout', Image:'image', Columns:'columns', Grid:'grid', Video:'video', Icon:'star', WP:'wp', Reviews:'star', Reusable:'copy', InnerContent:'layout' }[ n ] || 'layout'; }
@@ -765,7 +770,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-empty-box,[data-node].vb-empty-soft{outline:1px dashed #c3cad3;outline-offset:-1px;background-color:rgba(42,183,241,.035)}[data-node].vb-empty-box{min-height:88px}[data-node].vb-empty-box:hover,[data-node].vb-empty-soft:hover{outline-color:#2ab7f1}[data-node].vb-empty-box::after{content:attr(data-vb-empty);display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:88px;width:100%;padding:12px;grid-column:1/-1;flex:1 1 100%;font:500 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none;color:#8a94a0;pointer-events:none}[data-node].vb-anchor-mark{display:block!important;min-height:22px;outline:1px dashed #c3cad3;outline-offset:-1px}[data-node].vb-anchor-mark::after{content:attr(data-vb-anchor);display:block;padding:3px 8px;font:500 11px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#8a94a0;letter-spacing:0;text-transform:none}[data-node].vb-hov{outline:1px solid #2ab7f1!important}[data-node].vb-msel{outline:2px dashed #2ab7f1!important;outline-offset:-2px}[data-node].vb-thin{position:relative}[data-node].vb-thin::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}[data-node].vb-sel{outline:2px solid #2ab7f1}a,img{-webkit-user-drag:none}html.vb-dnd,html.vb-dnd *{cursor:grabbing!important;user-select:none!important}html.vb-dnd-no,html.vb-dnd-no *{cursor:not-allowed!important}#vb-dropmark{position:absolute;z-index:2147483001;display:none;pointer-events:none;background:#2ab7f1}#vb-dropmark.is-h{height:calc(2px * var(--k,1));margin-top:calc(-1px * var(--k,1))}#vb-dropmark.is-v{width:calc(2px * var(--k,1));margin-left:calc(-1px * var(--k,1))}#vb-dropmark.is-h::before,#vb-dropmark.is-v::before{content:"";position:absolute;width:calc(8px * var(--k,1));height:calc(8px * var(--k,1));border-radius:50%;background:#2ab7f1;box-shadow:0 0 0 calc(2px * var(--k,1)) #fff}#vb-dropmark.is-h::before{left:calc(-4px * var(--k,1));top:calc(-3px * var(--k,1))}#vb-dropmark.is-v::before{top:calc(-4px * var(--k,1));left:calc(-3px * var(--k,1))}#vb-dropmark.is-box{background:rgba(42,183,241,.12);outline:calc(2px * var(--k,1)) solid #2ab7f1;outline-offset:calc(-2px * var(--k,1))}#vb-selbadge .vb-sb-move{cursor:grab;margin-left:-6px}#vb-selbadge{position:absolute;z-index:2147483000;display:none;align-items:center;gap:1px;height:22px;padding:0 2px 0 8px;background:#2ab7f1;color:#04222f;font:600 11px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:4px 4px 0 0;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);user-select:none;letter-spacing:0;text-transform:none;text-align:left}#vb-selbadge.is-inside{border-radius:0 0 4px 0}#vb-selbadge .vb-sb-l{padding-right:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis}#vb-selbadge button{display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:#04222f;cursor:pointer}#vb-selbadge button:hover{background:rgba(4,34,47,.16)}#vb-selbadge button[data-sb=parent] svg{transform:rotate(180deg)}#vb-selbadge svg{display:block}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-empty-box,[data-node].vb-empty-soft{outline:1px dashed #c3cad3;outline-offset:-1px;background-color:rgba(42,183,241,.035)}[data-node].vb-empty-box{min-height:88px}[data-node].vb-empty-box:hover,[data-node].vb-empty-soft:hover{outline-color:#2ab7f1}[data-node].vb-empty-box::after{content:attr(data-vb-empty);display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:88px;width:100%;padding:12px;grid-column:1/-1;flex:1 1 100%;font:500 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none;color:#8a94a0;pointer-events:none}[data-node].vb-anchor-mark{display:block!important;min-height:22px;outline:1px dashed #c3cad3;outline-offset:-1px}[data-node].vb-anchor-mark::after{content:attr(data-vb-anchor);display:block;padding:3px 8px;font:500 11px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#8a94a0;letter-spacing:0;text-transform:none}[data-node].vb-hov{outline:1px solid #2ab7f1!important}[data-node].vb-msel{outline:2px dashed #2ab7f1!important;outline-offset:-2px}[data-node].vb-thin{position:relative}[data-node].vb-thin::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}[data-node].vb-sel{outline:2px solid #2ab7f1}a,img{-webkit-user-drag:none}html.vb-dnd,html.vb-dnd *{cursor:grabbing!important;user-select:none!important}html.vb-dnd-no,html.vb-dnd-no *{cursor:not-allowed!important}#vb-dropmark{position:absolute;z-index:2147483001;display:none;pointer-events:none;background:#2ab7f1}#vb-dropmark.is-h{height:calc(2px * var(--k,1));margin-top:calc(-1px * var(--k,1))}#vb-dropmark.is-v{width:calc(2px * var(--k,1));margin-left:calc(-1px * var(--k,1))}#vb-dropmark.is-h::before,#vb-dropmark.is-v::before{content:"";position:absolute;width:calc(8px * var(--k,1));height:calc(8px * var(--k,1));border-radius:50%;background:#2ab7f1;box-shadow:0 0 0 calc(2px * var(--k,1)) #fff}#vb-dropmark.is-h::before{left:calc(-4px * var(--k,1));top:calc(-3px * var(--k,1))}#vb-dropmark.is-v::before{top:calc(-4px * var(--k,1));left:calc(-3px * var(--k,1))}#vb-dropmark.is-box{background:rgba(42,183,241,.12);outline:calc(2px * var(--k,1)) solid #2ab7f1;outline-offset:calc(-2px * var(--k,1))}#vb-selbadge .vb-sb-move{cursor:grab;margin-left:-6px}#vb-selbadge{position:absolute;z-index:2147483000;display:none;align-items:center;gap:1px;height:22px;padding:0 2px 0 8px;background:#2ab7f1;color:#04222f;font:600 11px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:4px 4px 0 0;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);user-select:none;letter-spacing:0;text-transform:none;text-align:left}#vb-selbadge.is-inside{border-radius:0 0 4px 0}#vb-selbadge .vb-sb-l{padding-right:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis}#vb-selbadge button{display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:#04222f;cursor:pointer}#vb-selbadge button:hover{background:rgba(4,34,47,.16)}#vb-selbadge button[data-sb=parent] svg{transform:rotate(180deg)}#vb-selbadge svg{display:block}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 "Velox Geist Mono",ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -824,7 +829,7 @@
 				flushPending();
 				// Menus of the editor close when you work on the page.
 				closeContextMenu();
-				[ 'vb-brandmenu', 'vb-exitmenu', 'vb-pageswitch' ].forEach( function ( mid ) { var m = document.getElementById( mid ); if ( m ) { m.classList.remove( 'open' ); } } );
+				[ 'vb-brandmenu', 'vb-exitmenu', 'vb-viewmenu', 'vb-pageswitch' ].forEach( function ( mid ) { var m = document.getElementById( mid ); if ( m ) { m.classList.remove( 'open' ); } } );
 			}, true );
 			doc.addEventListener( 'scroll', function () { positionBadge(); }, { passive:true } );
 			wireCanvasDocDrag( doc );
@@ -2340,15 +2345,18 @@
 	function loadDoc( id ) {
 		if ( ! CFG.ajaxurl || ! id ) { return; }
 		showLoadState( 'loading' );
+		loaderStage( 45, T( 'Loading page data' ) );
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_load' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'id', id );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
 			.then( function ( r ) { return r.json(); } )
 			.then( function ( res ) {
 				if ( ! res || ! res.success || ! res.data.model ) {
-					showLoadState( 'error', ( res && res.data && res.data.message ) || '' ); return;
+					loaderDone( true ); showLoadState( 'error', ( res && res.data && res.data.message ) || '' ); return;
 				}
 				showLoadState( '' );
+				loaderStage( 70, T( 'Building the canvas' ) );
+				if ( loader.el && res.data.title ) { loader.el.querySelector( '.vb-ld-title' ).textContent = T( 'Opening' ) + ' “' + res.data.title + '”'; }
 				docId = res.data.id; docTitle = res.data.title || 'Untitled'; pubStatus = res.data.status || 'draft'; pubUrl = res.data.url || '';
 				if ( res.data.kind ) { docKind = res.data.kind; }
 				everPublished = ( pubStatus === 'published' ); dirty = false; hasDraft = !! res.data.has_draft;
@@ -2363,10 +2371,11 @@
 				offerBackup();
 				document.title = docTitle + ' — Velox Builder';
 				setTimeout( function () { renderActions(); }, 30 );
+				setTimeout( loaderWaitCanvas, 30 );
 			} )
 			// A failed load must NEVER fall back to an empty page: the next Save
 			// would have written that empty page over the real layout.
-			.catch( function () { showLoadState( 'error', '' ); } );
+			.catch( function () { loaderDone( true ); showLoadState( 'error', '' ); } );
 	}
 	function showLoadState( st, msg ) {
 		var stage = document.querySelector( '.vb-stage' ); if ( ! stage ) { return; }
@@ -2433,6 +2442,14 @@
 		var live = pubStatus === 'published' && ! dirty && ! hasDraft;
 		var pubLabel = live ? T( 'Published' ) : ( everPublished ? T( 'Publish changes' ) : T( 'Publish' ) );
 		var pubTip = live ? T( 'Visitors see exactly this version.' ) : ( everPublished ? T( 'Your saved changes are not live yet. Publish puts them on the site.' ) : T( 'Not on the site yet.' ) );
+		// One status pill next to the title says where this page stands.
+		var st = document.getElementById( 'vb-docstat' );
+		if ( st ) {
+			var k = dirty ? 'unsaved' : ( live ? 'live' : ( everPublished ? 'changes' : 'draft' ) );
+			var L = { unsaved:T( 'Unsaved' ), live:T( 'Live' ), changes:T( 'Unpublished changes' ), draft:T( 'Draft' ) };
+			var tip = { unsaved:T( 'You have changes that are not saved yet.' ), live:T( 'Visitors see exactly this version.' ), changes:T( 'Saved, but not live yet — only you see these changes.' ), draft:T( 'Not on the site yet.' ) };
+			st.className = 'vb-docstat is-' + k; st.textContent = L[ k ]; st.title = tip[ k ];
+		}
 		host.innerHTML =
 			'<button class="vb-btn vb-btn-ghost vb-save--' + _saveState + ( dirty ? ' is-dirty' : '' ) + '" id="vb-save" title="' + T( 'Save — only you see it until you publish' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'S)">' + saveLabel() + '</button>' +
 			'<button class="vb-btn vb-btn-primary' + ( live ? ' is-live' : '' ) + '" id="vb-publish" title="' + pubTip + '">' + pubLabel + '</button>';
@@ -2453,7 +2470,7 @@
 		// Edits made while publishing ran are still unsaved.
 		if ( state === 'published' ) { everPublished = true; dirty = contentSig( store.state ) !== lastSavedSig; }
 		renderActions();
-		if ( view && pubUrl ) { view.href = pubUrl; view.style.display = ''; }
+		if ( pubUrl ) { CFG.frontUrl = pubUrl; setNavUrls(); }
 		var pb = document.getElementById( 'vb-publish' );
 		if ( pb && state === 'publishing' ) { pb.textContent = T( 'Publishing…' ); pb.disabled = true; }
 	}
@@ -2665,6 +2682,9 @@
 		app.classList.toggle( 'vb-pin-right', pinned.right );
 		app.classList.toggle( 'vb-lcol', leftCollapsed );
 		app.classList.toggle( 'vb-nosel', ! ( store.state && store.state.selection ) );
+		// Add panel open and nothing selected: the inspector would only show an empty
+		// placeholder beside it, so it steps aside and the canvas gets the room.
+		app.classList.toggle( 'vb-noinsp', addMenuOpen() && ! ( store.state && store.state.selection ) );
 		var right = openRightPanel();
 		app.style.setProperty( '--vb-rw', ( pinned.right && right ? PANEL_W[ right ] : 0 ) + 'px' );
 		app.style.setProperty( '--vb-lw', ( pinned.left && addMenuOpen() ? PANEL_W.add : 0 ) + 'px' );
@@ -2713,9 +2733,75 @@
 	/* Shared pin control for every panel header. */
 	function pinBtnHTML( side ) { return '<button class="vb-css-x vb-pinbtn" data-pin="' + ( side || 'right' ) + '">' + svg( 'pin', 14 ) + '</button>'; }
 
+	/* ---------- loading screen ----------
+	 * Opening the editor, switching pages and leaving it show one screen with the
+	 * real stages (editor → page data → canvas → fonts & images), a progress bar
+	 * and a running timer, so you can see how long loading actually takes. The
+	 * clock starts at navigation, not when this script ran. */
+	var loader = { el:null, timer:null, done:false };
+	function loaderNow() { return ( window.performance && performance.now ) ? performance.now() : 0; }
+	function loaderShow( title, sub ) {
+		var el = loader.el;
+		if ( ! el ) {
+			el = loader.el = document.createElement( 'div' );
+			el.id = 'vb-loader'; el.setAttribute( 'role', 'status' ); el.setAttribute( 'aria-live', 'polite' );
+			el.innerHTML = '<div class="vb-ld-card"><div class="vb-ld-mark">' + veloxLogo() + '</div>' +
+				'<div class="vb-ld-title"></div><div class="vb-ld-sub"></div>' +
+				'<div class="vb-ld-bar"><i></i></div>' +
+				'<div class="vb-ld-meta"><span class="vb-ld-stage"></span><span class="vb-ld-time">0.0 s</span></div></div>';
+			document.body.appendChild( el );
+		}
+		el.querySelector( '.vb-ld-title' ).textContent = title || T( 'Opening the editor' );
+		el.querySelector( '.vb-ld-sub' ).textContent = sub || '';
+		el.classList.remove( 'out', 'done' ); el.classList.add( 'on' );
+		loader.done = false;
+		clearInterval( loader.timer );
+		loader.timer = setInterval( function () {
+			var t = el.querySelector( '.vb-ld-time' ); if ( t ) { t.textContent = ( loaderNow() / 1000 ).toFixed( 1 ) + ' s'; }
+		}, 100 );
+	}
+	function loaderStage( pct, label, indeterminate ) {
+		if ( ! loader.el || loader.done ) { return; }
+		var bar = loader.el.querySelector( '.vb-ld-bar' );
+		bar.classList.toggle( 'ind', !! indeterminate );
+		bar.querySelector( 'i' ).style.width = indeterminate ? '' : Math.max( 4, Math.min( 100, pct ) ) + '%';
+		loader.el.querySelector( '.vb-ld-stage' ).textContent = label || '';
+	}
+	function loaderDone( failed ) {
+		if ( ! loader.el || loader.done ) { return; }
+		loader.done = true; clearInterval( loader.timer );
+		if ( failed ) { loader.el.classList.remove( 'on' ); return; }
+		var secs = ( loaderNow() / 1000 ).toFixed( 1 );
+		loaderStage( 100, '' ); loader.done = true;
+		loader.el.querySelector( '.vb-ld-stage' ).textContent = T( 'Ready in' ) + ' ' + secs + ' s';
+		loader.el.querySelector( '.vb-ld-time' ).textContent = secs + ' s';
+		loader.el.classList.add( 'done' );
+		setTimeout( function () { loader.el.classList.add( 'out' ); }, 260 );
+		setTimeout( function () { loader.el.classList.remove( 'on', 'out' ); }, 520 );
+	}
+	/* Fonts and images inside the canvas, capped so a slow image never holds the editor hostage. */
+	function loaderWaitCanvas() {
+		loaderStage( 86, T( 'Loading fonts and images' ) );
+		var fr = document.getElementById( 'vb-canvas' ), d = fr && fr.contentDocument, waits = [];
+		try {
+			if ( d && d.fonts && d.fonts.ready ) { waits.push( d.fonts.ready ); }
+			[].slice.call( d ? d.images : [] ).forEach( function ( im ) {
+				if ( ! im.complete ) { waits.push( new Promise( function ( r ) { im.addEventListener( 'load', r ); im.addEventListener( 'error', r ); } ) ); }
+			} );
+		} catch ( e ) {}
+		Promise.race( [ Promise.all( waits ), new Promise( function ( r ) { setTimeout( r, 4000 ); } ) ] ).then( function () { loaderDone(); } );
+	}
+	/* Leaving (exit, back to WordPress, another page): show where we are going. */
+	function loaderLeave( title ) {
+		loaderShow( title || T( 'Leaving the editor' ), '' );
+		loaderStage( 0, T( 'Loading…' ), true );
+	}
+
 	function mount() {
 		var root = document.getElementById( 'velox-builder-root' );
 		if ( ! root ) { return; }
+		loaderShow( CFG.seedTitle ? T( 'Opening' ) + ' “' + CFG.seedTitle + '”' : T( 'Opening the editor' ) );
+		loaderStage( 30, T( 'Starting the editor' ) );
 		loadUiPrefs();
 		root.className = 'vb-app';
 		root.innerHTML =
@@ -2742,12 +2828,14 @@
 		applyEditorPrefs();
 		setNavUrls();
 		store.subscribe( renderAll );
+		setTimeout( loadIcons, 400 );
 		// Only real edits make the document "unsaved" — selecting an element or
 		// loading the page used to, so "Published" never showed after opening.
 		store.onEdit = markDirty;
 		window.addEventListener( 'beforeunload', function ( e ) {
 			flushGlobalSaves();
 			if ( dirty || saving ) { e.preventDefault(); e.returnValue = ''; return ''; }
+			loaderLeave( loader.leaveTitle );
 		} );
 		window.addEventListener( 'resize', function () { resizeCanvas(); } );
 		store.subscribeLog( function () { if ( historyShown ) { renderHistoryPanel(); } } );
@@ -2782,21 +2870,21 @@
 		booted = true;
 		resizeCanvas( 'base' );
 		if ( CFG.docId ) { loadDoc( CFG.docId ); }
-		else { store.init( initialDoc ); snapshotClasses(); }
+		else { loaderStage( 70, T( 'Building the canvas' ) ); store.init( initialDoc ); snapshotClasses(); setTimeout( loaderWaitCanvas, 30 ); }
 	}
 	function topbarHTML() {
 		return '<div class="vb-top">' +
 			// LEFT: logo (menu) + page-title picker
-			'<div class="vb-tbc">' +
-				'<button class="vb-brand" id="vb-brand" title="Velox">' + veloxLogo() + '</button>' +
+			'<div class="vb-tbc vb-tb-l">' +
+				'<button class="vb-brand" id="vb-brand" title="Velox" aria-label="' + T( 'Velox menu' ) + '">' + veloxLogo() + '</button>' +
 				'<div class="vb-tsep"></div>' +
 				'<button class="vb-ic" id="vb-tgl-left" title="' + T( 'Hide left panels' ) + '">' + svg( 'panelleft', 16 ) + '</button>' +
-				'<button class="vb-add-top" data-add>' + svg( 'plus', 15 ) + ' ' + T( 'Add element' ) + '</button>' +
+				'<button class="vb-add-top" data-add title="' + T( 'Add element' ) + ' (A)">' + svg( 'plus', 16 ) + '<span class="vb-lbl">' + T( 'Add' ) + '</span></button>' +
 				'<div class="vb-tsep"></div>' +
 				'<div class="vb-pagepick" id="vb-pagepick">' +
-					'<small>' + T( 'Editing' ) + '</small>' +
-					'<b><input id="vb-title" class="vb-title" type="text" value="' + escapeHtml( docTitle ) + '" placeholder="' + T( 'Untitled' ) + '" spellcheck="false">' +
-					'<button class="vb-pp-caret" id="vb-pp-caret" title="' + T( 'Switch page' ) + '">' + svg( 'chevron', 12 ) + '</button></b>' +
+					'<b><input id="vb-title" class="vb-title" type="text" value="' + escapeHtml( docTitle ) + '" placeholder="' + T( 'Untitled' ) + '" spellcheck="false" aria-label="' + T( 'Page title' ) + '">' +
+					'<button class="vb-pp-caret" id="vb-pp-caret" title="' + T( 'Switch page' ) + '" aria-label="' + T( 'Switch page' ) + '">' + svg( 'chevron', 12 ) + '</button></b>' +
+					'<span class="vb-docstat" id="vb-docstat"></span>' +
 				'</div>' +
 				// What this document IS. Previously only settable from the URL, so
 				// anything made via "New page" was stuck as a page forever.
@@ -2805,20 +2893,20 @@
 					'<option value="template">' + T( 'Template' ) + '</option>' +
 					'<option value="reusable">' + T( 'Reusable' ) + '</option>' +
 				'</select>' +
-			'</div>' +
-			// CENTER: breakpoints + undo/redo
-			'<div class="vb-tbc vb-tbc-center">' +
-				'<div class="vb-bp" id="vb-bp">' +
-					BP_TOOLBAR.map( function ( k, i ) {
-						return '<button data-bp="' + k + '"' + ( 0 === i ? ' class="on"' : '' ) + ' title="' + escapeHtml( BP_META[ k ].label + ' · ' + BP_META[ k ].range ) + '">' + svg( BP_META[ k ].icon, 15 ) + '</button>';
-					} ).join( '' ) +
-				'</div>' +
 				'<div class="vb-tsep"></div>' +
 				'<button class="vb-ic" id="vb-undo" title="' + T( 'Undo' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'Z)">' + svg( 'undo', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-redo" title="' + T( 'Redo' ) + ' (' + ( IS_MAC ? '⇧⌘' : 'Ctrl+Shift+' ) + 'Z)">' + svg( 'redo', 16 ) + '</button>' +
 			'</div>' +
+			// CENTER: breakpoints + undo/redo
+			'<div class="vb-tbc vb-tbc-center">' +
+				'<div class="vb-bp" id="vb-bp" role="tablist" aria-label="' + T( 'Screen size' ) + '"><span class="vb-bp-thumb" aria-hidden="true"></span>' +
+					BP_TOOLBAR.map( function ( k, i ) {
+						return '<button role="tab" data-bp="' + k + '"' + ( 0 === i ? ' class="on"' : '' ) + ' title="' + escapeHtml( BP_META[ k ].label + ' · ' + BP_META[ k ].range ) + '" aria-label="' + escapeHtml( BP_META[ k ].label ) + '">' + svg( BP_META[ k ].icon, 16 ) + '</button>';
+					} ).join( '' ) +
+				'</div>' +
+			'</div>' +
 			// RIGHT: tool icons · [Save Publish View] · Exit-icon (with menu)
-			'<div class="vb-tbc">' +
+			'<div class="vb-tbc vb-tb-r">' +
 				'<span class="vb-viewas-wrap" id="vb-viewas-wrap">' + svg( 'eye', 14 ) +
 					'<select class="vb-viewas" id="vb-viewas" title="' + T( 'Preview this template with a page\'s content' ) + '"><option value="">' + T( 'View as…' ) + '</option></select>' +
 				'</span>' +
@@ -2831,7 +2919,14 @@
 				'<button class="vb-ic" id="vb-tgl-right" title="' + T( 'Show right panel' ) + '">' + svg( 'panelright', 16 ) + '</button>' +
 				'<div class="vb-tsep"></div>' +
 				'<span id="vb-actions"></span>' +
-				'<a class="vb-btn vb-btn-ghost" id="vb-view" href="#" target="_blank" rel="noopener">' + T( 'View page' ) + '</a>' +
+				// View page: the live version visitors see, or your saved (unpublished) changes.
+				'<div class="vb-viewwrap">' +
+					'<button type="button" class="vb-btn vb-btn-ghost" id="vb-view" aria-haspopup="menu" aria-expanded="false" title="' + T( 'View page' ) + '">' + svg( 'eye', 16 ) + '<span class="vb-lbl">' + T( 'View' ) + '</span>' + svg( 'chevron', 12 ) + '</button>' +
+					'<div class="vb-exitmenu vb-viewmenu" id="vb-viewmenu" role="menu">' +
+						'<a class="vb-bm-i vb-vm-i" id="vb-view-live" role="menuitem" href="#" target="_blank" rel="noopener">' + svg( 'globe', 15 ) + '<span><b>' + T( 'Live version' ) + '</b><small>' + T( 'What visitors see right now' ) + '</small></span></a>' +
+						'<a class="vb-bm-i vb-vm-i" id="vb-view-saved" role="menuitem" href="#" target="_blank" rel="noopener">' + svg( 'eye', 15 ) + '<span><b>' + T( 'Saved changes' ) + '</b><small>' + T( 'Only you, until you publish' ) + '</small></span></a>' +
+					'</div>' +
+				'</div>' +
 				'<div class="vb-tsep"></div>' +
 				'<div class="vb-exitwrap">' +
 					'<button class="vb-ic" id="vb-exit" title="' + T( 'Exit' ) + '">' + svg( 'exit', 17 ) + '</button>' +
@@ -2892,7 +2987,12 @@
 	}
 	function renderTopbar( state ) {
 		var b = document.querySelectorAll( '#vb-bp button' );
-		for ( var i = 0; i < b.length; i++ ) { b[ i ].classList.toggle( 'on', b[ i ].getAttribute( 'data-bp' ) === state.breakpoint ); }
+		for ( var i = 0; i < b.length; i++ ) {
+			var isOn = b[ i ].getAttribute( 'data-bp' ) === state.breakpoint;
+			b[ i ].classList.toggle( 'on', isOn ); b[ i ].setAttribute( 'aria-selected', String( isOn ) );
+			// The thumb slides under the active size (Linear / Vercel segmented control).
+			if ( isOn ) { var th = document.querySelector( '#vb-bp .vb-bp-thumb' ); if ( th ) { th.style.transform = 'translateX(' + b[ i ].offsetLeft + 'px)'; th.style.width = b[ i ].offsetWidth + 'px'; th.style.opacity = '1'; } }
+		}
 		if ( state.breakpoint !== canvasBp ) { resizeCanvas( state.breakpoint ); }
 		var ks = document.getElementById( 'vb-kind' ); if ( ks && ks.value !== docKind ) { ks.value = docKind; }
 		refreshViewAs();
@@ -3245,7 +3345,8 @@
 		var keepFocus = captureFocus();
 		insp.innerHTML =
 			'<div class="vb-insp-head"><span class="vb-insp-ic">' + svg( nodeIcon( node ), 16 ) + '</span><div class="vb-insp-tx"><b>' + escapeHtml( node.name || elLabel( node ) ) + '</b><small>' + escapeHtml( ( node.name ? elLabel( node ) + ' · ' : '' ) + '<' + node.tag + '>' ) + '</small></div>' +
-				'<span class="vb-insp-acts"><button class="vb-ia" data-dup title="' + T( 'Duplicate' ) + '">' + svg( 'copy', 14 ) + '</button><button class="vb-ia vb-ia-del" data-del title="' + T( 'Delete' ) + '">' + svg( 'trash', 14 ) + '</button></span></div>' +
+				'<span class="vb-insp-acts"><button class="vb-ia" data-dup title="' + T( 'Duplicate' ) + '">' + svg( 'copy', 14 ) + '</button><button class="vb-ia vb-ia-del" data-del title="' + T( 'Delete' ) + '">' + svg( 'trash', 14 ) + '</button>' +
+				'<span class="vb-ia-sep"></span><button class="vb-ia" data-insp-close title="' + T( 'Close — deselect this element (Esc)' ) + '" aria-label="' + T( 'Close' ) + '">' + svg( 'x', 15 ) + '</button></span></div>' +
 			// Classes and state are two separate concerns, so they get two cards.
 			// The old layout printed the active class twice (a big card AND a chip)
 			// and never said that editing a class hits every element using it.
@@ -3432,45 +3533,68 @@
 	}
 
 	/* ---------- icon picker ----------
-	 * The set is small and curated on purpose: 70 icons that cover real agency
-	 * work, shipped inline so nothing is fetched from a CDN. */
-	var ICONSET = CFG.icons || {};
-	function iconMarkup( name, size ) {
-		var def = ICONSET[ name ];
-		if ( ! def ) { return ''; }
-		return '<svg width="' + ( size || 20 ) + '" height="' + ( size || 20 ) + '" viewBox="0 0 24 24" fill="none" ' +
-			'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + def[ 1 ] + '</svg>';
+	 * Bootstrap Icons 1.11.3: the same set as the editor UI, so there is one icon
+	 * style everywhere. The full set (2,050 icons, ~225 KB gzipped) ships with the
+	 * plugin and loads once in the background; names from the older Velox set
+	 * resolve through CFG.iconAliases. */
+	var ICONSET = {}, iconsLoaded = false, iconsLoading = null;
+	var ICON_ALIAS = CFG.iconAliases || {};
+	function iconName( name ) { name = String( name || '' ).toLowerCase(); return ICON_ALIAS[ name ] || name; }
+	function loadIcons() {
+		if ( iconsLoading || ! CFG.iconsUrl ) { return iconsLoading; }
+		iconsLoading = fetch( CFG.iconsUrl, { credentials:'same-origin' } ).then( function ( r ) { return r.json(); } ).then( function ( j ) {
+			ICONSET = ( j && j.icons ) || {}; iconsLoaded = true;
+			// Icons placed on the page and the picker were drawn before the set arrived.
+			if ( store && store.state ) { renderAll( store.state ); }
+			if ( iconPickFor ) { renderIconPicker(); }
+		} ).catch( function () { iconsLoading = null; } );
+		return iconsLoading;
 	}
-	var iconPickFor = null, iconFilter = '';
-	function openIconPicker( key ) { iconPickFor = key; iconFilter = ''; renderIconPicker(); }
+	function iconMarkup( name, size ) {
+		var def = ICONSET[ iconName( name ) ];
+		if ( ! def ) { if ( ! iconsLoaded ) { loadIcons(); } return ''; }
+		return '<svg width="' + ( size || 20 ) + '" height="' + ( size || 20 ) + '" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' + def[ 0 ] + '</svg>';
+	}
+	var iconPickFor = null, iconFilter = '', iconCat = '';
+	function openIconPicker( key ) { iconPickFor = key; iconFilter = ''; iconCat = ''; loadIcons(); renderIconPicker(); }
 	function closeIconPicker() { iconPickFor = null; renderIconPicker(); }
+	var ICON_POPULAR = [ 'telephone', 'envelope', 'geo-alt', 'clock', 'calendar3', 'chat-dots', 'whatsapp', 'instagram', 'facebook', 'linkedin', 'youtube', 'tiktok',
+		'check-lg', 'check-circle', 'x-lg', 'arrow-right', 'arrow-up-right', 'chevron-right', 'chevron-down', 'plus-lg', 'star-fill', 'star', 'heart', 'shield-check',
+		'award', 'lightning-charge', 'rocket-takeoff', 'graph-up-arrow', 'bullseye', 'gear', 'search', 'house', 'building', 'person', 'people', 'briefcase',
+		'cart', 'bag', 'credit-card', 'currency-euro', 'truck', 'box-seam', 'tools', 'wrench', 'hammer', 'car-front', 'camera', 'image', 'play-circle', 'download',
+		'globe2', 'lock', 'key', 'hand-thumbs-up', 'quote', 'lightbulb', 'palette', 'cup-hot', 'sun', 'moon', 'leaf', 'tree', 'droplet', 'fire' ];
 	function renderIconPicker() {
 		var box = document.getElementById( 'vb-iconpick' );
 		if ( ! box ) { return; }
 		if ( ! iconPickFor ) { box.style.display = 'none'; box.innerHTML = ''; return; }
-		var names = Object.keys( ICONSET ).filter( function ( n ) {
-			return ! iconFilter || n.indexOf( iconFilter.toLowerCase() ) > -1;
-		} );
-		var groups = {};
-		names.forEach( function ( n ) {
-			var g = ICONSET[ n ][ 0 ] || 'other';
-			if ( ! groups[ g ] ) { groups[ g ] = []; }
-			groups[ g ].push( n );
-		} );
-		var GNAME = { contact:'Contact', interface:'Interface', trust:'Trust & commerce',
-			people:'People & places', trade:'Trades & services', media:'Media & data' };
+		var all = Object.keys( ICONSET ), cats = {};
+		all.forEach( function ( n ) { var c = ICONSET[ n ][ 1 ] || 'Other'; cats[ c ] = ( cats[ c ] || 0 ) + 1; } );
+		var q = iconFilter.toLowerCase(), names;
+		if ( q ) {
+			// Name first, then the official search tags ("phone" finds telephone).
+			names = all.filter( function ( n ) { return n.indexOf( q ) > -1; } )
+				.concat( all.filter( function ( n ) { return n.indexOf( q ) < 0 && ( ' ' + ICONSET[ n ][ 2 ] + ' ' ).indexOf( q ) > -1; } ) );
+		} else if ( iconCat ) {
+			names = all.filter( function ( n ) { return ( ICONSET[ n ][ 1 ] || 'Other' ) === iconCat; } );
+		} else {
+			names = ICON_POPULAR.filter( function ( n ) { return ICONSET[ n ]; } );
+		}
+		var MAX = 240, more = names.length - MAX;
+		names = names.slice( 0, MAX );
 		box.style.display = 'flex';
 		box.innerHTML =
 			'<div class="vb-ip-h"><b>' + T( 'Choose an icon' ) + '</b>' +
-				'<button class="vb-css-x" id="vb-ip-close">' + svg( 'x', 14 ) + '</button></div>' +
-			'<div class="vb-ip-s"><input id="vb-ip-search" class="vb-inp" placeholder="' + T( 'Search icons…' ) + '" value="' + escapeHtml( iconFilter ) + '"></div>' +
-			'<div class="vb-ip-body">' + ( names.length ? Object.keys( groups ).map( function ( g ) {
-				return '<div class="vb-ip-g">' + T( GNAME[ g ] || g ) + '</div><div class="vb-ip-grid">' +
-					groups[ g ].map( function ( n ) {
-						return '<button type="button" class="vb-ip-i" data-iconval="' + escapeHtml( n ) + '" title="' + escapeHtml( n ) + '">' +
-							iconMarkup( n, 20 ) + '</button>';
-					} ).join( '' ) + '</div>';
-			} ).join( '' ) : '<div class="vb-setnote">' + T( 'No icons match that.' ) + '</div>' ) + '</div>';
+				'<button class="vb-css-x" id="vb-ip-close" aria-label="' + T( 'Close' ) + '">' + svg( 'x', 14 ) + '</button></div>' +
+			'<div class="vb-ip-s"><input id="vb-ip-search" class="vb-inp" placeholder="' + T( 'Search 2,050 icons…' ) + '" value="' + escapeHtml( iconFilter ) + '"></div>' +
+			( q ? '' : '<div class="vb-ip-cats"><button type="button" class="vb-ip-cat' + ( iconCat ? '' : ' on' ) + '" data-iconcat="">' + T( 'Popular' ) + '</button>' +
+				Object.keys( cats ).sort().map( function ( c ) {
+					return '<button type="button" class="vb-ip-cat' + ( c === iconCat ? ' on' : '' ) + '" data-iconcat="' + escapeHtml( c ) + '">' + escapeHtml( c ) + ' <i>' + cats[ c ] + '</i></button>';
+				} ).join( '' ) + '</div>' ) +
+			'<div class="vb-ip-body">' + ( ! iconsLoaded ? '<div class="vb-setnote">' + T( 'Loading icons…' ) + '</div>' :
+				names.length ? '<div class="vb-ip-grid">' + names.map( function ( n ) {
+					return '<button type="button" class="vb-ip-i" data-iconval="' + escapeHtml( n ) + '" title="' + escapeHtml( n ) + '">' + iconMarkup( n, 20 ) + '</button>';
+				} ).join( '' ) + '</div>' + ( more > 0 ? '<div class="vb-setnote">' + more + ' ' + T( 'more — type to narrow the search.' ) + '</div>' : '' )
+				: '<div class="vb-setnote">' + T( 'No icons match that.' ) + '</div>' ) + '</div>';
 	}
 
 	/* ---------- generic settings renderer ----------
@@ -4311,6 +4435,7 @@
 			var acc = e.target.closest( '[data-acc]' ); if ( acc ) { acc.parentElement.classList.toggle( 'closed' ); return; }
 			if ( e.target.closest( '[data-dup]' ) ) { duplicateNode( store.state.selection ); return; }
 			if ( e.target.closest( '[data-del]' ) ) { deleteNode( store.state.selection ); return; }
+			if ( e.target.closest( '[data-insp-close]' ) ) { if ( editing ) { commitInlineEdit(); } store.commit( function ( st ) { st.selection = null; st.activeClass = null; }, false ); return; }
 			var pick = e.target.closest( '[data-pickimg]' ); if ( pick ) { openMediaPicker( pick.getAttribute( 'data-pickimg' ) ); return; }
 			if ( e.target.closest( '[data-sfilter-x]' ) ) { styleFilter = ''; renderInspector( store.state ); var sf0 = document.getElementById( 'vb-sfilter' ); if ( sf0 ) { sf0.focus(); } return; }
 			var lk = e.target.closest( '[data-lockcls]' ); if ( lk ) { toggleLock( lk.getAttribute( 'data-lockcls' ) ); return; }
@@ -4369,6 +4494,15 @@
 			if ( e.target.closest( '#vb-search' ) ) { toggleSwitcher(); e.stopPropagation(); return; }
 			if ( e.target.closest( '#vb-exit' ) ) { var em = document.getElementById( 'vb-exitmenu' ); var was = em.classList.contains( 'open' ); closeAllPanels(); em.classList.toggle( 'open', ! was ); e.stopPropagation(); return; }
 			if ( ! e.target.closest( '.vb-exitwrap' ) ) { var em2 = document.getElementById( 'vb-exitmenu' ); if ( em2 ) { em2.classList.remove( 'open' ); } }
+			// Same-tab navigation away from the editor: tell the loading screen where to.
+			var navA = e.target.closest( 'a[href]' );
+			if ( navA && '_blank' !== navA.target && '#' !== navA.getAttribute( 'href' ) ) {
+				var navT = ( navA.querySelector( '.vb-ps-t' ) || {} ).textContent;
+				loader.leaveTitle = navT ? T( 'Opening' ) + ' “' + navT + '”' : ( navA.id === 'vb-exit-back' || /admin\.php|post\.php|edit\.php/.test( navA.href ) ? T( 'Back to WordPress' ) : '' );
+			}
+			if ( e.target.closest( '#vb-view' ) ) { var vm = document.getElementById( 'vb-viewmenu' ), vo = vm.classList.contains( 'open' ); closeAllPanels(); vm.classList.toggle( 'open', ! vo ); e.target.closest( '#vb-view' ).setAttribute( 'aria-expanded', String( ! vo ) ); return; }
+			if ( e.target.closest( '.vb-vm-i' ) ) { var vm3 = document.getElementById( 'vb-viewmenu' ); if ( vm3 ) { vm3.classList.remove( 'open' ); } }
+			if ( ! e.target.closest( '.vb-viewwrap' ) ) { var vm2 = document.getElementById( 'vb-viewmenu' ); if ( vm2 ) { vm2.classList.remove( 'open' ); } }
 			if ( e.target.closest( '#vb-structure' ) ) { structShown = ! structShown; if ( structShown ) { closeAllPanels( 'struct' ); } renderStructPanel(); return; }
 			if ( e.target.closest( '#vb-struct-close' ) ) { structShown = false; renderStructPanel(); return; }
 			if ( e.target.closest( '#vb-st-collapse' ) ) { structSetAll( true ); return; }
@@ -4404,6 +4538,8 @@
 			var ipk = e.target.closest( '[data-iconpick]' );
 			if ( ipk ) { openIconPicker( ipk.getAttribute( 'data-iconpick' ) ); return; }
 			if ( e.target.closest( '#vb-ip-close' ) ) { closeIconPicker(); return; }
+			var icat = e.target.closest( '[data-iconcat]' );
+			if ( icat ) { iconCat = icat.getAttribute( 'data-iconcat' ); renderIconPicker(); var ib = document.querySelector( '#vb-iconpick .vb-ip-body' ); if ( ib ) { ib.scrollTop = 0; } return; }
 			var ival = e.target.closest( '[data-iconval]' );
 			if ( ival ) { setElSetting( iconPickFor, ival.getAttribute( 'data-iconval' ) ); closeIconPicker(); return; }
 			var segb = e.target.closest( '[data-setel][data-segval]' );
@@ -4931,7 +5067,12 @@
 			preview = CFG.homeUrl || preview;
 		}
 		function set( id, href, hide ) { var el = document.getElementById( id ); if ( ! el ) { return; } if ( href ) { el.href = href; el.style.display = ''; } else if ( hide ) { el.style.display = 'none'; } }
-		set( 'vb-view', preview, true );
+		// Live = what a visitor gets (?velox_live=1 makes an editor see exactly that);
+		// Saved = the same URL, where editors see their saved, unpublished changes.
+		function q( u, k ) { return u ? u + ( u.indexOf( '?' ) > -1 ? '&' : '?' ) + k : ''; }
+		set( 'vb-view-live', q( front, 'velox_live=1' ), false );
+		set( 'vb-view-saved', front || preview, false );
+		var vw = document.querySelector( '.vb-viewwrap' ); if ( vw ) { vw.style.display = ( front || preview ) ? '' : 'none'; }
 		set( 'vb-exit-front', front, false );
 		set( 'vb-exit-view', preview, false );
 		var b = document.getElementById( 'vb-exit-back' ); if ( b ) { b.href = back; }
@@ -5543,7 +5684,7 @@
 		if ( dnd || dndPend ) { return; } // Escape during a drag only cancels the drag
 		if ( multi.length && ! typing ) { multi = []; renderAll( store.state ); return; }
 		var open = addMenuOpen() || !! document.getElementById( 'vb-ctx' ) || !! iconPickFor ||
-			!! document.querySelector( '#vb-oxypick.open, #vb-pageswitch.open, #vb-dyndata.open, #vb-brandmenu.open, #vb-exitmenu.open' );
+			!! document.querySelector( '#vb-oxypick.open, #vb-pageswitch.open, #vb-dyndata.open, #vb-brandmenu.open, #vb-exitmenu.open, #vb-viewmenu.open' );
 		closeAddMenu(); closeContextMenu(); closeIconPicker(); closeOxygenPicker();
 		[ 'vb-pageswitch', 'vb-dyndata', 'vb-brandmenu', 'vb-exitmenu' ].forEach( function ( mid ) { var m = document.getElementById( mid ); if ( m ) { m.classList.remove( 'open' ); } } );
 		if ( open || typing || editing || ! store.state || ! store.state.selection ) { return; }
@@ -6214,6 +6355,27 @@
 			'.vb-exitwrap{position:relative}',
 			'.vb-exitmenu{position:absolute;top:40px;right:0;width:210px;background:#2a2c32;border:1px solid rgba(255,255,255,.12);border-radius:11px;box-shadow:0 18px 50px rgba(0,0,0,.5);padding:6px;z-index:300;display:none}',
 			'.vb-exitmenu.open{display:block}',
+			'#vb-loader{position:fixed;inset:0;z-index:100050;display:none;place-items:center;background:radial-gradient(1200px 600px at 50% 40%,#1b1c22,#0e0f12);opacity:1;transition:opacity .24s ease}',
+			'#vb-loader.on{display:grid}#vb-loader.out{opacity:0}',
+			'.vb-ld-card{width:min(360px,86vw);display:flex;flex-direction:column;align-items:center;text-align:center}',
+			'.vb-ld-mark{width:56px;height:56px;border-radius:16px;display:grid;place-items:center;background:#1d1e24;border:1px solid rgba(255,255,255,.08);box-shadow:0 12px 40px rgba(0,0,0,.45);margin-bottom:22px}',
+			'.vb-ld-mark svg{width:28px;height:28px}',
+			'.vb-ld-title{font-size:15px;font-weight:600;color:#f4f4f6;letter-spacing:-.1px;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+			'.vb-ld-sub{font-size:12.5px;color:#9d9da8;margin-top:4px;min-height:0}.vb-ld-sub:empty{display:none}',
+			'.vb-ld-bar{width:100%;height:4px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden;margin-top:20px;position:relative}',
+			'.vb-ld-bar i{position:absolute;left:0;top:0;bottom:0;width:4%;border-radius:4px;background:linear-gradient(90deg,#2ab7f1,#a06bff);transition:width .35s cubic-bezier(.4,0,.2,1)}',
+			'.vb-ld-bar.ind i{width:32%!important;animation:vbLdInd 1.1s cubic-bezier(.4,0,.2,1) infinite}',
+			'@keyframes vbLdInd{0%{left:-32%}100%{left:100%}}',
+			'.vb-ld-meta{width:100%;display:flex;justify-content:space-between;gap:12px;margin-top:10px;font-size:11.5px;color:#9d9da8;font-variant-numeric:tabular-nums}',
+			'#vb-loader.done .vb-ld-stage{color:#43d17f}',
+			'@media (prefers-reduced-motion:reduce){#vb-loader,.vb-ld-bar i{transition:none}.vb-ld-bar.ind i{animation:none;width:100%!important;opacity:.5}}',
+			'.vb-viewwrap{position:relative;display:inline-flex}',
+			'.vb-viewmenu{width:248px;right:auto;left:0}',
+			'.vb-vm-i{align-items:flex-start!important;gap:10px!important;padding:9px 10px!important}',
+			'.vb-vm-i svg{margin-top:2px;flex:none}',
+			'.vb-vm-i span{display:flex;flex-direction:column;gap:2px;min-width:0}',
+			'.vb-vm-i b{font-weight:600;color:#f4f4f6;font-size:12.5px}',
+			'.vb-vm-i small{color:#9d9da8;font-size:11.5px}',
 			'.vb-save--saving{color:#f5a742}.vb-save--saved{color:#43d17f}.vb-save--error{color:#f56a5c}',
 			'.vb-ic{width:32px;height:32px;border-radius:8px;color:#aeb0b8;display:grid;place-items:center;background:none;border:none;cursor:pointer}',
 			'.vb-ic:hover{background:#3c3e46;color:#f4f4f6}',
@@ -6268,6 +6430,10 @@
 			// Scrim only appears for UNPINNED panels — a pinned panel owns its own
 			// space, so dimming the canvas there would be wrong.
 			'.vb-app.vb-hide-insp .vb-inspector{visibility:hidden}',
+			'.vb-app.vb-noinsp .vb-body{grid-template-columns:0 minmax(0,1fr)}',
+			'.vb-app.vb-noinsp .vb-inspector{overflow:hidden;border-right-color:transparent}',
+			'.vb-app.vb-noinsp .vb-iresize{display:none}',
+			'.vb-ia-sep{width:1px;height:16px;background:rgba(255,255,255,.1);margin:0 2px;flex:none}',
 						'.vb-scrim{position:absolute;top:48px;left:0;right:0;bottom:0;background:rgba(10,11,14,.5);z-index:110;opacity:0;pointer-events:none;transition:opacity .16s}',
 			'.vb-scrim.on{opacity:1;pointer-events:auto}',
 			'.vb-setpanel{position:absolute;top:48px;right:0;bottom:0;width:340px;background:#232429;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
@@ -6302,7 +6468,7 @@
 						'.vb-iconbtn{display:flex;align-items:center;gap:9px;width:100%;padding:8px 10px;border-radius:9px;background:#1a1b20;border:1px solid rgba(255,255,255,.08);color:#dcdce2;font:inherit;font-size:12.5px;cursor:pointer;text-align:left}',
 			'.vb-iconbtn:hover{border-color:rgba(255,255,255,.18)}',
 			'.vb-iconbtn-p{display:grid;place-items:center;width:26px;height:26px;border-radius:7px;background:#2a2c32;color:#7fd3f7;flex:0 0 auto}',
-			'.vb-iconbtn-n{flex:1;font-family:ui-monospace,Menlo,monospace;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+			'.vb-iconbtn-n{flex:1;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
 			'.vb-iconbtn-x{display:grid;place-items:center;padding:3px;border-radius:5px;color:#8b8d96}',
 			'.vb-iconbtn-x:hover{background:rgba(255,255,255,.1);color:#fff}',
 			'.vb-iconpick{position:absolute;top:48px;right:0;bottom:0;width:340px;background:#232429;border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:140;display:none;flex-direction:column}',
@@ -6310,16 +6476,22 @@
 			'.vb-ip-h b{font-size:13px}',
 			'.vb-ip-s{padding:10px 14px}',
 			'.vb-ip-body{flex:1;overflow:auto;padding:0 14px 16px}',
+			'.vb-ip-cats{display:flex;gap:4px;overflow-x:auto;padding:0 14px 10px;scrollbar-width:thin;flex:none}',
+			'.vb-ip-cat{flex:none;height:26px;padding:0 10px;border-radius:13px;border:1px solid rgba(255,255,255,.08);background:#1d1d24;color:#9d9da8;font:500 11.5px/1 inherit;cursor:pointer;display:inline-flex;align-items:center;gap:5px;white-space:nowrap}',
+			'.vb-ip-cat i{font-style:normal;color:#6d6f78}',
+			'.vb-ip-cat:hover{color:#f4f4f6}',
+			'.vb-ip-cat.on{background:rgba(42,183,241,.16);border-color:rgba(42,183,241,.45);color:#7fd3f7}',
+			'.vb-ip-body .vb-ip-grid{margin-top:4px}',
 			'.vb-ip-g{font-size:10px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#6d6f78;margin:14px 0 8px}',
 			'.vb-ip-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}',
 			'.vb-ip-i{display:grid;place-items:center;aspect-ratio:1;border-radius:8px;background:#1a1b20;border:1px solid transparent;color:#dcdce2;cursor:pointer}',
 			'.vb-ip-i:hover{background:#2f313a;border-color:#2ab7f1;color:#fff}',
 						'.vb-token-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}',
 			'.vb-token-row .vb-token-name{flex:1;min-width:0}',
-			'.vb-token-row .vb-token-val{flex:0 0 92px;font-family:ui-monospace,Menlo,monospace;font-size:11px}',
+			'.vb-token-row .vb-token-val{flex:0 0 92px;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:11px}',
 						'.vb-gs-swatchrow{display:flex;align-items:center;gap:9px;padding:8px 0;font-size:12px}',
 			'.vb-gs-swatchrow b{flex:1;color:#dcdce2;font-weight:600}',
-			'.vb-gs-swatchrow i{font-style:normal;color:#6d6f78;font-family:ui-monospace,Menlo,monospace;font-size:11px}',
+			'.vb-gs-swatchrow i{font-style:normal;color:#6d6f78;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:11px}',
 			'.vb-gs-dot{width:22px;height:22px;border-radius:6px;border:1px solid rgba(255,255,255,.14)}',
 						'.vb-set-check{display:flex;align-items:center;gap:9px;padding:9px 0;font-size:12.5px;color:#dcdce2;cursor:pointer}',
 			'.vb-set-check input{accent-color:#2ab7f1;width:15px;height:15px;cursor:pointer}',
@@ -6360,7 +6532,7 @@
 			'.vb-tn:hover{background:#3c3e46;color:#f4f4f6}',
 			'.vb-tn.sel{background:rgba(42,183,241,.14);color:#f4f4f6}',
 			'.vb-tn-ic{color:#8b8d96;display:grid;place-items:center}.vb-tn.sel .vb-tn-ic{color:#2ab7f1}',
-			'.vb-tn-name{flex:1}.vb-tn-cls{font-family:ui-monospace,Menlo,monospace;font-size:9.5px;color:#8b8d96}',
+			'.vb-tn-name{flex:1}.vb-tn-cls{font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:9.5px;color:#8b8d96}',
 			'.vb-tn.dragging{opacity:.4}',
 			'.vb-tn.drop-before{box-shadow:inset 0 2px 0 #2ab7f1}',
 			'.vb-tn.drop-after{box-shadow:inset 0 -2px 0 #2ab7f1}',
@@ -6384,7 +6556,7 @@
 			'.vb-ie-acts{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;justify-content:center}.vb-ie-acts .vb-btn{gap:6px}',
 			'.vb-ie-meta{font-size:11px;color:#6d6f78}',
 			'.vb-ie-keys{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding-top:14px;border-top:1px solid rgba(255,255,255,.07);width:100%;font-size:11.5px;text-align:left}',
-			'.vb-ie-keys kbd{display:inline-block;min-width:22px;padding:2px 6px;margin-right:6px;border-radius:5px;background:#2a2c32;border:1px solid rgba(255,255,255,.1);color:#dcdce2;font:600 10.5px/1.4 ui-monospace,Menlo,monospace;text-align:center}',
+			'.vb-ie-keys kbd{display:inline-block;min-width:22px;padding:2px 6px;margin-right:6px;border-radius:5px;background:#2a2c32;border:1px solid rgba(255,255,255,.1);color:#dcdce2;font:600 10.5px/1.4 "Velox Geist Mono",ui-monospace,Menlo,monospace;text-align:center}',
 			'.vb-tokswatch{display:flex;flex-wrap:wrap;gap:5px;margin-top:7px}',
 			'.vb-tsw{width:18px;height:18px;border-radius:5px;border:1px solid rgba(255,255,255,.18);cursor:pointer;padding:0}.vb-tsw:hover{transform:scale(1.12);border-color:#2ab7f1}',
 			'.vb-modal{position:fixed;inset:0;background:rgba(10,11,14,.6);z-index:400;display:none;align-items:center;justify-content:center}',
@@ -6406,13 +6578,13 @@
 			'.vb-css-top{display:flex;align-items:center;justify-content:space-between;padding:13px 14px;border-bottom:1px solid rgba(255,255,255,.07)}.vb-css-top b{font-size:13px}',
 			'.vb-css-x{background:none;border:none;color:#8b8d96;cursor:pointer;display:grid;place-items:center;padding:4px;border-radius:6px}.vb-css-x:hover{background:#3c3e46;color:#f4f4f6}',
 			'.vb-css-files{display:flex;flex-wrap:wrap;gap:5px;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,.07)}',
-			'.vb-css-file{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;background:#313339;border:1px solid rgba(255,255,255,.06);color:#aeb0b8;font-size:11.5px;cursor:pointer;font-family:ui-monospace,Menlo,monospace}',
+			'.vb-css-file{display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:7px;background:#313339;border:1px solid rgba(255,255,255,.06);color:#aeb0b8;font-size:11.5px;cursor:pointer;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace}',
 			'.vb-css-file.on{background:rgba(42,183,241,.14);color:#2ab7f1;border-color:transparent}',
 			'.vb-css-new{display:flex;align-items:center;gap:4px;padding:6px 10px;border-radius:7px;background:none;border:1px dashed rgba(255,255,255,.14);color:#a2a4ad;font-size:11.5px;cursor:pointer}.vb-css-new:hover{color:#f4f4f6}',
 			'.vb-css-name{display:flex;gap:6px;padding:10px 12px}',
-			'.vb-css-name input{flex:1;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:8px 11px;color:#f4f4f6;font-family:ui-monospace,Menlo,monospace;font-size:12px;outline:none}.vb-css-name input:focus{border-color:#2ab7f1}',
+			'.vb-css-name input{flex:1;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:8px 11px;color:#f4f4f6;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:12px;outline:none}.vb-css-name input:focus{border-color:#2ab7f1}',
 			'.vb-css-del{background:#313339;border:1px solid rgba(255,255,255,.07);border-radius:8px;color:#a2a4ad;cursor:pointer;width:34px;display:grid;place-items:center}.vb-css-del:hover{background:rgba(245,106,92,.15);color:#f56a5c}',
-			'.vb-css-code{flex:1;margin:0 12px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:12px;color:#e6f7ff;font-family:ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.6;resize:none;outline:none}.vb-css-code:focus{border-color:#2ab7f1}',
+			'.vb-css-code{flex:1;margin:0 12px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:9px;padding:12px;color:#e6f7ff;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:12.5px;line-height:1.6;resize:none;outline:none}.vb-css-code:focus{border-color:#2ab7f1}',
 			'.vb-code-tabs{display:flex;gap:3px;margin:10px 12px 0;padding:3px;background:#1a1b20;border-radius:9px}',
 			'.vb-code-tab{flex:1;padding:7px;border:none;background:none;border-radius:7px;color:#8b8d96;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}',
 			'.vb-code-tab:hover{color:#dcdce2}.vb-code-tab.on{background:#3c3e46;color:#f4f4f6}',
@@ -6450,12 +6622,12 @@
 			'.vb-st-l{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
 			'.vb-live{color:#43d17f;display:flex;align-items:center;gap:6px}',
 			'.vb-live::before{content:"";width:6px;height:6px;border-radius:50%;background:#43d17f;box-shadow:0 0 8px #43d17f}',
-			'.vb-css pre{margin:0;padding:12px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#aeb0b8;white-space:pre;overflow:auto;max-height:220px}',
+			'.vb-css pre{margin:0;padding:12px;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:11px;line-height:1.6;color:#aeb0b8;white-space:pre;overflow:auto;max-height:220px}',
 			'.vb-inspector{background:#232429;border-right:1px solid rgba(255,255,255,.07);display:flex;flex-direction:column;min-height:0;overflow-y:auto}',
 			'.vb-insp-head{display:flex;align-items:center;gap:10px;padding:14px}',
 			'.vb-insp-ic{width:32px;height:32px;border-radius:9px;background:rgba(42,183,241,.14);color:#2ab7f1;display:grid;place-items:center}',
 			'.vb-insp-tx b{font-size:13.5px;font-weight:650;display:block}',
-			'.vb-insp-tx small{font-size:10.5px;color:#8b8d96;font-family:ui-monospace,Menlo,monospace}',
+			'.vb-insp-tx small{font-size:10.5px;color:#8b8d96;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace}',
 			'.vb-classbar{margin:0 12px 4px;padding:13px;background:linear-gradient(180deg,#2a2c32,#1a1b20);border:1px solid rgba(255,255,255,.07);border-radius:13px}',
 			'.vb-tabs{display:flex;gap:3px;margin:6px 12px 10px;padding:3px;background:#1a1b20;border-radius:9px}',
 			'.vb-texttool{margin:0 12px 8px;padding:8px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:11px}',
@@ -6474,7 +6646,7 @@
 			'.vb-dd-soon{color:#f5b74c;font-size:14px;line-height:1}',
 			'.vb-tab{flex:1;padding:7px;border-radius:6px;border:none;background:none;color:#a2a4ad;font-size:12px;font-weight:600;cursor:pointer}',
 			'.vb-tab.on{background:#313339;color:#f4f4f6}',
-			'.vb-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border-radius:7px;font-family:ui-monospace,Menlo,monospace;font-size:11px;cursor:pointer}',
+			'.vb-chip{display:inline-flex;align-items:center;gap:4px;padding:5px 8px;border-radius:7px;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:11px;cursor:pointer}',
 			'.vb-chip.base{background:rgba(42,183,241,.13);color:#2ab7f1}.vb-chip.combo{background:rgba(160,107,255,.14);color:#a06bff}',
 			'.vb-chip.active{outline:1px solid currentColor}',
 			'.vb-chip-x{opacity:.5;display:grid;place-items:center;border-radius:4px}.vb-chip-x:hover{opacity:1;background:rgba(255,255,255,.12)}',
@@ -6493,13 +6665,13 @@
 			'.vb-active-class{display:flex;align-items:center;gap:10px;padding:11px 12px;background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:10px;margin-bottom:10px}',
 			'.vb-ac-dot{width:9px;height:9px;border-radius:3px}',
 			'.vb-active-class.base .vb-ac-dot{background:#2ab7f1}.vb-active-class.combo .vb-ac-dot{background:#a06bff}',
-			'.vb-ac-name{flex:1;font-family:ui-monospace,Menlo,monospace;font-size:14px;font-weight:600}',
+			'.vb-ac-name{flex:1;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:14px;font-weight:600}',
 			'.vb-active-class.base .vb-ac-name{color:#2ab7f1}.vb-active-class.combo .vb-ac-name{color:#a06bff}',
 			'.vb-ac-kind{font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:3px 8px;border-radius:6px}',
 			'.vb-active-class.base .vb-ac-kind{background:rgba(42,183,241,.14);color:#2ab7f1}.vb-active-class.combo .vb-ac-kind{background:rgba(160,107,255,.15);color:#a06bff}',
 			// ---- Concept C: classes card + separate state card ----
 			'.vb-cb-say{margin-top:9px;padding-top:9px;border-top:1px solid rgba(255,255,255,.06);font-size:11px;color:#8b8d96;line-height:1.5}',
-			'.vb-cb-say b{color:#dcdce2;font-family:ui-monospace,Menlo,monospace;font-weight:600}',
+			'.vb-cb-say b{color:#dcdce2;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-weight:600}',
 			'.vb-statebar{margin:0 12px 10px;padding:11px 13px;background:linear-gradient(180deg,#2a2c32,#1a1b20);border:1px solid rgba(255,255,255,.07);border-radius:13px}',
 			'.vb-chip-tag{font:700 8.5px/1 -apple-system,sans-serif;letter-spacing:.4px;padding:2px 5px;border-radius:4px;background:rgba(255,255,255,.08);color:#8b8d96}',
 			'.vb-chip.active .vb-chip-tag{background:rgba(42,183,241,.22);color:#7fd3f7}',
@@ -6527,10 +6699,10 @@
 			'.vb-chips{display:flex;flex-wrap:wrap;gap:5px}',
 			'.vb-states{display:flex;gap:3px;margin-top:10px;padding:3px;background:#1a1b20;border-radius:9px;flex-wrap:wrap}',
 			'.vb-state-add{padding:5px 8px!important;color:#2ab7f1!important}',
-			'.vb-state{flex:1;padding:6px;border-radius:6px;color:#8b8d96;font-size:11px;font-weight:600;background:none;border:none;cursor:pointer;font-family:ui-monospace,Menlo,monospace}',
+			'.vb-state{flex:1;padding:6px;border-radius:6px;color:#8b8d96;font-size:11px;font-weight:600;background:none;border:none;cursor:pointer;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace}',
 			'.vb-state:hover{color:#aeb0b8}',
 			'.vb-state.on{background:#313339;color:#a06bff}',
-			'.vb-chip{padding:4px 9px;border-radius:7px;font-family:ui-monospace,Menlo,monospace;font-size:11px;cursor:pointer;background:#313339;color:#aeb0b8;border:1px solid transparent}',
+			'.vb-chip{padding:4px 9px;border-radius:7px;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:11px;cursor:pointer;background:#313339;color:#aeb0b8;border:1px solid transparent}',
 			'.vb-chip:hover{background:#3c3e46;color:#f4f4f6}',
 			'.vb-chip.active.base{background:rgba(42,183,241,.15);color:#2ab7f1;border-color:rgba(42,183,241,.4)}',
 			'.vb-chip.active.combo{background:rgba(160,107,255,.15);color:#a06bff;border-color:rgba(160,107,255,.4)}',
@@ -6556,8 +6728,8 @@
 			'.vb-inp:hover:not(:focus):not([readonly]){border-color:rgba(255,255,255,.2)}',
 			'select.vb-inp{appearance:none;-webkit-appearance:none;cursor:pointer;background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'%23a2a4ad\' stroke-width=\'2.5\'%3E%3Cpath d=\'M6 9l6 6 6-6\'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:30px}',
 			'select.vb-inp option{background:#232429;color:#f4f4f6}',
-			'.vb-inp[readonly]{opacity:.55;cursor:default;font-family:ui-monospace,Menlo,monospace;font-size:11px}',
-			'.vb-inp:focus{border-color:#2ab7f1}.vb-inp.num{max-width:70px;font-family:ui-monospace,Menlo,monospace;text-align:center}',
+			'.vb-inp[readonly]{opacity:.55;cursor:default;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:11px}',
+			'.vb-inp:focus{border-color:#2ab7f1}.vb-inp.num{max-width:70px;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;text-align:center}',
 			'.vb-unit{background:#1a1b20;border:1px solid rgba(255,255,255,.07);border-radius:8px;padding:0 6px;color:#aeb0b8;font-size:10.5px;cursor:pointer;-webkit-appearance:none;appearance:none;text-align:center;min-width:44px;font-family:inherit;outline:none}',
 			'.vb-unit:hover{background:#313339;color:#f4f4f6}.vb-unit:focus{border-color:#2ab7f1;color:#f4f4f6}',
 			'.vb-swatch{width:28px;height:28px;border-radius:8px;border:1px solid rgba(255,255,255,.11);cursor:pointer;padding:0;background:none}',
@@ -6565,7 +6737,7 @@
 			'.vb-ctx-i{display:flex;align-items:center;gap:9px;width:100%;padding:7px 9px;border:none;background:none;color:#dcdce2;font-size:12.5px;cursor:pointer;border-radius:6px;text-align:left;font-family:inherit;box-sizing:border-box}',
 			'.vb-ctx-i:hover{background:#3c3e46;color:#f4f4f6}.vb-ctx-i svg{color:#8b8d96;flex:0 0 auto}.vb-ctx-i:hover svg{color:#dcdce2}',
 			'.vb-ctx-l{flex:1}',
-			'.vb-ctx-k{font-size:10.5px;color:#6d6f78;font-family:ui-monospace,Menlo,monospace}',
+			'.vb-ctx-k{font-size:10.5px;color:#6d6f78;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace}',
 			'.vb-ctx-soon{font-size:9px;font-weight:700;color:#a06bff;background:rgba(160,107,255,.15);padding:1px 5px;border-radius:4px}',
 			'.vb-ctx-i.danger{color:#f56a5c}.vb-ctx-i.danger svg{color:#f56a5c}.vb-ctx-i.danger:hover{background:rgba(245,106,92,.14);color:#f56a5c}',
 			'.vb-ctx-i:disabled{opacity:.38;cursor:default}.vb-ctx-i:disabled:hover{background:none;color:#dcdce2}.vb-ctx-i:disabled:hover svg{color:#8b8d96}',
@@ -6577,7 +6749,7 @@
 			// (its SCSS) and the Velox design system: 48px bar, 320px inspector, 28px
 			// controls, 12px labels, flat hairline-separated sections instead of
 			// cards inside cards, label-left rows for short controls.
-			'.vb-app{--vb-iw:320px;--vb-bg0:#16171b;--vb-bg1:#1d1e23;--vb-bg2:#25262c;--vb-bg3:#2d2f36;--vb-bg4:#373942;--vb-line:rgba(255,255,255,.07);--vb-line2:rgba(255,255,255,.13);--vb-tx1:#ececef;--vb-tx2:#a3a5ad;--vb-tx3:#7a7c85;--vb-acc:#2ab7f1;--vb-acct:#6fcdf5;--vb-h:28px;--vb-r:6px;font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:12px;-webkit-font-smoothing:antialiased}',
+			'.vb-app{--vb-iw:320px;--vb-bg0:#16171b;--vb-bg1:#1d1e23;--vb-bg2:#25262c;--vb-bg3:#2d2f36;--vb-bg4:#373942;--vb-line:rgba(255,255,255,.07);--vb-line2:rgba(255,255,255,.13);--vb-tx1:#ececef;--vb-tx2:#a3a5ad;--vb-tx3:#7a7c85;--vb-acc:#2ab7f1;--vb-acct:#6fcdf5;--vb-h:28px;--vb-r:6px;font-family:"Velox Geist",-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;font-size:12px;-webkit-font-smoothing:antialiased}',
 			'.vb-app button,.vb-app input,.vb-app select,.vb-app textarea{font-family:inherit}',
 			'.vb-app button:focus-visible,.vb-app a:focus-visible{outline:2px solid var(--vb-acc);outline-offset:1px}',
 			'@media (prefers-reduced-motion:reduce){.vb-app *,.vb-app *::before,.vb-app *::after{transition:none!important;animation:none!important}}',
@@ -6591,9 +6763,14 @@
 			'.vb-add-top{height:30px;border-radius:var(--vb-r)}',
 			'.vb-btn{padding:0 12px;height:30px;border-radius:var(--vb-r);font-size:12.5px}',
 			'.vb-btn-danger{background:#e5534b;color:#fff;border-color:transparent}.vb-btn-danger:hover{background:#ef6a62}',
+			// Centre labels on the capital letters, not the font's line box: Segoe UI and
+			// friends sat text 1-2px off in fixed-height buttons. Older browsers ignore it.
+			'.vb-btn,.vb-add-top{text-box:trim-both cap alphabetic}',
 			'.vb-bp{border-radius:8px}.vb-bp button{width:30px;height:24px;border-radius:5px}',
 			// inspector shell
-			'.vb-inspector{background:var(--vb-bg1);border-right-color:var(--vb-line);scrollbar-width:thin;scrollbar-color:#3a3c44 transparent}',
+			'.vb-inspector{background:var(--vb-bg1);border-right-color:var(--vb-line);scrollbar-width:thin;scrollbar-color:#3a3c44 transparent;scrollbar-gutter:stable}',
+			// The scrollbar only appeared on long tabs (All styles) and took its width
+			// from the content, so every tab switch changed the panel's inner width.
 			'.vb-insp-head{padding:12px 12px 10px;gap:10px}',
 			'.vb-insp-ic{width:28px;height:28px;border-radius:var(--vb-r)}',
 			'.vb-insp-tx{min-width:0}.vb-insp-tx b{font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
@@ -6711,7 +6888,7 @@
 			'.vb-ask-card{width:400px;max-width:calc(100vw - 32px);box-sizing:border-box;padding:20px;background:var(--vb-bg1);border:1px solid var(--vb-line2);border-radius:12px;box-shadow:0 24px 64px rgba(0,0,0,.55);display:flex;flex-direction:column;gap:10px;color:var(--vb-tx1)}',
 			'.vb-ask-card b{font-size:15px;font-weight:600}',
 			'.vb-ask-card p{margin:0;font-size:12.5px;line-height:1.55;color:var(--vb-tx2)}',
-			'.vb-ask-ul{margin:0;padding:8px 10px 8px 26px;max-height:140px;overflow:auto;border-radius:8px;background:var(--vb-bg0);font:12px/1.6 ui-monospace,Menlo,monospace;color:var(--vb-acct)}',
+			'.vb-ask-ul{margin:0;padding:8px 10px 8px 26px;max-height:140px;overflow:auto;border-radius:8px;background:var(--vb-bg0);font:12px/1.6 "Velox Geist Mono",ui-monospace,Menlo,monospace;color:var(--vb-acct)}',
 			'.vb-ask-card .vb-inp{height:34px;font-size:13px}',
 			'.vb-ask-acts{display:flex;justify-content:flex-end;gap:8px;margin-top:6px}',
 			'.vb-ask-acts .vb-btn{height:32px}',
@@ -6745,7 +6922,7 @@
 			'.vb-cmdk-s{display:flex;align-items:center;gap:10px;padding:0 14px;height:48px;border-bottom:1px solid var(--vb-line)}.vb-cmdk-s svg{color:var(--vb-tx3)}',
 			'.vb-cmdk-s input{flex:1;height:100%;background:none;border:0;outline:none;color:var(--vb-tx1);font-size:14px}',
 			'.vb-cmdk-s input::placeholder{color:var(--vb-tx3)}',
-			'.vb-cmdk kbd{font:600 10.5px/1 ui-monospace,Menlo,monospace;color:var(--vb-tx2);background:var(--vb-bg2);border:1px solid var(--vb-line2);border-radius:4px;padding:3px 5px;white-space:nowrap}',
+			'.vb-cmdk kbd{font:600 10.5px/1 "Velox Geist Mono",ui-monospace,Menlo,monospace;color:var(--vb-tx2);background:var(--vb-bg2);border:1px solid var(--vb-line2);border-radius:4px;padding:3px 5px;white-space:nowrap}',
 			'.vb-cmdk-list{max-height:min(420px,60vh);overflow:auto;padding:6px}',
 			'.vb-cmdk-i{display:flex;align-items:center;gap:10px;width:100%;height:36px;padding:0 10px;border:0;border-radius:7px;background:none;color:var(--vb-tx1);font-size:13px;text-align:left;cursor:pointer}',
 			'.vb-cmdk-i.on{background:var(--vb-bg3)}',
@@ -6778,7 +6955,75 @@
 			'.vb-multibar b{font-size:12.5px}.vb-multibar span{font-size:11px;color:var(--vb-tx2);line-height:1.45}',
 			'.vb-multibar-acts{display:flex;flex-wrap:wrap;gap:6px}.vb-multibar-acts .vb-btn{height:26px;padding:0 10px;font-size:11.5px}',
 			'.vb-st-row.msel{background:rgba(42,183,241,.08);box-shadow:inset 2px 0 0 var(--vb-acc)}',
-			'.vb-st-row:focus-visible{outline:2px solid var(--vb-acc);outline-offset:-2px}'
+			'.vb-st-row:focus-visible{outline:2px solid var(--vb-acc);outline-offset:-2px}',
+			/* ===== 4.26 top bar (design spec: notes/design-spec-2026-11.md) =====
+			   48px bar on the panel surface; 32px controls, height-driven and centred;
+			   one hairline colour; 120ms hovers on one easing curve; 16px icons. */
+			'.vb-app{--vx-ease:cubic-bezier(.16,1,.3,1);--vx-line:rgba(255,255,255,.07);--vx-line-h:rgba(255,255,255,.12);--vx-tx:#e9ebf0;--vx-tx2:rgba(233,235,240,.64);--vx-tx3:rgba(233,235,240,.44)}',
+			'.vb-top{height:48px;padding:0 8px;gap:12px;background:#14161b;border-bottom:1px solid var(--vx-line);font-feature-settings:"tnum"}',
+			'.vb-top .vb-tbc{gap:4px;min-width:0}',
+			'.vb-top > .vb-tbc.vb-tb-l{flex:1 1 0;min-width:0}',
+			'.vb-top > .vb-tbc.vb-tbc-center{flex:0 0 auto;margin:0;padding:0}',
+			'.vb-top > .vb-tbc.vb-tb-r{flex:1 1 0;justify-content:flex-end;min-width:0}',
+			'.vb-top .vb-tsep{width:1px;height:20px;background:rgba(255,255,255,.08);margin:0 6px;flex:none}',
+			// icon buttons
+			'.vb-top .vb-ic,.vb-top .vb-brand{width:32px;height:32px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;padding:0;background:transparent;border:0;box-shadow:none;color:var(--vx-tx2);transition:background .12s var(--vx-ease),color .12s var(--vx-ease);flex:none}',
+			'.vb-top .vb-ic:hover,.vb-top .vb-brand:hover{background:rgba(255,255,255,.06);color:var(--vx-tx)}',
+			'.vb-top .vb-ic:active,.vb-top .vb-btn:active,.vb-top .vb-add-top:active{transform:scale(.97);transition-duration:.08s}',
+			'.vb-top .vb-ic.on{background:rgba(42,183,241,.12);color:#7fd3f7}',
+			'.vb-top .vb-ic:focus-visible,.vb-top .vb-btn:focus-visible,.vb-top .vb-add-top:focus-visible,.vb-top .vb-brand:focus-visible,.vb-bp button:focus-visible{outline:2px solid #2ab7f1;outline-offset:2px}',
+			'.vb-top .vb-brand svg{width:20px;height:20px}',
+			// buttons: height-driven, line-height 1, icon 16 + gap 6
+			'.vb-top .vb-btn,.vb-top .vb-add-top{height:32px;padding:0 12px;gap:6px;border-radius:8px;font:500 13px/1 var(--vbb-font,"Velox Geist"),sans-serif;letter-spacing:-.005em;display:inline-flex;align-items:center;justify-content:center;white-space:nowrap;border:0;transition:background .12s var(--vx-ease),box-shadow .12s var(--vx-ease),color .12s var(--vx-ease);flex:none}',
+			'.vb-top .vb-btn svg,.vb-top .vb-add-top svg{flex:none}',
+			'.vb-top .vb-btn-ghost{background:rgba(255,255,255,.04);color:var(--vx-tx);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}',
+			'.vb-top .vb-btn-ghost:hover{background:rgba(255,255,255,.07);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16)}',
+			'.vb-top .vb-btn-primary{background:#2ab7f1;color:#06141b;box-shadow:inset 0 1px 0 rgba(255,255,255,.28),0 1px 2px rgba(0,0,0,.3)}',
+			'.vb-top .vb-btn-primary:hover{background:#45c2f4;filter:none}',
+			'.vb-top .vb-btn-primary.is-live{background:rgba(67,209,127,.14);color:#6fe0a0;box-shadow:inset 0 0 0 1px rgba(67,209,127,.35)}',
+			'.vb-top .vb-btn-primary:disabled{opacity:.7;cursor:progress}',
+			'.vb-top .vb-btn #vb-view svg:last-child,.vb-top #vb-view svg:last-child{opacity:.6;margin-left:-2px}',
+			'.vb-top #vb-view{padding:0 10px}',
+			// "Add": the one creation action, accent-tinted, not a second primary
+			'.vb-top .vb-add-top{padding:0 12px 0 10px;background:rgba(42,183,241,.12);color:#7fd3f7;box-shadow:inset 0 0 0 1px rgba(42,183,241,.25)}',
+			'.vb-top .vb-add-top:hover,.vb-top .vb-add-top.on{background:rgba(42,183,241,.18);color:#a5e1fa}',
+			'.vb-top .vb-add-top svg{color:currentColor}',
+			// page title + status
+			'.vb-top .vb-pagepick{flex:0 1 auto;min-width:0;display:flex;flex-direction:row;align-items:center;gap:6px;padding:0}',
+			'.vb-top .vb-pagepick b{display:flex;align-items:center;gap:0;min-width:0}',
+			'.vb-top .vb-title{height:28px;padding:0 6px 0 8px;border-radius:6px;font:500 13px/1 var(--vbb-font,"Velox Geist"),sans-serif;color:var(--vx-tx);background:transparent;border:0;box-shadow:none;width:auto;min-width:72px;max-width:240px;field-sizing:content;text-overflow:ellipsis}',
+			'.vb-top .vb-title:hover{background:rgba(255,255,255,.05)}',
+			'.vb-top .vb-title:focus{background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px #2ab7f1}',
+			'.vb-top .vb-pp-caret{width:22px;height:28px;border-radius:6px;color:var(--vx-tx3);display:inline-flex;align-items:center;justify-content:center}',
+			'.vb-top .vb-pp-caret:hover{background:rgba(255,255,255,.06);color:var(--vx-tx)}',
+			'.vb-docstat{display:inline-flex;align-items:center;gap:6px;height:20px;padding:0 8px;border-radius:999px;font:500 11px/1 var(--vbb-font,"Velox Geist"),sans-serif;white-space:nowrap;flex:none;background:rgba(255,255,255,.06);color:var(--vx-tx2)}',
+			'.vb-docstat:empty{display:none}',
+			'.vb-docstat::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor;flex:none}',
+			'.vb-docstat.is-live{background:rgba(67,209,127,.12);color:#6fe0a0}',
+			'.vb-docstat.is-live::before{box-shadow:0 0 0 0 rgba(67,209,127,.5);animation:vbStatPulse 2s var(--vx-ease) infinite}',
+			'.vb-docstat.is-changes{background:rgba(42,183,241,.12);color:#7fd3f7}',
+			'.vb-docstat.is-unsaved{background:rgba(245,167,66,.12);color:#f7bd6e}',
+			'@keyframes vbStatPulse{0%{box-shadow:0 0 0 0 rgba(67,209,127,.45)}70%{box-shadow:0 0 0 6px rgba(67,209,127,0)}100%{box-shadow:0 0 0 0 rgba(67,209,127,0)}}',
+			// document type as a small chip
+			'.vb-top .vb-kind{height:24px;padding:0 22px 0 10px;border-radius:999px;font:500 11.5px/1 var(--vbb-font,"Velox Geist"),sans-serif;color:var(--vx-tx2);background:rgba(255,255,255,.04) url("data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%2710%27 height=%2710%27 viewBox=%270 0 16 16%27 fill=%27%23999%27%3E%3Cpath d=%27M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z%27/%3E%3C/svg%3E") no-repeat right 8px center;border:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);flex:none}',
+			'.vb-top .vb-kind:hover{color:var(--vx-tx);box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);background-color:rgba(255,255,255,.06)}',
+			'.vb-top .vb-kind:focus{box-shadow:inset 0 0 0 1px #2ab7f1}',
+			// breakpoints: segmented control with a sliding thumb
+			'.vb-top .vb-bp{position:relative;box-sizing:border-box;display:flex;gap:0;height:32px;padding:2px;border-radius:9px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06)}',
+			'.vb-bp-thumb{position:absolute;top:2px;left:0;height:28px;width:36px;border-radius:7px;background:rgba(255,255,255,.09);box-shadow:inset 0 1px 0 rgba(255,255,255,.06),0 1px 2px rgba(0,0,0,.35);opacity:0;transition:transform .22s var(--vx-ease),width .22s var(--vx-ease);pointer-events:none}',
+			'.vb-top .vb-bp button{position:relative;z-index:1;width:36px;height:28px;border-radius:7px;color:var(--vx-tx3);background:transparent;display:inline-flex;align-items:center;justify-content:center;transition:color .12s var(--vx-ease)}',
+			'.vb-top .vb-bp button:hover{color:var(--vx-tx)}',
+			'.vb-top .vb-bp button.on{background:transparent;color:#7fd3f7}',
+			// view-as (templates)
+			'.vb-top .vb-viewas-wrap{height:32px;border-radius:8px;background:rgba(255,255,255,.04);border:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}',
+			'#vb-actions{display:inline-flex;gap:6px}',
+			// narrower windows: labels give way to icons, nothing disappears
+			'@media (max-width:1380px){.vb-top .vb-title{max-width:180px}}',
+			'@media (max-width:1240px){.vb-top .vb-add-top .vb-lbl,.vb-top #vb-view .vb-lbl{display:none}.vb-top .vb-add-top{width:32px;padding:0}.vb-top #vb-view{padding:0 8px}.vb-docstat{width:20px;padding:0;justify-content:center;font-size:0;gap:0}}',
+			'@media (max-width:1100px){.vb-top .vb-kind{display:none}.vb-top .vb-title{max-width:130px}.vb-top{gap:6px}}',
+			'@media (max-width:960px){.vb-top .vb-tb-r .vb-tsep,#vb-tgl-left,#vb-tgl-right{display:none}.vb-top .vb-bp button{width:30px}}',
+			'@media (prefers-reduced-motion:reduce){.vb-bp-thumb,.vb-docstat.is-live::before{transition:none;animation:none}}',
+			''
 		].join( '' );
 		var s = document.createElement( 'style' ); s.id = 'vb-editor-style'; s.textContent = css; document.head.appendChild( s );
 	}
