@@ -4,6 +4,22 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.35.0 — Velox Builder: interactions
+- **Make the page react, without code.** Every element has an Interactions section in its Settings tab.
+  - **When it** is clicked, is hovered, scrolls into view, the page loads, or the page is scrolled past a point.
+  - **Then:** show or hide, show, hide, add / remove / toggle a class, scroll to, open or close a popup, panel or dropdown, or put the cursor in a field.
+  - **On:** this element, any other element on the page (picked from a list), or all elements with a class.
+  - **Options:** a delay, which screens it runs on (all, desktop, tablet and phone), and "only the first time" for view and scroll.
+  - Several interactions per element, each with a plain-words summary.
+- **Hover, view and scroll undo themselves** when they end: shown → hidden, class added → removed, opened → closed.
+- **"Hidden until an interaction shows it"** on any element, for panels, menus and reveal effects. It is hidden on the page from the first paint, with no flash, and faded in the editor so you can still work on it.
+- **Accessible by default.**
+  - Anything clickable that is not a link or button becomes keyboard-usable (Enter and Space, with a button role).
+  - A button that shows or hides a panel says whether it is open (`aria-expanded`, `aria-controls`).
+  - Hover also works with keyboard focus, and scrolling respects "reduce motion".
+- Interactions run on the published page. Elements with interactions get a bolt icon in Structure. Every value is checked on the server; anything unknown is dropped.
+- For developers: `VeloxElements.initInteractions( root )` sets up interactions in content added later; each element is set up once.
+
 ## 4.34.0 — Velox Builder: roles and client mode
 - **Who can use the builder.** Velox Builder → Settings has a new card. Each WordPress role gets No access, Client or Designer, plus a "May publish" switch. Administrators can always do everything.
   - **Client:** changes text (double-click on the page), images and their alt text, links and component fields. Nothing else is shown: no adding, moving, deleting or duplicating, no style panels, classes, code or settings. A short note explains anything that is not theirs, and it is undone.

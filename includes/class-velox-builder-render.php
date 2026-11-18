@@ -2052,6 +2052,10 @@ class Velox_Builder_Render {
 			return (string) self::$float_css;
 		}
 		$css = '';
+		if ( isset( self::$runtime_used['ix'] ) ) {
+			// Interactions: hidden until shown, and a pointer on click triggers.
+			$css .= '[data-vx-ixhidden]:not(.vx-ix-on),.vx-ix-off{display:none!important}.vx-ix-click{cursor:pointer}';
+		}
 		if ( isset( self::$runtime_used['reviews'] ) ) {
 			$css .= '.vx-rv-note{font-size:12px;opacity:.6;margin:0 0 10px}' .
 				'.vx-rv-head{display:flex;align-items:center;gap:9px;margin-bottom:8px}' .
@@ -2729,6 +2733,7 @@ class Velox_Builder_Render {
 		$attr .= $aos_attr;
 		$attr .= self::custom_attrs( $node );
 		$attr .= self::site_part( $node, $id );
+		$attr .= self::ix_attrs( $node );
 
 		// Reusable element: pull the referenced reusable document and render its
 		// tree inline (by reference — editing the reusable updates every page).
@@ -3108,6 +3113,73 @@ class Velox_Builder_Render {
 		$model['tree']    = $walk( $model['tree'] ?? array() );
 		$model['content'] = $content;
 		return $model;
+	}
+
+	/**
+	 * Interactions (node.ix): when something happens to this element (click,
+	 * hover, scrolled into view, page load, page scrolled past a point), do
+	 * something to it or another element (show, hide, classes, scroll to,
+	 * open / close a popup, focus). Every value is checked here; the element
+	 * runtime reads the result from data-vx-ix.
+	 */
+	private static function ix_attrs( $node ) {
+		$out = '';
+		if ( ! empty( $node['ixHidden'] ) ) {
+			$out .= ' data-vx-ixhidden';
+			self::$runtime_used['ix'] = true;
+		}
+		$list = $node['ix'] ?? null;
+		if ( ! is_array( $list ) || ! $list ) {
+			return $out;
+		}
+		$b     = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991 );
+		$tab   = (int) ( $b['tablet'] ?? 991 );
+		$clean = array();
+		foreach ( array_slice( $list, 0, 10 ) as $x ) {
+			if ( ! is_array( $x ) ) {
+				continue;
+			}
+			$on = (string) ( $x['on'] ?? '' );
+			$do = (string) ( $x['do'] ?? '' );
+			if ( ! in_array( $on, array( 'click', 'hover', 'inview', 'load', 'scroll' ), true )
+				|| ! in_array( $do, array( 'show', 'hide', 'toggle', 'addClass', 'removeClass', 'toggleClass', 'scrollTo', 'open', 'close', 'focus' ), true ) ) {
+				continue;
+			}
+			$t = trim( (string) ( $x['target'] ?? 'self' ) );
+			if ( 'self' !== $t && ! preg_match( '/^[#.][A-Za-z][A-Za-z0-9_-]*$/', $t ) ) {
+				continue;
+			}
+			$a = array( 'on' => $on, 'do' => $do, 'target' => $t );
+			if ( in_array( $do, array( 'addClass', 'removeClass', 'toggleClass' ), true ) ) {
+				$cls = sanitize_html_class( ltrim( (string) ( $x['cls'] ?? '' ), '.' ) );
+				if ( '' === $cls ) {
+					continue;
+				}
+				$a['cls'] = $cls;
+			}
+			$delay = (int) ( $x['delay'] ?? 0 );
+			if ( $delay > 0 ) {
+				$a['delay'] = min( 60000, $delay );
+			}
+			if ( 'scroll' === $on ) {
+				$a['at'] = max( 0, min( 20000, (int) ( $x['at'] ?? 300 ) ) );
+			}
+			if ( ! empty( $x['once'] ) ) {
+				$a['once'] = 1;
+			}
+			$bp = (string) ( $x['bp'] ?? '' );
+			if ( 'desktop' === $bp ) {
+				$a['mq'] = '(min-width: ' . ( $tab + 1 ) . 'px)';
+			} elseif ( 'mobile' === $bp ) {
+				$a['mq'] = '(max-width: ' . $tab . 'px)';
+			}
+			$clean[] = $a;
+		}
+		if ( $clean ) {
+			$out .= " data-vx-ix='" . esc_attr( wp_json_encode( $clean ) ) . "'";
+			self::$runtime_used['ix'] = true;
+		}
+		return $out;
 	}
 
 	/** A link field's address; {post.url} and the other dynamic links resolve to the current item. */

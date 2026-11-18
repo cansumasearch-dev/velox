@@ -872,6 +872,112 @@
 	}
 	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', initSpy ); } else { initSpy(); }
 
+	/* Interactions: data-vx-ix on an element lists what happens when it is
+	 * clicked, hovered, scrolled into view, when the page loads or scrolls past
+	 * a point. Hover, view and scroll undo themselves when the condition ends
+	 * (show ↔ hide, add ↔ remove class, open ↔ close). */
+	var IX_BACK = { show: 'hide', hide: 'show', toggle: 'toggle', addClass: 'removeClass', removeClass: 'addClass', toggleClass: 'toggleClass', open: 'close', close: 'open' };
+	function ixTargets( el, t ) {
+		if ( ! t || 'self' === t ) { return [ el ]; }
+		try { return [].slice.call( d.querySelectorAll( t ) ); } catch ( err ) { return []; }
+	}
+	function ixIsHidden( t ) { return t.classList.contains( 'vx-ix-off' ) || ( t.hasAttribute( 'data-vx-ixhidden' ) && ! t.classList.contains( 'vx-ix-on' ) ); }
+	function ixShow( t, show ) { t.classList.toggle( 'vx-ix-on', show ); t.classList.toggle( 'vx-ix-off', ! show ); }
+	function ixDo( el, a, back ) {
+		var act = back ? IX_BACK[ a.do ] : a.do;
+		if ( ! act ) { return; }
+		var ts = ixTargets( el, a.target );
+		for ( var i = 0; i < ts.length; i++ ) {
+			var t = ts[ i ];
+			switch ( act ) {
+				case 'show': ixShow( t, true ); break;
+				case 'hide': ixShow( t, false ); break;
+				case 'toggle': ixShow( t, ixIsHidden( t ) ); break;
+				case 'addClass': t.classList.add( a.cls ); break;
+				case 'removeClass': t.classList.remove( a.cls ); break;
+				case 'toggleClass': t.classList.toggle( a.cls ); break;
+				case 'scrollTo': t.scrollIntoView( { behavior: REDUCED ? 'auto' : 'smooth', block: 'start' } ); break;
+				case 'open': openOverlay( t, el ); break;
+				case 'close': closeOverlay( t ); break;
+				case 'focus':
+					if ( ! t.hasAttribute( 'tabindex' ) && ! t.matches( FOCUSABLE ) ) { t.setAttribute( 'tabindex', '-1' ); }
+					t.focus();
+					break;
+			}
+		}
+		// A button that shows or hides one panel says whether it is open.
+		if ( /^(show|hide|toggle)$/.test( act ) && 1 === ts.length && ts[ 0 ] !== el && 'click' === a.on ) {
+			el.setAttribute( 'aria-expanded', ixIsHidden( ts[ 0 ] ) ? 'false' : 'true' );
+		}
+	}
+	/* Safe to call again (content added later): each element is set up once. */
+	function initInteractions( root ) {
+		var els = ( root || d ).querySelectorAll( '[data-vx-ix]' );
+		[].forEach.call( els, function ( el ) {
+			if ( el.__vxIx ) { return; }
+			el.__vxIx = true;
+			var list;
+			try { list = JSON.parse( el.getAttribute( 'data-vx-ix' ) ); } catch ( err ) { return; }
+			( list || [] ).forEach( function ( a ) {
+				var fits = function () { return ! a.mq || ! window.matchMedia || window.matchMedia( a.mq ).matches; };
+				var run = function ( back ) {
+					if ( ! fits() ) { return; }
+					if ( a.delay && ! back ) { window.setTimeout( function () { ixDo( el, a, false ); }, a.delay ); } else { ixDo( el, a, back ); }
+				};
+				if ( 'click' === a.on ) {
+					el.classList.add( 'vx-ix-click' );
+					// Anything clickable must work with the keyboard too.
+					if ( ! el.matches( 'a[href],button,input,select,textarea,summary,[tabindex]' ) ) {
+						el.setAttribute( 'role', 'button' );
+						el.setAttribute( 'tabindex', '0' );
+					}
+					var ts = ixTargets( el, a.target );
+					if ( /^(show|hide|toggle)$/.test( a.do ) && 1 === ts.length && ts[ 0 ] !== el ) {
+						if ( ts[ 0 ].id ) { el.setAttribute( 'aria-controls', ts[ 0 ].id ); }
+						el.setAttribute( 'aria-expanded', ixIsHidden( ts[ 0 ] ) ? 'false' : 'true' );
+					}
+					el.addEventListener( 'click', function ( e ) {
+						var href = el.getAttribute( 'href' );
+						if ( 'A' === el.tagName && ( ! href || '#' === href ) ) { e.preventDefault(); }
+						run( false );
+					} );
+					el.addEventListener( 'keydown', function ( e ) {
+						if ( 'button' === el.getAttribute( 'role' ) && ( 'Enter' === e.key || ' ' === e.key ) ) { e.preventDefault(); run( false ); }
+					} );
+				} else if ( 'hover' === a.on ) {
+					el.addEventListener( 'mouseenter', function () { run( false ); } );
+					el.addEventListener( 'mouseleave', function () { run( true ); } );
+					el.addEventListener( 'focusin', function () { run( false ); } );
+					el.addEventListener( 'focusout', function ( e ) { if ( ! el.contains( e.relatedTarget ) ) { run( true ); } } );
+				} else if ( 'inview' === a.on ) {
+					if ( ! ( 'IntersectionObserver' in window ) ) { run( false ); return; }
+					var seen = false;
+					var io = new IntersectionObserver( function ( entries ) {
+						entries.forEach( function ( en ) {
+							if ( en.isIntersecting ) { seen = true; run( false ); if ( a.once ) { io.disconnect(); } }
+							else if ( seen && ! a.once ) { run( true ); }
+						} );
+					}, { threshold: 0.15 } );
+					io.observe( el );
+				} else if ( 'load' === a.on ) {
+					run( false );
+				} else if ( 'scroll' === a.on ) {
+					var past = false, done = false;
+					var check = function () {
+						if ( done ) { return; }
+						var now = ( window.scrollY || window.pageYOffset ) >= ( a.at || 0 );
+						if ( now === past ) { return; }
+						past = now;
+						if ( now ) { run( false ); if ( a.once ) { done = true; } } else { run( true ); }
+					};
+					window.addEventListener( 'scroll', check, { passive: true } );
+					check();
+				}
+			} );
+		} );
+	}
+	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', function () { initInteractions(); } ); } else { initInteractions(); }
+
 	// Expose a small API so later elements (tabs, sliders, offcanvas) can reuse
 	// the same primitives instead of shipping their own copies.
 	window.VeloxElements = {
@@ -881,6 +987,7 @@
 		selectTab: selectTab,
 		open: openOverlay,
 		close: closeOverlay,
+		initInteractions: initInteractions,
 		goToSlide: goToSlide
 	};
 }() );
