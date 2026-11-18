@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.34.0 — Velox Builder: roles and client mode
+- **Who can use the builder.** Velox Builder → Settings has a new card. Each WordPress role gets No access, Client or Designer, plus a "May publish" switch. Administrators can always do everything.
+  - **Client:** changes text (double-click on the page), images and their alt text, links and component fields. Nothing else is shown: no adding, moving, deleting or duplicating, no style panels, classes, code or settings. A short note explains anything that is not theirs, and it is undone.
+  - **Designer:** changes layout, styles and element settings, and can start a Velox layout for a page. Custom CSS and JavaScript (per element and per page) and everything site-wide stay with administrators.
+  - Without "May publish", changes are saved and wait for an administrator to publish them. Every save is kept in the saved versions.
+- **Only their own pages.** Builder roles open pages they may edit in WordPress. Clients only open pages that already have a Velox layout. Templates, components, global styles, fonts, classes, code files and the builder settings stay with administrators. "Edit with Velox" (row action, admin bar, page editor box) only shows where it can be used, and "back" leads to the page instead of builder screens they cannot open.
+- **Checked on the server, not only hidden.** Every action checks the role and the page.
+  - A client's save keeps the stored layout, styles, classes and code, and takes only text, images, links and component fields of existing elements. Nothing a client saves can push class styles site-wide, rename the page or change its type.
+  - A designer's save keeps the stored custom CSS and JavaScript.
+- The access is stored as real WordPress capabilities on the roles (`velox_builder`, `velox_builder_design`, `velox_builder_publish`), so other plugins and role editors see it.
+
 ## 4.33.0 — Velox Builder: saved versions with compare and restore
 - **Every page, template and component keeps its history.**
   - Each save keeps a version. Saves by the same person a few minutes apart fold into one, so the list stays readable.

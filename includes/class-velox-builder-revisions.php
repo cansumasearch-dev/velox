@@ -163,7 +163,7 @@ class Velox_Builder_Revisions {
 	public static function ajax_list() {
 		global $wpdb;
 		$doc = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- router checks the nonce
-		if ( ! $doc || ! self::doc_row( $doc ) ) {
+		if ( ! $doc || ! self::doc_row( $doc ) || ( class_exists( 'Velox_Builder_Roles' ) && ! Velox_Builder_Roles::can_edit_doc( $doc ) ) ) {
 			wp_send_json_success( array( 'items' => array() ) );
 		}
 		$t    = self::table();
@@ -219,7 +219,7 @@ class Velox_Builder_Revisions {
 		global $wpdb;
 		$id  = isset( $_POST['rev'] ) ? absint( $_POST['rev'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		$row = $id ? $wpdb->get_row( $wpdb->prepare( 'SELECT id, doc_id, kind, title, data, created FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A ) : null;
-		if ( ! $row ) {
+		if ( ! $row || ( class_exists( 'Velox_Builder_Roles' ) && ! Velox_Builder_Roles::can_edit_doc( (int) $row['doc_id'] ) ) ) {
 			wp_send_json_error( array( 'message' => __( 'That version no longer exists.', 'velox' ) ), 404 );
 		}
 		$model = json_decode( $row['data'] );

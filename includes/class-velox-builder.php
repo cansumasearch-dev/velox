@@ -72,9 +72,9 @@ class Velox_Builder {
 
 	/** "Edit with Velox" meta box on the page/post editor (like Oxygen's). */
 	public function add_edit_metabox() {
-		// The builder needs manage_options; offering the button to editors who
-		// then hit "not allowed" was a dead end.
-		if ( ! current_user_can( 'manage_options' ) ) {
+		// Only for people the builder is open to (administrators, and the roles
+		// given access under Velox Builder → Settings).
+		if ( ! current_user_can( 'velox_builder' ) ) {
 			return;
 		}
 		foreach ( array( 'page', 'post' ) as $type ) {
@@ -289,7 +289,7 @@ class Velox_Builder {
 
 	/** Add an "Edit with Velox" row action in the Pages/Posts list tables. */
 	public function row_action( $actions, $post ) {
-		if ( current_user_can( 'manage_options' ) && in_array( $post->post_type, array( 'page', 'post' ), true ) ) {
+		if ( in_array( $post->post_type, array( 'page', 'post' ), true ) && class_exists( 'Velox_Builder_Roles' ) && Velox_Builder_Roles::offer_for_post( $post->ID ) ) {
 			$url                    = self::edit_url_for_post( $post->ID );
 			$actions['velox_edit']  = '<a href="' . esc_url( $url ) . '">' . esc_html__( 'Edit with Velox', 'velox' ) . '</a>';
 		}
@@ -312,7 +312,7 @@ class Velox_Builder {
 		if ( $post_id && ! in_array( get_post_type( $post_id ), array( 'page', 'post' ), true ) ) {
 			$post_id = 0;
 		}
-		if ( $post_id && current_user_can( 'manage_options' ) ) {
+		if ( $post_id && class_exists( 'Velox_Builder_Roles' ) && Velox_Builder_Roles::offer_for_post( $post_id ) ) {
 			$bar->add_node(
 				array(
 					'id'    => 'velox-builder-edit',
@@ -444,7 +444,7 @@ class Velox_Builder {
 			'',
 			__( 'Velox Builder — Editor', 'velox' ),
 			__( 'Editor', 'velox' ),
-			'manage_options',
+			'velox_builder',
 			self::EDIT_SLUG,
 			array( $this, 'render_editor_fallback' )
 		);
@@ -464,12 +464,24 @@ class Velox_Builder {
 	 * rendering our own document and exiting before WordPress paints admin.php.
 	 */
 	public function maybe_launch_editor() {
-		if ( ! is_admin() || ! current_user_can( 'manage_options' ) ) {
+		if ( ! is_admin() || ! current_user_can( 'velox_builder' ) ) {
 			return;
 		}
 		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
 		if ( self::EDIT_SLUG !== $page ) {
 			return;
+		}
+		// Builder roles open pages they may edit; templates and components stay with administrators.
+		if ( ! current_user_can( 'manage_options' ) && class_exists( 'Velox_Builder_Roles' ) ) {
+			$gd = isset( $_GET['doc'] ) ? absint( $_GET['doc'] ) : 0;
+			$gp = isset( $_GET['post'] ) ? absint( $_GET['post'] ) : 0;
+			if ( ! $gd && $gp ) {
+				$gd = self::doc_id_for_post( $gp );
+			}
+			$ok = $gd ? Velox_Builder_Roles::can_edit_doc( $gd ) : Velox_Builder_Roles::can_create_for_post( $gp );
+			if ( ! $ok ) {
+				wp_die( esc_html__( 'You are not allowed to edit this with Velox Builder.', 'velox' ), 403 );
+			}
 		}
 		if ( ! self::is_enabled() ) {
 			return;
@@ -536,6 +548,10 @@ class Velox_Builder {
 			}
 		}
 		if ( ! $preview_url ) { $preview_url = $front_url; }
+		// Builder roles have no access to the builder screens: send them back to the page.
+		if ( ! current_user_can( 'manage_options' ) && false !== strpos( $back_url, 'page=' . self::SLUG ) ) {
+			$back_url = $post_id ? (string) get_edit_post_link( $post_id, 'raw' ) : admin_url( 'edit.php?post_type=page' );
+		}
 		// The browser tab said "Untitled" for every document.
 		if ( '' !== $seed_title ) {
 			$title = $seed_title;
@@ -579,6 +595,8 @@ class Velox_Builder {
 			'reusables' => self::reusables_payload(),
 			// "Edit component" opens a reusable in a new editor tab.
 			'editBase'  => self::edit_url(),
+			// What the current user may do (Velox Builder → Settings → Who can use the builder).
+			'access'    => class_exists( 'Velox_Builder_Roles' ) ? Velox_Builder_Roles::editor_data() : array( 'level' => 'admin', 'publish' => true ),
 			'backUrl' => $back_url,
 			'frontUrl' => $front_url,
 			// Templates have no URL of their own, so "View page" sends you to the
@@ -741,6 +759,31 @@ class Velox_Builder {
 		// HTML may add it (on multisite that is the super admin, not every admin).
 		if ( ! current_user_can( 'unfiltered_html' ) && isset( $model->page ) && is_object( $model->page ) ) {
 			unset( $model->page->js );
+		}
+		// Builder roles: only pages they may edit, and only what their level allows.
+		if ( ! current_user_can( 'manage_options' ) && class_exists( 'Velox_Builder_Roles' ) ) {
+			$pp  = isset( $_POST['post_id'] ) ? absint( $_POST['post_id'] ) : 0;
+			$did = $id ? $id : ( $pp ? self::doc_id_for_post( $pp ) : 0 );
+			if ( $did ? ! Velox_Builder_Roles::can_edit_doc( $did ) : ! Velox_Builder_Roles::can_create_for_post( $pp ) ) {
+				wp_send_json_error( array( 'message' => __( 'You are not allowed to edit this.', 'velox' ) ), 403 );
+			}
+			$kind   = 'page';
+			$stored = null;
+			if ( $did ) {
+				$srow   = $wpdb->get_row( $wpdb->prepare( 'SELECT title, data, draft FROM ' . self::table() . ' WHERE id = %d', $did ), ARRAY_A );
+				$stored = $srow ? json_decode( ( null !== $srow['draft'] && '' !== $srow['draft'] ) ? $srow['draft'] : $srow['data'] ) : null;
+				if ( $srow && 'client' === Velox_Builder_Roles::level() ) {
+					$title = $srow['title']; // Clients do not rename pages.
+				}
+			}
+			$model = Velox_Builder_Roles::filter_model( $model, $stored );
+			if ( ! is_object( $model ) ) {
+				wp_send_json_error( array( 'message' => __( 'You are not allowed to edit this.', 'velox' ) ), 403 );
+			}
+			if ( 'client' === Velox_Builder_Roles::level() ) {
+				// Styles are not theirs to change, so nothing may go site-wide from here.
+				$_POST['changed_classes'] = '[]';
+			}
 		}
 		// Classes edited in this document become the site-wide version when it is
 		// published (see ajax_publish). The pending list is kept on the SERVER
@@ -930,6 +973,9 @@ class Velox_Builder {
 		if ( ! $id ) {
 			wp_send_json_error( array( 'message' => __( 'No document specified.', 'velox' ) ), 400 );
 		}
+		if ( class_exists( 'Velox_Builder_Roles' ) && ! Velox_Builder_Roles::can_edit_doc( $id ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not allowed to edit this.', 'velox' ) ), 403 );
+		}
 		$wpdb->update( self::table(), array( 'draft' => null, 'updated' => current_time( 'mysql' ) ), array( 'id' => $id ), array( '%s', '%s' ), array( '%d' ) );
 		wp_send_json_success( array( 'id' => $id ) );
 	}
@@ -1050,6 +1096,9 @@ class Velox_Builder {
 		$row = $wpdb->get_row( $wpdb->prepare( 'SELECT id, title, kind, status, post_id, data, draft FROM ' . self::table() . ' WHERE id = %d', $id ), ARRAY_A );
 		if ( ! $row ) {
 			wp_send_json_error( array( 'message' => __( 'Document not found.', 'velox' ) ), 404 );
+		}
+		if ( class_exists( 'Velox_Builder_Roles' ) && ! Velox_Builder_Roles::can_edit_doc( $id ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not allowed to edit this.', 'velox' ) ), 403 );
 		}
 		$has_draft = null !== $row['draft'] && '' !== $row['draft'];
 		// Objects, so empty maps stay {} (see ajax_save).
@@ -1659,6 +1708,13 @@ class Velox_Builder {
 			$gs = self::global_styles();
 			$gs['width']['page'] = $container;
 			update_option( self::OPT_GLOBAL_STYLES, $gs );
+		}
+		// Who may use the builder (roles and levels).
+		if ( isset( $_POST['roles'] ) && class_exists( 'Velox_Builder_Roles' ) ) {
+			$roles = json_decode( wp_unslash( $_POST['roles'] ), true );
+			if ( is_array( $roles ) ) {
+				Velox_Builder_Roles::save( $roles );
+			}
 		}
 		self::purge_cache_for();
 		wp_send_json_success( array( 'saved' => true ) );
@@ -2786,6 +2842,9 @@ class Velox_Builder {
 		$row = $wpdb->get_row( $wpdb->prepare( "SELECT id, title, post_id, kind, data, draft FROM {$t} WHERE id = %d", $id ), ARRAY_A );
 		if ( ! $row ) {
 			wp_send_json_error( array( 'message' => __( 'Document not found.', 'velox' ) ), 404 );
+		}
+		if ( class_exists( 'Velox_Builder_Roles' ) && ( ! Velox_Builder_Roles::can_edit_doc( $id ) || ! Velox_Builder_Roles::can_publish() ) ) {
+			wp_send_json_error( array( 'message' => __( 'Your role may save changes but not publish them. An administrator publishes them.', 'velox' ) ), 403 );
 		}
 
 		// The saved draft becomes what visitors see, and the classes this document

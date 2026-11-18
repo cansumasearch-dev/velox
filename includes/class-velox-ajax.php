@@ -13,16 +13,20 @@ class Velox_Ajax {
 		add_action( 'wp_ajax_velox', array( $this, 'dispatch' ) );
 	}
 
-	private function guard() {
-		if ( ! current_user_can( 'manage_options' ) ) {
+	private function guard( $do ) {
+		// Administrators may do everything. Builder roles (Velox Builder →
+		// Settings) may call the few editor actions their level needs; each of
+		// those handlers checks the document itself as well.
+		$ok = current_user_can( 'manage_options' ) || ( class_exists( 'Velox_Builder_Roles' ) && Velox_Builder_Roles::may_call( $do ) );
+		if ( ! $ok ) {
 			wp_send_json_error( array( 'message' => __( 'Insufficient permissions.', 'velox' ) ), 403 );
 		}
 		check_ajax_referer( 'velox_nonce', 'nonce' );
 	}
 
 	public function dispatch() {
-		$this->guard();
 		$do = isset( $_POST['do'] ) ? sanitize_key( $_POST['do'] ) : '';
+		$this->guard( $do );
 
 		switch ( $do ) {
 			/* -------- SEO list-table columns (inline edit) -------- */
