@@ -4,6 +4,22 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.32.0 — Velox Builder: components with properties
+- **Reusables become components.** Inside a reusable, any element can be marked "Editable in each copy" in its Settings tab. You choose what each copy may change:
+  - **Text:** headings, text and buttons.
+  - **Image:** image elements.
+  - **Link:** buttons, links, images and icons.
+  - **Can be hidden:** any element.
+  - Each editable part gets a name that copies see. Editable parts are marked in Structure.
+- **Each copy has its own content.** Select a placed component and its Settings tab shows a Component section with the component's name, how many pages use it, an "Edit component" button and its editable parts:
+  - text fields, with line breaks kept;
+  - an image picker from the media library, keeping responsive sizes and alt text;
+  - a link field;
+  - a Show switch.
+  - Empty fields use the component's own content. "Reset this copy" goes back to the component.
+- **Changing the component updates every copy.** What each copy set stays. The canvas shows each copy with its own content.
+- **Safety:** copies can only change what the component allows. Text goes through the same filter as all page text, and links through the same address check.
+
 ## 4.31.0 — Velox Builder: template rules, template checker, site header and footer
 - **Where to use.** Every template on the Templates screen has a "Where to use" button.
   - **Use on:** entire site; front page; blog page; any single post or page; single items of a post type; specific posts or pages; child pages of a page; posts in a category or term; any archive; a category, tag or term archive (all terms or chosen ones); a post type archive; author archives; date archives; search results; the 404 page; or an address pattern such as `/shop/*`.

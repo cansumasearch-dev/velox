@@ -2746,6 +2746,10 @@ class Velox_Builder_Render {
 			if ( ! $reuse || empty( $reuse['tree'] ) ) {
 				return '';
 			}
+			// A component copy can change the parts the component marks as editable.
+			if ( ! empty( $node['props'] ) && is_array( $node['props'] ) ) {
+				$reuse = self::apply_props( $reuse, $node['props'] );
+			}
 			// A reusable that was never published is not on the site yet.
 			if ( isset( $reuse['__status'] ) && 'published' !== $reuse['__status'] && ! self::$previewing ) {
 				return '';
@@ -3056,6 +3060,54 @@ class Velox_Builder_Render {
 			self::$float_css .= $css;
 		}
 		return $attr;
+	}
+
+	/**
+	 * Component properties: the component (a reusable) marks elements as
+	 * editable per copy (node.cprop: text, image, link, show); a copy stores
+	 * its own values in node.props keyed by element id. Only fields the
+	 * component allows are taken; everything still goes through the normal
+	 * escaping when rendered.
+	 */
+	public static function apply_props( $model, $props ) {
+		if ( ! is_array( $props ) || ! $props ) {
+			return $model;
+		}
+		$content = is_array( $model['content'] ?? null ) ? $model['content'] : array();
+		$walk    = function ( $nodes ) use ( &$walk, $props, &$content ) {
+			foreach ( (array) $nodes as $i => $n ) {
+				$nid = (string) ( $n['id'] ?? '' );
+				$cp  = $n['cprop'] ?? null;
+				$p   = $props[ $nid ] ?? null;
+				if ( is_array( $cp ) && is_array( $p ) ) {
+					if ( ! empty( $cp['text'] ) && isset( $p['text'] ) && '' !== trim( (string) $p['text'] ) ) {
+						$content[ $nid ] = (string) $p['text'];
+					}
+					if ( ! empty( $cp['image'] ) && ! empty( $p['img'] ) ) {
+						$content[ $nid ] = esc_url_raw( (string) $p['img'] );
+						$n['att']        = absint( $p['att'] ?? 0 );
+						if ( isset( $p['alt'] ) ) {
+							$n['alt']       = sanitize_text_field( (string) $p['alt'] );
+							$n['altCustom'] = true;
+						}
+					}
+					if ( ! empty( $cp['link'] ) && isset( $p['href'] ) && '' !== trim( (string) $p['href'] ) ) {
+						$n['href'] = trim( (string) $p['href'] );
+					}
+					if ( ! empty( $cp['show'] ) && ! empty( $p['hide'] ) ) {
+						$n['hidden'] = true;
+					}
+				}
+				if ( ! empty( $n['children'] ) ) {
+					$n['children'] = $walk( $n['children'] );
+				}
+				$nodes[ $i ] = $n;
+			}
+			return $nodes;
+		};
+		$model['tree']    = $walk( $model['tree'] ?? array() );
+		$model['content'] = $content;
+		return $model;
 	}
 
 	/** A link field's address; {post.url} and the other dynamic links resolve to the current item. */

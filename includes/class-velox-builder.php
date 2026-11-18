@@ -573,6 +573,8 @@ class Velox_Builder {
 			'oxygenPost' => ( $post_id && class_exists( 'Velox_Builder_Oxygen' ) && Velox_Builder_Oxygen::has_layout( $post_id ) ) ? $post_id : 0,
 			'oxygenAny'  => class_exists( 'Velox_Builder_Oxygen' ) && Velox_Builder_Oxygen::any() ? 1 : 0,
 			'reusables' => self::reusables_payload(),
+			// "Edit component" opens a reusable in a new editor tab.
+			'editBase'  => self::edit_url(),
 			'backUrl' => $back_url,
 			'frontUrl' => $front_url,
 			// Templates have no URL of their own, so "View page" sends you to the
@@ -2381,8 +2383,9 @@ class Velox_Builder {
 	public static function reusables_payload() {
 		global $wpdb;
 		$rows = $wpdb->get_results( $wpdb->prepare( 'SELECT id, title, status, data, draft FROM ' . self::table() . ' WHERE kind = %s ORDER BY title ASC', 'reusable' ), ARRAY_A );
-		$out  = array();
-		$reg  = self::class_registry();
+		$out   = array();
+		$reg   = self::class_registry();
+		$usage = self::reusable_usage();
 		foreach ( (array) $rows as $row ) {
 			// The editor shows the latest version, saved or published.
 			$model = json_decode( ( null !== $row['draft'] && '' !== $row['draft'] ) ? $row['draft'] : $row['data'], true );
@@ -2401,6 +2404,8 @@ class Velox_Builder {
 				'tree'    => $model['tree'] ?? array(),
 				'classes' => $model['classes'] ?? array(),
 				'content' => $model['content'] ?? array(),
+				// How many documents place it (pages, templates, other components).
+				'used'    => count( $usage[ (int) $row['id'] ] ?? array() ),
 			);
 		}
 		return $out;
