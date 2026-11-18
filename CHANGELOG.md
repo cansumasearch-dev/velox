@@ -4,6 +4,31 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.30.0 — Velox Builder: query loop
+- **Repeat a design for every post, term or user.** Any section, div, grid or columns box has a Query loop section in its Settings tab. Switch it on and everything inside the box repeats once per item.
+  - **Posts:** any public post type.
+    - Choose how many and how many to skip.
+    - Order by date, last update, title, menu order, comments, random or a custom field (text or number), in either direction.
+    - Filter by category, tag or any taxonomy (slugs or IDs). `current` gives related posts: the terms of the post being viewed, or of the outer loop's term.
+    - Filter to the same author as the page, and leave out the post being viewed.
+  - **This page's list:** the posts of the archive or search the visitor is on, for archive and search templates.
+  - **Terms:** categories, tags or any taxonomy, sorted by name, post count, ID or slug. Options to hide empty terms and to show the top level only.
+  - **Users:** by role, sorted by name, sign-up date or number of posts; optionally only people who have published posts.
+- **Loops inside loops.** A term loop with a posts loop inside it lists each category with its own posts.
+- **Pagination.** Page numbers or previous / next links under the loop. Each loop has its own page parameter, so two loops on one page page separately.
+- **"Nothing found" text** of your choice.
+- **New dynamic data:**
+  - post link and item number;
+  - term name, description, post count and link;
+  - user name, bio, post count, profile picture and link to their posts.
+- **Dynamic links.** Buttons, links, images and icons get an "Or link to" menu: this post, this term, this user's posts, the post author's posts or the home page.
+- **Linked post fields.** The Post title and Featured image elements can link to their post.
+- **Live preview in the editor.**
+  - The canvas draws up to 12 real items: the first is the design you edit, the others show real titles, images and data.
+  - The Settings tab shows how many items match.
+  - Loop boxes get a green dashed outline and a repeat icon in Structure.
+- Random order keeps the page out of the page cache, so visitors really get a random set. Private post types and taxonomies cannot be listed. At most 100 items per page.
+
 ## 4.29.0 — Velox Builder: element conditions
 - **Show an element only to some visitors, on some pages or at some times.** Every element has a Conditions section in its Settings tab.
   - **Visitor:** logged in or out, user role, any user field.

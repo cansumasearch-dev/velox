@@ -58,6 +58,7 @@
 		structure:'<path fill-rule="evenodd" d="M6 3.5A1.5 1.5 0 0 1 7.5 2h1A1.5 1.5 0 0 1 10 3.5v1A1.5 1.5 0 0 1 8.5 6v1H14a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0v-1A.5.5 0 0 1 2 7h5.5V6A1.5 1.5 0 0 1 6 4.5zM8.5 5a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5zM0 11.5A1.5 1.5 0 0 1 1.5 10h1A1.5 1.5 0 0 1 4 11.5v1A1.5 1.5 0 0 1 2.5 14h-1A1.5 1.5 0 0 1 0 12.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm4.5.5A1.5 1.5 0 0 1 7.5 10h1a1.5 1.5 0 0 1 1.5 1.5v1A1.5 1.5 0 0 1 8.5 14h-1A1.5 1.5 0 0 1 6 12.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm4.5.5a1.5 1.5 0 0 1 1.5-1.5h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/>',
 		exit:'<path fill-rule="evenodd" d="M10 12.5a.5.5 0 0 1-.5.5h-8a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5h8a.5.5 0 0 1 .5.5v2a.5.5 0 0 0 1 0v-2A1.5 1.5 0 0 0 9.5 2h-8A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h8a1.5 1.5 0 0 0 1.5-1.5v-2a.5.5 0 0 0-1 0z"/><path fill-rule="evenodd" d="M15.854 8.354a.5.5 0 0 0 0-.708l-3-3a.5.5 0 0 0-.708.708L14.293 7.5H5.5a.5.5 0 0 0 0 1h8.793l-2.147 2.146a.5.5 0 0 0 .708.708z"/>',
 		external:'<path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5"/><path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0z"/>',
+		repeat:'<path d="M11.534 7h3.932a.25.25 0 0 1 .192.41l-1.966 2.36a.25.25 0 0 1-.384 0l-1.966-2.36a.25.25 0 0 1 .192-.41m-11 2h3.932a.25.25 0 0 0 .192-.41L2.692 6.23a.25.25 0 0 0-.384 0L.342 8.59A.25.25 0 0 0 .534 9"/> <path fill-rule="evenodd" d="M8 3c-1.552 0-2.94.707-3.857 1.818a.5.5 0 1 1-.771-.636A6.002 6.002 0 0 1 13.917 7H12.9A5 5 0 0 0 8 3M3.1 9a5.002 5.002 0 0 0 8.757 2.182.5.5 0 1 1 .771.636A6.002 6.002 0 0 1 2.083 9z"/>',
 		eyeslash:'<path d="M13.359 11.238C15.06 9.72 16 8 16 8s-3-5.5-8-5.5a7 7 0 0 0-2.79.588l.77.771A6 6 0 0 1 8 3.5c2.12 0 3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755q-.247.248-.517.486z"/> <path d="M11.297 9.176a3.5 3.5 0 0 0-4.474-4.474l.823.823a2.5 2.5 0 0 1 2.829 2.829zm-2.943 1.299.822.822a3.5 3.5 0 0 1-4.474-4.474l.823.823a2.5 2.5 0 0 0 2.829 2.829"/> <path d="M3.35 5.47q-.27.24-.518.487A13 13 0 0 0 1.172 8l.195.288c.335.48.83 1.12 1.465 1.755C4.121 11.332 5.881 12.5 8 12.5c.716 0 1.39-.133 2.02-.36l.77.772A7 7 0 0 1 8 13.5C3 13.5 0 8 0 8s.939-1.721 2.641-3.238l.708.709zm10.296 8.884-12-12 .708-.708 12 12z"/>',
 		signpost:'<path d="M7 7V1.414a1 1 0 0 1 2 0V2h5a1 1 0 0 1 .8.4l.975 1.3a.5.5 0 0 1 0 .6L14.8 5.6a1 1 0 0 1-.8.4H9v10H7v-5H2a1 1 0 0 1-.8-.4L.225 9.3a.5.5 0 0 1 0-.6L1.2 7.4A1 1 0 0 1 2 7zm1 3V8H2l-.75 1L2 10zm0-5h6l.75-1L14 3H8z"/>',
 		eye:'<path d="M16 8s-3-5.5-8-5.5S0 8 0 8s3 5.5 8 5.5S16 8 16 8M1.173 8a13 13 0 0 1 1.66-2.043C4.12 4.668 5.88 3.5 8 3.5s3.879 1.168 5.168 2.457A13 13 0 0 1 14.828 8q-.086.13-.195.288c-.335.48-.83 1.12-1.465 1.755C11.879 11.332 10.119 12.5 8 12.5s-3.879-1.168-5.168-2.457A13 13 0 0 1 1.172 8z"/><path d="M8 5.5a2.5 2.5 0 1 0 0 5 2.5 2.5 0 0 0 0-5M4.5 8a3.5 3.5 0 1 1 7 0 3.5 3.5 0 0 1-7 0"/>',
@@ -555,7 +556,7 @@
 		if ( css.indexOf( '{' ) < 0 ) { return sel + '{' + css + '}\n'; }
 		return css.replace( /%root%|\bselector\b/g, sel ) + '\n';
 	}
-	var renderContent = null, reuseDepth = 0;
+	var renderContent = null, reuseDepth = 0, loopItem = null;
 	function genHTML() {
 		var S = store.state;
 		/* A reusable (or a "View as" page) is drawn with the same renderer as the
@@ -576,7 +577,8 @@
 			// select and unhide them; the front-end renderer skips them entirely.
 			if ( node.hidden ) { cls += ' vb-is-hidden'; }
 			if ( condCount( node.cond ) ) { cls += ' vb-has-cond'; }
-			var kids = node.children.map( render ).join( '' );
+			var kids;
+			if ( loopOn( node ) ) { kids = loopCanvasKids( node, render ); cls += ' vb-loop'; } else { kids = node.children.map( render ).join( '' ); }
 			// Reusable: render the referenced block inline, framed + non-interactive.
 			if ( node.el === 'Reusable' ) {
 				var r = reusableById( node.ref );
@@ -727,6 +729,15 @@
 				return '<div id="' + node.id + '" class="' + cls + ' vb-ph-el vb-ph-inner" data-node="' + node.id + '"><span class="vb-ph-ic">' + svg( 'layout', 22 ) + '</span><span class="vb-ph-l">' + T( 'Inner Content' ) + '</span><span class="vb-ph-s">' + T( 'Each page using this template renders its own layout here.' ) + '</span></div>';
 			}
 			// WordPress-data: labeled placeholder in the editor (live data renders on the front end).
+			if ( node.el === 'WP' && loopItem && ( 'title' === node.wp || 'featured' === node.wp ) ) {
+				if ( 'title' === node.wp ) {
+					var wtag = /^(h[1-6]|p|div|span)$/.test( node.tag || '' ) ? node.tag : 'div';
+					return '<' + wtag + ' id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '">' + escapeHtml( loopItem.title || '' ) + '</' + wtag + '>';
+				}
+				return '<div id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '">' + ( loopItem.img
+					? '<img src="' + escapeHtml( loopItem.img ) + '" alt="" style="display:block;max-width:100%;height:auto">'
+					: '<span class="vb-img-ph">' + T( 'No featured image' ) + '</span>' ) + '</div>';
+			}
 			if ( node.el === 'WP' ) {
 				var wpl = { title:T( 'Post title' ), content:T( 'Post content' ), featured:T( 'Featured image' ), menu:T( 'Menu / Nav' ) }[ node.wp ] || 'WordPress';
 				return '<div id="' + node.id + '" class="' + cls + ' vb-ph-el" data-node="' + node.id + '"><span class="vb-ph-ic">' + svg( 'wp', 22 ) + '</span><span class="vb-ph-l">' + wpl + ' — ' + T( 'live WordPress data' ) + '</span></div>';
@@ -773,7 +784,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-empty-box,[data-node].vb-empty-soft{outline:1px dashed #c3cad3;outline-offset:-1px;background-color:rgba(42,183,241,.035)}[data-node].vb-empty-box{min-height:88px}[data-node].vb-empty-box:hover,[data-node].vb-empty-soft:hover{outline-color:#2ab7f1}[data-node].vb-empty-box::after{content:attr(data-vb-empty);display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:88px;width:100%;padding:12px;grid-column:1/-1;flex:1 1 100%;font:500 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none;color:#8a94a0;pointer-events:none}[data-node].vb-anchor-mark{display:block!important;min-height:22px;outline:1px dashed #c3cad3;outline-offset:-1px}[data-node].vb-anchor-mark::after{content:attr(data-vb-anchor);display:block;padding:3px 8px;font:500 11px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#8a94a0;letter-spacing:0;text-transform:none}[data-node].vb-hov{outline:1px solid #2ab7f1!important}[data-node].vb-msel{outline:2px dashed #2ab7f1!important;outline-offset:-2px}[data-node].vb-thin{position:relative}[data-node].vb-thin::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}[data-node].vb-sel{outline:2px solid #2ab7f1}a,img{-webkit-user-drag:none}html.vb-dnd,html.vb-dnd *{cursor:grabbing!important;user-select:none!important}html.vb-dnd-no,html.vb-dnd-no *{cursor:not-allowed!important}#vb-dropmark{position:absolute;z-index:2147483001;display:none;pointer-events:none;background:#2ab7f1}#vb-dropmark.is-h{height:calc(2px * var(--k,1));margin-top:calc(-1px * var(--k,1))}#vb-dropmark.is-v{width:calc(2px * var(--k,1));margin-left:calc(-1px * var(--k,1))}#vb-dropmark.is-h::before,#vb-dropmark.is-v::before{content:"";position:absolute;width:calc(8px * var(--k,1));height:calc(8px * var(--k,1));border-radius:50%;background:#2ab7f1;box-shadow:0 0 0 calc(2px * var(--k,1)) #fff}#vb-dropmark.is-h::before{left:calc(-4px * var(--k,1));top:calc(-3px * var(--k,1))}#vb-dropmark.is-v::before{top:calc(-4px * var(--k,1));left:calc(-3px * var(--k,1))}#vb-dropmark.is-box{background:rgba(42,183,241,.12);outline:calc(2px * var(--k,1)) solid #2ab7f1;outline-offset:calc(-2px * var(--k,1))}#vb-selbadge .vb-sb-move{cursor:grab;margin-left:-6px}#vb-selbadge{position:absolute;z-index:2147483000;display:none;align-items:center;gap:1px;height:22px;padding:0 2px 0 8px;background:#2ab7f1;color:#04222f;font:600 11px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:4px 4px 0 0;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);user-select:none;letter-spacing:0;text-transform:none;text-align:left}#vb-selbadge.is-inside{border-radius:0 0 4px 0}#vb-selbadge .vb-sb-l{padding-right:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis}#vb-selbadge button{display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:#04222f;cursor:pointer}#vb-selbadge button:hover{background:rgba(4,34,47,.16)}#vb-selbadge button[data-sb=parent] svg{transform:rotate(180deg)}#vb-selbadge svg{display:block}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vb-has-cond:not(.vb-sel):not(.vb-hov){outline:1px dashed rgba(160,107,255,.75);outline-offset:-1px}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 "Velox Geist Mono",ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-empty-box,[data-node].vb-empty-soft{outline:1px dashed #c3cad3;outline-offset:-1px;background-color:rgba(42,183,241,.035)}[data-node].vb-empty-box{min-height:88px}[data-node].vb-empty-box:hover,[data-node].vb-empty-soft:hover{outline-color:#2ab7f1}[data-node].vb-empty-box::after{content:attr(data-vb-empty);display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:88px;width:100%;padding:12px;grid-column:1/-1;flex:1 1 100%;font:500 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none;color:#8a94a0;pointer-events:none}[data-node].vb-anchor-mark{display:block!important;min-height:22px;outline:1px dashed #c3cad3;outline-offset:-1px}[data-node].vb-anchor-mark::after{content:attr(data-vb-anchor);display:block;padding:3px 8px;font:500 11px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#8a94a0;letter-spacing:0;text-transform:none}[data-node].vb-hov{outline:1px solid #2ab7f1!important}[data-node].vb-msel{outline:2px dashed #2ab7f1!important;outline-offset:-2px}[data-node].vb-thin{position:relative}[data-node].vb-thin::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}[data-node].vb-sel{outline:2px solid #2ab7f1}a,img{-webkit-user-drag:none}html.vb-dnd,html.vb-dnd *{cursor:grabbing!important;user-select:none!important}html.vb-dnd-no,html.vb-dnd-no *{cursor:not-allowed!important}#vb-dropmark{position:absolute;z-index:2147483001;display:none;pointer-events:none;background:#2ab7f1}#vb-dropmark.is-h{height:calc(2px * var(--k,1));margin-top:calc(-1px * var(--k,1))}#vb-dropmark.is-v{width:calc(2px * var(--k,1));margin-left:calc(-1px * var(--k,1))}#vb-dropmark.is-h::before,#vb-dropmark.is-v::before{content:"";position:absolute;width:calc(8px * var(--k,1));height:calc(8px * var(--k,1));border-radius:50%;background:#2ab7f1;box-shadow:0 0 0 calc(2px * var(--k,1)) #fff}#vb-dropmark.is-h::before{left:calc(-4px * var(--k,1));top:calc(-3px * var(--k,1))}#vb-dropmark.is-v::before{top:calc(-4px * var(--k,1));left:calc(-3px * var(--k,1))}#vb-dropmark.is-box{background:rgba(42,183,241,.12);outline:calc(2px * var(--k,1)) solid #2ab7f1;outline-offset:calc(-2px * var(--k,1))}#vb-selbadge .vb-sb-move{cursor:grab;margin-left:-6px}#vb-selbadge{position:absolute;z-index:2147483000;display:none;align-items:center;gap:1px;height:22px;padding:0 2px 0 8px;background:#2ab7f1;color:#04222f;font:600 11px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:4px 4px 0 0;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);user-select:none;letter-spacing:0;text-transform:none;text-align:left}#vb-selbadge.is-inside{border-radius:0 0 4px 0}#vb-selbadge .vb-sb-l{padding-right:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis}#vb-selbadge button{display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:#04222f;cursor:pointer}#vb-selbadge button:hover{background:rgba(4,34,47,.16)}#vb-selbadge button[data-sb=parent] svg{transform:rotate(180deg)}#vb-selbadge svg{display:block}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vb-has-cond:not(.vb-sel):not(.vb-hov){outline:1px dashed rgba(160,107,255,.75);outline-offset:-1px}.vb-loop:not(.vb-sel):not(.vb-hov){outline:1px dashed rgba(32,178,140,.8);outline-offset:-1px}.vb-loop-none{padding:14px;border:1px dashed #c7ced6;border-radius:10px;color:#7c8590;font:500 13px/1.5 -apple-system,sans-serif;grid-column:1/-1}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 "Velox Geist Mono",ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -3141,7 +3152,7 @@
 	 * text, animation and item fields were missing, so typing there lost focus
 	 * after one character or a short pause. */
 	var FOCUS_ATTRS = [ 'data-setnum', 'data-setbox', 'data-setunit', 'data-setboxunit', 'data-set', 'data-setel', 'data-sethref',
-		'data-repset', 'data-setaos', 'data-imgalt', 'data-setconn', 'data-setpreset', 'data-setwp', 'data-elcss', 'data-attrn', 'data-attrv', 'data-setsel', 'data-sfilter', 'data-cond' ];
+		'data-repset', 'data-setaos', 'data-imgalt', 'data-setconn', 'data-setpreset', 'data-setwp', 'data-elcss', 'data-attrn', 'data-attrv', 'data-setsel', 'data-sfilter', 'data-cond', 'data-loop' ];
 	function captureFocus() {
 		var el = document.activeElement;
 		if ( ! el || ! el.closest || ! el.closest( '#vb-inspector' ) ) { return null; }
@@ -3540,6 +3551,12 @@
 			{ t:'featured.title', l:'Title', live:true }, { t:'featured.caption', l:'Caption', live:true }, { t:'featured.alt', l:'Alt', live:true } ] },
 		{ name:'Author', items:[
 			{ t:'author.name', l:'Display Name', live:true }, { t:'author.bio', l:'Bio', live:true }, { t:'author.meta', l:'Meta / Custom Field', live:true, arg:'field' } ] },
+		{ name:'Loop item', items:[
+			{ t:'post.url', l:'Post link', live:true }, { t:'loop.index', l:'Item number', live:true } ] },
+		{ name:'Term (in a term loop or archive)', items:[
+			{ t:'term.name', l:'Name', live:true }, { t:'term.description', l:'Description', live:true }, { t:'term.count', l:'Number of posts', live:true }, { t:'term.url', l:'Link', live:true } ] },
+		{ name:'User (in a user loop)', items:[
+			{ t:'member.name', l:'Display Name', live:true }, { t:'member.bio', l:'Bio', live:true }, { t:'member.posts', l:'Number of posts', live:true }, { t:'member.avatar', l:'Profile picture', live:true }, { t:'member.url', l:'Link to their posts', live:true } ] },
 		{ name:'Current User', items:[
 			{ t:'user.name', l:'Display Name', live:true }, { t:'user.bio', l:'Bio', live:true }, { t:'user.meta', l:'Meta / Custom Field', live:true, arg:'field' } ] },
 		{ name:'Blog Info', items:[
@@ -3890,7 +3907,10 @@
 			s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'wp', 14 ) + ' ' + T( 'WordPress data' ) + '</div>';
 			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Show which field' ) + '</div><div class="vb-row"><select class="vb-inp" data-setwp>' +
 				wpfields.map( function ( f ) { return '<option value="' + f[ 0 ] + '"' + ( node.wp === f[ 0 ] ? ' selected' : '' ) + '>' + f[ 1 ] + '</option>'; } ).join( '' ) + '</select></div></div>';
-			s += '<div class="vb-setnote">' + T( 'Pulls live from the current page/post on the front end.' ) + '</div></div>';
+			if ( 'title' === node.wp || 'featured' === node.wp ) {
+				s += '<label class="vb-set-check"><input type="checkbox" data-setwplink' + ( node.wpLink ? ' checked' : '' ) + '><span>' + T( 'Link to the post' ) + '</span></label>';
+			}
+			s += '<div class="vb-setnote">' + T( 'Pulls live from the current page/post on the front end. Inside a query loop it shows each item.' ) + '</div></div>';
 		}
 		if ( node.el === 'Heading' ) {
 			hasEl = true;
@@ -3902,6 +3922,8 @@
 			hasEl = true;
 			s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'link', 14 ) + ' ' + T( 'Link' ) + '</div>';
 			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Link URL' ) + '</div><div class="vb-row"><input class="vb-inp" data-sethref value="' + ( node.href ? String( node.href ).replace( /"/g, '&quot;' ) : '' ) + '" placeholder="https://"></div></div>';
+			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Or link to' ) + '</div><select class="vb-inp" data-sethrefdyn>' +
+				DYN_LINKS.map( function ( o ) { return '<option value="' + o[ 0 ] + '"' + ( ( node.href || '' ) === o[ 0 ] ? ' selected' : '' ) + '>' + escapeHtml( T( o[ 1 ] ) ) + '</option>'; } ).join( '' ) + '</select></div>';
 			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Open in' ) + '</div><div class="vb-seg">' +
 				[ [ '', T( 'Same tab' ) ], [ '_blank', T( 'New tab' ) ] ].map( function ( o ) { return '<button class="' + ( ( node.target || '' ) === o[ 0 ] ? 'on' : '' ) + '" data-settarget="' + o[ 0 ] + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div></div></div>';
 		}
@@ -3912,6 +3934,9 @@
 
 		// ---- animate on scroll, available on every element ----
 		s += aosSettingsHTML( node );
+
+		// ---- query loop: repeat the children for each post / term / user ----
+		s += loopSectionHTML( node );
 
 		// ---- conditions: who sees this element, where and when ----
 		s += condSectionHTML( node );
@@ -4281,6 +4306,159 @@
 		} );
 	}
 
+	/* ---------- query loop ----------
+	 * A container can repeat its children once per post, term or user
+	 * (node.loop). The PHP side (Velox_Builder_Loop) runs the query; here the
+	 * canvas asks it for up to 12 items and draws the first one as the editable
+	 * design and the rest as live copies with real titles, images and data. */
+	var LOOPCFG = CFG.loop || { postTypes:[], taxonomies:[] };
+	var LOOP_CONTAINERS = [ 'Section', 'Div', 'Grid', 'Columns' ];
+	var DYN_LINKS = [ [ '', '— custom URL —' ], [ '{post.url}', 'This post (in a loop: each post)' ], [ '{term.url}', 'This term (term loop)' ],
+		[ '{member.url}', 'This user\'s posts (user loop)' ], [ '{author.url}', 'The post author\'s posts' ], [ '{site.url}', 'Home page' ] ];
+	var LOOP_SRC = [ [ 'posts', 'Posts' ], [ 'main', 'This page\'s list (archive, search)' ], [ 'terms', 'Categories, tags or terms' ], [ 'users', 'Users' ] ];
+	var LOOP_ORDER = {
+		posts:[ [ 'date', 'Date' ], [ 'modified', 'Last updated' ], [ 'title', 'Title' ], [ 'menu_order', 'Menu order' ], [ 'comment_count', 'Comments' ], [ 'rand', 'Random' ], [ 'meta', 'Custom field (text)' ], [ 'meta_num', 'Custom field (number)' ] ],
+		terms:[ [ 'name', 'Name' ], [ 'count', 'Number of posts' ], [ 'id', 'ID' ], [ 'slug', 'Slug' ] ],
+		users:[ [ 'name', 'Name' ], [ 'registered', 'Registered' ], [ 'posts', 'Number of posts' ] ]
+	};
+	var loopPreview = {}, loopTimers = {};
+	function isLoopable( node ) { return !! node && LOOP_CONTAINERS.indexOf( node.el ) > -1; }
+	function loopOn( node ) { return isLoopable( node ) && !! ( node.loop && node.loop.src ); }
+	function loopSummary( lp ) {
+		if ( ! lp ) { return ''; }
+		var src = condLabel( LOOP_SRC, lp.src );
+		if ( 'posts' === lp.src ) { src = condLabel( LOOPCFG.postTypes.map( function ( o ) { return [ o.v, o.l ]; } ), lp.type || 'post' ); }
+		if ( 'terms' === lp.src ) { src = condLabel( LOOPCFG.taxonomies.map( function ( o ) { return [ o.v, o.l ]; } ), lp.tax || 'category' ); }
+		return src + ( 'main' === lp.src ? '' : ' · ' + ( lp.per || 6 ) );
+	}
+	/** Every dynamic-data token used inside the loop, so the preview can fill them. */
+	function loopTokens( node ) {
+		var S = store.state, out = {};
+		( function walk( list ) {
+			( list || [] ).forEach( function ( n ) {
+				var html = S.content && S.content[ n.id ];
+				if ( typeof html === 'string' ) { html.replace( /data-vx="([^"]+)"/g, function ( m, t ) { out[ t ] = 1; return m; } ); }
+				walk( n.children );
+			} );
+		} )( node.children );
+		return Object.keys( out ).slice( 0, 40 );
+	}
+	function requestLoopPreview( node ) {
+		var toks = loopTokens( node ), key = JSON.stringify( node.loop ) + '|' + toks.join( ',' );
+		var cur = loopPreview[ node.id ];
+		if ( cur && cur.key === key ) { return; }
+		loopPreview[ node.id ] = { key:key, items:cur ? cur.items : [], ready:false };
+		clearTimeout( loopTimers[ node.id ] );
+		loopTimers[ node.id ] = setTimeout( function () {
+			var body = new URLSearchParams();
+			body.set( 'action', 'velox' ); body.set( 'do', 'builder_loop_preview' ); body.set( 'nonce', CFG.nonce || '' );
+			body.set( 'loop', JSON.stringify( node.loop ) ); body.set( 'tokens', JSON.stringify( toks ) );
+			body.set( 'node', node.id ); body.set( 'post', String( CFG.postId || 0 ) );
+			fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+				.then( function ( r ) { return r.json(); } )
+				.then( function ( res ) {
+					var lp = loopPreview[ node.id ]; if ( ! lp || lp.key !== key ) { return; }
+					lp.items = res && res.success ? ( res.data.items || [] ) : []; lp.total = res && res.success ? res.data.total : 0; lp.ready = true;
+					injectCanvas();
+					var meta = document.querySelector( '[data-loopcount="' + node.id + '"]' );
+					if ( meta ) { meta.textContent = loopCountText( lp ); }
+				} )
+				.catch( function () { var lp = loopPreview[ node.id ]; if ( lp ) { lp.ready = true; } } );
+		}, 250 );
+	}
+	function loopCountText( lp ) {
+		if ( ! lp || ! lp.ready ) { return T( 'Loading the preview…' ); }
+		if ( ! lp.items.length ) { return T( 'Nothing matches yet.' ); }
+		return T( 'Preview' ) + ': ' + lp.items.length + ( lp.total > lp.items.length ? ' ' + T( 'of' ) + ' ' + lp.total : '' ) + ' ' + T( 'items' );
+	}
+	function fillLoopTokens( html, item ) {
+		return html.replace( /<span[^>]*data-vx="([^"]+)"[^>]*>[\s\S]*?<\/span>/g, function ( m, t ) {
+			if ( 'member.avatar' === t ) { return item.img ? '<img src="' + escapeHtml( item.img ) + '" alt="" width="48" height="48" style="border-radius:50%;vertical-align:middle">' : ''; }
+			var v = item.v && item.v[ t ];
+			return v == null ? m : escapeHtml( v );
+		} );
+	}
+	function loopCanvasKids( node, render ) {
+		requestLoopPreview( node );
+		var lp = loopPreview[ node.id ], items = ( lp && lp.items ) || [], prev = loopItem;
+		loopItem = items[ 0 ] || null;
+		var out = node.children.map( render ).join( '' );
+		for ( var i = 1; i < items.length; i++ ) {
+			loopItem = items[ i ];
+			out += fillLoopTokens( node.children.map( render ).join( '' ).replace( / data-node="[^"]*"/g, '' ).replace( / vb-(sel|hov|msel)\b/g, '' ), items[ i ] );
+		}
+		loopItem = prev;
+		if ( lp && lp.ready && ! items.length ) {
+			out += '<div class="vb-loop-none">' + escapeHtml( ( node.loop && node.loop.empty ) || T( 'Nothing matches this loop yet. The design above repeats once there is something to show.' ) ) + '</div>';
+		}
+		return out;
+	}
+	function loopSectionHTML( node ) {
+		if ( ! isLoopable( node ) ) { return ''; }
+		var lp = node.loop || {}, on = !! lp.src;
+		var h = '<div class="vb-setsec vb-loopsec"><div class="vb-setsec-h">' + svg( 'repeat', 14 ) + ' ' + T( 'Query loop' ) + '</div>' +
+			'<label class="vb-set-check"><input type="checkbox" data-loopon' + ( on ? ' checked' : '' ) + '><span>' + T( 'Repeat the content for each item' ) + '</span></label>';
+		if ( ! on ) {
+			return h + '<div class="vb-setnote">' + T( 'Turns this box into a list: everything inside it repeats once per post, term or user, with their own title, image and data.' ) + '</div></div>';
+		}
+		var sel = function ( f, list, cur, label ) {
+			return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><select class="vb-inp" data-loop="' + f + '">' + list.map( function ( o ) {
+				return '<option value="' + escapeHtml( o[ 0 ] ) + '"' + ( String( cur ) === o[ 0 ] ? ' selected' : '' ) + '>' + escapeHtml( T( o[ 1 ] ) ) + '</option>';
+			} ).join( '' ) + '</select></div>';
+		};
+		var inp = function ( f, cur, label, ph, num ) {
+			return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><input class="vb-inp' + ( num ? ' num' : '' ) + '" data-loop="' + f + '" value="' + escapeHtml( cur == null ? '' : cur ) + '" placeholder="' + escapeHtml( ph || '' ) + '" spellcheck="false"></div>';
+		};
+		var chk = function ( f, cur, label ) {
+			return '<label class="vb-set-check"><input type="checkbox" data-loop="' + f + '"' + ( cur && '0' !== String( cur ) ? ' checked' : '' ) + '><span>' + T( label ) + '</span></label>';
+		};
+		var pair = function ( a, b ) { return '<div class="vb-loop-pair">' + a + b + '</div>'; };
+		var dir = sel( 'dir', [ [ 'desc', 'Newest / Z–A / largest first' ], [ 'asc', 'Oldest / A–Z / smallest first' ] ], lp.dir || 'desc', 'Direction' );
+		h += sel( 'src', LOOP_SRC, lp.src, 'Show' );
+		if ( 'posts' === lp.src ) {
+			h += sel( 'type', LOOPCFG.postTypes.map( function ( o ) { return [ o.v, o.l ]; } ), lp.type || 'post', 'Post type' );
+			h += pair( inp( 'per', lp.per || '6', 'How many', '6', true ), inp( 'offset', lp.offset || '', 'Skip first', '0', true ) );
+			h += sel( 'order', LOOP_ORDER.posts, lp.order || 'date', 'Order by' );
+			if ( /^meta/.test( lp.order || '' ) ) { h += inp( 'metaKey', lp.metaKey, 'Field name (meta key)', 'price' ); }
+			h += dir;
+			h += sel( 'tax', [ [ '', '— no filter —' ] ].concat( LOOPCFG.taxonomies.map( function ( o ) { return [ o.v, o.l ]; } ) ), lp.tax || '', 'Only with' );
+			if ( lp.tax ) { h += inp( 'terms', lp.terms, 'Terms', T( 'slugs or IDs, or current' ) ); }
+			h += sel( 'author', [ [ '', 'Anyone' ], [ 'current', 'Same author as this page' ] ], lp.author || '', 'Author' );
+			h += chk( 'exclude', lp.exclude, 'Leave out the post being viewed' );
+			if ( lp.tax && 'current' === lp.terms ) { h += '<div class="vb-setnote">' + T( '“current” uses the terms of the post being viewed: related posts.' ) + '</div>'; }
+		} else if ( 'terms' === lp.src ) {
+			h += sel( 'tax', LOOPCFG.taxonomies.map( function ( o ) { return [ o.v, o.l ]; } ), lp.tax || 'category', 'Taxonomy' );
+			h += pair( inp( 'per', lp.per || '6', 'How many', '6', true ), inp( 'offset', lp.offset || '', 'Skip first', '0', true ) );
+			h += sel( 'order', LOOP_ORDER.terms, lp.order || 'name', 'Order by' ) + dir;
+			h += chk( 'hideEmpty', undefined === lp.hideEmpty ? '1' : lp.hideEmpty, 'Hide terms without posts' );
+			h += chk( 'top', lp.top, 'Top level only' );
+		} else if ( 'users' === lp.src ) {
+			h += sel( 'role', [ [ '', 'Any role' ] ].concat( CONDCFG.roles.map( function ( o ) { return [ o.v, o.l ]; } ) ), lp.role || '', 'Role' );
+			h += pair( inp( 'per', lp.per || '6', 'How many', '6', true ), inp( 'offset', lp.offset || '', 'Skip first', '0', true ) );
+			h += sel( 'order', LOOP_ORDER.users, lp.order || 'name', 'Order by' ) + dir;
+			h += chk( 'hasPosts', lp.hasPosts, 'Only people who have published posts' );
+		} else {
+			h += '<div class="vb-setnote">' + T( 'Lists what the page is showing: the posts of a category, tag, author, date or search. Use it in archive and search templates. The editor previews the latest posts.' ) + '</div>';
+		}
+		h += sel( 'pages', [ [ '', 'No page links' ], [ 'numbers', 'Page numbers' ], [ 'prevnext', 'Previous / next' ] ], lp.pages || '', 'Pagination' );
+		h += inp( 'empty', lp.empty, 'When nothing is found', T( 'leave empty to show nothing' ) );
+		h += '<div class="vb-loop-meta" data-loopcount="' + node.id + '">' + loopCountText( loopPreview[ node.id ] ) + '</div>';
+		h += '<div class="vb-setnote">' + T( 'Everything inside this box repeats. Use Insert Data for titles and fields, the WordPress elements for the featured image, and “Or link to → This post” for links.' ) + '</div>';
+		return h + '</div>';
+	}
+	function setLoopField( f, v ) {
+		store.commit( function ( s ) {
+			var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
+			var lp = Object.assign( {}, n.loop || {} );
+			if ( 'src' === f ) {
+				// Each source has its own ordering and filters.
+				lp = { src:v, per:lp.per || '6', pages:lp.pages || '', empty:lp.empty || '' };
+				if ( 'terms' === v ) { lp.tax = 'category'; }
+			} else if ( '' === v || false === v ) { delete lp[ f ]; } else { lp[ f ] = v; }
+			n.loop = lp;
+		}, T( 'Query loop' ) );
+	}
+
 	function renderSettingsPanel() {
 		var box = document.getElementById( 'vb-setpanel' ); if ( ! box ) { return; }
 		if ( ! setShown ) { box.style.display = 'none'; applyDock(); return; }
@@ -4621,6 +4799,7 @@
 			var name = ( node.name || node.el || 'El' ) + ( node.classes && node.classes[ 0 ] ? ' · ' + node.classes[ 0 ] : '' );
 			var caret = hasKids ? '<span class="vb-st-caret' + ( collapsed ? ' closed' : '' ) + '" data-stcaret="' + node.id + '">' + svg( 'chevron', 11 ) + '</span>' : '<span class="vb-st-spacer"></span>';
 			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( multi.indexOf( node.id ) > -1 && node.id !== sel ? ' msel' : '' ) + ( node.hidden ? ' hid' : '' ) + ( vis && ! vis.hits[ node.id ] ? ' ctx' : '' ) + '" data-stnode="' + node.id + '" draggable="true" role="treeitem" aria-level="' + ( depth + 1 ) + '" aria-selected="' + ( node.id === sel ? 'true' : 'false' ) + '"' + ( hasKids ? ' aria-expanded="' + ( collapsed ? 'false' : 'true' ) + '"' : '' ) + ' tabindex="' + ( node.id === sel ? '0' : '-1' ) + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px;--d:' + depth + '">' + caret + '<span class="vb-st-ic">' + svg( nodeIcon( node ), 16 ) + '</span><span class="vb-st-l">' + escapeHtml( name ) + '</span>' +
+				( loopOn( node ) ? '<span class="vb-st-cond vb-st-loop" title="' + escapeHtml( T( 'Query loop' ) + ': ' + loopSummary( node.loop ) ) + '">' + svg( 'repeat', 12 ) + '</span>' : '' ) +
 				( condCount( node.cond ) ? '<span class="vb-st-cond" title="' + escapeHtml( T( 'Shows when' ) + ' ' + condSummary( node.cond ) ) + '">' + svg( 'signpost', 12 ) + '</span>' : '' ) + '</div>';
 			if ( collapsed ) { return html; }
 
@@ -5045,6 +5224,12 @@
 				}, 400 );
 				return;
 			}
+			var lin = e.target.closest( 'input[data-loop]' );
+			if ( lin && 'checkbox' !== lin.type ) {
+				var lf = lin.getAttribute( 'data-loop' ), lv = lin.value.trim();
+				debounceCommit( fieldKey( lin ), function () { setLoopField( lf, lv ); }, 350 );
+				return;
+			}
 			var cin = e.target.closest( 'input[data-cond]' );
 			if ( cin && 'text' === cin.type ) {
 				var cinp = cin.getAttribute( 'data-cond' ), cinv = cin.value;
@@ -5145,6 +5330,30 @@
 			var t = e.target.closest( 'input.vb-inp[data-set]' ); if ( t ) { debounceCommit( fieldKey( e.target ), function () { setProp( t.getAttribute( 'data-set' ), e.target.value ); }, 150 ); return; }
 		} );
 		document.addEventListener( 'change', function ( e ) {
+			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-loopon' ) ) {
+				var lon = e.target.checked;
+				store.commit( function ( s ) {
+					var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
+					if ( lon ) { n.loop = { src:'posts', type:'post', per:'6', order:'date', dir:'desc' }; } else { delete n.loop; }
+				}, T( 'Query loop' ) );
+				return;
+			}
+			var lch = e.target.closest( '[data-loop]' );
+			if ( lch ) {
+				if ( 'checkbox' === lch.type ) { setLoopField( lch.getAttribute( 'data-loop' ), lch.checked ? '1' : ( 'hideEmpty' === lch.getAttribute( 'data-loop' ) ? '0' : '' ) ); }
+				else if ( 'SELECT' === lch.tagName ) { setLoopField( lch.getAttribute( 'data-loop' ), lch.value ); }
+				return;
+			}
+			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-sethrefdyn' ) ) {
+				var dl = e.target.value;
+				store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { if ( dl ) { n.href = dl; } else if ( /^\{[a-z]+\.url\}$/.test( n.href || '' ) ) { n.href = ''; } } }, T( 'Link' ) );
+				return;
+			}
+			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-setwplink' ) ) {
+				var wl = e.target.checked;
+				store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { if ( wl ) { n.wpLink = true; } else { delete n.wpLink; } } }, T( 'Link' ) );
+				return;
+			}
 			var cch = e.target.closest( '[data-cond]' );
 			if ( cch ) {
 				if ( 'text' !== cch.type ) { condSetField( cch.getAttribute( 'data-cond' ), cch.value ); }
@@ -7404,6 +7613,9 @@
 			'.vb-inp{background:var(--vb-bg2);border-color:var(--vb-line2)}',
 			'.vb-inp:focus{border-color:var(--vb-acc);box-shadow:0 0 0 3px rgba(42,183,241,.18)}',
 			'@media (prefers-reduced-motion:reduce){.vb-tab-ind,.vb-block-cv{transition:none}}',
+			'.vb-loop-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}.vb-loop-pair>.vb-f{min-width:0}.vb-loop-pair .vb-inp{width:100%!important;min-width:0!important;max-width:100%}',
+			'.vb-loop-meta{margin:6px 0 2px;padding:7px 10px;border-radius:8px;background:rgba(32,178,140,.1);border:1px solid rgba(32,178,140,.28);color:#7fe0c3;font-size:12px}',
+			'.vb-st-loop{color:#5fd4b0}.vb-st-loop+.vb-st-cond{margin-left:0}',
 			'.vb-cond-n{margin-left:auto;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:rgba(160,107,255,.18);color:#c4a3ff;font:600 11px/18px var(--vb-font,inherit);text-align:center}',
 			'.vb-cond-sum{margin:0 0 10px;padding:8px 10px;border-radius:8px;background:rgba(160,107,255,.08);border:1px solid rgba(160,107,255,.22);color:#d6dae2;font-size:12px;line-height:1.5}',
 			'.vb-cond-sum b{color:#c4a3ff;font-weight:600}.vb-cond-sum.is-off{background:transparent;border-style:dashed;color:#8a8d94}',

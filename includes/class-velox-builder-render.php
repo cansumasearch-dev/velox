@@ -2771,7 +2771,7 @@ class Velox_Builder_Render {
 				$attr .= ' class="vx-icon"';
 			}
 			$label = (string) self::el_set( $node, 'label', '' );
-			$href  = isset( $node['href'] ) ? trim( (string) $node['href'] ) : '';
+			$href  = isset( $node['href'] ) ? self::link_href( $node['href'] ) : '';
 			if ( '' !== $href ) {
 				// A link must stay a link for screen readers, with a name.
 				$attr .= ' aria-label="' . esc_attr( '' !== $label ? $label : str_replace( '-', ' ', $name ) ) . '"';
@@ -2820,7 +2820,7 @@ class Velox_Builder_Render {
 					. ( 'eager' === $loading ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"' )
 					. ' style="display:block;max-width:100%;height:auto">';
 			}
-			$href = isset( $node['href'] ) ? trim( (string) $node['href'] ) : '';
+			$href = isset( $node['href'] ) ? self::link_href( $node['href'] ) : '';
 			if ( '' !== $img && '' !== $href ) {
 				$img = '<a href="' . esc_url( $href ) . '"' . ( ! empty( $node['target'] ) && '_blank' === $node['target'] ? ' target="_blank" rel="noopener"' : '' ) . '>' . $img . '</a>';
 			}
@@ -2944,15 +2944,29 @@ class Velox_Builder_Render {
 			// (an author bio, a custom field) must never run a shortcode.
 			? self::resolve_tokens( do_shortcode( wp_kses_post( $doc['content'][ $node['id'] ] ) ) )
 			: '';
-		$kids    = self::render_tree( $node['children'] ?? array(), $doc );
+		// Query loop: the children repeat once per item; page links follow the box.
+		$after = '';
+		if ( ! empty( $node['loop'] ) && class_exists( 'Velox_Builder_Loop' ) ) {
+			$looped = Velox_Builder_Loop::render( $node, $doc, self::$css_only );
+			$kids   = $looped['inner'];
+			$after  = $looped['after'];
+		} else {
+			$kids = self::render_tree( $node['children'] ?? array(), $doc );
+		}
 		if ( 'a' === $tag ) {
-			$href  = isset( $node['href'] ) ? esc_url( $node['href'] ) : '#';
+			$href  = isset( $node['href'] ) ? esc_url( self::link_href( $node['href'] ) ) : '#';
 			$attr .= ' href="' . $href . '"';
 			if ( ! empty( $node['target'] ) && '_blank' === $node['target'] ) {
 				$attr .= ' target="_blank" rel="noopener"';
 			}
 		}
-		return '<' . $tag . $attr . '>' . $content . $kids . '</' . $tag . '>';
+		return '<' . $tag . $attr . '>' . $content . $kids . '</' . $tag . '>' . $after;
+	}
+
+	/** A link field's address; {post.url} and the other dynamic links resolve to the current item. */
+	private static function link_href( $href ) {
+		$href = trim( (string) $href );
+		return class_exists( 'Velox_Builder_Loop' ) ? Velox_Builder_Loop::href( $href ) : $href;
 	}
 
 	/**
@@ -2972,10 +2986,27 @@ class Velox_Builder_Render {
 		);
 	}
 
+	/** A dynamic value as the page would print it (used by the loop preview). */
+	public static function token_text( $token ) {
+		return self::token_value( (string) $token );
+	}
+
+	/** Extra CSS that belongs to elements on this page (loop pagination and the like). */
+	public static function add_css( $css ) {
+		self::$float_css .= (string) $css;
+	}
+
 	private static function token_value( $token ) {
 		$arg = '';
 		if ( false !== strpos( $token, ':' ) ) {
 			list( $token, $arg ) = array_pad( explode( ':', $token, 2 ), 2, '' );
+		}
+		// Loop items: post link, term and user fields, the item number.
+		if ( class_exists( 'Velox_Builder_Loop' ) ) {
+			$lv = Velox_Builder_Loop::token( $token );
+			if ( null !== $lv ) {
+				return $lv;
+			}
 		}
 		$pid = get_the_ID();
 		switch ( $token ) {
@@ -3043,11 +3074,19 @@ class Velox_Builder_Render {
 		$pid  = get_the_ID();
 		switch ( $kind ) {
 			case 'title':
-				return '<' . $tag . $attr . '>' . esc_html( get_the_title( $pid ) ) . '</' . $tag . '>';
+				$t = esc_html( get_the_title( $pid ) );
+				if ( ! empty( $node['wpLink'] ) && $pid ) {
+					$t = '<a href="' . esc_url( get_permalink( $pid ) ) . '">' . $t . '</a>';
+				}
+				return '<' . $tag . $attr . '>' . $t . '</' . $tag . '>';
 			case 'content':
 				return '<div' . $attr . '>' . apply_filters( 'the_content', get_post_field( 'post_content', $pid ) ) . '</div>';
 			case 'featured':
 				$img = $pid ? get_the_post_thumbnail( $pid, 'large', array( 'style' => 'display:block;max-width:100%;height:auto' ) ) : '';
+				if ( '' !== $img && ! empty( $node['wpLink'] ) ) {
+					// The title next to it is the accessible link; this one is a mouse shortcut.
+					$img = '<a href="' . esc_url( get_permalink( $pid ) ) . '" tabindex="-1" aria-hidden="true">' . $img . '</a>';
+				}
 				return '<div' . $attr . '>' . $img . '</div>';
 			case 'menu':
 				$nav = wp_nav_menu( array( 'echo' => false, 'container' => false, 'fallback_cb' => false ) );

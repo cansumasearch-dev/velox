@@ -560,6 +560,8 @@ class Velox_Builder {
 			'tokenList' => self::token_list(),
 			// Roles, post types and the site clock for the Conditions section.
 			'conditions' => class_exists( 'Velox_Builder_Conditions' ) ? Velox_Builder_Conditions::editor_data() : array(),
+			// Post types and taxonomies for the Query loop section.
+			'loop'       => class_exists( 'Velox_Builder_Loop' ) ? Velox_Builder_Loop::editor_data() : array(),
 			// The site-wide version of each class, so a class added to this
 			// document starts from what the rest of the site uses.
 			'classRegistry' => (object) self::class_registry(),

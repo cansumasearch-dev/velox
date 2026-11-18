@@ -131,6 +131,10 @@ class Velox_Ajax {
 				Velox_Builder_Render::ajax_preview_css();
 				break;
 
+			case 'builder_loop_preview':
+				Velox_Builder_Loop::ajax_preview();
+				break;
+
 			case 'builder_oxygen_sources':
 				Velox_Builder_Oxygen::ajax_sources();
 				break;
