@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.28.0 — Velox Builder: design tokens with fluid type and spacing scales
+- **Fluid type scale.**
+  - Set a base size and a ratio for the smallest and the largest screen. Velox writes `--text-xs` … `--text-6xl` as `clamp()` values, so font sizes grow smoothly with the screen without breakpoints (the Utopia method).
+  - Named ratios are included: Major third, Perfect fourth, Golden ratio and more.
+- **Fluid spacing scale:** `--space-3xs` … `--space-3xl`, from a quarter to six times the base, growing the same way.
+- **Custom tokens:** radius, shadow, size or anything else, each in a group that decides which fields offer it.
+- **Design tokens on the Global styles screen:** colours, both scales and custom tokens in one place. A live preview shows every step at the small and the large screen with a sample line that scales as you resize the window. Clicking a token copies its `var()`.
+- **Tokens in the editor.** Every size field lists the tokens that fit it in its unit menu: type steps for font size; spacing steps for padding, margin, gap and offsets; radius tokens for corners; size and spacing tokens for widths and heights. Picking one writes `var(--name)`, so the element follows the token wherever it changes. Padding and margin in "All sides" mode offer them too.
+- Existing sites get the scales switched on with sensible defaults; nothing changes on a page until a token is used. The old fixed steps (`--space-0`, `--space-1` …) keep working.
+- Custom token values that try to close the CSS declaration are refused.
+
 ## 4.27.0 — Velox Builder redesign: inspector, Add panel, Structure, admin screens
 - **Inspector.**
   - Every element shows its sections in the same order (Layout, Spacing, Size, Position, Typography, Background & effects, Border, Effects). They used to move around per element type. The sections that matter most for the element still open first.

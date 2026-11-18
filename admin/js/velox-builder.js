@@ -1151,11 +1151,40 @@
 	 * lost on the next render and snap back to px. Remember it until a number
 	 * arrives. Cleared whenever the selection changes. */
 	var pendingUnit = {};
-	function unitSelectHTML( prop, unit ) {
+	/* ---------- design tokens in size fields ----------
+	 * Every unit menu also lists the tokens that fit the property: type steps for
+	 * font size, spacing steps for padding / margin / gap / offsets, radius tokens
+	 * for corners, size tokens for widths and heights. Picking one writes
+	 * var(--name), so the value follows the token everywhere it is used. */
+	var TOKEN_LIST = CFG.tokenList || [];
+	function tokenGroupFor( prop ) {
+		if ( /^fontSize$/.test( prop ) ) { return [ 'type' ]; }
+		if ( /^(padding|margin)|^(gap|rowGap|columnGap|top|right|bottom|left)$/.test( prop ) ) { return [ 'space' ]; }
+		if ( /[Rr]adius/.test( prop ) ) { return [ 'radius' ]; }
+		if ( /^(min|max)?(Width|Height|width|height)$|^flexBasis$/.test( prop ) ) { return [ 'size', 'space' ]; }
+		if ( /^(letterSpacing|lineHeight)$/.test( prop ) ) { return []; }
+		return [ 'other' ];
+	}
+	function tokenRange( tk ) {
+		if ( null == tk.min ) { return tk.value; }
+		return tk.min === tk.max ? tk.min + 'px' : tk.min + '–' + tk.max + 'px';
+	}
+	function tokenOptsHTML( prop, raw ) {
+		var groups = tokenGroupFor( prop ), cur = String( raw || '' ).replace( /\s/g, '' );
+		var list = TOKEN_LIST.filter( function ( tk ) { return groups.indexOf( tk.group ) > -1 && ! tk.legacy; } );
+		if ( ! list.length ) { return ''; }
+		return '<optgroup label="' + escapeHtml( T( 'Tokens' ) ) + '">' + list.map( function ( tk ) {
+			var on = cur === 'var(' + tk.name + ')';
+			return '<option value="tok:' + escapeHtml( tk.name ) + '"' + ( on ? ' selected' : '' ) + '>' + escapeHtml( tk.name.replace( /^--/, '' ) + '  ·  ' + tokenRange( tk ) ) + '</option>';
+		} ).join( '' ) + '</optgroup>';
+	}
+	function isTokenValue( v ) { return /^var\(--[a-z0-9-]+\)$/i.test( String( v || '' ).replace( /\s/g, '' ) ); }
+	function unitSelectHTML( prop, unit, raw ) {
 		if ( pendingUnit[ prop ] ) { unit = pendingUnit[ prop ]; }
-		return '<select class="vb-unit" data-setunit="' + prop + '">' + UNITS.map( function ( u ) {
-			return '<option value="' + u + '"' + ( u === unit ? ' selected' : '' ) + '>' + u + '</option>';
-		} ).join( '' ) + '</select>';
+		var tok = isTokenValue( raw );
+		return '<select class="vb-unit' + ( tok ? ' is-token' : '' ) + '" data-setunit="' + prop + '" title="' + escapeHtml( tok ? String( raw ) : T( 'Unit or design token' ) ) + '">' + UNITS.map( function ( u ) {
+			return '<option value="' + u + '"' + ( ! tok && u === unit ? ' selected' : '' ) + '>' + u + '</option>';
+		} ).join( '' ) + tokenOptsHTML( prop, raw ) + '</select>';
 	}
 	/* Changing the unit keeps the number already typed. */
 	function setUnit( prop, unit ) {
@@ -3033,7 +3062,7 @@
 		return '<span class="vb-bx-i' + ( side ? ' has-side' : '' ) + '" title="' + ( ph || prop ) + '">' +
 			'<span class="vb-src ' + dot.cls + '" title="' + dot.tip + '"></span>' + side +
 			'<input data-setnum="' + prop + '" value="' + ( inh ? '' : sv.num ) + '" placeholder="' + escapeHtml( inh && '' !== sv.num ? sv.num : boxNow( node, prop, res, ph ) ) + '">' +
-			unitSelectHTML( prop, sv.unit ) + '</span>';
+			unitSelectHTML( prop, sv.unit, inh ? '' : res.value ) + '</span>';
 	}
 	/* An empty side shows the size in effect ("0", or 80 from Global styles). */
 	function boxNow( node, prop, res, ph ) {
@@ -3059,9 +3088,9 @@
 			inner = '<div class="vb-bx"><span class="vb-bx-i vb-bx-all">' +
 				'<span class="vb-src ' + dot.cls + '" title="' + dot.tip + '"></span>' +
 				'<input data-setbox="' + key + '" value="' + ( mixed ? '' : escapeHtml( sv.num ) ) + '" placeholder="' + ( mixed ? T( 'mixed' ) : T( 'all sides' ) ) + '">' +
-				'<select class="vb-unit" data-setboxunit="' + key + '">' + UNITS.map( function ( u ) {
-					return '<option value="' + u + '"' + ( u === sv.unit ? ' selected' : '' ) + '>' + u + '</option>';
-				} ).join( '' ) + '</select></span></div>';
+				'<select class="vb-unit' + ( ! mixed && isTokenValue( res.value ) ? ' is-token' : '' ) + '" data-setboxunit="' + key + '">' + UNITS.map( function ( u ) {
+					return '<option value="' + u + '"' + ( u === sv.unit && ! isTokenValue( res.value ) ? ' selected' : '' ) + '>' + u + '</option>';
+				} ).join( '' ) + tokenOptsHTML( cfg.props[ 0 ], mixed ? '' : res.value ) + '</select></span></div>';
 		} else {
 			inner = '<div class="vb-bx">' +
 				boxInput( cfg.props[ 0 ], node, bp, st, ac, T( 'top' ) ) +
@@ -3305,7 +3334,7 @@
 			} else if ( it.type === 'num' ) {
 				var sv = splitVal( val, it.unit );
 				var curNum = cur ? splitVal( cur, it.unit ) : null;
-				ctrl = '<div class="vb-row"><input class="vb-inp num" data-setnum="' + it.prop + '" value="' + ( inh ? '' : sv.num ) + '" placeholder="' + escapeHtml( inh && '' !== sv.num ? sv.num : ( curNum && '' !== curNum.num ? String( Math.round( parseFloat( curNum.num ) * 100 ) / 100 ) : '—' ) ) + '">' + unitSelectHTML( it.prop, sv.unit ) + '</div>';
+				ctrl = '<div class="vb-row"><input class="vb-inp num" data-setnum="' + it.prop + '" value="' + ( inh ? '' : sv.num ) + '" placeholder="' + escapeHtml( inh && '' !== sv.num ? sv.num : ( curNum && '' !== curNum.num ? String( Math.round( parseFloat( curNum.num ) * 100 ) / 100 ) : '—' ) ) + '">' + unitSelectHTML( it.prop, sv.unit, inh ? '' : val ) + '</div>';
 			} else if ( it.type === 'select' || it.type === 'font' ) {
 				var opts = it.opts;
 				if ( it.type === 'font' ) {
@@ -4201,6 +4230,7 @@
 					if ( res.data && res.data.canvas_css ) { CFG.siteCss = res.data.canvas_css; }
 					if ( res.data && res.data.tokens ) {
 						TOKENS = res.data.tokens; CFG.tokens = res.data.tokens;
+						if ( res.data.tokenList ) { TOKEN_LIST = CFG.tokenList = res.data.tokenList; }
 						var tl = document.getElementById( 'vb-tokenlist' ), ae = document.activeElement;
 						if ( tl && ! ( ae && tl.contains( ae ) ) ) { tl.innerHTML = tokenRowsHTML(); }
 					}
@@ -4293,7 +4323,8 @@
 		if ( 'gs-spacing' === view ) {
 			return '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Spacing scale' ) + '</div>' +
 				'<input class="vb-inp" id="vb-token-spacing" value="' + escapeHtml( ( TOKENS.spacing || [] ).join( ', ' ) ) + '" placeholder="4, 8, 16, 24, 48"></div>' +
-				'<div class="vb-setnote">' + T( 'Comma-separated pixel steps, available as var(--space-0), var(--space-1) and so on.' ) + '</div>';
+				'<div class="vb-setnote">' + T( 'Comma-separated pixel steps, available as var(--space-0), var(--space-1) and so on.' ) + '</div>' +
+				'<div class="vb-setnote">' + T( 'The fluid scales (--text-xs … --text-5xl, --space-3xs … --space-3xl) and custom tokens are set under Velox Builder → Global styles → Design tokens. Every size field lists them in its unit menu.' ) + ' <a href="' + escapeHtml( CFG.stylesUrl || '#' ) + '" target="_blank" rel="noopener">' + T( 'Open Global styles' ) + '</a></div>';
 		}
 		if ( 'gs-fonts' === view ) { return gsFont( 'body.font', 'Text font' ) + gsFont( 'headings.font', 'Display font' ); }
 		if ( 'gs-body' === view ) {
@@ -4921,8 +4952,13 @@
 				return;
 			}
 			var u = e.target.closest( '[data-setunit]' );
-			if ( u ) { setUnit( u.getAttribute( 'data-setunit' ), e.target.value ); return; }
+			if ( u ) {
+				var up = u.getAttribute( 'data-setunit' );
+				if ( 0 === e.target.value.indexOf( 'tok:' ) ) { delete pendingUnit[ up ]; setProp( up, 'var(' + e.target.value.slice( 4 ) + ')' ); return; }
+				setUnit( up, e.target.value ); return;
+			}
 			var bu = e.target.closest( '[data-setboxunit]' );
+			if ( bu && 0 === e.target.value.indexOf( 'tok:' ) ) { setBoxAll( bu.getAttribute( 'data-setboxunit' ), 'var(' + e.target.value.slice( 4 ) + ')', '' ); return; }
 			if ( bu ) {
 				var bk = bu.getAttribute( 'data-setboxunit' );
 				var inp = bu.parentElement.querySelector( '[data-setbox]' );
@@ -7161,6 +7197,8 @@
 			'.vb-inp{background:var(--vb-bg2);border-color:var(--vb-line2)}',
 			'.vb-inp:focus{border-color:var(--vb-acc);box-shadow:0 0 0 3px rgba(42,183,241,.18)}',
 			'@media (prefers-reduced-motion:reduce){.vb-tab-ind,.vb-block-cv{transition:none}}',
+			'.vb-unit.is-token{color:#c4a3ff!important;background-color:rgba(160,107,255,.12)!important;font-weight:600}',
+			'.vb-unit optgroup{color:#8a8d94;font-style:normal}.vb-unit option{color:#e9ebf0;background:#1a1d23}',
 			/* ===== 4.27 Add panel + Structure ===== */
 			'.vb-ap-h{height:56px}',
 			'.vb-ap-search,.vb-st-search{height:32px;border-radius:8px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line2);border:0}',

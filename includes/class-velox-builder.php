@@ -556,6 +556,8 @@ class Velox_Builder {
 			// with none, and touching Global styles saved that empty set over every
 			// colour the site had.
 			'tokens'  => self::tokens(),
+			// Every token (colours, fluid type and spacing steps, custom) for the pickers.
+			'tokenList' => self::token_list(),
 			// The site-wide version of each class, so a class added to this
 			// document starts from what the rest of the site uses.
 			'classRegistry' => (object) self::class_registry(),
@@ -1220,7 +1222,118 @@ class Velox_Builder {
 				'spacing' => array( '4', '8', '16', '24', '48', '80' ),
 			);
 		}
+		$t['scales'] = self::clean_scales( $t['scales'] ?? array() );
+		$t['custom'] = array_values( (array) ( $t['custom'] ?? array() ) );
 		return $t;
+	}
+
+	/* ---------------------------------------------------------------- fluid scales
+	 * Type and spacing scales that grow smoothly between a small and a large
+	 * screen (the Utopia method). Each step is one clamp(): no breakpoints, the
+	 * size simply follows the viewport between the two widths. */
+
+	/** Names for the type steps, from smallest to largest. */
+	const TYPE_STEPS  = array( -2 => 'xs', -1 => 'sm', 0 => 'base', 1 => 'lg', 2 => 'xl', 3 => '2xl', 4 => '3xl', 5 => '4xl', 6 => '5xl', 7 => '6xl' );
+	/** Spacing steps as multiples of the base. */
+	const SPACE_STEPS = array( '3xs' => .25, '2xs' => .5, 'xs' => .75, 's' => 1, 'm' => 1.5, 'l' => 2, 'xl' => 3, '2xl' => 4, '3xl' => 6 );
+	/** Token groups a custom token can belong to (decides where it is offered). */
+	const TOKEN_GROUPS = array( 'size', 'space', 'type', 'radius', 'shadow', 'other' );
+
+	public static function scale_defaults() {
+		return array(
+			'type'  => array( 'on' => 1, 'minVw' => 360, 'maxVw' => 1280, 'minBase' => 16, 'maxBase' => 18, 'minRatio' => 1.2, 'maxRatio' => 1.25, 'down' => 2, 'up' => 5 ),
+			'space' => array( 'on' => 1, 'minVw' => 360, 'maxVw' => 1280, 'minBase' => 16, 'maxBase' => 20 ),
+		);
+	}
+
+	/** Scale settings with every number checked and kept in a sane range. */
+	public static function clean_scales( $in ) {
+		$d   = self::scale_defaults();
+		$in  = is_array( $in ) ? $in : array();
+		$num = function ( $v, $def, $lo, $hi ) { $v = is_numeric( $v ) ? (float) $v : $def; return max( $lo, min( $hi, $v ) ); };
+		$out = array();
+		foreach ( array( 'type', 'space' ) as $k ) {
+			$x = is_array( $in[ $k ] ?? null ) ? $in[ $k ] : array();
+			$o = array( 'on' => isset( $x['on'] ) ? ( $x['on'] ? 1 : 0 ) : $d[ $k ]['on'] );
+			$o['minVw']   = $num( $x['minVw'] ?? null, $d[ $k ]['minVw'], 240, 1600 );
+			$o['maxVw']   = $num( $x['maxVw'] ?? null, $d[ $k ]['maxVw'], $o['minVw'] + 80, 3000 );
+			$o['minBase'] = $num( $x['minBase'] ?? null, $d[ $k ]['minBase'], 8, 64 );
+			$o['maxBase'] = $num( $x['maxBase'] ?? null, $d[ $k ]['maxBase'], 8, 64 );
+			if ( 'type' === $k ) {
+				$o['minRatio'] = $num( $x['minRatio'] ?? null, $d[ $k ]['minRatio'], 1, 2 );
+				$o['maxRatio'] = $num( $x['maxRatio'] ?? null, $d[ $k ]['maxRatio'], 1, 2 );
+				$o['down']     = (int) $num( $x['down'] ?? null, $d[ $k ]['down'], 0, 2 );
+				$o['up']       = (int) $num( $x['up'] ?? null, $d[ $k ]['up'], 1, 7 );
+			}
+			$out[ $k ] = $o;
+		}
+		return $out;
+	}
+
+	/** clamp() that grows from $min px at $min_vw to $max px at $max_vw, in rem. */
+	public static function fluid( $min, $max, $min_vw, $max_vw ) {
+		$r = function ( $v ) { return rtrim( rtrim( number_format( $v, 4, '.', '' ), '0' ), '.' ); };
+		if ( abs( $max - $min ) < 0.01 ) {
+			return $r( $min / 16 ) . 'rem';
+		}
+		$slope     = ( $max - $min ) / ( $max_vw - $min_vw );
+		$intercept = $min - $slope * $min_vw;
+		$lo        = min( $min, $max );
+		$hi        = max( $min, $max );
+		$sign      = $intercept < 0 ? ' - ' : ' + ';
+		return 'clamp(' . $r( $lo / 16 ) . 'rem, ' . $r( $slope * 100 ) . 'vw' . $sign . $r( abs( $intercept ) / 16 ) . 'rem, ' . $r( $hi / 16 ) . 'rem)';
+	}
+
+	/**
+	 * Every design token as one flat list: name (with --), group, CSS value and,
+	 * for fluid steps, the size at the small and large screen in px. One source
+	 * for the CSS variables, the editor's token pickers and the Global styles preview.
+	 */
+	public static function token_list() {
+		$t    = self::tokens();
+		$sc   = $t['scales'];
+		$list = array();
+		foreach ( (array) ( $t['colors'] ?? array() ) as $c ) {
+			$n = preg_replace( '/[^a-z0-9\-]/', '', strtolower( (string) ( $c['name'] ?? '' ) ) );
+			if ( $n && '' !== (string) ( $c['value'] ?? '' ) ) {
+				$list[] = array( 'name' => '--' . $n, 'group' => 'color', 'value' => (string) $c['value'] );
+			}
+		}
+		if ( ! empty( $sc['type']['on'] ) ) {
+			$ty = $sc['type'];
+			foreach ( self::TYPE_STEPS as $step => $label ) {
+				if ( $step < -$ty['down'] || $step > $ty['up'] ) {
+					continue;
+				}
+				$min    = $ty['minBase'] * pow( $ty['minRatio'], $step );
+				$max    = $ty['maxBase'] * pow( $ty['maxRatio'], $step );
+				$list[] = array( 'name' => '--text-' . $label, 'group' => 'type', 'value' => self::fluid( $min, $max, $ty['minVw'], $ty['maxVw'] ), 'min' => round( $min, 1 ), 'max' => round( $max, 1 ) );
+			}
+		}
+		if ( ! empty( $sc['space']['on'] ) ) {
+			$sp = $sc['space'];
+			foreach ( self::SPACE_STEPS as $label => $mult ) {
+				$min    = $sp['minBase'] * $mult;
+				$max    = $sp['maxBase'] * $mult;
+				$list[] = array( 'name' => '--space-' . $label, 'group' => 'space', 'value' => self::fluid( $min, $max, $sp['minVw'], $sp['maxVw'] ), 'min' => round( $min, 1 ), 'max' => round( $max, 1 ) );
+			}
+		}
+		$i = 0;
+		foreach ( (array) ( $t['spacing'] ?? array() ) as $px ) {
+			$px = preg_replace( '/[^0-9.]/', '', (string) $px );
+			if ( '' !== $px ) {
+				$list[] = array( 'name' => '--space-' . $i, 'group' => 'space', 'value' => $px . 'px', 'min' => (float) $px, 'max' => (float) $px, 'legacy' => 1 );
+				$i++;
+			}
+		}
+		foreach ( $t['custom'] as $c ) {
+			$n = preg_replace( '/[^a-z0-9\-]/', '', strtolower( (string) ( $c['name'] ?? '' ) ) );
+			$v = (string) ( $c['value'] ?? '' );
+			if ( $n && '' !== $v ) {
+				$list[] = array( 'name' => '--' . $n, 'group' => in_array( $c['group'] ?? '', self::TOKEN_GROUPS, true ) ? $c['group'] : 'other', 'value' => $v );
+			}
+		}
+		return $list;
 	}
 
 	public static function fonts() {
@@ -1258,7 +1371,25 @@ class Velox_Builder {
 			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
 		}
 		// sanitise
-		$clean = array( 'colors' => array(), 'spacing' => array() );
+		$clean = array( 'colors' => array(), 'spacing' => array(), 'scales' => self::clean_scales( $tokens['scales'] ?? array() ), 'custom' => array() );
+		// Custom tokens: a name, a group (decides which fields offer it) and a value.
+		// The value goes through the same filter as any CSS value Velox writes.
+		$taken = array();
+		foreach ( (array) ( $tokens['custom'] ?? array() ) as $c ) {
+			$name = preg_replace( '/[^a-z0-9\-]/', '', strtolower( (string) ( $c['name'] ?? '' ) ) );
+			// A value that tries to close the declaration is refused, not repaired into junk.
+			if ( preg_match( '/[{}<>;]/', (string) ( $c['value'] ?? '' ) ) ) {
+				continue;
+			}
+			$val  = class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::sanitize_value( (string) ( $c['value'] ?? '' ) ) : sanitize_text_field( (string) ( $c['value'] ?? '' ) );
+			$grp  = in_array( $c['group'] ?? '', self::TOKEN_GROUPS, true ) ? $c['group'] : 'other';
+			// Scale names are generated; a custom token may not shadow them.
+			if ( ! $name || '' === $val || isset( $taken[ $name ] ) || preg_match( '/^(text|space)-/', $name ) ) {
+				continue;
+			}
+			$taken[ $name ] = 1;
+			$clean['custom'][] = array( 'name' => $name, 'group' => $grp, 'value' => $val );
+		}
 		foreach ( (array) ( $tokens['colors'] ?? array() ) as $c ) {
 			$name = sanitize_key( $c['name'] ?? '' );
 			$val  = sanitize_text_field( $c['value'] ?? '' );
@@ -1274,7 +1405,7 @@ class Velox_Builder {
 		}
 		update_option( self::OPT_TOKENS, $clean );
 		self::purge_cache_for();
-		wp_send_json_success( array( 'tokens' => $clean, 'canvas_css' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '' ) );
+		wp_send_json_success( array( 'tokens' => self::tokens(), 'tokenList' => self::token_list(), 'canvas_css' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '' ) );
 	}
 
 	const OPT_FONT_DISPLAY = 'velox_builder_font_display';

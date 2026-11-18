@@ -655,6 +655,37 @@ body.velox-builder-fullbleed #wpbody-content{ float:none; }
 .vba-more-menu .vba-mini-del::before{content:"";position:absolute;left:6px;right:6px;top:-4px;height:1px;background:rgba(255,255,255,.08)}
 @starting-style{.vba-more-menu.open{opacity:0;transform:translateY(4px) scale(.98)}}
 
+/* Design tokens (Global styles) */
+.vba-tk-sec{padding:16px 20px 20px;box-shadow:0 -1px 0 rgba(255,255,255,.06)}
+.vba-tk-h{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}
+.vba-tk-h b{font-size:14px;font-weight:600;color:var(--vbb-text)}
+.vba-tk-say{margin:0 0 14px!important}
+.vba-tk-grid{padding:0 0 16px!important;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))!important}
+.vba-tk-list{display:flex;flex-direction:column;gap:8px}
+.vba-tk-item{display:grid;grid-template-columns:36px minmax(0,1fr) minmax(0,1.4fr) 28px;gap:8px;align-items:center}
+.vba-tk-item-c{grid-template-columns:20px minmax(0,1fr) 120px minmax(0,1.4fr) 28px}
+.vba-tk-dash{font-family:var(--vbb-mono);color:var(--vbb-text-3);text-align:right}
+.vba-tk-n,.vba-tk-v{font-family:var(--vbb-mono)!important;font-size:12.5px!important}
+.vba-tk-sw{width:36px!important;height:36px!important;padding:0!important;border-radius:8px!important;cursor:pointer}
+.vba-tk-item .vba-mini-del{width:28px;padding:0;justify-content:center}
+.vba-tk-preview{border-radius:12px;background:var(--vbb-void);box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);padding:4px 12px;overflow:hidden}
+.vba-tk-thead,.vba-tk-row{display:grid;grid-template-columns:130px 64px 64px minmax(0,1fr);gap:12px;align-items:center}
+.vba-tk-thead{height:32px;font:500 11px/1 var(--vbb-font);color:var(--vbb-text-3);text-transform:uppercase;letter-spacing:.04em}
+.vba-tk-row{min-height:40px;padding:6px 0;box-shadow:0 -1px 0 rgba(255,255,255,.05)}
+.vba-tk-num{font:500 12px/1 var(--vbb-mono);color:var(--vbb-text-2);font-variant-numeric:tabular-nums}
+.vba-tk-name{justify-self:start;height:24px;padding:0 8px;border:0;border-radius:6px;background:rgba(160,107,255,.12);color:#c4a3ff;font:500 12px/1 var(--vbb-mono);cursor:copy;transition:background .12s var(--vbb-ease)}
+.vba-tk-name:hover{background:rgba(160,107,255,.2)}
+.vba-tk-name.is-copied{background:rgba(67,209,127,.15);color:#6fe0a0}
+.vba-tk-sample{color:var(--vbb-text);line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.01em}
+.vba-tk-bar{display:block;height:10px}
+.vba-tk-bar i{display:block;height:10px;border-radius:3px;background:linear-gradient(90deg,#2ab7f1,#a06bff);max-width:100%}
+@media screen and (max-width:782px){
+	.vba-tk-thead,.vba-tk-row{grid-template-columns:110px 52px 52px minmax(0,1fr);gap:8px}
+	.vba-tk-item-c{grid-template-columns:minmax(0,1fr) 96px 28px}
+	.vba-tk-item-c .vba-tk-dash{display:none}
+	.vba-tk-item-c .vba-tk-v{grid-column:1/3}
+}
+
 @media (prefers-reduced-motion:reduce){.vba-btn,.vba-stat,.vba-mini,.vba-filter,.vba-docrow{transition:none}.vba-btn:active{transform:none}.vba-stat:hover{transform:none}}
 
 /* phones: keep the wrapping layout from the earlier block */

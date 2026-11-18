@@ -1907,23 +1907,16 @@ class Velox_Builder_Render {
 		}
 	}
 
-	/** Colour tokens and the spacing scale as CSS custom properties. */
+	/** Every design token as a CSS custom property: colours, fluid type and spacing steps, custom tokens. */
 	public static function token_vars() {
-		$tokens = class_exists( 'Velox_Builder' ) ? Velox_Builder::tokens() : array();
-		$vars   = '';
-		foreach ( (array) ( $tokens['colors'] ?? array() ) as $c ) {
-			$name = preg_replace( '/[^a-z0-9\-]/', '', strtolower( (string) ( $c['name'] ?? '' ) ) );
-			$val  = self::sanitize_value( (string) ( $c['value'] ?? '' ) );
-			if ( $name && '' !== $val ) {
-				$vars .= '--' . $name . ':' . $val . ';';
-			}
+		if ( ! class_exists( 'Velox_Builder' ) ) {
+			return '';
 		}
-		$i = 0;
-		foreach ( (array) ( $tokens['spacing'] ?? array() ) as $s ) {
-			$s = preg_replace( '/[^0-9.]/', '', (string) $s );
-			if ( '' !== $s ) {
-				$vars .= '--space-' . $i . ':' . $s . 'px;';
-				$i++;
+		$vars = '';
+		foreach ( Velox_Builder::token_list() as $tk ) {
+			$val = self::sanitize_value( (string) $tk['value'] );
+			if ( '' !== $val ) {
+				$vars .= $tk['name'] . ':' . $val . ';';
 			}
 		}
 		return $vars;
@@ -3283,7 +3276,7 @@ class Velox_Builder_Render {
 	}
 
 	/** Values are model-authored but still scrubbed of anything that could break out. */
-	private static function sanitize_value( $v ) {
+	public static function sanitize_value( $v ) {
 		$v = trim( $v );
 		// Strip anything that could break out of the declaration/rule.
 		$v = preg_replace( '/[{}<>;]/', '', $v );

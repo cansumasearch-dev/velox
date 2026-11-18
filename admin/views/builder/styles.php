@@ -106,6 +106,80 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 		</div>
 	</header>
 
+	<?php
+	// Design tokens: colours, fluid type and spacing scales, custom tokens.
+	$tk  = Velox_Builder::tokens();
+	$tsc = $tk['scales'];
+	$ratios = array(
+		'1.067' => __( 'Minor second · 1.067', 'velox' ), '1.125' => __( 'Major second · 1.125', 'velox' ), '1.2' => __( 'Minor third · 1.2', 'velox' ),
+		'1.25' => __( 'Major third · 1.25', 'velox' ), '1.333' => __( 'Perfect fourth · 1.333', 'velox' ), '1.414' => __( 'Augmented fourth · 1.414', 'velox' ),
+		'1.5' => __( 'Perfect fifth · 1.5', 'velox' ), '1.618' => __( 'Golden ratio · 1.618', 'velox' ),
+	);
+	$num_in = function ( $path, $label, $val, $unit = 'px', $step = '1' ) {
+		echo '<label class="vba-gs-f"><span class="vba-fl">' . esc_html( $label ) . '</span><span class="vba-gs-in"><input type="number" step="' . esc_attr( $step ) . '" data-tk="' . esc_attr( $path ) . '" value="' . esc_attr( $val ) . '">' . ( $unit ? '<i>' . esc_html( $unit ) . '</i>' : '' ) . '</span></label>';
+	};
+	$ratio_in = function ( $path, $label, $val ) use ( $ratios ) {
+		$val = rtrim( rtrim( number_format( (float) $val, 3, '.', '' ), '0' ), '.' );
+		echo '<label class="vba-gs-f"><span class="vba-fl">' . esc_html( $label ) . '</span><select data-tk="' . esc_attr( $path ) . '">';
+		$found = false;
+		foreach ( $ratios as $rv => $rl ) {
+			$sel = ( (string) $rv === (string) $val ); $found = $found || $sel;
+			echo '<option value="' . esc_attr( $rv ) . '"' . selected( $sel, true, false ) . '>' . esc_html( $rl ) . '</option>';
+		}
+		if ( ! $found ) { echo '<option value="' . esc_attr( $val ) . '" selected>' . esc_html( $val ) . '</option>'; }
+		echo '</select></label>';
+	};
+	?>
+	<div class="vba-card vba-tokens" id="vba-tokens">
+		<div class="vba-card-h"><div><h2><?php esc_html_e( 'Design tokens', 'velox' ); ?></h2>
+		<p><?php esc_html_e( 'Named values every page can use as var(--name). In the editor, each size field lists the tokens that fit it in its unit menu. Change a token here and every place that uses it follows.', 'velox' ); ?></p></div></div>
+
+		<div class="vba-tk-sec">
+			<div class="vba-tk-h"><b><?php esc_html_e( 'Colours', 'velox' ); ?></b><button type="button" class="vba-mini" data-tk-add="colors"><?php esc_html_e( 'Add colour', 'velox' ); ?></button></div>
+			<div class="vba-tk-list" id="vba-tk-colors"></div>
+		</div>
+
+		<div class="vba-tk-sec">
+			<div class="vba-tk-h"><b><?php esc_html_e( 'Fluid type scale', 'velox' ); ?></b>
+				<label class="vba-switch" title="<?php esc_attr_e( 'Output the --text-* tokens', 'velox' ); ?>"><input type="checkbox" data-tk="type.on" <?php checked( ! empty( $tsc['type']['on'] ) ); ?>><span></span></label></div>
+			<p class="vba-hint vba-tk-say"><?php esc_html_e( 'Font sizes that grow smoothly from the small to the large screen: no breakpoints needed. Each step is the step below times the ratio.', 'velox' ); ?></p>
+			<div class="vba-gs-grid vba-tk-grid">
+				<?php
+				$num_in( 'type.minVw', __( 'Small screen', 'velox' ), $tsc['type']['minVw'] );
+				$num_in( 'type.maxVw', __( 'Large screen', 'velox' ), $tsc['type']['maxVw'] );
+				$num_in( 'type.minBase', __( 'Base size (small)', 'velox' ), $tsc['type']['minBase'], 'px', '0.5' );
+				$num_in( 'type.maxBase', __( 'Base size (large)', 'velox' ), $tsc['type']['maxBase'], 'px', '0.5' );
+				$ratio_in( 'type.minRatio', __( 'Ratio (small)', 'velox' ), $tsc['type']['minRatio'] );
+				$ratio_in( 'type.maxRatio', __( 'Ratio (large)', 'velox' ), $tsc['type']['maxRatio'] );
+				$num_in( 'type.down', __( 'Steps smaller', 'velox' ), $tsc['type']['down'], '', '1' );
+				$num_in( 'type.up', __( 'Steps larger', 'velox' ), $tsc['type']['up'], '', '1' );
+				?>
+			</div>
+			<div class="vba-tk-preview" id="vba-tk-type"></div>
+		</div>
+
+		<div class="vba-tk-sec">
+			<div class="vba-tk-h"><b><?php esc_html_e( 'Fluid spacing scale', 'velox' ); ?></b>
+				<label class="vba-switch" title="<?php esc_attr_e( 'Output the --space-* tokens', 'velox' ); ?>"><input type="checkbox" data-tk="space.on" <?php checked( ! empty( $tsc['space']['on'] ) ); ?>><span></span></label></div>
+			<p class="vba-hint vba-tk-say"><?php esc_html_e( 'Padding, margins and gaps that grow with the screen. From 3xs (a quarter of the base) to 3xl (six times the base).', 'velox' ); ?></p>
+			<div class="vba-gs-grid vba-tk-grid">
+				<?php
+				$num_in( 'space.minVw', __( 'Small screen', 'velox' ), $tsc['space']['minVw'] );
+				$num_in( 'space.maxVw', __( 'Large screen', 'velox' ), $tsc['space']['maxVw'] );
+				$num_in( 'space.minBase', __( 'Base (small)', 'velox' ), $tsc['space']['minBase'], 'px', '0.5' );
+				$num_in( 'space.maxBase', __( 'Base (large)', 'velox' ), $tsc['space']['maxBase'], 'px', '0.5' );
+				?>
+			</div>
+			<div class="vba-tk-preview" id="vba-tk-space"></div>
+		</div>
+
+		<div class="vba-tk-sec">
+			<div class="vba-tk-h"><b><?php esc_html_e( 'Custom tokens', 'velox' ); ?></b><button type="button" class="vba-mini" data-tk-add="custom"><?php esc_html_e( 'Add token', 'velox' ); ?></button></div>
+			<p class="vba-hint vba-tk-say"><?php esc_html_e( 'Corner radii, shadows, widths or anything else. The group decides which fields offer the token: radius for corners, size for widths and heights, space for spacing, type for font sizes.', 'velox' ); ?></p>
+			<div class="vba-tk-list" id="vba-tk-custom"></div>
+		</div>
+	</div>
+
 	<div class="vba-card">
 		<div class="vba-card-h"><div><h2><?php esc_html_e( 'Body text', 'velox' ); ?></h2>
 		<p><?php esc_html_e( 'The base for all ordinary text on the page.', 'velox' ); ?></p></div></div>
@@ -299,6 +373,105 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 			syncSwatch( wrap );
 		}
 	} );
+
+	/* ---------- design tokens ---------- */
+	var TK = <?php echo wp_json_encode( array( 'colors' => array_values( (array) ( $tk['colors'] ?? array() ) ), 'spacing' => array_values( (array) ( $tk['spacing'] ?? array() ) ), 'scales' => $tsc, 'custom' => $tk['custom'] ) ); ?>;
+	var TYPE_STEPS = { '-2':'xs', '-1':'sm', '0':'base', '1':'lg', '2':'xl', '3':'2xl', '4':'3xl', '5':'4xl', '6':'5xl', '7':'6xl' };
+	var SPACE_STEPS = [ [ '3xs', .25 ], [ '2xs', .5 ], [ 'xs', .75 ], [ 's', 1 ], [ 'm', 1.5 ], [ 'l', 2 ], [ 'xl', 3 ], [ '2xl', 4 ], [ '3xl', 6 ] ];
+	var GROUPS = { size:'<?php echo esc_js( __( 'Size', 'velox' ) ); ?>', space:'<?php echo esc_js( __( 'Space', 'velox' ) ); ?>', type:'<?php echo esc_js( __( 'Type', 'velox' ) ); ?>', radius:'<?php echo esc_js( __( 'Radius', 'velox' ) ); ?>', shadow:'<?php echo esc_js( __( 'Shadow', 'velox' ) ); ?>', other:'<?php echo esc_js( __( 'Other', 'velox' ) ); ?>' };
+	var TT = { name:'<?php echo esc_js( __( 'name', 'velox' ) ); ?>', value:'<?php echo esc_js( __( 'value', 'velox' ) ); ?>', remove:'<?php echo esc_js( __( 'Remove', 'velox' ) ); ?>', copied:'<?php echo esc_js( __( 'Copied', 'velox' ) ); ?>', copy:'<?php echo esc_js( __( 'Copy var() to the clipboard', 'velox' ) ); ?>', sample:'<?php echo esc_js( __( 'The quick brown fox', 'velox' ) ); ?>', none:'<?php echo esc_js( __( 'None yet.', 'velox' ) ); ?>', off:'<?php echo esc_js( __( 'Off: no --text-* or --space-* tokens are written.', 'velox' ) ); ?>' };
+	function r4( v ) { return String( Math.round( v * 10000 ) / 10000 ); }
+	/* Same formula as Velox_Builder::fluid() on the server. */
+	function fluid( min, max, minVw, maxVw ) {
+		if ( Math.abs( max - min ) < 0.01 ) { return r4( min / 16 ) + 'rem'; }
+		var slope = ( max - min ) / ( maxVw - minVw ), ic = min - slope * minVw;
+		return 'clamp(' + r4( Math.min( min, max ) / 16 ) + 'rem, ' + r4( slope * 100 ) + 'vw ' + ( ic < 0 ? '- ' : '+ ' ) + r4( Math.abs( ic ) / 16 ) + 'rem, ' + r4( Math.max( min, max ) / 16 ) + 'rem)';
+	}
+	function esc( v ) { return String( v == null ? '' : v ).replace( /[&<>"]/g, function ( c ) { return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ c ]; } ); }
+	function px( v ) { return ( Math.round( v * 10 ) / 10 ) + 'px'; }
+	function nameBtn( n ) { return '<button type="button" class="vba-tk-name" data-tk-copy="var(--' + esc( n ) + ')" title="' + esc( TT.copy ) + '">--' + esc( n ) + '</button>'; }
+	function renderType() {
+		var sc = TK.scales.type, box = document.getElementById( 'vba-tk-type' ); if ( ! box ) { return; }
+		if ( ! sc.on ) { box.innerHTML = '<p class="vba-hint">' + esc( TT.off ) + '</p>'; return; }
+		var rows = '';
+		for ( var st = +sc.up; st >= -sc.down; st-- ) {
+			var lab = TYPE_STEPS[ String( st ) ]; if ( ! lab ) { continue; }
+			var mn = sc.minBase * Math.pow( sc.minRatio, st ), mx = sc.maxBase * Math.pow( sc.maxRatio, st );
+			rows += '<div class="vba-tk-row">' + nameBtn( 'text-' + lab ) + '<span class="vba-tk-num">' + px( mn ) + '</span><span class="vba-tk-num">' + px( mx ) + '</span>' +
+				'<span class="vba-tk-sample" style="font-size:' + esc( fluid( mn, mx, sc.minVw, sc.maxVw ) ) + '">' + esc( TT.sample ) + '</span></div>';
+		}
+		box.innerHTML = '<div class="vba-tk-thead"><span>Token</span><span>' + esc( sc.minVw ) + 'px</span><span>' + esc( sc.maxVw ) + 'px</span><span></span></div>' + rows;
+	}
+	function renderSpace() {
+		var sc = TK.scales.space, box = document.getElementById( 'vba-tk-space' ); if ( ! box ) { return; }
+		if ( ! sc.on ) { box.innerHTML = '<p class="vba-hint">' + esc( TT.off ) + '</p>'; return; }
+		box.innerHTML = '<div class="vba-tk-thead"><span>Token</span><span>' + esc( sc.minVw ) + 'px</span><span>' + esc( sc.maxVw ) + 'px</span><span></span></div>' + SPACE_STEPS.map( function ( s2 ) {
+			var mn = sc.minBase * s2[ 1 ], mx = sc.maxBase * s2[ 1 ];
+			return '<div class="vba-tk-row">' + nameBtn( 'space-' + s2[ 0 ] ) + '<span class="vba-tk-num">' + px( mn ) + '</span><span class="vba-tk-num">' + px( mx ) + '</span>' +
+				'<span class="vba-tk-bar"><i style="width:' + esc( fluid( mn, mx, sc.minVw, sc.maxVw ) ) + '"></i></span></div>';
+		} ).join( '' );
+	}
+	function renderColors() {
+		var box = document.getElementById( 'vba-tk-colors' ); if ( ! box ) { return; }
+		box.innerHTML = TK.colors.length ? TK.colors.map( function ( c, i ) {
+			var hex = /^#[0-9a-f]{6}$/i.test( c.value ) ? c.value : '#000000';
+			return '<div class="vba-tk-item"><input type="color" class="vba-tk-sw" data-tk-color="' + i + '" value="' + esc( hex ) + '" aria-label="' + esc( c.name ) + '">' +
+				'<input type="text" class="vba-tk-n" data-tk-cname="' + i + '" value="' + esc( c.name ) + '" placeholder="' + esc( TT.name ) + '" spellcheck="false">' +
+				'<input type="text" class="vba-tk-v" data-tk-cval="' + i + '" value="' + esc( c.value ) + '" placeholder="#2ab7f1" spellcheck="false">' +
+				'<button type="button" class="vba-mini vba-mini-del" data-tk-del="colors:' + i + '" aria-label="' + esc( TT.remove ) + '">×</button></div>';
+		} ).join( '' ) : '<p class="vba-hint">' + esc( TT.none ) + '</p>';
+	}
+	function renderCustom() {
+		var box = document.getElementById( 'vba-tk-custom' ); if ( ! box ) { return; }
+		box.innerHTML = TK.custom.length ? TK.custom.map( function ( c, i ) {
+			return '<div class="vba-tk-item vba-tk-item-c"><span class="vba-tk-dash">--</span><input type="text" class="vba-tk-n" data-tk-xname="' + i + '" value="' + esc( c.name ) + '" placeholder="radius-m" spellcheck="false">' +
+				'<select data-tk-xgroup="' + i + '">' + Object.keys( GROUPS ).map( function ( g ) { return '<option value="' + g + '"' + ( g === c.group ? ' selected' : '' ) + '>' + esc( GROUPS[ g ] ) + '</option>'; } ).join( '' ) + '</select>' +
+				'<input type="text" class="vba-tk-v" data-tk-xval="' + i + '" value="' + esc( c.value ) + '" placeholder="12px" spellcheck="false">' +
+				'<button type="button" class="vba-mini vba-mini-del" data-tk-del="custom:' + i + '" aria-label="' + esc( TT.remove ) + '">×</button></div>';
+		} ).join( '' ) : '<p class="vba-hint">' + esc( TT.none ) + '</p>';
+	}
+	renderColors(); renderType(); renderSpace(); renderCustom();
+	document.getElementById( 'vba-tokens' ).addEventListener( 'input', function ( e ) {
+		var t = e.target, k;
+		if ( ( k = t.getAttribute( 'data-tk' ) ) ) {
+			var parts = k.split( '.' ), v = 'checkbox' === t.type ? ( t.checked ? 1 : 0 ) : parseFloat( t.value );
+			if ( 'checkbox' !== t.type && isNaN( v ) ) { return; }
+			TK.scales[ parts[ 0 ] ][ parts[ 1 ] ] = v;
+			if ( 'type' === parts[ 0 ] ) { renderType(); } else { renderSpace(); }
+			return;
+		}
+		if ( t.hasAttribute( 'data-tk-color' ) ) { var ci = +t.getAttribute( 'data-tk-color' ); TK.colors[ ci ].value = t.value; var tv = document.querySelector( '[data-tk-cval="' + ci + '"]' ); if ( tv ) { tv.value = t.value; } return; }
+		if ( t.hasAttribute( 'data-tk-cname' ) ) { TK.colors[ +t.getAttribute( 'data-tk-cname' ) ].name = t.value.toLowerCase().replace( /[^a-z0-9-]/g, '' ); return; }
+		if ( t.hasAttribute( 'data-tk-cval' ) ) { var cv = +t.getAttribute( 'data-tk-cval' ); TK.colors[ cv ].value = t.value.trim(); var sw = document.querySelector( '[data-tk-color="' + cv + '"]' ); if ( sw && /^#[0-9a-f]{6}$/i.test( t.value.trim() ) ) { sw.value = t.value.trim(); } return; }
+		if ( t.hasAttribute( 'data-tk-xname' ) ) { TK.custom[ +t.getAttribute( 'data-tk-xname' ) ].name = t.value.toLowerCase().replace( /[^a-z0-9-]/g, '' ); return; }
+		if ( t.hasAttribute( 'data-tk-xval' ) ) { TK.custom[ +t.getAttribute( 'data-tk-xval' ) ].value = t.value.trim(); return; }
+	} );
+	document.getElementById( 'vba-tokens' ).addEventListener( 'change', function ( e ) {
+		var t = e.target;
+		if ( t.hasAttribute( 'data-tk-xgroup' ) ) { TK.custom[ +t.getAttribute( 'data-tk-xgroup' ) ].group = t.value; return; }
+		if ( t.getAttribute( 'data-tk' ) && 'SELECT' === t.tagName ) { var p2 = t.getAttribute( 'data-tk' ).split( '.' ); TK.scales[ p2[ 0 ] ][ p2[ 1 ] ] = parseFloat( t.value ); renderType(); }
+	} );
+	document.getElementById( 'vba-tokens' ).addEventListener( 'click', function ( e ) {
+		var add = e.target.closest( '[data-tk-add]' ), del = e.target.closest( '[data-tk-del]' ), cp = e.target.closest( '[data-tk-copy]' );
+		if ( add ) {
+			if ( 'colors' === add.getAttribute( 'data-tk-add' ) ) { var n = 1; while ( TK.colors.some( function ( c ) { return c.name === 'colour-' + n; } ) ) { n++; } TK.colors.push( { name:'colour-' + n, value:'#2ab7f1' } ); renderColors(); }
+			else { var m = 1; while ( TK.custom.some( function ( c ) { return c.name === 'token-' + m; } ) ) { m++; } TK.custom.push( { name:'token-' + m, group:'radius', value:'12px' } ); renderCustom(); }
+			return;
+		}
+		if ( del ) { var d = del.getAttribute( 'data-tk-del' ).split( ':' ); TK[ d[ 0 ] ].splice( +d[ 1 ], 1 ); if ( 'colors' === d[ 0 ] ) { renderColors(); } else { renderCustom(); } return; }
+		if ( cp ) {
+			var txt = cp.getAttribute( 'data-tk-copy' );
+			( navigator.clipboard ? navigator.clipboard.writeText( txt ) : Promise.reject() ).then( function () {
+				var was = cp.textContent; cp.textContent = TT.copied; cp.classList.add( 'is-copied' ); setTimeout( function () { cp.textContent = was; cp.classList.remove( 'is-copied' ); }, 900 );
+			} ).catch( function () {} );
+		}
+	} );
+	window.vbaSaveTokens = function () {
+		var C = cfg(), body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_tokens_save' ); body.set( 'nonce', C.nonce || '' );
+		body.set( 'tokens', JSON.stringify( TK ) );
+		return fetch( C.ajaxurl || window.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } ).then( function ( r ) { return r.json(); } );
+	};
 	document.getElementById( 'vba-gs-save' ).addEventListener( 'click', function () {
 		var btn = this; btn.textContent = T.saving;
 		var out = {};
@@ -313,9 +486,11 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_global_styles_save' ); body.set( 'nonce', C.nonce || '' );
 		body.set( 'styles', JSON.stringify( out ) );
-		fetch( C.ajaxurl || window.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
-			.then( function ( r ) { return r.json(); } )
-			.then( function ( res ) { btn.textContent = res && res.success ? T.saved : T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 1500 ); } )
+		Promise.all( [
+			fetch( C.ajaxurl || window.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } ).then( function ( r ) { return r.json(); } ),
+			window.vbaSaveTokens()
+		] )
+			.then( function ( all ) { var ok = all[ 0 ] && all[ 0 ].success && all[ 1 ] && all[ 1 ].success; btn.textContent = ok ? T.saved : T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 1500 ); } )
 			.catch( function () { btn.textContent = T.saveFailed; setTimeout( function () { btn.textContent = T.saveChanges; }, 2500 ); } );
 	} );
 }() );
