@@ -4,6 +4,15 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.24.0 — Velox Builder: Bootstrap icons, styling lands where you expect, fixes from a full test pass
+- **New icons.** The whole editor uses Bootstrap Icons: top bar, panels, menus and the style panel. Every element type has its own icon in Add element, Structure and the style panel header, so a button, a badge and a card are easy to tell apart.
+- **Fixed: styling an element could change other elements.** When you clicked an element again, the style panel jumped back to its first class. Changes then went into that shared class (for example `.block`) and changed every element using it. The panel now remembers per element whether you were styling a class or "This element".
+- **Fixed: the B button did nothing on headings, buttons and badges.** These are bold by default, so B makes the selected words normal weight, as in Word or Google Docs, but that change was dropped on save. It is now kept, in the editor and on the live page. Italic and underline behave the same way.
+- **Better starting styles.**
+  - Badges, buttons and text links take only the width they need, so they no longer stretch across a card.
+  - A button keeps 12px of space to the next item, so a button next to a text link no longer touches it.
+  - Text links start at 16px instead of picking up the theme's larger link size.
+
 ## 4.23.0 — Velox Builder: every element starts styled, property search, multi-select, class lock
 - **Every element arrives looking finished, and every starting value can be changed.**
   - Buttons come with padding, colours, rounding, font weight and a hover colour.
