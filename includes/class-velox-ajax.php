@@ -143,6 +143,14 @@ class Velox_Ajax {
 				Velox_Builder_Templates::ajax_test();
 				break;
 
+			case 'builder_revisions':
+				Velox_Builder_Revisions::ajax_list();
+				break;
+
+			case 'builder_revision':
+				Velox_Builder_Revisions::ajax_get();
+				break;
+
 			case 'builder_oxygen_sources':
 				Velox_Builder_Oxygen::ajax_sources();
 				break;

@@ -17,7 +17,7 @@ if ( ! defined( 'ABSPATH' ) ) {
  */
 class Velox_Builder {
 
-	const DB_VERSION  = '3';
+	const DB_VERSION  = '4';
 	const VER_OPTION  = 'velox_builder_db';
 	const ENABLE_KEY  = 'module_builder';           // stored in Velox_Settings
 	const SLUG        = 'velox-builder';            // admin section slug
@@ -385,6 +385,10 @@ class Velox_Builder {
 			// Schema 3: a template or reusable changed into a page kept "published"
 			// although it had no WordPress page (fixed in change_kind()). Repair those.
 			$wpdb->query( "UPDATE {$t} SET status = 'draft' WHERE kind = 'page' AND status = 'published' AND ( post_id IS NULL OR post_id = 0 )" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+		// Schema 4: saved versions of every document.
+		if ( class_exists( 'Velox_Builder_Revisions' ) ) {
+			Velox_Builder_Revisions::install();
 		}
 		update_option( self::VER_OPTION, self::DB_VERSION );
 	}
@@ -823,6 +827,11 @@ class Velox_Builder {
 			}
 		}
 
+		// Keep a version (folded with this person's saves of the last minutes).
+		if ( class_exists( 'Velox_Builder_Revisions' ) ) {
+			$rk = isset( $_POST['rev_kind'] ) && 'restore' === $_POST['rev_kind'] ? 'restore' : 'save';
+			Velox_Builder_Revisions::record( $id, $rk, $data, $title );
+		}
 		$bound = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . $t . ' WHERE id = %d', $id ) );
 		wp_send_json_success(
 			array(
@@ -2164,9 +2173,12 @@ class Velox_Builder {
 		// If this doc is bound to a WP page/post, trash that post too (recoverable).
 		$post_id = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . self::table() . " WHERE id = %d AND kind = 'page'", $id ) );
 		$wpdb->delete( self::table(), array( 'id' => $id ), array( '%d' ) );
-		// Leave nothing behind: its template rule, the default pointer, its CSS file.
+		// Leave nothing behind: its template rule, the default pointer, its CSS file, its versions.
 		if ( class_exists( 'Velox_Builder_Templates' ) ) {
 			Velox_Builder_Templates::forget( $id );
+		}
+		if ( class_exists( 'Velox_Builder_Revisions' ) ) {
+			Velox_Builder_Revisions::forget( $id );
 		}
 		$rules = self::template_rules();
 		if ( isset( $rules[ $id ] ) ) {
@@ -2796,6 +2808,9 @@ class Velox_Builder {
 			$live = self::encode_model( $model );
 		}
 		$wpdb->update( $t, array( 'data' => $live, 'draft' => null ), array( 'id' => $id ) );
+		if ( class_exists( 'Velox_Builder_Revisions' ) ) {
+			Velox_Builder_Revisions::record( $id, 'publish', $live, (string) $row['title'] );
+		}
 		if ( $global_change ) {
 			self::purge_cache_for();
 		}

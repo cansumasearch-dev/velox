@@ -4,6 +4,21 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.33.0 — Velox Builder: saved versions with compare and restore
+- **Every page, template and component keeps its history.**
+  - Each save keeps a version. Saves by the same person a few minutes apart fold into one, so the list stays readable.
+  - Every publish and every restore is kept as its own version.
+  - Nothing is stored twice: saves that change nothing, or only the selection or screen size, are skipped.
+  - The newest 40 versions per document are kept; developers can change the number with the `velox_builder_revisions_keep` filter.
+- **History panel, "Saved versions" tab.** Each version shows whether it was saved, published or restored, who did it, when, and what changed since the version before ("2 added, 1 changed, styles").
+- **See any version.**
+  - Click a version and the canvas shows it exactly as it was, read-only.
+  - Elements that differ from now are outlined: orange for changed, red dashed for removed since.
+  - A bar counts what was changed, removed and added since, and whether the styles differ.
+  - Editing, Undo, Save and Publish wait while you look, with a short note why. "Back to editing" returns to your work untouched.
+- **Restore in one click.** "Restore this version" brings it back as a normal step and saves it, marked "Restored". Undo takes the restore back.
+- Deleting a document deletes its versions. The versions are stored in a new database table, created automatically when the plugin updates.
+
 ## 4.32.0 — Velox Builder: components with properties
 - **Reusables become components.** Inside a reusable, any element can be marked "Editable in each copy" in its Settings tab. You choose what each copy may change:
   - **Text:** headings, text and buttons.

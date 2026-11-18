@@ -201,6 +201,8 @@
 		/* commit: fn mutates state; snapshot the RESULT so history holds real edit
 		   states. quiet=true (selection, hover) doesn't record history/log. */
 		commit:function ( fn, label ) {
+			// Previewing a saved version: it is read-only.
+			if ( this.locked ) { if ( label !== false && this.onLocked ) { this.onLocked(); } return; }
 			fn( this.state );
 			if ( label !== false ) {
 				var pushed = this.snapshot();
@@ -219,8 +221,8 @@
 		/* Undo/redo restore the document, not the place you are working in:
 		   the screen size and state you are editing stay as they are. */
 		keepContext:function ( next ) { var cur = this.state || {}; next.breakpoint = cur.breakpoint || 'base'; next.state = cur.state || 'normal'; if ( cur.selection && findNode( next.tree || [], cur.selection ) ) { next.selection = cur.selection; next.activeClass = cur.activeClass; } return next; },
-		undo:function () { if ( this.history.length <= 1 ) { return; } this.future.push( this.history.pop() ); this.state = this.keepContext( JSON.parse( this.history[ this.history.length - 1 ] ) ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
-		redo:function () { if ( ! this.future.length ) { return; } var s = this.future.pop(); this.history.push( s ); this.state = this.keepContext( JSON.parse( s ) ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
+		undo:function () { if ( this.locked || this.history.length <= 1 ) { return; } this.future.push( this.history.pop() ); this.state = this.keepContext( JSON.parse( this.history[ this.history.length - 1 ] ) ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
+		redo:function () { if ( this.locked || ! this.future.length ) { return; } var s = this.future.pop(); this.history.push( s ); this.state = this.keepContext( JSON.parse( s ) ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
 		/* Revert to a specific snapshot (session history). idx = history length at
 		   that point, so history[idx-1] is that state. */
 		/* Going back to a point in History is itself a step: everything after it
@@ -579,6 +581,7 @@
 			// select and unhide them; the front-end renderer skips them entirely.
 			if ( node.hidden ) { cls += ' vb-is-hidden'; }
 			if ( condCount( node.cond ) ) { cls += ' vb-has-cond'; }
+			if ( revPrev && revPrev.marks[ node.id ] ) { cls += ' vb-rev-' + revPrev.marks[ node.id ]; }
 			var kids;
 			if ( loopOn( node ) ) { kids = loopCanvasKids( node, render ); cls += ' vb-loop'; } else { kids = node.children.map( render ).join( '' ); }
 			// Reusable: render the referenced block inline, framed + non-interactive.
@@ -787,7 +790,7 @@
 		var doc = fr.contentDocument;
 		if ( ! doc.getElementById( 'vb-style' ) ) {
 			doc.open();
-			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-empty-box,[data-node].vb-empty-soft{outline:1px dashed #c3cad3;outline-offset:-1px;background-color:rgba(42,183,241,.035)}[data-node].vb-empty-box{min-height:88px}[data-node].vb-empty-box:hover,[data-node].vb-empty-soft:hover{outline-color:#2ab7f1}[data-node].vb-empty-box::after{content:attr(data-vb-empty);display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:88px;width:100%;padding:12px;grid-column:1/-1;flex:1 1 100%;font:500 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none;color:#8a94a0;pointer-events:none}[data-node].vb-anchor-mark{display:block!important;min-height:22px;outline:1px dashed #c3cad3;outline-offset:-1px}[data-node].vb-anchor-mark::after{content:attr(data-vb-anchor);display:block;padding:3px 8px;font:500 11px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#8a94a0;letter-spacing:0;text-transform:none}[data-node].vb-hov{outline:1px solid #2ab7f1!important}[data-node].vb-msel{outline:2px dashed #2ab7f1!important;outline-offset:-2px}[data-node].vb-thin{position:relative}[data-node].vb-thin::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}[data-node].vb-sel{outline:2px solid #2ab7f1}a,img{-webkit-user-drag:none}html.vb-dnd,html.vb-dnd *{cursor:grabbing!important;user-select:none!important}html.vb-dnd-no,html.vb-dnd-no *{cursor:not-allowed!important}#vb-dropmark{position:absolute;z-index:2147483001;display:none;pointer-events:none;background:#2ab7f1}#vb-dropmark.is-h{height:calc(2px * var(--k,1));margin-top:calc(-1px * var(--k,1))}#vb-dropmark.is-v{width:calc(2px * var(--k,1));margin-left:calc(-1px * var(--k,1))}#vb-dropmark.is-h::before,#vb-dropmark.is-v::before{content:"";position:absolute;width:calc(8px * var(--k,1));height:calc(8px * var(--k,1));border-radius:50%;background:#2ab7f1;box-shadow:0 0 0 calc(2px * var(--k,1)) #fff}#vb-dropmark.is-h::before{left:calc(-4px * var(--k,1));top:calc(-3px * var(--k,1))}#vb-dropmark.is-v::before{top:calc(-4px * var(--k,1));left:calc(-3px * var(--k,1))}#vb-dropmark.is-box{background:rgba(42,183,241,.12);outline:calc(2px * var(--k,1)) solid #2ab7f1;outline-offset:calc(-2px * var(--k,1))}#vb-selbadge .vb-sb-move{cursor:grab;margin-left:-6px}#vb-selbadge{position:absolute;z-index:2147483000;display:none;align-items:center;gap:1px;height:22px;padding:0 2px 0 8px;background:#2ab7f1;color:#04222f;font:600 11px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:4px 4px 0 0;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);user-select:none;letter-spacing:0;text-transform:none;text-align:left}#vb-selbadge.is-inside{border-radius:0 0 4px 0}#vb-selbadge .vb-sb-l{padding-right:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis}#vb-selbadge button{display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:#04222f;cursor:pointer}#vb-selbadge button:hover{background:rgba(4,34,47,.16)}#vb-selbadge button[data-sb=parent] svg{transform:rotate(180deg)}#vb-selbadge svg{display:block}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vb-has-cond:not(.vb-sel):not(.vb-hov){outline:1px dashed rgba(160,107,255,.75);outline-offset:-1px}.vb-loop:not(.vb-sel):not(.vb-hov){outline:1px dashed rgba(32,178,140,.8);outline-offset:-1px}.vb-loop-none{padding:14px;border:1px dashed #c7ced6;border-radius:10px;color:#7c8590;font:500 13px/1.5 -apple-system,sans-serif;grid-column:1/-1}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 "Velox Geist Mono",ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
+			doc.write( '<!DOCTYPE html><html><head><meta charset="utf-8"><style id="vb-reset">*{box-sizing:border-box;margin:0}body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif}[data-node]{outline:1px solid transparent;outline-offset:-1px;transition:outline-color .1s}[data-node]:hover{outline-color:rgba(42,183,241,.45)}[data-node].vb-empty-box,[data-node].vb-empty-soft{outline:1px dashed #c3cad3;outline-offset:-1px;background-color:rgba(42,183,241,.035)}[data-node].vb-empty-box{min-height:88px}[data-node].vb-empty-box:hover,[data-node].vb-empty-soft:hover{outline-color:#2ab7f1}[data-node].vb-empty-box::after{content:attr(data-vb-empty);display:flex;align-items:center;justify-content:center;box-sizing:border-box;min-height:88px;width:100%;padding:12px;grid-column:1/-1;flex:1 1 100%;font:500 12px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;letter-spacing:0;text-transform:none;color:#8a94a0;pointer-events:none}[data-node].vb-anchor-mark{display:block!important;min-height:22px;outline:1px dashed #c3cad3;outline-offset:-1px}[data-node].vb-anchor-mark::after{content:attr(data-vb-anchor);display:block;padding:3px 8px;font:500 11px/16px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#8a94a0;letter-spacing:0;text-transform:none}[data-node].vb-hov{outline:1px solid #2ab7f1!important}[data-node].vb-msel{outline:2px dashed #2ab7f1!important;outline-offset:-2px}[data-node].vb-thin{position:relative}[data-node].vb-thin::after{content:"";position:absolute;left:0;right:0;top:-6px;bottom:-6px}[data-node].vb-sel{outline:2px solid #2ab7f1}a,img{-webkit-user-drag:none}html.vb-dnd,html.vb-dnd *{cursor:grabbing!important;user-select:none!important}html.vb-dnd-no,html.vb-dnd-no *{cursor:not-allowed!important}#vb-dropmark{position:absolute;z-index:2147483001;display:none;pointer-events:none;background:#2ab7f1}#vb-dropmark.is-h{height:calc(2px * var(--k,1));margin-top:calc(-1px * var(--k,1))}#vb-dropmark.is-v{width:calc(2px * var(--k,1));margin-left:calc(-1px * var(--k,1))}#vb-dropmark.is-h::before,#vb-dropmark.is-v::before{content:"";position:absolute;width:calc(8px * var(--k,1));height:calc(8px * var(--k,1));border-radius:50%;background:#2ab7f1;box-shadow:0 0 0 calc(2px * var(--k,1)) #fff}#vb-dropmark.is-h::before{left:calc(-4px * var(--k,1));top:calc(-3px * var(--k,1))}#vb-dropmark.is-v::before{top:calc(-4px * var(--k,1));left:calc(-3px * var(--k,1))}#vb-dropmark.is-box{background:rgba(42,183,241,.12);outline:calc(2px * var(--k,1)) solid #2ab7f1;outline-offset:calc(-2px * var(--k,1))}#vb-selbadge .vb-sb-move{cursor:grab;margin-left:-6px}#vb-selbadge{position:absolute;z-index:2147483000;display:none;align-items:center;gap:1px;height:22px;padding:0 2px 0 8px;background:#2ab7f1;color:#04222f;font:600 11px/22px -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;border-radius:4px 4px 0 0;white-space:nowrap;box-shadow:0 1px 2px rgba(0,0,0,.15);user-select:none;letter-spacing:0;text-transform:none;text-align:left}#vb-selbadge.is-inside{border-radius:0 0 4px 0}#vb-selbadge .vb-sb-l{padding-right:4px;max-width:180px;overflow:hidden;text-overflow:ellipsis}#vb-selbadge button{display:grid;place-items:center;width:20px;height:20px;padding:0;margin:0;border:0;border-radius:3px;background:transparent;color:#04222f;cursor:pointer}#vb-selbadge button:hover{background:rgba(4,34,47,.16)}#vb-selbadge button[data-sb=parent] svg{transform:rotate(180deg)}#vb-selbadge svg{display:block}.vb-img-ph{display:flex;align-items:center;justify-content:center;min-height:120px;color:#8a94a0;font-size:13px;background:repeating-linear-gradient(45deg,#eef1f4,#eef1f4 10px,#e6eaee 10px,#e6eaee 20px)}.vb-empty-canvas{min-height:70vh;display:flex;align-items:center;justify-content:center;color:#9aa3ad}.vb-ec-inner{text-align:center}.vb-ec-inner b{display:block;font-size:16px;color:#5b6673;margin-bottom:6px}.vb-ec-inner p{font-size:13px}.vb-reuse{position:relative;outline:1px dashed rgba(160,107,255,.5);outline-offset:-1px}.vb-reuse-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-el{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:110px;padding:24px;border:1px dashed #c7ced6;border-radius:10px;background:#f6f8fa;color:#5b6673;text-align:center}.vb-ph-el .vb-ph-ic{color:#2ab7f1}.vb-ph-el .vb-ph-l{font:600 13px/1.4 -apple-system,sans-serif}.vx-navprev{display:flex;align-items:center;gap:18px;flex-wrap:wrap}.vx-navlink{display:inline-flex;align-items:center;gap:5px;font-weight:600;color:#374151}.vx-navlink.has-sub{color:#111827}.vx-crumb{color:#6b7280;font-size:14px}.vx-crumb.is-current{color:#111827;font-weight:600}.vx-crumb-sep{color:#9ca3af}.vx-fabprev{position:relative;border:1px dashed #f5a742;border-radius:12px;padding:24px 12px 12px;background:#fffaf0;min-height:64px}body .vx-fabprev:is(#vb-x,*){position:relative!important;inset:auto!important;margin:0!important;transform:none!important;width:auto!important;height:auto!important;max-width:none!important;display:block!important;z-index:auto!important;animation:none!important}.vx-fabprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#f5a742;color:#3a2a05;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-fabprev-body{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.vx-fabprev-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:999px;background:#111827;color:#fff;font-size:13px}.vx-slider{position:relative}.vx-track{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}.vx-track::-webkit-scrollbar{display:none}.vx-slide{scroll-snap-align:start;min-width:0}.vx-slide img{width:100%;height:auto;display:block;border-radius:8px}.vx-arrows{display:flex;gap:8px;justify-content:flex-end;margin-top:10px}.vx-prev,.vx-next{width:34px;height:34px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:#fff;cursor:pointer;display:grid;place-items:center}.vx-prev svg{transform:rotate(90deg)}.vx-next svg{transform:rotate(-90deg)}.vx-dots{display:flex;gap:7px;justify-content:center;margin-top:12px}.vx-dot{width:8px;height:8px;border-radius:50%;background:rgba(0,0,0,.22)}.vx-dot.is-active{background:rgba(0,0,0,.7)}.vx-ovprev{position:relative;border:1px dashed #a06bff;border-radius:12px;padding:26px 14px 14px;background:#faf7ff;min-height:90px}.vx-ovprev-tag{position:absolute;top:0;left:0;display:inline-flex;align-items:center;gap:5px;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:4px 8px;border-radius:0 0 8px 0}.vx-tabs-left{display:grid;grid-template-columns:minmax(140px,auto) 1fr;gap:24px}.vx-tablist{display:flex;gap:4px;border-bottom:1px solid rgba(0,0,0,.12);flex-wrap:wrap}.vx-tabs-left .vx-tablist{flex-direction:column;border-bottom:none;border-right:1px solid rgba(0,0,0,.12)}.vx-tab{padding:10px 14px;background:none;border:none;font:inherit;font-weight:600;color:#6b7280;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}.vx-tab.is-active{color:#111827;border-bottom-color:currentColor}.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}.vx-tabs-left .vx-tab.is-active{border-right-color:currentColor}.vx-tabp{padding:18px 4px;line-height:1.6}.vx-tabp[hidden]{display:none}.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.12)}.vx-acc-h{margin:0}.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}.vx-acc-t{flex:1}.vx-acc-i{flex:0 0 auto;transition:transform .2s;color:#6b7280}.vx-acc-item.is-open .vx-acc-i{transform:rotate(180deg)}.vx-acc-left .vx-acc-btn{flex-direction:row-reverse}.vx-acc-p{padding:0 4px 16px;color:#4b5563;line-height:1.6}.vb-inner-html{padding:8px}.vb-inner-live{position:relative;outline:1px dashed rgba(160,107,255,.55);outline-offset:-1px;min-height:60px}.vb-inner-tag{position:absolute;top:0;left:0;background:#a06bff;color:#fff;font:600 10px/1 -apple-system,sans-serif;padding:3px 7px;border-radius:0 0 6px 0;z-index:2}.vb-ph-inner{border-color:#a06bff;background:#faf7ff}.vb-ph-inner .vb-ph-ic{color:#a06bff}.vb-ph-s{font:400 12px/1.5 -apple-system,sans-serif;color:#7c8590;max-width:420px}.vb-is-hidden{opacity:.32;outline:1px dashed #b6bec7!important;outline-offset:-1px}.vb-has-cond:not(.vb-sel):not(.vb-hov){outline:1px dashed rgba(160,107,255,.75);outline-offset:-1px}.vb-rev-changed{outline:2px solid #f5a742!important;outline-offset:-2px}.vb-rev-gone{outline:2px dashed #e5534b!important;outline-offset:-2px}.vb-loop:not(.vb-sel):not(.vb-hov){outline:1px dashed rgba(32,178,140,.8);outline-offset:-1px}.vb-loop-none{padding:14px;border:1px dashed #c7ced6;border-radius:10px;color:#7c8590;font:500 13px/1.5 -apple-system,sans-serif;grid-column:1/-1}.vx-token{display:inline-block;padding:1px 7px;margin:0 1px;border-radius:5px;background:rgba(42,183,241,.16);color:#1a86b8;font:600 .92em/1.4 "Velox Geist Mono",ui-monospace,Menlo,monospace;white-space:nowrap;vertical-align:baseline}.vb-cover{position:absolute;inset:0;z-index:2}.vb-indicate [data-node]:has([data-node]:hover){outline:1px dashed rgba(42,183,241,.35)}.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}.vb-ec-acts{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap}.vb-ec-btn{font:600 13px/1 -apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;padding:11px 16px;border-radius:9px;border:1px solid #d5dbe1;background:#fff;color:#1f2933;cursor:pointer}.vb-ec-btn:hover{border-color:#2ab7f1;color:#0e7fb3}.vb-ec-btn.pri{background:#2ab7f1;border-color:#2ab7f1;color:#04222f}.vb-ec-btn.pri:hover{background:#4cc4f4;color:#04222f}.vb-ec-ox{margin-top:18px;padding:14px 16px;border:1px dashed #c7ced6;border-radius:12px;background:#f8fafc;max-width:420px;font-size:13px;color:#5b6673;line-height:1.5}</style><style id="vb-site-css"></style><style id="vb-preview-css"></style><style id="vb-style"></style><style id="vb-page-css"></style></head><body class="velox-built"></body></html>' );
 			doc.close();
 		}
 		return doc;
@@ -974,6 +977,7 @@
 	/* ---------- inline text editing (double-click on canvas) ---------- */
 	var editing = null; // { id, el }
 	function startInlineEdit( elNode, id ) {
+		if ( store.locked ) { if ( store.onLocked ) { store.onLocked(); } return; }
 		if ( editing ) { commitInlineEdit(); }
 		editing = { id: id, el: elNode };
 		elNode.setAttribute( 'contenteditable', 'true' );
@@ -2317,6 +2321,7 @@
 		// The canvas is an iframe, and clicking a top-bar button does not reliably
 		// blur a contenteditable inside it — so the text you just typed was still
 		// only in the DOM and never reached the model. Flush it first, always.
+		if ( revPrev ) { toast( T( 'You are looking at a saved version. Restore it or go back to editing first.' ) ); if ( cb ) { cb( false ); } return; }
 		if ( editing ) { commitInlineEdit(); }
 		flushPending();
 		if ( cb ) { saveWaiters.push( cb ); }
@@ -2332,6 +2337,7 @@
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_save' ); body.set( 'nonce', CFG.nonce || '' );
 		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', docKind );
 		body.set( 'data', sent );
+		if ( restoreKind ) { body.set( 'rev_kind', restoreKind ); restoreKind = ''; }
 		var sentClasses = changedClasses();
 		body.set( 'changed_classes', JSON.stringify( sentClasses ) );
 		body.set( 'css_size', String( new Blob( [ genCSS() ] ).size ) ); if ( postId ) { body.set( 'post_id', postId ); }
@@ -2351,6 +2357,7 @@
 				var wasDraft = hasDraft;
 				hasDraft = !! res.data.has_draft;
 				if ( hasDraft && ! wasDraft ) { toast( T( 'Saved. Visitors still see the published version until you publish.' ) ); }
+				revListStale = true; if ( historyShown && 'saved' === histTab ) { loadRevisions(); }
 			}
 			if ( saveAgain ) { persist(); return; }
 			setSaveState( ok ? 'saved' : 'error' );
@@ -2439,6 +2446,8 @@
 	   Publish (pushes live for everyone). Save state shows on the Save button. */
 	var everPublished = false, dirty = false, pubStatus = 'draft', pubUrl = '', inspTab = 'ess', customStates = [];
 	function publishDoc() {
+		if ( revPrev ) { toast( T( 'You are looking at a saved version. Restore it or go back to editing first.' ) ); return; }
+		revListStale = true;
 		if ( editing ) { commitInlineEdit(); }
 		flushPending();
 		if ( ! CFG.ajaxurl ) { return; }
@@ -2724,6 +2733,7 @@
 	/* Reflect the current panel/collapse state onto the shell. Never triggers a
 	 * panel re-render, so it's safe to call from inside one. */
 	function applyDock() {
+		if ( revPrev ) { setTimeout( placeRevBar, 0 ); }
 		var app = document.querySelector( '.vb-app' ); if ( ! app ) { return; }
 		app.classList.toggle( 'vb-pin-left', pinned.left );
 		app.classList.toggle( 'vb-pin-right', pinned.right );
@@ -4644,6 +4654,131 @@
 		}, T( 'Component property' ) );
 	}
 
+	/* ---------- saved versions ----------
+	 * The server keeps a version on every save (folded per person for a few
+	 * minutes) and on every publish (Velox_Builder_Revisions). Looking at one
+	 * swaps it into the canvas read-only, outlining what differs from now;
+	 * Restore brings it back as a normal, undoable step and saves. */
+	store.onLocked = function () { toast( T( 'You are looking at a saved version. Restore it or go back to editing first.' ) ); };
+	var histTab = 'session', revList = null, revListStale = true, revLoading = false, revPrev = null, restoreKind = '';
+	function stableStr( v ) {
+		if ( Array.isArray( v ) ) { return '[' + v.map( stableStr ).join( ',' ) + ']'; }
+		if ( v && 'object' === typeof v ) { return '{' + Object.keys( v ).sort().map( function ( k ) { return JSON.stringify( k ) + ':' + stableStr( v[ k ] ); } ).join( ',' ) + '}'; }
+		return JSON.stringify( v === undefined ? null : v );
+	}
+	function nodeSigs( m ) {
+		var out = {}, content = m.content || {};
+		( function walk( list, parent ) {
+			( list || [] ).forEach( function ( n, i ) {
+				var copy = Object.assign( {}, n ); delete copy.children;
+				out[ n.id ] = stableStr( [ copy, content[ n.id ] == null ? null : content[ n.id ], ( n.children || [] ).map( function ( k ) { return k.id; } ), parent, i ] );
+				walk( n.children, n.id );
+			} );
+		} )( m.tree, '' );
+		return out;
+	}
+	function revListHTML() {
+		if ( ! revList ) { return '<div class="vb-hist-empty">' + T( 'Loading…' ) + '</div>'; }
+		if ( ! revList.length ) { return '<div class="vb-hist-empty">' + T( 'No saved versions yet. They start with the next save.' ) + '</div>'; }
+		var names = { save:T( 'Saved' ), publish:T( 'Published' ), restore:T( 'Restored' ) };
+		return revList.map( function ( r ) {
+			var on = revPrev && revPrev.id === r.id;
+			return '<button class="vb-hist-i vb-rev-i is-' + r.kind + ( on ? ' on' : '' ) + '" data-rev="' + r.id + '" title="' + escapeHtml( r.when ) + '">' +
+				'<span class="vb-hist-dot"></span><span class="vb-rev-txt"><span class="vb-hist-l">' + escapeHtml( names[ r.kind ] || r.kind ) + ( r.user ? ' · ' + escapeHtml( r.user ) : '' ) + '</span>' +
+				'<span class="vb-rev-what">' + escapeHtml( r.what ) + '</span></span><span class="vb-hist-t">' + escapeHtml( r.ago ) + '</span></button>';
+		} ).join( '' );
+	}
+	function loadRevisions() {
+		if ( ! docId || revLoading ) { if ( ! docId ) { revList = []; revListStale = false; var b0 = document.getElementById( 'vb-revlist' ); if ( b0 ) { b0.innerHTML = revListHTML(); } } return; }
+		revLoading = true;
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_revisions' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'id', docId );
+		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) { revList = res && res.success ? res.data.items : []; } )
+			.catch( function () { revList = []; } )
+			.then( function () { revLoading = false; revListStale = false; var b = document.getElementById( 'vb-revlist' ); if ( b ) { b.innerHTML = revListHTML(); } } );
+	}
+	function previewRevision( id ) {
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', 'builder_revision' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'rev', id );
+		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) {
+				if ( ! res || ! res.success ) { toast( ( res && res.data && res.data.message ) || T( 'That version cannot be shown.' ) ); return; }
+				if ( editing ) { commitInlineEdit(); }
+				flushPending();
+				var current = revPrev ? revPrev.saved : store.state;
+				var model = normalizeDoc( JSON.parse( JSON.stringify( res.data.model ) ) );
+				var a = nodeSigs( model ), b = nodeSigs( current ), marks = {}, changed = 0, gone = 0, added = 0;
+				Object.keys( a ).forEach( function ( k ) { if ( ! ( k in b ) ) { marks[ k ] = 'gone'; gone++; } else if ( a[ k ] !== b[ k ] ) { marks[ k ] = 'changed'; changed++; } } );
+				Object.keys( b ).forEach( function ( k ) { if ( ! ( k in a ) ) { added++; } } );
+				var styles = stableStr( model.classes || {} ) !== stableStr( current.classes || {} );
+				model.selection = null; model.activeClass = null; model.breakpoint = current.breakpoint || 'base'; model.state = 'normal';
+				revPrev = { id:res.data.id, kind:res.data.kind, when:res.data.when, saved:current, model:res.data.model, marks:marks, changed:changed, gone:gone, added:added, styles:styles };
+				store.state = model; store.locked = true;
+				document.body.classList.add( 'vb-rev-mode' );
+				renderRevBar(); store.emit();
+				var list = document.getElementById( 'vb-revlist' ); if ( list ) { list.innerHTML = revListHTML(); }
+			} )
+			.catch( function () { toast( T( 'That version cannot be shown.' ) ); } );
+	}
+	function exitRevision() {
+		if ( ! revPrev ) { return; }
+		store.state = revPrev.saved; store.locked = false; revPrev = null;
+		document.body.classList.remove( 'vb-rev-mode' );
+		renderRevBar(); store.emit();
+		var list = document.getElementById( 'vb-revlist' ); if ( list ) { list.innerHTML = revListHTML(); }
+	}
+	function restoreRevision() {
+		if ( ! revPrev ) { return; }
+		var model = normalizeDoc( JSON.parse( JSON.stringify( revPrev.model ) ) );
+		exitRevision();
+		// A normal step: Undo takes it back. Then saved, marked as a restore.
+		store.commit( function ( s ) {
+			[ 'tree', 'content', 'classes', 'page' ].forEach( function ( k ) { if ( undefined !== model[ k ] ) { s[ k ] = model[ k ]; } else { delete s[ k ]; } } );
+			s.selection = null; s.activeClass = null;
+		}, T( 'Restore saved version' ) );
+		restoreKind = 'restore';
+		persist();
+		toast( T( 'Version restored and saved. Undo brings back what you had.' ) );
+	}
+	function renderRevBar() {
+		var bar = document.getElementById( 'vb-revbar' );
+		if ( ! revPrev ) { if ( bar ) { bar.remove(); } return; }
+		if ( ! bar ) { bar = document.createElement( 'div' ); bar.id = 'vb-revbar'; bar.setAttribute( 'role', 'status' ); document.body.appendChild( bar ); }
+		var names = { save:T( 'Saved' ), publish:T( 'Published' ), restore:T( 'Restored' ) };
+		var bits = [];
+		if ( revPrev.changed ) { bits.push( '<span class="vb-rb-c">' + T( '%d changed since' ).replace( '%d', revPrev.changed ) + '</span>' ); }
+		if ( revPrev.gone ) { bits.push( '<span class="vb-rb-g">' + T( '%d removed since' ).replace( '%d', revPrev.gone ) + '</span>' ); }
+		if ( revPrev.added ) { bits.push( '<span>' + T( '%d added since' ).replace( '%d', revPrev.added ) + '</span>' ); }
+		if ( revPrev.styles ) { bits.push( '<span>' + T( 'styles differ' ) + '</span>' ); }
+		if ( ! bits.length ) { bits.push( '<span>' + T( 'Same as now' ) + '</span>' ); }
+		bar.innerHTML = '<div class="vb-rb-main"><b>' + escapeHtml( ( names[ revPrev.kind ] || '' ) + ' · ' + revPrev.when ) + '</b><span class="vb-rb-bits">' + bits.join( '' ) + '</span></div>' +
+			'<div class="vb-rb-acts"><button class="vb-btn vb-btn-ghost" data-rev-back>' + T( 'Back to editing' ) + '</button><button class="vb-btn vb-btn-primary" data-rev-restore>' + T( 'Restore this version' ) + '</button></div>';
+		placeRevBar();
+	}
+	/* Over the canvas, not the whole window: side panels stay usable. */
+	function placeRevBar() {
+		var bar = document.getElementById( 'vb-revbar' ), fr = document.getElementById( 'vb-canvas' );
+		if ( ! bar || ! fr ) { return; }
+		var r = fr.getBoundingClientRect(), right = r.right;
+		// Side panels can float over the canvas: stop at the first one.
+		[ 'vb-hist', 'vb-setpanel', 'vb-struct', 'vb-csspanel' ].forEach( function ( id ) {
+			var el = document.getElementById( id );
+			if ( el && el.offsetWidth && 'none' !== getComputedStyle( el ).display ) {
+				var er = el.getBoundingClientRect();
+				if ( er.left > r.left + 120 && er.left < right ) { right = er.left; }
+			}
+		} );
+		var w = Math.max( 260, right - r.left - 24 );
+		bar.style.left = Math.round( r.left + 12 + w / 2 ) + 'px';
+		bar.style.width = 'max-content';
+		bar.style.maxWidth = Math.round( w ) + 'px';
+		bar.style.top = Math.round( Math.max( r.top, 52 ) + 12 ) + 'px';
+	}
+	window.addEventListener( 'resize', placeRevBar );
+
 	function renderSettingsPanel() {
 		var box = document.getElementById( 'vb-setpanel' ); if ( ! box ) { return; }
 		if ( ! setShown ) { box.style.display = 'none'; applyDock(); return; }
@@ -5070,15 +5205,25 @@
 				return '<button class="vb-hist-i' + ( undone ? ' undone' : '' ) + '"' + ( undone ? ' disabled title="' + T( 'Undone — Redo brings it back' ) + '"' : '' ) + ' data-revert="' + l.idx + '"><span class="vb-hist-dot"></span><span class="vb-hist-l">' + escapeHtml( l.label ) + '</span><span class="vb-hist-t">' + timeAgo( l.at ) + '</span></button>';
 			} ).join( '' )
 			: '<div class="vb-hist-empty">' + T( 'No changes yet. Your edits this session will appear here.' ) + '</div>';
+		var tabs = '<div class="vb-hist-tabs" role="tablist">' +
+			'<button role="tab" aria-selected="' + ( 'session' === histTab ) + '" class="' + ( 'session' === histTab ? 'on' : '' ) + '" data-histtab="session">' + T( 'This session' ) + '</button>' +
+			'<button role="tab" aria-selected="' + ( 'saved' === histTab ) + '" class="' + ( 'saved' === histTab ? 'on' : '' ) + '" data-histtab="saved">' + T( 'Saved versions' ) + '</button></div>';
+		var body = 'saved' === histTab
+			? '<div class="vb-hist-note">' + T( 'Every save keeps a version (saves a few minutes apart fold into one), and every publish. Click one to see it.' ) + '</div><div class="vb-hist-list" id="vb-revlist">' + revListHTML() + '</div>'
+			: '<div class="vb-hist-note">' + T( 'This session only — cleared when you close the editor.' ) + '</div><div class="vb-hist-list">' + items + '</div>';
 		box.innerHTML =
 			'<div class="vb-hist-top"><b>' + T( 'History' ) + '</b><span class="vb-p-acts">' + pinBtnHTML() + '<button class="vb-css-x" id="vb-hist-close">' + svg( 'x', 14 ) + '</button></span></div>' +
-			'<div class="vb-hist-note">' + T( 'This session only — cleared when you close the editor.' ) + '</div>' +
-			'<div class="vb-hist-list">' + items + '</div>';
+			tabs + body;
+		if ( 'saved' === histTab && ( revListStale || ! revList ) ) { loadRevisions(); }
 		applyDock();
 	}
 
 	function wireEvents() {
 		document.addEventListener( 'click', function ( e ) {
+			var htab = e.target.closest( '[data-histtab]' ); if ( htab ) { histTab = htab.getAttribute( 'data-histtab' ); renderHistoryPanel(); return; }
+			var revb = e.target.closest( '[data-rev]' ); if ( revb ) { previewRevision( +revb.getAttribute( 'data-rev' ) ); return; }
+			if ( e.target.closest( '[data-rev-back]' ) ) { exitRevision(); return; }
+			if ( e.target.closest( '[data-rev-restore]' ) ) { restoreRevision(); return; }
 			if ( e.target.closest( '[data-add]' ) ) { toggleAddMenu( e.target.closest( '[data-add]' ) ); return; }
 			var ins = e.target.closest( '[data-insert]' ); if ( ins ) { insertNode( ins.getAttribute( 'data-insert' ) ); if ( ! pinned.left ) { closeAddMenu(); } return; }
 			var insr = e.target.closest( '[data-insert-reuse]' ); if ( insr ) { insertReusable( +insr.getAttribute( 'data-insert-reuse' ) ); if ( ! pinned.left ) { closeAddMenu(); } return; }
@@ -7839,6 +7984,13 @@
 			'@media (prefers-reduced-motion:reduce){.vb-tab-ind,.vb-block-cv{transition:none}}',
 			'.vb-loop-pair{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px}.vb-loop-pair>.vb-f{min-width:0}.vb-loop-pair .vb-inp{width:100%!important;min-width:0!important;max-width:100%}',
 			'.vb-loop-meta{margin:6px 0 2px;padding:7px 10px;border-radius:8px;background:rgba(32,178,140,.1);border:1px solid rgba(32,178,140,.28);color:#7fe0c3;font-size:12px}',
+			'.vb-hist-tabs{display:flex;gap:4px;padding:0 12px 8px}.vb-hist-tabs button{flex:1;height:28px;border:1px solid var(--vb-bg4,#2a2e36);border-radius:7px;background:transparent;color:#a5a9b2;font:500 12px/1 var(--vb-font,inherit);cursor:pointer}.vb-hist-tabs button.on{background:var(--vb-bg3,#20232a);color:#e9ebf0;border-color:#3a3f48}',
+			'.vb-rev-i{align-items:flex-start}.vb-rev-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.vb-rev-what{color:#8a8d94;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
+			'.vb-rev-i.is-publish .vb-hist-dot{background:#43d17f}.vb-rev-i.is-restore .vb-hist-dot{background:#a06bff}.vb-rev-i.on{background:rgba(42,183,241,.12);box-shadow:inset 2px 0 0 #2ab7f1}',
+			'#vb-revbar{box-sizing:border-box;position:fixed;left:50%;top:60px;transform:translateX(-50%);z-index:100050;display:flex;align-items:center;gap:16px;max-width:calc(100vw - 32px);padding:10px 12px 10px 16px;border-radius:12px;background:#1a1d23;border:1px solid #3a3f48;box-shadow:0 12px 40px rgba(0,0,0,.45);color:#e9ebf0;font:500 13px/1.4 var(--vb-font,inherit)}',
+			'#vb-revbar{flex-wrap:wrap}#vb-revbar .vb-rb-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 220px}#vb-revbar .vb-rb-bits span{white-space:nowrap}#vb-revbar .vb-rb-bits{display:flex;flex-wrap:wrap;gap:10px;color:#a5a9b2;font-size:12px}.vb-rb-c{color:#f5b85a}.vb-rb-g{color:#ff8f86}',
+			'#vb-revbar .vb-rb-acts{display:flex;gap:8px;flex:0 0 auto}',
+			'.vb-rev-mode .vb-inspector{opacity:.45;pointer-events:none}',
 			'.vb-comp-top{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin:0 0 8px}.vb-comp-top b{color:#e9ebf0;font-weight:600;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.vb-comp-top span{color:#8a8d94;font-size:12px;white-space:nowrap}',
 			'.vb-comp-prop{display:flex;flex-direction:column;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--vb-bg4,#2a2e36)}',
 			'.vb-comp-lbl{color:#c9ccd3;font-size:12px;font-weight:600}.vb-comp-sub{color:#8a8d94;font-size:11px;margin-bottom:-2px}',
