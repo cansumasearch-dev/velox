@@ -16,6 +16,15 @@ if ( class_exists( 'Velox_Builder_Render' ) && method_exists( 'Velox_Builder_Ren
 		}
 	}
 }
+// Classes no element, markup or custom CSS uses any more; site-wide ones
+// that no page defines are listed too, so they can be found and removed.
+$unused = Velox_Builder::unused_classes();
+foreach ( Velox_Builder::class_registry() as $reg_name => $reg_rules ) {
+	if ( ! isset( $classes[ $reg_name ] ) ) {
+		$classes[ $reg_name ] = array( 'count' => 0, 'props' => is_array( $reg_rules['base'] ?? null ) ? count( $reg_rules['base'] ) : 0 );
+	}
+}
+ksort( $classes );
 $mine     = 0;
 $default  = 0;
 foreach ( $classes as $name => $info ) {
@@ -44,7 +53,14 @@ foreach ( $classes as $name => $info ) {
 					<button type="button" class="vba-filter on" data-cfilter="all" aria-pressed="true"><?php esc_html_e( 'All', 'velox' ); ?><span class="vba-filter-n"><?php echo (int) count( $classes ); ?></span></button>
 					<button type="button" class="vba-filter" data-cfilter="mine" aria-pressed="false"><?php esc_html_e( 'My classes', 'velox' ); ?><span class="vba-filter-n"><?php echo (int) $mine; ?></span></button>
 					<button type="button" class="vba-filter" data-cfilter="default" aria-pressed="false"><?php esc_html_e( 'Velox defaults', 'velox' ); ?><span class="vba-filter-n"><?php echo (int) $default; ?></span></button>
+					<button type="button" class="vba-filter" data-cfilter="unused" aria-pressed="false"><?php esc_html_e( 'Unused', 'velox' ); ?><span class="vba-filter-n"><?php echo (int) count( $unused ); ?></span></button>
 				</div>
+				<?php if ( $unused ) : ?>
+					<button type="button" class="vba-btn vba-btn-danger" id="vba-del-unused" data-n="<?php echo (int) count( $unused ); ?>" hidden><?php
+						/* translators: %d: number of classes. */
+						echo esc_html( sprintf( __( 'Delete all unused (%d)', 'velox' ), count( $unused ) ) );
+					?></button>
+				<?php endif; ?>
 				<div class="vba-search">
 					<?php echo Velox_Admin::icon( 'search', 14 ); // phpcs:ignore ?>
 					<label class="screen-reader-text" for="vba-class-search"><?php esc_html_e( 'Search classes', 'velox' ); ?></label>
@@ -61,10 +77,14 @@ foreach ( $classes as $name => $info ) {
 				</div>
 				<?php foreach ( $classes as $name => $info ) : ?>
 					<?php $is_default = in_array( $name, $starters, true ); ?>
-					<div class="vba-class-row" data-class="<?php echo esc_attr( $name ); ?>" data-origin="<?php echo $is_default ? 'default' : 'mine'; ?>" data-name="<?php echo esc_attr( strtolower( $name ) ); ?>">
+					<?php $is_unused = in_array( $name, $unused, true ); ?>
+					<div class="vba-class-row<?php echo $is_unused ? ' is-unused' : ''; ?>" data-class="<?php echo esc_attr( $name ); ?>" data-origin="<?php echo $is_default ? 'default' : 'mine'; ?>" data-unused="<?php echo $is_unused ? '1' : '0'; ?>" data-name="<?php echo esc_attr( strtolower( $name ) ); ?>">
 						<span class="vba-class-name"><?php echo esc_html( $name ); ?></span>
 						<span class="vba-class-meta"><span class="vba-origin vba-origin-<?php echo $is_default ? 'default' : 'mine' ; ?>"><?php echo esc_html( $is_default ? __( 'Velox', 'velox' ) : __( 'Yours', 'velox' ) ); ?></span></span>
 						<span class="vba-class-meta"><?php
+							if ( $is_unused ) {
+								echo '<span class="vba-unused-pill" title="' . esc_attr__( 'No element, markup or custom CSS uses this class.', 'velox' ) . '">' . esc_html__( 'Not used', 'velox' ) . '</span>';
+							} else
 							echo esc_html( 1 === (int) $info['count']
 								? __( '1 page', 'velox' )
 								/* translators: %d: number of pages. */
@@ -132,7 +152,9 @@ foreach ( $classes as $name => $info ) {
 		dlgDeleteTitle: '<?php echo esc_js( __( 'Delete class?', 'velox' ) ); ?>',
 		dlgDeleteStarterTitle: '<?php echo esc_js( __( 'Delete starter class?', 'velox' ) ); ?>',
 		dlgDelete: '<?php echo esc_js( __( 'Delete', 'velox' ) ); ?>',
-		dlgNothingDeleted: '<?php echo esc_js( __( 'Nothing deleted', 'velox' ) ); ?>'
+		dlgNothingDeleted: '<?php echo esc_js( __( 'Nothing deleted', 'velox' ) ); ?>',
+		dlgDelUnusedTitle: '<?php echo esc_js( __( 'Delete unused classes?', 'velox' ) ); ?>',
+		delUnusedAsk: '<?php /* translators: %d: number of classes. */ echo esc_js( __( 'Delete the %d classes no element uses? Their styles are removed from every page and the site-wide copy. Design history keeps a version, so this can be restored.', 'velox' ) ); ?>'
 	};
 	// The config is printed in the footer, after this script, so read it when used.
 	function cfg() { return window.VELOX_BUILDER || {}; }
@@ -213,6 +235,15 @@ foreach ( $classes as $name => $info ) {
 			}
 			return;
 		}
+		if ( e.target.closest( '#vba-del-unused' ) ) {
+			var nU = e.target.closest( '#vba-del-unused' ).getAttribute( 'data-n' );
+			dlg().confirm( { title:T.dlgDelUnusedTitle, text:T.delUnusedAsk.replace( '%d', nU ), ok:T.dlgDelete, cancel:T.dlgCancel, danger:true }, function () {
+				post( 'builder_class_delete_unused', {}, function ( res ) {
+					if ( res && res.success ) { location.reload(); } else { dlg().alert( { title:T.dlgError, text:( res && res.data && res.data.message ) || T.deleteFailed, ok:T.dlgOk } ); }
+				} );
+			} );
+			return;
+		}
 		var cf = e.target.closest( '[data-cfilter]' );
 		if ( cf ) {
 			document.querySelectorAll( '[data-cfilter]' ).forEach( function ( b ) { b.classList.remove( 'on' ); b.setAttribute( 'aria-pressed', 'false' ); } );
@@ -229,13 +260,14 @@ foreach ( $classes as $name => $info ) {
 		var q = si ? si.value.trim().toLowerCase() : '';
 		var shown = 0;
 		document.querySelectorAll( '.vba-class-row' ).forEach( function ( row ) {
-			var okF = ( f === 'all' ) || row.getAttribute( 'data-origin' ) === f;
+			var okF = ( f === 'all' ) || ( 'unused' === f ? '1' === row.getAttribute( 'data-unused' ) : row.getAttribute( 'data-origin' ) === f );
 			var okQ = ! q || row.getAttribute( 'data-name' ).indexOf( q ) > -1;
 			var on = okF && okQ;
 			row.style.display = on ? '' : 'none';
 			if ( on ) { shown++; }
 		} );
 		var nr = document.getElementById( 'vba-class-nores' ); if ( nr ) { nr.hidden = shown > 0; }
+		var du = document.getElementById( 'vba-del-unused' ); if ( du ) { du.hidden = 'unused' !== f; }
 	}
 	var cs = document.getElementById( 'vba-class-search' );
 	if ( cs ) { cs.addEventListener( 'input', applyClassFilter ); }

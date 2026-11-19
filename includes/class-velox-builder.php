@@ -35,6 +35,7 @@ class Velox_Builder {
 
 	private function __construct() {
 		add_action( 'admin_menu', array( $this, 'menu' ), 11 );
+		add_action( 'admin_init', array( __CLASS__, 'migrate_old_defaults' ) );
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
 		// The standalone editor takes over the whole screen before WP admin renders.
 		add_action( 'current_screen', array( $this, 'maybe_launch_editor' ) );
@@ -602,6 +603,7 @@ class Velox_Builder {
 			'classRegistry' => (object) self::class_registry(),
 			// Token variables and global styles, so the canvas looks like the page.
 			'siteCss' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '',
+			'tplCss'  => self::template_css_for( $post_id, $doc_id ),
 			'fontLinks' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_fonts()['links'] : array(),
 			// Oxygen import: the page being opened (if it has an Oxygen layout)
 			// and whether the site has any Oxygen layouts at all.
@@ -2172,6 +2174,102 @@ class Velox_Builder {
 		wp_send_json_success( array( 'from' => $from, 'to' => $to, 'docs' => $changed ) );
 	}
 
+	/**
+	 * Classes nothing uses: defined on a page, a template, a reusable or in the
+	 * site-wide copy, yet no element carries them, no markup (class="…") names
+	 * them and no custom CSS (element, page, global) selects them. Saved drafts
+	 * count as use, so a class is never called unused while a draft needs it.
+	 *
+	 * @return array<int,string>
+	 */
+	public static function unused_classes() {
+		global $wpdb;
+		$names = array_unique( array_merge( array_keys( self::all_classes() ), array_keys( self::class_registry() ) ) );
+		if ( ! $names ) {
+			return array();
+		}
+		$used = array();
+		$hay  = '';
+		$rows = $wpdb->get_results( 'SELECT data, draft FROM ' . self::table(), ARRAY_A );
+		foreach ( (array) $rows as $row ) {
+			foreach ( array( 'data', 'draft' ) as $col ) {
+				if ( null === $row[ $col ] || '' === $row[ $col ] ) {
+					continue;
+				}
+				$m = json_decode( $row[ $col ], true );
+				if ( ! is_array( $m ) ) {
+					continue;
+				}
+				if ( ! empty( $m['tree'] ) && is_array( $m['tree'] ) ) {
+					$walk = function ( $nodes ) use ( &$walk, &$used ) {
+						foreach ( (array) $nodes as $n ) {
+							foreach ( (array) ( $n['classes'] ?? array() ) as $c ) {
+								$used[ (string) $c ] = true;
+							}
+							if ( ! empty( $n['children'] ) ) {
+								$walk( $n['children'] );
+							}
+						}
+					};
+					$walk( $m['tree'] );
+				}
+				unset( $m['classes'], $m['activeClass'], $m['tree'] );
+				$hay .= ' ' . wp_json_encode( $m );
+			}
+			// Text, HTML and custom CSS live in the tree's settings too.
+			foreach ( array( 'data', 'draft' ) as $col ) {
+				if ( ! empty( $row[ $col ] ) ) {
+					$m2 = json_decode( $row[ $col ], true );
+					if ( is_array( $m2 ) && ! empty( $m2['tree'] ) ) {
+						$hay .= ' ' . wp_json_encode( self::strip_node_classes( $m2['tree'] ) );
+					}
+				}
+			}
+		}
+		$hay .= ' ' . self::global_css() . ' ' . wp_json_encode( get_option( self::OPT_JS, array() ) );
+		$hay  = stripslashes( $hay );
+		$out  = array();
+		foreach ( $names as $n ) {
+			$n    = (string) $n;
+			$bare = ltrim( $n, '.' );
+			if ( '' === $bare || isset( $used[ $n ] ) ) {
+				continue;
+			}
+			$q = preg_quote( $bare, '/' );
+			if ( preg_match( '/\.' . $q . '(?![A-Za-z0-9_-])/', $hay ) || preg_match( '/class\s*=\s*["\'][^"\']*(?<![A-Za-z0-9_-])' . $q . '(?![A-Za-z0-9_-])/i', $hay ) ) {
+				continue;
+			}
+			$out[] = $n;
+		}
+		sort( $out );
+		return $out;
+	}
+
+	/** A copy of a tree without its class lists (they are counted exactly elsewhere). */
+	private static function strip_node_classes( $nodes ) {
+		$out = array();
+		foreach ( (array) $nodes as $n ) {
+			if ( ! is_array( $n ) ) {
+				continue;
+			}
+			unset( $n['classes'] );
+			if ( ! empty( $n['children'] ) ) {
+				$n['children'] = self::strip_node_classes( $n['children'] );
+			}
+			$out[] = $n;
+		}
+		return $out;
+	}
+
+	/** Delete every unused class from every document and the site-wide copy. */
+	public static function ajax_class_delete_unused() {
+		$gone = self::unused_classes();
+		foreach ( $gone as $cls ) {
+			self::rewrite_class( $cls, null );
+		}
+		wp_send_json_success( array( 'deleted' => $gone ) );
+	}
+
 	public static function ajax_class_delete() {
 		$cls = isset( $_POST['class'] ) ? sanitize_text_field( wp_unslash( $_POST['class'] ) ) : '';
 		if ( ! $cls ) {
@@ -2360,6 +2458,91 @@ class Velox_Builder {
 	 *
 	 * @return int Template doc id, or 0 for none.
 	 */
+	/**
+	 * The CSS (Page settings → CSS) of the template that wraps this page on the
+	 * site. The page gets it on the front end, so the editor shows it too:
+	 * otherwise the canvas and the site disagree about the same section.
+	 */
+	public static function template_css_for( $post_id, $doc_id ) {
+		if ( ! $post_id ) {
+			return '';
+		}
+		$tpl = (int) self::template_for_post( (int) $post_id );
+		if ( ! $tpl || $tpl === (int) $doc_id ) {
+			return '';
+		}
+		$m = self::doc_model( $tpl, true );
+		$css = ( is_array( $m ) && isset( $m['page']['css'] ) ) ? (string) $m['page']['css'] : '';
+		return str_ireplace( array( '</style', '<script' ), '', $css );
+	}
+
+	/**
+	 * Velox used to write its own default padding into the .section class (and
+	 * a gap into .columns / .block) of every page. Since 4.44 those defaults
+	 * come from Global styles, but the old copies kept winning on existing
+	 * pages. Remove them where they are still exactly Velox's old defaults;
+	 * anything someone changed is left alone. Runs once.
+	 */
+	const MIG_DEFAULTS = 'velox_builder_mig_defaults_448';
+	public static function migrate_old_defaults() {
+		if ( get_option( self::MIG_DEFAULTS ) ) {
+			return;
+		}
+		update_option( self::MIG_DEFAULTS, 1, false );
+		$old = array(
+			'.section' => array(
+				array( 'paddingTop' => '48', 'paddingBottom' => '48', 'paddingLeft' => '32', 'paddingRight' => '32' ),
+				array( 'paddingTop' => '64', 'paddingBottom' => '64', 'paddingLeft' => '24', 'paddingRight' => '24' ),
+			),
+			'.columns' => array( array( 'gap' => '20' ), array( 'gap' => '24' ) ),
+			'.block'   => array( array( 'gap' => '16' ) ),
+		);
+		$strip = function ( &$classes ) use ( $old ) {
+			$hit = false;
+			foreach ( $old as $cls => $sets ) {
+				if ( empty( $classes[ $cls ]['base'] ) || ! is_array( $classes[ $cls ]['base'] ) ) {
+					continue;
+				}
+				$base = &$classes[ $cls ]['base'];
+				foreach ( $sets as $set ) {
+					$all = true;
+					foreach ( $set as $prop => $val ) {
+						$have = isset( $base[ $prop ] ) ? preg_replace( '/px$/', '', (string) $base[ $prop ] ) : null;
+						if ( $have !== $val ) {
+							$all = false;
+							break;
+						}
+					}
+					if ( $all ) {
+						foreach ( array_keys( $set ) as $prop ) {
+							unset( $base[ $prop ] );
+						}
+						$hit = true;
+						break;
+					}
+				}
+				unset( $base );
+			}
+			return $hit;
+		};
+		self::each_model(
+			function ( &$model ) use ( $strip ) {
+				if ( empty( $model['classes'] ) || ! is_array( $model['classes'] ) ) {
+					return false;
+				}
+				return $strip( $model['classes'] );
+			}
+		);
+		$reg = self::class_registry();
+		if ( $strip( $reg ) ) {
+			update_option( self::OPT_CLASSES, $reg );
+		}
+		// Stylesheets rebuild themselves from the models; cached pages must too.
+		if ( class_exists( 'Velox_Cache' ) && method_exists( 'Velox_Cache', 'purge_all' ) ) {
+			Velox_Cache::purge_all();
+		}
+	}
+
 	public static function template_for_post( $post_id ) {
 		$live   = self::live_templates();
 		$choice = get_post_meta( (int) $post_id, '_velox_template', true );

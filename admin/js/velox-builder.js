@@ -53,6 +53,7 @@
 		star:'<path d="M2.866 14.85c-.078.444.36.791.746.593l4.39-2.256 4.389 2.256c.386.198.824-.149.746-.592l-.83-4.73 3.522-3.356c.33-.314.16-.888-.282-.95l-4.898-.696L8.465.792a.513.513 0 0 0-.927 0L5.354 5.12l-4.898.696c-.441.062-.612.636-.283.95l3.523 3.356-.83 4.73zm4.905-2.767-3.686 1.894.694-3.957a.56.56 0 0 0-.163-.505L1.71 6.745l4.052-.576a.53.53 0 0 0 .393-.288L8 2.223l1.847 3.658a.53.53 0 0 0 .393.288l4.052.575-2.906 2.77a.56.56 0 0 0-.163.506l.694 3.957-3.686-1.894a.5.5 0 0 0-.461 0z"/>',
 		link:'<path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/><path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>',
 		list:'<path fill-rule="evenodd" d="M5 11.5a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m0-4a.5.5 0 0 1 .5-.5h9a.5.5 0 0 1 0 1h-9a.5.5 0 0 1-.5-.5m-3 1a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2m0 4a1 1 0 1 0 0-2 1 1 0 0 0 0 2"/>',
+		dots:'<path d="M3 9.5a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3m5 0a1.5 1.5 0 1 1 0-3 1.5 1.5 0 0 1 0 3"/>',
 		x:'<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>',
 		clock:'<path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022zm2.004.45a7 7 0 0 0-.985-.299l.219-.976q.576.129 1.126.342zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.615.789a7 7 0 0 0-.418-.302zm1.834 1.79a7 7 0 0 0-.653-.796l.724-.69q.406.429.747.91zm.744 1.352a7 7 0 0 0-.214-.468l.893-.45a8 8 0 0 1 .45 1.088l-.95.313a7 7 0 0 0-.179-.483m.53 2.507a7 7 0 0 0-.1-1.025l.985-.17q.1.58.116 1.17zm-.131 1.538q.05-.254.081-.51l.993.123a8 8 0 0 1-.23 1.155l-.964-.267q.069-.247.12-.501m-.952 2.379q.276-.436.486-.908l.914.405q-.24.54-.555 1.038zm-.964 1.205q.183-.183.35-.378l.758.653a8 8 0 0 1-.401.432z"/><path d="M8 1a7 7 0 1 0 4.95 11.95l.707.707A8.001 8.001 0 1 1 8 0z"/><path d="M7.5 3a.5.5 0 0 1 .5.5v5.21l3.248 1.856a.5.5 0 0 1-.496.868l-3.5-2A.5.5 0 0 1 7 9V3.5a.5.5 0 0 1 .5-.5"/>',
 		structure:'<path fill-rule="evenodd" d="M6 3.5A1.5 1.5 0 0 1 7.5 2h1A1.5 1.5 0 0 1 10 3.5v1A1.5 1.5 0 0 1 8.5 6v1H14a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0V8h-5v.5a.5.5 0 0 1-1 0v-1A.5.5 0 0 1 2 7h5.5V6A1.5 1.5 0 0 1 6 4.5zM8.5 5a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5h-1a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5zM0 11.5A1.5 1.5 0 0 1 1.5 10h1A1.5 1.5 0 0 1 4 11.5v1A1.5 1.5 0 0 1 2.5 14h-1A1.5 1.5 0 0 1 0 12.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm4.5.5A1.5 1.5 0 0 1 7.5 10h1a1.5 1.5 0 0 1 1.5 1.5v1A1.5 1.5 0 0 1 8.5 14h-1A1.5 1.5 0 0 1 6 12.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5zm4.5.5a1.5 1.5 0 0 1 1.5-1.5h1a1.5 1.5 0 0 1 1.5 1.5v1a1.5 1.5 0 0 1-1.5 1.5h-1a1.5 1.5 0 0 1-1.5-1.5zm1.5-.5a.5.5 0 0 0-.5.5v1a.5.5 0 0 0 .5.5h1a.5.5 0 0 0 .5-.5v-1a.5.5 0 0 0-.5-.5z"/>',
@@ -952,6 +953,12 @@
 		if ( doc.body && ! doc.__vbPrefs ) { doc.__vbPrefs = true; applyEditorPrefs(); applyPagePreview( store.state.page || {} ); }
 		// Page CSS from Page settings shows while editing, not only on the site.
 		var pcs = doc.getElementById( 'vb-page-css' ), pcss = ( store.state.page && store.state.page.css ) || '';
+		// The template that wraps this page on the site brings its own CSS; the
+		// canvas shows it too (before the page's own), so editor and site agree.
+		if ( pcs && CFG.tplCss && ! doc.getElementById( 'vb-tpl-css' ) ) {
+			var tcs = doc.createElement( 'style' ); tcs.id = 'vb-tpl-css'; tcs.textContent = CFG.tplCss;
+			pcs.parentNode.insertBefore( tcs, pcs );
+		}
 		if ( pcs && pcs.textContent !== pcss ) { pcs.textContent = pcss; }
 		if ( ! doc.__vbSite ) { doc.__vbSite = true; injectGlobalCss(); }
 		var prev = doc.querySelector( '.vb-sel' ); if ( prev ) { prev.classList.remove( 'vb-sel' ); }
@@ -5640,6 +5647,12 @@
 				( node.hdr && node.hdr.mode ? '<span class="vb-st-cond vb-st-part" title="' + escapeHtml( 'footer' === node.hdr.mode ? T( 'Site footer' ) : T( 'Site header' ) ) + '">' + svg( 'pinangle', 12 ) + '</span>' : '' ) +
 				( loopOn( node ) ? '<span class="vb-st-cond vb-st-loop" title="' + escapeHtml( T( 'Query loop' ) + ': ' + loopSummary( node.loop ) ) + '">' + svg( 'repeat', 12 ) + '</span>' : '' ) +
 				( condCount( node.cond ) ? '<span class="vb-st-cond" title="' + escapeHtml( T( 'Shows when' ) + ' ' + condSummary( node.cond ) ) + '">' + svg( 'signpost', 12 ) + '</span>' : '' ) +
+				// On hover: copy, duplicate, delete, the full menu, and show / hide.
+				'<span class="vb-st-tools">' +
+					[ [ 'copy', 'clipboard', T( 'Copy' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'C)' ], [ 'dup', 'copy', T( 'Duplicate' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'D)' ], [ 'del', 'trash', T( 'Delete' ) + ' (Del)' ], [ 'more', 'dots', T( 'More' ) ] ].map( function ( a ) {
+						return '<button type="button" class="vb-st-act' + ( 'del' === a[ 0 ] ? ' is-del' : '' ) + '" data-stact="' + a[ 0 ] + ':' + node.id + '" tabindex="-1" title="' + escapeHtml( a[ 2 ] ) + '" aria-label="' + escapeHtml( a[ 2 ] ) + '">' + svg( a[ 1 ], 13 ) + '</button>';
+					} ).join( '' ) +
+				'</span>' +
 				'<button type="button" class="vb-st-eye' + ( node.hidden ? ' on' : '' ) + '" data-sthide="' + node.id + '" tabindex="-1" title="' + ( node.hidden ? T( 'Show element' ) : T( 'Hide element' ) ) + '" aria-label="' + ( node.hidden ? T( 'Show element' ) : T( 'Hide element' ) ) + '">' + svg( 'eye', 13 ) + '</button></div>';
 			if ( collapsed ) { return html; }
 
@@ -5839,6 +5852,19 @@
 			var oxi = e.target.closest( '[data-oxy-import]' ); if ( oxi ) { importOxygen( +oxi.getAttribute( 'data-oxy-import' ) ); closeOxygenPicker(); return; }
 			if ( e.target.closest( '#vb-oxy-close' ) || e.target.id === 'vb-oxypick' ) { closeOxygenPicker(); return; }
 			var sth = e.target.closest( '[data-sthide]' ); if ( sth ) { toggleNodeHidden( sth.getAttribute( 'data-sthide' ) ); e.stopPropagation(); return; }
+			var sta = e.target.closest( '[data-stact]' );
+			if ( sta ) {
+				e.stopPropagation();
+				var sp = sta.getAttribute( 'data-stact' ).split( ':' ), sact = sp[ 0 ], snid = sp.slice( 1 ).join( ':' );
+				if ( 'copy' === sact ) { copyNode( snid ); }
+				else if ( 'dup' === sact ) { duplicateNode( snid ); }
+				else if ( 'del' === sact ) { deleteNode( snid ); }
+				else if ( 'more' === sact ) {
+					store.commit( function ( s ) { s.selection = snid; resetActiveClass( s ); }, false );
+					var sr = sta.getBoundingClientRect(); showContextMenu( sr.right - 4, sr.bottom + 4, snid );
+				}
+				return;
+			}
 			var stc = e.target.closest( '[data-stcaret]' ); if ( stc ) { toggleStructBranch( stc.getAttribute( 'data-stcaret' ) ); e.stopPropagation(); return; }
 			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) {
 				if ( e.ctrlKey || e.metaKey || e.shiftKey ) { toggleMulti( stn.getAttribute( 'data-stnode' ) ); return; }
@@ -9460,6 +9486,13 @@
 			'.vb-top .vb-bp{gap:2px;padding:3px;border-radius:10px;background:var(--vb-bg0);box-shadow:inset 0 0 0 1px var(--vb-line)}',
 			'.vb-top .vb-kind{height:28px;border:0;border-radius:7px;background-color:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line);color:var(--vb-tx2);font-size:12px}',
 			'.vb-top .vb-kind:hover{color:var(--vb-tx1);box-shadow:inset 0 0 0 1px var(--vb-line2)}',
+			'/* 4.48 structure row tools */',
+			'#vb-struct .vb-st-tools{flex:none;display:none;align-items:center;gap:1px;margin-left:2px}',
+			'#vb-struct .vb-st-row:hover .vb-st-tools,#vb-struct .vb-st-row:focus-within .vb-st-tools{display:inline-flex}',
+			'#vb-struct .vb-st-row:hover .vb-st-cond{display:none}',
+			'#vb-struct .vb-st-act{display:grid;place-items:center;width:22px;height:22px;margin:0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);cursor:pointer;transition:background .12s,color .12s}',
+			'#vb-struct .vb-st-act:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'#vb-struct .vb-st-act.is-del:hover{background:rgba(229,83,75,.16);color:#ff8a82}',
 			''
 		].join( '' );
 		var s = document.createElement( 'style' ); s.id = 'vb-editor-style'; s.textContent = css; document.head.appendChild( s );

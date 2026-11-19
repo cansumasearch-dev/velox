@@ -4414,4 +4414,11 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	// Velox Builder 4.47
 	'Spacing handles on the canvas' => 'Abstands-Griffe auf der Arbeitsfläche',
 	'drag · Shift all sides · Alt both sides' => 'ziehen · Umschalt alle Seiten · Alt beide Seiten',
+	// Velox Builder 4.48
+	'No element, markup or custom CSS uses this class.' => 'Kein Element, kein Markup und kein eigenes CSS verwendet diese Klasse.',
+	'Not used' => 'Nicht verwendet',
+	'Delete unused classes?' => 'Unbenutzte Klassen löschen?',
+	'Delete the %d classes no element uses? Their styles are removed from every page and the site-wide copy. Design history keeps a version, so this can be restored.' => 'Die %d Klassen löschen, die kein Element verwendet? Ihre Stile werden von jeder Seite und aus der seitenweiten Kopie entfernt. Der Design-Verlauf behält eine Version, sodass sich das wiederherstellen lässt.',
+	'Delete all unused (%d)' => 'Alle unbenutzten löschen (%d)',
+	'More' => 'Mehr',
 );

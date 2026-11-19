@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.48.0 — Global styles win on existing pages too; unused classes; Structure row tools
+- **Global styles now drive sections on pages made before 4.44 too.** Older versions wrote Velox's own default padding into the .section class of every page (48/32 or 64/24), plus a gap into .columns (20/24) and .block (16); those copies kept beating Global styles → Sections & containers. They are removed once on update, only where they are still exactly those old defaults; anything you changed stays. Cached pages are refreshed.
+- **The editor shows the template's CSS.** A page wrapped by a template gets the template's Page settings → CSS on the site; the canvas now loads it too, so the editor and the site look the same.
+- **Unused classes** (Velox Builder → Classes): a new "Unused" filter lists every class no element, no markup (class="…") and no custom CSS uses, including site-wide classes no page defines any more, with one button to delete them all. Design history keeps a version to restore.
+- **Structure:** hovering a row now shows copy, duplicate, delete and the full element menu, next to show/hide.
+
 ## 4.47.0 — Velox Builder: drag spacing on the canvas
 - **Spacing handles on the canvas.** Point at the selected element and its padding shows as blue bands and its margin as amber bands, each side with a handle. Drag a handle to change that side; the page updates live and a label shows the value.
   - **Shift** changes all four sides, **Alt** the opposite side as well. **Esc** cancels the drag.
