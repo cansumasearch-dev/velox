@@ -336,7 +336,7 @@ class Velox_Builder_Agents {
 			if ( null !== $c && is_scalar( $c ) ) {
 				$o[ 'Image' === ( $n->el ?? '' ) ? 'src' : 'text' ] = (string) $c;
 			}
-			foreach ( array( 'href', 'alt', 'name', 'ref', 'hidden' ) as $k ) {
+			foreach ( array( 'href', 'alt', 'name', 'ref', 'hidden', 'locked' ) as $k ) {
 				if ( isset( $n->$k ) && '' !== $n->$k ) {
 					$o[ 'ref' === $k ? 'component_id' : $k ] = $n->$k;
 				}
@@ -442,6 +442,9 @@ class Velox_Builder_Agents {
 			if ( ! $parent ) {
 				return new WP_Error( 'velox_parent', __( 'There is no element with that parent_id in this document.', 'velox' ) );
 			}
+			if ( self::locked_at( $m->tree, $pid ) ) {
+				return self::locked_error();
+			}
 			if ( ! self::holds_children( $parent ) ) {
 				return new WP_Error( 'velox_parent', __( 'That element cannot hold other elements. Use a section, div, columns or grid.', 'velox' ) );
 			}
@@ -468,6 +471,9 @@ class Velox_Builder_Agents {
 		if ( ! $n ) {
 			return new WP_Error( 'velox_element', __( 'There is no element with that id in this document.', 'velox' ) );
 		}
+		if ( self::locked_at( $m->tree, (string) $in['element_id'] ) ) {
+			return self::locked_error();
+		}
 		$type = self::type_of( $n );
 		$err  = self::apply( $n, $type, $in, $m, false );
 		if ( is_wp_error( $err ) ) {
@@ -487,6 +493,11 @@ class Velox_Builder_Agents {
 		$gone = self::find( $m->tree, $id );
 		if ( ! $gone ) {
 			return new WP_Error( 'velox_element', __( 'There is no element with that id in this document.', 'velox' ) );
+		}
+		$inside = false;
+		self::walk( array( $gone ), function ( $x ) use ( &$inside ) { if ( ! empty( $x->locked ) ) { $inside = true; } } );
+		if ( $inside || self::locked_at( $m->tree, $id ) ) {
+			return self::locked_error();
 		}
 		if ( 'InnerContent' === ( $gone->el ?? '' ) ) {
 			return new WP_Error( 'velox_inner', __( 'A template needs its Inner Content element; it cannot be removed.', 'velox' ) );
@@ -816,6 +827,27 @@ class Velox_Builder_Agents {
 			return '';
 		}
 		return 'publish' === get_post_status( $doc['post_id'] ) ? (string) get_permalink( $doc['post_id'] ) : (string) get_preview_post_link( $doc['post_id'] );
+	}
+
+	/** Is the element locked, or inside a locked element? */
+	private static function locked_at( $nodes, $id, $in = false ) {
+		foreach ( (array) $nodes as $n ) {
+			if ( ! is_object( $n ) ) {
+				continue;
+			}
+			$l = $in || ! empty( $n->locked );
+			if ( (string) ( $n->id ?? '' ) === $id ) {
+				return $l;
+			}
+			if ( ! empty( $n->children ) && self::locked_at( $n->children, $id, $l ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	private static function locked_error() {
+		return new WP_Error( 'velox_locked', __( 'That element is locked in the editor. Ask the person to unlock it (right-click → Unlock) if it should change.', 'velox' ) );
 	}
 
 	private static function is_component( $id ) {

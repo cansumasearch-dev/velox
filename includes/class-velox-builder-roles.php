@@ -200,12 +200,26 @@ class Velox_Builder_Roles {
 				}
 			};
 			$collect( $posted->tree ?? array() );
-			$apply = function ( $nodes ) use ( &$apply, $byid ) {
+			// Locked elements (and what is inside them) keep their stored content.
+			$locked = array();
+			$lockwalk = function ( $nodes, $in ) use ( &$lockwalk, &$locked ) {
+				foreach ( (array) $nodes as $n ) {
+					if ( is_object( $n ) && isset( $n->id ) ) {
+						$l = $in || ! empty( $n->locked );
+						if ( $l ) {
+							$locked[ (string) $n->id ] = true;
+						}
+						$lockwalk( $n->children ?? array(), $l );
+					}
+				}
+			};
+			$lockwalk( $stored->tree ?? array(), false );
+			$apply = function ( $nodes ) use ( &$apply, $byid, $locked ) {
 				foreach ( (array) $nodes as $n ) {
 					if ( ! is_object( $n ) || ! isset( $n->id ) ) {
 						continue;
 					}
-					$p = $byid[ (string) $n->id ] ?? null;
+					$p = isset( $locked[ (string) $n->id ] ) ? null : ( $byid[ (string) $n->id ] ?? null );
 					if ( $p ) {
 						foreach ( array( 'href', 'target', 'alt', 'altCustom', 'att', 'props' ) as $f ) {
 							if ( property_exists( $p, $f ) ) {
@@ -235,7 +249,7 @@ class Velox_Builder_Roles {
 			}
 			if ( isset( $posted->content ) && is_object( $posted->content ) ) {
 				foreach ( get_object_vars( $posted->content ) as $k => $v ) {
-					if ( isset( $ids[ (string) $k ] ) && is_scalar( $v ) ) {
+					if ( isset( $ids[ (string) $k ] ) && ! isset( $locked[ (string) $k ] ) && is_scalar( $v ) ) {
 						$out->content->{$k} = (string) $v;
 					}
 				}

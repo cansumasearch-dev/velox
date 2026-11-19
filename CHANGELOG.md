@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.41.0 — Velox Builder: lock elements
+- **Lock an element** (right-click → Lock): it and everything inside it can no longer be moved, deleted, restyled or edited, and nothing can be dropped into it, until someone unlocks it (right-click → Unlock).
+  - This is checked on every change, so keyboard shortcuts, dragging and the panels cannot get around it. A message says why.
+  - The canvas shows a locked element calmly; the Structure panel marks it with a lock.
+  - Class styles stay editable: a class belongs to every element that uses it.
+  - Clients (builder role "Client") cannot unlock, and the server keeps the stored content of locked elements even if a client's save tries to change it.
+  - AI agents cannot change locked elements either. They get a clear message, and velox/get-document shows which elements are locked.
+
 ## 4.40.0 — Velox Builder: paste HTML and text
 - **Paste HTML from anywhere and get real builder elements.** Copy part of a web page, an email template, a Google Doc or HTML an AI wrote, then press Ctrl+V in the editor.
   - Headings, paragraphs, lists, quotes and tables become Heading, Text and List elements, with bold, italics and links kept.

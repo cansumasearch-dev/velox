@@ -4339,4 +4339,7 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	// Velox Builder 4.40
 	'Pasted as an element.' => 'Als Element eingefügt.',
 	'Pasted as elements. Check their styles.' => 'Als Elemente eingefügt. Prüfen Sie ihre Stile.',
+	// Velox Builder 4.41
+	'That element is locked in the editor. Ask the person to unlock it (right-click → Unlock) if it should change.' => 'Dieses Element ist im Editor gesperrt. Bitten Sie die Person, es freizugeben (Rechtsklick → Freigeben), falls es sich ändern soll.',
+	'This element is locked. Right-click it and choose Unlock to change it.' => 'Dieses Element ist gesperrt. Klicken Sie mit rechts darauf und wählen Sie Freigeben, um es zu ändern.',
 );
