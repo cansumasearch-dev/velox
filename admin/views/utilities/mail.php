@@ -111,9 +111,29 @@ $base = admin_url( 'admin.php?page=velox-utilities&tool=mail' );
 					<input type="text" class="velox-input" id="vmail-success" value="<?php echo esc_attr( $form['success'] ); ?>">
 					<span class="velox-hint"><?php esc_html_e('Shown after the form is submitted successfully.', 'velox'); ?></span>
 				</div>
+				<div class="velox-field">
+					<span class="velox-field-label"><?php esc_html_e('Then go to this page', 'velox'); ?></span>
+					<input type="url" class="velox-input" id="vmail-redirect" value="<?php echo esc_attr( $form['redirect'] ?? '' ); ?>" placeholder="<?php echo esc_attr( home_url( '/thank-you/' ) ); ?>">
+					<span class="velox-hint"><?php esc_html_e('Optional. Leave empty to stay on the page and show the message.', 'velox'); ?></span>
+				</div>
+				<div class="velox-field">
+					<span class="velox-field-label"><?php esc_html_e('Send the answers to a webhook', 'velox'); ?></span>
+					<input type="url" class="velox-input" id="vmail-webhook" value="<?php echo esc_attr( $form['webhook'] ?? '' ); ?>" placeholder="https://hooks.zapier.com/…">
+					<span class="velox-hint"><?php
+						/* translators: %s: the header name. */
+						printf( esc_html__( 'Optional. Each entry is posted there as JSON (Zapier, Make, n8n, a CRM). Signed with the %s header so the receiver can check it came from this site.', 'velox' ), '<code>X-Velox-Signature</code>' );
+					?></span>
+				</div>
 				<p class="velox-hint" style="margin:2px 0 0;"><?php printf( esc_html__( 'The submit button text, colours and full styling live on the %1$s — click the button there, or open the %2$s.', 'velox' ), '<strong>' . esc_html__( 'form canvas', 'velox' ) . '</strong>', '<strong>' . esc_html__( 'Style editor', 'velox' ) . '</strong>' ); ?></p>
 
 				<div class="vmail-set-sec"><?php esc_html_e('Spam protection', 'velox'); ?></div>
+				<label class="velox-toggle-row">
+					<div class="velox-toggle-meta">
+						<span class="velox-toggle-label"><?php esc_html_e( 'Block forms sent within seconds', 'velox' ); ?></span>
+						<span class="velox-toggle-desc"><?php esc_html_e( 'People need a few seconds to fill in a form; spam bots send it instantly. Works together with the hidden honeypot field, invisibly.', 'velox' ); ?></span>
+					</div>
+					<span class="velox-switch"><input type="checkbox" id="vmail-timetrap" <?php checked( ! isset( $form['timetrap'] ) || ! empty( $form['timetrap'] ) ); ?>><span class="velox-switch-track"></span></span>
+				</label>
 				<?php
 				$captcha_gate = Velox_Forms::captcha_enabled();
 				$captcha_desc = ! $captcha_gate

@@ -491,6 +491,18 @@ class Velox_Builder {
 		$doc_id = isset( $_GET['doc'] ) ? absint( $_GET['doc'] ) : 0;
 		$title  = __( 'Untitled', 'velox' );
 
+		// An old link or bookmark to something that was deleted: say so instead of a broken editor.
+		if ( $doc_id ) {
+			global $wpdb;
+			if ( ! $wpdb->get_var( $wpdb->prepare( 'SELECT id FROM ' . self::table() . ' WHERE id = %d', $doc_id ) ) ) {
+				wp_die(
+					'<p>' . esc_html__( 'This page, template or component no longer exists. It may have been deleted.', 'velox' ) . '</p><p><a href="' . esc_url( admin_url( 'admin.php?page=velox-builder' ) ) . '">' . esc_html__( 'Back to Velox Builder', 'velox' ) . '</a></p>',
+					esc_html__( 'Not found', 'velox' ),
+					array( 'response' => 404 )
+				);
+			}
+		}
+
 		// Render the standalone shell and stop — WordPress never draws its chrome.
 		$this->render_editor_shell( $doc_id, $title );
 		exit;
@@ -614,6 +626,10 @@ class Velox_Builder {
 			'iconAliases' => class_exists( 'Velox_Icons' ) ? (object) Velox_Icons::aliases() : (object) array(),
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'reviewConnections' => self::review_connections(),
+			// Forms (Velox → Mail) for the Form element.
+			'forms'     => self::forms_payload(),
+			'formsOn'   => class_exists( 'Velox_Settings' ) && Velox_Settings::get( 'util_mail' ) ? 1 : 0,
+			'formsUrl'  => admin_url( 'admin.php?page=velox-utilities&tool=mail' ),
 			'reviewPresets' => self::review_presets(),
 			'globalCss' => self::global_css_files(),
 			'globalJs'  => self::global_js_files(),
@@ -2476,6 +2492,24 @@ class Velox_Builder {
 				// How many documents place it (pages, templates, other components).
 				'used'    => count( $usage[ (int) $row['id'] ] ?? array() ),
 			);
+		}
+		return $out;
+	}
+
+	/** The site's forms, for the builder's Form element: id, title, field labels, on/off. */
+	public static function forms_payload() {
+		if ( ! class_exists( 'Velox_Forms' ) ) {
+			return array();
+		}
+		$out = array();
+		foreach ( Velox_Forms::forms() as $id => $f ) {
+			$fields = array();
+			foreach ( (array) ( $f['fields'] ?? array() ) as $fl ) {
+				if ( ! in_array( $fl['type'] ?? '', array( 'html', 'step', 'heading', 'captcha', 'calc' ), true ) ) {
+					$fields[] = array( 'l' => (string) ( $fl['label'] ?? '' ), 't' => (string) ( $fl['type'] ?? 'text' ) );
+				}
+			}
+			$out[] = array( 'id' => (int) $id, 'title' => (string) ( $f['title'] ?? '' ), 'fields' => $fields, 'submit' => (string) ( $f['submit_label'] ?? 'Send' ), 'on' => ! isset( $f['enabled'] ) || ! empty( $f['enabled'] ) );
 		}
 		return $out;
 	}

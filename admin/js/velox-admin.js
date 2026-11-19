@@ -6866,6 +6866,9 @@
 			var t = $( '#vmail-title' ); if ( t ) { t.addEventListener( 'input', function () { form.title = t.value; } ); }
 			var sub = $( '#vmail-submit' ); if ( sub ) { sub.addEventListener( 'input', function () { form.submit_label = sub.value; } ); }
 			var suc = $( '#vmail-success' ); if ( suc ) { suc.addEventListener( 'input', function () { form.success = suc.value; } ); }
+			var rdr = $( '#vmail-redirect' ); if ( rdr ) { rdr.addEventListener( 'input', function () { form.redirect = rdr.value.trim(); } ); }
+			var whk = $( '#vmail-webhook' ); if ( whk ) { whk.addEventListener( 'input', function () { form.webhook = whk.value.trim(); } ); }
+			var ttr = $( '#vmail-timetrap' ); if ( ttr ) { ttr.addEventListener( 'change', function () { form.timetrap = ttr.checked; } ); }
 			var ac = $( '#vmail-accent' ); if ( ac ) { ac.addEventListener( 'input', function () { form.accent = ac.value; renderCanvas(); } ); }
 			var cap = $( '#vmail-captcha' ); if ( cap ) { cap.addEventListener( 'change', function () { form.captcha = cap.checked; } ); }
 			var sht = $( '#vmail-show-title' );

@@ -2922,6 +2922,20 @@ class Velox_Builder_Render {
 		}
 
 		// WordPress-data elements: pull live data from the bound/current post.
+		// A form from Velox → Mail, placed by the builder.
+		if ( isset( $node['el'] ) && 'Form' === $node['el'] ) {
+			$fid = (int) self::el_set( $node, 'form', '' );
+			if ( self::$css_only || ! $fid || ! class_exists( 'Velox_Forms' ) ) {
+				return '<div' . $attr . '></div>';
+			}
+			// Without the Mail utility the form cannot be sent, so it is not shown.
+			if ( ! ( class_exists( 'Velox_Settings' ) && Velox_Settings::get( 'util_mail' ) ) ) {
+				return current_user_can( 'manage_options' )
+					? '<div' . $attr . '><p style="padding:12px 14px;border:1px dashed #d2d2d7;border-radius:10px;color:#6e6e73">' . esc_html__( 'This form is hidden: switch on Velox → Utilities → Mail to receive forms. (Only administrators see this.)', 'velox' ) . '</p></div>'
+					: '';
+			}
+			return '<div' . $attr . '>' . Velox_Forms::render( $fid ) . '</div>';
+		}
 		if ( isset( $node['el'] ) && 'WP' === $node['el'] ) {
 			if ( self::$css_only ) {
 				return '';

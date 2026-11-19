@@ -4,6 +4,19 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.37.0 — Velox Builder: forms
+- **Form element** in the builder (Add → Velox → Form). Pick one of your forms from Velox → Mail in Settings:
+  - The canvas shows its fields and button.
+  - The page shows the real form.
+  - "Edit this form" and "Create a form" open the form editor in a new tab.
+  - You are warned when the form is switched off, or when the Mail utility is off. In that case visitors see nothing and administrators see a short note on the page.
+- **The newsletter popup** now holds a real sign-up form instead of a "paste your shortcode" note. It picks a form named like a newsletter, or else a short form with an email field.
+- **New form settings** (Velox → Mail → a form → Settings):
+  - **Then go to this page:** after a successful send, the visitor is taken to a thank-you page.
+  - **Send the answers to a webhook:** each entry is posted as JSON to Zapier, Make, n8n or a CRM, without slowing the visitor down. The JSON holds the form, the entry number, the time, the page it was sent from, and the answers. It is signed with an `X-Velox-Signature` header (HMAC-SHA256 with a secret per site), so the receiver can check where it came from.
+  - **Block forms sent within seconds** (spam protection, on by default): a form sent less than 3 seconds after it was shown is dropped quietly, like the honeypot. Pages cached before this update keep working.
+- **Fix:** opening the editor for a page, template or component that was deleted (an old link or bookmark) showed a broken editor. It now says it no longer exists, with a link back.
+
 ## 4.36.0 — Velox Builder: popups
 - **Ready-made popups** in Add → Interactive, each with its design inside and sensible triggers:
   - **Announcement:** after 2 seconds, once per visit.

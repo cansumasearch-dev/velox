@@ -169,6 +169,11 @@ class Velox_Forms {
 			'success'      => sanitize_text_field( $form['success'] ?? 'Thanks.' ),
 			'captcha'      => ! empty( $form['captcha'] ),
 			'show_title'   => ! empty( $form['show_title'] ),
+			// After submitting: go to a page, and/or send the answers to a webhook.
+			'redirect'     => esc_url_raw( (string) ( $form['redirect'] ?? '' ) ),
+			'webhook'      => esc_url_raw( (string) ( $form['webhook'] ?? '' ), array( 'http', 'https' ) ),
+			// Time trap: a form sent within seconds of being shown is a bot. On by default.
+			'timetrap'     => ! isset( $form['timetrap'] ) || ! empty( $form['timetrap'] ),
 			'accent'       => sanitize_hex_color( $form['accent'] ?? '#2ab7f1' ) ? sanitize_hex_color( $form['accent'] ) : '#2ab7f1',
 			'fields'       => array(),
 			'emails'       => array(),
@@ -459,6 +464,7 @@ class Velox_Forms {
 				<?php endforeach; ?>
 				<?php if ( ! empty( $form['captcha'] ) && ! $has_cap_field ) : echo self::captcha_widget(); endif; // phpcs:ignore ?>
 				<input type="text" name="velox_hp" class="velox-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+				<input type="hidden" name="velox_t" value="<?php echo esc_attr( self::time_token() ); ?>">
 				<input type="hidden" name="velox_nonce" value="<?php echo esc_attr( $nonce ); ?>">
 				<div class="velox-form-nav">
 					<button type="button" class="velox-form-prev" hidden>Back</button>
@@ -481,6 +487,7 @@ class Velox_Forms {
 				</div>
 				<?php if ( ! empty( $form['captcha'] ) && ! $has_cap_field ) : echo self::captcha_widget(); endif; // phpcs:ignore ?>
 				<input type="text" name="velox_hp" class="velox-hp" tabindex="-1" autocomplete="off" aria-hidden="true">
+				<input type="hidden" name="velox_t" value="<?php echo esc_attr( self::time_token() ); ?>">
 				<input type="hidden" name="velox_nonce" value="<?php echo esc_attr( $nonce ); ?>">
 				<button type="submit" class="velox-form-submit"><?php echo esc_html( $form['submit_label'] ); ?></button>
 			</form>
@@ -927,6 +934,15 @@ class Velox_Forms {
 		if ( ! empty( $_POST['velox_hp'] ) ) {
 			wp_send_json_success( array( 'message' => $form['success'] ) ); // pretend success, drop silently
 		}
+		// Time trap: people need a few seconds to fill a form; bots post at once.
+		// Pages cached before this existed have no token, so only a token that is
+		// present is checked (a forged one, or one a moment old, is dropped).
+		if ( ! isset( $form['timetrap'] ) || $form['timetrap'] ) {
+			$tt = isset( $_POST['velox_t'] ) ? sanitize_text_field( wp_unslash( $_POST['velox_t'] ) ) : '';
+			if ( '' !== $tt && ! self::time_token_ok( $tt ) ) {
+				wp_send_json_success( array( 'message' => $form['success'] ) ); // pretend success, drop silently
+			}
+		}
 		$nonce = isset( $_POST['velox_nonce'] ) ? sanitize_text_field( wp_unslash( $_POST['velox_nonce'] ) ) : '';
 		// Nonce is best-effort (public, cacheable form); the honeypot + CAPTCHA carry spam defence.
 		$raw   = isset( $_POST['vf'] ) ? (array) wp_unslash( $_POST['vf'] ) : array();
@@ -1084,9 +1100,78 @@ class Velox_Forms {
 		), array( '%d', '%s', '%s', '%s' ) );
 
 		self::send_emails( $form, $data );
+		self::send_webhook( $form, $data, (int) $wpdb->insert_id );
 		if ( class_exists( 'Velox_Stats' ) ) { Velox_Stats::bump_form(); }
 
-		wp_send_json_success( array( 'message' => $form['success'] ) );
+		$out = array( 'message' => $form['success'] );
+		if ( ! empty( $form['redirect'] ) ) {
+			$out['redirect'] = esc_url_raw( $form['redirect'] );
+		}
+		wp_send_json_success( $out );
+	}
+
+	/** "time.signature": when the form was shown, signed so it cannot be faked. */
+	public static function time_token() {
+		$t = time();
+		return $t . '.' . substr( hash_hmac( 'sha256', 'velox_t' . $t, wp_salt( 'nonce' ) ), 0, 16 );
+	}
+
+	/** At least 3 seconds old and really ours. */
+	public static function time_token_ok( $token ) {
+		$p = explode( '.', (string) $token );
+		if ( 2 !== count( $p ) || ! ctype_digit( $p[0] ) ) {
+			return false;
+		}
+		$want = substr( hash_hmac( 'sha256', 'velox_t' . $p[0], wp_salt( 'nonce' ) ), 0, 16 );
+		return hash_equals( $want, $p[1] ) && ( time() - (int) $p[0] ) >= 3;
+	}
+
+	/**
+	 * Send the answers to the form's webhook (Zapier, Make, n8n, a CRM …) as
+	 * JSON, without making the visitor wait. Signed with X-Velox-Signature
+	 * (HMAC-SHA256 of the body with the site's webhook secret).
+	 */
+	private static function send_webhook( $form, $data, $entry_id ) {
+		$url = (string) ( $form['webhook'] ?? '' );
+		if ( '' === $url || ! wp_http_validate_url( $url ) ) {
+			return;
+		}
+		$body = wp_json_encode( array(
+			'form_id'    => (int) $form['id'],
+			'form_title' => (string) $form['title'],
+			'entry_id'   => (int) $entry_id,
+			'submitted'  => current_time( 'c' ),
+			'page'       => self::source_page(),
+			'fields'     => $data,
+		) );
+		wp_remote_post( $url, array(
+			'blocking' => false,
+			'timeout'  => 3,
+			'headers'  => array(
+				'Content-Type'      => 'application/json',
+				'X-Velox-Signature' => hash_hmac( 'sha256', $body, self::webhook_secret() ),
+			),
+			'body'     => $body,
+		) );
+	}
+
+	/** The page the form was sent from: posted by the form itself (browsers often drop the referrer), else the referrer. */
+	private static function source_page() {
+		$u = isset( $_POST['velox_page'] ) ? esc_url_raw( wp_unslash( $_POST['velox_page'] ) ) : '';
+		if ( '' === $u && isset( $_SERVER['HTTP_REFERER'] ) ) {
+			$u = esc_url_raw( wp_unslash( $_SERVER['HTTP_REFERER'] ) );
+		}
+		return $u;
+	}
+
+	/** One secret per site for signing webhooks (made on first use). */
+	public static function webhook_secret() {
+		$s = get_option( 'velox_forms_webhook_secret', '' );
+		if ( '' === $s ) {
+			$s = wp_generate_password( 32, false, false );
+			update_option( 'velox_forms_webhook_secret', $s, false );
+		}
+		return $s;
 	}
 
 	private static function send_emails( $form, $data ) {
@@ -1870,6 +1955,7 @@ class Velox_Forms {
       var fd=new FormData(form);
       fd.append('action','velox_form');
       fd.append('form_id',form.getAttribute('data-form'));
+      fd.append('velox_page',location.href);
       btn.disabled=true;
       fetch('<?php echo esc_url( admin_url( 'admin-ajax.php' ) ); ?>',{method:'POST',credentials:'same-origin',body:fd})
         .then(function(r){return r.json();})
@@ -1878,6 +1964,7 @@ class Velox_Forms {
             form.reset();
             if(condEls.length){applyCond();}
             msg.className='velox-form-msg is-ok';msg.textContent=j.data.message;msg.hidden=false;
+            if(j.data.redirect){setTimeout(function(){window.location.href=j.data.redirect;},600);}
           }else{
             var d=(j&&j.data)||{};
             msg.className='velox-form-msg is-err';msg.textContent=d.message||'Something went wrong.';msg.hidden=false;
