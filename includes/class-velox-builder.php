@@ -1832,7 +1832,7 @@ class Velox_Builder {
 		$d = array(
 			'body'     => array( 'font' => '', 'size' => '16', 'weight' => '400', 'lineHeight' => '1.6', 'color' => '#1f2329' ),
 			'headings' => array( 'font' => '' ),
-			'links'    => array( 'color' => '#0e7fb3', 'hover' => '#2ab7f1', 'decoration' => 'none', 'weight' => '' ),
+			'links'    => array( 'color' => '#0a6f9f', 'hover' => '#2ab7f1', 'decoration' => 'none', 'weight' => '' ),
 			'width'    => array( 'page' => '1200', 'tablet' => '991', 'landscape' => '767', 'portrait' => '480' ),
 			'sections' => array( 'top' => '80', 'right' => '24', 'bottom' => '80', 'left' => '24' ),
 			'columns'  => array( 'top' => '20', 'right' => '20', 'bottom' => '20', 'left' => '20', 'gap' => '24' ),
@@ -1861,6 +1861,11 @@ class Velox_Builder {
 					$d[ $group ][ $k ] = $v;
 				}
 			}
+		}
+		// The link colour before 4.52 (#0e7fb3) is 4.47:1 on white, just under
+		// the 4.5:1 minimum. Sites that kept that default get the darker one.
+		if ( '#0e7fb3' === strtolower( (string) $d['links']['color'] ) ) {
+			$d['links']['color'] = '#0a6f9f';
 		}
 		return $d;
 	}

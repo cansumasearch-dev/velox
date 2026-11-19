@@ -2273,7 +2273,7 @@
 		quote:       { lineHeight:'1.5', fontStyle:'italic', marginBottom:'24' },
 		// fit-content: never stretched by a column / card parent, still aligned by it.
 		button:      { width:'fit-content', marginRight:'12', fontSize:'15', fontWeight:'600', lineHeight:'1.2', textAlign:'center', cursor:'pointer', transition:'background .15s ease, transform .15s ease' },
-		textlink:    { width:'fit-content', fontSize:'16', color:'#0e7fb3', fontWeight:'500', textDecoration:'none' },
+		textlink:    { width:'fit-content', fontSize:'16', color:'#0a6f9f', fontWeight:'500', textDecoration:'none' },
 		image:       { display:'block', maxWidth:'100%', borderRadius:'8', overflow:'hidden' },
 		video:       { overflow:'hidden' },
 		wp_title:    { lineHeight:'1.15', marginBottom:'16' },
@@ -2286,12 +2286,12 @@
 		gradienttext:{ lineHeight:'1.15' },
 		outlinetext: { lineHeight:'1.1' },
 		highlighttext:{ paddingLeft:'4', paddingRight:'4', borderRadius:'4' },
-		eyebrow:     { textTransform:'uppercase', color:'#0e7fb3' },
+		eyebrow:     { textTransform:'uppercase', color:'#0a6f9f' },
 		pullquote:   { marginTop:'32', marginBottom:'32' },
 		iconbox:     { borderRadius:'12', background:'#f6f8fa' },
 		card:        { boxShadow:CARD_SHADOW },
 		callout:     { borderStyle:'solid', borderColor:'#dbe6f0' },
-		badge:       { width:'fit-content', display:'inline-block', paddingTop:'4', paddingBottom:'4', paddingLeft:'10', paddingRight:'10', lineHeight:'1.4', background:'#e6f6fd', color:'#0e7fb3' },
+		badge:       { width:'fit-content', display:'inline-block', paddingTop:'4', paddingBottom:'4', paddingLeft:'10', paddingRight:'10', lineHeight:'1.4', background:'#e6f6fd', color:'#0a6f9f' },
 		casestudy:   { background:'#ffffff', boxShadow:CARD_SHADOW },
 		ctaband:     { background:'#0f172a', color:'#ffffff' },
 		noticebox:   { background:'#fff8e6', borderWidth:'1', borderStyle:'solid', borderColor:'#f5d48a' },
@@ -2437,7 +2437,7 @@
 		/* Ready-made blocks: whole sections from ordinary elements. */
 		function price( name, amount, desc, points, hot ) {
 			return { key:'pricingcard', kids:[
-				P( '.price-name', { fontWeight:'600', marginBottom:'0', textTransform:'uppercase', letterSpacing:'1.5', fontSize:'13', color:'#0e7fb3' }, name ),
+				P( '.price-name', { fontWeight:'600', marginBottom:'0', textTransform:'uppercase', letterSpacing:'1.5', fontSize:'13', color:'#0a6f9f' }, name ),
 				H( 'h3', '.price-amount', { fontSize:'40', lineHeight:'1.05', marginBottom:'0' }, amount ),
 				P( '.price-desc', MUTED, desc ),
 				{ key:'checklist', items:points.map( function ( x ) { return { title:x }; } ) },
@@ -2455,7 +2455,7 @@
 		}
 		function step( n, t, x ) {
 			return { key:'div', cls:'.step', rules:{ gap:'10' }, kids:[
-				P( '.step-num', { width:'44', height:'44', borderRadius:'999', background:'#e6f6fd', color:'#0e7fb3', fontWeight:'700', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'6' }, n ),
+				P( '.step-num', { width:'44', height:'44', borderRadius:'999', background:'#e6f6fd', color:'#0a6f9f', fontWeight:'700', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'6' }, n ),
 				H( 'h3', '.step-title', { fontSize:'20', marginBottom:'0' }, t ), P( '.step-text', MUTED, x ) ] };
 		}
 		function contact( icon, t, x ) {
@@ -3716,7 +3716,8 @@
 		app.classList.toggle( 'vb-has-right', !! right );
 		// The top-bar button of the open panel shows that it is open.
 		var TB = { struct:'vb-structure', css:'vb-code', hist:'vb-history', settings:'vb-settings' };
-		Object.keys( TB ).forEach( function ( k ) { var b = document.getElementById( TB[ k ] ); if ( b ) { b.classList.toggle( 'on', right === k ); b.setAttribute( 'aria-pressed', right === k ? 'true' : 'false' ); } } );
+		Object.keys( TB ).forEach( function ( k ) { var b = document.getElementById( TB[ k ] ); if ( b ) { var on = right === k && ! ( 'hist' === k && 'check' === histMode ); b.classList.toggle( 'on', on ); b.setAttribute( 'aria-pressed', on ? 'true' : 'false' ); } } );
+		var cb = document.getElementById( 'vb-check' ); if ( cb ) { var con = 'hist' === right && 'check' === histMode; cb.classList.toggle( 'on', con ); cb.setAttribute( 'aria-pressed', con ? 'true' : 'false' ); }
 		app.style.setProperty( '--vb-rw', ( pinned.right && right ? PANEL_W[ right ] : 0 ) + 'px' );
 		app.style.setProperty( '--vb-lw', ( pinned.left && addMenuOpen() ? PANEL_W.add : 0 ) + 'px' );
 		var lt = document.getElementById( 'vb-tgl-left' );
@@ -3947,6 +3948,7 @@
 				'<button class="vb-ic" id="vb-search" title="' + T( 'Switch page' ) + '">' + svg( 'search', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-code" title="' + T( 'Global CSS / JS (every page)' ) + '">' + svg( 'code', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-history" title="' + T( 'History' ) + '">' + svg( 'clock', 16 ) + '</button>' +
+				'<button class="vb-ic vb-chkbtn" id="vb-check" title="' + T( 'Page check' ) + '">' + svg( 'shield', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-settings" title="' + T( 'Settings' ) + '">' + svg( 'gear', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-tgl-right" title="' + T( 'Show right panel' ) + '">' + svg( 'panelright', 16 ) + '</button>' +
 				'<div class="vb-tsep"></div>' +
@@ -4026,6 +4028,7 @@
 		// controls apply (flex options for a flex box and so on).
 		injectCanvas();
 		revealOnSelect( state.selection );
+		schedulePageCheck();
 		renderInspector( state ); renderTopbar( state ); applyDock();
 		// Page settings changed underneath the panel (undo, discard, import):
 		// redraw it — unless you are typing in it right now.
@@ -6599,6 +6602,167 @@
 		applyDock();
 	}
 
+
+	ICON.shield = '<path d="M8 1.2 2.6 3.1v4.1c0 3.4 2.3 6.3 5.4 7.6 3.1-1.3 5.4-4.2 5.4-7.6V3.1z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="m5.6 8 1.7 1.7 3.2-3.3" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>';
+	ICON.refresh = '<path d="M13.2 8a5.2 5.2 0 1 1-1.6-3.8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/><path d="M13.4 1.9v3.1h-3.1" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>';
+	ICON.check = ICON.check || '<path d="m3.2 8.4 3 3 6.6-6.8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>';
+	ICON.warn = '<path d="M8 4.6v4.2" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><circle cx="8" cy="11.6" r="1.05"/>';
+	/* ================= Page check (accessibility + SEO) =================
+	 * Looks at the page as it is drawn in the canvas and lists what would trip
+	 * up visitors, screen readers or search engines: missing alt texts, heading
+	 * order, contrast, links without text or going nowhere, tiny text and tap
+	 * targets, untitled videos and embeds. Each item jumps to the element; some
+	 * can be fixed right there. Runs again after every change while it is open. */
+	var histMode = 'history', checkCache = { list:[], at:0 }, checkTimer = null, checkOpen = {};
+	function lum( rgb ) {
+		var a = rgb.map( function ( v ) { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow( ( v + 0.055 ) / 1.055, 2.4 ); } );
+		return 0.2126 * a[ 0 ] + 0.7152 * a[ 1 ] + 0.0722 * a[ 2 ];
+	}
+	function parseRGBA( c ) {
+		var m = String( c || '' ).match( /rgba?\(([^)]+)\)/ ); if ( ! m ) { return null; }
+		var p = m[ 1 ].split( /[,\s/]+/ ).filter( Boolean ).map( parseFloat );
+		return { rgb:[ p[ 0 ], p[ 1 ], p[ 2 ] ], a:undefined === p[ 3 ] ? 1 : p[ 3 ] };
+	}
+	/* The solid colour behind an element, or null when it is an image or gradient. */
+	function backdropOf( el, win ) {
+		for ( var e = el; e && 1 === e.nodeType; e = e.parentElement ) {
+			var cs = win.getComputedStyle( e );
+			if ( cs.backgroundImage && 'none' !== cs.backgroundImage ) { return null; }
+			var c = parseRGBA( cs.backgroundColor );
+			if ( c && c.a > 0.9 ) { return c.rgb; }
+			if ( c && c.a > 0.05 ) { return null; }
+		}
+		return [ 255, 255, 255 ];
+	}
+	function runPageCheck() {
+		var fr = document.getElementById( 'vb-canvas' ), doc = fr && fr.contentDocument;
+		var out = [];
+		if ( ! doc || ! doc.body || ! store.state ) { return out; }
+		var win = doc.defaultView;
+		function add( sev, id, msg, fix, cat ) { out.push( { sev:sev, id:id, msg:msg, fix:fix || '', cat:cat || 'a11y' } ); }
+		// Headings, in reading order.
+		var hs = [].slice.call( doc.querySelectorAll( 'h1[data-node],h2[data-node],h3[data-node],h4[data-node],h5[data-node],h6[data-node]' ) ).filter( function ( h ) { return h.offsetParent !== null || h.getClientRects().length; } );
+		var h1 = hs.filter( function ( h ) { return 'H1' === h.tagName; } );
+		if ( 'page' === docKind && ! h1.length && hs.length ) { add( 'warn', hs[ 0 ].id, T( 'The page has no H1. Make its main heading an H1 (use the tag menu on the element name).' ), 'tag', 'seo' ); }
+		if ( h1.length > 1 ) { h1.slice( 1 ).forEach( function ( h ) { add( 'warn', h.id, T( 'More than one H1 on the page. Search engines and screen readers expect one main title.' ), 'tag', 'seo' ); } ); }
+		var prev = 0;
+		hs.forEach( function ( h ) {
+			var lv = +h.tagName.slice( 1 );
+			if ( prev && lv > prev + 1 ) { add( 'warn', h.id, T( 'Heading level skipped' ) + ': H' + prev + ' → H' + lv + '. ' + T( 'Use the next level down so the outline makes sense.' ), 'tag' ); }
+			if ( ! ( h.innerText || '' ).trim() ) { add( 'err', h.id, T( 'Empty heading. Screen readers announce it with nothing to say.' ) ); }
+			prev = lv;
+		} );
+		walkTree( store.state.tree || [], function ( n ) {
+			var el = doc.getElementById( n.id ); if ( ! el || n.hidden || el.closest( '.vb-is-hidden' ) ) { return; }
+			var cs = win.getComputedStyle( el );
+			if ( 'none' === cs.display ) { return; }
+			// Images: alt text (and an image at all).
+			if ( 'Image' === n.el ) {
+				var src = ( store.state.content || {} )[ n.id ];
+				if ( ! src ) { add( 'warn', n.id, T( 'Image without a picture. Choose one or remove the element.' ), 'select' ); }
+				else if ( ! String( n.alt || '' ).trim() ) { add( 'warn', n.id, T( 'Image without alt text. Describe it, unless it is only decoration.' ), 'alt' ); }
+			}
+			// Links: a name, and somewhere to go.
+			if ( 'A' === el.tagName ) {
+				var name = ( el.innerText || '' ).trim() || el.getAttribute( 'aria-label' ) || [].slice.call( el.querySelectorAll( 'img[alt]' ) ).map( function ( i ) { return i.getAttribute( 'alt' ); } ).join( '' ).trim();
+				if ( ! name ) { add( 'err', n.id, T( 'Link without text. Screen readers can’t tell where it goes.' ), 'select' ); }
+				var href = String( n.href || '' ).trim();
+				if ( ! href || '#' === href ) { add( 'warn', n.id, T( 'This link goes nowhere (“#”). Set its address under Settings → Link.' ), 'link', 'seo' ); }
+			}
+			// Videos and embeds need a title for screen readers.
+			if ( 'Video' === n.el && ( n.settings || {} ).url && ! String( ( n.settings || {} ).title || '' ).trim() ) { add( 'warn', n.id, T( 'Video without a title. Add one under Settings so screen readers can name it.' ), 'settings' ); }
+			if ( 'Embed' === n.el && /<iframe(?![^>]*\btitle=)/i.test( String( ( n.settings || {} ).code || '' ) ) ) { add( 'warn', n.id, T( 'Embedded frame without a title attribute. Add title="…" to the iframe code.' ), 'settings' ); }
+			// Text: size and contrast (own text only, not containers).
+			var isText = canInlineEdit( n ) && 'Sronly' !== n.el && 'Skiplink' !== n.el && ( el.innerText || '' ).trim();
+			if ( isText ) {
+				var fs = parseFloat( cs.fontSize ) || 16;
+				if ( fs < 12 ) { add( 'warn', n.id, T( 'Very small text' ) + ' (' + Math.round( fs * 10 ) / 10 + 'px). ' + T( 'Many people can’t read text under 12px.' ), 'size' ); }
+				var fg = parseRGBA( cs.color ), bg = backdropOf( el, win );
+				if ( fg && fg.a > 0.5 && bg && 'transparent' !== cs.color && ! /text/.test( cs.backgroundClip || cs.webkitBackgroundClip || '' ) ) {
+					var l1 = lum( fg.rgb ), l2 = lum( bg ), ratio = ( Math.max( l1, l2 ) + 0.05 ) / ( Math.min( l1, l2 ) + 0.05 );
+					var large = fs >= 24 || ( fs >= 18.66 && ( parseInt( cs.fontWeight, 10 ) || 400 ) >= 700 );
+					var need = large ? 3 : 4.5;
+					if ( ratio < need ) { add( ratio < need - 1.5 ? 'err' : 'warn', n.id, T( 'Low contrast' ) + ': ' + Math.floor( ratio * 10 ) / 10 + ':1 (' + T( 'needs' ) + ' ' + need + ':1). ' + T( 'Darken the text or change the background.' ), 'color' ); }
+				}
+			}
+			// Tap targets.
+			if ( ( 'A' === el.tagName || 'BUTTON' === el.tagName ) && ( el.innerText || '' ).trim() ) {
+				var r = el.getBoundingClientRect();
+				if ( r.width && r.height && ( r.width < 24 || r.height < 24 ) && 'Button' === n.el && 'a' === n.tag && /btn|button/.test( ( n.classes || [] ).join( ' ' ) ) ) {
+					add( 'warn', n.id, T( 'Button smaller than 24×24px — hard to tap on a phone.' ), 'size' );
+				}
+			}
+		} );
+		var order = { err:0, warn:1 };
+		out.sort( function ( a, b ) { return order[ a.sev ] - order[ b.sev ]; } );
+		checkCache = { list:out, at:Date.now() };
+		return out;
+	}
+	function checkBadge() {
+		var b = document.getElementById( 'vb-check' ); if ( ! b ) { return; }
+		var list = checkCache.list, errs = list.filter( function ( x ) { return 'err' === x.sev; } ).length;
+		var badge = b.querySelector( '.vb-chk-n' );
+		if ( ! list.length ) { if ( badge ) { badge.remove(); } b.setAttribute( 'title', T( 'Page check' ) + ' — ' + T( 'no problems found' ) ); return; }
+		if ( ! badge ) { badge = document.createElement( 'span' ); badge.className = 'vb-chk-n'; b.appendChild( badge ); }
+		badge.textContent = list.length > 99 ? '99+' : String( list.length );
+		badge.classList.toggle( 'is-err', errs > 0 );
+		b.setAttribute( 'title', T( 'Page check' ) + ' — ' + list.length + ' ' + T( 'to look at' ) );
+	}
+	function schedulePageCheck() {
+		clearTimeout( checkTimer );
+		checkTimer = setTimeout( function () {
+			runPageCheck(); checkBadge();
+			if ( historyShown && 'check' === histMode ) { renderHistoryPanel(); }
+		}, 450 );
+	}
+	function checkPanelHTML() {
+		var list = checkCache.list, ICON = { err:'x', warn:'warn' };
+		var FIX = { alt:T( 'Write alt text' ), link:T( 'Set the link' ), settings:T( 'Open settings' ), color:T( 'Change colours' ), size:T( 'Change size' ), tag:T( 'Change the tag' ), select:T( 'Show' ) };
+		var nErr = list.filter( function ( x ) { return 'err' === x.sev; } ).length;
+		var head = '<div class="vb-chk-sum' + ( list.length ? '' : ' is-ok' ) + '">' + ( list.length
+			? '<b>' + list.length + '</b> ' + T( 'to look at' ) + ( nErr ? ' · <span class="vb-chk-e">' + nErr + ' ' + T( 'serious' ) + '</span>' : '' )
+			: svg( 'check', 16 ) + ' ' + T( 'No problems found on this page.' ) ) + '</div>';
+		// The same problem on many elements is one row with a chip per element
+		// (33 images without alt text are one thing to fix, not 33 rows).
+		var groups = [], byMsg = {};
+		list.forEach( function ( x, i ) {
+			if ( ! byMsg[ x.msg ] ) { byMsg[ x.msg ] = { x:x, idx:[] }; groups.push( byMsg[ x.msg ] ); }
+			byMsg[ x.msg ].idx.push( i );
+		} );
+		var rows = groups.map( function ( g ) {
+			var x = g.x, open = checkOpen[ x.msg ], max = open ? g.idx.length : 5;
+			var chips = g.idx.slice( 0, max ).map( function ( i ) {
+				var n = findNode( store.state.tree, list[ i ].id ), nm = n ? ( n.name || elLabel( n ) ) : T( 'Show' );
+				return '<button type="button"' + ( list[ i ].id === store.state.selection ? ' class="is-sel"' : '' ) + ' data-chk-go="' + i + '" data-id="' + escapeHtml( list[ i ].id ) + '" title="' + escapeHtml( T( 'Show' ) + ': ' + nm ) + '">' + escapeHtml( nm ) + '</button>';
+			} ).join( '' ) + ( g.idx.length > max ? '<button type="button" class="is-more" data-chk-more="' + escapeHtml( x.msg ) + '">+' + ( g.idx.length - max ) + ' ' + T( 'more' ) + '</button>' : '' );
+			return '<div class="vb-chk-i is-' + x.sev + '"><span class="vb-chk-ic">' + svg( ICON[ x.sev ], 13 ) + '</span><div class="vb-chk-tx">' +
+				'<span class="vb-chk-m">' + escapeHtml( x.msg ) + ( g.idx.length > 1 ? ' <span class="vb-chk-x">×' + g.idx.length + '</span>' : '' ) + '</span>' +
+				'<span class="vb-chk-a">' + chips + '</span>' +
+				'<span class="vb-chk-a">' + ( x.fix && 'select' !== x.fix ? '<button type="button" class="is-fix" data-chk-fix="' + g.idx[ 0 ] + '">' + escapeHtml( FIX[ x.fix ] ) + ( g.idx.length > 1 ? ' (' + T( 'first' ) + ')' : '' ) + '</button>' : '' ) +
+				'<span class="vb-chk-cat">' + ( 'seo' === x.cat ? 'SEO' : T( 'Accessibility' ) ) + '</span></span></div></div>';
+		} ).join( '' );
+		return '<div class="vb-hist-top"><b>' + T( 'Page check' ) + '</b><span class="vb-p-acts"><button class="vb-css-x" id="vb-chk-run" title="' + T( 'Check again' ) + '">' + svg( 'refresh', 14 ) + '</button>' + pinBtnHTML() + '<button class="vb-css-x" id="vb-hist-close">' + svg( 'x', 14 ) + '</button></span></div>' +
+			'<div class="vb-hist-note">' + T( 'Checks the page as drawn here: alt texts, headings, contrast, links, text size, tap targets, video and embed titles.' ) + '</div>' +
+			head + '<div class="vb-hist-list vb-chk-list">' + rows + '</div>';
+	}
+	function checkGo( i, fix ) {
+		var x = checkCache.list[ i ]; if ( ! x ) { return; }
+		if ( window.VeloxSelect ) { window.VeloxSelect.close( false ); }
+		selectNode( x.id ); lastRevealSel = null; revealOnSelect( x.id );
+		if ( ! fix ) { return; }
+		if ( 'alt' === x.fix ) {
+			var n = findNode( store.state.tree, x.id );
+			vbAsk( { title:T( 'Alt text' ), text:T( 'Describe what the image shows, in a short sentence.' ), input:( n && n.alt ) || '', ok:T( 'Save' ) }, function ( v ) {
+				if ( null === v ) { return; }
+				store.commit( function ( s ) { var m = findNode( s.tree, x.id ); if ( m ) { m.alt = String( v ).trim(); m.altCustom = true; } }, T( 'Alt text' ) );
+			} );
+			return;
+		}
+		if ( 'link' === x.fix || 'settings' === x.fix ) { inspTab = 'set'; renderInspector( store.state ); return; }
+		if ( 'color' === x.fix || 'size' === x.fix ) { inspTab = 'all'; styleFilter = 'color' === x.fix ? 'color' : ( 'Button' === ( findNode( store.state.tree, x.id ) || {} ).el ? 'padding' : 'font-size' ); renderInspector( store.state ); return; }
+		if ( 'tag' === x.fix ) { setTimeout( function () { var tp = document.querySelector( '[data-tagpick]' ); if ( tp ) { tp.click(); } }, 80 ); }
+	}
+
 	/* ---------- Session history (in-memory, cleared on close) ---------- */
 	var historyShown = false;
 	function timeAgo( ts ) {
@@ -6612,6 +6776,7 @@
 		var box = document.getElementById( 'vb-hist' ); if ( ! box ) { return; }
 		if ( ! historyShown ) { box.style.display = 'none'; applyDock(); return; }
 		box.style.display = 'flex';
+		if ( 'check' === histMode ) { box.innerHTML = checkPanelHTML(); applyDock(); return; }
 		var log = store.log;
 		var items = log.length
 			? log.slice().reverse().map( function ( l ) {
@@ -6898,7 +7063,12 @@
 				return;
 			}
 			var sv = e.target.closest( '[data-setview]' ); if ( sv ) { setView = sv.getAttribute( 'data-setview' ); renderSettingsPanel(); return; }
-			if ( e.target.closest( '#vb-history' ) ) { historyShown = ! historyShown; if ( historyShown ) { closeAllPanels( 'hist' ); } renderHistoryPanel(); return; }
+			if ( e.target.closest( '#vb-history' ) ) { historyShown = ! ( historyShown && 'history' === histMode ); histMode = 'history'; if ( historyShown ) { closeAllPanels( 'hist' ); } renderHistoryPanel(); return; }
+			if ( e.target.closest( '#vb-check' ) ) { historyShown = ! ( historyShown && 'check' === histMode ); histMode = 'check'; if ( historyShown ) { closeAllPanels( 'hist' ); runPageCheck(); checkBadge(); } renderHistoryPanel(); return; }
+			if ( e.target.closest( '#vb-chk-run' ) ) { runPageCheck(); checkBadge(); renderHistoryPanel(); return; }
+			var chkMore = e.target.closest( '[data-chk-more]' ); if ( chkMore ) { checkOpen[ chkMore.getAttribute( 'data-chk-more' ) ] = true; renderHistoryPanel(); return; }
+			var chkGo = e.target.closest( '[data-chk-go]' ); if ( chkGo ) { checkGo( +chkGo.getAttribute( 'data-chk-go' ), false ); return; }
+			var chkFix = e.target.closest( '[data-chk-fix]' ); if ( chkFix ) { checkGo( +chkFix.getAttribute( 'data-chk-fix' ), true ); return; }
 			if ( e.target.closest( '#vb-hist-close' ) ) { historyShown = false; renderHistoryPanel(); return; }
 			var hr = e.target.closest( '[data-revert]' ); if ( hr ) { var hl = hr.querySelector( '.vb-hist-l' ); store.revertTo( +hr.getAttribute( 'data-revert' ), T( 'Back to' ) + ': ' + ( hl ? hl.textContent : '' ) ); return; }
 			if ( e.target.closest( '#vb-save' ) ) { saveDoc(); return; }
@@ -9052,6 +9222,7 @@
 		add( P, T( 'Structure' ), click( 'vb-structure' ), '', 'navigator layers tree' );
 		add( P, T( 'Global CSS / JS (every page)' ), click( 'vb-code' ), '', 'code css javascript' );
 		add( P, T( 'History' ), click( 'vb-history' ) );
+		add( P, T( 'Page check' ), click( 'vb-check' ), '', 'accessibility seo alt contrast a11y' );
 		add( P, T( 'Settings' ), click( 'vb-settings' ), '', 'page global styles' );
 		add( P, T( 'Switch page' ), function () { toggleSwitcher(); }, '', 'open page post template' );
 		BP_TOOLBAR.forEach( function ( bp ) {
@@ -10545,6 +10716,30 @@
 			'#vb-struct .vb-st-act{display:grid;place-items:center;width:22px;height:22px;margin:0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);cursor:pointer;transition:background .12s,color .12s}',
 			'#vb-struct .vb-st-act:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
 			'#vb-struct .vb-st-act.is-del:hover{background:rgba(229,83,75,.16);color:#ff8a82}',
+			// 4.52: page check
+			'.vb-chkbtn{position:relative}',
+			'.vb-chk-n{position:absolute;top:2px;right:0;min-width:15px;height:15px;padding:0 4px;border-radius:999px;background:#f5a742;color:#2a1a00;font:700 9.5px/15px var(--vb-font,inherit);text-align:center;pointer-events:none}',
+			'.vb-chk-n.is-err{background:#e5534b;color:#fff}',
+			'.vb-chk-sum{margin:0 12px 10px;padding:10px 12px;border-radius:9px;background:var(--vb-bg2);font-size:12.5px;color:var(--vb-tx2)}',
+			'.vb-chk-sum b{color:var(--vb-tx1);font-size:15px}',
+			'.vb-chk-sum.is-ok{display:flex;align-items:center;gap:8px;color:#43d17f}',
+			'.vb-chk-e{color:#ff8a82;font-weight:600}',
+			'.vb-chk-list{display:flex;flex-direction:column;gap:2px;padding:0 6px 12px}',
+			'.vb-chk-i{display:flex;gap:9px;padding:9px 8px;border-radius:8px}',
+			'.vb-chk-i:hover{background:var(--vb-bg2)}',
+			'.vb-chk-ic{flex:0 0 auto;display:grid;place-items:center;width:20px;height:20px;border-radius:50%;margin-top:1px}',
+			'.vb-chk-i.is-err .vb-chk-ic{background:rgba(229,83,75,.18);color:#ff8a82}',
+			'.vb-chk-i.is-warn .vb-chk-ic{background:rgba(245,167,66,.16);color:#f5a742}',
+			'.vb-chk-tx{display:flex;flex-direction:column;gap:6px;min-width:0}',
+			'.vb-chk-m{font-size:12.5px;line-height:1.45;color:var(--vb-tx1)}',
+			'.vb-chk-a{display:flex;align-items:center;gap:6px;flex-wrap:wrap}',
+			'.vb-chk-a button{padding:3px 8px;border-radius:6px;border:1px solid var(--vb-line);background:transparent;color:var(--vb-tx2);font:500 11.5px/1.3 inherit;font-family:inherit;cursor:pointer;max-width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+			'.vb-chk-a button:hover{color:var(--vb-tx1);border-color:var(--vb-acc)}',
+			'.vb-chk-a button.is-fix{color:var(--vb-acc);border-color:rgba(42,183,241,.35)}',
+			'.vb-chk-x{display:inline-block;margin-left:4px;padding:0 6px;border-radius:999px;background:var(--vb-bg2);color:var(--vb-tx2);font-size:11px;font-weight:600}',
+			'.vb-chk-a button.is-more{border-style:dashed}',
+			'.vb-chk-a button.is-sel{color:var(--vb-tx1);border-color:var(--vb-acc);background:rgba(42,183,241,.1)}',
+			'.vb-chk-cat{margin-left:auto;font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--vb-tx3)}',
 			// 4.51: every shortcut on "Nothing selected"
 			'.vb-ie-keys .vb-ie-kg{display:flex;flex-direction:column;gap:6px;margin:0 0 12px}',
 			'.vb-ie-keys .vb-ie-kh{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--vb-tx3);margin:4px 0 2px}',

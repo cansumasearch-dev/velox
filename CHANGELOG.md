@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.52.0 — Page check
+- **Page check (new button next to History):** lists what would trip up visitors, screen readers or search engines on the page you are editing — images without alt text, image elements without a picture, a missing or second H1, skipped heading levels, empty headings, links without text, links that go nowhere ("#"), low contrast (WCAG 4.5:1, 3:1 for large text), text under 12px, buttons smaller than 24×24px, videos without a title and embedded iframes without a title attribute.
+- **Jump and fix:** each element has a chip that selects it and scrolls to it; one click writes the alt text, opens the link settings, opens the tag menu (H1–H6) or opens the colour / size properties.
+- **Grouped and live:** the same problem on many elements is one row (e.g. "Image without alt text ×32"); the list and the count badge on the button update after every change. Hidden elements are skipped. Shares the History panel slot (dock, pin, resize) and is in the command search.
+- **Default link colour passes contrast:** the default link, eyebrow, badge, pricing and step colour was #0e7fb3 (4.47:1 on white, just under 4.5:1). It is now #0a6f9f (5.5:1); sites still on the old default get the new one automatically.
+
 ## 4.51.1 — Several keys per shortcut
 - **Keyboard shortcuts:** every key combination is its own chip with its own × — remove one and keep the others. "+ Add keys" gives an action another combination (up to four). Shortcuts changed in 4.51.0 carry over.
 
