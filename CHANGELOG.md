@@ -4,6 +4,18 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.40.0 — Velox Builder: paste HTML and text
+- **Paste HTML from anywhere and get real builder elements.** Copy part of a web page, an email template, a Google Doc or HTML an AI wrote, then press Ctrl+V in the editor.
+  - Headings, paragraphs, lists, quotes and tables become Heading, Text and List elements, with bold, italics and links kept.
+  - Images with a full address become Image elements with their alt text.
+  - YouTube, Vimeo and mp4 become Video elements.
+  - Elements with a "btn" or "button" class, and `<button>`, become buttons. `<hr>` becomes a divider. Sections and divs become containers.
+  - **CSS comes along:** inline styles become the element's own styles. `.class` rules in pasted `<style>` blocks become Velox classes, including `:hover`/`:focus` states and max-width media queries, which are mapped to the nearest screen size.
+  - **Cleaned like everything else:** scripts, event handlers, forms, `javascript:` links and images without a full address are left out.
+  - The whole paste is one undo step.
+- **Paste plain text:** each paragraph becomes a Text element and line breaks are kept.
+- The clipboard decides what is pasted: a copied Velox element (from this site or another), HTML, or text. Only when it is empty does Ctrl+V paste the element last copied in the editor.
+
 ## 4.39.0 — Velox Builder: AI agents
 - **AI agents** (Velox Builder → AI agents): AI tools such as Claude, ChatGPT or Cursor can read your design system and build pages, through WordPress's Abilities API (WordPress 6.9+) and the official MCP Adapter plugin.
   - What an agent can do:

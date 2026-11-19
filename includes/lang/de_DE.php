@@ -4336,4 +4336,7 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Unknown style properties: %s. See style_properties in velox/get-design-system.' => 'Unbekannte Stileigenschaften: %s. Siehe style_properties in velox/get-design-system.',
 	'There is no page, template or component with that id.' => 'Es gibt keine Seite, Vorlage oder Komponente mit dieser ID.',
 	'By AI' => 'Von KI',
+	// Velox Builder 4.40
+	'Pasted as an element.' => 'Als Element eingefügt.',
+	'Pasted as elements. Check their styles.' => 'Als Elemente eingefügt. Prüfen Sie ihre Stile.',
 );

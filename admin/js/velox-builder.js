@@ -6428,8 +6428,190 @@
 			if ( foreign ) { toast( T( 'Pasted from another site. Check its images and links.' ) ); }
 			return;
 		}
+		// HTML from a web page, an email, a document or an AI tool; or plain text.
+		var html = ( e.clipboardData && e.clipboardData.getData( 'text/html' ) ) || '';
+		if ( ! html && /^\s*<[a-z!][\s\S]*>\s*$/i.test( txt ) ) { html = txt; }
+		var conv = html ? htmlToElements( html ) : ( txt.trim() ? textToElements( txt ) : null );
+		if ( conv && conv.nodes.length ) {
+			pasteNodes( store.state.selection, conv.nodes, conv.content, conv.classes, T( 'Paste' ) );
+			toast( conv.nodes.length === 1 && ! conv.nodes[ 0 ].children.length ? T( 'Pasted as an element.' ) : T( 'Pasted as elements. Check their styles.' ) );
+			return;
+		}
 		readSharedClipboard();
 		if ( clipboardNode ) { pasteNode( store.state.selection ); }
+	}
+
+	/* Insert several new elements at once (one undo step). */
+	function pasteNodes( targetId, list, content, classes, label ) {
+		store.commit( function ( s ) {
+			Object.keys( classes || {} ).forEach( function ( c ) { ensureClass( s, c, classes[ c ] ); } );
+			var copies = list.map( function ( n ) { return cloneWithNewIds( n, s, content ); } );
+			var target = targetId ? findNode( s.tree, targetId ) : null;
+			if ( target && isContainer( target ) ) { target.children = target.children.concat( copies ); }
+			else if ( target ) {
+				var par = findParent( s.tree, targetId ), arr = par ? par.children : s.tree;
+				Array.prototype.splice.apply( arr, [ arr.indexOf( target ) + 1, 0 ].concat( copies ) );
+			} else { s.tree = s.tree.concat( copies ); }
+			s.selection = copies[ 0 ].id; resetActiveClass( s );
+		}, label );
+	}
+
+	/* ---------- HTML / CSS / text → Velox elements ---------- */
+	var PROP_OF_CSS = ( function () { var o = {}; Object.keys( CSS_PROP ).forEach( function ( k ) { o[ CSS_PROP[ k ] ] = k; } ); o[ 'background-color' ] = 'background'; return o; }() );
+	function catDef( key ) { return CATALOG.filter( function ( c ) { return c.key === key; } )[ 0 ]; }
+	function declsToRules( style ) {
+		var out = {};
+		for ( var i = 0; i < style.length; i++ ) {
+			var css = style[ i ], prop = PROP_OF_CSS[ css ], val = style.getPropertyValue( css ).trim();
+			if ( ! prop || ! val || /^(initial|inherit|unset|revert)$/i.test( val ) || /expression|javascript:|url\(\s*['"]?\s*(javascript|data):/i.test( val ) ) { continue; }
+			if ( 'background-color' === css && out.background ) { continue; }
+			out[ prop ] = val.replace( /\s*!important$/, '' );
+		}
+		// The browser splits shorthands into longhands the builder may not have
+		// (border-radius → four corners): read the shorthand itself.
+		[ [ 'padding', [ 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft' ] ], [ 'margin', [ 'marginTop', 'marginRight', 'marginBottom', 'marginLeft' ] ], [ 'border-radius', [ 'borderTopLeftRadius', 'borderTopRightRadius', 'borderBottomRightRadius', 'borderBottomLeftRadius' ] ], [ 'gap', [ 'rowGap', 'columnGap' ] ], [ 'background', [ 'backgroundColor', 'backgroundImage', 'backgroundSize', 'backgroundRepeat', 'backgroundPosition', 'backgroundAttachment', 'backgroundClip', 'backgroundOrigin' ] ] ].forEach( function ( sh ) {
+			var v = style.getPropertyValue( sh[ 0 ] ).trim(), prop = PROP_OF_CSS[ sh[ 0 ] ];
+			if ( ! v || ! prop || /javascript:|expression/i.test( v ) ) { return; }
+			sh[ 1 ].forEach( function ( l ) { delete out[ l ]; } );
+			out[ prop ] = v.replace( /\s*!important$/, '' );
+		} );
+		return out;
+	}
+	function bpForWidth( w ) { return w <= 575.98 ? 'sm' : w <= 767.98 ? 'md' : w <= 991.98 ? 'lg' : w <= 1199.98 ? 'xl' : w <= 1399.98 ? 'xxl' : ''; }
+	/* .class rules (with :hover / :focus / :active and max-width media queries) from <style> blocks. */
+	function cssToClasses( cssText ) {
+		var out = {}, sheet;
+		try { sheet = new CSSStyleSheet(); sheet.replaceSync( cssText ); } catch ( e ) { return out; }
+		function take( rules, bp ) {
+			[].forEach.call( rules, function ( r ) {
+				if ( r.cssRules && r.media ) {
+					var m = /max-width:\s*([\d.]+)px/.exec( r.conditionText || r.media.mediaText || '' );
+					var b = m ? bpForWidth( parseFloat( m[ 1 ] ) ) : '';
+					if ( b ) { take( r.cssRules, b ); }
+					return;
+				}
+				if ( ! r.selectorText || ! r.style ) { return; }
+				r.selectorText.split( ',' ).forEach( function ( sel ) {
+					var mm = /^\s*\.([a-zA-Z_-][a-zA-Z0-9_-]*)(:(hover|focus|active|focus-visible))?\s*$/.exec( sel );
+					if ( ! mm ) { return; }
+					var name = '.' + mm[ 1 ], key = bp + ( mm[ 3 ] ? ':' + mm[ 3 ] : '' ), rl = declsToRules( r.style );
+					if ( ! Object.keys( rl ).length ) { return; }
+					out[ name ] = out[ name ] || { base:{} };
+					out[ name ][ key ] = Object.assign( out[ name ][ key ] || {}, rl );
+				} );
+			} );
+		}
+		take( sheet.cssRules, 'base' );
+		return out;
+	}
+	var INLINE_OK = { B:1, STRONG:1, I:1, EM:1, U:1, S:1, A:1, BR:1, SPAN:1, SMALL:1, SUB:1, SUP:1, CODE:1, MARK:1, LI:1, UL:1, OL:1, TABLE:1, THEAD:1, TBODY:1, TR:1, TH:1, TD:1, P:1 };
+	function safeHref( h ) { h = String( h || '' ).trim(); return /^(https?:|mailto:|tel:|#|\/)/i.test( h ) ? h : ''; }
+	/* Inner HTML with only simple formatting and links kept. */
+	function cleanInline( el ) {
+		var box = el.cloneNode( true );
+		( function walk( n ) {
+			[].slice.call( n.childNodes ).forEach( function ( c ) {
+				if ( 1 !== c.nodeType ) { if ( 8 === c.nodeType ) { c.remove(); } return; }
+				walk( c );
+				if ( ! INLINE_OK[ c.tagName ] ) {
+					if ( /^(SCRIPT|STYLE|IFRAME|OBJECT|EMBED|SVG|TEMPLATE|NOSCRIPT)$/.test( c.tagName ) ) { c.remove(); return; }
+					while ( c.firstChild ) { c.parentNode.insertBefore( c.firstChild, c ); }
+					c.remove(); return;
+				}
+				var href = 'A' === c.tagName ? safeHref( c.getAttribute( 'href' ) ) : '';
+				[].slice.call( c.attributes ).forEach( function ( a ) { c.removeAttribute( a.name ); } );
+				if ( href ) { c.setAttribute( 'href', href ); }
+			} );
+		}( box ) );
+		return box.innerHTML.replace( /\s+/g, ' ' ).trim();
+	}
+	var BLOCK = /^(SECTION|HEADER|FOOTER|MAIN|ARTICLE|ASIDE|NAV|DIV|FIGURE|FORM|H[1-6]|P|UL|OL|BLOCKQUOTE|IMG|PICTURE|VIDEO|IFRAME|HR|TABLE|BUTTON|PRE)$/;
+	function htmlToElements( html ) {
+		var doc;
+		try { doc = new DOMParser().parseFromString( html, 'text/html' ); } catch ( e ) { return null; }
+		var classes = {}, content = {}, used = {}, count = 0, LIMIT = 400;
+		var sheetCss = [].map.call( doc.querySelectorAll( 'style' ), function ( st ) { return st.textContent; } ).join( '\n' );
+		var fromCss = sheetCss ? cssToClasses( sheetCss ) : {};
+		function make( key, extra ) {
+			var c = catDef( key ) || catDef( 'div' ), id = uid( key );
+			if ( c.cls && ! classes[ c.cls ] ) { classes[ c.cls ] = { base:Object.assign( {}, c.rules || {} ) }; }
+			count++;
+			return Object.assign( { id:id, el:c.el, tag:c.tag, classes:c.cls ? [ c.cls ] : [], overrides:{}, children:[] }, extra || {} );
+		}
+		function styleOf( src, n ) {
+			( src.getAttribute( 'class' ) || '' ).split( /\s+/ ).forEach( function ( c ) {
+				if ( c && fromCss[ '.' + c ] ) { var nm = '.' + c; classes[ nm ] = fromCss[ nm ]; used[ nm ] = 1; if ( n.classes.indexOf( nm ) < 0 ) { n.classes.push( nm ); } }
+			} );
+			if ( src.getAttribute( 'style' ) ) { var rl = declsToRules( src.style ); if ( Object.keys( rl ).length ) { n.overrides = { base:rl }; } }
+			return n;
+		}
+		function videoUrl( src ) {
+			var y = /(?:youtube(?:-nocookie)?\.com\/embed\/|youtu\.be\/)([\w-]{6,})/.exec( src ), v = /player\.vimeo\.com\/video\/(\d+)/.exec( src );
+			return y ? 'https://www.youtube.com/watch?v=' + y[ 1 ] : v ? 'https://vimeo.com/' + v[ 1 ] : ( /^https?:\/\/\S+\.(mp4|webm)(\?|$)/i.test( src ) ? src : '' );
+		}
+		function textNode( tag, htmlIn, src ) {
+			var n = make( 'text' ); n.tag = tag; content[ n.id ] = htmlIn;
+			return src ? styleOf( src, n ) : n;
+		}
+		function convert( el, depth ) {
+			if ( count >= LIMIT ) { return []; }
+			var t = el.tagName, n;
+			if ( /^H[1-6]$/.test( t ) ) { n = make( 'heading' ); n.tag = t.toLowerCase(); content[ n.id ] = cleanInline( el ); return [ styleOf( el, n ) ]; }
+			if ( 'P' === t || 'BLOCKQUOTE' === t || 'PRE' === t ) { var h = cleanInline( el ); return h ? [ textNode( 'P' === t ? 'p' : ( 'PRE' === t ? 'p' : 'blockquote' ), h, el ) ] : []; }
+			if ( 'UL' === t || 'OL' === t ) { n = make( 'list' ); n.tag = t.toLowerCase(); content[ n.id ] = cleanInline( el ); return [ styleOf( el, n ) ]; }
+			if ( 'TABLE' === t ) { return [ textNode( 'div', '<table>' + cleanInline( el ) + '</table>', el ) ]; }
+			if ( 'HR' === t ) { return [ make( 'divider' ) ]; }
+			if ( 'IMG' === t || 'PICTURE' === t ) {
+				var img = 'IMG' === t ? el : el.querySelector( 'img' ), src = img ? ( img.getAttribute( 'src' ) || '' ) : '';
+				if ( ! /^https?:\/\//i.test( src ) ) { return []; }
+				n = make( 'image', { alt:( img.getAttribute( 'alt' ) || '' ).slice( 0, 300 ) } ); content[ n.id ] = src; return [ styleOf( el, n ) ];
+			}
+			if ( 'IFRAME' === t || 'VIDEO' === t ) {
+				var vs = el.getAttribute( 'src' ) || ( el.querySelector( 'source' ) || { getAttribute:function () { return ''; } } ).getAttribute( 'src' ) || '';
+				var vu = videoUrl( vs ); if ( ! vu ) { return []; }
+				n = make( 'video', { settings:{ url:vu } } ); return [ styleOf( el, n ) ];
+			}
+			if ( 'BUTTON' === t || ( 'A' === t && /btn|button/i.test( ( el.getAttribute( 'class' ) || '' ) + ' ' + ( el.getAttribute( 'role' ) || '' ) ) ) ) {
+				n = make( 'button', { href:safeHref( el.getAttribute( 'href' ) ) || '#' } ); content[ n.id ] = el.textContent.replace( /\s+/g, ' ' ).trim() || T( 'Button' ); return [ styleOf( el, n ) ];
+			}
+			var kids = [].slice.call( el.children ).filter( function ( c ) { return BLOCK.test( c.tagName ) || ( 'A' === c.tagName && /btn|button/i.test( c.getAttribute( 'class' ) || '' ) ); } );
+			if ( ! kids.length ) {
+				var inner = cleanInline( el );
+				return inner ? [ textNode( 'p', inner, el ) ] : [];
+			}
+			// A container: section at the top level, div inside.
+			var isSec = 0 === depth && /^(SECTION|HEADER|FOOTER|MAIN|ARTICLE|ASIDE|NAV)$/.test( t );
+			n = make( isSec ? 'section' : 'div' );
+			var tg = t.toLowerCase(); if ( /^(section|header|footer|main|article|aside|nav|figure)$/.test( tg ) ) { n.tag = isSec || 'figure' !== tg ? tg : 'figure'; }
+			n.children = blockChildren( el, depth + 1 );
+			return [ styleOf( el, n ) ];
+		}
+		/* Children in order; loose text and inline runs become text paragraphs. */
+		function blockChildren( parent, depth ) {
+			var out = [], run = document.createElement( 'div' );
+			function flush() { var h = cleanInline( run ); if ( h ) { out.push( textNode( 'p', h ) ); } run = document.createElement( 'div' ); }
+			[].slice.call( parent.childNodes ).forEach( function ( c ) {
+				if ( 1 === c.nodeType && ( BLOCK.test( c.tagName ) || ( 'A' === c.tagName && /btn|button/i.test( c.getAttribute( 'class' ) || '' ) ) ) ) { flush(); out = out.concat( convert( c, depth ) ); }
+				else if ( 1 === c.nodeType && /^(SCRIPT|STYLE|META|LINK|TITLE|NOSCRIPT|TEMPLATE|SVG|INPUT|SELECT|TEXTAREA)$/.test( c.tagName ) ) { /* skip */ }
+				else { run.appendChild( c.cloneNode( true ) ); }
+			} );
+			flush();
+			return out;
+		}
+		var nodes = blockChildren( doc.body, 0 );
+		// One lonely paragraph of plain words reads better as one text element.
+		Object.keys( fromCss ).forEach( function ( c ) { if ( ! used[ c ] ) { delete classes[ c ]; } } );
+		return { nodes:nodes, content:content, classes:classes };
+	}
+	function textToElements( txt ) {
+		var paras = String( txt ).replace( /\r/g, '' ).split( /\n\s*\n/ ).map( function ( p ) { return p.trim(); } ).filter( Boolean ).slice( 0, 200 );
+		var c = catDef( 'text' ), classes = {}, content = {};
+		classes[ c.cls ] = { base:Object.assign( {}, c.rules || {} ) };
+		var nodes = paras.map( function ( p ) {
+			var id = uid( 'text' ); content[ id ] = escapeHtml( p ).replace( /\n/g, '<br>' );
+			return { id:id, el:c.el, tag:'p', classes:[ c.cls ], overrides:{}, children:[] };
+		} );
+		return { nodes:nodes, content:content, classes:classes };
 	}
 	function showContextMenu( x, y, id ) {
 		closeContextMenu();
