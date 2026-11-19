@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.51.1 — Several keys per shortcut
+- **Keyboard shortcuts:** every key combination is its own chip with its own × — remove one and keep the others. "+ Add keys" gives an action another combination (up to four). Shortcuts changed in 4.51.0 carry over.
+
 ## 4.51.0 — Your own keyboard shortcuts
 - **Velox Builder → Keyboard shortcuts:** every editor shortcut in one list (save, publish, undo/redo, copy/paste, duplicate, delete, styles, selecting, moving, panels, zoom, search). Click one and press the keys you want; reset one or all to the defaults.
 - **It tells you what you are replacing:** a key the browser normally uses says so ("Ctrl+S normally saves the web page as a file — in the editor Velox uses it instead"). Keys the browser keeps for itself (Ctrl+W, Ctrl+T, Ctrl+N, Ctrl+Tab, Alt+F4, F11 …) are refused with the reason.

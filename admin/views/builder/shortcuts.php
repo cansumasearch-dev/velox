@@ -15,7 +15,7 @@ $vk_brow  = Velox_Builder::browser_keys();
 <div class="vba-shell vba-keys">
 	<header class="vba-head">
 		<div><h1><?php esc_html_e( 'Keyboard shortcuts', 'velox' ); ?></h1>
-		<p><?php esc_html_e( 'The keys the editor listens to. Click a shortcut and press the keys you want instead.', 'velox' ); ?></p></div>
+		<p><?php esc_html_e( 'The keys the editor listens to. An action can have several: add keys, or remove one with its ×.', 'velox' ); ?></p></div>
 		<div class="vba-head-actions">
 			<button type="button" class="vba-btn vba-btn-ghost" id="vk-reset-all"><?php esc_html_e( 'Reset all', 'velox' ); ?></button>
 			<button type="button" class="vba-btn vba-btn-primary" id="vk-save"><?php esc_html_e( 'Save changes', 'velox' ); ?></button>
@@ -53,7 +53,12 @@ $vk_brow  = Velox_Builder::browser_keys();
 .vba-keys .vk-caps{display:inline-flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
 .vba-keys kbd{display:inline-flex;align-items:center;min-height:26px;padding:3px 9px;border-radius:7px;border:1px solid var(--vbb-line-2);border-bottom-width:2px;background:var(--vbb-raised);color:var(--vbb-text);font:500 12px/1 var(--vbb-mono);white-space:nowrap}
 .vba-keys kbd.is-off{color:var(--vbb-text-3)}
-.vba-keys .vk-rec{min-width:170px;justify-content:center}
+.vba-keys .vk-rec{min-width:150px;justify-content:center}
+.vba-keys .vk-rec[disabled]{opacity:.45;cursor:default}
+.vba-keys .vk-chip{display:inline-flex;align-items:center}
+.vba-keys .vk-chip kbd{border-top-right-radius:0;border-bottom-right-radius:0;border-right:0}
+.vba-keys .vk-x{display:inline-grid;place-items:center;min-height:26px;width:24px;padding:0;border:1px solid var(--vbb-line-2);border-bottom-width:2px;border-radius:0 7px 7px 0;background:var(--vbb-raised);color:var(--vbb-text-3);font:600 14px/1 var(--vbb-font);cursor:pointer}
+.vba-keys .vk-x:hover{background:rgba(245,106,92,.16);color:var(--vbb-red);border-color:rgba(245,106,92,.4)}
 .vba-keys .vk-rec.is-rec{border-color:var(--vbb-accent);color:var(--vbb-accent);box-shadow:0 0 0 3px var(--vbb-accent-soft)}
 .vba-keys .vk-mini{background:none;border:0;padding:6px;border-radius:6px;color:var(--vbb-text-3);cursor:pointer;font:inherit;font-size:12px}
 .vba-keys .vk-mini:hover{background:var(--vbb-raised-2);color:var(--vbb-text)}
@@ -67,11 +72,12 @@ $vk_brow  = Velox_Builder::browser_keys();
 	var FIXED = <?php echo wp_json_encode( $vk_fixed ); ?>;
 	var BROWSER = <?php echo wp_json_encode( $vk_brow ); ?>;
 	var T = <?php echo wp_json_encode( array(
-		'change'   => __( 'Change', 'velox' ),
+		'add'      => __( 'Set keys', 'velox' ),
+		'addMore'  => __( '+ Add keys', 'velox' ),
+		'removeOne'=> __( 'Remove', 'velox' ),
 		'press'    => __( 'Press the keys… (Esc cancels)', 'velox' ),
 		'none'     => __( 'No shortcut', 'velox' ),
 		'default'  => __( 'Default', 'velox' ),
-		'remove'   => __( 'Remove', 'velox' ),
 		'changed'  => __( 'Changed from the default', 'velox' ),
 		'usually'  => __( 'In the browser this usually %s. In the editor Velox uses it instead.', 'velox' ),
 		'blocked'  => __( 'Your browser keeps this one for itself (it %s), so the editor never gets it. Choose other keys.', 'velox' ),
@@ -92,7 +98,7 @@ $vk_brow  = Velox_Builder::browser_keys();
 	function esc( s ) { var d = document.createElement( 'div' ); d.textContent = String( s == null ? '' : s ); return d.innerHTML; }
 	function fmt( s, a ) { return String( s ).replace( '%s', a ); }
 	function combos( id ) {
-		if ( Object.prototype.hasOwnProperty.call( user, id ) ) { return user[ id ] ? [ user[ id ] ] : []; }
+		if ( Object.prototype.hasOwnProperty.call( user, id ) ) { return [].concat( user[ id ] || [] ).filter( Boolean ); }
 		var d = DEFS.filter( function ( x ) { return x.id === id; } )[ 0 ];
 		return d ? d.keys : [];
 	}
@@ -142,12 +148,14 @@ $vk_brow  = Velox_Builder::browser_keys();
 	}
 	function rowHTML( d ) {
 		var ks = combos( d.id ), rec = recFor === d.id;
-		var caps = rec ? '' : ( ks.length ? ks.map( function ( c ) { return '<kbd>' + esc( label( c ) ) + '</kbd>'; } ).join( '' ) : '<kbd class="is-off">' + esc( T.none ) + '</kbd>' );
+		// Each key combination is its own chip with its own ×.
+		var caps = ks.length ? ks.map( function ( c ) {
+			return '<span class="vk-chip"><kbd>' + esc( label( c ) ) + '</kbd><button type="button" class="vk-x" data-vk-del="' + esc( d.id ) + '" data-vk-combo="' + esc( c ) + '" title="' + esc( T.removeOne ) + ' ' + esc( label( c ) ) + '" aria-label="' + esc( T.removeOne ) + ' ' + esc( label( c ) ) + '">×</button></span>';
+		} ).join( '' ) : '<kbd class="is-off">' + esc( T.none ) + '</kbd>';
 		return '<div class="vba-setting vk-row" id="key-' + esc( d.id ) + '" data-vk-row="' + esc( d.id ) + '" data-vk-find="' + esc( ( d.l + ' ' + d.g + ' ' + ks.map( label ).join( ' ' ) ).toLowerCase() ) + '">' +
 			'<div class="vba-setting-tx"><b>' + esc( d.l ) + ( isDefault( d.id ) ? '' : '<span class="vk-dot" title="' + esc( T.changed ) + '"></span>' ) + '</b>' + notes( d.id ) + '</div>' +
 			'<div class="vk-ctrl"><span class="vk-caps">' + caps + '</span>' +
-				'<button type="button" class="vba-btn vba-btn-ghost vba-btn-sm vk-rec' + ( rec ? ' is-rec' : '' ) + '" data-vk-rec="' + esc( d.id ) + '">' + esc( rec ? T.press : T.change ) + '</button>' +
-				( ks.length ? '<button type="button" class="vk-mini" data-vk-clear="' + esc( d.id ) + '">' + esc( T.remove ) + '</button>' : '' ) +
+				'<button type="button" class="vba-btn vba-btn-ghost vba-btn-sm vk-rec' + ( rec ? ' is-rec' : '' ) + '" data-vk-rec="' + esc( d.id ) + '"' + ( ks.length >= 4 && ! rec ? ' disabled' : '' ) + '>' + esc( rec ? T.press : ( ks.length ? T.addMore : T.add ) ) + '</button>' +
 				( isDefault( d.id ) ? '' : '<button type="button" class="vk-mini" data-vk-def="' + esc( d.id ) + '">' + esc( T.default ) + '</button>' ) +
 			'</div></div>';
 	}
@@ -171,11 +179,20 @@ $vk_brow  = Velox_Builder::browser_keys();
 		} );
 		[].forEach.call( list.querySelectorAll( '.vba-card' ), function ( c ) { c.style.display = c.querySelector( '.vk-row:not(.is-hidden)' ) ? '' : 'none'; } );
 	}
-	function set( id, combo ) { user[ id ] = combo; dirty = true; render(); }
+	function set( id, list ) {
+		var d = DEFS.filter( function ( x ) { return x.id === id; } )[ 0 ];
+		if ( d && JSON.stringify( list ) === JSON.stringify( d.keys ) ) { delete user[ id ]; } else { user[ id ] = list; }
+		dirty = true; render();
+	}
 	list.addEventListener( 'click', function ( e ) {
 		var r = e.target.closest( '[data-vk-rec]' );
 		if ( r ) { recFor = recFor === r.getAttribute( 'data-vk-rec' ) ? null : r.getAttribute( 'data-vk-rec' ); render(); var b = list.querySelector( '.vk-rec.is-rec' ); if ( b ) { b.focus(); } return; }
-		var c = e.target.closest( '[data-vk-clear]' ); if ( c ) { set( c.getAttribute( 'data-vk-clear' ), '' ); return; }
+		var x = e.target.closest( '[data-vk-del]' );
+		if ( x ) {
+			var xid = x.getAttribute( 'data-vk-del' ), xc = x.getAttribute( 'data-vk-combo' );
+			set( xid, combos( xid ).filter( function ( c ) { return c !== xc; } ) );
+			return;
+		}
 		var df = e.target.closest( '[data-vk-def]' ); if ( df ) { delete user[ df.getAttribute( 'data-vk-def' ) ]; dirty = true; render(); return; }
 		var go = e.target.closest( '[data-vk-go]' );
 		if ( go ) {
@@ -191,9 +208,10 @@ $vk_brow  = Velox_Builder::browser_keys();
 		if ( 'Escape' === e.key ) { recFor = null; render(); return; }
 		var c = comboOf( e ); if ( ! c ) { return; }
 		var id = recFor; recFor = null;
-		var d = DEFS.filter( function ( x ) { return x.id === id; } )[ 0 ];
-		if ( d && 1 === d.keys.length && d.keys[ 0 ] === c ) { delete user[ id ]; dirty = true; render(); return; }
-		set( id, c );
+		// The new keys are added to the ones the action already has.
+		var now = combos( id );
+		if ( now.indexOf( c ) > -1 ) { render(); return; }
+		set( id, now.concat( [ c ] ) );
 	}, true );
 	find.addEventListener( 'input', filter );
 	function api( action, fields ) {

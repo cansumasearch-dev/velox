@@ -4219,7 +4219,7 @@
 	var KM = CFG.keymap || { defs:[], user:{}, fixed:[] };
 	function kmCombos( id ) {
 		var u = KM.user || {};
-		if ( Object.prototype.hasOwnProperty.call( u, id ) ) { return u[ id ] ? [ u[ id ] ] : []; }
+		if ( Object.prototype.hasOwnProperty.call( u, id ) ) { return [].concat( u[ id ] || [] ).filter( Boolean ); }
 		var d = ( KM.defs || [] ).filter( function ( x ) { return x.id === id; } )[ 0 ];
 		return d ? d.keys : [];
 	}

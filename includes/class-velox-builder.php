@@ -1773,10 +1773,16 @@ class Velox_Builder {
 		return $k;
 	}
 
-	/** The site's changes to the shortcuts. */
+	/** The site's changes to the shortcuts: { action id: [ "Mod+S", … ] } ([] = none). */
 	public static function shortcut_user() {
 		$o = get_option( self::OPT_KEYS, array() );
-		return is_array( $o ) ? $o : array();
+		if ( ! is_array( $o ) ) {
+			return array();
+		}
+		foreach ( $o as $id => $v ) {
+			$o[ $id ] = array_values( array_filter( (array) $v, 'strlen' ) ); // 4.51 stored one string
+		}
+		return $o;
 	}
 
 	/** One key combination as Velox writes it ("Mod+Alt+Shift+K"), or '' when it isn't one. */
@@ -1801,18 +1807,21 @@ class Velox_Builder {
 			if ( ! array_key_exists( $d['id'], $in ) ) {
 				continue;
 			}
-			$raw = (string) $in[ $d['id'] ];
-			$c   = self::clean_combo( $raw );
-			if ( '' !== $raw && '' === $c ) {
-				continue; // not a key combination: keep the default
+			// An action can have several key combinations ([] = none). A single
+			// string from 4.51 still counts as one.
+			$list = array();
+			foreach ( (array) $in[ $d['id'] ] as $raw ) {
+				$c = self::clean_combo( (string) $raw );
+				if ( '' === $c || ( isset( $keep[ $c ] ) && $keep[ $c ][1] ) || in_array( $c, $list, true ) ) {
+					continue; // not a key combination, kept by the browser, or twice
+				}
+				$list[] = $c;
 			}
-			if ( '' !== $c && isset( $keep[ $c ] ) && $keep[ $c ][1] ) {
-				continue; // the browser keeps this one
+			$list = array_slice( $list, 0, 4 );
+			if ( $list === $d['keys'] ) {
+				continue; // the same as the default
 			}
-			if ( '' !== $c && $c === $d['keys'][0] && 1 === count( $d['keys'] ) ) {
-				continue; // same as the default
-			}
-			$out[ $d['id'] ] = $c;
+			$out[ $d['id'] ] = $list;
 		}
 		update_option( self::OPT_KEYS, $out, false );
 		wp_send_json_success( array( 'keys' => $out ) );

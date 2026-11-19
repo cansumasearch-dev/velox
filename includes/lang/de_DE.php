@@ -4888,4 +4888,8 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Copy a style first.' => 'Kopieren Sie zuerst einen Stil.',
 	// Velox Builder 4.49 — page and editor match
 	'Ctrl' => 'Strg',
+	// Velox Builder 4.49 — page and editor match
+	'The keys the editor listens to. An action can have several: add keys, or remove one with its ×.' => 'Die Tasten, auf die der Editor hört. Eine Aktion kann mehrere haben: Tasten hinzufügen oder einzelne mit ihrem × entfernen.',
+	'Set keys' => 'Tasten festlegen',
+	'+ Add keys' => '+ Tasten hinzufügen',
 );
