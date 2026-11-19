@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.47.0 — Velox Builder: drag spacing on the canvas
+- **Spacing handles on the canvas.** Point at the selected element and its padding shows as blue bands and its margin as amber bands, each side with a handle. Drag a handle to change that side; the page updates live and a label shows the value.
+  - **Shift** changes all four sides, **Alt** the opposite side as well. **Esc** cancels the drag.
+  - The change goes to whatever the style panel is styling (the class or the ID, at the current screen size and state) and is one undo step. Locked classes and locked elements stay untouched.
+  - Can be switched off under Settings → Editor settings → "Spacing handles on the canvas".
+
 ## 4.46.0 — Motion: nothing snaps open any more
 - **Every accordion, collapsible group and expandable card in Velox opens and closes with a short, smooth height animation**: style panel sections, Settings sections, Add element groups, Global styles, and every admin screen (Mail, Forms, SEO, Style editor groups and the rest). It is one shared layer, so anything added later animates too.
 - **Structure:** an unfolding branch slides its rows in; a folding branch folds away.

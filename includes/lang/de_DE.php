@@ -4411,4 +4411,7 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'only this element changes.' => 'nur dieses Element ändert sich.',
 	'only this element' => 'nur dieses Element',
 	'to close' => 'zum Schließen',
+	// Velox Builder 4.47
+	'Spacing handles on the canvas' => 'Abstands-Griffe auf der Arbeitsfläche',
+	'drag · Shift all sides · Alt both sides' => 'ziehen · Umschalt alle Seiten · Alt beide Seiten',
 );

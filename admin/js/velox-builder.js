@@ -888,6 +888,7 @@
 			doc.addEventListener( 'copy', onNativeCopy );
 			doc.addEventListener( 'paste', onNativePaste );
 			wireCanvasDocDrag( doc );
+			wireSpaceHandles( doc );
 			doc.addEventListener( 'click', function ( e ) {
 				// The click that ends a drag is not a selection.
 				if ( dndSuppress ) { e.preventDefault(); e.stopPropagation(); dndSuppress = false; return; }
@@ -900,7 +901,7 @@
 					else if ( 'del' === act && sid ) { deleteNode( sid ); }
 					return;
 				}
-				if ( e.target.closest && e.target.closest( '#vb-selbadge' ) ) { return; }
+				if ( e.target.closest && e.target.closest( '#vb-selbadge,#vb-space' ) ) { return; }
 				if ( e.target.isContentEditable ) { return; }
 				var ecb = e.target.closest ? e.target.closest( '[data-ec-add],[data-ec-insert],[data-oxy-import],[data-oxy-pick]' ) : null;
 				if ( ecb ) {
@@ -4380,7 +4381,7 @@
 	 * local preferences; global styles are site-wide and stay on their own admin
 	 * screen rather than being crammed into a 380px panel. */
 	var setShown = false, setView = 'root';
-	var editorPrefs = { indicateParents:true, classLimit:'5', info:'bottom', infoSize:true, infoWidth:true, infoZoom:true, infoPath:true, infoHint:false };
+	var editorPrefs = { indicateParents:true, spaceHandles:true, classLimit:'5', info:'bottom', infoSize:true, infoWidth:true, infoZoom:true, infoPath:true, infoHint:false };
 	try {
 		var _ep = JSON.parse( window.localStorage.getItem( 'velox_builder_editorprefs' ) || 'null' );
 		if ( _ep ) { editorPrefs = Object.assign( editorPrefs, _ep ); }
@@ -5331,6 +5332,7 @@
 		} else {
 			body = crumb( T( 'Editor settings' ) ) + '<div class="vb-set-body">' +
 				'<label class="vb-set-check"><input type="checkbox" data-setpref="indicateParents"' + ( editorPrefs.indicateParents ? ' checked' : '' ) + '><span>' + T( 'Indicate parent elements on hover' ) + '</span></label>' +
+				'<label class="vb-set-check"><input type="checkbox" data-setpref="spaceHandles"' + ( false !== editorPrefs.spaceHandles ? ' checked' : '' ) + '><span>' + T( 'Spacing handles on the canvas' ) + '</span></label>' +
 				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Canvas info bar' ) + '</div><select class="vb-inp" data-setpref="info">' +
 					[ [ 'bottom', T( 'Below the page' ) ], [ 'top', T( 'Above the page' ) ], [ 'off', T( 'Hidden' ) ] ].map( function ( o ) { return '<option value="' + o[ 0 ] + '"' + ( ( editorPrefs.info || 'bottom' ) === o[ 0 ] ? ' selected' : '' ) + '>' + o[ 1 ] + '</option>'; } ).join( '' ) +
 				'</select></div>' +
@@ -7440,7 +7442,167 @@
 	/* The badge lives on <html>, outside <body>, so redrawing the page never
 	 * wipes it. The canvas is scaled to fit; the badge is scaled back so its
 	 * text stays readable at any zoom. */
+	/* ================= spacing handles on the canvas =================
+	 * The selected element shows its padding (blue) and margin (amber) as
+	 * shaded bands when you point at it, with a handle on each side. Drag a
+	 * handle to change that side: Shift changes all four sides, Alt the side
+	 * opposite too. The page updates live while you drag and the change is
+	 * written once, to whatever the style panel is styling (class or ID, the
+	 * current screen size and state), so it is one undo step. */
+	var SPACE_SIDES = [ 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'marginTop', 'marginRight', 'marginBottom', 'marginLeft' ];
+	var spaceDrag = null;
+	function spaceCss( doc ) {
+		if ( doc.getElementById( 'vb-space-css' ) ) { return; }
+		var st = doc.createElement( 'style' ); st.id = 'vb-space-css';
+		st.textContent = '#vb-space{position:absolute;left:0;top:0;width:0;height:0;z-index:2147483645;pointer-events:none}' +
+			'#vb-space .vbs-r{position:absolute;opacity:0;transition:opacity .12s ease}' +
+			'#vb-space .vbs-p{background:repeating-linear-gradient(135deg,rgba(42,183,241,.20) 0 4px,rgba(42,183,241,.08) 4px 8px)}' +
+			'#vb-space .vbs-m{background:repeating-linear-gradient(135deg,rgba(245,167,66,.22) 0 4px,rgba(245,167,66,.08) 4px 8px)}' +
+			'#vb-space .vbs-h{position:absolute;pointer-events:auto;opacity:0;border-radius:99px;box-shadow:0 0 0 1.5px #fff,0 1px 3px rgba(0,0,0,.35);transition:opacity .12s ease,transform .12s ease}' +
+			'#vb-space .vbs-h.p{background:#2ab7f1}#vb-space .vbs-h.m{background:#f5a742}' +
+			'#vb-space .vbs-h.y{cursor:ns-resize}#vb-space .vbs-h.x{cursor:ew-resize}' +
+			'#vb-space.hot .vbs-r,#vb-space.drag .vbs-r{opacity:1}#vb-space.hot .vbs-h{opacity:1}' +
+			'#vb-space.drag .vbs-h{opacity:0}#vb-space.drag .vbs-h.on{opacity:1}' +
+			'#vb-space .vbs-tip{position:absolute;display:none;padding:3px 7px;border-radius:6px;background:#0f1115;color:#fff;font:600 11px/1.3 ui-monospace,Menlo,monospace;white-space:nowrap;transform-origin:left top;box-shadow:0 4px 14px rgba(0,0,0,.35)}' +
+			'#vb-space.drag .vbs-tip{display:block}' +
+			'html.vbs-dragging,html.vbs-dragging *{cursor:inherit!important;user-select:none!important}';
+		( doc.head || doc.documentElement ).appendChild( st );
+	}
+	function spaceLabel( prop ) {
+		return ( 0 === prop.indexOf( 'padding' ) ? T( 'Padding' ) : T( 'Margin' ) ) + ' ' + T( prop.replace( /^(padding|margin)/, '' ).toLowerCase() );
+	}
+	function positionSpace() {
+		var fr = document.getElementById( 'vb-canvas' ), doc = fr && fr.contentDocument;
+		if ( ! doc || ! doc.documentElement || ! store.state ) { return; }
+		var box = doc.getElementById( 'vb-space' );
+		var id = store.state.selection, el = id ? doc.getElementById( id ) : null;
+		var off = ! el || editing || dnd || multi.length || false === editorPrefs.spaceHandles || 'client' === ( CFG.access || {} ).level;
+		if ( off ) { if ( box ) { box.style.display = 'none'; box.classList.remove( 'hot' ); } return; }
+		spaceCss( doc );
+		if ( ! box ) {
+			box = doc.createElement( 'div' ); box.id = 'vb-space'; box.setAttribute( 'contenteditable', 'false' ); box.setAttribute( 'aria-hidden', 'true' );
+			box.innerHTML = SPACE_SIDES.map( function ( pr ) { return '<div class="vbs-r ' + ( 0 === pr.indexOf( 'padding' ) ? 'vbs-p' : 'vbs-m' ) + '" data-r="' + pr + '"></div>'; } ).join( '' ) +
+				SPACE_SIDES.map( function ( pr ) { return '<div class="vbs-h ' + ( 0 === pr.indexOf( 'padding' ) ? 'p' : 'm' ) + ' ' + ( /Top|Bottom/.test( pr ) ? 'y' : 'x' ) + '" data-space="' + pr + '" title="' + escapeHtml( spaceLabel( pr ) + ' · ' + T( 'drag · Shift all sides · Alt both sides' ) ) + '"></div>'; } ).join( '' ) +
+				'<div class="vbs-tip"></div>';
+			doc.documentElement.appendChild( box );
+		}
+		box.style.display = 'block';
+		var win = doc.defaultView, cs = win.getComputedStyle( el ), r = el.getBoundingClientRect(), sx = win.scrollX, sy = win.scrollY;
+		var v = {}; SPACE_SIDES.forEach( function ( pr ) { v[ pr ] = parseFloat( cs[ pr ] ) || 0; } );
+		var bt = parseFloat( cs.borderTopWidth ) || 0, br = parseFloat( cs.borderRightWidth ) || 0, bb = parseFloat( cs.borderBottomWidth ) || 0, bl = parseFloat( cs.borderLeftWidth ) || 0;
+		var L = r.left + sx, Tp = r.top + sy, W = r.width, H = r.height;
+		var iL = L + bl, iT = Tp + bt, iW = W - bl - br, iH = H - bt - bb;
+		function place( sel, x, y, w, h ) { var n = box.querySelector( sel ); if ( n ) { n.style.left = x + 'px'; n.style.top = y + 'px'; n.style.width = Math.max( 0, w ) + 'px'; n.style.height = Math.max( 0, h ) + 'px'; } }
+		place( '[data-r="paddingTop"]', iL, iT, iW, v.paddingTop );
+		place( '[data-r="paddingBottom"]', iL, iT + iH - v.paddingBottom, iW, v.paddingBottom );
+		place( '[data-r="paddingLeft"]', iL, iT + v.paddingTop, v.paddingLeft, iH - v.paddingTop - v.paddingBottom );
+		place( '[data-r="paddingRight"]', iL + iW - v.paddingRight, iT + v.paddingTop, v.paddingRight, iH - v.paddingTop - v.paddingBottom );
+		place( '[data-r="marginTop"]', L, Tp - Math.max( 0, v.marginTop ), W, Math.max( 0, v.marginTop ) );
+		place( '[data-r="marginBottom"]', L, Tp + H, W, Math.max( 0, v.marginBottom ) );
+		place( '[data-r="marginLeft"]', L - Math.max( 0, v.marginLeft ), Tp, Math.max( 0, v.marginLeft ), H );
+		place( '[data-r="marginRight"]', L + W, Tp, Math.max( 0, v.marginRight ), H );
+		// Handles keep the same size on screen whatever the canvas zoom.
+		var k = canvasScale > 0 ? 1 / canvasScale : 1, hl = 22 * k, hw = 5 * k;
+		function handle( pr, cx, cy ) {
+			var n = box.querySelector( '[data-space="' + pr + '"]' ); if ( ! n ) { return; }
+			var y = /Top|Bottom/.test( pr );
+			n.style.width = ( y ? hl : hw ) + 'px'; n.style.height = ( y ? hw : hl ) + 'px';
+			n.style.left = ( cx - ( y ? hl : hw ) / 2 ) + 'px'; n.style.top = ( cy - ( y ? hw : hl ) / 2 ) + 'px';
+		}
+		// Padding handles sit on the content edge, margin handles on the outer
+		// edge, a little off-centre so the two never cover each other.
+		handle( 'paddingTop', iL + iW / 2, iT + v.paddingTop );
+		handle( 'paddingBottom', iL + iW / 2, iT + iH - v.paddingBottom );
+		handle( 'paddingLeft', iL + v.paddingLeft, iT + iH / 2 );
+		handle( 'paddingRight', iL + iW - v.paddingRight, iT + iH / 2 );
+		handle( 'marginTop', L + W * 0.3, Tp - v.marginTop );
+		handle( 'marginBottom', L + W * 0.3, Tp + H + v.marginBottom );
+		handle( 'marginLeft', L - v.marginLeft, Tp + H * 0.3 );
+		handle( 'marginRight', L + W + v.marginRight, Tp + H * 0.3 );
+		box.__hit = { l:L - Math.max( 0, v.marginLeft ) - 12 * k, t:Tp - Math.max( 0, v.marginTop ) - 12 * k, r:L + W + Math.max( 0, v.marginRight ) + 12 * k, b:Tp + H + Math.max( 0, v.marginBottom ) + 12 * k };
+		box.__k = k;
+	}
+	/* Write several spacing sides at once, to what the style panel styles. */
+	function setSpacing( map ) {
+		var props = Object.keys( map ); if ( ! props.length || blockedByLock( props[ 0 ] ) ) { return; }
+		store.commit( function ( s ) {
+			var node = findNode( s.tree, s.selection ), key = ruleKey( s.breakpoint, s.state );
+			if ( ! node ) { return; }
+			props.forEach( function ( prop ) {
+				var value = map[ prop ];
+				if ( writesToElement( s, node, prop ) ) { node.overrides[ key ] = node.overrides[ key ] || {}; node.overrides[ key ][ prop ] = value; clearShadowed( node.overrides, key, prop ); }
+				else { var c = s.activeClass; s.classes[ c ] = s.classes[ c ] || {}; s.classes[ c ][ key ] = s.classes[ c ][ key ] || {}; s.classes[ c ][ key ][ prop ] = value; clearShadowed( s.classes[ c ], key, prop ); }
+			} );
+		}, T( 'Spacing' ) );
+	}
+	function wireSpaceHandles( doc ) {
+		var win = doc.defaultView;
+		doc.addEventListener( 'mousemove', function ( e ) {
+			var box = doc.getElementById( 'vb-space' ); if ( ! box || 'none' === box.style.display || spaceDrag ) { return; }
+			var h = box.__hit, x = e.clientX + win.scrollX, y = e.clientY + win.scrollY;
+			box.classList.toggle( 'hot', !! h && x >= h.l && x <= h.r && y >= h.t && y <= h.b );
+		}, { passive:true } );
+		doc.addEventListener( 'mouseleave', function () { var box = doc.getElementById( 'vb-space' ); if ( box && ! spaceDrag ) { box.classList.remove( 'hot' ); } } );
+		doc.addEventListener( 'pointerdown', function ( e ) {
+			var hd = e.target.closest ? e.target.closest( '#vb-space [data-space]' ) : null;
+			if ( ! hd || 0 !== e.button ) { return; }
+			e.preventDefault(); e.stopPropagation();
+			var id = store.state && store.state.selection, el = id ? doc.getElementById( id ) : null; if ( ! el ) { return; }
+			if ( lockedAt( id ) ) { sayLocked(); return; }
+			var prop = hd.getAttribute( 'data-space' ), cs = win.getComputedStyle( el ), box = doc.getElementById( 'vb-space' );
+			var start = {}; SPACE_SIDES.forEach( function ( pr ) { start[ pr ] = Math.round( parseFloat( cs[ pr ] ) || 0 ); } );
+			var OPP = { Top:'Bottom', Bottom:'Top', Left:'Right', Right:'Left' };
+			var kind = 0 === prop.indexOf( 'padding' ) ? 'padding' : 'margin', side = prop.slice( kind.length );
+			// Which way is "more": padding grows inward, margin outward.
+			var dir = { paddingTop:[ 0, 1 ], paddingBottom:[ 0, -1 ], paddingLeft:[ 1, 0 ], paddingRight:[ -1, 0 ], marginTop:[ 0, -1 ], marginBottom:[ 0, 1 ], marginLeft:[ -1, 0 ], marginRight:[ 1, 0 ] }[ prop ];
+			spaceDrag = { el:el, prop:prop, x:e.clientX, y:e.clientY, vals:null };
+			box.classList.add( 'drag' ); hd.classList.add( 'on' );
+			doc.documentElement.classList.add( 'vbs-dragging' ); doc.documentElement.style.cursor = /Top|Bottom/.test( prop ) ? 'ns-resize' : 'ew-resize';
+			try { hd.setPointerCapture( e.pointerId ); } catch ( err ) {}
+			var tip = box.querySelector( '.vbs-tip' );
+			function targets( ev ) {
+				if ( ev.shiftKey ) { return [ 'Top', 'Right', 'Bottom', 'Left' ].map( function ( sd ) { return kind + sd; } ); }
+				if ( ev.altKey ) { return [ prop, kind + OPP[ side ] ]; }
+				return [ prop ];
+			}
+			function mv( ev ) {
+				var d = ( ev.clientX - spaceDrag.x ) * dir[ 0 ] + ( ev.clientY - spaceDrag.y ) * dir[ 1 ];
+				var val = Math.round( start[ prop ] + d );
+				if ( 'padding' === kind ) { val = Math.max( 0, val ); }
+				var vals = {};
+				targets( ev ).forEach( function ( pr ) { vals[ pr ] = val; } );
+				SPACE_SIDES.forEach( function ( pr ) { if ( 0 === pr.indexOf( kind ) ) { el.style.removeProperty( CSS_PROP[ pr ] || pr ); } } );
+				Object.keys( vals ).forEach( function ( pr ) { el.style.setProperty( CSS_PROP[ pr ] || pr, vals[ pr ] + 'px', 'important' ); } );
+				spaceDrag.vals = vals;
+				positionSpace();
+				var k = box.__k || 1;
+				tip.textContent = ( ev.shiftKey ? T( kind === 'padding' ? 'Padding' : 'Margin' ) + ' · ' + T( 'all sides' ) : ( ev.altKey ? spaceLabel( prop ) + ' + ' + T( OPP[ side ].toLowerCase() ) : spaceLabel( prop ) ) ) + '  ' + val + 'px';
+				tip.style.transform = 'scale(' + k + ')';
+				tip.style.left = ( ev.clientX + win.scrollX + 14 * k ) + 'px'; tip.style.top = ( ev.clientY + win.scrollY + 14 * k ) + 'px';
+			}
+			function end( commit ) {
+				hd.removeEventListener( 'pointermove', mv ); hd.removeEventListener( 'pointerup', up ); hd.removeEventListener( 'pointercancel', cancel );
+				doc.removeEventListener( 'keydown', key, true ); document.removeEventListener( 'keydown', key, true );
+				SPACE_SIDES.forEach( function ( pr ) { el.style.removeProperty( CSS_PROP[ pr ] || pr ); } );
+				if ( ! el.getAttribute( 'style' ) ) { el.removeAttribute( 'style' ); }
+				box.classList.remove( 'drag' ); hd.classList.remove( 'on' );
+				doc.documentElement.classList.remove( 'vbs-dragging' ); doc.documentElement.style.cursor = '';
+				var vals = spaceDrag && spaceDrag.vals; spaceDrag = null;
+				if ( commit && vals ) {
+					var map = {}; Object.keys( vals ).forEach( function ( pr ) { map[ pr ] = vals[ pr ] + 'px'; } );
+					setSpacing( map );
+				}
+				positionSpace();
+			}
+			function up() { end( true ); }
+			function cancel() { end( false ); }
+			function key( ev ) { if ( 'Escape' === ev.key ) { ev.preventDefault(); ev.stopPropagation(); end( false ); } }
+			hd.addEventListener( 'pointermove', mv ); hd.addEventListener( 'pointerup', up ); hd.addEventListener( 'pointercancel', cancel );
+			doc.addEventListener( 'keydown', key, true ); document.addEventListener( 'keydown', key, true );
+		}, true );
+	}
 	function positionBadge() {
+		positionSpace();
 		var fr = document.getElementById( 'vb-canvas' ), doc = fr && fr.contentDocument;
 		if ( ! doc || ! doc.documentElement || ! store.state ) { return; }
 		var b = doc.getElementById( 'vb-selbadge' );
