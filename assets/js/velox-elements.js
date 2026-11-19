@@ -1010,6 +1010,184 @@
 	}
 	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', function () { initInteractions(); } ); } else { initInteractions(); }
 
+	/* ================= widgets =================
+	 * Counter, countdown, before/after, gallery lightbox, rotating text, flip
+	 * card (click), skill bars and the map's click-to-load. The markup already
+	 * shows the final state, so nothing is missing without this script. */
+	function whenSeen( els, fn ) {
+		if ( ! els.length ) { return; }
+		if ( ! ( 'IntersectionObserver' in window ) ) { [].forEach.call( els, fn ); return; }
+		var io = new IntersectionObserver( function ( entries ) {
+			entries.forEach( function ( en ) { if ( en.isIntersecting ) { io.unobserve( en.target ); fn( en.target ); } } );
+		}, { threshold: 0.25 } );
+		[].forEach.call( els, function ( el ) { io.observe( el ); } );
+	}
+	function fmtNum( n, dec, sep ) {
+		var ds = ',' === sep ? '.' : ',', neg = n < 0, f = Math.abs( n ).toFixed( dec ).split( '.' );
+		return ( neg ? '-' : '' ) + f[ 0 ].replace( /\B(?=(\d{3})+(?!\d))/g, sep ) + ( f[ 1 ] ? ds + f[ 1 ] : '' );
+	}
+	function initCounters() {
+		var vals = d.querySelectorAll( '.vx-cnt-val[data-vx-to]' );
+		if ( REDUCED ) { return; }
+		[].forEach.call( vals, function ( el ) {
+			var from = parseFloat( el.getAttribute( 'data-vx-from' ) ) || 0, dec = parseInt( el.getAttribute( 'data-vx-dec' ), 10 ) || 0, sep = el.getAttribute( 'data-vx-sep' );
+			el.textContent = fmtNum( from, dec, null === sep ? '.' : sep );
+		} );
+		whenSeen( vals, function ( el ) {
+			var to = parseFloat( el.getAttribute( 'data-vx-to' ) ) || 0, from = parseFloat( el.getAttribute( 'data-vx-from' ) ) || 0;
+			var dec = parseInt( el.getAttribute( 'data-vx-dec' ), 10 ) || 0, sep = el.getAttribute( 'data-vx-sep' ), dur = parseInt( el.getAttribute( 'data-vx-dur' ), 10 ) || 1800;
+			sep = null === sep ? '.' : sep;
+			var t0 = null;
+			function step( t ) {
+				if ( null === t0 ) { t0 = t; }
+				var k = Math.min( 1, ( t - t0 ) / dur ), e = 1 - Math.pow( 1 - k, 3 );
+				el.textContent = fmtNum( from + ( to - from ) * e, dec, sep );
+				if ( k < 1 ) { window.requestAnimationFrame( step ); }
+			}
+			window.requestAnimationFrame( step );
+			// A background tab never runs animation frames: show the final number anyway.
+			setTimeout( function () { if ( null === t0 ) { el.textContent = fmtNum( to, dec, sep ); } }, dur + 300 );
+		} );
+	}
+	function initCountdowns() {
+		var roots = d.querySelectorAll( '.vx-countdown[data-vx-until]' );
+		if ( ! roots.length ) { return; }
+		function tick() {
+			[].forEach.call( roots, function ( root ) {
+				var end = parseInt( root.getAttribute( 'data-vx-until' ), 10 ) || 0, left = Math.max( 0, Math.floor( ( end - Date.now() ) / 1000 ) );
+				var v = { d: Math.floor( left / 86400 ), h: Math.floor( left % 86400 / 3600 ), m: Math.floor( left % 3600 / 60 ), s: left % 60 };
+				// Units that are hidden roll into the next one shown (no days shown: 50 hours).
+				if ( ! root.querySelector( '[data-u="d"]' ) ) { v.h += v.d * 24; }
+				if ( ! root.querySelector( '[data-u="h"]' ) ) { v.m += v.h * 60; }
+				if ( ! root.querySelector( '[data-u="m"]' ) ) { v.s += v.m * 60; }
+				[].forEach.call( root.querySelectorAll( '.vx-cd-u' ), function ( u ) {
+					var b = u.querySelector( 'b' ), n = v[ u.getAttribute( 'data-u' ) ] || 0;
+					if ( b ) { b.textContent = ( n < 10 ? '0' : '' ) + n; }
+				} );
+				var done = root.querySelector( '.vx-cd-done' );
+				root.classList.toggle( 'is-done', left <= 0 );
+				if ( done ) { done.hidden = left > 0; }
+			} );
+		}
+		tick();
+		setInterval( tick, 1000 );
+	}
+	function initCompare() {
+		on( 'input', '.vx-cmp-r', function ( e, r ) {
+			var root = r.closest( '.vx-compare' );
+			if ( root ) { root.style.setProperty( '--vx-pos', r.value + '%' ); }
+		} );
+	}
+	function initLightbox() {
+		var lb = null, list = [], idx = 0;
+		function icon( p ) { return '<svg viewBox="0 0 16 16" aria-hidden="true">' + p + '</svg>'; }
+		var X = '<path d="M2.146 2.854a.5.5 0 1 1 .708-.708L8 7.293l5.146-5.147a.5.5 0 0 1 .708.708L8.707 8l5.147 5.146a.5.5 0 0 1-.708.708L8 8.707l-5.146 5.147a.5.5 0 0 1-.708-.708L7.293 8z"/>';
+		var L = '<path fill-rule="evenodd" d="M11.354 1.646a.5.5 0 0 1 0 .708L5.707 8l5.647 5.646a.5.5 0 0 1-.708.708l-6-6a.5.5 0 0 1 0-.708l6-6a.5.5 0 0 1 .708 0"/>';
+		var Rr = '<path fill-rule="evenodd" d="M4.646 1.646a.5.5 0 0 1 .708 0l6 6a.5.5 0 0 1 0 .708l-6 6a.5.5 0 0 1-.708-.708L10.293 8 4.646 2.354a.5.5 0 0 1 0-.708"/>';
+		var back = null;
+		function show() {
+			var a = list[ idx ]; if ( ! a ) { return; }
+			lb.querySelector( 'img' ).src = a.getAttribute( 'href' );
+			lb.querySelector( 'img' ).alt = ( a.querySelector( 'img' ) || {} ).alt || '';
+			lb.querySelector( 'figcaption' ).textContent = a.getAttribute( 'data-vx-cap' ) || '';
+			lb.querySelector( '.vx-lb-p' ).hidden = lb.querySelector( '.vx-lb-n' ).hidden = list.length < 2;
+		}
+		function close() {
+			if ( ! lb ) { return; }
+			lb.classList.remove( 'is-in' );
+			var old = lb; lb = null;
+			setTimeout( function () { old.remove(); }, 200 );
+			lockScroll( false );
+			if ( back && back.focus ) { back.focus(); }
+		}
+		function go( n ) { idx = ( idx + n + list.length ) % list.length; show(); }
+		on( 'click', '[data-vx-lb] [data-vx-lb-i]', function ( e, a ) {
+			if ( e.defaultPrevented || e.metaKey || e.ctrlKey || e.shiftKey ) { return; }
+			e.preventDefault();
+			back = a;
+			list = [].slice.call( a.closest( '[data-vx-lb]' ).querySelectorAll( '[data-vx-lb-i]' ) );
+			idx = list.indexOf( a );
+			lb = d.createElement( 'div' );
+			lb.className = 'vx-lb';
+			lb.setAttribute( 'role', 'dialog' ); lb.setAttribute( 'aria-modal', 'true' );
+			lb.innerHTML = '<figure style="margin:0"><img alt=""><figcaption></figcaption></figure>' +
+				'<button type="button" class="vx-lb-x" aria-label="Close">' + icon( X ) + '</button>' +
+				'<button type="button" class="vx-lb-p" aria-label="Previous">' + icon( L ) + '</button>' +
+				'<button type="button" class="vx-lb-n" aria-label="Next">' + icon( Rr ) + '</button>';
+			d.body.appendChild( lb );
+			lockScroll( true );
+			show();
+			window.requestAnimationFrame( function () { if ( lb ) { lb.classList.add( 'is-in' ); } } );
+			setTimeout( function () { if ( lb ) { lb.classList.add( 'is-in' ); } }, 40 );
+			lb.querySelector( '.vx-lb-x' ).focus();
+			lb.addEventListener( 'click', function ( ev ) {
+				if ( ev.target.closest( '.vx-lb-p' ) ) { go( -1 ); }
+				else if ( ev.target.closest( '.vx-lb-n' ) ) { go( 1 ); }
+				else if ( ev.target.closest( '.vx-lb-x' ) || ! ev.target.closest( 'img' ) ) { close(); }
+			} );
+			var sx = null;
+			lb.addEventListener( 'touchstart', function ( ev ) { sx = ev.touches[ 0 ].clientX; }, { passive: true } );
+			lb.addEventListener( 'touchend', function ( ev ) { if ( null === sx ) { return; } var dx = ev.changedTouches[ 0 ].clientX - sx; if ( Math.abs( dx ) > 40 ) { go( dx < 0 ? 1 : -1 ); } sx = null; } );
+		} );
+		d.addEventListener( 'keydown', function ( e ) {
+			if ( ! lb ) { return; }
+			if ( 'Escape' === e.key ) { close(); }
+			else if ( 'ArrowLeft' === e.key ) { go( -1 ); }
+			else if ( 'ArrowRight' === e.key ) { go( 1 ); }
+		} );
+	}
+	function initRotators() {
+		[].forEach.call( d.querySelectorAll( '.vx-rotator' ), function ( root ) {
+			var ws = root.querySelectorAll( '.vx-rot-w' ), ms = parseInt( root.getAttribute( 'data-vx-ms' ), 10 ) || 2400, fx = root.getAttribute( 'data-vx-fx' );
+			if ( ws.length < 2 || REDUCED ) { return; }
+			var i = 0, words = [].map.call( ws, function ( w ) { return w.textContent; } );
+			function next() {
+				ws[ i ].classList.remove( 'is-on' ); ws[ i ].setAttribute( 'aria-hidden', 'true' );
+				if ( 'type' === fx ) { ws[ i ].textContent = words[ i ]; }
+				i = ( i + 1 ) % ws.length;
+				var w = ws[ i ];
+				w.classList.add( 'is-on' ); w.removeAttribute( 'aria-hidden' );
+				if ( 'type' === fx ) {
+					var full = words[ i ], n = 0;
+					w.textContent = '';
+					var t = setInterval( function () { n++; w.textContent = full.slice( 0, n ); if ( n >= full.length ) { clearInterval( t ); } }, Math.max( 30, Math.min( 90, ( ms * 0.4 ) / Math.max( 1, full.length ) ) ) );
+				}
+			}
+			setInterval( next, ms );
+		} );
+	}
+	function initFlip() {
+		on( 'click', '.vx-flip.is-click', function ( e, el ) {
+			if ( e.target.closest( 'a' ) ) { return; }
+			el.classList.toggle( 'is-flipped' );
+		} );
+		on( 'keydown', '.vx-flip.is-click', function ( e, el ) {
+			if ( 'Enter' === e.key || ' ' === e.key ) { if ( e.target === el ) { e.preventDefault(); el.classList.toggle( 'is-flipped' ); } }
+		} );
+	}
+	function initBars() {
+		var bars = d.querySelectorAll( '.vx-skills[data-vx-anim]' );
+		if ( REDUCED ) { [].forEach.call( bars, function ( b ) { b.classList.add( 'is-in' ); } ); return; }
+		whenSeen( bars, function ( b ) { b.classList.add( 'is-in' ); } );
+	}
+	function initMaps() {
+		var KEY = 'vx_map_ok', ok = false;
+		try { ok = '1' === window.localStorage.getItem( KEY ); } catch ( e ) {}
+		function load( root ) {
+			var src = root.getAttribute( 'data-vx-map' ); if ( ! src ) { return; }
+			root.removeAttribute( 'data-vx-map' );
+			root.innerHTML = '<iframe src="' + src.replace( /"/g, '&quot;' ) + '" title="Map" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>';
+		}
+		if ( ok ) { [].forEach.call( d.querySelectorAll( '.vx-map[data-vx-map]' ), load ); }
+		on( 'click', '.vx-map-btn', function ( e, b ) {
+			try { window.localStorage.setItem( KEY, '1' ); } catch ( err ) {}
+			[].forEach.call( d.querySelectorAll( '.vx-map[data-vx-map]' ), load );
+		} );
+	}
+	function initWidgets() { initCounters(); initCountdowns(); initRotators(); initBars(); initMaps(); }
+	initCompare(); initLightbox(); initFlip();
+	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', initWidgets ); } else { initWidgets(); }
+
 	// Expose a small API so later elements (tabs, sliders, offcanvas) can reuse
 	// the same primitives instead of shipping their own copies.
 	window.VeloxElements = {

@@ -976,6 +976,461 @@ class Velox_Builder_Render {
 		return ( '0' === $s[ $key ] ) ? '' : $s[ $key ];
 	}
 
+
+	/* ================= widgets =================
+	 * Elements drawn from their settings: marquee, counter, countdown,
+	 * before/after, gallery, rotating text, flip card, skill bars, star rating,
+	 * social icons, map, HTML embed, table, timeline and checklist. The editor
+	 * draws the same markup (velox-builder.js widgetHTML), both use
+	 * widgets_css(), and per-instance values become CSS variables on #id, so a
+	 * class can still restyle every one of them. */
+	private static $WIDGETS = array( 'Marquee' => 1, 'Counter' => 1, 'Countdown' => 1, 'Compare' => 1, 'Gallery' => 1, 'Rotator' => 1,
+		'Flipcard' => 1, 'Bars' => 1, 'Rating' => 1, 'Social' => 1, 'Map' => 1, 'Embed' => 1, 'Table' => 1, 'Timeline' => 1, 'Checklist' => 1 );
+	private static $wicons = null;
+
+	/** Icon paths shared with the editor (social networks, list marks, stars). */
+	public static function widget_icons() {
+		if ( null === self::$wicons ) {
+			$f = defined( 'VELOX_PATH' ) ? VELOX_PATH . 'assets/icons/velox-widgets.json' : dirname( __DIR__ ) . '/assets/icons/velox-widgets.json';
+			$j = is_readable( $f ) ? json_decode( (string) file_get_contents( $f ), true ) : null;
+			self::$wicons = is_array( $j ) ? $j : array();
+		}
+		return self::$wicons;
+	}
+	private static function wsvg( $name, $extra = '' ) {
+		$i = self::widget_icons();
+		return isset( $i[ $name ] ) ? '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"' . $extra . '>' . $i[ $name ] . '</svg>' : '';
+	}
+	/** Add a class to an attribute string that may already carry one. */
+	private static function wcls( $attr, $add ) {
+		$out = preg_replace( '/ class="/', ' class="' . $add . ' ', $attr, 1, $hit );
+		return $hit ? $out : $attr . ' class="' . $add . '"';
+	}
+	/** A setting value made safe for a CSS variable of the given kind. */
+	private static function wval( $v, $kind ) {
+		$v = trim( (string) $v );
+		if ( '' === $v ) {
+			return '';
+		}
+		switch ( $kind ) {
+			case 'px':
+				return self::css_size( $v );
+			case 'int':
+				return is_numeric( $v ) ? (string) max( 1, min( 12, (int) $v ) ) : '';
+			case 's':
+				return is_numeric( $v ) ? max( 2, (float) $v ) . 's' : '';
+			case 'ratio':
+				return preg_match( '~^\d+(\.\d+)?\s*/\s*\d+(\.\d+)?$~', $v ) ? str_replace( ' ', '', $v ) : ( 'auto' === $v ? 'auto' : '' );
+			default:
+				return self::sanitize_value( $v );
+		}
+	}
+	/** Per-instance CSS variables, per screen size, as a rule on #id. */
+	private static function wvars( $node, $map ) {
+		$id = sanitize_html_class( $node['id'] ?? '' );
+		if ( '' === $id ) {
+			return;
+		}
+		$mqs = self::bp_map();
+		$per = array();
+		foreach ( $map as $k => $spec ) {
+			foreach ( self::el_set_bp( $node, $k, $spec[2] ?? '' ) as $bp => $v ) {
+				$v = self::wval( $v, $spec[1] );
+				if ( '' !== $v ) {
+					$per[ $bp ][] = $spec[0] . ':' . $v;
+				}
+			}
+		}
+		foreach ( array( 'base', 'xxl', 'xl', 'lg', 'md', 'sm' ) as $bp ) {
+			if ( empty( $per[ $bp ] ) ) {
+				continue;
+			}
+			$rule = '#' . $id . '{' . implode( ';', $per[ $bp ] ) . '}';
+			self::$float_css .= ( 'base' === $bp || empty( $mqs[ $bp ] ) ) ? $rule : '@media ' . $mqs[ $bp ] . '{' . $rule . '}';
+		}
+	}
+	/** Number with the chosen thousands separator. */
+	private static function wnum( $n, $dec, $sep ) {
+		$ds = ( ',' === $sep ) ? '.' : ',';
+		if ( '' === $sep ) {
+			$ds = ',';
+		}
+		return number_format( (float) $n, max( 0, min( 3, (int) $dec ) ), $ds, $sep );
+	}
+	private static function render_widget( $node, $attr ) {
+		self::$runtime_used['widgets'] = true;
+		$el = $node['el'];
+		$s  = function ( $k, $d = '' ) use ( $node ) { return self::el_set( $node, $k, $d ); };
+		$items = array();
+		foreach ( (array) self::el_set( $node, 'items', array() ) as $it ) {
+			if ( is_array( $it ) ) {
+				$items[] = $it;
+			}
+		}
+		switch ( $el ) {
+			case 'Marquee':
+				self::wvars( $node, array( 'speed' => array( '--vx-mq-speed', 's', '30' ), 'gap' => array( '--vx-mq-gap', 'px', '48' ), 'imgH' => array( '--vx-mq-img', 'px', '32' ) ) );
+				$sep = trim( (string) $s( 'sep', '' ) );
+				$set = '';
+				foreach ( $items as $it ) {
+					$t = trim( (string) ( $it['text'] ?? '' ) );
+					$i = trim( (string) ( $it['image'] ?? '' ) );
+					if ( '' === $t && '' === $i ) {
+						continue;
+					}
+					$set .= '<span class="vx-mq-item">' . ( '' !== $i ? '<img src="' . esc_url( $i ) . '" alt="' . esc_attr( $t ) . '" loading="lazy">' : '' ) . ( '' !== $t && '' === $i ? esc_html( $t ) : ( '' !== $t ? '<span>' . esc_html( $t ) . '</span>' : '' ) ) . '</span>'
+						. ( '' !== $sep ? '<span class="vx-mq-sep" aria-hidden="true">' . esc_html( $sep ) . '</span>' : '' );
+				}
+				if ( '' === $set ) {
+					return '';
+				}
+				$c = 'vx-marquee' . ( 'right' === $s( 'dir', 'left' ) ? ' is-rev' : '' ) . ( $s( 'pause', '1' ) ? ' is-pause' : '' ) . ( $s( 'fade', '1' ) ? ' is-fade' : '' );
+				return '<div' . self::wcls( $attr, $c ) . '><div class="vx-mq-track"><div class="vx-mq-set">' . $set . '</div><div class="vx-mq-set" aria-hidden="true">' . $set . '</div></div></div>';
+
+			case 'Counter':
+				self::wvars( $node, array( 'numSize' => array( '--vx-cnt-size', 'px', '48' ) ) );
+				$to   = (float) str_replace( ',', '.', (string) $s( 'to', '1250' ) );
+				$from = (float) str_replace( ',', '.', (string) self::el_raw( $node, 'from', '0' ) );
+				$dec  = max( 0, min( 3, (int) self::el_raw( $node, 'dec', '0' ) ) );
+				$sep  = (string) self::el_raw( $node, 'sep', '.' );
+				$sep  = in_array( $sep, array( '.', ',', ' ', '' ), true ) ? $sep : '.';
+				$dur  = max( 200, min( 10000, self::el_int( $node, 'dur', 1800 ) ) );
+				$lab  = trim( (string) $s( 'label', '' ) );
+				$al   = in_array( $s( 'align', 'left' ), array( 'left', 'center', 'right' ), true ) ? $s( 'align', 'left' ) : 'left';
+				return '<div' . self::wcls( $attr, 'vx-counter vx-al-' . $al ) . '><span class="vx-cnt-num">'
+					. ( '' !== (string) $s( 'prefix', '' ) ? '<span class="vx-cnt-pre">' . esc_html( $s( 'prefix', '' ) ) . '</span>' : '' )
+					. '<span class="vx-cnt-val" data-vx-to="' . esc_attr( $to ) . '" data-vx-from="' . esc_attr( $from ) . '" data-vx-dec="' . $dec . '" data-vx-sep="' . esc_attr( $sep ) . '" data-vx-dur="' . $dur . '">' . esc_html( self::wnum( $to, $dec, $sep ) ) . '</span>'
+					. ( '' !== (string) $s( 'suffix', '' ) ? '<span class="vx-cnt-suf">' . esc_html( $s( 'suffix', '' ) ) . '</span>' : '' )
+					. '</span>' . ( '' !== $lab ? '<span class="vx-cnt-label">' . esc_html( $lab ) . '</span>' : '' ) . '</div>';
+
+			case 'Countdown':
+				self::wvars( $node, array( 'numSize' => array( '--vx-cd-size', 'px', '40' ) ) );
+				$until = trim( (string) $s( 'until', '' ) );
+				$tz    = function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' );
+				$dt    = false;
+				foreach ( array( 'Y-m-d\TH:i', 'Y-m-d H:i', 'Y-m-d\TH:i:s', 'Y-m-d H:i:s', 'Y-m-d' ) as $fmt ) {
+					$dt = DateTime::createFromFormat( $fmt, $until, $tz );
+					if ( $dt ) {
+						break;
+					}
+				}
+				$end  = $dt ? $dt->getTimestamp() : time();
+				$left = max( 0, $end - time() );
+				$vals = array( 'd' => intdiv( $left, 86400 ), 'h' => intdiv( $left % 86400, 3600 ), 'm' => intdiv( $left % 3600, 60 ), 's' => $left % 60 );
+				$units = '';
+				foreach ( array( 'd' => array( 'showD', 'lD', __( 'Days', 'velox' ) ), 'h' => array( 'showH', 'lH', __( 'Hours', 'velox' ) ), 'm' => array( 'showM', 'lM', __( 'Minutes', 'velox' ) ), 's' => array( 'showS', 'lS', __( 'Seconds', 'velox' ) ) ) as $u => $cfg ) {
+					if ( ! $s( $cfg[0], '1' ) ) {
+						continue;
+					}
+					$lbl    = (string) $s( $cfg[1], $cfg[2] );
+					$units .= '<div class="vx-cd-u" data-u="' . $u . '"><b>' . str_pad( (string) $vals[ $u ], 2, '0', STR_PAD_LEFT ) . '</b><span>' . esc_html( $lbl ) . '</span></div>';
+				}
+				$done = trim( (string) $s( 'doneText', '' ) );
+				return '<div' . self::wcls( $attr, 'vx-countdown' . ( $s( 'boxed', '1' ) ? ' is-boxed' : '' ) . ( $left <= 0 ? ' is-done' : '' ) ) . ' data-vx-until="' . ( $end * 1000 ) . '">'
+					. '<div class="vx-cd-units">' . $units . '</div>'
+					. ( '' !== $done ? '<p class="vx-cd-done"' . ( $left > 0 ? ' hidden' : '' ) . '>' . esc_html( $done ) . '</p>' : '' ) . '</div>';
+
+			case 'Compare':
+				$pos = max( 0, min( 100, self::el_int( $node, 'start', 50 ) ) );
+				$rat = self::wval( $s( 'ratio', '16/9' ), 'ratio' );
+				$b   = trim( (string) $s( 'before', '' ) );
+				$a   = trim( (string) $s( 'after', '' ) );
+				if ( '' === $a || '' === $b ) {
+					return '';
+				}
+				$lb = (string) $s( 'lBefore', __( 'Before', 'velox' ) );
+				$la = (string) $s( 'lAfter', __( 'After', 'velox' ) );
+				return '<div' . self::wcls( $attr, 'vx-compare' ) . ' style="--vx-pos:' . $pos . '%' . ( $rat && 'auto' !== $rat ? ';--vx-cmp-ratio:' . esc_attr( $rat ) : '' ) . '">'
+					. '<img class="vx-cmp-a" src="' . esc_url( $a ) . '" alt="' . esc_attr( $la ) . '" loading="lazy">'
+					. '<div class="vx-cmp-b"><img src="' . esc_url( $b ) . '" alt="' . esc_attr( $lb ) . '" loading="lazy"></div>'
+					. '<span class="vx-cmp-line" aria-hidden="true"><span class="vx-cmp-knob"></span></span>'
+					. ( $s( 'labels', '1' ) ? '<span class="vx-cmp-l vx-cmp-lb">' . esc_html( $lb ) . '</span><span class="vx-cmp-l vx-cmp-la">' . esc_html( $la ) . '</span>' : '' )
+					. '<input class="vx-cmp-r" type="range" min="0" max="100" value="' . $pos . '" aria-label="' . esc_attr( $lb . ' / ' . $la ) . '"></div>';
+
+			case 'Gallery':
+				self::wvars( $node, array( 'cols' => array( '--vx-gcols', 'int', '3' ), 'gap' => array( '--vx-ggap', 'px', '12' ), 'ratio' => array( '--vx-gratio', 'ratio', '4/3' ), 'radius' => array( '--vx-grad', 'px', '8' ) ) );
+				$lb  = (bool) $s( 'lightbox', '1' );
+				$cap = in_array( $s( 'captions', 'below' ), array( 'below', 'overlay', 'hidden' ), true ) ? $s( 'captions', 'below' ) : 'below';
+				$out = '';
+				foreach ( $items as $it ) {
+					$i = trim( (string) ( $it['image'] ?? '' ) );
+					if ( '' === $i ) {
+						continue;
+					}
+					$c   = trim( (string) ( $it['caption'] ?? '' ) );
+					$img = '<img src="' . esc_url( $i ) . '" alt="' . esc_attr( $c ) . '" loading="lazy" decoding="async">';
+					$out .= '<figure class="vx-g-i">' . ( $lb ? '<a class="vx-g-a" href="' . esc_url( $i ) . '" data-vx-lb-i' . ( '' !== $c ? ' data-vx-cap="' . esc_attr( $c ) . '"' : '' ) . '>' . $img . '</a>' : $img )
+						. ( '' !== $c && 'hidden' !== $cap ? '<figcaption class="vx-g-cap">' . esc_html( $c ) . '</figcaption>' : '' ) . '</figure>';
+				}
+				if ( '' === $out ) {
+					return '';
+				}
+				return '<div' . self::wcls( $attr, 'vx-gallery cap-' . $cap ) . ( $lb ? ' data-vx-lb' : '' ) . '>' . $out . '</div>';
+
+			case 'Rotator':
+				self::wvars( $node, array( 'wColor' => array( '--vx-rot-c', 'color', '' ) ) );
+				$words = array_values( array_filter( array_map( 'trim', preg_split( '/\r\n|\r|\n|\|/', (string) $s( 'words', '' ) ) ) ) );
+				if ( ! $words ) {
+					return '';
+				}
+				$fx  = in_array( $s( 'fx', 'slide' ), array( 'slide', 'fade', 'type' ), true ) ? $s( 'fx', 'slide' ) : 'slide';
+				$ms  = max( 800, min( 20000, self::el_int( $node, 'ms', 2400 ) ) );
+				$ws  = '';
+				foreach ( $words as $i => $w ) {
+					$ws .= '<span class="vx-rot-w' . ( 0 === $i ? ' is-on' : '' ) . '"' . ( $i ? ' aria-hidden="true"' : '' ) . '>' . esc_html( $w ) . '</span>';
+				}
+				$pre  = trim( (string) $s( 'pre', '' ) );
+				$post = trim( (string) $s( 'post', '' ) );
+				$tag  = in_array( $node['tag'] ?? 'h2', array( 'h1', 'h2', 'h3', 'h4', 'p', 'div', 'span' ), true ) ? $node['tag'] : 'h2';
+				return '<' . $tag . self::wcls( $attr, 'vx-rotator' ) . ' data-vx-fx="' . $fx . '" data-vx-ms="' . $ms . '">'
+					. ( '' !== $pre ? '<span class="vx-rot-pre">' . esc_html( $pre ) . '</span> ' : '' )
+					. '<span class="vx-rot-ws">' . $ws . '</span>'
+					. ( '' !== $post ? ' <span class="vx-rot-post">' . esc_html( $post ) . '</span>' : '' ) . '</' . $tag . '>';
+
+			case 'Flipcard':
+				self::wvars( $node, array( 'height' => array( '--vx-flip-h', 'px', '300' ), 'fBg' => array( '--vx-flip-fbg', 'color', '' ), 'fFg' => array( '--vx-flip-ffg', 'color', '' ), 'bBg' => array( '--vx-flip-bbg', 'color', '' ), 'bFg' => array( '--vx-flip-bfg', 'color', '' ) ) );
+				$img  = trim( (string) $s( 'fImage', '' ) );
+				$href = self::link_href( (string) $s( 'bHref', '' ) );
+				$btn  = trim( (string) $s( 'bBtn', '' ) );
+				$c    = 'vx-flip' . ( 'v' === $s( 'dir', 'h' ) ? ' is-v' : '' ) . ( 'click' === $s( 'trig', 'hover' ) ? ' is-click' : '' );
+				return '<div' . self::wcls( $attr, $c ) . ' tabindex="0"><div class="vx-flip-in">'
+					. '<div class="vx-flip-f">' . ( '' !== $img ? '<img class="vx-flip-img" src="' . esc_url( $img ) . '" alt="" loading="lazy">' : '' )
+					. '<div class="vx-flip-c"><h3 class="vx-flip-t">' . esc_html( $s( 'fTitle', '' ) ) . '</h3>' . ( '' !== trim( (string) $s( 'fText', '' ) ) ? '<p class="vx-flip-p">' . esc_html( $s( 'fText', '' ) ) . '</p>' : '' ) . '</div></div>'
+					. '<div class="vx-flip-b"><div class="vx-flip-c"><h3 class="vx-flip-t">' . esc_html( $s( 'bTitle', '' ) ) . '</h3>' . ( '' !== trim( (string) $s( 'bText', '' ) ) ? '<p class="vx-flip-p">' . esc_html( $s( 'bText', '' ) ) . '</p>' : '' )
+					. ( '' !== $btn ? '<a class="vx-flip-btn" href="' . esc_url( '' !== $href ? $href : '#' ) . '">' . esc_html( $btn ) . '</a>' : '' ) . '</div></div></div></div>';
+
+			case 'Bars':
+				self::wvars( $node, array( 'barH' => array( '--vx-bh', 'px', '8' ), 'barC' => array( '--vx-bc', 'color', '' ), 'trackC' => array( '--vx-btc', 'color', '' ), 'gap' => array( '--vx-bgap', 'px', '18' ) ) );
+				$out = '';
+				foreach ( $items as $it ) {
+					$l = trim( (string) ( $it['title'] ?? '' ) );
+					$v = max( 0, min( 100, (int) ( $it['value'] ?? 0 ) ) );
+					if ( '' === $l ) {
+						continue;
+					}
+					$out .= '<div class="vx-skill"><div class="vx-skill-h"><span>' . esc_html( $l ) . '</span>' . ( $s( 'showVal', '1' ) ? '<b>' . $v . '%</b>' : '' ) . '</div>'
+						. '<div class="vx-skill-t" role="progressbar" aria-valuenow="' . $v . '" aria-valuemin="0" aria-valuemax="100" aria-label="' . esc_attr( $l ) . '"><span class="vx-skill-f" style="--vx-v:' . $v . '%"></span></div></div>';
+				}
+				if ( '' === $out ) {
+					return '';
+				}
+				return '<div' . self::wcls( $attr, 'vx-skills' ) . ( $s( 'anim', '1' ) ? ' data-vx-anim' : '' ) . '>' . $out . '</div>';
+
+			case 'Rating':
+				self::wvars( $node, array( 'size' => array( '--vx-rate-z', 'px', '20' ), 'color' => array( '--vx-rate-c', 'color', '' ), 'empty' => array( '--vx-rate-e', 'color', '' ) ) );
+				$max = max( 1, min( 10, self::el_int( $node, 'max', 5 ) ) );
+				$raw = (string) $s( 'value', '4.8' );
+				$val = max( 0, min( $max, (float) str_replace( ',', '.', $raw ) ) );
+				$st  = str_repeat( self::wsvg( 'star' ), $max );
+				$lab = trim( (string) $s( 'label', '' ) );
+				/* translators: 1: rating, 2: best possible rating. */
+				$aria = sprintf( __( '%1$s out of %2$s', 'velox' ), $raw, $max );
+				return '<div' . self::wcls( $attr, 'vx-rating' ) . ' role="img" aria-label="' . esc_attr( $aria ) . '">'
+					. '<span class="vx-rate-s" style="--vx-rate:' . round( $val / $max * 100, 2 ) . '%"><span class="vx-rate-bg">' . $st . '</span><span class="vx-rate-fg">' . $st . '</span></span>'
+					. ( $s( 'showText', '1' ) ? '<span class="vx-rate-t">' . esc_html( $raw . ' / ' . $max ) . '</span>' : '' )
+					. ( '' !== $lab ? '<span class="vx-rate-l">' . esc_html( $lab ) . '</span>' : '' ) . '</div>';
+
+			case 'Social':
+				self::wvars( $node, array( 'size' => array( '--vx-sz', 'px', '18' ), 'box' => array( '--vx-sbox', 'px', '40' ), 'gap' => array( '--vx-sgap', 'px', '10' ), 'color' => array( '--vx-sbg', 'color', '' ), 'iconC' => array( '--vx-sfg', 'color', '' ) ) );
+				$names = array( 'facebook' => 'Facebook', 'instagram' => 'Instagram', 'x' => 'X', 'linkedin' => 'LinkedIn', 'youtube' => 'YouTube', 'tiktok' => 'TikTok', 'pinterest' => 'Pinterest', 'whatsapp' => 'WhatsApp', 'github' => 'GitHub', 'threads' => 'Threads', 'telegram' => 'Telegram', 'discord' => 'Discord', 'spotify' => 'Spotify', 'email' => __( 'Email', 'velox' ), 'phone' => __( 'Phone', 'velox' ), 'website' => __( 'Website', 'velox' ) );
+				$brand = array( 'facebook' => '#1877F2', 'instagram' => '#E4405F', 'x' => '#000000', 'linkedin' => '#0A66C2', 'youtube' => '#FF0000', 'tiktok' => '#000000', 'pinterest' => '#E60023', 'whatsapp' => '#25D366', 'github' => '#181717', 'threads' => '#000000', 'telegram' => '#26A5E4', 'discord' => '#5865F2', 'spotify' => '#1DB954', 'email' => '#475569', 'phone' => '#475569', 'website' => '#475569' );
+				$nt  = (bool) $s( 'newTab', '1' );
+				$out = '';
+				foreach ( $items as $it ) {
+					$n = (string) ( $it['net'] ?? '' );
+					$u = trim( (string) ( $it['url'] ?? '' ) );
+					if ( ! isset( $names[ $n ] ) || '' === $u ) {
+						continue;
+					}
+					if ( 'email' === $n && false === strpos( $u, ':' ) ) {
+						$u = 'mailto:' . $u;
+					} elseif ( 'phone' === $n && false === strpos( $u, ':' ) ) {
+						$u = 'tel:' . preg_replace( '/[^0-9+]/', '', $u );
+					}
+					$ext  = $nt && ! in_array( $n, array( 'email', 'phone' ), true );
+					$out .= '<a class="vx-soc vx-soc-' . $n . '" href="' . esc_url( $u, array( 'http', 'https', 'mailto', 'tel' ) ) . '"' . ( $ext ? ' target="_blank" rel="noopener"' : '' ) . ' aria-label="' . esc_attr( $names[ $n ] ) . '" style="--b:' . $brand[ $n ] . '">' . self::wsvg( $n ) . '</a>';
+				}
+				if ( '' === $out ) {
+					return '';
+				}
+				$shape = in_array( $s( 'shape', 'circle' ), array( 'circle', 'rounded', 'square', 'plain' ), true ) ? $s( 'shape', 'circle' ) : 'circle';
+				$sty   = in_array( $s( 'style', 'mono' ), array( 'mono', 'brand', 'outline' ), true ) ? $s( 'style', 'mono' ) : 'mono';
+				return '<div' . self::wcls( $attr, 'vx-social is-' . $shape . ' is-' . $sty ) . '>' . $out . '</div>';
+
+			case 'Map':
+				self::wvars( $node, array( 'height' => array( '--vx-map-h', 'px', '380' ) ) );
+				$q = trim( (string) $s( 'query', '' ) );
+				if ( '' === $q ) {
+					return '';
+				}
+				$z   = max( 1, min( 20, self::el_int( $node, 'zoom', 14 ) ) );
+				$src = 'https://maps.google.com/maps?q=' . rawurlencode( $q ) . '&z=' . $z . '&output=embed';
+				$c   = 'vx-map' . ( $s( 'gray', '' ) ? ' is-gray' : '' );
+				if ( $s( 'consent', '1' ) ) {
+					return '<div' . self::wcls( $attr, $c ) . ' data-vx-map="' . esc_url( $src ) . '"><div class="vx-map-c"><p>' . esc_html( $s( 'cText', '' ) ) . '</p><button type="button" class="vx-map-btn">' . esc_html( $s( 'cBtn', __( 'Load map', 'velox' ) ) ) . '</button></div></div>';
+				}
+				return '<div' . self::wcls( $attr, $c ) . '><iframe src="' . esc_url( $src ) . '" title="' . esc_attr( $q ) . '" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe></div>';
+
+			case 'Embed':
+				$code = (string) $s( 'code', '' );
+				if ( '' === trim( $code ) ) {
+					return '';
+				}
+				$allowed = wp_kses_allowed_html( 'post' );
+				$allowed['iframe'] = array( 'src' => true, 'width' => true, 'height' => true, 'title' => true, 'allow' => true, 'allowfullscreen' => true, 'loading' => true, 'frameborder' => true, 'style' => true, 'referrerpolicy' => true, 'class' => true, 'id' => true );
+				foreach ( array( 'video', 'audio', 'source' ) as $t ) {
+					$allowed[ $t ] = array( 'src' => true, 'controls' => true, 'autoplay' => true, 'muted' => true, 'loop' => true, 'playsinline' => true, 'poster' => true, 'type' => true, 'width' => true, 'height' => true, 'class' => true, 'style' => true );
+				}
+				return '<div' . self::wcls( $attr, 'vx-embed' ) . '>' . wp_kses( $code, $allowed ) . '</div>';
+
+			case 'Table':
+				$rows = array();
+				foreach ( preg_split( '/\r\n|\r|\n/', (string) $s( 'data', '' ) ) as $line ) {
+					if ( '' === trim( $line ) ) {
+						continue;
+					}
+					$rows[] = array_map( 'trim', explode( '|', $line ) );
+				}
+				if ( ! $rows ) {
+					return '';
+				}
+				$cols = max( array_map( 'count', $rows ) );
+				$head = (bool) $s( 'head', '1' );
+				$html = '<table>';
+				foreach ( $rows as $ri => $r ) {
+					$r = array_pad( $r, $cols, '' );
+					$tagc = ( $head && 0 === $ri ) ? 'th' : 'td';
+					$line = '<tr>' . implode( '', array_map( function ( $c ) use ( $tagc ) { return '<' . $tagc . ( 'th' === $tagc ? ' scope="col"' : '' ) . '>' . esc_html( $c ) . '</' . $tagc . '>'; }, $r ) ) . '</tr>';
+					if ( $head && 0 === $ri ) {
+						$html .= '<thead>' . $line . '</thead><tbody>';
+					} else {
+						$html .= ( ! $head && 0 === $ri ? '<tbody>' : '' ) . $line;
+					}
+				}
+				$html .= '</tbody></table>';
+				$c = 'vx-table' . ( $s( 'striped', '1' ) ? ' is-striped' : '' ) . ( $s( 'lined', '1' ) ? ' is-lined' : '' ) . ( $s( 'compact', '' ) ? ' is-compact' : '' ) . ( $s( 'firstBold', '' ) ? ' is-firstbold' : '' );
+				return '<div' . self::wcls( $attr, $c ) . '>' . $html . '</div>';
+
+			case 'Timeline':
+				self::wvars( $node, array( 'lineC' => array( '--vx-tll', 'color', '' ), 'dotC' => array( '--vx-tld', 'color', '' ), 'gap' => array( '--vx-tlgap', 'px', '32' ) ) );
+				$out = '';
+				foreach ( $items as $it ) {
+					$d = trim( (string) ( $it['date'] ?? '' ) );
+					$t = trim( (string) ( $it['title'] ?? '' ) );
+					$b = trim( (string) ( $it['body'] ?? '' ) );
+					if ( '' === $d . $t . $b ) {
+						continue;
+					}
+					$out .= '<div class="vx-tl-i"><span class="vx-tl-dot" aria-hidden="true"></span><div class="vx-tl-c">'
+						. ( '' !== $d ? '<span class="vx-tl-d">' . esc_html( $d ) . '</span>' : '' )
+						. ( '' !== $t ? '<h3 class="vx-tl-t">' . esc_html( $t ) . '</h3>' : '' )
+						. ( '' !== $b ? '<p class="vx-tl-p">' . esc_html( $b ) . '</p>' : '' ) . '</div></div>';
+				}
+				if ( '' === $out ) {
+					return '';
+				}
+				return '<div' . self::wcls( $attr, 'vx-timeline' . ( 'alt' === $s( 'layout', 'left' ) ? ' is-alt' : '' ) ) . '>' . $out . '</div>';
+
+			case 'Checklist':
+				self::wvars( $node, array( 'iconC' => array( '--vx-ck-c', 'color', '' ), 'gap' => array( '--vx-ck-gap', 'px', '12' ), 'iconSize' => array( '--vx-ck-z', 'px', '20' ) ) );
+				$ic  = in_array( $s( 'icon', 'circle' ), array( 'check', 'circle', 'arrow', 'dot' ), true ) ? $s( 'icon', 'circle' ) : 'circle';
+				$svg = self::wsvg( 'ck_' . $ic );
+				$out = '';
+				foreach ( $items as $it ) {
+					$t = trim( (string) ( $it['title'] ?? '' ) );
+					if ( '' !== $t ) {
+						$out .= '<li class="vx-ck-i"><span class="vx-ck-ic">' . $svg . '</span><span class="vx-ck-t">' . esc_html( $t ) . '</span></li>';
+					}
+				}
+				if ( '' === $out ) {
+					return '';
+				}
+				return '<ul' . self::wcls( $attr, 'vx-check is-' . $ic ) . '>' . $out . '</ul>';
+		}
+		return '';
+	}
+
+	/** The look every widget starts with (classes and #id variables override it). */
+	public static function widgets_css() {
+		return
+			// marquee
+			'.vx-marquee{overflow:hidden;width:100%}.vx-mq-track{display:flex;width:max-content;animation:vx-mq var(--vx-mq-speed,30s) linear infinite}'
+			. '.vx-mq-set{flex:0 0 auto;min-width:100%;display:flex;align-items:center;justify-content:space-around;gap:var(--vx-mq-gap,48px);padding-right:var(--vx-mq-gap,48px);box-sizing:border-box}'
+			. '.vx-mq-item{display:inline-flex;align-items:center;gap:10px;white-space:nowrap}.vx-mq-item img{display:block;height:var(--vx-mq-img,32px);width:auto}'
+			. '.vx-mq-sep{opacity:.4}.vx-marquee.is-rev .vx-mq-track{animation-direction:reverse}.vx-marquee.is-pause:hover .vx-mq-track{animation-play-state:paused}'
+			. '.vx-marquee.is-fade{-webkit-mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent);mask-image:linear-gradient(90deg,transparent,#000 8%,#000 92%,transparent)}'
+			. '@keyframes vx-mq{to{transform:translateX(-50%)}}@media (prefers-reduced-motion:reduce){.vx-mq-track{animation:none}.vx-mq-set[aria-hidden]{display:none}.vx-mq-set{flex-wrap:wrap;justify-content:center}}'
+			// counter
+			. '.vx-counter{display:flex;flex-direction:column;gap:6px}.vx-counter.vx-al-center{align-items:center;text-align:center}.vx-counter.vx-al-right{align-items:flex-end;text-align:right}'
+			. '.vx-cnt-num{font-size:var(--vx-cnt-size,48px);font-weight:700;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}.vx-cnt-label{opacity:.72}'
+			// countdown
+			. '.vx-cd-units{display:flex;flex-wrap:wrap;gap:12px}.vx-cd-u{display:flex;flex-direction:column;align-items:center;min-width:72px}'
+			. '.vx-cd-u b{font-size:var(--vx-cd-size,40px);font-weight:700;line-height:1.1;font-variant-numeric:tabular-nums}.vx-cd-u span{font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.7}'
+			. '.vx-countdown.is-boxed .vx-cd-u{padding:14px 12px;border-radius:12px;background:rgba(15,23,42,.06)}.vx-countdown.is-done .vx-cd-units{opacity:.45}.vx-cd-done{margin:12px 0 0;font-weight:600}'
+			// before / after
+			. '.vx-compare{position:relative;overflow:hidden;aspect-ratio:var(--vx-cmp-ratio,16/9);border-radius:12px;user-select:none;-webkit-user-select:none;touch-action:pan-y}'
+			. '.vx-cmp-a,.vx-cmp-b,.vx-cmp-b img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;margin:0;max-width:none}.vx-cmp-b{clip-path:inset(0 calc(100% - var(--vx-pos,50%)) 0 0)}'
+			. '.vx-cmp-line{position:absolute;top:0;bottom:0;left:var(--vx-pos,50%);width:2px;margin-left:-1px;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.12);pointer-events:none}'
+			. '.vx-cmp-knob{position:absolute;top:50%;left:50%;width:42px;height:42px;margin:-21px 0 0 -21px;border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.25)}'
+			. '.vx-cmp-knob::before,.vx-cmp-knob::after{content:"";position:absolute;top:50%;width:0;height:0;margin-top:-6px;border:6px solid transparent}.vx-cmp-knob::before{left:7px;border-right-color:#334155}.vx-cmp-knob::after{right:7px;border-left-color:#334155}'
+			. '.vx-cmp-l{position:absolute;top:12px;padding:4px 10px;border-radius:999px;background:rgba(15,23,42,.6);color:#fff;font-size:12px;font-weight:600;line-height:1.4;pointer-events:none}.vx-cmp-lb{left:12px}.vx-cmp-la{right:12px}'
+			. '.vx-cmp-r{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:ew-resize;-webkit-appearance:none;appearance:none}'
+			// gallery
+			. '.vx-gallery{display:grid;grid-template-columns:repeat(var(--vx-gcols,3),minmax(0,1fr));gap:var(--vx-ggap,12px)}.vx-g-i{position:relative;margin:0;min-width:0}'
+			. '.vx-g-i img{display:block;width:100%;height:auto;aspect-ratio:var(--vx-gratio,4/3);object-fit:cover;border-radius:var(--vx-grad,8px);transition:transform .45s cubic-bezier(.2,.7,.2,1),filter .3s}'
+			. '.vx-g-a{display:block;overflow:hidden;border-radius:var(--vx-grad,8px);cursor:zoom-in}.vx-g-a:hover img{transform:scale(1.04)}.vx-g-cap{padding:8px 2px 0;font-size:14px;opacity:.75}'
+			. '.vx-gallery.cap-overlay .vx-g-cap{position:absolute;left:0;right:0;bottom:0;padding:28px 12px 10px;border-radius:0 0 var(--vx-grad,8px) var(--vx-grad,8px);background:linear-gradient(transparent,rgba(0,0,0,.62));color:#fff;opacity:1;pointer-events:none}'
+			. '.vx-lb{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;background:rgba(10,12,16,.92);opacity:0;transition:opacity .2s}.vx-lb.is-in{opacity:1}'
+			. '.vx-lb img{max-width:92vw;max-height:84vh;display:block;border-radius:6px;box-shadow:0 20px 60px rgba(0,0,0,.5)}.vx-lb figcaption{position:absolute;left:0;right:0;bottom:22px;text-align:center;color:#e5e7eb;font-size:14px}'
+			. '.vx-lb button{position:absolute;display:grid;place-items:center;width:46px;height:46px;border:0;border-radius:50%;background:rgba(255,255,255,.12);color:#fff;cursor:pointer}.vx-lb button:hover{background:rgba(255,255,255,.22)}.vx-lb button svg{width:20px;height:20px;fill:currentColor}'
+			. '.vx-lb-x{top:18px;right:18px}.vx-lb-p{left:18px;top:50%;margin-top:-23px}.vx-lb-n{right:18px;top:50%;margin-top:-23px}'
+			// rotating text
+			. '.vx-rot-ws{display:inline-grid;vertical-align:bottom;color:var(--vx-rot-c,inherit)}.vx-rot-w{grid-area:1/1;opacity:0;transform:translateY(.35em);transition:opacity .45s,transform .45s;white-space:nowrap}'
+			. '.vx-rot-w.is-on{opacity:1;transform:none}.vx-rotator[data-vx-fx="fade"] .vx-rot-w{transform:none}.vx-rotator[data-vx-fx="type"] .vx-rot-w{transition:none;transform:none}'
+			. '.vx-rotator[data-vx-fx="type"] .vx-rot-w.is-on::after{content:"";display:inline-block;width:.08em;height:1em;margin-left:.06em;vertical-align:-.12em;background:currentColor;animation:vx-caret 1s steps(1) infinite}@keyframes vx-caret{50%{opacity:0}}'
+			// flip card
+			. '.vx-flip{perspective:1200px;height:var(--vx-flip-h,300px);border-radius:16px;outline:none}.vx-flip-in{position:relative;width:100%;height:100%;border-radius:inherit;transition:transform .7s cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d}'
+			. '.vx-flip-f,.vx-flip-b{position:absolute;inset:0;display:flex;align-items:flex-end;overflow:hidden;border-radius:inherit;-webkit-backface-visibility:hidden;backface-visibility:hidden}'
+			. '.vx-flip-f{background:var(--vx-flip-fbg,#0f172a);color:var(--vx-flip-ffg,#fff)}.vx-flip-b{align-items:center;background:var(--vx-flip-bbg,#2ab7f1);color:var(--vx-flip-bfg,#04222f);transform:rotateY(180deg)}'
+			. '.vx-flip.is-v .vx-flip-b{transform:rotateX(180deg)}.vx-flip:not(.is-click):hover .vx-flip-in,.vx-flip:not(.is-click):focus-within .vx-flip-in,.vx-flip.is-flipped .vx-flip-in{transform:rotateY(180deg)}'
+			. '.vx-flip.is-v:not(.is-click):hover .vx-flip-in,.vx-flip.is-v:not(.is-click):focus-within .vx-flip-in,.vx-flip.is-v.is-flipped .vx-flip-in{transform:rotateX(180deg)}.vx-flip.is-click{cursor:pointer}'
+			. '.vx-flip-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:.5}.vx-flip-c{position:relative;padding:26px}.vx-flip-t{margin:0 0 8px;font-size:22px;line-height:1.2;color:inherit}.vx-flip-p{margin:0;line-height:1.55;opacity:.9}'
+			. '.vx-flip-btn{display:inline-block;margin-top:16px;padding:10px 18px;border-radius:999px;background:var(--vx-flip-bfg,#04222f);color:var(--vx-flip-bbg,#2ab7f1);font-weight:600;text-decoration:none}'
+			// skill bars
+			. '.vx-skills{display:flex;flex-direction:column;gap:var(--vx-bgap,18px)}.vx-skill-h{display:flex;justify-content:space-between;gap:12px;margin-bottom:8px;font-size:15px;font-weight:500}.vx-skill-h b{font-variant-numeric:tabular-nums}'
+			. '.vx-skill-t{height:var(--vx-bh,8px);border-radius:999px;background:var(--vx-btc,#e6eaf0);overflow:hidden}.vx-skill-f{display:block;height:100%;width:var(--vx-v);border-radius:inherit;background:var(--vx-bc,#2ab7f1);transition:width 1.2s cubic-bezier(.2,.7,.2,1)}'
+			. '.vx-skills[data-vx-anim]:not(.is-in) .vx-skill-f{width:0}'
+			// rating
+			. '.vx-rating{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.vx-rate-s{position:relative;display:inline-flex;line-height:0}.vx-rate-bg,.vx-rate-fg{display:inline-flex;gap:2px;white-space:nowrap}'
+			. '.vx-rate-fg{position:absolute;top:0;left:0;bottom:0;width:var(--vx-rate,100%);overflow:hidden}.vx-rate-s svg{flex:none;width:var(--vx-rate-z,20px);height:var(--vx-rate-z,20px)}.vx-rate-bg svg{fill:var(--vx-rate-e,#d6dbe3)}.vx-rate-fg svg{fill:var(--vx-rate-c,#f5b301)}'
+			. '.vx-rate-t{font-weight:600}.vx-rate-l{opacity:.72}'
+			// social
+			. '.vx-social{display:flex;flex-wrap:wrap;align-items:center;gap:var(--vx-sgap,10px)}.vx-soc{display:inline-grid;place-items:center;width:var(--vx-sbox,40px);height:var(--vx-sbox,40px);border-radius:50%;color:var(--vx-sfg,#fff);background:var(--vx-sbg,#0f172a);text-decoration:none;transition:transform .15s,opacity .15s,background .15s}'
+			. '.vx-soc:hover{transform:translateY(-2px)}.vx-soc svg{width:var(--vx-sz,18px);height:var(--vx-sz,18px);fill:currentColor}.vx-social.is-rounded .vx-soc{border-radius:10px}.vx-social.is-square .vx-soc{border-radius:0}'
+			. '.vx-social.is-brand .vx-soc{background:var(--b)}.vx-social.is-outline .vx-soc{background:transparent;color:var(--vx-sbg,#0f172a);box-shadow:inset 0 0 0 1.5px currentColor}'
+			. '.vx-social.is-plain .vx-soc{width:auto;height:auto;background:transparent;color:var(--vx-sbg,#0f172a);box-shadow:none}.vx-social.is-plain.is-brand .vx-soc{color:var(--b);background:transparent}'
+			// map
+			. '.vx-map{position:relative;height:var(--vx-map-h,380px);border-radius:12px;overflow:hidden;background:#e9eef3}.vx-map iframe{position:absolute;inset:0;width:100%;height:100%;border:0}.vx-map.is-gray iframe{filter:grayscale(1)}'
+			. '.vx-map-c{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center;font-size:14px;line-height:1.5;color:#334155;background:repeating-linear-gradient(45deg,#eef2f6 0 14px,#e8edf2 14px 28px)}'
+			. '.vx-map-c p{max-width:440px;margin:0}.vx-map-btn{padding:11px 20px;border:0;border-radius:999px;background:#0f172a;color:#fff;font:inherit;font-weight:600;cursor:pointer}.vx-map-btn:hover{background:#1e293b}'
+			// embed + table
+			. '.vx-embed{max-width:100%}.vx-embed iframe{max-width:100%}'
+			. '.vx-table{overflow-x:auto;-webkit-overflow-scrolling:touch}.vx-table table{width:100%;border-collapse:collapse;font-size:15px}.vx-table th,.vx-table td{padding:12px 14px;text-align:left;vertical-align:top}'
+			. '.vx-table th{font-weight:600;background:rgba(15,23,42,.05)}.vx-table.is-lined th,.vx-table.is-lined td{border-bottom:1px solid rgba(15,23,42,.1)}.vx-table.is-striped tbody tr:nth-child(even){background:rgba(15,23,42,.03)}'
+			. '.vx-table.is-compact th,.vx-table.is-compact td{padding:7px 10px}.vx-table.is-firstbold tbody td:first-child{font-weight:600}'
+			// timeline
+			. '.vx-timeline{position:relative;display:flex;flex-direction:column;gap:var(--vx-tlgap,32px);padding-left:30px}.vx-timeline::before{content:"";position:absolute;left:7px;top:6px;bottom:6px;width:2px;background:var(--vx-tll,#d6dde6)}'
+			. '.vx-tl-i{position:relative}.vx-tl-dot{position:absolute;left:-30px;top:3px;width:16px;height:16px;border-radius:50%;background:var(--vx-tld,#2ab7f1);box-shadow:0 0 0 4px #fff}'
+			. '.vx-tl-d{display:block;font-size:13px;font-weight:600;letter-spacing:.03em;color:var(--vx-tld,#2ab7f1)}.vx-tl-t{margin:4px 0 6px;font-size:20px;line-height:1.3}.vx-tl-p{margin:0;line-height:1.6;opacity:.8}'
+			. '@media (min-width:768px){.vx-timeline.is-alt{padding-left:0}.vx-timeline.is-alt::before{left:50%;margin-left:-1px}.vx-timeline.is-alt .vx-tl-i{width:50%;padding-right:44px;box-sizing:border-box;text-align:right}'
+			. '.vx-timeline.is-alt .vx-tl-i:nth-child(even){margin-left:50%;padding:0 0 0 44px;text-align:left}.vx-timeline.is-alt .vx-tl-dot{left:auto;right:-8px}.vx-timeline.is-alt .vx-tl-i:nth-child(even) .vx-tl-dot{right:auto;left:-8px}}'
+			// checklist
+			. '.vx-check{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--vx-ck-gap,12px)}.vx-ck-i{display:flex;align-items:flex-start;gap:10px;line-height:1.5}'
+			. '.vx-ck-ic{flex:none;display:grid;place-items:center;width:var(--vx-ck-z,20px);height:1.5em;color:var(--vx-ck-c,#16a34a)}.vx-ck-ic svg{width:var(--vx-ck-z,20px);height:var(--vx-ck-z,20px);fill:currentColor}.vx-check.is-dot .vx-ck-ic svg{width:8px;height:8px}'
+			// image crop (Image → "Fill the box")
+			. '.vx-img-cover{overflow:hidden}.vx-img-cover img,.vx-img-cover>a{display:block;width:100%!important;height:100%!important;max-width:none!important;object-fit:cover}';
+	}
+
 	/**
 	 * Accordion / FAQ.
 	 *
@@ -1976,7 +2431,26 @@ class Velox_Builder_Render {
 	 */
 	public static function canvas_css() {
 		$vars = self::token_vars();
-		return ( '' !== $vars ? ':root{' . $vars . '}' : '' ) . self::canvas_fonts()['face'] . self::global_styles_css() . self::media_element_css();
+		return ( '' !== $vars ? ':root{' . $vars . '}' : '' ) . self::canvas_fonts()['face'] . self::global_styles_css() . self::media_element_css() . self::widgets_css() . self::canvas_runtime_css();
+	}
+
+	/**
+	 * The page's own CSS for sliders, tabs, accordions and navigation, for the editor
+	 * canvas. The canvas kept a hand-made copy that drifted (borders between
+	 * accordion items, grey tab colours, rounded slide images) — the editor
+	 * showed things the page never did.
+	 */
+	public static function canvas_runtime_css() {
+		$rt = self::$runtime_used;
+		$fl = self::$float_css;
+		self::$runtime_used = array( 'slider' => true, 'tabs' => true, 'accordion' => true, 'nav' => true );
+		self::$float_css    = '';
+		$css = self::element_base_css( 'base' );
+		self::$runtime_used = $rt;
+		self::$float_css    = $fl;
+		// Post content keeps the browser's text spacing on the page; the canvas
+		// zeroes every margin, so give it back there.
+		return $css . '.vx-prose :where(p,h1,h2,h3,h4,h5,h6,ul,ol,dl,figure,blockquote,pre,hr){margin:revert}';
 	}
 
 	/**
@@ -2080,6 +2554,9 @@ class Velox_Builder_Render {
 			return (string) self::$float_css;
 		}
 		$css = '';
+		if ( isset( self::$runtime_used['widgets'] ) ) {
+			$css .= self::widgets_css();
+		}
 		if ( isset( self::$runtime_used['ix'] ) ) {
 			// Interactions: hidden until shown, and a pointer on click triggers.
 			$css .= '[data-vx-ixhidden]:not(.vx-ix-on),.vx-ix-off{display:none!important}.vx-ix-click{cursor:pointer}';
@@ -2219,7 +2696,7 @@ class Velox_Builder_Render {
 				'.vx-tabp{padding:18px 4px}.vx-tabp[hidden]{display:none}' .
 				// Accordion fallback: the tab button moves above its own panel.
 				'@media (max-width:' . (int) $bp['mobile'] . 'px){' .
-					'.vx-tabs-acc{display:flex;flex-direction:column}' .
+					'.vx-tabs.vx-tabs-acc{display:flex;flex-direction:column}' .
 					'.vx-tabs-acc .vx-tablist,.vx-tabs-acc .vx-tabpanels{display:contents;border:none}' .
 					'.vx-tabs-acc .vx-tab,.vx-tabs-acc .vx-tabp{order:var(--vx-o,0)}' .
 					'.vx-tabs-acc .vx-tab{display:block;width:100%;border:none;border-top:1px solid rgba(0,0,0,.12);margin:0;text-align:left}' .
@@ -2227,7 +2704,10 @@ class Velox_Builder_Render {
 				'}';
 		}
 		if ( isset( self::$runtime_used['accordion'] ) ) {
-			$css .= '.vx-acc-h{margin:0}' .
+			// A thin line between items and a question size that suits a list
+			// (it took the full h3 size). Class-level, so any class you set wins.
+			$css .= '.vx-acc-item{border-bottom:1px solid rgba(0,0,0,.1)}' .
+				'.vx-acc-h{margin:0;font-size:1.125rem;line-height:1.4}' .
 				'.vx-acc-btn{display:flex;align-items:center;gap:12px;width:100%;padding:14px 4px;background:none;border:none;font:inherit;font-weight:600;color:inherit;cursor:pointer;text-align:left}' .
 				'.vx-acc-t{flex:1}' .
 				'.vx-acc-i{flex:0 0 auto;transition:transform .2s}' .
@@ -2241,7 +2721,53 @@ class Velox_Builder_Render {
 	}
 
 	/** Print the full standalone HTML document. */
+	/**
+	 * Velox pages are drawn by Velox, and the editor shows them without the
+	 * theme. The theme's stylesheet and its global styles (theme.json) still
+	 * came in through wp_head and overrode the global styles set in Velox —
+	 * the body font, heading sizes and link colours on the page were the
+	 * theme's, not the ones in the editor.
+	 */
+	public static function strip_theme_css() {
+		if ( apply_filters( 'velox_builder_keep_theme_css', ! empty( Velox_Builder::global_styles()['theme']['keep'] ) ) ) {
+			return;
+		}
+		// The theme's global styles set the body font, heading sizes and link
+		// colours, over the ones set in Velox. Post content (blocks) still needs
+		// WordPress's layout rules and colour/size presets from them, so a page
+		// that shows it gets only those parts.
+		wp_dequeue_style( 'global-styles' );
+		remove_action( 'wp_footer', 'wp_enqueue_global_styles', 1 );
+		remove_action( 'wp_head', 'wp_print_font_faces', 50 );
+		if ( self::$prose_used && function_exists( 'wp_get_global_stylesheet' ) ) {
+			$layout = wp_get_global_stylesheet( array( 'variables', 'presets', 'base-layout-styles' ) );
+			if ( '' !== $layout ) {
+				wp_register_style( 'velox-wp-layout', false, array(), null );
+				wp_enqueue_style( 'velox-wp-layout' );
+				wp_add_inline_style( 'velox-wp-layout', $layout );
+			}
+		} else {
+			wp_dequeue_style( 'core-block-supports' );
+		}
+		wp_dequeue_style( 'classic-theme-styles' );
+		$roots = array_unique( array( get_stylesheet_directory_uri(), get_template_directory_uri() ) );
+		$q     = wp_styles();
+		foreach ( (array) $q->queue as $h ) {
+			$src = isset( $q->registered[ $h ] ) ? (string) $q->registered[ $h ]->src : '';
+			foreach ( $roots as $root ) {
+				if ( '' !== $src && 0 === strpos( $src, $root ) ) {
+					wp_dequeue_style( $h );
+				}
+			}
+		}
+	}
+
+	/** True once the page shows post content (blocks), which needs WordPress's layout CSS. */
+	private static $prose_used = false;
+
 	private static function output_page( $doc ) {
+		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'strip_theme_css' ), 9999 );
+		self::$prose_used = false;
 		self::$rendered_doc = true;
 		self::$page_settings = isset( $doc['page'] ) && is_array( $doc['page'] ) ? $doc['page'] : array();
 		// The template's own CSS and JS used to be dropped on the floor: only the
@@ -2304,7 +2830,8 @@ class Velox_Builder_Render {
 				// A template without an Inner Content slot still shows the list of
 				// posts (archives / search) rather than dropping it.
 				if ( empty( $doc['tree'] ) && ! empty( $doc['__html'] ) ) {
-					$body .= '<main class="velox-inner-content">' . $doc['__html'] . '</main>';
+					self::$prose_used = true;
+					$body .= '<main class="velox-inner-content vx-prose">' . $doc['__html'] . '</main>';
 				}
 			}
 			self::$inner_doc = null;
@@ -2466,17 +2993,32 @@ class Velox_Builder_Render {
 	 * Global styles as real CSS. Only properties that were actually set are
 	 * emitted, so an untouched field never overrides an element's own styling.
 	 */
+	/** Adds a class to an attribute string that may already carry class="…". */
+	private static function add_class_attr( $attr, $cls ) {
+		if ( preg_match( '/\sclass="([^"]*)"/', $attr ) ) {
+			return preg_replace( '/\sclass="([^"]*)"/', ' class="$1 ' . $cls . '"', $attr, 1 );
+		}
+		return ' class="' . $cls . '"' . $attr;
+	}
+
 	public static function global_styles_css() {
 		if ( ! class_exists( 'Velox_Builder' ) ) {
 			return '';
 		}
 		$g   = Velox_Builder::global_styles();
-		$out = '';
+		// The editor canvas starts from box-sizing:border-box and no browser
+		// margins; the page did not, so headings, paragraphs and cards sat
+		// lower and wider than in the editor. Zero specificity, so any margin
+		// set in the editor wins, and post content (.vx-prose) keeps its spacing.
+		$out = ':where(.velox-built),:where(.velox-built) *,:where(.velox-built) ::before,:where(.velox-built) ::after{box-sizing:border-box}'
+			. ':where(.velox-built) :where(h1,h2,h3,h4,h5,h6,p,figure,blockquote,ul,ol,dl,dd,pre,hr):not(:where(.vx-prose *)){margin:0}'
+			. ':where(body.velox-built){margin:0}';
 		$px  = function ( $v ) { return ( '' === $v || null === $v ) ? '' : ( is_numeric( $v ) ? $v . 'px' : $v ); };
 
 		$b = $g['body'];
 		$decl = '';
-		if ( '' !== $b['font'] ) { $decl .= "font-family:'" . str_replace( "'", '', $b['font'] ) . "',sans-serif;"; }
+		// No font chosen: the system font, as in the editor (the page fell back to the browser's serif).
+		$decl .= '' !== $b['font'] ? "font-family:'" . str_replace( "'", '', $b['font'] ) . "',sans-serif;" : 'font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif;';
 		if ( '' !== $b['size'] ) { $decl .= 'font-size:' . $px( $b['size'] ) . ';'; }
 		if ( '' !== $b['weight'] ) { $decl .= 'font-weight:' . (int) $b['weight'] . ';'; }
 		if ( '' !== $b['lineHeight'] ) { $decl .= 'line-height:' . $b['lineHeight'] . ';'; }
@@ -2722,7 +3264,8 @@ class Velox_Builder_Render {
 			self::$inner_depth--;
 			// A page with no Velox layout contributes its post content instead.
 			if ( '' === trim( $inner ) && '' !== self::$inner_html ) {
-				$inner = '<div class="velox-legacy-content">' . self::$inner_html . '</div>';
+				self::$prose_used = true;
+				$inner = '<div class="velox-legacy-content vx-prose">' . self::$inner_html . '</div>';
 			}
 			// The page's own content is the document's main landmark.
 			return '<main id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( implode( ' ', array_filter( $classes ) ) ) . '">' . $inner . '</main>';
@@ -2771,6 +3314,10 @@ class Velox_Builder_Render {
 		$attr .= self::site_part( $node, $id );
 		$attr .= self::ix_attrs( $node );
 
+		if ( isset( $node['el'] ) && isset( self::$WIDGETS[ $node['el'] ] ) ) {
+			return self::render_widget( $node, $attr );
+		}
+
 		// Reusable element: pull the referenced reusable document and render its
 		// tree inline (by reference — editing the reusable updates every page).
 		if ( isset( $node['el'] ) && 'Reusable' === $node['el'] ) {
@@ -2817,6 +3364,9 @@ class Velox_Builder_Render {
 				$body   = '<video src="' . esc_url( $url ) . '"' . ( $poster ? ' poster="' . esc_url( $poster ) . '"' : '' )
 					. ( '' !== $vt ? ' aria-label="' . esc_attr( $vt ) . '"' : '' )
 					. ( $auto ? ' autoplay muted loop playsinline' : ' controls' ) . ' preload="metadata"></video>';
+			}
+			if ( '' === $body ) {
+				return '';
 			}
 			$attr = preg_replace( '/ class="/', ' class="vx-video ', $attr, 1, $hit );
 			if ( ! $hit ) {
@@ -2893,6 +3443,10 @@ class Velox_Builder_Render {
 			$href = isset( $node['href'] ) ? self::link_href( $node['href'] ) : '';
 			if ( '' !== $img && '' !== $href ) {
 				$img = '<a href="' . esc_url( $href ) . '"' . ( ! empty( $node['target'] ) && '_blank' === $node['target'] ? ' target="_blank" rel="noopener"' : '' ) . '>' . $img . '</a>';
+			}
+			if ( '' !== $img && self::el_set( $node, 'fit', '' ) ) {
+				self::$runtime_used['widgets'] = true;
+				$attr = self::wcls( $attr, 'vx-img-cover' );
 			}
 			$caption = trim( (string) self::el_set( $node, 'caption', '' ) );
 			if ( '' !== $img && '' !== $caption ) {
@@ -3332,6 +3886,8 @@ class Velox_Builder_Render {
 			case 'user.meta':     $u = wp_get_current_user(); return ( $u && $u->ID && $arg && self::safe_user_key( $arg ) ) ? self::scalar( get_user_meta( $u->ID, $arg, true ) ) : '';
 			case 'site.title':    return esc_html( get_bloginfo( 'name' ) );
 			case 'site.tagline':  return esc_html( get_bloginfo( 'description' ) );
+			// For copyright lines that never go out of date.
+			case 'date.year':     return esc_html( wp_date( 'Y' ) );
 			case 'site.other':    return $arg ? esc_html( get_bloginfo( $arg ) ) : '';
 			case 'archive.title':       return esc_html( wp_strip_all_tags( get_the_archive_title() ) );
 			case 'archive.description': return wp_kses_post( get_the_archive_description() );
@@ -3367,7 +3923,8 @@ class Velox_Builder_Render {
 				}
 				return '<' . $tag . $attr . '>' . $t . '</' . $tag . '>';
 			case 'content':
-				return '<div' . $attr . '>' . apply_filters( 'the_content', get_post_field( 'post_content', $pid ) ) . '</div>';
+				self::$prose_used = true;
+				return '<div' . self::add_class_attr( $attr, 'vx-prose' ) . '>' . apply_filters( 'the_content', get_post_field( 'post_content', $pid ) ) . '</div>';
 			case 'featured':
 				$img = $pid ? get_the_post_thumbnail( $pid, 'large', array( 'style' => 'display:block;max-width:100%;height:auto' ) ) : '';
 				if ( '' !== $img && ! empty( $node['wpLink'] ) ) {

@@ -318,6 +318,18 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 				<?php velox_gs_num( 'blocks', 'gap', __( 'Gap', 'velox' ), $g['blocks']['gap'] ?? '', 'px', __( 'inherit', 'velox' ) ); ?>
 			</div>
 		</div>
+		<div class="vba-gs-row">
+			<span class="vba-gs-tag"><?php esc_html_e( 'Theme', 'velox' ); ?></span>
+			<div class="vba-gs-grid">
+				<label class="vba-gs-f">
+					<span class="vba-fl"><?php esc_html_e( 'Theme CSS on Velox pages', 'velox' ); ?></span>
+					<select data-gs="theme.keep">
+						<option value="" <?php selected( $g['theme']['keep'] ?? '', '' ); ?>><?php esc_html_e( 'Off — pages look like the editor', 'velox' ); ?></option>
+						<option value="1" <?php selected( $g['theme']['keep'] ?? '', '1' ); ?>><?php esc_html_e( 'Load it (it can override these styles)', 'velox' ); ?></option>
+					</select>
+				</label>
+			</div>
+		</div>
 	</div>
 
 	<div class="vba-card vba-dh" id="vba-dh">

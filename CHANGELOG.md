@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.49.0 — 30 new elements and blocks, carousels, and the page now looks exactly like the editor
+- **New elements:** marquee (text or logos), counter, countdown, before/after slider, gallery with lightbox, rotating text, flip card, skill bars, star rating, social icons, map (loads only after a click, for privacy), HTML embed, table, timeline and checklist. Each one works the same in the editor and on the page, with every setting per screen size where it matters.
+- **Carousels:** image carousel, logo carousel and testimonial slider, ready filled.
+- **Blocks** (new group in + Add): site header, site footer, hero, pricing card, pricing table, testimonial, testimonials, steps, contact details, post card and logo wall, built from normal elements you can change.
+- **Everything starts with real content.** Cards, icon boxes, stats, team members, logo strips, feature grids, callouts, CTA bands, bento grids, tabs, accordions and FAQs come with sample text and placeholder images instead of empty boxes. The Overlap wrapper comes with a card.
+- **Phones:** grids, columns, stats rows, feature grids, galleries, bento grids and the new blocks stack on small screens by default; the hero headline gets smaller.
+- **The page looks like the editor.** The theme's stylesheet and its global styles (fonts, heading sizes, link colours) no longer load on Velox pages and override your Global styles; turn them back on under Global styles → Theme if you need them. Headings and paragraphs no longer get the browser's extra margins on the page. Post content keeps its normal spacing.
+- **The editor shows the real thing:** forms render as on the page; Post title, Post content, Featured image and Menu show the page's data (templates use the newest post); Last updated and Reading time show the real date and minutes; sliders, tabs, accordions, navigation and breadcrumbs use the page's own markup and CSS.
+- **New data token:** Current year, for copyright lines.
+- **Fixed:** tabs set to turn into an accordion on phones showed every panel below the last tab; accordion items had no dividers and used the full heading size; empty tab, accordion and slide panels took a tall drop area in the editor.
+
 ## 4.48.0 — Global styles win on existing pages too; unused classes; Structure row tools
 - **Global styles now drive sections on pages made before 4.44 too.** Older versions wrote Velox's own default padding into the .section class of every page (48/32 or 64/24), plus a gap into .columns (20/24) and .block (16); those copies kept beating Global styles → Sections & containers. They are removed once on update, only where they are still exactly those old defaults; anything you changed stays. Cached pages are refreshed.
 - **The editor shows the template's CSS.** A page wrapped by a template gets the template's Page settings → CSS on the site; the canvas now loads it too, so the editor and the site look the same.

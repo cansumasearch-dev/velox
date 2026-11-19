@@ -579,6 +579,10 @@ class Velox_Builder {
 			}
 		}
 		$boot = array(
+			// Real data for the WordPress elements (title, content, featured image,
+			// menu), so the canvas shows what the page will. Templates borrow the
+			// newest post as a sample.
+			'wpData'  => self::wp_data_sample( $post_id, $kind_now ),
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'velox_nonce' ),
 			'docId'   => $doc_id,
@@ -604,6 +608,11 @@ class Velox_Builder {
 			// Token variables and global styles, so the canvas looks like the page.
 			'siteCss' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '',
 			'tplCss'  => self::template_css_for( $post_id, $doc_id ),
+			// New elements: bundled placeholder images, icon paths shared with the
+			// renderer, and the site's time zone for the countdown preview.
+			'imgBase' => VELOX_URL . 'assets/img/',
+			'wIcons'  => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::widget_icons() : array(),
+			'tzOffset' => function_exists( 'wp_timezone' ) ? (int) wp_timezone()->getOffset( new DateTime( 'now' ) ) : 0,
 			'fontLinks' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_fonts()['links'] : array(),
 			// Oxygen import: the page being opened (if it has an Oxygen layout)
 			// and whether the site has any Oxygen layouts at all.
@@ -632,6 +641,8 @@ class Velox_Builder {
 			'reviewConnections' => self::review_connections(),
 			// Forms (Velox → Mail) for the Form element.
 			'forms'     => self::forms_payload(),
+			// The real form markup and CSS, drawn in the canvas as on the page.
+			'formPreview' => class_exists( 'Velox_Forms' ) && method_exists( 'Velox_Forms', 'editor_preview' ) ? Velox_Forms::editor_preview() : array( 'html' => array(), 'css' => '' ),
 			'formsOn'   => class_exists( 'Velox_Settings' ) && Velox_Settings::get( 'util_mail' ) ? 1 : 0,
 			'formsUrl'  => admin_url( 'admin.php?page=velox-utilities&tool=mail' ),
 			'reviewPresets' => self::review_presets(),
@@ -1512,6 +1523,7 @@ class Velox_Builder {
 			),
 			'sections' => array(), 'columns' => array(),
 			'blocks'   => array( 'gap' => $len( $in['blocks']['gap'] ?? '' ) ),
+			'theme'    => array( 'keep' => empty( $in['theme']['keep'] ) ? '' : '1' ),
 			'aos'      => array(
 				'type'     => in_array( ( $in['aos']['type'] ?? '' ), array_keys( self::aos_types() ), true ) ? $in['aos']['type'] : '',
 				'duration' => $num( $in['aos']['duration'] ?? '' ),
@@ -1667,6 +1679,8 @@ class Velox_Builder {
 			'columns'  => array( 'top' => '20', 'right' => '20', 'bottom' => '20', 'left' => '20', 'gap' => '24' ),
 			// Div blocks: the space between their children.
 			'blocks'   => array( 'gap' => '16' ),
+			// '1' = also load the theme's CSS on Velox pages (it overrides these styles).
+			'theme'    => array( 'keep' => '' ),
 			'aos'      => array( 'type' => '', 'duration' => '600', 'easing' => 'ease', 'offset' => '120', 'delay' => '0', 'once' => '1', 'disable' => '' ),
 		);
 		foreach ( array( 'h1' => '48', 'h2' => '36', 'h3' => '28', 'h4' => '22', 'h5' => '18', 'h6' => '16' ) as $tag => $size ) {
@@ -1690,6 +1704,46 @@ class Velox_Builder {
 			}
 		}
 		return $d;
+	}
+
+	/** Title, text, featured image and menu items for the editor's WordPress elements. */
+	public static function wp_data_sample( $post_id, $kind ) {
+		$p      = $post_id ? get_post( $post_id ) : null;
+		$sample = false;
+		if ( ! $p && 'page' !== $kind ) {
+			$recent = get_posts( array( 'numberposts' => 1, 'post_type' => 'post', 'post_status' => 'publish' ) );
+			$p      = $recent ? $recent[0] : null;
+			$sample = (bool) $p;
+		}
+		$out = array( 'title' => '', 'text' => '', 'img' => '', 'sample' => $sample, 'menu' => array() );
+		if ( $p ) {
+			$out['title'] = get_the_title( $p );
+			$plain        = trim( wp_strip_all_tags( strip_shortcodes( (string) $p->post_content ) ) );
+			$out['text']  = wp_trim_words( $plain, 90, '…' );
+			// Words in the post itself, for the Reading time element.
+			$out['words'] = '' === $plain ? 0 : count( preg_split( '/\s+/u', $plain ) );
+			$img          = get_the_post_thumbnail_url( $p, 'large' );
+			$out['img']   = $img ? $img : '';
+		}
+		// For "Last updated": the date as the page prints it.
+		$stamp = $p ? (int) get_post_modified_time( 'U', true, $p ) : time();
+		$out['mod']    = wp_date( get_option( 'date_format' ), $stamp );
+		/* translators: %s: a length of time, e.g. "3 days". */
+		$out['modAgo'] = sprintf( __( '%s ago', 'velox' ), human_time_diff( $stamp, time() ) );
+		// wp_nav_menu() without a location falls back to the first menu that has items.
+		foreach ( (array) wp_get_nav_menus() as $m ) {
+			$items = wp_get_nav_menu_items( $m->term_id );
+			if ( ! $items ) {
+				continue;
+			}
+			foreach ( $items as $it ) {
+				if ( 0 === (int) $it->menu_item_parent ) {
+					$out['menu'][] = html_entity_decode( (string) $it->title, ENT_QUOTES, 'UTF-8' );
+				}
+			}
+			break;
+		}
+		return $out;
 	}
 
 	/** Breakpoints, used by the editor, the renderer and the class CSS parser. */

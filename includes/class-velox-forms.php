@@ -1701,6 +1701,33 @@ class Velox_Forms {
 
 	/* --------------------------------------------------------------- front assets */
 
+	/**
+	 * Real form markup and its CSS for the editor canvas, so the Form element
+	 * there looks exactly like the page instead of a drawn outline.
+	 *
+	 * @return array{html: array<int,string>, css: string}
+	 */
+	public static function editor_preview() {
+		$was_r = self::$rendered;
+		$was_s = self::$form_styles;
+		$html  = array();
+		foreach ( array_slice( self::forms(), 0, 30, true ) as $id => $f ) {
+			// Scripts in "HTML" fields don't run in the canvas; strip them anyway.
+			$html[ (int) $id ] = preg_replace( '#<script\b[^>]*>.*?</script>#is', '', self::render( $id ) );
+		}
+		self::$rendered = true;
+		ob_start();
+		self::print_assets();
+		$out = (string) ob_get_clean();
+		$css = '';
+		if ( preg_match_all( '#<style\b[^>]*>(.*?)</style>#is', $out, $m ) ) {
+			$css = implode( "\n", $m[1] );
+		}
+		self::$rendered    = $was_r;
+		self::$form_styles = $was_s;
+		return array( 'html' => $html, 'css' => $css );
+	}
+
 	public static function print_assets() {
 		if ( ! self::$rendered ) {
 			return;
