@@ -97,6 +97,10 @@
 			// Insert Data, for elements with their own text.
 			var e2 = cd().getElementById( id );
 			e2.dispatchEvent( new MouseEvent( 'dblclick', { bubbles: true } ) ); await sleep( 250 );
+			// A double-click on an image opens the media library: that is the editor
+			// working; close it and carry on.
+			var mm = q( '.media-modal' );
+			if ( mm && mm.offsetParent !== null ) { r.mediaOnDbl = true; var mc = q( '.media-modal-close' ); if ( mc ) { mc.click(); } await sleep( 300 ); qa( '.media-modal-backdrop' ).forEach( function ( x ) { if ( x.offsetParent !== null ) { x.click(); } } ); await sleep( 150 ); }
 			var ed = cd().querySelector( '[contenteditable="true"]' );
 			if ( ed ) {
 				r.editable = true;
