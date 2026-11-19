@@ -4,6 +4,16 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.43.0 — Velox Builder: a calmer inspector, one dropdown everywhere
+- **What you are styling, at a glance.** The top of the inspector is now one row: the class being styled (click it for every class on the element, "This element only", your other classes, lock and remove), the state ("Normal"; click for :hover, :focus, :active, your own states or a new one) and a + to add a class. One quiet line under it says what changes apply to.
+- **One dropdown everywhere.** Every dropdown in Velox, in the editor and on the admin screens, opens the same list: dark in the editor, light in the admin. Long lists get a search field, the current choice is ticked, it works with the keyboard and never runs off the screen. Closed, they all look the same too.
+- **Even spacing in the inspector.** 16px edges, 32px controls, 12px between fields, 16px between groups. The property search has room to breathe, the padding/margin switch reads "All sides / Each side".
+- **Images:** a proper image card with a padded Replace button, then Alt text and a new **Title** field (shown as a tooltip).
+- **Canvas info bar** (screen size, width, zoom, path to the selected element) now sits below the page as a slim status bar. Its gear menu, or Settings → Editor settings, moves it above the page, hides it, or picks what it shows.
+- **Double-click an element** on the canvas to open it in Structure (text still starts editing, an image still opens the media library).
+- **Menus:** the View menu stays inside the window; View and the exit menu close each other; opening View no longer closes a pinned Structure panel.
+- **Inner Content** renders as `<main>`, so a template's page body is the page's main landmark.
+
 ## 4.42.0 — Velox Builder: design history
 - **Design history** (Velox Builder → Global styles, at the bottom): every change to classes, design tokens and global styles is kept, whichever screen made it: the class editor, publishing a page (which updates site-wide classes), the token editor, global styles or an import.
   - Each version says what changed: which classes, the design tokens, the global styles. It also says when and by whom.

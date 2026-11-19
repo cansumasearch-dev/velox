@@ -164,6 +164,8 @@
 		'el_reusable':'<path d="M9.302 1.256a1.5 1.5 0 0 0-2.604 0l-1.704 2.98a.5.5 0 0 0 .869.497l1.703-2.981a.5.5 0 0 1 .868 0l2.54 4.444-1.256-.337a.5.5 0 1 0-.26.966l2.415.647a.5.5 0 0 0 .613-.353l.647-2.415a.5.5 0 1 0-.966-.259l-.333 1.242zM2.973 7.773l-1.255.337a.5.5 0 1 1-.26-.966l2.416-.647a.5.5 0 0 1 .612.353l.647 2.415a.5.5 0 0 1-.966.259l-.333-1.242-2.545 4.454a.5.5 0 0 0 .434.748H5a.5.5 0 0 1 0 1H1.723A1.5 1.5 0 0 1 .421 12.24zm10.89 1.463a.5.5 0 1 0-.868.496l1.716 3.004a.5.5 0 0 1-.434.748h-5.57l.647-.646a.5.5 0 1 0-.708-.707l-1.5 1.5a.5.5 0 0 0 0 .707l1.5 1.5a.5.5 0 1 0 .708-.707l-.647-.647h5.57a1.5 1.5 0 0 0 1.302-2.244z"/>'
 	};
 	Object.keys( EL_ICON ).forEach( function ( k ) { ICON[ k ] = EL_ICON[ k ]; } );
+	ICON.hash = '<path d="M6.2 2.5 4.9 13.5M11.1 2.5 9.8 13.5M2.8 5.8h11M2.2 10.2h11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>';
+	ICON.target = '<circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2.1"/>';
 	function svg( name, size ) {
 		// Bootstrap Icons are drawn on a 16-unit grid: at 16px every line lands on a
 		// whole pixel; at 13-15px they fall between pixels and smear (the gear looked
@@ -926,6 +928,7 @@
 				var id = n.getAttribute( 'data-node' ), node = findNode( store.state.tree, id );
 				if ( ! node ) { return; }
 				e.preventDefault();
+				openStructureAt( id );
 				if ( lockedAt( id ) ) { sayLocked(); return; }
 				if ( node.el === 'Image' ) { openMediaPicker( id ); return; }
 				if ( node.el === 'Icon' ) { openIconPicker( 'icon' ); return; }
@@ -2150,6 +2153,89 @@
 		return '';
 	}
 	/* Add a class to the selected node (creating the class if new). */
+	/* ---------- what is being styled: class (or this element) and state ----------
+	 * One control each, showing only the current choice; the full list opens on
+	 * click (the shared Velox dropdown). */
+	function selectorBarHTML( node, ac, st, bp, ovCount ) {
+		var isCls = ac && '#' !== ac, locked = isCls && isLocked( ac );
+		var bar = '<div class="vb-selbar">' +
+			'<button type="button" class="vb-sel vb-sel-cls' + ( isCls ? '' : ' is-el' ) + ( locked ? ' is-locked' : '' ) + '" id="vb-clspick" aria-haspopup="listbox" title="' + T( 'What the styles below change' ) + '">' +
+				'<span class="vb-sel-ic">' + svg( isCls ? 'hash' : 'target', 13 ) + '</span><span class="vb-sel-v">' + escapeHtml( isCls ? ac : T( 'This element' ) ) + '</span>' +
+				( locked ? '<span class="vb-sel-lock">' + svg( 'lock', 11 ) + '</span>' : '' ) + '<span class="vb-sel-cv">' + svg( 'chevron', 12 ) + '</span></button>' +
+			'<button type="button" class="vb-sel vb-sel-st' + ( 'normal' !== st ? ' is-on' : '' ) + '" id="vb-statepick" aria-haspopup="listbox" title="' + T( 'State' ) + '">' +
+				'<span class="vb-sel-v">' + ( 'normal' === st ? T( 'Normal' ) : ':' + escapeHtml( st ) ) + '</span><span class="vb-sel-cv">' + svg( 'chevron', 12 ) + '</span></button>' +
+			'<button type="button" class="vb-sel-add" data-addclass title="' + T( 'Add a class' ) + '" aria-label="' + T( 'Add a class' ) + '">' + svg( 'plus', 14 ) + '</button>' +
+		'</div>';
+		var where = 'base' === bp ? '' : '<span class="vb-selnote-bp">' + escapeHtml( ( BP_META[ bp ] || BP_META.base ).label ) + '</span>';
+		var what = isCls ? T( 'Changes apply to every element with' ) + ' <code>' + escapeHtml( ac ) + '</code>' : T( 'Changes apply to this element only.' );
+		if ( 'normal' !== st ) { what += ' ' + T( 'Only while' ) + ' <code>:' + escapeHtml( st ) + '</code>.'; }
+		var note = '<div class="vb-selnote">' + where + '<span>' + what + '</span></div>';
+		var warn = ovCount ? '<div class="vb-ovwarn">' + svg( 'bolt', 12 ) + '<span>' + ovCount + ' ' + ( 1 === ovCount ? T( 'style set on this element overrides the class here.' ) : T( 'styles set on this element override the class here.' ) ) + '</span>' +
+			'<button type="button" data-ovmove>' + T( 'Move to class' ) + '</button><button type="button" data-ovclear>' + T( 'Remove' ) + '</button></div>' : '';
+		return '<div class="vb-selwrap">' + bar + note + warn + '</div>';
+	}
+	function addClassNamed( name ) {
+		name = '.' + String( name || '' ).replace( /^\./, '' ).replace( /[^A-Za-z0-9_-]/g, '' );
+		if ( '.' === name ) { return; }
+		store.commit( function ( s ) {
+			var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
+			if ( n.classes.indexOf( name ) < 0 ) { n.classes.push( name ); ensureClass( s, name, { base:{} } ); }
+			s.activeClass = name;
+		}, T( 'Add class' ) + ' ' + name );
+	}
+	function openClassPicker( anchor ) {
+		var s = store.state, n = s && findNode( s.tree, s.selection );
+		if ( ! n || ! window.VeloxSelect ) { return; }
+		var ac = s.activeClass || n.classes[ 0 ] || '#';
+		var items = [ { header:T( 'On this element' ) } ];
+		n.classes.forEach( function ( c, i ) {
+			var lk = isLocked( c );
+			items.push( { value:'cls:' + c, label:c, hint:0 === i ? T( 'base' ) : T( 'combo' ), checked:c === ac,
+				actions:[ { key:'lock', icon:svg( lk ? 'lock' : 'unlock', 13 ), title:lk ? T( 'Unlock this class' ) : T( 'Lock this class' ) }, { key:'remove', icon:svg( 'x', 13 ), title:T( 'Remove from this element' ) } ] } );
+		} );
+		items.push( { value:'#', label:T( 'This element only' ), hint:'#' + n.id, checked:'#' === ac } );
+		var mine = Object.keys( CFG.classRegistry || {} ).concat( Object.keys( s.classes || {} ) ).filter( function ( c, i, a ) { return a.indexOf( c ) === i && n.classes.indexOf( c ) < 0; } ).sort();
+		if ( mine.length ) {
+			items.push( { sep:true } );
+			items.push( { header:T( 'Add one of your classes' ) } );
+			mine.forEach( function ( c ) { items.push( { value:'add:' + c, label:c, icon:svg( 'plus', 12 ) } ); } );
+		}
+		VeloxSelect.open( anchor, items, function ( v, act ) {
+			if ( 0 === v.indexOf( 'cls:' ) ) {
+				var c = v.slice( 4 );
+				if ( 'lock' === act ) { toggleLock( c ); return; }
+				if ( 'remove' === act ) { removeClassFromNode( c ); return; }
+				store.commit( function ( st ) { st.activeClass = c; }, false );
+			} else if ( '#' === v ) {
+				store.commit( function ( st ) { st.activeClass = '#'; }, false );
+			} else if ( 0 === v.indexOf( 'add:' ) ) {
+				addClassNamed( v.slice( 4 ) );
+			}
+		}, { filter:true, filterPlaceholder:T( 'Find or type a new class' ), onFilterEnter:addClassNamed, empty:T( 'Press Enter to add it as a new class.' ), width:anchor.parentNode ? anchor.parentNode.offsetWidth : 0 } );
+	}
+	function addStatePrompt() {
+		vbAsk( { title:T( 'Add a state' ), text:T( 'Any CSS pseudo-class: visited, focus-within, first-child, nth-child(2)…' ), input:'', placeholder:'focus-within',
+			suggest:[ 'visited', 'focus-within', 'focus-visible', 'first-child', 'last-child', 'nth-child(2)', 'nth-child(odd)', 'nth-child(even)', 'disabled', 'checked', 'placeholder-shown' ], ok:T( 'Add state' ) }, function ( ps ) {
+			if ( ! ps ) { return; }
+			ps = ps.replace( /^:+/, '' ).trim();
+			if ( ! ps ) { return; }
+			if ( customStates.indexOf( ps ) < 0 && [ 'hover', 'focus', 'active', 'normal' ].indexOf( ps ) < 0 ) { customStates.push( ps ); }
+			store.commit( function ( s ) { s.state = ps; }, false );
+		} );
+	}
+	function openStatePicker( anchor ) {
+		if ( ! window.VeloxSelect || ! store.state ) { return; }
+		var cur = store.state.state || 'normal';
+		var items = [ 'normal', 'hover', 'focus', 'active' ].concat( customStates ).map( function ( x ) {
+			return { value:x, label:'normal' === x ? T( 'Normal' ) : ':' + x, hint:{ hover:T( 'pointer over it' ), focus:T( 'selected by keyboard' ), active:T( 'while pressed' ) }[ x ] || '', checked:x === cur };
+		} );
+		items.push( { sep:true } );
+		items.push( { value:'__add', label:T( 'Add a state…' ), icon:svg( 'plus', 12 ) } );
+		VeloxSelect.open( anchor, items, function ( v ) {
+			if ( '__add' === v ) { addStatePrompt(); return; }
+			store.commit( function ( s ) { s.state = v; }, false );
+		}, { width:200, align:'right' } );
+	}
 	function addClassToSelected() {
 		var known = Object.keys( ( store.state && store.state.classes ) || {} ).concat( Object.keys( CFG.classRegistry || {} ) );
 		vbAsk( { title:T( 'Add a class' ), text:T( 'Letters, numbers and dashes. A class is shared: style it once, use it on as many elements as you like.' ),
@@ -3180,8 +3266,8 @@
 	function boxFieldset( key, node, bp, st, ac ) {
 		var cfg = BOX_SIDES[ key ], mode = boxMode[ key ];
 		var seg = '<span class="vb-bx-seg">' +
-			'<button class="' + ( mode === 'all' ? 'on' : '' ) + '" data-boxmode="' + key + '" data-mode="all">' + T( 'All' ) + '</button>' +
-			'<button class="' + ( mode !== 'all' ? 'on' : '' ) + '" data-boxmode="' + key + '" data-mode="individual">' + T( 'Individual' ) + '</button>' +
+			'<button class="' + ( mode === 'all' ? 'on' : '' ) + '" data-boxmode="' + key + '" data-mode="all">' + T( 'All sides' ) + '</button>' +
+			'<button class="' + ( mode !== 'all' ? 'on' : '' ) + '" data-boxmode="' + key + '" data-mode="individual">' + T( 'Each side' ) + '</button>' +
 			'</span>';
 		var inner;
 		if ( 'all' === mode ) {
@@ -3242,7 +3328,7 @@
 	 * text, animation and item fields were missing, so typing there lost focus
 	 * after one character or a short pause. */
 	var FOCUS_ATTRS = [ 'data-setnum', 'data-setbox', 'data-setunit', 'data-setboxunit', 'data-set', 'data-setel', 'data-sethref',
-		'data-repset', 'data-setaos', 'data-imgalt', 'data-setconn', 'data-setpreset', 'data-setwp', 'data-elcss', 'data-attrn', 'data-attrv', 'data-setsel', 'data-sfilter', 'data-cond', 'data-loop', 'data-hdr', 'data-cprop', 'data-cpropf', 'data-ix' ];
+		'data-repset', 'data-setaos', 'data-imgalt', 'data-imgtitle', 'data-setconn', 'data-setpreset', 'data-setwp', 'data-elcss', 'data-attrn', 'data-attrv', 'data-setsel', 'data-sfilter', 'data-cond', 'data-loop', 'data-hdr', 'data-cprop', 'data-cpropf', 'data-ix' ];
 	function captureFocus() {
 		var el = document.activeElement;
 		if ( ! el || ! el.closest || ! el.closest( '#vb-inspector' ) ) { return null; }
@@ -3368,8 +3454,14 @@
 		chips += '<span class="vb-chip vb-chip-add" data-addclass>+ ' + T( 'class' ) + '</span>';
 		chips += '<span class="vb-chip vb-chip-el' + ( '#' === ac ? ' active' : '' ) + '" data-cls="#" title="' + T( 'Style only this element, not its class' ) + '">' + T( 'This element' ) + '</span>';
 		var acKind = node.classes.indexOf( ac ) === 0 ? 'base' : 'combo';
-		var imgBtn = node.el === 'Image' ? '<button class="vb-imgbtn" data-pickimg="' + node.id + '">' + svg( 'image', 15 ) + ' ' + ( store.state.content[ node.id ] ? T( 'Replace image' ) : T( 'Choose image' ) ) + '</button>' +
-			( store.state.content[ node.id ] ? '<label class="vb-imgalt"><span>' + T( 'Alt text' ) + '</span><input type="text" data-imgalt="' + node.id + '" value="' + escapeHtml( node.alt || '' ) + '" placeholder="' + T( 'Describe the image for search engines and screen readers' ) + '"></label>' : '' ) : '';
+		var imgSrc = node.el === 'Image' ? ( store.state.content[ node.id ] || '' ) : '';
+		var imgBtn = node.el === 'Image' ? '<div class="vb-imgset">' +
+			'<div class="vb-imgcard">' + ( imgSrc ? '<span class="vb-imgthumb" style="background-image:url(&quot;' + escapeHtml( imgSrc ) + '&quot;)"></span>' : '<span class="vb-imgthumb is-empty">' + svg( 'image', 16 ) + '</span>' ) +
+				'<span class="vb-imgname">' + escapeHtml( imgSrc ? decodeURIComponent( imgSrc.split( '/' ).pop().split( '?' )[ 0 ] ) : T( 'No image yet' ) ) + '</span>' +
+				'<button type="button" class="vb-btn2" data-pickimg="' + node.id + '">' + ( imgSrc ? T( 'Replace' ) : T( 'Choose image' ) ) + '</button></div>' +
+			( imgSrc ? '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Alt text' ) + '</div><input type="text" class="vb-inp" data-imgalt="' + node.id + '" value="' + escapeHtml( node.alt || '' ) + '" placeholder="' + T( 'What the image shows' ) + '"></div>' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Title' ) + '</div><input type="text" class="vb-inp" data-imgtitle="' + node.id + '" value="' + escapeHtml( node.imgTitle || '' ) + '" placeholder="' + T( 'Shown as a tooltip (optional)' ) + '"></div>' : '' ) +
+			'</div>' : '';
 
 		// Per-element inspector profiles: the ORDER groups appear in, and which of
 		// them count as "Essentials" for this element type. Text-like elements lead
@@ -3512,9 +3604,9 @@
 			if ( sq && ! body ) { body = '<div class="vb-sfilter-none">' + T( 'No property matches' ) + ' “' + escapeHtml( styleFilter ) + '”.</div>'; }
 			if ( onlySet && ! sq && ! body ) { body = '<div class="vb-sfilter-none">' + T( 'Nothing is set here yet at this screen size and state.' ) + '</div>'; }
 		}
-		var filterBar = 'set' === tab ? '' : '<div class="vb-sfilter">' + svg( 'search', 13 ) +
-			'<input id="vb-sfilter" data-sfilter="1" value="' + escapeHtml( styleFilter ) + '" placeholder="' + T( 'Find a property…' ) + ' (' + ( IS_MAC ? '⇧⌘F' : 'Ctrl+Shift+F' ) + ')" spellcheck="false" autocomplete="off">' +
-			( styleFilter ? '<button type="button" data-sfilter-x title="' + T( 'Clear' ) + '">' + svg( 'x', 12 ) + '</button>' : '' ) +
+		var filterBar = 'set' === tab ? '' : '<div class="vb-sfilter"><label class="vb-sfilter-box">' + svg( 'search', 13 ) +
+			'<input id="vb-sfilter" data-sfilter="1" value="' + escapeHtml( styleFilter ) + '" placeholder="' + T( 'Find a property' ) + '" title="' + ( IS_MAC ? '⇧⌘F' : 'Ctrl+Shift+F' ) + '" spellcheck="false" autocomplete="off">' +
+			( styleFilter ? '<button type="button" data-sfilter-x title="' + T( 'Clear' ) + '">' + svg( 'x', 12 ) + '</button>' : '' ) + '</label>' +
 			'<button type="button" class="vb-onlyset' + ( onlySet ? ' on' : '' ) + '" data-onlyset aria-pressed="' + ( onlySet ? 'true' : 'false' ) + '" title="' + T( 'Show only what is set here' ) + '">' + T( 'Set only' ) + '</button></div>';
 		// Element styles at this screen size win over the class being edited.
 		var ovKey = ruleKey( bp, st ), ovCount = ( ac && '#' !== ac && node.overrides && node.overrides[ ovKey ] ) ? Object.keys( node.overrides[ ovKey ] ).length : 0;
@@ -3533,14 +3625,7 @@
 			// The old layout printed the active class twice (a big card AND a chip)
 			// and never said that editing a class hits every element using it.
 			multiBarHTML() +
-			'<div class="vb-classbar"><div class="vb-chips">' + chips + '</div>' + classNote + '</div>' +
-			'<div class="vb-statebar"><div class="vb-cb-l">' + T( 'State' ) + '</div>' +
-				'<div class="vb-states">' +
-					[ 'normal', 'hover', 'focus', 'active' ].concat( customStates ).map( function ( s2 ) { return '<button class="vb-state' + ( st === s2 ? ' on' : '' ) + '" data-state="' + s2 + '">' + ( s2 === 'normal' ? T( 'normal' ) : ':' + s2 ) + '</button>'; } ).join( '' ) +
-					'<button class="vb-state vb-state-add" id="vb-addstate" title="' + T( 'Add custom state' ) + '">' + svg( 'plus', 12 ) + '</button>' +
-				'</div>' +
-				'<div class="vb-bp-note">' + ( st !== 'normal' ? T( 'Editing' ) + ' :' + escapeHtml( st ) + ' — ' + T( 'falls back to normal' ) : ( bp === 'base' ? T( 'Editing at desktop' ) : T( 'Editing at' ) + ' ' + escapeHtml( ( BP_META[ bp ] || BP_META.base ).label + ' · ' + ( BP_META[ bp ] || BP_META.base ).range ) ) ) + '</div>' +
-			'</div>' +
+			selectorBarHTML( node, ac, st, bp, ovCount ) +
 			textToolbarHTML( node ) +
 			'<div class="vb-tabs">' +
 				'<button class="vb-tab' + ( tab === 'ess' ? ' on' : '' ) + '" data-tab="ess">' + T( 'Essentials' ) + '</button>' +
@@ -4212,7 +4297,7 @@
 	 * local preferences; global styles are site-wide and stay on their own admin
 	 * screen rather than being crammed into a 380px panel. */
 	var setShown = false, setView = 'root';
-	var editorPrefs = { indicateParents:true, classLimit:'5' };
+	var editorPrefs = { indicateParents:true, classLimit:'5', info:'bottom', infoSize:true, infoWidth:true, infoZoom:true, infoPath:true, infoHint:false };
 	try {
 		var _ep = JSON.parse( window.localStorage.getItem( 'velox_builder_editorprefs' ) || 'null' );
 		if ( _ep ) { editorPrefs = Object.assign( editorPrefs, _ep ); }
@@ -4227,6 +4312,7 @@
 		// The outline lives in the canvas document.
 		var fr = document.getElementById( 'vb-canvas' ), cb = fr && fr.contentDocument && fr.contentDocument.body;
 		if ( cb ) { cb.classList.toggle( 'vb-indicate', !! editorPrefs.indicateParents ); }
+		if ( typeof resizeCanvas === 'function' && document.getElementById( 'vb-canvas' ) ) { resizeCanvas(); }
 	}
 	function pageSettings() { return ( store.state && store.state.page ) || {}; }
 	/* Page width and background from Page settings, shown in the canvas too. */
@@ -5162,6 +5248,12 @@
 		} else {
 			body = crumb( T( 'Editor settings' ) ) + '<div class="vb-set-body">' +
 				'<label class="vb-set-check"><input type="checkbox" data-setpref="indicateParents"' + ( editorPrefs.indicateParents ? ' checked' : '' ) + '><span>' + T( 'Indicate parent elements on hover' ) + '</span></label>' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Canvas info bar' ) + '</div><select class="vb-inp" data-setpref="info">' +
+					[ [ 'bottom', T( 'Below the page' ) ], [ 'top', T( 'Above the page' ) ], [ 'off', T( 'Hidden' ) ] ].map( function ( o ) { return '<option value="' + o[ 0 ] + '"' + ( ( editorPrefs.info || 'bottom' ) === o[ 0 ] ? ' selected' : '' ) + '>' + o[ 1 ] + '</option>'; } ).join( '' ) +
+				'</select></div>' +
+				[ [ 'infoSize', T( 'Screen size' ) ], [ 'infoWidth', T( 'Canvas width' ) ], [ 'infoZoom', T( 'Zoom' ) ], [ 'infoPath', T( 'Path to the selected element' ) ], [ 'infoHint', T( 'What the screen size means' ) ] ].map( function ( o ) {
+					return '<label class="vb-set-check"><input type="checkbox" data-setpref="' + o[ 0 ] + '"' + ( editorPrefs[ o[ 0 ] ] ? ' checked' : '' ) + '><span>' + T( 'Info bar:' ) + ' ' + o[ 1 ] + '</span></label>';
+				} ).join( '' ) +
 
 				'<div class="vb-setnote">' + T( 'These are your own preferences — they are stored in this browser and do not affect the site.' ) + '</div>' +
 			'</div>';
@@ -5598,7 +5690,7 @@
 			if ( e.target.closest( '#vb-css-del' ) ) { if ( cssFiles.length > 1 ) { var cdel = cssActive; vbAsk( { title:T( 'Delete this CSS file?' ), text:( cssFiles[ cdel ] && cssFiles[ cdel ].name ) || '', ok:T( 'Delete' ), danger:true }, function ( yes ) { if ( yes && cssFiles[ cdel ] ) { cssFiles.splice( cdel, 1 ); cssActive = 0; renderCSSPanel(); scheduleCssSave(); } } ); } return; }
 			var cf = e.target.closest( '[data-cssfile]' ); if ( cf ) { cssActive = +cf.getAttribute( 'data-cssfile' ); renderCSSPanel(); return; }
 			if ( e.target.closest( '#vb-search' ) ) { toggleSwitcher(); e.stopPropagation(); return; }
-			if ( e.target.closest( '#vb-exit' ) ) { var em = document.getElementById( 'vb-exitmenu' ); var was = em.classList.contains( 'open' ); closeAllPanels(); em.classList.toggle( 'open', ! was ); e.stopPropagation(); return; }
+			if ( e.target.closest( '#vb-exit' ) ) { var em = document.getElementById( 'vb-exitmenu' ); var was = em.classList.contains( 'open' ); closeTopMenus(); em.classList.toggle( 'open', ! was ); e.stopPropagation(); return; }
 			if ( ! e.target.closest( '.vb-exitwrap' ) ) { var em2 = document.getElementById( 'vb-exitmenu' ); if ( em2 ) { em2.classList.remove( 'open' ); } }
 			// Same-tab navigation away from the editor: tell the loading screen where to.
 			var navA = e.target.closest( 'a[href]' );
@@ -5606,7 +5698,7 @@
 				var navT = ( navA.querySelector( '.vb-ps-t' ) || {} ).textContent;
 				loader.leaveTitle = navT ? T( 'Opening' ) + ' “' + navT + '”' : ( navA.id === 'vb-exit-back' || /admin\.php|post\.php|edit\.php/.test( navA.href ) ? T( 'Back to WordPress' ) : '' );
 			}
-			if ( e.target.closest( '#vb-view' ) ) { var vm = document.getElementById( 'vb-viewmenu' ), vo = vm.classList.contains( 'open' ); closeAllPanels(); vm.classList.toggle( 'open', ! vo ); e.target.closest( '#vb-view' ).setAttribute( 'aria-expanded', String( ! vo ) ); return; }
+			if ( e.target.closest( '#vb-view' ) ) { var vm = document.getElementById( 'vb-viewmenu' ), vo = vm.classList.contains( 'open' ); closeTopMenus(); vm.classList.toggle( 'open', ! vo ); e.target.closest( '#vb-view' ).setAttribute( 'aria-expanded', String( ! vo ) ); return; }
 			if ( e.target.closest( '.vb-vm-i' ) ) { var vm3 = document.getElementById( 'vb-viewmenu' ); if ( vm3 ) { vm3.classList.remove( 'open' ); } }
 			if ( ! e.target.closest( '.vb-viewwrap' ) ) { var vm2 = document.getElementById( 'vb-viewmenu' ); if ( vm2 ) { vm2.classList.remove( 'open' ); } }
 			if ( e.target.closest( '#vb-structure' ) ) { structShown = ! structShown; if ( structShown ) { closeAllPanels( 'struct' ); } renderStructPanel(); return; }
@@ -5774,6 +5866,9 @@
 			if ( ! e.target.closest( '#vb-brandmenu' ) ) { var bm = document.getElementById( 'vb-brandmenu' ); if ( bm ) { bm.classList.remove( 'open' ); } }
 			var tn = e.target.closest( '.vb-tn' ); if ( tn ) { store.commit( function ( s ) { s.selection = tn.getAttribute( 'data-node' ); resetActiveClass( s ); }, false ); return; }
 			var tabBtn = e.target.closest( '[data-tab]' ); if ( tabBtn ) { inspTab = tabBtn.getAttribute( 'data-tab' ); renderInspector( store.state ); return; }
+			var cpk = e.target.closest( '#vb-clspick' ); if ( cpk ) { openClassPicker( cpk ); return; }
+			var spk = e.target.closest( '#vb-statepick' ); if ( spk ) { openStatePicker( spk ); return; }
+			var iop = e.target.closest( '#vb-infoopt' ); if ( iop ) { openInfoOptions( iop ); return; }
 			var delchip = e.target.closest( '[data-delchip]' ); if ( delchip ) { e.stopPropagation(); removeClassFromNode( delchip.getAttribute( 'data-delchip' ) ); return; }
 			if ( e.target.closest( '[data-addclass]' ) ) { addClassToSelected(); return; }
 			var fmt = e.target.closest( '[data-fmt]' ); if ( fmt ) { applyFormat( fmt.getAttribute( 'data-fmt' ) ); return; }
@@ -5813,17 +5908,7 @@
 				if ( nm ) { blockOpen[ nm ] = ! wrap.classList.contains( 'closed' ); }
 				return;
 			}
-			if ( e.target.closest( '#vb-addstate' ) ) {
-				vbAsk( { title:T( 'Add a state' ), text:T( 'Any CSS pseudo-class: visited, focus-within, first-child, nth-child(2)…' ), input:'', placeholder:'focus-within',
-					suggest:[ 'visited', 'focus-within', 'focus-visible', 'first-child', 'last-child', 'nth-child(2)', 'nth-child(odd)', 'nth-child(even)', 'disabled', 'checked', 'placeholder-shown' ], ok:T( 'Add state' ) }, function ( ps ) {
-					if ( ! ps ) { return; }
-					ps = ps.replace( /^:+/, '' ).trim();
-					if ( ! ps ) { return; }
-					if ( customStates.indexOf( ps ) < 0 && [ 'hover', 'focus', 'active', 'normal' ].indexOf( ps ) < 0 ) { customStates.push( ps ); }
-					store.commit( function ( s ) { s.state = ps; }, false );
-				} );
-				return;
-			}
+			if ( e.target.closest( '#vb-addstate' ) ) { addStatePrompt(); return; }
 			var stbtn = e.target.closest( '[data-state]' ); if ( stbtn ) { store.commit( function ( s ) { s.state = stbtn.getAttribute( 'data-state' ); }, false ); return; }
 			// Clicking the option that is already on clears it — before, a display
 			// or alignment could never be unset again.
@@ -6066,6 +6151,12 @@
 			if ( ia ) {
 				var aid = ia.getAttribute( 'data-imgalt' ), av = ia.value.trim();
 				store.commit( function ( s ) { var n = findNode( s.tree, aid ); if ( n ) { n.alt = av; n.altCustom = true; } }, T( 'Alt text' ) );
+				return;
+			}
+			var itl = e.target.closest( '[data-imgtitle]' );
+			if ( itl ) {
+				var tid2 = itl.getAttribute( 'data-imgtitle' ), tv2 = itl.value.trim();
+				store.commit( function ( s ) { var n = findNode( s.tree, tid2 ); if ( n ) { if ( tv2 ) { n.imgTitle = tv2; } else { delete n.imgTitle; } } }, T( 'Title' ) );
 				return;
 			}
 			var u = e.target.closest( '[data-setunit]' );
@@ -6790,6 +6881,20 @@
 	 * reserve their own space and the add panel lives on the opposite side to
 	 * structure/history/CSS, so there is room for one of each and closing the
 	 * other just loses the user's place. */
+	/* The small menus of the top bar: one open at a time, and opening one never
+	 * closes a side panel (a pinned Structure panel stays where it is). */
+	function closeTopMenus() {
+		[ 'vb-viewmenu', 'vb-exitmenu', 'vb-brandmenu', 'vb-pageswitch' ].forEach( function ( mid ) { var m = document.getElementById( mid ); if ( m ) { m.classList.remove( 'open' ); } } );
+		var vb = document.getElementById( 'vb-view' ); if ( vb ) { vb.setAttribute( 'aria-expanded', 'false' ); }
+	}
+	/* Open the Structure panel on an element: its parents unfold and its row comes into view. */
+	function openStructureAt( id ) {
+		if ( ! structShown ) { structShown = true; closeAllPanels( 'struct' ); }
+		structFollowed = null;
+		renderStructPanel();
+		var row = document.querySelector( '#vb-struct [data-stnode="' + id + '"]' );
+		if ( row && row.scrollIntoView ) { row.scrollIntoView( { block:'nearest' } ); }
+	}
 	function closeAllPanels( except ) {
 		var sides = { add:'left', css:'right', hist:'right', struct:'right', settings:'right' };
 		// Panels on OPPOSITE sides never close each other, pinned or not. Pinning
@@ -7101,7 +7206,7 @@
 		var cs = window.getComputedStyle( stage );
 		var availW = stage.clientWidth - parseFloat( cs.paddingLeft ) - parseFloat( cs.paddingRight );
 		var bar = document.getElementById( 'vb-viewas-bar' ), info = document.getElementById( 'vb-bpinfo' ), rbar = document.getElementById( 'vb-restore' );
-		var availH = stage.clientHeight - parseFloat( cs.paddingTop ) - parseFloat( cs.paddingBottom ) - ( bar ? bar.offsetHeight : 0 ) - ( info ? info.offsetHeight + 8 : 0 ) - ( rbar ? rbar.offsetHeight + 8 : 0 );
+		var availH = stage.clientHeight - parseFloat( cs.paddingTop ) - parseFloat( cs.paddingBottom ) - ( bar ? bar.offsetHeight : 0 ) - ( info && 'off' !== editorPrefs.info ? 32 + 8 : 0 ) - ( rbar ? rbar.offsetHeight + 8 : 0 );
 		var w = meta.view;
 		// Desktop on a big screen: use the room there is (never below 1400).
 		if ( 'base' === canvasBp ) { w = Math.max( Math.floor( BPX.xxl ) + 1, Math.floor( availW ) ); }
@@ -7113,13 +7218,20 @@
 		fr.style.transform = scale < 1 ? 'scale(' + scale + ')' : '';
 		wrap.style.width = Math.round( w * scale ) + 'px'; wrap.style.height = Math.round( h * scale ) + 'px';
 		if ( info ) {
-			info.innerHTML = svg( meta.icon, 13 ) + '<b>' + escapeHtml( meta.label ) + '</b><span>' + w + ' px</span>' +
-				'<select class="vb-zoom' + ( canvasZoom ? ' is-set' : '' ) + '" id="vb-zoom" title="' + T( 'Zoom' ) + ' (⇧1 ' + T( 'fit' ) + ', ⇧0 100%)">' +
+			// The canvas info bar: where it sits and what it shows are the editor's
+			// own preferences (its menu, or Settings → Editor settings).
+			var ep = editorPrefs, pos = 'top' === ep.info ? 'top' : ( 'off' === ep.info ? 'off' : 'bottom' );
+			info.className = 'vb-bpinfo is-' + pos;
+			info.innerHTML = 'off' === pos ? '' :
+				( ep.infoSize ? '<span class="vb-bpi-dev">' + svg( meta.icon, 13 ) + '<b>' + escapeHtml( meta.label ) + '</b></span>' : '' ) +
+				( ep.infoWidth ? '<span class="vb-bpi-w">' + w + ' px</span>' : '' ) +
+				( ep.infoZoom ? '<select class="vb-zoom' + ( canvasZoom ? ' is-set' : '' ) + '" id="vb-zoom" title="' + T( 'Zoom' ) + ' (⇧1 ' + T( 'fit' ) + ', ⇧0 100%)">' +
 					'<option value="fit"' + ( canvasZoom ? '' : ' selected' ) + '>' + T( 'Fit' ) + ' · ' + Math.round( fit * 100 ) + '%</option>' +
 					[ 0.5, 0.75, 1, 1.25, 1.5 ].map( function ( z ) { return '<option value="' + z + '"' + ( canvasZoom === z ? ' selected' : '' ) + '>' + Math.round( z * 100 ) + '%</option>'; } ).join( '' ) +
-				'</select>' +
-				'<span class="vb-bpi-r">' + ( 'base' === canvasBp ? T( 'Styles here apply everywhere unless a smaller screen changes them.' ) : T( 'Changes here apply to' ) + ' ' + escapeHtml( meta.range ) ) + '</span>' +
-				'<span class="vb-crumbs" id="vb-crumbs"></span>';
+				'</select>' : '' ) +
+				( ep.infoHint ? '<span class="vb-bpi-r">' + ( 'base' === canvasBp ? T( 'Styles here apply everywhere unless a smaller screen changes them.' ) : T( 'Changes here apply to' ) + ' ' + escapeHtml( meta.range ) ) + '</span>' : '' ) +
+				( ep.infoPath ? '<span class="vb-crumbs" id="vb-crumbs"></span>' : '' ) +
+				'<button type="button" class="vb-bpi-opt" id="vb-infoopt" title="' + T( 'Info bar options' ) + '" aria-label="' + T( 'Info bar options' ) + '">' + svg( 'gear', 12 ) + '</button>';
 		}
 		renderCrumbs(); positionBadge();
 	}
@@ -7142,6 +7254,25 @@
 	}
 	function selectNode( id ) {
 		store.commit( function ( s ) { s.selection = id; if ( id ) { resetActiveClass( s ); } else { s.activeClass = null; } }, false );
+	}
+	function openInfoOptions( anchor ) {
+		if ( ! window.VeloxSelect ) { return; }
+		var ep = editorPrefs, pos = ep.info || 'bottom';
+		var items = [ { header:T( 'Position' ) },
+			{ value:'pos:bottom', label:T( 'Below the page' ), checked:'bottom' === pos },
+			{ value:'pos:top', label:T( 'Above the page' ), checked:'top' === pos },
+			{ value:'pos:off', label:T( 'Hide the bar' ), hint:T( 'back in Editor settings' ) },
+			{ sep:true }, { header:T( 'Show' ) },
+			{ value:'infoSize', label:T( 'Screen size' ), checked:!! ep.infoSize },
+			{ value:'infoWidth', label:T( 'Canvas width' ), checked:!! ep.infoWidth },
+			{ value:'infoZoom', label:T( 'Zoom' ), checked:!! ep.infoZoom },
+			{ value:'infoPath', label:T( 'Path to the selected element' ), checked:!! ep.infoPath },
+			{ value:'infoHint', label:T( 'What the screen size means' ), checked:!! ep.infoHint } ];
+		VeloxSelect.open( anchor, items, function ( v ) {
+			if ( 0 === v.indexOf( 'pos:' ) ) { editorPrefs.info = v.slice( 4 ); }
+			else { editorPrefs[ v ] = ! editorPrefs[ v ]; }
+			saveEditorPrefs();
+		}, { width:240, align:'right' } );
 	}
 	function renderCrumbs() {
 		var box = document.getElementById( 'vb-crumbs' ), info = document.getElementById( 'vb-bpinfo' );
@@ -7876,7 +8007,7 @@
 			'#vb-loader.done .vb-ld-stage{color:#43d17f}',
 			'@media (prefers-reduced-motion:reduce){#vb-loader,.vb-ld-bar i{transition:none}.vb-ld-bar.ind i{animation:none;width:100%!important;opacity:.5}}',
 			'.vb-viewwrap{position:relative;display:inline-flex}',
-			'.vb-viewmenu{width:248px;right:auto;left:0}',
+			'.vb-viewmenu{width:248px;right:0;left:auto;max-width:calc(100vw - 16px)}',
 			'.vb-vm-i{align-items:flex-start!important;gap:10px!important;padding:9px 10px!important}',
 			'.vb-vm-i svg{margin-top:2px;flex:none}',
 			'.vb-vm-i span{display:flex;flex-direction:column;gap:2px;min-width:0}',
@@ -8654,6 +8785,82 @@
 			'.vb-st-row:hover,.vb-st-row.sel,.vb-st-row.msel{background-image:repeating-linear-gradient(90deg,transparent 0 6px,rgba(255,255,255,.07) 6px 7px,transparent 7px 15px);background-size:calc(var(--d,0) * 15px) 100%;background-position:8px 0;background-repeat:no-repeat}',
 			'.vb-st-ic{color:var(--vb-tx3)}.vb-st-row.sel .vb-st-ic{color:#7fd3f7}',
 			'.vb-st-l{font-size:12px}',
+			'/* ===== 4.43 inspector: one spacing system — 16px gutters, 32px controls, 12px between fields, 16px between groups ===== */',
+			'#vb-inspector .vb-insp-head{height:56px;padding:0 8px 0 16px;gap:12px}',
+			'#vb-inspector .vb-selwrap{padding:12px 16px;border-bottom:1px solid var(--vb-line)}',
+			'#vb-inspector .vb-selbar{display:flex;align-items:center;gap:8px}',
+			'#vb-inspector .vb-sel{display:flex;align-items:center;gap:8px;height:32px;min-width:0;margin:0;padding:0 8px 0 10px;border:0;border-radius:8px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line2);color:var(--vb-tx1);font:500 12.5px/1 var(--vbb-font,"Velox Geist"),sans-serif;cursor:pointer;transition:background .12s var(--vx-ease),box-shadow .12s var(--vx-ease)}',
+			'#vb-inspector .vb-sel:hover{background:var(--vb-bg3)}',
+			'#vb-inspector .vb-sel:focus-visible,#vb-inspector .vb-sel-add:focus-visible{outline:none;box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.18)}',
+			'#vb-inspector .vb-sel-cls{flex:1 1 auto}',
+			'#vb-inspector .vb-sel-cls:not(.is-el) .vb-sel-v{font:500 12px/1 "Velox Geist Mono",ui-monospace,Menlo,monospace}',
+			'#vb-inspector .vb-sel-ic,#vb-inspector .vb-sel-cv,#vb-inspector .vb-sel-lock{display:grid;place-items:center;flex:none;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-sel-cls:not(.is-el) .vb-sel-ic{color:#7fd3f7}',
+			'#vb-inspector .vb-sel-lock{color:#f5a742}',
+			'#vb-inspector .vb-sel-v{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left}',
+			'#vb-inspector .vb-sel-st{flex:0 0 108px}',
+			'#vb-inspector .vb-sel-st.is-on{box-shadow:inset 0 0 0 1px rgba(196,163,255,.45)}#vb-inspector .vb-sel-st.is-on .vb-sel-v{color:#d5c0ff}',
+			'#vb-inspector .vb-sel-add{flex:none;display:grid;place-items:center;width:32px;height:32px;margin:0;padding:0;border:0;border-radius:8px;background:transparent;box-shadow:inset 0 0 0 1px var(--vb-line2);color:var(--vb-tx2);cursor:pointer;transition:background .12s var(--vx-ease),color .12s var(--vx-ease)}',
+			'#vb-inspector .vb-sel-add:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'#vb-inspector .vb-selnote{display:flex;align-items:baseline;gap:8px;margin:8px 0 0;font-size:12px;line-height:1.45;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-selnote code{padding:0;background:none;font:12px/1.45 "Velox Geist Mono",ui-monospace,Menlo,monospace;color:var(--vb-tx2)}',
+			'#vb-inspector .vb-selnote-bp{flex:none;padding:2px 6px;border-radius:5px;background:rgba(42,183,241,.12);color:#7fd3f7;font-size:11px;font-weight:500;line-height:1.3}',
+			'#vb-inspector .vb-selwrap .vb-ovwarn{margin:8px 0 0}',
+			'#vb-inspector .vb-tabs{padding:0 16px}',
+			'#vb-inspector .vb-sfilter{position:sticky;top:40px;z-index:2;display:flex;align-items:center;gap:8px;height:auto;margin:0;padding:12px 16px;background:var(--vb-bg1);border:0}',
+			'#vb-inspector .vb-sfilter>svg{display:none}',
+			'#vb-inspector .vb-sfilter-box{flex:1 1 auto;display:flex;align-items:center;gap:8px;min-width:0;height:32px;margin:0;padding:0 6px 0 10px;border-radius:8px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line2);color:var(--vb-tx3);cursor:text}',
+			'#vb-inspector .vb-sfilter-box:focus-within{box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.18)}',
+			'#vb-inspector .vb-sfilter-box input{flex:1 1 auto;min-width:0;height:30px;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;outline:none;color:var(--vb-tx1);font-size:12.5px}',
+			'#vb-inspector .vb-sfilter-box input::placeholder{color:var(--vb-tx3)}',
+			'#vb-inspector .vb-sfilter-box button{display:grid;place-items:center;flex:none;width:20px;height:20px;margin:0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);cursor:pointer}',
+			'#vb-inspector .vb-sfilter-box button:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'#vb-inspector .vb-onlyset{flex:none;height:32px!important;padding:0 12px!important;border-radius:8px!important}',
+			'#vb-inspector .vb-imgset{display:flex;flex-direction:column;gap:12px;padding:4px 16px 16px;border-bottom:1px solid var(--vb-line)}',
+			'#vb-inspector .vb-imgset .vb-f{margin:0}',
+			'#vb-inspector .vb-imgset .vb-inp{display:block;width:100%;max-width:none;box-sizing:border-box}',
+			'#vb-inspector .vb-imgcard{display:flex;align-items:center;gap:12px;padding:8px;border-radius:10px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line)}',
+			'#vb-inspector .vb-imgthumb{flex:none;display:grid;place-items:center;width:48px;height:48px;border-radius:6px;background:var(--vb-bg0) center/cover no-repeat;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-imgname{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--vb-tx2)}',
+			'#vb-inspector .vb-btn2{flex:none;height:32px;margin:0;padding:0 12px;border:0;border-radius:8px;background:var(--vb-bg3);box-shadow:inset 0 0 0 1px var(--vb-line2);color:var(--vb-tx1);font:500 12.5px/1 var(--vbb-font,"Velox Geist"),sans-serif;cursor:pointer;transition:background .12s var(--vx-ease)}',
+			'#vb-inspector .vb-btn2:hover{background:var(--vb-bg4)}',
+			'#vb-inspector .vb-block-h{height:40px;padding:0 12px 0 16px}',
+			'#vb-inspector .vb-block-b{padding:4px 16px 16px}',
+			'#vb-inspector .vb-f{margin:0 0 12px}#vb-inspector .vb-f:last-child{margin-bottom:0}',
+			'#vb-inspector .vb-f-lbl{margin:0 0 6px;font-size:12px;font-weight:500;line-height:1.3;color:var(--vb-tx2)}',
+			'#vb-inspector input.vb-inp,#vb-inspector select.vb-inp{height:32px;border-radius:8px}',
+			'#vb-inspector .vb-bx-pair{display:flex;flex-direction:column;gap:16px}',
+			'#vb-inspector .vb-bx-h{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}',
+			'#vb-inspector .vb-bx-h b{font-size:12px;font-weight:500;color:var(--vb-tx2)}',
+			'#vb-inspector .vb-bx-seg{display:inline-flex;gap:2px;height:26px;padding:2px;border:0;border-radius:7px;background:var(--vb-bg0);box-shadow:inset 0 0 0 1px var(--vb-line)}',
+			'#vb-inspector .vb-bx-seg button{height:22px;margin:0;padding:0 10px;border:0;border-radius:5px;background:transparent;color:var(--vb-tx3);font:500 11px/22px var(--vbb-font,"Velox Geist"),sans-serif;cursor:pointer;transition:background .12s var(--vx-ease),color .12s var(--vx-ease)}',
+			'#vb-inspector .vb-bx-seg button:hover{color:var(--vb-tx1)}',
+			'#vb-inspector .vb-bx-seg button.on{background:var(--vb-bg3);color:var(--vb-tx1);box-shadow:0 1px 2px rgba(0,0,0,.3),inset 0 0 0 1px rgba(255,255,255,.06)}',
+			'.vb-role-client .vb-selwrap{display:none!important}',
+			'#vb-inspector select.vb-inp,.vb-top select{appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' viewBox=\'0 0 16 16\' fill=\'none\' stroke=\'%238b8d96\' stroke-width=\'1.6\' stroke-linecap=\'round\' stroke-linejoin=\'round\'%3E%3Cpath d=\'M4 6l4 4 4-4\'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;cursor:pointer}',
+			'/* ===== 4.43 canvas info bar ===== */',
+			'.vb-bpinfo{display:flex!important;align-items:center;gap:6px;height:32px;margin:0 0 8px;padding:0 4px 0 10px;border-radius:8px;background:var(--vb-bg1);box-shadow:inset 0 0 0 1px var(--vb-line);font-size:12px;color:var(--vb-tx3);white-space:nowrap;overflow:hidden;box-sizing:border-box;width:100%}',
+			'.vb-bpinfo.is-bottom{order:10;margin:8px 0 0}',
+			'.vb-bpinfo.is-off{display:none!important}',
+			'.vb-bpinfo>span{padding:0;background:none}',
+			'.vb-bpinfo .vb-bpi-dev{display:inline-flex;align-items:center;gap:6px}.vb-bpinfo .vb-bpi-dev svg{color:var(--vb-tx3)}.vb-bpinfo .vb-bpi-dev b{color:var(--vb-tx2);font-weight:500}',
+			'.vb-bpinfo .vb-bpi-w{font-variant-numeric:tabular-nums}',
+			'.vb-bpinfo>*+*:not(.vb-bpi-opt)::before{content:\'\';display:inline-block;width:1px;height:12px;margin:0 8px 0 2px;background:var(--vb-line2);vertical-align:-1px}',
+			'.vb-bpinfo .vb-zoom{height:24px;border:0;border-radius:6px;background-color:transparent;color:var(--vb-tx2);font-size:12px;padding:0 22px 0 6px;background-position:right 6px center}',
+			'.vb-bpinfo .vb-zoom:hover{background-color:var(--vb-bg3)}',
+			'.vb-bpinfo .vb-crumbs{flex:1 1 auto;min-width:0;overflow:hidden}',
+			'.vb-bpinfo .vb-crumb{height:24px;padding:0 6px;border:0;border-radius:6px;background:none;color:var(--vb-tx3);font-size:12px;cursor:pointer}',
+			'.vb-bpinfo .vb-crumb:hover{background:var(--vb-bg3);color:var(--vb-tx1)}.vb-bpinfo .vb-crumb.on{color:#7fd3f7}',
+			'.vb-bpinfo .vb-bpi-r{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}',
+			'.vb-bpi-opt{flex:none;display:grid;place-items:center;width:24px;height:24px;margin-left:auto;padding:0;border:0;border-radius:6px;background:none;color:var(--vb-tx3);cursor:pointer}',
+			'.vb-bpi-opt:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'#vb-zoom{appearance:none;-webkit-appearance:none}',
+			'/* ===== 4.43 open dropdown triggers ===== */',
+			'#vb-inspector .vb-sel.is-vxs-open{background:var(--vb-bg3);box-shadow:inset 0 0 0 1px var(--vb-acc)}',
+			'#vb-inspector .vb-sel.is-vxs-open .vb-sel-cv{transform:rotate(180deg)}',
+			'#vb-inspector .vb-sel-cv{transition:transform .15s var(--vx-ease)}',
+			'.vb-app select.is-vxs-open{box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.18)!important}',
+			'.vb-bpi-opt.is-vxs-open{background:var(--vb-bg3);color:var(--vb-tx1)}',
 			''
 		].join( '' );
 		var s = document.createElement( 'style' ); s.id = 'vb-editor-style'; s.textContent = css; document.head.appendChild( s );

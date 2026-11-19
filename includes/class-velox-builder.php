@@ -683,6 +683,7 @@ class Velox_Builder {
 		wp_print_media_templates();
 	}
 	?>
+	<script src="<?php echo esc_url( VELOX_ASSETS . 'js/velox-select.js?v=' . VELOX_VERSION ); ?>"></script>
 	<script src="<?php echo esc_url( $js_url ); ?>"></script>
 </body>
 </html>
@@ -722,6 +723,7 @@ class Velox_Builder {
 			return;
 		}
 		wp_enqueue_style( 'velox-builder-admin', VELOX_ASSETS . 'css/velox-builder.css', array(), VELOX_VERSION );
+		wp_enqueue_script( 'velox-select', VELOX_ASSETS . 'js/velox-select.js', array(), VELOX_VERSION, true );
 		wp_enqueue_script( 'velox-builder-admin', VELOX_ASSETS . 'js/velox-builder-admin.js', array(), VELOX_VERSION, true );
 		wp_localize_script(
 			'velox-builder-admin',

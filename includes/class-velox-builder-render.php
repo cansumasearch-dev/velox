@@ -2304,7 +2304,7 @@ class Velox_Builder_Render {
 				// A template without an Inner Content slot still shows the list of
 				// posts (archives / search) rather than dropping it.
 				if ( empty( $doc['tree'] ) && ! empty( $doc['__html'] ) ) {
-					$body .= '<div class="velox-inner-content">' . $doc['__html'] . '</div>';
+					$body .= '<main class="velox-inner-content">' . $doc['__html'] . '</main>';
 				}
 			}
 			self::$inner_doc = null;
@@ -2719,7 +2719,8 @@ class Velox_Builder_Render {
 			if ( '' === trim( $inner ) && '' !== self::$inner_html ) {
 				$inner = '<div class="velox-legacy-content">' . self::$inner_html . '</div>';
 			}
-			return '<div id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( implode( ' ', array_filter( $classes ) ) ) . '">' . $inner . '</div>';
+			// The page's own content is the document's main landmark.
+			return '<main id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( implode( ' ', array_filter( $classes ) ) ) . '">' . $inner . '</main>';
 		}
 		// Only real layout/text tags. Any [a-z0-9] tag was accepted, so a node
 		// saved as <script> ran its text as code — around the unfiltered_html rule.
@@ -2852,6 +2853,8 @@ class Velox_Builder_Render {
 			// builder image invisible to search engines and screen readers alike.
 			$alt = isset( $node['alt'] ) ? sanitize_text_field( (string) $node['alt'] ) : '';
 			$att = isset( $node['att'] ) ? absint( $node['att'] ) : 0;
+			// The tooltip text set in the editor's Title field.
+			$ititle = isset( $node['imgTitle'] ) ? sanitize_text_field( (string) $node['imgTitle'] ) : '';
 			$img = '';
 			$size    = (string) self::el_set( $node, 'imgSize', 'large' );
 			$size    = in_array( $size, array( 'medium', 'medium_large', 'large', 'full' ), true ) ? $size : 'large';
@@ -2861,6 +2864,9 @@ class Velox_Builder_Render {
 				// srcset/sizes (phones download a small file), real width/height (no
 				// layout jump) and the library's alt text when none was typed here.
 				$attrs = array( 'style' => 'display:block;max-width:100%;height:auto' );
+				if ( '' !== $ititle ) {
+					$attrs['title'] = $ititle;
+				}
 				if ( '' !== $alt || ! empty( $node['altCustom'] ) ) {
 					$attrs['alt'] = $alt;
 				}
@@ -2875,7 +2881,7 @@ class Velox_Builder_Render {
 				$img = wp_get_attachment_image( $att, $size, false, $attrs );
 			}
 			if ( '' === $img && $src ) {
-				$img = '<img src="' . $src . '" alt="' . esc_attr( $alt ) . '" decoding="async"'
+				$img = '<img src="' . $src . '" alt="' . esc_attr( $alt ) . '"' . ( '' !== $ititle ? ' title="' . esc_attr( $ititle ) . '"' : '' ) . ' decoding="async"'
 					. ( 'eager' === $loading ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"' )
 					. ' style="display:block;max-width:100%;height:auto">';
 			}

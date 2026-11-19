@@ -3833,3 +3833,15 @@ a.vmail-sb-stat--link:hover { box-shadow: 0 6px 16px -6px rgba(16,24,40,.18); tr
 .velox-lf-empty { padding: 14px; border: 1px dashed var(--vx-line-2); border-radius: var(--vx-r-sm); color: var(--vx-ink-2); font-size: 13px; }
 .velox-lf-subsets { margin-top: 6px; }
 @media (max-width: 782px) { .velox-lf-table td.velox-lf-c { width: auto; } }
+
+/* ===== 4.43 one dropdown everywhere =====
+   Every select opens the shared Velox list (velox-select.js). Closed, they all
+   look the same: one chevron, one hover, one focus ring; open, the trigger
+   keeps its focus ring so it is clear which field the list belongs to. */
+.velox-main select:not([class*="velox-"]):not([class*="vmail-"]):not([class*="vbk-"]):not([class*="vck-"]):not([multiple]):not([size]) {
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238b9099' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+	background-repeat: no-repeat; background-position: right 12px center; padding-right: 38px; cursor: pointer;
+}
+.velox-wrap select.velox-select { cursor: pointer; }
+.velox-wrap select.is-vxs-open,
+.velox-main select.is-vxs-open { border-color: var(--vx-primary); box-shadow: 0 0 0 3px var(--vx-primary-ring); }
