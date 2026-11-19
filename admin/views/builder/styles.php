@@ -312,7 +312,58 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 			</div>
 		</div>
 	</div>
+
+	<div class="vba-card vba-dh" id="vba-dh">
+		<div class="vba-card-h"><div><h2><?php esc_html_e( 'Design history', 'velox' ); ?></h2>
+		<p><?php esc_html_e( 'Every change to classes, design tokens and global styles is kept, from any screen. Restore an earlier version if something went wrong; what is there now is kept too.', 'velox' ); ?></p></div></div>
+		<div class="vba-dh-list" id="vba-dh-list"><p class="vba-dh-empty"><?php esc_html_e( 'Loading…', 'velox' ); ?></p></div>
+	</div>
 </div>
+<script>
+( function () {
+	var T = <?php echo wp_json_encode( array(
+		'none'    => __( 'No changes kept yet. They appear here from the next change on.', 'velox' ),
+		'current' => __( 'Current', 'velox' ),
+		'restore' => __( 'Restore', 'velox' ),
+		'wasRestore' => __( 'Restored an earlier version', 'velox' ),
+		'restored'=> __( 'Restored', 'velox' ),
+		'ask'     => __( 'Restore this version of classes, design tokens and global styles? What is there now is kept as a version too.', 'velox' ),
+		'title'   => __( 'Restore design version', 'velox' ),
+		'failed'  => __( 'Something went wrong. Try again.', 'velox' ),
+	) ); ?>;
+	function cfg() { return window.VELOX_BUILDER || {}; }
+	function esc( s ) { var d = document.createElement( 'div' ); d.textContent = String( s == null ? '' : s ); return d.innerHTML; }
+	function api( action, fields ) {
+		var C = cfg(), body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'do', action ); body.set( 'nonce', C.nonce || '' );
+		Object.keys( fields || {} ).forEach( function ( k ) { body.set( k, fields[ k ] ); } );
+		return fetch( C.ajaxurl || window.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.json(); } )
+			.then( function ( res ) { if ( ! res || ! res.success ) { throw new Error( ( res && res.data && res.data.message ) || T.failed ); } return res.data; } );
+	}
+	var list = document.getElementById( 'vba-dh-list' );
+	function load() {
+		api( 'builder_design_versions' ).then( function ( d ) {
+			if ( ! d.versions.length ) { list.innerHTML = '<p class="vba-dh-empty">' + esc( T.none ) + '</p>'; return; }
+			list.innerHTML = d.versions.map( function ( v ) {
+				return '<div class="vba-dh-row' + ( v.current ? ' is-current' : '' ) + '"><div class="vba-dh-tx"><b>' + esc( 'restore' === v.kind ? T.wasRestore : v.what.join( ' · ' ) || '—' ) + '</b><span>' + esc( v.when + ( v.user ? ' · ' + v.user : '' ) ) + '</span></div>' +
+					( v.current ? '<span class="vba-dh-cur">' + esc( T.current ) + '</span>' : '<button type="button" class="vba-mini" data-dh-restore="' + v.id + '">' + esc( T.restore ) + '</button>' ) + '</div>';
+			} ).join( '' );
+		} ).catch( function ( e ) { list.innerHTML = '<p class="vba-dh-empty">' + esc( e.message ) + '</p>'; } );
+	}
+	list.addEventListener( 'click', function ( e ) {
+		var b = e.target.closest( '[data-dh-restore]' ); if ( ! b ) { return; }
+		var go = function () {
+			b.disabled = true;
+			api( 'builder_design_restore', { rev:b.getAttribute( 'data-dh-restore' ) } ).then( function () { b.textContent = T.restored; setTimeout( function () { location.reload(); }, 600 ); } )
+				.catch( function ( err ) { b.disabled = false; window.vbaDialog ? vbaDialog.alert( { title:T.title, text:err.message } ) : alert( err.message ); } );
+		};
+		if ( window.vbaDialog ) { vbaDialog.confirm( { title:T.title, text:T.ask, ok:T.restore }, go ); } else if ( confirm( T.ask ) ) { go(); }
+	} );
+	// The config (nonce) is printed in the footer, after this script.
+	if ( 'complete' === document.readyState ) { load(); } else { window.addEventListener( 'load', load ); }
+}() );
+</script>
 <script>
 ( function () {
 	var T = {

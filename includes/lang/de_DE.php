@@ -4342,4 +4342,14 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	// Velox Builder 4.41
 	'That element is locked in the editor. Ask the person to unlock it (right-click → Unlock) if it should change.' => 'Dieses Element ist im Editor gesperrt. Bitten Sie die Person, es freizugeben (Rechtsklick → Freigeben), falls es sich ändern soll.',
 	'This element is locked. Right-click it and choose Unlock to change it.' => 'Dieses Element ist gesperrt. Klicken Sie mit rechts darauf und wählen Sie Freigeben, um es zu ändern.',
+	// Velox Builder 4.42
+	'Design history' => 'Design-Verlauf',
+	'Every change to classes, design tokens and global styles is kept, from any screen. Restore an earlier version if something went wrong; what is there now is kept too.' => 'Jede Änderung an Klassen, Design-Tokens und globalen Stilen wird aufbewahrt, egal von welchem Bildschirm. Stellen Sie eine frühere Version wieder her, wenn etwas schiefging; der jetzige Stand bleibt ebenfalls erhalten.',
+	'No changes kept yet. They appear here from the next change on.' => 'Noch keine Änderungen gespeichert. Sie erscheinen hier ab der nächsten Änderung.',
+	'Current' => 'Aktuell',
+	'Restored an earlier version' => 'Frühere Version wiederhergestellt',
+	'Restore this version of classes, design tokens and global styles? What is there now is kept as a version too.' => 'Diese Version von Klassen, Design-Tokens und globalen Stilen wiederherstellen? Der jetzige Stand wird ebenfalls als Version aufbewahrt.',
+	'Restore design version' => 'Design-Version wiederherstellen',
+	'Classes: %s' => 'Klassen: %s',
+	'Starting point' => 'Ausgangsstand',
 );

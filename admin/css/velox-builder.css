@@ -809,3 +809,13 @@ body select.vba-input:focus,body select.vba-tpl-purpose:focus,body .vba-shell se
 .vba-ag-list b{font-weight:500;color:var(--vbb-text)}
 .vba-ag-list code{font:12px var(--vbb-mono);color:var(--vbb-text-3);background:none}
 @media (max-width:700px){.vba-ag-list li{flex-direction:column;align-items:flex-start;justify-content:center;padding:8px 0}}
+
+/* ---- Design history (Global styles) ---- */
+.vba-dh-list{padding:0 20px 12px}
+.vba-dh-row{display:flex;align-items:center;gap:12px;min-height:48px;padding:6px 0;border-bottom:1px solid var(--vbb-line)}
+.vba-dh-row:last-child{border-bottom:0}
+.vba-dh-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.vba-dh-tx b{font-size:13px;font-weight:500;color:var(--vbb-text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vba-dh-tx span{font-size:12px;color:var(--vbb-text-3)}
+.vba-dh-cur{flex:none;font-size:12px;color:var(--vbb-text-3)}
+.vba-dh-empty{margin:0;padding:8px 0 12px;font-size:13px;color:var(--vbb-text-3)}

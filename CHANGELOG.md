@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.42.0 — Velox Builder: design history
+- **Design history** (Velox Builder → Global styles, at the bottom): every change to classes, design tokens and global styles is kept, whichever screen made it: the class editor, publishing a page (which updates site-wide classes), the token editor, global styles or an import.
+  - Each version says what changed: which classes, the design tokens, the global styles. It also says when and by whom.
+  - **Restore** takes the design system back to that version. What was there is kept as a version first, so a restore can be undone too.
+  - The state before the very first change is kept as the "Starting point". Changes by the same person within 10 minutes are kept as one version, like page versions.
+
 ## 4.41.0 — Velox Builder: lock elements
 - **Lock an element** (right-click → Lock): it and everything inside it can no longer be moved, deleted, restyled or edited, and nothing can be dropped into it, until someone unlocks it (right-click → Unlock).
   - This is checked on every change, so keyboard shortcuts, dragging and the panels cannot get around it. A message says why.

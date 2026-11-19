@@ -160,6 +160,14 @@ class Velox_Ajax {
 				Velox_Builder_Agents::ajax_toggle();
 				break;
 
+			case 'builder_design_versions':
+				Velox_Builder_Revisions::ajax_design_list();
+				break;
+
+			case 'builder_design_restore':
+				Velox_Builder_Revisions::ajax_design_restore();
+				break;
+
 			case 'builder_template_rules_save':
 				Velox_Builder_Templates::ajax_save();
 				break;
