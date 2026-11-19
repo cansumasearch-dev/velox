@@ -5837,7 +5837,7 @@
 			var oxi = e.target.closest( '[data-oxy-import]' ); if ( oxi ) { importOxygen( +oxi.getAttribute( 'data-oxy-import' ) ); closeOxygenPicker(); return; }
 			if ( e.target.closest( '#vb-oxy-close' ) || e.target.id === 'vb-oxypick' ) { closeOxygenPicker(); return; }
 			var sth = e.target.closest( '[data-sthide]' ); if ( sth ) { toggleNodeHidden( sth.getAttribute( 'data-sthide' ) ); e.stopPropagation(); return; }
-			var stc = e.target.closest( '[data-stcaret]' ); if ( stc ) { var sid = stc.getAttribute( 'data-stcaret' ); structCollapsed[ sid ] = ! structCollapsed[ sid ]; renderStructPanel(); e.stopPropagation(); return; }
+			var stc = e.target.closest( '[data-stcaret]' ); if ( stc ) { toggleStructBranch( stc.getAttribute( 'data-stcaret' ) ); e.stopPropagation(); return; }
 			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) {
 				if ( e.ctrlKey || e.metaKey || e.shiftKey ) { toggleMulti( stn.getAttribute( 'data-stnode' ) ); return; }
 				multi = [];
@@ -7012,6 +7012,32 @@
 	function closeTopMenus() {
 		[ 'vb-viewmenu', 'vb-exitmenu', 'vb-brandmenu', 'vb-pageswitch' ].forEach( function ( mid ) { var m = document.getElementById( mid ); if ( m ) { m.classList.remove( 'open' ); } } );
 		var vb = document.getElementById( 'vb-view' ); if ( vb ) { vb.setAttribute( 'aria-expanded', 'false' ); }
+	}
+	/* Fold / unfold one branch of the Structure tree, with motion: the rows of
+	 * an opening branch slide in, a closing branch folds away before the redraw. */
+	function structBranchRows( id ) {
+		var row = document.querySelector( '#vb-struct [data-stnode="' + id + '"]' ), out = [];
+		if ( ! row ) { return out; }
+		var pd = parseInt( row.style.getPropertyValue( '--d' ), 10 ) || 0;
+		for ( var r = row.nextElementSibling; r; r = r.nextElementSibling ) {
+			var d = parseInt( r.style.getPropertyValue( '--d' ), 10 );
+			if ( ! isNaN( d ) && d <= pd ) { break; }
+			out.push( r );
+		}
+		return out;
+	}
+	function toggleStructBranch( id ) {
+		var M = window.VeloxMotion, opening = !! structCollapsed[ id ];
+		if ( opening ) {
+			structCollapsed[ id ] = false; renderStructPanel();
+			if ( M ) { M.reveal( structBranchRows( id ) ); }
+			return;
+		}
+		var rows = structBranchRows( id ), noMotion = ! M || ! rows.length || ( window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches );
+		var finish = function () { if ( finish.done ) { return; } finish.done = true; structCollapsed[ id ] = true; renderStructPanel(); };
+		if ( noMotion ) { finish(); return; }
+		rows.forEach( function ( r ) { r.style.overflow = 'hidden'; r.animate( [ { opacity:1, height:r.offsetHeight + 'px' }, { opacity:0, height:'0px', marginBottom:'0px' } ], { duration:150, easing:'cubic-bezier(.4,0,.2,1)', fill:'forwards' } ); } );
+		setTimeout( finish, 150 );
 	}
 	/* Open the Structure panel on an element: its parents unfold and its row comes into view. */
 	function openStructureAt( id ) {

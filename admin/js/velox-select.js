@@ -321,3 +321,91 @@
 
 	window.VeloxSelect = { open:open, close:close, theme:themeOf };
 }() );
+
+/* ---------- Velox motion ----------
+ * Every accordion, collapsible group and expandable card in Velox (editor and
+ * admin) opens and closes with a short height animation instead of snapping.
+ * One observer covers them all: when an element gains or loses an open/closed
+ * class, its height before and after is measured and animated between (FLIP),
+ * so no screen needs its own animation code. Pop-ups and menus (absolutely
+ * positioned) are left alone, and so is everything for people who ask their
+ * system for reduced motion. <details> elements get the same via CSS. */
+( function () {
+	'use strict';
+	if ( window.VeloxMotion || ! window.MutationObserver || ! document.documentElement.animate ) {
+		return;
+	}
+	var RM = window.matchMedia ? window.matchMedia( '(prefers-reduced-motion: reduce)' ) : null;
+	var TOK = /^(is-open|open|closed|is-closed|collapsed|is-collapsed|expanded|is-expanded)$/;
+	var running = typeof WeakMap === 'function' ? new WeakMap() : null;
+	var EASE = 'cubic-bezier(.2,.7,.2,1)';
+
+	function toggled( before, after ) {
+		var a = String( before || '' ).split( /\s+/ ), b = String( after || '' ).split( /\s+/ );
+		return a.some( function ( x ) { return TOK.test( x ) && b.indexOf( x ) < 0; } ) || b.some( function ( x ) { return TOK.test( x ) && a.indexOf( x ) < 0; } );
+	}
+	function off() { return RM && RM.matches; }
+	/* Animate el's height from one value to another; it ends on its natural height. */
+	function slide( el, from, to ) {
+		if ( off() || Math.abs( to - from ) < 2 ) { return; }
+		var prev = running && running.get( el );
+		if ( prev ) { prev.cancel(); }
+		var dur = Math.round( Math.min( 300, 160 + Math.abs( to - from ) / 6 ) );
+		var ov = el.style.overflow;
+		el.style.overflow = 'hidden';
+		var a = el.animate( [ { height:from + 'px' }, { height:to + 'px' } ], { duration:dur, easing:EASE } );
+		if ( running ) { running.set( el, a ); }
+		var finished = false;
+		function done() {
+			if ( finished ) { return; }
+			finished = true;
+			// A tab in the background can leave the animation parked on its first
+			// frame; never let that hide content.
+			try { if ( 'finished' !== a.playState ) { a.cancel(); } } catch ( e ) {}
+			if ( ! running || running.get( el ) === a ) { el.style.overflow = ov; if ( running ) { running.delete( el ); } }
+		}
+		a.onfinish = done; a.oncancel = done;
+		setTimeout( done, dur + 100 ); // background tabs may hold the finish event back
+	}
+	/* Fade/slide freshly shown pieces in (used where a list is rebuilt). */
+	function reveal( els ) {
+		if ( off() ) { return; }
+		[].forEach.call( els || [], function ( el, i ) {
+			if ( el && el.animate ) { el.animate( [ { opacity:0, transform:'translateY(-4px)' }, { opacity:1, transform:'none' } ], { duration:180, delay:Math.min( i, 8 ) * 14, easing:EASE, fill:'backwards' } ); }
+		} );
+	}
+	function skip( el ) {
+		if ( ! el || 1 !== el.nodeType || el === document.body || el === document.documentElement ) { return true; }
+		if ( el.hasAttribute( 'data-no-motion' ) || ( el.closest && el.closest( '[data-no-motion],.vxs-pop' ) ) ) { return true; }
+		var cs = window.getComputedStyle( el );
+		return 'absolute' === cs.position || 'fixed' === cs.position || 'contents' === cs.display;
+	}
+	var mo = new MutationObserver( function ( list ) {
+		if ( off() ) { return; }
+		var seen = [];
+		list.forEach( function ( m ) {
+			var el = m.target;
+			if ( seen.indexOf( el ) > -1 || ! toggled( m.oldValue, el.getAttribute && el.getAttribute( 'class' ) ) || skip( el ) ) { return; }
+			seen.push( el );
+			var now = el.getAttribute( 'class' );
+			var to = el.getBoundingClientRect().height;
+			el.setAttribute( 'class', m.oldValue || '' );
+			var from = el.getBoundingClientRect().height;
+			el.setAttribute( 'class', now );
+			if ( from > 4000 || to > 4000 ) { return; }
+			slide( el, from, to );
+		} );
+		mo.takeRecords(); // our own measuring flips are not changes
+	} );
+	function start() {
+		mo.observe( document.documentElement, { subtree:true, attributes:true, attributeFilter:[ 'class' ], attributeOldValue:true } );
+		if ( ! document.getElementById( 'vx-motion-css' ) ) {
+			var st = document.createElement( 'style' );
+			st.id = 'vx-motion-css';
+			st.textContent = '@media (prefers-reduced-motion:no-preference){details{interpolate-size:allow-keywords}details::details-content{height:0;overflow:clip;transition:height .22s ' + EASE + ',content-visibility .22s allow-discrete}details[open]::details-content{height:auto}}';
+			( document.head || document.documentElement ).appendChild( st );
+		}
+	}
+	if ( document.readyState === 'loading' ) { document.addEventListener( 'DOMContentLoaded', start ); } else { start(); }
+	window.VeloxMotion = { slide:slide, reveal:reveal };
+}() );
