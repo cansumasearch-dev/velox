@@ -2518,7 +2518,12 @@ class Velox_Builder_Render {
 			foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
 				if ( '' !== ( $p[ $side ] ?? '' ) ) { $decl .= 'padding-' . $side . ':' . $px( $p[ $side ] ) . ';'; }
 			}
+			if ( 'columns' === $key && '' !== ( $p['gap'] ?? '' ) ) { $decl .= 'gap:' . $px( $p['gap'] ) . ';'; }
 			if ( '' !== $decl ) { $out .= ':where(' . $sel . '){' . $decl . '}'; }
+		}
+		// Div blocks: the space between children. A default, so a class always wins.
+		if ( '' !== ( $g['blocks']['gap'] ?? '' ) ) {
+			$out .= ':where(.block){gap:' . $px( $g['blocks']['gap'] ) . ';}';
 		}
 		return $out;
 	}

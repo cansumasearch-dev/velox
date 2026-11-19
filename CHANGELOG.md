@@ -4,6 +4,19 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.44.0 — Velox Builder: a new style panel
+- **Global styles are the defaults.** Section padding and the gap of columns and div blocks now come from Global styles → Sections & containers (div blocks got their own gap there). New elements no longer write their own copies, so changing the default changes every element that has not been given its own value.
+  - In the style panel an empty field shows the value in effect greyed out (the Global styles default, another class, a larger screen). Type over it and that becomes the element's or class's own value.
+  - Older classes that still carry their own section padding are listed under Global styles → Sections & containers, with one button to drop them and use the defaults.
+- **No more coloured dots.** A field says where its value comes from by itself: greyed = in effect from elsewhere; white with a line on its left = set here, blue on a class, amber on the ID. Hover a set field's label for its reset button.
+- **Class, ID or state, at a glance.** The boxes at the top carry a caption (Class / ID / State); the panel tints blue when you style a class and amber when you style the ID (shown with its real #id). A state other than Normal turns the state box and the panel edge purple, with "Only while :hover" spelled out.
+- **Dropdowns close on a second click** (class, state and every other Velox dropdown).
+- **New field system:** label on the left, control on the right, one height, number and unit in one field, colour swatch inside its field, cleaner choice buttons. Long choices get the full width.
+- **Spacing as a box model:** margin around padding, each side typed where it sits (units can be typed: 2rem, 5%, auto). The link button sets all four sides at once.
+- **All styles is grouped** under Layout, Text, Decoration and Effects, and ends with a shortcut to animations, interactions, conditions, attributes and custom CSS.
+- **Settings are accordions,** remembered per section. **Custom CSS** is taller, resizable and opens as a large editor beside the panel (Esc closes it).
+- **The style panel can be dragged up to 760px wide** (the drag edge now shows itself); from 420px labels and choices get more room.
+
 ## 4.43.0 — Velox Builder: a calmer inspector, one dropdown everywhere
 - **What you are styling, at a glance.** The top of the inspector is now one row: the class being styled (click it for every class on the element, "This element only", your other classes, lock and remove), the state ("Normal"; click for :hover, :focus, :active, your own states or a new one) and a + to add a class. One quiet line under it says what changes apply to.
 - **One dropdown everywhere.** Every dropdown in Velox, in the editor and on the admin screens, opens the same list: dark in the editor, light in the admin. Long lists get a search field, the current choice is ticked, it works with the keyboard and never runs off the screen. Closed, they all look the same too.

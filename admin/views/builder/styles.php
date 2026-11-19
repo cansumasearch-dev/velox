@@ -293,8 +293,8 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 	</div>
 
 	<div class="vba-card">
-		<div class="vba-card-h"><div><h2><?php esc_html_e( 'Sections & columns', 'velox' ); ?></h2>
-		<p><?php esc_html_e( 'Default padding for new sections and column blocks.', 'velox' ); ?></p></div></div>
+		<div class="vba-card-h"><div><h2><?php esc_html_e( 'Sections & containers', 'velox' ); ?></h2>
+		<p><?php esc_html_e( 'The defaults every section, columns block and div block starts with. In the editor they show greyed out in the empty fields; type a value there to change one element or class.', 'velox' ); ?></p></div></div>
 		<div class="vba-gs-row">
 			<span class="vba-gs-tag"><?php esc_html_e( 'Section', 'velox' ); ?></span>
 			<div class="vba-gs-grid">
@@ -308,7 +308,14 @@ function velox_gs_font( $group, $key, $label, $val, $fonts ) {
 			<div class="vba-gs-grid">
 				<?php foreach ( $sides as $side => $side_label ) {
 					velox_gs_num( 'columns', $side, $side_label, $g['columns'][ $side ] ?? '', 'px', __( 'inherit', 'velox' ) );
-				} ?>
+				}
+				velox_gs_num( 'columns', 'gap', __( 'Gap', 'velox' ), $g['columns']['gap'] ?? '', 'px', __( 'inherit', 'velox' ) ); ?>
+			</div>
+		</div>
+		<div class="vba-gs-row">
+			<span class="vba-gs-tag"><?php esc_html_e( 'Div block', 'velox' ); ?></span>
+			<div class="vba-gs-grid">
+				<?php velox_gs_num( 'blocks', 'gap', __( 'Gap', 'velox' ), $g['blocks']['gap'] ?? '', 'px', __( 'inherit', 'velox' ) ); ?>
 			</div>
 		</div>
 	</div>

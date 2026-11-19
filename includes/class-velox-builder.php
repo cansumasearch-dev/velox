@@ -1509,6 +1509,7 @@ class Velox_Builder {
 				'landscape' => $num( $in['width']['landscape'] ?? '' ), 'portrait' => $num( $in['width']['portrait'] ?? '' ),
 			),
 			'sections' => array(), 'columns' => array(),
+			'blocks'   => array( 'gap' => $len( $in['blocks']['gap'] ?? '' ) ),
 			'aos'      => array(
 				'type'     => in_array( ( $in['aos']['type'] ?? '' ), array_keys( self::aos_types() ), true ) ? $in['aos']['type'] : '',
 				'duration' => $num( $in['aos']['duration'] ?? '' ),
@@ -1530,6 +1531,7 @@ class Velox_Builder {
 				$out[ $g ][ $side ] = $len( $in[ $g ][ $side ] ?? '' );
 			}
 		}
+		$out['columns']['gap'] = $len( $in['columns']['gap'] ?? '' );
 		return $out;
 	}
 
@@ -1660,7 +1662,9 @@ class Velox_Builder {
 			'links'    => array( 'color' => '#0e7fb3', 'hover' => '#2ab7f1', 'decoration' => 'none', 'weight' => '' ),
 			'width'    => array( 'page' => '1200', 'tablet' => '991', 'landscape' => '767', 'portrait' => '480' ),
 			'sections' => array( 'top' => '80', 'right' => '24', 'bottom' => '80', 'left' => '24' ),
-			'columns'  => array( 'top' => '20', 'right' => '20', 'bottom' => '20', 'left' => '20' ),
+			'columns'  => array( 'top' => '20', 'right' => '20', 'bottom' => '20', 'left' => '20', 'gap' => '24' ),
+			// Div blocks: the space between their children.
+			'blocks'   => array( 'gap' => '16' ),
 			'aos'      => array( 'type' => '', 'duration' => '600', 'easing' => 'ease', 'offset' => '120', 'delay' => '0', 'once' => '1', 'disable' => '' ),
 		);
 		foreach ( array( 'h1' => '48', 'h2' => '36', 'h3' => '28', 'h4' => '22', 'h5' => '18', 'h6' => '16' ) as $tag => $size ) {

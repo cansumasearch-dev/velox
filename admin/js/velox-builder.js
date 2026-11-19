@@ -465,6 +465,13 @@
 		if ( st && 'normal' !== st && ! res.st ) { return { cls:'orange', tip:T( 'Inherited from the normal state' ) + ' — ' + T( 'set here to override' ) }; }
 		return dot;
 	}
+	/* A field says where its value comes from with its own look, not a dot:
+	 * set on the class (blue line), set on the ID (amber line), or nothing set
+	 * here, in which case the value in effect shows greyed out. */
+	function srcCls( dot ) { return { blue:' is-set src-cls', pink:' is-set src-id', orange:' is-inh' }[ dot.cls ] || ''; }
+	function srcReset( dot ) {
+		return /\b(blue|pink)\b/.test( dot.cls ) ? '<span class="vb-src ' + dot.cls + '" role="button" tabindex="-1" title="' + T( 'Reset' ) + ' · ' + escapeHtml( dot.tip ) + '" aria-label="' + T( 'Reset' ) + '">' + svg( 'undo', 11 ) + '</span>' : '';
+	}
 	function dotFor( res, activeClass, bp ) {
 		if ( res.source === 'none' ) { return { cls:'none', tip:T( 'Not set' ) }; }
 		if ( res.source === 'element' ) { return { cls:'pink', tip: ( res.bp === bp ? T( 'Set on this element only' ) : T( 'Set on this element only, from' ) + ' ' + bpName( res.bp ) ) + ' · ' + T( 'click to remove' ) }; }
@@ -1415,9 +1422,9 @@
 
 	var CAT_GROUPS = [
 		{ name:'Containers', icon:'layout', items:[
-			{ key:'section', el:'Section', tag:'section', label:'Section', cls:'.section', rules:{ paddingTop:'48', paddingBottom:'48', paddingLeft:'32', paddingRight:'32' } },
+			{ key:'section', el:'Section', tag:'section', label:'Section', cls:'.section', rules:{} },
 			{ key:'div', el:'Div', tag:'div', label:'Div block', cls:'.block', rules:{} },
-			{ key:'columns', el:'Columns', tag:'div', label:'Columns', cls:'.columns', rules:{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'20' } },
+			{ key:'columns', el:'Columns', tag:'div', label:'Columns', cls:'.columns', rules:{ display:'grid', gridTemplateColumns:'1fr 1fr' } },
 			{ key:'grid', el:'Div', tag:'div', label:'Grid', cls:'.grid', rules:{ display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:'20' } },
 			{ key:'spacer', el:'Div', tag:'div', label:'Spacer', cls:'.spacer', rules:{ height:'40' } },
 			{ key:'divider', el:'Div', tag:'div', label:'Divider', cls:'.divider', rules:{ height:'1', background:'#e2e8f0' } }
@@ -1928,9 +1935,9 @@
 	 * Only new classes get these: a class that already exists keeps its rules. */
 	var CARD_SHADOW = '0 1px 2px rgba(15,23,42,.06), 0 8px 24px rgba(15,23,42,.06)';
 	var START_STYLES = {
-		section:     { paddingTop:'64', paddingBottom:'64', paddingLeft:'24', paddingRight:'24' },
-		div:         { display:'flex', flexDirection:'column', alignItems:'flex-start', gap:'16' },
-		columns:     { gap:'24' },
+		// Section padding and the gap of div / columns blocks come from Global styles
+		// (Sections & containers): the fields show them greyed out until you type.
+		div:         { display:'flex', flexDirection:'column', alignItems:'flex-start' },
 		grid:        { gridTemplateColumns:'repeat(3, 1fr)', gap:'24' },
 		divider:     { marginTop:'24', marginBottom:'24' },
 		heading:     { lineHeight:'1.2', letterSpacing:'-0.5', marginBottom:'16' },
@@ -2160,15 +2167,15 @@
 		var isCls = ac && '#' !== ac, locked = isCls && isLocked( ac );
 		var bar = '<div class="vb-selbar">' +
 			'<button type="button" class="vb-sel vb-sel-cls' + ( isCls ? '' : ' is-el' ) + ( locked ? ' is-locked' : '' ) + '" id="vb-clspick" aria-haspopup="listbox" title="' + T( 'What the styles below change' ) + '">' +
-				'<span class="vb-sel-ic">' + svg( isCls ? 'hash' : 'target', 13 ) + '</span><span class="vb-sel-v">' + escapeHtml( isCls ? ac : T( 'This element' ) ) + '</span>' +
+				'<span class="vb-sel-kind">' + ( isCls ? T( 'Class' ) : 'ID' ) + '</span><span class="vb-sel-v">' + escapeHtml( isCls ? ac : '#' + node.id ) + '</span>' +
 				( locked ? '<span class="vb-sel-lock">' + svg( 'lock', 11 ) + '</span>' : '' ) + '<span class="vb-sel-cv">' + svg( 'chevron', 12 ) + '</span></button>' +
 			'<button type="button" class="vb-sel vb-sel-st' + ( 'normal' !== st ? ' is-on' : '' ) + '" id="vb-statepick" aria-haspopup="listbox" title="' + T( 'State' ) + '">' +
-				'<span class="vb-sel-v">' + ( 'normal' === st ? T( 'Normal' ) : ':' + escapeHtml( st ) ) + '</span><span class="vb-sel-cv">' + svg( 'chevron', 12 ) + '</span></button>' +
+				'<span class="vb-sel-kind">' + T( 'State' ) + '</span><span class="vb-sel-v">' + ( 'normal' === st ? T( 'Normal' ) : ':' + escapeHtml( st ) ) + '</span><span class="vb-sel-cv">' + svg( 'chevron', 12 ) + '</span></button>' +
 			'<button type="button" class="vb-sel-add" data-addclass title="' + T( 'Add a class' ) + '" aria-label="' + T( 'Add a class' ) + '">' + svg( 'plus', 14 ) + '</button>' +
 		'</div>';
 		var where = 'base' === bp ? '' : '<span class="vb-selnote-bp">' + escapeHtml( ( BP_META[ bp ] || BP_META.base ).label ) + '</span>';
-		var what = isCls ? T( 'Changes apply to every element with' ) + ' <code>' + escapeHtml( ac ) + '</code>' : T( 'Changes apply to this element only.' );
-		if ( 'normal' !== st ) { what += ' ' + T( 'Only while' ) + ' <code>:' + escapeHtml( st ) + '</code>.'; }
+		var what = isCls ? T( 'Styling the class' ) + ' <b>' + escapeHtml( ac ) + '</b>: ' + T( 'every element with it changes.' ) : T( 'Styling the ID' ) + ' <b>#' + escapeHtml( node.id ) + '</b>: ' + T( 'only this element changes.' );
+		if ( 'normal' !== st ) { what += ' <span class="vb-selnote-st">' + T( 'Only while' ) + ' :' + escapeHtml( st ) + '</span>'; }
 		var note = '<div class="vb-selnote">' + where + '<span>' + what + '</span></div>';
 		var warn = ovCount ? '<div class="vb-ovwarn">' + svg( 'bolt', 12 ) + '<span>' + ovCount + ' ' + ( 1 === ovCount ? T( 'style set on this element overrides the class here.' ) : T( 'styles set on this element override the class here.' ) ) + '</span>' +
 			'<button type="button" data-ovmove>' + T( 'Move to class' ) + '</button><button type="button" data-ovclear>' + T( 'Remove' ) + '</button></div>' : '';
@@ -2187,13 +2194,15 @@
 		var s = store.state, n = s && findNode( s.tree, s.selection );
 		if ( ! n || ! window.VeloxSelect ) { return; }
 		var ac = s.activeClass || n.classes[ 0 ] || '#';
-		var items = [ { header:T( 'On this element' ) } ];
+		var items = [ { header:T( 'Classes on this element' ) } ];
 		n.classes.forEach( function ( c, i ) {
 			var lk = isLocked( c );
-			items.push( { value:'cls:' + c, label:c, hint:0 === i ? T( 'base' ) : T( 'combo' ), checked:c === ac,
+			items.push( { value:'cls:' + c, label:c, hint:0 === i ? T( 'class' ) : T( 'combo class' ), checked:c === ac,
 				actions:[ { key:'lock', icon:svg( lk ? 'lock' : 'unlock', 13 ), title:lk ? T( 'Unlock this class' ) : T( 'Lock this class' ) }, { key:'remove', icon:svg( 'x', 13 ), title:T( 'Remove from this element' ) } ] } );
 		} );
-		items.push( { value:'#', label:T( 'This element only' ), hint:'#' + n.id, checked:'#' === ac } );
+		items.push( { sep:true } );
+		items.push( { header:'ID' } );
+		items.push( { value:'#', label:'#' + n.id, hint:T( 'only this element' ), checked:'#' === ac } );
 		var mine = Object.keys( CFG.classRegistry || {} ).concat( Object.keys( s.classes || {} ) ).filter( function ( c, i, a ) { return a.indexOf( c ) === i && n.classes.indexOf( c ) < 0; } ).sort();
 		if ( mine.length ) {
 			items.push( { sep:true } );
@@ -3249,8 +3258,7 @@
 		var sv = splitVal( res.value, 'px' ), inh = inheritedHere( res, bp, st );
 		// The side stays named once a value replaces the placeholder.
 		var side = BOX_SIDE_LETTER[ prop ] ? '<i class="vb-bx-side" aria-hidden="true">' + BOX_SIDE_LETTER[ prop ] + '</i>' : '';
-		return '<span class="vb-bx-i' + ( side ? ' has-side' : '' ) + '" title="' + ( ph || prop ) + '">' +
-			'<span class="vb-src ' + dot.cls + '" title="' + dot.tip + '"></span>' + side +
+		return '<span class="vb-bx-i' + ( side ? ' has-side' : '' ) + srcCls( dot ) + '" title="' + escapeHtml( ( ph || prop ) + ( 'none' !== dot.cls ? ' · ' + dot.tip : '' ) ) + '">' + side +
 			'<input data-setnum="' + prop + '" value="' + ( inh ? '' : sv.num ) + '" placeholder="' + escapeHtml( inh && '' !== sv.num ? sv.num : boxNow( node, prop, res, ph ) ) + '">' +
 			unitSelectHTML( prop, sv.unit, inh ? '' : res.value ) + '</span>';
 	}
@@ -3290,8 +3298,32 @@
 		}
 		return '<div class="vb-bx-fs"><div class="vb-bx-h"><b>' + T( cfg.label ) + '</b>' + seg + '</div>' + inner + '</div>';
 	}
+	/* Spacing as a box model (margin around padding around the element), each
+	 * side typed where it sits. Empty sides show the value in effect greyed out
+	 * (a Global styles default, another class, a larger screen). The link button
+	 * makes one value drive all four sides. Units can be typed: 2rem, 5%, auto. */
+	function bmInput( prop, node, bp, st, ac, linkKey, label ) {
+		var res = resolveProperty( node, bp, prop, st ), dot = inhDot( dotFor( res, ac, bp ), res, st ), inh = inheritedHere( res, bp, st );
+		var raw = inh || null == res.value ? '' : String( res.value );
+		var shown = /^-?\d+(\.\d+)?px$/.test( raw ) ? raw.slice( 0, -2 ) : raw;
+		var ph = inh && null != res.value && '' !== res.value ? String( res.value ).replace( /^(-?\d+(\.\d+)?)px$/, '$1' ) : boxNow( node, prop, res, '0' );
+		return '<span class="vb-bm-i' + srcCls( dot ) + '"><input data-setnum="' + prop + '"' + ( linkKey ? ' data-link="' + linkKey + '"' : '' ) +
+			' value="' + escapeHtml( shown ) + '" placeholder="' + escapeHtml( ph ) + '" title="' + escapeHtml( label + ( 'none' !== dot.cls ? ' · ' + dot.tip : '' ) ) + '" spellcheck="false" autocomplete="off" aria-label="' + escapeHtml( label ) + '"></span>';
+	}
 	function spacingBlockHTML( node, bp, st, ac ) {
-		return '<div class="vb-bx-pair">' + boxFieldset( 'padding', node, bp, st, ac ) + boxFieldset( 'margin', node, bp, st, ac ) + '</div>';
+		function box( key, inner ) {
+			var cfg = BOX_SIDES[ key ], P = cfg.props, linked = 'all' === boxMode[ key ], lk = linked ? key : '';
+			var nm = T( cfg.label );
+			function inp( i, sd ) { return bmInput( P[ i ], node, bp, st, ac, lk, nm + ' ' + T( sd ) ); }
+			return '<div class="vb-bm-' + key.charAt( 0 ) + ( linked ? ' is-linked' : '' ) + '">' +
+				'<div class="vb-bm-cap"><span>' + nm + '</span><button type="button" class="vb-bm-link' + ( linked ? ' on' : '' ) + '" data-boxmode="' + key + '" data-mode="' + ( linked ? 'individual' : 'all' ) + '" title="' + ( linked ? T( 'Linked: one value for all four sides. Click to set each side on its own.' ) : T( 'Link all four sides' ) ) + '" aria-pressed="' + ( linked ? 'true' : 'false' ) + '">' + svg( 'link', 11 ) + '</button></div>' +
+				'<div class="vb-bm-t">' + inp( 0, 'top' ) + '</div>' +
+				'<div class="vb-bm-l">' + inp( 3, 'left' ) + '</div>' +
+				'<div class="vb-bm-c">' + inner + '</div>' +
+				'<div class="vb-bm-r">' + inp( 1, 'right' ) + '</div>' +
+				'<div class="vb-bm-b">' + inp( 2, 'bottom' ) + '</div></div>';
+		}
+		return '<div class="vb-bm">' + box( 'margin', box( 'padding', '<span class="vb-bm-core"></span>' ) ) + '</div>';
 	}
 	/* Width / min / max on one line, height on the next. */
 	function sizeBlockHTML( node, bp, st, ac ) {
@@ -3398,6 +3430,7 @@
 		'</div>';
 	}
 	/* ---------- inspector schema, section counts, "Set only" ---------- */
+	var STYLE_CATS = { 'Layout':'Layout', 'Spacing':'Layout', 'Size':'Layout', 'Position':'Layout', 'Typography':'Text', 'Background & effects':'Decoration', 'Border':'Decoration', 'Effects':'Effects' };
 	var INSPECTOR_SCHEMA = [ 'Layout', 'Spacing', 'Size', 'Position', 'Typography', 'Background & effects', 'Border', 'Effects' ];
 	var SIZE_BOX_PROPS = [ 'width', 'minWidth', 'maxWidth', 'height', 'minHeight', 'maxHeight' ];
 	var onlySet = false, tabInd = null;
@@ -3558,7 +3591,8 @@
 				var hex = ( hexSrc && /^#[0-9a-f]{6}$/i.test( hexSrc ) ) ? hexSrc : '#000000';
 				ctrl = '<div class="vb-row"><input type="color" class="vb-swatch" data-setcolor="' + it.prop + '" value="' + hex + '"><input class="vb-inp" data-set="' + it.prop + '" value="' + escapeHtml( shown ) + '" placeholder="' + escapeHtml( inh ? val : ( cur || '—' ) ) + '"></div>' + tokenSwatchesHTML( it.prop );
 			}
-			return '<div class="vb-f vb-f-' + it.type + '"><div class="vb-f-lbl"><span class="vb-src ' + dot.cls + '" title="' + dot.tip + '"></span> ' + T( it.label ) + '</div>' + ctrl + '</div>';
+			var wide = ( 'seg' === it.type && ( it.opts.length > 3 || it.opts.join( '' ).length > 16 ) ) || 'bgimage' === it.type;
+			return '<div class="vb-f vb-f-' + it.type + srcCls( dot ) + ( wide ? ' is-wide' : '' ) + '"><div class="vb-f-lbl"><span class="vb-f-name"' + ( 'none' !== dot.cls ? ' title="' + escapeHtml( dot.tip ) + '"' : '' ) + '>' + T( it.label ) + '</span>' + srcReset( dot ) + '</div>' + ctrl + '</div>';
 		}
 
 		var body = '';
@@ -3568,6 +3602,7 @@
 		} else {
 			// A search looks through every group, whichever tab is open.
 			var groups = sq ? ordered : ordered.filter( function ( g ) { return tab === 'all' ? true : essSet[ g.group ]; } );
+			var lastCat = '';
 			groups.forEach( function ( g, gi ) {
 				if ( sq ) {
 					var hitItems = g.items.filter( function ( it ) { return propMatches( it, sWords ); } );
@@ -3590,6 +3625,9 @@
 				if ( onlySet && ! nSet ) { return; }
 				if ( onlySet ) { open = true; }
 				var closed = open ? '' : ' closed';
+				var cat = STYLE_CATS[ g.group ];
+				if ( 'all' === tab && ! onlySet && cat && cat !== lastCat ) { body += '<div class="vb-cat">' + T( cat ) + '</div>'; }
+				lastCat = cat;
 				body += '<div class="vb-block' + closed + '"><div class="vb-block-h" data-block="' + g.group + '"><span class="vb-block-ic">' + svg( g.icon, 16 ) + '</span><b>' + T( g.group ) + '</b>' +
 					( nSet ? '<span class="vb-block-n" title="' + nSet + ' ' + T( 'set here' ) + '">' + nSet + '</span>' +
 						'<button type="button" class="vb-block-reset" data-block-reset="' + escapeHtml( g.group ) + '" title="' + T( 'Reset this section' ) + '" aria-label="' + T( 'Reset this section' ) + '">' + svg( 'undo', 12 ) + '</button>' : '' ) +
@@ -3602,6 +3640,9 @@
 				body += '</div></div>';
 			} );
 			if ( sq && ! body ) { body = '<div class="vb-sfilter-none">' + T( 'No property matches' ) + ' “' + escapeHtml( styleFilter ) + '”.</div>'; }
+			if ( ! sq && ! onlySet ) {
+				body += '<button type="button" class="vb-more" data-tab="set">' + svg( 'bolt', 14 ) + '<span><b>' + T( 'Animations, interactions & more' ) + '</b><small>' + T( 'Scroll animations, conditions, attributes, custom CSS' ) + '</small></span>' + svg( 'chevron', 12 ) + '</button>';
+			}
 			if ( onlySet && ! sq && ! body ) { body = '<div class="vb-sfilter-none">' + T( 'Nothing is set here yet at this screen size and state.' ) + '</div>'; }
 		}
 		var filterBar = 'set' === tab ? '' : '<div class="vb-sfilter"><label class="vb-sfilter-box">' + svg( 'search', 13 ) +
@@ -3635,6 +3676,9 @@
 			'</div>' + filterBar +
 			imgBtn +
 			'<div class="vb-controls">' + body + '</div>';
+		insp.classList.toggle( 'is-tgt-id', ! ( ac && '#' !== ac ) );
+		insp.classList.toggle( 'is-stated', 'normal' !== st );
+		if ( 'set' === tab ) { setsecAccordions( insp ); }
 		restoreFocus( keepFocus );
 		// Slide the tab underline from where it was to the active tab.
 		var tOn = insp.querySelector( '.vb-tab.on' ), tInd = insp.querySelector( '.vb-tab-ind' );
@@ -4060,6 +4104,28 @@
 		}, T( label || 'Items' ) );
 	}
 
+	var setsecOpen = {}, codeMax = false;
+	try { setsecOpen = JSON.parse( window.localStorage.getItem( 'velox_builder_setsec' ) || '{}' ) || {}; } catch ( e ) {}
+	function setsecAccordions( root ) {
+		[].forEach.call( root.querySelectorAll( '.vb-setsec' ), function ( sec, i ) {
+			var h = sec.querySelector( '.vb-setsec-h' ); if ( ! h ) { return; }
+			var key = h.getAttribute( 'data-setsec' ) || h.textContent.trim();
+			h.setAttribute( 'data-setsec', key );
+			h.setAttribute( 'role', 'button' ); h.setAttribute( 'tabindex', '0' );
+			var open = Object.prototype.hasOwnProperty.call( setsecOpen, key ) ? !! setsecOpen[ key ] : i < 2;
+			sec.classList.add( 'vb-acc' ); sec.classList.toggle( 'closed', ! open );
+			h.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+			if ( ! h.querySelector( '.vb-setsec-cv' ) ) { h.insertAdjacentHTML( 'beforeend', '<span class="vb-setsec-cv">' + svg( 'chevron', 12 ) + '</span>' ); }
+			if ( sec.querySelector( '[data-elcss]' ) && codeMax ) { sec.classList.add( 'is-max' ); sec.classList.remove( 'closed' ); }
+		} );
+	}
+	function toggleSetsec( h ) {
+		var sec = h.closest( '.vb-setsec' ); if ( ! sec ) { return; }
+		var open = sec.classList.contains( 'closed' );
+		sec.classList.toggle( 'closed', ! open ); h.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+		setsecOpen[ h.getAttribute( 'data-setsec' ) ] = open;
+		try { window.localStorage.setItem( 'velox_builder_setsec', JSON.stringify( setsecOpen ) ); } catch ( e ) {}
+	}
 	function settingsTabHTML( node ) {
 		if ( 'client' === ACCESS.level ) { return clientSettingsHTML( node ); }
 		var s = '<div class="vb-setwrap">';
@@ -4142,7 +4208,8 @@
 			'<button class="vb-set-nav vb-set-add" data-attradd>' + svg( 'plus', 13 ) + '<span>' + T( 'Add attribute' ) + '</span></button></div>';
 
 		// ---- custom CSS for this element only (administrators) ----
-		if ( 'admin' === ACCESS.level ) s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'code', 14 ) + ' ' + T( 'Custom CSS' ) + '</div>' +
+		if ( 'admin' === ACCESS.level ) s += '<div class="vb-setsec vb-setsec-code"><div class="vb-setsec-h" data-setsec="Custom CSS">' + svg( 'code', 14 ) + ' ' + T( 'Custom CSS' ) +
+				'<button type="button" class="vb-code-max" data-codemax title="' + T( 'Bigger editor' ) + ' (Esc ' + T( 'to close' ) + ')" aria-label="' + T( 'Bigger editor' ) + '">' + svg( 'expand', 12 ) + '</button></div>' +
 			'<textarea class="vb-css-code vb-page-code" data-elcss spellcheck="false" placeholder="%root% {\n  transition: transform .2s;\n}\n%root%:hover {\n  transform: translateY(-2px);\n}">' + escapeHtml( node.css || '' ) + '</textarea>' +
 			'<div class="vb-setnote">' + T( '%root% is this element. Plain declarations (color: red;) apply to it directly.' ) + '</div></div>';
 
@@ -5325,7 +5392,7 @@
 		[ 'gs-body',     'Body Text',         'text' ],
 		[ 'gs-links',    'Links',             'link' ],
 		[ 'gs-width',    'Width & Breakpoints', 'monitor' ],
-		[ 'gs-sections', 'Sections & Columns', 'columns' ],
+		[ 'gs-sections', 'Sections & containers', 'columns' ],
 		[ 'gs-aos',      'Animate On Scroll', 'bolt' ]
 	];
 	function gsGet( path ) {
@@ -5379,6 +5446,34 @@
 		( CFG.fontNames || [] ).forEach( function ( n ) { o.push( [ n, n ] ); } );
 		return gsSelect( path, label, o );
 	}
+	var GS_OWNED = {
+		'.section': [ 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft' ],
+		'.columns': [ 'paddingTop', 'paddingRight', 'paddingBottom', 'paddingLeft', 'gap' ],
+		'.block':   [ 'gap' ]
+	};
+	function gsShadowed() {
+		var out = [], cls = ( store.state && store.state.classes ) || {};
+		Object.keys( GS_OWNED ).forEach( function ( c ) {
+			var base = cls[ c ] && cls[ c ].base;
+			var hit = base ? GS_OWNED[ c ].filter( function ( pr ) { return undefined !== base[ pr ] && '' !== base[ pr ]; } ) : [];
+			if ( hit.length ) { out.push( { cls:c, props:hit } ); }
+		} );
+		return out;
+	}
+	function gsShadowedHTML() {
+		var sh = gsShadowed(); if ( ! sh.length ) { return ''; }
+		return '<div class="vb-gs-shadow"><b>' + T( 'Some classes still set their own values' ) + '</b>' +
+			'<p>' + T( 'These win over the defaults above, on every page that uses them:' ) + '</p><ul>' +
+			sh.map( function ( x ) { return '<li><code>' + escapeHtml( x.cls ) + '</code> ' + x.props.map( function ( pr ) { return escapeHtml( CSS_PROP[ pr ] || pr ); } ).join( ', ' ) + '</li>'; } ).join( '' ) +
+			'</ul><button type="button" class="vb-btn2" data-gs-clean>' + T( 'Use the defaults instead' ) + '</button></div>';
+	}
+	function gsCleanShadowed() {
+		var sh = gsShadowed(); if ( ! sh.length ) { return; }
+		store.commit( function ( s ) {
+			sh.forEach( function ( x ) { var b = s.classes[ x.cls ] && s.classes[ x.cls ].base; if ( b ) { x.props.forEach( function ( pr ) { delete b[ pr ]; } ); } } );
+		}, T( 'Use the Global styles defaults' ) );
+		toast( T( 'Done. Publish to apply it on every page.' ) );
+	}
 	function gsViewHTML( view ) {
 		if ( ! GS ) { return '<div class="vb-setnote">' + T( 'Global styles are unavailable.' ) + '</div>'; }
 		if ( 'gs-colors' === view ) {
@@ -5418,9 +5513,10 @@
 		if ( 'gs-sections' === view ) {
 			var o2 = '<div class="vb-gs-group"><div class="vb-gs-grouph">' + T( 'Section padding' ) + '</div>';
 			[ 'top', 'right', 'bottom', 'left' ].forEach( function ( sd ) { o2 += gsNum( 'sections.' + sd, sd.charAt( 0 ).toUpperCase() + sd.slice( 1 ) ); } );
-			o2 += '</div><div class="vb-gs-group"><div class="vb-gs-grouph">' + T( 'Columns padding' ) + '</div>';
+			o2 += '</div><div class="vb-gs-group"><div class="vb-gs-grouph">' + T( 'Columns' ) + '</div>';
 			[ 'top', 'right', 'bottom', 'left' ].forEach( function ( sd ) { o2 += gsNum( 'columns.' + sd, sd.charAt( 0 ).toUpperCase() + sd.slice( 1 ) ); } );
-			return o2 + '</div>';
+			o2 += gsNum( 'columns.gap', 'Gap' ) + '</div><div class="vb-gs-group"><div class="vb-gs-grouph">' + T( 'Div block' ) + '</div>' + gsNum( 'blocks.gap', 'Gap' ) + '</div>';
+			return '<div class="vb-setnote">' + T( 'Every section, columns block and div block starts with these. In the style panel they show greyed out; typing a value there changes that element or class only.' ) + '</div>' + o2 + gsShadowedHTML();
 		}
 		if ( 'gs-aos' === view ) {
 			var types = [ [ '', 'None' ] ];
@@ -5815,6 +5911,16 @@
 				}, 'Remove item' );
 				return;
 			}
+			if ( e.target.closest( '[data-gs-clean]' ) ) { gsCleanShadowed(); renderSettingsPanel(); return; }
+			var cmx = e.target.closest( '[data-codemax]' );
+			if ( cmx ) {
+				codeMax = ! codeMax;
+				var csec = cmx.closest( '.vb-setsec' );
+				if ( csec ) { csec.classList.toggle( 'is-max', codeMax ); csec.classList.remove( 'closed' ); var cta = csec.querySelector( 'textarea' ); if ( cta ) { cta.focus(); } }
+				return;
+			}
+			var ssh = e.target.closest( '#vb-inspector [data-setsec]' );
+			if ( ssh && ! e.target.closest( 'input,select,textarea,a' ) ) { toggleSetsec( ssh ); return; }
 			if ( e.target.closest( '#vb-token-add' ) ) {
 				var tn = 1; while ( TOKENS.colors.some( function ( c ) { return c.name === 'colour-' + tn; } ) ) { tn++; }
 				TOKENS.colors.push( { name:'colour-' + tn, value:'#2ab7f1' } );
@@ -6082,6 +6188,8 @@
 				var typed = splitVal( v, usel ? usel.value : ( pendingUnit[ pkey ] || 'px' ) );
 				var out = joinVal( typed.num, typed.unit );
 				if ( '' !== out ) { delete pendingUnit[ pkey ]; }
+				var lnk = n.getAttribute( 'data-link' );
+				if ( lnk && BOX_SIDES[ lnk ] ) { debounceCommit( fieldKey( e.target ), function () { setBoxAll( lnk, typed.num, typed.unit ); }, 150 ); return; }
 				debounceCommit( fieldKey( e.target ), function () { if ( out === '' ) { removeProp( n.getAttribute( 'data-setnum' ) ); } else { setProp( n.getAttribute( 'data-setnum' ), out ); } }, 150 );
 				return;
 			}
@@ -7568,14 +7676,21 @@
 	function setZoom( z ) { canvasZoom = ( 'fit' === z || ! z ) ? null : Math.max( 0.25, Math.min( 2, +z ) ); resizeCanvas(); }
 
 	/* ================= resizable style panel ================= */
-	var IW_KEY = 'velox_builder_iw', IW_MIN = 280, IW_MAX = 520, IW_DEF = 320;
+	var IW_KEY = 'velox_builder_iw', IW_MIN = 280, IW_MAX = 760, IW_DEF = 340;
 	function setInspectorWidth( w, save ) {
 		var app = document.querySelector( '.vb-app' ); if ( ! app ) { return; }
-		w = Math.round( Math.max( IW_MIN, Math.min( IW_MAX, w ) ) );
+		w = Math.round( Math.max( IW_MIN, Math.min( IW_MAX, window.innerWidth - 420, w ) ) );
 		app.style.setProperty( '--vb-iw', w + 'px' );
+		app.classList.toggle( 'is-insp-wide', w >= 420 );
 		PANEL_W.add = w;
 		if ( save ) { try { window.localStorage.setItem( IW_KEY, String( w ) ); } catch ( e ) {} }
 	}
+	document.addEventListener( 'keydown', function ( e ) {
+		if ( 'Escape' !== e.key || ! codeMax ) { return; }
+		var m = document.querySelector( '.vb-setsec.is-max' );
+		codeMax = false;
+		if ( m ) { m.classList.remove( 'is-max' ); e.preventDefault(); e.stopPropagation(); }
+	}, true );
 	function wireInspectorResize() {
 		try { var saved = parseInt( window.localStorage.getItem( IW_KEY ), 10 ); if ( saved ) { setInspectorWidth( saved, false ); } } catch ( e ) {}
 		var h = document.getElementById( 'vb-iresize' ); if ( ! h ) { return; }
@@ -8861,6 +8976,163 @@
 			'#vb-inspector .vb-sel-cv{transition:transform .15s var(--vx-ease)}',
 			'.vb-app select.is-vxs-open{box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.18)!important}',
 			'.vb-bpi-opt.is-vxs-open{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'/* ===== 4.44 Velox field system =====',
+			'   One row = label left, control right. A field shows where its value comes from by itself:',
+			'   greyed text = the value in effect (Global styles, another class, a bigger screen);',
+			'   white text with a line on its left = set here (blue on a class, amber on the ID). */',
+			'#vb-inspector{--tgt:#2ab7f1;--tgt-rgb:42,183,241;--tgt-tx:#8fdcfb;--st:#b48cff;--st-rgb:180,140,255;--lblw:88px;--fh:30px}',
+			'#vb-inspector.is-tgt-id{--tgt:#f5a742;--tgt-rgb:245,167,66;--tgt-tx:#ffcf94}',
+			'.vb-app.is-insp-wide #vb-inspector{--lblw:108px;--fh:32px}',
+			'#vb-inspector .src-cls{--src:#2ab7f1;--src-tx:#8fdcfb}#vb-inspector .src-id{--src:#f5a742;--src-tx:#ffcf94}',
+			'#vb-inspector .vb-selwrap{padding:12px 16px 12px;transition:background .15s var(--vx-ease)}',
+			'#vb-inspector .vb-sel{gap:8px;height:34px;padding:0 8px 0 6px;border-radius:9px}',
+			'#vb-inspector .vb-sel-kind{flex:none;display:inline-grid;place-items:center;height:20px;padding:0 6px;border-radius:5px;font:600 9.5px/1 var(--vbb-font,"Velox Geist"),sans-serif;letter-spacing:.07em;text-transform:uppercase}',
+			'#vb-inspector .vb-sel-cls{background:rgba(var(--tgt-rgb),.07);box-shadow:inset 0 0 0 1px rgba(var(--tgt-rgb),.38)}',
+			'#vb-inspector .vb-sel-cls:hover{background:rgba(var(--tgt-rgb),.12)}',
+			'#vb-inspector .vb-sel-cls .vb-sel-kind{background:rgba(var(--tgt-rgb),.18);color:var(--tgt-tx)}',
+			'#vb-inspector .vb-sel-cls .vb-sel-v{font:500 12.5px/1 "Velox Geist Mono",ui-monospace,Menlo,monospace;color:var(--vb-tx1)}',
+			'#vb-inspector .vb-sel-cls .vb-sel-ic{display:none}',
+			'#vb-inspector .vb-sel-st{flex:0 0 auto;min-width:0;max-width:46%}',
+			'#vb-inspector .vb-sel-st .vb-sel-kind{background:rgba(255,255,255,.06);color:var(--vb-tx3)}',
+			'#vb-inspector .vb-sel-st.is-on{background:rgba(var(--st-rgb),.14);box-shadow:inset 0 0 0 1px rgba(var(--st-rgb),.55)}',
+			'#vb-inspector .vb-sel-st.is-on .vb-sel-kind{background:rgba(var(--st-rgb),.28);color:#e3d4ff}',
+			'#vb-inspector .vb-sel-st.is-on .vb-sel-v{color:#e3d4ff;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace}',
+			'#vb-inspector .vb-sel-add{width:34px;height:34px;border-radius:9px}',
+			'#vb-inspector .vb-selnote{display:block;margin:10px 2px 0;font-size:12px;line-height:1.5;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-selnote b{font:500 12px/1.5 "Velox Geist Mono",ui-monospace,Menlo,monospace;color:var(--tgt-tx)}',
+			'#vb-inspector .vb-selnote-bp{display:inline-block;margin-right:6px;vertical-align:1px}',
+			'#vb-inspector .vb-selnote-st{display:inline-block;margin-left:2px;padding:1px 6px;border-radius:5px;background:rgba(var(--st-rgb),.16);color:#e3d4ff;font-weight:500}',
+			'#vb-inspector.is-stated{box-shadow:inset 3px 0 0 var(--st)}',
+			'#vb-inspector.is-stated .vb-selwrap{background:linear-gradient(180deg,rgba(var(--st-rgb),.08),rgba(var(--st-rgb),0))}',
+			'#vb-inspector.is-stated .vb-tab-ind{background:var(--st)!important}',
+			'#vb-inspector .vb-cat{padding:18px 16px 6px;font:600 10.5px/1 var(--vbb-font,"Velox Geist"),sans-serif;letter-spacing:.09em;text-transform:uppercase;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-block{margin:0;border:0;border-bottom:1px solid var(--vb-line);border-radius:0;background:none;box-shadow:none}',
+			'#vb-inspector .vb-block-h{display:flex;align-items:center;gap:10px;height:42px;padding:0 10px 0 16px;cursor:pointer;user-select:none;transition:background .12s var(--vx-ease)}',
+			'#vb-inspector .vb-block-h:hover{background:rgba(255,255,255,.025)}',
+			'#vb-inspector .vb-block-h b{flex:1 1 auto;min-width:0;font-size:12.5px;font-weight:600;color:var(--vb-tx1);letter-spacing:.005em}',
+			'#vb-inspector .vb-block-ic{display:grid;place-items:center;width:18px;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-block:not(.closed) .vb-block-ic{color:var(--vb-tx2)}',
+			'#vb-inspector .vb-block-n{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:rgba(var(--tgt-rgb),.15);color:var(--tgt-tx);font-size:10.5px;font-weight:600;box-shadow:none}',
+			'#vb-inspector .vb-block-reset{opacity:0;transition:opacity .12s}#vb-inspector .vb-block-h:hover .vb-block-reset{opacity:1}',
+			'#vb-inspector .vb-block-cv{display:grid;place-items:center;width:20px;color:var(--vb-tx3);transition:transform .15s var(--vx-ease)}',
+			'#vb-inspector .vb-block.closed .vb-block-cv{transform:rotate(-90deg)}',
+			'#vb-inspector .vb-block-b{padding:4px 16px 16px}',
+			'#vb-inspector .vb-block-b>.vb-f,#vb-inspector .vb-setsec>.vb-f{display:grid;grid-template-columns:var(--lblw) minmax(0,1fr);align-items:center;column-gap:10px;margin:0 0 8px}',
+			'#vb-inspector .vb-block-b>.vb-f:last-child,#vb-inspector .vb-setsec>.vb-f:last-child{margin-bottom:0}',
+			'#vb-inspector .vb-f.is-wide{grid-template-columns:minmax(0,1fr)!important;row-gap:6px}',
+			'.vb-app.is-insp-wide #vb-inspector .vb-f.is-wide{grid-template-columns:var(--lblw) minmax(0,1fr)!important}',
+			'#vb-inspector .vb-f>.vb-f-lbl{display:flex;align-items:center;gap:4px;min-width:0;margin:0;font-size:12px;font-weight:450;line-height:1.25;color:var(--vb-tx2)}',
+			'#vb-inspector .vb-f-name{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+			'#vb-inspector .vb-f.is-set>.vb-f-lbl{color:var(--src-tx);font-weight:500}',
+			'#vb-inspector .vb-f>*:not(.vb-f-lbl){min-width:0}',
+			'#vb-inspector .vb-tokswatch{grid-column:2}#vb-inspector .vb-f.is-wide .vb-tokswatch{grid-column:1}',
+			'#vb-inspector .vb-f-lbl .vb-src{display:grid;place-items:center;flex:none;width:18px;height:18px;margin-left:auto;border-radius:5px;background:none!important;box-shadow:none!important;color:var(--vb-tx3);opacity:0;cursor:pointer;transition:opacity .12s,background .12s}',
+			'#vb-inspector .vb-f:hover .vb-f-lbl .vb-src{opacity:1}',
+			'#vb-inspector .vb-f-lbl .vb-src:hover{background:var(--vb-bg3)!important;color:var(--vb-tx1)}',
+			'#vb-inspector .vb-bx-i>.vb-src{display:none}',
+			'#vb-inspector .vb-row{display:flex;align-items:center;gap:6px;min-width:0;margin:0}',
+			'#vb-inspector input.vb-inp,#vb-inspector select.vb-inp,#vb-inspector textarea.vb-inp{box-sizing:border-box;width:100%;min-width:0;height:var(--fh);margin:0;padding:0 10px;border:0;border-radius:7px;background-color:var(--vb-bg0);box-shadow:inset 0 0 0 1px var(--vb-line);color:var(--vb-tx1);font-size:12.5px;transition:box-shadow .12s var(--vx-ease),background-color .12s var(--vx-ease)}',
+			'#vb-inspector input.vb-inp:hover,#vb-inspector select.vb-inp:hover{box-shadow:inset 0 0 0 1px var(--vb-line2)}',
+			'#vb-inspector input.vb-inp:focus,#vb-inspector select.vb-inp:focus,#vb-inspector textarea.vb-inp:focus{outline:none;box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
+			'#vb-inspector .vb-inp::placeholder{color:var(--vb-tx3);opacity:1}',
+			'#vb-inspector select.vb-inp{padding-right:28px}',
+			'#vb-inspector .vb-f.is-set input.vb-inp,#vb-inspector .vb-f.is-set select.vb-inp{box-shadow:inset 2px 0 0 var(--src),inset 0 0 0 1px var(--vb-line);font-weight:500}',
+			'#vb-inspector .vb-f.is-set input.vb-inp:focus{box-shadow:inset 2px 0 0 var(--src),inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
+			'#vb-inspector select.vb-inp.is-inh{color:var(--vb-tx3)}',
+			'#vb-inspector .vb-f-num .vb-row{position:relative}',
+			'#vb-inspector .vb-f-num .vb-row>input.vb-inp{padding-right:46px;font-variant-numeric:tabular-nums}',
+			'#vb-inspector .vb-row>.vb-unit{position:absolute;right:3px;top:3px;bottom:3px;max-width:58px;height:auto;margin:0;padding:0 7px;border:0;border-radius:5px;background:transparent;box-shadow:none;color:var(--vb-tx3);font:500 11px/1 var(--vbb-font,"Velox Geist"),sans-serif;text-align:right;appearance:none;-webkit-appearance:none;cursor:pointer}',
+			'#vb-inspector .vb-row>.vb-unit:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'#vb-inspector .vb-row>.vb-unit.is-token{color:#c9b1ff}',
+			'#vb-inspector .vb-f-color .vb-row{position:relative}',
+			'#vb-inspector .vb-f-color .vb-row>.vb-swatch{position:absolute;left:5px;top:50%;z-index:1;width:20px;height:20px;margin:-10px 0 0;padding:0;border:0;border-radius:5px;background:none;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);cursor:pointer}',
+			'#vb-inspector .vb-swatch::-webkit-color-swatch-wrapper{padding:0}#vb-inspector .vb-swatch::-webkit-color-swatch{border:0;border-radius:5px}#vb-inspector .vb-swatch::-moz-color-swatch{border:0;border-radius:5px}',
+			'#vb-inspector .vb-f-color .vb-row>input.vb-inp{padding-left:33px;font-family:"Velox Geist Mono",ui-monospace,Menlo,monospace;font-size:12px}',
+			'#vb-inspector .vb-tokswatch{display:flex;flex-wrap:wrap;align-items:center;gap:5px;margin:7px 0 0}',
+			'#vb-inspector .vb-tsw{width:18px;height:18px;margin:0;padding:0;border:0;border-radius:5px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.14);cursor:pointer;transition:transform .12s var(--vx-ease)}',
+			'#vb-inspector .vb-tsw:hover{transform:scale(1.12)}',
+			'#vb-inspector .vb-seg{display:flex;gap:2px;height:var(--fh);margin:0;padding:2px;border:0;border-radius:8px;background:var(--vb-bg0);box-shadow:inset 0 0 0 1px var(--vb-line);box-sizing:border-box}',
+			'#vb-inspector .vb-seg button{flex:1 1 0;min-width:0;height:auto;margin:0;padding:0 6px;border:0;border-radius:6px;background:transparent;box-shadow:none;color:var(--vb-tx3);font:500 11.5px/1 var(--vbb-font,"Velox Geist"),sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;transition:background .12s var(--vx-ease),color .12s var(--vx-ease)}',
+			'#vb-inspector .vb-seg button:hover{background:rgba(255,255,255,.04);color:var(--vb-tx1)}',
+			'#vb-inspector .vb-seg button.cur,#vb-inspector .vb-seg button.inh{background:var(--vb-bg2);color:var(--vb-tx2);box-shadow:none}',
+			'#vb-inspector .vb-seg button.on{background:var(--vb-bg3);color:#fff;box-shadow:0 1px 2px rgba(0,0,0,.35),inset 0 -2px 0 var(--src,var(--tgt))}',
+			'#vb-inspector .vb-bm{margin:0;padding:2px 0 0}',
+			'#vb-inspector .vb-bm-m,#vb-inspector .vb-bm-p{position:relative;display:grid;grid-template-columns:50px minmax(0,1fr) 50px;grid-template-areas:". t ." "l c r" ". b .";align-items:center;justify-items:center;box-sizing:border-box}',
+			'#vb-inspector .vb-bm-m{padding:5px 3px;border-radius:11px;background:var(--vb-bg0);box-shadow:inset 0 0 0 1px var(--vb-line)}',
+			'#vb-inspector .vb-bm-p{width:100%;padding:3px 2px;border-radius:8px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line2)}',
+			'#vb-inspector .vb-bm-t{grid-area:t}#vb-inspector .vb-bm-l{grid-area:l}#vb-inspector .vb-bm-r{grid-area:r}#vb-inspector .vb-bm-b{grid-area:b}#vb-inspector .vb-bm-c{grid-area:c;width:100%;padding:2px 0}',
+			'#vb-inspector .vb-bm-cap{position:absolute;top:8px;left:10px;right:7px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;font:600 9.5px/1 var(--vbb-font,"Velox Geist"),sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-bm-p>.vb-bm-cap{top:6px;left:8px;right:5px}',
+			'#vb-inspector .vb-bm-link{pointer-events:auto;display:grid;place-items:center;width:20px;height:20px;margin:-4px 0 0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);cursor:pointer;transition:background .12s,color .12s}',
+			'#vb-inspector .vb-bm-link:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'#vb-inspector .vb-bm-link.on{background:rgba(var(--tgt-rgb),.16);color:var(--tgt-tx)}',
+			'#vb-inspector .vb-bm-core{display:block;height:24px;margin:0 4px;border-radius:5px;background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 4px,transparent 4px 8px);box-shadow:inset 0 0 0 1px var(--vb-line)}',
+			'#vb-inspector .vb-bm-i{display:block}',
+			'#vb-inspector .vb-bm-i input{box-sizing:border-box;display:block;width:46px;height:26px;margin:0;padding:0 2px;border:0;border-radius:6px;background:transparent;box-shadow:none;color:var(--vb-tx1);font:500 12px/26px "Velox Geist Mono",ui-monospace,Menlo,monospace;text-align:center;outline:none;transition:background .12s,box-shadow .12s}',
+			'#vb-inspector .vb-bm-i input::placeholder{color:var(--vb-tx3);font-weight:400;opacity:1}',
+			'#vb-inspector .vb-bm-i input:hover{background:rgba(255,255,255,.05)}',
+			'#vb-inspector .vb-bm-i input:focus{background:var(--vb-bg1);box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
+			'#vb-inspector .vb-bm-i.is-set input{color:#fff;box-shadow:inset 0 -2px 0 var(--src)}',
+			'#vb-inspector .vb-bm-i.is-set input:focus{box-shadow:inset 0 -2px 0 var(--src),inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
+			'#vb-inspector .vb-bm-m.is-linked{box-shadow:inset 0 0 0 1px rgba(var(--tgt-rgb),.35)}#vb-inspector .vb-bm-p.is-linked{box-shadow:inset 0 0 0 1px rgba(var(--tgt-rgb),.45)}',
+			'#vb-inspector .vb-bx-lab{display:block;margin:12px 0 6px;font-size:12px;font-weight:450;color:var(--vb-tx2)}',
+			'#vb-inspector .vb-block-b>.vb-bx-lab:first-child{margin-top:2px}',
+			'#vb-inspector .vb-bx-tri{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 4px}',
+			'#vb-inspector .vb-bx-i{position:relative;display:flex;align-items:center;min-width:0;height:var(--fh);margin:0;padding:0;border:0;border-radius:7px;background:var(--vb-bg0);box-shadow:inset 0 0 0 1px var(--vb-line);transition:box-shadow .12s}',
+			'#vb-inspector .vb-bx-i:hover{box-shadow:inset 0 0 0 1px var(--vb-line2)}',
+			'#vb-inspector .vb-bx-i:focus-within{box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
+			'#vb-inspector .vb-bx-i.is-set{box-shadow:inset 2px 0 0 var(--src),inset 0 0 0 1px var(--vb-line)}',
+			'#vb-inspector .vb-bx-i input{flex:1 1 auto;min-width:0;width:100%;height:100%;margin:0;padding:0 2px 0 9px;border:0;background:transparent;box-shadow:none;color:var(--vb-tx1);font-size:12.5px;outline:none}',
+			'#vb-inspector .vb-bx-i input::placeholder{color:var(--vb-tx3);opacity:1}',
+			'#vb-inspector .vb-bx-i.is-set input{font-weight:500}',
+			'#vb-inspector .vb-bx-i .vb-unit{position:static;flex:none;max-width:40px;height:22px;margin:0 3px 0 0;padding:0 5px;border:0;border-radius:5px;background:transparent;box-shadow:none;color:var(--vb-tx3);font-size:10.5px;appearance:none;-webkit-appearance:none;cursor:pointer}',
+			'#vb-inspector .vb-bx-i .vb-unit:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'#vb-inspector .vb-bx-side{display:none}',
+			'#vb-inspector .vb-more{display:flex;align-items:center;gap:12px;width:calc(100% - 32px);margin:16px;padding:12px 12px 12px 14px;border:0;border-radius:10px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line);color:var(--vb-tx2);text-align:left;cursor:pointer;transition:background .12s var(--vx-ease)}',
+			'#vb-inspector .vb-more:hover{background:var(--vb-bg3)}',
+			'#vb-inspector .vb-more>svg:first-child{flex:none;color:var(--vb-tx3)}#vb-inspector .vb-more>svg:last-child{flex:none;transform:rotate(-90deg);color:var(--vb-tx3)}',
+			'#vb-inspector .vb-more span{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:3px}',
+			'#vb-inspector .vb-more b{font-size:12.5px;font-weight:600;color:var(--vb-tx1)}#vb-inspector .vb-more small{font-size:11.5px;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-setwrap{padding:0;margin:0}',
+			'#vb-inspector .vb-setsec{margin:0;padding:2px 16px 16px;border:0;border-bottom:1px solid var(--vb-line);border-radius:0;background:none;box-shadow:none}',
+			'#vb-inspector .vb-setsec-h{display:flex;align-items:center;gap:10px;height:42px;margin:-2px -16px 2px;padding:0 10px 0 16px;font-size:12.5px;font-weight:600;color:var(--vb-tx1);cursor:pointer;user-select:none;transition:background .12s var(--vx-ease)}',
+			'#vb-inspector .vb-setsec-h:hover{background:rgba(255,255,255,.025)}',
+			'#vb-inspector .vb-setsec-h:focus-visible{outline:none;box-shadow:inset 0 0 0 1px var(--vb-acc)}',
+			'#vb-inspector .vb-setsec-h>svg:first-child{flex:none;width:16px;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-setsec-cv{display:grid;place-items:center;width:20px;margin-left:auto;color:var(--vb-tx3);transition:transform .15s var(--vx-ease)}',
+			'#vb-inspector .vb-setsec.closed{padding-bottom:0}',
+			'#vb-inspector .vb-setsec.closed>:not(.vb-setsec-h){display:none!important}',
+			'#vb-inspector .vb-setsec.closed .vb-setsec-cv{transform:rotate(-90deg)}',
+			'#vb-inspector .vb-setsec .vb-setnote{margin:0 0 10px;font-size:12px;line-height:1.5;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-setsec .vb-set-check{display:flex;align-items:center;gap:10px;min-height:30px;margin:0 0 6px;font-size:12.5px;color:var(--vb-tx2)}',
+			'#vb-inspector .vb-code-max{display:grid;place-items:center;width:24px;height:24px;margin-left:auto;padding:0;border:0;border-radius:6px;background:none;color:var(--vb-tx3);cursor:pointer}',
+			'#vb-inspector .vb-code-max:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'#vb-inspector .vb-code-max+.vb-setsec-cv{margin-left:0}',
+			'#vb-inspector textarea.vb-page-code{display:block;box-sizing:border-box;width:100%;min-height:260px;margin:0 0 10px;padding:12px 14px;border:0;border-radius:9px;background:var(--vb-bg0);box-shadow:inset 0 0 0 1px var(--vb-line);font-size:12.5px;line-height:1.65;resize:vertical;tab-size:2}',
+			'#vb-inspector textarea.vb-page-code:focus{outline:none;box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
+			'#vb-inspector .vb-setsec.is-max{position:fixed;top:56px;right:24px;bottom:24px;left:calc(var(--vb-iw,340px) + 24px);z-index:9000;display:flex;flex-direction:column;padding:0 18px 18px;border-radius:14px;background:var(--vb-bg1);box-shadow:0 0 0 1px var(--vb-line2),0 30px 80px rgba(0,0,0,.55)}',
+			'#vb-inspector .vb-setsec.is-max>.vb-setsec-h{margin:0 -18px 12px;padding:0 12px 0 18px;height:48px;border-bottom:1px solid var(--vb-line);cursor:default}',
+			'#vb-inspector .vb-setsec.is-max>.vb-setsec-h .vb-setsec-cv{display:none}',
+			'#vb-inspector .vb-setsec.is-max textarea.vb-page-code{flex:1 1 auto;min-height:0;resize:none;font-size:13.5px}',
+			'#vb-inspector .vb-setsec.is-max .vb-code-max{color:var(--tgt-tx);background:rgba(var(--tgt-rgb),.14)}',
+			'#vb-iresize::after{content:\'\';position:absolute;top:50%;left:50%;width:4px;height:40px;border-radius:2px;background:var(--vb-line2);transform:translate(-50%,-50%);opacity:0;transition:opacity .15s,background .15s;pointer-events:none}',
+			'#vb-iresize:hover::after,#vb-iresize.on::after{opacity:1;background:var(--vb-acc)}',
+			'/* 4.44 selector captions: Class / ID / State sit above their boxes */',
+			'#vb-inspector .vb-selbar{padding-top:17px}',
+			'#vb-inspector .vb-sel{position:relative}',
+			'#vb-inspector .vb-sel .vb-sel-kind{position:absolute;left:3px;top:-17px;display:block;height:auto;padding:0;border-radius:0;background:none!important;font:600 9.5px/12px var(--vbb-font,"Velox Geist"),sans-serif;letter-spacing:.09em;color:var(--vb-tx3)}',
+			'#vb-inspector .vb-sel-cls .vb-sel-kind{color:var(--tgt-tx)!important}',
+			'#vb-inspector .vb-sel-st.is-on .vb-sel-kind{color:#d2bcff!important}',
+			'#vb-inspector .vb-sel{padding:0 8px 0 11px}',
+			'#vb-inspector .vb-sel-st{flex:0 0 112px;max-width:none}',
+			'/* 4.44 polish */',
+			'#vb-inspector .vb-setsec>.vb-f:has(>.vb-seg>button:nth-child(4)),#vb-inspector .vb-setsec>.vb-f:has(>.vb-attrs),#vb-inspector .vb-setsec>.vb-f:has(textarea){grid-template-columns:minmax(0,1fr);row-gap:6px}',
+			'#vb-inspector .vb-seg button{padding:0 4px;font-size:11px}',
+			'#vb-inspector .vb-row{position:relative}',
+			'#vb-inspector .vb-row>.vb-unit-static{position:absolute;right:10px;top:50%;transform:translateY(-50%);margin:0;padding:0;background:none;border:0;color:var(--vb-tx3);font-size:11px;pointer-events:none}',
+			'#vb-inspector .vb-row:has(>.vb-unit-static)>input.vb-inp{padding-right:38px}',
+			'#vb-inspector .vb-sel-cls .vb-sel-v{font-size:12px}',
+			'#vb-inspector .vb-sel-st{flex-basis:100px}',
 			''
 		].join( '' );
 		var s = document.createElement( 'style' ); s.id = 'vb-editor-style'; s.textContent = css; document.head.appendChild( s );

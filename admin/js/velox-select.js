@@ -196,6 +196,8 @@
 	}
 
 	function open( anchor, items, onPick, opts ) {
+		// A second click on the same trigger closes its list (a toggle, like every native dropdown).
+		if ( pop && state && state.anchor === anchor ) { close( true ); return; }
 		close( false );
 		css();
 		opts = opts || {};
