@@ -790,3 +790,22 @@ body select.vba-input:focus,body select.vba-tpl-purpose:focus,body .vba-shell se
 .vba-xf-note{margin:0;padding:8px 20px 12px;font-size:13px;color:var(--vbb-text-3)}
 .vba-xf-warn{color:var(--vbb-orange)}
 @media (max-width:700px){.vba-xf-row{flex-wrap:wrap}.vba-xf-row .vba-setting-ctrl{min-width:0;width:100%}.vba-xf-foot{flex-wrap:wrap}.vba-xf-sum{flex-basis:100%}}
+
+/* ---- AI agents ---- */
+.vba-ag .vba-card{margin-bottom:24px}
+.vba-ag-st{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-right:6px;border-radius:50%;font-size:11px;vertical-align:-3px}
+.vba-ag-st.is-ok{background:rgba(67,209,127,.16);color:var(--vbb-green)}
+.vba-ag-st.is-no{background:var(--vbb-raised);color:var(--vbb-text-3)}
+.vba-ag-steps{margin:0;padding:0 20px 20px 44px;display:flex;flex-direction:column;gap:20px}
+.vba-ag-steps li{display:flex;flex-direction:column;align-items:flex-start;gap:6px;font-size:13px;color:var(--vbb-text-3);line-height:1.5}
+.vba-ag-steps li::marker{color:var(--vbb-text-2);font-weight:600}
+.vba-ag-steps b{font-size:14px;font-weight:600;color:var(--vbb-text)}
+.vba-ag-code{position:relative;align-self:stretch;margin-top:4px}
+.vba-ag-code pre{margin:0;padding:14px 16px;max-width:100%;overflow:auto;background:var(--vbb-void);border:1px solid var(--vbb-line);border-radius:10px;font:12.5px/1.55 var(--vbb-mono);color:var(--vbb-text-2);white-space:pre}
+.vba-ag-code .vba-btn{position:absolute;top:8px;right:8px}
+.vba-ag-list{margin:0;padding:0 20px 12px;list-style:none}
+.vba-ag-list li{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:40px;border-bottom:1px solid var(--vbb-line);font-size:13px}
+.vba-ag-list li:last-child{border-bottom:0}
+.vba-ag-list b{font-weight:500;color:var(--vbb-text)}
+.vba-ag-list code{font:12px var(--vbb-mono);color:var(--vbb-text-3);background:none}
+@media (max-width:700px){.vba-ag-list li{flex-direction:column;align-items:flex-start;justify-content:center;padding:8px 0}}

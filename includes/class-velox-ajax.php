@@ -156,6 +156,10 @@ class Velox_Ajax {
 				Velox_Builder_Transfer::ajax_images();
 				break;
 
+			case 'builder_agents_toggle':
+				Velox_Builder_Agents::ajax_toggle();
+				break;
+
 			case 'builder_template_rules_save':
 				Velox_Builder_Templates::ajax_save();
 				break;

@@ -95,6 +95,11 @@ class Velox_Builder_Render {
 		return self::$CSS_PROP[ $key ] ?? '';
 	}
 
+	/** Every style property the builder writes (camelCase model keys). */
+	public static function css_props() {
+		return array_keys( self::$CSS_PROP );
+	}
+
 	/** CSS property name → camelCase model key (the reverse lookup). */
 	public static function model_prop_name( $css ) {
 		$flip = array_flip( self::$CSS_PROP );

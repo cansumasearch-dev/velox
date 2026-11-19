@@ -427,6 +427,7 @@ class Velox_Builder {
 			'styles'    => __( 'Global styles', 'velox' ),
 			'fonts'     => __( 'Fonts', 'velox' ),
 			'transfer'  => __( 'Import & export', 'velox' ),
+			'agents'    => __( 'AI agents', 'velox' ),
 			'settings'  => __( 'Settings', 'velox' ),
 		);
 		foreach ( $subs as $key => $label ) {

@@ -4760,7 +4760,7 @@
 	function revListHTML() {
 		if ( ! revList ) { return '<div class="vb-hist-empty">' + T( 'Loading…' ) + '</div>'; }
 		if ( ! revList.length ) { return '<div class="vb-hist-empty">' + T( 'No saved versions yet. They start with the next save.' ) + '</div>'; }
-		var names = { save:T( 'Saved' ), publish:T( 'Published' ), restore:T( 'Restored' ), import:T( 'Imported' ) };
+		var names = { save:T( 'Saved' ), publish:T( 'Published' ), restore:T( 'Restored' ), import:T( 'Imported' ), ai:T( 'By AI' ) };
 		return revList.map( function ( r ) {
 			var on = revPrev && revPrev.id === r.id;
 			return '<button class="vb-hist-i vb-rev-i is-' + r.kind + ( on ? ' on' : '' ) + '" data-rev="' + r.id + '" title="' + escapeHtml( r.when ) + '">' +
@@ -4827,7 +4827,7 @@
 		var bar = document.getElementById( 'vb-revbar' );
 		if ( ! revPrev ) { if ( bar ) { bar.remove(); } return; }
 		if ( ! bar ) { bar = document.createElement( 'div' ); bar.id = 'vb-revbar'; bar.setAttribute( 'role', 'status' ); document.body.appendChild( bar ); }
-		var names = { save:T( 'Saved' ), publish:T( 'Published' ), restore:T( 'Restored' ), import:T( 'Imported' ) };
+		var names = { save:T( 'Saved' ), publish:T( 'Published' ), restore:T( 'Restored' ), import:T( 'Imported' ), ai:T( 'By AI' ) };
 		var bits = [];
 		if ( revPrev.changed ) { bits.push( '<span class="vb-rb-c">' + T( '%d changed since' ).replace( '%d', revPrev.changed ) + '</span>' ); }
 		if ( revPrev.gone ) { bits.push( '<span class="vb-rb-g">' + T( '%d removed since' ).replace( '%d', revPrev.gone ) + '</span>' ); }
@@ -8348,7 +8348,7 @@
 			'.vb-role-client #vb-pp-caret,.vb-role-client #vb-kind,.vb-role-client [data-rev-restore]{display:none!important}.vb-role-client #vb-title{pointer-events:none}',
 			'.vb-hist-tabs{display:flex;gap:4px;padding:0 12px 8px}.vb-hist-tabs button{flex:1;height:28px;border:1px solid var(--vb-bg4,#2a2e36);border-radius:7px;background:transparent;color:#a5a9b2;font:500 12px/1 var(--vb-font,inherit);cursor:pointer}.vb-hist-tabs button.on{background:var(--vb-bg3,#20232a);color:#e9ebf0;border-color:#3a3f48}',
 			'.vb-rev-i{align-items:flex-start}.vb-rev-txt{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.vb-rev-what{color:#8a8d94;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}',
-			'.vb-rev-i.is-publish .vb-hist-dot{background:#43d17f}.vb-rev-i.is-restore .vb-hist-dot{background:#a06bff}.vb-rev-i.on{background:rgba(42,183,241,.12);box-shadow:inset 2px 0 0 #2ab7f1}',
+			'.vb-rev-i.is-publish .vb-hist-dot{background:#43d17f}.vb-rev-i.is-restore .vb-hist-dot{background:#a06bff}.vb-rev-i.is-ai .vb-hist-dot{background:#f5a742}.vb-rev-i.is-import .vb-hist-dot{background:#2ab7f1}.vb-rev-i.on{background:rgba(42,183,241,.12);box-shadow:inset 2px 0 0 #2ab7f1}',
 			'#vb-revbar{box-sizing:border-box;position:fixed;left:50%;top:60px;transform:translateX(-50%);z-index:100050;display:flex;align-items:center;gap:16px;max-width:calc(100vw - 32px);padding:10px 12px 10px 16px;border-radius:12px;background:#1a1d23;border:1px solid #3a3f48;box-shadow:0 12px 40px rgba(0,0,0,.45);color:#e9ebf0;font:500 13px/1.4 var(--vb-font,inherit)}',
 			'#vb-revbar{flex-wrap:wrap}#vb-revbar .vb-rb-main{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 220px}#vb-revbar .vb-rb-bits span{white-space:nowrap}#vb-revbar .vb-rb-bits{display:flex;flex-wrap:wrap;gap:10px;color:#a5a9b2;font-size:12px}.vb-rb-c{color:#f5b85a}.vb-rb-g{color:#ff8f86}',
 			'#vb-revbar .vb-rb-acts{display:flex;gap:8px;flex:0 0 auto}',

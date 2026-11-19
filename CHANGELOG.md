@@ -4,6 +4,21 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.39.0 — Velox Builder: AI agents
+- **AI agents** (Velox Builder → AI agents): AI tools such as Claude, ChatGPT or Cursor can read your design system and build pages, through WordPress's Abilities API (WordPress 6.9+) and the official MCP Adapter plugin.
+  - What an agent can do:
+    - read the design system: design tokens, classes, global styles, fonts, element types, style properties, forms and components;
+    - list and read pages, templates and components;
+    - create pages (administrators also templates and components);
+    - add, change and remove elements: sections, divs, columns, grids, headings, text, lists, buttons, links, images, videos, icons, forms and components;
+    - style classes.
+  - **Off until an administrator switches it on.** The screen shows what is installed and gives a ready-to-copy configuration for the AI tool, with this site's address and your user name filled in.
+  - **An agent signs in as a WordPress user (application password)** and can only do what that user may do: designers and administrators build, clients and other users cannot. Templates and components stay with administrators.
+  - **Drafts only:** nothing changes for visitors until a person publishes. A new page gets a draft WordPress page with a preview link.
+  - **Every change is a saved version marked "By AI"**, with the user it acted for, so it can be undone in one click.
+  - Content is cleaned like in the editor: no scripts in text, no `javascript:` links, only known style properties. Mistakes come back as clear messages the agent can act on.
+- **Updates no longer stall on shared hosting.** GitHub's API allows 60 requests an hour per server address without a token, which a shared host can use up. When that happened, "Your plugins are all up to date" was shown for an hour. Velox now falls back to the normal GitHub release page, and a failed check is retried after 15 minutes.
+
 ## 4.38.0 — Velox Builder: import and export
 - **Import & export** (Velox Builder → Import & export): move pages, templates and components, and the design system (classes, design tokens, global styles, fonts, global CSS and JavaScript), to another Velox site as one file. It also works as a backup.
   - **Export:** tick what you want. The components and forms those pages use come along by themselves.

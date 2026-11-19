@@ -52,13 +52,45 @@ class Velox_Updater {
 		}
 		$url      = sprintf( 'https://api.github.com/repos/%s/%s/releases/latest', $this->user, $this->repo );
 		$response = wp_remote_get( $url, $this->api_args() );
-		if ( is_wp_error( $response ) || 200 !== wp_remote_retrieve_response_code( $response ) ) {
-			set_transient( $cache_key, null, HOUR_IN_SECONDS );
+		$data     = null;
+		if ( ! is_wp_error( $response ) && 200 === wp_remote_retrieve_response_code( $response ) ) {
+			$data = json_decode( wp_remote_retrieve_body( $response ) );
+		}
+		// The API allows 60 requests an hour per server address without a token,
+		// which a shared host uses up quickly; then "no update" was shown for an
+		// hour. The normal release page has no such limit.
+		if ( ! is_object( $data ) || empty( $data->tag_name ) ) {
+			$data = $this->latest_from_web();
+		}
+		if ( ! $data ) {
+			set_transient( $cache_key, null, 15 * MINUTE_IN_SECONDS );
 			return null;
 		}
-		$data = json_decode( wp_remote_retrieve_body( $response ) );
 		set_transient( $cache_key, $data, 6 * HOUR_IN_SECONDS );
 		return $data;
+	}
+
+	/**
+	 * The newest version without the API: github.com/…/releases/latest redirects
+	 * to …/releases/tag/vX.Y.Z, and the zip has a fixed address under that tag.
+	 */
+	private function latest_from_web() {
+		$base = sprintf( 'https://github.com/%s/%s', $this->user, $this->repo );
+		$res  = wp_remote_head( $base . '/releases/latest', array( 'timeout' => 15, 'redirection' => 0, 'headers' => array( 'User-Agent' => 'Velox-Updater' ) ) );
+		if ( is_wp_error( $res ) ) {
+			return null;
+		}
+		$loc = (string) wp_remote_retrieve_header( $res, 'location' );
+		if ( ! preg_match( '#/releases/tag/(v?\d+(?:\.\d+)+)$#', $loc, $m ) ) {
+			return null;
+		}
+		$tag = $m[1];
+		return (object) array(
+			'tag_name'    => $tag,
+			'body'        => '',
+			'zipball_url' => $base . '/archive/refs/tags/' . rawurlencode( $tag ) . '.zip',
+			'assets'      => array( (object) array( 'name' => 'velox.zip', 'browser_download_url' => $base . '/releases/download/' . rawurlencode( $tag ) . '/velox.zip' ) ),
+		);
 	}
 
 	private function normalize_version( $tag ) {
