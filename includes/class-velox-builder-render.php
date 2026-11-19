@@ -985,7 +985,10 @@ class Velox_Builder_Render {
 	 * widgets_css(), and per-instance values become CSS variables on #id, so a
 	 * class can still restyle every one of them. */
 	private static $WIDGETS = array( 'Marquee' => 1, 'Counter' => 1, 'Countdown' => 1, 'Compare' => 1, 'Gallery' => 1, 'Rotator' => 1,
-		'Flipcard' => 1, 'Bars' => 1, 'Rating' => 1, 'Social' => 1, 'Map' => 1, 'Embed' => 1, 'Table' => 1, 'Timeline' => 1, 'Checklist' => 1 );
+		'Flipcard' => 1, 'Bars' => 1, 'Rating' => 1, 'Social' => 1, 'Map' => 1, 'Embed' => 1, 'Table' => 1, 'Timeline' => 1, 'Checklist' => 1,
+		'Shapedivider' => 1, 'Progresscircle' => 1 );
+	/** The shape divider's outlines (viewBox 0 0 1200 120, filled at the bottom). */
+	private static $SHAPES = array( 'wave' => '<path d="M0,60 C150,110 350,10 600,60 C850,110 1050,10 1200,60 L1200,120 L0,120 Z"/>', 'waves' => '<path opacity=".35" d="M0,40 C200,100 400,0 600,50 C800,100 1000,20 1200,50 L1200,120 L0,120 Z"/><path d="M0,75 C150,110 350,35 600,75 C850,115 1050,45 1200,75 L1200,120 L0,120 Z"/>', 'curve' => '<path d="M0,120 Q600,-40 1200,120 Z"/>', 'tilt' => '<path d="M0,120 L1200,20 L1200,120 Z"/>', 'peak' => '<path d="M0,120 L600,20 L1200,120 Z"/>', 'zigzag' => '<path d="M0,120 L0,100 L40,60 L80,100 L120,60 L160,100 L200,60 L240,100 L280,60 L320,100 L360,60 L400,100 L440,60 L480,100 L520,60 L560,100 L600,60 L640,100 L680,60 L720,100 L760,60 L800,100 L840,60 L880,100 L920,60 L960,100 L1000,60 L1040,100 L1080,60 L1120,100 L1160,60 L1200,100 L1200,120 Z"/>' );
 	private static $wicons = null;
 
 	/** Icon paths shared with the editor (social networks, list marks, stars). */
@@ -1216,6 +1219,26 @@ class Velox_Builder_Render {
 				}
 				return '<div' . self::wcls( $attr, 'vx-skills' ) . ( $s( 'anim', '1' ) ? ' data-vx-anim' : '' ) . '>' . $out . '</div>';
 
+			case 'Shapedivider':
+				self::wvars( $node, array( 'color' => array( '--vx-shc', 'color', '' ), 'height' => array( '--vx-shh', 'px', '80' ) ) );
+				$shape = (string) $s( 'shape', 'wave' );
+				$shape = isset( self::$SHAPES[ $shape ] ) ? $shape : 'wave';
+				$c     = 'vx-shape' . ( $s( 'flipX', '' ) ? ' is-fx' : '' ) . ( $s( 'flipY', '' ) ? ' is-fy' : '' );
+				return '<div' . self::wcls( $attr, $c ) . ' aria-hidden="true"><svg viewBox="0 0 1200 120" preserveAspectRatio="none" focusable="false">' . self::$SHAPES[ $shape ] . '</svg></div>';
+
+			case 'Progresscircle':
+				self::wvars( $node, array( 'size' => array( '--vx-pcz', 'px', '140' ), 'color' => array( '--vx-pcc', 'color', '' ), 'track' => array( '--vx-pctr', 'color', '' ) ) );
+				$pv   = max( 0, min( 100, (float) str_replace( ',', '.', (string) $s( 'value', '75' ) ) ) );
+				$pw   = max( 1, min( 24, self::el_int( $node, 'thick', 8 ) ) );
+				$pr   = 50 - $pw / 2;
+				$pc   = round( 2 * M_PI * $pr, 2 );
+				$plab = trim( (string) $s( 'label', '' ) );
+				$pnum = round( $pv ) . '%';
+				return '<div' . self::wcls( $attr, 'vx-ring' ) . ( $s( 'anim', '1' ) ? ' data-vx-anim' : '' ) . ' role="img" aria-label="' . esc_attr( ( '' !== $plab ? $plab . ': ' : '' ) . $pnum ) . '">'
+					. '<svg viewBox="0 0 100 100" aria-hidden="true" focusable="false"><circle class="vx-ring-t" cx="50" cy="50" r="' . $pr . '" stroke-width="' . $pw . '"/>'
+					. '<circle class="vx-ring-f" cx="50" cy="50" r="' . $pr . '" stroke-width="' . $pw . '" style="--vx-c:' . $pc . ';--vx-o:' . round( $pc * ( 1 - $pv / 100 ), 2 ) . '"/></svg>'
+					. '<span class="vx-ring-in" aria-hidden="true">' . ( $s( 'showVal', '1' ) ? '<b>' . esc_html( $pnum ) . '</b>' : '' ) . ( '' !== $plab ? '<span>' . esc_html( $plab ) . '</span>' : '' ) . '</span></div>';
+
 			case 'Rating':
 				self::wvars( $node, array( 'size' => array( '--vx-rate-z', 'px', '20' ), 'color' => array( '--vx-rate-c', 'color', '' ), 'empty' => array( '--vx-rate-e', 'color', '' ) ) );
 				$max = max( 1, min( 10, self::el_int( $node, 'max', 5 ) ) );
@@ -1401,6 +1424,13 @@ class Velox_Builder_Render {
 			. '.vx-skill-t{height:var(--vx-bh,8px);border-radius:999px;background:var(--vx-btc,#e6eaf0);overflow:hidden}.vx-skill-f{display:block;height:100%;width:var(--vx-v);border-radius:inherit;background:var(--vx-bc,#2ab7f1);transition:width 1.2s cubic-bezier(.2,.7,.2,1)}'
 			. '.vx-skills[data-vx-anim]:not(.is-in) .vx-skill-f{width:0}'
 			// rating
+			. '.vx-shape{display:block;line-height:0;color:var(--vx-shc,#f1f5f9);overflow:hidden}.vx-shape svg{display:block;width:100%;height:var(--vx-shh,80px);fill:currentColor}'
+			. '.vx-shape.is-fx svg{transform:scaleX(-1)}.vx-shape.is-fy svg{transform:scaleY(-1)}.vx-shape.is-fx.is-fy svg{transform:scale(-1,-1)}'
+			. '.vx-ring{position:relative;display:inline-grid;place-items:center;width:var(--vx-pcz,140px);height:var(--vx-pcz,140px)}.vx-ring svg{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}'
+			. '.vx-ring circle{fill:none}.vx-ring-t{stroke:var(--vx-pctr,#e6eaf0)}.vx-ring-f{stroke:var(--vx-pcc,#2ab7f1);stroke-linecap:round;stroke-dasharray:var(--vx-c);stroke-dashoffset:var(--vx-o);transition:stroke-dashoffset 1.4s cubic-bezier(.2,.7,.2,1)}'
+			. '.vx-ring[data-vx-anim]:not(.is-in) .vx-ring-f{stroke-dashoffset:var(--vx-c)}'
+			. '.vx-ring-in{position:relative;display:flex;flex-direction:column;align-items:center;max-width:78%;text-align:center;line-height:1.2}.vx-ring-in b{font-size:calc(var(--vx-pcz,140px) * .22);font-weight:700;font-variant-numeric:tabular-nums}.vx-ring-in span{font-size:13px;opacity:.75}'
+			. '@media (prefers-reduced-motion:reduce){.vx-ring-f{transition:none}}'
 			. '.vx-rating{display:inline-flex;flex-wrap:wrap;align-items:center;gap:6px 10px}.vx-rate-s{position:relative;display:inline-flex;line-height:0}.vx-rate-bg,.vx-rate-fg{display:inline-flex;gap:2px;white-space:nowrap}'
 			. '.vx-rate-fg{position:absolute;top:0;left:0;bottom:0;width:var(--vx-rate,100%);overflow:hidden}.vx-rate-s svg{flex:none;width:var(--vx-rate-z,20px);height:var(--vx-rate-z,20px)}.vx-rate-bg svg{fill:var(--vx-rate-e,#d6dbe3)}.vx-rate-fg svg{fill:var(--vx-rate-c,#f5b301)}'
 			. '.vx-rate-t{font-weight:600}.vx-rate-l{opacity:.72}'
@@ -1668,7 +1698,7 @@ class Velox_Builder_Render {
 			$out .= '<div class="vx-dd-wrap"' . ( 'hover' === self::el_set( $node, 'openOn', 'click' ) ? ' data-vx-hover' : '' ) . '>';
 			$out .= '<button type="button" class="vx-dd-btn" aria-expanded="false" aria-haspopup="dialog"' .
 				' aria-controls="' . esc_attr( $id ) . '" data-vx-toggle="' . esc_attr( $id ) . '">' .
-				esc_html( self::el_set( $node, 'label', 'Menü' ) ) .
+				esc_html( self::el_set( $node, 'label', __( 'Menu', 'velox' ) ) ) .
 				'<span class="vx-dd-i" aria-hidden="true">' . Velox_Icons::svg( 'chevron-down', 14 ) . '</span></button>';
 		}
 
@@ -1998,7 +2028,7 @@ class Velox_Builder_Render {
 
 			$inner = '';
 			if ( 'Announcebar' === $el ) {
-				$inner .= '<span class="vx-bar-text">' . esc_html( self::el_set( $node, 'text', 'Kostenlose Beratung — jetzt anfragen' ) ) . '</span>';
+				$inner .= '<span class="vx-bar-text">' . esc_html( self::el_set( $node, 'text', __( 'Free first consultation — get in touch', 'velox' ) ) ) . '</span>';
 				$lt = self::el_set( $node, 'linkText', '' );
 				$lu = self::el_set( $node, 'linkUrl', '' );
 				if ( $lt && $lu ) { $inner .= ' <a class="vx-bar-link" href="' . esc_url( $lu ) . '">' . esc_html( $lt ) . '</a>'; }
@@ -2024,7 +2054,7 @@ class Velox_Builder_Render {
 		$idle = self::el_set( $node, 'idle', 'none' );
 		if ( 'none' !== $idle ) { self::$runtime_used['fabanim'] = true; }
 
-		$label  = self::el_set( $node, 'label', 'Backtotop' === $el ? 'Nach oben' : '' );
+		$label  = self::el_set( $node, 'label', 'Backtotop' === $el ? __( 'Back to top', 'velox' ) : '' );
 		$action = self::el_set( $node, 'action', 'link' );
 		$target = self::el_set( $node, 'target', '' );
 		$href   = '#';
@@ -2081,7 +2111,7 @@ class Velox_Builder_Render {
 
 		if ( 'Breadcrumbs' === $el ) {
 			$sep   = self::el_set( $node, 'sep', '/' );
-			$home  = self::el_set( $node, 'homeLabel', 'Start' );
+			$home  = self::el_set( $node, 'homeLabel', __( 'Home', 'velox' ) );
 			$crumbs = array( array( 'name' => $home, 'url' => home_url( '/' ) ) );
 			$qo     = get_queried_object();
 			// On an archive the queried id is a TERM id: treating it as a post id

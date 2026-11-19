@@ -4,6 +4,19 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.50.0 — Clear structure rules, labelled drag and drop, safer reusables, and an audit of every element
+- **Sections stay where sections belong.** A section sits on the page or directly inside one other section — never inside a div, card or columns, and never three deep. This holds for adding, dragging, moving, pasting and wrapping; when a spot isn't allowed the element goes right after the nearest container where it is, and a note says so.
+- **You always see where a drop lands.** While dragging on the canvas, the container that will receive the element gets a dashed outline with its name ("In: Section .hero") and a label says "Inside / Above / Below / Left of / Right of …". In Structure, rows say Inside / Above / Below and turn red where a section can't go.
+- **Reusables:** inserting one puts it on the page right after the section you are in, not inside it. Making one asks for its name (empty names are refused, duplicates are flagged). Switching a whole page to Reusable, Template or back now asks first; Reusable asks for the name.
+- **Clicking a section scrolls to it**, and an element picked in Structure that is off screen is scrolled into view.
+- **Ctrl+Shift+S publishes**; Ctrl+S still saves the draft.
+- **HTML tag dropdown** on the element's name in the inspector: h1–h6 for headings (and p/div), sensible tags for text, sections and divs (a div can become a link). Structure and the inspector show the real heading level (H2, H3 …) instead of "H1" for every heading.
+- **New elements:** Shape divider (wave, layered waves, curve, tilt, peak, zigzag — colour, height per screen size, mirror, upside down), Progress circle (fills when scrolled into view) and Link block (a whole box that is one link).
+- **Text toolbar and Insert Data** now appear for every element with its own text (gradient, outlined and highlighted text, drop cap, eyebrow, pull quote, vertical text, badge, skip link …), not only headings, text and buttons.
+- **Item rows can pick icons** (sticky contact bar), instead of typing an icon name.
+- **Defaults in English, translated on insert:** several elements had German text typed into them (navigation, anchor navigation, sticky bar, dropdown, back to top, announcement bar, breadcrumbs, drop cap, pull quote, eyebrow, badge and more) and element texts were never translated when added. German sites still get German.
+- **Fixed:** a background set on an empty section, div or box didn't show in the editor (the editor's empty-box tint covered it); the text link default colour had too little contrast on white; payment icon settings said "Badge height".
+
 ## 4.49.0 — 30 new elements and blocks, carousels, and the page now looks exactly like the editor
 - **New elements:** marquee (text or logos), counter, countdown, before/after slider, gallery with lightbox, rotating text, flip card, skill bars, star rating, social icons, map (loads only after a click, for privacy), HTML embed, table, timeline and checklist. Each one works the same in the editor and on the page, with every setting per screen size where it matters.
 - **Carousels:** image carousel, logo carousel and testimonial slider, ready filled.

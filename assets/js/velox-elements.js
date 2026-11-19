@@ -1166,7 +1166,7 @@
 		} );
 	}
 	function initBars() {
-		var bars = d.querySelectorAll( '.vx-skills[data-vx-anim]' );
+		var bars = d.querySelectorAll( '.vx-skills[data-vx-anim], .vx-ring[data-vx-anim]' );
 		if ( REDUCED ) { [].forEach.call( bars, function ( b ) { b.classList.add( 'is-in' ); } ); return; }
 		whenSeen( bars, function ( b ) { b.classList.add( 'is-in' ); } );
 	}
