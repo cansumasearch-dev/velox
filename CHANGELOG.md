@@ -4,6 +4,27 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.38.0 — Velox Builder: import and export
+- **Import & export** (Velox Builder → Import & export): move pages, templates and components, and the design system (classes, design tokens, global styles, fonts, global CSS and JavaScript), to another Velox site as one file. It also works as a backup.
+  - **Export:** tick what you want. The components and forms those pages use come along by themselves.
+  - **Import:** before anything changes you see what is in the file and what this site already has.
+    - For each page, template or component with a name that exists here, choose "Add as a copy", "Replace this site’s" or "Skip".
+    - For classes and tokens, choose whether this site’s or the file’s version wins where both have one.
+    - Global styles, fonts and global CSS are separate switches.
+  - **Safe by default:**
+    - Pages and templates arrive as drafts. Replacing something that is live puts the new version in its draft, and the old one stays under Saved versions.
+    - Imported forms send notifications to this site’s admin address, and their webhook is removed.
+    - Global JavaScript arrives switched off. Page and global JavaScript are only imported by someone allowed to add scripts.
+  - **Images** can be copied into this site’s media library (only those of what you import), and links to the old site can point at this site. Media-library images become media-library images here again.
+- **Copy and paste between sites.** Ctrl+C on an element in the editor now also puts it on the system clipboard. Ctrl+V in a Velox page on another site pastes it there:
+  - Components are written out in full.
+  - Images from the other media library keep their address.
+  - Forms are matched by name.
+  - On the same site it pastes exactly as before (a component stays linked). "Export" in the right-click menu copies the same thing.
+- **Fixes:**
+  - Pasting an element's JSON was overruled by whatever was copied last in the editor, and Ctrl+V ignored the clipboard as soon as anything had been copied.
+  - Saved versions now show "Imported" for versions made by an import.
+
 ## 4.37.0 — Velox Builder: forms
 - **Form element** in the builder (Add → Velox → Form). Pick one of your forms from Velox → Mail in Settings:
   - The canvas shows its fields and button.

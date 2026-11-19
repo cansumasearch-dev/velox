@@ -745,3 +745,48 @@ body select.vba-input:focus,body select.vba-tpl-purpose:focus,body .vba-shell se
 .vba-pop-main .vba-doc-title{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vba-pop-when{color:var(--vbb-text-2);font-size:12px;line-height:1.45}
 .vba-pop-where{color:var(--vbb-text-3);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:280px}
+
+/* ---- Import & export ---- */
+.vba-xf{color-scheme:dark}
+.vba-xf .vba-card{margin-bottom:24px}
+.vba-xf-list{scrollbar-width:thin;scrollbar-color:var(--vbb-line-2) transparent}
+.vba-xf-list:has(.vba-xf-item-2){max-height:none}
+.vba-xf-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:24px;padding:4px 20px 20px}
+.vba-xf-group{min-width:0}
+.vba-xf-gh{display:flex;align-items:center;gap:8px;padding:0 0 8px;margin-bottom:4px;border-bottom:1px solid var(--vbb-line);font-size:13px;cursor:pointer}
+.vba-xf-gh b{font-weight:600;color:var(--vbb-text)}
+.vba-xf-n{margin-left:auto;font-size:12px;color:var(--vbb-text-3);font-variant-numeric:tabular-nums}
+.vba-xf-list{display:flex;flex-direction:column;max-height:264px;overflow:auto}
+.vba-xf-item{display:flex;align-items:flex-start;gap:8px;padding:6px 0;font-size:13px;color:var(--vbb-text-2);cursor:pointer;min-width:0}
+.vba-xf-item input,.vba-xf-gh input{margin:2px 0 0;accent-color:var(--vbb-accent);flex:none}
+.vba-xf-item:hover .vba-xf-t{color:var(--vbb-text)}
+.vba-xf-t{min-width:0;overflow:hidden;text-overflow:ellipsis;color:var(--vbb-text-2)}
+.vba-xf-t small{display:block;font-size:12px;color:var(--vbb-text-3);white-space:normal}
+.vba-xf-item:not(.vba-xf-item-2) .vba-xf-t{white-space:nowrap}
+.vba-xf-draft{margin-left:auto;flex:none;font-size:11px;color:var(--vbb-text-3)}
+.vba-xf-none{font-size:13px;color:var(--vbb-text-3);margin:8px 0 0}
+.vba-xf-foot{display:flex;align-items:center;gap:12px;padding:16px 20px;border-top:1px solid var(--vbb-line)}
+.vba-xf-sum{margin-right:auto;font-size:13px;color:var(--vbb-text-3)}
+.vba-xf-step{padding:0 20px 4px}
+.vba-xf-step[data-step="review"],.vba-xf-step[data-step="done"]{padding:0}
+.vba-xf-drop{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:132px;margin-bottom:20px;border:1px dashed rgba(255,255,255,.2);border-radius:12px;cursor:pointer;transition:background .15s,border-color .15s}
+.vba-xf-drop:hover,.vba-xf-drop.is-over{background:var(--vbb-accent-soft);border-color:rgba(42,183,241,.5)}
+.vba-xf-drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.vba-xf-drop:focus-within{box-shadow:0 0 0 3px rgba(42,183,241,.25)}
+.vba-xf-drop b{font-size:14px;font-weight:600;color:var(--vbb-text)}
+.vba-xf-drop span{font-size:13px;color:var(--vbb-text-3)}
+.vba-xf-err{margin:-8px 0 20px;font-size:13px;color:var(--vbb-text-2)}
+.vba-xf-from,.vba-xf-progress{margin:0;padding:0 20px 16px;font-size:13px;color:var(--vbb-text-2)}
+.vba-xf-h3{margin:8px 20px 0;padding:16px 0 8px;font-size:12px;font-weight:600;letter-spacing:.3px;text-transform:uppercase;color:var(--vbb-text-3);border-top:1px solid var(--vbb-line)}
+.vba-xf-rows{padding:0 20px 8px}
+.vba-xf-row{display:flex;align-items:center;gap:12px;min-height:44px;padding:6px 0;border-bottom:1px solid var(--vbb-line);font-size:13px}
+.vba-xf-row:last-child{border-bottom:0}
+.vba-xf-row .vba-xf-t{flex:1;color:var(--vbb-text)}
+.vba-xf-row .vba-setting-ctrl{min-width:200px}
+.vba-xf-kind{flex:none;width:84px;font-size:12px;color:var(--vbb-text-3)}
+.vba-xf-new{flex:none;font-size:12px;color:var(--vbb-text-3)}
+.vba-xf-opts .vba-setting{padding:14px 20px}
+.vba-xf-opts .vba-setting-ctrl{max-width:340px}
+.vba-xf-note{margin:0;padding:8px 20px 12px;font-size:13px;color:var(--vbb-text-3)}
+.vba-xf-warn{color:var(--vbb-orange)}
+@media (max-width:700px){.vba-xf-row{flex-wrap:wrap}.vba-xf-row .vba-setting-ctrl{min-width:0;width:100%}.vba-xf-foot{flex-wrap:wrap}.vba-xf-sum{flex-basis:100%}}

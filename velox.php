@@ -3,7 +3,7 @@
  * Plugin Name:       Velox
  * Plugin URI:        https://github.com/cansumasearch-dev/velox
  * Description:       The speed toolkit that works *with* your stack, not against it. WebP images, smart CSS &amp; JS optimization, local fonts, media cleanup and database tools — built to sit on top of Oxygen, WP Fastest Cache and Cloudflare without stepping on them.
- * Version:           4.37.0
+ * Version:           4.38.0
  * Requires at least: 6.0
  * Tested up to:      7.0
  * Requires PHP:      7.4
@@ -28,7 +28,7 @@ if ( defined( 'VELOX_VERSION' ) ) {
 /* -------------------------------------------------------------------------
  * Constants
  * ---------------------------------------------------------------------- */
-define( 'VELOX_VERSION', '4.37.0' );
+define( 'VELOX_VERSION', '4.38.0' );
 define( 'VELOX_FILE', __FILE__ );
 define( 'VELOX_BASENAME', plugin_basename( __FILE__ ) );
 define( 'VELOX_PATH', plugin_dir_path( __FILE__ ) );
@@ -66,6 +66,7 @@ require_once VELOX_PATH . 'includes/class-velox-builder-conditions.php';
 require_once VELOX_PATH . 'includes/class-velox-builder-loop.php';
 require_once VELOX_PATH . 'includes/class-velox-builder-templates.php';
 require_once VELOX_PATH . 'includes/class-velox-builder-revisions.php';
+require_once VELOX_PATH . 'includes/class-velox-builder-transfer.php';
 require_once VELOX_PATH . 'includes/class-velox-builder-roles.php';
 require_once VELOX_PATH . 'includes/class-velox-builder-oxygen.php';
 require_once VELOX_PATH . 'includes/class-velox-redirects.php';

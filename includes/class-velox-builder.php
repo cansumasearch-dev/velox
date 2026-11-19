@@ -426,6 +426,7 @@ class Velox_Builder {
 			'classes'   => __( 'Classes', 'velox' ),
 			'styles'    => __( 'Global styles', 'velox' ),
 			'fonts'     => __( 'Fonts', 'velox' ),
+			'transfer'  => __( 'Import & export', 'velox' ),
 			'settings'  => __( 'Settings', 'velox' ),
 		);
 		foreach ( $subs as $key => $label ) {
@@ -1208,16 +1209,7 @@ class Velox_Builder {
 		if ( ! is_array( $files ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
 		}
-		$clean = array();
-		foreach ( $files as $f ) {
-			$name = sanitize_text_field( $f['name'] ?? '' );
-			$css  = isset( $f['css'] ) ? (string) $f['css'] : '';
-			// strip anything that could break out of a <style> block
-			$css  = str_ireplace( array( '</style', '<script' ), '', $css );
-			if ( '' !== $name || '' !== trim( $css ) ) {
-				$clean[] = array( 'name' => $name ? $name : 'global.css', 'css' => $css );
-			}
-		}
+		$clean = self::clean_css_files( $files );
 		update_option( self::OPT_CSS, $clean );
 		self::purge_cache_for();
 		wp_send_json_success( array( 'files' => $clean ) );
@@ -1269,26 +1261,7 @@ class Velox_Builder {
 		if ( ! is_array( $files ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
 		}
-		$allowed_where = array( 'head', 'footer' );
-		$allowed_load  = array( 'normal', 'defer', 'async' );
-		$clean = array();
-		foreach ( $files as $f ) {
-			$name = sanitize_text_field( $f['name'] ?? '' );
-			$js   = isset( $f['js'] ) ? (string) $f['js'] : '';
-			// Never let the block terminate its own <script> tag.
-			$js    = str_ireplace( '</script', '<\/script', $js );
-			$where = in_array( $f['where'] ?? '', $allowed_where, true ) ? $f['where'] : 'footer';
-			$load  = in_array( $f['load'] ?? '', $allowed_load, true ) ? $f['load'] : 'normal';
-			if ( '' !== $name || '' !== trim( $js ) ) {
-				$clean[] = array(
-					'name'  => $name ? $name : 'global.js',
-					'js'    => $js,
-					'where' => $where,
-					'load'  => $load,
-					'on'    => empty( $f['on'] ) ? 0 : 1,
-				);
-			}
-		}
+		$clean = self::clean_js_files( $files );
 		update_option( self::OPT_JS, $clean );
 		self::purge_cache_for();
 		wp_send_json_success( array( 'files' => $clean ) );
@@ -1454,6 +1427,14 @@ class Velox_Builder {
 		if ( ! is_array( $tokens ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
 		}
+		$clean = self::clean_tokens( $tokens );
+		update_option( self::OPT_TOKENS, $clean );
+		self::purge_cache_for();
+		wp_send_json_success( array( 'tokens' => self::tokens(), 'tokenList' => self::token_list(), 'canvas_css' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '' ) );
+	}
+
+	/** Design tokens with every value checked (also used by import). */
+	public static function clean_tokens( $tokens ) {
 		// sanitise
 		$clean = array( 'colors' => array(), 'spacing' => array(), 'scales' => self::clean_scales( $tokens['scales'] ?? array() ), 'custom' => array() );
 		// Custom tokens: a name, a group (decides which fields offer it) and a value.
@@ -1487,9 +1468,162 @@ class Velox_Builder {
 				$clean['spacing'][] = $s;
 			}
 		}
-		update_option( self::OPT_TOKENS, $clean );
-		self::purge_cache_for();
-		wp_send_json_success( array( 'tokens' => self::tokens(), 'tokenList' => self::token_list(), 'canvas_css' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '' ) );
+		return $clean;
+	}
+
+	/** Global styles with every value checked (also used by import). */
+	public static function clean_global_styles( $in ) {
+		$num = function ( $v ) { return preg_replace( '/[^0-9.]/', '', (string) $v ); };
+		// Sizes, line heights and spacing keep their unit. Stripping it turned 1.125rem
+		// into 1.125px body text, a 26px line height into 26 (26 times the font size)
+		// and clamp(28px, 4vw, 40px) into 28440px.
+		$len = function ( $v ) {
+			$v = strtolower( trim( (string) $v ) );
+			if ( '' === $v ) { return ''; }
+			if ( preg_match( '/^-?\d*\.?\d+(px|rem|em|%|vw|vh|vmin|vmax|svh|dvh|ch|ex|lh)?$/', $v ) ) { return $v; }
+			if ( preg_match( '/^(clamp|min|max|calc)\([0-9a-z.,%+\-*\/\s()]+\)$/', $v ) && substr_count( $v, '(' ) === substr_count( $v, ')' ) ) { return preg_replace( '/\s+/', ' ', $v ); }
+			// "16 px" still means 16; anything with a function or stray words is ignored.
+			return preg_match( '/^-?[\d.]+\s*[a-z%]*$/', $v ) ? preg_replace( '/[^0-9.]/', '', $v ) : '';
+		};
+		// hsl(), named colours and transparent were wiped on save.
+		$col = function ( $v ) { $v = trim( (string) $v ); return preg_match( '/^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s,.%\/a-z]+\)|var\(--[a-z0-9\-]+(\s*,\s*[#a-z0-9(),.%\s\/-]+)?\)|[a-z]{3,24}|)$/i', $v ) ? $v : ''; };
+		$txt = function ( $v ) { return sanitize_text_field( (string) $v ); };
+
+		$out = array(
+			'body'     => array(
+				'font' => $txt( $in['body']['font'] ?? '' ), 'size' => $len( $in['body']['size'] ?? '' ),
+				'weight' => $num( $in['body']['weight'] ?? '' ), 'lineHeight' => $len( $in['body']['lineHeight'] ?? '' ),
+				'color' => $col( $in['body']['color'] ?? '' ),
+			),
+			'headings' => array( 'font' => $txt( $in['headings']['font'] ?? '' ) ),
+			'links'    => array(
+				'color' => $col( $in['links']['color'] ?? '' ), 'hover' => $col( $in['links']['hover'] ?? '' ),
+				'decoration' => in_array( ( $in['links']['decoration'] ?? 'none' ), array( 'none', 'underline' ), true ) ? $in['links']['decoration'] : 'none',
+				'weight' => $num( $in['links']['weight'] ?? '' ),
+			),
+			'width'    => array(
+				'page' => $len( $in['width']['page'] ?? '' ), 'tablet' => $num( $in['width']['tablet'] ?? '' ),
+				'landscape' => $num( $in['width']['landscape'] ?? '' ), 'portrait' => $num( $in['width']['portrait'] ?? '' ),
+			),
+			'sections' => array(), 'columns' => array(),
+			'aos'      => array(
+				'type'     => in_array( ( $in['aos']['type'] ?? '' ), array_keys( self::aos_types() ), true ) ? $in['aos']['type'] : '',
+				'duration' => $num( $in['aos']['duration'] ?? '' ),
+				'easing'   => in_array( ( $in['aos']['easing'] ?? 'ease' ), array( 'ease', 'ease-in', 'ease-out', 'ease-in-out', 'linear' ), true ) ? $in['aos']['easing'] : 'ease',
+				'offset'   => $num( $in['aos']['offset'] ?? '' ),
+				'delay'    => $num( $in['aos']['delay'] ?? '' ),
+				'once'     => empty( $in['aos']['once'] ) ? '' : '1',
+				'disable'  => in_array( ( $in['aos']['disable'] ?? '' ), array( '', 'mobile', 'tablet' ), true ) ? $in['aos']['disable'] : '',
+			),
+		);
+		foreach ( array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ) as $tag ) {
+			$out['headings'][ $tag ] = array(
+				'size' => $len( $in['headings'][ $tag ]['size'] ?? '' ), 'weight' => $num( $in['headings'][ $tag ]['weight'] ?? '' ),
+				'lineHeight' => $len( $in['headings'][ $tag ]['lineHeight'] ?? '' ), 'color' => $col( $in['headings'][ $tag ]['color'] ?? '' ),
+			);
+		}
+		foreach ( array( 'sections', 'columns' ) as $g ) {
+			foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
+				$out[ $g ][ $side ] = $len( $in[ $g ][ $side ] ?? '' );
+			}
+		}
+		return $out;
+	}
+
+	/** Font families with every value checked (also used by import). */
+	public static function clean_fonts( $fonts ) {
+		$ok_weights = array( '100', '200', '300', '400', '500', '600', '700', '800', '900' );
+		$clean = array();
+		foreach ( (array) $fonts as $f ) {
+			$name = sanitize_text_field( $f['name'] ?? '' );
+			$src  = esc_url_raw( $f['url'] ?? '' );
+			$type = in_array( ( $f['type'] ?? 'google' ), array( 'google', 'url', 'local' ), true ) ? $f['type'] : 'google';
+			// Only the weights actually ticked get requested. Shipping all nine when
+			// a site uses two is the single biggest font cost on most pages.
+			$weights = array();
+			foreach ( (array) ( $f['weights'] ?? array() ) as $w ) {
+				$w = (string) (int) $w;
+				if ( in_array( $w, $ok_weights, true ) && ! in_array( $w, $weights, true ) ) {
+					$weights[] = $w;
+				}
+			}
+			if ( ! $weights ) {
+				$weights = array( '400', '700' );
+			}
+			sort( $weights, SORT_NUMERIC );
+			// Preload is per WEIGHT: preloading a whole family pulls files the page
+			// may never use, which is worse than not preloading at all.
+			$preload = array();
+			foreach ( (array) ( $f['preload'] ?? array() ) as $w ) {
+				$w = (string) (int) $w;
+				if ( in_array( $w, $weights, true ) && ! in_array( $w, $preload, true ) ) {
+					$preload[] = $w;
+				}
+			}
+			// Self-hosted files, one URL per weight.
+			$files = array();
+			foreach ( (array) ( $f['files'] ?? array() ) as $w => $url ) {
+				$w   = (string) (int) $w;
+				$url = esc_url_raw( $url );
+				// Only for weights that are ticked: a file kept for an unticked weight was
+				// still declared with @font-face on every page.
+				if ( in_array( $w, $weights, true ) && $url ) {
+					$files[ $w ] = $url;
+				}
+			}
+			if ( $name ) {
+				$clean[] = array(
+					'name'    => $name,
+					'type'    => $type,
+					'url'     => $src,
+					'weights' => $weights,
+					'italic'  => empty( $f['italic'] ) ? 0 : 1,
+					'preload' => $preload,
+					'files'   => $files,
+				);
+			}
+		}
+		return $clean;
+	}
+
+	/** Global CSS files with every value checked (also used by import). */
+	public static function clean_css_files( $files ) {
+		$clean = array();
+		foreach ( $files as $f ) {
+			$name = sanitize_text_field( $f['name'] ?? '' );
+			$css  = isset( $f['css'] ) ? (string) $f['css'] : '';
+			// strip anything that could break out of a <style> block
+			$css  = str_ireplace( array( '</style', '<script' ), '', $css );
+			if ( '' !== $name || '' !== trim( $css ) ) {
+				$clean[] = array( 'name' => $name ? $name : 'global.css', 'css' => $css );
+			}
+		}
+		return $clean;
+	}
+
+	/** Global JS files with every value checked (also used by import). Callers check unfiltered_html. */
+	public static function clean_js_files( $files ) {
+		$allowed_where = array( 'head', 'footer' );
+		$allowed_load  = array( 'normal', 'defer', 'async' );
+		$clean = array();
+		foreach ( $files as $f ) {
+			$name = sanitize_text_field( $f['name'] ?? '' );
+			$js   = isset( $f['js'] ) ? (string) $f['js'] : '';
+			// Never let the block terminate its own <script> tag.
+			$js    = str_ireplace( '</script', '<\/script', $js );
+			$where = in_array( $f['where'] ?? '', $allowed_where, true ) ? $f['where'] : 'footer';
+			$load  = in_array( $f['load'] ?? '', $allowed_load, true ) ? $f['load'] : 'normal';
+			if ( '' !== $name || '' !== trim( $js ) ) {
+				$clean[] = array(
+					'name'  => $name ? $name : 'global.js',
+					'js'    => $js,
+					'where' => $where,
+					'load'  => $load,
+					'on'    => empty( $f['on'] ) ? 0 : 1,
+				);
+			}
+		}
+		return $clean;
 	}
 
 	const OPT_FONT_DISPLAY = 'velox_builder_font_display';
@@ -1583,60 +1717,7 @@ class Velox_Builder {
 		if ( ! is_array( $in ) ) {
 			wp_send_json_error( array( 'message' => __( 'Invalid data.', 'velox' ) ), 400 );
 		}
-		$num = function ( $v ) { return preg_replace( '/[^0-9.]/', '', (string) $v ); };
-		// Sizes, line heights and spacing keep their unit. Stripping it turned 1.125rem
-		// into 1.125px body text, a 26px line height into 26 (26 times the font size)
-		// and clamp(28px, 4vw, 40px) into 28440px.
-		$len = function ( $v ) {
-			$v = strtolower( trim( (string) $v ) );
-			if ( '' === $v ) { return ''; }
-			if ( preg_match( '/^-?\d*\.?\d+(px|rem|em|%|vw|vh|vmin|vmax|svh|dvh|ch|ex|lh)?$/', $v ) ) { return $v; }
-			if ( preg_match( '/^(clamp|min|max|calc)\([0-9a-z.,%+\-*\/\s()]+\)$/', $v ) && substr_count( $v, '(' ) === substr_count( $v, ')' ) ) { return preg_replace( '/\s+/', ' ', $v ); }
-			// "16 px" still means 16; anything with a function or stray words is ignored.
-			return preg_match( '/^-?[\d.]+\s*[a-z%]*$/', $v ) ? preg_replace( '/[^0-9.]/', '', $v ) : '';
-		};
-		// hsl(), named colours and transparent were wiped on save.
-		$col = function ( $v ) { $v = trim( (string) $v ); return preg_match( '/^(#[0-9a-f]{3,8}|(rgb|hsl)a?\([\d\s,.%\/a-z]+\)|var\(--[a-z0-9\-]+(\s*,\s*[#a-z0-9(),.%\s\/-]+)?\)|[a-z]{3,24}|)$/i', $v ) ? $v : ''; };
-		$txt = function ( $v ) { return sanitize_text_field( (string) $v ); };
-
-		$out = array(
-			'body'     => array(
-				'font' => $txt( $in['body']['font'] ?? '' ), 'size' => $len( $in['body']['size'] ?? '' ),
-				'weight' => $num( $in['body']['weight'] ?? '' ), 'lineHeight' => $len( $in['body']['lineHeight'] ?? '' ),
-				'color' => $col( $in['body']['color'] ?? '' ),
-			),
-			'headings' => array( 'font' => $txt( $in['headings']['font'] ?? '' ) ),
-			'links'    => array(
-				'color' => $col( $in['links']['color'] ?? '' ), 'hover' => $col( $in['links']['hover'] ?? '' ),
-				'decoration' => in_array( ( $in['links']['decoration'] ?? 'none' ), array( 'none', 'underline' ), true ) ? $in['links']['decoration'] : 'none',
-				'weight' => $num( $in['links']['weight'] ?? '' ),
-			),
-			'width'    => array(
-				'page' => $len( $in['width']['page'] ?? '' ), 'tablet' => $num( $in['width']['tablet'] ?? '' ),
-				'landscape' => $num( $in['width']['landscape'] ?? '' ), 'portrait' => $num( $in['width']['portrait'] ?? '' ),
-			),
-			'sections' => array(), 'columns' => array(),
-			'aos'      => array(
-				'type'     => in_array( ( $in['aos']['type'] ?? '' ), array_keys( self::aos_types() ), true ) ? $in['aos']['type'] : '',
-				'duration' => $num( $in['aos']['duration'] ?? '' ),
-				'easing'   => in_array( ( $in['aos']['easing'] ?? 'ease' ), array( 'ease', 'ease-in', 'ease-out', 'ease-in-out', 'linear' ), true ) ? $in['aos']['easing'] : 'ease',
-				'offset'   => $num( $in['aos']['offset'] ?? '' ),
-				'delay'    => $num( $in['aos']['delay'] ?? '' ),
-				'once'     => empty( $in['aos']['once'] ) ? '' : '1',
-				'disable'  => in_array( ( $in['aos']['disable'] ?? '' ), array( '', 'mobile', 'tablet' ), true ) ? $in['aos']['disable'] : '',
-			),
-		);
-		foreach ( array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ) as $tag ) {
-			$out['headings'][ $tag ] = array(
-				'size' => $len( $in['headings'][ $tag ]['size'] ?? '' ), 'weight' => $num( $in['headings'][ $tag ]['weight'] ?? '' ),
-				'lineHeight' => $len( $in['headings'][ $tag ]['lineHeight'] ?? '' ), 'color' => $col( $in['headings'][ $tag ]['color'] ?? '' ),
-			);
-		}
-		foreach ( array( 'sections', 'columns' ) as $g ) {
-			foreach ( array( 'top', 'right', 'bottom', 'left' ) as $side ) {
-				$out[ $g ][ $side ] = $len( $in[ $g ][ $side ] ?? '' );
-			}
-		}
+		$out = self::clean_global_styles( $in );
 		update_option( self::OPT_GLOBAL_STYLES, $out );
 		self::purge_cache_for();
 		wp_send_json_success( array( 'styles' => $out, 'canvas_css' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_css() : '' ) );
@@ -1653,56 +1734,7 @@ class Velox_Builder {
 		// font-display is one decision for the whole site, not per family.
 		$display = isset( $_POST['display'] ) ? sanitize_key( wp_unslash( $_POST['display'] ) ) : 'swap';
 		update_option( self::OPT_FONT_DISPLAY, in_array( $display, $ok_display, true ) ? $display : 'swap' );
-		$clean = array();
-		foreach ( $fonts as $f ) {
-			$name = sanitize_text_field( $f['name'] ?? '' );
-			$src  = esc_url_raw( $f['url'] ?? '' );
-			$type = in_array( ( $f['type'] ?? 'google' ), array( 'google', 'url', 'local' ), true ) ? $f['type'] : 'google';
-			// Only the weights actually ticked get requested. Shipping all nine when
-			// a site uses two is the single biggest font cost on most pages.
-			$weights = array();
-			foreach ( (array) ( $f['weights'] ?? array() ) as $w ) {
-				$w = (string) (int) $w;
-				if ( in_array( $w, $ok_weights, true ) && ! in_array( $w, $weights, true ) ) {
-					$weights[] = $w;
-				}
-			}
-			if ( ! $weights ) {
-				$weights = array( '400', '700' );
-			}
-			sort( $weights, SORT_NUMERIC );
-			// Preload is per WEIGHT: preloading a whole family pulls files the page
-			// may never use, which is worse than not preloading at all.
-			$preload = array();
-			foreach ( (array) ( $f['preload'] ?? array() ) as $w ) {
-				$w = (string) (int) $w;
-				if ( in_array( $w, $weights, true ) && ! in_array( $w, $preload, true ) ) {
-					$preload[] = $w;
-				}
-			}
-			// Self-hosted files, one URL per weight.
-			$files = array();
-			foreach ( (array) ( $f['files'] ?? array() ) as $w => $url ) {
-				$w   = (string) (int) $w;
-				$url = esc_url_raw( $url );
-				// Only for weights that are ticked: a file kept for an unticked weight was
-				// still declared with @font-face on every page.
-				if ( in_array( $w, $weights, true ) && $url ) {
-					$files[ $w ] = $url;
-				}
-			}
-			if ( $name ) {
-				$clean[] = array(
-					'name'    => $name,
-					'type'    => $type,
-					'url'     => $src,
-					'weights' => $weights,
-					'italic'  => empty( $f['italic'] ) ? 0 : 1,
-					'preload' => $preload,
-					'files'   => $files,
-				);
-			}
-		}
+		$clean = self::clean_fonts( $fonts );
 		update_option( self::OPT_FONTS, $clean );
 		// Fonts are in every page's head — cached pages must be rebuilt.
 		self::purge_cache_for();

@@ -860,7 +860,7 @@
 					if ( 0 === k.indexOf( 'arrow' ) && ( editing || ! e.shiftKey ) ) { return; }
 					if ( editing && [ 'z', 'y', 'c', 'v' ].indexOf( k ) > -1 ) { return; }
 				}
-				e.preventDefault();
+				if ( ! ( ( 'c' === k || 'v' === k ) && ! e.shiftKey ) ) { e.preventDefault(); }
 				document.dispatchEvent( new KeyboardEvent( 'keydown', {
 					key: e.key, code: e.code, ctrlKey: e.ctrlKey, metaKey: e.metaKey,
 					shiftKey: e.shiftKey, altKey: e.altKey, bubbles: true, cancelable: true
@@ -875,6 +875,8 @@
 				[ 'vb-brandmenu', 'vb-exitmenu', 'vb-viewmenu', 'vb-pageswitch' ].forEach( function ( mid ) { var m = document.getElementById( mid ); if ( m ) { m.classList.remove( 'open' ); } } );
 			}, true );
 			doc.addEventListener( 'scroll', function () { positionBadge(); }, { passive:true } );
+			doc.addEventListener( 'copy', onNativeCopy );
+			doc.addEventListener( 'paste', onNativePaste );
 			wireCanvasDocDrag( doc );
 			doc.addEventListener( 'click', function ( e ) {
 				// The click that ends a drag is not a selection.
@@ -4758,7 +4760,7 @@
 	function revListHTML() {
 		if ( ! revList ) { return '<div class="vb-hist-empty">' + T( 'Loading…' ) + '</div>'; }
 		if ( ! revList.length ) { return '<div class="vb-hist-empty">' + T( 'No saved versions yet. They start with the next save.' ) + '</div>'; }
-		var names = { save:T( 'Saved' ), publish:T( 'Published' ), restore:T( 'Restored' ) };
+		var names = { save:T( 'Saved' ), publish:T( 'Published' ), restore:T( 'Restored' ), import:T( 'Imported' ) };
 		return revList.map( function ( r ) {
 			var on = revPrev && revPrev.id === r.id;
 			return '<button class="vb-hist-i vb-rev-i is-' + r.kind + ( on ? ' on' : '' ) + '" data-rev="' + r.id + '" title="' + escapeHtml( r.when ) + '">' +
@@ -4825,7 +4827,7 @@
 		var bar = document.getElementById( 'vb-revbar' );
 		if ( ! revPrev ) { if ( bar ) { bar.remove(); } return; }
 		if ( ! bar ) { bar = document.createElement( 'div' ); bar.id = 'vb-revbar'; bar.setAttribute( 'role', 'status' ); document.body.appendChild( bar ); }
-		var names = { save:T( 'Saved' ), publish:T( 'Published' ), restore:T( 'Restored' ) };
+		var names = { save:T( 'Saved' ), publish:T( 'Published' ), restore:T( 'Restored' ), import:T( 'Imported' ) };
 		var bits = [];
 		if ( revPrev.changed ) { bits.push( '<span class="vb-rb-c">' + T( '%d changed since' ).replace( '%d', revPrev.changed ) + '</span>' ); }
 		if ( revPrev.gone ) { bits.push( '<span class="vb-rb-g">' + T( '%d removed since' ).replace( '%d', revPrev.gone ) + '</span>' ); }
@@ -6149,8 +6151,10 @@
 			if ( mod && k === 's' ) { e.preventDefault(); saveDoc(); }
 			// Publishing puts work live, so it takes a deliberate Ctrl+Shift+P.
 			if ( mod && k === 'p' ) { e.preventDefault(); if ( e.shiftKey ) { publishDoc(); } else { toast( T( 'Publish with Ctrl+Shift+P (or the Publish button).' ) ); } }
-			if ( mod && k === 'c' && ! typing && store.state && store.state.selection ) { e.preventDefault(); copyNode( store.state.selection ); toast( T( 'Copied.' ) ); }
-			if ( mod && k === 'v' && ! typing ) { readSharedClipboard(); if ( clipboardNode ) { e.preventDefault(); pasteNode( store.state.selection ); } }
+			// No preventDefault: the browser's copy / paste events then carry the
+			// element to and from the system clipboard (other tabs, other sites).
+			if ( mod && k === 'c' && ! typing && store.state && store.state.selection && ! e.shiftKey ) { copyNode( store.state.selection ); toast( T( 'Copied.' ) ); }
+			if ( mod && k === 'v' && ! typing && ! e.shiftKey ) { schedulePaste(); }
 			if ( mod && k === 'd' && ! typing && store.state && store.state.selection ) { e.preventDefault(); duplicateNode( store.state.selection ); }
 			if ( mod && k === '\\' ) { e.preventDefault(); if ( e.shiftKey ) { toggleRightStack(); } else { toggleLeftStack(); } }
 			if ( e.key === 'Escape' && ! document.querySelector( '.vb-ask.open' ) ) {
@@ -6173,17 +6177,10 @@
 		wireInspectorResize();
 		wireScrub();
 		wireStructKeys();
-		// Paste an exported element (its JSON) straight onto the page.
-		document.addEventListener( 'paste', function ( e ) {
-			var tgt = e.target, typing = /^(INPUT|TEXTAREA|SELECT)$/.test( ( tgt && tgt.tagName ) || '' ) || ( tgt && tgt.isContentEditable ) || editing;
-			if ( typing || ! e.clipboardData ) { return; }
-			var txt = e.clipboardData.getData( 'text' ) || '', data = null;
-			try { data = JSON.parse( txt ); } catch ( err ) { return; }
-			if ( ! data || 'element' !== data.velox || ! data.node ) { return; }
-			e.preventDefault();
-			clipboardNode = data.node; clipboardContent = data.content || {}; clipboardClasses = data.classes || {};
-			pasteNode( store.state.selection );
-		} );
+		// Copy and paste go through the system clipboard too, so an element copied
+		// on one Velox site can be pasted on another (see onNativeCopy / onNativePaste).
+		document.addEventListener( 'copy', onNativeCopy );
+		document.addEventListener( 'paste', onNativePaste );
 		// Right-click context menu on layer tree + structure panel rows.
 		document.addEventListener( 'contextmenu', function ( e ) {
 			var row = e.target.closest( '.vb-tn, [data-stnode]' );
@@ -6279,8 +6276,9 @@
 		} catch ( e ) {}
 	}
 	/* Paste as a child of target container, or as a sibling if target is a leaf. */
-	function pasteNode( targetId ) {
-		readSharedClipboard();
+	function pasteNode( targetId, payload ) {
+		if ( payload ) { clipboardNode = payload.node; clipboardContent = payload.content || {}; clipboardClasses = payload.classes || {}; }
+		else { readSharedClipboard(); }
 		if ( ! clipboardNode ) { return; }
 		if ( subtreeHasInner( clipboardNode ) && ( 'template' !== docKind || hasInnerContent() ) ) { toast( T( 'A template can only have one Inner Content.' ) ); return; }
 		var copy = cloneWithNewIds( clipboardNode, store.state, clipboardContent );
@@ -6348,6 +6346,91 @@
 		( function walk( n ) { ( n.classes || [] ).forEach( function ( c ) { if ( s.classes[ c ] ) { out[ c ] = s.classes[ c ]; } } ); ( n.children || [] ).forEach( walk ); }( node ) );
 		return out;
 	}
+	/* ---------- copy and paste between pages and sites ----------
+	 * Ctrl+C keeps the element for this site (localStorage) and also puts it on
+	 * the system clipboard as JSON. That JSON holds the element as it is (for
+	 * this site) and a "flat" version for any other site: components written
+	 * out in full, media-library ids dropped (they mean other images there),
+	 * forms matched by their name. */
+	var pasteTimer = null;
+	function isTypingTarget( t ) { return editing || ( t && ( /^(INPUT|TEXTAREA|SELECT)$/.test( t.tagName || '' ) || t.isContentEditable ) ); }
+	function hasTextSelection( e ) {
+		var d = ( e.target && e.target.ownerDocument ) || document, sel = d.getSelection ? d.getSelection() : null;
+		return !! ( sel && ! sel.isCollapsed && String( sel ).trim() );
+	}
+	function portableNode( id ) {
+		var n = findNode( store.state.tree, id ); if ( ! n ) { return null; }
+		var content = collectContentFor( n ), classes = collectClasses( n, store.state ), forms = {};
+		function flat( node ) {
+			var m = Object.assign( {}, node );
+			if ( 'Reusable' === node.el ) {
+				var r = reusableById( node.ref );
+				if ( ! r ) { return null; }
+				var ap = applyProps( r, node.props || {} );
+				Object.keys( r.classes || {} ).forEach( function ( c ) { if ( ! classes[ c ] ) { classes[ c ] = r.classes[ c ]; } } );
+				// Each copy gets its own ids, so two copies with different texts stay apart.
+				var kids = ( ap.tree || [] ).map( function reid( k ) {
+					var nk = Object.assign( {}, k ), nid = uid( k.el || 'el' );
+					if ( ap.content && null != ap.content[ k.id ] ) { content[ nid ] = ap.content[ k.id ]; }
+					nk.id = nid; nk.children = ( k.children || [] ).map( reid );
+					delete nk.cprop;
+					return nk;
+				} ).map( flat ).filter( Boolean );
+				return { id:node.id, el:'Div', tag:'div', classes:( node.classes || [] ).slice(), overrides:node.overrides || {}, children:kids };
+			}
+			if ( 'Form' === node.el && node.settings && node.settings.form ) {
+				var f = formById( node.settings.form ); if ( f ) { forms[ node.settings.form ] = f.title; }
+			}
+			m.children = ( node.children || [] ).map( flat ).filter( Boolean );
+			return m;
+		}
+		var fn = flat( n );
+		return {
+			velox:'element', version:2, site:location.host,
+			node:JSON.parse( JSON.stringify( n ) ), content:collectContentFor( n ), classes:collectClasses( n, store.state ),
+			flat:{ node:fn, content:content, classes:classes, forms:forms }
+		};
+	}
+	/* An element from another site: make it fit this one. */
+	function adoptForeign( flat ) {
+		var forms = flat.forms || {};
+		( function walk( n ) {
+			delete n.att;
+			if ( n.props ) { delete n.props; }
+			if ( 'Form' === n.el && n.settings ) {
+				var title = forms[ n.settings.form ], match = title ? ( CFG.forms || [] ).filter( function ( f ) { return f.title === title; } )[ 0 ] : null;
+				n.settings.form = match ? String( match.id ) : '';
+			}
+			( n.children || [] ).forEach( walk );
+		}( flat.node ) );
+		return { node:flat.node, content:flat.content || {}, classes:flat.classes || {} };
+	}
+	function onNativeCopy( e ) {
+		if ( isTypingTarget( e.target ) || hasTextSelection( e ) || ! store.state || ! store.state.selection || ! e.clipboardData ) { return; }
+		var p = portableNode( store.state.selection ); if ( ! p ) { return; }
+		e.clipboardData.setData( 'text/plain', JSON.stringify( p ) );
+		e.preventDefault();
+	}
+	function schedulePaste() {
+		// A paste event follows the key at once; if the browser sends none, paste this site's copy.
+		clearTimeout( pasteTimer );
+		pasteTimer = setTimeout( function () { pasteTimer = null; readSharedClipboard(); if ( clipboardNode ) { pasteNode( store.state.selection ); } }, 120 );
+	}
+	function onNativePaste( e ) {
+		if ( isTypingTarget( e.target ) ) { clearTimeout( pasteTimer ); pasteTimer = null; return; }
+		clearTimeout( pasteTimer ); pasteTimer = null;
+		var txt = ( e.clipboardData && e.clipboardData.getData( 'text' ) ) || '', data = null;
+		try { data = JSON.parse( txt ); } catch ( err ) { data = null; }
+		e.preventDefault();
+		if ( data && 'element' === data.velox && data.node ) {
+			var foreign = data.site && data.site !== location.host;
+			pasteNode( store.state.selection, foreign ? adoptForeign( data.flat || { node:data.node, content:data.content, classes:data.classes } ) : data );
+			if ( foreign ) { toast( T( 'Pasted from another site. Check its images and links.' ) ); }
+			return;
+		}
+		readSharedClipboard();
+		if ( clipboardNode ) { pasteNode( store.state.selection ); }
+	}
 	function showContextMenu( x, y, id ) {
 		closeContextMenu();
 		ctxHoverId = id;
@@ -6405,10 +6488,9 @@
 	 * pasted into another page or kept outside the editor. */
 	function exportNode( id ) {
 		var n = findNode( store.state.tree, id ); if ( ! n ) { return; }
-		var payload = { velox:'element', version:1, node:n, classes:collectClasses( n, store.state ), content:collectContentFor( n ) };
-		var text = JSON.stringify( payload, null, 2 );
+		var text = JSON.stringify( portableNode( id ) );
 		if ( navigator.clipboard && navigator.clipboard.writeText ) {
-			navigator.clipboard.writeText( text ).then( function () { toast( T( 'Element JSON copied to clipboard.' ) ); } )
+			navigator.clipboard.writeText( text ).then( function () { toast( T( 'Copied. Paste it with Ctrl+V into a Velox page, on this site or another.' ) ); } )
 				.catch( function () { exportFallback( text ); } );
 		} else { exportFallback( text ); }
 	}

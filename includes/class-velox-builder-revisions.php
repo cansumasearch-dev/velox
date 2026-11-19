@@ -62,7 +62,7 @@ class Velox_Builder_Revisions {
 			return 0;
 		}
 		$t    = self::table();
-		$kind = in_array( $kind, array( 'save', 'publish', 'restore' ), true ) ? $kind : 'save';
+		$kind = in_array( $kind, array( 'save', 'publish', 'restore', 'import' ), true ) ? $kind : 'save';
 		$hash = md5( self::canonical( $data ) );
 		$user = get_current_user_id();
 		$now  = current_time( 'mysql' );

@@ -139,6 +139,23 @@ class Velox_Ajax {
 				Velox_Builder_Loop::ajax_preview();
 				break;
 
+			/* -------- Velox Builder: import / export -------- */
+			case 'builder_export':
+				Velox_Builder_Transfer::ajax_export();
+				break;
+
+			case 'builder_import_preview':
+				Velox_Builder_Transfer::ajax_preview();
+				break;
+
+			case 'builder_import_run':
+				Velox_Builder_Transfer::ajax_run();
+				break;
+
+			case 'builder_import_images':
+				Velox_Builder_Transfer::ajax_images();
+				break;
+
 			case 'builder_template_rules_save':
 				Velox_Builder_Templates::ajax_save();
 				break;
