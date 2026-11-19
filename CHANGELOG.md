@@ -4,6 +4,15 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.45.0 — Velox Builder: one look for every panel
+- **Structure, Add element, Settings, CSS and History** now share the style panel's look: the same headers, buttons, search fields and spacing.
+- **Resize the right panels.** Structure, CSS, History and Settings can be dragged wider or narrower from their left edge (up to 900px); each remembers its own width, double-click resets it.
+- **Structure:** each row shows the element name and its class apart (the class in mono), the selected row is marked with a line, and an eye on hover hides or shows the element (hidden ones stay marked).
+- **Add element:** compact tiles, three across, with quiet group headings, so far more fits on screen.
+- **Settings panel:** the same label-left fields as the style panel (colour swatch inside its field, units inside the field), flat navigation rows and a clear "back" crumb.
+- **Top bar:** one button size, and the button of the open panel (Structure, CSS, History, Settings) stays lit.
+- Thin, quiet scrollbars throughout the editor.
+
 ## 4.44.0 — Velox Builder: a new style panel
 - **Global styles are the defaults.** Section padding and the gap of columns and div blocks now come from Global styles → Sections & containers (div blocks got their own gap there). New elements no longer write their own copies, so changing the default changes every element that has not been given its own value.
   - In the style panel an empty field shows the value in effect greyed out (the Global styles default, another class, a larger screen). Type over it and that becomes the element's or class's own value.
