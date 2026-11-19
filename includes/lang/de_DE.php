@@ -4787,4 +4787,6 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	// Velox Builder 4.49 — page and editor match
 	'Icon height' => 'Icon-Höhe',
 	'Icons' => 'Icons',
+	// Velox Builder 4.49 — page and editor match
+	'Page title, use once' => 'Seitentitel, nur einmal verwenden',
 );

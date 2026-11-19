@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.50.1 — Tag dropdown fix
+- The HTML tag dropdown on the element name is wider, so the <h1> row shows its label next to its hint ("Page title, use once") instead of hiding it.
+
 ## 4.50.0 — Clear structure rules, labelled drag and drop, safer reusables, and an audit of every element
 - **Sections stay where sections belong.** A section sits on the page or directly inside one other section — never inside a div, card or columns, and never three deep. This holds for adding, dragging, moving, pasting and wrapping; when a spot isn't allowed the element goes right after the nearest container where it is, and a note says so.
 - **You always see where a drop lands.** While dragging on the canvas, the container that will receive the element gets a dashed outline with its name ("In: Section .hero") and a label says "Inside / Above / Below / Left of / Right of …". In Structure, rows say Inside / Above / Below and turn red where a section can't go.

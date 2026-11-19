@@ -6884,8 +6884,8 @@
 				var tpn = findNode( store.state.tree, store.state.selection ), tch = tagChoices( tpn );
 				if ( tpn && tch ) {
 					VeloxSelect.open( tagpick, tch.map( function ( t ) {
-						return { value:t, label:'<' + t + '>', hint:{ h1:T( 'Main page title, once per page' ), p:T( 'Paragraph' ), span:T( 'Inline text' ), section:T( 'Page section' ), header:T( 'Header' ), footer:T( 'Footer' ), main:T( 'Main content' ), nav:T( 'Navigation' ), article:T( 'Article' ), aside:T( 'Side content' ) }[ t ] || '', checked:t === tpn.tag };
-					} ), function ( v ) { setNodeTag( v ); }, { width:230 } );
+						return { value:t, label:'<' + t + '>', hint:{ h1:T( 'Page title, use once' ), p:T( 'Paragraph' ), span:T( 'Inline text' ), section:T( 'Page section' ), header:T( 'Header' ), footer:T( 'Footer' ), main:T( 'Main content' ), nav:T( 'Navigation' ), article:T( 'Article' ), aside:T( 'Side content' ) }[ t ] || '', checked:t === tpn.tag };
+					} ), function ( v ) { setNodeTag( v ); }, { width:280 } );
 				}
 				return;
 			}
