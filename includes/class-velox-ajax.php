@@ -91,6 +91,10 @@ class Velox_Ajax {
 				Velox_Builder::ajax_class_delete();
 				break;
 
+			case 'builder_keys_save':
+				Velox_Builder::ajax_keys_save();
+				break;
+
 			case 'builder_class_delete_unused':
 				Velox_Builder::ajax_class_delete_unused();
 				break;

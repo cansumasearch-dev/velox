@@ -429,6 +429,7 @@ class Velox_Builder {
 			'fonts'     => __( 'Fonts', 'velox' ),
 			'transfer'  => __( 'Import & export', 'velox' ),
 			'agents'    => __( 'AI agents', 'velox' ),
+			'shortcuts' => __( 'Keyboard shortcuts', 'velox' ),
 			'settings'  => __( 'Settings', 'velox' ),
 		);
 		foreach ( $subs as $key => $label ) {
@@ -641,6 +642,8 @@ class Velox_Builder {
 			'reviewConnections' => self::review_connections(),
 			// Forms (Velox → Mail) for the Form element.
 			'forms'     => self::forms_payload(),
+			// Keyboard shortcuts: the list, the site's changes, the fixed keys.
+			'keymap'    => array( 'defs' => self::shortcut_defs(), 'user' => (object) self::shortcut_user(), 'fixed' => self::shortcut_fixed(), 'url' => admin_url( 'admin.php?page=' . self::SLUG . '-shortcuts' ) ),
 			// The real form markup and CSS, drawn in the canvas as on the page.
 			'formPreview' => class_exists( 'Velox_Forms' ) && method_exists( 'Velox_Forms', 'editor_preview' ) ? Velox_Forms::editor_preview() : array( 'html' => array(), 'css' => '' ),
 			'formsOn'   => class_exists( 'Velox_Settings' ) && Velox_Settings::get( 'util_mail' ) ? 1 : 0,
@@ -1667,6 +1670,153 @@ class Velox_Builder {
 	}
 
 	const OPT_GLOBAL_STYLES = 'velox_builder_global_styles';
+	/** Keyboard shortcuts changed on Velox Builder → Keyboard shortcuts: { action id: "Mod+Shift+S" | "" }. */
+	const OPT_KEYS = 'velox_builder_keys';
+
+	/**
+	 * Every shortcut the editor knows, in one place: the editor reads its keys
+	 * from here (with the site's changes on top) and the Keyboard shortcuts
+	 * page lists them. "Mod" is Ctrl on Windows/Linux and Cmd on a Mac.
+	 */
+	public static function shortcut_defs() {
+		$g = array(
+			'save'   => __( 'Save & publish', 'velox' ),
+			'edit'   => __( 'Edit', 'velox' ),
+			'select' => __( 'Select', 'velox' ),
+			'move'   => __( 'Move', 'velox' ),
+			'find'   => __( 'Find', 'velox' ),
+			'view'   => __( 'View', 'velox' ),
+		);
+		$d = function ( $id, $grp, $label, $keys ) use ( $g ) {
+			return array( 'id' => $id, 'g' => $g[ $grp ], 'l' => $label, 'keys' => $keys );
+		};
+		return array(
+			$d( 'save', 'save', __( 'Save the draft', 'velox' ), array( 'Mod+S' ) ),
+			$d( 'publish', 'save', __( 'Publish', 'velox' ), array( 'Mod+Shift+S', 'Mod+Shift+P' ) ),
+			$d( 'undo', 'edit', __( 'Undo', 'velox' ), array( 'Mod+Z' ) ),
+			$d( 'redo', 'edit', __( 'Redo', 'velox' ), array( 'Mod+Shift+Z', 'Mod+Y' ) ),
+			$d( 'copy', 'edit', __( 'Copy the element', 'velox' ), array( 'Mod+C' ) ),
+			$d( 'paste', 'edit', __( 'Paste', 'velox' ), array( 'Mod+V' ) ),
+			$d( 'duplicate', 'edit', __( 'Duplicate', 'velox' ), array( 'Mod+D' ) ),
+			$d( 'delete', 'edit', __( 'Delete the element', 'velox' ), array( 'Delete' ) ),
+			$d( 'copyStyle', 'edit', __( 'Copy style', 'velox' ), array( 'Mod+Shift+C' ) ),
+			$d( 'pasteStyle', 'edit', __( 'Paste style', 'velox' ), array( 'Mod+Shift+V' ) ),
+			$d( 'selParent', 'select', __( 'Select the parent', 'velox' ), array( 'Mod+Shift+ArrowLeft' ) ),
+			$d( 'selChild', 'select', __( 'Select the first child', 'velox' ), array( 'Mod+Shift+ArrowRight' ) ),
+			$d( 'selPrev', 'select', __( 'Select the previous element', 'velox' ), array( 'Mod+Shift+ArrowUp' ) ),
+			$d( 'selNext', 'select', __( 'Select the next element', 'velox' ), array( 'Mod+Shift+ArrowDown' ) ),
+			$d( 'moveUp', 'move', __( 'Move up', 'velox' ), array( 'Alt+ArrowUp' ) ),
+			$d( 'moveDown', 'move', __( 'Move down', 'velox' ), array( 'Alt+ArrowDown' ) ),
+			$d( 'moveOut', 'move', __( 'Move out of its container', 'velox' ), array( 'Alt+ArrowLeft' ) ),
+			$d( 'moveIn', 'move', __( 'Move into the element above', 'velox' ), array( 'Alt+ArrowRight' ) ),
+			$d( 'cmdk', 'find', __( 'Command search', 'velox' ), array( 'Mod+K' ) ),
+			$d( 'findProp', 'find', __( 'Find a style property', 'velox' ), array( 'Mod+Shift+F' ) ),
+			$d( 'leftPanel', 'view', __( 'Show / hide the left panels', 'velox' ), array( 'Mod+\\' ) ),
+			$d( 'rightPanel', 'view', __( 'Show / hide the right panels', 'velox' ), array( 'Mod+Shift+\\' ) ),
+			$d( 'zoomFit', 'view', __( 'Zoom to fit', 'velox' ), array( 'Shift+1' ) ),
+			$d( 'zoom100', 'view', __( 'Zoom to 100%', 'velox' ), array( 'Shift+0' ) ),
+		);
+	}
+
+	/** Keys that always do the same thing (shown, not changeable). c = the keys, for clash warnings. */
+	public static function shortcut_fixed() {
+		return array(
+			array( 'k' => __( 'Double-click', 'velox' ), 'l' => __( 'Edit text, change an image', 'velox' ), 'c' => array() ),
+			array( 'k' => 'Esc', 'l' => __( 'Select the parent, close a panel or menu, stop editing, cancel a drag', 'velox' ), 'c' => array( 'Escape' ) ),
+			array( 'k' => 'Enter', 'l' => __( 'Finish editing text (Shift+Enter: new line)', 'velox' ), 'c' => array( 'Enter', 'Shift+Enter' ) ),
+			array( 'k' => __( 'Ctrl/⌘ + click, Shift + click', 'velox' ), 'l' => __( 'Select several elements', 'velox' ), 'c' => array() ),
+			array( 'k' => '↑ ↓', 'l' => __( 'In a number field: ±1 (Shift ±10, Alt ±0.1)', 'velox' ), 'c' => array() ), // only while typing in the field
+			array( 'k' => 'Tab', 'l' => __( 'In a code field: indent', 'velox' ), 'c' => array( 'Tab' ) ),
+			array( 'k' => '↑ ↓ Home End', 'l' => __( 'In Structure: move through the rows', 'velox' ), 'c' => array( 'ArrowUp', 'ArrowDown', 'Home', 'End' ) ),
+			array( 'k' => '← →', 'l' => __( 'In Structure: fold / unfold, parent / child', 'velox' ), 'c' => array( 'ArrowLeft', 'ArrowRight' ) ),
+			array( 'k' => 'F2', 'l' => __( 'In Structure: rename', 'velox' ), 'c' => array( 'F2' ) ),
+			array( 'k' => 'Enter', 'l' => __( 'In Structure: open its styles', 'velox' ), 'c' => array( 'Enter' ) ),
+		);
+	}
+
+	/**
+	 * What a key combination normally does in the browser. b = the browser keeps
+	 * it for itself (a page can't use it), otherwise Velox takes it over while
+	 * you are in the editor.
+	 */
+	public static function browser_keys() {
+		$k = array(
+			'Mod+W' => array( __( 'closes the tab', 'velox' ), 1 ), 'Mod+Shift+W' => array( __( 'closes the window', 'velox' ), 1 ),
+			'Mod+T' => array( __( 'opens a new tab', 'velox' ), 1 ), 'Mod+Shift+T' => array( __( 'reopens the last closed tab', 'velox' ), 1 ),
+			'Mod+N' => array( __( 'opens a new window', 'velox' ), 1 ), 'Mod+Shift+N' => array( __( 'opens a private window', 'velox' ), 1 ),
+			'Mod+Tab' => array( __( 'switches tabs', 'velox' ), 1 ), 'Mod+Shift+Tab' => array( __( 'switches tabs', 'velox' ), 1 ),
+			'Alt+F4' => array( __( 'closes the window', 'velox' ), 1 ), 'Mod+Q' => array( __( 'quits the browser (Mac)', 'velox' ), 1 ),
+			'F11' => array( __( 'switches to full screen', 'velox' ), 1 ),
+			'F12' => array( __( 'opens the developer tools — the browser may still open them', 'velox' ), 0 ),
+			'Mod+Shift+I' => array( __( 'opens the developer tools — the browser may still open them', 'velox' ), 0 ),
+			'Mod+Shift+J' => array( __( 'opens the browser console', 'velox' ), 0 ),
+			'Mod+Shift+C' => array( __( 'picks an element to inspect (developer tools)', 'velox' ), 0 ),
+			'Mod+R' => array( __( 'reloads the page', 'velox' ), 0 ), 'F5' => array( __( 'reloads the page', 'velox' ), 0 ), 'Mod+Shift+R' => array( __( 'reloads without the cache', 'velox' ), 0 ),
+			'Mod+F' => array( __( 'searches the page', 'velox' ), 0 ), 'Mod+G' => array( __( 'finds the next match', 'velox' ), 0 ), 'F3' => array( __( 'finds the next match', 'velox' ), 0 ),
+			'Mod+P' => array( __( 'prints the page', 'velox' ), 0 ), 'Mod+S' => array( __( 'saves the web page as a file', 'velox' ), 0 ),
+			'Mod+D' => array( __( 'bookmarks the page', 'velox' ), 0 ), 'Mod+H' => array( __( 'opens the history', 'velox' ), 0 ), 'Mod+J' => array( __( 'opens the downloads', 'velox' ), 0 ),
+			'Mod+L' => array( __( 'jumps to the address bar', 'velox' ), 0 ), 'F6' => array( __( 'jumps to the address bar', 'velox' ), 0 ),
+			'Mod+E' => array( __( 'searches the web', 'velox' ), 0 ), 'Mod+K' => array( __( 'searches the web', 'velox' ), 0 ),
+			'Mod+U' => array( __( 'shows the page source', 'velox' ), 0 ), 'Mod+O' => array( __( 'opens a file', 'velox' ), 0 ),
+			'Mod+A' => array( __( 'selects everything', 'velox' ), 0 ), 'Mod+X' => array( __( 'cuts', 'velox' ), 0 ), 'Mod+C' => array( __( 'copies', 'velox' ), 0 ), 'Mod+V' => array( __( 'pastes', 'velox' ), 0 ),
+			'Mod+Z' => array( __( 'undoes typing', 'velox' ), 0 ), 'Mod+Y' => array( __( 'redoes typing', 'velox' ), 0 ),
+			'Mod+Shift+B' => array( __( 'shows the bookmarks bar', 'velox' ), 0 ), 'Mod+Shift+O' => array( __( 'opens the bookmarks', 'velox' ), 0 ),
+			'Mod+Shift+Delete' => array( __( 'clears browsing data', 'velox' ), 0 ),
+			'Mod+=' => array( __( 'zooms in', 'velox' ), 0 ), 'Mod+-' => array( __( 'zooms out', 'velox' ), 0 ), 'Mod+0' => array( __( 'resets the zoom', 'velox' ), 0 ),
+			'Alt+ArrowLeft' => array( __( 'goes back a page', 'velox' ), 0 ), 'Alt+ArrowRight' => array( __( 'goes forward a page', 'velox' ), 0 ), 'Alt+Home' => array( __( 'opens the home page', 'velox' ), 0 ),
+			'F1' => array( __( 'opens the browser help', 'velox' ), 0 ), 'F7' => array( __( 'turns on caret browsing', 'velox' ), 0 ), 'F10' => array( __( 'opens the browser menu', 'velox' ), 0 ),
+			'Space' => array( __( 'scrolls the page', 'velox' ), 0 ), 'Delete' => array( __( 'deletes text', 'velox' ), 0 ), 'Backspace' => array( __( 'deletes text', 'velox' ), 0 ),
+		);
+		for ( $i = 1; $i <= 9; $i++ ) {
+			$k[ 'Mod+' . $i ] = array( __( 'switches to a tab', 'velox' ), 1 );
+		}
+		return $k;
+	}
+
+	/** The site's changes to the shortcuts. */
+	public static function shortcut_user() {
+		$o = get_option( self::OPT_KEYS, array() );
+		return is_array( $o ) ? $o : array();
+	}
+
+	/** One key combination as Velox writes it ("Mod+Alt+Shift+K"), or '' when it isn't one. */
+	public static function clean_combo( $c ) {
+		$c = trim( (string) $c );
+		if ( '' === $c ) {
+			return '';
+		}
+		$ok = preg_match( '/^(Mod\+)?(Alt\+)?(Shift\+)?([A-Z0-9]|F([1-9]|1[0-2])|Arrow(Up|Down|Left|Right)|Delete|Backspace|Home|End|PageUp|PageDown|Insert|Space|Enter|Tab|Escape|[\\\\\[\];\',.\/`=\-])$/', $c );
+		return $ok ? $c : '';
+	}
+
+	public static function ajax_keys_save() {
+		if ( ! current_user_can( 'manage_options' ) ) {
+			wp_send_json_error( array( 'message' => __( 'You are not allowed to do this.', 'velox' ) ), 403 );
+		}
+		$in   = json_decode( wp_unslash( (string) ( $_POST['keys'] ?? '{}' ) ), true ); // phpcs:ignore WordPress.Security.NonceVerification.Missing — checked by the AJAX router
+		$in   = is_array( $in ) ? $in : array();
+		$out  = array();
+		$keep = self::browser_keys();
+		foreach ( self::shortcut_defs() as $d ) {
+			if ( ! array_key_exists( $d['id'], $in ) ) {
+				continue;
+			}
+			$raw = (string) $in[ $d['id'] ];
+			$c   = self::clean_combo( $raw );
+			if ( '' !== $raw && '' === $c ) {
+				continue; // not a key combination: keep the default
+			}
+			if ( '' !== $c && isset( $keep[ $c ] ) && $keep[ $c ][1] ) {
+				continue; // the browser keeps this one
+			}
+			if ( '' !== $c && $c === $d['keys'][0] && 1 === count( $d['keys'] ) ) {
+				continue; // same as the default
+			}
+			$out[ $d['id'] ] = $c;
+		}
+		update_option( self::OPT_KEYS, $out, false );
+		wp_send_json_success( array( 'keys' => $out ) );
+	}
 
 	/** Every global style, with defaults filled in. */
 	public static function global_styles() {

@@ -976,17 +976,17 @@
 				// Delete / Ctrl+C / Ctrl+V did nothing once the canvas had focus —
 				// which it has after every click on an element. While a text is being
 				// edited they (and undo) belong to the text, not the page.
-				if ( ! ( e.metaKey || e.ctrlKey ) ) {
-					if ( 'Escape' === e.key && ! editing ) { onEscape( false ); return; }
-					var zoomKey = e.shiftKey && ( 'Digit1' === e.code || 'Digit0' === e.code );
-					var moveKey = e.altKey && /^Arrow/.test( e.key );
-					if ( editing || ( 'Delete' !== e.key && ! zoomKey && ! moveKey ) ) { return; }
-				} else {
-					if ( [ 's', 'p', 'z', 'y', 'd', 'c', 'v', 'k', 'f', '\\', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright' ].indexOf( k ) < 0 ) { return; }
-					if ( 0 === k.indexOf( 'arrow' ) && ( editing || ! e.shiftKey ) ) { return; }
-					if ( editing && [ 'z', 'y', 'c', 'v' ].indexOf( k ) > -1 ) { return; }
+				if ( 'Escape' === e.key && ! editing && ! ( e.metaKey || e.ctrlKey ) ) { onEscape( false ); return; }
+				// Only the keys the editor uses (the site's own, see Keyboard shortcuts).
+				var cact = kmAction( e ), ccombo = comboOf( e );
+				if ( ! cact && 'Mod+P' !== ccombo ) { return; }
+				if ( editing ) {
+					// While a text is edited, typing, undo and the clipboard belong to the text.
+					if ( ! ( e.metaKey || e.ctrlKey || e.altKey ) ) { return; }
+					if ( [ 'undo', 'redo', 'copy', 'paste' ].indexOf( cact ) > -1 ) { return; }
+					if ( 0 === ( e.key || '' ).indexOf( 'Arrow' ) ) { return; }
 				}
-				if ( ! ( ( 'c' === k || 'v' === k ) && ! e.shiftKey ) ) { e.preventDefault(); }
+				if ( ! ( ( 'Mod+C' === ccombo && 'copy' === cact ) || ( 'Mod+V' === ccombo && 'paste' === cact ) ) ) { e.preventDefault(); }
 				document.dispatchEvent( new KeyboardEvent( 'keydown', {
 					key: e.key, code: e.code, ctrlKey: e.ctrlKey, metaKey: e.metaKey,
 					shiftKey: e.shiftKey, altKey: e.altKey, bubbles: true, cancelable: true
@@ -3466,7 +3466,7 @@
 			st.className = 'vb-docstat is-' + k; st.textContent = L[ k ]; st.title = tip[ k ];
 		}
 		host.innerHTML =
-			'<button class="vb-btn vb-btn-ghost vb-save--' + _saveState + ( dirty ? ' is-dirty' : '' ) + '" id="vb-save" title="' + T( 'Save — only you see it until you publish' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'S)">' + saveLabel() + '</button>' +
+			'<button class="vb-btn vb-btn-ghost vb-save--' + _saveState + ( dirty ? ' is-dirty' : '' ) + '" id="vb-save" title="' + T( 'Save — only you see it until you publish' ) + kmHint( 'save' ) + '">' + saveLabel() + '</button>' +
 			'<button class="vb-btn vb-btn-primary' + ( live ? ' is-live' : '' ) + '" id="vb-publish" title="' + pubTip + '">' + pubLabel + '</button>';
 		var dd = document.getElementById( 'vb-discard' ); if ( dd ) { dd.style.display = ( hasDraft && pubStatus === 'published' ) ? '' : 'none'; }
 	}
@@ -3926,8 +3926,8 @@
 					'<option value="reusable">' + T( 'Reusable' ) + '</option>' +
 				'</select>' +
 				'<div class="vb-tsep"></div>' +
-				'<button class="vb-ic" id="vb-undo" title="' + T( 'Undo' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'Z)">' + svg( 'undo', 16 ) + '</button>' +
-				'<button class="vb-ic" id="vb-redo" title="' + T( 'Redo' ) + ' (' + ( IS_MAC ? '⇧⌘' : 'Ctrl+Shift+' ) + 'Z)">' + svg( 'redo', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-undo" title="' + T( 'Undo' ) + kmHint( 'undo' ) + '">' + svg( 'undo', 16 ) + '</button>' +
+				'<button class="vb-ic" id="vb-redo" title="' + T( 'Redo' ) + kmHint( 'redo' ) + '">' + svg( 'redo', 16 ) + '</button>' +
 			'</div>' +
 			// CENTER: breakpoints + undo/redo
 			'<div class="vb-tbc vb-tbc-center">' +
@@ -4212,6 +4212,55 @@
 			try { el.setSelectionRange( f.pos, f.pos ); } catch ( e ) {}
 		}
 	}
+	/* ================= keyboard shortcuts =================
+	 * One list (Velox_Builder::shortcut_defs, CFG.keymap) with the site's own
+	 * changes on top (Velox Builder → Keyboard shortcuts). Every handler, tooltip
+	 * and menu asks this layer, so a changed key works and shows everywhere. */
+	var KM = CFG.keymap || { defs:[], user:{}, fixed:[] };
+	function kmCombos( id ) {
+		var u = KM.user || {};
+		if ( Object.prototype.hasOwnProperty.call( u, id ) ) { return u[ id ] ? [ u[ id ] ] : []; }
+		var d = ( KM.defs || [] ).filter( function ( x ) { return x.id === id; } )[ 0 ];
+		return d ? d.keys : [];
+	}
+	/* The pressed keys as Velox writes them: "Mod+Shift+S". Letters and digits
+	 * come from the key's position, so Shift and other layouts don't change them. */
+	function comboOf( e ) {
+		var k = e.key || '', c = e.code || '', key;
+		if ( /^(Control|Shift|Alt|Meta|OS|AltGraph|CapsLock)$/.test( k ) ) { return ''; }
+		if ( /^Key[A-Z]$/.test( c ) ) { key = c.slice( 3 ); }
+		else if ( /^Digit\d$/.test( c ) ) { key = c.slice( 5 ); }
+		else if ( 'Backslash' === c || 'IntlBackslash' === c ) { key = '\\'; }
+		else if ( ' ' === k || 'Spacebar' === k ) { key = 'Space'; }
+		else if ( 'Esc' === k ) { key = 'Escape'; }
+		else if ( 'Del' === k ) { key = 'Delete'; }
+		else if ( 1 === k.length ) { key = k.toUpperCase(); }
+		else { key = k; }
+		return ( e.ctrlKey || e.metaKey ? 'Mod+' : '' ) + ( e.altKey ? 'Alt+' : '' ) + ( e.shiftKey ? 'Shift+' : '' ) + key;
+	}
+	function kmAction( e ) {
+		var c = comboOf( e ); if ( ! c ) { return null; }
+		var defs = KM.defs || [];
+		for ( var i = 0; i < defs.length; i++ ) { if ( kmCombos( defs[ i ].id ).indexOf( c ) > -1 ) { return defs[ i ].id; } }
+		return null;
+	}
+	var KM_NAMES = { ArrowUp:'↑', ArrowDown:'↓', ArrowLeft:'←', ArrowRight:'→', Delete:'Del', Escape:'Esc', Backspace:'⌫', Enter:'↵' };
+	function kmLabel( combo ) {
+		var parts = String( combo ).split( '+' );
+		if ( '' === parts[ parts.length - 1 ] ) { parts.pop(); parts[ parts.length - 1 ] = '+'; } // "Mod++"
+		var key = parts.pop(), mods = parts;
+		key = KM_NAMES[ key ] || key;
+		if ( IS_MAC ) { return mods.map( function ( m ) { return { Mod:'⌘', Alt:'⌥', Shift:'⇧' }[ m ] || m; } ).join( '' ) + key; }
+		return mods.map( function ( m ) { return 'Mod' === m ? T( 'Ctrl' ) : m; } ).concat( [ key ] ).join( '+' );
+	}
+	/* "Ctrl+S" for an action (its first key), or '' when it has none. */
+	function kmKey( id ) { var c = kmCombos( id ); return c.length ? kmLabel( c[ 0 ] ) : ''; }
+	function kmHint( id ) { var k = kmKey( id ); return k ? ' (' + k + ')' : ''; }
+	function findProperty() {
+		if ( ! ( store.state && store.state.selection ) ) { return; }
+		if ( 'set' === inspTab ) { inspTab = 'all'; renderInspector( store.state ); }
+		var sfi = document.getElementById( 'vb-sfilter' ); if ( sfi ) { sfi.focus(); sfi.select(); }
+	}
 	/* Nothing selected: the inspector used to fold away, which shifted the canvas
 	 * under the mouse on the next click (a double-click then hit something
 	 * else). It stays, and says what to do. */
@@ -4224,14 +4273,27 @@
 			'<div class="vb-ie-acts"><button class="vb-btn vb-btn-primary" data-add>' + svg( 'plus', 14 ) + ' ' + T( 'Add element' ) + '</button>' +
 			'<button class="vb-btn vb-btn-ghost" id="vb-ie-struct">' + svg( 'structure', 14 ) + ' ' + T( 'Structure' ) + '</button></div>' +
 			'<div class="vb-ie-meta">' + count + ' ' + ( 1 === count ? T( 'element on this page' ) : T( 'elements on this page' ) ) + '</div>' +
-			'<div class="vb-ie-keys"><span><kbd>' + T( 'Double-click' ) + '</kbd> ' + T( 'edit text / change image' ) + '</span>' +
-			'<span><kbd>' + ( IS_MAC ? '⌘' : 'Ctrl' ) + '+D</kbd> ' + T( 'duplicate' ) + '</span>' +
-			'<span><kbd>' + T( 'Del' ) + '</kbd> ' + T( 'delete' ) + '</span>' +
-			'<span><kbd>Esc</kbd> ' + T( 'select the parent' ) + '</span>' +
-			'<span><kbd>' + ( IS_MAC ? '⌘⇧' : 'Ctrl+Shift+' ) + '←→↑↓</kbd> ' + T( 'move through the structure' ) + '</span>' +
-			'<span><kbd>↑ ↓</kbd> ' + T( 'in a number field: ±1, Shift ±10' ) + '</span>' +
-			'<span><kbd>' + ( IS_MAC ? '⌘' : 'Ctrl' ) + '+S</kbd> ' + T( 'save' ) + '</span></div>' +
+			shortcutListHTML() +
 		'</div>';
+	}
+	/* Every shortcut, grouped, with the keys this site uses — and where to change them. */
+	function shortcutListHTML() {
+		var groups = [], by = {};
+		( KM.defs || [] ).forEach( function ( d ) {
+			if ( ! by[ d.g ] ) { by[ d.g ] = []; groups.push( d.g ); }
+			by[ d.g ].push( d );
+		} );
+		var html = groups.map( function ( g ) {
+			return '<div class="vb-ie-kg"><div class="vb-ie-kh">' + escapeHtml( g ) + '</div>' + by[ g ].map( function ( d ) {
+				var ks = kmCombos( d.id );
+				return '<span><kbd' + ( ks.length ? '' : ' class="is-off"' ) + '>' + ( ks.length ? ks.map( function ( c ) { return escapeHtml( kmLabel( c ) ); } ).join( '</kbd><kbd>' ) : '—' ) + '</kbd> ' + escapeHtml( d.l ) + '</span>';
+			} ).join( '' ) + '</div>';
+		} ).join( '' );
+		html += '<div class="vb-ie-kg"><div class="vb-ie-kh">' + T( 'Always' ) + '</div>' + ( KM.fixed || [] ).map( function ( f ) {
+			return '<span><kbd>' + escapeHtml( f.k ) + '</kbd> ' + escapeHtml( f.l ) + '</span>';
+		} ).join( '' ) + '</div>';
+		if ( KM.url && ( ! CFG.access || 'admin' === CFG.access.level ) ) { html += '<a class="vb-ie-kedit" href="' + escapeHtml( KM.url ) + '" target="_blank" rel="noopener">' + svg( 'gear', 13 ) + ' ' + T( 'Change shortcuts' ) + '</a>'; }
+		return '<div class="vb-ie-keys">' + html + '</div>';
 	}
 	function elLabel( node ) {
 		// Prefer the catalog entry whose class matches (Divider, Grid, Stack … are all Divs).
@@ -4474,7 +4536,7 @@
 			if ( onlySet && ! sq && ! body ) { body = '<div class="vb-sfilter-none">' + T( 'Nothing is set here yet at this screen size and state.' ) + '</div>'; }
 		}
 		var filterBar = 'set' === tab ? '' : '<div class="vb-sfilter"><label class="vb-sfilter-box">' + svg( 'search', 13 ) +
-			'<input id="vb-sfilter" data-sfilter="1" value="' + escapeHtml( styleFilter ) + '" placeholder="' + T( 'Find a property' ) + '" title="' + ( IS_MAC ? '⇧⌘F' : 'Ctrl+Shift+F' ) + '" spellcheck="false" autocomplete="off">' +
+			'<input id="vb-sfilter" data-sfilter="1" value="' + escapeHtml( styleFilter ) + '" placeholder="' + T( 'Find a property' ) + '" title="' + kmKey( 'findProp' ) + '" spellcheck="false" autocomplete="off">' +
 			( styleFilter ? '<button type="button" data-sfilter-x title="' + T( 'Clear' ) + '">' + svg( 'x', 12 ) + '</button>' : '' ) + '</label>' +
 			'<button type="button" class="vb-onlyset' + ( onlySet ? ' on' : '' ) + '" data-onlyset aria-pressed="' + ( onlySet ? 'true' : 'false' ) + '" title="' + T( 'Show only what is set here' ) + '">' + T( 'Set only' ) + '</button></div>';
 		// Element styles at this screen size win over the class being edited.
@@ -6471,7 +6533,7 @@
 				( condCount( node.cond ) ? '<span class="vb-st-cond" title="' + escapeHtml( T( 'Shows when' ) + ' ' + condSummary( node.cond ) ) + '">' + svg( 'signpost', 12 ) + '</span>' : '' ) +
 				// On hover: copy, duplicate, delete, the full menu, and show / hide.
 				'<span class="vb-st-tools">' +
-					[ [ 'copy', 'clipboard', T( 'Copy' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'C)' ], [ 'dup', 'copy', T( 'Duplicate' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'D)' ], [ 'del', 'trash', T( 'Delete' ) + ' (Del)' ], [ 'more', 'dots', T( 'More' ) ] ].map( function ( a ) {
+					[ [ 'copy', 'clipboard', T( 'Copy' ) + kmHint( 'copy' ) ], [ 'dup', 'copy', T( 'Duplicate' ) + kmHint( 'duplicate' ) ], [ 'del', 'trash', T( 'Delete' ) + ' (Del)' ], [ 'more', 'dots', T( 'More' ) ] ].map( function ( a ) {
 						return '<button type="button" class="vb-st-act' + ( 'del' === a[ 0 ] ? ' is-del' : '' ) + '" data-stact="' + a[ 0 ] + ':' + node.id + '" tabindex="-1" title="' + escapeHtml( a[ 2 ] ) + '" aria-label="' + escapeHtml( a[ 2 ] ) + '">' + svg( a[ 1 ], 13 ) + '</button>';
 					} ).join( '' ) +
 				'</span>' +
@@ -7282,64 +7344,96 @@
 		} );
 		document.addEventListener( 'keydown', function ( e ) {
 			var mod = e.metaKey || e.ctrlKey;
-			// Shift or Caps Lock makes e.key uppercase, so comparing to 's' missed
-			// and the keystroke fell through to the browser.
-			var k = ( e.key || '' ).toLowerCase();
 			var typing = editing || /^(INPUT|TEXTAREA|SELECT)$/.test( ( e.target.tagName || '' ) ) || e.target.isContentEditable;
-			if ( mod && k === 'k' && ! e.shiftKey && ! e.altKey ) { e.preventDefault(); openCmdk(); return; }
+			// Which action these keys belong to (the site's own keys, see Keyboard shortcuts).
+			var act = kmAction( e ), combo = comboOf( e );
+			// A key without Ctrl/Cmd or Alt belongs to the field you are typing in.
+			if ( act && typing && ! mod && ! e.altKey ) { act = null; }
+			if ( 'cmdk' === act ) { e.preventDefault(); openCmdk(); return; }
 			// While the command search or a dialog is open, it owns the keyboard.
-			if ( document.querySelector( '.vb-cmdk.open, .vb-ask.open' ) ) { if ( mod && k === 's' ) { e.preventDefault(); } return; }
-			if ( mod && e.shiftKey && ! typing && ( k === 'c' || k === 'v' ) && store.state && store.state.selection ) {
-				e.preventDefault(); e.stopImmediatePropagation();
-				if ( k === 'c' ) { copyStyle( store.state.selection ); } else { pasteStyle( store.state.selection ); }
-				return;
+			if ( document.querySelector( '.vb-cmdk.open, .vb-ask.open' ) ) { if ( 'save' === act || 'publish' === act ) { e.preventDefault(); } return; }
+			var sel = store.state && store.state.selection, many = multiIds();
+			var onPage = e.target === document.body || e.target === document;
+			switch ( act ) {
+				case 'copyStyle':
+				case 'pasteStyle':
+					if ( typing ) { break; }
+					if ( 'pasteStyle' === act && many.length ) { e.preventDefault(); e.stopImmediatePropagation(); many.forEach( function ( id ) { pasteStyle( id ); } ); return; }
+					if ( ! sel ) { break; }
+					e.preventDefault(); e.stopImmediatePropagation();
+					if ( 'copyStyle' === act ) { copyStyle( sel ); } else { pasteStyle( sel ); }
+					return;
+				case 'zoomFit':
+				case 'zoom100':
+					if ( typing ) { break; }
+					e.preventDefault(); setZoom( 'zoomFit' === act ? 'fit' : 1 ); return;
+				case 'findProp':
+					e.preventDefault(); findProperty(); return;
+				case 'moveUp':
+				case 'moveDown':
+				case 'moveOut':
+				case 'moveIn':
+					if ( typing || ! sel ) { break; }
+					e.preventDefault();
+					var mdir = { moveUp:'up', moveDown:'down', moveOut:'out', moveIn:'in' }[ act ];
+					var mlist = many.length ? many : [ sel ];
+					if ( 'down' === mdir || 'in' === mdir ) { mlist = mlist.slice().reverse(); }
+					mlist.forEach( function ( id ) { moveRelative( id, mdir ); } );
+					return;
+				case 'delete':
+					// Deleting is destructive, so it needs a deliberate keypress on the
+					// page — not one that lands on <body> because a field re-rendered.
+					if ( typing || ! onPage ) { break; }
+					if ( many.length ) { e.preventDefault(); deleteMany( many ); return; }
+					if ( sel ) { e.preventDefault(); deleteNode( sel ); }
+					return;
+				case 'duplicate':
+					if ( typing ) { break; }
+					if ( many.length ) { e.preventDefault(); many.forEach( function ( id ) { duplicateNode( id ); } ); multi = []; return; }
+					if ( sel ) { e.preventDefault(); duplicateNode( sel ); }
+					return;
+				case 'undo':
+					// Inside a text field Ctrl+Z undoes the typing, not the page.
+					if ( ! typing ) { e.preventDefault(); store.undo(); }
+					return;
+				case 'redo':
+					if ( ! typing ) { e.preventDefault(); store.redo(); }
+					return;
+				case 'save':
+					e.preventDefault(); saveDoc(); return;
+				case 'publish':
+					e.preventDefault(); publishDoc(); return;
+				case 'copy':
+					// With the usual Ctrl+C there is no preventDefault: the browser's copy
+					// event then carries the element to other tabs and sites too.
+					if ( typing || ! sel ) { break; }
+					if ( 'Mod+C' !== combo ) { e.preventDefault(); }
+					copyNode( sel ); toast( T( 'Copied.' ) ); return;
+				case 'paste':
+					if ( typing ) { break; }
+					if ( 'Mod+V' !== combo ) { e.preventDefault(); }
+					schedulePaste(); return;
+				case 'leftPanel':
+					e.preventDefault(); toggleLeftStack(); return;
+				case 'rightPanel':
+					e.preventDefault(); toggleRightStack(); return;
+				case 'selParent':
+				case 'selChild':
+				case 'selPrev':
+				case 'selNext':
+					if ( typing ) { break; }
+					e.preventDefault();
+					selectRelative( { selParent:'parent', selChild:'child', selPrev:'prev', selNext:'next' }[ act ] );
+					return;
 			}
-			if ( ! mod && e.shiftKey && ! typing && ( 'Digit1' === e.code || 'Digit0' === e.code ) ) { e.preventDefault(); setZoom( 'Digit1' === e.code ? 'fit' : 1 ); return; }
-			if ( mod && e.shiftKey && k === 'f' ) {
-				e.preventDefault();
-				if ( store.state && store.state.selection ) {
-					if ( 'set' === inspTab ) { inspTab = 'all'; renderInspector( store.state ); }
-					var sfi = document.getElementById( 'vb-sfilter' ); if ( sfi ) { sfi.focus(); sfi.select(); }
-				}
-				return;
-			}
-			if ( e.altKey && ! mod && ! typing && /^Arrow/.test( e.key ) && store.state && store.state.selection ) {
-				e.preventDefault();
-				var mdir = { ArrowUp:'up', ArrowDown:'down', ArrowLeft:'out', ArrowRight:'in' }[ e.key ];
-				var mlist = multiIds().length ? multiIds() : [ store.state.selection ];
-				if ( 'down' === mdir || 'in' === mdir ) { mlist = mlist.slice().reverse(); }
-				mlist.forEach( function ( id ) { moveRelative( id, mdir ); } );
-				return;
-			}
-			if ( e.key === 'Delete' && ! typing && multiIds().length && ( e.target === document.body || e.target === document ) ) { e.preventDefault(); deleteMany( multiIds() ); return; }
-			if ( mod && k === 'd' && ! typing && multiIds().length ) { e.preventDefault(); multiIds().forEach( function ( id ) { duplicateNode( id ); } ); multi = []; return; }
-			if ( mod && e.shiftKey && k === 'v' && ! typing && multiIds().length ) { e.preventDefault(); e.stopImmediatePropagation(); multiIds().forEach( function ( id ) { pasteStyle( id ); } ); return; }
-			// Inside a text field Ctrl+Z undoes the typing, not the page.
-			if ( mod && k === 'z' && ! typing ) { e.preventDefault(); if ( e.shiftKey ) { store.redo(); } else { store.undo(); } }
-			if ( mod && k === 'y' && ! typing ) { e.preventDefault(); store.redo(); }
-			// Ctrl+S saves a draft; Ctrl+Shift+S (or Ctrl+Shift+P) publishes it.
-			if ( mod && k === 's' ) { e.preventDefault(); if ( e.shiftKey ) { publishDoc(); } else { saveDoc(); } }
-			if ( mod && k === 'p' ) { e.preventDefault(); if ( e.shiftKey ) { publishDoc(); } else { toast( T( 'Publish with Ctrl+Shift+S (or the Publish button).' ) ); } }
-			// No preventDefault: the browser's copy / paste events then carry the
-			// element to and from the system clipboard (other tabs, other sites).
-			if ( mod && k === 'c' && ! typing && store.state && store.state.selection && ! e.shiftKey ) { copyNode( store.state.selection ); toast( T( 'Copied.' ) ); }
-			if ( mod && k === 'v' && ! typing && ! e.shiftKey ) { schedulePaste(); }
-			if ( mod && k === 'd' && ! typing && store.state && store.state.selection ) { e.preventDefault(); duplicateNode( store.state.selection ); }
-			if ( mod && k === '\\' ) { e.preventDefault(); if ( e.shiftKey ) { toggleRightStack(); } else { toggleLeftStack(); } }
+			// Ctrl+P prints in the browser; point to the publish keys instead.
+			if ( ! act && 'Mod+P' === combo ) { e.preventDefault(); toast( T( 'Publish with' ) + ' ' + ( kmKey( 'publish' ) || T( 'the Publish button' ) ) + '.' ); return; }
 			if ( e.key === 'Escape' && ! document.querySelector( '.vb-ask.open' ) ) {
 				if ( setShown && ! typing ) { setShown = false; renderSettingsPanel(); return; }
 				// In a field, Escape leaves the field (and its value) — a second one climbs.
 				if ( typing && ! editing && e.target.blur && e.target.closest && e.target.closest( '#vb-inspector, #vb-addmenu' ) ) { onEscape( true ); e.target.blur(); return; }
 				onEscape( typing );
 			}
-			if ( mod && e.shiftKey && ! typing && /^Arrow/.test( e.key ) ) {
-				e.preventDefault();
-				selectRelative( { ArrowLeft:'parent', ArrowRight:'child', ArrowUp:'prev', ArrowDown:'next' }[ e.key ] );
-			}
-			// Deleting the selected element is destructive, so it needs a deliberate
-			// keypress — not one that lands on <body> because a field just re-rendered
-			// under the cursor. Backspace no longer deletes; Delete does.
-			if ( e.key === 'Delete' && ! typing && ( e.target === document.body || e.target === document ) && store.state && store.state.selection ) { e.preventDefault(); deleteNode( store.state.selection ); }
 		}, true );
 		wireDrag();
 		wireCanvasDrag();
@@ -7795,11 +7889,11 @@
 		var menu = document.createElement( 'div' );
 		menu.className = 'vb-ctx'; menu.id = 'vb-ctx';
 		var items = [
-			{ a:'copy', ic:'copy', l:T( 'Copy' ), k:( IS_MAC ? '⌘C' : 'Ctrl+C' ) },
-			{ a:'paste', ic:'clipboard', l:T( 'Paste' ), k:( IS_MAC ? '⌘V' : 'Ctrl+V' ), off:! clipboardNode },
-			{ a:'dup', ic:'copy', l:T( 'Duplicate' ), k:( IS_MAC ? '⌘D' : 'Ctrl+D' ) },
-			{ a:'copystyle', ic:'droplet', l:T( 'Copy style' ), k:( IS_MAC ? '⇧⌘C' : 'Ctrl+Shift+C' ) },
-			{ a:'pastestyle', ic:'droplet', l:T( 'Paste style' ), k:( IS_MAC ? '⇧⌘V' : 'Ctrl+Shift+V' ), off:! readStyleClip() },
+			{ a:'copy', ic:'copy', l:T( 'Copy' ), k:kmKey( 'copy' ) },
+			{ a:'paste', ic:'clipboard', l:T( 'Paste' ), k:kmKey( 'paste' ), off:! clipboardNode },
+			{ a:'dup', ic:'copy', l:T( 'Duplicate' ), k:kmKey( 'duplicate' ) },
+			{ a:'copystyle', ic:'droplet', l:T( 'Copy style' ), k:kmKey( 'copyStyle' ) },
+			{ a:'pastestyle', ic:'droplet', l:T( 'Paste style' ), k:kmKey( 'pasteStyle' ), off:! readStyleClip() },
 			{ a:'mvup', ic:'chevron', l:T( 'Move up' ), k:'Alt+↑' },
 			{ a:'mvdown', ic:'chevron', l:T( 'Move down' ), k:'Alt+↓' },
 			{ a:'settings', ic:'gear', l:T( 'Settings' ) },
@@ -8519,7 +8613,7 @@
 		var html = '<button type="button" class="vb-sb-move" data-sb="move" title="' + T( 'Drag to move' ) + '">' + svg( 'move', 12 ) + '</button>' +
 			'<span class="vb-sb-l">' + escapeHtml( node.name || elLabel( node ) ) + '</span>' +
 			( hasParent ? '<button type="button" data-sb="parent" title="' + T( 'Select parent' ) + ' (Esc)">' + svg( 'chevron', 12 ) + '</button>' : '' ) +
-			'<button type="button" data-sb="dup" title="' + T( 'Duplicate' ) + ' (' + ( IS_MAC ? '⌘' : 'Ctrl+' ) + 'D)">' + svg( 'copy', 12 ) + '</button>' +
+			'<button type="button" data-sb="dup" title="' + T( 'Duplicate' ) + kmHint( 'duplicate' ) + '">' + svg( 'copy', 12 ) + '</button>' +
 			'<button type="button" data-sb="del" title="' + T( 'Delete' ) + ' (Del)">' + svg( 'trash', 12 ) + '</button>';
 		if ( b.getAttribute( 'data-html' ) !== html ) { b.innerHTML = html; b.setAttribute( 'data-html', html ); }
 		var r = el.getBoundingClientRect(), win = doc.defaultView;
@@ -8844,7 +8938,7 @@
 	}
 	function pasteStyle( id ) {
 		var clip = readStyleClip();
-		if ( ! clip ) { toast( T( 'Copy a style first (Ctrl+Shift+C).' ) ); return; }
+		if ( ! clip ) { toast( T( 'Copy a style first.' ) + kmHint( 'copyStyle' ) ); return; }
 		store.commit( function ( s ) {
 			var n = findNode( s.tree, id ); if ( ! n ) { return; }
 			( clip.classes || [] ).forEach( function ( c ) {
@@ -8928,27 +9022,27 @@
 	 * shortcut shown so the palette teaches the shortcuts (Superhuman, Bricks). */
 	var cmdkPrev = null, cmdkIdx = 0, cmdkList = [];
 	function cmdkCommands() {
-		var M = IS_MAC ? '⌘' : 'Ctrl+', MS = IS_MAC ? '⇧⌘' : 'Ctrl+Shift+', L = [];
+		var L = [];
 		var sel = store.state && store.state.selection, selNode = sel ? findNode( store.state.tree, sel ) : null;
 		function add( g, l, run, k, kw ) { L.push( { g:g, l:l, run:run, k:k || '', kw:( kw || '' ) } ); }
 		function click( id ) { return function () { var b = document.getElementById( id ); if ( b ) { b.click(); } }; }
 		var A = T( 'Actions' ), P = T( 'Panels' ), V = T( 'View' ), E = T( 'Add element' ), S = T( 'Selected element' );
-		add( A, T( 'Save' ), saveDoc, M + 'S' );
-		add( A, T( 'Publish' ), publishDoc, MS + 'P' );
-		add( A, T( 'Undo' ), function () { store.undo(); }, M + 'Z' );
-		add( A, T( 'Redo' ), function () { store.redo(); }, MS + 'Z' );
+		add( A, T( 'Save' ), saveDoc, kmKey( 'save' ) );
+		add( A, T( 'Publish' ), publishDoc, kmKey( 'publish' ) );
+		add( A, T( 'Undo' ), function () { store.undo(); }, kmKey( 'undo' ) );
+		add( A, T( 'Redo' ), function () { store.redo(); }, kmKey( 'redo' ) );
 		if ( selNode ) {
-			add( S, T( 'Duplicate' ), function () { duplicateNode( sel ); }, M + 'D' );
-			add( S, T( 'Delete' ), function () { deleteNode( sel ); }, 'Del', 'remove' );
+			add( S, T( 'Duplicate' ), function () { duplicateNode( sel ); }, kmKey( 'duplicate' ) );
+			add( S, T( 'Delete' ), function () { deleteNode( sel ); }, kmKey( 'delete' ), 'remove' );
 			add( S, T( 'Select parent' ), function () { selectRelative( 'parent' ); }, 'Esc' );
-			add( S, T( 'Copy style' ), function () { copyStyle( sel ); }, MS + 'C' );
-			if ( readStyleClip() ) { add( S, T( 'Paste style' ), function () { pasteStyle( sel ); }, MS + 'V' ); }
+			add( S, T( 'Copy style' ), function () { copyStyle( sel ); }, kmKey( 'copyStyle' ) );
+			if ( readStyleClip() ) { add( S, T( 'Paste style' ), function () { pasteStyle( sel ); }, kmKey( 'pasteStyle' ) ); }
 			add( S, T( 'Add a class' ), addClassToSelected, '', 'class' );
 			add( S, T( 'Rename element' ), function () { renameNode( sel ); } );
-			add( S, T( 'Move up' ), function () { moveRelative( sel, 'up' ); }, 'Alt+↑' );
-			add( S, T( 'Move down' ), function () { moveRelative( sel, 'down' ); }, 'Alt+↓' );
-			add( S, T( 'Move out of its parent' ), function () { moveRelative( sel, 'out' ); }, 'Alt+←' );
-			add( S, T( 'Find a property…' ), function () { document.dispatchEvent( new KeyboardEvent( 'keydown', { key:'F', code:'KeyF', ctrlKey:true, shiftKey:true, bubbles:true } ) ); }, MS + 'F', 'search style' );
+			add( S, T( 'Move up' ), function () { moveRelative( sel, 'up' ); }, kmKey( 'moveUp' ) );
+			add( S, T( 'Move down' ), function () { moveRelative( sel, 'down' ); }, kmKey( 'moveDown' ) );
+			add( S, T( 'Move out of its parent' ), function () { moveRelative( sel, 'out' ); }, kmKey( 'moveOut' ) );
+			add( S, T( 'Find a property…' ), findProperty, kmKey( 'findProp' ), 'search style' );
 			add( S, T( 'Wrap with div' ), function () { wrapNodeInDiv( sel ); } );
 			add( S, selNode.hidden ? T( 'Show' ) : T( 'Hide' ), function () { toggleNodeHidden( sel ); } );
 			add( S, T( 'Save as reusable' ), function () { makeReusableFromNode( sel ); } );
@@ -10451,6 +10545,13 @@
 			'#vb-struct .vb-st-act{display:grid;place-items:center;width:22px;height:22px;margin:0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);cursor:pointer;transition:background .12s,color .12s}',
 			'#vb-struct .vb-st-act:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
 			'#vb-struct .vb-st-act.is-del:hover{background:rgba(229,83,75,.16);color:#ff8a82}',
+			// 4.51: every shortcut on "Nothing selected"
+			'.vb-ie-keys .vb-ie-kg{display:flex;flex-direction:column;gap:6px;margin:0 0 12px}',
+			'.vb-ie-keys .vb-ie-kh{font-size:10.5px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--vb-tx3);margin:4px 0 2px}',
+			'.vb-ie-keys kbd+kbd{margin-left:4px}',
+			'.vb-ie-keys kbd.is-off{opacity:.45}',
+			'.vb-ie-kedit{display:inline-flex;align-items:center;gap:6px;margin-top:4px;font-size:12px;font-weight:600;color:var(--vb-acc);text-decoration:none}',
+			'.vb-ie-kedit:hover{text-decoration:underline}',
 			// 4.50: heading level badge, tag dropdown, structure drop hints
 			'.vb-hlvl{display:inline-grid;place-items:center;min-width:var(--s,16px);height:var(--s,16px);font:700 calc(var(--s,16px) * .62)/1 "Velox Geist Mono",ui-monospace,Menlo,monospace;letter-spacing:-.02em;color:inherit}',
 			'.vb-tagpick{display:inline-flex;align-items:center;gap:3px;margin:0 0 0 -4px;padding:1px 4px;border:0;border-radius:4px;background:none;color:inherit;font:inherit;cursor:pointer}',

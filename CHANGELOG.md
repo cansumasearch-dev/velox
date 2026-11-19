@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.51.0 — Your own keyboard shortcuts
+- **Velox Builder → Keyboard shortcuts:** every editor shortcut in one list (save, publish, undo/redo, copy/paste, duplicate, delete, styles, selecting, moving, panels, zoom, search). Click one and press the keys you want; reset one or all to the defaults.
+- **It tells you what you are replacing:** a key the browser normally uses says so ("Ctrl+S normally saves the web page as a file — in the editor Velox uses it instead"). Keys the browser keeps for itself (Ctrl+W, Ctrl+T, Ctrl+N, Ctrl+Tab, Alt+F4, F11 …) are refused with the reason.
+- **Clashes are flagged:** two actions on the same keys both turn red with a link that jumps to the other one; a key that one of the fixed keys already uses (Esc, Enter, the Structure arrows …) is pointed out. Saving waits until the red ones are fixed.
+- **"Nothing selected" lists every shortcut**, grouped, with the keys your site uses, plus the keys that always work the same — and a link to change them.
+- Tooltips, the right-click menu, the command search and messages all show your keys. German keyboards see "Strg".
+
 ## 4.50.1 — Tag dropdown fix
 - The HTML tag dropdown on the element name is wider, so the <h1> row shows its label next to its hint ("Page title, use once") instead of hiding it.
 
