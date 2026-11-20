@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.53.1 — Safe upgrade for shops from before 4.53
+- **Checkout keeps taking orders:** a shop from before 4.53 that has not been set up in Velox Shop yet offers "Payment details by email" (the old behaviour) until a payment method is switched on, instead of refusing orders.
+- **Photos keep their shape:** such shops show product photos uncropped. Every shop can now choose under Settings → Store → Look: automatic, portrait 4:5, square or their own shape.
+- **Existing pages are found:** the cart, checkout and account links use the pages that already hold those shortcodes when none are chosen in the settings.
+
 ## 4.53.0 — Velox Shop, heading levels you can see, text tools on double-click
 - **Velox Shop (new):** the small art shop became a complete store with its own full-screen editor (wp-admin → Velox Shop): overview with revenue, what needs you and low stock; orders; products; coupons; customers; settings; and a 5-question setup that configures taxes, shipping, payments and creates the shop pages.
 - **Products:** physical, download or service; price, crossed-out "was" price with an end date, VAT rate (19 / 7 / 0 %), stock with low-stock warning and backorders, one-of-a-kind pieces that sell once, "price on request", up to 3 options (size, colour …) with a variant per combination (own price, stock, SKU, photo), gallery, details table, delivery time, unit price (PAngV), manufacturer / safety info (GPSR), badge, recommended products, categories. Inline price and stock editing in the list.

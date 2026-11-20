@@ -309,7 +309,7 @@
 		return '<table class="vsa-table"><thead><tr><th>' + vxT( 'Order' ) + '</th><th>' + vxT( 'Customer' ) + '</th>' + ( compact ? '' : '<th>' + vxT( 'Items' ) + '</th>' ) + '<th>' + vxT( 'Payment' ) + '</th><th>' + vxT( 'Shipping' ) + '</th><th class="n">' + vxT( 'Total' ) + '</th></tr></thead><tbody>' +
 			rows.map( function ( r ) {
 				return '<tr data-href="#/orders/' + r.id + '" tabindex="0"><td><b class="vsa-mono">' + esc( r.number ) + '</b><small>' + esc( ago( r.created ) ) + '</small></td><td><span class="vsa-cust">' + esc( r.name || r.email ) + '</span><small>' + esc( r.email ) + '</small></td>' +
-					( compact ? '' : '<td class="vsa-muted">' + r.items + '</td>' ) + '<td>' + chip( PAY, r.pay ) + '<small>' + esc( methodLabel( r.method ) ) + '</small></td><td>' + chip( FUL, r.ful ) + ( r.withdrawn ? ' <span class="vsa-chip is-bad">' + vxT( 'Withdrawn' ) + '</span>' : '' ) + '</td><td class="n"><b>' + money( r.total ) + '</b></td></tr>';
+					( compact ? '' : '<td class="vsa-muted">' + r.items + '</td>' ) + '<td>' + chip( PAY, r.pay ) + '<small>' + esc( r.methodLabel || methodLabel( r.method ) ) + '</small></td><td>' + chip( FUL, r.ful ) + ( r.withdrawn ? ' <span class="vsa-chip is-bad">' + vxT( 'Withdrawn' ) + '</span>' : '' ) + '</td><td class="n"><b>' + money( r.total ) + '</b></td></tr>';
 			} ).join( '' ) + '</tbody></table>';
 	}
 	function pager( pages, cur, key ) {
@@ -690,7 +690,8 @@
 					'<div class="vsa-fr">' + field( vxT( 'VAT ID' ), inp( 'store_vat_id', s.store_vat_id, { ph:'DE123456789' } ) ) + field( vxT( 'Tax number' ), inp( 'store_tax_no', s.store_tax_no, { ph:vxT( 'optional' ) } ) ) + '</div>' +
 					field( vxT( 'Country of your business' ), sel( 'store_country', s.store_country, cs ) ) ) +
 					card( vxT( 'Look' ), '<div class="vsa-fr">' + field( vxT( 'Logo for emails and invoices' ), '<div class="vsa-logo">' + ( s.logo_url ? '<img src="' + esc( s.logo_url ) + '" alt="">' : '' ) + '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="s-logo">' + ( s.logo_url ? vxT( 'Change' ) : vxT( 'Choose' ) ) + '</button>' + ( s.logo_url ? '<button type="button" class="vsa-link" data-act="s-logo-x">' + vxT( 'Remove' ) + '</button>' : '' ) + '</div>' ) +
-					field( vxT( 'Accent colour' ), '<div class="vsa-row"><input type="color" class="vsa-color" data-k="accent" value="' + esc( s.accent ) + '">' + inp( 'accent', s.accent, { cls:'vsa-mono vsa-in-sm' } ) + '</div>', vxT( 'Buttons in the shop and in emails.' ) ) + '</div>' ) +
+					field( vxT( 'Accent colour' ), '<div class="vsa-row"><input type="color" class="vsa-color" data-k="accent" value="' + esc( s.accent ) + '">' + inp( 'accent', s.accent, { cls:'vsa-mono vsa-in-sm' } ) + '</div>', vxT( 'Buttons in the shop and in emails.' ) ) + '</div>' +
+					field( vxT( 'Product photos in the grid' ), seg( 'card_ratio', s.card_ratio || '', [ [ '', vxT( 'Automatic' ) ], [ '4/5', vxT( 'Portrait 4:5' ) ], [ '1/1', vxT( 'Square' ) ], [ 'natural', vxT( 'Their own shape' ) ] ] ), vxT( 'Cropped photos line up evenly; “their own shape” never cuts anything off (best for art).' ) ) ) +
 					card( vxT( 'Money' ), '<div class="vsa-fr">' + field( vxT( 'Currency' ), sel( 'currency', s.currency, [ [ 'EUR', 'Euro (EUR)' ], [ 'CHF', 'Franken (CHF)' ], [ 'GBP', 'Pound (GBP)' ], [ 'USD', 'Dollar (USD)' ] ] ) ) + field( vxT( 'Symbol' ), inp( 'symbol', s.symbol, { cls:'vsa-in-sm' } ) ) + field( vxT( 'Position' ), sel( 'symbol_pos', s.symbol_pos, [ [ 'right', '49,90 ' + s.symbol ], [ 'left', s.symbol + ' 49,90' ] ] ) ) + '</div>' );
 			case 'taxes':
 				return card( vxT( 'VAT' ), seg( 'tax_mode', s.tax_mode, [ [ 'standard', vxT( 'Prices include VAT' ), 'receipt' ], [ 'small', vxT( 'Small business — no VAT' ), 'shield' ] ] ) +

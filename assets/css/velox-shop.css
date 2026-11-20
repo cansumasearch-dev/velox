@@ -59,9 +59,15 @@
 /* ---- grid + card */
 .vxs-grid{display:grid;grid-template-columns:repeat(var(--vxs-cols,3),minmax(0,1fr));gap:36px 26px}
 .vxs-card{position:relative;display:flex;flex-direction:column;gap:12px;min-width:0}
-.vxs-card-media{position:relative;display:block;aspect-ratio:4/5;border-radius:var(--vxs-r);overflow:hidden;background:var(--vxs-soft)}
+.vxs-card-media{position:relative;display:block;aspect-ratio:var(--vxs-ratio,4/5);border-radius:var(--vxs-r);overflow:hidden;background:var(--vxs-soft)}
 .vxs-card-media img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:opacity .35s,transform .6s cubic-bezier(.2,.7,.2,1)}
 .vxs-card-im2{opacity:0}
+/* Photos in their own shape (paintings, prints): nothing cropped. */
+.vxs-grid.is-natural{align-items:start}
+.vxs-grid.is-natural .vxs-card-media{aspect-ratio:auto;background:none}
+.vxs-grid.is-natural .vxs-card-media img{position:static;height:auto}
+.vxs-grid.is-natural .vxs-card-im2{position:absolute!important;inset:0;height:100%!important;object-fit:cover}
+.vxs-grid.is-natural .vxs-noimg{position:static;display:block;aspect-ratio:4/5}
 .vxs-card:hover .vxs-card-im2{opacity:1}
 .vxs-card:hover .vxs-card-media img{transform:scale(1.03)}
 .vxs-card.is-sold .vxs-card-media img,.vxs-card.is-out .vxs-card-media img{opacity:.6;filter:grayscale(.3)}

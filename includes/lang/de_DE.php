@@ -5643,4 +5643,13 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'%d products are live.' => '%d Produkte sind online.',
 	'Products, orders & payments' => 'Produkte, Bestellungen & Zahlungen',
 	'A complete shop: products with variants and stock, cart, checkout with card, PayPal, bank transfer, invoice or cash on delivery, orders, invoices, coupons and the German legal requirements — managed in Velox Shop.' => 'Ein kompletter Shop: Produkte mit Varianten und Bestand, Warenkorb, Kasse mit Karte, PayPal, Überweisung, Rechnung oder Nachnahme, Bestellungen, Rechnungen, Gutscheine und die deutschen Rechtsvorgaben – verwaltet in Velox Shop.',
+	// Velox Shop 4.53.1 — upgrades
+	'Payment details by email' => 'Zahlungsdaten per E-Mail',
+	'We confirm your order and send you the payment details by email.' => 'Wir bestätigen Ihre Bestellung und senden Ihnen die Zahlungsdaten per E-Mail.',
+	'We will email you the payment details.' => 'Wir senden Ihnen die Zahlungsdaten per E-Mail.',
+	'Your order is reserved until then.' => 'Ihre Bestellung ist bis dahin reserviert.',
+	'Product photos in the grid' => 'Produktfotos im Raster',
+	'Portrait 4:5' => 'Hochformat 4:5',
+	'Their own shape' => 'Originalformat',
+	'Cropped photos line up evenly; “their own shape” never cuts anything off (best for art).' => 'Zugeschnittene Fotos stehen gleichmäßig; „Originalformat“ schneidet nie etwas ab (am besten für Kunst).',
 );

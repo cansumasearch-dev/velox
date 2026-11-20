@@ -26,6 +26,9 @@ class Velox_Shop_Pay {
 
 	public static function methods() {
 		return array(
+			// Only offered while nothing else is set up in a shop from before 4.53,
+			// so its checkout keeps taking orders the way it always did.
+			'manual'  => array( __( 'Payment details by email', 'velox' ), __( 'We confirm your order and send you the payment details by email.', 'velox' ) ),
 			'stripe'  => array( __( 'Card, Apple Pay, Google Pay & more', 'velox' ), __( 'Paid securely on Stripe’s page. Cards, wallets, SEPA direct debit, Klarna and more — whatever you switch on in Stripe.', 'velox' ) ),
 			'paypal'  => array( __( 'PayPal', 'velox' ), __( 'Paid on PayPal’s page.', 'velox' ) ),
 			'bank'    => array( __( 'Bank transfer', 'velox' ), __( 'You get the bank details right after ordering. We ship once the money has arrived.', 'velox' ) ),
@@ -37,7 +40,7 @@ class Velox_Shop_Pay {
 	/** The method's name: the long one for the checkout, a short one for receipts. */
 	public static function label( $m, $short = true ) {
 		if ( $short ) {
-			$s = array( 'stripe' => __( 'Card or wallet (Stripe)', 'velox' ), 'paypal' => 'PayPal', 'bank' => __( 'Bank transfer', 'velox' ), 'invoice' => __( 'Invoice', 'velox' ), 'cod' => __( 'Cash on delivery', 'velox' ) );
+			$s = array( 'manual' => __( 'Payment details by email', 'velox' ), 'stripe' => __( 'Card or wallet (Stripe)', 'velox' ), 'paypal' => 'PayPal', 'bank' => __( 'Bank transfer', 'velox' ), 'invoice' => __( 'Invoice', 'velox' ), 'cod' => __( 'Cash on delivery', 'velox' ) );
 			if ( isset( $s[ $m ] ) ) {
 				return $s[ $m ];
 			}
@@ -60,6 +63,8 @@ class Velox_Shop_Pay {
 				return ! empty( $s['pay_invoice'] );
 			case 'cod':
 				return ! empty( $s['pay_cod'] );
+			case 'manual':
+				return false; // see available()
 		}
 		return false;
 	}
@@ -76,6 +81,9 @@ class Velox_Shop_Pay {
 				continue; // nothing is delivered
 			}
 			$out[] = $m;
+		}
+		if ( ! $out && Velox_Shop::legacy_upgrade() ) {
+			$out[] = 'manual';
 		}
 		return $out;
 	}
@@ -342,6 +350,8 @@ class Velox_Shop_Pay {
 			case 'invoice':
 				/* translators: %d: days */
 				return $box( '<b>' . esc_html__( 'Pay by invoice', 'velox' ) . '</b> — ' . sprintf( esc_html__( 'the invoice comes with your order. Please pay within %d days.', 'velox' ), (int) $s['invoice_days'] ) );
+			case 'manual':
+				return $box( '<b>' . esc_html__( 'We will email you the payment details.', 'velox' ) . '</b> ' . esc_html__( 'Your order is reserved until then.', 'velox' ) );
 			case 'cod':
 				/* translators: %s: amount */
 				return $box( '<b>' . esc_html__( 'Cash on delivery', 'velox' ) . '</b> — ' . sprintf( esc_html__( 'please have %s ready when the parcel arrives.', 'velox' ), esc_html( Velox_Shop::money( $o['total'] ) ) ) );

@@ -39,10 +39,27 @@ class Velox_Shop_Front {
 
 	public static function page_url( $key, $fallback = '' ) {
 		$id = (int) Velox_Shop::get( 'page_' . $key );
-		if ( $id && 'publish' === get_post_status( $id ) ) {
+		if ( ! $id || 'publish' !== get_post_status( $id ) ) {
+			$id = self::find_page( $key );
+		}
+		if ( $id ) {
 			return get_permalink( $id );
 		}
 		return $fallback ? $fallback : home_url( '/' );
+	}
+
+	/** A published page that already holds the shop part (shops from before 4.53 set none). */
+	private static function find_page( $key ) {
+		static $found = array();
+		$sc = array( 'shop' => 'velox_shop', 'cart' => 'velox_cart', 'checkout' => 'velox_checkout', 'account' => 'velox_account', 'withdraw' => 'velox_withdraw' );
+		if ( ! isset( $sc[ $key ] ) ) {
+			return 0;
+		}
+		if ( ! array_key_exists( $key, $found ) ) {
+			global $wpdb;
+			$found[ $key ] = (int) $wpdb->get_var( $wpdb->prepare( "SELECT ID FROM {$wpdb->posts} WHERE post_type = 'page' AND post_status = 'publish' AND post_content LIKE %s ORDER BY ID LIMIT 1", '%[' . $wpdb->esc_like( $sc[ $key ] ) . '%' ) );
+		}
+		return $found[ $key ];
 	}
 
 	public static function order_url( $o ) {
@@ -204,7 +221,8 @@ class Velox_Shop_Front {
 		if ( ! $q->have_posts() ) {
 			return $out . '<p class="vxs-empty">' . esc_html__( 'No products here yet.', 'velox' ) . '</p>';
 		}
-		$out .= '<div class="vxs-grid alignwide" style="--vxs-cols:' . max( 1, min( 6, (int) $a['columns'] ) ) . '">';
+		$ratio = Velox_Shop::card_ratio();
+		$out  .= '<div class="vxs-grid alignwide' . ( 'natural' === $ratio ? ' is-natural' : '' ) . '" style="--vxs-cols:' . max( 1, min( 6, (int) $a['columns'] ) ) . ( 'natural' === $ratio ? '' : ';--vxs-ratio:' . $ratio ) . '">';
 		while ( $q->have_posts() ) {
 			$q->the_post();
 			$out .= self::card( Velox_Shop::product( get_the_ID() ) );

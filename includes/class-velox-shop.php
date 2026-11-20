@@ -191,6 +191,7 @@ class Velox_Shop {
 			'withdraw_on'     => '1',
 			'withdraw_days'   => '14',
 			'setup_done'      => '',
+			'card_ratio'      => '', // '' = 4/5 (or the photos' own shape in shops from before 4.53) | 4/5 | 1/1 | natural
 		);
 	}
 
@@ -222,6 +223,24 @@ class Velox_Shop {
 		update_option( self::OPT, $new, false );
 		self::$settings = null;
 		return self::settings();
+	}
+
+	/** A shop from before 4.53 that has not been set up in the shop editor yet. */
+	public static function legacy_upgrade() {
+		static $is = null;
+		if ( null === $is ) {
+			$is = ! get_option( self::OPT ) && (bool) get_posts( array( 'post_type' => self::PRODUCT, 'post_status' => 'any', 'numberposts' => 1, 'fields' => 'ids' ) );
+		}
+		return $is;
+	}
+
+	/** How product photos sit in the grid. */
+	public static function card_ratio() {
+		$r = (string) self::get( 'card_ratio' );
+		if ( '' === $r ) {
+			$r = self::legacy_upgrade() ? 'natural' : '4/5';
+		}
+		return in_array( $r, array( '4/5', '1/1', '3/4', 'natural' ), true ) ? $r : '4/5';
 	}
 
 	public static function small_business() {

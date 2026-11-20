@@ -117,7 +117,9 @@ class Velox_Shop_Admin {
 		}
 		$methods = array();
 		foreach ( Velox_Shop_Pay::methods() as $k => $m ) {
-			$methods[] = array( 'key' => $k, 'title' => $m[0], 'desc' => $m[1] );
+			if ( 'manual' !== $k ) { // the fallback for shops from before 4.53 is not a setting
+				$methods[] = array( 'key' => $k, 'title' => $m[0], 'desc' => $m[1] );
+			}
 		}
 		return array(
 			'ajax'      => admin_url( 'admin-ajax.php' ),
@@ -301,6 +303,7 @@ class Velox_Shop_Admin {
 			'items'   => array_sum( array_map( function ( $i ) { return (int) $i['qty']; }, $o['items'] ) ),
 			'pay'     => $o['payment']['status'],
 			'method'  => $o['payment']['method'],
+			'methodLabel' => Velox_Shop_Pay::label( $o['payment']['method'] ),
 			'ful'     => $o['fulfil']['status'],
 			'country' => $o['ship_to'] ? $o['ship_to']['address']['country'] : $o['customer']['address']['country'],
 			'withdrawn' => ! empty( $o['withdrawal'] ),
