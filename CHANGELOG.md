@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.55.1 — Sticky headers inside a reusable stick
+- **Sticky header in a template:** a header built as a reusable (the usual way: header reusable → template) never stuck, because the reusable’s wrapper was exactly as tall as the header and a sticky element can only stick inside its parent. A reusable that holds the site header or footer no longer makes a box of its own.
+
 ## 4.55.0 — Header builder, off-canvas menu, motion tools, shop design system
 - **Header builder (a box set to "The site header"):** sticky from the start or appearing after a scroll distance (slide down or fade in, with its own speed), sticky only on tablet/desktop and up, hide on scroll down / show on scroll up (with a small buffer so it never jitters), a different look once scrolled (background, glass blur, text colour, bottom line, shadow, padding), a scroll progress line, transparent over the first section with its own text colour, and anchor links that stop below the header.
 - **Elements that follow the header:** anything inside the header can show only once scrolled, only before scrolling, only while transparent or never while transparent — e.g. a light and a dark logo that swap.

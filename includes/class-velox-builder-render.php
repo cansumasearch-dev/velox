@@ -3602,6 +3602,18 @@ class Velox_Builder_Render {
 			self::$reuse_stack[ $ref ] = true;
 			$inner = self::render_tree( $reuse['tree'], $reuse );
 			unset( self::$reuse_stack[ $ref ] );
+			// A site header or footer inside a reusable: the wrapper must not make
+			// a box of its own. A sticky header can only stick inside its parent,
+			// and a wrapper exactly as tall as the header gave it no room at all.
+			foreach ( $reuse['tree'] as $rn ) {
+				if ( is_array( $rn ) && in_array( $rn['hdr']['mode'] ?? '', array( 'header', 'footer' ), true ) ) {
+					$attr = self::wcls( $attr, 'vx-part-wrap' );
+					if ( false === strpos( self::$float_css, '.vx-part-wrap{' ) ) {
+						self::$float_css .= '.vx-part-wrap{display:contents}';
+					}
+					break;
+				}
+			}
 			return '<div' . $attr . ' data-velox-reusable="' . $ref . '">' . $inner . '</div>';
 		}
 
