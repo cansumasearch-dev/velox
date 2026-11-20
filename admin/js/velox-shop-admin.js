@@ -45,11 +45,16 @@
 			.then( function ( j ) { if ( ! j || ! j.success ) { throw new Error( ( j && j.data && j.data.message ) || vxT( 'Something went wrong.' ) ); } return j.data; } );
 	}
 	var toastT = null;
-	function toast( msg, bad ) {
+	function toast( msg, bad, act ) {
 		var t = document.getElementById( 'vsa-toast' );
 		if ( ! t ) { t = document.createElement( 'div' ); t.id = 'vsa-toast'; t.setAttribute( 'role', 'status' ); document.body.appendChild( t ); }
-		t.textContent = msg; t.className = 'vsa-toast is-on' + ( bad ? ' is-bad' : '' );
-		clearTimeout( toastT ); toastT = setTimeout( function () { t.className = 'vsa-toast'; }, bad ? 6000 : 3200 );
+		t.textContent = msg; t.className = 'vsa-toast is-on' + ( bad ? ' is-bad' : '' ) + ( act ? ' has-act' : '' );
+		if ( act ) {
+			var b = document.createElement( 'button' ); b.type = 'button'; b.className = 'vsa-toast-a'; b.textContent = act.label;
+			b.addEventListener( 'click', function () { clearTimeout( toastT ); t.className = 'vsa-toast'; act.fn(); } );
+			t.appendChild( b );
+		}
+		clearTimeout( toastT ); toastT = setTimeout( function () { t.className = 'vsa-toast'; }, bad ? 6000 : ( act ? 9000 : 3200 ) );
 	}
 	function fail( e ) { toast( e && e.message ? e.message : String( e ), true ); }
 
@@ -125,7 +130,20 @@
 	function empty( icon, title, text, action ) { return '<div class="vsa-empty">' + ic( icon, 28 ) + '<b>' + title + '</b>' + ( text ? '<p>' + text + '</p>' : '' ) + ( action || '' ) + '</div>'; }
 
 	/* small form builders — every input carries data-k (its key) */
-	function field( label, input, hint, cls ) { return '<label class="vsa-f' + ( cls ? ' ' + cls : '' ) + '"><span class="vsa-f-l">' + label + '</span>' + input + ( hint ? '<span class="vsa-f-h">' + hint + '</span>' : '' ) + '</label>'; }
+	// A <label> only around a real text field or select: clicking empty space
+	// next to a button, a picker or a group of choices must not "press" it.
+	function field( label, input, hint, cls ) {
+		var tag = /<(select|textarea)|<input(?![^>]*type="(hidden|color|checkbox|radio)")/.test( input ) && ! /<button/.test( input ) && 1 === ( input.match( /<(input|select|textarea)(?![^>]*type="(hidden|color)")/g ) || [] ).length ? 'label' : 'div';
+		return '<' + tag + ' class="vsa-f' + ( cls ? ' ' + cls : '' ) + '"><span class="vsa-f-l">' + label + '</span>' + input + ( hint ? '<span class="vsa-f-h">' + hint + '</span>' : '' ) + '</' + tag + '>';
+	}
+	/* One colour field: the swatch inside, the hex next to it, × back to the template. */
+	function colorF( k, v, ph, resettable ) {
+		v = v || '';
+		var shown = /^#[0-9a-f]{6}$/i.test( v || ph || '' ) ? ( v || ph ) : '#ffffff';
+		return '<div class="vsa-colorf' + ( v ? '' : ' is-tpl' ) + '"><input type="color" data-k="' + k + '" value="' + esc( shown ) + '">' +
+			'<input type="text" class="vsa-colorf-in" data-k="' + k + '" value="' + esc( v ) + '" placeholder="' + esc( ph || '' ) + '" spellcheck="false" autocomplete="off" aria-label="' + esc( vxT( 'Hex value' ) ) + '">' +
+			( resettable && v ? '<button type="button" class="vsa-colorf-x" data-act="d-reset" data-v="' + k + '" title="' + esc( vxT( 'Back to the template' ) ) + '" aria-label="' + esc( vxT( 'Back to the template' ) ) + '">' + ic( 'x', 13 ) + '</button>' : '' ) + '</div>';
+	}
 	function inp( k, v, o ) { o = o || {}; return '<input class="vsa-in' + ( o.cls ? ' ' + o.cls : '' ) + '" data-k="' + k + '" value="' + esc( v ) + '"' + ( o.ph ? ' placeholder="' + esc( o.ph ) + '"' : '' ) + ( o.type ? ' type="' + o.type + '"' : ' type="text"' ) + ( o.mode ? ' inputmode="' + o.mode + '"' : '' ) + ( o.attr || '' ) + '>' + ( o.suffix ? '<i class="vsa-sfx">' + esc( o.suffix ) + '</i>' : '' ); }
 	function area( k, v, rows, ph ) { return '<textarea class="vsa-in" data-k="' + k + '" rows="' + ( rows || 3 ) + '"' + ( ph ? ' placeholder="' + esc( ph ) + '"' : '' ) + '>' + esc( v ) + '</textarea>'; }
 	function sel( k, v, opts ) { return '<select class="vsa-in" data-k="' + k + '">' + opts.map( function ( o ) { return '<option value="' + esc( o[ 0 ] ) + '"' + ( String( v ) === String( o[ 0 ] ) ? ' selected' : '' ) + '>' + esc( o[ 1 ] ) + '</option>'; } ).join( '' ) + '</select>'; }
@@ -958,62 +976,129 @@
 		[ '.vxs-checkout', 'checkout' ], [ '.vxs-co-card', 'checkout boxes' ], [ '.vxs-cartbtn', 'cart button' ], [ '.vxs-count', 'cart count' ], [ '.vxs-drawer-p', 'mini cart' ]
 	];
 	var DS_VARS = [ '--vxs-accent', '--vxs-ink', '--vxs-ink-2', '--vxs-ink-3', '--vxs-line', '--vxs-soft', '--vxs-surface', '--vxs-bg', '--vxs-r', '--vxs-r-sm', '--vxs-btn-r', '--vxs-gap', '--vxs-cols' ];
-	function dsMock( v ) {
-		var bg = v.bg || '#f4f4f5', ink = v.ink || '#3f3f46', soft = v.soft || '#e4e4e7', line = v.line || '#d4d4d8', sur = v.surface || '#ffffff', r = Math.min( +v.radius || 0, 10 );
-		var list = 'list' === v.layout;
-		var one = function () {
-			var media = 'tile' === v.card
-				? '<i style="background:linear-gradient(' + ink + ',' + ink + ') center/44% 50% no-repeat,' + soft + ';border-radius:' + ( r / 2 ) + 'px"></i>'
-				: '<i style="background:' + soft + ';border-radius:' + ( r / 2 ) + 'px"></i>';
-			var lines = '<em style="background:' + ink + '"></em><em style="background:' + ink + ';opacity:.4;width:42%"></em>';
-			var box = 'surface' === v.card ? 'background:' + sur + ';border:1px solid ' + line + ';border-radius:' + r + 'px;padding:4px;' : '';
-			return '<span class="vsa-mk-c' + ( 'center' === v.align ? ' is-c' : '' ) + ( 'overlay' === v.card ? ' is-ov' : '' ) + '" style="' + box + '">' + media + lines + '</span>';
-		};
-		return '<span class="vsa-mk' + ( list ? ' is-list' : '' ) + '" style="background:' + bg + '" aria-hidden="true">' + one() + one() + ( list ? '' : one() ) + '</span>';
+	var DS_OLD = { gallery:'atelier', boutique:'candy', minimal:'maison', editorial:'journal', night:'noir' };
+	function dsStack( k ) {
+		var f = ( C.fonts || {} )[ k ]; if ( ! f ) { return 'inherit'; }
+		return '"' + f[ 0 ] + '",' + ( 'serif' === f[ 1 ] ? 'Georgia,serif' : ( 'mono' === f[ 1 ] ? 'ui-monospace,monospace' : 'system-ui,sans-serif' ) );
 	}
-	function dsVal( k, d ) { var v = SD[ 'd_' + k ]; return ( v === undefined || v === null || '' === String( v ) ) ? '' : String( v ); }
+	function dsFontName( k ) { var f = ( C.fonts || {} )[ k ]; return f ? f[ 0 ] : vxT( 'Site font' ); }
+	/* A small storefront drawn with the template's own colours, shapes and type. */
+	function dsMock( v ) {
+		var c = function ( x, d ) { return /^#[0-9a-f]{3,8}$/i.test( x || '' ) ? x : d; };
+		var bg = c( v.bg, '#ffffff' ), ink = c( v.ink, '#18181b' ), soft = c( v.soft, '#f1f1f3' ), sur = c( v.surface, bg ), line = c( v.line, '#e4e4e7' ), acc = c( v.accent, '#18181b' ), on = c( v.accent_ink, '#ffffff' );
+		var r = Math.min( +v.radius || 0, 14 ), br = 'pill' === v.btn_shape ? 99 : ( 'rounded' === v.btn_shape ? Math.max( 3, r / 2 ) : 0 );
+		var list = 'list' === v.layout, k = v.card || 'bare', pastel = [ '#fde2e4', '#e2ece9', '#fff1c1' ];
+		var tiles = [ 0, 1, 2 ].slice( 0, list ? 2 : 3 ).map( function ( i ) {
+			var ph = 'pastel' === v.img_bg ? pastel[ i ] : ( 'none' === v.img_bg ? sur : soft );
+			var obj = 'contain' === v.fit ? '<i class="vsa-mk2-o" style="background:' + ink + '"></i>' : '';
+			var box = 'boxed' === k || 'framed' === k ? 'background:' + sur + ';' + ( 'framed' === k ? 'box-shadow:0 0 0 1px ' + line + ';' : '' ) + 'border-radius:' + ( 'framed' === k ? 0 : r / 1.6 ) + 'px;padding:5px;' : '';
+			var btn = 'button' === v.button ? '<u style="background:' + acc + ';border-radius:' + br + 'px"></u>' : ( 'link' === v.button ? '<u class="is-link" style="border-color:' + ink + '"></u>' : '' );
+			return '<span class="vsa-mk2-c' + ( 'center' === v.align ? ' is-c' : '' ) + '" style="' + box + '"><span class="vsa-mk2-ph" style="background:' + ph + ';border-radius:' + ( 'framed' === k ? 0 : r / 2 ) + 'px">' + obj + '</span>' +
+				'<em style="background:' + ink + '"></em><em class="is-p" style="background:' + ( 'bold' === v.price ? ink : c( v.muted, ink ) ) + '"></em>' + btn + '</span>';
+		} ).join( '' );
+		return '<span class="vsa-mk2" style="background:' + bg + ';color:' + ink + '" aria-hidden="true">' +
+			'<span class="vsa-mk2-top" style="border-color:' + line + '"><b style="font-family:' + dsStack( v.font_h ) + ';font-weight:' + ( v.h_weight || 600 ) + ';' + ( 'upper' === v.h_case ? 'text-transform:uppercase;letter-spacing:.04em;' : '' ) + '">Aa</b><span class="vsa-mk2-nav"><i style="background:' + ink + '"></i><i style="background:' + ink + '"></i></span><i class="vsa-mk2-dot" style="background:' + acc + '"></i></span>' +
+			'<span class="vsa-mk2-g' + ( list ? ' is-list' : '' ) + '">' + tiles + '</span></span>';
+	}
+	function dsSwatches( v ) {
+		return '<span class="vsa-sw" aria-hidden="true">' + [ v.bg, v.surface !== v.bg ? v.surface : v.soft, v.ink, v.accent, v.sale ].filter( function ( x ) { return /^#/.test( x || '' ); } ).map( function ( x ) { return '<i style="background:' + x + '"></i>'; } ).join( '' ) + '</span>';
+	}
+	function dsCur( s ) { var D = C.designs || {}, k = DS_OLD[ s.design ] || s.design; return D[ k ] ? k : 'velox'; }
+	function dsVal( k ) { var v = SD[ 'd_' + k ]; return ( v === undefined || v === null || '' === String( v ) ) ? '' : String( v ); }
 	function dsSeg( k, opts, tpl ) {
 		var t = tpl[ k ], name = ( opts.filter( function ( o ) { return String( o[ 0 ] ) === String( t ); } )[ 0 ] || [ 0, t ] )[ 1 ];
 		return seg( 'd_' + k, dsVal( k ), [ [ '', vxT( 'Template' ) + ( name ? ' · ' + name : '' ) ] ].concat( opts ) );
 	}
-	function dsColor( k, label, tpl ) {
-		var v = dsVal( k ), ph = tpl[ k ] || vxT( 'site colour' );
-		return field( label, '<div class="vsa-row"><input type="color" class="vsa-color" data-k="d_' + k + '" value="' + esc( /^#[0-9a-f]{6}$/i.test( v || tpl[ k ] || '' ) ? ( v || tpl[ k ] ) : '#ffffff' ) + '">' + inp( 'd_' + k, v, { cls:'vsa-mono vsa-in-sm', ph:ph } ) + '</div>' );
+	function dsSel( k, opts, tpl ) {
+		var t = tpl[ k ], name = ( opts.filter( function ( o ) { return String( o[ 0 ] ) === String( t ); } )[ 0 ] || [ 0, t ] )[ 1 ];
+		// Letter spacing: templates use in-between values; name the nearest step.
+		if ( 'h_track' === k && '' !== String( t ) ) { var n = +t; name = n <= -0.025 ? vxT( 'Tight' ) : ( n <= -0.01 ? vxT( 'A little tight' ) : ( n < 0.01 ? vxT( 'Normal' ) : ( n < 0.04 ? vxT( 'A little wide' ) : vxT( 'Wide' ) ) ) ); }
+		return sel( 'd_' + k, dsVal( k ), [ [ '', vxT( 'Template' ) + ( name ? ' · ' + name : '' ) ] ].concat( opts ) );
+	}
+	function dsColor( k, label, tpl, hint ) { return field( label, colorF( 'd_' + k, dsVal( k ), tpl[ k ] || '', true ), hint ); }
+	function dsEff( k, tpl ) { var v = dsVal( k ); return '' !== v ? v : String( tpl[ k ] || '' ); }
+	function dsFonts( k, tpl ) {
+		var groups = { sans:vxT( 'Sans serif' ), serif:vxT( 'Serif' ), mono:vxT( 'Monospace' ) }, F = C.fonts || {}, t = tpl[ k ];
+		var h = '<select class="vsa-in" data-k="d_' + k + '"><option value=""' + ( dsVal( k ) ? '' : ' selected' ) + '>' + esc( vxT( 'Template' ) + ' · ' + dsFontName( t ) ) + '</option>';
+		Object.keys( groups ).forEach( function ( g ) {
+			h += '<optgroup label="' + esc( groups[ g ] ) + '">' + Object.keys( F ).filter( function ( x ) { return F[ x ][ 1 ] === g; } ).map( function ( x ) { return '<option value="' + esc( x ) + '"' + ( dsVal( k ) === x ? ' selected' : '' ) + '>' + esc( F[ x ][ 0 ] ) + '</option>'; } ).join( '' ) + '</optgroup>';
+		} );
+		return h + '</select>';
+	}
+	/* Picking a template starts clean: choices made on top of the old one are
+	 * cleared (otherwise "Noir" stays white), with Undo for a change of mind. */
+	function dsPick( k ) {
+		var before = {}, had = false;
+		Object.keys( SD ).forEach( function ( x ) { if ( /^d_/.test( x ) ) { before[ x ] = SD[ x ]; if ( '' !== String( SD[ x ] == null ? '' : SD[ x ] ) ) { had = true; } } } );
+		before.card_ratio = SD.card_ratio; before.design = SD.design; if ( SD.card_ratio ) { had = true; }
+		if ( k === dsCur( SD ) && ! had ) { return; }
+		SD.design = k; SD.card_ratio = '';
+		Object.keys( before ).forEach( function ( x ) { if ( /^d_/.test( x ) ) { SD[ x ] = ''; } } );
+		redrawSettings();
+		var name = ( ( C.designs || {} )[ k ] || {} ).name || k;
+		if ( had ) {
+			toast( vxT( '%s applied — your own changes to the old template were reset.' ).replace( '%s', name ), false, { label:vxT( 'Undo' ), fn:function () { Object.keys( before ).forEach( function ( x ) { SD[ x ] = before[ x ]; } ); redrawSettings(); } } );
+		} else {
+			toast( vxT( '%s applied. Save to put it live.' ).replace( '%s', name ) );
+		}
 	}
 	function dsBody( s ) {
-		var D = C.designs || {}, cur = D[ s.design ] ? s.design : 'velox', tpl = ( D[ cur ] || { v:{} } ).v;
+		var D = C.designs || {}, cur = dsCur( s ), tpl = ( D[ cur ] || { v:{} } ).v;
+		var own = Object.keys( s ).filter( function ( x ) { return /^d_/.test( x ) && '' !== String( s[ x ] == null ? '' : s[ x ] ); } ).length;
 		var tiles = Object.keys( D ).map( function ( k ) {
-			return '<button type="button" class="vsa-tpl' + ( k === cur ? ' is-on' : '' ) + '" data-seg="design" data-v="' + esc( k ) + '" aria-pressed="' + ( k === cur ) + '">' + dsMock( D[ k ].v ) + '<b>' + esc( D[ k ].name ) + '</b><small>' + esc( D[ k ].desc ) + '</small></button>';
+			var t = D[ k ], on = k === cur;
+			return '<button type="button" class="vsa-tpl' + ( on ? ' is-on' : '' ) + '" data-act="d-tpl" data-v="' + esc( k ) + '" aria-pressed="' + on + '">' + dsMock( t.v ) +
+				'<span class="vsa-tpl-h"><b>' + esc( t.name ) + '</b>' + ( on ? '<span class="vsa-chip is-ok">' + vxT( 'In use' ) + '</span>' : dsSwatches( t.v ) ) + '</span>' +
+				'<small>' + esc( t.desc ) + '</small><span class="vsa-tpl-f">' + ic( 'file', 12 ) + esc( t.fonts ) + '<i>' + esc( t.mood ) + '</i></span></button>';
 		} ).join( '' );
 		var yn = [ [ '1', vxT( 'Show' ) ], [ '0', vxT( 'Hide' ) ] ];
+		var fit = dsEff( 'fit', tpl ), kind = dsEff( 'card', tpl );
 		setTimeout( dsPreviewSoon, 0 );
-		return card( vxT( 'Template' ), '<div class="vsa-tpls">' + tiles + '</div><p class="vsa-hint">' + vxT( 'A template sets every choice below. Change any of them on top — “Template” keeps its value.' ) + '</p>' ) +
+		return card( vxT( 'Template' ), '<div class="vsa-tpls">' + tiles + '</div>' +
+				( own ? '<div class="vsa-tpl-own">' + ic( 'brush', 14 ) + '<span>' + vxT( '%d choices changed on top of the template.' ).replace( '%d', own ) + '</span><button type="button" class="vsa-link" data-act="d-clear">' + vxT( 'Back to the pure template' ) + '</button></div>' : '<p class="vsa-hint">' + vxT( 'A template sets every choice below. Change any of them on top — “Template” keeps its value. Picking another template starts fresh.' ) + '</p>' ) ) +
 			card( vxT( 'Preview' ), '<div class="vsa-dprev"><iframe id="vsa-dprev" title="' + esc( vxT( 'Preview' ) ) + '"></iframe></div><p class="vsa-hint">' + vxT( 'Your real products, drawn with the choices on this page. Save to put them live.' ) + '</p>', { cls:'vsa-dprev-card', right:'<div class="vsa-seg vsa-dprev-dev">' + [ [ 1280, vxT( 'Desktop' ) ], [ 820, vxT( 'Tablet' ) ], [ 390, vxT( 'Phone' ) ] ].map( function ( o ) { return '<button type="button" data-act="dprev-dev" data-v="' + o[ 0 ] + '" class="' + ( dsDev === o[ 0 ] ? 'is-on' : '' ) + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div>' } ) +
+			card( vxT( 'Colours' ),
+				'<div class="vsa-fr vsa-fr3">' + dsColor( 'bg', vxT( 'Page' ), tpl ) + dsColor( 'surface', vxT( 'Cards' ), tpl ) + dsColor( 'soft', vxT( 'Photo backdrop' ), tpl ) +
+				dsColor( 'ink', vxT( 'Text' ), tpl ) + dsColor( 'muted', vxT( 'Quiet text' ), tpl ) + dsColor( 'line', vxT( 'Lines' ), tpl ) +
+				dsColor( 'accent', vxT( 'Buttons' ), tpl ) + dsColor( 'accent_ink', vxT( 'Text on buttons' ), tpl ) + dsColor( 'sale', vxT( 'Sale price' ), tpl ) + '</div>' +
+				field( vxT( 'Page background' ), dsSeg( 'page_bg', [ [ '1', vxT( 'Shop pages in the template colour' ) ], [ '0', vxT( 'Keep the site’s background' ) ] ], tpl ), vxT( 'For dark or tinted templates: the whole page behind the shop takes the colour, not just the shop parts.' ) ) ) +
+			card( vxT( 'Typography' ),
+				'<div class="vsa-fr">' + field( vxT( 'Headings' ), dsFonts( 'font_h', tpl ) ) + field( vxT( 'Text' ), dsFonts( 'font_b', tpl ) ) + '</div>' +
+				'<div class="vsa-fr">' + field( vxT( 'Heading weight' ), dsSeg( 'h_weight', [ [ '400', vxT( 'Regular' ) ], [ '500', vxT( 'Medium' ) ], [ '600', vxT( 'Semi-bold' ) ], [ '700', vxT( 'Bold' ) ] ], tpl ) ) +
+				field( vxT( 'Headings in' ), dsSeg( 'h_case', [ [ 'none', vxT( 'Normal case' ) ], [ 'upper', vxT( 'Capitals' ) ] ], tpl ) ) + '</div>' +
+				'<div class="vsa-fr">' + field( vxT( 'Letter spacing in headings' ), dsSel( 'h_track', [ [ '-0.03', vxT( 'Tight' ) ], [ '-0.015', vxT( 'A little tight' ) ], [ '0', vxT( 'Normal' ) ], [ '0.02', vxT( 'A little wide' ) ], [ '0.06', vxT( 'Wide' ) ] ], tpl ) ) +
+				field( vxT( 'Small labels' ), dsSeg( 'label', [ [ 'none', vxT( 'Normal' ) ], [ 'upper', vxT( 'Spaced capitals' ) ] ], tpl ), vxT( 'Category, badges and option names.' ) ) + '</div>' +
+				'<p class="vsa-hint">' + vxT( 'Fonts are downloaded once and served from your own site — no visitor ever connects to Google.' ) + '</p>' ) +
 			card( vxT( 'Product grid' ),
 				field( vxT( 'Layout' ), dsSeg( 'layout', [ [ 'grid', vxT( 'Grid' ) ], [ 'masonry', vxT( 'Masonry' ) ], [ 'list', vxT( 'List' ) ], [ 'row', vxT( 'Scroll row' ) ] ], tpl ) ) +
-				'<div class="vsa-fr">' + field( vxT( 'Columns on desktop' ), sel( 'd_cols', dsVal( 'cols' ), [ [ '', vxT( 'Template' ) + ' · ' + tpl.cols ] ].concat( [ 1, 2, 3, 4, 5, 6 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ) ) ) ) +
-				field( vxT( 'on tablets' ), sel( 'd_cols_t', dsVal( 'cols_t' ), [ [ '', vxT( 'Template' ) + ' · ' + tpl.cols_t ] ].concat( [ 1, 2, 3, 4 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ) ) ) ) +
-				field( vxT( 'on phones' ), sel( 'd_cols_m', dsVal( 'cols_m' ), [ [ '', vxT( 'Template' ) + ' · ' + tpl.cols_m ], [ '1', '1' ], [ '2', '2' ] ] ) ) +
-				field( vxT( 'Space between' ), inp( 'd_gap', dsVal( 'gap' ), { ph:tpl.gap, suffix:'px', mode:'numeric' } ) ) + '</div>' +
-				field( vxT( 'Each product as' ), dsSeg( 'card', [ [ 'plain', vxT( 'Photo and text' ) ], [ 'surface', vxT( 'A card' ) ], [ 'tile', vxT( 'On a tile, uncropped' ) ], [ 'overlay', vxT( 'Text on the photo' ) ], [ 'split', vxT( 'Side by side' ) ] ], tpl ) ) +
-				'<div class="vsa-fr">' + field( vxT( 'Photo shape' ), seg( 'card_ratio', s.card_ratio || '', [ [ '', vxT( 'Automatic' ) ], [ '4/5', '4:5' ], [ '1/1', '1:1' ], [ '3/4', '3:4' ], [ 'natural', vxT( 'Their own shape' ) ] ] ) ) +
+				'<div class="vsa-fr vsa-fr3">' + field( vxT( 'Columns on desktop' ), dsSel( 'cols', [ 1, 2, 3, 4, 5, 6 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ), tpl ) ) +
+				field( vxT( 'on tablets' ), dsSel( 'cols_t', [ 1, 2, 3, 4 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ), tpl ) ) +
+				field( vxT( 'on phones' ), dsSel( 'cols_m', [ [ '1', '1' ], [ '2', '2' ] ], tpl ) ) + '</div>' +
+				'<div class="vsa-fr">' + field( vxT( 'Space between columns' ), inp( 'd_gap', dsVal( 'gap' ), { ph:tpl.gap, suffix:'px', mode:'numeric' } ) ) +
+				field( vxT( 'Space between rows' ), inp( 'd_gap_row', dsVal( 'gap_row' ), { ph:tpl.gap_row, suffix:'px', mode:'numeric' } ) ) + '</div>' +
+				field( vxT( 'Each product as' ), dsSeg( 'card', [ [ 'bare', vxT( 'Photo and text' ) ], [ 'tile', vxT( 'On a tile' ) ], [ 'boxed', vxT( 'A card' ) ], [ 'framed', vxT( 'Framed' ) ], [ 'overlay', vxT( 'Text on the photo' ) ], [ 'split', vxT( 'Side by side' ) ] ], tpl ) ) +
+				'<div class="vsa-fr">' + field( vxT( 'Photo shape' ), dsSel( 'ratio', [ [ '4/5', '4:5 ' + vxT( 'portrait' ) ], [ '3/4', '3:4' ], [ '2/3', '2:3' ], [ '1/1', '1:1 ' + vxT( 'square' ) ], [ '4/3', '4:3 ' + vxT( 'landscape' ) ], [ 'natural', vxT( 'Their own shape' ) ] ], tpl ) ) +
 				field( vxT( 'Photo in its frame' ), dsSeg( 'fit', [ [ 'cover', vxT( 'Fill' ) ], [ 'contain', vxT( 'Whole photo' ) ] ], tpl ) ) + '</div>' +
-				field( vxT( 'On hover' ), dsSeg( 'hover', [ [ 'swap', vxT( 'Second photo' ) ], [ 'zoom', vxT( 'Zoom' ) ], [ 'lift', vxT( 'Lift' ) ], [ 'none', vxT( 'Nothing' ) ] ], tpl ) ) +
-				'<div class="vsa-fr">' + field( vxT( 'Text' ), dsSeg( 'align', [ [ 'left', vxT( 'Left' ) ], [ 'center', vxT( 'Centred' ) ] ], tpl ) ) +
+				'<div class="vsa-fr">' + field( vxT( 'Behind the photo' ), dsSeg( 'img_bg', [ [ 'soft', vxT( 'Backdrop colour' ) ], [ 'surface', vxT( 'Card colour' ) ], [ 'pastel', vxT( 'Pastels' ) ], [ 'none', vxT( 'Nothing' ) ] ], tpl ) ) +
+				( 'contain' === fit || 'tile' === kind ? field( vxT( 'Space around the photo' ), inp( 'd_img_pad', dsVal( 'img_pad' ), { ph:tpl.img_pad, suffix:'%', mode:'numeric' } ) ) : '' ) + '</div>' +
+				field( vxT( 'On hover' ), dsSeg( 'hover', [ [ 'swap', vxT( 'Second photo' ) ], [ 'fade', vxT( 'Fade to second' ) ], [ 'zoom', vxT( 'Zoom' ) ], [ 'lift', vxT( 'Lift' ) ], [ 'shadow', vxT( 'Shadow' ) ], [ 'glow', vxT( 'Glow' ) ], [ 'none', vxT( 'Nothing' ) ] ], tpl ) ) +
+				'<div class="vsa-fr vsa-fr3">' + field( vxT( 'Text' ), dsSeg( 'align', [ [ 'left', vxT( 'Left' ) ], [ 'center', vxT( 'Centred' ) ] ], tpl ) ) +
 				field( vxT( 'Category above the name' ), dsSeg( 'show_cat', yn, tpl ) ) + field( vxT( 'Short description' ), dsSeg( 'show_text', yn, tpl ) ) + '</div>' +
-				field( vxT( 'Buy button' ), dsSeg( 'button', [ [ 'button', vxT( 'Button' ) ], [ 'icon', vxT( 'Icon' ) ], [ 'link', vxT( 'Text link' ) ], [ 'none', vxT( 'None — the card links' ) ] ], tpl ) ) ) +
-			card( vxT( 'Buttons & colours' ),
+				'<div class="vsa-fr">' + field( vxT( 'Price' ), dsSeg( 'price', [ [ 'regular', vxT( 'Regular' ) ], [ 'bold', vxT( 'Bold' ) ], [ 'mono', vxT( 'Typewriter' ) ] ], tpl ) ) +
+				field( vxT( 'Buy button' ), dsSeg( 'button', [ [ 'button', vxT( 'Button' ) ], [ 'icon', vxT( 'Icon' ) ], [ 'link', vxT( 'Text link' ) ], [ 'none', vxT( 'None — the card links' ) ] ], tpl ) ) + '</div>' +
+				'<div class="vsa-fr">' + field( vxT( 'Badges (Sale, New, Sold)' ), dsSeg( 'badge', [ [ 'pill', vxT( 'Pill' ) ], [ 'square', vxT( 'Solid block' ) ], [ 'text', vxT( 'Just text' ) ] ], tpl ) ) +
+				field( vxT( 'Badge position' ), dsSeg( 'badge_pos', [ [ 'tl', vxT( 'Top left' ) ], [ 'tr', vxT( 'Top right' ) ] ], tpl ) ) + '</div>' ) +
+			card( vxT( 'Buttons' ),
 				'<div class="vsa-fr">' + field( vxT( 'Button shape' ), dsSeg( 'btn_shape', [ [ 'pill', vxT( 'Pill' ) ], [ 'rounded', vxT( 'Rounded' ) ], [ 'square', vxT( 'Square' ) ] ], tpl ) ) +
-				field( vxT( 'Buttons in the grid' ), dsSeg( 'btn_style', [ [ 'solid', vxT( 'Filled' ) ], [ 'outline', vxT( 'Outline' ) ] ], tpl ) ) +
-				field( vxT( 'Corner radius' ), inp( 'd_radius', dsVal( 'radius' ), { ph:tpl.radius, suffix:'px', mode:'numeric' } ) ) + '</div>' +
-				'<div class="vsa-fr">' + field( vxT( 'Accent colour' ), '<div class="vsa-row"><input type="color" class="vsa-color" data-k="accent" value="' + esc( s.accent ) + '">' + inp( 'accent', s.accent, { cls:'vsa-mono vsa-in-sm' } ) + '</div>' ) +
-				dsColor( 'ink', vxT( 'Text' ), tpl ) + dsColor( 'bg', vxT( 'Background' ), tpl ) + '</div>' +
-				'<div class="vsa-fr">' + dsColor( 'surface', vxT( 'Cards' ), tpl ) + dsColor( 'soft', vxT( 'Soft areas' ), tpl ) + dsColor( 'line', vxT( 'Lines' ), tpl ) + '</div>' ) +
+				field( vxT( 'Buttons in the grid' ), dsSeg( 'btn_style', [ [ 'solid', vxT( 'Filled' ) ], [ 'outline', vxT( 'Outline' ) ] ], tpl ) ) + '</div>' +
+				'<div class="vsa-fr">' + field( vxT( 'Button text' ), dsSeg( 'btn_case', [ [ 'none', vxT( 'Normal' ) ], [ 'upper', vxT( 'Capitals' ) ] ], tpl ) ) +
+				field( vxT( 'Corner radius' ), inp( 'd_radius', dsVal( 'radius' ), { ph:tpl.radius, suffix:'px', mode:'numeric' } ), vxT( 'Cards, photos and fields.' ) ) + '</div>' ) +
 			card( vxT( 'Product page' ),
 				field( vxT( 'Layout' ), dsSeg( 'product', [ [ 'split', vxT( 'Photos left' ) ], [ 'split-reverse', vxT( 'Photos right' ) ], [ 'wide', vxT( 'Big photos' ) ], [ 'stacked', vxT( 'Photos on top' ) ] ], tpl ) ) +
 				field( vxT( 'Photos' ), dsSeg( 'gallery', [ [ 'below', vxT( 'Thumbnails below' ) ], [ 'side', vxT( 'Thumbnails at the side' ) ], [ 'stack', vxT( 'All stacked' ) ], [ 'grid', vxT( 'Photo grid' ) ] ], tpl ) ) +
 				'<div class="vsa-fr">' + field( vxT( 'While scrolling' ), dsSeg( 'sticky', [ [ '1', vxT( 'Stays in view' ) ], [ '0', vxT( 'Scrolls along' ) ] ], tpl ) ) +
-				field( vxT( 'Details' ), dsSeg( 'details', [ [ 'sections', vxT( 'All open' ) ], [ 'accordion', vxT( 'Fold out' ) ] ], tpl ) ) + '</div>' ) +
+				field( vxT( 'Details' ), dsSeg( 'details', [ [ 'sections', vxT( 'All open' ) ], [ 'accordion', vxT( 'Fold out' ) ] ], tpl ) ) + '</div>' +
+				'<p class="vsa-hint">' + vxT( 'Buy bar, full-screen photos, related products and reasons to buy are under Storefront.' ) + ' <a href="#/settings/storefront">' + vxT( 'Open Storefront' ) + '</a></p>' ) +
 			card( vxT( 'Cart & checkout' ),
 				'<div class="vsa-fr">' + field( vxT( 'Checkout' ), dsSeg( 'checkout', [ [ 'two', vxT( 'Two columns' ) ], [ 'one', vxT( 'One column' ) ] ], tpl ) ) +
 				field( vxT( 'Cart icon' ), dsSeg( 'cart_icon', [ [ 'bag', vxT( 'Bag' ) ], [ 'cart', vxT( 'Cart' ) ], [ 'basket', vxT( 'Basket' ) ] ], tpl ) ) + '</div>' +
@@ -1024,6 +1109,26 @@
 				'<details class="vsa-ref"><summary>' + vxT( 'Every part you can style' ) + '</summary><div class="vsa-ref-g">' +
 				DS_CLASSES.map( function ( c ) { return '<button type="button" class="vsa-ref-i" data-act="css-ins" data-v="' + esc( c[ 0 ] ) + '"><code>' + esc( c[ 0 ] ) + '</code><span>' + esc( vxT( c[ 1 ] ) ) + '</span></button>'; } ).join( '' ) +
 				'</div><p class="vsa-hint">' + vxT( 'Variables for colours and sizes:' ) + ' ' + DS_VARS.map( function ( v ) { return '<code>' + v + '</code>'; } ).join( ' ' ) + '</p></details>' );
+	}
+	/* Settings → Storefront: how the shop behaves, not how it looks. */
+	function sfBody( s ) {
+		var on1 = function ( k ) { return '1' === String( s[ k ] ); };
+		return card( vxT( 'Adding to the cart' ),
+				field( vxT( 'After “Add to cart”' ), seg( 'after_add', s.after_add || 'drawer', [ [ 'drawer', vxT( 'Open the mini cart' ) ], [ 'stay', vxT( 'Stay, show a short note' ) ], [ 'cart', vxT( 'Go to the cart page' ) ] ] ) ) +
+				tog( 'buy_bar', on1( 'buy_bar' ), vxT( 'Buy bar on product pages' ), vxT( 'Price and button stay in reach once the visitor scrolls past them — at the bottom on phones, floating on larger screens.' ) ) ) +
+			card( vxT( 'Shop page' ),
+				'<div class="vsa-fr">' + field( vxT( 'Products before “Show more”' ), sel( 'per_page', String( s.per_page || 24 ), [ 8, 12, 16, 20, 24, 32, 48, 60 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ) ) ) +
+				field( vxT( '“New” badge' ), sel( 'new_days', String( s.new_days || 0 ), [ [ '0', vxT( 'Off' ) ], [ '7', vxT( 'First 7 days' ) ], [ '14', vxT( 'First 14 days' ) ], [ '30', vxT( 'First 30 days' ) ], [ '60', vxT( 'First 60 days' ) ] ] ), vxT( 'Sale, sold and few-left badges come first.' ) ) + '</div>' +
+				tog( 'grid_sort', on1( 'grid_sort' ), vxT( 'Sort menu' ), vxT( 'Recommended, newest, price up or down, name.' ) ) +
+				tog( 'grid_search', on1( 'grid_search' ), vxT( 'Search field' ), vxT( 'Worth it from about 30 products.' ) ) +
+				'<p class="vsa-hint">' + vxT( 'On the shop page the product count, categories, sorting and search sit above the grid. Every choice stays in the address, so Back and shared links land in the same place.' ) + '</p>' ) +
+			card( vxT( 'Product pages' ),
+				tog( 'zoom', on1( 'zoom' ), vxT( 'Photos open full screen' ), vxT( 'Click or tap a photo; arrows, swipe and Esc work.' ) ) +
+				tog( 'related', on1( 'related' ), vxT( 'More from the same category' ), vxT( 'Under products without hand-picked suggestions.' ) ) +
+				field( vxT( 'Reasons to buy' ), area( 'usp', s.usp || '', 4, [ vxT( 'Free shipping from €50' ), vxT( '30 days to return' ), vxT( 'Secure payment with PayPal and card' ) ].join( '\n' ) ), vxT( 'One per line, up to six, under the buy button. The icon follows the words: shipping, returns, payment, gift, handmade.' ) ) ) +
+			card( vxT( 'Notice bar' ),
+				tog( 'notice_on', on1( 'notice_on' ), vxT( 'A slim bar across the top of every page' ), vxT( 'Free shipping, a sale, holidays. Visitors can close it.' ) ) +
+				( on1( 'notice_on' ) ? field( vxT( 'Message' ), area( 'notice_text', s.notice_text || '', 3, vxT( 'Free shipping in Germany from €50' ) ), vxT( 'Several lines take turns every five seconds.' ) ) + field( vxT( 'Link' ), inp( 'notice_link', s.notice_link || '', { ph:'https://…', type:'url' } ), vxT( 'Optional — the whole message becomes a link.' ) ) : '' ) );
 	}
 	var dsTimer = 0, dsSeq = 0, dsDev = 1280;
 	// The preview renders at a real device width and is scaled down to fit.
@@ -1055,12 +1160,14 @@
 	/* ============================================================ SETTINGS */
 
 	var SECTIONS = [
-		[ 'store', 'store', vxT( 'Store' ) ], [ 'design', 'brush', vxT( 'Design' ) ], [ 'taxes', 'receipt', vxT( 'Taxes' ) ], [ 'shipping', 'truck', vxT( 'Shipping' ) ], [ 'payments', 'card', vxT( 'Payments' ) ],
+		[ 'store', 'store', vxT( 'Store' ) ], [ 'design', 'brush', vxT( 'Design' ) ], [ 'storefront', 'layers', vxT( 'Storefront' ) ], [ 'taxes', 'receipt', vxT( 'Taxes' ) ], [ 'shipping', 'truck', vxT( 'Shipping' ) ], [ 'payments', 'card', vxT( 'Payments' ) ],
 		[ 'checkout', 'bag', vxT( 'Checkout' ) ], [ 'emails', 'mail', vxT( 'Emails' ) ], [ 'pages', 'scale', vxT( 'Pages & legal' ) ], [ 'stock', 'box', vxT( 'Stock & products' ) ]
 	];
 	var SD = null, SDclean = '';
 	function settings() {
-		SD = JSON.parse( JSON.stringify( S ) ); SDclean = JSON.stringify( SD ); dirty = false;
+		SD = JSON.parse( JSON.stringify( S ) );
+		if ( DS_OLD[ SD.design ] ) { SD.design = DS_OLD[ SD.design ]; if ( ! SD.d_accent && SD.accent ) { SD.d_accent = SD.accent; } }
+		SDclean = JSON.stringify( SD ); dirty = false;
 		var sec = route.id || 'store';
 		var h = head( vxT( 'Settings' ), '', '' ) + '<div class="vsa-set"><nav class="vsa-setnav">' + SECTIONS.map( function ( s ) { return '<a href="#/settings/' + s[ 0 ] + '" class="' + ( s[ 0 ] === sec ? 'is-on' : '' ) + '">' + ic( s[ 1 ], 15 ) + esc( s[ 2 ] ) + '</a>'; } ).join( '' ) + '</nav><div class="vsa-setb" id="vsa-setb">' + settingsBody( sec ) + '</div></div>' +
 			'<div class="vsa-savebar" id="vsa-savebar"><span class="vsa-savebar-t">' + ic( 'clock', 14 ) + vxT( 'Unsaved changes' ) + '</span><button type="button" class="vsa-btn vsa-btn-ghost" data-act="s-reset">' + vxT( 'Discard' ) + '</button><button type="button" class="vsa-btn vsa-btn-pri" data-act="s-save">' + ic( 'check', 15 ) + vxT( 'Save' ) + '</button></div>';
@@ -1083,11 +1190,13 @@
 					'<div class="vsa-fr">' + field( vxT( 'VAT ID' ), inp( 'store_vat_id', s.store_vat_id, { ph:'DE123456789' } ) ) + field( vxT( 'Tax number' ), inp( 'store_tax_no', s.store_tax_no, { ph:vxT( 'optional' ) } ) ) + '</div>' +
 					field( vxT( 'Country of your business' ), sel( 'store_country', s.store_country, cs ) ) ) +
 					card( vxT( 'Look' ), '<div class="vsa-fr">' + field( vxT( 'Logo for emails and invoices' ), '<div class="vsa-logo">' + ( s.logo_url ? '<img src="' + esc( s.logo_url ) + '" alt="">' : '' ) + '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="s-logo">' + ( s.logo_url ? vxT( 'Change' ) : vxT( 'Choose' ) ) + '</button>' + ( s.logo_url ? '<button type="button" class="vsa-link" data-act="s-logo-x">' + vxT( 'Remove' ) + '</button>' : '' ) + '</div>' ) +
-					field( vxT( 'Accent colour' ), '<div class="vsa-row"><input type="color" class="vsa-color" data-k="accent" value="' + esc( s.accent ) + '">' + inp( 'accent', s.accent, { cls:'vsa-mono vsa-in-sm' } ) + '</div>', vxT( 'Buttons in the shop and in emails.' ) ) + '</div>' +
-					'<p class="vsa-hint">' + vxT( 'Layout, photo shapes and colours of the storefront are under Design.' ) + ' <a href="#/settings/design">' + vxT( 'Open Design' ) + '</a></p>' ) +
+					field( vxT( 'Accent colour' ), colorF( 'accent', s.accent, '#0a6f9f' ), vxT( 'Buttons and links in emails and on invoices.' ) ) + '</div>' +
+					'<p class="vsa-hint">' + vxT( 'The storefront’s colours, fonts and layout are under Design.' ) + ' <a href="#/settings/design">' + vxT( 'Open Design' ) + '</a></p>' ) +
 					card( vxT( 'Money' ), '<div class="vsa-fr">' + field( vxT( 'Currency' ), sel( 'currency', s.currency, [ [ 'EUR', 'Euro (EUR)' ], [ 'CHF', 'Franken (CHF)' ], [ 'GBP', 'Pound (GBP)' ], [ 'USD', 'Dollar (USD)' ] ] ) ) + field( vxT( 'Symbol' ), inp( 'symbol', s.symbol, { cls:'vsa-in-sm' } ) ) + field( vxT( 'Position' ), sel( 'symbol_pos', s.symbol_pos, [ [ 'right', '49,90 ' + s.symbol ], [ 'left', s.symbol + ' 49,90' ] ] ) ) + '</div>' );
 			case 'design':
 				return dsBody( s );
+			case 'storefront':
+				return sfBody( s );
 			case 'taxes':
 				return card( vxT( 'VAT' ), seg( 'tax_mode', s.tax_mode, [ [ 'standard', vxT( 'Prices include VAT' ), 'receipt' ], [ 'small', vxT( 'Small business — no VAT' ), 'shield' ] ] ) +
 					( 'standard' === s.tax_mode
@@ -1249,6 +1358,12 @@
 		}
 		if ( 's-reset' === act ) { SD = JSON.parse( SDclean ); redrawSettings(); return; }
 		if ( 's-pages' === act ) { a.disabled = true; api( 'create_pages', {} ).then( function ( r ) { S = r.settings; C.pages = r.pages; Object.keys( r.settings ).forEach( function ( k ) { if ( /^page_/.test( k ) ) { SD[ k ] = r.settings[ k ]; } } ); SDclean = JSON.stringify( Object.assign( JSON.parse( SDclean ), Object.keys( r.settings ).filter( function ( k ) { return /^page_/.test( k ); } ).reduce( function ( o, k ) { o[ k ] = r.settings[ k ]; return o; }, {} ) ) ); redrawSettings(); toast( r.made.length ? vxT( 'Created:' ) + ' ' + r.made.join( ', ' ) : vxT( 'All pages exist already.' ) ); } ).catch( fail ); return; }
+		if ( 'd-reset' === act ) { SD[ a.getAttribute( 'data-v' ) ] = ''; redrawSettings(); return; }
+		if ( 'd-tpl' === act ) { dsPick( a.getAttribute( 'data-v' ) ); return; }
+		if ( 'd-clear' === act ) {
+			var keep = {}; Object.keys( SD ).forEach( function ( x ) { if ( /^d_/.test( x ) ) { keep[ x ] = SD[ x ]; SD[ x ] = ''; } } ); keep.card_ratio = SD.card_ratio; SD.card_ratio = '';
+			redrawSettings(); toast( vxT( 'Back to the pure template.' ), false, { label:vxT( 'Undo' ), fn:function () { Object.keys( keep ).forEach( function ( x ) { SD[ x ] = keep[ x ]; } ); redrawSettings(); } } ); return;
+		}
 		if ( 's-logo' === act ) { pickMedia( { title:vxT( 'Choose a logo' ) }, function ( sel ) { SD.logo = sel[ 0 ].id; SD.logo_url = sel[ 0 ].url; redrawSettings(); } ); return; }
 		if ( 's-logo-x' === act ) { SD.logo = 0; SD.logo_url = ''; redrawSettings(); return; }
 		if ( 'z-add' === act ) { SD.zones = ( SD.zones || [] ).concat( [ { id:'z' + Date.now().toString( 36 ), name:'', countries:[], rates:[ { id:'r' + Date.now().toString( 36 ), name:vxT( 'Standard shipping' ), cost:'4.90', free_above:'', days:'' } ] } ] ); redrawSettings(); return; }
@@ -1333,9 +1448,10 @@
 		if ( 'settings' === route.name && SD ) {
 			var sk = t.getAttribute( 'data-k' );
 			if ( sk ) {
-				if ( 'checkbox' === t.type ) { SD[ sk ] = t.checked ? '1' : ''; if ( /^pay_|^pickup$|^auto_layout$/.test( sk ) ) { redrawSettings(); return; } }
-				else { SD[ sk ] = /^page_/.test( sk ) ? +t.value : t.value; if ( 'accent' === sk || /^d_(ink|surface|line|soft|bg)$/.test( sk ) ) { [].forEach.call( main().querySelectorAll( '[data-k="' + sk + '"]' ), function ( x ) { if ( x !== t && ( 'color' !== x.type || /^#[0-9a-f]{6}$/i.test( t.value ) ) ) { x.value = t.value; } } ); } }
+				if ( 'checkbox' === t.type ) { SD[ sk ] = t.checked ? '1' : ''; if ( /^pay_|^pickup$|^auto_layout$|^notice_on$/.test( sk ) ) { redrawSettings(); return; } }
+				else { SD[ sk ] = /^page_/.test( sk ) ? +t.value : t.value; if ( 'accent' === sk || /^d_(ink|surface|line|soft|bg|muted|accent|accent_ink|sale)$/.test( sk ) ) { [].forEach.call( main().querySelectorAll( '[data-k="' + sk + '"]' ), function ( x ) { if ( x !== t && ( 'color' !== x.type || /^#[0-9a-f]{6}$/i.test( t.value ) ) ) { x.value = t.value; } } ); } }
 				if ( /^page_/.test( sk ) ) { redrawSettings(); return; }
+				if ( /^d_font_/.test( sk ) ) { redrawSettings(); return; }
 				sdirty(); return;
 			}
 			var z = t.getAttribute( 'data-z' );

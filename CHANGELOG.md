@@ -4,6 +4,21 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.61.0 — Shop design system, storefront tools, a real colour picker
+- **Ten new shop templates, built from real shops:** Velox, Atelier (art and handmade), Nordic (home and furniture), Maison (fragrance, beauty, jewellery), Journal (editorial rows), Bold (streetwear, sport), Candy (beauty, kids, gifts), Circuit (tech), Noir (a truly dark shop) and Manufaktur (tools, kitchen) — plus “Your own design”, which takes the site’s colours and fonts. Each one is a complete set: colours, fonts, card style, photo shape, buttons, badges, hover and product page.
+- **Noir is really dark now:** the whole shop page takes the template’s colour (switchable), and text, badges, fields and the mini cart stay readable on it. Before, choices made on an earlier template kept “Night” white.
+- **Picking a template starts fresh:** your own changes to the previous template are cleared, with Undo in the message. A line shows how many choices you changed on top of the template, with a link back to the pure template.
+- **Fonts, self-hosted:** 25 fonts to choose from for headings and text. They are downloaded once by your server and served from your own site — no visitor ever connects to Google.
+- **Many more design choices:** quiet text, text on buttons and sale colour; heading weight, capitals and letter spacing; small labels in spaced capitals; space between rows; card styles (photo and text, tile, card, framed, text on the photo, side by side); what sits behind the photo (backdrop, card colour, pastels) and space around it; hover effects (second photo, fade, zoom, lift, shadow, glow); price style; badge style and position; button text in capitals.
+- **Template gallery:** every template shows a small storefront in its own colours, shapes and type, its palette, its fonts and its mood. The live preview now also shows your first product page, with the real fonts.
+- **New colour picker everywhere in Velox:** shop settings, Velox Builder and all Velox screens. A colour field with hue slider, eyedropper, before/after, hex input, the colours already used on the screen and your recent ones; keyboard works (arrows, Shift, Enter, Esc to go back). Clicking next to a picker, a logo button or a group of choices no longer opens it.
+- **Shop page:** product count, sorting (recommended, newest, price up or down, name) and an optional search above the grid; “Show more” instead of a hard limit of 60 products. Everything happens without reloading and stays in the address, so Back and shared links work.
+- **Product pages:** photos open full screen (arrows, swipe, Esc); a buy bar keeps price and button in reach after scrolling (bottom bar on phones, floating on larger screens); reasons to buy with fitting icons under the button; “More from this category” under products without hand-picked suggestions.
+- **Block themes:** Velox brings its own product template, so themes like Twenty Twenty-Five no longer show the photo and title twice. A breadcrumb (Shop / category / product) sits above it.
+- **New Settings → Storefront:** what happens after “Add to cart” (mini cart, a short note, or the cart page), products per page, sort and search, the “New” badge for recent products, full-screen photos, related products, reasons to buy, and a notice bar across the top of the site with rotating messages that visitors can close.
+- **Faster shop pages:** the first row of products loads at once, the rest when it scrolls near, and phones get photos sized for phones.
+- **Fix:** an old, invalid IBAN no longer stops you saving other settings tabs.
+
 ## 4.60.1 — Wording
 - **Customer account:** the overview tile says “Bisher ausgegeben” (spent so far) instead of “Umsatz”, which is the shop owner’s word.
 

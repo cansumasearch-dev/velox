@@ -495,6 +495,21 @@ class Velox_Theme {
 		);
 		echo '<script>window.VELOX_THEME=' . wp_json_encode( $cfg ) . ';</script>';
 		echo '<script src="' . esc_url( VELOX_ASSETS . 'js/velox-theme.js?ver=' . VELOX_VERSION ) . '"></script>' . "\n";
+		// One colour picker for every colour field on Velox screens.
+		echo '<link rel="stylesheet" href="' . esc_url( VELOX_ASSETS . 'css/velox-color.css?ver=' . VELOX_VERSION ) . '">';
+		echo '<script>window.VELOX_COLOR_I18N=' . wp_json_encode( array(
+			'colour' => __( 'Colour', 'velox' ),
+			'sv'     => __( 'Saturation and brightness', 'velox' ),
+			'hue'    => __( 'Hue', 'velox' ),
+			'drop'   => __( 'Pick a colour from the screen', 'velox' ),
+			'before' => __( 'Before — click to go back', 'velox' ),
+			'hex'    => __( 'Hex value', 'velox' ),
+			'sat'    => __( 'Saturation', 'velox' ),
+			'bright' => __( 'brightness', 'velox' ),
+			'page'   => __( 'On this screen', 'velox' ),
+			'recent' => __( 'Recent', 'velox' ),
+		) ) . ';</script>';
+		echo '<script src="' . esc_url( VELOX_ASSETS . 'js/velox-color.js?ver=' . VELOX_VERSION ) . '"></script>' . "\n";
 	}
 
 	public static function ajax_save() {

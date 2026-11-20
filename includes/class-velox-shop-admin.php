@@ -26,6 +26,20 @@ class Velox_Shop_Admin {
 		// The old product and order screens open the shop editor instead.
 		add_action( 'load-post.php', array( __CLASS__, 'redirect_classic' ) );
 		add_action( 'load-post-new.php', array( __CLASS__, 'redirect_classic' ) );
+		add_action( 'admin_init', array( __CLASS__, 'fonts_once' ) );
+	}
+
+	/**
+	 * The design's fonts are fetched when it is saved. A shop updated from an
+	 * older version has not saved yet: fetch them on the next admin visit, and
+	 * try at most once an hour if the font server cannot be reached.
+	 */
+	public static function fonts_once() {
+		if ( wp_doing_ajax() || ! current_user_can( 'manage_options' ) || ! Velox_Shop::design_fonts() || '' !== Velox_Shop::fonts_url() || get_transient( 'velox_shop_fonts_try' ) ) {
+			return;
+		}
+		set_transient( 'velox_shop_fonts_try', 1, HOUR_IN_SECONDS );
+		Velox_Shop::fonts_url( null, true );
 	}
 
 	public static function order_admin_url( $id ) {
@@ -128,6 +142,7 @@ class Velox_Shop_Admin {
 			'countries' => Velox_Shop::countries(),
 			'methods'   => $methods,
 			'designs'   => Velox_Shop::presets(),
+			'fonts'     => array_map( function ( $f ) { return array( $f[0], $f[1] ); }, Velox_Shop::fonts() ),
 			'mails'     => $mails,
 			'pages'     => $pages,
 			'cats'      => self::cats(),
@@ -1286,18 +1301,23 @@ class Velox_Shop_Admin {
 				$out[ $k ] = self::clean_deep( $k, (array) $v );
 			} elseif ( is_int( $d[ $k ] ) ) {
 				$out[ $k ] = (int) $v;
-			} elseif ( in_array( $k, array( 'store_address', 'small_note', 'mail_footer', 'pickup_address' ), true ) ) {
+			} elseif ( in_array( $k, array( 'store_address', 'small_note', 'mail_footer', 'pickup_address', 'usp', 'notice_text' ), true ) ) {
 				$out[ $k ] = sanitize_textarea_field( (string) $v );
 			} elseif ( 'accent' === $k ) {
 				$out[ $k ] = sanitize_hex_color( (string) $v ) ?: '#0a6f9f';
 			} elseif ( 'custom_css' === $k ) {
 				$out[ $k ] = self::clean_css( (string) $v );
 			} elseif ( 'design' === $k ) {
-				$out[ $k ] = isset( Velox_Shop::presets()[ (string) $v ] ) ? (string) $v : 'velox';
-			} elseif ( in_array( $k, array( 'd_ink', 'd_surface', 'd_line', 'd_soft', 'd_bg' ), true ) ) {
+				$v         = Velox_Shop::OLD_PRESETS[ (string) $v ] ?? (string) $v;
+				$out[ $k ] = isset( Velox_Shop::presets()[ $v ] ) ? $v : 'velox';
+			} elseif ( in_array( $k, array( 'd_ink', 'd_surface', 'd_line', 'd_soft', 'd_bg', 'd_muted', 'd_accent', 'd_accent_ink', 'd_sale' ), true ) ) {
 				$out[ $k ] = (string) ( sanitize_hex_color( (string) $v ) ?: '' );
 			} elseif ( in_array( $k, array( 'store_email', 'mail_from', 'mail_admin' ), true ) ) {
 				$out[ $k ] = sanitize_email( (string) $v );
+			} elseif ( 'notice_link' === $k ) {
+				$out[ $k ] = esc_url_raw( (string) $v );
+			} elseif ( 0 === strpos( $k, 'd_font' ) ) {
+				$out[ $k ] = sanitize_key( (string) $v );
 			} else {
 				$out[ $k ] = sanitize_text_field( (string) $v );
 			}
@@ -1305,10 +1325,15 @@ class Velox_Shop_Admin {
 		if ( isset( $out['stripe_secret'] ) && '' !== $out['stripe_secret'] && ! preg_match( '/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/', $out['stripe_secret'] ) ) {
 			return new WP_Error( 'x', __( 'That is not a Stripe secret key (it starts with sk_test_ or sk_live_).', 'velox' ) );
 		}
-		if ( isset( $out['bank_iban'] ) && '' !== $out['bank_iban'] && ! self::iban_ok( $out['bank_iban'] ) ) {
+		// Only a changed IBAN is checked, so an old entry never blocks saving another tab.
+		if ( isset( $out['bank_iban'] ) && '' !== $out['bank_iban'] && $out['bank_iban'] !== (string) Velox_Shop::get( 'bank_iban', '' ) && ! self::iban_ok( $out['bank_iban'] ) ) {
 			return new WP_Error( 'x', __( 'This IBAN does not look right — please check it.', 'velox' ) );
 		}
 		Velox_Shop::save_settings( $out );
+		// Fonts the design uses are fetched once and served from this site.
+		if ( isset( $out['design'] ) || isset( $out['d_font_h'] ) || isset( $out['d_font_b'] ) ) {
+			Velox_Shop::fonts_url( null, true );
+		}
 		return array( 'settings' => self::settings_out() );
 	}
 
@@ -1334,18 +1359,28 @@ class Velox_Shop_Admin {
 				$vals[ $k ] = 'custom_css' === $k ? self::clean_css( (string) $v ) : sanitize_text_field( (string) $v );
 			}
 		}
+		$vals['buy_bar'] = '0';
 		Velox_Shop::override( $vals );
 		$d    = Velox_Shop::design();
-		$grid = Velox_Shop_Front::grid( array( 'count' => 6, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '1', 'ids' => '' ) );
+		$grid = Velox_Shop_Front::grid( array( 'count' => 8, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '1', 'ids' => '' ) );
+		// The first product as its product page, so photos, buy box and type show too.
+		$first = get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'orderby' => array( 'menu_order' => 'ASC', 'date' => 'DESC' ) ) );
+		$page  = $first ? Velox_Shop_Front::product_layout( Velox_Shop::product( (int) $first[0] ), '' ) : '';
+		// Fonts are fetched once and kept on this site; the preview shows the real ones.
+		$fonts = Velox_Shop::fonts_url( $d, true );
+		$geist = in_array( 'geist', array( $d['font_h'], $d['font_b'] ), true ) ? '@font-face{font-family:"Geist";font-weight:100 900;font-display:swap;src:url(' . esc_url( VELOX_URL . 'assets/fonts/geist-latin-wght-normal.woff2' ) . ') format("woff2")}' : '';
 		$btn  = Velox_Shop_Front::sc_cart_button( array( 'label' => __( 'Cart', 'velox' ) ) );
 		$own  = (string) Velox_Shop::get( 'custom_css', '' );
 		$bg   = preg_match( '/^#[0-9a-f]{3,8}$/i', (string) $d['bg'] ) ? $d['bg'] : '#ffffff';
 		$html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base target="_blank">'
 			. '<link rel="stylesheet" href="' . esc_url( VELOX_URL . 'assets/css/velox-shop.css?ver=' . VELOX_VERSION ) . '">'
-			. '<style>:root{' . Velox_Shop::design_vars( $d ) . '}body{margin:0;padding:28px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:' . $bg . ';color:var(--vxs-ink,#111)}'
-			. 'form,button,a{pointer-events:none}.vsa-pv-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 24px;font-weight:700;font-size:18px}'
+			. ( '' !== $fonts ? '<link rel="stylesheet" href="' . esc_url( set_url_scheme( $fonts ) ) . '">' : '' )
+			. '<style>' . $geist . ':root{' . Velox_Shop::design_vars( $d ) . '}body{margin:0;padding:28px;font-family:var(--vxs-font,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif);background:' . $bg . ';color:var(--vxs-ink,#111)}'
+			. 'form,button,a{pointer-events:none}.vsa-pv-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 28px;padding:0 0 18px;border-bottom:1px solid var(--vxs-line,#e5e5e5);font-family:var(--vxs-font-h,inherit);font-weight:var(--vxs-h-weight,700);text-transform:var(--vxs-h-case,none);letter-spacing:var(--vxs-h-track,0);font-size:20px}'
+			. '.vsa-pv-sep{height:1px;margin:56px 0;background:var(--vxs-line,#e5e5e5)}.vsa-pv-page .vxs-product-more .vxs-more{display:none}'
 			. str_ireplace( '</style', '', $own ) . '</style></head><body>'
-			. '<div class="vsa-pv-top"><span>' . esc_html( (string) Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) ) ) . '</span>' . $btn . '</div>' . $grid . '</body></html>';
+			. '<div class="vsa-pv-top"><span>' . esc_html( (string) Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) ) ) . '</span>' . $btn . '</div>' . $grid
+			. ( '' !== $page ? '<div class="vsa-pv-sep"></div><div class="vsa-pv-page">' . $page . '</div>' : '' ) . '</body></html>';
 		return array( 'html' => $html );
 	}
 

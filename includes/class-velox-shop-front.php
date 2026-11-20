@@ -33,6 +33,98 @@ class Velox_Shop_Front {
 		add_action( 'wp_enqueue_scripts', array( __CLASS__, 'assets' ) );
 		add_filter( 'the_content', array( __CLASS__, 'product_page' ), 20 );
 		add_action( 'wp_footer', array( __CLASS__, 'footer' ) );
+		add_action( 'wp_body_open', array( __CLASS__, 'notice_bar' ), 5 );
+		add_action( 'init', array( __CLASS__, 'block_template' ), 20 );
+		add_filter( 'render_block_data', array( __CLASS__, 'mark_template' ) );
+		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
+	}
+
+	/**
+	 * Block themes show a post's featured image, author and date above the
+	 * text — on a product that doubles the photo and the title. Velox brings
+	 * its own product template (header, the product, footer); a theme or a
+	 * template saved in the Site Editor still wins.
+	 */
+	public static function block_template() {
+		if ( ! function_exists( 'register_block_template' ) || ! wp_is_block_theme() || ! Velox_Shop::get( 'auto_layout', '1' ) ) {
+			return;
+		}
+		register_block_template( 'velox//single-' . Velox_Shop::PRODUCT, array(
+			'title'       => __( 'Product (Velox Shop)', 'velox' ),
+			'description' => __( 'Product pages: photos, buy box and details from Velox Shop, between your header and footer.', 'velox' ),
+			'post_types'  => array( Velox_Shop::PRODUCT ),
+			'content'     => '<!-- wp:template-part {"slug":"header","area":"header","tagName":"header"} /-->'
+				. '<!-- wp:group {"tagName":"main","className":"vxs-tpl-main","layout":{"type":"constrained"}} --><main class="wp-block-group vxs-tpl-main"><!-- wp:post-content {"align":"full","className":"vxs-own-tpl","layout":{"type":"constrained"}} /--></main><!-- /wp:group -->'
+				. '<!-- wp:template-part {"slug":"footer","area":"footer","tagName":"footer"} /-->',
+		) );
+	}
+
+	private static $own = false;
+
+	/** Velox's product template marks its content block; seen just before it renders. */
+	public static function mark_template( $block ) {
+		if ( 'core/post-content' === ( $block['blockName'] ?? '' ) && false !== strpos( (string) ( $block['attrs']['className'] ?? '' ), 'vxs-own-tpl' ) ) {
+			self::$own = true;
+		}
+		return $block;
+	}
+
+	/** True while Velox's own product template draws the page (it has no title block). */
+	private static function own_template() {
+		return self::$own;
+	}
+
+	/** Shop pages, single products and product categories. */
+	public static function is_shop_view() {
+		if ( is_singular( Velox_Shop::PRODUCT ) || is_tax( Velox_Shop::CAT ) || is_post_type_archive( Velox_Shop::PRODUCT ) ) {
+			return true;
+		}
+		if ( ! is_page() ) {
+			return false;
+		}
+		$id = (int) get_queried_object_id();
+		foreach ( array( 'shop', 'cart', 'checkout', 'account' ) as $k ) {
+			if ( $id && (int) Velox_Shop::get( 'page_' . $k ) === $id ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** Templates with their own page colour paint the whole page on shop views. */
+	public static function body_class( $classes ) {
+		if ( self::is_shop_view() ) {
+			$d = Velox_Shop::design();
+			if ( '1' === (string) $d['page_bg'] ) {
+				$classes[] = 'vxs-paint';
+			}
+			$classes[] = 'vxs-d-page-' . Velox_Shop::preset_key();
+		}
+		return $classes;
+	}
+
+	/**
+	 * A slim message bar across the top of every page (Settings → Storefront):
+	 * free shipping, a sale, opening times. Several lines take turns; closing
+	 * it keeps it closed for the visit.
+	 */
+	public static function notice_bar() {
+		if ( '1' !== (string) Velox_Shop::get( 'notice_on', '0' ) || is_admin() ) {
+			return;
+		}
+		$lines = array_values( array_filter( array_map( 'trim', preg_split( '/\R/', (string) Velox_Shop::get( 'notice_text', '' ) ) ) ) );
+		if ( ! $lines ) {
+			return;
+		}
+		$link = (string) Velox_Shop::get( 'notice_link', '' );
+		$m    = '';
+		foreach ( array_slice( $lines, 0, 5 ) as $i => $line ) {
+			$t  = esc_html( $line );
+			$m .= '<span class="vxs-notice-m"' . ( $i ? ' hidden' : '' ) . '>' . ( '' !== $link ? '<a href="' . esc_url( $link ) . '">' . $t . '</a>' : $t ) . '</span>';
+		}
+		echo '<div class="vxs-notice" data-vxs-notice="' . esc_attr( substr( md5( implode( '|', $lines ) ), 0, 8 ) ) . '" role="region" aria-label="' . esc_attr__( 'Shop notice', 'velox' ) . '">' . $m // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- built from escaped parts
+			. '<button type="button" class="vxs-notice-x" data-vxs-notice-x aria-label="' . esc_attr__( 'Close', 'velox' ) . '"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button></div>'
+			. '<script>try{if(sessionStorage.getItem("vxs_notice")===document.currentScript.previousElementSibling.getAttribute("data-vxs-notice"))document.currentScript.previousElementSibling.hidden=true}catch(e){}</script>';
 	}
 
 	/* ------------------------------------------------------------- urls */
@@ -168,27 +260,53 @@ class Velox_Shop_Front {
 			$now = Velox_Shop::price_of( $p );
 			return '<span class="vxs-badge is-sale">−' . (int) round( ( 1 - $now / $was ) * 100 ) . '%</span>';
 		}
+		// "New" for products younger than the chosen number of days.
+		$days = (int) Velox_Shop::get( 'new_days', 0 );
+		if ( $days > 0 && ( time() - (int) get_post_time( 'U', true, $p['id'] ) ) < $days * DAY_IN_SECONDS ) {
+			return '<span class="vxs-badge is-new">' . esc_html__( 'New', 'velox' ) . '</span>';
+		}
 		return '';
 	}
 
 	/* ------------------------------------------------------------- grid */
 
 	public static function sc_grid( $atts = array() ) {
-		$a = shortcode_atts( array( 'count' => 12, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '', 'ids' => '', 'layout' => '', 'card' => '', 'button' => '' ), $atts, 'velox_shop' );
+		$a = shortcode_atts( array( 'count' => 12, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '', 'ids' => '', 'layout' => '', 'card' => '', 'button' => '', 'tools' => '' ), $atts, 'velox_shop' );
 		return self::grid( $a );
 	}
 
+	private static $grids = 0;
+
+	/**
+	 * A product grid. On the shop page (or with tools="1") it gets the full
+	 * storefront: categories, a product count, search, sorting, and "Show
+	 * more" instead of endless scrolling — every state lives in the address,
+	 * so Back returns to the same place and links can be shared.
+	 */
 	public static function grid( $a ) {
-		$args = array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => max( 1, min( 60, (int) $a['count'] ) ), 'no_found_rows' => true );
-		$cat  = isset( $_GET['vxcat'] ) && $a['filter'] ? sanitize_title( wp_unslash( $_GET['vxcat'] ) ) : sanitize_title( (string) $a['category'] );
+		$a     = array_merge( array( 'count' => 12, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '', 'ids' => '', 'tools' => '' ), (array) $a );
+		$nth   = ++self::$grids;
+		$shop  = (int) Velox_Shop::get( 'page_shop' );
+		$tools = '1' === (string) $a['tools'] || ( 1 === $nth && $shop && (int) get_the_ID() === $shop && '' === (string) $a['ids'] );
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended -- public, read-only filters
+		$sort  = $tools && isset( $_GET['vxs_sort'] ) ? sanitize_key( wp_unslash( $_GET['vxs_sort'] ) ) : (string) $a['sort'];
+		$find  = $tools && isset( $_GET['vxs_q'] ) ? mb_substr( sanitize_text_field( wp_unslash( $_GET['vxs_q'] ) ), 0, 80 ) : '';
+		$step  = max( 4, min( 96, (int) Velox_Shop::get( 'per_page', 24 ) ) );
+		$n     = $tools ? max( $step, min( 240, isset( $_GET['vxs_n'] ) ? (int) $_GET['vxs_n'] : $step ) ) : max( 1, min( 60, (int) $a['count'] ) );
+		$cat   = isset( $_GET['vxcat'] ) && ( $a['filter'] || $tools ) ? sanitize_title( wp_unslash( $_GET['vxcat'] ) ) : sanitize_title( (string) $a['category'] );
+		// phpcs:enable
+		$args = array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => $n, 'no_found_rows' => ! $tools );
 		if ( $cat ) {
 			$args['tax_query'] = array( array( 'taxonomy' => Velox_Shop::CAT, 'field' => 'slug', 'terms' => $cat ) );
+		}
+		if ( '' !== $find ) {
+			$args['s'] = $find;
 		}
 		if ( '' !== (string) $a['ids'] ) {
 			$args['post__in'] = array_map( 'intval', explode( ',', (string) $a['ids'] ) );
 			$args['orderby']  = 'post__in';
 		}
-		switch ( $a['sort'] ) {
+		switch ( $sort ) {
 			case 'new':
 				$args['orderby'] = 'date';
 				$args['order']   = 'DESC';
@@ -197,13 +315,14 @@ class Velox_Shop_Front {
 			case 'price-desc':
 				$args['meta_key'] = '_vx_price';
 				$args['orderby']  = 'meta_value_num';
-				$args['order']    = 'price' === $a['sort'] ? 'ASC' : 'DESC';
+				$args['order']    = 'price' === $sort ? 'ASC' : 'DESC';
 				break;
 			case 'name':
 				$args['orderby'] = 'title';
 				$args['order']   = 'ASC';
 				break;
 			default:
+				$sort = 'menu';
 				if ( empty( $args['orderby'] ) ) {
 					$args['orderby'] = array( 'menu_order' => 'ASC', 'date' => 'DESC' );
 				}
@@ -212,7 +331,7 @@ class Velox_Shop_Front {
 		if ( 'hide' === $sold ) {
 			$args['meta_query'] = array( 'relation' => 'OR', array( 'key' => '_vx_status', 'value' => 'sold', 'compare' => '!=' ), array( 'key' => '_vx_status', 'compare' => 'NOT EXISTS' ) );
 		}
-		$q   = new WP_Query( $args );
+		$q = new WP_Query( $args );
 		if ( 'last' === $sold && $q->posts ) {
 			// Keep the order, but sold pieces go behind everything still for sale.
 			$for_sale = array();
@@ -226,21 +345,6 @@ class Velox_Shop_Front {
 			}
 			$q->posts = array_merge( $for_sale, $gone );
 		}
-		$out = '';
-		if ( $a['filter'] ) {
-			$terms = get_terms( array( 'taxonomy' => Velox_Shop::CAT, 'hide_empty' => true ) );
-			if ( $terms && ! is_wp_error( $terms ) ) {
-				$base = remove_query_arg( 'vxcat' );
-				$out .= '<nav class="vxs-cats" aria-label="' . esc_attr__( 'Categories', 'velox' ) . '"><a href="' . esc_url( $base ) . '"' . ( $cat ? '' : ' aria-current="true"' ) . '>' . esc_html__( 'All', 'velox' ) . '</a>';
-				foreach ( $terms as $t ) {
-					$out .= '<a href="' . esc_url( add_query_arg( 'vxcat', $t->slug, $base ) ) . '"' . ( $cat === $t->slug ? ' aria-current="true"' : '' ) . '>' . esc_html( $t->name ) . '</a>';
-				}
-				$out .= '</nav>';
-			}
-		}
-		if ( ! $q->have_posts() ) {
-			return $out . '<p class="vxs-empty">' . esc_html__( 'No products here yet.', 'velox' ) . '</p>';
-		}
 		$over = array();
 		foreach ( array( 'layout', 'card', 'button', 'hover', 'align', 'cols_t', 'cols_m', 'gap', 'show_cat', 'show_text', 'fit' ) as $k ) {
 			if ( isset( $a[ $k ] ) && '' !== (string) $a[ $k ] ) {
@@ -250,20 +354,84 @@ class Velox_Shop_Front {
 		if ( '' !== (string) ( $a['columns'] ?? '' ) ) {
 			$over['cols'] = $a['columns'];
 		}
-		$d     = Velox_Shop::design( $over );
-		$ratio = Velox_Shop::card_ratio();
+		$d   = Velox_Shop::design( $over );
+		$out = '';
+
+		// Above the grid: categories, count, search, sorting.
+		$cats = '';
+		if ( $a['filter'] || $tools ) {
+			$terms = get_terms( array( 'taxonomy' => Velox_Shop::CAT, 'hide_empty' => true ) );
+			if ( $terms && ! is_wp_error( $terms ) && count( $terms ) > 1 ) {
+				$base  = remove_query_arg( array( 'vxcat', 'vxs_n' ) );
+				$cats .= '<nav class="vxs-cats" aria-label="' . esc_attr__( 'Categories', 'velox' ) . '"><a href="' . esc_url( $base ) . '"' . ( $cat ? '' : ' aria-current="true"' ) . ' data-vxs-nav>' . esc_html__( 'All', 'velox' ) . '</a>';
+				foreach ( $terms as $t ) {
+					$cats .= '<a href="' . esc_url( add_query_arg( 'vxcat', $t->slug, $base ) ) . '"' . ( $cat === $t->slug ? ' aria-current="true"' : '' ) . ' data-vxs-nav>' . esc_html( $t->name ) . '</a>';
+				}
+				$cats .= '</nav>';
+			}
+		}
+		if ( $tools ) {
+			$total = (int) $q->found_posts;
+			$right = '<span class="vxs-count-txt" aria-live="polite">' . esc_html( sprintf( /* translators: %d: number of products */ _n( '%d product', '%d products', $total, 'velox' ), $total ) ) . '</span>';
+			if ( '1' === (string) Velox_Shop::get( 'grid_search', '0' ) ) {
+				$right .= '<label class="vxs-search"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" name="vxs_q" value="' . esc_attr( $find ) . '" placeholder="' . esc_attr__( 'Search the shop', 'velox' ) . '" aria-label="' . esc_attr__( 'Search the shop', 'velox' ) . '"></label>';
+			}
+			if ( '1' === (string) Velox_Shop::get( 'grid_sort', '1' ) ) {
+				$opts = array( 'menu' => __( 'Recommended', 'velox' ), 'new' => __( 'Newest first', 'velox' ), 'price' => __( 'Price: low to high', 'velox' ), 'price-desc' => __( 'Price: high to low', 'velox' ), 'name' => __( 'Name A–Z', 'velox' ) );
+				$right .= '<select class="vxs-sort" name="vxs_sort" aria-label="' . esc_attr__( 'Sort by', 'velox' ) . '" data-vxs-sort>';
+				foreach ( $opts as $k => $l ) {
+					$right .= '<option value="' . esc_attr( $k ) . '"' . selected( $sort, $k, false ) . '>' . esc_html( $l ) . '</option>';
+				}
+				$right .= '</select>';
+			}
+			$out .= '<form class="vxs-tools alignwide" method="get" role="search" data-vxs-tools>' . $cats . ( $cat ? '<input type="hidden" name="vxcat" value="' . esc_attr( $cat ) . '">' : '' ) . '<div class="vxs-tools-r">' . $right . '</div><button type="submit" class="screen-reader-text">' . esc_html__( 'Show', 'velox' ) . '</button></form>';
+		} else {
+			$out .= $cats;
+		}
+
+		if ( ! $q->have_posts() ) {
+			$empty = '' !== $find ? sprintf( /* translators: %s: search words */ __( 'Nothing found for “%s”.', 'velox' ), $find ) : __( 'No products here yet.', 'velox' );
+			return $tools ? '<div class="vxs-grid-wrap alignwide" data-vxs-gridwrap="' . $nth . '">' . $out . '<p class="vxs-empty">' . esc_html( $empty ) . '</p></div>' : $out . '<p class="vxs-empty">' . esc_html( $empty ) . '</p>';
+		}
+		$ratio = Velox_Shop::card_ratio( $d );
 		// A masonry wall shows every photo in its own shape.
 		if ( 'masonry' === $d['layout'] ) {
 			$ratio = 'natural';
 		}
 		$style = '--vxs-cols:' . max( 1, min( 6, (int) $d['cols'] ) ) . ';--vxs-cols-t:' . max( 1, min( 4, (int) $d['cols_t'] ) ) . ';--vxs-cols-m:' . max( 1, min( 2, (int) $d['cols_m'] ) ) . ';--vxs-gap:' . max( 0, min( 120, (int) $d['gap'] ) ) . 'px' . ( 'natural' === $ratio ? '' : ';--vxs-ratio:' . $ratio );
 		$out  .= '<div class="vxs-grid alignwide ' . esc_attr( Velox_Shop::design_classes( $d ) ) . ( 'natural' === $ratio ? ' is-natural' : '' ) . '" style="' . esc_attr( $style ) . '">';
+		if ( 1 === $nth && ! wp_doing_ajax() && ! is_singular( Velox_Shop::PRODUCT ) ) {
+			self::$eager = max( 1, min( 6, (int) $d['cols'] ) );
+		}
 		while ( $q->have_posts() ) {
 			$q->the_post();
 			$out .= self::card( Velox_Shop::product( get_the_ID() ), $d );
 		}
 		wp_reset_postdata();
-		return $out . '</div>';
+		$out .= '</div>';
+		if ( $tools ) {
+			$shown = count( $q->posts );
+			if ( $total > $shown ) {
+				$out .= '<div class="vxs-more-wrap"><small>' . esc_html( sprintf( /* translators: 1: shown, 2: total */ __( '%1$d of %2$d', 'velox' ), $shown, $total ) ) . '</small><a class="vxs-btn vxs-btn-ghost vxs-more-btn" href="' . esc_url( add_query_arg( 'vxs_n', $shown + $step ) ) . '" data-vxs-more>' . esc_html__( 'Show more', 'velox' ) . '</a></div>';
+			}
+			$out = '<div class="vxs-grid-wrap alignwide" data-vxs-gridwrap="' . $nth . '">' . $out . '</div>';
+		}
+		return $out;
+	}
+
+	/** How many cards still load their photo at once (set by the first grid on a page). */
+	private static $eager = 0;
+
+	/** The width a card photo is shown at, so phones never fetch desktop-size files. */
+	private static function card_sizes( $d ) {
+		if ( ! $d ) {
+			return '(max-width: 600px) 50vw, 400px';
+		}
+		$c  = max( 1, (int) $d['cols'] );
+		$ct = max( 1, (int) $d['cols_t'] );
+		$cm = max( 1, (int) $d['cols_m'] );
+		$k  = 'split' === $d['card'] ? 0.45 : 1;
+		return '(max-width: 600px) ' . round( 100 / $cm * $k ) . 'vw, (max-width: 1024px) ' . round( 100 / $ct * $k ) . 'vw, ' . round( min( 1400, 1400 / $c * $k ) ) . 'px';
 	}
 
 	public static function card( $p, $d = null ) {
@@ -272,8 +440,15 @@ class Velox_Shop_Front {
 		}
 		$d = $d ? $d : Velox_Shop::design();
 		$url   = get_permalink( $p['id'] );
-		$img   = get_the_post_thumbnail( $p['id'], 'large', array( 'loading' => 'lazy', 'class' => 'vxs-card-im' ) );
-		$alt   = $p['gallery'] ? wp_get_attachment_image( (int) $p['gallery'][0], 'large', false, array( 'loading' => 'lazy', 'class' => 'vxs-card-im2', 'alt' => '' ) ) : '';
+		// The first row of the first grid is what visitors see first: load it
+		// right away; everything below waits until it scrolls near.
+		$first = self::$eager > 0;
+		if ( $first ) {
+			--self::$eager;
+		}
+		$sizes = self::card_sizes( $d );
+		$img   = get_the_post_thumbnail( $p['id'], 'large', array( 'loading' => $first ? 'eager' : 'lazy', 'fetchpriority' => $first ? 'high' : 'auto', 'class' => 'vxs-card-im', 'sizes' => $sizes ) );
+		$alt   = $p['gallery'] ? wp_get_attachment_image( (int) $p['gallery'][0], 'large', false, array( 'loading' => 'lazy', 'class' => 'vxs-card-im2', 'alt' => '', 'sizes' => $sizes ) ) : '';
 		$a     = Velox_Shop::availability( $p );
 		$out   = '<article class="vxs-card is-' . esc_attr( $a[0] ) . '">';
 		$out  .= '<a class="vxs-card-media" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . ( $img ? $img : '<span class="vxs-noimg"></span>' ) . $alt . self::badge_html( $p ) . '</a>';
@@ -282,6 +457,8 @@ class Velox_Shop_Front {
 			$terms = get_the_terms( $p['id'], Velox_Shop::CAT );
 			if ( $terms && ! is_wp_error( $terms ) ) {
 				$out .= '<span class="vxs-card-cat">' . esc_html( $terms[0]->name ) . '</span>';
+			} else {
+				$out .= '<span class="vxs-card-cat" aria-hidden="true">&nbsp;</span>'; // keeps names in one line across the row
 			}
 		}
 		$out  .= '<h3 class="vxs-card-t"><a href="' . esc_url( $url ) . '">' . esc_html( $p['title'] ) . '</a></h3>';
@@ -339,7 +516,7 @@ class Velox_Shop_Front {
 		if ( ! Velox_Shop::get( 'auto_layout', '1' ) || false !== strpos( $content, 'vxs-buy' ) ) {
 			return $content;
 		}
-		return self::product_layout( Velox_Shop::product( get_the_ID() ), $content, false );
+		return self::product_layout( Velox_Shop::product( get_the_ID() ), $content, self::own_template() );
 	}
 
 	public static function sc_product( $atts = array() ) {
@@ -362,7 +539,11 @@ class Velox_Shop_Front {
 		$out = '<div class="vxs-product alignwide ' . esc_attr( Velox_Shop::design_classes( $d ) ) . '">' . self::gallery_html( $ids, $p, $d ) . '<div class="vxs-product-side">'
 			. ( $title ? '<h1 class="vxs-product-t">' . esc_html( $p['title'] ) . '</h1>' : '' )
 			. ( has_excerpt( $p['id'] ) ? '<div class="vxs-lead">' . wp_kses_post( wpautop( get_the_excerpt( $p['id'] ) ) ) . '</div>' : '' )
-			. self::buy_box( $p ) . '</div></div>';
+			. self::buy_box( $p ) . self::usp_html() . '</div></div>';
+		$out .= self::buy_bar( $p );
+		if ( $title && self::own_template() ) {
+			$out = self::crumbs( $p ) . $out;
+		}
 		$tabs = '';
 		if ( '' !== trim( wp_strip_all_tags( $content ) ) ) {
 			$tabs .= '<section class="vxs-desc"><h2>' . esc_html__( 'Description', 'velox' ) . '</h2>' . $content . '</section>';
@@ -380,10 +561,105 @@ class Velox_Shop_Front {
 				return $o;
 			}, $tabs );
 		}
-		if ( $p['upsell'] ) {
-			$tabs .= '<section class="vxs-more"><h2>' . esc_html__( 'You might also like', 'velox' ) . '</h2>' . self::grid( array( 'ids' => implode( ',', $p['upsell'] ), 'count' => 4, 'columns' => 4, 'category' => '', 'sort' => 'menu', 'filter' => '' ) ) . '</section>';
+		$more = $p['upsell'] ? $p['upsell'] : self::related_ids( $p );
+		if ( $more ) {
+			$tabs .= '<section class="vxs-more"><h2>' . esc_html( $p['upsell'] ? __( 'You might also like', 'velox' ) : __( 'More from this category', 'velox' ) ) . '</h2>' . self::grid( array( 'ids' => implode( ',', $more ), 'count' => 4, 'columns' => 4, 'category' => '', 'sort' => 'menu', 'filter' => '' ) ) . '</section>';
 		}
 		return $out . ( $tabs ? '<div class="vxs-product-more alignwide">' . $tabs . '</div>' : '' );
+	}
+
+	/** Shop › category › product, above a product page Velox draws in full. */
+	private static function crumbs( $p ) {
+		$shop = (int) Velox_Shop::get( 'page_shop' );
+		if ( ! $shop ) {
+			return '';
+		}
+		$base  = self::page_url( 'shop' );
+		$items = '<a href="' . esc_url( $base ) . '">' . esc_html( get_the_title( $shop ) ) . '</a>';
+		$terms = wp_get_post_terms( $p['id'], Velox_Shop::CAT );
+		if ( $terms && ! is_wp_error( $terms ) ) {
+			$items .= '<span aria-hidden="true">/</span><a href="' . esc_url( add_query_arg( 'vxcat', $terms[0]->slug, $base ) ) . '">' . esc_html( $terms[0]->name ) . '</a>';
+		}
+		return '<nav class="vxs-crumbs alignwide" aria-label="' . esc_attr__( 'Breadcrumb', 'velox' ) . '">' . $items . '<span aria-hidden="true">/</span><span aria-current="page">' . esc_html( $p['title'] ) . '</span></nav>';
+	}
+
+	/** Up to four products from the same category, when no suggestions were picked. */
+	private static function related_ids( $p ) {
+		if ( '1' !== (string) Velox_Shop::get( 'related', '1' ) ) {
+			return array();
+		}
+		$terms = wp_get_post_terms( $p['id'], Velox_Shop::CAT, array( 'fields' => 'ids' ) );
+		if ( ! $terms || is_wp_error( $terms ) ) {
+			return array();
+		}
+		return array_map( 'intval', get_posts( array(
+			'post_type'        => Velox_Shop::PRODUCT,
+			'post_status'      => 'publish',
+			'posts_per_page'   => 4,
+			'post__not_in'     => array( (int) $p['id'] ),
+			'tax_query'        => array( array( 'taxonomy' => Velox_Shop::CAT, 'field' => 'term_id', 'terms' => array_map( 'intval', $terms ) ) ),
+			'orderby'          => array( 'menu_order' => 'ASC', 'date' => 'DESC' ),
+			'fields'           => 'ids',
+			'no_found_rows'    => true,
+			'suppress_filters' => false,
+		) ) );
+	}
+
+	/**
+	 * Reasons to buy, one per line (Settings → Storefront), under the buy
+	 * button. The icon follows the words: shipping, returns, payment, else a tick.
+	 */
+	public static function usp_html() {
+		$lines = array_filter( array_map( 'trim', preg_split( '/\R/', (string) Velox_Shop::get( 'usp', '' ) ) ) );
+		if ( ! $lines ) {
+			return '';
+		}
+		$icons = array(
+			'ship'   => '<path d="M3 6h11v9H3zM14 9h4l3 3v3h-7"/><circle cx="7" cy="17.5" r="1.7"/><circle cx="17" cy="17.5" r="1.7"/>',
+			'return' => '<path d="M9 14 4 9l5-5"/><path d="M4 9h11a5 5 0 0 1 0 10h-3"/>',
+			'lock'   => '<rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+			'gift'   => '<rect x="4" y="9" width="16" height="11" rx="1"/><path d="M12 9v11M4 13h16M12 9c-2-4-6-4-6-1.5S9 9 12 9c3 0 6-.5 6-1.5S14 5 12 9"/>',
+			'hand'   => '<path d="M12 21s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 11c0 5.6-7 10-7 10z"/>',
+			'check'  => '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+		);
+		$words = array(
+			'ship'   => '/versand|liefer|ship|deliver|paket|dhl/iu',
+			'return' => '/rück|retour|return|widerruf|umtausch|exchange/iu',
+			'lock'   => '/sicher|secure|ssl|zahl|pay|klarna|rechnung/iu',
+			'gift'   => '/geschenk|gift|verpack/iu',
+			'hand'   => '/handgemacht|handmade|liebe|love|nachhaltig|sustainab|fair|regional/iu',
+		);
+		$li = '';
+		foreach ( array_slice( $lines, 0, 6 ) as $line ) {
+			$k = 'check';
+			foreach ( $words as $key => $re ) {
+				if ( preg_match( $re, $line ) ) {
+					$k = $key;
+					break;
+				}
+			}
+			$li .= '<li><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $icons[ $k ] . '</svg><span>' . esc_html( $line ) . '</span></li>';
+		}
+		return '<ul class="vxs-usp">' . $li . '</ul>';
+	}
+
+	private static $bar = false;
+
+	/** The slim bar that keeps price and button in reach once the buy box scrolls away. */
+	private static function buy_bar( $p ) {
+		if ( self::$bar || '1' !== (string) Velox_Shop::get( 'buy_bar', '1' ) || 'inquiry' === $p['mode'] ) {
+			return '';
+		}
+		self::$bar = true;
+		$vars  = Velox_Shop::has_variants( $p );
+		$can   = $vars || Velox_Shop::can_buy( $p, null, 1 );
+		$a     = Velox_Shop::availability( $p );
+		$label = '' !== $p['button'] ? $p['button'] : __( 'Add to cart', 'velox' );
+		$img   = get_the_post_thumbnail_url( $p['id'], 'thumbnail' );
+		return '<div class="vxs-sbar" data-vxs-sbar aria-hidden="true">'
+			. ( $img ? '<img src="' . esc_url( $img ) . '" alt="" width="44" height="44" loading="lazy">' : '' )
+			. '<div class="vxs-sbar-t"><b>' . esc_html( $p['title'] ) . '</b><span data-vxs-sbar-price>' . esc_html( trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( self::price_html( $p ) ) ) ) ) . '</span></div>'
+			. '<button type="button" class="vxs-btn" tabindex="-1" data-vxs-sbar-go' . ( $can ? '' : ' disabled' ) . '>' . esc_html( $can ? ( $vars ? __( 'Choose options', 'velox' ) : $label ) : $a[1] ) . '</button></div>';
 	}
 
 	public static function gallery_html( $ids, $p, $d = null ) {
@@ -397,7 +673,7 @@ class Velox_Shop_Front {
 			foreach ( $ids as $i => $id ) {
 				$all .= '<figure class="vxs-gal-item">' . wp_get_attachment_image( $id, 'large', false, array( 'loading' => $i ? 'lazy' : 'eager', 'fetchpriority' => $i ? 'auto' : 'high' ) ) . ( 0 === $i ? self::badge_html( $p ) : '' ) . '</figure>';
 			}
-			return '<div class="vxs-gallery vxs-gallery-' . $d['gallery'] . '">' . $all . '</div>';
+			return '<div class="vxs-gallery vxs-gallery-' . $d['gallery'] . '"' . self::zoom_attr( $ids ) . '>' . $all . '</div>';
 		}
 		$main = wp_get_attachment_image( $ids[0], 'large', false, array( 'class' => 'vxs-gal-main', 'loading' => 'eager', 'fetchpriority' => 'high', 'data-vxs-main' => '1' ) );
 		$th   = '';
@@ -406,7 +682,22 @@ class Velox_Shop_Front {
 				$th .= '<button type="button" class="vxs-gal-th' . ( 0 === $i ? ' is-on' : '' ) . '" data-vxs-img="' . esc_url( (string) wp_get_attachment_image_url( $id, 'large' ) ) . '" data-vxs-id="' . (int) $id . '" aria-label="' . esc_attr( sprintf( /* translators: %d: image number */ __( 'Image %d', 'velox' ), $i + 1 ) ) . '">' . wp_get_attachment_image( $id, 'thumbnail', false, array( 'loading' => 'lazy', 'alt' => '' ) ) . '</button>';
 			}
 		}
-		return '<div class="vxs-gallery"><div class="vxs-gal-stage">' . $main . self::badge_html( $p ) . '</div>' . ( $th ? '<div class="vxs-gal-thumbs">' . $th . '</div>' : '' ) . '</div>';
+		return '<div class="vxs-gallery"' . self::zoom_attr( $ids ) . '><div class="vxs-gal-stage">' . $main . self::badge_html( $p ) . '</div>' . ( $th ? '<div class="vxs-gal-thumbs">' . $th . '</div>' : '' ) . '</div>';
+	}
+
+	/** Full-size photo addresses for the full-screen view (velox-shop.js). */
+	private static function zoom_attr( $ids ) {
+		if ( '1' !== (string) Velox_Shop::get( 'zoom', '1' ) ) {
+			return '';
+		}
+		$urls = array();
+		foreach ( $ids as $id ) {
+			$u = wp_get_attachment_image_url( $id, 'full' );
+			if ( $u ) {
+				$urls[] = array( 'src' => $u, 'alt' => (string) get_post_meta( $id, '_wp_attachment_image_alt', true ) );
+			}
+		}
+		return $urls ? ' data-vxs-zoom="' . esc_attr( wp_json_encode( $urls ) ) . '"' : '';
 	}
 
 	public static function specs_html( $p ) {
@@ -1222,9 +1513,20 @@ class Velox_Shop_Front {
 		// The design's colours and sizes, then the shop's own CSS (Settings → Design).
 		$own = (string) Velox_Shop::get( 'custom_css', '' );
 		wp_add_inline_style( 'velox-shop', ':root{' . Velox_Shop::design_vars() . '}' . ( '' !== trim( $own ) ? "\n" . str_ireplace( '</style', '', $own ) : '' ) );
+		// The design's typefaces, self-hosted (built when the design is saved).
+		$fonts = Velox_Shop::fonts_url();
+		if ( '' !== $fonts ) {
+			wp_enqueue_style( 'velox-shop-fonts', $fonts, array(), null ); // phpcs:ignore WordPress.WP.EnqueuedResourceParameters.MissingVersion -- the URL carries its own
+		}
+		$d = Velox_Shop::design();
+		if ( in_array( 'geist', array( $d['font_h'], $d['font_b'] ), true ) ) {
+			$g = VELOX_URL . 'assets/fonts/geist-';
+			wp_add_inline_style( 'velox-shop', '@font-face{font-family:"Geist";font-weight:100 900;font-display:swap;src:url(' . esc_url( $g . 'latin-wght-normal.woff2' ) . ') format("woff2");unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02C6,U+02DA,U+02DC,U+2000-206F,U+20AC,U+2122,U+2212}@font-face{font-family:"Geist";font-weight:100 900;font-display:swap;src:url(' . esc_url( $g . 'latin-ext-wght-normal.woff2' ) . ') format("woff2");unicode-range:U+0100-02BA,U+02BD-02C5,U+1E00-1EFF,U+20A0-20AB,U+20AD-20C0,U+2C60-2C7F,U+A720-A7FF}' );
+		}
 		wp_enqueue_script( 'velox-shop', VELOX_URL . 'assets/js/velox-shop.js', array(), VELOX_VERSION, true );
 		wp_localize_script( 'velox-shop', 'VELOX_SHOP', array(
 			'rest'  => esc_url_raw( rest_url( 'velox/v1/shop/' ) ),
+			'after' => (string) Velox_Shop::get( 'after_add', 'drawer' ),
 			'i18n'  => array(
 				'cart'      => __( 'Your cart', 'velox' ),
 				'empty'     => __( 'Your cart is empty.', 'velox' ),
@@ -1243,6 +1545,12 @@ class Velox_Shop_Front {
 				'taxNote'   => __( 'Prices incl. VAT, shipping calculated at checkout.', 'velox' ),
 				'fewer'     => __( 'Fewer', 'velox' ),
 				'more'      => __( 'More', 'velox' ),
+				'addAgain'  => __( 'Add another', 'velox' ),
+				'photo'     => __( 'Photo %1$d of %2$d', 'velox' ),
+				'prev'      => __( 'Previous photo', 'velox' ),
+				'next'      => __( 'Next photo', 'velox' ),
+				'zoom'      => __( 'Show full screen', 'velox' ),
+				'loading'   => __( 'Loading…', 'velox' ),
 			),
 		) );
 	}
