@@ -34,7 +34,33 @@ class Velox_Shop_Front {
 		add_filter( 'the_content', array( __CLASS__, 'product_page' ), 20 );
 		add_action( 'wp_footer', array( __CLASS__, 'footer' ) );
 		add_action( 'wp_body_open', array( __CLASS__, 'notice_bar' ), 5 );
+		add_action( 'init', array( __CLASS__, 'block_template' ), 20 );
 		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
+	}
+
+	/**
+	 * Block themes show a post's featured image, author and date above the
+	 * text — on a product that doubles the photo and the title. Velox brings
+	 * its own product template (header, the product, footer); a theme or a
+	 * template saved in the Site Editor still wins.
+	 */
+	public static function block_template() {
+		if ( ! function_exists( 'register_block_template' ) || ! wp_is_block_theme() || ! Velox_Shop::get( 'auto_layout', '1' ) ) {
+			return;
+		}
+		register_block_template( 'velox//single-' . Velox_Shop::PRODUCT, array(
+			'title'       => __( 'Product (Velox Shop)', 'velox' ),
+			'description' => __( 'Product pages: photos, buy box and details from Velox Shop, between your header and footer.', 'velox' ),
+			'post_types'  => array( Velox_Shop::PRODUCT ),
+			'content'     => '<!-- wp:template-part {"slug":"header","area":"header","tagName":"header"} /-->'
+				. '<!-- wp:group {"tagName":"main","className":"vxs-tpl-main","layout":{"type":"constrained"}} --><main class="wp-block-group vxs-tpl-main"><!-- wp:post-content {"layout":{"type":"constrained"}} /--></main><!-- /wp:group -->'
+				. '<!-- wp:template-part {"slug":"footer","area":"footer","tagName":"footer"} /-->',
+		) );
+	}
+
+	/** True while Velox's own product template draws the page (it has no title block). */
+	private static function own_template() {
+		return ! empty( $GLOBALS['_wp_current_template_id'] ) && 0 === strpos( (string) $GLOBALS['_wp_current_template_id'], 'velox//' );
 	}
 
 	/** Shop pages, single products and product categories. */
@@ -452,7 +478,7 @@ class Velox_Shop_Front {
 		if ( ! Velox_Shop::get( 'auto_layout', '1' ) || false !== strpos( $content, 'vxs-buy' ) ) {
 			return $content;
 		}
-		return self::product_layout( Velox_Shop::product( get_the_ID() ), $content, false );
+		return self::product_layout( Velox_Shop::product( get_the_ID() ), $content, self::own_template() );
 	}
 
 	public static function sc_product( $atts = array() ) {
@@ -477,6 +503,9 @@ class Velox_Shop_Front {
 			. ( has_excerpt( $p['id'] ) ? '<div class="vxs-lead">' . wp_kses_post( wpautop( get_the_excerpt( $p['id'] ) ) ) . '</div>' : '' )
 			. self::buy_box( $p ) . self::usp_html() . '</div></div>';
 		$out .= self::buy_bar( $p );
+		if ( $title && self::own_template() ) {
+			$out = self::crumbs( $p ) . $out;
+		}
 		$tabs = '';
 		if ( '' !== trim( wp_strip_all_tags( $content ) ) ) {
 			$tabs .= '<section class="vxs-desc"><h2>' . esc_html__( 'Description', 'velox' ) . '</h2>' . $content . '</section>';
@@ -499,6 +528,21 @@ class Velox_Shop_Front {
 			$tabs .= '<section class="vxs-more"><h2>' . esc_html( $p['upsell'] ? __( 'You might also like', 'velox' ) : __( 'More from this category', 'velox' ) ) . '</h2>' . self::grid( array( 'ids' => implode( ',', $more ), 'count' => 4, 'columns' => 4, 'category' => '', 'sort' => 'menu', 'filter' => '' ) ) . '</section>';
 		}
 		return $out . ( $tabs ? '<div class="vxs-product-more alignwide">' . $tabs . '</div>' : '' );
+	}
+
+	/** Shop › category › product, above a product page Velox draws in full. */
+	private static function crumbs( $p ) {
+		$shop = (int) Velox_Shop::get( 'page_shop' );
+		if ( ! $shop ) {
+			return '';
+		}
+		$base  = self::page_url( 'shop' );
+		$items = '<a href="' . esc_url( $base ) . '">' . esc_html( get_the_title( $shop ) ) . '</a>';
+		$terms = wp_get_post_terms( $p['id'], Velox_Shop::CAT );
+		if ( $terms && ! is_wp_error( $terms ) ) {
+			$items .= '<span aria-hidden="true">/</span><a href="' . esc_url( add_query_arg( 'vxcat', $terms[0]->slug, $base ) ) . '">' . esc_html( $terms[0]->name ) . '</a>';
+		}
+		return '<nav class="vxs-crumbs alignwide" aria-label="' . esc_attr__( 'Breadcrumb', 'velox' ) . '">' . $items . '<span aria-hidden="true">/</span><span aria-current="page">' . esc_html( $p['title'] ) . '</span></nav>';
 	}
 
 	/** Up to four products from the same category, when no suggestions were picked. */
