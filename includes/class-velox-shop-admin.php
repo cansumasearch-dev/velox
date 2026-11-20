@@ -703,29 +703,282 @@ class Velox_Shop_Admin {
 
 	private static function do_customers( $in ) {
 		$by  = array();
+		$uid = array(); // user id => row key
+		// Customer accounts first, so orders can join them by account.
+		$users = get_users( array( 'role' => Velox_Shop_Account::ROLE, 'number' => 3000 ) );
+		foreach ( $users as $u ) {
+			$k          = strtolower( $u->user_email );
+			$by[ $k ]   = self::customer_row( $u->user_email, trim( $u->first_name . ' ' . $u->last_name ), $u );
+			$uid[ $u->ID ] = $k;
+		}
 		$ids = get_posts( array( 'post_type' => Velox_Shop::ORDER, 'post_status' => 'publish', 'numberposts' => 3000, 'fields' => 'ids' ) );
 		foreach ( $ids as $id ) {
 			$o = Velox_Shop::order( $id );
 			if ( ! $o || '' === $o['customer']['email'] ) {
 				continue;
 			}
-			$k = strtolower( $o['customer']['email'] );
+			$user = (int) $o['user'];
+			$k    = $user && isset( $uid[ $user ] ) ? $uid[ $user ] : strtolower( $o['customer']['email'] );
 			if ( ! isset( $by[ $k ] ) ) {
-				$by[ $k ] = array( 'email' => $o['customer']['email'], 'name' => trim( $o['customer']['first'] . ' ' . $o['customer']['last'] ), 'orders' => 0, 'spent' => 0, 'last' => 0, 'country' => $o['customer']['address']['country'], 'user' => (int) $o['user'] );
+				$acc = $user ? get_userdata( $user ) : false;
+				if ( ! $acc ) {
+					$found = email_exists( $o['customer']['email'] );
+					$acc   = $found ? get_userdata( $found ) : false;
+				}
+				$by[ $k ] = self::customer_row( $o['customer']['email'], trim( $o['customer']['first'] . ' ' . $o['customer']['last'] ), $acc ? $acc : null );
+				if ( $acc ) {
+					$uid[ $acc->ID ] = $k;
+				}
 			}
-			$by[ $k ]['orders']++;
+			$r = &$by[ $k ];
+			$r['orders']++;
 			if ( in_array( $o['payment']['status'], array( 'paid', 'partial' ), true ) ) {
-				$by[ $k ]['spent'] += $o['total'] - (float) $o['payment']['refunded'];
+				$r['spent'] += $o['total'] - (float) $o['payment']['refunded'];
 			}
-			$by[ $k ]['last'] = max( $by[ $k ]['last'], (int) $o['created'] );
+			if ( '' === $r['name'] ) {
+				$r['name'] = trim( $o['customer']['first'] . ' ' . $o['customer']['last'] );
+			}
+			$r['last'] = max( $r['last'], (int) $o['created'] );
+			unset( $r );
 		}
-		$rows = array_values( $by );
+		$rows   = array_values( $by );
+		$counts = array( 'all' => count( $rows ), 'account' => 0, 'guest' => 0, 'locked' => 0 );
+		foreach ( $rows as $r ) {
+			$counts[ $r['user'] ? 'account' : 'guest' ]++;
+			if ( $r['locked'] ) {
+				$counts['locked']++;
+			}
+		}
+		$kind = sanitize_key( (string) ( $in['kind'] ?? '' ) );
+		if ( in_array( $kind, array( 'account', 'guest', 'locked' ), true ) ) {
+			$rows = array_values( array_filter( $rows, function ( $r ) use ( $kind ) {
+				return 'locked' === $kind ? $r['locked'] : ( 'account' === $kind ? $r['user'] > 0 : 0 === $r['user'] );
+			} ) );
+		}
 		$s = strtolower( trim( (string) ( $in['q'] ?? '' ) ) );
 		if ( '' !== $s ) {
 			$rows = array_values( array_filter( $rows, function ( $r ) use ( $s ) { return false !== strpos( strtolower( $r['email'] . ' ' . $r['name'] ), $s ); } ) );
 		}
-		usort( $rows, function ( $a, $b ) { return $b['last'] <=> $a['last']; } );
-		return array( 'rows' => array_slice( $rows, 0, 500 ) );
+		usort( $rows, function ( $a, $b ) { return max( $b['last'], $b['registered'] ) <=> max( $a['last'], $a['registered'] ); } );
+		return array( 'rows' => array_slice( $rows, 0, 500 ), 'counts' => $counts );
+	}
+
+	private static function customer_row( $email, $name, $u = null ) {
+		return array(
+			'key'        => $u ? 'u' . $u->ID : $email,
+			'email'      => $u ? $u->user_email : $email,
+			'name'       => $u && trim( $u->first_name . ' ' . $u->last_name ) ? trim( $u->first_name . ' ' . $u->last_name ) : $name,
+			'user'       => $u ? (int) $u->ID : 0,
+			'staff'      => $u && user_can( $u, 'edit_posts' ),
+			'registered' => $u ? (int) strtotime( $u->user_registered . ' UTC' ) : 0,
+			'login'      => $u ? (int) get_user_meta( $u->ID, 'velox_last_login', true ) : 0,
+			'locked'     => $u ? (bool) get_user_meta( $u->ID, Velox_Shop_Account::BLOCK, true ) : false,
+			'orders'     => 0,
+			'spent'      => 0,
+			'last'       => 0,
+		);
+	}
+
+	/** "u12" is an account, anything else a guest's email. A guest who has since made an account gets the account. */
+	private static function find_customer( $key ) {
+		$key = trim( (string) $key );
+		if ( preg_match( '/^u(\d+)$/', $key, $m ) ) {
+			$u = get_userdata( (int) $m[1] );
+			return $u ? array( $u, $u->user_email ) : array( null, '' );
+		}
+		$email = sanitize_email( $key );
+		if ( ! is_email( $email ) ) {
+			return array( null, '' );
+		}
+		$id = email_exists( $email );
+		return array( $id ? get_userdata( $id ) : null, $email );
+	}
+
+	private static function do_customer( $in ) {
+		list( $u, $email ) = self::find_customer( $in['id'] ?? '' );
+		if ( '' === $email ) {
+			return new WP_Error( 'x', __( 'This customer does not exist any more.', 'velox' ) );
+		}
+		$ids = $u ? Velox_Shop_Account::order_ids( $u ) : get_posts( array( 'post_type' => Velox_Shop::ORDER, 'post_status' => 'publish', 'numberposts' => 500, 'fields' => 'ids', 'meta_key' => '_vx_email', 'meta_value' => $email ) );
+		$orders = array();
+		$spent  = 0;
+		$latest = null;
+		foreach ( $ids as $id ) {
+			$o = Velox_Shop::order( $id );
+			if ( ! $o ) {
+				continue;
+			}
+			$latest   = $latest && $latest['created'] >= $o['created'] ? $latest : $o;
+			$orders[] = array( 'id' => (int) $id, 'number' => $o['number'], 'created' => (int) $o['created'], 'total' => $o['total'], 'pay' => $o['payment']['status'], 'ful' => $o['fulfil']['status'], 'items' => count( (array) $o['items'] ) );
+			if ( in_array( $o['payment']['status'], array( 'paid', 'partial' ), true ) ) {
+				$spent += $o['total'] - (float) $o['payment']['refunded'];
+			}
+		}
+		usort( $orders, function ( $a, $b ) { return $b['created'] <=> $a['created']; } );
+		$addr = array();
+		if ( $u ) {
+			$addr = array_filter( (array) get_user_meta( $u->ID, Velox_Shop_Account::META, true ) );
+		}
+		if ( ! $addr && $latest ) {
+			$c    = $latest['customer'];
+			$addr = array( 'vx_first' => $c['first'], 'vx_last' => $c['last'], 'vx_company' => $c['company'], 'vx_phone' => $c['phone'], 'vx_line1' => $c['address']['line1'], 'vx_line2' => $c['address']['line2'], 'vx_zip' => $c['address']['zip'], 'vx_city' => $c['address']['city'], 'vx_country' => $c['address']['country'] );
+		}
+		$first = $u ? $u->first_name : ( $addr['vx_first'] ?? '' );
+		$last  = $u ? $u->last_name : ( $addr['vx_last'] ?? '' );
+		return array(
+			'key'        => $u ? 'u' . $u->ID : $email,
+			'account'    => (bool) $u,
+			'staff'      => $u && user_can( $u, 'edit_posts' ),
+			'canEdit'    => ! $u || current_user_can( 'edit_user', $u->ID ),
+			'email'      => $u ? $u->user_email : $email,
+			'first'      => (string) $first,
+			'last'       => (string) $last,
+			'registered' => $u ? (int) strtotime( $u->user_registered . ' UTC' ) : 0,
+			'login'      => $u ? (int) get_user_meta( $u->ID, 'velox_last_login', true ) : 0,
+			'locked'     => $u ? (bool) get_user_meta( $u->ID, Velox_Shop_Account::BLOCK, true ) : false,
+			'privacy'    => $u ? (int) get_user_meta( $u->ID, 'velox_shop_privacy', true ) : 0,
+			'address'    => (object) $addr,
+			'orders'     => $orders,
+			'spent'      => Velox_Shop::r( $spent ),
+			'accountUrl' => Velox_Shop_Account::url(),
+		);
+	}
+
+	private static function do_customer_action( $in ) {
+		list( $u, $email ) = self::find_customer( $in['id'] ?? '' );
+		if ( '' === $email ) {
+			return new WP_Error( 'x', __( 'This customer does not exist any more.', 'velox' ) );
+		}
+		$act = sanitize_key( (string) ( $in['act'] ?? '' ) );
+		// Account changes need the right to edit that user (never an admin from the shop by a lesser role).
+		if ( $u && 'message' !== $act && 'export' !== $act && ! current_user_can( 'edit_user', $u->ID ) ) {
+			return new WP_Error( 'x', __( 'You are not allowed to change this account.', 'velox' ) );
+		}
+		$staff = $u && user_can( $u, 'edit_posts' );
+		$msg   = '';
+		switch ( $act ) {
+			case 'save':
+				if ( ! $u ) {
+					return new WP_Error( 'x', __( 'Guests have no account to change. Edit the details in the order, or create an account.', 'velox' ) );
+				}
+				$new = sanitize_email( (string) ( $in['email'] ?? '' ) );
+				if ( ! is_email( $new ) ) {
+					return new WP_Error( 'x', __( 'Please enter a valid email address.', 'velox' ) );
+				}
+				$other = email_exists( $new );
+				if ( $other && (int) $other !== (int) $u->ID ) {
+					return new WP_Error( 'x', __( 'This email address belongs to another account.', 'velox' ) );
+				}
+				$first = mb_substr( sanitize_text_field( (string) ( $in['first'] ?? '' ) ), 0, 60 );
+				$last  = mb_substr( sanitize_text_field( (string) ( $in['last'] ?? '' ) ), 0, 60 );
+				$r = wp_update_user( array( 'ID' => $u->ID, 'user_email' => $new, 'first_name' => $first, 'last_name' => $last, 'display_name' => trim( $first . ' ' . $last ) ? trim( $first . ' ' . $last ) : $u->user_login ) );
+				if ( is_wp_error( $r ) ) {
+					return $r;
+				}
+				if ( isset( $in['address'] ) && is_array( $in['address'] ) ) {
+					Velox_Shop_Account::save_address( $u->ID, wp_slash( array_merge( (array) $in['address'], array( 'vx_first' => $first, 'vx_last' => $last ) ) ) );
+				}
+				$msg = __( 'Saved.', 'velox' );
+				break;
+			case 'reset':
+				if ( ! $u ) {
+					return new WP_Error( 'x', __( 'This customer has no account yet.', 'velox' ) );
+				}
+				$r = Velox_Shop_Account::send_reset( $u );
+				if ( is_wp_error( $r ) || ! $r ) {
+					return new WP_Error( 'x', __( 'The email could not be sent. Please check the mail settings.', 'velox' ) );
+				}
+				/* translators: %s: email address */
+				$msg = sprintf( __( 'A link to set a new password has been sent to %s.', 'velox' ), $u->user_email );
+				break;
+			case 'invite':
+				if ( $u ) {
+					return new WP_Error( 'x', __( 'This customer already has an account.', 'velox' ) );
+				}
+				$d  = self::do_customer( array( 'id' => $email ) );
+				$a  = (array) $d['address'];
+				$id = Velox_Shop_Account::create( $email, wp_generate_password( 32, true, true ), (string) $d['first'], (string) $d['last'], false );
+				if ( ! is_int( $id ) ) {
+					return new WP_Error( 'x', __( 'The account could not be created. Please try again.', 'velox' ) );
+				}
+				Velox_Shop_Account::save_address( $id, wp_slash( $a ) );
+				foreach ( $d['orders'] as $row ) {
+					$o = Velox_Shop::order( $row['id'] );
+					if ( $o && ! (int) $o['user'] ) {
+						$o['user'] = $id;
+						Velox_Shop::save_order( $row['id'], $o );
+					}
+				}
+				$u = get_userdata( $id );
+				if ( ! empty( $in['tell'] ) ) {
+					Velox_Shop_Account::send_reset( $u, true );
+					$msg = __( 'Account created. The customer got an email to choose a password.', 'velox' );
+				} else {
+					$msg = __( 'Account created. Send a password link when the customer should sign in.', 'velox' );
+				}
+				break;
+			case 'message':
+				$subject = mb_substr( sanitize_text_field( (string) ( $in['subject'] ?? '' ) ), 0, 150 );
+				$text    = sanitize_textarea_field( (string) ( $in['text'] ?? '' ) );
+				if ( '' === $subject || '' === $text ) {
+					return new WP_Error( 'x', __( 'Write a subject and a message first.', 'velox' ) );
+				}
+				$to   = $u ? $u->user_email : $email;
+				$body = '<p style="margin:0 0 16px">' . nl2br( esc_html( $text ) ) . '</p>' . ( $u ? Velox_Shop::mail_button( Velox_Shop_Account::url(), __( 'Open my account', 'velox' ) ) : '' );
+				$from = (string) Velox_Shop::get( 'store_email', '' );
+				$head = array( 'Content-Type: text/html; charset=UTF-8' );
+				if ( is_email( $from ) ) {
+					$head[] = 'Reply-To: ' . $from;
+				}
+				if ( ! wp_mail( $to, $subject, Velox_Shop::mail_layout( $body, $subject ), $head ) ) {
+					return new WP_Error( 'x', __( 'The email could not be sent. Please check the mail settings.', 'velox' ) );
+				}
+				if ( $u ) {
+					$log   = (array) get_user_meta( $u->ID, 'velox_shop_msgs', true );
+					$log[] = array( 't' => time(), 's' => $subject, 'by' => wp_get_current_user()->display_name );
+					update_user_meta( $u->ID, 'velox_shop_msgs', array_slice( array_filter( $log ), -50 ) );
+				}
+				/* translators: %s: email address */
+				$msg = sprintf( __( 'Sent to %s.', 'velox' ), $to );
+				break;
+			case 'lock':
+			case 'unlock':
+				if ( ! $u || $staff ) {
+					return new WP_Error( 'x', __( 'Only customer accounts can be locked here.', 'velox' ) );
+				}
+				if ( 'lock' === $act ) {
+					update_user_meta( $u->ID, Velox_Shop_Account::BLOCK, time() );
+					WP_Session_Tokens::get_instance( $u->ID )->destroy_all();
+					$msg = __( 'Locked. The customer is signed out and cannot sign in until you unlock the account.', 'velox' );
+				} else {
+					delete_user_meta( $u->ID, Velox_Shop_Account::BLOCK );
+					$msg = __( 'Unlocked. The customer can sign in again.', 'velox' );
+				}
+				break;
+			case 'signout':
+				if ( ! $u ) {
+					return new WP_Error( 'x', __( 'This customer has no account yet.', 'velox' ) );
+				}
+				WP_Session_Tokens::get_instance( $u->ID )->destroy_all();
+				$msg = __( 'Signed out on every device.', 'velox' );
+				break;
+			case 'export':
+				if ( ! $u ) {
+					return new WP_Error( 'x', __( 'This customer has no account yet.', 'velox' ) );
+				}
+				return array( 'export' => Velox_Shop_Account::export_data( $u ), 'file' => 'kundendaten-' . sanitize_file_name( $u->user_login ) . '-' . gmdate( 'Y-m-d' ) . '.json' );
+			case 'delete':
+				if ( ! $u || $staff ) {
+					return new WP_Error( 'x', __( 'Only customer accounts can be deleted here.', 'velox' ) );
+				}
+				Velox_Shop_Account::delete_customer( $u );
+				return array( 'deleted' => true, 'msg' => __( 'Account deleted. The orders are kept.', 'velox' ) );
+			default:
+				return new WP_Error( 'x', 'Unknown action' );
+		}
+		$res        = self::do_customer( array( 'id' => $u ? 'u' . $u->ID : $email ) );
+		$res['msg'] = $msg;
+		return $res;
 	}
 
 	/* ---- settings */

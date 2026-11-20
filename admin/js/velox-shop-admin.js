@@ -650,17 +650,111 @@
 
 	/* =========================================================== CUSTOMERS */
 
+	var CV = { kind:'all', q:'' }, CU = null;
 	function customers() {
-		main().innerHTML = head( vxT( 'Customers' ), vxT( 'Everyone who has ordered, with what they spent.' ), '' ) + '<div class="vsa-tools"><label class="vsa-search">' + ic( 'search', 15 ) + '<input type="search" data-csearch placeholder="' + esc( vxT( 'Name or email' ) ) + '"></label></div><div id="vsa-clist"></div>';
-		loadCustomers( '' );
+		if ( route.id ) { customerDetail(); return; }
+		var views = [ [ 'all', vxT( 'All' ) ], [ 'account', vxT( 'With account' ) ], [ 'guest', vxT( 'Guests' ) ], [ 'locked', vxT( 'Locked' ) ] ];
+		main().innerHTML = head( vxT( 'Customers' ), vxT( 'Customer accounts and everyone who has ordered.' ), '' ) +
+			'<div class="vsa-tools"><div class="vsa-tabs" role="tablist">' + views.map( function ( v ) { return '<button type="button" role="tab" data-cview="' + v[ 0 ] + '" class="' + ( CV.kind === v[ 0 ] ? 'is-on' : '' ) + '" aria-selected="' + ( CV.kind === v[ 0 ] ) + '">' + esc( v[ 1 ] ) + '<i class="vsa-tabn" data-cn="' + v[ 0 ] + '"></i></button>'; } ).join( '' ) + '</div>' +
+			'<label class="vsa-search">' + ic( 'search', 15 ) + '<input type="search" data-csearch value="' + esc( CV.q ) + '" placeholder="' + esc( vxT( 'Name or email' ) ) + '"></label></div><div id="vsa-clist"></div>';
+		loadCustomers();
 	}
-	function loadCustomers( q ) {
-		api( 'customers', { q:q } ).then( function ( d ) {
-			var b = document.getElementById( 'vsa-clist' ); if ( ! b ) { return; }
-			b.innerHTML = d.rows.length ? '<div class="vsa-card vsa-card-flush"><table class="vsa-table"><thead><tr><th>' + vxT( 'Customer' ) + '</th><th>' + vxT( 'Orders' ) + '</th><th>' + vxT( 'Spent' ) + '</th><th>' + vxT( 'Last order' ) + '</th></tr></thead><tbody>' + d.rows.map( function ( r ) {
-				return '<tr data-href="#/orders?q=' + encodeURIComponent( r.email ) + '"><td><span class="vsa-cust">' + esc( r.name || r.email ) + '</span><small>' + esc( r.email ) + ( r.user ? ' · ' + vxT( 'account' ) : '' ) + '</small></td><td>' + r.orders + '</td><td><b>' + money( r.spent ) + '</b></td><td class="vsa-muted">' + esc( date( r.last ) ) + '</td></tr>';
-			} ).join( '' ) + '</tbody></table></div>' : empty( 'users', vxT( 'No customers yet' ), '' );
+	function custChips( r ) {
+		return ( r.staff ? '<span class="vsa-chip is-off">' + vxT( 'Staff' ) + '</span>' : ( r.user || r.account ? '<span class="vsa-chip is-ok">' + vxT( 'Account' ) + '</span>' : '<span class="vsa-chip is-off">' + vxT( 'Guest' ) + '</span>' ) ) +
+			( r.locked ? ' <span class="vsa-chip is-bad">' + vxT( 'Locked' ) + '</span>' : '' );
+	}
+	function loadCustomers() {
+		var b = document.getElementById( 'vsa-clist' ); if ( ! b ) { return; }
+		api( 'customers', { q:CV.q, kind:CV.kind } ).then( function ( d ) {
+			b = document.getElementById( 'vsa-clist' ); if ( ! b ) { return; }
+			Object.keys( d.counts || {} ).forEach( function ( k ) { var n = document.querySelector( '[data-cn="' + k + '"]' ); if ( n ) { n.textContent = d.counts[ k ]; } } );
+			b.innerHTML = d.rows.length ? '<div class="vsa-card vsa-card-flush"><table class="vsa-table"><thead><tr><th>' + vxT( 'Customer' ) + '</th><th></th><th>' + vxT( 'Orders' ) + '</th><th>' + vxT( 'Spent' ) + '</th><th>' + vxT( 'Last activity' ) + '</th></tr></thead><tbody>' + d.rows.map( function ( r ) {
+				return '<tr data-href="#/customers/' + encodeURIComponent( r.key ) + '"><td><span class="vsa-cust">' + esc( r.name || r.email ) + '</span><small>' + esc( r.email ) + '</small></td><td>' + custChips( r ) + '</td><td>' + r.orders + '</td><td><b>' + money( r.spent ) + '</b></td><td class="vsa-muted">' + esc( date( Math.max( r.last, r.login, r.registered ) ) ) + '</td></tr>';
+			} ).join( '' ) + '</tbody></table></div>' : empty( 'users', CV.q || 'all' !== CV.kind ? vxT( 'Nobody here' ) : vxT( 'No customers yet' ), CV.q || 'all' !== CV.kind ? '' : vxT( 'Customers appear here when they create an account or order.' ) );
 		} ).catch( fail );
+	}
+	function customerDetail() {
+		loading();
+		api( 'customer', { id:decodeURIComponent( route.id ) } ).then( function ( c ) { CU = c; drawCustomer(); } ).catch( function ( e ) { fail( e ); location.hash = '#/customers'; } );
+	}
+	function drawCustomer() {
+		var c = CU, acc = c.account, name = ( c.first + ' ' + c.last ).trim(), A = c.address || {};
+		var acts = '';
+		if ( acc ) {
+			acts += '<button type="button" class="vsa-btn vsa-btn-ghost" data-act="c-reset">' + ic( 'mail', 15 ) + vxT( 'Send password link' ) + '</button>';
+		} else {
+			acts += '<button type="button" class="vsa-btn vsa-btn-pri" data-act="c-invite">' + ic( 'plus', 15 ) + vxT( 'Create account' ) + '</button>';
+		}
+		acts += '<button type="button" class="vsa-btn vsa-btn-ghost" data-act="c-msg">' + ic( 'mail', 15 ) + vxT( 'Write an email' ) + '</button>';
+		if ( acc ) {
+			acts += '<div class="vsa-menu"><button type="button" class="vsa-btn vsa-btn-ghost vsa-btn-icon" data-act="menu" aria-label="' + esc( vxT( 'More actions' ) ) + '" aria-haspopup="true">' + ic( 'more', 16 ) + '</button><div class="vsa-menu-p" hidden>' +
+				'<button type="button" data-act="c-signout">' + ic( 'undo', 14 ) + vxT( 'Sign out on all devices' ) + '</button>' +
+				'<button type="button" data-act="c-export">' + ic( 'download', 14 ) + vxT( 'Download their data' ) + '</button>' +
+				( c.staff ? '' : '<button type="button" data-act="' + ( c.locked ? 'c-unlock' : 'c-lock' ) + '">' + ic( c.locked ? 'check' : 'x', 14 ) + ( c.locked ? vxT( 'Unlock account' ) : vxT( 'Lock account' ) ) + '</button>' +
+				'<button type="button" class="is-danger" data-act="c-delete">' + ic( 'trash', 14 ) + vxT( 'Delete account' ) + '</button>' ) +
+				'</div></div>';
+		}
+		var h = head( esc( name || c.email ), custChips( c ) + ' &nbsp; ' + esc( c.email ), acts, '#/customers' );
+		if ( c.locked ) {
+			h += '<div class="vsa-next is-bad">' + ic( 'x', 18 ) + '<div><b>' + vxT( 'This account is locked' ) + '</b><p>' + vxT( 'The customer cannot sign in. Orders still work as a guest.' ) + '</p></div><button type="button" class="vsa-btn vsa-btn-ghost" data-act="c-unlock">' + vxT( 'Unlock account' ) + '</button></div>';
+		} else if ( ! acc ) {
+			h += '<div class="vsa-next">' + ic( 'users', 18 ) + '<div><b>' + vxT( 'Ordered as a guest' ) + '</b><p>' + vxT( 'Create an account and the customer gets an email to choose a password. Their orders show up in it right away.' ) + '</p></div></div>';
+		}
+		h += '<div class="vsa-cols"><div class="vsa-col-main">';
+		h += card( vxT( 'Orders' ), c.orders.length ? '<ul class="vsa-items vsa-corders">' + c.orders.map( function ( o ) {
+			return '<li><a class="vsa-grow" href="#/orders/' + o.id + '"><b class="vsa-mono">' + esc( o.number ) + '</b><small>' + esc( date( o.created, true ) ) + ' · ' + o.items + ' ' + ( 1 === o.items ? vxT( 'item' ) : vxT( 'items' ) ) + '</small></a>' + chip( PAY, o.pay ) + ' ' + chip( FUL, o.ful ) + '<b>' + money( o.total ) + '</b></li>';
+		} ).join( '' ) + '</ul>' : '<p class="vsa-muted">' + vxT( 'No orders yet.' ) + '</p>' );
+		var cf = function ( k, label, v, o ) { o = o || {}; return field( label, '<input class="vsa-in" data-cf="' + k + '" value="' + esc( v || '' ) + '"' + ( o.type ? ' type="' + o.type + '"' : '' ) + ( acc && c.canEdit ? '' : ' disabled' ) + '>', o.hint ); };
+		var cs = Object.keys( C.countries || {} ).map( function ( k ) { return '<option value="' + k + '"' + ( ( A.vx_country || 'DE' ) === k ? ' selected' : '' ) + '>' + esc( C.countries[ k ] ) + '</option>'; } ).join( '' );
+		h += card( vxT( 'Details' ),
+			'<div class="vsa-fr">' + cf( 'first', vxT( 'First name' ), c.first ) + cf( 'last', vxT( 'Last name' ), c.last ) + '</div>' +
+			cf( 'email', vxT( 'Email' ), c.email, { type:'email', hint:acc ? vxT( 'They sign in with it. The old address is told about the change.' ) : '' } ) +
+			'<div class="vsa-fr">' + cf( 'vx_company', vxT( 'Company' ), A.vx_company ) + cf( 'vx_phone', vxT( 'Phone' ), A.vx_phone ) + '</div>' +
+			cf( 'vx_line1', vxT( 'Street and number' ), A.vx_line1 ) + cf( 'vx_line2', vxT( 'Address line 2' ), A.vx_line2 ) +
+			'<div class="vsa-fr">' + cf( 'vx_zip', vxT( 'Postcode' ), A.vx_zip ) + cf( 'vx_city', vxT( 'Town' ), A.vx_city ) + '</div>' +
+			field( vxT( 'Country' ), '<select class="vsa-in" data-cf="vx_country"' + ( acc && c.canEdit ? '' : ' disabled' ) + '>' + cs + '</select>' ) +
+			( acc && c.canEdit ? '<div class="vsa-row-end"><button type="button" class="vsa-btn vsa-btn-pri" data-act="c-save">' + ic( 'check', 15 ) + vxT( 'Save' ) + '</button></div>' : '<p class="vsa-hint">' + ( acc ? vxT( 'You are not allowed to change this account.' ) : vxT( 'From the latest order. Guests have no account to change — edit the details in the order, or create an account.' ) ) + '</p>' ) );
+		h += '</div><aside class="vsa-col-side">';
+		var st = function ( l, v ) { return '<div class="vsa-tr"><span>' + l + '</span><span>' + v + '</span></div>'; };
+		h += card( vxT( 'At a glance' ), '<div class="vsa-totals">' + st( vxT( 'Orders' ), c.orders.length ) + st( vxT( 'Spent' ), '<b>' + money( c.spent ) + '</b>' ) +
+			( acc ? st( vxT( 'Customer since' ), esc( date( c.registered ) ) ) + st( vxT( 'Last sign-in' ), c.login ? esc( date( c.login, true ) ) : vxT( 'Not yet' ) ) + ( c.privacy ? st( vxT( 'Privacy consent' ), esc( date( c.privacy ) ) ) : '' ) : '' ) + '</div>' );
+		if ( acc ) {
+			h += card( vxT( 'Sign-in' ), '<p class="vsa-p">' + ( c.locked ? vxT( 'Locked — the customer cannot sign in.' ) : vxT( 'The customer signs in on the account page with their email.' ) ) + '</p><p><a href="' + esc( c.accountUrl ) + '" target="_blank" rel="noopener">' + ic( 'ext', 14 ) + ' ' + vxT( 'Open the account page' ) + '</a></p>' +
+				'<p class="vsa-hint">' + vxT( 'Passwords are never shown or set by the shop: the customer chooses one with the link you send.' ) + '</p>' );
+		}
+		h += '</aside></div>';
+		main().innerHTML = h;
+	}
+	function custAct( act, extra ) {
+		return api( 'customer_action', Object.assign( { id:CU.key, act:act }, extra || {} ) ).then( function ( r ) {
+			if ( r.deleted ) { toast( r.msg ); location.hash = '#/customers'; return; }
+			if ( r.export ) {
+				var blob = new Blob( [ JSON.stringify( r.export, null, 2 ) ], { type:'application/json' } );
+				var l = document.createElement( 'a' ); l.href = URL.createObjectURL( blob ); l.download = r.file; document.body.appendChild( l ); l.click(); setTimeout( function () { URL.revokeObjectURL( l.href ); l.remove(); }, 500 );
+				return;
+			}
+			var moved = r.key !== CU.key;
+			CU = r;
+			if ( moved ) { history.replaceState( null, '', '#/customers/' + encodeURIComponent( r.key ) ); lastHash = location.hash; route = parse(); }
+			drawCustomer(); if ( r.msg ) { toast( r.msg ); }
+		} ).catch( fail );
+	}
+	function custClick( act ) {
+		var c = CU;
+		if ( 'c-save' === act ) {
+			var v = function ( k ) { var e = main().querySelector( '[data-cf="' + k + '"]' ); return e ? e.value.trim() : ''; };
+			var addr = {}; [ 'vx_company', 'vx_phone', 'vx_line1', 'vx_line2', 'vx_zip', 'vx_city', 'vx_country' ].forEach( function ( k ) { addr[ k ] = v( k ); } );
+			custAct( 'save', { first:v( 'first' ), last:v( 'last' ), email:v( 'email' ), address:addr } ); return true;
+		}
+		if ( 'c-reset' === act ) { confirmBox( vxT( 'Send a password link?' ), vxT( 'The customer gets an email with a link to choose a new password. The link works for 24 hours; the current password keeps working until then.' ) + ' <b>' + esc( c.email ) + '</b>', vxT( 'Send link' ) ).then( function ( y ) { if ( y ) { custAct( 'reset' ); } } ); return true; }
+		if ( 'c-invite' === act ) { modal( vxT( 'Create account' ), '<p class="vsa-p">' + vxT( 'A customer account is made for this email, and all their orders show up in it.' ) + ' <b>' + esc( c.email ) + '</b></p><label class="vsa-check"><input type="checkbox" id="vsa-cinv" checked><span>' + vxT( 'Email the customer a link to choose a password' ) + '</span></label>', [ { k:'no', label:vxT( 'Cancel' ) }, { k:'yes', label:ic( 'plus', 15 ) + vxT( 'Create account' ) } ], function ( k, m ) { var t = m.querySelector( '#vsa-cinv' ).checked; closeModal(); if ( 'yes' === k ) { custAct( 'invite', { tell:t ? 1 : 0 } ); } } ); return true; }
+		if ( 'c-msg' === act ) { modal( vxT( 'Write an email' ), field( vxT( 'To' ), '<input class="vsa-in" value="' + esc( c.email ) + '" disabled>' ) + field( vxT( 'Subject' ), '<input class="vsa-in" id="vsa-cms">' ) + field( vxT( 'Message' ), '<textarea class="vsa-in" rows="7" id="vsa-cmt"></textarea>', vxT( 'Sent in your shop’s email design. Replies go to your shop email.' ) ), [ { k:'no', label:vxT( 'Cancel' ) }, { k:'yes', label:ic( 'mail', 15 ) + vxT( 'Send' ) } ], function ( k, m ) { var sj = m.querySelector( '#vsa-cms' ).value, tx = m.querySelector( '#vsa-cmt' ).value; if ( 'yes' === k && ( ! sj.trim() || ! tx.trim() ) ) { toast( vxT( 'Write a subject and a message first.' ), true ); return; } closeModal(); if ( 'yes' === k ) { custAct( 'message', { subject:sj, text:tx } ); } } ); return true; }
+		if ( 'c-signout' === act ) { custAct( 'signout' ); return true; }
+		if ( 'c-export' === act ) { custAct( 'export' ); return true; }
+		if ( 'c-lock' === act ) { confirmBox( vxT( 'Lock this account?' ), vxT( 'The customer is signed out and cannot sign in until you unlock the account. Orders and data stay.' ), vxT( 'Lock account' ), true ).then( function ( y ) { if ( y ) { custAct( 'lock' ); } } ); return true; }
+		if ( 'c-unlock' === act ) { custAct( 'unlock' ); return true; }
+		if ( 'c-delete' === act ) { confirmBox( vxT( 'Delete this account?' ), vxT( 'The account and saved address are deleted for good. Orders are kept (tax law), but no longer linked to an account. This cannot be undone.' ), vxT( 'Delete account' ), true ).then( function ( y ) { if ( y ) { custAct( 'delete' ); } } ); return true; }
+		return false;
 	}
 
 	/* ============================================================== DESIGN
@@ -900,6 +994,9 @@
 			if ( 'products' === route.name && P ) { P[ sk ] = sv; if ( 'type' === sk && 'physical' !== sv ) { P.track = P.track; } drawProduct(); markDirty(); return; }
 			if ( 'settings' === route.name ) { SD[ sk ] = sv; redrawSettings(); return; }
 		}
+		/* customers */
+		var cvb = t.closest( '[data-cview]' ); if ( cvb ) { CV.kind = cvb.getAttribute( 'data-cview' ); [].forEach.call( document.querySelectorAll( '[data-cview]' ), function ( b ) { b.classList.toggle( 'is-on', b === cvb ); b.setAttribute( 'aria-selected', b === cvb ); } ); loadCustomers(); return; }
+		if ( act && 0 === act.indexOf( 'c-' ) && 'customers' === route.name && CU && custClick( act ) ) { return; }
 		/* orders */
 		var ov = t.closest( '[data-oview]' ); if ( ov ) { OV.view = ov.getAttribute( 'data-oview' ); OV.page = 1; history.replaceState( null, '', '#/orders' ); lastHash = location.hash; [].forEach.call( document.querySelectorAll( '[data-oview]' ), function ( b ) { b.classList.toggle( 'is-on', b === ov ); } ); loadOrders(); return; }
 		var op = t.closest( '[data-opage]' ); if ( op ) { OV.page = +op.getAttribute( 'data-opage' ); loadOrders(); return; }
@@ -996,7 +1093,7 @@
 		var t = e.target;
 		if ( t.hasAttribute( 'data-osearch' ) ) { clearTimeout( searchT ); searchT = setTimeout( function () { OV.q = t.value; OV.page = 1; loadOrders(); }, 300 ); return; }
 		if ( t.hasAttribute( 'data-psearch' ) ) { clearTimeout( searchT ); searchT = setTimeout( function () { PV.q = t.value; PV.page = 1; loadProducts(); }, 300 ); return; }
-		if ( t.hasAttribute( 'data-csearch' ) ) { clearTimeout( searchT ); searchT = setTimeout( function () { loadCustomers( t.value ); }, 300 ); return; }
+		if ( t.hasAttribute( 'data-csearch' ) ) { clearTimeout( searchT ); searchT = setTimeout( function () { CV.q = t.value; loadCustomers(); }, 300 ); return; }
 		var w = t.getAttribute( 'data-w' ); if ( w ) { W[ w ] = t.value; return; }
 		if ( t.hasAttribute( 'data-upsearch' ) ) {
 			clearTimeout( searchT );

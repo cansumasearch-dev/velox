@@ -25,6 +25,7 @@ class Velox_Shop_Account {
 	const ROLE  = 'velox_customer';
 	const NONCE = 'velox_shop_acc';
 	const META  = 'velox_shop_address';
+	const BLOCK = 'velox_blocked';
 
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'role' ) );
@@ -32,6 +33,23 @@ class Velox_Shop_Account {
 		add_filter( 'show_admin_bar', array( __CLASS__, 'admin_bar' ) );
 		add_action( 'admin_init', array( __CLASS__, 'keep_out_of_admin' ) );
 		add_shortcode( 'velox_account_button', array( __CLASS__, 'sc_button' ) );
+		add_filter( 'authenticate', array( __CLASS__, 'block_login' ), 99 );
+		add_action( 'wp_login', array( __CLASS__, 'seen' ), 10, 2 );
+	}
+
+	/** A customer the shop has locked cannot sign in (staff accounts are never locked here). */
+	public static function block_login( $user ) {
+		if ( $user instanceof WP_User && get_user_meta( $user->ID, self::BLOCK, true ) && ! user_can( $user, 'edit_posts' ) ) {
+			return new WP_Error( 'velox_blocked', __( 'This account is locked. Please contact the shop.', 'velox' ) );
+		}
+		return $user;
+	}
+
+	/** Remember the last sign-in, for the shop's customer list. */
+	public static function seen( $login, $user ) {
+		if ( $user instanceof WP_User ) {
+			update_user_meta( $user->ID, 'velox_last_login', time() );
+		}
 	}
 
 	/* ------------------------------------------------------------------ basics */
@@ -106,6 +124,7 @@ class Velox_Shop_Account {
 	private static function notes() {
 		return array(
 			'login-bad'    => array( 'err', __( 'Email or password is not right. Please try again.', 'velox' ) ),
+			'login-locked' => array( 'err', __( 'This account is locked. Please contact the shop.', 'velox' ) ),
 			'login-many'   => array( 'err', __( 'Too many attempts. Please wait a few minutes.', 'velox' ) ),
 			'reg-off'      => array( 'err', __( 'Creating accounts is switched off for this shop.', 'velox' ) ),
 			'reg-email'    => array( 'err', __( 'Please enter a valid email address.', 'velox' ) ),
@@ -206,7 +225,7 @@ class Velox_Shop_Account {
 			'remember'      => ! empty( $_POST['vx_remember'] ), // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		), is_ssl() );
 		if ( is_wp_error( $user ) ) {
-			self::go( 'login', 'login-bad' );
+			self::go( 'login', 'velox_blocked' === $user->get_error_code() ? 'login-locked' : 'login-bad' );
 		}
 		$to = isset( $_POST['vx_to'] ) ? esc_url_raw( wp_unslash( $_POST['vx_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		wp_safe_redirect( $to ? $to : self::url() );
@@ -214,7 +233,7 @@ class Velox_Shop_Account {
 	}
 
 	/** Create a customer account; returns the user id or an error code. */
-	public static function create( $email, $pass, $first, $last ) {
+	public static function create( $email, $pass, $first, $last, $welcome = true ) {
 		if ( ! is_email( $email ) ) {
 			return 'reg-email';
 		}
@@ -244,7 +263,9 @@ class Velox_Shop_Account {
 			return 'reg-fail';
 		}
 		update_user_meta( $id, 'show_admin_bar_front', 'false' );
-		self::welcome_mail( $id );
+		if ( $welcome ) {
+			self::welcome_mail( $id );
+		}
 		return (int) $id;
 	}
 
@@ -280,18 +301,33 @@ class Velox_Shop_Account {
 		$in   = self::p( 'vx_login', 120 );
 		$user = is_email( $in ) ? get_user_by( 'email', $in ) : get_user_by( 'login', $in );
 		if ( $user ) {
-			$key = get_password_reset_key( $user );
-			if ( ! is_wp_error( $key ) ) {
-				$link = self::url( 'reset', array( 'key' => $key, 'login' => rawurlencode( $user->user_login ) ) );
-				$body = '<h1 style="margin:0 0 12px;font-size:22px">' . esc_html__( 'Set a new password', 'velox' ) . '</h1>'
-					. '<p style="margin:0">' . esc_html__( 'Someone asked to set a new password for your customer account. If that was you, choose a new password with the button below. The link works for 24 hours.', 'velox' ) . '</p>'
-					. Velox_Shop::mail_button( $link, __( 'Set a new password', 'velox' ) )
-					. '<p style="margin:22px 0 0;color:#6b7280;font-size:13px">' . esc_html__( 'If you did not ask for this, you can ignore this email — nothing changes.', 'velox' ) . '</p>';
-				wp_mail( $user->user_email, __( 'Set a new password', 'velox' ) . ' — ' . Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) ), Velox_Shop::mail_layout( $body, __( 'Set a new password', 'velox' ) ), array( 'Content-Type: text/html; charset=UTF-8' ) );
-			}
+			self::send_reset( $user );
 		}
 		// The same answer either way: the form must not reveal who has an account.
 		self::go( 'login', 'lost-sent' );
+	}
+
+	/**
+	 * Email a link to choose a new password. $invite: the shop made the account,
+	 * so the mail says "choose your password" instead of "someone asked".
+	 */
+	public static function send_reset( $user, $invite = false ) {
+		$key = get_password_reset_key( $user );
+		if ( is_wp_error( $key ) ) {
+			return $key;
+		}
+		$store = (string) Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) );
+		$link  = self::url( 'reset', array( 'key' => $key, 'login' => rawurlencode( $user->user_login ) ) );
+		$title = $invite ? __( 'Your customer account is ready', 'velox' ) : __( 'Set a new password', 'velox' );
+		$text  = $invite
+			/* translators: %s: shop name */
+			? sprintf( __( 'We have set up a customer account for you at %s. In it you see your orders, invoices and downloads. Choose your password with the button below — the link works for 24 hours.', 'velox' ), $store )
+			: __( 'Someone asked to set a new password for your customer account. If that was you, choose a new password with the button below. The link works for 24 hours.', 'velox' );
+		$body  = '<h1 style="margin:0 0 12px;font-size:22px">' . esc_html( $title ) . '</h1>'
+			. '<p style="margin:0">' . esc_html( $text ) . '</p>'
+			. Velox_Shop::mail_button( $link, $invite ? __( 'Choose my password', 'velox' ) : __( 'Set a new password', 'velox' ) )
+			. ( $invite ? '' : '<p style="margin:22px 0 0;color:#6b7280;font-size:13px">' . esc_html__( 'If you did not ask for this, you can ignore this email — nothing changes.', 'velox' ) . '</p>' );
+		return wp_mail( $user->user_email, $title . ' — ' . $store, Velox_Shop::mail_layout( $body, $title ), array( 'Content-Type: text/html; charset=UTF-8' ) );
 	}
 
 	private static function do_reset() {
@@ -382,14 +418,13 @@ class Velox_Shop_Account {
 		self::go( 'address', 'saved' );
 	}
 
-	private static function order_ids( $u ) {
+	public static function order_ids( $u ) {
 		return get_posts( array( 'post_type' => Velox_Shop::ORDER, 'post_status' => 'publish', 'numberposts' => 200, 'fields' => 'ids',
 			'meta_query' => array( 'relation' => 'OR', array( 'key' => '_vx_user', 'value' => (string) $u->ID ), array( 'key' => '_vx_email', 'value' => $u->user_email ) ) ) );
 	}
 
-	/** Everything the shop knows about this customer, as a JSON file (GDPR Art. 15/20). */
-	private static function do_export() {
-		$u    = wp_get_current_user();
+	/** Everything the shop knows about a customer (GDPR Art. 15/20). */
+	public static function export_data( $u ) {
 		$data = array(
 			'account' => array( 'email' => $u->user_email, 'first_name' => $u->first_name, 'last_name' => $u->last_name, 'registered' => $u->user_registered ),
 			'address' => array_filter( (array) get_user_meta( $u->ID, self::META, true ) ),
@@ -400,16 +435,38 @@ class Velox_Shop_Account {
 			if ( $o ) {
 				$data['orders'][] = array(
 					'number' => $o['number'], 'date' => wp_date( 'c', (int) $o['created'] ), 'total' => $o['total'], 'currency' => $o['currency'] ?? '',
-					'customer' => $o['customer'] ?? array(), 'items' => array_map( function ( $l ) { return array( 'name' => $l['name'] ?? '', 'qty' => $l['qty'] ?? 1, 'total' => $l['total'] ?? 0 ); }, (array) ( $o['lines'] ?? array() ) ),
+					'customer' => $o['customer'] ?? array(), 'items' => array_map( function ( $l ) { return array( 'name' => $l['name'] ?? '', 'variant' => $l['variant'] ?? '', 'qty' => $l['qty'] ?? 1, 'total' => $l['total'] ?? 0 ); }, (array) ( $o['items'] ?? array() ) ),
 					'payment' => $o['payment']['status'] ?? '', 'shipping' => $o['fulfil']['status'] ?? '',
 				);
 			}
 		}
+		return $data;
+	}
+
+	private static function do_export() {
+		$data = self::export_data( wp_get_current_user() );
 		nocache_headers();
 		header( 'Content-Type: application/json; charset=utf-8' );
 		header( 'Content-Disposition: attachment; filename="meine-daten-' . gmdate( 'Y-m-d' ) . '.json"' );
 		echo wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES );
 		exit;
+	}
+
+	/** Delete a customer account. Orders stay (tax law: 10 years) but no longer point to it. */
+	public static function delete_customer( $u ) {
+		if ( ! $u || ! $u->ID || user_can( $u, 'edit_posts' ) ) {
+			return false;
+		}
+		foreach ( self::order_ids( $u ) as $id ) {
+			$o = Velox_Shop::order( $id );
+			if ( $o && (int) ( $o['user'] ?? 0 ) === (int) $u->ID ) {
+				$o['user'] = 0;
+				Velox_Shop::save_order( $id, $o );
+			}
+			delete_post_meta( $id, '_vx_user' );
+		}
+		require_once ABSPATH . 'wp-admin/includes/user.php';
+		return wp_delete_user( $u->ID );
 	}
 
 	private static function do_delete() {
@@ -423,22 +480,12 @@ class Velox_Shop_Account {
 		if ( ! wp_check_password( self::pw( 'vx_cur' ), $u->user_pass, $u->ID ) ) {
 			self::go( 'privacy', 'pass-wrong' );
 		}
-		// Orders stay (tax law keeps them for 10 years) but no longer point to the account.
-		foreach ( self::order_ids( $u ) as $id ) {
-			$o = Velox_Shop::order( $id );
-			if ( $o && (int) ( $o['user'] ?? 0 ) === (int) $u->ID ) {
-				$o['user'] = 0;
-				Velox_Shop::save_order( $id, $o );
-			}
-			delete_post_meta( $id, '_vx_user' );
-		}
-		require_once ABSPATH . 'wp-admin/includes/user.php';
 		wp_logout();
-		wp_delete_user( $u->ID );
+		self::delete_customer( $u );
 		self::go( '', 'deleted' );
 	}
 
-	private static function welcome_mail( $id ) {
+	public static function welcome_mail( $id ) {
 		$u = get_userdata( $id );
 		if ( ! $u ) {
 			return;

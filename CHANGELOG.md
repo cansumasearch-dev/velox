@@ -4,6 +4,13 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.58.0 — Customer management
+- **Customers screen, rebuilt:** Velox Shop → Customers now lists customer accounts and guests together, with tabs for all, with account, guests and locked, plus search. Accounts without orders show up too.
+- **A page per customer:** all their orders (click through to each), their details and address, customer since, last sign-in and privacy consent.
+- **Control the account:** change name, email and address; send a link to choose a new password (the shop never sees or sets passwords); write the customer an email in the shop design; sign them out on every device; lock and unlock the account (a locked customer cannot sign in); download their data; delete the account (orders are kept).
+- **Turn a guest into a customer:** “Create account” makes an account for a guest’s email, links all their orders and emails them a link to choose a password.
+- **Fix:** the customer’s own data download (account page → Privacy) now includes the items of each order.
+
 ## 4.57.0 — Sold items and reopening orders
 - **Reopen a cancelled order:** a cancelled order now has a “Reopen order” button (in the order and in its … menu). The order is active again, its items are taken out of stock again, and an unpaid order gets its full payment time again. The customer can get an email (“Your order is active again”, with the payment details if it is still unpaid). If an item has been sold to someone else in the meantime, Velox says so instead of selling it twice.
 - **Sold items in the shop:** new setting under Shop → Settings → Stock & products — show sold items as sold, show them as sold at the end of the shop, or hide them. A cancelled order puts its items back and they show up as available again.
