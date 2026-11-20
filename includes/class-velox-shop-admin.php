@@ -1117,6 +1117,7 @@ class Velox_Shop_Admin {
 			'login'      => $u ? (int) get_user_meta( $u->ID, 'velox_last_login', true ) : 0,
 			'locked'     => $u ? (bool) get_user_meta( $u->ID, Velox_Shop_Account::BLOCK, true ) : false,
 			'privacy'    => $u ? (int) get_user_meta( $u->ID, 'velox_shop_privacy', true ) : 0,
+			'twofa'      => $u ? Velox_Shop_Account::twofa_info( $u->ID ) : null,
 			'address'    => (object) $addr,
 			'orders'     => $orders,
 			'spent'      => Velox_Shop::r( $spent ),
@@ -1234,6 +1235,14 @@ class Velox_Shop_Admin {
 					delete_user_meta( $u->ID, Velox_Shop_Account::BLOCK );
 					$msg = __( 'Unlocked. The customer can sign in again.', 'velox' );
 				}
+				break;
+			case 'reset2fa':
+				if ( ! $u ) {
+					return new WP_Error( 'x', __( 'This customer has no account yet.', 'velox' ) );
+				}
+				Velox_Shop_Account::reset_2fa( $u->ID );
+				WP_Session_Tokens::get_instance( $u->ID )->destroy_all();
+				$msg = __( 'Two-factor sign-in is off for this customer. They sign in with their password and can set it up again.', 'velox' );
 				break;
 			case 'signout':
 				if ( ! $u ) {

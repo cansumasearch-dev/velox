@@ -2314,7 +2314,8 @@
 				{ k:'total', t:'select', l:'Cart total next to the icon', d:'', s:'Button', o:[ [ '', 'From the shop design' ], [ '1', 'Show' ], [ '0', 'Hide' ] ] }
 			  ] },
 			{ key:'shopaccountbtn', el:'Shopaccountbtn', tag:'div', label:'Account button', cls:'.shop-accountbtn', rules:{},
-			  settings:[ { k:'label', t:'text', l:'Text next to the icon', d:'', s:'Button' } ] },
+			  settings:[ { k:'label', t:'text', l:'Text next to the icon', d:'', s:'Button' },
+				{ k:'menu', t:'select', l:'On hover', d:'', s:'Button', o:[ [ '', 'Show a menu' ], [ '0', 'Just a link' ] ] } ] },
 			{ key:'shopcart', el:'Shopcart', tag:'div', label:'Cart', cls:'.shop-cart', rules:{} },
 			{ key:'shopcheckout', el:'Shopcheckout', tag:'div', label:'Checkout', cls:'.shop-checkout', rules:{} },
 			{ key:'shopaccount', el:'Shopaccount', tag:'div', label:'Customer account', cls:'.shop-account', rules:{} },

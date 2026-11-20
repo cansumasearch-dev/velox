@@ -4,6 +4,16 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.60.0 — Faster pages, a new customer account, two-factor sign-in
+- **Less code on every page:** Velox now loads its parts only when they are used. A visitor’s page no longer compiles the admin screens, backups, imports, the site scan, the AJAX handlers or the updater, and the admin toolbar code loads only for signed-in users. That matters most for the pages that cannot come from the cache: cart, checkout, customer account, and everything while you are signed in.
+- **Velox tells you when PHP’s opcache does not work:** when opcache is switched off or keeps nothing (full, or no shared memory), every uncached page compiles WordPress and all plugins again — often 0.3 to 0.5 seconds. Velox screens now say so, with what to change in Plesk; the profiler (`?velox_profile=1`) shows it too.
+- **The customer account, redesigned:** a clear header with your initials, a tab bar (overview, orders, downloads, address, profile, security, privacy) and calm settings sections. The overview shows your orders, what is still in progress, what you spent, and the latest order with its progress from ordered to delivered.
+- **Sign-in page:** the form next to a panel with what an account offers; forgotten password and reset in the same style.
+- **Two-factor sign-in for customers:** set up on the Security tab with any authenticator app (QR code drawn on the site itself — no secret leaves it), 10 one-time recovery codes to copy or download, new codes or switching it off with the password. Signing in then asks for the code on a second step; wp-login.php refuses the password alone for these accounts. In the back end, the customer page shows whether it is on and can switch it off for someone who lost their phone.
+- **Signed-in devices:** the Security tab lists where the account is signed in (browser, system, time, shortened IP) and signs out all other devices with one click.
+- **Account icon with a menu:** with a mouse, hovering the header icon opens a small menu — name and email, overview, orders, address, security, sign out; for visitors a sign-in button and “create an account”. Signed in, the icon shows your initials. On touch screens it stays a plain link to the account page. The Builder element has a “Just a link” option.
+- **Fix:** the account page and the product page accordions shared a class name, so the account layout leaked into the accordions.
+
 ## 4.59.1 — Boot profiler
 - **Find slow page loads:** as an administrator, add `?velox_profile=1` to any page address. The end of the page source and the browser console show a timeline of the request: when WordPress started, how long Velox took to load and to start each of its parts, and the WordPress stages up to the footer, with the slowest steps listed first. Nobody else sees anything, and without the parameter nothing extra happens.
 

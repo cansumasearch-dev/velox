@@ -45,6 +45,7 @@ class Velox_Admin {
 		add_action( 'admin_enqueue_scripts', array( $this, 'assets' ) );
 		add_action( 'admin_notices', array( $this, 'cache_notice' ) );
 		add_action( 'admin_notices', array( $this, 'builder_notice' ) );
+		add_action( 'admin_notices', array( $this, 'opcache_notice' ) );
 		add_action( 'admin_head', array( $this, 'menu_icon_css' ) );
 		add_filter( 'plugin_action_links_' . VELOX_BASENAME, array( $this, 'action_links' ) );
 	}
@@ -483,6 +484,59 @@ class Velox_Admin {
 			'<div class="notice %1$s is-dismissible"><p><strong>Velox:</strong> %2$s</p></div>',
 			esc_attr( $class ),
 			esc_html( $notice['message'] )
+		);
+	}
+
+	/**
+	 * PHP's opcache keeps compiled code in memory. When it is on but stores
+	 * nothing (full, or no shared memory), every page that is not served from
+	 * the page cache compiles WordPress and all plugins again: 0.3 to 0.5 s each.
+	 * Shown on Velox screens to administrators, after it was seen twice in a row
+	 * (right after a PHP restart nothing is cached yet).
+	 *
+	 * @return string '' when fine, 'off' when switched off, 'empty' when on but storing nothing.
+	 */
+	public static function opcache_state() {
+		if ( ! extension_loaded( 'Zend OPcache' ) || ! filter_var( ini_get( 'opcache.enable' ), FILTER_VALIDATE_BOOLEAN ) ) {
+			return 'off';
+		}
+		if ( ! function_exists( 'opcache_is_script_cached' ) ) {
+			return '';
+		}
+		return @opcache_is_script_cached( ABSPATH . 'wp-settings.php' ) ? '' : 'empty'; // phpcs:ignore WordPress.PHP.NoSilencedErrors
+	}
+
+	public function opcache_notice() {
+		$screen = function_exists( 'get_current_screen' ) ? get_current_screen() : null;
+		if ( ! current_user_can( 'manage_options' ) || ! $screen || false === strpos( (string) $screen->id, 'velox' ) ) {
+			return;
+		}
+		$state = self::opcache_state();
+		$seen  = (int) get_transient( 'velox_opcache_miss' );
+		if ( '' === $state ) {
+			if ( $seen ) {
+				delete_transient( 'velox_opcache_miss' );
+			}
+			return;
+		}
+		set_transient( 'velox_opcache_miss', $seen + 1, HOUR_IN_SECONDS );
+		if ( $seen < 1 ) {
+			return;
+		}
+		$kb = 0;
+		foreach ( get_included_files() as $f ) {
+			$kb += (int) @filesize( $f ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		}
+		printf(
+			'<div class="notice notice-warning"><p><strong>%1$s</strong> %2$s</p><p>%3$s</p></div>',
+			esc_html( 'off' === $state ? __( 'Velox: PHP opcache is switched off.', 'velox' ) : __( 'Velox: PHP opcache is on, but keeps nothing.', 'velox' ) ),
+			/* translators: %s: amount of PHP code, e.g. "13 MB" */
+			esc_html( sprintf( __( 'So every page that does not come from the page cache — cart, checkout, customer account, and everything while you are signed in — compiles WordPress and all plugins from scratch (about %s of PHP code). That costs roughly 0.3 to 0.5 seconds per page.', 'velox' ), size_format( $kb * 1, 0 ) ) ),
+			esc_html( sprintf(
+				/* translators: %s: PHP version, e.g. 8.2 */
+				__( 'This is a server setting. In Plesk: Tools & Settings → PHP Settings → PHP %s → raise opcache.memory_consumption to 256 and opcache.interned_strings_buffer to 32, switch opcache.enable on, then restart PHP-FPM. On shared hosting, ask your host to do it.', 'velox' ),
+				PHP_MAJOR_VERSION . '.' . PHP_MINOR_VERSION
+			) )
 		);
 	}
 
