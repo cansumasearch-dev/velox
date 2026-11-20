@@ -35,6 +35,7 @@ final class Velox {
 		// early (on construct) so it's in place before any __() call runs.
 		add_filter( 'gettext', array( $this, 'translate_string' ), 10, 3 );
 		add_filter( 'gettext_with_context', array( $this, 'translate_string_ctx' ), 10, 4 );
+		add_filter( 'ngettext', array( $this, 'translate_plural' ), 10, 5 );
 	}
 
 	/**
@@ -142,6 +143,21 @@ final class Velox {
 	 */
 	public function translate_string_ctx( $translation, $text, $context, $domain ) {
 		return $this->translate_string( $translation, $text, $domain );
+	}
+
+	/**
+	 * ngettext filter — _n() calls. German counts like English: one is singular,
+	 * everything else plural, so the singular or plural source string is the key.
+	 *
+	 * @param string $translation Current text.
+	 * @param string $single      Singular source string.
+	 * @param string $plural      Plural source string.
+	 * @param int    $number      The count.
+	 * @param string $domain      Text domain.
+	 * @return string
+	 */
+	public function translate_plural( $translation, $single, $plural, $number, $domain ) {
+		return $this->translate_string( $translation, 1 === (int) $number ? $single : $plural, $domain );
 	}
 
 	/**

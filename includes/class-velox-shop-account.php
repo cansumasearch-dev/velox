@@ -508,7 +508,7 @@ class Velox_Shop_Account {
 	public static function render() {
 		$tab = isset( $_GET['vxa'] ) ? sanitize_key( wp_unslash( $_GET['vxa'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		if ( ! is_user_logged_in() ) {
-			return '<div class="vxs-acc vxs-acc-out">' . self::note_html() . self::guest( $tab ) . '</div>';
+			return '<div class="vxs-acc vxs-account vxs-acc-out">' . self::note_html() . self::guest( $tab ) . '</div>';
 		}
 		$u    = wp_get_current_user();
 		$tabs = array(
@@ -547,7 +547,7 @@ class Velox_Shop_Account {
 			default:
 				$body .= self::tab_overview( $u );
 		}
-		return '<div class="vxs-acc">' . $nav . '<div class="vxs-acc-main">' . $body . '</div></div>';
+		return '<div class="vxs-acc vxs-account">' . $nav . '<div class="vxs-acc-main">' . $body . '</div></div>';
 	}
 
 	private static function guest( $tab ) {

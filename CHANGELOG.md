@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.56.1 — Account page polish
+- **Plural words are translated:** counts like “1 Bestellung”, “Nur noch 2 übrig” and the SEO bulk-action notice now show in German. Velox only translated single strings before, so every singular/plural pair stayed English.
+- **Order lists fit narrow columns:** in the customer account (and anywhere the list is narrow) an order folds into two tidy lines — number and total, then date and status — instead of squeezing the date and amount onto several lines.
+- **The account page uses the full width:** it keeps the old `vxs-account` class, so site CSS written for the old account page (for example a rule that narrows text pages but leaves shop pages wide) still works. The old account page’s leftover styles are gone.
+
 ## 4.56.0 — Customer accounts
 - **Sign in and create an account on the shop’s own account page:** customers register, sign in, stay signed in and sign out without ever seeing the WordPress login page or the dashboard. A customer who opens wp-admin lands on their account instead. Sign-in attempts are rate-limited, registration has a spam trap and a privacy checkbox, and new customers get a welcome email.
 - **Forgotten password:** customers ask for a link by email (in the shop’s own mail design) and choose a new password on the account page. The answer is the same whether an account exists or not, and a used link stops working.

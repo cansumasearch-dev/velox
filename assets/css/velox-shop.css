@@ -263,13 +263,6 @@
 .vxs-order>.vxs-btn{align-self:flex-start}
 
 /* ---- account */
-.vxs-account{max-width:760px}
-.vxs-account-in{max-width:420px}
-.vxs-account-top{display:flex;justify-content:space-between;align-items:baseline;gap:14px;margin-bottom:16px}
-.vxs-account-top h2{margin:0}
-.vxs-account form p{display:flex;flex-direction:column;gap:6px;margin:0 0 12px}
-.vxs-account input[type=text],.vxs-account input[type=password]{min-height:46px;padding:10px 14px;border:1px solid #d1d5db;border-radius:var(--vxs-r-sm);font:inherit;font-size:16px}
-.vxs-account input[type=submit]{min-height:46px;padding:0 22px;border:0;border-radius:999px;background:var(--vxs-accent);color:var(--vxs-accent-ink);font:inherit;font-weight:600;cursor:pointer}
 .vxs-orders{list-style:none;margin:0;padding:0;border:1px solid var(--vxs-line);border-radius:var(--vxs-r);overflow:hidden}
 .vxs-orders li>a,.vxs-orders li>span{display:grid;grid-template-columns:110px 1fr auto auto auto;gap:14px;align-items:center;padding:14px 18px;border-bottom:1px solid var(--vxs-line);color:inherit;text-decoration:none}
 .vxs-orders li:last-child>*{border-bottom:0}
@@ -513,3 +506,15 @@
 .vxs-acc-cta div{display:flex;flex-direction:column;gap:3px}.vxs-acc-cta span{color:var(--vxs-ink-2);font-size:14px}
 .vxs-accbtn{display:inline-flex;align-items:center;gap:8px;color:inherit;text-decoration:none}
 @media (max-width:900px){.vxs-acc{grid-template-columns:minmax(0,1fr);gap:20px}.vxs-acc-nav{position:static}.vxs-acc-nav ul{flex-direction:row;overflow-x:auto;scrollbar-width:none}.vxs-acc-nav a{white-space:nowrap}.vxs-acc-tiles{grid-template-columns:minmax(0,1fr)}}
+/* Order rows size to their list, not the screen: in a narrow column (the account)
+   they fold into two lines — number and total, then date and status. */
+.vxs-orders{container-type:inline-size}
+.vxs-orders li>a>*,.vxs-orders li>span>*{white-space:nowrap}
+@container (max-width:620px){
+	.vxs-orders li>a,.vxs-orders li>span{grid-template-columns:minmax(0,1fr) auto auto;gap:6px 8px}
+	.vxs-orders li>*>:nth-child(1){grid-column:1;grid-row:1}
+	.vxs-orders li>*>:nth-child(2){grid-column:1;grid-row:2;color:var(--vxs-ink-3);font-size:13px;overflow:hidden;text-overflow:ellipsis}
+	.vxs-orders li>*>:nth-child(3){grid-column:2/-1;grid-row:1;justify-self:end;font-weight:600}
+	.vxs-orders li>*>:nth-child(n+4){grid-row:2;justify-self:end}
+	.vxs-orders li>*>:nth-child(4):last-child{grid-column:2/-1}
+}

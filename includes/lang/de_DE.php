@@ -5970,4 +5970,8 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Offer an account while ordering' => 'Konto beim Bestellen anbieten',
 	'A box in the checkout: tick it, choose a password, done. Ordering without an account always stays possible.' => 'Ein Feld an der Kasse: Haken setzen, Passwort wählen, fertig. Bestellen ohne Konto bleibt immer möglich.',
 	'Account button' => 'Konto-Button',
+	// 4.56.1 — plural strings (_n)
+	'%1$d item %2$s.' => '%1$d Eintrag %2$s.',
+	'%1$d items %2$s.' => '%1$d Einträge %2$s.',
+	'Only %d left' => 'Nur noch %d übrig',
 );
