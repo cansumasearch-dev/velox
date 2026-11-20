@@ -6171,4 +6171,5 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'your password alone signs you in' => 'Ihr Passwort allein meldet Sie an',
 	'Show a menu' => 'Menü zeigen',
 	'Just a link' => 'Nur ein Link',
+	'Spent so far' => 'Bisher ausgegeben',
 );

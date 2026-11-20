@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.60.1 — Wording
+- **Customer account:** the overview tile says “Bisher ausgegeben” (spent so far) instead of “Umsatz”, which is the shop owner’s word.
+
 ## 4.60.0 — Faster pages, a new customer account, two-factor sign-in
 - **Less code on every page:** Velox now loads its parts only when they are used. A visitor’s page no longer compiles the admin screens, backups, imports, the site scan, the AJAX handlers or the updater, and the admin toolbar code loads only for signed-in users. That matters most for the pages that cannot come from the cache: cart, checkout, customer account, and everything while you are signed in.
 - **Velox tells you when PHP’s opcache does not work:** when opcache is switched off or keeps nothing (full, or no shared memory), every uncached page compiles WordPress and all plugins again — often 0.3 to 0.5 seconds. Velox screens now say so, with what to change in Plesk; the profiler (`?velox_profile=1`) shows it too.

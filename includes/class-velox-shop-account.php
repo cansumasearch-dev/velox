@@ -1013,7 +1013,7 @@ class Velox_Shop_Account {
 		$out .= '<div class="vxa-stats">'
 			. '<a href="' . esc_url( self::url( 'orders' ) ) . '"><span>' . esc_html__( 'Orders', 'velox' ) . '</span><b>' . count( $ids ) . '</b></a>'
 			. '<a href="' . esc_url( self::url( 'orders' ) ) . '"><span>' . esc_html__( 'In progress', 'velox' ) . '</span><b>' . (int) $open . '</b></a>'
-			. '<div><span>' . esc_html__( 'Spent', 'velox' ) . '</span><b>' . Velox_Shop_Front::money( $spent ) . '</b></div></div>';
+			. '<div><span>' . esc_html__( 'Spent so far', 'velox' ) . '</span><b>' . Velox_Shop_Front::money( $spent ) . '</b></div></div>';
 		if ( $last ) {
 			$href = self::url( 'orders', array( 'vxo' => $last['key'] ) );
 			$names = array();
