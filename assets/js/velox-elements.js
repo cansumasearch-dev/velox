@@ -930,7 +930,15 @@
 		var rings = d.querySelectorAll( '[data-vx-ring]' );
 		var html = d.documentElement;
 		if ( els.length || rings.length ) {
-			var last = window.scrollY, dirY = window.scrollY, ticking = false;
+			var last = window.scrollY, dirY = window.scrollY, ticking = false, hdrH = 0;
+			// Measured on load and resize only: reading it inside the scroll frame,
+			// right after toggling classes, forced a layout on every scroll step.
+			var measure = function () {
+				hdrH = 0;
+				for ( var m = 0; m < els.length; m++ ) {
+					if ( els[ m ].hasAttribute( 'data-vx-sticky' ) && window.innerWidth >= num( els[ m ], 'data-vx-sticky-min', 0 ) ) { hdrH = Math.max( hdrH, els[ m ].offsetHeight ); }
+				}
+			};
 			Array.prototype.forEach.call( els, function ( el ) {
 				if ( el.hasAttribute( 'data-vx-progress' ) && ! el.querySelector( ':scope > .vx-hdr-progress' ) ) {
 					var bar = d.createElement( 'span' );
@@ -946,7 +954,7 @@
 				// A small buffer: tiny scroll wiggles must not make the header jump.
 				var down = y > dirY + 6, up = y < dirY - 6;
 				if ( down || up ) { dirY = y; }
-				var max = Math.max( 1, html.scrollHeight - window.innerHeight ), pad = 0;
+				var max = Math.max( 1, html.scrollHeight - window.innerHeight ), pad = 0, hidden = false;
 				for ( var i = 0; i < els.length; i++ ) {
 					var el = els[ i ];
 					var on = el.hasAttribute( 'data-vx-sticky' ) && w >= num( el, 'data-vx-sticky-min', 0 );
@@ -975,15 +983,18 @@
 						else if ( up || ! safe || y <= after ) { el.classList.remove( 'is-hidden' ); }
 					}
 					if ( el.hasAttribute( 'data-vx-progress' ) ) { el.style.setProperty( '--vx-p', ( y / max ).toFixed( 4 ) ); }
-					if ( on && ! el.classList.contains( 'is-hidden' ) ) { pad = Math.max( pad, el.offsetHeight ); }
+					if ( on ) { pad = hdrH; if ( el.classList.contains( 'is-hidden' ) ) { hidden = true; } }
 				}
-				html.style.scrollPaddingTop = pad ? ( pad + 12 ) + 'px' : '';
+				var sp = pad && ! hidden ? ( pad + 12 ) + 'px' : '';
+				if ( html.style.scrollPaddingTop !== sp ) { html.style.scrollPaddingTop = sp; }
 				for ( var r = 0; r < rings.length; r++ ) { rings[ r ].style.setProperty( '--vx-p', ( y / max ).toFixed( 4 ) ); }
 				last = y;
 			};
 			var req = function () { if ( ! ticking ) { ticking = true; window.requestAnimationFrame( upd ); } };
 			window.addEventListener( 'scroll', req, { passive: true } );
-			window.addEventListener( 'resize', req, { passive: true } );
+			window.addEventListener( 'resize', function () { measure(); req(); }, { passive: true } );
+			window.addEventListener( 'load', function () { measure(); req(); } );
+			measure();
 			upd();
 		}
 		initReveal();
@@ -998,8 +1009,13 @@
 		var html = d.documentElement, body = d.body;
 		var top = f;
 		while ( top.parentElement && top.parentElement !== body ) { top = top.parentElement; }
+		// Only boxes in the page flow cover the footer. Floating layers (cookie
+		// banner, mini cart, toasts, panels) keep their own position: made
+		// relative they fell into the page and widened it.
 		var covers = Array.prototype.filter.call( body.children, function ( c ) {
-			return c !== top && ! /^(SCRIPT|STYLE|LINK|TEMPLATE)$/.test( c.tagName ) && 'vxa11y' !== c.id && ! c.classList.contains( 'vx-oc' );
+			if ( c === top || /^(SCRIPT|STYLE|LINK|TEMPLATE)$/.test( c.tagName ) || 'vxa11y' === c.id || c.classList.contains( 'vx-oc' ) ) { return false; }
+			var cs = getComputedStyle( c );
+			return 'none' !== cs.display && ( 'static' === cs.position || 'relative' === cs.position );
 		} );
 		var bg = getComputedStyle( body ).backgroundColor;
 		if ( bg && 'rgba(0, 0, 0, 0)' !== bg && 'transparent' !== bg ) { html.style.setProperty( '--vx-page-bg', bg ); }

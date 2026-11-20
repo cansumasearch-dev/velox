@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.55.3 — Reveal footer and sticky header fixes
+- **No sideways scrolling with a reveal footer:** the reveal footer made every top-level element "relative" so the content could cover the footer — including floating layers like the cookie banner, the mini cart, toasts and the admin quick bar. They fell into the page and made it wider than the screen. Only boxes in the page flow cover the footer now.
+- **Smoother sticky header:** the header’s height is measured on load and resize instead of on every scroll step, so scrolling no longer forces the browser to recalculate the layout each frame.
+
 ## 4.55.2 — Pinned row spacing, side panel below the admin bar
 - **Pinned sideways row:** the space between its children (the box’s gap) now carries over; the cards sat edge to edge.
 - **Side panel menu:** for logged-in visitors it opens below the WordPress admin bar, so its close button is never hidden.
