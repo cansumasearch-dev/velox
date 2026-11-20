@@ -612,6 +612,9 @@ class Velox_Builder {
 			// New elements: bundled placeholder images, icon paths shared with the
 			// renderer, and the site's time zone for the countdown preview.
 			'imgBase' => VELOX_URL . 'assets/img/',
+			// The shop elements (Velox Shop on): its stylesheet for the canvas,
+			// and the products and categories for their pickers.
+			'shop'    => class_exists( 'Velox_Shop_Front' ) && Velox_Settings::get( 'util_shop' ) ? Velox_Shop_Front::editor_data() : null,
 			'wIcons'  => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::widget_icons() : array(),
 			'tzOffset' => function_exists( 'wp_timezone' ) ? (int) wp_timezone()->getOffset( new DateTime( 'now' ) ) : 0,
 			'fontLinks' => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::canvas_fonts()['links'] : array(),

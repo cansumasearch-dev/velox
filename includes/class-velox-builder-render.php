@@ -3348,6 +3348,12 @@ class Velox_Builder_Render {
 			return self::render_widget( $node, $attr );
 		}
 
+		// Velox Shop elements: product grid, buy box, cart, checkout … drawn by the shop.
+		if ( isset( $node['el'] ) && 0 === strpos( (string) $node['el'], 'Shop' ) ) {
+			$inner = class_exists( 'Velox_Shop_Front' ) && Velox_Settings::get( 'util_shop' ) ? Velox_Shop_Front::element( $node['el'], (array) ( $node['settings'] ?? array() ) ) : '';
+			return '' === $inner ? '' : '<div' . self::wcls( $attr, 'vx-shop' ) . '>' . $inner . '</div>';
+		}
+
 		// Reusable element: pull the referenced reusable document and render its
 		// tree inline (by reference — editing the reusable updates every page).
 		if ( isset( $node['el'] ) && 'Reusable' === $node['el'] ) {
@@ -3880,6 +3886,9 @@ class Velox_Builder_Render {
 			}
 		}
 		$pid = get_the_ID();
+		if ( 0 === strpos( $token, 'product.' ) ) {
+			return class_exists( 'Velox_Shop_Front' ) ? Velox_Shop_Front::token( $token, $pid ) : '';
+		}
 		switch ( $token ) {
 			case 'post.title':    return esc_html( get_the_title( $pid ) );
 			case 'post.content':  return apply_filters( 'the_content', get_post_field( 'post_content', $pid ) );

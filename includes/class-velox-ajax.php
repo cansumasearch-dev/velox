@@ -147,6 +147,13 @@ class Velox_Ajax {
 				Velox_Builder_Loop::ajax_preview();
 				break;
 
+			case 'builder_shop_preview':
+				if ( class_exists( 'Velox_Shop_Front' ) ) {
+					Velox_Shop_Front::ajax_preview();
+				}
+				wp_send_json_error();
+				break;
+
 			/* -------- Velox Builder: import / export -------- */
 			case 'builder_export':
 				Velox_Builder_Transfer::ajax_export();

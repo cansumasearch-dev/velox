@@ -197,6 +197,7 @@
 	Object.keys( EL_ICON ).forEach( function ( k ) { ICON[ k ] = EL_ICON[ k ]; } );
 	// 4.50 elements borrow fitting icons.
 	ICON.el_linkblock = ICON.link || ICON.el_button; ICON.el_shapedivider = ICON.el_divider; ICON.el_progresscircle = ICON.el_counter || ICON.el_bars;
+	ICON.tag = '<path d="M2.5 8V2.5H8l5.5 5.5-5.5 5.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="5.3" cy="5.3" r="1"/>';
 	ICON.hash = '<path d="M6.2 2.5 4.9 13.5M11.1 2.5 9.8 13.5M2.8 5.8h11M2.2 10.2h11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>';
 	ICON.target = '<circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2.1"/>';
 	function svg( name, size ) {
@@ -637,6 +638,7 @@
 			var kids;
 			if ( loopOn( node ) ) { kids = loopCanvasKids( node, render ); cls += ' vb-loop'; } else { kids = node.children.map( render ).join( '' ); }
 			if ( WIDGET_EL[ node.el ] ) { return widgetHTML( node, cls ); }
+			if ( SHOP_EL[ node.el ] ) { return shopHTML( node, cls ); }
 			// Reusable: render the referenced block inline, framed + non-interactive.
 			if ( node.el === 'Reusable' ) {
 				var r = reusableById( node.ref );
@@ -1149,6 +1151,7 @@
 		selr.removeAllRanges(); selr.addRange( range );
 		elNode.addEventListener( 'keydown', inlineKey );
 		elNode.addEventListener( 'blur', commitInlineEdit );
+		refreshTextTool();
 	}
 	function inlineKey( e ) {
 		// In a list Enter makes the next bullet; Ctrl+Enter (or clicking away) finishes.
@@ -1169,12 +1172,18 @@
 		elNode.removeAttribute( 'contenteditable' ); elNode.style.outline = '';
 		elNode.removeEventListener( 'keydown', inlineKey ); elNode.removeEventListener( 'blur', commitInlineEdit );
 		editing = null;
-		if ( store.state.content[ id ] !== html ) { store.commit( function ( s ) { s.content[ id ] = html; }, T( 'Edit text' ) ); }
+		var spanRules = pendingSpanRules; pendingSpanRules = null;
+		if ( store.state.content[ id ] !== html || spanRules ) {
+			store.commit( function ( s ) {
+				s.content[ id ] = html;
+				if ( spanRules ) { s.classes[ spanRules.cls ] = s.classes[ spanRules.cls ] || {}; s.classes[ spanRules.cls ].base = spanRules.rules; }
+			}, spanRules ? T( 'Style selection' ) : T( 'Edit text' ) );
+		} else { refreshTextTool(); }
 	}
 	/* Keep only the formatting tags we allow from contenteditable output. */
 	function sanitizeInlineHTML( html ) {
 		var tmp = document.createElement( 'div' ); tmp.innerHTML = html;
-		var allowed = { STRONG:1, B:1, EM:1, I:1, U:1, S:1, STRIKE:1, A:1, BR:1, SPAN:1, LI:1, UL:1, OL:1 };
+		var allowed = { STRONG:1, B:1, EM:1, I:1, U:1, S:1, STRIKE:1, A:1, BR:1, SPAN:1, LI:1, UL:1, OL:1, SUP:1, SUB:1 };
 		( function walk( node ) {
 			var kids = Array.prototype.slice.call( node.childNodes );
 			kids.forEach( function ( c ) {
@@ -1184,6 +1193,11 @@
 						// unwrap disallowed element, keeping its text/children
 						while ( c.firstChild ) { node.insertBefore( c.firstChild, c ); }
 						node.removeChild( c );
+					} else if ( c.tagName === 'SPAN' && ! c.getAttribute( 'data-vx' ) && /^[a-z][\w-]*$/i.test( c.getAttribute( 'class' ) || '' ) && c.textContent.trim() ) {
+						// "Style selection": a span with one class name keeps it (and nothing else).
+						var keepCls = c.getAttribute( 'class' );
+						Array.prototype.slice.call( c.attributes ).forEach( function ( at ) { c.removeAttribute( at.name ); } );
+						c.setAttribute( 'class', keepCls );
 					} else if ( c.tagName === 'SPAN' && ! c.getAttribute( 'data-vx' ) ) {
 						// B / I / U on text that is already bold, italic or underlined by its class
 						// comes back as a span that switches the style off. Keep exactly that, drop the rest.
@@ -1217,6 +1231,7 @@
 		elNode.removeAttribute( 'contenteditable' ); elNode.style.outline = '';
 		elNode.removeEventListener( 'keydown', inlineKey ); elNode.removeEventListener( 'blur', commitInlineEdit );
 		editing = null;
+		refreshTextTool();
 	}
 
 	/* ---------- media picker for settings fields (slides, video cover …) ---------- */
@@ -2253,6 +2268,35 @@
 			{ key:'innercontent', el:'InnerContent', tag:'div', label:'Inner Content', cls:'.inner-content', rules:{ minHeight:'200' }, badge:'template' }
 		] }
 	];
+	/* Velox Shop elements (only while the shop is switched on). Drawn by the
+	 * shop itself, so the editor shows a live preview fetched from the server. */
+	if ( CFG.shop ) {
+		var SHOP_PRODUCTS = [ [ '', T( 'This product page' ) ] ].concat( CFG.shop.products || [] );
+		CAT_GROUPS.push( { name:'Shop', icon:'tag', items:[
+			{ key:'shopgrid', el:'Shopgrid', tag:'div', label:'Product grid', cls:'.shop-grid', rules:{},
+			  settings:[
+				{ k:'count', t:'num', l:'How many', d:'12', s:'Products' },
+				{ k:'columns', t:'num', l:'Columns', d:'3', s:'Products' },
+				{ k:'category', t:'select', l:'Category', d:'', s:'Products', o:[ [ '', 'All categories' ] ].concat( CFG.shop.cats || [] ) },
+				{ k:'sort', t:'select', l:'Sort order', d:'menu', s:'Products', o:[ [ 'menu', 'As sorted in the shop' ], [ 'new', 'Newest first' ], [ 'price', 'Price, low to high' ], [ 'price-desc', 'Price, high to low' ], [ 'name', 'Name' ] ] },
+				{ k:'filter', t:'toggle', l:'Category buttons above the grid', d:'', s:'Products' }
+			  ] },
+			{ key:'shopbuy', el:'Shopbuy', tag:'div', label:'Add to cart', cls:'.shop-buy', rules:{},
+			  settings:[
+				{ k:'product', t:'select', l:'Product', d:'', s:'Product', o:SHOP_PRODUCTS },
+				{ k:'qty', t:'toggle', l:'Quantity field', d:'1', s:'Product' },
+				{ k:'button', t:'text', l:'Button text', d:'', s:'Product' }
+			  ] },
+			{ key:'shopproduct', el:'Shopproduct', tag:'div', label:'Product (complete)', cls:'.shop-product', rules:{},
+			  settings:[ { k:'product', t:'select', l:'Product', d:'', s:'Product', o:SHOP_PRODUCTS } ] },
+			{ key:'shopcartbtn', el:'Shopcartbtn', tag:'div', label:'Cart button', cls:'.shop-cartbtn', rules:{},
+			  settings:[ { k:'label', t:'text', l:'Text next to the icon', d:'', s:'Button' } ] },
+			{ key:'shopcart', el:'Shopcart', tag:'div', label:'Cart', cls:'.shop-cart', rules:{} },
+			{ key:'shopcheckout', el:'Shopcheckout', tag:'div', label:'Checkout', cls:'.shop-checkout', rules:{} },
+			{ key:'shopaccount', el:'Shopaccount', tag:'div', label:'Customer account', cls:'.shop-account', rules:{} },
+			{ key:'shopwithdraw', el:'Shopwithdraw', tag:'div', label:'Withdrawal form', cls:'.shop-withdraw', rules:{} }
+		] } );
+	}
 	/* ---------- starting styles ----------
 	 * Every element arrives looking finished, and every value it starts with is
 	 * a normal class value in the style panel, so it can be changed right away.
@@ -2643,6 +2687,40 @@
 	 * Same markup as Velox_Builder_Render::render_widget, so the editor and the
 	 * page agree. Per-screen-size values arrive as CSS variables through the
 	 * preview stylesheet; this draws the base values. */
+	/* Shop elements: the server draws them (same markup as the page). Cached
+	 * per element + settings; while it loads, a quiet placeholder shows. */
+	var SHOP_EL = { Shopgrid:1, Shopbuy:1, Shopproduct:1, Shopcart:1, Shopcheckout:1, Shopaccount:1, Shopwithdraw:1, Shopcartbtn:1 };
+	var shopPrev = {}, shopWait = {}, shopCss = null;
+	function shopHTML( node, cls ) {
+		var key = node.el + '|' + JSON.stringify( node.settings || {} );
+		var html = shopPrev[ key ];
+		if ( undefined === html ) {
+			html = '<div class="vb-ph-el"><span class="vb-ph-ic">' + svg( 'tag', 22 ) + '</span><span class="vb-ph-l">' + escapeHtml( T( 'Loading the preview…' ) ) + '</span></div>';
+			if ( ! shopWait[ key ] ) {
+				shopWait[ key ] = 1;
+				var body = new URLSearchParams();
+				body.set( 'action', 'velox' ); body.set( 'do', 'builder_shop_preview' ); body.set( 'nonce', CFG.nonce || '' );
+				body.set( 'el', node.el ); body.set( 'settings', JSON.stringify( node.settings || {} ) ); body.set( 'post', String( CFG.postId || 0 ) );
+				fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+					.then( function ( r ) { return r.json(); } )
+					.then( function ( res ) { shopPrev[ key ] = res && res.success ? res.data.html : ''; delete shopWait[ key ]; injectCanvas(); } )
+					.catch( function () { shopPrev[ key ] = ''; delete shopWait[ key ]; } );
+			}
+		}
+		// The shop's own stylesheet in the canvas, as a <style> (a <link> added
+		// while the canvas is being rewritten never finished loading).
+		var fr = document.getElementById( 'vb-canvas' ), cd = fr && fr.contentDocument;
+		if ( cd && cd.head && CFG.shop && ! cd.getElementById( 'vb-shop-css' ) ) {
+			if ( null === shopCss ) {
+				shopCss = '';
+				fetch( CFG.shop.css, { credentials:'same-origin' } ).then( function ( r ) { return r.text(); } ).then( function ( t ) { shopCss = t; injectCanvas(); } ).catch( function () {} );
+			} else if ( shopCss ) {
+				var st = cd.createElement( 'style' ); st.id = 'vb-shop-css'; st.textContent = shopCss; cd.head.appendChild( st );
+			}
+		}
+		// Links and forms inside are for visitors; in the editor a click selects.
+		return '<div id="' + node.id + '" class="' + cls + ' vx-shop vb-shop-prev" data-node="' + node.id + '">' + ( html || '<div class="vb-ph-el"><span class="vb-ph-ic">' + svg( 'tag', 22 ) + '</span><span class="vb-ph-l">' + escapeHtml( T( 'Nothing to show yet — add products in Velox Shop.' ) ) + '</span></div>' ) + '</div>';
+	}
 	var WIDGET_EL = { Marquee:1, Counter:1, Countdown:1, Compare:1, Gallery:1, Rotator:1, Flipcard:1, Bars:1, Rating:1, Social:1, Map:1, Embed:1, Table:1, Timeline:1, Checklist:1, Shapedivider:1, Progresscircle:1 };
 	var SHAPES = { wave:'<path d="M0,60 C150,110 350,10 600,60 C850,110 1050,10 1200,60 L1200,120 L0,120 Z"/>', waves:'<path opacity=".35" d="M0,40 C200,100 400,0 600,50 C800,100 1000,20 1200,50 L1200,120 L0,120 Z"/><path d="M0,75 C150,110 350,35 600,75 C850,115 1050,45 1200,75 L1200,120 L0,120 Z"/>', curve:'<path d="M0,120 Q600,-40 1200,120 Z"/>', tilt:'<path d="M0,120 L1200,20 L1200,120 Z"/>', peak:'<path d="M0,120 L600,20 L1200,120 Z"/>', zigzag:'<path d="M0,120 L0,100 L40,60 L80,100 L120,60 L160,100 L200,60 L240,100 L280,60 L320,100 L360,60 L400,100 L440,60 L480,100 L520,60 L560,100 L600,60 L640,100 L680,60 L720,100 L760,60 L800,100 L840,60 L880,100 L920,60 L960,100 L1000,60 L1040,100 L1080,60 L1120,100 L1160,60 L1200,100 L1200,120 Z"/>' };
 	function wset( node, k, d ) { var st = node.settings || {}; if ( ! Object.prototype.hasOwnProperty.call( st, k ) ) { return undefined === d ? '' : d; } return '0' === String( st[ k ] ) ? '' : st[ k ]; }
@@ -2939,7 +3017,7 @@
 		return ! ( d && d.repeat );
 	}
 	/* Elements drawn from their settings have no text of their own to edit. */
-	var NO_INLINE = { Reusable:1, Reviews:1, WP:1, Form:1, Navbar:1, Anchornav:1, Breadcrumbs:1, Fab:1, Backtotop:1,
+	var NO_INLINE = { Shopgrid:1, Shopbuy:1, Shopproduct:1, Shopcart:1, Shopcheckout:1, Shopaccount:1, Shopwithdraw:1, Shopcartbtn:1, Reusable:1, Reviews:1, WP:1, Form:1, Navbar:1, Anchornav:1, Breadcrumbs:1, Fab:1, Backtotop:1,
 		Announcebar:1, Stickybar:1, Progressbar:1, Slider:1, Tabs:1, Accordion:1, Faq:1, InnerContent:1,
 		Video:1, Icon:1, Image:1, Readingtime:1, Lastupdated:1, Skeleton:1, Anchortarget:1,
 		Marquee:1, Counter:1, Countdown:1, Compare:1, Gallery:1, Rotator:1, Flipcard:1, Bars:1, Rating:1, Social:1, Map:1, Embed:1, Table:1, Timeline:1, Checklist:1, Shapedivider:1, Progresscircle:1 };
@@ -4559,9 +4637,10 @@
 			// Classes and state are two separate concerns, so they get two cards.
 			// The old layout printed the active class twice (a big card AND a chip)
 			// and never said that editing a class hits every element using it.
+			tagBarHTML( node ) +
+			'<div id="vb-tt-slot">' + textToolbarHTML( node ) + '</div>' +
 			multiBarHTML() +
 			selectorBarHTML( node, ac, st, bp, ovCount ) +
-			textToolbarHTML( node ) +
 			'<div class="vb-tabs">' +
 				'<button class="vb-tab' + ( tab === 'ess' ? ' on' : '' ) + '" data-tab="ess">' + T( 'Essentials' ) + '</button>' +
 				'<button class="vb-tab' + ( tab === 'all' ? ' on' : '' ) + '" data-tab="all">' + T( 'All styles' ) + '</button>' +
@@ -4601,6 +4680,7 @@
 		var elNode = ensureEditingSelected(); if ( ! elNode ) { return; }
 		var doc = elNode.ownerDocument;
 		elNode.focus();
+		if ( 'wrapSpan' === cmd ) { styleSelection( elNode ); return; }
 		if ( cmd === 'createLink' ) {
 			var lsel = doc.defaultView.getSelection(), saved = lsel && lsel.rangeCount ? lsel.getRangeAt( 0 ).cloneRange() : null;
 			holdEdit = true;
@@ -4654,6 +4734,25 @@
 		}
 		var dd = document.getElementById( 'vb-dyndata' ); if ( dd ) { dd.classList.remove( 'open' ); }
 	}
+	/* The HTML tag, where you look first: a heading shows H1–H6 as buttons
+	 * (the tag in small print under the name was too easy to miss), other
+	 * elements a labelled menu that says what the tag is for. */
+	var TAG_HINT = null;
+	function tagHint( t ) {
+		TAG_HINT = TAG_HINT || { h1:T( 'Page title, use once' ), h2:T( 'Section heading' ), h3:T( 'Sub-heading' ), h4:T( 'Small heading' ), h5:T( 'Small heading' ), h6:T( 'Small heading' ), p:T( 'Paragraph' ), span:T( 'Inline text' ), div:T( 'Plain box' ), small:T( 'Small print' ), strong:T( 'Important text' ), blockquote:T( 'Quote' ),
+			section:T( 'Page section' ), header:T( 'Header' ), footer:T( 'Footer' ), main:T( 'Main content' ), nav:T( 'Navigation' ), article:T( 'Article' ), aside:T( 'Side content' ), figure:T( 'Figure' ), ul:T( 'List' ), ol:T( 'Numbered list' ), li:T( 'List item' ), a:T( 'Link' ) };
+		return TAG_HINT[ t ] || '';
+	}
+	function tagBarHTML( node ) {
+		var ch = tagChoices( node ); if ( ! ch ) { return ''; }
+		if ( 'Heading' === node.el ) {
+			var isH = /^h[1-6]$/.test( node.tag );
+			return '<div class="vb-tagbar"><span class="vb-tagbar-l">' + T( 'Level' ) + '</span><div class="vb-tagseg" role="group" aria-label="' + T( 'Heading level' ) + '">' +
+				[ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].map( function ( t ) { return '<button type="button" class="' + ( node.tag === t ? 'on' : '' ) + '" data-settag="' + t + '" aria-pressed="' + ( node.tag === t ? 'true' : 'false' ) + '" title="' + escapeHtml( t.toUpperCase() + ' — ' + tagHint( t ) ) + '">' + t.toUpperCase() + '</button>'; } ).join( '' ) +
+				'<button type="button" class="vb-tagmore' + ( isH ? '' : ' on' ) + '" data-tagpick="1" title="' + T( 'Other tags' ) + '">' + ( isH ? svg( 'dots', 14 ) : escapeHtml( node.tag.toUpperCase() ) ) + '</button></div></div>';
+		}
+		return '<div class="vb-tagbar"><span class="vb-tagbar-l">' + T( 'Tag' ) + '</span><button type="button" class="vb-tagsel" data-tagpick="1" title="' + T( 'Change the HTML tag' ) + '"><code>&lt;' + escapeHtml( node.tag ) + '&gt;</code><span>' + escapeHtml( tagHint( node.tag ) ) + '</span>' + svg( 'chevron', 12 ) + '</button></div>';
+	}
 	function isTextEl( node ) { return !! node && ( node.el === 'Heading' || node.el === 'Text' || node.el === 'Button' || canInlineEdit( node ) ); }
 	/* Dynamic-data sources for the Insert Data picker (Oxygen-style full list).
 	   `live:true` = resolved on the front end now; `live:false` = inserted as a
@@ -4662,6 +4761,10 @@
 		{ name:'Post', items:[
 			{ t:'post.title', l:'Title', live:true }, { t:'post.content', l:'Content', live:true }, { t:'post.excerpt', l:'Excerpt', live:true },
 			{ t:'post.date', l:'Date', live:true }, { t:'post.terms', l:'Categories, Tags, Taxonomies', live:true }, { t:'post.meta', l:'Custom Field/Meta', live:true, arg:'field' }, { t:'post.comments', l:'Comments Number', live:true } ] },
+		{ name:'Product (Velox Shop)', items:[
+			{ t:'product.price', l:'Price', live:true }, { t:'product.button', l:'Add to cart button', live:true }, { t:'product.badge', l:'Badge (sale, sold …)', live:true },
+			{ t:'product.stock', l:'Availability', live:true }, { t:'product.unit', l:'Price per kg / l / m', live:true }, { t:'product.taxnote', l:'incl. VAT, plus shipping', live:true },
+			{ t:'product.delivery', l:'Delivery time', live:true }, { t:'product.sku', l:'Article number', live:true }, { t:'product.compare', l:'Was price', live:true } ] },
 		{ name:'Featured Image', items:[
 			{ t:'featured.title', l:'Title', live:true }, { t:'featured.caption', l:'Caption', live:true }, { t:'featured.alt', l:'Alt', live:true } ] },
 		{ name:'Author', items:[
@@ -4703,19 +4806,133 @@
 		'</div>';
 	}
 	/* Rich-text toolbar (left panel) for text elements: format + Insert Data. */
+	/* A click selects; a double-click edits the text, and only then do the
+	 * text tools show (above the classes, where the eye already is). */
 	function textToolbarHTML( node ) {
-		if ( ! isTextEl( node ) ) { return ''; }
-		function b( cmd, icon, title ) { return '<button class="vb-tt-b" data-fmt="' + cmd + '" title="' + title + '">' + svg( icon, 15 ) + '</button>'; }
+		if ( ! isTextEl( node ) || ! editing || editing.id !== node.id ) { return ''; }
+		function b( cmd, icon, title, key ) { return '<button type="button" class="vb-tt-b" data-fmt="' + cmd + '" title="' + escapeHtml( title + ( key ? ' (' + key + ')' : '' ) ) + '" aria-label="' + escapeHtml( title ) + '">' + svg( icon, 15 ) + '</button>'; }
+		function t( cmd, txt, title ) { return '<button type="button" class="vb-tt-b vb-tt-t" data-fmt="' + cmd + '" title="' + escapeHtml( title ) + '" aria-label="' + escapeHtml( title ) + '">' + txt + '</button>'; }
+		var mod = IS_MAC ? '⌘' : T( 'Ctrl' );
 		return '<div class="vb-texttool">' +
+			'<div class="vb-tt-head"><b>' + svg( 'pencilsq', 13 ) + ' ' + T( 'Editing text' ) + '</b><span>' + T( 'Enter: done · Esc: undo' ) + '</span></div>' +
 			'<div class="vb-tt-row">' +
-				b( 'bold', 'bold', T( 'Bold' ) ) + b( 'italic', 'italic', T( 'Italic' ) ) + b( 'underline', 'underline', T( 'Underline' ) ) + b( 'strikeThrough', 'strike', T( 'Strikethrough' ) ) +
+				b( 'bold', 'bold', T( 'Bold' ), mod + '+B' ) + b( 'italic', 'italic', T( 'Italic' ), mod + '+I' ) + b( 'underline', 'underline', T( 'Underline' ), mod + '+U' ) + b( 'strikeThrough', 'strike', T( 'Strikethrough' ) ) +
+				t( 'superscript', 'x<sup>2</sup>', T( 'Superscript' ) ) + t( 'subscript', 'x<sub>2</sub>', T( 'Subscript' ) ) +
+				'<div class="vb-tt-sep"></div>' +
+				b( 'createLink', 'link', T( 'Link' ) ) + t( 'unlink', '<s>' + svg( 'link', 13 ) + '</s>', T( 'Remove link' ) ) +
+				t( 'removeFormat', '<i>T</i><small>×</small>', T( 'Clear formatting' ) ) +
 				'<div class="vb-tt-sep"></div>' +
 				b( 'justifyLeft', 'alignleft', T( 'Align left' ) ) + b( 'justifyCenter', 'aligncenter', T( 'Align center' ) ) + b( 'justifyRight', 'alignright', T( 'Align right' ) ) +
-				'<div class="vb-tt-sep"></div>' +
-				'<button class="vb-tt-b" data-fmt="createLink" title="' + T( 'Link' ) + '">' + svg( 'link', 15 ) + '</button>' +
 			'</div>' +
-			'<button class="vb-tt-data" id="vb-insertdata">' + svg( 'database', 14 ) + ' ' + T( 'Insert Data' ) + '</button>' +
+			'<div class="vb-tt-acts">' +
+				'<button type="button" class="vb-tt-data" data-fmt="wrapSpan" title="' + T( 'Give the selected words their own colour, weight or size' ) + '">' + svg( 'type', 14 ) + ' ' + T( 'Style selection' ) + '</button>' +
+				'<button type="button" class="vb-tt-data" id="vb-insertdata">' + svg( 'database', 14 ) + ' ' + T( 'Insert Data' ) + '</button>' +
+			'</div>' +
 		'</div>';
+	}
+	function refreshTextTool() {
+		var slot = document.getElementById( 'vb-tt-slot' ); if ( ! slot ) { return; }
+		var n = store.state && findNode( store.state.tree, store.state.selection );
+		slot.innerHTML = n ? textToolbarHTML( n ) : '';
+	}
+	/* "Style selection": the selected words go into a <span class="…"> and
+	 * that class gets the colour / highlight / weight / size picked here. The
+	 * class is a normal one, so it can be reused and edited under Classes. */
+	var pendingSpanRules = null;
+	function styleSelection( elNode ) {
+		var doc = elNode.ownerDocument, sel = doc.defaultView.getSelection();
+		if ( ! sel || ! sel.rangeCount || sel.isCollapsed || ! elNode.contains( sel.getRangeAt( 0 ).commonAncestorContainer ) ) { toast( T( 'Select some words in the text first.' ) ); return; }
+		var range = sel.getRangeAt( 0 ).cloneRange();
+		var inSpan = range.commonAncestorContainer.nodeType === 1 ? range.commonAncestorContainer : range.commonAncestorContainer.parentNode;
+		inSpan = inSpan && inSpan.closest ? inSpan.closest( 'span[class]:not([data-vx])' ) : null;
+		if ( inSpan && ! elNode.contains( inSpan ) ) { inSpan = null; }
+		var cur = inSpan ? String( inSpan.className ).split( /\s+/ )[ 0 ] : '';
+		var rules = cur && store.state.classes[ '.' + cur ] && store.state.classes[ '.' + cur ].base ? store.state.classes[ '.' + cur ].base : {};
+		var names = Object.keys( store.state.classes || {} ).filter( function ( c ) { return /^\.[a-z][\w-]*$/i.test( c ); } ).map( function ( c ) { return c.slice( 1 ); } );
+		var SW = [ '', '#0a6f9f', '#2ab7f1', '#e5534b', '#f59e0b', '#16a34a', '#7c3aed', '#0f172a', '#ffffff' ];
+		var HL = [ '', '#fff3a3', '#d9f2fd', '#fde2e1', '#dcfce7', '#ede9fe' ];
+		function sw( list, key, val ) {
+			return '<div class="vb-ss-sw">' + list.map( function ( c ) { return '<button type="button" data-ss="' + key + '" data-v="' + c + '" class="' + ( ( val || '' ) === c ? 'on' : '' ) + ( c ? '' : ' is-none' ) + '" style="' + ( c ? 'background:' + c : '' ) + '" title="' + ( c || T( 'None' ) ) + '"></button>'; } ).join( '' ) +
+				'<label class="vb-ss-custom" title="' + T( 'Other colour' ) + '"><input type="color" data-ssc="' + key + '" value="' + ( /^#[0-9a-f]{6}$/i.test( val || '' ) ? val : '#000000' ) + '"></label></div>';
+		}
+		var box = document.getElementById( 'vb-ask' );
+		if ( ! box ) { box = document.createElement( 'div' ); box.id = 'vb-ask'; box.className = 'vb-ask'; ( document.querySelector( '.vb-app' ) || document.body ).appendChild( box ); }
+		var v = { color:rules.color || '', backgroundColor:rules.backgroundColor || '', fontWeight:rules.fontWeight || '', fontStyle:rules.fontStyle || '', fontSize:rules.fontSize || '' };
+		holdEdit = true;
+		box.innerHTML = '<div class="vb-ask-card vb-ss" role="dialog" aria-modal="true" aria-labelledby="vb-ss-t"><b id="vb-ss-t">' + T( 'Style selection' ) + '</b>' +
+			'<p>' + T( 'The selected words get their own class. Reuse the name to style other words the same way.' ) + '</p>' +
+			'<label class="vb-ss-f"><span>' + T( 'Class name' ) + '</span><input class="vb-inp" id="vb-ss-name" list="vb-ss-list" spellcheck="false" autocomplete="off" value="' + escapeHtml( cur || 'accent' ) + '"><datalist id="vb-ss-list">' + names.slice( 0, 200 ).map( function ( c ) { return '<option value="' + escapeHtml( c ) + '">'; } ).join( '' ) + '</datalist></label>' +
+			'<div class="vb-ss-f"><span>' + T( 'Text colour' ) + '</span>' + sw( SW, 'color', v.color ) + '</div>' +
+			'<div class="vb-ss-f"><span>' + T( 'Highlight' ) + '</span>' + sw( HL, 'backgroundColor', v.backgroundColor ) + '</div>' +
+			'<div class="vb-ss-f"><span>' + T( 'Weight' ) + '</span><div class="vb-seg">' + [ [ '', T( 'As text' ) ], [ '400', T( 'Normal' ) ], [ '600', T( 'Semi-bold' ) ], [ '800', T( 'Heavy' ) ] ].map( function ( o ) { return '<button type="button" data-ss="fontWeight" data-v="' + o[ 0 ] + '" class="' + ( v.fontWeight === o[ 0 ] ? 'on' : '' ) + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div></div>' +
+			'<div class="vb-ss-f"><span>' + T( 'Size' ) + '</span><div class="vb-seg">' + [ [ '', T( 'As text' ) ], [ '0.85em', T( 'Smaller' ) ], [ '1.25em', T( 'Larger' ) ], [ '1.6em', T( 'Much larger' ) ] ].map( function ( o ) { return '<button type="button" data-ss="fontSize" data-v="' + o[ 0 ] + '" class="' + ( v.fontSize === o[ 0 ] ? 'on' : '' ) + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div></div>' +
+			'<label class="vb-set-check"><input type="checkbox" id="vb-ss-it"' + ( 'italic' === v.fontStyle ? ' checked' : '' ) + '><span>' + T( 'Italic' ) + '</span></label>' +
+			'<div class="vb-ss-prev"><span id="vb-ss-prev">' + escapeHtml( range.toString().slice( 0, 60 ) ) + '</span></div>' +
+			'<div class="vb-ask-acts">' + ( inSpan ? '<button type="button" class="vb-btn vb-btn-ghost" data-ss-act="unwrap">' + T( 'Remove the style' ) + '</button>' : '' ) +
+			'<button type="button" class="vb-btn vb-btn-ghost" data-ss-act="no">' + T( 'Cancel' ) + '</button><button type="button" class="vb-btn vb-btn-primary" data-ss-act="yes">' + T( 'Apply' ) + '</button></div></div>';
+		box.classList.add( 'open' );
+		function prev() {
+			var p = document.getElementById( 'vb-ss-prev' ); if ( ! p ) { return; }
+			p.style.color = v.color || ''; p.style.backgroundColor = v.backgroundColor || ''; p.style.fontWeight = v.fontWeight || ''; p.style.fontSize = v.fontSize ? v.fontSize.replace( 'em', '' ) * 15 + 'px' : ''; p.style.fontStyle = v.fontStyle || '';
+		}
+		prev();
+		function done( act ) {
+			box.classList.remove( 'open' ); box.innerHTML = ''; box.onclick = null; box.oninput = null;
+			document.removeEventListener( 'keydown', key, true );
+			holdEdit = false;
+			if ( ! editing || editing.el !== elNode ) { return; }
+			elNode.focus();
+			var s2 = doc.defaultView.getSelection(); s2.removeAllRanges(); s2.addRange( range );
+			if ( 'unwrap' === act && inSpan ) {
+				while ( inSpan.firstChild ) { inSpan.parentNode.insertBefore( inSpan.firstChild, inSpan ); }
+				inSpan.parentNode.removeChild( inSpan );
+				commitInlineEdit();
+				return;
+			}
+			if ( 'yes' !== act ) { return; }
+			var name = String( nameVal || '' ).trim().replace( /^\./, '' ).replace( /[^\w-]+/g, '-' ).replace( /^[^a-z]+/i, '' ).toLowerCase();
+			if ( ! name ) { toast( T( 'Give the class a name.' ) ); return; }
+			var span = inSpan;
+			if ( ! span || range.toString() !== span.textContent ) {
+				span = doc.createElement( 'span' );
+				span.appendChild( range.extractContents() );
+				range.insertNode( span );
+			}
+			span.className = name;
+			var r = {};
+			Object.keys( v ).forEach( function ( k ) { if ( v[ k ] ) { r[ k ] = v[ k ]; } } );
+			pendingSpanRules = { cls:'.' + name, rules:r };
+			commitInlineEdit();
+		}
+		var nameVal = cur || 'accent';
+		function key( e ) {
+			if ( 'Escape' === e.key ) { e.preventDefault(); e.stopPropagation(); done( 'no' ); }
+			else if ( 'Enter' === e.key && ! e.isComposing ) { e.preventDefault(); e.stopPropagation(); done( 'yes' ); }
+		}
+		document.addEventListener( 'keydown', key, true );
+		box.onclick = function ( e ) {
+			var a = e.target.closest( '[data-ss-act]' ); if ( a ) { done( a.getAttribute( 'data-ss-act' ) ); return; }
+			var o = e.target.closest( '[data-ss]' );
+			if ( o ) {
+				v[ o.getAttribute( 'data-ss' ) ] = o.getAttribute( 'data-v' );
+				[].forEach.call( o.parentNode.querySelectorAll( '[data-ss]' ), function ( x ) { x.classList.toggle( 'on', x === o ); } );
+				prev(); return;
+			}
+			if ( e.target === box ) { done( 'no' ); }
+		};
+		box.oninput = function ( e ) {
+			if ( 'vb-ss-name' === e.target.id ) {
+				nameVal = e.target.value;
+				// An existing class brings its look along.
+				var ex = store.state.classes[ '.' + e.target.value.trim() ];
+				if ( ex && ex.base ) { [ 'color', 'backgroundColor', 'fontWeight', 'fontStyle', 'fontSize' ].forEach( function ( k ) { v[ k ] = ex.base[ k ] || ''; } ); prev(); }
+				return;
+			}
+			if ( 'vb-ss-it' === e.target.id ) { v.fontStyle = e.target.checked ? 'italic' : ''; prev(); return; }
+			var c = e.target.getAttribute( 'data-ssc' );
+			if ( c ) { v[ c ] = e.target.value; [].forEach.call( e.target.closest( '.vb-ss-sw' ).querySelectorAll( '[data-ss]' ), function ( x ) { x.classList.remove( 'on' ); } ); prev(); }
+		};
+		setTimeout( function () { var n = document.getElementById( 'vb-ss-name' ); if ( n ) { n.focus(); n.select(); } }, 0 );
 	}
 	/* Settings tab: element tag, link href, custom ID, and (for Reviews) the
 	   connection + preset pickers. */
@@ -6760,7 +6977,7 @@
 		}
 		if ( 'link' === x.fix || 'settings' === x.fix ) { inspTab = 'set'; renderInspector( store.state ); return; }
 		if ( 'color' === x.fix || 'size' === x.fix ) { inspTab = 'all'; styleFilter = 'color' === x.fix ? 'color' : ( 'Button' === ( findNode( store.state.tree, x.id ) || {} ).el ? 'padding' : 'font-size' ); renderInspector( store.state ); return; }
-		if ( 'tag' === x.fix ) { setTimeout( function () { var tp = document.querySelector( '[data-tagpick]' ); if ( tp ) { tp.click(); } }, 80 ); }
+		if ( 'tag' === x.fix ) { setTimeout( function () { var tb = document.querySelector( '.vb-tagbar' ); if ( tb ) { tb.classList.remove( 'is-flash' ); void tb.offsetWidth; tb.classList.add( 'is-flash' ); } var tp = document.querySelector( '.vb-tagbar .vb-tagsel' ); if ( tp ) { tp.click(); } }, 80 ); }
 	}
 
 	/* ---------- Session history (in-memory, cleared on close) ---------- */
@@ -7116,7 +7333,7 @@
 				var tpn = findNode( store.state.tree, store.state.selection ), tch = tagChoices( tpn );
 				if ( tpn && tch ) {
 					VeloxSelect.open( tagpick, tch.map( function ( t ) {
-						return { value:t, label:'<' + t + '>', hint:{ h1:T( 'Page title, use once' ), p:T( 'Paragraph' ), span:T( 'Inline text' ), section:T( 'Page section' ), header:T( 'Header' ), footer:T( 'Footer' ), main:T( 'Main content' ), nav:T( 'Navigation' ), article:T( 'Article' ), aside:T( 'Side content' ) }[ t ] || '', checked:t === tpn.tag };
+						return { value:t, label:'<' + t + '>', hint:{ h1:tagHint( 'h1' ), p:T( 'Paragraph' ), span:T( 'Inline text' ), section:T( 'Page section' ), header:T( 'Header' ), footer:T( 'Footer' ), main:T( 'Main content' ), nav:T( 'Navigation' ), article:T( 'Article' ), aside:T( 'Side content' ) }[ t ] || '', checked:t === tpn.tag };
 					} ), function ( v ) { setNodeTag( v ); }, { width:280 } );
 				}
 				return;
@@ -10716,6 +10933,44 @@
 			'#vb-struct .vb-st-act{display:grid;place-items:center;width:22px;height:22px;margin:0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);cursor:pointer;transition:background .12s,color .12s}',
 			'#vb-struct .vb-st-act:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
 			'#vb-struct .vb-st-act.is-del:hover{background:rgba(229,83,75,.16);color:#ff8a82}',
+			// 4.53: tag switch + text tools while editing
+			'.vb-tagbar{display:flex;align-items:center;gap:10px;margin:2px 12px 10px}',
+			'.vb-tagbar-l{flex:0 0 auto;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--vb-tx3)}',
+			'.vb-tagseg{flex:1;display:flex;gap:2px;padding:2px;border-radius:8px;background:var(--vb-bg0);border:1px solid var(--vb-line)}',
+			'.vb-tagseg button{flex:1;min-width:0;height:28px;padding:0;border:0;border-radius:6px;background:none;color:var(--vb-tx2);font:600 12px/1 var(--vb-font,inherit);font-family:inherit;cursor:pointer;display:grid;place-items:center}',
+			'.vb-tagseg button:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'.vb-tagseg button.on{background:var(--vb-acc);color:#04222f}',
+			'.vb-tagseg .vb-tagmore{flex:0 0 32px;color:var(--vb-tx3)}',
+			'.vb-tagseg .vb-tagmore.on{flex:0 0 auto;padding:0 8px}',
+			'.vb-tagsel{flex:1;display:flex;align-items:center;gap:8px;min-width:0;height:32px;padding:0 10px;border:1px solid var(--vb-line);border-radius:8px;background:var(--vb-bg0);color:var(--vb-tx1);font:inherit;cursor:pointer;text-align:left}',
+			'.vb-tagsel:hover,.vb-tagsel.is-vxs-open{border-color:var(--vb-acc)}',
+			'.vb-tagsel code{font:600 12px/1 "Velox Geist Mono",ui-monospace,Menlo,monospace;color:var(--vb-acc)}',
+			'.vb-tagsel span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--vb-tx3)}',
+			'.vb-tagsel svg{flex:0 0 auto;color:var(--vb-tx3)}',
+			'@keyframes vbTagFlash{0%,100%{box-shadow:none}30%{box-shadow:0 0 0 3px rgba(42,183,241,.45)}}',
+			'.vb-tagbar.is-flash .vb-tagseg,.vb-tagbar.is-flash .vb-tagsel{animation:vbTagFlash .9s ease 2}',
+			'#vb-tt-slot:empty{display:none}',
+			'#vb-tt-slot .vb-texttool{margin:0 12px 10px;padding:6px;border:1px solid rgba(160,107,255,.45);background:linear-gradient(180deg,rgba(160,107,255,.08),var(--vb-bg0))}',
+			'.vb-tt-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 4px 6px;font-size:11px;color:var(--vb-tx3)}',
+			'.vb-tt-head b{display:inline-flex;align-items:center;gap:6px;color:#c9b2ff;font-weight:600;font-size:12px}',
+			'.vb-tt-t{font:600 12px/1 var(--vb-font,inherit);font-family:inherit;position:relative}',
+			'.vb-tt-t sup,.vb-tt-t sub{font-size:8px}',
+			'.vb-tt-t s{display:grid;place-items:center;text-decoration:none;position:relative}',
+			'.vb-tt-t s::after{content:"";position:absolute;left:1px;right:1px;top:50%;height:1.5px;background:currentColor;transform:rotate(-40deg)}',
+			'.vb-tt-t i{font-family:Georgia,serif;font-size:14px}.vb-tt-t small{position:absolute;right:5px;bottom:4px;font-size:10px;color:#ff8a82}',
+			'.vb-tt-acts{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:6px}',
+			'.vb-tt-acts .vb-tt-data{margin:0;width:auto;height:30px;padding:0 8px;font-size:11.5px}',
+			'.vb-ss{width:min(420px,calc(100vw - 32px))}',
+			'.vb-ss-f{display:flex;flex-direction:column;gap:6px;margin-top:12px}',
+			'.vb-ss-f>span{font-size:11px;font-weight:600;color:var(--vb-tx3);letter-spacing:.03em;text-transform:uppercase}',
+			'.vb-ss-sw{display:flex;flex-wrap:wrap;gap:6px;align-items:center}',
+			'.vb-ss-sw button{width:24px;height:24px;border-radius:50%;border:1px solid rgba(255,255,255,.2);cursor:pointer;padding:0}',
+			'.vb-ss-sw button.is-none{background:linear-gradient(135deg,transparent 45%,#e5534b 46%,#e5534b 54%,transparent 55%),var(--vb-bg0)}',
+			'.vb-ss-sw button.on{box-shadow:0 0 0 2px var(--vb-bg1),0 0 0 4px var(--vb-acc)}',
+			'.vb-ss-custom{position:relative;width:24px;height:24px;border-radius:50%;overflow:hidden;background:conic-gradient(#e5534b,#f59e0b,#16a34a,#2ab7f1,#7c3aed,#e5534b);cursor:pointer}',
+			'.vb-ss-custom input{position:absolute;inset:0;opacity:0;cursor:pointer}',
+			'.vb-ss-prev{margin-top:14px;padding:12px;border-radius:8px;background:#fff;color:#1f2329;font-size:15px;line-height:1.5}',
+			'.vb-ss .vb-seg button{white-space:nowrap}',
 			// 4.52: page check
 			'.vb-chkbtn{position:relative}',
 			'.vb-chk-n{position:absolute;top:2px;right:0;min-width:15px;height:15px;padding:0 4px;border-radius:999px;background:#f5a742;color:#2a1a00;font:700 9.5px/15px var(--vb-font,inherit);text-align:center;pointer-events:none}',
