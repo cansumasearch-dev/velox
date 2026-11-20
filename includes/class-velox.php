@@ -243,8 +243,28 @@ final class Velox {
 		return $hit;
 	}
 
+	/** Is this request anything other than a visitor looking at a page? */
+	public static function backend() {
+		static $b = null;
+		if ( null === $b ) {
+			$uri = isset( $_SERVER['REQUEST_URI'] ) ? (string) $_SERVER['REQUEST_URI'] : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+			$b   = is_admin() || wp_doing_cron() || wp_doing_ajax() || ( defined( 'WP_CLI' ) && WP_CLI ) || ( defined( 'REST_REQUEST' ) && REST_REQUEST )
+				|| false !== strpos( $uri, '/wp-json/' ) || isset( $_GET['rest_route'] ) // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+				|| false !== strpos( $uri, 'wp-login.php' ) || false !== strpos( $uri, 'xmlrpc.php' ) || false !== strpos( $uri, 'wp-cron.php' );
+		}
+		return $b;
+	}
+
+	/** Signed in, judged by the cookie: cheap, and safe before WordPress knows the user. */
+	public static function signed_in() {
+		return defined( 'LOGGED_IN_COOKIE' ) && ! empty( $_COOKIE[ LOGGED_IN_COOKIE ] );
+	}
+
 	public function init() {
 		Velox_Profile::mark( 'Velox: start (plugins_loaded)' );
+		// Admin, AJAX, cron, REST, CLI, login: everything starts. A visitor's page
+		// skips what only the back end, background jobs or the editor need.
+		$backend = self::backend();
 
 		// Heal any settings corrupted by the pre-1.1.1 save bug (runs once).
 		Velox_Settings::migrate();
@@ -275,10 +295,12 @@ final class Velox {
 		}
 
 		// Always-on.
-		$this->ajax    = new Velox_Ajax();
-		Velox_Profile::mark( 'Velox: Velox_Ajax' );
-		$this->updater = new Velox_Updater();
-		Velox_Profile::mark( 'Velox: Velox_Updater' );
+		if ( $backend ) {
+			$this->ajax    = new Velox_Ajax();
+			Velox_Profile::mark( 'Velox: Velox_Ajax' );
+			$this->updater = new Velox_Updater();
+			Velox_Profile::mark( 'Velox: Velox_Updater' );
+		}
 		Velox_Utilities::init();
 		Velox_Profile::mark( 'Velox: Velox_Utilities::init' );
 		Velox_Frontend_Bar::init();
@@ -287,15 +309,19 @@ final class Velox {
 		Velox_Profile::mark( 'Velox: Velox_Snippets::init' );
 		Velox_Stats::init();
 		Velox_Profile::mark( 'Velox: Velox_Stats::init' );
-		Velox_Pagespeed::init();
-		Velox_Profile::mark( 'Velox: Velox_Pagespeed::init' );
+		if ( $backend ) {
+			Velox_Pagespeed::init();
+			Velox_Profile::mark( 'Velox: Velox_Pagespeed::init' );
+		}
 		Velox_Cookies::init();
 		Velox_Profile::mark( 'Velox: Velox_Cookies::init' );
-		Velox_Backup::init();
-		Velox_Profile::mark( 'Velox: Velox_Backup::init' );
+		if ( $backend ) {
+			Velox_Backup::init();
+			Velox_Profile::mark( 'Velox: Velox_Backup::init' );
+		}
 		Velox_Error_Logger::init();
 		Velox_Profile::mark( 'Velox: Velox_Error_Logger::init' );
-		if ( Velox_Settings::get( 'util_october', false ) ) {
+		if ( $backend && Velox_Settings::get( 'util_october', false ) ) {
 			Velox_October::maybe_install();
 			Velox_Profile::mark( 'Velox: Velox_October::maybe_install' );
 			Velox_October::init();
@@ -323,8 +349,10 @@ final class Velox {
 		Velox_Profile::mark( 'Velox: Velox_Login_Guard::init' );
 		Velox_Comment_Guard::init();
 		Velox_Profile::mark( 'Velox: Velox_Comment_Guard::init' );
-		Velox_Site_Scan::init();
-		Velox_Profile::mark( 'Velox: Velox_Site_Scan::init' );
+		if ( $backend ) {
+			Velox_Site_Scan::init();
+			Velox_Profile::mark( 'Velox: Velox_Site_Scan::init' );
+		}
 		Velox_Reviews_Oxygen::init();
 		Velox_Profile::mark( 'Velox: Velox_Reviews_Oxygen::init' );
 		Velox_Scripts::init();
@@ -336,7 +364,9 @@ final class Velox {
 			Velox_Profile::mark( 'Velox: Velox_Seo::init' );
 			Velox_Ai::init();
 			Velox_Profile::mark( 'Velox: Velox_Ai::init' );
-			Velox_Seo_Columns::init();
+			if ( is_admin() ) {
+				Velox_Seo_Columns::init();
+			}
 			Velox_Profile::mark( 'Velox: Velox_Seo_Columns::init' );
 		}
 		if ( Velox_Settings::get( 'util_mail' ) ) {
@@ -359,7 +389,9 @@ final class Velox {
 
 		// Velox_Admin always loads so its admin-bar nodes show on the front end too;
 		// its heavy admin-only hooks are gated inside the class.
-		$this->admin = new Velox_Admin();
+		if ( $backend || self::signed_in() ) {
+			$this->admin = new Velox_Admin();
+		}
 		Velox_Profile::mark( 'Velox: Velox_Admin' );
 		if ( is_admin() ) {
 			new Velox_PageMeta();

@@ -57,7 +57,8 @@ class Velox_Profile {
 		foreach ( $rows as $r ) {
 			$lines[] = str_pad( number_format( $r[1], 1 ), 8, ' ', STR_PAD_LEFT ) . ' ms  +' . str_pad( number_format( $r[2], 1 ), 7, ' ', STR_PAD_LEFT ) . '  ' . $r[0];
 		}
-		$sum = sprintf( 'Velox profile: %s ms total, %d queries, %s MB peak memory, %d PHP files', number_format( ( microtime( true ) - $t0 ) * 1000, 1 ), (int) $wpdb->num_queries, number_format( memory_get_peak_usage() / 1048576, 1 ), count( get_included_files() ) );
+		$opc = class_exists( 'Velox_Admin' ) ? Velox_Admin::opcache_state() : '';
+		$sum = sprintf( 'Velox profile: %s ms total, %d queries, %s MB peak memory, %d PHP files, opcache %s', number_format( ( microtime( true ) - $t0 ) * 1000, 1 ), (int) $wpdb->num_queries, number_format( memory_get_peak_usage() / 1048576, 1 ), count( get_included_files() ), '' === $opc ? 'OK' : ( 'off' === $opc ? 'OFF' : 'ON BUT CACHING NOTHING' ) );
 		echo "\n<!--\n" . esc_html( $sum ) . "\n\nSlowest steps:\n";
 		foreach ( array_slice( $slow, 0, 8 ) as $r ) {
 			echo esc_html( '  +' . number_format( $r[2], 1 ) . ' ms  ' . $r[0] ) . "\n";
