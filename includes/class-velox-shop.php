@@ -470,6 +470,21 @@ class Velox_Shop {
 		if ( isset( self::OLD_PRESETS[ (string) self::get( 'design', '' ) ] ) && '' === (string) self::get( 'd_accent', '' ) && empty( $over['accent'] ) && sanitize_hex_color( (string) self::get( 'accent', '' ) ) ) {
 			$d['accent'] = (string) self::get( 'accent' );
 		}
+		// Own colours that turn a dark template light (or the other way round):
+		// the colours left to the template no longer fit, so they follow the
+		// ink instead (see design_vars). A new button colour gets readable text.
+		$tpl  = $all[ $name ]['v'];
+		$flip = preg_match( '/^#[0-9a-f]{3,8}$/i', (string) $d['ink'] ) && preg_match( '/^#[0-9a-f]{3,8}$/i', (string) $tpl['ink'] ) && self::is_light( $d['ink'] ) !== self::is_light( $tpl['ink'] );
+		if ( $flip ) {
+			foreach ( array( 'muted', 'line', 'soft', 'surface', 'sale' ) as $k ) {
+				if ( '' === (string) self::get( 'd_' . $k, '' ) && empty( $over[ $k ] ) ) {
+					$d[ $k ] = 'surface' === $k ? (string) $d['bg'] : '';
+				}
+			}
+		}
+		if ( (string) $d['accent'] !== (string) $tpl['accent'] && '' === (string) self::get( 'd_accent_ink', '' ) && empty( $over['accent_ink'] ) ) {
+			$d['accent_ink'] = '';
+		}
 		$d['preset'] = $name;
 		return $d;
 	}
@@ -493,6 +508,9 @@ class Velox_Shop {
 				$css .= $var . ':' . $v . ';';
 			} elseif ( $own ) {
 				$css .= $var . ':' . ( 'line' === $k ? 'color-mix(in srgb,currentColor 16%,transparent)' : ( 'soft' === $k ? 'color-mix(in srgb,currentColor 5%,transparent)' : 'transparent' ) ) . ';';
+			} elseif ( $ink && in_array( $k, array( 'line', 'soft' ), true ) ) {
+				// Left open: a shade of the text colour fits light and dark alike.
+				$css .= $var . ':color-mix(in srgb,' . $ink . ' ' . ( 'line' === $k ? '14' : '6' ) . '%,' . ( $col( $d['bg'] ) ? $col( $d['bg'] ) : 'transparent' ) . ');';
 			}
 		}
 		$acc = $col( $d['accent'] );

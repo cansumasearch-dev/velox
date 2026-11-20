@@ -26,6 +26,20 @@ class Velox_Shop_Admin {
 		// The old product and order screens open the shop editor instead.
 		add_action( 'load-post.php', array( __CLASS__, 'redirect_classic' ) );
 		add_action( 'load-post-new.php', array( __CLASS__, 'redirect_classic' ) );
+		add_action( 'admin_init', array( __CLASS__, 'fonts_once' ) );
+	}
+
+	/**
+	 * The design's fonts are fetched when it is saved. A shop updated from an
+	 * older version has not saved yet: fetch them on the next admin visit, and
+	 * try at most once an hour if the font server cannot be reached.
+	 */
+	public static function fonts_once() {
+		if ( wp_doing_ajax() || ! current_user_can( 'manage_options' ) || ! Velox_Shop::design_fonts() || '' !== Velox_Shop::fonts_url() || get_transient( 'velox_shop_fonts_try' ) ) {
+			return;
+		}
+		set_transient( 'velox_shop_fonts_try', 1, HOUR_IN_SECONDS );
+		Velox_Shop::fonts_url( null, true );
 	}
 
 	public static function order_admin_url( $id ) {
