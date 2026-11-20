@@ -1115,7 +1115,7 @@
 				field( vxT( 'After “Add to cart”' ), seg( 'after_add', s.after_add || 'drawer', [ [ 'drawer', vxT( 'Open the mini cart' ) ], [ 'stay', vxT( 'Stay, show a short note' ) ], [ 'cart', vxT( 'Go to the cart page' ) ] ] ) ) +
 				tog( 'buy_bar', on1( 'buy_bar' ), vxT( 'Buy bar on product pages' ), vxT( 'Price and button stay in reach once the visitor scrolls past them — at the bottom on phones, floating on larger screens.' ) ) ) +
 			card( vxT( 'Shop page' ),
-				'<div class="vsa-fr">' + field( vxT( 'Products before “Show more”' ), sel( 'per_page', String( s.per_page || 24 ), [ 12, 16, 20, 24, 32, 48, 60 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ) ) ) +
+				'<div class="vsa-fr">' + field( vxT( 'Products before “Show more”' ), sel( 'per_page', String( s.per_page || 24 ), [ 8, 12, 16, 20, 24, 32, 48, 60 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ) ) ) +
 				field( vxT( '“New” badge' ), sel( 'new_days', String( s.new_days || 0 ), [ [ '0', vxT( 'Off' ) ], [ '7', vxT( 'First 7 days' ) ], [ '14', vxT( 'First 14 days' ) ], [ '30', vxT( 'First 30 days' ) ], [ '60', vxT( 'First 60 days' ) ] ] ), vxT( 'Sale, sold and few-left badges come first.' ) ) + '</div>' +
 				tog( 'grid_sort', on1( 'grid_sort' ), vxT( 'Sort menu' ), vxT( 'Recommended, newest, price up or down, name.' ) ) +
 				tog( 'grid_search', on1( 'grid_search' ), vxT( 'Search field' ), vxT( 'Worth it from about 30 products.' ) ) +

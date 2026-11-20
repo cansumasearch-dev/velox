@@ -1311,7 +1311,8 @@ class Velox_Shop_Admin {
 		if ( isset( $out['stripe_secret'] ) && '' !== $out['stripe_secret'] && ! preg_match( '/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/', $out['stripe_secret'] ) ) {
 			return new WP_Error( 'x', __( 'That is not a Stripe secret key (it starts with sk_test_ or sk_live_).', 'velox' ) );
 		}
-		if ( isset( $out['bank_iban'] ) && '' !== $out['bank_iban'] && ! self::iban_ok( $out['bank_iban'] ) ) {
+		// Only a changed IBAN is checked, so an old entry never blocks saving another tab.
+		if ( isset( $out['bank_iban'] ) && '' !== $out['bank_iban'] && $out['bank_iban'] !== (string) Velox_Shop::get( 'bank_iban', '' ) && ! self::iban_ok( $out['bank_iban'] ) ) {
 			return new WP_Error( 'x', __( 'This IBAN does not look right — please check it.', 'velox' ) );
 		}
 		Velox_Shop::save_settings( $out );
