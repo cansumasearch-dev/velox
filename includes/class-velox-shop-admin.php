@@ -127,6 +127,7 @@ class Velox_Shop_Admin {
 			'settings'  => self::settings_out(),
 			'countries' => Velox_Shop::countries(),
 			'methods'   => $methods,
+			'designs'   => Velox_Shop::presets(),
 			'mails'     => $mails,
 			'pages'     => $pages,
 			'cats'      => self::cats(),
@@ -740,6 +741,12 @@ class Velox_Shop_Admin {
 				$out[ $k ] = sanitize_textarea_field( (string) $v );
 			} elseif ( 'accent' === $k ) {
 				$out[ $k ] = sanitize_hex_color( (string) $v ) ?: '#0a6f9f';
+			} elseif ( 'custom_css' === $k ) {
+				$out[ $k ] = self::clean_css( (string) $v );
+			} elseif ( 'design' === $k ) {
+				$out[ $k ] = isset( Velox_Shop::presets()[ (string) $v ] ) ? (string) $v : 'velox';
+			} elseif ( in_array( $k, array( 'd_ink', 'd_surface', 'd_line', 'd_soft', 'd_bg' ), true ) ) {
+				$out[ $k ] = (string) ( sanitize_hex_color( (string) $v ) ?: '' );
 			} elseif ( in_array( $k, array( 'store_email', 'mail_from', 'mail_admin' ), true ) ) {
 				$out[ $k ] = sanitize_email( (string) $v );
 			} else {
@@ -754,6 +761,43 @@ class Velox_Shop_Admin {
 		}
 		Velox_Shop::save_settings( $out );
 		return array( 'settings' => self::settings_out() );
+	}
+
+	/** The shop's own CSS: no tags, nothing that could close the style block. */
+	private static function clean_css( $css ) {
+		$css = preg_replace( '#</?[a-z][^>]*>#i', '', (string) $css );
+		$css = str_ireplace( array( '</style', '<script' ), '', $css );
+		return mb_substr( $css, 0, 60000 );
+	}
+
+	/**
+	 * Settings → Design: the real product grid and cart button, drawn with
+	 * the choices on screen (not saved yet), as a small standalone page.
+	 */
+	private static function do_design_preview( $in ) {
+		$keys = array( 'design', 'card_ratio', 'accent', 'custom_css' );
+		foreach ( Velox_Shop::DESIGN_KEYS as $k ) {
+			$keys[] = 'd_' . $k;
+		}
+		$vals = array();
+		foreach ( (array) ( $in['settings'] ?? array() ) as $k => $v ) {
+			if ( in_array( $k, $keys, true ) && is_scalar( $v ) ) {
+				$vals[ $k ] = 'custom_css' === $k ? self::clean_css( (string) $v ) : sanitize_text_field( (string) $v );
+			}
+		}
+		Velox_Shop::override( $vals );
+		$d    = Velox_Shop::design();
+		$grid = Velox_Shop_Front::grid( array( 'count' => 6, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '1', 'ids' => '' ) );
+		$btn  = Velox_Shop_Front::sc_cart_button( array( 'label' => __( 'Cart', 'velox' ) ) );
+		$own  = (string) Velox_Shop::get( 'custom_css', '' );
+		$bg   = preg_match( '/^#[0-9a-f]{3,8}$/i', (string) $d['bg'] ) ? $d['bg'] : '#ffffff';
+		$html = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><base target="_blank">'
+			. '<link rel="stylesheet" href="' . esc_url( VELOX_URL . 'assets/css/velox-shop.css?ver=' . VELOX_VERSION ) . '">'
+			. '<style>:root{' . Velox_Shop::design_vars( $d ) . '}body{margin:0;padding:28px;font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;background:' . $bg . ';color:var(--vxs-ink,#111)}'
+			. 'form,button,a{pointer-events:none}.vsa-pv-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 24px;font-weight:700;font-size:18px}'
+			. str_ireplace( '</style', '', $own ) . '</style></head><body>'
+			. '<div class="vsa-pv-top"><span>' . esc_html( (string) Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) ) ) . '</span>' . $btn . '</div>' . $grid . '</body></html>';
+		return array( 'html' => $html );
 	}
 
 	private static function iban_ok( $iban ) {

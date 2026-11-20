@@ -171,7 +171,7 @@ class Velox_Shop_Front {
 	/* ------------------------------------------------------------- grid */
 
 	public static function sc_grid( $atts = array() ) {
-		$a = shortcode_atts( array( 'count' => 12, 'columns' => 3, 'category' => '', 'sort' => 'menu', 'filter' => '', 'ids' => '' ), $atts, 'velox_shop' );
+		$a = shortcode_atts( array( 'count' => 12, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '', 'ids' => '', 'layout' => '', 'card' => '', 'button' => '' ), $atts, 'velox_shop' );
 		return self::grid( $a );
 	}
 
@@ -221,27 +221,53 @@ class Velox_Shop_Front {
 		if ( ! $q->have_posts() ) {
 			return $out . '<p class="vxs-empty">' . esc_html__( 'No products here yet.', 'velox' ) . '</p>';
 		}
+		$over = array();
+		foreach ( array( 'layout', 'card', 'button', 'hover', 'align', 'cols_t', 'cols_m', 'gap', 'show_cat', 'show_text', 'fit' ) as $k ) {
+			if ( isset( $a[ $k ] ) && '' !== (string) $a[ $k ] ) {
+				$over[ $k ] = $a[ $k ];
+			}
+		}
+		if ( '' !== (string) ( $a['columns'] ?? '' ) ) {
+			$over['cols'] = $a['columns'];
+		}
+		$d     = Velox_Shop::design( $over );
 		$ratio = Velox_Shop::card_ratio();
-		$out  .= '<div class="vxs-grid alignwide' . ( 'natural' === $ratio ? ' is-natural' : '' ) . '" style="--vxs-cols:' . max( 1, min( 6, (int) $a['columns'] ) ) . ( 'natural' === $ratio ? '' : ';--vxs-ratio:' . $ratio ) . '">';
+		// A masonry wall shows every photo in its own shape.
+		if ( 'masonry' === $d['layout'] ) {
+			$ratio = 'natural';
+		}
+		$style = '--vxs-cols:' . max( 1, min( 6, (int) $d['cols'] ) ) . ';--vxs-cols-t:' . max( 1, min( 4, (int) $d['cols_t'] ) ) . ';--vxs-cols-m:' . max( 1, min( 2, (int) $d['cols_m'] ) ) . ';--vxs-gap:' . max( 0, min( 120, (int) $d['gap'] ) ) . 'px' . ( 'natural' === $ratio ? '' : ';--vxs-ratio:' . $ratio );
+		$out  .= '<div class="vxs-grid alignwide ' . esc_attr( Velox_Shop::design_classes( $d ) ) . ( 'natural' === $ratio ? ' is-natural' : '' ) . '" style="' . esc_attr( $style ) . '">';
 		while ( $q->have_posts() ) {
 			$q->the_post();
-			$out .= self::card( Velox_Shop::product( get_the_ID() ) );
+			$out .= self::card( Velox_Shop::product( get_the_ID() ), $d );
 		}
 		wp_reset_postdata();
 		return $out . '</div>';
 	}
 
-	public static function card( $p ) {
+	public static function card( $p, $d = null ) {
 		if ( ! $p ) {
 			return '';
 		}
+		$d = $d ? $d : Velox_Shop::design();
 		$url   = get_permalink( $p['id'] );
 		$img   = get_the_post_thumbnail( $p['id'], 'large', array( 'loading' => 'lazy', 'class' => 'vxs-card-im' ) );
 		$alt   = $p['gallery'] ? wp_get_attachment_image( (int) $p['gallery'][0], 'large', false, array( 'loading' => 'lazy', 'class' => 'vxs-card-im2', 'alt' => '' ) ) : '';
 		$a     = Velox_Shop::availability( $p );
 		$out   = '<article class="vxs-card is-' . esc_attr( $a[0] ) . '">';
 		$out  .= '<a class="vxs-card-media" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . ( $img ? $img : '<span class="vxs-noimg"></span>' ) . $alt . self::badge_html( $p ) . '</a>';
-		$out  .= '<div class="vxs-card-body"><h3 class="vxs-card-t"><a href="' . esc_url( $url ) . '">' . esc_html( $p['title'] ) . '</a></h3>';
+		$out  .= '<div class="vxs-card-body">';
+		if ( '1' === (string) $d['show_cat'] ) {
+			$terms = get_the_terms( $p['id'], Velox_Shop::CAT );
+			if ( $terms && ! is_wp_error( $terms ) ) {
+				$out .= '<span class="vxs-card-cat">' . esc_html( $terms[0]->name ) . '</span>';
+			}
+		}
+		$out  .= '<h3 class="vxs-card-t"><a href="' . esc_url( $url ) . '">' . esc_html( $p['title'] ) . '</a></h3>';
+		if ( '1' === (string) $d['show_text'] && has_excerpt( $p['id'] ) ) {
+			$out .= '<p class="vxs-card-text">' . esc_html( wp_trim_words( get_the_excerpt( $p['id'] ), 22, '…' ) ) . '</p>';
+		}
 		$out  .= '<div class="vxs-card-price">' . self::price_html( $p ) . '</div>';
 		if ( 'inquiry' !== $p['mode'] ) {
 			$out .= self::tax_note( $p );
@@ -251,10 +277,22 @@ class Velox_Shop_Front {
 			$out .= '<div class="vxs-unit">' . esc_html( $unit ) . '</div>';
 		}
 		$out .= '</div>';
-		if ( Velox_Shop::can_buy( $p, null, 1 ) && ! Velox_Shop::has_variants( $p ) ) {
-			$out .= self::add_form( $p, '', '<button type="submit" class="vxs-btn vxs-btn-sm">' . esc_html( '' !== $p['button'] ? $p['button'] : __( 'Add to cart', 'velox' ) ) . '</button>' );
+		$mode = (string) $d['button'];
+		$bag  = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/><path d="M12 11v5M9.5 13.5h5"/></svg>';
+		$lbl  = '' !== $p['button'] ? $p['button'] : __( 'Add to cart', 'velox' );
+		if ( 'none' === $mode ) {
+			// No button: the whole card links to the product.
+			$out .= Velox_Shop::can_buy( $p, null, 1 ) ? '' : '<span class="vxs-state">' . esc_html( $a[1] ) . '</span>';
+		} elseif ( 'link' === $mode ) {
+			$out .= Velox_Shop::can_buy( $p, null, 1 ) || 'inquiry' === $p['mode']
+				? '<a class="vxs-more-link" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . esc_html( 'inquiry' === $p['mode'] ? __( 'Ask about it', 'velox' ) : __( 'View', 'velox' ) ) . ' <span aria-hidden="true">→</span></a>'
+				: '<span class="vxs-state">' . esc_html( $a[1] ) . '</span>';
+		} elseif ( Velox_Shop::can_buy( $p, null, 1 ) && ! Velox_Shop::has_variants( $p ) ) {
+			$out .= self::add_form( $p, '', 'icon' === $mode
+				? '<button type="submit" class="vxs-btn vxs-btn-icon" aria-label="' . esc_attr( $lbl . ': ' . $p['title'] ) . '">' . $bag . '</button>'
+				: '<button type="submit" class="vxs-btn vxs-btn-sm">' . esc_html( $lbl ) . '</button>' );
 		} elseif ( Velox_Shop::has_variants( $p ) && 'inquiry' !== $p['mode'] ) {
-			$out .= '<a class="vxs-btn vxs-btn-sm vxs-btn-ghost" href="' . esc_url( $url ) . '">' . esc_html__( 'Choose options', 'velox' ) . '</a>';
+			$out .= '<a class="vxs-btn vxs-btn-sm vxs-btn-ghost' . ( 'icon' === $mode ? ' vxs-btn-icon' : '' ) . '" href="' . esc_url( $url ) . '"' . ( 'icon' === $mode ? ' aria-label="' . esc_attr( __( 'Choose options', 'velox' ) . ': ' . $p['title'] ) . '">' . $bag : '>' . esc_html__( 'Choose options', 'velox' ) ) . '</a>';
 		} else {
 			$out .= '<span class="vxs-state">' . esc_html( $a[1] ) . '</span>';
 		}
@@ -300,7 +338,8 @@ class Velox_Shop_Front {
 		}
 		$ids = array_values( array_filter( array_merge( array( (int) get_post_thumbnail_id( $p['id'] ) ), $p['gallery'] ) ) );
 		// alignwide: block themes give it their wide width instead of the text column.
-		$out = '<div class="vxs-product alignwide">' . self::gallery_html( $ids, $p ) . '<div class="vxs-product-side">'
+		$d   = Velox_Shop::design();
+		$out = '<div class="vxs-product alignwide ' . esc_attr( Velox_Shop::design_classes( $d ) ) . '">' . self::gallery_html( $ids, $p, $d ) . '<div class="vxs-product-side">'
 			. ( $title ? '<h1 class="vxs-product-t">' . esc_html( $p['title'] ) . '</h1>' : '' )
 			. ( has_excerpt( $p['id'] ) ? '<div class="vxs-lead">' . wp_kses_post( wpautop( get_the_excerpt( $p['id'] ) ) ) . '</div>' : '' )
 			. self::buy_box( $p ) . '</div></div>';
@@ -312,15 +351,33 @@ class Velox_Shop_Front {
 		if ( '' !== $p['gpsr'] ) {
 			$tabs .= '<section class="vxs-gpsr"><h2>' . esc_html__( 'Manufacturer & safety', 'velox' ) . '</h2><p>' . nl2br( esc_html( $p['gpsr'] ) ) . '</p></section>';
 		}
+		// Details as an accordion: each section folds; the first one starts open.
+		if ( 'accordion' === $d['details'] && '' !== $tabs ) {
+			$first = true;
+			$tabs  = preg_replace_callback( '#<section class="(vxs-[a-z]+)"><h2>(.*?)</h2>(.*?)</section>#s', function ( $m ) use ( &$first ) {
+				$o     = '<details class="' . $m[1] . ' vxs-acc"' . ( $first ? ' open' : '' ) . '><summary><h2>' . $m[2] . '</h2></summary><div class="vxs-acc-b">' . $m[3] . '</div></details>';
+				$first = false;
+				return $o;
+			}, $tabs );
+		}
 		if ( $p['upsell'] ) {
 			$tabs .= '<section class="vxs-more"><h2>' . esc_html__( 'You might also like', 'velox' ) . '</h2>' . self::grid( array( 'ids' => implode( ',', $p['upsell'] ), 'count' => 4, 'columns' => 4, 'category' => '', 'sort' => 'menu', 'filter' => '' ) ) . '</section>';
 		}
 		return $out . ( $tabs ? '<div class="vxs-product-more alignwide">' . $tabs . '</div>' : '' );
 	}
 
-	public static function gallery_html( $ids, $p ) {
+	public static function gallery_html( $ids, $p, $d = null ) {
 		if ( ! $ids ) {
 			return '<div class="vxs-gallery is-empty"><span class="vxs-noimg"></span></div>';
+		}
+		$d = $d ? $d : Velox_Shop::design();
+		// Stacked or grid: every photo shown large, no thumbnails to click.
+		if ( in_array( $d['gallery'], array( 'stack', 'grid' ), true ) && count( $ids ) > 0 ) {
+			$all = '';
+			foreach ( $ids as $i => $id ) {
+				$all .= '<figure class="vxs-gal-item">' . wp_get_attachment_image( $id, 'large', false, array( 'loading' => $i ? 'lazy' : 'eager', 'fetchpriority' => $i ? 'auto' : 'high' ) ) . ( 0 === $i ? self::badge_html( $p ) : '' ) . '</figure>';
+			}
+			return '<div class="vxs-gallery vxs-gallery-' . $d['gallery'] . '">' . $all . '</div>';
 		}
 		$main = wp_get_attachment_image( $ids[0], 'large', false, array( 'class' => 'vxs-gal-main', 'loading' => 'eager', 'fetchpriority' => 'high', 'data-vxs-main' => '1' ) );
 		$th   = '';
@@ -462,12 +519,23 @@ class Velox_Shop_Front {
 	}
 
 	public static function sc_cart_button( $atts = array() ) {
-		$a = shortcode_atts( array( 'label' => '' ), $atts, 'velox_cart_button' );
-		$n = Velox_Shop::cart_count();
-		return '<a class="vxs-cartbtn" href="' . esc_url( self::page_url( 'cart' ) ) . '" data-vxs-cartbtn aria-label="' . esc_attr__( 'Cart', 'velox' ) . '">'
-			. '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg>'
+		$a     = shortcode_atts( array( 'label' => '', 'icon' => '', 'count' => '', 'total' => '' ), $atts, 'velox_cart_button' );
+		$d     = Velox_Shop::design( array( 'cart_icon' => $a['icon'], 'cart_count' => $a['count'], 'cart_total' => $a['total'] ) );
+		$n     = Velox_Shop::cart_count();
+		$icons = array(
+			'bag'    => '<path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/>',
+			'cart'   => '<circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/><path d="M3 4h2.2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.2a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.3"/>',
+			'basket' => '<path d="M3.5 10h17l-1.7 8.4a1.5 1.5 0 0 1-1.5 1.1H6.7a1.5 1.5 0 0 1-1.5-1.1z"/><path d="M8 10l3-5.5M16 10l-3-5.5M9 14v2.5M12 14v2.5M15 14v2.5"/>',
+		);
+		$icon  = $icons[ $d['cart_icon'] ] ?? $icons['bag'];
+		$style = in_array( $d['cart_count'], array( 'badge', 'inline', 'dot' ), true ) ? $d['cart_count'] : 'badge';
+		$total = '1' === (string) $d['cart_total'] ? '<span class="vxs-cartbtn-total" data-vxs-cart-total>' . esc_html( $n ? Velox_Shop::cart_subtotal() : '' ) . '</span>' : '';
+		return '<a class="vxs-cartbtn vxs-cc-' . $style . '" href="' . esc_url( self::page_url( 'cart' ) ) . '" data-vxs-cartbtn aria-label="' . esc_attr__( 'Cart', 'velox' ) . '">'
+			. '<span class="vxs-cartbtn-i"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' . $icon . '</svg>'
+			. ( 'inline' !== $style ? '<span class="vxs-count" data-vxs-count' . ( $n ? '' : ' hidden' ) . '>' . ( 'dot' === $style ? '' : (int) $n ) . '</span>' : '' ) . '</span>'
 			. ( '' !== $a['label'] ? '<span class="vxs-cartbtn-l">' . esc_html( $a['label'] ) . '</span>' : '' )
-			. '<span class="vxs-count" data-vxs-count' . ( $n ? '' : ' hidden' ) . '>' . (int) $n . '</span></a>';
+			. ( 'inline' === $style ? '<span class="vxs-count vxs-count-inline" data-vxs-count' . ( $n ? '' : ' hidden' ) . '>' . (int) $n . '</span>' : '' )
+			. $total . '</a>';
 	}
 
 	/* ----------------------------------------------------------------- cart */
@@ -480,7 +548,7 @@ class Velox_Shop_Front {
 		}
 		$cart = Velox_Shop::get_cart();
 		$t    = Velox_Shop::totals( $lines, '', '', (string) ( $cart['_c'] ?? '' ) );
-		$out .= '<div class="vxs-cartpage alignwide"><ul class="vxs-lines">';
+		$out .= '<div class="vxs-cartpage alignwide ' . esc_attr( Velox_Shop::design_classes() ) . '"><ul class="vxs-lines">';
 		foreach ( $lines as $l ) {
 			$out .= '<li class="vxs-line" data-vxs-line="' . esc_attr( $l['key'] ) . '">'
 				. '<a class="vxs-line-im" href="' . esc_url( $l['url'] ) . '">' . ( $l['thumb'] ? '<img src="' . esc_url( $l['thumb'] ) . '" alt="" loading="lazy">' : '' ) . '</a>'
@@ -611,7 +679,7 @@ class Velox_Shop_Front {
 		$company = (string) Velox_Shop::get( 'f_company' );
 		$btn     = trim( (string) Velox_Shop::get( 'button_text' ) );
 		$btn     = '' !== $btn ? $btn : __( 'Buy now', 'velox' );
-		$out = self::flash() . '<form method="post" class="vxs-checkout alignwide" data-vxs-checkout novalidate>'
+		$out = self::flash() . '<form method="post" class="vxs-checkout alignwide ' . esc_attr( Velox_Shop::design_classes() ) . '" data-vxs-checkout novalidate>'
 			. wp_nonce_field( 'velox_shop', '_vxs', true, false )
 			. '<input type="hidden" name="velox_shop_action" value="checkout">'
 			. '<input type="hidden" name="vx_return" value="' . esc_url( home_url( add_query_arg( array() ) ) ) . '">'
@@ -1055,7 +1123,7 @@ class Velox_Shop_Front {
 		};
 		switch ( $el ) {
 			case 'Shopgrid':
-				return self::grid( array( 'count' => $g( 'count', 12 ), 'columns' => $g( 'columns', 3 ), 'category' => $g( 'category' ), 'sort' => $g( 'sort', 'menu' ), 'filter' => $g( 'filter' ), 'ids' => '' ) );
+				return self::grid( array( 'count' => $g( 'count', 12 ), 'columns' => $g( 'columns', '' ), 'category' => $g( 'category' ), 'sort' => $g( 'sort', 'menu' ), 'filter' => $g( 'filter' ), 'ids' => '', 'layout' => $g( 'layout' ), 'card' => $g( 'card' ), 'button' => $g( 'button' ), 'hover' => $g( 'hover' ) ) );
 			case 'Shopbuy':
 				$pid = (int) $g( 'product', 0 );
 				$p   = Velox_Shop::product( $pid ? $pid : get_the_ID() );
@@ -1081,7 +1149,7 @@ class Velox_Shop_Front {
 			case 'Shopwithdraw':
 				return self::sc_withdraw();
 			case 'Shopcartbtn':
-				return self::sc_cart_button( array( 'label' => (string) $g( 'label' ) ) );
+				return self::sc_cart_button( array( 'label' => (string) $g( 'label' ), 'icon' => (string) $g( 'icon' ), 'count' => (string) $g( 'count' ), 'total' => (string) $g( 'total' ) ) );
 		}
 		return '';
 	}
@@ -1139,10 +1207,9 @@ class Velox_Shop_Front {
 
 	public static function assets() {
 		wp_enqueue_style( 'velox-shop', VELOX_URL . 'assets/css/velox-shop.css', array(), VELOX_VERSION );
-		$acc = sanitize_hex_color( (string) Velox_Shop::get( 'accent', '#0a6f9f' ) );
-		if ( $acc && '#0a6f9f' !== strtolower( $acc ) ) {
-			wp_add_inline_style( 'velox-shop', ':root{--vxs-accent:' . $acc . '}' );
-		}
+		// The design's colours and sizes, then the shop's own CSS (Settings → Design).
+		$own = (string) Velox_Shop::get( 'custom_css', '' );
+		wp_add_inline_style( 'velox-shop', ':root{' . Velox_Shop::design_vars() . '}' . ( '' !== trim( $own ) ? "\n" . str_ireplace( '</style', '', $own ) : '' ) );
 		wp_enqueue_script( 'velox-shop', VELOX_URL . 'assets/js/velox-shop.js', array(), VELOX_VERSION, true );
 		wp_localize_script( 'velox-shop', 'VELOX_SHOP', array(
 			'rest'  => esc_url_raw( rest_url( 'velox/v1/shop/' ) ),

@@ -1975,8 +1975,19 @@
 					[ 'mobile', 'On phones only' ], [ 'always', 'Always' ]
 				] },
 				{ k:'mobileStyle', t:'select', l:'Mobile menu opens as', d:'dropdown', s:'Mobile', o:[
-					[ 'dropdown', 'A dropdown' ], [ 'fullscreen', 'A full screen panel' ]
+					[ 'dropdown', 'A dropdown' ], [ 'offcanvas', 'A side panel (off-canvas)' ], [ 'fullscreen', 'A full screen panel' ]
 				] },
+				{ k:'burgerLabel', t:'text', l:'Text next to the burger', d:'', s:'Mobile', ph:'Menü' },
+				{ k:'burgerAnim', t:'segment', l:'Burger turns into an X', d:'x', s:'Mobile', o:[ [ 'x', 'Yes' ], [ 'none', 'No' ] ] },
+				{ k:'ocSide', t:'segment', l:'Panel slides in from', d:'right', s:'Side panel', when:{ mobileStyle:'offcanvas' }, o:[ [ 'right', 'Right' ], [ 'left', 'Left' ] ] },
+				{ k:'ocWidth', t:'num', l:'Panel width', d:'380', unit:'px', s:'Side panel', when:{ mobileStyle:'offcanvas' } },
+				{ k:'ocBg', t:'color', l:'Panel background', d:'#ffffff', s:'Side panel', when:{ mobileStyle:'offcanvas' } },
+				{ k:'ocColor', t:'color', l:'Panel text', d:'#111111', s:'Side panel', when:{ mobileStyle:'offcanvas' } },
+				{ k:'ocAccent', t:'color', l:'Button colour', d:'#111111', s:'Side panel', when:{ mobileStyle:'offcanvas' } },
+				{ k:'ocBackdrop', t:'text', l:'Backdrop', d:'', s:'Side panel', ph:'rgba(12,12,14,.5)', when:{ mobileStyle:'offcanvas' } },
+				{ k:'ocCta', t:'text', l:'Button in the panel', d:'', s:'Side panel', ph:'Jetzt anfragen', when:{ mobileStyle:'offcanvas' } },
+				{ k:'ocCtaHref', t:'text', l:'Button link', d:'', s:'Side panel', ph:'/kontakt/', when:{ mobileStyle:'offcanvas' } },
+				{ k:'ocNote', t:'text', l:'Small text at the bottom', d:'', s:'Side panel', ph:'02131 123 45 67', when:{ mobileStyle:'offcanvas' } },
 				{ k:'subTrigger', t:'segment', l:'Submenus open on', d:'hover', s:'Submenus',
 				  o:[ [ 'hover', 'Hover' ], [ 'click', 'Click' ] ] },
 				{ k:'navLabel', t:'text', l:'Name for screen readers', d:'', s:'Accessibility', ph:'Footer' },
@@ -2032,7 +2043,9 @@
 			  rules:{ display:'grid' }, runtime:'floating', floating:true,
 			  settings:[].concat( [
 				{ k:'icon', t:'icon', l:'Icon', d:'chevron-up', s:'Button' },
-				{ k:'label', t:'text', l:'Screen-reader text', d:'Back to top', s:'Button' }
+				{ k:'label', t:'text', l:'Screen-reader text', d:'Back to top', s:'Button' },
+				{ k:'ring', t:'toggle', l:'A ring fills as the page is read', d:'', s:'Button' },
+				{ k:'ringColor', t:'color', l:'Ring colour', d:'#111111', s:'Button', when:{ ring:'1' } }
 			  ], FRAG.placement(), [
 				{ k:'trigType', t:'select', l:'Show it', d:'scroll', s:'When it appears', o:[
 					[ 'load', 'Straight away' ], [ 'scroll', 'After scrolling' ]
@@ -2276,10 +2289,14 @@
 			{ key:'shopgrid', el:'Shopgrid', tag:'div', label:'Product grid', cls:'.shop-grid', rules:{},
 			  settings:[
 				{ k:'count', t:'num', l:'How many', d:'12', s:'Products' },
-				{ k:'columns', t:'num', l:'Columns', d:'3', s:'Products' },
+				{ k:'columns', t:'num', l:'Columns', d:'', s:'Products', ph:'From the shop design' },
 				{ k:'category', t:'select', l:'Category', d:'', s:'Products', o:[ [ '', 'All categories' ] ].concat( CFG.shop.cats || [] ) },
 				{ k:'sort', t:'select', l:'Sort order', d:'menu', s:'Products', o:[ [ 'menu', 'As sorted in the shop' ], [ 'new', 'Newest first' ], [ 'price', 'Price, low to high' ], [ 'price-desc', 'Price, high to low' ], [ 'name', 'Name' ] ] },
-				{ k:'filter', t:'toggle', l:'Category buttons above the grid', d:'', s:'Products' }
+				{ k:'filter', t:'toggle', l:'Category buttons above the grid', d:'', s:'Products' },
+				{ k:'layout', t:'select', l:'Layout', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'grid', 'Grid' ], [ 'masonry', 'Masonry' ], [ 'list', 'List' ], [ 'row', 'Scroll row' ] ] },
+				{ k:'card', t:'select', l:'Each product as', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'plain', 'Photo and text' ], [ 'surface', 'A card' ], [ 'tile', 'On a tile, uncropped' ], [ 'overlay', 'Text on the photo' ], [ 'split', 'Side by side' ] ] },
+				{ k:'button', t:'select', l:'Buy button', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'button', 'Button' ], [ 'icon', 'Icon' ], [ 'link', 'Text link' ], [ 'none', 'None — the card links' ] ] },
+				{ k:'hover', t:'select', l:'On hover', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'swap', 'Second photo' ], [ 'zoom', 'Zoom' ], [ 'lift', 'Lift' ], [ 'none', 'Nothing' ] ] }
 			  ] },
 			{ key:'shopbuy', el:'Shopbuy', tag:'div', label:'Add to cart', cls:'.shop-buy', rules:{},
 			  settings:[
@@ -2290,7 +2307,12 @@
 			{ key:'shopproduct', el:'Shopproduct', tag:'div', label:'Product (complete)', cls:'.shop-product', rules:{},
 			  settings:[ { k:'product', t:'select', l:'Product', d:'', s:'Product', o:SHOP_PRODUCTS } ] },
 			{ key:'shopcartbtn', el:'Shopcartbtn', tag:'div', label:'Cart button', cls:'.shop-cartbtn', rules:{},
-			  settings:[ { k:'label', t:'text', l:'Text next to the icon', d:'', s:'Button' } ] },
+			  settings:[
+				{ k:'label', t:'text', l:'Text next to the icon', d:'', s:'Button' },
+				{ k:'icon', t:'select', l:'Cart icon', d:'', s:'Button', o:[ [ '', 'From the shop design' ], [ 'bag', 'Bag' ], [ 'cart', 'Cart' ], [ 'basket', 'Basket' ] ] },
+				{ k:'count', t:'select', l:'Items in the cart', d:'', s:'Button', o:[ [ '', 'From the shop design' ], [ 'badge', 'Number on the icon' ], [ 'dot', 'A dot' ], [ 'inline', 'Number next to it' ] ] },
+				{ k:'total', t:'select', l:'Cart total next to the icon', d:'', s:'Button', o:[ [ '', 'From the shop design' ], [ '1', 'Show' ], [ '0', 'Hide' ] ] }
+			  ] },
 			{ key:'shopcart', el:'Shopcart', tag:'div', label:'Cart', cls:'.shop-cart', rules:{} },
 			{ key:'shopcheckout', el:'Shopcheckout', tag:'div', label:'Checkout', cls:'.shop-checkout', rules:{} },
 			{ key:'shopaccount', el:'Shopaccount', tag:'div', label:'Customer account', cls:'.shop-account', rules:{} },
@@ -4269,7 +4291,7 @@
 	 * text, animation and item fields were missing, so typing there lost focus
 	 * after one character or a short pause. */
 	var FOCUS_ATTRS = [ 'data-setnum', 'data-setbox', 'data-setunit', 'data-setboxunit', 'data-set', 'data-setel', 'data-sethref',
-		'data-repset', 'data-setaos', 'data-imgalt', 'data-imgtitle', 'data-setconn', 'data-setpreset', 'data-setwp', 'data-elcss', 'data-attrn', 'data-attrv', 'data-setsel', 'data-sfilter', 'data-cond', 'data-loop', 'data-hdr', 'data-cprop', 'data-cpropf', 'data-ix' ];
+		'data-repset', 'data-setaos', 'data-imgalt', 'data-imgtitle', 'data-setconn', 'data-setpreset', 'data-setwp', 'data-elcss', 'data-attrn', 'data-attrv', 'data-setsel', 'data-sfilter', 'data-cond', 'data-loop', 'data-hdr', 'data-hdrvis', 'data-setmo', 'data-cprop', 'data-cpropf', 'data-ix' ];
 	function captureFocus() {
 		var el = document.activeElement;
 		if ( ! el || ! el.closest || ! el.closest( '#vb-inspector' ) ) { return null; }
@@ -4970,6 +4992,61 @@
 		}, T( 'Animation' ) );
 	}
 
+	/* ---------- motion ----------
+	 * node.mo: text reveal, children one after another, parallax, pointer
+	 * effects, stacking cards, a pinned sideways row, particles. Played by
+	 * velox-motion.js on the published page. */
+	var MO_TEXT_EL = { Heading:1, Text:1, Eyebrow:1, Gradienttext:1, Outlinetext:1, Highlighttext:1, Pullquote:1, Dropcap:1 };
+	function motionSettingsHTML( node ) {
+		var m = node.mo || {};
+		var isBox = !! CONTAINER_EL[ node.el ];
+		var sel = function ( f, label, opts ) {
+			return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><select class="vb-inp" data-setmo="' + f + '">' + opts.map( function ( o ) {
+				return '<option value="' + o[ 0 ] + '"' + ( String( m[ f ] || '' ) === o[ 0 ] ? ' selected' : '' ) + '>' + escapeHtml( T( o[ 1 ] ) ) + '</option>';
+			} ).join( '' ) + '</select></div>';
+		};
+		var inp = function ( f, label, ph, unit ) {
+			return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><div class="vb-row"><input class="vb-inp' + ( unit ? ' num' : '' ) + '" data-setmo="' + f + '" value="' + escapeHtml( m[ f ] == null ? '' : m[ f ] ) + '" placeholder="' + escapeHtml( ph || '' ) + '" spellcheck="false">' + ( unit ? '<span class="vb-unit-static">' + unit + '</span>' : '' ) + '</div></div>';
+		};
+		var chk = function ( f, label ) { return '<label class="vb-set-check"><input type="checkbox" data-setmo="' + f + '"' + ( m[ f ] ? ' checked' : '' ) + '><span>' + T( label ) + '</span></label>'; };
+		var h = '<div class="vb-setsec vb-mosec"><div class="vb-setsec-h">' + svg( 'bolt', 14 ) + ' ' + T( 'Motion' ) + ( Object.keys( m ).length ? '<span class="vb-cond-n">' + Object.keys( m ).filter( function ( k ) { return /^(text|kids|para|tilt|glow|magnet|stack|hscroll|particles)$/.test( k ); } ).length + '</span>' : '' ) + '</div>';
+		if ( MO_TEXT_EL[ node.el ] ) {
+			h += sel( 'text', 'Text appears', [ [ '', 'All at once' ], [ 'words', 'Word by word, rising' ], [ 'chars', 'Letter by letter' ], [ 'mask', 'Slides up out of a mask' ] ] );
+			if ( m.text ) {
+				h += sel( 'textOn', 'Starts', [ [ '', 'When it scrolls into view' ], [ 'load', 'Right away (first screen)' ] ] );
+				h += '<div class="vb-loop-pair">' + inp( 'textStep', 'Step', 'chars' === m.text ? '22' : '70', 'ms' ) + inp( 'textDur', 'Duration', '700', 'ms' ) + '</div>';
+			}
+		}
+		if ( isBox ) {
+			h += sel( 'kids', 'Children appear', [ [ '', 'With their own settings' ], [ 'fade-up', 'One after another, rising' ], [ 'fade', 'One after another, fading' ], [ 'fade-left', 'One after another, from the left' ], [ 'fade-right', 'One after another, from the right' ], [ 'zoom-in', 'One after another, growing' ], [ 'blur', 'One after another, out of a blur' ] ] );
+			if ( m.kids ) { h += inp( 'kidsStep', 'Step between them', '90', 'ms' ); }
+		}
+		h += '<div class="vb-loop-pair">' + inp( 'para', 'Parallax speed', '0', '%' ) + '<div class="vb-f"><div class="vb-f-lbl">&nbsp;</div>' + chk( 'paraDesk', 'Desktop only' ) + '</div></div>';
+		h += chk( 'tilt', 'Tilts in 3D under the mouse' );
+		if ( m.tilt ) { h += inp( 'tiltMax', 'Maximum tilt', '8', '°' ); }
+		h += chk( 'glow', 'A soft light follows the mouse' );
+		if ( m.glow ) { h += inp( 'glowColor', 'Light colour', 'rgba(255,255,255,.16)' ); }
+		h += chk( 'magnet', 'Pulled towards the mouse (magnetic)' );
+		if ( isBox ) {
+			h += chk( 'stack', 'Children stack like cards while scrolling' );
+			if ( m.stack ) { h += '<div class="vb-loop-pair">' + inp( 'stackTop', 'Stick at', '100', 'px' ) + inp( 'stackStep', 'Offset per card', '18', 'px' ) + '</div>'; }
+			h += chk( 'hscroll', 'Pinned: children move sideways while scrolling' );
+			if ( m.hscroll ) { h += sel( 'hscrollOn', 'Pinned on', [ [ '', 'Desktop (swipe row on phones)' ], [ 'all', 'All screens' ] ] ); }
+			h += chk( 'particles', 'Floating particles in the background' );
+			if ( m.particles ) { h += '<div class="vb-loop-pair">' + inp( 'particlesColor', 'Colour', '#ffffff' ) + inp( 'particlesDensity', 'Amount', '60' ) + '</div>'; }
+		}
+		h += '<div class="vb-setnote">' + T( 'Motion plays on the published page, not in the editor. Visitors who ask their system for less motion see everything without it.' ) + '</div>';
+		return h + '</div>';
+	}
+	function setMo( key, val ) {
+		store.commit( function ( s ) {
+			var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
+			var m = Object.assign( {}, n.mo || {} );
+			if ( '' === val || false === val ) { delete m[ key ]; } else { m[ key ] = val; }
+			if ( Object.keys( m ).length ) { n.mo = m; } else { delete n.mo; }
+		}, T( 'Motion' ) );
+	}
+
 	/* ---------- icon picker ----------
 	 * Bootstrap Icons 1.11.3: the same set as the editor UI, so there is one icon
 	 * style everywhere. The full set (2,050 icons, ~225 KB gzipped) ships with the
@@ -5302,6 +5379,9 @@
 
 		// ---- animate on scroll, available on every element ----
 		s += aosSettingsHTML( node );
+
+		// ---- motion: text reveals, stagger, parallax, pointer effects, pinned rows ----
+		s += motionSettingsHTML( node );
 
 		// ---- inside a component: which parts each copy may change ----
 		s += cpropSectionHTML( node );
@@ -5850,38 +5930,75 @@
 	 * or the site footer (stays at the bottom of short pages). Stored as
 	 * node.hdr and turned into CSS + data attributes on the published page. */
 	function partSectionHTML( node ) {
-		if ( [ 'Section', 'Div' ].indexOf( node.el ) < 0 ) { return ''; }
-		var h = node.hdr || {}, mode = h.mode || '';
+		var out = '';
+		// Anything inside a site header can follow its state: a second logo when
+		// scrolled, a button only while the header floats over the hero …
+		var path = pathTo( store.state.tree, node.id ) || [];
+		var inHeader = path.slice( 0, -1 ).some( function ( p ) { return p.hdr && 'header' === p.hdr.mode; } );
+		if ( inHeader ) {
+			var hv = node.hdrVis || '';
+			out += '<div class="vb-setsec vb-partsec"><div class="vb-setsec-h">' + svg( 'pinangle', 14 ) + ' ' + T( 'In the site header' ) + '</div>' +
+				'<div class="vb-f"><div class="vb-f-lbl">' + T( 'Show this element' ) + '</div><select class="vb-inp" data-hdrvis>' +
+				[ [ '', 'Always' ], [ 'stuck', 'Only once scrolled (sticky)' ], [ 'unstuck', 'Only before scrolling' ], [ 'over', 'Only while transparent over the hero' ], [ 'unover', 'Not while transparent over the hero' ] ].map( function ( o ) {
+					return '<option value="' + o[ 0 ] + '"' + ( hv === o[ 0 ] ? ' selected' : '' ) + '>' + escapeHtml( T( o[ 1 ] ) ) + '</option>';
+				} ).join( '' ) + '</select></div>' +
+				'<div class="vb-setnote">' + T( 'Two logos, one set to "only once scrolled" and one to "only before scrolling", swap when the header sticks.' ) + '</div></div>';
+		}
+		if ( [ 'Section', 'Div' ].indexOf( node.el ) < 0 ) { return out; }
+		var h = Object.assign( {}, node.hdr || {} ), mode = h.mode || '';
+		if ( '1' === String( h.shadow || '' ) ) { h.shadow = 'soft'; }
 		var chk = function ( f, label ) { return '<label class="vb-set-check"><input type="checkbox" data-hdr="' + f + '"' + ( h[ f ] ? ' checked' : '' ) + '><span>' + T( label ) + '</span></label>'; };
 		var inp = function ( f, label, ph, unit ) {
 			return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><div class="vb-row"><input class="vb-inp' + ( unit ? ' num' : '' ) + '" data-hdr="' + f + '" value="' + escapeHtml( h[ f ] == null ? '' : h[ f ] ) + '" placeholder="' + escapeHtml( ph || '' ) + '" spellcheck="false">' + ( unit ? '<span class="vb-unit-static">' + unit + '</span>' : '' ) + '</div></div>';
 		};
-		var out = '<div class="vb-setsec vb-partsec"><div class="vb-setsec-h">' + svg( 'pinangle', 14 ) + ' ' + T( 'Site header / footer' ) + '</div>' +
-			'<div class="vb-f"><div class="vb-f-lbl">' + T( 'This box is' ) + '</div><select class="vb-inp" data-hdr="mode">' +
-			[ [ '', 'A normal box' ], [ 'header', 'The site header' ], [ 'footer', 'The site footer' ] ].map( function ( o ) {
-				return '<option value="' + o[ 0 ] + '"' + ( mode === o[ 0 ] ? ' selected' : '' ) + '>' + escapeHtml( T( o[ 1 ] ) ) + '</option>';
+		var col = function ( f, label, ph ) {
+			return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><div class="vb-row">' +
+				'<input type="color" class="vb-swatch" data-hdrswatch="' + f + '" value="' + ( /^#[0-9a-f]{6}$/i.test( h[ f ] || '' ) ? h[ f ] : '#ffffff' ) + '">' +
+				'<input class="vb-inp" data-hdr="' + f + '" value="' + escapeHtml( h[ f ] || '' ) + '" placeholder="' + escapeHtml( ph || T( 'unchanged' ) ) + '" spellcheck="false"></div></div>';
+		};
+		var sel = function ( f, label, opts ) {
+			return '<div class="vb-f"><div class="vb-f-lbl">' + T( label ) + '</div><select class="vb-inp" data-hdr="' + f + '">' + opts.map( function ( o ) {
+				return '<option value="' + o[ 0 ] + '"' + ( String( h[ f ] || '' ) === o[ 0 ] ? ' selected' : '' ) + '>' + escapeHtml( T( o[ 1 ] ) ) + '</option>';
 			} ).join( '' ) + '</select></div>';
+		};
+		var sub = function ( t ) { return '<div class="vb-f-lbl vb-part-sub">' + T( t ) + '</div>'; };
+		out += '<div class="vb-setsec vb-partsec"><div class="vb-setsec-h">' + svg( 'pinangle', 14 ) + ' ' + T( 'Site header / footer' ) + '</div>' +
+			sel( 'mode', 'This box is', [ [ '', 'A normal box' ], [ 'header', 'The site header' ], [ 'footer', 'The site footer' ] ] );
 		if ( 'header' === mode ) {
-			out += chk( 'sticky', 'Stick to the top while scrolling' );
+			out += chk( 'sticky', 'Sticky header' );
 			if ( h.sticky ) {
+				out += sel( 'how', 'Behaviour', [ [ '', 'Stays at the top from the start' ], [ 'appear', 'Appears after scrolling' ] ] );
+				out += sel( 'above', 'Sticky on', [ [ '', 'All screens' ], [ 'tablet', 'Tablet and larger' ], [ 'desktop', 'Desktop only' ] ] );
+				out += '<div class="vb-loop-pair">' + inp( 'at', 'Scroll distance', 'appear' === h.how ? '300' : '60', 'px' ) + inp( 'speed', 'Speed', '300', 'ms' ) + '</div>';
+				if ( 'appear' === h.how ) {
+					out += sel( 'anim', 'Comes in with', [ [ '', 'Slide down' ], [ 'fade', 'Fade in' ], [ 'none', 'No animation' ] ] );
+				}
 				out += chk( 'up', 'Hide when scrolling down, show when scrolling up' );
-				out += '<div class="vb-loop-pair">' + inp( 'at', 'Change after', '60', 'px' ) + inp( 'pad', 'Padding when scrolled', T( 'unchanged' ), 'px' ) + '</div>';
-				out += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Background when scrolled' ) + '</div><div class="vb-row">' +
-					'<input type="color" class="vb-swatch" data-hdrswatch value="' + ( /^#[0-9a-f]{6}$/i.test( h.bg || '' ) ? h.bg : '#ffffff' ) + '">' +
-					'<input class="vb-inp" data-hdr="bg" value="' + escapeHtml( h.bg || '' ) + '" placeholder="' + T( 'unchanged' ) + '" spellcheck="false"></div></div>';
-				out += chk( 'shadow', 'Shadow when scrolled' );
+				out += sub( 'Once scrolled' );
+				out += col( 'bg', 'Background' );
+				out += '<div class="vb-loop-pair">' + inp( 'blur', 'Glass blur', '0', 'px' ) + inp( 'pad', 'Padding', T( 'unchanged' ), 'px' ) + '</div>';
+				out += col( 'color', 'Text colour' );
+				out += col( 'line', 'Bottom line', T( 'none' ) );
+				out += sel( 'shadow', 'Shadow', [ [ '', 'None' ], [ 'soft', 'Soft' ], [ 'strong', 'Strong' ] ] );
+				out += col( 'progress', 'Scroll progress line', T( 'none' ) );
 			}
-			out += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Transparent over the first section' ) + '</div><select class="vb-inp" data-hdr="overlay">' +
-				[ [ '', 'Never' ], [ 'always', 'Always' ], [ 'tablet', 'Tablet and up' ], [ 'desktop', 'Desktop only' ] ].map( function ( o ) {
-					return '<option value="' + o[ 0 ] + '"' + ( ( h.overlay || '' ) === o[ 0 ] ? ' selected' : '' ) + '>' + escapeHtml( T( o[ 1 ] ) ) + '</option>';
-				} ).join( '' ) + '</select></div>';
+			out += sub( 'Over the first section' );
+			out += sel( 'overlay', 'Transparent over the first section', [ [ '', 'Never' ], [ 'always', 'Always' ], [ 'tablet', 'Tablet and up' ], [ 'desktop', 'Desktop only' ] ] );
+			if ( h.overlay ) { out += col( 'overColor', 'Text colour while transparent' ); }
 			out += inp( 'z', 'Layer (z-index)', '100' );
 			out += '<div class="vb-setnote">' + T( 'Put this box at the top of a template. The scroll effects show on the published page, not in the editor.' ) + '</div>';
 		} else if ( 'footer' === mode ) {
-			out += chk( 'bottom', 'Keep at the bottom of short pages' );
+			out += chk( 'reveal', 'Reveal from behind the content as the page ends' );
+			if ( ! h.reveal ) { out += chk( 'bottom', 'Keep at the bottom of short pages' ); }
 			out += '<div class="vb-setnote">' + T( 'Works when this box is the last top-level box of the page or template.' ) + '</div>';
 		}
 		return out + '</div>';
+	}
+	function setHdrVis( v ) {
+		store.commit( function ( s ) {
+			var n = findNode( s.tree, s.selection ); if ( ! n ) { return; }
+			if ( v ) { n.hdrVis = v; } else { delete n.hdrVis; }
+		}, T( 'In the site header' ) );
 	}
 	function setPartField( f, v ) {
 		store.commit( function ( s ) {
@@ -6655,7 +6772,10 @@
 				gsSelect( 'aos.easing', 'Easing', [ [ 'ease', 'ease' ], [ 'ease-in', 'ease-in' ], [ 'ease-out', 'ease-out' ], [ 'ease-in-out', 'ease-in-out' ], [ 'linear', 'linear' ] ] ) +
 				gsNum( 'aos.offset', 'Trigger offset' ) + gsNum( 'aos.delay', 'Delay', 'ms' ) +
 				gsSelect( 'aos.once', 'Animate only once', [ [ '1', 'Yes' ], [ '', 'No' ] ] ) +
-				gsSelect( 'aos.disable', 'Disable on', [ [ '', 'Nothing' ], [ 'mobile', 'Mobile' ], [ 'tablet', 'Tablet and below' ] ] );
+				gsSelect( 'aos.disable', 'Disable on', [ [ '', 'Nothing' ], [ 'mobile', 'Mobile' ], [ 'tablet', 'Tablet and below' ] ] ) +
+				'<div class="vb-gs-group"><div class="vb-gs-grouph">' + T( 'Smooth scrolling' ) + '</div>' +
+				gsSelect( 'motion.smooth', 'Mouse-wheel scrolling', [ [ '', 'Browser default' ], [ '1', 'Smooth (eased)' ] ] ) +
+				gsSelect( 'motion.ease', 'Smoothness', [ [ '0.2', 'Light' ], [ '0.12', 'Medium' ], [ '0.07', 'Strong' ] ] ) + '</div>';
 		}
 		return '';
 	}
@@ -7499,6 +7619,8 @@
 			if ( gsi ) { gsSet( gsi.getAttribute( 'data-gsx' ), e.target.value.trim() ); return; }
 			var pgi = e.target.closest( 'input[data-setpage]' );
 			if ( pgi ) { var pv2 = e.target.value.trim(); debounceCommit( fieldKey( e.target ), function () { setPageSetting( pgi.getAttribute( 'data-setpage' ), pv2 ); }, 250 ); return; }
+			var moi = e.target.closest( 'input[data-setmo]' );
+			if ( moi && 'checkbox' !== moi.type ) { var mov = e.target.value.trim(); debounceCommit( fieldKey( e.target ), function () { setMo( moi.getAttribute( 'data-setmo' ), mov ); }, 300 ); return; }
 			var aoi = e.target.closest( 'input[data-setaos]' );
 			if ( aoi ) { var av = e.target.value.trim(); debounceCommit( fieldKey( e.target ), function () { setAos( aoi.getAttribute( 'data-setaos' ), av ); }, 200 ); return; }
 			if ( e.target.hasAttribute( 'data-sethref' ) ) { var hv = e.target.value.trim(); debounceCommit( fieldKey( e.target ), function () { store.commit( function ( s ) { var n = findNode( s.tree, s.selection ); if ( n ) { n.href = hv; } }, T( 'Link' ) ); }, 300 ); return; }
@@ -7552,13 +7674,16 @@
 			if ( cpc ) { setCPropDef( cpc.getAttribute( 'data-cpropf' ), cpc.checked ); return; }
 			var cps = e.target.closest( '[data-cpropshow]' );
 			if ( cps ) { setCProp( cps.getAttribute( 'data-cpropshow' ), { hide:cps.checked ? '' : '1' } ); return; }
+			var mch = e.target.closest( '[data-setmo]' );
+			if ( mch && ( 'checkbox' === mch.type || 'SELECT' === mch.tagName ) ) { setMo( mch.getAttribute( 'data-setmo' ), 'checkbox' === mch.type ? ( mch.checked ? '1' : '' ) : mch.value ); return; }
 			var hch = e.target.closest( '[data-hdr]' );
 			if ( hch ) {
 				if ( 'checkbox' === hch.type ) { setPartField( hch.getAttribute( 'data-hdr' ), hch.checked ? '1' : '' ); }
 				else if ( 'SELECT' === hch.tagName ) { setPartField( hch.getAttribute( 'data-hdr' ), hch.value ); }
 				return;
 			}
-			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-hdrswatch' ) ) { setPartField( 'bg', e.target.value ); return; }
+			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-hdrswatch' ) ) { setPartField( e.target.getAttribute( 'data-hdrswatch' ) || 'bg', e.target.value ); return; }
+			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-hdrvis' ) ) { setHdrVis( e.target.value ); return; }
 			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-loopon' ) ) {
 				var lon = e.target.checked;
 				store.commit( function ( s ) {

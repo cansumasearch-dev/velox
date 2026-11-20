@@ -54,6 +54,7 @@
 	function fail( e ) { toast( e && e.message ? e.message : String( e ), true ); }
 
 	var IC = {
+		brush: '<path d="M14.5 3.5l6 6-8 8-6-6z"/><path d="M6.5 11.5 3 15c-1 1 0 3.5 2 5.5s4.5 3 5.5 2l3.5-3.5"/>',
 		home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/>',
 		bag:'<path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/>',
 		box:'<path d="m3 7 9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/>',
@@ -659,10 +660,116 @@
 		} ).catch( fail );
 	}
 
+	/* ============================================================== DESIGN
+	 * A template (complete set of choices) plus any choice on top; '' keeps
+	 * the template's value. A live preview draws the real grid as you choose. */
+	var DS_CLASSES = [
+		[ '.vxs-grid', 'product grid' ], [ '.vxs-card', 'one product' ], [ '.vxs-card-media', 'photo' ], [ '.vxs-card-body', 'text under the photo' ],
+		[ '.vxs-card-cat', 'category' ], [ '.vxs-card-t', 'product name' ], [ '.vxs-card-text', 'short description' ], [ '.vxs-price', 'price' ],
+		[ '.vxs-taxnote', 'incl. VAT note' ], [ '.vxs-btn', 'buttons' ], [ '.vxs-more-link', 'text link' ], [ '.vxs-badge', 'badge (New, Sale)' ],
+		[ '.vxs-cats', 'category buttons' ], [ '.vxs-product', 'product page' ], [ '.vxs-gallery', 'product photos' ], [ '.vxs-product-side', 'buy column' ],
+		[ '.vxs-buy-price', 'big price' ], [ '.vxs-chip', 'option chips' ], [ '.vxs-acc', 'fold-out details' ], [ '.vxs-cartpage', 'cart page' ],
+		[ '.vxs-checkout', 'checkout' ], [ '.vxs-co-card', 'checkout boxes' ], [ '.vxs-cartbtn', 'cart button' ], [ '.vxs-count', 'cart count' ], [ '.vxs-drawer-p', 'mini cart' ]
+	];
+	var DS_VARS = [ '--vxs-accent', '--vxs-ink', '--vxs-ink-2', '--vxs-ink-3', '--vxs-line', '--vxs-soft', '--vxs-surface', '--vxs-bg', '--vxs-r', '--vxs-r-sm', '--vxs-btn-r', '--vxs-gap', '--vxs-cols' ];
+	function dsMock( v ) {
+		var bg = v.bg || '#f4f4f5', ink = v.ink || '#3f3f46', soft = v.soft || '#e4e4e7', line = v.line || '#d4d4d8', sur = v.surface || '#ffffff', r = Math.min( +v.radius || 0, 10 );
+		var list = 'list' === v.layout;
+		var one = function () {
+			var media = 'tile' === v.card
+				? '<i style="background:linear-gradient(' + ink + ',' + ink + ') center/44% 50% no-repeat,' + soft + ';border-radius:' + ( r / 2 ) + 'px"></i>'
+				: '<i style="background:' + soft + ';border-radius:' + ( r / 2 ) + 'px"></i>';
+			var lines = '<em style="background:' + ink + '"></em><em style="background:' + ink + ';opacity:.4;width:42%"></em>';
+			var box = 'surface' === v.card ? 'background:' + sur + ';border:1px solid ' + line + ';border-radius:' + r + 'px;padding:4px;' : '';
+			return '<span class="vsa-mk-c' + ( 'center' === v.align ? ' is-c' : '' ) + ( 'overlay' === v.card ? ' is-ov' : '' ) + '" style="' + box + '">' + media + lines + '</span>';
+		};
+		return '<span class="vsa-mk' + ( list ? ' is-list' : '' ) + '" style="background:' + bg + '" aria-hidden="true">' + one() + one() + ( list ? '' : one() ) + '</span>';
+	}
+	function dsVal( k, d ) { var v = SD[ 'd_' + k ]; return ( v === undefined || v === null || '' === String( v ) ) ? '' : String( v ); }
+	function dsSeg( k, opts, tpl ) {
+		var t = tpl[ k ], name = ( opts.filter( function ( o ) { return String( o[ 0 ] ) === String( t ); } )[ 0 ] || [ 0, t ] )[ 1 ];
+		return seg( 'd_' + k, dsVal( k ), [ [ '', vxT( 'Template' ) + ( name ? ' · ' + name : '' ) ] ].concat( opts ) );
+	}
+	function dsColor( k, label, tpl ) {
+		var v = dsVal( k ), ph = tpl[ k ] || vxT( 'site colour' );
+		return field( label, '<div class="vsa-row"><input type="color" class="vsa-color" data-k="d_' + k + '" value="' + esc( /^#[0-9a-f]{6}$/i.test( v || tpl[ k ] || '' ) ? ( v || tpl[ k ] ) : '#ffffff' ) + '">' + inp( 'd_' + k, v, { cls:'vsa-mono vsa-in-sm', ph:ph } ) + '</div>' );
+	}
+	function dsBody( s ) {
+		var D = C.designs || {}, cur = D[ s.design ] ? s.design : 'velox', tpl = ( D[ cur ] || { v:{} } ).v;
+		var tiles = Object.keys( D ).map( function ( k ) {
+			return '<button type="button" class="vsa-tpl' + ( k === cur ? ' is-on' : '' ) + '" data-seg="design" data-v="' + esc( k ) + '" aria-pressed="' + ( k === cur ) + '">' + dsMock( D[ k ].v ) + '<b>' + esc( D[ k ].name ) + '</b><small>' + esc( D[ k ].desc ) + '</small></button>';
+		} ).join( '' );
+		var yn = [ [ '1', vxT( 'Show' ) ], [ '0', vxT( 'Hide' ) ] ];
+		setTimeout( dsPreviewSoon, 0 );
+		return card( vxT( 'Template' ), '<div class="vsa-tpls">' + tiles + '</div><p class="vsa-hint">' + vxT( 'A template sets every choice below. Change any of them on top — “Template” keeps its value.' ) + '</p>' ) +
+			card( vxT( 'Preview' ), '<div class="vsa-dprev"><iframe id="vsa-dprev" title="' + esc( vxT( 'Preview' ) ) + '"></iframe></div><p class="vsa-hint">' + vxT( 'Your real products, drawn with the choices on this page. Save to put them live.' ) + '</p>', { cls:'vsa-dprev-card', right:'<div class="vsa-seg vsa-dprev-dev">' + [ [ 1280, vxT( 'Desktop' ) ], [ 820, vxT( 'Tablet' ) ], [ 390, vxT( 'Phone' ) ] ].map( function ( o ) { return '<button type="button" data-act="dprev-dev" data-v="' + o[ 0 ] + '" class="' + ( dsDev === o[ 0 ] ? 'is-on' : '' ) + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div>' } ) +
+			card( vxT( 'Product grid' ),
+				field( vxT( 'Layout' ), dsSeg( 'layout', [ [ 'grid', vxT( 'Grid' ) ], [ 'masonry', vxT( 'Masonry' ) ], [ 'list', vxT( 'List' ) ], [ 'row', vxT( 'Scroll row' ) ] ], tpl ) ) +
+				'<div class="vsa-fr">' + field( vxT( 'Columns on desktop' ), sel( 'd_cols', dsVal( 'cols' ), [ [ '', vxT( 'Template' ) + ' · ' + tpl.cols ] ].concat( [ 1, 2, 3, 4, 5, 6 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ) ) ) ) +
+				field( vxT( 'on tablets' ), sel( 'd_cols_t', dsVal( 'cols_t' ), [ [ '', vxT( 'Template' ) + ' · ' + tpl.cols_t ] ].concat( [ 1, 2, 3, 4 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ) ) ) ) +
+				field( vxT( 'on phones' ), sel( 'd_cols_m', dsVal( 'cols_m' ), [ [ '', vxT( 'Template' ) + ' · ' + tpl.cols_m ], [ '1', '1' ], [ '2', '2' ] ] ) ) +
+				field( vxT( 'Space between' ), inp( 'd_gap', dsVal( 'gap' ), { ph:tpl.gap, suffix:'px', mode:'numeric' } ) ) + '</div>' +
+				field( vxT( 'Each product as' ), dsSeg( 'card', [ [ 'plain', vxT( 'Photo and text' ) ], [ 'surface', vxT( 'A card' ) ], [ 'tile', vxT( 'On a tile, uncropped' ) ], [ 'overlay', vxT( 'Text on the photo' ) ], [ 'split', vxT( 'Side by side' ) ] ], tpl ) ) +
+				'<div class="vsa-fr">' + field( vxT( 'Photo shape' ), seg( 'card_ratio', s.card_ratio || '', [ [ '', vxT( 'Automatic' ) ], [ '4/5', '4:5' ], [ '1/1', '1:1' ], [ '3/4', '3:4' ], [ 'natural', vxT( 'Their own shape' ) ] ] ) ) +
+				field( vxT( 'Photo in its frame' ), dsSeg( 'fit', [ [ 'cover', vxT( 'Fill' ) ], [ 'contain', vxT( 'Whole photo' ) ] ], tpl ) ) + '</div>' +
+				field( vxT( 'On hover' ), dsSeg( 'hover', [ [ 'swap', vxT( 'Second photo' ) ], [ 'zoom', vxT( 'Zoom' ) ], [ 'lift', vxT( 'Lift' ) ], [ 'none', vxT( 'Nothing' ) ] ], tpl ) ) +
+				'<div class="vsa-fr">' + field( vxT( 'Text' ), dsSeg( 'align', [ [ 'left', vxT( 'Left' ) ], [ 'center', vxT( 'Centred' ) ] ], tpl ) ) +
+				field( vxT( 'Category above the name' ), dsSeg( 'show_cat', yn, tpl ) ) + field( vxT( 'Short description' ), dsSeg( 'show_text', yn, tpl ) ) + '</div>' +
+				field( vxT( 'Buy button' ), dsSeg( 'button', [ [ 'button', vxT( 'Button' ) ], [ 'icon', vxT( 'Icon' ) ], [ 'link', vxT( 'Text link' ) ], [ 'none', vxT( 'None — the card links' ) ] ], tpl ) ) ) +
+			card( vxT( 'Buttons & colours' ),
+				'<div class="vsa-fr">' + field( vxT( 'Button shape' ), dsSeg( 'btn_shape', [ [ 'pill', vxT( 'Pill' ) ], [ 'rounded', vxT( 'Rounded' ) ], [ 'square', vxT( 'Square' ) ] ], tpl ) ) +
+				field( vxT( 'Buttons in the grid' ), dsSeg( 'btn_style', [ [ 'solid', vxT( 'Filled' ) ], [ 'outline', vxT( 'Outline' ) ] ], tpl ) ) +
+				field( vxT( 'Corner radius' ), inp( 'd_radius', dsVal( 'radius' ), { ph:tpl.radius, suffix:'px', mode:'numeric' } ) ) + '</div>' +
+				'<div class="vsa-fr">' + field( vxT( 'Accent colour' ), '<div class="vsa-row"><input type="color" class="vsa-color" data-k="accent" value="' + esc( s.accent ) + '">' + inp( 'accent', s.accent, { cls:'vsa-mono vsa-in-sm' } ) + '</div>' ) +
+				dsColor( 'ink', vxT( 'Text' ), tpl ) + dsColor( 'bg', vxT( 'Background' ), tpl ) + '</div>' +
+				'<div class="vsa-fr">' + dsColor( 'surface', vxT( 'Cards' ), tpl ) + dsColor( 'soft', vxT( 'Soft areas' ), tpl ) + dsColor( 'line', vxT( 'Lines' ), tpl ) + '</div>' ) +
+			card( vxT( 'Product page' ),
+				field( vxT( 'Layout' ), dsSeg( 'product', [ [ 'split', vxT( 'Photos left' ) ], [ 'split-reverse', vxT( 'Photos right' ) ], [ 'wide', vxT( 'Big photos' ) ], [ 'stacked', vxT( 'Photos on top' ) ] ], tpl ) ) +
+				field( vxT( 'Photos' ), dsSeg( 'gallery', [ [ 'below', vxT( 'Thumbnails below' ) ], [ 'side', vxT( 'Thumbnails at the side' ) ], [ 'stack', vxT( 'All stacked' ) ], [ 'grid', vxT( 'Photo grid' ) ] ], tpl ) ) +
+				'<div class="vsa-fr">' + field( vxT( 'While scrolling' ), dsSeg( 'sticky', [ [ '1', vxT( 'Stays in view' ) ], [ '0', vxT( 'Scrolls along' ) ] ], tpl ) ) +
+				field( vxT( 'Details' ), dsSeg( 'details', [ [ 'sections', vxT( 'All open' ) ], [ 'accordion', vxT( 'Fold out' ) ] ], tpl ) ) + '</div>' ) +
+			card( vxT( 'Cart & checkout' ),
+				'<div class="vsa-fr">' + field( vxT( 'Checkout' ), dsSeg( 'checkout', [ [ 'two', vxT( 'Two columns' ) ], [ 'one', vxT( 'One column' ) ] ], tpl ) ) +
+				field( vxT( 'Cart icon' ), dsSeg( 'cart_icon', [ [ 'bag', vxT( 'Bag' ) ], [ 'cart', vxT( 'Cart' ) ], [ 'basket', vxT( 'Basket' ) ] ], tpl ) ) + '</div>' +
+				'<div class="vsa-fr">' + field( vxT( 'Items in the cart' ), dsSeg( 'cart_count', [ [ 'badge', vxT( 'Number on the icon' ) ], [ 'dot', vxT( 'A dot' ) ], [ 'inline', vxT( 'Number next to it' ) ] ], tpl ) ) +
+				field( vxT( 'Cart total next to the icon' ), dsSeg( 'cart_total', yn, tpl ) ) + '</div>' ) +
+			card( vxT( 'Your own CSS' ),
+				field( '', area( 'custom_css', s.custom_css || '', 10, '.vxs-card-t {\n\tfont-family: Georgia, serif;\n}' ).replace( 'class="vsa-in"', 'class="vsa-in vsa-mono vsa-css"' ), vxT( 'Loaded after the shop’s own styles, on every page with shop parts. The same classes can be styled in Velox Builder too.' ) ) +
+				'<details class="vsa-ref"><summary>' + vxT( 'Every part you can style' ) + '</summary><div class="vsa-ref-g">' +
+				DS_CLASSES.map( function ( c ) { return '<button type="button" class="vsa-ref-i" data-act="css-ins" data-v="' + esc( c[ 0 ] ) + '"><code>' + esc( c[ 0 ] ) + '</code><span>' + esc( vxT( c[ 1 ] ) ) + '</span></button>'; } ).join( '' ) +
+				'</div><p class="vsa-hint">' + vxT( 'Variables for colours and sizes:' ) + ' ' + DS_VARS.map( function ( v ) { return '<code>' + v + '</code>'; } ).join( ' ' ) + '</p></details>' );
+	}
+	var dsTimer = 0, dsSeq = 0, dsDev = 1280;
+	// The preview renders at a real device width and is scaled down to fit.
+	function dsFit() {
+		var f = document.getElementById( 'vsa-dprev' ); if ( ! f ) { return; }
+		var box = f.parentNode, w = box.clientWidth, h = box.clientHeight, sc = Math.min( 1, w / dsDev );
+		f.style.width = dsDev + 'px';
+		f.style.height = Math.round( h / sc ) + 'px';
+		f.style.transform = 'scale(' + sc + ')';
+		f.style.left = Math.max( 0, Math.round( ( w - dsDev * sc ) / 2 ) ) + 'px';
+	}
+	window.addEventListener( 'resize', dsFit );
+	function dsPreviewSoon() {
+		clearTimeout( dsTimer );
+		dsTimer = setTimeout( function () {
+			var f = document.getElementById( 'vsa-dprev' ); if ( ! f || ! SD ) { return; }
+			var pick = { design:SD.design, card_ratio:SD.card_ratio, accent:SD.accent, custom_css:SD.custom_css };
+			Object.keys( SD ).forEach( function ( k ) { if ( /^d_/.test( k ) ) { pick[ k ] = SD[ k ]; } } );
+			var n = ++dsSeq;
+			f.parentNode.classList.add( 'is-busy' );
+			api( 'design_preview', { settings:pick } ).then( function ( r ) {
+				if ( n !== dsSeq ) { return; }
+				var fr = document.getElementById( 'vsa-dprev' ); if ( ! fr ) { return; }
+				fr.srcdoc = r.html; fr.parentNode.classList.remove( 'is-busy' ); dsFit();
+			} ).catch( function () { var fr = document.getElementById( 'vsa-dprev' ); if ( fr ) { fr.parentNode.classList.remove( 'is-busy' ); } } );
+		}, 350 );
+	}
+
 	/* ============================================================ SETTINGS */
 
 	var SECTIONS = [
-		[ 'store', 'store', vxT( 'Store' ) ], [ 'taxes', 'receipt', vxT( 'Taxes' ) ], [ 'shipping', 'truck', vxT( 'Shipping' ) ], [ 'payments', 'card', vxT( 'Payments' ) ],
+		[ 'store', 'store', vxT( 'Store' ) ], [ 'design', 'brush', vxT( 'Design' ) ], [ 'taxes', 'receipt', vxT( 'Taxes' ) ], [ 'shipping', 'truck', vxT( 'Shipping' ) ], [ 'payments', 'card', vxT( 'Payments' ) ],
 		[ 'checkout', 'bag', vxT( 'Checkout' ) ], [ 'emails', 'mail', vxT( 'Emails' ) ], [ 'pages', 'scale', vxT( 'Pages & legal' ) ], [ 'stock', 'box', vxT( 'Stock & products' ) ]
 	];
 	var SD = null, SDclean = '';
@@ -673,7 +780,7 @@
 			'<div class="vsa-savebar" id="vsa-savebar"><span class="vsa-savebar-t">' + ic( 'clock', 14 ) + vxT( 'Unsaved changes' ) + '</span><button type="button" class="vsa-btn vsa-btn-ghost" data-act="s-reset">' + vxT( 'Discard' ) + '</button><button type="button" class="vsa-btn vsa-btn-pri" data-act="s-save">' + ic( 'check', 15 ) + vxT( 'Save' ) + '</button></div>';
 		main().innerHTML = h;
 	}
-	function sdirty() { dirty = JSON.stringify( SD ) !== SDclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); } }
+	function sdirty() { dirty = JSON.stringify( SD ) !== SDclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); } if ( 'design' === route.id ) { dsPreviewSoon(); } }
 	function redrawSettings() { var b = document.getElementById( 'vsa-setb' ); if ( b ) { b.innerHTML = settingsBody( route.id || 'store' ); } sdirty(); }
 	function pageSel( k, label, hint ) {
 		var opts = [ [ '0', '— ' + vxT( 'none' ) + ' —' ] ].concat( ( C.pages || [] ).map( function ( p ) { return [ String( p.id ), p.title ]; } ) );
@@ -691,8 +798,10 @@
 					field( vxT( 'Country of your business' ), sel( 'store_country', s.store_country, cs ) ) ) +
 					card( vxT( 'Look' ), '<div class="vsa-fr">' + field( vxT( 'Logo for emails and invoices' ), '<div class="vsa-logo">' + ( s.logo_url ? '<img src="' + esc( s.logo_url ) + '" alt="">' : '' ) + '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="s-logo">' + ( s.logo_url ? vxT( 'Change' ) : vxT( 'Choose' ) ) + '</button>' + ( s.logo_url ? '<button type="button" class="vsa-link" data-act="s-logo-x">' + vxT( 'Remove' ) + '</button>' : '' ) + '</div>' ) +
 					field( vxT( 'Accent colour' ), '<div class="vsa-row"><input type="color" class="vsa-color" data-k="accent" value="' + esc( s.accent ) + '">' + inp( 'accent', s.accent, { cls:'vsa-mono vsa-in-sm' } ) + '</div>', vxT( 'Buttons in the shop and in emails.' ) ) + '</div>' +
-					field( vxT( 'Product photos in the grid' ), seg( 'card_ratio', s.card_ratio || '', [ [ '', vxT( 'Automatic' ) ], [ '4/5', vxT( 'Portrait 4:5' ) ], [ '1/1', vxT( 'Square' ) ], [ 'natural', vxT( 'Their own shape' ) ] ] ), vxT( 'Cropped photos line up evenly; “their own shape” never cuts anything off (best for art).' ) ) ) +
+					'<p class="vsa-hint">' + vxT( 'Layout, photo shapes and colours of the storefront are under Design.' ) + ' <a href="#/settings/design">' + vxT( 'Open Design' ) + '</a></p>' ) +
 					card( vxT( 'Money' ), '<div class="vsa-fr">' + field( vxT( 'Currency' ), sel( 'currency', s.currency, [ [ 'EUR', 'Euro (EUR)' ], [ 'CHF', 'Franken (CHF)' ], [ 'GBP', 'Pound (GBP)' ], [ 'USD', 'Dollar (USD)' ] ] ) ) + field( vxT( 'Symbol' ), inp( 'symbol', s.symbol, { cls:'vsa-in-sm' } ) ) + field( vxT( 'Position' ), sel( 'symbol_pos', s.symbol_pos, [ [ 'right', '49,90 ' + s.symbol ], [ 'left', s.symbol + ' 49,90' ] ] ) ) + '</div>' );
+			case 'design':
+				return dsBody( s );
 			case 'taxes':
 				return card( vxT( 'VAT' ), seg( 'tax_mode', s.tax_mode, [ [ 'standard', vxT( 'Prices include VAT' ), 'receipt' ], [ 'small', vxT( 'Small business — no VAT' ), 'shield' ] ] ) +
 					( 'standard' === s.tax_mode
@@ -772,6 +881,8 @@
 		var a = t.closest( '[data-act]' );
 		var act = a && a.getAttribute( 'data-act' );
 		if ( 'menu' === act ) { var mp = a.parentNode.querySelector( '.vsa-menu-p' ); mp.hidden = ! mp.hidden; return; }
+		if ( 'dprev-dev' === act ) { dsDev = +a.getAttribute( 'data-v' ); [].forEach.call( main().querySelectorAll( '[data-act="dprev-dev"]' ), function ( b ) { b.classList.toggle( 'is-on', b === a ); } ); dsFit(); return; }
+		if ( 'css-ins' === act ) { var ta = main().querySelector( '[data-k="custom_css"]' ); if ( ta ) { var add = ( ta.value && ! /\n$/.test( ta.value ) ? '\n' : '' ) + a.getAttribute( 'data-v' ) + ' {\n\t\n}\n'; ta.value += add; SD.custom_css = ta.value; ta.focus(); ta.setSelectionRange( ta.value.length - 3, ta.value.length - 3 ); sdirty(); } return; }
 		/* wizard */
 		if ( 'w-next' === act ) { W.step++; setup(); return; }
 		if ( 'w-back' === act ) { W.step--; setup(); return; }
@@ -925,7 +1036,7 @@
 			var sk = t.getAttribute( 'data-k' );
 			if ( sk ) {
 				if ( 'checkbox' === t.type ) { SD[ sk ] = t.checked ? '1' : ''; if ( /^pay_|^pickup$|^auto_layout$/.test( sk ) ) { redrawSettings(); return; } }
-				else { SD[ sk ] = /^page_/.test( sk ) ? +t.value : t.value; if ( 'accent' === sk ) { [].forEach.call( main().querySelectorAll( '[data-k="accent"]' ), function ( x ) { if ( x !== t ) { x.value = t.value; } } ); } }
+				else { SD[ sk ] = /^page_/.test( sk ) ? +t.value : t.value; if ( 'accent' === sk || /^d_(ink|surface|line|soft|bg)$/.test( sk ) ) { [].forEach.call( main().querySelectorAll( '[data-k="' + sk + '"]' ), function ( x ) { if ( x !== t && ( 'color' !== x.type || /^#[0-9a-f]{6}$/i.test( t.value ) ) ) { x.value = t.value; } } ); } }
 				if ( /^page_/.test( sk ) ) { redrawSettings(); return; }
 				sdirty(); return;
 			}

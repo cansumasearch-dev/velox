@@ -794,7 +794,60 @@
 			if ( ! navs[ i ].contains( e.target ) ) { closeSubmenus( navs[ i ] ); }
 		}
 	} );
+	/* Off-canvas mobile menu: the panel lives in <body>; on small screens the
+	 * nav's own link list moves into it, so there is one set of links. */
+	var ocNavs = [];
+	function ocSetup( root ) {
+		if ( root.__vxOc ) { return root.__vxOc; }
+		var oc = d.getElementById( root.id + '-oc' );
+		if ( ! oc ) { return null; }
+		root.__vxOc = oc;
+		oc.__vxNav = root;
+		d.body.appendChild( oc );
+		oc.hidden = false;
+		ocNavs.push( root );
+		return oc;
+	}
+	function ocFocusables( oc ) {
+		return Array.prototype.filter.call( oc.querySelectorAll( 'a[href],button:not([disabled]),input,select,textarea,[tabindex]:not([tabindex="-1"])' ), function ( x ) { return x.offsetParent !== null || x === d.activeElement; } );
+	}
+	function ocToggle( root, open, focusBack ) {
+		var oc = root.__vxOc;
+		if ( ! oc || oc.classList.contains( 'is-open' ) === open ) { return; }
+		var btn = root.querySelector( '.vx-burger' );
+		oc.classList.toggle( 'is-open', open );
+		root.classList.toggle( 'is-open', open );
+		d.documentElement.classList.toggle( 'vx-lock', open );
+		if ( btn ) { btn.setAttribute( 'aria-expanded', open ? 'true' : 'false' ); }
+		var list = oc.querySelectorAll( '.vx-nav-item' );
+		for ( var i = 0; i < list.length; i++ ) { list[ i ].style.setProperty( '--i', i ); }
+		if ( open ) {
+			setTimeout( function () { var f = ocFocusables( oc ); ( f[ 1 ] || f[ 0 ] || oc.querySelector( '.vx-oc-panel' ) ).focus(); }, 60 );
+		} else if ( focusBack && btn ) {
+			btn.focus();
+		}
+	}
+	on( 'click', '[data-vx-oc-close]', function ( e, x ) {
+		var oc = x.closest( '.vx-oc' );
+		if ( oc && oc.__vxNav ) { ocToggle( oc.__vxNav, false, true ); }
+	} );
+	on( 'click', '.vx-oc a[href]', function ( e, a ) {
+		var oc = a.closest( '.vx-oc' );
+		if ( oc && oc.__vxNav ) { ocToggle( oc.__vxNav, false, false ); }
+	} );
+	d.addEventListener( 'keydown', function ( e ) {
+		if ( 'Tab' !== e.key ) { return; }
+		var oc = d.querySelector( '.vx-oc.is-open' );
+		if ( ! oc ) { return; }
+		// Keep the keyboard inside the open panel.
+		var f = ocFocusables( oc );
+		if ( ! f.length ) { return; }
+		if ( e.shiftKey && ( d.activeElement === f[ 0 ] || ! oc.contains( d.activeElement ) ) ) { e.preventDefault(); f[ f.length - 1 ].focus(); }
+		else if ( ! e.shiftKey && d.activeElement === f[ f.length - 1 ] ) { e.preventDefault(); f[ 0 ].focus(); }
+	} );
+
 	function closeBurger( root, focus ) {
+		if ( root.__vxOc ) { ocToggle( root, false, focus ); return; }
 		root.classList.remove( 'is-open' );
 		var b = root.querySelector( '.vx-burger' );
 		var list = root.querySelector( '.vx-nav-list' );
@@ -803,6 +856,8 @@
 	}
 	d.addEventListener( 'keydown', function ( e ) {
 		if ( 'Escape' !== e.key ) { return; }
+		var openOc = d.querySelector( '.vx-oc.is-open' );
+		if ( openOc && openOc.__vxNav ) { ocToggle( openOc.__vxNav, false, true ); return; }
 		var open = d.querySelector( '.vx-sub-btn[aria-expanded="true"]' );
 		if ( open ) {
 			toggleSubmenu( open, false );
@@ -815,7 +870,7 @@
 	d.addEventListener( 'click', function ( e ) {
 		var navs = d.querySelectorAll( '.vx-nav' );
 		for ( var i = 0; i < navs.length; i++ ) {
-			if ( ! navs[ i ].contains( e.target ) ) {
+			if ( ! navs[ i ].contains( e.target ) && ! ( navs[ i ].__vxOc && navs[ i ].__vxOc.contains( e.target ) ) ) {
 				closeSubmenus( navs[ i ] );
 				if ( navs[ i ].classList.contains( 'is-open' ) ) { closeBurger( navs[ i ], false ); }
 			}
@@ -828,19 +883,32 @@
 	function syncNav() {
 		var navs = d.querySelectorAll( '.vx-nav[data-vx-bp]' );
 		for ( var i = 0; i < navs.length; i++ ) {
-			var bp = num( navs[ i ], 'data-vx-bp', 991 );
+			var root = navs[ i ];
+			var bp = num( root, 'data-vx-bp', 991 );
 			var mobile = window.innerWidth <= bp;
-			navs[ i ].classList.toggle( 'is-mobile', mobile );
-			var burger = navs[ i ].querySelector( '.vx-burger' );
-			var list = navs[ i ].querySelector( '.vx-nav-list' );
+			root.classList.toggle( 'is-mobile', mobile );
+			var burger = root.querySelector( '.vx-burger' );
+			var list = root.__vxList || ( root.__vxList = root.querySelector( '.vx-nav-list' ) );
 			if ( burger ) { burger.hidden = ! mobile; }
+			if ( root.classList.contains( 'vx-nav-oc' ) ) {
+				var oc = ocSetup( root );
+				var slot = oc && oc.querySelector( '.vx-oc-slot' );
+				if ( list ) { list.hidden = false; }
+				if ( mobile && slot && list && list.parentNode !== slot ) { slot.appendChild( list ); }
+				if ( ! mobile && list && list.parentNode !== root ) {
+					ocToggle( root, false, false );
+					root.insertBefore( list, oc && oc.parentNode === root ? oc : null );
+				}
+				continue;
+			}
 			if ( list && ! mobile ) { list.hidden = false; }
-			if ( list && mobile && ! navs[ i ].classList.contains( 'is-open' ) ) { list.hidden = true; }
+			if ( list && mobile && ! root.classList.contains( 'is-open' ) ) { list.hidden = true; }
 		}
 	}
 	on( 'click', '.vx-burger', function ( e, btn ) {
 		var root = btn.closest( '.vx-nav' );
 		if ( ! root ) { return; }
+		if ( root.__vxOc ) { ocToggle( root, ! root.__vxOc.classList.contains( 'is-open' ), true ); return; }
 		var open = ! root.classList.contains( 'is-open' );
 		root.classList.toggle( 'is-open', open );
 		btn.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
@@ -850,28 +918,112 @@
 	window.addEventListener( 'resize', syncNav );
 	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', syncNav ); } else { syncNav(); }
 
-	/* Sticky header: shrink and/or hide as the page scrolls. */
+	/* Site header: state classes as the page scrolls.
+	 *  is-stuck  past the scroll distance (scrolled look)
+	 *  is-fixed  "appear after scrolling": the header leaves the flow and animates in
+	 *  is-hidden hide on scroll down, show on scroll up
+	 *  is-over   transparent over the first section (overlay active at this width)
+	 * Plus a scroll progress line, and scroll-padding-top so anchor links are
+	 * never hidden under a sticky header. Navbars with "sticks" use the same. */
 	function initSticky() {
-		var els = d.querySelectorAll( '[data-vx-sticky]' );
-		if ( ! els.length ) { return; }
-		var last = window.scrollY;
-		var upd = function () {
-			var y = window.scrollY;
-			for ( var i = 0; i < els.length; i++ ) {
-				var el = els[ i ];
-				var after = num( el, 'data-vx-shrink-at', 60 );
-				el.classList.toggle( 'is-stuck', y > after );
-				if ( el.hasAttribute( 'data-vx-hide-down' ) ) {
-					// Never hide while focus is inside — that would trap a keyboard
-					// user in an element they cannot see.
-					var safe = ! el.contains( d.activeElement );
-					el.classList.toggle( 'is-hidden', safe && y > last && y > after * 2 );
+		var els = d.querySelectorAll( '[data-vx-sticky],[data-vx-header]' );
+		var rings = d.querySelectorAll( '[data-vx-ring]' );
+		var html = d.documentElement;
+		if ( els.length || rings.length ) {
+			var last = window.scrollY, dirY = window.scrollY, ticking = false;
+			Array.prototype.forEach.call( els, function ( el ) {
+				if ( el.hasAttribute( 'data-vx-progress' ) && ! el.querySelector( ':scope > .vx-hdr-progress' ) ) {
+					var bar = d.createElement( 'span' );
+					bar.className = 'vx-hdr-progress';
+					bar.setAttribute( 'aria-hidden', 'true' );
+					if ( 'static' === getComputedStyle( el ).position ) { el.style.position = 'relative'; }
+					el.appendChild( bar );
 				}
-			}
-			last = y;
+			} );
+			var upd = function () {
+				ticking = false;
+				var y = window.scrollY, w = window.innerWidth;
+				// A small buffer: tiny scroll wiggles must not make the header jump.
+				var down = y > dirY + 6, up = y < dirY - 6;
+				if ( down || up ) { dirY = y; }
+				var max = Math.max( 1, html.scrollHeight - window.innerHeight ), pad = 0;
+				for ( var i = 0; i < els.length; i++ ) {
+					var el = els[ i ];
+					var on = el.hasAttribute( 'data-vx-sticky' ) && w >= num( el, 'data-vx-sticky-min', 0 );
+					var after = num( el, 'data-vx-shrink-at', 60 );
+					var stuck = on && y > after;
+					if ( el.hasAttribute( 'data-vx-appear' ) ) {
+						if ( stuck && ! el.classList.contains( 'is-fixed' ) ) {
+							// Hold its place so the page does not jump when it leaves the flow.
+							var sp = el.__vxSpacer || ( el.__vxSpacer = d.createElement( 'div' ) );
+							sp.className = 'vx-hdr-spacer';
+							sp.style.height = el.offsetHeight + 'px';
+							if ( ! sp.parentNode && ! el.hasAttribute( 'data-vx-over' ) ) { el.parentNode.insertBefore( sp, el ); }
+						} else if ( ! stuck && el.__vxSpacer && el.__vxSpacer.parentNode ) {
+							el.__vxSpacer.parentNode.removeChild( el.__vxSpacer );
+						}
+						el.classList.toggle( 'is-fixed', stuck );
+					}
+					el.classList.toggle( 'is-stuck', stuck );
+					var overMin = el.getAttribute( 'data-vx-over' );
+					el.classList.toggle( 'is-over', null !== overMin && w >= ( parseInt( overMin, 10 ) || 0 ) && ! stuck );
+					if ( on && el.hasAttribute( 'data-vx-hide-down' ) ) {
+						// Never hide while focus is inside — that would trap a keyboard
+						// user in an element they cannot see.
+						var safe = ! el.contains( d.activeElement ) && ! html.classList.contains( 'vx-lock' );
+						if ( down && y > after * 2 && safe ) { el.classList.add( 'is-hidden' ); }
+						else if ( up || ! safe || y <= after ) { el.classList.remove( 'is-hidden' ); }
+					}
+					if ( el.hasAttribute( 'data-vx-progress' ) ) { el.style.setProperty( '--vx-p', ( y / max ).toFixed( 4 ) ); }
+					if ( on && ! el.classList.contains( 'is-hidden' ) ) { pad = Math.max( pad, el.offsetHeight ); }
+				}
+				html.style.scrollPaddingTop = pad ? ( pad + 12 ) + 'px' : '';
+				for ( var r = 0; r < rings.length; r++ ) { rings[ r ].style.setProperty( '--vx-p', ( y / max ).toFixed( 4 ) ); }
+				last = y;
+			};
+			var req = function () { if ( ! ticking ) { ticking = true; window.requestAnimationFrame( upd ); } };
+			window.addEventListener( 'scroll', req, { passive: true } );
+			window.addEventListener( 'resize', req, { passive: true } );
+			upd();
+		}
+		initReveal();
+	}
+
+	/* Reveal footer: the footer waits behind the content and shows as the page
+	 * ends. Off when it is taller than the screen, for reduced motion, and on
+	 * pages where the content above it is shorter than the screen. */
+	function initReveal() {
+		var f = d.querySelector( '[data-vx-reveal]' );
+		if ( ! f ) { return; }
+		var html = d.documentElement, body = d.body;
+		var top = f;
+		while ( top.parentElement && top.parentElement !== body ) { top = top.parentElement; }
+		var covers = Array.prototype.filter.call( body.children, function ( c ) {
+			return c !== top && ! /^(SCRIPT|STYLE|LINK|TEMPLATE)$/.test( c.tagName ) && 'vxa11y' !== c.id && ! c.classList.contains( 'vx-oc' );
+		} );
+		var bg = getComputedStyle( body ).backgroundColor;
+		if ( bg && 'rgba(0, 0, 0, 0)' !== bg && 'transparent' !== bg ) { html.style.setProperty( '--vx-page-bg', bg ); }
+		var fit = function () {
+			html.classList.remove( 'vx-reveal-on' );
+			body.style.paddingBottom = '';
+			covers.forEach( function ( c ) { c.classList.remove( 'vx-reveal-cover' ); c.style.zIndex = ''; } );
+			var h = f.offsetHeight;
+			var ok = h < window.innerHeight * 0.9 && body.scrollHeight - h > window.innerHeight
+				&& ! ( window.matchMedia && window.matchMedia( '(prefers-reduced-motion: reduce)' ).matches );
+			if ( ! ok ) { return; }
+			covers.forEach( function ( c ) {
+				c.classList.add( 'vx-reveal-cover' );
+				// The box holding the site header must stay above the content that follows it.
+				if ( c.querySelector( '[data-vx-header]' ) || c.hasAttribute( 'data-vx-header' ) ) { c.style.zIndex = '1000'; }
+			} );
+			html.classList.add( 'vx-reveal-on' );
+			body.style.paddingBottom = h + 'px';
 		};
-		window.addEventListener( 'scroll', upd, { passive: true } );
-		upd();
+		fit();
+		window.addEventListener( 'resize', fit, { passive: true } );
+		window.addEventListener( 'load', fit );
+		// A keyboard user tabbing into the footer must be able to see it.
+		f.addEventListener( 'focusin', function () { window.scrollTo( 0, html.scrollHeight ); } );
 	}
 	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', initSticky ); } else { initSticky(); }
 

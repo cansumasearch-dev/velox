@@ -195,6 +195,13 @@ class Velox_Shop {
 			'withdraw_days'   => '14',
 			'setup_done'      => '',
 			'card_ratio'      => '', // '' = 4/5 (or the photos' own shape in shops from before 4.53) | 4/5 | 1/1 | natural
+			// Design: a template plus any choice on top ('' = the template's value). See design().
+			'design'          => 'velox',
+			'd_layout' => '', 'd_cols' => '', 'd_cols_t' => '', 'd_cols_m' => '', 'd_gap' => '', 'd_card' => '', 'd_fit' => '', 'd_hover' => '', 'd_align' => '',
+			'd_button' => '', 'd_btn_shape' => '', 'd_btn_style' => '', 'd_radius' => '', 'd_ink' => '', 'd_surface' => '', 'd_line' => '', 'd_soft' => '', 'd_bg' => '',
+			'd_show_cat' => '', 'd_show_text' => '', 'd_product' => '', 'd_gallery' => '', 'd_sticky' => '', 'd_details' => '', 'd_checkout' => '',
+			'd_cart_icon' => '', 'd_cart_count' => '', 'd_cart_total' => '',
+			'custom_css'      => '', // the shop's own CSS, printed after the shop stylesheet
 		);
 	}
 
@@ -217,6 +224,16 @@ class Velox_Shop {
 	public static function get( $key, $fallback = '' ) {
 		$s = self::settings();
 		return array_key_exists( $key, $s ) ? $s[ $key ] : $fallback;
+	}
+
+	/** Use these values for the rest of this request only (the design preview). */
+	public static function override( $vals ) {
+		self::settings();
+		foreach ( (array) $vals as $k => $v ) {
+			if ( array_key_exists( $k, self::$settings ) ) {
+				self::$settings[ $k ] = $v;
+			}
+		}
 	}
 
 	/** Save some settings (already cleaned by the caller). */
@@ -243,6 +260,137 @@ class Velox_Shop {
 		$types   = (array) $types;
 		$types[] = self::PRODUCT;
 		return $types;
+	}
+
+	/* ------------------------------------------------------------- design */
+
+	/** Settings keys the design system reads ('' = take the template's value). */
+	const DESIGN_KEYS = array( 'layout', 'cols', 'cols_t', 'cols_m', 'gap', 'card', 'fit', 'hover', 'align', 'button', 'btn_shape', 'btn_style', 'radius', 'ink', 'surface', 'line', 'soft', 'bg', 'show_cat', 'show_text', 'product', 'gallery', 'sticky', 'details', 'checkout', 'cart_icon', 'cart_count', 'cart_total' );
+
+	/**
+	 * Ready-made shop designs. Each one is a complete set of structure and
+	 * colour choices; every choice can be changed on top in Settings → Design.
+	 * "own" is a neutral base that inherits the site's colours and fonts, for
+	 * styling everything yourself (the vxs-* classes and --vxs-* variables).
+	 */
+	public static function presets() {
+		$base = array(
+			'layout' => 'grid', 'cols' => '3', 'cols_t' => '2', 'cols_m' => '2', 'gap' => '28',
+			'card' => 'plain', 'fit' => 'cover', 'hover' => 'swap', 'align' => 'left', 'button' => 'button',
+			'btn_shape' => 'pill', 'btn_style' => 'solid', 'radius' => '12',
+			'ink' => '#111827', 'surface' => '#ffffff', 'line' => '#e5e7eb', 'soft' => '#f5f6f8', 'bg' => '#ffffff',
+			'show_cat' => '0', 'show_text' => '0',
+			'product' => 'split', 'gallery' => 'below', 'sticky' => '1', 'details' => 'sections',
+			'checkout' => 'two', 'cart_icon' => 'bag', 'cart_count' => 'badge', 'cart_total' => '0',
+		);
+		return array(
+			'velox'     => array( 'name' => __( 'Velox', 'velox' ), 'desc' => __( 'Clean and calm: photos in front, a clear button under each product.', 'velox' ), 'v' => $base ),
+			'gallery'   => array( 'name' => __( 'Gallery', 'velox' ), 'desc' => __( 'For art and objects: every work uncropped on a quiet tile, like on a museum wall.', 'velox' ), 'v' => array_merge( $base, array(
+				'cols_m' => '1', 'gap' => '40', 'card' => 'tile', 'fit' => 'contain', 'hover' => 'lift', 'button' => 'link', 'btn_style' => 'outline', 'radius' => '4',
+				'ink' => '#17140f', 'line' => '#e7e1d7', 'soft' => '#efe9df', 'bg' => '#faf8f4', 'surface' => '#faf8f4', 'show_cat' => '1', 'product' => 'wide', 'gallery' => 'stack', 'details' => 'accordion',
+			) ) ),
+			'boutique'  => array( 'name' => __( 'Boutique', 'velox' ), 'desc' => __( 'Soft cards with centred text and small details — fashion, cosmetics, gifts.', 'velox' ), 'v' => array_merge( $base, array(
+				'cols' => '4', 'gap' => '20', 'card' => 'surface', 'hover' => 'lift', 'align' => 'center', 'btn_shape' => 'rounded', 'btn_style' => 'outline', 'radius' => '18',
+				'ink' => '#1c1917', 'line' => '#ece7e2', 'soft' => '#f7f3ef', 'show_cat' => '1', 'gallery' => 'side', 'details' => 'accordion',
+			) ) ),
+			'minimal'   => array( 'name' => __( 'Minimal', 'velox' ), 'desc' => __( 'Sharp edges, lots of air, text links instead of buttons.', 'velox' ), 'v' => array_merge( $base, array(
+				'gap' => '48', 'hover' => 'zoom', 'button' => 'link', 'btn_shape' => 'square', 'btn_style' => 'outline', 'radius' => '0',
+				'ink' => '#0a0a0a', 'line' => '#e5e5e5', 'soft' => '#f4f4f4', 'gallery' => 'grid', 'sticky' => '0', 'checkout' => 'one', 'cart_count' => 'inline', 'cart_total' => '1',
+			) ) ),
+			'editorial' => array( 'name' => __( 'Editorial', 'velox' ), 'desc' => __( 'Big rows like a magazine: image on one side, the story on the other.', 'velox' ), 'v' => array_merge( $base, array(
+				'layout' => 'list', 'cols' => '1', 'cols_t' => '1', 'cols_m' => '1', 'gap' => '56', 'card' => 'split', 'hover' => 'zoom', 'radius' => '6',
+				'show_cat' => '1', 'show_text' => '1', 'product' => 'wide', 'gallery' => 'stack',
+			) ) ),
+			'night'     => array( 'name' => __( 'Night', 'velox' ), 'desc' => __( 'Dark and rich — products glow on deep surfaces.', 'velox' ), 'v' => array_merge( $base, array(
+				'cols_m' => '1', 'gap' => '22', 'card' => 'surface', 'hover' => 'lift', 'radius' => '16',
+				'ink' => '#f5f5f4', 'surface' => '#171717', 'line' => '#2a2a2a', 'soft' => '#1f1f1f', 'bg' => '#0e0e0e',
+			) ) ),
+			'own'       => array( 'name' => __( 'Your own design', 'velox' ), 'desc' => __( 'A neutral base that takes your site’s colours and fonts. Style everything yourself — with the choices below, your own CSS or Velox Builder.', 'velox' ), 'v' => array_merge( $base, array(
+				'card' => 'plain', 'hover' => 'none', 'radius' => '0', 'btn_shape' => 'square', 'ink' => '', 'surface' => '', 'line' => '', 'soft' => '', 'bg' => '',
+			) ) ),
+		);
+	}
+
+	/**
+	 * The design in effect: the template's values with every choice made in
+	 * the settings on top, then any per-element choice ($over, e.g. from a
+	 * Velox Builder product grid) on top of that.
+	 */
+	public static function design( $over = array() ) {
+		$all  = self::presets();
+		$name = (string) self::get( 'design', 'velox' );
+		if ( ! isset( $all[ $name ] ) ) {
+			$name = 'velox';
+		}
+		$d = $all[ $name ]['v'];
+		foreach ( self::DESIGN_KEYS as $k ) {
+			$v = (string) self::get( 'd_' . $k, '' );
+			if ( '' !== $v ) {
+				$d[ $k ] = $v;
+			}
+			if ( isset( $over[ $k ] ) && '' !== (string) $over[ $k ] ) {
+				$d[ $k ] = (string) $over[ $k ];
+			}
+		}
+		$d['preset'] = $name;
+		return $d;
+	}
+
+	/** Colour and size variables for the shop, from the design in effect. */
+	public static function design_vars( $d = null ) {
+		$d    = $d ? $d : self::design();
+		$css  = '';
+		$col  = function ( $v ) { return preg_match( '/^#[0-9a-f]{3,8}$/i', (string) $v ) ? $v : ''; };
+		$own  = 'own' === $d['preset'];
+		$ink  = $col( $d['ink'] );
+		if ( $ink ) {
+			$css .= '--vxs-ink:' . $ink . ';--vxs-ink-2:color-mix(in srgb,' . $ink . ' 76%,transparent);--vxs-ink-3:color-mix(in srgb,' . $ink . ' 58%,transparent);';
+		} elseif ( $own ) {
+			$css .= '--vxs-ink:currentColor;--vxs-ink-2:currentColor;--vxs-ink-3:color-mix(in srgb,currentColor 62%,transparent);';
+		}
+		foreach ( array( 'line' => '--vxs-line', 'soft' => '--vxs-soft', 'bg' => '--vxs-bg', 'surface' => '--vxs-surface' ) as $k => $var ) {
+			$v = $col( $d[ $k ] );
+			if ( $v ) {
+				$css .= $var . ':' . $v . ';';
+			} elseif ( $own ) {
+				$css .= $var . ':' . ( 'line' === $k ? 'color-mix(in srgb,currentColor 16%,transparent)' : ( 'soft' === $k ? 'color-mix(in srgb,currentColor 5%,transparent)' : 'transparent' ) ) . ';';
+			}
+		}
+		$r    = max( 0, min( 40, (int) $d['radius'] ) );
+		$css .= '--vxs-r:' . $r . 'px;--vxs-r-sm:' . max( 0, min( 12, (int) round( $r * 0.66 ) ) ) . 'px;';
+		$css .= '--vxs-btn-r:' . ( 'pill' === $d['btn_shape'] ? '999px' : ( 'rounded' === $d['btn_shape'] ? '10px' : '0' ) ) . ';';
+		$css .= '--vxs-gap:' . max( 0, min( 120, (int) $d['gap'] ) ) . 'px;';
+		$acc  = sanitize_hex_color( (string) self::get( 'accent', '#0a6f9f' ) );
+		if ( $acc ) {
+			$css .= '--vxs-accent:' . $acc . ';';
+		}
+		// A dark design needs light text on the accent and on dark chips.
+		if ( $ink && self::is_light( $ink ) ) {
+			$css .= '--vxs-on-ink:#111;';
+		}
+		return $css;
+	}
+
+	/** Light colour? (for picking readable text on top of it) */
+	public static function is_light( $hex ) {
+		$h = ltrim( (string) $hex, '#' );
+		if ( 3 === strlen( $h ) ) {
+			$h = $h[0] . $h[0] . $h[1] . $h[1] . $h[2] . $h[2];
+		}
+		if ( strlen( $h ) < 6 ) {
+			return false;
+		}
+		$l = ( 0.2126 * hexdec( substr( $h, 0, 2 ) ) + 0.7152 * hexdec( substr( $h, 2, 2 ) ) + 0.0722 * hexdec( substr( $h, 4, 2 ) ) ) / 255;
+		return $l > 0.6;
+	}
+
+	/** Classes that switch the storefront's structure for this design. */
+	public static function design_classes( $d = null ) {
+		$d = $d ? $d : self::design();
+		return 'vxs-d vxs-d-' . sanitize_html_class( $d['preset'] ) . ' vxs-l-' . sanitize_html_class( $d['layout'] ) . ' vxs-k-' . sanitize_html_class( $d['card'] )
+			. ' vxs-hv-' . sanitize_html_class( $d['hover'] ) . ' vxs-al-' . sanitize_html_class( $d['align'] ) . ' vxs-fit-' . sanitize_html_class( $d['fit'] )
+			. ' vxs-bst-' . sanitize_html_class( $d['btn_style'] ) . ' vxs-pl-' . sanitize_html_class( $d['product'] ) . ' vxs-gl-' . sanitize_html_class( $d['gallery'] )
+			. ( '1' === (string) $d['sticky'] ? ' vxs-sticky' : '' ) . ' vxs-co-' . sanitize_html_class( $d['checkout'] );
 	}
 
 	public static function card_ratio() {
@@ -840,6 +988,16 @@ class Velox_Shop {
 			);
 		}
 		return $lines;
+	}
+
+	/** The cart's value after discounts, formatted ('' when empty). */
+	public static function cart_subtotal() {
+		$lines = self::lines();
+		if ( ! $lines ) {
+			return '';
+		}
+		$t = self::totals( $lines );
+		return self::money( $t['subtotal'] - $t['discount'] );
 	}
 
 	public static function cart_count() {

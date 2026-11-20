@@ -25,11 +25,15 @@
 		clearTimeout( toastT ); toastT = setTimeout( function () { t.classList.remove( 'is-on' ); }, 2800 );
 	}
 
-	function setCount( n, bump ) {
+	function setCount( n, bump, total ) {
 		$$( '[data-vxs-count]' ).forEach( function ( b ) {
-			b.textContent = n; b.hidden = ! n;
+			// The "dot" style marks a filled cart without a number.
+			b.textContent = b.closest( '.vxs-cc-dot' ) ? '' : n; b.hidden = ! n;
 			if ( bump ) { b.classList.remove( 'is-bump' ); void b.offsetWidth; b.classList.add( 'is-bump' ); }
 		} );
+		if ( undefined !== total ) {
+			$$( '[data-vxs-cart-total]' ).forEach( function ( t ) { t.textContent = n ? total : ''; } );
+		}
 	}
 
 	/* ------------------------------------------------------------ drawer */
@@ -54,7 +58,7 @@
 		return h;
 	}
 	function render( s ) {
-		state = s; setCount( s.count );
+		state = s; setCount( s.count, false, s.subtotal );
 		var p = $( '.vxs-drawer-p' ); if ( p ) { p.innerHTML = drawerHTML( s ); }
 	}
 	function openDrawer() {
@@ -176,7 +180,7 @@
 		var btn = $( '[type="submit"]', f ); if ( btn ) { btn.classList.add( 'is-busy' ); }
 		rest( 'cart', { op:'add', product:+f.product.value, variant:f.variant ? f.variant.value : '', qty:+( f.qty ? f.qty.value : 1 ) || 1 } ).then( function ( s ) {
 			if ( btn ) { btn.classList.remove( 'is-busy' ); }
-			render( s ); setCount( s.count, true );
+			render( s ); setCount( s.count, true, s.subtotal );
 			if ( s.msg ) { toast( s.msg ); }
 			if ( ! openDrawer() ) { toast( L.added ); }
 		} ).catch( function () { f.submit(); } );

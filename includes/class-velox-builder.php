@@ -1125,8 +1125,10 @@ class Velox_Builder {
 				if ( isset( $n['settings'] ) ) {
 					$n['settings'] = $obj( $n['settings'] );
 				}
-				if ( isset( $n['aos'] ) ) {
-					$n['aos'] = $obj( $n['aos'] );
+				foreach ( array( 'aos', 'mo', 'hdr' ) as $ok ) {
+					if ( isset( $n[ $ok ] ) ) {
+						$n[ $ok ] = $obj( $n[ $ok ] );
+					}
 				}
 				$n['children'] = $fix( $n['children'] ?? array() );
 				$out[] = $n;
@@ -1551,6 +1553,10 @@ class Velox_Builder {
 				'once'     => empty( $in['aos']['once'] ) ? '' : '1',
 				'disable'  => in_array( ( $in['aos']['disable'] ?? '' ), array( '', 'mobile', 'tablet' ), true ) ? $in['aos']['disable'] : '',
 			),
+			'motion'   => array(
+				'smooth' => empty( $in['motion']['smooth'] ) ? '' : '1',
+				'ease'   => (string) max( 0.04, min( 0.4, (float) ( $in['motion']['ease'] ?? 0.12 ) ) ),
+			),
 		);
 		foreach ( array( 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ) as $tag ) {
 			$out['headings'][ $tag ] = array(
@@ -1856,6 +1862,8 @@ class Velox_Builder {
 			// '1' = also load the theme's CSS on Velox pages (it overrides these styles).
 			'theme'    => array( 'keep' => '' ),
 			'aos'      => array( 'type' => '', 'duration' => '600', 'easing' => 'ease', 'offset' => '120', 'delay' => '0', 'once' => '1', 'disable' => '' ),
+			// Smooth (eased) mouse-wheel scrolling on every Velox page; ease = 0.04 (slow) … 0.4 (quick).
+			'motion'   => array( 'smooth' => '', 'ease' => '0.12' ),
 		);
 		foreach ( array( 'h1' => '48', 'h2' => '36', 'h3' => '28', 'h4' => '22', 'h5' => '18', 'h6' => '16' ) as $tag => $size ) {
 			$d['headings'][ $tag ] = array( 'size' => $size, 'weight' => '700', 'lineHeight' => '1.25', 'color' => '' );

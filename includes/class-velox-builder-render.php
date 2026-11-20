@@ -2100,11 +2100,24 @@ class Velox_Builder_Render {
 		}
 		$out .= '<span class="vx-fab-i" aria-hidden="true">' . $icon_svg . '</span>';
 		if ( $label && ! $sr_only ) { $out .= '<span class="vx-fab-l">' . esc_html( $label ) . '</span>'; }
+		// Back to top: a ring around it fills as the page is read.
+		if ( 'Backtotop' === $el && self::el_set( $node, 'ring', '' ) ) {
+			$rc   = self::sanitize_value( (string) self::el_set( $node, 'ringColor', '' ) );
+			$out .= '<svg class="vx-btt-ring" viewBox="0 0 48 48" aria-hidden="true"><circle cx="24" cy="24" r="22.5" pathLength="100" style="' . ( '' !== $rc ? 'stroke:' . esc_attr( $rc ) : '' ) . '"/></svg>';
+			$out  = preg_replace( '/^<' . $tag . ' /', '<' . $tag . ' data-vx-ring ', $out, 1 );
+			if ( empty( self::$btt_ring_css ) ) {
+				self::$btt_ring_css = true;
+				self::$float_css   .= '[data-vx-ring] .vx-btt-ring{position:absolute;inset:-3px;width:calc(100% + 6px);height:calc(100% + 6px);transform:rotate(-90deg);pointer-events:none;overflow:visible}'
+					. '[data-vx-ring] .vx-btt-ring circle{fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-dasharray:100;stroke-dashoffset:calc(100 - var(--vx-p,0) * 100)}';
+			}
+		}
 		return $out . '</' . $tag . '>';
 	}
 
 	/** Per-instance CSS for floating elements, collected during render. */
 	private static $float_css = '';
+	/** The back-to-top ring CSS is printed once. */
+	private static $btt_ring_css = false;
 
 
 	/**
@@ -2221,14 +2234,17 @@ class Velox_Builder_Render {
 			}
 		}
 		// "A full screen panel" was a choice the renderer never read.
-		$full = ! $anchor && 'fullscreen' === self::el_set( $node, 'mobileStyle', 'dropdown' );
-		$out  = '<nav class="' . esc_attr( trim( $classes . ' vx-nav' . ( $anchor ? ' vx-anchornav' : '' ) . ( $full ? ' vx-nav-full' : '' ) ) ) . '"' . $attr .
+		$mstyle = self::el_set( $node, 'mobileStyle', 'dropdown' );
+		$full   = ! $anchor && 'fullscreen' === $mstyle;
+		$oc     = ! $anchor && 'offcanvas' === $mstyle;
+		$out  = '<nav class="' . esc_attr( trim( $classes . ' vx-nav' . ( $anchor ? ' vx-anchornav' : '' ) . ( $full ? ' vx-nav-full' : '' ) . ( $oc ? ' vx-nav-oc' : '' ) ) ) . '"' . $attr .
 			' aria-label="' . esc_attr( $nav_name ) . '">';
 
 		if ( ! $anchor ) {
-			$out .= '<button type="button" class="vx-burger" aria-expanded="false" aria-controls="' . esc_attr( $id . '-list' ) . '"' .
-				' aria-label="' . esc_attr__( 'Menu', 'velox' ) . '" hidden>' .
-				'<span class="vx-burger-i" aria-hidden="true"></span></button>';
+			$blabel = trim( (string) self::el_set( $node, 'burgerLabel', '' ) );
+			$out .= '<button type="button" class="vx-burger' . ( 'none' === self::el_set( $node, 'burgerAnim', 'x' ) ? ' vx-burger-still' : '' ) . '" aria-expanded="false" aria-controls="' . esc_attr( $id . ( $oc ? '-oc' : '-list' ) ) . '"' .
+				( '' === $blabel ? ' aria-label="' . esc_attr__( 'Menu', 'velox' ) . '"' : '' ) . ' hidden>' .
+				'<span class="vx-burger-i" aria-hidden="true"></span>' . ( '' !== $blabel ? '<span class="vx-burger-l">' . esc_html( $blabel ) . '</span>' : '' ) . '</button>';
 		}
 
 		$out .= '<ul class="vx-nav-list" id="' . esc_attr( $id . '-list' ) . '">';
@@ -2262,7 +2278,42 @@ class Velox_Builder_Render {
 			}
 			$out .= '</li>';
 		}
-		return $out . '</ul></nav>';
+		$out .= '</ul>';
+		if ( $oc ) {
+			$out .= self::offcanvas_panel( $node, $id );
+		}
+		return $out . '</nav>';
+	}
+
+	/**
+	 * The mobile menu as a side panel. velox-elements.js moves it to <body>
+	 * (a header that hides on scroll must not take it along) and moves the
+	 * link list into it on small screens, so there is one set of links.
+	 */
+	private static function offcanvas_panel( $node, $id ) {
+		$vars = '--vx-oc-w:' . max( 240, min( 720, (int) self::el_set( $node, 'ocWidth', 380 ) ) ) . 'px;';
+		foreach ( array( 'ocBg' => '--vx-oc-bg', 'ocColor' => '--vx-oc-c', 'ocBackdrop' => '--vx-oc-bd', 'ocAccent' => '--vx-oc-ac' ) as $k => $var ) {
+			$v = self::sanitize_value( (string) self::el_set( $node, $k, '' ) );
+			if ( '' !== $v ) {
+				$vars .= $var . ':' . $v . ';';
+			}
+		}
+		$side = 'left' === self::el_set( $node, 'ocSide', 'right' ) ? 'left' : 'right';
+		$cta  = trim( (string) self::el_set( $node, 'ocCta', '' ) );
+		$note = trim( (string) self::el_set( $node, 'ocNote', '' ) );
+		$out  = '<div class="vx-oc" id="' . esc_attr( $id . '-oc' ) . '" data-side="' . $side . '" style="' . esc_attr( $vars ) . '" hidden>'
+			. '<div class="vx-oc-bg" data-vx-oc-close></div>'
+			. '<div class="vx-oc-panel" role="dialog" aria-modal="true" aria-label="' . esc_attr__( 'Menu', 'velox' ) . '" tabindex="-1">'
+			. '<div class="vx-oc-top"><button type="button" class="vx-oc-x" data-vx-oc-close aria-label="' . esc_attr__( 'Close menu', 'velox' ) . '">'
+			. '<svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M2.15 2.15a.5.5 0 0 1 .7 0L8 7.29l5.15-5.14a.5.5 0 0 1 .7.7L8.71 8l5.14 5.15a.5.5 0 0 1-.7.7L8 8.71l-5.15 5.14a.5.5 0 0 1-.7-.7L7.29 8 2.15 2.85a.5.5 0 0 1 0-.7"/></svg></button></div>'
+			. '<div class="vx-oc-slot"></div>';
+		if ( '' !== $cta ) {
+			$out .= '<a class="vx-oc-cta" href="' . esc_url( self::link_value( (string) self::el_set( $node, 'ocCtaHref', '#' ) ) ) . '">' . esc_html( $cta ) . '</a>';
+		}
+		if ( '' !== $note ) {
+			$out .= '<p class="vx-oc-note">' . nl2br( esc_html( $note ) ) . '</p>';
+		}
+		return $out . '</div></div>';
 	}
 
 
@@ -2624,10 +2675,35 @@ class Velox_Builder_Render {
 				'.vx-submenu{position:absolute;top:100%;left:0;min-width:190px;margin:0;padding:8px;list-style:none;background:#fff;border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.14);z-index:50}' .
 				'.vx-submenu[hidden]{display:none}' .
 				'.vx-submenu a{display:block;padding:8px 10px;border-radius:6px}' .
-				'.vx-burger{background:none;border:none;padding:10px;cursor:pointer;color:inherit}' .
+				'.vx-burger{background:none;border:none;padding:10px;cursor:pointer;color:inherit;display:inline-flex;align-items:center;gap:10px;font:inherit}' .
 				'.vx-burger[hidden]{display:none}' .
-				'.vx-burger-i,.vx-burger-i::before,.vx-burger-i::after{display:block;width:22px;height:2px;background:currentColor;content:""}' .
-				'.vx-burger-i::before{transform:translateY(-7px)}.vx-burger-i::after{transform:translateY(5px)}' .
+				'.vx-burger-i{position:relative;display:block;width:22px;height:2px;background:currentColor;border-radius:2px;transition:background-color .2s ease}' .
+				'.vx-burger-i::before,.vx-burger-i::after{content:"";position:absolute;left:0;width:100%;height:2px;border-radius:2px;background:currentColor;transition:transform .3s cubic-bezier(.2,.7,.2,1),top .3s cubic-bezier(.2,.7,.2,1)}' .
+				'.vx-burger-i::before{top:-7px}.vx-burger-i::after{top:7px}' .
+				'.vx-burger:not(.vx-burger-still)[aria-expanded="true"] .vx-burger-i{background-color:transparent}' .
+				'.vx-burger:not(.vx-burger-still)[aria-expanded="true"] .vx-burger-i::before{top:0;transform:rotate(45deg)}' .
+				'.vx-burger:not(.vx-burger-still)[aria-expanded="true"] .vx-burger-i::after{top:0;transform:rotate(-45deg)}' .
+				'.vx-burger-l{font-weight:600;font-size:.95em}' .
+				'.vx-oc{position:fixed;inset:0;z-index:99990;pointer-events:none;visibility:hidden;transition:visibility 0s linear .5s}' .
+				'.vx-oc[hidden]{display:none}' .
+				'.vx-oc.is-open{pointer-events:auto;visibility:visible;transition:none}' .
+				'.vx-oc-bg{position:absolute;inset:0;background:var(--vx-oc-bd,rgba(12,12,14,.5));opacity:0;transition:opacity .4s ease;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}' .
+				'.vx-oc-panel{position:absolute;top:0;bottom:0;right:0;width:min(var(--vx-oc-w,380px),88vw);display:flex;flex-direction:column;gap:28px;padding:18px 28px 32px;overflow-y:auto;overscroll-behavior:contain;background:var(--vx-oc-bg,#fff);color:var(--vx-oc-c,#111);box-shadow:-24px 0 60px rgba(0,0,0,.18);transform:translateX(100%);transition:transform .5s cubic-bezier(.2,.7,.2,1);outline:none}' .
+				'.vx-oc[data-side="left"] .vx-oc-panel{right:auto;left:0;transform:translateX(-100%);box-shadow:24px 0 60px rgba(0,0,0,.18)}' .
+				'.vx-oc.is-open .vx-oc-bg{opacity:1}.vx-oc.is-open .vx-oc-panel{transform:none}' .
+				'.vx-oc-top{display:flex;justify-content:flex-end}' .
+				'.vx-oc-x{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:none;color:inherit;cursor:pointer;transition:transform .3s ease,background-color .2s ease}' .
+				'.vx-oc-x:hover{transform:rotate(90deg);background:color-mix(in srgb,currentColor 8%,transparent)}' .
+				'.vx-oc .vx-nav-list{position:static;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;margin:0;background:none;box-shadow:none;font-size:1.3em;font-weight:600}' .
+				'.vx-oc .vx-nav-item{flex-wrap:wrap;justify-content:space-between;padding:14px 0;border-bottom:1px solid color-mix(in srgb,currentColor 12%,transparent);opacity:0;transform:translateX(18px);transition:opacity .45s ease,transform .5s cubic-bezier(.2,.7,.2,1);transition-delay:calc(var(--i,0) * 50ms + 120ms)}' .
+				'.vx-oc.is-open .vx-nav-item{opacity:1;transform:none}' .
+				'.vx-oc .vx-nav-item a{flex:1}' .
+				'.vx-oc .vx-submenu{position:static;width:100%;min-width:0;padding:8px 0 0 12px;background:none;box-shadow:none;font-size:.78em;font-weight:500}' .
+				'.vx-oc-cta{display:flex;justify-content:center;align-items:center;padding:15px 22px;border-radius:999px;background:var(--vx-oc-ac,#111);color:var(--vx-oc-bg,#fff);font-weight:600;text-decoration:none;transition:transform .2s ease}' .
+				'.vx-oc-cta:hover{transform:translateY(-2px)}' .
+				'.vx-oc-note{margin:auto 0 0;font-size:14px;line-height:1.6;opacity:.7}' .
+				'html.vx-lock,html.vx-lock body{overflow:hidden}' .
+				'@media (prefers-reduced-motion:reduce){.vx-oc-panel,.vx-oc-bg,.vx-oc .vx-nav-item,.vx-burger-i::before,.vx-burger-i::after{transition:none}}' .
 				'.vx-nav.is-mobile .vx-nav-list{position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:#fff;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.14);z-index:49}' .
 				'.vx-nav.is-mobile{position:relative}' .
 				'.vx-nav.is-mobile .vx-nav-list[hidden]{display:none}' .
@@ -2905,10 +2981,11 @@ class Velox_Builder_Render {
 	<?php self::print_global_head(); ?>
 	<?php wp_head(); ?>
 </head>
-<body <?php body_class( 'velox-built' ); ?>>
+<body <?php body_class( 'velox-built' ); ?><?php echo self::smooth_attr(); // phpcs:ignore ?>>
 	<?php echo $body; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped — built from sanitized model ?>
 	<?php self::print_element_runtime(); ?>
 	<?php self::print_aos(); ?>
+	<?php self::print_motion(); ?>
 	<?php
 	if ( ! empty( self::$page_settings['js'] ) ) {
 		echo "\n<script id=\"velox-page-js\">\n" . str_ireplace( '</script', '<\\/script', (string) self::$page_settings['js'] ) . "\n</script>\n"; // phpcs:ignore
@@ -3120,6 +3197,131 @@ class Velox_Builder_Render {
 	 * actually contains an animated element, and skipped entirely for visitors
 	 * who have asked for reduced motion.
 	 */
+	/** Motion is used on this page (set while rendering). */
+	private static $motion_used = false;
+
+	/**
+	 * Motion settings on an element (node.mo) as data attributes for
+	 * velox-motion.js: text reveal, children one after another, parallax,
+	 * pointer effects, stacking cards, a pinned sideways row, particles.
+	 */
+	private static function motion_attrs( $node ) {
+		$m = $node['mo'] ?? null;
+		if ( ! is_array( $m ) || ! $m || self::$css_only ) {
+			return '';
+		}
+		$a   = '';
+		$int = function ( $k, $min, $max, $def ) use ( $m ) {
+			$v = $m[ $k ] ?? '';
+			return '' === $v ? $def : max( $min, min( $max, (int) $v ) );
+		};
+		$text = (string) ( $m['text'] ?? '' );
+		if ( in_array( $text, array( 'words', 'chars', 'mask' ), true ) ) {
+			$a .= ' data-vx-text="' . $text . '"';
+			if ( 'load' === ( $m['textOn'] ?? '' ) ) {
+				$a .= ' data-vx-text-on="load"';
+			}
+			if ( '' !== (string) ( $m['textStep'] ?? '' ) ) {
+				$a .= ' data-vx-text-step="' . $int( 'textStep', 0, 1000, 70 ) . '"';
+			}
+			if ( '' !== (string) ( $m['textDur'] ?? '' ) ) {
+				$a .= ' data-vx-text-dur="' . $int( 'textDur', 100, 4000, 700 ) . '"';
+			}
+		}
+		$kids = (string) ( $m['kids'] ?? '' );
+		if ( in_array( $kids, array( 'fade', 'fade-up', 'fade-left', 'fade-right', 'zoom-in', 'blur' ), true ) ) {
+			$a .= ' data-vx-kids="' . $kids . '" data-vx-kids-step="' . $int( 'kidsStep', 0, 1000, 90 ) . '"';
+		}
+		$para = $int( 'para', -80, 80, 0 );
+		if ( $para ) {
+			$a .= ' data-vx-para="' . $para . '"' . ( ! empty( $m['paraDesk'] ) ? ' data-vx-para-desk' : '' );
+		}
+		if ( ! empty( $m['tilt'] ) ) {
+			$a .= ' data-vx-tilt="' . $int( 'tiltMax', 2, 25, 8 ) . '"';
+		}
+		if ( ! empty( $m['glow'] ) ) {
+			$gc = self::sanitize_value( (string) ( $m['glowColor'] ?? '' ) );
+			$a .= ' data-vx-glow="' . esc_attr( '' !== $gc ? $gc : '1' ) . '"';
+		}
+		if ( ! empty( $m['magnet'] ) ) {
+			$a .= ' data-vx-magnet="0.3"';
+		}
+		if ( ! empty( $m['stack'] ) ) {
+			$a .= ' data-vx-stack="' . $int( 'stackTop', 0, 600, 100 ) . '" data-vx-stack-step="' . $int( 'stackStep', 0, 80, 18 ) . '"';
+		}
+		if ( ! empty( $m['hscroll'] ) ) {
+			$b  = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991, 'mobile' => 767 );
+			$a .= ' data-vx-hscroll="' . ( 'all' === ( $m['hscrollOn'] ?? '' ) ? 0 : (int) $b['tablet'] + 1 ) . '"';
+		}
+		if ( ! empty( $m['particles'] ) ) {
+			$pc = self::sanitize_value( (string) ( $m['particlesColor'] ?? '' ) );
+			$a .= ' data-vx-particles="' . $int( 'particlesDensity', 5, 300, 60 ) . '"' . ( '' !== $pc ? ' data-vx-particles-color="' . esc_attr( $pc ) . '"' : '' );
+		}
+		if ( '' !== $a ) {
+			self::$motion_used = true;
+		}
+		return $a;
+	}
+
+	/** Smooth wheel scrolling, switched on in Global styles → Motion. */
+	private static function smooth_attr() {
+		if ( ! class_exists( 'Velox_Builder' ) ) {
+			return '';
+		}
+		$m = Velox_Builder::global_styles()['motion'] ?? array();
+		if ( empty( $m['smooth'] ) ) {
+			return '';
+		}
+		self::$motion_used = true;
+		return ' data-vx-smooth="' . esc_attr( (string) max( 0.04, min( 0.4, (float) ( $m['ease'] ?? 0.12 ) ) ) ) . '"';
+	}
+
+	/** The motion runtime and its CSS, only on pages that use motion. */
+	public static function print_motion() {
+		if ( ! self::$motion_used ) {
+			return;
+		}
+		$ease = 'cubic-bezier(.2,.7,.2,1)';
+		$css  = 'html.vx-mo [data-vx-text]:not(.vx-split){opacity:0;animation:vxMoShow 0s 2.5s forwards}'
+			. '@keyframes vxMoShow{to{opacity:1}}'
+			. '[data-vx-text] .vx-w{display:inline-block;vertical-align:top}'
+			. '[data-vx-text="words"] .vx-w{overflow:hidden;padding-bottom:.12em;margin-bottom:-.12em}'
+			. '[data-vx-text] .vx-wi{display:inline-block;transform:translateY(110%);transition:transform var(--vx-td,700ms) ' . $ease . '}'
+			. '[data-vx-text] .vx-c{display:inline-block;opacity:0;transform:translateY(.45em);transition:opacity var(--vx-td,700ms) ease,transform var(--vx-td,700ms) ' . $ease . '}'
+			. '[data-vx-text].vx-on .vx-wi,[data-vx-text].vx-on .vx-c{opacity:1;transform:none}'
+			. '[data-vx-text="mask"].vx-split{overflow:clip;overflow-clip-margin:.18em}'
+			. '[data-vx-text="mask"] .vx-mi{display:block;transform:translateY(110%);transition:transform var(--vx-td,800ms) ' . $ease . '}'
+			. '[data-vx-text="mask"].vx-on .vx-mi{transform:none}'
+			. '[data-vx-kids].vx-kids-ready>.vx-kid{opacity:0;transition:opacity .7s ease,transform .7s ' . $ease . ',filter .7s ease}'
+			. '[data-vx-kids="fade-up"].vx-kids-ready>.vx-kid{transform:translateY(28px)}'
+			. '[data-vx-kids="fade-left"].vx-kids-ready>.vx-kid{transform:translateX(-28px)}'
+			. '[data-vx-kids="fade-right"].vx-kids-ready>.vx-kid{transform:translateX(28px)}'
+			. '[data-vx-kids="zoom-in"].vx-kids-ready>.vx-kid{transform:scale(.94)}'
+			. '[data-vx-kids="blur"].vx-kids-ready>.vx-kid{filter:blur(10px);transform:translateY(12px)}'
+			. '[data-vx-kids].vx-on>.vx-kid{opacity:1;transform:none;filter:none}'
+			. '[data-vx-para]{will-change:transform}'
+			. '.vx-tilt{transition:transform .3s ease-out;will-change:transform}'
+			. '.vx-magnet{transition:transform .3s ' . $ease . '}'
+			. '.vx-glow{position:relative;isolation:isolate}'
+			. '.vx-glow::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;transition:opacity .3s ease;background:radial-gradient(340px circle at var(--vx-gx,50%) var(--vx-gy,50%),var(--vx-glow,rgba(255,255,255,.16)),transparent 62%)}'
+			. '.vx-glow:hover::after{opacity:1}'
+			. '.vx-stack>.vx-stack-card{position:sticky;transform-origin:50% 0;will-change:transform}'
+			. '[data-vx-hscroll]>.vx-hs-pin{overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}'
+			. '[data-vx-hscroll]>.vx-hs-pin::-webkit-scrollbar{display:none}'
+			. '[data-vx-hscroll]>.vx-hs-pin>.vx-hs-track{display:flex;gap:inherit;width:max-content}'
+			. '[data-vx-hscroll]>.vx-hs-pin>.vx-hs-track>*{flex:none;scroll-snap-align:start}'
+			. '[data-vx-hscroll].vx-hs-on>.vx-hs-pin{position:sticky;top:0;height:100vh;overflow:hidden;display:flex;align-items:center}'
+			. '[data-vx-hscroll].vx-hs-on>.vx-hs-pin>.vx-hs-track{will-change:transform}'
+			. '.vx-has-particles{position:relative;isolation:isolate}'
+			. '.vx-particles{position:absolute;inset:0;z-index:-1;pointer-events:none}'
+			. '@media (prefers-reduced-motion:reduce){[data-vx-text] .vx-wi,[data-vx-text] .vx-c,[data-vx-text] .vx-mi,[data-vx-kids]>.vx-kid{opacity:1!important;transform:none!important;clip-path:none!important;filter:none!important;transition:none!important}}';
+		echo '<style id="velox-motion-css">' . $css . '</style>' . "\n"; // phpcs:ignore
+		$src = defined( 'VELOX_URL' ) ? VELOX_URL . 'assets/js/velox-motion.js' : '';
+		if ( $src ) {
+			echo '<script src="' . esc_url( $src . '?ver=' . ( defined( 'VELOX_VERSION' ) ? VELOX_VERSION : '1' ) ) . '" defer></script>' . "\n";
+		}
+	}
+
 	public static function print_aos() {
 		if ( ! self::$aos_used || ! class_exists( 'Velox_Builder' ) ) {
 			return;
@@ -3355,7 +3557,13 @@ class Velox_Builder_Render {
 		$attr .= $aos_attr;
 		$attr .= self::custom_attrs( $node );
 		$attr .= self::site_part( $node, $id );
+		// Inside a site header: show or hide with its state (scrolled, transparent).
+		$hv = (string) ( $node['hdrVis'] ?? '' );
+		if ( in_array( $hv, array( 'stuck', 'unstuck', 'over', 'unover' ), true ) ) {
+			$attr .= ' data-vx-hv="' . $hv . '"';
+		}
 		$attr .= self::ix_attrs( $node );
+		$attr .= self::motion_attrs( $node );
 
 		if ( isset( $node['el'] ) && isset( self::$WIDGETS[ $node['el'] ] ) ) {
 			return self::render_widget( $node, $attr );
@@ -3640,6 +3848,10 @@ class Velox_Builder_Render {
 		} else {
 			$kids = self::render_tree( $node['children'] ?? array(), $doc );
 		}
+		// A row that moves sideways while pinned needs a pin and a track around its children.
+		if ( ! empty( $node['mo']['hscroll'] ) && '' !== $kids ) {
+			$kids = '<div class="vx-hs-pin"><div class="vx-hs-track">' . $kids . '</div></div>';
+		}
 		if ( 'a' === $tag ) {
 			$href  = isset( $node['href'] ) ? esc_url( self::link_href( $node['href'] ) ) : '#';
 			$attr .= ' href="' . $href . '"';
@@ -3651,10 +3863,17 @@ class Velox_Builder_Render {
 	}
 
 	/**
-	 * Site header / footer options on a section or box (node.hdr):
-	 * sticky, hide when scrolling down, shrink, background and shadow once
-	 * scrolled, transparent over the first section, z-index; or a footer that
-	 * stays at the bottom of short pages.
+	 * Site header / footer options on a section or box (node.hdr).
+	 *
+	 * Header: sticky from the top or appearing after a scroll distance (slide
+	 * or fade, own speed), only above a breakpoint, hide on scroll down / show
+	 * on scroll up, a different look once scrolled (background, glass, text
+	 * colour, border, shadow, padding), a scroll progress line, transparent over
+	 * the first section (with its own text colour), z-index. Elements inside
+	 * can show or hide by state (data-vx-hv), e.g. a second logo when scrolled.
+	 *
+	 * Footer: stays at the bottom of short pages, or is revealed from behind
+	 * the content as the page ends.
 	 */
 	private static function site_part( $node, $id ) {
 		$h = $node['hdr'] ?? null;
@@ -3666,59 +3885,108 @@ class Velox_Builder_Render {
 		$first        = ! isset( $done[ $id ] );
 		$done[ $id ]  = true;
 		$sel = '#' . $id;
+		$bps = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991, 'mobile' => 767 );
 		if ( 'footer' === $h['mode'] ) {
-			if ( ! empty( $h['bottom'] ) && $first ) {
+			$attr = '';
+			if ( ! empty( $h['reveal'] ) ) {
+				// velox-elements.js pins it behind the content when it fits on screen.
+				$attr .= ' data-vx-reveal';
+				self::$runtime_used['header'] = true;
+				if ( $first ) {
+					self::$float_css .= 'html.vx-reveal-on ' . $sel . '{position:fixed;left:0;right:0;bottom:0;z-index:0}'
+						. 'html.vx-reveal-on .vx-reveal-cover{position:relative;z-index:1;background-color:var(--vx-page-bg,#fff)}';
+				}
+			} elseif ( ! empty( $h['bottom'] ) && $first ) {
 				// The page becomes a column; the footer's top margin soaks up the
 				// spare height, so it sits at the bottom of short pages.
 				self::$float_css .= 'body.velox-built{display:flex;flex-direction:column;min-height:calc(100vh - var(--wp-admin--admin-bar--height,0px))}'
 					. 'body.velox-built>*{flex-shrink:0}' . $sel . '{margin-top:auto}';
 			}
-			return '';
+			return $attr;
 		}
 		$z      = isset( $h['z'] ) && '' !== $h['z'] ? max( 0, min( 99999, (int) $h['z'] ) ) : 100;
 		$sticky = ! empty( $h['sticky'] );
+		$appear = $sticky && 'appear' === ( $h['how'] ?? '' );
 		$over   = in_array( $h['overlay'] ?? '', array( 'always', 'tablet', 'desktop' ), true ) ? $h['overlay'] : '';
+		$speed  = isset( $h['speed'] ) && '' !== $h['speed'] ? max( 0, min( 2000, (int) $h['speed'] ) ) : 300;
+		$anim   = in_array( $h['anim'] ?? '', array( 'slide', 'fade', 'none' ), true ) ? $h['anim'] : 'slide';
+		// Sticky only from this width up (0 = everywhere).
+		$min    = 'desktop' === ( $h['above'] ?? '' ) ? (int) $bps['tablet'] + 1 : ( 'tablet' === ( $h['above'] ?? '' ) ? (int) $bps['mobile'] + 1 : 0 );
+		$mq     = function ( $rule ) use ( $min ) { return $min ? '@media (min-width:' . $min . 'px){' . $rule . '}' : $rule; };
 		$attr   = ' data-vx-header';
-		$css    = $sel . '{z-index:' . $z . ';transition:background-color .25s ease,box-shadow .25s ease,padding .25s ease,transform .3s ease}';
+		$css    = $sel . '{z-index:' . $z . ';--vx-hdr-speed:' . $speed . 'ms;transition:background-color var(--vx-hdr-speed) ease,color var(--vx-hdr-speed) ease,box-shadow var(--vx-hdr-speed) ease,padding var(--vx-hdr-speed) ease,border-color var(--vx-hdr-speed) ease,backdrop-filter var(--vx-hdr-speed) ease,transform var(--vx-hdr-speed) ease}';
+		// Elements that show or hide with the header's state.
+		$css   .= $sel . ':not(.is-stuck) [data-vx-hv="stuck"],' . $sel . '.is-stuck [data-vx-hv="unstuck"],'
+			. $sel . ':not(.is-over) [data-vx-hv="over"],' . $sel . '.is-over [data-vx-hv="unover"]{display:none!important}';
 		if ( $sticky ) {
-			$attr .= ' data-vx-sticky data-vx-shrink-at="' . max( 0, (int) ( $h['at'] ?? 60 ) ) . '"';
+			$attr .= ' data-vx-sticky data-vx-shrink-at="' . max( 0, (int) ( $h['at'] ?? ( $appear ? 300 : 60 ) ) ) . '"';
+			if ( $min ) {
+				$attr .= ' data-vx-sticky-min="' . $min . '"';
+			}
 			if ( ! empty( $h['up'] ) ) {
 				$attr .= ' data-vx-hide-down';
-				$css  .= $sel . '.is-hidden{transform:translateY(-100%)}';
+				$css  .= $sel . '.is-hidden{transform:translateY(-110%)}';
 			}
-			$css .= $sel . '{position:sticky;top:0}';
-			// Logged-in visitors see the admin bar: stick below it, not under it.
-			$css .= '.admin-bar ' . $sel . '{top:var(--wp-admin--admin-bar--height,0px)}';
+			if ( $appear ) {
+				// In the flow until the distance is passed, then fixed and animated in.
+				$attr .= ' data-vx-appear';
+				$in    = 'slide' === $anim ? 'vxHdrSlide' : ( 'fade' === $anim ? 'vxHdrFade' : '' );
+				$css  .= $mq( $sel . '.is-fixed{position:fixed;top:0;left:0;right:0' . ( $in ? ';animation:' . $in . ' var(--vx-hdr-speed) cubic-bezier(.2,.7,.2,1) both' : '' ) . '}'
+					. '.admin-bar ' . $sel . '.is-fixed{top:var(--wp-admin--admin-bar--height,0px)}' );
+				$css  .= '@keyframes vxHdrSlide{from{transform:translateY(-100%)}to{transform:none}}@keyframes vxHdrFade{from{opacity:0}to{opacity:1}}';
+			} else {
+				$css .= $mq( $sel . '{position:sticky;top:0}.admin-bar ' . $sel . '{top:var(--wp-admin--admin-bar--height,0px)}' );
+			}
+			$stuck = '';
 			if ( isset( $h['pad'] ) && '' !== $h['pad'] ) {
-				$p    = max( 0, min( 200, (int) $h['pad'] ) );
-				$css .= $sel . '.is-stuck{padding-top:' . $p . 'px;padding-bottom:' . $p . 'px}';
+				$p      = max( 0, min( 200, (int) $h['pad'] ) );
+				$stuck .= 'padding-top:' . $p . 'px;padding-bottom:' . $p . 'px;';
 			}
 			$bg = self::sanitize_value( (string) ( $h['bg'] ?? '' ) );
 			if ( '' !== $bg ) {
-				$css .= $sel . '.is-stuck{background:' . $bg . '}';
+				$stuck .= 'background:' . $bg . ';';
 			}
-			if ( ! empty( $h['shadow'] ) ) {
-				$css .= $sel . '.is-stuck{box-shadow:0 6px 24px rgba(0,0,0,.08)}';
+			$blur = isset( $h['blur'] ) && '' !== $h['blur'] ? max( 0, min( 60, (int) $h['blur'] ) ) : 0;
+			if ( $blur ) {
+				$stuck .= '-webkit-backdrop-filter:blur(' . $blur . 'px) saturate(1.4);backdrop-filter:blur(' . $blur . 'px) saturate(1.4);';
 			}
-			self::$runtime_used['header'] = true;
+			$col = self::sanitize_value( (string) ( $h['color'] ?? '' ) );
+			if ( '' !== $col ) {
+				$stuck .= 'color:' . $col . ';';
+			}
+			$line = self::sanitize_value( (string) ( $h['line'] ?? '' ) );
+			if ( '' !== $line ) {
+				$stuck .= 'border-bottom:1px solid ' . $line . ';';
+			}
+			$shadows = array( '1' => '0 6px 24px rgba(0,0,0,.08)', 'soft' => '0 6px 24px rgba(0,0,0,.08)', 'strong' => '0 12px 40px -8px rgba(0,0,0,.28)' );
+			if ( ! empty( $h['shadow'] ) && isset( $shadows[ (string) $h['shadow'] ] ) ) {
+				$stuck .= 'box-shadow:' . $shadows[ (string) $h['shadow'] ] . ';';
+			}
+			if ( '' !== $stuck ) {
+				$css .= $sel . '.is-stuck{' . $stuck . '}';
+			}
+			$prog = self::sanitize_value( (string) ( $h['progress'] ?? '' ) );
+			if ( '' !== $prog ) {
+				$attr .= ' data-vx-progress';
+				$css  .= $sel . ' .vx-hdr-progress{position:absolute;left:0;bottom:0;height:2px;width:100%;transform-origin:0 50%;transform:scaleX(var(--vx-p,0));background:' . $prog . ';pointer-events:none}';
+			}
 		}
+		self::$runtime_used['header'] = true;
 		if ( $over ) {
 			// Out of the flow, so the first section starts at the very top. A
 			// sticky header that floats over the hero has to be fixed instead.
 			// :not(.is-stuck) outranks the box's own background (same #id, printed
 			// later) and steps aside once the scrolled background takes over.
-			$rule = $sel . '{position:' . ( $sticky ? 'fixed' : 'absolute' ) . ';top:0;left:0;right:0}'
+			$ocol = self::sanitize_value( (string) ( $h['overColor'] ?? '' ) );
+			$rule = $sel . '{position:' . ( $sticky && ! $appear ? 'fixed' : 'absolute' ) . ';top:0;left:0;right:0}'
 				. $sel . ':not(.is-stuck){background:transparent}'
-				. ( $sticky ? '.admin-bar ' . $sel . '{top:var(--wp-admin--admin-bar--height,0px)}' : '' );
-			if ( 'always' === $over ) {
-				$css .= $rule;
-			} else {
-				$b    = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991, 'mobile' => 767 );
-				$min  = 'desktop' === $over ? (int) $b['tablet'] + 1 : (int) $b['mobile'] + 1;
-				$css .= '@media (min-width:' . $min . 'px){' . $rule . '}';
-			}
+				. ( '' !== $ocol ? $sel . '.is-over{color:' . $ocol . '}' : '' )
+				. '.admin-bar ' . $sel . '{top:var(--wp-admin--admin-bar--height,0px)}';
+			$omin = 'always' === $over ? 0 : ( 'desktop' === $over ? (int) $bps['tablet'] + 1 : (int) $bps['mobile'] + 1 );
+			$attr .= ' data-vx-over="' . $omin . '"';
+			$css  .= $omin ? '@media (min-width:' . $omin . 'px){' . $rule . '}' : $rule;
 		}
-		$css .= '@media (prefers-reduced-motion:reduce){' . $sel . '{transition:none}}';
+		$css .= '@media (prefers-reduced-motion:reduce){' . $sel . '{transition:none;animation:none!important}}';
 		if ( $first ) {
 			self::$float_css .= $css;
 		}
