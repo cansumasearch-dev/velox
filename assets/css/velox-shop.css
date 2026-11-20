@@ -793,7 +793,7 @@ body.vxs-paint .vxs-product-more,body.vxs-paint .entry-content,body.vxs-paint .w
 .vxs-lb-c{position:absolute;bottom:22px;left:50%;transform:translateX(-50%);color:var(--vxs-ink-2);font-size:13px;font-variant-numeric:tabular-nums}
 
 /* ---- store notice bar */
-.vxs-notice{position:relative;z-index:1000;display:flex;align-items:center;justify-content:center;gap:12px;min-height:38px;padding:8px 44px;background:var(--vxs-ink);color:var(--vxs-bg,#fff);font-size:13.5px;line-height:1.35;text-align:center}
+.vxs-notice{position:relative;z-index:1000;display:flex;align-items:center;justify-content:center;gap:12px;min-height:38px;padding:8px 44px;background:var(--vxs-accent,#111);color:var(--vxs-accent-ink,#fff);font-size:13.5px;line-height:1.35;text-align:center}
 .vxs-notice a{color:inherit;text-decoration:underline;text-underline-offset:2px}
 .vxs-notice-m{transition:opacity .3s}
 .vxs-notice-m[hidden]{display:block;opacity:0;position:absolute;pointer-events:none}
@@ -804,3 +804,4 @@ body.vxs-paint .vxs-product-more,body.vxs-paint .entry-content,body.vxs-paint .w
 [data-vxs-zoom] .vxs-gal-stage img:focus-visible,[data-vxs-zoom] .vxs-gal-item img:focus-visible{outline:3px solid var(--vxs-accent);outline-offset:-3px}
 @media (max-width:899px){html.vxs-sbar-on body{padding-bottom:72px}}
 .vxs-search input::-webkit-search-cancel-button{cursor:pointer}
+.vxs-grid-wrap>.alignwide{width:auto;max-width:none;margin-left:0;margin-right:0}

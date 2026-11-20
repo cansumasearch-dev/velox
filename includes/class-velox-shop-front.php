@@ -354,7 +354,7 @@ class Velox_Shop_Front {
 
 		if ( ! $q->have_posts() ) {
 			$empty = '' !== $find ? sprintf( /* translators: %s: search words */ __( 'Nothing found for “%s”.', 'velox' ), $find ) : __( 'No products here yet.', 'velox' );
-			return $tools ? '<div class="vxs-grid-wrap" data-vxs-gridwrap="' . $nth . '">' . $out . '<p class="vxs-empty">' . esc_html( $empty ) . '</p></div>' : $out . '<p class="vxs-empty">' . esc_html( $empty ) . '</p>';
+			return $tools ? '<div class="vxs-grid-wrap alignwide" data-vxs-gridwrap="' . $nth . '">' . $out . '<p class="vxs-empty">' . esc_html( $empty ) . '</p></div>' : $out . '<p class="vxs-empty">' . esc_html( $empty ) . '</p>';
 		}
 		$ratio = Velox_Shop::card_ratio( $d );
 		// A masonry wall shows every photo in its own shape.
@@ -374,7 +374,7 @@ class Velox_Shop_Front {
 			if ( $total > $shown ) {
 				$out .= '<div class="vxs-more-wrap"><small>' . esc_html( sprintf( /* translators: 1: shown, 2: total */ __( '%1$d of %2$d', 'velox' ), $shown, $total ) ) . '</small><a class="vxs-btn vxs-btn-ghost vxs-more-btn" href="' . esc_url( add_query_arg( 'vxs_n', $shown + $step ) ) . '" data-vxs-more>' . esc_html__( 'Show more', 'velox' ) . '</a></div>';
 			}
-			$out = '<div class="vxs-grid-wrap" data-vxs-gridwrap="' . $nth . '">' . $out . '</div>';
+			$out = '<div class="vxs-grid-wrap alignwide" data-vxs-gridwrap="' . $nth . '">' . $out . '</div>';
 		}
 		return $out;
 	}
