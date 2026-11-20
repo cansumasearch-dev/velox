@@ -1159,7 +1159,7 @@ class Velox_Shop_Front {
 			case 'Shopwithdraw':
 				return self::sc_withdraw();
 			case 'Shopaccountbtn':
-				return Velox_Shop_Account::sc_button( array( 'label' => (string) $g( 'label' ) ) );
+				return Velox_Shop_Account::sc_button( array( 'label' => (string) $g( 'label' ), 'menu' => '0' === (string) $g( 'menu' ) ? '0' : '1' ) );
 			case 'Shopcartbtn':
 				return self::sc_cart_button( array( 'label' => (string) $g( 'label' ), 'icon' => (string) $g( 'icon' ), 'count' => (string) $g( 'count' ), 'total' => (string) $g( 'total' ) ) );
 		}

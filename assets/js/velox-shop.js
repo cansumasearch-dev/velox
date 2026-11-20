@@ -229,6 +229,13 @@
 		}
 	} );
 
+	// Account: copy the recovery codes.
+	document.addEventListener( 'click', function ( e ) {
+		var b = e.target.closest && e.target.closest( '[data-vxa-copy]' );
+		if ( ! b || ! navigator.clipboard ) { return; }
+		navigator.clipboard.writeText( b.getAttribute( 'data-vxa-copy' ) ).then( function () { b.classList.add( 'is-done' ); b.lastChild.textContent = b.getAttribute( 'data-done' ) || '✓'; } );
+	} );
+
 	source();
 	buyBoxes();
 	checkout();

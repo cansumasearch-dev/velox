@@ -87,6 +87,7 @@ spl_autoload_register( function ( $class ) {
 		'Velox_October'            => 'includes/class-velox-october.php',
 		'Velox_PageMeta'           => 'includes/class-velox-pagemeta.php',
 		'Velox_Pagespeed'          => 'includes/class-velox-pagespeed.php',
+		'Velox_Qr'                 => 'includes/class-velox-qr.php',
 		'Velox_Post_Types'         => 'includes/class-velox-post-types.php',
 		'Velox_Redirects'          => 'includes/class-velox-redirects.php',
 		'Velox_Reviews'            => 'includes/class-velox-reviews.php',
