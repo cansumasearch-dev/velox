@@ -42,6 +42,8 @@ define( 'VELOX_GH_REPO', 'velox' );
 /* -------------------------------------------------------------------------
  * Includes
  * ---------------------------------------------------------------------- */
+require_once VELOX_PATH . 'includes/class-velox-profile.php';
+Velox_Profile::mark( 'Velox: plugin file starts loading' );
 require_once VELOX_PATH . 'includes/class-velox-settings.php';
 require_once VELOX_PATH . 'includes/class-velox-image-optimizer.php';
 require_once VELOX_PATH . 'includes/class-velox-media-manager.php';
@@ -111,6 +113,9 @@ require_once VELOX_PATH . 'includes/class-velox.php';
 /* -------------------------------------------------------------------------
  * Boot
  * ---------------------------------------------------------------------- */
+Velox_Profile::mark( 'Velox: all files loaded' );
+Velox_Profile::init();
+
 function velox() {
 	return Velox::instance();
 }

@@ -244,91 +244,139 @@ final class Velox {
 	}
 
 	public function init() {
+		Velox_Profile::mark( 'Velox: start (plugins_loaded)' );
 
 		// Heal any settings corrupted by the pre-1.1.1 save bug (runs once).
 		Velox_Settings::migrate();
+		Velox_Profile::mark( 'Velox: Velox_Settings::migrate' );
 
 		// Modules.
 		if ( Velox_Settings::get( 'module_images' ) ) {
 			$this->image_optimizer = new Velox_Image_Optimizer();
+			Velox_Profile::mark( 'Velox: Velox_Image_Optimizer' );
 		}
 		if ( Velox_Settings::get( 'module_media' ) ) {
 			$this->media_manager = new Velox_Media_Manager();
+			Velox_Profile::mark( 'Velox: Velox_Media_Manager' );
 		}
 		if ( Velox_Settings::get( 'module_performance' ) ) {
 			$this->performance = new Velox_Performance();
+			Velox_Profile::mark( 'Velox: Velox_Performance' );
 			new Velox_Fonts();
+			Velox_Profile::mark( 'Velox: Velox_Fonts' );
 			Velox_Local_Fonts::init();
+			Velox_Profile::mark( 'Velox: Velox_Local_Fonts::init' );
 			new Velox_CSS();
+			Velox_Profile::mark( 'Velox: Velox_CSS' );
 		}
 		if ( Velox_Settings::get( 'module_database' ) ) {
 			$this->database = new Velox_Database();
+			Velox_Profile::mark( 'Velox: Velox_Database' );
 		}
 
 		// Always-on.
 		$this->ajax    = new Velox_Ajax();
+		Velox_Profile::mark( 'Velox: Velox_Ajax' );
 		$this->updater = new Velox_Updater();
+		Velox_Profile::mark( 'Velox: Velox_Updater' );
 		Velox_Utilities::init();
+		Velox_Profile::mark( 'Velox: Velox_Utilities::init' );
 		Velox_Frontend_Bar::init();
+		Velox_Profile::mark( 'Velox: Velox_Frontend_Bar::init' );
 		Velox_Snippets::init();
+		Velox_Profile::mark( 'Velox: Velox_Snippets::init' );
 		Velox_Stats::init();
+		Velox_Profile::mark( 'Velox: Velox_Stats::init' );
 		Velox_Pagespeed::init();
+		Velox_Profile::mark( 'Velox: Velox_Pagespeed::init' );
 		Velox_Cookies::init();
+		Velox_Profile::mark( 'Velox: Velox_Cookies::init' );
 		Velox_Backup::init();
+		Velox_Profile::mark( 'Velox: Velox_Backup::init' );
 		Velox_Error_Logger::init();
+		Velox_Profile::mark( 'Velox: Velox_Error_Logger::init' );
 		if ( Velox_Settings::get( 'util_october', false ) ) {
 			Velox_October::maybe_install();
+			Velox_Profile::mark( 'Velox: Velox_October::maybe_install' );
 			Velox_October::init();
+			Velox_Profile::mark( 'Velox: Velox_October::init' );
 		}
 		if ( is_admin() ) {
 			Velox_Conflicts::init();
+			Velox_Profile::mark( 'Velox: Velox_Conflicts::init' );
 		}
 		Velox_Redirects::maybe_install();
+		Velox_Profile::mark( 'Velox: Velox_Redirects::maybe_install' );
 		Velox_Redirects::init();
+		Velox_Profile::mark( 'Velox: Velox_Redirects::init' );
 		Velox_Reviews::init();
+		Velox_Profile::mark( 'Velox: Velox_Reviews::init' );
 		Velox_Shop::init();
+		Velox_Profile::mark( 'Velox: Velox_Shop::init' );
 		Velox_A11y::init();
+		Velox_Profile::mark( 'Velox: Velox_A11y::init' );
 		if ( is_admin() ) {
 			Velox_Theme::init();
+			Velox_Profile::mark( 'Velox: Velox_Theme::init' );
 		}
 		Velox_Login_Guard::init();
+		Velox_Profile::mark( 'Velox: Velox_Login_Guard::init' );
 		Velox_Comment_Guard::init();
+		Velox_Profile::mark( 'Velox: Velox_Comment_Guard::init' );
 		Velox_Site_Scan::init();
+		Velox_Profile::mark( 'Velox: Velox_Site_Scan::init' );
 		Velox_Reviews_Oxygen::init();
+		Velox_Profile::mark( 'Velox: Velox_Reviews_Oxygen::init' );
 		Velox_Scripts::init();
+		Velox_Profile::mark( 'Velox: Velox_Scripts::init' );
 		Velox_Cache::init();
+		Velox_Profile::mark( 'Velox: Velox_Cache::init' );
 		if ( Velox_Settings::get( 'module_seo', false ) ) {
 			Velox_Seo::init();
+			Velox_Profile::mark( 'Velox: Velox_Seo::init' );
 			Velox_Ai::init();
+			Velox_Profile::mark( 'Velox: Velox_Ai::init' );
 			Velox_Seo_Columns::init();
+			Velox_Profile::mark( 'Velox: Velox_Seo_Columns::init' );
 		}
 		if ( Velox_Settings::get( 'util_mail' ) ) {
 			Velox_Mail::maybe_install();
+			Velox_Profile::mark( 'Velox: Velox_Mail::maybe_install' );
 			Velox_Mail::init();
+			Velox_Profile::mark( 'Velox: Velox_Mail::init' );
 			Velox_Forms::maybe_install();
+			Velox_Profile::mark( 'Velox: Velox_Forms::maybe_install' );
 			Velox_Forms::init();
+			Velox_Profile::mark( 'Velox: Velox_Forms::init' );
 		}
 
 		if ( Velox_Settings::get( 'util_fields', false ) ) {
 			Velox_Fields::init();
+			Velox_Profile::mark( 'Velox: Velox_Fields::init' );
 			Velox_Post_Types::init();
+			Velox_Profile::mark( 'Velox: Velox_Post_Types::init' );
 		}
 
 		// Velox_Admin always loads so its admin-bar nodes show on the front end too;
 		// its heavy admin-only hooks are gated inside the class.
 		$this->admin = new Velox_Admin();
+		Velox_Profile::mark( 'Velox: Velox_Admin' );
 		if ( is_admin() ) {
 			new Velox_PageMeta();
+			Velox_Profile::mark( 'Velox: Velox_PageMeta' );
 		}
 
 		// Velox Builder — the visual page builder module (opt-in). Boots its own
 		// admin section + standalone editor; upgrades its table if the schema moved.
 		if ( Velox_Builder::is_enabled() ) {
 			Velox_Builder::maybe_upgrade();
+			Velox_Profile::mark( 'Velox: Velox_Builder::maybe_upgrade' );
 			Velox_Builder::instance();
+			Velox_Profile::mark( 'Velox: Velox_Builder::instance' );
 			// Front-end rendering runs on the public side too, so it lives outside
 			// the is_admin() block below.
 			Velox_Builder_Render::init();
+			Velox_Profile::mark( 'Velox: Velox_Builder_Render::init' );
 		}
 	}
 }
