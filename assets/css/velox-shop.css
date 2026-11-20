@@ -813,3 +813,5 @@ body.vxs-paint .vxs-product-more,body.vxs-paint .entry-content,body.vxs-paint .w
 .vxs-bdg-text .vxs-badge.is-new,.vxs-bdg-text .vxs-badge.is-low,.vxs-bdg-text .vxs-badge:not([class*=" is-"]){color:var(--vxs-ink)}
 .vxs-grid.vxs-al-center>.vxs-card>.vxs-card-media,.vxs-grid.vxs-al-center>.vxs-card>.vxs-card-body{align-self:stretch;width:auto}
 .vxs-more-link{width:fit-content;max-width:100%}
+.vxs-count-txt{white-space:nowrap}
+@media (max-width:640px){.vxs-tools-r{flex:1 1 100%;flex-wrap:wrap;margin-left:0}.vxs-count-txt{flex:1 0 100%}.vxs-search{flex:1 1 0;min-width:0}.vxs-search input{width:100%}.vxs-sort{flex:0 1 auto;max-width:52%}}
