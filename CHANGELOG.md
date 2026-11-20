@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.54.0 — Light and dark mode, accessibility menu for visitors
+- **Light or dark, everywhere in Velox:** a small floating switch at the bottom right of every Velox screen flips between light and dark. Its "…" menu sets all of Velox at once, or Velox Builder and Velox Shop on their own (or "same as Velox", or follow the system). Each person chooses for themselves.
+- **Accessibility menu for visitors (Utilities → Accessibility menu):** a button on every page of the site that opens display aids — text size in three steps, more spacing, dark / light / greyscale contrast, a readable font, highlighted links, stop animations, hide images, a big cursor, a reading guide and read-aloud — plus one-click profiles (low vision, dyslexia friendly, seizure safe, focus). Each visitor’s choice stays in their browser and is applied before the page paints.
+- **Obviously on or off:** the settings page opens with a big switch that saves at once and says in words whether visitors see the button. Position, colour, phones, which aids are offered and a link to your accessibility statement are set below it.
+- **Honest about what it does:** the page says plainly that an overlay helps people adjust what they see but does not make a site BFSG / WCAG compliant on its own.
+
 ## 4.53.2 — German storefront, product pages in Builder templates
 - **Visitors read the site language:** shop, forms and other visitor-facing Velox text follow the site language. A German site showed "Add to cart" and "incl. VAT" to its customers, because the Velox language setting only covered wp-admin.
 - **Product pages in your template:** with "wrap pages without a Velox layout" on, Velox Shop product pages sit in your Velox Builder template (header, footer, page title) like any other page.

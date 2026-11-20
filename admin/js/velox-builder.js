@@ -11014,7 +11014,12 @@
 			'.vb-st-row.drop-no[data-droplbl]::after{background:#e5534b;color:#fff;top:50%}',
 			''
 		].join( '' );
-		var s = document.createElement( 'style' ); s.id = 'vb-editor-style'; s.textContent = css; document.head.appendChild( s );
+		// The editor is drawn dark; in light mode (Velox_Theme) its colours are
+		// converted by the same rules as every other Velox screen.
+		var dark = css;
+		function themed( m ) { return 'light' === m && window.VeloxTheme ? window.VeloxTheme.convert( dark, 'light' ) : dark; }
+		var s = document.createElement( 'style' ); s.id = 'vb-editor-style'; s.textContent = themed( window.VeloxTheme ? window.VeloxTheme.mode() : 'dark' ); document.head.appendChild( s );
+		if ( window.VeloxTheme ) { window.VeloxTheme.onChange( function ( m ) { s.textContent = themed( m ); } ); }
 	}
 
 	if ( document.readyState === 'loading' ) { document.addEventListener( 'DOMContentLoaded', mount ); } else { mount(); }

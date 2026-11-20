@@ -271,6 +271,10 @@ final class Velox {
 		Velox_Redirects::init();
 		Velox_Reviews::init();
 		Velox_Shop::init();
+		Velox_A11y::init();
+		if ( is_admin() ) {
+			Velox_Theme::init();
+		}
 		Velox_Login_Guard::init();
 		Velox_Comment_Guard::init();
 		Velox_Site_Scan::init();

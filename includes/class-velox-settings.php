@@ -123,6 +123,22 @@ class Velox_Settings {
 			'util_login_slug'          => '',     // empty = default wp-login; set a slug to move it
 			'util_htmllang'            => false,  // override the <html lang="…"> attribute
 			'util_htmllang_value'      => '',     // BCP-47 tag, e.g. de-DE; empty = leave alone
+			'util_a11y'                => false,  // accessibility menu for visitors
+			'a11y_side'                => 'right',
+			'a11y_color'               => '#1d4ed8',
+			'a11y_mobile'              => true,
+			'a11y_statement'           => '',     // link to the accessibility statement (Barrierefreiheitserklärung)
+			'a11y_f_profiles'          => true,
+			'a11y_f_text'              => true,
+			'a11y_f_spacing'           => true,
+			'a11y_f_contrast'          => true,
+			'a11y_f_font'              => true,
+			'a11y_f_links'             => true,
+			'a11y_f_motion'            => true,
+			'a11y_f_images'            => true,
+			'a11y_f_cursor'            => true,
+			'a11y_f_guide'             => true,
+			'a11y_f_read'              => true,
 			'util_redirects_log_404'   => true,
 			'util_activity'            => false,
 			'util_scripts'             => false,

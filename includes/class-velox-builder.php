@@ -668,7 +668,14 @@ class Velox_Builder {
 	<meta charset="<?php bloginfo( 'charset' ); ?>">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title><?php echo esc_html( $title ); ?> — Velox Builder</title>
-	<link rel="stylesheet" href="<?php echo esc_url( $css_url ); ?>">
+	<?php
+	// Light or dark (Velox_Theme): decided before anything is drawn.
+	if ( class_exists( 'Velox_Theme' ) ) {
+		Velox_Theme::print_boot( 'builder' );
+		$css_url = Velox_Theme::sheet_url( 'velox-builder-admin', Velox_Theme::mode( 'builder' ) );
+	}
+	?>
+	<link rel="stylesheet" id="velox-builder-admin-css" href="<?php echo esc_url( $css_url ); ?>">
 	<script>window.VELOX_BUILDER = <?php echo wp_json_encode( $boot ); ?>;</script>
 	<?php
 	// Print the media library styles + scripts into the head. These must be ALL
@@ -703,6 +710,11 @@ class Velox_Builder {
 	}
 	?>
 	<script src="<?php echo esc_url( VELOX_ASSETS . 'js/velox-select.js?v=' . VELOX_VERSION ); ?>"></script>
+	<?php
+	if ( class_exists( 'Velox_Theme' ) ) {
+		Velox_Theme::print_switch( 'builder' );
+	}
+	?>
 	<script src="<?php echo esc_url( $js_url ); ?>"></script>
 </body>
 </html>
