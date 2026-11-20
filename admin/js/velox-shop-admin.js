@@ -1011,6 +1011,8 @@
 	}
 	function dsSel( k, opts, tpl ) {
 		var t = tpl[ k ], name = ( opts.filter( function ( o ) { return String( o[ 0 ] ) === String( t ); } )[ 0 ] || [ 0, t ] )[ 1 ];
+		// Letter spacing: templates use in-between values; name the nearest step.
+		if ( 'h_track' === k && '' !== String( t ) ) { var n = +t; name = n <= -0.025 ? vxT( 'Tight' ) : ( n <= -0.01 ? vxT( 'A little tight' ) : ( n < 0.01 ? vxT( 'Normal' ) : ( n < 0.04 ? vxT( 'A little wide' ) : vxT( 'Wide' ) ) ) ); }
 		return sel( 'd_' + k, dsVal( k ), [ [ '', vxT( 'Template' ) + ( name ? ' · ' + name : '' ) ] ].concat( opts ) );
 	}
 	function dsColor( k, label, tpl, hint ) { return field( label, colorF( 'd_' + k, dsVal( k ), tpl[ k ] || '', true ), hint ); }
