@@ -394,8 +394,24 @@
 		}, 5000 );
 	}
 
+	/* -------------------------------------------- account menu: centred under its icon, never off-screen */
+	function accMenus() {
+		$$( '.vxa-menu' ).forEach( function ( m ) {
+			var pop = $( '.vxa-pop', m ); if ( ! pop ) { return; }
+			function place() {
+				pop.style.setProperty( '--vxa-dx', '0px' );
+				var r = m.getBoundingClientRect(), w = pop.offsetWidth, c = r.left + r.width / 2, vw = document.documentElement.clientWidth, pad = 12, dx = 0;
+				if ( c + w / 2 > vw - pad ) { dx = vw - pad - ( c + w / 2 ); }
+				if ( c - w / 2 + dx < pad ) { dx = pad - ( c - w / 2 ); }
+				pop.style.setProperty( '--vxa-dx', Math.round( dx ) + 'px' );
+			}
+			m.addEventListener( 'mouseenter', place ); m.addEventListener( 'focusin', place );
+		} );
+	}
+
 	source();
 	buyBoxes();
+	accMenus();
 	checkout();
 	gridTools();
 	lightbox();

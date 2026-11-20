@@ -140,6 +140,9 @@ class Velox_Shop {
 			'pickup_address' => '',
 			// Payments (Velox_Shop_Pay::methods() lists them; order = display order)
 			'pay_order'       => array( 'stripe', 'paypal', 'bank', 'invoice', 'cod' ),
+			'stripe_methods'  => array(), // empty = what is switched on in the Stripe dashboard
+			'invoice_max'     => '',      // invoice only up to this order value
+			'cod_max'         => '',      // cash on delivery only up to this order value
 			'pay_bank'        => '1',
 			'bank_owner'      => '',
 			'bank_iban'       => '',
@@ -624,6 +627,28 @@ class Velox_Shop {
 			}
 		}
 		return $dir['url'] . '/' . $key . '/' . $key . '.css?v=' . (int) @filemtime( $css ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+	}
+
+	/**
+	 * A date for customers, in the shop's language. German shops write
+	 * "20. November 2026, 14:18" even when WordPress has no German language
+	 * files installed (then wp_date() would say "November 20, 2026, 2:18 pm").
+	 * $month_year: just "November 2026".
+	 */
+	public static function date( $ts, $time = false, $month_year = false ) {
+		$ts = (int) $ts;
+		if ( 'de' === strtolower( substr( (string) get_locale(), 0, 2 ) ) ) {
+			$m = array( 1 => 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember' );
+			$month = $m[ (int) wp_date( 'n', $ts ) ];
+			if ( $month_year ) {
+				return $month . ' ' . wp_date( 'Y', $ts );
+			}
+			return wp_date( 'j', $ts ) . '. ' . $month . ' ' . wp_date( 'Y', $ts ) . ( $time ? ', ' . wp_date( 'H:i', $ts ) . ' Uhr' : '' );
+		}
+		if ( $month_year ) {
+			return wp_date( 'F Y', $ts );
+		}
+		return wp_date( get_option( 'date_format' ) . ( $time ? ', ' . get_option( 'time_format' ) : '' ), $ts );
 	}
 
 	public static function small_business() {
@@ -1898,7 +1923,7 @@ class Velox_Shop {
 				/* translators: %s: order number */
 				$subject = sprintf( __( 'We have received your withdrawal for %s', 'velox' ), $num );
 				/* translators: %s: date and time */
-				$intro   = sprintf( __( 'we confirm that we received your withdrawal on %s. We will be in touch about the return and the refund.', 'velox' ), esc_html( wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), (int) ( $o['withdrawal']['at'] ?? time() ) ) ) );
+				$intro   = sprintf( __( 'we confirm that we received your withdrawal on %s. We will be in touch about the return and the refund.', 'velox' ), esc_html( self::date( (int) ( $o['withdrawal']['at'] ?? time() ), true ) ) );
 				break;
 			case 'reminder':
 				/* translators: %s: order number */

@@ -4,6 +4,22 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.62.0 — Safer customer accounts, editable orders, payouts
+- **Password changes go through the inbox:** the Security tab no longer has a password form. Customers get an email with a link; with two-factor sign-in on, the code from the app is needed too. Afterwards every device is signed out and the customer gets a short security notice. The tab shows when the password was last changed.
+- **Email changes need confirming:** a new address only counts once the link sent to it is clicked (within an hour, while signed in to that account). The old address gets a note with a link that stops the change. Password (and the two-factor code, if on) are asked first, and repeated requests are limited.
+- **New: Velox Shop → Payouts.** What came in per payment method, what is still open, and where the money is now: the Stripe balance (available and on the way), the bank it goes to, the payout schedule and the latest payouts — with a button to pay out now when Stripe is set to manual payouts — the PayPal balance (when the app may read it) with a link to transfer it, and what goes straight to your own account by bank transfer, invoice or cash on delivery.
+- **Choose what customers can pay with at Stripe:** cards (with Apple Pay and Google Pay), SEPA Direct Debit, Klarna, PayPal, EPS, iDEAL, Bancontact, Przelewy24, Link — or leave it to the Stripe dashboard. If Stripe cannot offer a chosen method for an order, the checkout falls back to the automatic choice instead of failing.
+- **Invoice and cash on delivery up to a limit:** offer them only up to an order value you set.
+- **Edit orders:** for unpaid orders (bank transfer, invoice, cash on delivery) change quantities and prices, remove or add products, set the shipping cost and a discount, or switch the payment method. Stock, VAT and the total are worked out again, the timeline notes the change, and the customer can get the updated order by email. Paid, shipped or invoiced orders say why they are locked.
+- **Customers:** their orders are whole clickable rows that open the order; payment and delivery state show once (no more “Cancelled Cancelled”).
+- **WordPress menu:** Revenue and Payouts are in the Velox Shop menu on the left, in the same order as the shop’s own bar, and the current screen is highlighted there.
+- **No focus frame after clicking:** the shop admin no longer shows WordPress’s coloured frame on tabs and buttons after a click; keyboard users still see where they are.
+- **Account menu in the header:** it now opens centred under the icon with a small pointer, and moves inward when the icon is close to the edge of the screen.
+- **Country fields:** the arrow of every select in the shop (address, checkout) keeps a proper distance from the edge.
+- **Address prefilled:** customers who have not saved an address yet see the one from their latest order, ready to save.
+- **Dates in German:** account, order pages, invoices and emails write “20. November 2026, 14:18 Uhr” even when WordPress has no German language files installed.
+- **Real addresses behind Cloudflare:** signed-in devices show the visitor’s address instead of a Cloudflare server’s, and sign-in limits count per visitor instead of per Cloudflare server.
+
 ## 4.61.0 — Shop design system, storefront tools, a real colour picker
 - **Ten new shop templates, built from real shops:** Velox, Atelier (art and handmade), Nordic (home and furniture), Maison (fragrance, beauty, jewellery), Journal (editorial rows), Bold (streetwear, sport), Candy (beauty, kids, gifts), Circuit (tech), Noir (a truly dark shop) and Manufaktur (tools, kitchen) — plus “Your own design”, which takes the site’s colours and fonts. Each one is a complete set: colours, fonts, card style, photo shape, buttons, badges, hover and product page.
 - **Noir is really dark now:** the whole shop page takes the template’s colour (switchable), and text, badges, fields and the mini cart stay readable on it. Before, choices made on an earlier template kept “Night” white.

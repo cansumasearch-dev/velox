@@ -77,7 +77,8 @@ class Velox_Shop_Admin {
 			'data:image/svg+xml;base64,' . base64_encode( '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#a7aaad" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg>' ),
 			100.9
 		);
-		foreach ( array( '' => __( 'Overview', 'velox' ), 'orders' => __( 'Orders', 'velox' ), 'products' => __( 'Products', 'velox' ), 'coupons' => __( 'Coupons', 'velox' ), 'customers' => __( 'Customers', 'velox' ), 'settings' => __( 'Settings', 'velox' ) ) as $k => $l ) {
+		// The same sections, in the same order, as the shop's own bar.
+		foreach ( array( '' => __( 'Overview', 'velox' ), 'revenue' => __( 'Revenue', 'velox' ), 'payouts' => __( 'Payouts', 'velox' ), 'orders' => __( 'Orders', 'velox' ), 'products' => __( 'Products', 'velox' ), 'coupons' => __( 'Coupons', 'velox' ), 'customers' => __( 'Customers', 'velox' ), 'settings' => __( 'Settings', 'velox' ) ) as $k => $l ) {
 			add_submenu_page( self::SLUG, 'Velox Shop — ' . $l, $l, self::CAP, '' === $k ? self::SLUG : self::SLUG . '#/' . $k, '' === $k ? array( __CLASS__, 'render' ) : '__return_null' );
 		}
 	}
@@ -142,6 +143,8 @@ class Velox_Shop_Admin {
 			'countries' => Velox_Shop::countries(),
 			'methods'   => $methods,
 			'designs'   => Velox_Shop::presets(),
+			'stripeTypes' => Velox_Shop_Pay::stripe_types(),
+			'currencyCode' => strtoupper( (string) Velox_Shop::get( 'currency', 'EUR' ) ),
 			'fonts'     => array_map( function ( $f ) { return array( $f[0], $f[1] ); }, Velox_Shop::fonts() ),
 			'mails'     => $mails,
 			'pages'     => $pages,
@@ -376,6 +379,8 @@ class Velox_Shop_Admin {
 		$o['address_html'] = Velox_Shop::address_html( $o['customer'] );
 		$o['ship_html']    = $o['ship_to'] ? Velox_Shop::address_html( $o['ship_to'] ) : '';
 		$o['methodLabel']  = Velox_Shop_Pay::label( $o['payment']['method'] );
+		$o['editWhy']      = self::edit_block( $o );
+		$o['editable']     = '' === $o['editWhy'];
 		$o['instructions'] = 'pending' === $o['payment']['status'] ? wp_strip_all_tags( str_replace( array( '<br>', '</div>', '</dd>' ), array( "\n", "\n", "\n" ), Velox_Shop_Pay::instructions_html( $o ) ) ) : '';
 		foreach ( $o['items'] as &$i ) {
 			$i['thumb'] = ! empty( $i['pid'] ) ? get_the_post_thumbnail_url( (int) $i['pid'], 'thumbnail' ) : '';
@@ -387,6 +392,219 @@ class Velox_Shop_Admin {
 		}
 		$o['others'] = array_values( array_filter( array_map( array( __CLASS__, 'order_row' ), $other ) ) );
 		return $o;
+	}
+
+	/**
+	 * Why an order cannot be edited any more ('' = it can). Money that has
+	 * moved, an invoice that exists or a parcel that left all fix the order.
+	 */
+	private static function edit_block( $o ) {
+		$pay = $o['payment']['status'];
+		if ( 'cancelled' === $pay || 'cancelled' === $o['fulfil']['status'] ) {
+			return __( 'Reopen the order first, then change it.', 'velox' );
+		}
+		if ( 'pending' !== $pay ) {
+			return __( 'This order is paid, so its items can no longer change. Refund the difference, or cancel it and take a new order.', 'velox' );
+		}
+		if ( in_array( $o['fulfil']['status'], array( 'shipped', 'ready', 'delivered', 'done' ), true ) ) {
+			return __( 'This order has already been shipped.', 'velox' );
+		}
+		if ( ! empty( $o['invoice']['number'] ) ) {
+			return __( 'An invoice exists for this order; invoices must not change afterwards. Cancel it and take a new order instead.', 'velox' );
+		}
+		if ( in_array( $o['payment']['method'], array( 'stripe', 'paypal' ), true ) && ! empty( $o['payment']['session'] ) ) {
+			return __( 'The customer was sent to pay online with the old total. Switch the payment method to bank transfer or invoice in a new order, or wait until it is paid or cancelled.', 'velox' );
+		}
+		return '';
+	}
+
+	/**
+	 * Payouts: what came in per payment method, and where the money is now —
+	 * at Stripe, at PayPal, or already on the shop's own account.
+	 */
+	private static function do_payouts( $in ) {
+		$fresh = ! empty( $in['fresh'] );
+		$days  = 30;
+		$ids   = get_posts( array( 'post_type' => Velox_Shop::ORDER, 'post_status' => 'publish', 'numberposts' => 2000, 'fields' => 'ids', 'date_query' => array( array( 'after' => gmdate( 'Y-m-d H:i:s', time() - $days * DAY_IN_SECONDS ) ) ) ) );
+		$by    = array();
+		foreach ( array_keys( Velox_Shop_Pay::methods() ) as $m ) {
+			if ( 'manual' !== $m ) {
+				$by[ $m ] = array( 'key' => $m, 'label' => Velox_Shop_Pay::label( $m ), 'on' => Velox_Shop_Pay::ready( $m ), 'paid' => 0.0, 'open' => 0.0, 'n' => 0, 'nOpen' => 0 );
+			}
+		}
+		foreach ( $ids as $id ) {
+			$o = Velox_Shop::order( $id );
+			$m = $o ? $o['payment']['method'] : '';
+			if ( ! isset( $by[ $m ] ) ) {
+				continue;
+			}
+			if ( in_array( $o['payment']['status'], array( 'paid', 'partial' ), true ) ) {
+				$by[ $m ]['paid'] += $o['total'] - (float) $o['payment']['refunded'];
+				$by[ $m ]['n']++;
+			} elseif ( 'pending' === $o['payment']['status'] && in_array( $m, array( 'bank', 'invoice', 'cod' ), true ) ) {
+				$by[ $m ]['open'] += $o['total'];
+				$by[ $m ]['nOpen']++;
+			}
+		}
+		$iban = preg_replace( '/\s+/', '', (string) Velox_Shop::get( 'bank_iban', '' ) );
+		return array(
+			'days'    => $days,
+			'methods' => array_values( $by ),
+			'stripe'  => Velox_Shop_Pay::stripe_money( $fresh ),
+			'paypal'  => Velox_Shop_Pay::paypal_money( $fresh ),
+			'iban'    => '' !== $iban ? substr( $iban, 0, 4 ) . ' ···· ' . substr( $iban, -4 ) : '',
+			'owner'   => (string) Velox_Shop::get( 'bank_owner', '' ),
+		);
+	}
+
+	private static function do_payout_now() {
+		$r = Velox_Shop_Pay::stripe_payout();
+		return is_wp_error( $r ) ? $r : array( 'msg' => $r, 'stripe' => Velox_Shop_Pay::stripe_money( true ) );
+	}
+
+	/** Products for "add a product" when editing an order. */
+	private static function do_order_pick() {
+		$out = array();
+		foreach ( get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'numberposts' => 400, 'orderby' => 'title', 'order' => 'ASC' ) ) as $post ) {
+			$p = Velox_Shop::product( $post->ID );
+			if ( ! $p ) {
+				continue;
+			}
+			$row = array( 'id' => (int) $p['id'], 'title' => $p['title'], 'price' => Velox_Shop::price_of( $p ), 'can' => Velox_Shop::can_buy( $p, null, 1 ), 'variants' => array() );
+			if ( Velox_Shop::has_variants( $p ) ) {
+				foreach ( $p['variants'] as $v ) {
+					if ( ! empty( $v['off'] ) ) {
+						continue;
+					}
+					$row['variants'][] = array( 'id' => (string) $v['id'], 'label' => self::variant_label( $p, $v ), 'price' => Velox_Shop::price_of( $p, $v ), 'can' => Velox_Shop::can_buy( $p, $v, 1 ) );
+				}
+			}
+			$out[] = $row;
+		}
+		$methods = array();
+		foreach ( array( 'bank', 'invoice', 'cod' ) as $m ) {
+			if ( Velox_Shop_Pay::ready( $m ) ) {
+				$methods[] = array( 'key' => $m, 'label' => Velox_Shop_Pay::label( $m ) );
+			}
+		}
+		$cod = Velox_Shop::num( Velox_Shop::get( 'cod_fee' ) );
+		return array( 'products' => $out, 'methods' => $methods, 'codFee' => null === $cod ? 0 : $cod );
+	}
+
+	private static function variant_label( $p, $v ) {
+		$l = array();
+		foreach ( $p['options'] as $i => $opt ) {
+			$l[] = $opt['name'] . ': ' . ( $v['opts'][ $i ] ?? '' );
+		}
+		return implode( ', ', $l );
+	}
+
+	/** New items, prices, shipping, discount or payment method; stock, VAT and total follow. */
+	private static function edit_order( $id, $o, $in ) {
+		$why = self::edit_block( $o );
+		if ( '' !== $why ) {
+			return new WP_Error( 'x', $why );
+		}
+		$rows = array_slice( (array) ( $in['items'] ?? array() ), 0, 100 );
+		if ( ! $rows ) {
+			return new WP_Error( 'x', __( 'An order needs at least one item. Cancel it instead.', 'velox' ) );
+		}
+		$before = $o['total'];
+		$old    = $o['items'];
+		$items  = array();
+		foreach ( $rows as $r ) {
+			$pid  = (int) ( $r['pid'] ?? 0 );
+			$vid  = sanitize_text_field( (string) ( $r['vid'] ?? '' ) );
+			$qty  = max( 1, min( 999, (int) ( $r['qty'] ?? 1 ) ) );
+			$unit = Velox_Shop::num( $r['unit'] ?? '' );
+			$line = null;
+			foreach ( $old as $k => $ol ) {
+				if ( (int) ( $ol['pid'] ?? 0 ) === $pid && (string) ( $ol['vid'] ?? '' ) === $vid && ( $pid || (string) $ol['name'] === (string) ( $r['name'] ?? '' ) ) ) {
+					$line = $ol;
+					unset( $old[ $k ] );
+					break;
+				}
+			}
+			if ( ! $line ) {
+				$p = Velox_Shop::product( $pid );
+				if ( ! $p ) {
+					continue;
+				}
+				$v    = '' !== $vid ? Velox_Shop::variant( $p, $vid ) : null;
+				$line = array(
+					'pid' => $pid, 'vid' => $v ? (string) $v['id'] : '', 'name' => $p['title'], 'variant' => $v ? self::variant_label( $p, $v ) : '',
+					'sku' => $v && '' !== (string) $v['sku'] ? $v['sku'] : $p['sku'], 'unit' => Velox_Shop::price_of( $p, $v ),
+					'rate' => Velox_Shop::rate( $p['tax'] ), 'type' => $p['type'], 'delivery' => $p['delivery'],
+				);
+			}
+			$line['qty']   = $qty;
+			$line['unit']  = null === $unit ? (float) $line['unit'] : max( 0, Velox_Shop::r( $unit ) );
+			$line['total'] = Velox_Shop::r( $line['unit'] * $qty );
+			$line['tax']   = Velox_Shop::tax_in( $line['total'], (float) $line['rate'] );
+			$items[]       = $line;
+		}
+		if ( ! $items ) {
+			return new WP_Error( 'x', __( 'An order needs at least one item. Cancel it instead.', 'velox' ) );
+		}
+		// Stock: everything back, then the new lines out again.
+		Velox_Shop::restock( $o );
+		foreach ( $items as $i ) {
+			if ( ! empty( $i['pid'] ) ) {
+				Velox_Shop::adjust_stock( $i['pid'], $i['vid'] ?? '', -$i['qty'] );
+			}
+		}
+		$o['stock_out'] = 1;
+		$o['items']     = $items;
+		// Payment method: only the ones that need no online step.
+		$m = sanitize_key( (string) ( $in['method'] ?? $o['payment']['method'] ) );
+		if ( $m !== $o['payment']['method'] && in_array( $m, array( 'bank', 'invoice', 'cod' ), true ) && Velox_Shop_Pay::ready( $m ) ) {
+			$o['payment']['method'] = $m;
+		}
+		$sub = 0.0;
+		foreach ( $items as $i ) {
+			$sub += $i['total'];
+		}
+		$sub  = Velox_Shop::r( $sub );
+		$disc = Velox_Shop::num( $in['discount'] ?? $o['discount'] );
+		$o['subtotal'] = $sub;
+		$o['discount'] = min( $sub, max( 0, Velox_Shop::r( null === $disc ? 0 : $disc ) ) );
+		if ( $o['shipping'] && 'none' !== ( $o['shipping']['id'] ?? '' ) ) {
+			$sc = Velox_Shop::num( $in['ship'] ?? $o['shipping']['cost'] );
+			$o['shipping']['cost'] = max( 0, Velox_Shop::r( null === $sc ? 0 : $sc ) );
+		}
+		$fee      = Velox_Shop::num( Velox_Shop::get( 'cod_fee' ) );
+		$o['fee'] = 'cod' === $o['payment']['method'] ? Velox_Shop::r( null === $fee ? 0 : $fee ) : 0;
+		$ship     = $o['shipping'] ? (float) $o['shipping']['cost'] : 0;
+		// VAT like at checkout: lines carry their rate, the discount lowers them all alike.
+		$goods = Velox_Shop::r( $sub - $o['discount'] );
+		$share = $sub > 0 ? $goods / $sub : 0;
+		$tl    = array();
+		if ( empty( $o['small'] ) ) {
+			foreach ( $items as $i ) {
+				if ( (float) $i['rate'] > 0 ) {
+					$k        = (string) $i['rate'];
+					$tl[ $k ] = ( $tl[ $k ] ?? 0 ) + Velox_Shop::tax_in( $i['total'] * $share, (float) $i['rate'] );
+				}
+			}
+			$std = Velox_Shop::rate( 'standard' );
+			if ( $std > 0 && ( $ship + $o['fee'] ) > 0 ) {
+				$tl[ (string) $std ] = ( $tl[ (string) $std ] ?? 0 ) + Velox_Shop::tax_in( $ship + $o['fee'], $std );
+			}
+		}
+		$o['tax_lines'] = array_map( array( 'Velox_Shop', 'r' ), $tl );
+		$o['tax']       = Velox_Shop::r( array_sum( $o['tax_lines'] ) );
+		$o['total']     = Velox_Shop::r( $goods + $ship + $o['fee'] );
+		/* translators: 1: old total, 2: new total */
+		$text = sprintf( __( 'Order changed: %1$s → %2$s.', 'velox' ), Velox_Shop::money( $before ), Velox_Shop::money( $o['total'] ) );
+		Velox_Shop::note( $o, $text, ! empty( $in['tell'] ) );
+		Velox_Shop::save_order( $id, $o );
+		if ( ! empty( $in['tell'] ) && is_email( $o['customer']['email'] ) ) {
+			/* translators: %s: order number */
+			$subject = sprintf( __( 'Your order %s was updated', 'velox' ), $o['number'] );
+			$lead    = __( 'We have updated your order as agreed. Here is how it looks now:', 'velox' );
+			wp_mail( $o['customer']['email'], $subject, Velox_Shop::mail_layout( '<p>' . esc_html( $lead ) . '</p>' . Velox_Shop::summary_html( $o ) . Velox_Shop_Pay::instructions_html( $o, true ) . Velox_Shop::mail_button( Velox_Shop_Front::order_url( $o ), __( 'View your order', 'velox' ) ), $subject ), array( 'Content-Type: text/html; charset=UTF-8' ) );
+		}
+		return array( 'order' => self::order_out( Velox_Shop::order( $id ) ), 'msg' => ! empty( $in['tell'] ) ? __( 'Saved. The customer has the updated order.', 'velox' ) : __( 'Saved.', 'velox' ) );
 	}
 
 	private static function do_order( $in ) {
@@ -445,6 +663,8 @@ class Velox_Shop_Admin {
 				Velox_Shop::record_refund( $id, $amount, ! empty( $in['restock'] ), $ref );
 				$msg = ! empty( $in['api'] ) ? __( 'Refunded through the payment provider.', 'velox' ) : __( 'Refund recorded. Remember to transfer the money.', 'velox' );
 				break;
+			case 'edit':
+				return self::edit_order( $id, $o, $in );
 			case 'note':
 				$text = sanitize_textarea_field( (string) ( $in['text'] ?? '' ) );
 				if ( '' === $text ) {
@@ -1430,6 +1650,9 @@ class Velox_Shop_Admin {
 		}
 		if ( 'pay_order' === $key ) {
 			return array_values( array_intersect( array_map( 'sanitize_key', $v ), array_keys( Velox_Shop_Pay::methods() ) ) );
+		}
+		if ( 'stripe_methods' === $key ) {
+			return array_values( array_intersect( array_map( 'sanitize_key', $v ), array_keys( Velox_Shop_Pay::stripe_types() ) ) );
 		}
 		if ( 'mail_off' === $key ) {
 			return array_values( array_intersect( array_map( 'sanitize_key', $v ), array_keys( Velox_Shop::mail_types() ) ) );

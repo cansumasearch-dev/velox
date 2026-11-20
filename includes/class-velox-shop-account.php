@@ -32,6 +32,9 @@ class Velox_Shop_Account {
 	/** True while our own sign-in checks the password (the 2FA step follows). */
 	private static $in_flow = false;
 
+	/** A new email address waiting for its confirmation link. */
+	const EMAIL_P = 'velox_email_pending';
+
 	public static function init() {
 		add_action( 'init', array( __CLASS__, 'role' ) );
 		add_action( 'template_redirect', array( __CLASS__, 'handle' ), 4 );
@@ -41,6 +44,7 @@ class Velox_Shop_Account {
 		add_filter( 'authenticate', array( __CLASS__, 'block_login' ), 99 );
 		add_filter( 'authenticate', array( __CLASS__, 'require_2fa' ), 100 );
 		add_action( 'wp_login', array( __CLASS__, 'seen' ), 10, 2 );
+		add_filter( 'attach_session_information', array( __CLASS__, 'session_ip' ) );
 	}
 
 	/** A customer the shop has locked cannot sign in (staff accounts are never locked here). */
@@ -119,8 +123,59 @@ class Velox_Shop_Account {
 		exit;
 	}
 
+	/**
+	 * The visitor's address. Behind Cloudflare, REMOTE_ADDR is one of
+	 * Cloudflare's servers (many visitors share it); its header is trusted
+	 * only when the request really comes from a Cloudflare address.
+	 */
+	public static function visitor_ip() {
+		$r = isset( $_SERVER['REMOTE_ADDR'] ) ? (string) $_SERVER['REMOTE_ADDR'] : '';
+		if ( ! empty( $_SERVER['HTTP_CF_CONNECTING_IP'] ) && self::is_cf( $r ) ) {
+			$c = trim( (string) wp_unslash( $_SERVER['HTTP_CF_CONNECTING_IP'] ) ); // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- validated below
+			if ( filter_var( $c, FILTER_VALIDATE_IP ) ) {
+				return $c;
+			}
+		}
+		return filter_var( $r, FILTER_VALIDATE_IP ) ? $r : '';
+	}
+
+	/** Is this one of Cloudflare's published addresses? */
+	public static function is_cf( $ip ) {
+		$ranges = array( '173.245.48.0/20', '103.21.244.0/22', '103.22.200.0/22', '103.31.4.0/22', '141.101.64.0/18', '108.162.192.0/18', '190.93.240.0/20', '188.114.96.0/20', '197.234.240.0/22', '198.41.128.0/17', '162.158.0.0/15', '104.16.0.0/13', '104.24.0.0/14', '172.64.0.0/13', '131.0.72.0/22',
+			'2400:cb00::/32', '2606:4700::/32', '2803:f800::/32', '2405:b500::/32', '2405:8100::/32', '2a06:98c0::/29', '2c0f:f248::/32' );
+		$bin = @inet_pton( (string) $ip ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
+		if ( false === $bin ) {
+			return false;
+		}
+		foreach ( $ranges as $r ) {
+			list( $net, $bits ) = explode( '/', $r );
+			$nb = inet_pton( $net );
+			if ( strlen( $nb ) !== strlen( $bin ) ) {
+				continue;
+			}
+			$bytes = intdiv( (int) $bits, 8 );
+			$rest  = (int) $bits % 8;
+			if ( substr( $bin, 0, $bytes ) !== substr( $nb, 0, $bytes ) ) {
+				continue;
+			}
+			if ( 0 === $rest || ( ( ord( $bin[ $bytes ] ) ^ ord( $nb[ $bytes ] ) ) & ( 0xFF << ( 8 - $rest ) ) & 0xFF ) === 0 ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	/** WordPress stores REMOTE_ADDR with each sign-in; keep the real one beside it. */
+	public static function session_ip( $info ) {
+		$ip = self::visitor_ip();
+		if ( '' !== $ip ) {
+			$info['vx_ip'] = $ip;
+		}
+		return $info;
+	}
+
 	private static function ip_limit( $what, $max, $minutes ) {
-		$k = 'velox_acc_' . $what . '_' . md5( (string) ( $_SERVER['REMOTE_ADDR'] ?? '' ) );
+		$k = 'velox_acc_' . $what . '_' . md5( self::visitor_ip() );
 		$n = (int) get_transient( $k );
 		if ( $n >= $max ) {
 			return false;
@@ -172,6 +227,13 @@ class Velox_Shop_Account {
 			'delete-check' => array( 'err', __( 'Please tick the box to confirm.', 'velox' ) ),
 			'expired'      => array( 'err', __( 'The page had expired. Please try again.', 'velox' ) ),
 			'signed-out'   => array( 'ok', __( 'You are signed out.', 'velox' ) ),
+			'pw-sent'      => array( 'ok', __( 'We have sent you an email with a link to change your password. It works for 24 hours.', 'velox' ) ),
+			'pw-changed'   => array( 'ok', __( 'Your new password is set. For your safety you were signed out on every device — sign in with the new password.', 'velox' ) ),
+			'email-sent'   => array( 'ok', __( 'Almost done: we sent a link to your new address. Your email changes as soon as you click it (within one hour).', 'velox' ) ),
+			'email-cancel' => array( 'ok', __( 'The change of email address was cancelled. Nothing has changed.', 'velox' ) ),
+			'email-bad'    => array( 'err', __( 'This confirmation link is no longer valid. Please start the change again.', 'velox' ) ),
+			'email-same'   => array( 'err', __( 'That is already your email address.', 'velox' ) ),
+			'too-many'     => array( 'err', __( 'Please wait a little before asking for another email.', 'velox' ) ),
 		);
 	}
 
@@ -193,6 +255,10 @@ class Velox_Shop_Account {
 				wp_logout();
 				self::go( '', 'signed-out' );
 			}
+		}
+		// Links from the email-change mails (the token is the proof, no nonce).
+		if ( isset( $_GET['vxa'] ) && in_array( $_GET['vxa'], array( 'email-confirm', 'email-cancel' ), true ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			self::email_link( sanitize_key( wp_unslash( $_GET['vxa'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 		}
 		if ( 'POST' !== ( $_SERVER['REQUEST_METHOD'] ?? '' ) || empty( $_POST['velox_shop_acc'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			return;
@@ -228,11 +294,18 @@ class Velox_Shop_Account {
 			case 'address':
 				self::do_address();
 				break;
-			case 'password':
-				self::do_password();
+			case 'password_link':
+				self::do_password_link();
 				break;
 			case 'email':
 				self::do_email();
+				break;
+			case 'email_resend':
+				self::do_email_resend();
+				break;
+			case 'email_drop':
+				delete_user_meta( get_current_user_id(), self::EMAIL_P );
+				self::go( 'details', 'email-cancel' );
 				break;
 			case 'export':
 				self::do_export();
@@ -550,18 +623,20 @@ class Velox_Shop_Account {
 	 * Email a link to choose a new password. $invite: the shop made the account,
 	 * so the mail says "choose your password" instead of "someone asked".
 	 */
-	public static function send_reset( $user, $invite = false ) {
+	public static function send_reset( $user, $invite = false, $change = false ) {
 		$key = get_password_reset_key( $user );
 		if ( is_wp_error( $key ) ) {
 			return $key;
 		}
 		$store = (string) Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) );
 		$link  = self::url( 'reset', array( 'key' => $key, 'login' => rawurlencode( $user->user_login ) ) );
-		$title = $invite ? __( 'Your customer account is ready', 'velox' ) : __( 'Set a new password', 'velox' );
+		$title = $invite ? __( 'Your customer account is ready', 'velox' ) : ( $change ? __( 'Change your password', 'velox' ) : __( 'Set a new password', 'velox' ) );
 		$text  = $invite
 			/* translators: %s: shop name */
 			? sprintf( __( 'We have set up a customer account for you at %s. In it you see your orders, invoices and downloads. Choose your password with the button below — the link works for 24 hours.', 'velox' ), $store )
-			: __( 'Someone asked to set a new password for your customer account. If that was you, choose a new password with the button below. The link works for 24 hours.', 'velox' );
+			: ( $change
+				? __( 'You asked to change the password of your customer account. Choose the new one with the button below. The link works for 24 hours; afterwards every device is signed out.', 'velox' )
+				: __( 'Someone asked to set a new password for your customer account. If that was you, choose a new password with the button below. The link works for 24 hours.', 'velox' ) );
 		$body  = '<h1 style="margin:0 0 12px;font-size:22px">' . esc_html( $title ) . '</h1>'
 			. '<p style="margin:0">' . esc_html( $text ) . '</p>'
 			. Velox_Shop::mail_button( $link, $invite ? __( 'Choose my password', 'velox' ) : __( 'Set a new password', 'velox' ) )
@@ -582,10 +657,29 @@ class Velox_Shop_Account {
 		if ( $pass !== self::pw( 'vx_pass2' ) ) {
 			self::go( 'reset', 'pass-match', array( 'key' => self::p( 'vx_key', 80 ), 'login' => rawurlencode( $login ) ) );
 		}
+		// With two-factor sign-in on, the email alone is not enough: the code too.
+		if ( self::has_2fa( $user->ID ) && ! self::check_code( $user->ID, self::p( 'vx_code', 40 ) ) ) {
+			self::go( 'reset', '2fa-bad', array( 'key' => self::p( 'vx_key', 80 ), 'login' => rawurlencode( $login ) ) );
+		}
 		// A customer resetting their password is no news for the shop owner's inbox.
 		remove_action( 'after_password_reset', 'wp_password_change_notification' );
 		reset_password( $user, $pass );
-		self::go( 'login', 'reset-ok' );
+		update_user_meta( $user->ID, 'velox_pw_changed', time() );
+		// Whoever might have known the old password is out, on every device.
+		WP_Session_Tokens::get_instance( $user->ID )->destroy_all();
+		wp_clear_auth_cookie();
+		wp_set_current_user( 0 );
+		self::security_mail( $user, __( 'Your password was changed', 'velox' ), __( 'The password of your customer account has just been changed, and every device was signed out.', 'velox' ) );
+		self::go( 'login', 'pw-changed' );
+	}
+
+	/** A short security notice to the customer ("this just happened"). */
+	private static function security_mail( $user, $title, $text, $to = '' ) {
+		$store = (string) Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) );
+		$body  = '<h1 style="margin:0 0 12px;font-size:22px">' . esc_html( $title ) . '</h1><p style="margin:0">' . esc_html( $text ) . '</p>'
+			. '<p style="margin:16px 0 0;color:#6b7280;font-size:13px">' . esc_html( sprintf( /* translators: %s: date and time */ __( 'When: %s', 'velox' ), Velox_Shop::date( time(), true ) ) ) . '</p>'
+			. '<p style="margin:22px 0 0;color:#6b7280;font-size:13px">' . esc_html__( 'If this was not you, reply to this email right away so we can lock the account.', 'velox' ) . '</p>';
+		return wp_mail( '' !== $to ? $to : $user->user_email, $title . ' — ' . $store, Velox_Shop::mail_layout( $body, $title ), array( 'Content-Type: text/html; charset=UTF-8' ) );
 	}
 
 	private static function do_profile() {
@@ -599,39 +693,113 @@ class Velox_Shop_Account {
 		self::go( 'details', 'saved' );
 	}
 
-	private static function do_password() {
+	/** Changing the password goes through the inbox: a link, never a form here. */
+	private static function do_password_link() {
 		$u = wp_get_current_user();
-		if ( ! wp_check_password( self::pw( 'vx_cur' ), $u->user_pass, $u->ID ) ) {
-			self::go( 'details', 'pass-wrong' );
+		$k = 'velox_pwlink_' . $u->ID;
+		if ( (int) get_transient( $k ) >= 3 ) {
+			self::go( 'security', 'too-many' );
 		}
-		$new = self::pw( 'vx_pass' );
-		if ( strlen( $new ) < 8 ) {
-			self::go( 'details', 'reg-pass' );
-		}
-		if ( $new !== self::pw( 'vx_pass2' ) ) {
-			self::go( 'details', 'pass-match' );
-		}
-		wp_set_password( $new, $u->ID );
-		// wp_set_password ends every session: sign this one back in.
-		wp_set_current_user( $u->ID );
-		wp_set_auth_cookie( $u->ID, true, is_ssl() );
-		self::go( 'details', 'pass-ok' );
+		set_transient( $k, (int) get_transient( $k ) + 1, HOUR_IN_SECONDS );
+		self::send_reset( $u, false, true );
+		self::go( 'security', 'pw-sent' );
 	}
 
+	/**
+	 * A new email address counts only once it is confirmed from that inbox;
+	 * the old address gets a note with a link to stop it.
+	 */
 	private static function do_email() {
 		$u = wp_get_current_user();
 		if ( ! wp_check_password( self::pw( 'vx_cur' ), $u->user_pass, $u->ID ) ) {
 			self::go( 'details', 'pass-wrong' );
 		}
+		if ( self::has_2fa( $u->ID ) && ! self::check_code( $u->ID, self::p( 'vx_code', 40 ) ) ) {
+			self::go( 'details', '2fa-bad' );
+		}
 		$new = sanitize_email( self::p( 'vx_email', 120 ) );
 		if ( ! is_email( $new ) ) {
 			self::go( 'details', 'reg-email' );
+		}
+		if ( strtolower( $new ) === strtolower( $u->user_email ) ) {
+			self::go( 'details', 'email-same' );
 		}
 		$owner = email_exists( $new );
 		if ( $owner && (int) $owner !== (int) $u->ID ) {
 			self::go( 'details', 'email-used' );
 		}
-		wp_update_user( array( 'ID' => $u->ID, 'user_email' => $new ) );
+		self::email_start( $u, $new );
+	}
+
+	private static function do_email_resend() {
+		$u = wp_get_current_user();
+		$p = get_user_meta( $u->ID, self::EMAIL_P, true );
+		if ( ! is_array( $p ) || empty( $p['e'] ) ) {
+			self::go( 'details' );
+		}
+		self::email_start( $u, (string) $p['e'] );
+	}
+
+	private static function email_start( $u, $new ) {
+		$k = 'velox_emlink_' . $u->ID;
+		if ( (int) get_transient( $k ) >= 4 ) {
+			self::go( 'details', 'too-many' );
+		}
+		set_transient( $k, (int) get_transient( $k ) + 1, HOUR_IN_SECONDS );
+		$t = wp_generate_password( 32, false, false );
+		$c = wp_generate_password( 32, false, false );
+		update_user_meta( $u->ID, self::EMAIL_P, array( 'e' => $new, 'h' => hash( 'sha256', $t ), 'c' => hash( 'sha256', $c ), 'x' => time() + HOUR_IN_SECONDS ) );
+		$store = (string) Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) );
+		$title = __( 'Confirm your new email address', 'velox' );
+		/* translators: %s: shop name */
+		$body  = '<h1 style="margin:0 0 12px;font-size:22px">' . esc_html( $title ) . '</h1><p style="margin:0">' . esc_html( sprintf( __( 'Please confirm that this is the new email address for your customer account at %s. Until you do, nothing changes. The link works for one hour.', 'velox' ), $store ) ) . '</p>'
+			. Velox_Shop::mail_button( self::url( 'email-confirm', array( 'u' => $u->ID, 't' => $t ) ), __( 'Confirm my new address', 'velox' ) )
+			. '<p style="margin:22px 0 0;color:#6b7280;font-size:13px">' . esc_html__( 'If you did not ask for this, ignore this email — your account stays as it is.', 'velox' ) . '</p>';
+		wp_mail( $new, $title . ' — ' . $store, Velox_Shop::mail_layout( $body, $title ), array( 'Content-Type: text/html; charset=UTF-8' ) );
+		$t2    = __( 'Your email address is about to change', 'velox' );
+		/* translators: %s: the new email address */
+		$body2 = '<h1 style="margin:0 0 12px;font-size:22px">' . esc_html( $t2 ) . '</h1><p style="margin:0">' . esc_html( sprintf( __( 'Someone signed in to your customer account asked to change its email address to %s. The change happens only once it is confirmed from that inbox.', 'velox' ), $new ) ) . '</p>'
+			. '<p style="margin:14px 0 0">' . esc_html__( 'Was this not you? Stop it with the button below — then change your password.', 'velox' ) . '</p>'
+			. Velox_Shop::mail_button( self::url( 'email-cancel', array( 'u' => $u->ID, 't' => $c ) ), __( 'Stop the change', 'velox' ) );
+		wp_mail( $u->user_email, $t2 . ' — ' . $store, Velox_Shop::mail_layout( $body2, $t2 ), array( 'Content-Type: text/html; charset=UTF-8' ) );
+		self::go( 'details', 'email-sent' );
+	}
+
+	/** The links from the two emails: confirm (signed in as that customer) or stop. */
+	private static function email_link( $act ) {
+		$uid = isset( $_GET['u'] ) ? (int) $_GET['u'] : 0; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$t   = isset( $_GET['t'] ) ? preg_replace( '/[^A-Za-z0-9]/', '', (string) wp_unslash( $_GET['t'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		$p   = $uid ? get_user_meta( $uid, self::EMAIL_P, true ) : null;
+		$ok  = is_array( $p ) && '' !== $t && hash_equals( (string) ( 'email-cancel' === $act ? $p['c'] : $p['h'] ), hash( 'sha256', $t ) );
+		if ( 'email-cancel' === $act ) {
+			if ( $ok ) {
+				delete_user_meta( $uid, self::EMAIL_P );
+			}
+			self::go( is_user_logged_in() ? 'details' : 'login', $ok ? 'email-cancel' : 'email-bad' );
+		}
+		if ( ! $ok || (int) $p['x'] < time() ) {
+			self::go( is_user_logged_in() ? 'details' : 'login', 'email-bad' );
+		}
+		if ( ! is_user_logged_in() ) {
+			// Confirming needs the account itself: sign in, then come back here.
+			wp_safe_redirect( self::url( 'login', array( 'redirect_to' => rawurlencode( self::url( 'email-confirm', array( 'u' => $uid, 't' => $t ) ) ) ) ) );
+			exit;
+		}
+		if ( get_current_user_id() !== $uid ) {
+			self::go( 'details', 'email-bad' );
+		}
+		$owner = email_exists( $p['e'] );
+		if ( $owner && (int) $owner !== $uid ) {
+			delete_user_meta( $uid, self::EMAIL_P );
+			self::go( 'details', 'email-used' );
+		}
+		$u   = get_userdata( $uid );
+		$old = $u->user_email;
+		add_filter( 'send_email_change_email', '__return_false' );
+		wp_update_user( array( 'ID' => $uid, 'user_email' => $p['e'] ) );
+		delete_user_meta( $uid, self::EMAIL_P );
+		// Guest orders under the new address belong to the account from now on; old ones keep their link.
+		self::security_mail( $u, __( 'Your email address was changed', 'velox' ), sprintf( /* translators: %s: new email address */ __( 'Your customer account now uses %s. Order emails go there from now on.', 'velox' ), $p['e'] ), $old );
 		self::go( 'details', 'email-ok' );
 	}
 
@@ -823,7 +991,7 @@ class Velox_Shop_Account {
 
 	public static function render() {
 		$tab = isset( $_GET['vxa'] ) ? sanitize_key( wp_unslash( $_GET['vxa'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		if ( ! is_user_logged_in() ) {
+		if ( ! is_user_logged_in() || ( 'reset' === $tab && isset( $_GET['key'], $_GET['login'] ) ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			return '<div class="vxa vxa-out vxs-account">' . self::guest( $tab ) . '</div>';
 		}
 		$u    = wp_get_current_user();
@@ -840,7 +1008,7 @@ class Velox_Shop_Account {
 		if ( ! isset( $tabs[ $tab ] ) ) {
 			$tab = '';
 		}
-		$since = wp_date( 'F Y', (int) strtotime( $u->user_registered . ' UTC' ) );
+		$since = Velox_Shop::date( (int) strtotime( $u->user_registered . ' UTC' ), false, true );
 		$head  = '<header class="vxa-head"><span class="vxa-av" aria-hidden="true">' . esc_html( self::initials( $u ) ) . '</span><div class="vxa-who"><h2>' . esc_html( sprintf( /* translators: %s: first name */ __( 'Hello, %s', 'velox' ), $u->first_name ? $u->first_name : $u->display_name ) ) . '</h2>'
 			. '<p>' . esc_html( $u->user_email ) . ' · ' . esc_html( sprintf( /* translators: %s: month and year */ __( 'Customer since %s', 'velox' ), $since ) ) . '</p></div>'
 			. '<a class="vxa-signout" href="' . esc_url( wp_nonce_url( self::url( 'logout' ), 'velox_shop_logout' ) ) . '">' . self::icon( 'out', 17 ) . '<span>' . esc_html__( 'Sign out', 'velox' ) . '</span></a></header>';
@@ -901,7 +1069,9 @@ class Velox_Shop_Account {
 				. '<span class="vxa-badge">' . self::icon( 'key', 22 ) . '</span><h2>' . esc_html__( 'Set a new password', 'velox' ) . '</h2>' . $note
 				. self::field( 'vx_pass', __( 'New password (at least 8 characters)', 'velox' ), 'password', '', 'required minlength="8" autocomplete="new-password"' )
 				. self::field( 'vx_pass2', __( 'Repeat the new password', 'velox' ), 'password', '', 'required minlength="8" autocomplete="new-password"' )
-				. '<button type="submit" class="vxs-btn vxs-btn-lg vxs-btn-block">' . esc_html__( 'Save password', 'velox' ) . '</button></form>';
+				. ( ( $ru = get_user_by( 'login', $login ) ) && self::has_2fa( $ru->ID ) ? '<label class="vxs-f"><span>' . esc_html__( 'Code from your authenticator app', 'velox' ) . '</span><input class="vxa-code" type="text" name="vx_code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" required placeholder="123 456"></label><p class="vxa-small">' . esc_html__( 'Two-factor sign-in is on for this account, so the code is needed too. A recovery code works as well.', 'velox' ) . '</p>' : '' )
+				. '<button type="submit" class="vxs-btn vxs-btn-lg vxs-btn-block">' . esc_html__( 'Save password', 'velox' ) . '</button>'
+				. '<p class="vxa-small">' . esc_html__( 'Afterwards every device is signed out, this one too.', 'velox' ) . '</p></form>';
 		}
 		if ( 'lost' === $tab ) {
 			return '<form method="post" class="vxa-box vxa-form">' . self::nonce( 'lost' )
@@ -956,7 +1126,7 @@ class Velox_Shop_Account {
 				continue;
 			}
 			$href = $o['key'] ? self::url( 'orders', array( 'vxo' => $o['key'] ) ) : '';
-			$out .= '<li>' . ( $href ? '<a href="' . esc_url( $href ) . '">' : '<span>' ) . '<b>' . esc_html( $o['number'] ) . '</b><span>' . esc_html( wp_date( get_option( 'date_format' ), (int) $o['created'] ) ) . '</span><span>' . Velox_Shop_Front::money( $o['total'] ) . '</span>' . Velox_Shop_Front::status_chip( 'pay', $o['payment']['status'] ) . ( 'none' !== $o['fulfil']['status'] ? Velox_Shop_Front::status_chip( 'ful', $o['fulfil']['status'] ) : '' ) . ( $href ? '</a>' : '</span>' ) . '</li>';
+			$out .= '<li>' . ( $href ? '<a href="' . esc_url( $href ) . '">' : '<span>' ) . '<b>' . esc_html( $o['number'] ) . '</b><span>' . esc_html( Velox_Shop::date( (int) $o['created'] ) ) . '</span><span>' . Velox_Shop_Front::money( $o['total'] ) . '</span>' . Velox_Shop_Front::status_chip( 'pay', $o['payment']['status'] ) . ( 'none' !== $o['fulfil']['status'] ? Velox_Shop_Front::status_chip( 'ful', $o['fulfil']['status'] ) : '' ) . ( $href ? '</a>' : '</span>' ) . '</li>';
 			if ( $limit && ++$n >= $limit ) {
 				break;
 			}
@@ -989,7 +1159,7 @@ class Velox_Shop_Account {
 
 	private static function tab_overview( $u ) {
 		$ids   = self::my_orders( $u );
-		$addr  = array_filter( (array) get_user_meta( $u->ID, self::META, true ) );
+		$addr  = self::address_of( $u )[0];
 		$open  = 0;
 		$spent = 0;
 		$last  = null;
@@ -1021,7 +1191,7 @@ class Velox_Shop_Account {
 				$names[] = (int) ( $it['qty'] ?? 1 ) . '× ' . (string) ( $it['name'] ?? '' );
 			}
 			$out .= '<section class="vxa-card"><div class="vxa-card-h"><h3>' . esc_html__( 'Latest order', 'velox' ) . '</h3><a href="' . esc_url( self::url( 'orders' ) ) . '">' . esc_html__( 'All orders', 'velox' ) . self::icon( 'arrow', 15 ) . '</a></div>'
-				. '<a class="vxa-last" href="' . esc_url( $href ) . '"><div><b>' . esc_html( $last['number'] ) . '</b><span>' . esc_html( wp_date( get_option( 'date_format' ), (int) $last['created'] ) ) . ' · ' . esc_html( implode( ', ', $names ) ) . ( count( (array) $last['items'] ) > 3 ? ' …' : '' ) . '</span></div><strong>' . Velox_Shop_Front::money( $last['total'] ) . '</strong></a>'
+				. '<a class="vxa-last" href="' . esc_url( $href ) . '"><div><b>' . esc_html( $last['number'] ) . '</b><span>' . esc_html( Velox_Shop::date( (int) $last['created'] ) ) . ' · ' . esc_html( implode( ', ', $names ) ) . ( count( (array) $last['items'] ) > 3 ? ' …' : '' ) . '</span></div><strong>' . Velox_Shop_Front::money( $last['total'] ) . '</strong></a>'
 				. self::progress( $last ) . '</section>';
 		} else {
 			$out .= '<section class="vxa-card vxa-empty"><span class="vxa-badge">' . self::icon( 'bag', 20 ) . '</span><h3>' . esc_html__( 'No orders yet', 'velox' ) . '</h3><p>' . esc_html__( 'As soon as you order, you can follow it here.', 'velox' ) . '</p><a class="vxs-btn vxs-btn-sm" href="' . esc_url( Velox_Shop_Front::page_url( 'shop', home_url( '/' ) ) ) . '">' . esc_html__( 'Go to the shop', 'velox' ) . '</a></section>';
@@ -1057,14 +1227,33 @@ class Velox_Shop_Account {
 			}
 			$links = Velox_Shop_Front::download_links( $o );
 			if ( '' !== trim( wp_strip_all_tags( $links ) ) ) {
-				$out .= '<section class="vxa-card"><div class="vxa-card-h"><h3>' . esc_html( $o['number'] ) . '</h3><span>' . esc_html( wp_date( get_option( 'date_format' ), (int) $o['created'] ) ) . '</span></div>' . $links . '</section>';
+				$out .= '<section class="vxa-card"><div class="vxa-card-h"><h3>' . esc_html( $o['number'] ) . '</h3><span>' . esc_html( Velox_Shop::date( (int) $o['created'] ) ) . '</span></div>' . $links . '</section>';
 			}
 		}
 		return '<div class="vxa-title"><h3>' . esc_html__( 'Downloads', 'velox' ) . '</h3></div>' . ( '' !== $out ? $out : '<section class="vxa-card vxa-empty"><span class="vxa-badge">' . self::icon( 'down', 20 ) . '</span><p>' . esc_html__( 'Files you buy show up here as soon as the payment has arrived.', 'velox' ) . '</p></section>' );
 	}
 
+	/**
+	 * The saved address, or — while none is saved — the one from the latest
+	 * order (the back end shows the same), so nobody types it twice.
+	 */
+	public static function address_of( $u ) {
+		$a = array_filter( (array) get_user_meta( $u->ID, self::META, true ) );
+		if ( $a ) {
+			return array( $a, false );
+		}
+		foreach ( self::my_orders( $u ) as $id ) {
+			$o = Velox_Shop::order( $id );
+			if ( $o && '' !== (string) $o['customer']['address']['line1'] ) {
+				$c = $o['customer'];
+				return array( array_filter( array( 'vx_first' => $c['first'], 'vx_last' => $c['last'], 'vx_company' => $c['company'], 'vx_phone' => $c['phone'], 'vx_line1' => $c['address']['line1'], 'vx_line2' => $c['address']['line2'], 'vx_zip' => $c['address']['zip'], 'vx_city' => $c['address']['city'], 'vx_country' => $c['address']['country'] ) ), true );
+			}
+		}
+		return array( array(), false );
+	}
+
 	private static function tab_address( $u ) {
-		$a  = array_filter( (array) get_user_meta( $u->ID, self::META, true ) );
+		list( $a, $from_order ) = self::address_of( $u );
 		$a += array( 'vx_first' => $u->first_name, 'vx_last' => $u->last_name );
 		$v  = function ( $k ) use ( $a ) { return (string) ( $a[ $k ] ?? '' ); };
 		$opts = '';
@@ -1073,7 +1262,8 @@ class Velox_Shop_Account {
 			$opts .= '<option value="' . esc_attr( $code ) . '"' . selected( $cur, $code, false ) . '>' . esc_html( $name ) . '</option>';
 		}
 		return self::sec( __( 'Address', 'velox' ), __( 'Used for invoices and delivery — and filled in for you at checkout.', 'velox' ),
-			'<form method="post" class="vxa-form">' . self::nonce( 'address' )
+			( $from_order ? '<div class="vxa-pending">' . self::icon( 'bag', 16 ) . '<div><b>' . esc_html__( 'From your latest order', 'velox' ) . '</b><span>' . esc_html__( 'Check it and save — then it is filled in at every checkout.', 'velox' ) . '</span></div></div>' : '' )
+			. '<form method="post" class="vxa-form">' . self::nonce( 'address' )
 			. '<div class="vxs-fg vxs-fg-2">' . self::field( 'vx_first', __( 'First name', 'velox' ), 'text', $v( 'vx_first' ), 'autocomplete="given-name"' ) . self::field( 'vx_last', __( 'Last name', 'velox' ), 'text', $v( 'vx_last' ), 'autocomplete="family-name"' ) . '</div>'
 			. '<div class="vxs-fg vxs-fg-2">' . self::field( 'vx_company', __( 'Company (optional)', 'velox' ), 'text', $v( 'vx_company' ), 'autocomplete="organization"' ) . self::field( 'vx_phone', __( 'Phone (optional)', 'velox' ), 'tel', $v( 'vx_phone' ), 'autocomplete="tel"' ) . '</div>'
 			. self::field( 'vx_line1', __( 'Street and number', 'velox' ), 'text', $v( 'vx_line1' ), 'autocomplete="address-line1"' )
@@ -1088,11 +1278,22 @@ class Velox_Shop_Account {
 				'<form method="post" class="vxa-form">' . self::nonce( 'profile' )
 				. '<div class="vxs-fg vxs-fg-2">' . self::field( 'vx_first', __( 'First name', 'velox' ), 'text', $u->first_name, 'required autocomplete="given-name"' ) . self::field( 'vx_last', __( 'Last name', 'velox' ), 'text', $u->last_name, 'required autocomplete="family-name"' ) . '</div>'
 				. '<div class="vxa-actions"><button type="submit" class="vxs-btn">' . esc_html__( 'Save', 'velox' ) . '</button></div></form>' )
-			. self::sec( __( 'Email address', 'velox' ), __( 'You sign in with it and get order emails there. Your old address is told about the change.', 'velox' ),
-				'<form method="post" class="vxa-form">' . self::nonce( 'email' )
-				. self::field( 'vx_email', __( 'New email address', 'velox' ), 'email', $u->user_email, 'required autocomplete="email"' )
-				. self::field( 'vx_cur', __( 'Your current password', 'velox' ), 'password', '', 'required autocomplete="current-password"' )
-				. '<div class="vxa-actions"><button type="submit" class="vxs-btn">' . esc_html__( 'Change email', 'velox' ) . '</button></div></form>' );
+			. self::sec( __( 'Email address', 'velox' ), __( 'You sign in with it and get order emails there. A new address only counts once you confirm it from that inbox; your current address gets a note with a link to stop the change.', 'velox' ), self::email_body( $u ) );
+	}
+
+	private static function email_body( $u ) {
+		$cur = '<div class="vxa-status is-on">' . self::icon( 'check', 16 ) . '<span><b>' . esc_html( $u->user_email ) . '</b> · ' . esc_html__( 'current address', 'velox' ) . '</span></div>';
+		$p   = get_user_meta( $u->ID, self::EMAIL_P, true );
+		if ( is_array( $p ) && ! empty( $p['e'] ) && (int) $p['x'] > time() ) {
+			return $cur . '<div class="vxa-pending">' . self::icon( 'arrow', 16 ) . '<div><b>' . esc_html( sprintf( /* translators: %s: email address */ __( 'Waiting for confirmation: %s', 'velox' ), $p['e'] ) ) . '</b><span>' . esc_html__( 'Open the email we sent there and click the link. It works for one hour.', 'velox' ) . '</span></div></div>'
+				. '<div class="vxa-actions"><form method="post">' . self::nonce( 'email_resend' ) . '<button type="submit" class="vxs-btn vxs-btn-ghost vxs-btn-sm">' . esc_html__( 'Send the link again', 'velox' ) . '</button></form>'
+				. '<form method="post">' . self::nonce( 'email_drop' ) . '<button type="submit" class="vxa-link">' . esc_html__( 'Cancel the change', 'velox' ) . '</button></form></div>';
+		}
+		return $cur . '<form method="post" class="vxa-form">' . self::nonce( 'email' )
+			. self::field( 'vx_email', __( 'New email address', 'velox' ), 'email', '', 'required autocomplete="email"' )
+			. '<div class="vxs-fg vxs-fg-2">' . self::field( 'vx_cur', __( 'Your password', 'velox' ), 'password', '', 'required autocomplete="current-password"' )
+			. ( self::has_2fa( $u->ID ) ? '<label class="vxs-f"><span>' . esc_html__( 'Code from the app', 'velox' ) . '</span><input type="text" name="vx_code" inputmode="numeric" autocomplete="one-time-code" maxlength="12" required></label>' : '' ) . '</div>'
+			. '<div class="vxa-actions"><button type="submit" class="vxs-btn">' . esc_html__( 'Send confirmation link', 'velox' ) . '</button></div></form>';
 	}
 
 	private static function ua_label( $ua ) {
@@ -1104,11 +1305,12 @@ class Velox_Shop_Account {
 	}
 
 	private static function tab_security( $u ) {
-		$out = self::sec( __( 'Password', 'velox' ), __( 'Use one you do not use anywhere else — at least 8 characters.', 'velox' ),
-			'<form method="post" class="vxa-form">' . self::nonce( 'password' )
-			. self::field( 'vx_cur', __( 'Current password', 'velox' ), 'password', '', 'required autocomplete="current-password"' )
-			. '<div class="vxs-fg vxs-fg-2">' . self::field( 'vx_pass', __( 'New password', 'velox' ), 'password', '', 'required minlength="8" autocomplete="new-password"' ) . self::field( 'vx_pass2', __( 'Repeat the new password', 'velox' ), 'password', '', 'required minlength="8" autocomplete="new-password"' ) . '</div>'
-			. '<div class="vxa-actions"><button type="submit" class="vxs-btn">' . esc_html__( 'Change password', 'velox' ) . '</button></div></form>' );
+		$changed = (int) get_user_meta( $u->ID, 'velox_pw_changed', true );
+		$out = self::sec( __( 'Password', 'velox' ), __( 'For your safety the password is changed through your inbox: only someone who can read your email can set a new one.', 'velox' ),
+			'<div class="vxa-status">' . self::icon( 'key', 16 ) . '<span>' . ( $changed ? esc_html( sprintf( /* translators: %s: date */ __( 'Last changed on %s', 'velox' ), Velox_Shop::date( $changed ) ) ) : esc_html__( 'Set when the account was created', 'velox' ) ) . '</span></div>'
+			. '<form method="post" class="vxa-form">' . self::nonce( 'password_link' )
+			. '<ol class="vxa-how"><li>' . esc_html( sprintf( /* translators: %s: email address */ __( 'We email a link to %s.', 'velox' ), $u->user_email ) ) . '</li><li>' . ( self::has_2fa( $u->ID ) ? esc_html__( 'You choose the new password there and enter the code from your app.', 'velox' ) : esc_html__( 'You choose the new password there.', 'velox' ) ) . '</li><li>' . esc_html__( 'Every device is signed out; you sign in again with the new password.', 'velox' ) . '</li></ol>'
+			. '<div class="vxa-actions"><button type="submit" class="vxs-btn">' . self::icon( 'key', 17 ) . esc_html__( 'Email me a link to change it', 'velox' ) . '</button></div></form>' );
 
 		// Two-factor sign-in.
 		$info    = self::twofa_info( $u->ID );
@@ -1118,7 +1320,7 @@ class Velox_Shop_Account {
 			delete_transient( 'velox_2fa_show_' . $u->ID );
 		}
 		if ( $info ) {
-			$body = '<div class="vxa-status is-on">' . self::icon( 'check', 16 ) . '<span><b>' . esc_html__( 'On', 'velox' ) . '</b> · ' . esc_html( sprintf( /* translators: %s: date */ __( 'since %s', 'velox' ), wp_date( get_option( 'date_format' ), $info['on'] ) ) ) . ' · ' . esc_html( sprintf( /* translators: %d: number of codes */ _n( '%d recovery code left', '%d recovery codes left', $info['codes'], 'velox' ), $info['codes'] ) ) . '</span></div>';
+			$body = '<div class="vxa-status is-on">' . self::icon( 'check', 16 ) . '<span><b>' . esc_html__( 'On', 'velox' ) . '</b> · ' . esc_html( sprintf( /* translators: %s: date */ __( 'since %s', 'velox' ), Velox_Shop::date( $info['on'] ) ) ) . ' · ' . esc_html( sprintf( /* translators: %d: number of codes */ _n( '%d recovery code left', '%d recovery codes left', $info['codes'], 'velox' ), $info['codes'] ) ) . '</span></div>';
 			if ( $codes ) {
 				$txt   = implode( "\n", $codes );
 				$body .= '<div class="vxa-codes"><b>' . esc_html__( 'Your recovery codes', 'velox' ) . '</b><p>' . esc_html__( 'Each code works once, if you ever cannot use your phone. Save them now — they are shown only this one time.', 'velox' ) . '</p><ul>';
@@ -1162,10 +1364,13 @@ class Velox_Shop_Account {
 				}
 				$count++;
 				list( $label, $mobile ) = self::ua_label( $sess['ua'] ?? '' );
-				$ip    = (string) ( $sess['ip'] ?? '' );
+				$ip    = (string) ( $sess['vx_ip'] ?? '' );
+				if ( '' === $ip && ! self::is_cf( (string) ( $sess['ip'] ?? '' ) ) ) {
+					$ip = (string) ( $sess['ip'] ?? '' ); // older sign-ins; a Cloudflare server's address says nothing
+				}
 				$ip    = preg_replace( '/\\.\\d+$/', '.•', preg_replace( '/:[0-9a-f]*:[0-9a-f]*$/i', ':•', $ip ) );
 				$here  = hash_equals( (string) $verifier, $curv );
-				$items .= '<li>' . self::icon( $mobile ? 'phone' : 'screen', 20 ) . '<span><b>' . esc_html( $label ) . ( $here ? ' <em>' . esc_html__( 'this device', 'velox' ) . '</em>' : '' ) . '</b><small>' . esc_html( sprintf( /* translators: %s: date and time */ __( 'Signed in %s', 'velox' ), wp_date( get_option( 'date_format' ) . ', ' . get_option( 'time_format' ), (int) ( $sess['login'] ?? 0 ) ) ) ) . ( '' !== $ip ? ' · ' . esc_html( $ip ) : '' ) . '</small></span></li>';
+				$items .= '<li>' . self::icon( $mobile ? 'phone' : 'screen', 20 ) . '<span><b>' . esc_html( $label ) . ( $here ? ' <em>' . esc_html__( 'this device', 'velox' ) . '</em>' : '' ) . '</b><small>' . esc_html( sprintf( /* translators: %s: date and time */ __( 'Signed in %s', 'velox' ), Velox_Shop::date( (int) ( $sess['login'] ?? 0 ), true ) ) ) . ( '' !== $ip ? ' · ' . esc_html( $ip ) : '' ) . '</small></span></li>';
 			}
 		}
 		$out .= self::sec( __( 'Signed-in devices', 'velox' ), __( 'Where your account is signed in right now. Something you do not recognise? Sign out everywhere else and change your password.', 'velox' ),

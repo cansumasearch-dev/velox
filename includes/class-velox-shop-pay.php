@@ -80,6 +80,13 @@ class Velox_Shop_Pay {
 			if ( 'cod' === $m && $t && empty( $t['needs_ship'] ) ) {
 				continue; // nothing is delivered
 			}
+			// Invoice and cash on delivery only up to a value the shop chose.
+			if ( $t && in_array( $m, array( 'invoice', 'cod' ), true ) ) {
+				$max = Velox_Shop::num( Velox_Shop::get( $m . '_max', '' ) );
+				if ( null !== $max && $max > 0 && (float) $t['total'] > $max ) {
+					continue;
+				}
+			}
 			$out[] = $m;
 		}
 		if ( ! $out && Velox_Shop::legacy_upgrade() ) {
@@ -432,7 +439,22 @@ class Velox_Shop_Pay {
 			'line_items[0][price_data][product_data][name]'         => sprintf( __( 'Order %1$s — %2$s', 'velox' ), $o['number'], $store ),
 			'line_items[0][price_data][product_data][description]'  => mb_substr( implode( ', ', $names ), 0, 300 ),
 		);
-		$s = self::stripe( 'POST', 'checkout/sessions', $body );
+		$types = array_values( array_intersect( (array) Velox_Shop::get( 'stripe_methods', array() ), array_keys( self::stripe_types() ) ) );
+		$s     = null;
+		if ( $types ) {
+			$typed = $body;
+			foreach ( $types as $i => $t ) {
+				$typed[ 'payment_method_types[' . $i . ']' ] = $t;
+			}
+			$s = self::stripe( 'POST', 'checkout/sessions', $typed );
+			// A method not active in Stripe (or not for this currency) must not stop the sale.
+			if ( is_wp_error( $s ) ) {
+				$s = null;
+			}
+		}
+		if ( null === $s ) {
+			$s = self::stripe( 'POST', 'checkout/sessions', $body );
+		}
 		if ( is_wp_error( $s ) ) {
 			return $s;
 		}
@@ -629,6 +651,119 @@ class Velox_Shop_Pay {
 			Velox_Shop::mail( 'admin', $o );
 		}
 		return $o;
+	}
+
+	/** Payment methods the shop can choose for Stripe Checkout. */
+	public static function stripe_types() {
+		return array(
+			'card'       => __( 'Cards (with Apple Pay and Google Pay)', 'velox' ),
+			'sepa_debit' => __( 'SEPA Direct Debit', 'velox' ),
+			'klarna'     => 'Klarna',
+			'paypal'     => __( 'PayPal through Stripe', 'velox' ),
+			'eps'        => 'EPS',
+			'ideal'      => 'iDEAL',
+			'bancontact' => 'Bancontact',
+			'p24'        => 'Przelewy24',
+			'link'       => 'Link',
+		);
+	}
+
+	/**
+	 * The Stripe balance, the payout schedule and the latest payouts to the
+	 * shop's bank. Cached five minutes; null while Stripe is not set up.
+	 */
+	public static function stripe_money( $fresh = false ) {
+		if ( ! self::ready( 'stripe' ) ) {
+			return null;
+		}
+		$k = 'velox_shop_stripe_money';
+		$c = $fresh ? false : get_transient( $k );
+		if ( is_array( $c ) ) {
+			return $c;
+		}
+		$b = self::stripe( 'GET', 'balance' );
+		if ( is_wp_error( $b ) ) {
+			return array( 'error' => $b->get_error_message() );
+		}
+		$sum = function ( $list ) {
+			$o = array();
+			foreach ( (array) $list as $x ) {
+				$o[] = array( 'amount' => ( (int) ( $x['amount'] ?? 0 ) ) / 100, 'currency' => strtoupper( (string) ( $x['currency'] ?? '' ) ) );
+			}
+			return $o;
+		};
+		$p     = self::stripe( 'GET', 'payouts?limit=8' );
+		$a     = self::stripe( 'GET', 'account' );
+		$sched = is_wp_error( $a ) ? null : ( $a['settings']['payouts']['schedule'] ?? null );
+		$bank  = '';
+		if ( ! is_wp_error( $a ) && ! empty( $a['external_accounts']['data'][0] ) ) {
+			$e    = $a['external_accounts']['data'][0];
+			$bank = trim( ( $e['bank_name'] ?? '' ) . ' ···· ' . ( $e['last4'] ?? '' ) );
+		}
+		$list = array();
+		foreach ( is_wp_error( $p ) ? array() : (array) ( $p['data'] ?? array() ) as $x ) {
+			$list[] = array( 'amount' => ( (int) $x['amount'] ) / 100, 'currency' => strtoupper( (string) $x['currency'] ), 'arrival' => (int) ( $x['arrival_date'] ?? 0 ), 'status' => (string) ( $x['status'] ?? '' ), 'auto' => ! empty( $x['automatic'] ) );
+		}
+		$out = array(
+			'available' => $sum( $b['available'] ?? array() ),
+			'pending'   => $sum( $b['pending'] ?? array() ),
+			'payouts'   => $list,
+			'schedule'  => is_array( $sched ) ? array( 'interval' => (string) ( $sched['interval'] ?? '' ), 'delay' => (int) ( $sched['delay_days'] ?? 0 ), 'weekly' => (string) ( $sched['weekly_anchor'] ?? '' ), 'monthly' => (int) ( $sched['monthly_anchor'] ?? 0 ) ) : null,
+			'bank'      => $bank,
+			'test'      => false !== strpos( (string) Velox_Shop::get( 'stripe_secret' ), '_test_' ),
+			'at'        => time(),
+		);
+		set_transient( $k, $out, 5 * MINUTE_IN_SECONDS );
+		return $out;
+	}
+
+	/** Pay the whole available Stripe balance out to the bank (only with a manual schedule). */
+	public static function stripe_payout() {
+		$m = self::stripe_money( true );
+		if ( ! is_array( $m ) || ! empty( $m['error'] ) ) {
+			return new WP_Error( 'x', is_array( $m ) ? $m['error'] : __( 'Stripe is not set up.', 'velox' ) );
+		}
+		if ( 'manual' !== ( $m['schedule']['interval'] ?? '' ) ) {
+			return new WP_Error( 'x', __( 'Stripe pays out automatically on your schedule — there is nothing to start by hand.', 'velox' ) );
+		}
+		$done = array();
+		foreach ( $m['available'] as $a ) {
+			if ( $a['amount'] <= 0 ) {
+				continue;
+			}
+			$r = self::stripe( 'POST', 'payouts', array( 'amount' => (int) round( $a['amount'] * 100 ), 'currency' => strtolower( $a['currency'] ) ) );
+			if ( is_wp_error( $r ) ) {
+				return $r;
+			}
+			$done[] = Velox_Shop::money( $a['amount'] ) . ( strtoupper( (string) Velox_Shop::get( 'currency', 'EUR' ) ) !== $a['currency'] ? ' ' . $a['currency'] : '' );
+		}
+		delete_transient( 'velox_shop_stripe_money' );
+		/* translators: %s: amounts */
+		return $done ? sprintf( __( 'Payout started: %s. It usually reaches your bank in 1–3 working days.', 'velox' ), implode( ', ', $done ) ) : __( 'There is no available balance to pay out yet.', 'velox' );
+	}
+
+	/** The PayPal balance, when the app may read it (PayPal calls it "Balances"). */
+	public static function paypal_money( $fresh = false ) {
+		if ( ! self::ready( 'paypal' ) ) {
+			return null;
+		}
+		$k = 'velox_shop_paypal_money';
+		$c = $fresh ? false : get_transient( $k );
+		if ( is_array( $c ) ) {
+			return $c;
+		}
+		$r   = self::paypal( 'GET', '/v1/reporting/balances?currency_code=' . rawurlencode( strtoupper( (string) Velox_Shop::get( 'currency', 'EUR' ) ) ) );
+		$out = array( 'sandbox' => (bool) Velox_Shop::get( 'paypal_sandbox' ), 'at' => time() );
+		if ( is_wp_error( $r ) ) {
+			$out['error'] = $r->get_error_message();
+		} else {
+			$out['balances'] = array();
+			foreach ( (array) ( $r['balances'] ?? array() ) as $b ) {
+				$out['balances'][] = array( 'currency' => (string) ( $b['currency'] ?? '' ), 'total' => (float) ( $b['total_balance']['value'] ?? 0 ), 'available' => (float) ( $b['available_balance']['value'] ?? ( $b['total_balance']['value'] ?? 0 ) ), 'held' => (float) ( $b['withheld_balance']['value'] ?? 0 ) );
+			}
+		}
+		set_transient( $k, $out, 5 * MINUTE_IN_SECONDS );
+		return $out;
 	}
 
 	/* ---- refunds through the provider */

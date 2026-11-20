@@ -815,3 +815,18 @@ body.vxs-paint .vxs-product-more,body.vxs-paint .entry-content,body.vxs-paint .w
 .vxs-more-link{width:fit-content;max-width:100%}
 .vxs-count-txt{white-space:nowrap}
 @media (max-width:640px){.vxs-tools-r{flex:1 1 100%;flex-wrap:wrap;margin-left:0}.vxs-count-txt{flex:1 0 100%}.vxs-search{flex:1 1 0;min-width:0}.vxs-search input{width:100%}.vxs-sort{flex:0 1 auto;max-width:52%}}
+/* 4.62 — selects with room for their arrow, account blocks, the account menu under its icon */
+.vxs-f select{appearance:none;-webkit-appearance:none;padding-right:44px;background-image:linear-gradient(45deg,transparent 50%,currentColor 50%),linear-gradient(135deg,currentColor 50%,transparent 50%);background-position:calc(100% - 22px) 52%,calc(100% - 16px) 52%;background-size:6px 6px;background-repeat:no-repeat;cursor:pointer}
+.vxs-f select::-ms-expand{display:none}
+.vxa-sec-r>.vxa-status+.vxa-form,.vxa-sec-r>.vxa-status+.vxa-pending{margin-top:14px}
+.vxa-how{display:flex;flex-direction:column;gap:8px;margin:0;padding:0 0 0 20px;color:var(--vxs-ink-2);font-size:14px;line-height:1.5}
+.vxa-pending{display:flex;align-items:flex-start;gap:12px;margin:0 0 14px;padding:13px 15px;border:1px solid color-mix(in srgb,var(--vxs-accent) 30%,transparent);border-radius:var(--vxs-r-sm);background:color-mix(in srgb,var(--vxs-accent) 7%,var(--vxs-bg));color:var(--vxs-ink-2);font-size:14px;line-height:1.45}
+.vxa-pending svg{flex:none;margin-top:2px;color:var(--vxs-accent)}
+.vxa-pending div{display:flex;flex-direction:column;gap:2px}
+.vxa-pending b{color:var(--vxs-ink);font-weight:600;word-break:break-word}
+.vxa-pending+.vxa-actions{align-items:center}
+@media (hover:hover) and (pointer:fine){
+	.vxa-pop{left:50%;right:auto;transform:translate(calc(-50% + var(--vxa-dx,0px)),6px) scale(.98);transform-origin:top center}
+	.vxa-menu:hover .vxa-pop,.vxa-menu:focus-within .vxa-pop{transform:translate(calc(-50% + var(--vxa-dx,0px)),0)}
+	.vxa-pop::after{content:"";position:absolute;top:-7px;left:calc(50% - var(--vxa-dx,0px));width:12px;height:12px;margin-left:-6px;border-top:1px solid var(--vxs-line);border-left:1px solid var(--vxs-line);border-radius:3px 0 0 0;background:var(--vxs-bg);transform:rotate(45deg)}
+}

@@ -1138,7 +1138,7 @@ class Velox_Shop_Front {
 				/* translators: 1: order number 2: email */
 				. '<p>' . sprintf( esc_html__( 'Your order %1$s is in. A confirmation is on its way to %2$s.', 'velox' ), '<b>' . esc_html( $o['number'] ) . '</b>', esc_html( $o['customer']['email'] ) ) . '</p></div>';
 		} else {
-			$out .= '<h2 class="vxs-order-h">' . esc_html__( 'Order', 'velox' ) . ' ' . esc_html( $o['number'] ) . ' <small>' . esc_html( wp_date( get_option( 'date_format' ), (int) $o['created'] ) ) . '</small></h2>';
+			$out .= '<h2 class="vxs-order-h">' . esc_html__( 'Order', 'velox' ) . ' ' . esc_html( $o['number'] ) . ' <small>' . esc_html( Velox_Shop::date( (int) $o['created'] ) ) . '</small></h2>';
 		}
 		// "Being prepared" only once it is paid (or paid on delivery / by invoice).
 		$show_ful = 'none' !== $ful && ( 'unfulfilled' !== $ful || in_array( $pay, array( 'paid', 'partial' ), true ) || in_array( $o['payment']['method'], array( 'cod', 'invoice' ), true ) );
@@ -1174,7 +1174,7 @@ class Velox_Shop_Front {
 		}
 		if ( ! empty( $o['withdrawal'] ) ) {
 			/* translators: %s: date */
-			$links[] = '<span>' . sprintf( esc_html__( 'Withdrawn on %s', 'velox' ), esc_html( wp_date( get_option( 'date_format' ), (int) $o['withdrawal']['at'] ) ) ) . '</span>';
+			$links[] = '<span>' . sprintf( esc_html__( 'Withdrawn on %s', 'velox' ), esc_html( Velox_Shop::date( (int) $o['withdrawal']['at'] ) ) ) . '</span>';
 		}
 		if ( $links ) {
 			$out .= '<p class="vxs-order-links">' . implode( ' · ', $links ) . '</p>';
@@ -1247,7 +1247,7 @@ class Velox_Shop_Front {
 		if ( $o && Velox_Shop::can_withdraw( $o ) ) {
 			return $head . '<input type="hidden" name="vx_key" value="' . esc_attr( $o['key'] ) . '"><h2>' . esc_html__( 'Withdraw from the contract', 'velox' ) . '</h2>'
 				/* translators: 1: order number 2: date */
-				. '<p>' . sprintf( esc_html__( 'Order %1$s from %2$s', 'velox' ), '<b>' . esc_html( $o['number'] ) . '</b>', esc_html( wp_date( get_option( 'date_format' ), (int) $o['created'] ) ) ) . '</p>'
+				. '<p>' . sprintf( esc_html__( 'Order %1$s from %2$s', 'velox' ), '<b>' . esc_html( $o['number'] ) . '</b>', esc_html( Velox_Shop::date( (int) $o['created'] ) ) ) . '</p>'
 				. '<label class="vxs-f"><span>' . esc_html__( 'Message', 'velox' ) . ' <small>' . esc_html__( 'optional', 'velox' ) . '</small></span><textarea name="vx_msg" rows="3" maxlength="2000"></textarea></label>'
 				. '<button type="submit" class="vxs-btn vxs-btn-lg">' . esc_html__( 'Confirm withdrawal', 'velox' ) . '</button></form>';
 		}
@@ -1366,7 +1366,7 @@ class Velox_Shop_Front {
 		$seller = array_filter( array( esc_html( $s['store_name'] ), nl2br( esc_html( $s['store_address'] ) ) ) );
 		$ids    = array_filter( array( $s['store_vat_id'] ? esc_html__( 'VAT ID', 'velox' ) . ': ' . esc_html( $s['store_vat_id'] ) : '', $s['store_tax_no'] ? esc_html__( 'Tax number', 'velox' ) . ': ' . esc_html( $s['store_tax_no'] ) : '' ) );
 		$cust   = Velox_Shop::address_html( $o['customer'] );
-		$date   = wp_date( get_option( 'date_format' ), (int) $o['invoice']['date'] );
+		$date   = Velox_Shop::date( (int) $o['invoice']['date'] );
 		$paid   = 'paid' === $o['payment']['status'] || 'partial' === $o['payment']['status'];
 		return '<!doctype html><html lang="' . esc_attr( get_bloginfo( 'language' ) ) . '"><head><meta charset="utf-8"><title>' . esc_html__( 'Invoice', 'velox' ) . ' ' . esc_html( $o['invoice']['number'] ) . '</title><meta name="robots" content="noindex"><style>'
 			. 'body{margin:0;background:#eef0f3;font:14px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:#111827}'
