@@ -444,6 +444,7 @@ class Velox_Shop {
 			'capability_type' => 'post',
 			'map_meta_cap'    => true,
 			'supports'        => array( 'title' ),
+			'delete_with_user' => false, // a deleted customer account never takes its orders along (tax law)
 		) );
 		// Product addresses work right after the shop is switched on, and after
 		// the product base changes: the rules are rebuilt once when they differ.

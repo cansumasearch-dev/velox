@@ -696,7 +696,7 @@ class Velox_Shop_Front {
 		if ( 'hidden' !== $phone ) {
 			$out .= '<div class="vxs-fg">' . $field( 'vx_phone', __( 'Phone', 'velox' ), 'tel', 'required' === $phone, 'tel' ) . '</div>';
 		}
-		$out .= Velox_Shop_Account::checkout_box();
+		$out .= Velox_Shop_Account::checkout_box( $P, $E );
 		if ( ! is_user_logged_in() ) {
 			$out .= '<p class="vxs-co-signin">' . esc_html__( 'Already a customer?', 'velox' ) . ' <a href="' . esc_url( Velox_Shop_Account::url( 'login', array( 'redirect_to' => rawurlencode( get_permalink() ) ) ) ) . '">' . esc_html__( 'Sign in', 'velox' ) . '</a></p>';
 		}
@@ -892,7 +892,12 @@ class Velox_Shop_Front {
 	public static function sc_account() {
 		if ( ! empty( $_GET['vxo'] ) ) {
 			$o = Velox_Shop::order_by_key( sanitize_text_field( wp_unslash( $_GET['vxo'] ) ) );
-			if ( $o ) {
+			$u = wp_get_current_user();
+			$own = $o && $u->exists() && ( (int) ( $o['user'] ?? 0 ) === (int) $u->ID || strtolower( (string) ( $o['customer']['email'] ?? '' ) ) === strtolower( $u->user_email ) );
+			if ( $own ) {
+				// The customer's own order: show it inside the account, with its navigation.
+				$_GET['vxa'] = 'orders';
+			} elseif ( $o ) {
 				return '<p><a href="' . esc_url( remove_query_arg( 'vxo' ) ) . '">← ' . esc_html__( 'All orders', 'velox' ) . '</a></p>' . self::order_view( $o );
 			}
 		}

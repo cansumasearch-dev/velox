@@ -307,6 +307,8 @@ class Velox_Shop_Account {
 		if ( $pass !== self::pw( 'vx_pass2' ) ) {
 			self::go( 'reset', 'pass-match', array( 'key' => self::p( 'vx_key', 80 ), 'login' => rawurlencode( $login ) ) );
 		}
+		// A customer resetting their password is no news for the shop owner's inbox.
+		remove_action( 'after_password_reset', 'wp_password_change_notification' );
 		reset_password( $user, $pass );
 		self::go( 'login', 'reset-ok' );
 	}
@@ -390,7 +392,7 @@ class Velox_Shop_Account {
 		$u    = wp_get_current_user();
 		$data = array(
 			'account' => array( 'email' => $u->user_email, 'first_name' => $u->first_name, 'last_name' => $u->last_name, 'registered' => $u->user_registered ),
-			'address' => (array) get_user_meta( $u->ID, self::META, true ),
+			'address' => array_filter( (array) get_user_meta( $u->ID, self::META, true ) ),
 			'orders'  => array(),
 		);
 		foreach ( self::order_ids( $u ) as $id ) {
@@ -423,6 +425,11 @@ class Velox_Shop_Account {
 		}
 		// Orders stay (tax law keeps them for 10 years) but no longer point to the account.
 		foreach ( self::order_ids( $u ) as $id ) {
+			$o = Velox_Shop::order( $id );
+			if ( $o && (int) ( $o['user'] ?? 0 ) === (int) $u->ID ) {
+				$o['user'] = 0;
+				Velox_Shop::save_order( $id, $o );
+			}
 			delete_post_meta( $id, '_vx_user' );
 		}
 		require_once ABSPATH . 'wp-admin/includes/user.php';
@@ -459,19 +466,20 @@ class Velox_Shop_Account {
 		if ( ! is_int( $id ) ) {
 			return; // the order stands; the account can still be made later
 		}
-		update_post_meta( (int) $o['id'], '_vx_user', $id );
+		$o['user'] = $id;
+		Velox_Shop::save_order( (int) $o['id'], $o ); // also writes the _vx_user copy
 		self::save_address( $id, $_POST ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		wp_set_current_user( $id );
 		wp_set_auth_cookie( $id, true, is_ssl() );
 	}
 
 	/** The checkout's "create an account" box (only for guests). */
-	public static function checkout_box() {
+	public static function checkout_box( $post = array(), $err = array() ) {
 		if ( is_user_logged_in() || ! self::enabled() || '1' !== (string) Velox_Shop::get( 'acc_checkout', '1' ) ) {
 			return '';
 		}
-		return '<div class="vxs-accbox"><label class="vxs-check"><input type="checkbox" name="vx_account" value="1" data-vxs-acc> <span><b>' . esc_html__( 'Create a customer account', 'velox' ) . '</b> ' . esc_html__( 'See your orders and invoices any time, order faster next time.', 'velox' ) . '</span></label>'
-			. '<label class="vxs-f vxs-accpass"><span>' . esc_html__( 'Choose a password', 'velox' ) . ' <small>' . esc_html__( 'at least 8 characters', 'velox' ) . '</small></span><input type="password" name="vx_acc_pass" minlength="8" autocomplete="new-password"></label></div>';
+		return '<div class="vxs-accbox"><label class="vxs-check"><input type="checkbox" name="vx_account" value="1" data-vxs-acc' . checked( ! empty( $post['vx_account'] ), true, false ) . '> <span><b>' . esc_html__( 'Create a customer account', 'velox' ) . '</b> ' . esc_html__( 'See your orders and invoices any time, order faster next time.', 'velox' ) . '</span></label>'
+			. '<label class="vxs-f vxs-accpass"><span>' . esc_html__( 'Choose a password', 'velox' ) . ' <small>' . esc_html__( 'at least 8 characters', 'velox' ) . '</small></span><input type="password" name="vx_acc_pass" minlength="8" autocomplete="new-password"' . ( isset( $err['vx_acc_pass'] ) ? ' aria-invalid="true" aria-describedby="vx_acc_pass-e"' : '' ) . '>' . ( isset( $err['vx_acc_pass'] ) ? '<span class="vxs-ferr" id="vx_acc_pass-e">' . esc_html( $err['vx_acc_pass'] ) . '</span>' : '' ) . '</label></div>';
 	}
 
 	/* ------------------------------------------------------------------ the page */
@@ -614,7 +622,7 @@ class Velox_Shop_Account {
 
 	private static function tab_overview( $u ) {
 		$ids  = self::order_ids( $u );
-		$addr = (array) get_user_meta( $u->ID, self::META, true );
+		$addr = array_filter( (array) get_user_meta( $u->ID, self::META, true ) );
 		$out  = '<h2 class="vxs-acc-h">' . esc_html( sprintf( /* translators: %s: first name */ __( 'Hello, %s', 'velox' ), $u->first_name ? $u->first_name : $u->display_name ) ) . '</h2>'
 			. '<p class="vxs-acc-lead">' . esc_html__( 'Here you find your orders, downloads and invoices and can change your details.', 'velox' ) . '</p>';
 		$out .= '<div class="vxs-acc-tiles">'
@@ -653,7 +661,7 @@ class Velox_Shop_Account {
 	}
 
 	private static function tab_address( $u ) {
-		$a  = (array) get_user_meta( $u->ID, self::META, true );
+		$a  = array_filter( (array) get_user_meta( $u->ID, self::META, true ) );
 		$a += array( 'vx_first' => $u->first_name, 'vx_last' => $u->last_name );
 		$v  = function ( $k ) use ( $a ) { return (string) ( $a[ $k ] ?? '' ); };
 		$opts = '';

@@ -282,8 +282,8 @@ class Velox_Shop_Pay {
 			$err['vx_total'] = sprintf( __( 'The minimum order value is %s.', 'velox' ), Velox_Shop::money( $min ) );
 		}
 		if ( $err ) {
-			// Hand the form back filled in, with the messages next to the fields.
-			set_transient( 'velox_shop_form_' . md5( (string) ( $_COOKIE[ Velox_Shop::COOKIE ] ?? '' ) . ( $_SERVER['REMOTE_ADDR'] ?? '' ) ), array( 'post' => wp_unslash( $_POST ), 'err' => $err ), 10 * MINUTE_IN_SECONDS );
+			// Hand the form back filled in, with the messages next to the fields (never the password).
+			set_transient( 'velox_shop_form_' . md5( (string) ( $_COOKIE[ Velox_Shop::COOKIE ] ?? '' ) . ( $_SERVER['REMOTE_ADDR'] ?? '' ) ), array( 'post' => array_diff_key( wp_unslash( $_POST ), array( 'vx_acc_pass' => 1 ) ), 'err' => $err ), 10 * MINUTE_IN_SECONDS );
 			self::back( 'invalid', reset( $err ) );
 		}
 		$d['consent'] = array_filter( array( 'terms' => $d['terms'] ? time() : 0, 'digital' => $d['digital'] ? time() : 0 ) );
