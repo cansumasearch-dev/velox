@@ -263,6 +263,13 @@ class Velox_Shop_Pay {
 		} elseif ( 'invoice' === $d['pay'] && ! self::invoice_allowed( $d['customer']['email'] ) ) {
 			$err['vx_pay'] = __( 'Paying by invoice is available from your second order. Please choose another way to pay.', 'velox' );
 		}
+		if ( ! is_user_logged_in() && ! empty( $_POST['vx_account'] ) && Velox_Shop_Account::enabled() ) {
+			if ( strlen( (string) wp_unslash( $_POST['vx_acc_pass'] ?? '' ) ) < 8 ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput
+				$err['vx_acc_pass'] = __( 'Please choose a password with at least 8 characters.', 'velox' );
+			} elseif ( email_exists( $d['customer']['email'] ) ) {
+				$err['vx_acc_pass'] = __( 'There is already an account for this email. Sign in or reset your password.', 'velox' );
+			}
+		}
 		if ( Velox_Shop::get( 'terms_check' ) && ! $d['terms'] ) {
 			$err['vx_terms'] = __( 'Please accept the terms and conditions.', 'velox' );
 		}
@@ -285,6 +292,8 @@ class Velox_Shop_Pay {
 			self::back( 'error', __( 'The order could not be saved. Please try again.', 'velox' ) );
 		}
 		Velox_Shop::save_cart( array() );
+		// Signed in: remember the address. Guest who asked for an account: create it.
+		Velox_Shop_Account::after_order( $o );
 		if ( in_array( $d['pay'], array( 'stripe', 'paypal' ), true ) ) {
 			$url = self::start_payment( $o );
 			if ( is_wp_error( $url ) ) {

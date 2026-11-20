@@ -2313,6 +2313,8 @@
 				{ k:'count', t:'select', l:'Items in the cart', d:'', s:'Button', o:[ [ '', 'From the shop design' ], [ 'badge', 'Number on the icon' ], [ 'dot', 'A dot' ], [ 'inline', 'Number next to it' ] ] },
 				{ k:'total', t:'select', l:'Cart total next to the icon', d:'', s:'Button', o:[ [ '', 'From the shop design' ], [ '1', 'Show' ], [ '0', 'Hide' ] ] }
 			  ] },
+			{ key:'shopaccountbtn', el:'Shopaccountbtn', tag:'div', label:'Account button', cls:'.shop-accountbtn', rules:{},
+			  settings:[ { k:'label', t:'text', l:'Text next to the icon', d:'', s:'Button' } ] },
 			{ key:'shopcart', el:'Shopcart', tag:'div', label:'Cart', cls:'.shop-cart', rules:{} },
 			{ key:'shopcheckout', el:'Shopcheckout', tag:'div', label:'Checkout', cls:'.shop-checkout', rules:{} },
 			{ key:'shopaccount', el:'Shopaccount', tag:'div', label:'Customer account', cls:'.shop-account', rules:{} },
@@ -2711,7 +2713,7 @@
 	 * preview stylesheet; this draws the base values. */
 	/* Shop elements: the server draws them (same markup as the page). Cached
 	 * per element + settings; while it loads, a quiet placeholder shows. */
-	var SHOP_EL = { Shopgrid:1, Shopbuy:1, Shopproduct:1, Shopcart:1, Shopcheckout:1, Shopaccount:1, Shopwithdraw:1, Shopcartbtn:1 };
+	var SHOP_EL = { Shopgrid:1, Shopbuy:1, Shopproduct:1, Shopcart:1, Shopcheckout:1, Shopaccount:1, Shopwithdraw:1, Shopcartbtn:1, Shopaccountbtn:1 };
 	var shopPrev = {}, shopWait = {}, shopCss = null;
 	function shopHTML( node, cls ) {
 		var key = node.el + '|' + JSON.stringify( node.settings || {} );
@@ -3039,7 +3041,7 @@
 		return ! ( d && d.repeat );
 	}
 	/* Elements drawn from their settings have no text of their own to edit. */
-	var NO_INLINE = { Shopgrid:1, Shopbuy:1, Shopproduct:1, Shopcart:1, Shopcheckout:1, Shopaccount:1, Shopwithdraw:1, Shopcartbtn:1, Reusable:1, Reviews:1, WP:1, Form:1, Navbar:1, Anchornav:1, Breadcrumbs:1, Fab:1, Backtotop:1,
+	var NO_INLINE = { Shopgrid:1, Shopbuy:1, Shopproduct:1, Shopcart:1, Shopcheckout:1, Shopaccount:1, Shopwithdraw:1, Shopcartbtn:1, Shopaccountbtn:1, Reusable:1, Reviews:1, WP:1, Form:1, Navbar:1, Anchornav:1, Breadcrumbs:1, Fab:1, Backtotop:1,
 		Announcebar:1, Stickybar:1, Progressbar:1, Slider:1, Tabs:1, Accordion:1, Faq:1, InnerContent:1,
 		Video:1, Icon:1, Image:1, Readingtime:1, Lastupdated:1, Skeleton:1, Anchortarget:1,
 		Marquee:1, Counter:1, Countdown:1, Compare:1, Gallery:1, Rotator:1, Flipcard:1, Bars:1, Rating:1, Social:1, Map:1, Embed:1, Table:1, Timeline:1, Checklist:1, Shapedivider:1, Progresscircle:1 };

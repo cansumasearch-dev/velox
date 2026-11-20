@@ -87,6 +87,7 @@ require_once VELOX_PATH . 'includes/class-velox-utilities.php';
 require_once VELOX_PATH . 'includes/class-velox-shop.php';
 require_once VELOX_PATH . 'includes/class-velox-shop-pay.php';
 require_once VELOX_PATH . 'includes/class-velox-shop-front.php';
+require_once VELOX_PATH . 'includes/class-velox-shop-account.php';
 require_once VELOX_PATH . 'includes/class-velox-shop-admin.php';
 require_once VELOX_PATH . 'includes/class-velox-loginguard.php';
 require_once VELOX_PATH . 'includes/class-velox-commentguard.php';
