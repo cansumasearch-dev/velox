@@ -321,6 +321,7 @@
 		var s = plot.querySelector( 'svg' ), guide = s.querySelector( '.vsa-lc-guide' ), hc = s.querySelectorAll( '.vsa-lc-hc' ), hit = s.querySelector( '.vsa-lc-hit' );
 		function show( i ) {
 			var x = X( i ).toFixed( 1 );
+			s.classList.add( 'is-hover' );
 			guide.setAttribute( 'x1', x ); guide.setAttribute( 'x2', x );
 			hc[ 1 ].setAttribute( 'cx', i < cur.length ? x : -10 ); hc[ 1 ].setAttribute( 'cy', i < cur.length ? Y( cur[ i ] ) : -10 );
 			hc[ 0 ].setAttribute( 'cx', i < cmp.length ? x : -10 ); hc[ 0 ].setAttribute( 'cy', i < cmp.length ? Y( cmp[ i ] ) : -10 );
@@ -341,7 +342,7 @@
 		function at( e ) { var r = s.getBoundingClientRect(); var px = e.clientX - r.left; return Math.max( 0, Math.min( n - 1, Math.round( ( px - padL ) / ( n <= 1 ? 1 : iw / ( n - 1 ) ) ) ) ); }
 		hit.addEventListener( 'pointermove', function ( e ) { show( at( e ) ); } );
 		hit.addEventListener( 'pointerdown', function ( e ) { show( at( e ) ); } );
-		hit.addEventListener( 'pointerleave', function () { tip.hidden = true; guide.setAttribute( 'x1', -10 ); guide.setAttribute( 'x2', -10 ); hc[ 0 ].setAttribute( 'cx', -10 ); hc[ 1 ].setAttribute( 'cx', -10 ); } );
+		hit.addEventListener( 'pointerleave', function () { tip.hidden = true; s.classList.remove( 'is-hover' ); guide.setAttribute( 'x1', -10 ); guide.setAttribute( 'x2', -10 ); hc[ 0 ].setAttribute( 'cx', -10 ); hc[ 1 ].setAttribute( 'cx', -10 ); } );
 	}
 
 	/* ============================================================ REVENUE */
