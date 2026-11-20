@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.59.1 — Boot profiler
+- **Find slow page loads:** as an administrator, add `?velox_profile=1` to any page address. The end of the page source and the browser console show a timeline of the request: when WordPress started, how long Velox took to load and to start each of its parts, and the WordPress stages up to the footer, with the slowest steps listed first. Nobody else sees anything, and without the parameter nothing extra happens.
+
 ## 4.59.0 — Revenue report
 - **New: Velox Shop → Revenue.** A smooth line chart of your revenue with the period you compare against drawn dashed, and a tooltip with both values and the change. Pick 7, 30 or 90 days, this or last month, 12 months, this or last year, or any dates.
 - **Compare and group:** compare with the previous period or the same time last year (or not at all); group per day, week or month (or let Velox choose).
