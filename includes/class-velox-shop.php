@@ -59,6 +59,7 @@ class Velox_Shop {
 		if ( class_exists( 'Velox_Shop_Pay' ) ) {
 			Velox_Shop_Pay::init();
 		}
+		Velox_Shop_Extras::init();
 		if ( class_exists( 'Velox_Shop_Front' ) ) {
 			Velox_Shop_Front::init();
 			Velox_Shop_Account::init();
@@ -218,6 +219,17 @@ class Velox_Shop {
 			'related'         => '1',      // more from the same category under a product
 			'usp'             => '',       // one reason to buy per line, shown under the buy button
 			'buy_bar'         => '1',      // a slim buy bar once the button scrolls out of view
+			'grid_filters'    => '1',      // filters with counts above the shop (price, options, in stock, sale)
+			'card_swatches'   => '1',      // colour dots on product cards
+			'wishlist'        => '1',      // hearts and a wishlist in the account
+			'stock_alerts'    => '1',      // "tell me when it is back" on sold-out products
+			'reviews'         => '1',      // star reviews on product pages
+			'reviews_approve' => '1',      // reviews wait for approval
+			'reviews_verified'=> '0',      // only buyers may review
+			'card_rating'     => '1',      // stars on product cards
+			'cart_remind'     => '0',      // one reminder email for a left cart (only with consent)
+			'cart_remind_hours'  => '3',
+			'cart_remind_coupon' => '',
 			'zoom'            => '1',      // product photos open full screen
 			'notice_on'       => '0',      // a slim bar across the top of the site
 			'notice_text'     => '',       // one message per line; several rotate
@@ -1003,7 +1015,14 @@ class Velox_Shop {
 			$name = mb_substr( sanitize_text_field( (string) ( $o['name'] ?? '' ) ), 0, 40 );
 			$vals = array_values( array_unique( array_filter( array_map( function ( $x ) { return mb_substr( sanitize_text_field( (string) $x ), 0, 40 ); }, (array) ( $o['values'] ?? array() ) ), 'strlen' ) ) );
 			if ( '' !== $name && $vals ) {
-				$out['options'][] = array( 'name' => $name, 'values' => array_slice( $vals, 0, 30 ) );
+				$vals   = array_slice( $vals, 0, 30 );
+				$colors = array();
+				foreach ( (array) ( $o['colors'] ?? array() ) as $cv => $hex ) {
+					if ( in_array( (string) $cv, $vals, true ) && preg_match( '/^#[0-9a-f]{6}$/i', (string) $hex ) ) {
+						$colors[ (string) $cv ] = strtolower( (string) $hex );
+					}
+				}
+				$out['options'][] = array( 'name' => $name, 'values' => $vals ) + ( $colors ? array( 'colors' => $colors ) : array() );
 			}
 		}
 		$out['variants'] = array();
@@ -1052,6 +1071,7 @@ class Velox_Shop {
 		update_post_meta( $id, '_vx_sku', $p['sku'] );
 		$a = self::availability( $p );
 		update_post_meta( $id, '_vx_status', 'sold' === $a[0] || 'out' === $a[0] ? 'sold' : ( 'inquiry' === $a[0] ? 'commission' : 'available' ) );
+		Velox_Shop_Extras::alerts_check( $id );
 	}
 
 	/**
@@ -1618,6 +1638,7 @@ class Velox_Shop {
 		}
 		self::note( $o, __( 'Order placed.', 'velox' ) );
 		self::save_order( $oid, $o );
+		Velox_Shop_Extras::cart_done( $o );
 		return self::order( $oid );
 	}
 
