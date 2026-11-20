@@ -199,11 +199,26 @@ class Velox_Shop {
 			'card_ratio'      => '', // '' = 4/5 (or the photos' own shape in shops from before 4.53) | 4/5 | 1/1 | natural
 			// Design: a template plus any choice on top ('' = the template's value). See design().
 			'design'          => 'velox',
-			'd_layout' => '', 'd_cols' => '', 'd_cols_t' => '', 'd_cols_m' => '', 'd_gap' => '', 'd_card' => '', 'd_fit' => '', 'd_hover' => '', 'd_align' => '',
-			'd_button' => '', 'd_btn_shape' => '', 'd_btn_style' => '', 'd_radius' => '', 'd_ink' => '', 'd_surface' => '', 'd_line' => '', 'd_soft' => '', 'd_bg' => '',
-			'd_show_cat' => '', 'd_show_text' => '', 'd_product' => '', 'd_gallery' => '', 'd_sticky' => '', 'd_details' => '', 'd_checkout' => '',
-			'd_cart_icon' => '', 'd_cart_count' => '', 'd_cart_total' => '',
+			'd_bg' => '', 'd_surface' => '', 'd_soft' => '', 'd_ink' => '', 'd_muted' => '', 'd_line' => '', 'd_accent' => '', 'd_accent_ink' => '',
+			'd_sale' => '', 'd_font_h' => '', 'd_font_b' => '', 'd_h_weight' => '', 'd_h_track' => '', 'd_h_case' => '', 'd_label' => '', 'd_layout' => '',
+			'd_cols' => '', 'd_cols_t' => '', 'd_cols_m' => '', 'd_gap' => '', 'd_gap_row' => '', 'd_ratio' => '', 'd_card' => '', 'd_img_bg' => '',
+			'd_img_pad' => '', 'd_fit' => '', 'd_hover' => '', 'd_align' => '', 'd_show_cat' => '', 'd_show_text' => '', 'd_button' => '', 'd_badge' => '',
+			'd_badge_pos' => '', 'd_price' => '', 'd_radius' => '', 'd_btn_shape' => '', 'd_btn_style' => '', 'd_btn_case' => '', 'd_page_bg' => '', 'd_product' => '',
+			'd_gallery' => '', 'd_sticky' => '', 'd_details' => '', 'd_checkout' => '', 'd_cart_icon' => '', 'd_cart_count' => '', 'd_cart_total' => '',
 			'custom_css'      => '', // the shop's own CSS, printed after the shop stylesheet
+			// Storefront
+			'after_add'       => 'drawer', // drawer | cart | stay
+			'per_page'        => '24',     // products before "Show more"
+			'grid_sort'       => '1',      // a sort menu above the shop
+			'grid_search'     => '0',      // a search field above the shop
+			'new_days'        => '0',      // "New" badge for products younger than this (0 = off)
+			'related'         => '1',      // more from the same category under a product
+			'usp'             => '',       // one reason to buy per line, shown under the buy button
+			'buy_bar'         => '1',      // a slim buy bar once the button scrolls out of view
+			'zoom'            => '1',      // product photos open full screen
+			'notice_on'       => '0',      // a slim bar across the top of the site
+			'notice_text'     => '',       // one message per line; several rotate
+			'notice_link'     => '',
 			// Customer accounts: sign-up on the account page, and while ordering.
 			'acc_register'    => '1',
 			'acc_checkout'    => '1',
@@ -270,50 +285,157 @@ class Velox_Shop {
 	/* ------------------------------------------------------------- design */
 
 	/** Settings keys the design system reads ('' = take the template's value). */
-	const DESIGN_KEYS = array( 'layout', 'cols', 'cols_t', 'cols_m', 'gap', 'card', 'fit', 'hover', 'align', 'button', 'btn_shape', 'btn_style', 'radius', 'ink', 'surface', 'line', 'soft', 'bg', 'show_cat', 'show_text', 'product', 'gallery', 'sticky', 'details', 'checkout', 'cart_icon', 'cart_count', 'cart_total' );
+	const DESIGN_KEYS = array(
+		// colours
+		'bg', 'surface', 'soft', 'ink', 'muted', 'line', 'accent', 'accent_ink', 'sale',
+		// type
+		'font_h', 'font_b', 'h_weight', 'h_track', 'h_case', 'label',
+		// grid and cards
+		'layout', 'cols', 'cols_t', 'cols_m', 'gap', 'gap_row', 'ratio', 'card', 'img_bg', 'img_pad', 'fit', 'hover', 'align',
+		'show_cat', 'show_text', 'button', 'badge', 'badge_pos', 'price',
+		// shapes
+		'radius', 'btn_shape', 'btn_style', 'btn_case',
+		// pages
+		'page_bg', 'product', 'gallery', 'sticky', 'details', 'checkout', 'cart_icon', 'cart_count', 'cart_total',
+	);
+
+	/** Templates saved before 4.61 and what they became. */
+	const OLD_PRESETS = array( 'gallery' => 'atelier', 'boutique' => 'candy', 'minimal' => 'maison', 'editorial' => 'journal', 'night' => 'noir' );
 
 	/**
-	 * Ready-made shop designs. Each one is a complete set of structure and
-	 * colour choices; every choice can be changed on top in Settings → Design.
-	 * "own" is a neutral base that inherits the site's colours and fonts, for
-	 * styling everything yourself (the vxs-* classes and --vxs-* variables).
+	 * Fonts a template can use. Google Fonts are downloaded once by the server
+	 * and served from this site (no visitor ever talks to Google); Geist ships
+	 * with Velox. [ family, kind, weights ]
+	 */
+	public static function fonts() {
+		return array(
+			'geist'             => array( 'Geist', 'sans', 'local' ),
+			'inter'             => array( 'Inter', 'sans', '400;500;600;700' ),
+			'manrope'           => array( 'Manrope', 'sans', '400;500;600;700' ),
+			'outfit'            => array( 'Outfit', 'sans', '400;500;600;700' ),
+			'hanken'            => array( 'Hanken Grotesk', 'sans', '400;500;600;700' ),
+			'dm-sans'           => array( 'DM Sans', 'sans', '400;500;600;700' ),
+			'space-grotesk'     => array( 'Space Grotesk', 'sans', '400;500;600;700' ),
+			'archivo'           => array( 'Archivo', 'sans', '400;500;600;700;800;900' ),
+			'archivo-black'     => array( 'Archivo Black', 'sans', '400' ),
+			'bricolage'         => array( 'Bricolage Grotesque', 'sans', '400;500;600;700;800' ),
+			'nunito'            => array( 'Nunito', 'sans', '400;500;600;700;800' ),
+			'figtree'           => array( 'Figtree', 'sans', '400;500;600;700' ),
+			'barlow'            => array( 'Barlow', 'sans', '400;500;600;700' ),
+			'saira-condensed'   => array( 'Saira Condensed', 'sans', '500;600;700' ),
+			'source-sans'       => array( 'Source Sans 3', 'sans', '400;500;600;700' ),
+			'jost'              => array( 'Jost', 'sans', '400;500;600;700' ),
+			'cormorant'         => array( 'Cormorant Garamond', 'serif', '400;500;600;700' ),
+			'bodoni'            => array( 'Bodoni Moda', 'serif', '400;500;600;700' ),
+			'newsreader'        => array( 'Newsreader', 'serif', '400;500;600;700' ),
+			'fraunces'          => array( 'Fraunces', 'serif', '400;500;600;700' ),
+			'libre-baskerville' => array( 'Libre Baskerville', 'serif', '400;700' ),
+			'playfair'          => array( 'Playfair Display', 'serif', '400;500;600;700' ),
+			'instrument-serif'  => array( 'Instrument Serif', 'serif', '400' ),
+			'jetbrains-mono'    => array( 'JetBrains Mono', 'mono', '400;500;600' ),
+			'space-mono'        => array( 'Space Mono', 'mono', '400;700' ),
+		);
+	}
+
+	/** A CSS font-family value for a font key ('' = the site's own font). */
+	public static function font_stack( $key ) {
+		$f = self::fonts()[ $key ] ?? null;
+		if ( ! $f ) {
+			return '';
+		}
+		$fall = 'serif' === $f[1] ? 'Georgia,"Times New Roman",serif' : ( 'mono' === $f[1] ? 'ui-monospace,SFMono-Regular,Menlo,Consolas,monospace' : 'system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif' );
+		return '"' . $f[0] . '",' . $fall;
+	}
+
+	/**
+	 * Ready-made shop designs, each a complete set of choices drawn from real
+	 * shops (see the readme of each). Every choice can be changed on top in
+	 * Settings → Design. "own" takes the site's colours and fonts.
 	 */
 	public static function presets() {
 		$base = array(
-			'layout' => 'grid', 'cols' => '3', 'cols_t' => '2', 'cols_m' => '2', 'gap' => '28',
-			'card' => 'plain', 'fit' => 'cover', 'hover' => 'swap', 'align' => 'left', 'button' => 'button',
-			'btn_shape' => 'pill', 'btn_style' => 'solid', 'radius' => '12',
-			'ink' => '#111827', 'surface' => '#ffffff', 'line' => '#e5e7eb', 'soft' => '#f5f6f8', 'bg' => '#ffffff',
-			'show_cat' => '0', 'show_text' => '0',
-			'product' => 'split', 'gallery' => 'below', 'sticky' => '1', 'details' => 'sections',
-			'checkout' => 'two', 'cart_icon' => 'bag', 'cart_count' => 'badge', 'cart_total' => '0',
+			'bg' => '#ffffff', 'surface' => '#ffffff', 'soft' => '#f4f4f5', 'ink' => '#111111', 'muted' => '#6b6b6b', 'line' => '#e7e7e7',
+			'accent' => '#111111', 'accent_ink' => '#ffffff', 'sale' => '#c2410c',
+			'font_h' => 'geist', 'font_b' => 'geist', 'h_weight' => '600', 'h_track' => '-0.02', 'h_case' => 'none', 'label' => 'none',
+			'layout' => 'grid', 'cols' => '4', 'cols_t' => '3', 'cols_m' => '2', 'gap' => '20', 'gap_row' => '40', 'ratio' => '4/5',
+			'card' => 'bare', 'img_bg' => 'soft', 'img_pad' => '0', 'fit' => 'cover', 'hover' => 'swap', 'align' => 'left',
+			'show_cat' => '0', 'show_text' => '0', 'button' => 'none', 'badge' => 'pill', 'badge_pos' => 'tl', 'price' => 'regular',
+			'radius' => '12', 'btn_shape' => 'pill', 'btn_style' => 'solid', 'btn_case' => 'none',
+			'page_bg' => '0', 'product' => 'split', 'gallery' => 'below', 'sticky' => '1', 'details' => 'accordion', 'checkout' => 'two',
+			'cart_icon' => 'bag', 'cart_count' => 'badge', 'cart_total' => '0',
 		);
+		$p = function ( $name, $desc, $fonts, $mood, $v ) use ( $base ) {
+			return array( 'name' => $name, 'desc' => $desc, 'fonts' => $fonts, 'mood' => $mood, 'v' => array_merge( $base, $v ) );
+		};
 		return array(
-			'velox'     => array( 'name' => __( 'Velox', 'velox' ), 'desc' => __( 'Clean and calm: photos in front, a clear button under each product.', 'velox' ), 'v' => $base ),
-			'gallery'   => array( 'name' => __( 'Gallery', 'velox' ), 'desc' => __( 'For art and objects: every work uncropped on a quiet tile, like on a museum wall.', 'velox' ), 'v' => array_merge( $base, array(
-				'cols_m' => '1', 'gap' => '40', 'card' => 'tile', 'fit' => 'contain', 'hover' => 'lift', 'button' => 'link', 'btn_style' => 'outline', 'radius' => '4',
-				'ink' => '#17140f', 'line' => '#e7e1d7', 'soft' => '#efe9df', 'bg' => '#faf8f4', 'surface' => '#faf8f4', 'show_cat' => '1', 'product' => 'wide', 'gallery' => 'stack', 'details' => 'accordion',
-			) ) ),
-			'boutique'  => array( 'name' => __( 'Boutique', 'velox' ), 'desc' => __( 'Soft cards with centred text and small details — fashion, cosmetics, gifts.', 'velox' ), 'v' => array_merge( $base, array(
-				'cols' => '4', 'gap' => '20', 'card' => 'surface', 'hover' => 'lift', 'align' => 'center', 'btn_shape' => 'rounded', 'btn_style' => 'outline', 'radius' => '18',
-				'ink' => '#1c1917', 'line' => '#ece7e2', 'soft' => '#f7f3ef', 'show_cat' => '1', 'gallery' => 'side', 'details' => 'accordion',
-			) ) ),
-			'minimal'   => array( 'name' => __( 'Minimal', 'velox' ), 'desc' => __( 'Sharp edges, lots of air, text links instead of buttons.', 'velox' ), 'v' => array_merge( $base, array(
-				'gap' => '48', 'hover' => 'zoom', 'button' => 'link', 'btn_shape' => 'square', 'btn_style' => 'outline', 'radius' => '0',
-				'ink' => '#0a0a0a', 'line' => '#e5e5e5', 'soft' => '#f4f4f4', 'gallery' => 'grid', 'sticky' => '0', 'checkout' => 'one', 'cart_count' => 'inline', 'cart_total' => '1',
-			) ) ),
-			'editorial' => array( 'name' => __( 'Editorial', 'velox' ), 'desc' => __( 'Big rows like a magazine: image on one side, the story on the other.', 'velox' ), 'v' => array_merge( $base, array(
-				'layout' => 'list', 'cols' => '1', 'cols_t' => '1', 'cols_m' => '1', 'gap' => '56', 'card' => 'split', 'hover' => 'zoom', 'radius' => '6',
-				'show_cat' => '1', 'show_text' => '1', 'product' => 'wide', 'gallery' => 'stack',
-			) ) ),
-			'night'     => array( 'name' => __( 'Night', 'velox' ), 'desc' => __( 'Dark and rich — products glow on deep surfaces.', 'velox' ), 'v' => array_merge( $base, array(
-				'cols_m' => '1', 'gap' => '22', 'card' => 'surface', 'hover' => 'lift', 'radius' => '16',
-				'ink' => '#f5f5f4', 'surface' => '#171717', 'line' => '#2a2a2a', 'soft' => '#1f1f1f', 'bg' => '#0e0e0e',
-			) ) ),
-			'own'       => array( 'name' => __( 'Your own design', 'velox' ), 'desc' => __( 'A neutral base that takes your site’s colours and fonts. Style everything yourself — with the choices below, your own CSS or Velox Builder.', 'velox' ), 'v' => array_merge( $base, array(
-				'card' => 'plain', 'hover' => 'none', 'radius' => '0', 'btn_shape' => 'square', 'ink' => '', 'surface' => '', 'line' => '', 'soft' => '', 'bg' => '',
-			) ) ),
+			'velox'      => $p( __( 'Velox', 'velox' ), __( 'Clean and quiet: big photos on soft grey, nothing in the way. Fits almost anything.', 'velox' ), 'Geist', __( 'clean · calm', 'velox' ), array() ),
+			'atelier'    => $p( __( 'Atelier', 'velox' ), __( 'For art, prints and handmade work: every piece uncropped on warm paper, like a gallery wall.', 'velox' ), 'Cormorant · Inter', __( 'literary · warm', 'velox' ), array(
+				'bg' => '#f6f1ea', 'surface' => '#f6f1ea', 'soft' => '#ede6db', 'ink' => '#1f1b16', 'muted' => '#6b6259', 'line' => '#d9cfc1', 'accent' => '#1f1b16', 'accent_ink' => '#f6f1ea', 'sale' => '#a23b2a',
+				'font_h' => 'cormorant', 'font_b' => 'inter', 'h_weight' => '500', 'h_track' => '-0.01', 'label' => 'upper',
+				'cols' => '3', 'cols_t' => '2', 'cols_m' => '1', 'gap' => '48', 'gap_row' => '64', 'card' => 'tile', 'img_bg' => 'soft', 'img_pad' => '9', 'fit' => 'contain', 'hover' => 'zoom',
+				'show_cat' => '1', 'badge' => 'text', 'radius' => '0', 'btn_shape' => 'square', 'btn_case' => 'upper', 'page_bg' => '1', 'product' => 'wide', 'gallery' => 'stack',
+			) ),
+			'nordic'     => $p( __( 'Nordic', 'velox' ), __( 'Scandinavian calm for home and furniture: products cut out on light grey, round buttons.', 'velox' ), 'Outfit · Hanken Grotesk', __( 'calm · tactile', 'velox' ), array(
+				'soft' => '#efeeeb', 'ink' => '#282828', 'muted' => '#6f6c66', 'line' => '#e4e2dd', 'accent' => '#282828', 'sale' => '#b4441f',
+				'font_h' => 'outfit', 'font_b' => 'hanken', 'h_weight' => '500', 'h_track' => '-0.03', 'label' => 'upper',
+				'gap' => '16', 'gap_row' => '44', 'card' => 'tile', 'img_bg' => 'soft', 'img_pad' => '8', 'fit' => 'contain', 'show_cat' => '1',
+				'radius' => '0', 'btn_shape' => 'pill', 'gallery' => 'grid',
+			) ),
+			'maison'     => $p( __( 'Maison', 'velox' ), __( 'Hushed luxury for fragrance, beauty and jewellery: sand tones, a fine serif, lots of air.', 'velox' ), 'Bodoni Moda · Manrope', __( 'refined · airy', 'velox' ), array(
+				'bg' => '#f6f1eb', 'surface' => '#f6f1eb', 'soft' => '#efe7dc', 'ink' => '#111111', 'muted' => '#6e665e', 'line' => '#e3dcd3', 'accent' => '#111111', 'accent_ink' => '#f6f1eb', 'sale' => '#8a1c1c',
+				'font_h' => 'bodoni', 'font_b' => 'manrope', 'h_weight' => '400', 'h_track' => '0.01', 'label' => 'upper',
+				'gap' => '2', 'gap_row' => '56', 'ratio' => '3/4', 'img_bg' => 'soft', 'img_pad' => '6', 'fit' => 'contain', 'align' => 'center', 'badge' => 'text',
+				'radius' => '0', 'btn_shape' => 'square', 'btn_style' => 'outline', 'btn_case' => 'upper', 'page_bg' => '1', 'gallery' => 'stack',
+			) ),
+			'journal'    => $p( __( 'Journal', 'velox' ), __( 'Editorial rows like a magazine: the photo on one side, the story on the other.', 'velox' ), 'Newsreader · Archivo', __( 'earthy · editorial', 'velox' ), array(
+				'bg' => '#efeee8', 'surface' => '#efeee8', 'soft' => '#e4e2da', 'ink' => '#11151c', 'muted' => '#5b5f66', 'line' => '#d3d0c6', 'accent' => '#855832', 'accent_ink' => '#ffffff', 'sale' => '#9a2c1d',
+				'font_h' => 'newsreader', 'font_b' => 'archivo', 'h_weight' => '400', 'h_track' => '-0.015', 'label' => 'upper',
+				'layout' => 'list', 'cols' => '1', 'cols_t' => '1', 'cols_m' => '1', 'gap' => '56', 'gap_row' => '72', 'card' => 'split', 'img_bg' => 'soft', 'hover' => 'zoom',
+				'show_cat' => '1', 'show_text' => '1', 'button' => 'link', 'badge' => 'text', 'radius' => '0', 'btn_shape' => 'square', 'page_bg' => '1', 'product' => 'wide', 'gallery' => 'stack', 'details' => 'sections',
+			) ),
+			'bold'       => $p( 'Bold', // a name, the same in every language
+				 __( 'Loud and graphic for streetwear, sport and drinks: black frames, yellow, huge capitals.', 'velox' ), 'Archivo Black · Archivo', __( 'loud · confident', 'velox' ), array(
+				'soft' => '#f2f2f2', 'ink' => '#000000', 'muted' => '#555555', 'line' => '#000000', 'accent' => '#ffe500', 'accent_ink' => '#000000', 'sale' => '#e2101b',
+				'font_h' => 'archivo-black', 'font_b' => 'archivo', 'h_weight' => '400', 'h_track' => '-0.01', 'h_case' => 'upper', 'label' => 'upper',
+				'gap' => '0', 'gap_row' => '0', 'card' => 'framed', 'img_bg' => 'soft', 'hover' => 'shadow', 'button' => 'button', 'badge' => 'square', 'price' => 'bold',
+				'radius' => '0', 'btn_shape' => 'square', 'btn_case' => 'upper', 'gallery' => 'grid',
+			) ),
+			'candy'      => $p( __( 'Candy', 'velox' ), __( 'Soft and cheerful for beauty, kids and gifts: pastel tiles, round corners, buttons on every card.', 'velox' ), 'Bricolage Grotesque · Nunito', __( 'friendly · fresh', 'velox' ), array(
+				'bg' => '#fff8f5', 'surface' => '#ffffff', 'soft' => '#fbe3e8', 'ink' => '#1a1a1a', 'muted' => '#6b5e62', 'line' => '#f0dce0', 'accent' => '#d6336c', 'accent_ink' => '#ffffff', 'sale' => '#c2255c',
+				'font_h' => 'bricolage', 'font_b' => 'nunito', 'h_weight' => '700', 'h_track' => '-0.02',
+				'gap' => '20', 'gap_row' => '28', 'ratio' => '1/1', 'card' => 'boxed', 'img_bg' => 'pastel', 'img_pad' => '10', 'fit' => 'contain', 'hover' => 'lift', 'button' => 'button',
+				'radius' => '20', 'btn_shape' => 'pill', 'page_bg' => '1',
+			) ),
+			'circuit'    => $p( __( 'Circuit', 'velox' ), __( 'Precise and polished for tech and gadgets: rounded tiles, centred products, a blue that means buy.', 'velox' ), 'Space Grotesk · Inter', __( 'precise · modern', 'velox' ), array(
+				'surface' => '#f5f5f7', 'soft' => '#f5f5f7', 'ink' => '#1d1d1f', 'muted' => '#6e6e73', 'line' => '#d2d2d7', 'accent' => '#0071e3', 'sale' => '#b64400',
+				'font_h' => 'space-grotesk', 'font_b' => 'inter', 'h_weight' => '600', 'h_track' => '-0.022',
+				'cols' => '3', 'cols_t' => '2', 'cols_m' => '1', 'gap' => '24', 'gap_row' => '24', 'ratio' => '1/1', 'card' => 'boxed', 'img_bg' => 'none', 'img_pad' => '8', 'fit' => 'contain', 'hover' => 'zoom', 'align' => 'center',
+				'button' => 'button', 'badge' => 'text', 'price' => 'mono', 'radius' => '24', 'btn_shape' => 'pill', 'details' => 'sections',
+			) ),
+			'noir'       => $p( __( 'Noir', 'velox' ), __( 'A true dark shop for gaming, audio, nightlife and dark art: deep black, an electric accent, a glow on hover.', 'velox' ), 'Saira Condensed · Barlow', __( 'cinematic · electric', 'velox' ), array(
+				'bg' => '#0b0b0c', 'surface' => '#161618', 'soft' => '#1e1e21', 'ink' => '#f2f2f2', 'muted' => '#a1a1aa', 'line' => '#2a2a2e', 'accent' => '#c8ff3d', 'accent_ink' => '#0b0b0c', 'sale' => '#ff5c5c',
+				'font_h' => 'saira-condensed', 'font_b' => 'barlow', 'h_weight' => '700', 'h_track' => '0.02', 'h_case' => 'upper', 'label' => 'upper',
+				'gap' => '16', 'gap_row' => '16', 'ratio' => '1/1', 'card' => 'boxed', 'img_bg' => 'soft', 'img_pad' => '8', 'fit' => 'contain', 'hover' => 'glow', 'button' => 'button', 'badge' => 'square', 'price' => 'bold',
+				'radius' => '6', 'btn_shape' => 'rounded', 'btn_case' => 'upper', 'page_bg' => '1',
+			) ),
+			'manufaktur' => $p( __( 'Manufaktur', 'velox' ), __( 'Solid and trustworthy for tools, kitchen and everyday goods: framed cards, green, all the details shown.', 'velox' ), 'Libre Baskerville · Source Sans 3', __( 'solid · informative', 'velox' ), array(
+				'soft' => '#f5f5f2', 'ink' => '#222222', 'muted' => '#6d6f71', 'line' => '#dcdcd7', 'accent' => '#005f35', 'sale' => '#b3261e',
+				'font_h' => 'libre-baskerville', 'font_b' => 'source-sans', 'h_weight' => '700', 'h_track' => '0', 'label' => 'upper',
+				'gap' => '24', 'gap_row' => '24', 'ratio' => '1/1', 'card' => 'framed', 'img_bg' => 'none', 'img_pad' => '6', 'fit' => 'contain', 'hover' => 'lift', 'show_cat' => '1', 'button' => 'icon',
+				'badge' => 'square', 'price' => 'bold', 'radius' => '4', 'btn_shape' => 'rounded', 'gallery' => 'side', 'details' => 'sections',
+			) ),
+			'own'        => $p( __( 'Your own design', 'velox' ), __( 'A neutral base that takes your site’s colours and fonts. Style everything yourself — with the choices below, your own CSS or Velox Builder.', 'velox' ), __( 'your site’s fonts', 'velox' ), __( 'yours', 'velox' ), array(
+				'bg' => '', 'surface' => '', 'soft' => '', 'ink' => '', 'muted' => '', 'line' => '', 'accent' => '', 'accent_ink' => '', 'sale' => '',
+				'font_h' => '', 'font_b' => '', 'h_weight' => '', 'h_track' => '', 'card' => 'bare', 'hover' => 'none', 'radius' => '0', 'btn_shape' => 'square',
+			) ),
 		);
+	}
+
+	/** The template in effect (templates saved before 4.61 are mapped to their successor). */
+	public static function preset_key() {
+		$name = (string) self::get( 'design', 'velox' );
+		$name = self::OLD_PRESETS[ $name ] ?? $name;
+		return isset( self::presets()[ $name ] ) ? $name : 'velox';
 	}
 
 	/**
@@ -323,35 +445,47 @@ class Velox_Shop {
 	 */
 	public static function design( $over = array() ) {
 		$all  = self::presets();
-		$name = (string) self::get( 'design', 'velox' );
-		if ( ! isset( $all[ $name ] ) ) {
-			$name = 'velox';
-		}
-		$d = $all[ $name ]['v'];
+		$name = self::preset_key();
+		$d    = $all[ $name ]['v'];
+		// Values from before 4.61.
+		$legacy = array( 'card' => array( 'plain' => 'bare', 'surface' => 'boxed' ) );
 		foreach ( self::DESIGN_KEYS as $k ) {
 			$v = (string) self::get( 'd_' . $k, '' );
-			if ( '' !== $v ) {
-				$d[ $k ] = $v;
-			}
 			if ( isset( $over[ $k ] ) && '' !== (string) $over[ $k ] ) {
-				$d[ $k ] = (string) $over[ $k ];
+				$v = (string) $over[ $k ];
 			}
+			if ( '' !== $v ) {
+				$d[ $k ] = $legacy[ $k ][ $v ] ?? $v;
+			}
+		}
+		// The photo shape used to be its own setting.
+		if ( '' === (string) self::get( 'd_ratio', '' ) && '' !== (string) self::get( 'card_ratio', '' ) ) {
+			$d['ratio'] = (string) self::get( 'card_ratio' );
+		}
+		if ( 'own' === $name && '' === (string) $d['accent'] ) {
+			$d['accent'] = (string) self::get( 'accent', '' );
+		}
+		// Shops from before 4.61 coloured their buttons with Store → Look; that
+		// stays until a template is picked again.
+		if ( isset( self::OLD_PRESETS[ (string) self::get( 'design', '' ) ] ) && '' === (string) self::get( 'd_accent', '' ) && empty( $over['accent'] ) && sanitize_hex_color( (string) self::get( 'accent', '' ) ) ) {
+			$d['accent'] = (string) self::get( 'accent' );
 		}
 		$d['preset'] = $name;
 		return $d;
 	}
 
-	/** Colour and size variables for the shop, from the design in effect. */
+	/** Colour, type and size variables for the shop, from the design in effect. */
 	public static function design_vars( $d = null ) {
-		$d    = $d ? $d : self::design();
-		$css  = '';
-		$col  = function ( $v ) { return preg_match( '/^#[0-9a-f]{3,8}$/i', (string) $v ) ? $v : ''; };
-		$own  = 'own' === $d['preset'];
-		$ink  = $col( $d['ink'] );
+		$d   = $d ? $d : self::design();
+		$css = '';
+		$col = function ( $v ) { return preg_match( '/^#[0-9a-f]{3,8}$/i', (string) $v ) ? $v : ''; };
+		$own = 'own' === $d['preset'];
+		$ink = $col( $d['ink'] );
 		if ( $ink ) {
-			$css .= '--vxs-ink:' . $ink . ';--vxs-ink-2:color-mix(in srgb,' . $ink . ' 76%,transparent);--vxs-ink-3:color-mix(in srgb,' . $ink . ' 58%,transparent);';
+			$mut  = $col( $d['muted'] );
+			$css .= '--vxs-ink:' . $ink . ';--vxs-ink-2:' . ( $mut ? $mut : 'color-mix(in srgb,' . $ink . ' 72%,transparent)' ) . ';--vxs-ink-3:' . ( $mut ? 'color-mix(in srgb,' . $mut . ' 82%,transparent)' : 'color-mix(in srgb,' . $ink . ' 58%,transparent)' ) . ';';
 		} elseif ( $own ) {
-			$css .= '--vxs-ink:currentColor;--vxs-ink-2:currentColor;--vxs-ink-3:color-mix(in srgb,currentColor 62%,transparent);';
+			$css .= '--vxs-ink:currentColor;--vxs-ink-2:color-mix(in srgb,currentColor 76%,transparent);--vxs-ink-3:color-mix(in srgb,currentColor 62%,transparent);';
 		}
 		foreach ( array( 'line' => '--vxs-line', 'soft' => '--vxs-soft', 'bg' => '--vxs-bg', 'surface' => '--vxs-surface' ) as $k => $var ) {
 			$v = $col( $d[ $k ] );
@@ -361,18 +495,36 @@ class Velox_Shop {
 				$css .= $var . ':' . ( 'line' === $k ? 'color-mix(in srgb,currentColor 16%,transparent)' : ( 'soft' === $k ? 'color-mix(in srgb,currentColor 5%,transparent)' : 'transparent' ) ) . ';';
 			}
 		}
-		$r    = max( 0, min( 40, (int) $d['radius'] ) );
-		$css .= '--vxs-r:' . $r . 'px;--vxs-r-sm:' . max( 0, min( 12, (int) round( $r * 0.66 ) ) ) . 'px;';
-		$css .= '--vxs-btn-r:' . ( 'pill' === $d['btn_shape'] ? '999px' : ( 'rounded' === $d['btn_shape'] ? '10px' : '0' ) ) . ';';
-		$css .= '--vxs-gap:' . max( 0, min( 120, (int) $d['gap'] ) ) . 'px;';
-		$acc  = sanitize_hex_color( (string) self::get( 'accent', '#0a6f9f' ) );
+		$acc = $col( $d['accent'] );
+		if ( ! $acc ) {
+			$acc = sanitize_hex_color( (string) self::get( 'accent', '#0a6f9f' ) );
+		}
 		if ( $acc ) {
-			$css .= '--vxs-accent:' . $acc . ';';
+			$on   = $col( $d['accent_ink'] );
+			$css .= '--vxs-accent:' . $acc . ';--vxs-accent-ink:' . ( $on ? $on : ( self::is_light( $acc ) ? '#111111' : '#ffffff' ) ) . ';';
 		}
-		// A dark design needs light text on the accent and on dark chips.
+		if ( $col( $d['sale'] ) ) {
+			$css .= '--vxs-sale:' . $d['sale'] . ';--vxs-bad:' . $d['sale'] . ';';
+		}
+		// A dark design needs light text on dark chips and badges.
 		if ( $ink && self::is_light( $ink ) ) {
-			$css .= '--vxs-on-ink:#111;';
+			$css .= '--vxs-on-ink:#111;color-scheme:dark;';
 		}
+		$fh = self::font_stack( (string) $d['font_h'] );
+		$fb = self::font_stack( (string) $d['font_b'] );
+		$css .= '--vxs-font:' . ( $fb ? $fb : 'inherit' ) . ';--vxs-font-h:' . ( $fh ? $fh : ( $fb ? $fb : 'inherit' ) ) . ';';
+		if ( '' !== (string) $d['h_weight'] ) {
+			$css .= '--vxs-h-weight:' . max( 300, min( 900, (int) $d['h_weight'] ) ) . ';';
+		}
+		if ( '' !== (string) $d['h_track'] ) {
+			$css .= '--vxs-h-track:' . round( max( -0.06, min( 0.2, (float) $d['h_track'] ) ), 3 ) . 'em;';
+		}
+		$css .= '--vxs-h-case:' . ( 'upper' === $d['h_case'] ? 'uppercase' : 'none' ) . ';--vxs-btn-case:' . ( 'upper' === $d['btn_case'] ? 'uppercase' : 'none' ) . ';--vxs-btn-track:' . ( 'upper' === $d['btn_case'] ? '.08em' : '0' ) . ';';
+		$r    = max( 0, min( 40, (int) $d['radius'] ) );
+		$css .= '--vxs-r:' . $r . 'px;--vxs-r-sm:' . max( 0, min( 12, (int) round( $r * 0.6 ) ) ) . 'px;';
+		$css .= '--vxs-btn-r:' . ( 'pill' === $d['btn_shape'] ? '999px' : ( 'rounded' === $d['btn_shape'] ? max( 4, min( 12, (int) round( $r * 0.5 ) ) ) . 'px' : '0' ) ) . ';';
+		$css .= '--vxs-gap:' . max( 0, min( 120, (int) $d['gap'] ) ) . 'px;--vxs-gap-row:' . max( 0, min( 160, (int) ( '' !== (string) $d['gap_row'] ? $d['gap_row'] : $d['gap'] ) ) ) . 'px;';
+		$css .= '--vxs-img-pad:' . max( 0, min( 25, (int) $d['img_pad'] ) ) . '%;';
 		return $css;
 	}
 
@@ -392,18 +544,65 @@ class Velox_Shop {
 	/** Classes that switch the storefront's structure for this design. */
 	public static function design_classes( $d = null ) {
 		$d = $d ? $d : self::design();
-		return 'vxs-d vxs-d-' . sanitize_html_class( $d['preset'] ) . ' vxs-l-' . sanitize_html_class( $d['layout'] ) . ' vxs-k-' . sanitize_html_class( $d['card'] )
-			. ' vxs-hv-' . sanitize_html_class( $d['hover'] ) . ' vxs-al-' . sanitize_html_class( $d['align'] ) . ' vxs-fit-' . sanitize_html_class( $d['fit'] )
-			. ' vxs-bst-' . sanitize_html_class( $d['btn_style'] ) . ' vxs-pl-' . sanitize_html_class( $d['product'] ) . ' vxs-gl-' . sanitize_html_class( $d['gallery'] )
-			. ( '1' === (string) $d['sticky'] ? ' vxs-sticky' : '' ) . ' vxs-co-' . sanitize_html_class( $d['checkout'] );
+		$c = 'vxs-d vxs-d-' . $d['preset'] . ' vxs-l-' . $d['layout'] . ' vxs-k-' . $d['card'] . ' vxs-hv-' . $d['hover'] . ' vxs-al-' . $d['align'] . ' vxs-fit-' . $d['fit']
+			. ' vxs-bst-' . $d['btn_style'] . ' vxs-pl-' . $d['product'] . ' vxs-gl-' . $d['gallery'] . ' vxs-co-' . $d['checkout'] . ' vxs-ib-' . $d['img_bg']
+			. ' vxs-bdg-' . $d['badge'] . ' vxs-bp-' . $d['badge_pos'] . ' vxs-pr-' . $d['price'] . ' vxs-lb-' . $d['label']
+			. ( '1' === (string) $d['sticky'] ? ' vxs-sticky' : '' );
+		return implode( ' ', array_map( 'sanitize_html_class', explode( ' ', $c ) ) );
 	}
 
-	public static function card_ratio() {
-		$r = (string) self::get( 'card_ratio' );
-		if ( '' === $r ) {
-			$r = self::legacy_upgrade() ? 'natural' : '4/5';
+	public static function card_ratio( $d = null ) {
+		$d = $d ? $d : self::design();
+		$r = (string) $d['ratio'];
+		if ( self::legacy_upgrade() && '' === (string) self::get( 'card_ratio' ) && '' === (string) self::get( 'd_ratio' ) ) {
+			$r = 'natural';
 		}
-		return in_array( $r, array( '4/5', '1/1', '3/4', 'natural' ), true ) ? $r : '4/5';
+		return in_array( $r, array( '4/5', '1/1', '3/4', '2/3', '4/3', 'natural' ), true ) ? $r : '4/5';
+	}
+
+	/* ------------------------------------------------------------- fonts */
+
+	/** Google Fonts the design needs (keys), without the bundled ones. */
+	public static function design_fonts( $d = null ) {
+		$d   = $d ? $d : self::design();
+		$all = self::fonts();
+		$out = array();
+		foreach ( array( $d['font_h'], $d['font_b'] ) as $k ) {
+			if ( isset( $all[ $k ] ) && 'local' !== $all[ $k ][2] ) {
+				$out[ $k ] = $k;
+			}
+		}
+		return array_values( $out );
+	}
+
+	/**
+	 * The stylesheet for the design's fonts, served from this site. Built by
+	 * the server the first time (Velox_Local_Fonts downloads the files once);
+	 * $build false only looks. Returns '' while there is none.
+	 */
+	public static function fonts_url( $d = null, $build = false ) {
+		$keys = self::design_fonts( $d );
+		if ( ! $keys || ! class_exists( 'Velox_Local_Fonts' ) ) {
+			return '';
+		}
+		sort( $keys );
+		$key = 'shop-' . substr( md5( implode( ',', $keys ) ), 0, 10 );
+		$dir = Velox_Local_Fonts::dir();
+		$css = $dir['path'] . '/' . $key . '/' . $key . '.css';
+		if ( ! file_exists( $css ) ) {
+			if ( ! $build ) {
+				return '';
+			}
+			$all = self::fonts();
+			$fam = array();
+			foreach ( $keys as $k ) {
+				$fam[] = 'family=' . str_replace( ' ', '+', $all[ $k ][0] ) . ':wght@' . $all[ $k ][2];
+			}
+			if ( ! Velox_Local_Fonts::optimize_stylesheet( 'https://fonts.googleapis.com/css2?' . implode( '&', $fam ) . '&display=swap', 'velox-shop-fonts-' . $key, $key ) ) {
+				return '';
+			}
+		}
+		return $dir['url'] . '/' . $key . '/' . $key . '.css?v=' . (int) @filemtime( $css ); // phpcs:ignore WordPress.PHP.NoSilencedErrors
 	}
 
 	public static function small_business() {

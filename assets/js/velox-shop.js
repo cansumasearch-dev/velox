@@ -113,6 +113,12 @@
 					btn.disabled = full; btn.textContent = btn.getAttribute( 'data-vxs-label' );
 				}
 				w._ready = !! v;
+				var sb = $( '[data-vxs-sbar]' );
+				if ( sb && box.closest( '.vxs-product' ) ) {
+					var sp = $( '[data-vxs-sbar-price]', sb ), sg = $( '[data-vxs-sbar-go]', sb );
+					if ( sp && v && v.price ) { var tmp = document.createElement( 'div' ); tmp.innerHTML = v.price; sp.textContent = tmp.textContent.replace( /\s+/g, ' ' ).trim(); }
+					if ( sg && v ) { sg.disabled = ! v.can; sg.textContent = v.can ? btn.getAttribute( 'data-vxs-label' ) : v.av; }
+				}
 			}
 			w.addEventListener( 'change', function ( e ) { if ( e.target.hasAttribute( 'data-vxs-opt' ) ) { update(); } } );
 			form.addEventListener( 'submit', function ( e ) {
@@ -182,7 +188,9 @@
 			if ( btn ) { btn.classList.remove( 'is-busy' ); }
 			render( s ); setCount( s.count, true, s.subtotal );
 			if ( s.msg ) { toast( s.msg ); }
-			if ( ! openDrawer() ) { toast( L.added ); }
+			if ( btn && btn.classList.contains( 'vxs-buy-btn' ) && L.addAgain ) { btn.textContent = L.addAgain; }
+			if ( 'cart' === C.after && s.cart ) { location.href = s.cart; return; }
+			if ( 'stay' === C.after || ! openDrawer() ) { toast( L.added ); }
 		} ).catch( function () { f.submit(); } );
 	} );
 	document.addEventListener( 'click', function ( e ) {
@@ -236,9 +244,163 @@
 		navigator.clipboard.writeText( b.getAttribute( 'data-vxa-copy' ) ).then( function () { b.classList.add( 'is-done' ); b.lastChild.textContent = b.getAttribute( 'data-done' ) || '✓'; } );
 	} );
 
+	/* ------------------------------------------------------ grid: sort, search, more */
+	function gridTools() {
+		$$( '[data-vxs-gridwrap]' ).forEach( function ( wrap ) {
+			var form = $( '[data-vxs-tools]', wrap );
+			var n = wrap.getAttribute( 'data-vxs-gridwrap' ), busy = 0;
+			function load( url, mode ) {
+				var my = ++busy; wrap.classList.add( 'is-busy' ); wrap.setAttribute( 'aria-busy', 'true' );
+				var before = $$( '.vxs-card', wrap ).length;
+				return fetch( url, { credentials:'same-origin', headers:{ 'X-Requested-With':'velox-shop' } } ).then( function ( r ) { return r.text(); } ).then( function ( html ) {
+					if ( my !== busy ) { return; }
+					var doc = new DOMParser().parseFromString( html, 'text/html' );
+					var fresh = doc.querySelector( '[data-vxs-gridwrap="' + n + '"]' );
+					if ( ! fresh ) { location.href = url; return; }
+					// Keep the toolbar (and the cursor in the search field); swap everything else.
+					$$( ':scope > :not([data-vxs-tools])', wrap ).forEach( function ( x ) { x.remove(); } );
+					$$( ':scope > :not([data-vxs-tools])', fresh ).forEach( function ( x ) { wrap.appendChild( document.importNode( x, true ) ); } );
+					var nf = $( '[data-vxs-tools]', fresh );
+					if ( form && nf ) {
+						var oc = $( '.vxs-cats', form ), ncats = $( '.vxs-cats', nf ); if ( oc && ncats ) { oc.replaceWith( document.importNode( ncats, true ) ); }
+						var ot = $( '.vxs-count-txt', form ), nt = $( '.vxs-count-txt', nf ); if ( ot && nt ) { ot.textContent = nt.textContent; }
+						var oh = $( 'input[name="vxcat"]', form ), nh = $( 'input[name="vxcat"]', nf );
+						if ( oh ) { oh.remove(); } if ( nh ) { form.insertBefore( document.importNode( nh, true ), form.firstChild ); }
+					}
+					wrap.classList.remove( 'is-busy' ); wrap.removeAttribute( 'aria-busy' );
+					history[ 'more' === mode ? 'replaceState' : 'pushState' ]( { vxs:n }, '', url );
+					if ( 'more' === mode ) { var c = $$( '.vxs-card', wrap )[ before ]; var a = c && $( 'a', c ); if ( a ) { a.focus( { preventScroll:true } ); } }
+				} ).catch( function () { location.href = url; } );
+			}
+			function urlFor( changes ) {
+				var u = new URL( location.href );
+				Object.keys( changes ).forEach( function ( k ) { var v = changes[ k ]; if ( null === v || '' === v || ( 'vxs_sort' === k && 'menu' === v ) ) { u.searchParams.delete( k ); } else { u.searchParams.set( k, v ); } } );
+				return u.toString();
+			}
+			wrap.addEventListener( 'click', function ( e ) {
+				var a = e.target.closest( '[data-vxs-more],[data-vxs-nav]' );
+				if ( ! a || e.metaKey || e.ctrlKey || e.shiftKey || 0 !== e.button ) { return; }
+				e.preventDefault();
+				if ( a.hasAttribute( 'data-vxs-more' ) ) { a.classList.add( 'is-busy' ); a.textContent = L.loading || a.textContent; }
+				load( a.href, a.hasAttribute( 'data-vxs-more' ) ? 'more' : 'nav' );
+			} );
+			if ( ! form ) { return; }
+			var q = $( 'input[name="vxs_q"]', form ), qt = null;
+			form.addEventListener( 'submit', function ( e ) { e.preventDefault(); load( urlFor( { vxs_q:q ? q.value.trim() : null, vxs_n:null } ), 'nav' ); } );
+			form.addEventListener( 'change', function ( e ) { if ( 'vxs_sort' === e.target.name ) { load( urlFor( { vxs_sort:e.target.value, vxs_n:null } ), 'nav' ); } } );
+			if ( q ) {
+				q.addEventListener( 'input', function () { clearTimeout( qt ); qt = setTimeout( function () { load( urlFor( { vxs_q:q.value.trim(), vxs_n:null } ), 'nav' ); }, 380 ); } );
+			}
+		} );
+		window.addEventListener( 'popstate', function ( e ) { if ( e.state && e.state.vxs ) { location.reload(); } } );
+	}
+
+	/* -------------------------------------------------------- photos full screen */
+	function lightbox() {
+		var lb = null, list = [], at = 0, back = null, sx = 0;
+		function show( i ) {
+			at = ( i + list.length ) % list.length;
+			var img = $( 'img', lb ); img.src = list[ at ].src; img.alt = list[ at ].alt || '';
+			$( '.vxs-lb-c', lb ).textContent = list.length > 1 ? ( L.photo || '%1$d / %2$d' ).replace( '%1$d', at + 1 ).replace( '%2$d', list.length ) : '';
+			// the next photo is ready before it is asked for
+			if ( list.length > 1 ) { ( new Image() ).src = list[ ( at + 1 ) % list.length ].src; }
+		}
+		function close() {
+			if ( ! lb ) { return; }
+			lb.classList.remove( 'is-on' ); document.documentElement.style.overflow = '';
+			var o = lb; lb = null; setTimeout( function () { o.remove(); }, 200 );
+			if ( back ) { back.focus(); }
+		}
+		function open( g, i, from ) {
+			try { list = JSON.parse( g.getAttribute( 'data-vxs-zoom' ) ) || []; } catch ( e ) { list = []; }
+			if ( ! list.length ) { return; }
+			back = from;
+			var arrow = function ( d ) { return '<svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' + d + '"/></svg>'; };
+			lb = document.createElement( 'div' );
+			lb.className = 'vxs-lb'; lb.setAttribute( 'role', 'dialog' ); lb.setAttribute( 'aria-modal', 'true' ); lb.setAttribute( 'aria-label', L.zoom || '' );
+			lb.innerHTML = '<img alt="">' + '<button type="button" class="vxs-lb-x" aria-label="' + esc( L.close ) + '">' + arrow( 'M6 6l12 12M18 6 6 18' ) + '</button>'
+				+ ( list.length > 1 ? '<button type="button" class="vxs-lb-p" aria-label="' + esc( L.prev ) + '">' + arrow( 'M15 18l-6-6 6-6' ) + '</button><button type="button" class="vxs-lb-n" aria-label="' + esc( L.next ) + '">' + arrow( 'M9 18l6-6-6-6' ) + '</button>' : '' )
+				+ '<span class="vxs-lb-c" aria-live="polite"></span>';
+			document.body.appendChild( lb ); document.documentElement.style.overflow = 'hidden';
+			show( i );
+			requestAnimationFrame( function () { lb.classList.add( 'is-on' ); $( '.vxs-lb-x', lb ).focus(); } );
+			lb.addEventListener( 'click', function ( e ) {
+				if ( e.target.closest( '.vxs-lb-p' ) ) { show( at - 1 ); } else if ( e.target.closest( '.vxs-lb-n' ) ) { show( at + 1 ); } else if ( e.target.closest( '.vxs-lb-x' ) || e.target === lb ) { close(); }
+			} );
+			lb.addEventListener( 'touchstart', function ( e ) { sx = e.touches[ 0 ].clientX; }, { passive:true } );
+			lb.addEventListener( 'touchend', function ( e ) { var dx = e.changedTouches[ 0 ].clientX - sx; if ( Math.abs( dx ) > 50 && list.length > 1 ) { show( at + ( dx < 0 ? 1 : -1 ) ); } } );
+		}
+		$$( '[data-vxs-zoom]' ).forEach( function ( g ) {
+			$$( '.vxs-gal-stage img,.vxs-gal-item img', g ).forEach( function ( img ) { img.setAttribute( 'tabindex', '0' ); img.setAttribute( 'role', 'button' ); img.setAttribute( 'aria-label', L.zoom || '' ); } );
+		} );
+		function start( e ) {
+			var img = e.target.closest && e.target.closest( '[data-vxs-zoom] .vxs-gal-stage img,[data-vxs-zoom] .vxs-gal-item img' );
+			if ( ! img ) { return false; }
+			var g = img.closest( '[data-vxs-zoom]' ), i = 0;
+			var item = img.closest( '.vxs-gal-item' );
+			if ( item ) { i = $$( '.vxs-gal-item', g ).indexOf( item ); } else { var th = $$( '.vxs-gal-th', g ), on = $( '.vxs-gal-th.is-on', g ); i = on ? th.indexOf( on ) : 0; }
+			open( g, Math.max( 0, i ), img );
+			return true;
+		}
+		document.addEventListener( 'click', function ( e ) { if ( start( e ) ) { e.preventDefault(); } } );
+		document.addEventListener( 'keydown', function ( e ) {
+			if ( lb ) {
+				if ( 'Escape' === e.key ) { e.stopPropagation(); close(); } else if ( 'ArrowLeft' === e.key && list.length > 1 ) { show( at - 1 ); } else if ( 'ArrowRight' === e.key && list.length > 1 ) { show( at + 1 ); } else if ( 'Tab' === e.key ) {
+					var f = $$( 'button', lb ), first = f[ 0 ], last = f[ f.length - 1 ];
+					if ( e.shiftKey && document.activeElement === first ) { e.preventDefault(); last.focus(); } else if ( ! e.shiftKey && document.activeElement === last ) { e.preventDefault(); first.focus(); }
+				}
+				return;
+			}
+			if ( ( 'Enter' === e.key || ' ' === e.key ) && start( e ) ) { e.preventDefault(); }
+		}, true );
+	}
+
+	/* --------------------------------------------------------------- buy bar */
+	function buyBar() {
+		var bar = $( '[data-vxs-sbar]' ), main = $( '.vxs-product .vxs-buy-btn' ) || $( '.vxs-product .vxs-buy' );
+		if ( ! bar || ! main || ! window.IntersectionObserver ) { return; }
+		var go = $( '[data-vxs-sbar-go]', bar );
+		function set( on ) {
+			bar.classList.toggle( 'is-on', on ); bar.setAttribute( 'aria-hidden', on ? 'false' : 'true' );
+			if ( go ) { go.tabIndex = on ? 0 : -1; }
+			document.documentElement.classList.toggle( 'vxs-sbar-on', on );
+		}
+		new IntersectionObserver( function ( en ) {
+			var e = en[ 0 ]; set( ! e.isIntersecting && e.boundingClientRect.top < 0 );
+		} ).observe( main );
+		if ( go ) {
+			go.addEventListener( 'click', function () {
+				var w = $( '.vxs-product [data-vxs-variants]' ), btn = $( '.vxs-product .vxs-buy-btn' );
+				if ( btn && ! btn.disabled && ( ! w || w._ready ) ) { btn.click(); return; }
+				var box = $( '.vxs-product [data-vxs-buy]' ); if ( ! box ) { return; }
+				box.scrollIntoView( { block:'center', behavior:matchMedia( '(prefers-reduced-motion: reduce)' ).matches ? 'auto' : 'smooth' } );
+				var first = w && $$( '.vxs-opt', w ).filter( function ( o ) { return ! $( 'input:checked', o ); } )[ 0 ];
+				setTimeout( function () { var t = first ? $( 'input', first ) : btn; if ( t ) { t.focus( { preventScroll:true } ); } }, 350 );
+			} );
+		}
+	}
+
+	/* ------------------------------------------------------------ notice bar */
+	function notice() {
+		var bar = $( '[data-vxs-notice]' ); if ( ! bar || bar.hidden ) { return; }
+		var x = $( '[data-vxs-notice-x]', bar ), m = $$( '.vxs-notice-m', bar ), i = 0, paused = false;
+		if ( x ) { x.addEventListener( 'click', function () { bar.hidden = true; try { sessionStorage.setItem( 'vxs_notice', bar.getAttribute( 'data-vxs-notice' ) ); } catch ( e ) {} } ); }
+		if ( m.length < 2 ) { return; }
+		bar.addEventListener( 'mouseenter', function () { paused = true; } ); bar.addEventListener( 'mouseleave', function () { paused = false; } );
+		bar.addEventListener( 'focusin', function () { paused = true; } ); bar.addEventListener( 'focusout', function () { paused = false; } );
+		setInterval( function () {
+			if ( paused || document.hidden ) { return; }
+			m[ i ].hidden = true; i = ( i + 1 ) % m.length; m[ i ].hidden = false;
+		}, 5000 );
+	}
+
 	source();
 	buyBoxes();
 	checkout();
+	gridTools();
+	lightbox();
+	buyBar();
+	notice();
 	// Cached pages carry an old count: ask once when there is a cart.
 	if ( hasCart() ) { rest( 'cart' ).then( render ).catch( function () {} ); } else { setCount( 0 ); }
 }() );

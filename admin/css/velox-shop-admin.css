@@ -134,8 +134,8 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 .vsa-colorf:hover{border-color:var(--vbb-text-3)}
 .vsa-colorf:focus-within{border-color:var(--vbb-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--vbb-accent) 22%,transparent)}
 .vsa-colorf .vxcp-chip{--vxcp-size:24px!important;border-radius:6px}
-.vsa-colorf-in{flex:1;min-width:0;height:100%;padding:0;border:0;outline:0;background:transparent;color:var(--vbb-text);font:500 13px/1 var(--vbb-mono,ui-monospace,Menlo,Consolas,monospace);text-transform:lowercase;letter-spacing:.02em}
-.vsa-colorf-in::placeholder{color:var(--vbb-text-3)}
+.vsa-colorf input.vsa-colorf-in{flex:1;min-width:0;height:100%;min-height:0;margin:0;padding:0;border:0;border-radius:0;outline:0;box-shadow:none;background:transparent;color:var(--vbb-text);font:500 13px/1 var(--vbb-mono,ui-monospace,Menlo,Consolas,monospace);text-transform:lowercase;letter-spacing:.02em}
+.vsa-colorf input.vsa-colorf-in::placeholder{color:var(--vbb-text-3)}
 .vsa-colorf.is-tpl .vxcp-chip{opacity:.9}
 .vsa-colorf-x{flex:none;display:grid;place-items:center;width:24px;height:24px;padding:0;border:0;border-radius:6px;background:transparent;color:var(--vbb-text-3);cursor:pointer}
 .vsa-colorf-x:hover{background:var(--vbb-raised-2);color:var(--vbb-text)}
@@ -437,23 +437,44 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 #velox-builder-admin input[type=checkbox]{accent-color:var(--vbb-accent)}
 
 /* ---- Settings → Design */
-.vsa-tpls{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
-.vsa-tpl{display:flex;flex-direction:column;align-items:flex-start;gap:6px;padding:10px 10px 14px;border:1px solid var(--vbb-line);border-radius:var(--vbb-r-lg);background:var(--vbb-raised);color:var(--vbb-text);text-align:left;cursor:pointer;font:inherit;transition:border-color .15s,transform .15s,box-shadow .15s}
-.vsa-tpl:hover{border-color:var(--vbb-text-3);transform:translateY(-2px)}
+.vsa-tpls{display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:14px}
+.vsa-tpl{display:flex;flex-direction:column;align-items:stretch;gap:8px;padding:8px 8px 14px;border:1px solid var(--vbb-line);border-radius:var(--vbb-r-lg);background:var(--vbb-raised);color:var(--vbb-text);text-align:left;cursor:pointer;font:inherit;transition:border-color .15s,transform .15s,box-shadow .15s}
+.vsa-tpl:hover{border-color:var(--vbb-text-3);transform:translateY(-2px);box-shadow:0 10px 28px -14px rgba(0,0,0,.45)}
+.vsa-tpl:active{transform:translateY(0) scale(.99)}
 .vsa-tpl:focus-visible{outline:2px solid var(--vbb-accent);outline-offset:2px}
 .vsa-tpl.is-on{border-color:var(--vbb-accent);box-shadow:0 0 0 1px var(--vbb-accent)}
-.vsa-tpl b{font-size:14px;font-weight:650;padding:0 4px}
-.vsa-tpl small{font-size:12px;line-height:1.45;color:var(--vbb-text-3);padding:0 4px}
-.vsa-mk{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;width:100%;aspect-ratio:16/9;padding:12px;border-radius:9px;margin-bottom:4px;box-sizing:border-box}
-.vsa-mk.is-list{grid-template-columns:1fr;gap:9px}
-.vsa-mk-c{display:flex;flex-direction:column;gap:4px;min-width:0;position:relative}
-.vsa-mk-c i{display:block;flex:1;min-height:0}
-.vsa-mk-c em{display:block;height:4px;width:70%;border-radius:2px}
-.vsa-mk-c.is-c{align-items:center}
-.vsa-mk-c.is-ov em{position:absolute;left:5px;bottom:6px;background:#fff!important}
-.vsa-mk-c.is-ov em+em{bottom:13px}
-.vsa-mk.is-list .vsa-mk-c{display:grid;grid-template-columns:1fr 1.3fr;grid-template-rows:1fr auto auto;column-gap:8px}
-.vsa-mk.is-list .vsa-mk-c i{grid-row:1/4}
+.vsa-tpl-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:2px 6px 0}
+.vsa-tpl-h b{font-size:14px;font-weight:650}
+.vsa-tpl small{font-size:12px;line-height:1.45;color:var(--vbb-text-3);padding:0 6px}
+.vsa-tpl-f{display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:2px 6px 0;color:var(--vbb-text-2);font-size:11.5px}
+.vsa-tpl-f i{margin-left:auto;font-style:normal;color:var(--vbb-text-3)}
+.vsa-sw{display:flex}
+.vsa-sw i{width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1.5px var(--vbb-raised),inset 0 0 0 1px rgba(127,127,127,.25)}
+.vsa-sw i+i{margin-left:-4px}
+.vsa-tpl-own{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;padding:10px 12px;border-radius:var(--vbb-r);background:var(--vbb-panel-2,rgba(127,127,127,.08));color:var(--vbb-text-2);font-size:13px}
+.vsa-tpl-own .vsa-link{margin-left:auto}
+.vsa-mk2{display:flex;flex-direction:column;gap:8px;width:100%;aspect-ratio:16/10;padding:9px 10px 10px;border-radius:9px;box-sizing:border-box;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(127,127,127,.18)}
+.vsa-mk2-top{display:flex;align-items:center;gap:8px;padding-bottom:6px;border-bottom:1px solid}
+.vsa-mk2-top b{font-size:15px;line-height:1}
+.vsa-mk2-nav{display:flex;gap:5px;margin-left:auto}
+.vsa-mk2-nav i{display:block;width:16px;height:3px;border-radius:2px;opacity:.55}
+.vsa-mk2-dot{display:block;width:9px;height:9px;border-radius:50%}
+.vsa-mk2-g{flex:1;display:grid;grid-template-columns:repeat(3,1fr);gap:7px;min-height:0}
+.vsa-mk2-c{display:flex;flex-direction:column;gap:3px;min-width:0;min-height:0}
+.vsa-mk2-c.is-c{align-items:center}
+.vsa-mk2-ph{position:relative;flex:1;min-height:0;display:grid;place-items:center}
+.vsa-mk2-o{display:block;width:38%;height:46%;border-radius:40% 40% 8% 8%;opacity:.22}
+.vsa-mk2-c em{display:block;height:3px;width:72%;border-radius:2px;opacity:.85}
+.vsa-mk2-c em.is-p{width:36%;opacity:.55}
+.vsa-mk2-c u{display:block;height:7px;width:60%;margin-top:1px}
+.vsa-mk2-c u.is-link{height:0;width:34%;border-bottom:1.5px solid}
+.vsa-mk2-g.is-list{grid-template-columns:1fr}
+.vsa-mk2-g.is-list .vsa-mk2-c{display:grid;grid-template-columns:1fr 1.2fr;grid-template-rows:1fr auto auto;column-gap:8px;align-content:center}
+.vsa-mk2-g.is-list .vsa-mk2-ph{grid-row:1/4;height:100%}
+.vsa-toast.has-act{display:flex;align-items:center;gap:16px;pointer-events:auto}
+.vsa-toast-a{flex:none;padding:4px 10px;border:0;border-radius:6px;background:rgba(255,255,255,.12);color:inherit;font:600 13px/1.4 var(--vbb-font);cursor:pointer}
+.vsa-toast-a:hover{background:rgba(255,255,255,.2)}
+.vsa-toast-a:focus-visible{outline:2px solid var(--vbb-accent);outline-offset:2px}
 .vsa-dprev{position:relative;height:560px;border-radius:var(--vbb-r);overflow:hidden;border:1px solid var(--vbb-line);background:#fff}
 .vsa-dprev iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;display:block;transform-origin:0 0}
 .vsa-dprev-dev button{padding:0 12px}
