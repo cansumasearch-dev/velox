@@ -466,3 +466,50 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 .vsa-corders li>b{min-width:84px;text-align:right;font-variant-numeric:tabular-nums}
 .vsa-row-end{display:flex;justify-content:flex-end;margin-top:16px}
 @media (max-width:700px){.vsa-corders li{flex-wrap:wrap}.vsa-corders li>a.vsa-grow{flex-basis:100%}}
+/* line chart */
+.vsa-lc{position:relative;width:100%}
+.vsa-lc-plot svg{display:block;overflow:visible}
+.vsa-lc-grid{stroke:var(--vbb-line);stroke-width:1}
+.vsa-lc-ax{fill:var(--vbb-text-3);font:500 11px/1 var(--vbb-font);font-variant-numeric:tabular-nums}
+.vsa-lc-cur{fill:none;stroke:var(--vbb-accent);stroke-width:2.25;stroke-linejoin:round;stroke-linecap:round}
+.vsa-lc-cmp{fill:none;stroke:var(--vbb-accent);stroke-width:1.75;stroke-dasharray:4 4;opacity:.55}
+.vsa-lc-g0{stop-color:var(--vbb-accent);stop-opacity:.16}
+.vsa-lc-g1{stop-color:var(--vbb-accent);stop-opacity:0}
+.vsa-lc-dot,.vsa-lc-hc{fill:var(--vbb-accent);stroke:var(--vbb-panel);stroke-width:2}
+.vsa-lc-hc.is-cmp{fill:var(--vbb-panel);stroke:var(--vbb-accent);stroke-width:1.75}
+.vsa-lc-guide{stroke:var(--vbb-line-2);stroke-width:1;stroke-dasharray:3 3}
+.vsa-lc-hit{fill:transparent;cursor:crosshair;touch-action:pan-y}
+.vsa-lc-tip{position:absolute;z-index:3;min-width:190px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:var(--vbb-raised);border:1px solid var(--vbb-line-2);border-radius:var(--vbb-r-md);box-shadow:0 12px 32px rgba(0,0,0,.28);pointer-events:none;font-size:12px}
+.vsa-lc-tip div{display:flex;align-items:center;gap:8px}
+.vsa-lc-tip span{flex:1;color:var(--vbb-text-2);white-space:nowrap}
+.vsa-lc-tip b{color:var(--vbb-text);font-variant-numeric:tabular-nums;white-space:nowrap}
+.vsa-lc-tip em{align-self:flex-end;font-style:normal;font-weight:600;font-size:11.5px}
+.vsa-lc-tip i,.vsa-lc-leg i{flex:none;width:14px;height:0;border-top:2px solid var(--vbb-accent)}
+.vsa-lc-tip i.is-cmp,.vsa-lc-leg i.is-cmp{border-top-style:dashed;opacity:.6}
+.vsa-lc-leg{display:flex;flex-wrap:wrap;justify-content:center;gap:8px 22px;margin-top:6px;color:var(--vbb-text-2);font-size:12px}
+.vsa-lc-leg span{display:inline-flex;align-items:center;gap:8px}
+.is-up{color:#5fe09a}.is-down{color:#ff8a82}
+.vsa-card-sub{margin-left:6px;color:var(--vbb-text-3);font-size:12px;font-weight:500}
+/* revenue report */
+.vsa-rv-custom{display:flex;align-items:center;gap:8px;margin:-4px 0 12px}
+.vsa-rv-custom input{width:auto}
+.vsa-rv-filters{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.vsa-rv-sel select{width:auto;max-width:260px}
+#vsa-rv{transition:opacity .15s}
+#vsa-rv.is-busy{opacity:.5;pointer-events:none}
+.vsa-kpi-btn{text-align:left;font:inherit;cursor:pointer;transition:border-color .15s,background .15s}
+.vsa-kpi-btn:hover{border-color:var(--vbb-line-2)}
+.vsa-kpi-btn.is-on{border-color:var(--vbb-accent);box-shadow:inset 0 0 0 1px var(--vbb-accent)}
+.vsa-kpi-btn:focus-visible{outline:2px solid var(--vbb-accent);outline-offset:2px}
+.vsa-delta{font-style:normal;font-weight:600}
+.vsa-num,.vsa-table .vsa-num{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.vsa-rv-tbl{max-height:460px;overflow:auto;margin:0 -18px}
+.vsa-rv-tbl .vsa-table th{position:sticky;top:0;z-index:1;background:var(--vbb-panel)}
+.vsa-rv-tbl tfoot td{font-weight:600;border-top:1px solid var(--vbb-line-2);position:sticky;bottom:0;background:var(--vbb-panel)}
+.vsa-stack{display:flex;flex-direction:column;min-width:0}
+.vsa-rv-bars{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.vsa-rv-bars li{position:relative;display:flex;align-items:center;gap:10px;padding-bottom:8px;font-size:13px}
+.vsa-rv-bars li b{font-variant-numeric:tabular-nums}
+.vsa-rv-bars li i{position:absolute;left:0;bottom:0;height:3px;border-radius:3px;background:var(--vbb-accent);opacity:.7}
+@media (max-width:700px){.vsa-rv-sel{flex:1 1 45%}.vsa-rv-sel select{width:100%;max-width:none}.vsa-rv-tbl{margin:0 -14px}}
+.vsa-lc-guide,.vsa-lc-hc{visibility:hidden}.is-hover .vsa-lc-guide,.is-hover .vsa-lc-hc{visibility:visible}

@@ -204,6 +204,9 @@
 				// One click flips this screen's part of Velox.
 				var key = 'velox' === C.area ? 'all' : C.area, now = modeFor( C.area );
 				prefs[ key ] = 'dark' === now ? 'light' : 'dark';
+				// Flipped on a general Velox screen: the Builder and the Shop follow,
+				// otherwise their own (dark) default makes the switch look broken there.
+				if ( 'all' === key ) { prefs.builder = 'inherit'; prefs.shop = 'inherit'; }
 				apply(); save(); return;
 			}
 			if ( e.target.closest( '.vxth-more' ) ) {
@@ -212,7 +215,7 @@
 				return;
 			}
 			var o = e.target.closest( '[data-vxth]' );
-			if ( o ) { var kv = o.getAttribute( 'data-vxth' ).split( ':' ); prefs[ kv[ 0 ] ] = kv[ 1 ]; apply(); save(); fillPop( pop ); }
+			if ( o ) { var kv = o.getAttribute( 'data-vxth' ).split( ':' ); prefs[ kv[ 0 ] ] = kv[ 1 ]; if ( 'all' === kv[ 0 ] ) { prefs.builder = 'inherit'; prefs.shop = 'inherit'; } apply(); save(); fillPop( pop ); }
 		} );
 		document.addEventListener( 'click', function ( e ) { if ( box && ! box.contains( e.target ) ) { var p = box.querySelector( '.vxth-pop' ); if ( ! p.hidden ) { p.hidden = true; box.querySelector( '.vxth-more' ).setAttribute( 'aria-expanded', 'false' ); } } } );
 		document.addEventListener( 'keydown', function ( e ) { if ( 'Escape' === e.key && box ) { var p = box.querySelector( '.vxth-pop' ); if ( ! p.hidden ) { p.hidden = true; box.querySelector( '.vxth-more' ).focus(); } } } );

@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.59.0 — Revenue report
+- **New: Velox Shop → Revenue.** A smooth line chart of your revenue with the period you compare against drawn dashed, and a tooltip with both values and the change. Pick 7, 30 or 90 days, this or last month, 12 months, this or last year, or any dates.
+- **Compare and group:** compare with the previous period or the same time last year (or not at all); group per day, week or month (or let Velox choose).
+- **Filters:** paid orders or all orders including unpaid ones, with or without VAT, one payment method, one product category.
+- **The numbers behind it:** revenue, orders, average order and items sold as tiles with the change against the comparison (click one to chart it), a day/week/month table with totals, best sellers, revenue by payment method and by country, refunds in the period, and a CSV export for your accountant.
+- **Overview:** the bar chart is replaced by the same line chart (last 30 days against the 30 before), with a link to the full report.
+- **Light / dark switch:** choosing light or dark for all of Velox (the switch on a Velox screen, or “All” in its … menu) now also applies to the Builder and the Shop. Before, they kept their own dark default, so the switch seemed to do nothing there.
+
 ## 4.58.0 — Customer management
 - **Customers screen, rebuilt:** Velox Shop → Customers now lists customer accounts and guests together, with tabs for all, with account, guests and locked, plus search. Accounts without orders show up too.
 - **A page per customer:** all their orders (click through to each), their details and address, customer since, last sign-in and privacy consent.

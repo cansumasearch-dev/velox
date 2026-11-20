@@ -241,7 +241,9 @@ class Velox_Shop_Admin {
 			}
 		}
 		$recent = array_map( array( __CLASS__, 'order_row' ), get_posts( array( 'post_type' => Velox_Shop::ORDER, 'post_status' => 'publish', 'numberposts' => 6, 'fields' => 'ids' ) ) );
+		$line = self::do_revenue( array( 'range' => '30d', 'compare' => 'prev' ) );
 		return array(
+			'line'    => is_wp_error( $line ) ? null : array( 'labels' => $line['labels'], 'short' => $line['short'], 'cmpLabels' => $line['cmpLabels'], 'cur' => $line['cur']['revenue'], 'cmp' => $line['cmp']['revenue'], 'span' => $line['span'], 'cmpSpan' => $line['cmpSpan'], 'total' => $line['total'], 'cmpTotal' => $line['cmpTotal'] ),
 			'revenue' => Velox_Shop::r( $rev ),
 			'orders'  => $cnt,
 			'avg'     => $cnt ? Velox_Shop::r( $rev / $cnt ) : 0,
@@ -697,6 +699,284 @@ class Velox_Shop_Admin {
 		}
 		Velox_Shop::save_coupons( $out );
 		return array( 'rows' => $out );
+	}
+
+	/* ---- revenue report */
+
+	/**
+	 * Revenue over a period, grouped by day, week or month, next to a period
+	 * to compare with. Filters: payment method, product category, paid or
+	 * placed orders, with or without VAT.
+	 */
+	private static function do_revenue( $in ) {
+		$tz    = wp_timezone();
+		$today = new DateTimeImmutable( 'today', $tz );
+		$range = sanitize_key( (string) ( $in['range'] ?? '30d' ) );
+		$cal   = '';
+		switch ( $range ) {
+			case '7d':
+				$from = $today->modify( '-6 days' );
+				$to   = $today;
+				break;
+			case '90d':
+				$from = $today->modify( '-89 days' );
+				$to   = $today;
+				break;
+			case 'month':
+				$from = $today->modify( 'first day of this month' );
+				$to   = $today;
+				$cal  = 'month';
+				break;
+			case 'lastmonth':
+				$from = $today->modify( 'first day of last month' );
+				$to   = $from->modify( 'last day of this month' );
+				$cal  = 'month';
+				break;
+			case '12m':
+				$from = $today->modify( 'first day of this month' )->modify( '-11 months' );
+				$to   = $today;
+				$cal  = 'year';
+				break;
+			case 'year':
+				$from = $today->setDate( (int) $today->format( 'Y' ), 1, 1 );
+				$to   = $today;
+				$cal  = 'year';
+				break;
+			case 'lastyear':
+				$from = $today->setDate( (int) $today->format( 'Y' ) - 1, 1, 1 );
+				$to   = $today->setDate( (int) $today->format( 'Y' ) - 1, 12, 31 );
+				$cal  = 'year';
+				break;
+			case 'custom':
+				$f    = DateTimeImmutable::createFromFormat( '!Y-m-d', (string) ( $in['from'] ?? '' ), $tz );
+				$t    = DateTimeImmutable::createFromFormat( '!Y-m-d', (string) ( $in['to'] ?? '' ), $tz );
+				if ( ! $f || ! $t ) {
+					return new WP_Error( 'x', __( 'Choose a start and an end date.', 'velox' ) );
+				}
+				$from = min( $f, $t );
+				$to   = max( $f, $t );
+				if ( $from->diff( $to )->days > 1100 ) {
+					$from = $to->modify( '-1100 days' );
+				}
+				break;
+			default:
+				$range = '30d';
+				$from  = $today->modify( '-29 days' );
+				$to    = $today;
+		}
+		$days  = $from->diff( $to )->days + 1;
+		$group = sanitize_key( (string) ( $in['group'] ?? 'auto' ) );
+		if ( ! in_array( $group, array( 'day', 'week', 'month' ), true ) ) {
+			$group = $days <= 45 ? 'day' : ( $days <= 190 ? 'week' : 'month' );
+		}
+		// The period to compare with: the one just before, or the same dates a year earlier.
+		$cmp_mode = sanitize_key( (string) ( $in['compare'] ?? 'prev' ) );
+		$cmp      = null;
+		if ( 'year' === $cmp_mode ) {
+			$cmp = array( $from->modify( '-1 year' ), $to->modify( '-1 year' ) );
+		} elseif ( 'prev' === $cmp_mode ) {
+			if ( 'month' === $cal ) {
+				$cf  = $from->modify( 'first day of last month' );
+				$cmp = array( $cf, min( $cf->modify( '+' . ( $days - 1 ) . ' days' ), $cf->modify( 'last day of this month' ) ) );
+				if ( 'lastmonth' === $range ) {
+					$cmp[1] = $cf->modify( 'last day of this month' );
+				}
+			} elseif ( 'year' === $cal ) {
+				$cmp = array( $from->modify( '-1 year' ), $to->modify( '-1 year' ) );
+			} else {
+				$cmp = array( $from->modify( '-' . $days . ' days' ), $from->modify( '-1 day' ) );
+			}
+		} else {
+			$cmp_mode = 'none';
+		}
+
+		$basis  = 'placed' === ( $in['basis'] ?? '' ) ? 'placed' : 'paid';
+		$net    = 'net' === ( $in['tax'] ?? '' );
+		$method = sanitize_key( (string) ( $in['method'] ?? '' ) );
+		$cat    = (int) ( $in['cat'] ?? 0 );
+		$in_cat = array();
+		if ( $cat ) {
+			foreach ( get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'any', 'numberposts' => -1, 'fields' => 'ids', 'tax_query' => array( array( 'taxonomy' => Velox_Shop::CAT, 'field' => 'term_id', 'terms' => $cat, 'include_children' => true ) ) ) ) as $pid ) {
+				$in_cat[ (int) $pid ] = true;
+			}
+		}
+
+		$buckets = function ( $f, $t ) use ( $group ) {
+			$out = array();
+			$cur = 'month' === $group ? $f->modify( 'first day of this month' ) : ( 'week' === $group ? $f->modify( 'monday this week' ) : $f );
+			if ( $cur > $f && 'week' === $group ) {
+				$cur = $cur->modify( '-7 days' );
+			}
+			$step = 'month' === $group ? '+1 month' : ( 'week' === $group ? '+7 days' : '+1 day' );
+			while ( $cur <= $t && count( $out ) < 400 ) {
+				$next  = $cur->modify( $step );
+				$out[] = array( 'start' => max( $cur, $f ), 'end' => min( $next->modify( '-1 day' ), $t ), 'key' => $cur->format( 'Y-m-d' ) );
+				$cur   = $next;
+			}
+			return $out;
+		};
+		$label = function ( $b ) use ( $group ) {
+			if ( 'month' === $group ) {
+				return wp_date( 'M Y', $b['start']->getTimestamp() );
+			}
+			if ( 'week' === $group ) {
+				return wp_date( 'j. M', $b['start']->getTimestamp() ) . ' – ' . wp_date( 'j. M', $b['end']->getTimestamp() );
+			}
+			return wp_date( 'D, j. M Y', $b['start']->getTimestamp() );
+		};
+		$short = function ( $b ) use ( $group ) {
+			return 'month' === $group ? wp_date( 'M', $b['start']->getTimestamp() ) : wp_date( 'j. M', $b['start']->getTimestamp() );
+		};
+
+		$cur_b = $buckets( $from, $to );
+		$cmp_b = $cmp ? $buckets( $cmp[0], $cmp[1] ) : array();
+		$empty = function ( $n ) { return array( 'revenue' => array_fill( 0, $n, 0 ), 'orders' => array_fill( 0, $n, 0 ), 'items' => array_fill( 0, $n, 0 ) ); };
+		$cur_s = $empty( count( $cur_b ) );
+		$cmp_s = $empty( count( $cmp_b ) );
+		$find  = function ( $list, $day ) {
+			foreach ( $list as $i => $b ) {
+				if ( $day >= $b['start']->format( 'Y-m-d' ) && $day <= $b['end']->format( 'Y-m-d' ) ) {
+					return $i;
+				}
+			}
+			return -1;
+		};
+
+		// Orders can be paid weeks after they were placed: look a little further back.
+		$q_from = min( $from, $cmp ? $cmp[0] : $from )->modify( '-90 days' );
+		$ids    = get_posts( array( 'post_type' => Velox_Shop::ORDER, 'post_status' => 'publish', 'numberposts' => 20000, 'fields' => 'ids', 'date_query' => array( array( 'after' => $q_from->format( 'Y-m-d' ), 'inclusive' => true ) ) ) );
+		$top      = array();
+		$methods  = array();
+		$countries = array();
+		$refunds  = 0;
+		foreach ( $ids as $id ) {
+			$o = Velox_Shop::order( $id );
+			if ( ! $o || ! empty( $o['legacy'] ) ) {
+				continue;
+			}
+			$pay = $o['payment']['status'];
+			if ( 'paid' === $basis ) {
+				if ( ! in_array( $pay, array( 'paid', 'partial', 'refunded' ), true ) ) {
+					continue;
+				}
+				$ts = (int) ( $o['payment']['paid_at'] ? $o['payment']['paid_at'] : $o['created'] );
+			} else {
+				if ( in_array( $pay, array( 'cancelled', 'failed' ), true ) || 'cancelled' === $o['fulfil']['status'] ) {
+					continue;
+				}
+				$ts = (int) $o['created'];
+			}
+			if ( '' !== $method && $method !== $o['payment']['method'] ) {
+				continue;
+			}
+			$day = wp_date( 'Y-m-d', $ts );
+			$ci  = $find( $cur_b, $day );
+			$pi  = $cmp_b ? $find( $cmp_b, $day ) : -1;
+			if ( $ci < 0 && $pi < 0 ) {
+				continue;
+			}
+			$total    = (float) $o['total'];
+			$refunded = (float) $o['payment']['refunded'];
+			$taxshare = $total > 0 ? (float) $o['tax'] / $total : 0;
+			$value    = 0;
+			$qty      = 0;
+			$lines    = array();
+			foreach ( (array) $o['items'] as $it ) {
+				if ( $cat && empty( $in_cat[ (int) ( $it['pid'] ?? 0 ) ] ) ) {
+					continue;
+				}
+				$lt      = (float) ( $it['total'] ?? 0 ) - ( $net ? (float) ( $it['tax'] ?? 0 ) : 0 );
+				$lines[] = array( $it, $lt );
+				$qty    += (int) ( $it['qty'] ?? 1 );
+			}
+			if ( $cat ) {
+				if ( ! $lines ) {
+					continue;
+				}
+				foreach ( $lines as $l ) {
+					$value += $l[1];
+				}
+				// A refund is spread over the order, so the category carries its share.
+				$value -= $total > 0 ? $refunded * ( ( $value / ( $net ? max( 0.01, $total - (float) $o['tax'] ) : $total ) ) ) : 0;
+			} else {
+				$value = ( $total - $refunded ) * ( $net ? 1 - $taxshare : 1 );
+			}
+			$value = max( 0, $value );
+			if ( $ci >= 0 ) {
+				$cur_s['revenue'][ $ci ] += $value;
+				$cur_s['orders'][ $ci ]++;
+				$cur_s['items'][ $ci ] += $qty;
+			}
+			if ( $pi >= 0 ) {
+				$cmp_s['revenue'][ $pi ] += $value;
+				$cmp_s['orders'][ $pi ]++;
+				$cmp_s['items'][ $pi ] += $qty;
+			}
+			if ( $ci < 0 ) {
+				continue;
+			}
+			$refunds += $refunded;
+			foreach ( $lines as $l ) {
+				$k = (int) ( $l[0]['pid'] ?? 0 ) . ':' . (string) ( $l[0]['name'] ?? '' );
+				if ( ! isset( $top[ $k ] ) ) {
+					$top[ $k ] = array( 'id' => (int) ( $l[0]['pid'] ?? 0 ), 'name' => (string) ( $l[0]['name'] ?? '' ), 'qty' => 0, 'total' => 0 );
+				}
+				$top[ $k ]['qty']   += (int) ( $l[0]['qty'] ?? 1 );
+				$top[ $k ]['total'] += $l[1];
+			}
+			$m = (string) $o['payment']['method'];
+			$methods[ $m ] = ( $methods[ $m ] ?? 0 ) + $value;
+			$cc = (string) ( $o['customer']['address']['country'] ?? '' );
+			$countries[ $cc ] = ( $countries[ $cc ] ?? 0 ) + $value;
+		}
+		$round = function ( $s ) {
+			$s['revenue'] = array_map( array( 'Velox_Shop', 'r' ), $s['revenue'] );
+			$s['avg']     = array_map( function ( $r, $n ) { return $n ? Velox_Shop::r( $r / $n ) : 0; }, $s['revenue'], $s['orders'] );
+			return $s;
+		};
+		$cur_s = $round( $cur_s );
+		$cmp_s = $round( $cmp_s );
+		$sum   = function ( $s ) {
+			$r = array_sum( $s['revenue'] );
+			$n = array_sum( $s['orders'] );
+			return array( 'revenue' => Velox_Shop::r( $r ), 'orders' => $n, 'avg' => $n ? Velox_Shop::r( $r / $n ) : 0, 'items' => array_sum( $s['items'] ) );
+		};
+		usort( $top, function ( $a, $b ) { return $b['total'] <=> $a['total']; } );
+		arsort( $methods );
+		arsort( $countries );
+		$all_m = Velox_Shop_Pay::methods();
+		$all_c = Velox_Shop::countries();
+		$span  = function ( $f, $t ) {
+			$same = $f->format( 'Y' ) === $t->format( 'Y' );
+			return wp_date( $same ? 'j. M' : 'j. M Y', $f->getTimestamp() ) . ' – ' . wp_date( 'j. M Y', $t->getTimestamp() );
+		};
+		$cats = array();
+		foreach ( (array) get_terms( array( 'taxonomy' => Velox_Shop::CAT, 'hide_empty' => false ) ) as $t ) {
+			if ( $t instanceof WP_Term ) {
+				$cats[] = array( 'id' => $t->term_id, 'name' => $t->name );
+			}
+		}
+		return array(
+			'range'   => $range,
+			'group'   => $group,
+			'compare' => $cmp_mode,
+			'from'    => $from->format( 'Y-m-d' ),
+			'to'      => $to->format( 'Y-m-d' ),
+			'span'    => $span( $from, $to ),
+			'cmpSpan' => $cmp ? $span( $cmp[0], $cmp[1] ) : '',
+			'labels'  => array_map( $label, $cur_b ),
+			'short'   => array_map( $short, $cur_b ),
+			'cmpLabels' => array_map( $label, $cmp_b ),
+			'cur'     => $cur_s,
+			'cmp'     => $cmp_s,
+			'total'   => $sum( $cur_s ),
+			'cmpTotal' => $cmp ? $sum( $cmp_s ) : null,
+			'refunds' => Velox_Shop::r( $refunds ),
+			'top'     => array_slice( array_map( function ( $p ) { $p['total'] = Velox_Shop::r( $p['total'] ); return $p; }, $top ), 0, 10 ),
+			'methods' => array_map( function ( $k, $v ) use ( $all_m ) { return array( 'key' => $k, 'name' => isset( $all_m[ $k ] ) ? (string) ( is_array( $all_m[ $k ] ) ? reset( $all_m[ $k ] ) : $all_m[ $k ] ) : $k, 'total' => Velox_Shop::r( $v ) ); }, array_keys( $methods ), array_values( $methods ) ),
+			'countries' => array_slice( array_map( function ( $k, $v ) use ( $all_c ) { return array( 'key' => $k, 'name' => $all_c[ $k ] ?? ( '' === $k ? '—' : $k ), 'total' => Velox_Shop::r( $v ) ); }, array_keys( $countries ), array_values( $countries ) ), 0, 8 ),
+			'cats'    => $cats,
+		);
 	}
 
 	/* ---- customers */

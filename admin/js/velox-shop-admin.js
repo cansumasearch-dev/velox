@@ -90,7 +90,8 @@
 		store:'<path d="M4 9.5 5.5 4h13L20 9.5M4 9.5V20h16V9.5M4 9.5a2.7 2.7 0 0 0 5.3 0 2.7 2.7 0 0 0 5.4 0 2.7 2.7 0 0 0 5.3 0"/><path d="M10 20v-5h4v5"/>',
 		scale:'<path d="M12 4v16M5 20h14M5 8h14M7 8l-3 6a3 3 0 0 0 6 0zM17 8l-3 6a3 3 0 0 0 6 0z"/>',
 		shield:'<path d="M12 3 4 6v6c0 4.5 3.3 8 8 9 4.7-1 8-4.5 8-9V6z"/><path d="m8.5 12 2.5 2.5 4.5-5"/>',
-		layers:'<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>'
+		layers:'<path d="m12 3 9 5-9 5-9-5z"/><path d="m3 13 9 5 9-5"/>',
+		chart:'<path d="M4 4v16h16"/><path d="m7 15 4-5 3 3 5-6"/>'
 	};
 	function ic( n, s ) { return '<svg class="vsa-ic" viewBox="0 0 24 24" width="' + ( s || 16 ) + '" height="' + ( s || 16 ) + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + ( IC[ n ] || '' ) + '</svg>'; }
 
@@ -102,7 +103,7 @@
 	/* --------------------------------------------------------------- shell */
 
 	var NAV = [
-		[ '', 'home', vxT( 'Overview' ) ], [ 'orders', 'receipt', vxT( 'Orders' ) ], [ 'products', 'box', vxT( 'Products' ) ],
+		[ '', 'home', vxT( 'Overview' ) ], [ 'revenue', 'chart', vxT( 'Revenue' ) ], [ 'orders', 'receipt', vxT( 'Orders' ) ], [ 'products', 'box', vxT( 'Products' ) ],
 		[ 'coupons', 'percent', vxT( 'Coupons' ) ], [ 'customers', 'users', vxT( 'Customers' ) ], [ 'settings', 'gear', vxT( 'Settings' ) ]
 	];
 	var dirty = false, badge = { orders:0 };
@@ -181,7 +182,7 @@
 		route = parse();
 		setNav( route.name );
 		closeModal();
-		var fn = { '':overview, orders:route.id ? orderDetail : orders, products:route.id ? productEdit : products, coupons:coupons, customers:customers, settings:settings, setup:setup }[ route.name ] || overview;
+		var fn = { '':overview, orders:route.id ? orderDetail : orders, products:route.id ? productEdit : products, coupons:coupons, customers:customers, revenue:revenue, settings:settings, setup:setup }[ route.name ] || overview;
 		fn();
 		var m = main(); if ( m ) { m.scrollTop = 0; window.scrollTo( 0, 0 ); }
 	}
@@ -209,7 +210,7 @@
 				kpi( vxT( 'Average order' ), money( d.avg ), '' ) +
 				kpi( vxT( 'Today' ), money( d.today ), '' ) + '</div>';
 			h += '<div class="vsa-grid-2">';
-			h += card( vxT( 'Revenue per day' ), chart( d.series ), { cls:'vsa-span-2' } );
+			h += d.line ? card( vxT( 'Revenue' ) + ' <small class="vsa-card-sub">' + esc( vxT( 'Last 30 days' ) ) + '</small>', lineChart( { labels:d.line.labels, short:d.line.short, cur:d.line.cur, cmp:d.line.cmp, cmpLabels:d.line.cmpLabels, curName:d.line.span, cmpName:d.line.cmpSpan, money:true } ), { cls:'vsa-span-2', right:'<a class="vsa-link" href="#/revenue">' + vxT( 'Open the report' ) + ' ' + ic( 'chev', 13 ) + '</a>' } ) : card( vxT( 'Revenue per day' ), chart( d.series ), { cls:'vsa-span-2' } );
 			var todo = '';
 			todo += todoRow( '#/orders?view=ship', 'truck', d.toShip, vxT( 'orders to ship' ), vxT( 'Paid, waiting for you' ) );
 			todo += todoRow( '#/orders?view=unpaid', 'clock', d.unpaid, vxT( 'awaiting payment' ), vxT( 'Bank transfer, invoice or not yet paid' ) );
@@ -220,6 +221,7 @@
 			h += card( vxT( 'Latest orders' ), d.recent.length ? ordersTable( d.recent, true ) : '<p class="vsa-muted">' + vxT( 'No orders yet. They appear here the moment someone buys.' ) + '</p>', { cls:'vsa-span-2', right:'<a class="vsa-link" href="#/orders">' + vxT( 'All orders' ) + ' ' + ic( 'chev', 13 ) + '</a>' } );
 			h += '</div>';
 			main().innerHTML = h;
+			drawCharts();
 		} ).catch( fail );
 	}
 	function kpi( l, v, s ) { return '<div class="vsa-kpi"><span>' + esc( l ) + '</span><b>' + esc( v ) + '</b>' + ( s ? '<small>' + esc( s ) + '</small>' : '' ) + '</div>'; }
@@ -235,6 +237,191 @@
 		} ).join( '' );
 		var total = vals.reduce( function ( a, b ) { return a + b; }, 0 );
 		return '<div class="vsa-chart" role="img" aria-label="' + esc( vxT( 'Revenue per day' ) + ': ' + money( total ) ) + '">' + bars + '</div><div class="vsa-chart-x"><span>' + esc( new Date( keys[ 0 ] + 'T12:00:00' ).toLocaleDateString( C.locale, { day:'numeric', month:'short' } ) ) + '</span><span>' + vxT( 'Today' ) + '</span></div>';
+	}
+
+
+	/* ======================================================= LINE CHART
+	 * One period as a solid line, the period to compare with dashed. Smooth
+	 * (monotone, so it never dips below zero), hover shows both values. */
+	var CHARTS = [], chartSeq = 0;
+	function moneyShort( v ) {
+		var f = new Intl.NumberFormat( C.locale || 'de-DE', { maximumFractionDigits:0, notation:v >= 100000 ? 'compact' : 'standard' } ).format( v );
+		return 'left' === C.symbolPos ? C.currency + f : f + ' ' + C.currency;
+	}
+	function lineChart( o ) {
+		var id = 'vsa-lc' + ( ++chartSeq );
+		CHARTS.push( { id:id, o:o } );
+		var leg = '<div class="vsa-lc-leg"><span><i class="is-cur"></i>' + esc( o.curName || '' ) + '</span>' + ( o.cmp && o.cmp.length && o.cmpName ? '<span><i class="is-cmp"></i>' + esc( o.cmpName ) + '</span>' : '' ) + '</div>';
+		return '<div class="vsa-lc" id="' + id + '"><div class="vsa-lc-plot"></div><div class="vsa-lc-tip" hidden></div></div>' + leg;
+	}
+	function drawCharts() {
+		CHARTS = CHARTS.filter( function ( c ) { var el = document.getElementById( c.id ); if ( ! el ) { return false; } drawLine( el, c.o ); return true; } );
+	}
+	var chartT = null;
+	window.addEventListener( 'resize', function () { clearTimeout( chartT ); chartT = setTimeout( drawCharts, 120 ); } );
+	function niceStep( max, n ) {
+		var raw = max / n, p = Math.pow( 10, Math.floor( Math.log10( raw || 1 ) ) ), f = raw / p;
+		return ( f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10 ) * p;
+	}
+	function monoPath( pts ) {
+		var n = pts.length, i;
+		if ( ! n ) { return ''; }
+		if ( 1 === n ) { return 'M' + pts[ 0 ][ 0 ] + ',' + pts[ 0 ][ 1 ]; }
+		var m = [], t = [];
+		for ( i = 0; i < n - 1; i++ ) { m.push( ( pts[ i + 1 ][ 1 ] - pts[ i ][ 1 ] ) / ( pts[ i + 1 ][ 0 ] - pts[ i ][ 0 ] ) ); }
+		t[ 0 ] = m[ 0 ]; t[ n - 1 ] = m[ n - 2 ];
+		for ( i = 1; i < n - 1; i++ ) { t[ i ] = m[ i - 1 ] * m[ i ] <= 0 ? 0 : ( m[ i - 1 ] + m[ i ] ) / 2; }
+		for ( i = 0; i < n - 1; i++ ) {
+			if ( 0 === m[ i ] ) { t[ i ] = 0; t[ i + 1 ] = 0; continue; }
+			var a = t[ i ] / m[ i ], b = t[ i + 1 ] / m[ i ], s = a * a + b * b;
+			if ( s > 9 ) { var tau = 3 / Math.sqrt( s ); t[ i ] = tau * a * m[ i ]; t[ i + 1 ] = tau * b * m[ i ]; }
+		}
+		var d = 'M' + pts[ 0 ][ 0 ].toFixed( 1 ) + ',' + pts[ 0 ][ 1 ].toFixed( 1 );
+		for ( i = 0; i < n - 1; i++ ) {
+			var dx = ( pts[ i + 1 ][ 0 ] - pts[ i ][ 0 ] ) / 3;
+			d += 'C' + ( pts[ i ][ 0 ] + dx ).toFixed( 1 ) + ',' + ( pts[ i ][ 1 ] + t[ i ] * dx ).toFixed( 1 ) + ' ' + ( pts[ i + 1 ][ 0 ] - dx ).toFixed( 1 ) + ',' + ( pts[ i + 1 ][ 1 ] - t[ i + 1 ] * dx ).toFixed( 1 ) + ' ' + pts[ i + 1 ][ 0 ].toFixed( 1 ) + ',' + pts[ i + 1 ][ 1 ].toFixed( 1 );
+		}
+		return d;
+	}
+	function drawLine( el, o ) {
+		var plot = el.querySelector( '.vsa-lc-plot' ), tip = el.querySelector( '.vsa-lc-tip' );
+		var W = Math.max( 260, el.clientWidth ), H = W < 560 ? 220 : 290;
+		var cur = o.cur || [], cmp = o.cmp || [], n = Math.max( cur.length, cmp.length, 1 );
+		var max = Math.max.apply( null, cur.concat( cmp, [ 0 ] ) );
+		var fmt = o.money ? money : function ( v ) { return o.dec ? dec( Math.round( v * 100 ) / 100 ) : String( Math.round( v ) ); };
+		var ax = o.money ? moneyShort : function ( v ) { return String( Math.round( v * 100 ) / 100 ).replace( '.', /^de/.test( C.locale || '' ) ? ',' : '.' ); };
+		var step = niceStep( max || ( o.money ? 100 : 4 ), 4 ), top = Math.max( step, Math.ceil( ( max || 1 ) / step ) * step );
+		var ticks = []; for ( var v = 0; v <= top + 1e-9; v += step ) { ticks.push( v ); }
+		var padL = Math.max( 34, Math.max.apply( null, ticks.map( function ( x ) { return ax( x ).length; } ) ) * 7 + 14 ), padR = 14, padT = 12, padB = 30;
+		var iw = W - padL - padR, ih = H - padT - padB;
+		var X = function ( i ) { return padL + ( n <= 1 ? iw / 2 : i * iw / ( n - 1 ) ); };
+		var Y = function ( val ) { return padT + ih * ( 1 - val / top ); };
+		var svg = '<svg width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '" role="img" aria-label="' + esc( ( o.title || '' ) + ' ' + ( o.curName || '' ) ) + '"><defs><linearGradient id="' + el.id + '-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="vsa-lc-g0"/><stop offset="1" class="vsa-lc-g1"/></linearGradient></defs>';
+		ticks.forEach( function ( tv ) { var y = Y( tv ).toFixed( 1 ); svg += '<line class="vsa-lc-grid" x1="' + padL + '" x2="' + ( W - padR ) + '" y1="' + y + '" y2="' + y + '"/><text class="vsa-lc-ax" x="' + ( padL - 10 ) + '" y="' + y + '" text-anchor="end" dominant-baseline="middle">' + esc( ax( tv ) ) + '</text>'; } );
+		var every = Math.max( 1, Math.ceil( n / Math.max( 2, Math.floor( iw / 74 ) ) ) );
+		( o.short || [] ).forEach( function ( l, i ) {
+			if ( i % every ) { return; }
+			var x = X( i ), anchor = 'middle';
+			if ( x - padL < 24 ) { anchor = 'start'; } else if ( W - padR - x < 24 ) { anchor = 'end'; }
+			svg += '<text class="vsa-lc-ax" x="' + x.toFixed( 1 ) + '" y="' + ( H - 8 ) + '" text-anchor="' + anchor + '">' + esc( l ) + '</text>';
+		} );
+		var pc = cur.map( function ( val, i ) { return [ X( i ), Y( val ) ]; } );
+		var pp = cmp.map( function ( val, i ) { return [ X( i ), Y( val ) ]; } );
+		if ( pp.length > 1 ) { svg += '<path class="vsa-lc-cmp" d="' + monoPath( pp ) + '"/>'; }
+		if ( pc.length > 1 ) {
+			var line = monoPath( pc );
+			svg += '<path class="vsa-lc-area" fill="url(#' + el.id + '-g)" d="' + line + 'L' + pc[ pc.length - 1 ][ 0 ].toFixed( 1 ) + ',' + Y( 0 ).toFixed( 1 ) + 'L' + pc[ 0 ][ 0 ].toFixed( 1 ) + ',' + Y( 0 ).toFixed( 1 ) + 'Z"/>';
+			svg += '<path class="vsa-lc-cur" d="' + line + '"/>';
+		} else if ( 1 === pc.length ) {
+			svg += '<circle class="vsa-lc-dot" cx="' + pc[ 0 ][ 0 ] + '" cy="' + pc[ 0 ][ 1 ] + '" r="4"/>';
+		}
+		svg += '<line class="vsa-lc-guide" y1="' + padT + '" y2="' + ( padT + ih ) + '" x1="-10" x2="-10"/><circle class="vsa-lc-hc is-cmp" r="4" cx="-10" cy="-10"/><circle class="vsa-lc-hc" r="4.5" cx="-10" cy="-10"/>';
+		svg += '<rect class="vsa-lc-hit" x="' + padL + '" y="0" width="' + iw + '" height="' + H + '"/></svg>';
+		plot.innerHTML = svg;
+		var s = plot.querySelector( 'svg' ), guide = s.querySelector( '.vsa-lc-guide' ), hc = s.querySelectorAll( '.vsa-lc-hc' ), hit = s.querySelector( '.vsa-lc-hit' );
+		function show( i ) {
+			var x = X( i ).toFixed( 1 );
+			s.classList.add( 'is-hover' );
+			guide.setAttribute( 'x1', x ); guide.setAttribute( 'x2', x );
+			hc[ 1 ].setAttribute( 'cx', i < cur.length ? x : -10 ); hc[ 1 ].setAttribute( 'cy', i < cur.length ? Y( cur[ i ] ) : -10 );
+			hc[ 0 ].setAttribute( 'cx', i < cmp.length ? x : -10 ); hc[ 0 ].setAttribute( 'cy', i < cmp.length ? Y( cmp[ i ] ) : -10 );
+			var ch = '';
+			if ( i < cur.length && i < cmp.length ) {
+				var a = cur[ i ], b = cmp[ i ];
+				ch = b > 0 ? ( a >= b ? '+' : '−' ) + Math.abs( Math.round( ( a - b ) / b * 100 ) ) + ' %' : ( a > 0 ? vxT( 'new' ) : '' );
+				ch = ch ? '<em class="' + ( a >= b ? 'is-up' : 'is-down' ) + '">' + ch + '</em>' : '';
+			}
+			tip.innerHTML = ( i < cur.length ? '<div><i class="is-cur"></i><span>' + esc( ( o.labels || [] )[ i ] || '' ) + '</span><b>' + esc( fmt( cur[ i ] ) ) + '</b></div>' : '' ) +
+				( i < cmp.length ? '<div><i class="is-cmp"></i><span>' + esc( ( o.cmpLabels || [] )[ i ] || '' ) + '</span><b>' + esc( fmt( cmp[ i ] ) ) + '</b></div>' : '' ) + ch;
+			tip.hidden = false;
+			var tw = tip.offsetWidth, left = X( i ) + 14;
+			if ( left + tw > W - 4 ) { left = X( i ) - tw - 14; }
+			tip.style.left = Math.max( 4, left ) + 'px';
+			tip.style.top = Math.max( 4, Math.min( Y( Math.max( cur[ i ] || 0, cmp[ i ] || 0 ) ) - 10, H - tip.offsetHeight - 34 ) ) + 'px';
+		}
+		function at( e ) { var r = s.getBoundingClientRect(); var px = e.clientX - r.left; return Math.max( 0, Math.min( n - 1, Math.round( ( px - padL ) / ( n <= 1 ? 1 : iw / ( n - 1 ) ) ) ) ); }
+		hit.addEventListener( 'pointermove', function ( e ) { show( at( e ) ); } );
+		hit.addEventListener( 'pointerdown', function ( e ) { show( at( e ) ); } );
+		hit.addEventListener( 'pointerleave', function () { tip.hidden = true; s.classList.remove( 'is-hover' ); guide.setAttribute( 'x1', -10 ); guide.setAttribute( 'x2', -10 ); hc[ 0 ].setAttribute( 'cx', -10 ); hc[ 1 ].setAttribute( 'cx', -10 ); } );
+	}
+
+	/* ============================================================ REVENUE */
+
+	var RV = { range:'30d', compare:'prev', group:'auto', metric:'revenue', basis:'paid', tax:'gross', method:'', cat:'', from:'', to:'' }, RD = null;
+	function rvSel( k, opts ) { return '<label class="vsa-rv-sel"><select class="vsa-in vsa-in-sm" data-rvf="' + k + '">' + opts.map( function ( o ) { return '<option value="' + esc( o[ 0 ] ) + '"' + ( String( RV[ k ] ) === String( o[ 0 ] ) ? ' selected' : '' ) + '>' + esc( o[ 1 ] ) + '</option>'; } ).join( '' ) + '</select></label>'; }
+	function revenue() {
+		var ranges = [ [ '7d', vxT( '7 days' ) ], [ '30d', vxT( '30 days' ) ], [ '90d', vxT( '90 days' ) ], [ 'month', vxT( 'This month' ) ], [ 'lastmonth', vxT( 'Last month' ) ], [ '12m', vxT( '12 months' ) ], [ 'year', vxT( 'This year' ) ], [ 'lastyear', vxT( 'Last year' ) ], [ 'custom', vxT( 'Custom' ) ] ];
+		var today = new Date().toISOString().slice( 0, 10 );
+		main().innerHTML = head( vxT( 'Revenue' ), '<span id="vsa-rv-span" class="vsa-muted"></span>', '<button type="button" class="vsa-btn vsa-btn-ghost" data-act="rv-csv">' + ic( 'download', 15 ) + vxT( 'Export CSV' ) + '</button>' ) +
+			'<div class="vsa-tools"><div class="vsa-tabs" role="tablist">' + ranges.map( function ( r ) { return '<button type="button" role="tab" data-rvr="' + r[ 0 ] + '" class="' + ( RV.range === r[ 0 ] ? 'is-on' : '' ) + '" aria-selected="' + ( RV.range === r[ 0 ] ) + '">' + esc( r[ 1 ] ) + '</button>'; } ).join( '' ) + '</div></div>' +
+			'<div class="vsa-rv-custom"' + ( 'custom' === RV.range ? '' : ' hidden' ) + '><input type="date" class="vsa-in vsa-in-sm" id="vsa-rv-from" value="' + esc( RV.from || today.slice( 0, 8 ) + '01' ) + '" max="' + today + '"><span>–</span><input type="date" class="vsa-in vsa-in-sm" id="vsa-rv-to" value="' + esc( RV.to || today ) + '" max="' + today + '"><button type="button" class="vsa-btn vsa-btn-sm" data-act="rv-apply">' + vxT( 'Show' ) + '</button></div>' +
+			'<div class="vsa-rv-filters">' +
+				rvSel( 'compare', [ [ 'prev', vxT( 'Compare: previous period' ) ], [ 'year', vxT( 'Compare: same time last year' ) ], [ 'none', vxT( 'No comparison' ) ] ] ) +
+				rvSel( 'group', [ [ 'auto', vxT( 'Grouping: automatic' ) ], [ 'day', vxT( 'Per day' ) ], [ 'week', vxT( 'Per week' ) ], [ 'month', vxT( 'Per month' ) ] ] ) +
+				rvSel( 'basis', [ [ 'paid', vxT( 'Paid orders' ) ], [ 'placed', vxT( 'All orders, also unpaid' ) ] ] ) +
+				rvSel( 'tax', [ [ 'gross', vxT( 'incl. VAT' ) ], [ 'net', vxT( 'excl. VAT' ) ] ] ) +
+				rvSel( 'method', [ [ '', vxT( 'All payment methods' ) ] ].concat( ( C.methods || [] ).map( function ( m ) { return [ m.key, m.title ]; } ) ) ) +
+				'<span id="vsa-rv-cats">' + rvSel( 'cat', [ [ '', vxT( 'All categories' ) ] ].concat( ( C.cats || [] ).map( function ( c ) { return [ c.id, c.name ]; } ) ) ) + '</span>' +
+			'</div><div id="vsa-rv"><div class="vsa-loading"><span></span><span></span><span></span></div></div>';
+		loadRevenue();
+	}
+	function loadRevenue() {
+		var box = document.getElementById( 'vsa-rv' ); if ( ! box ) { return; }
+		box.classList.add( 'is-busy' );
+		api( 'revenue', RV ).then( function ( d ) {
+			RD = d;
+			box = document.getElementById( 'vsa-rv' ); if ( ! box ) { return; }
+			box.classList.remove( 'is-busy' );
+			if ( d.cats && d.cats.length && document.querySelector( '[data-rvf="cat"]' ) && document.querySelector( '[data-rvf="cat"]' ).options.length !== d.cats.length + 1 ) {
+				document.getElementById( 'vsa-rv-cats' ).innerHTML = rvSel( 'cat', [ [ '', vxT( 'All categories' ) ] ].concat( d.cats.map( function ( c ) { return [ c.id, c.name ]; } ) ) );
+			}
+			drawRevenue();
+		} ).catch( function ( e ) { var b = document.getElementById( 'vsa-rv' ); if ( b ) { b.classList.remove( 'is-busy' ); } fail( e ); } );
+	}
+	function pct( a, b ) {
+		if ( null == b ) { return ''; }
+		if ( ! b ) { return a > 0 ? '<em class="vsa-delta is-up">' + vxT( 'new' ) + '</em>' : '<em class="vsa-delta">±0 %</em>'; }
+		var p = Math.round( ( a - b ) / b * 1000 ) / 10;
+		return '<em class="vsa-delta ' + ( p > 0 ? 'is-up' : p < 0 ? 'is-down' : '' ) + '">' + ( p > 0 ? '▲ ' : p < 0 ? '▼ ' : '' ) + dec( Math.abs( p ) ) + ' %</em>';
+	}
+	var RVM = { revenue:[ 'Revenue', true ], orders:[ 'Orders', false ], avg:[ 'Average order', true ], items:[ 'Items sold', false ] };
+	function drawRevenue() {
+		var d = RD, box = document.getElementById( 'vsa-rv' ); if ( ! box || ! d ) { return; }
+		var sp = document.getElementById( 'vsa-rv-span' ); if ( sp ) { sp.textContent = d.span + ( d.cmpSpan ? ' · ' + vxT( 'compared with' ) + ' ' + d.cmpSpan : '' ); }
+		var T = d.total, P = d.cmpTotal;
+		var tile = function ( k ) {
+			var isM = RVM[ k ][ 1 ], v = T[ k ];
+			return '<button type="button" class="vsa-kpi vsa-kpi-btn' + ( RV.metric === k ? ' is-on' : '' ) + '" data-rvm="' + k + '" aria-pressed="' + ( RV.metric === k ) + '"><span>' + esc( vxT( RVM[ k ][ 0 ] ) ) + '</span><b>' + esc( isM ? money( v ) : v ) + '</b><small>' + ( P ? pct( v, P[ k ] ) + ' ' + esc( vxT( 'vs.' ) ) + ' ' + esc( isM ? money( P[ k ] ) : P[ k ] ) : '&nbsp;' ) + '</small></button>';
+		};
+		var GL = { day:vxT( 'per day' ), week:vxT( 'per week' ), month:vxT( 'per month' ) };
+		var m = RV.metric, isM = RVM[ m ][ 1 ];
+		var h = '<div class="vsa-kpis">' + tile( 'revenue' ) + tile( 'orders' ) + tile( 'avg' ) + tile( 'items' ) + '</div>';
+		h += card( esc( vxT( RVM[ m ][ 0 ] ) ) + ' <small class="vsa-card-sub">' + esc( GL[ d.group ] ) + '</small>', lineChart( { title:vxT( RVM[ m ][ 0 ] ), labels:d.labels, short:d.short, cur:d.cur[ m ], cmp:d.cmp[ m ], cmpLabels:d.cmpLabels, curName:d.span, cmpName:d.cmpSpan, money:isM } ) );
+		// the numbers behind the chart
+		var rows = d.labels.map( function ( l, i ) {
+			var pv = i < d.cmp.revenue.length ? d.cmp.revenue[ i ] : null;
+			return '<tr><td>' + esc( l ) + '</td><td class="vsa-num">' + d.cur.orders[ i ] + '</td><td class="vsa-num">' + d.cur.items[ i ] + '</td><td class="vsa-num">' + money( d.cur.avg[ i ] ) + '</td><td class="vsa-num"><b>' + money( d.cur.revenue[ i ] ) + '</b></td>' + ( P ? '<td class="vsa-num vsa-muted">' + ( null == pv ? '—' : money( pv ) ) + '</td><td class="vsa-num">' + ( null == pv ? '' : pct( d.cur.revenue[ i ], pv ) ) + '</td>' : '' ) + '</tr>';
+		} ).reverse().join( '' );
+		h += card( { day:vxT( 'Day by day' ), week:vxT( 'Week by week' ), month:vxT( 'Month by month' ) }[ d.group ], '<div class="vsa-rv-tbl"><table class="vsa-table"><thead><tr><th>' + vxT( 'Period' ) + '</th><th class="vsa-num">' + vxT( 'Orders' ) + '</th><th class="vsa-num">' + vxT( 'Items' ) + '</th><th class="vsa-num">' + vxT( 'Average order' ) + '</th><th class="vsa-num">' + vxT( 'Revenue' ) + '</th>' + ( P ? '<th class="vsa-num">' + vxT( 'Compared' ) + '</th><th class="vsa-num">' + vxT( 'Change' ) + '</th>' : '' ) + '</tr></thead><tbody>' + rows + '</tbody><tfoot><tr><td>' + vxT( 'Total' ) + '</td><td class="vsa-num">' + T.orders + '</td><td class="vsa-num">' + T.items + '</td><td class="vsa-num">' + money( T.avg ) + '</td><td class="vsa-num"><b>' + money( T.revenue ) + '</b></td>' + ( P ? '<td class="vsa-num vsa-muted">' + money( P.revenue ) + '</td><td class="vsa-num">' + pct( T.revenue, P.revenue ) + '</td>' : '' ) + '</tr></tfoot></table></div>' +
+			( +d.refunds ? '<p class="vsa-hint">' + vxT( 'Refunds in this period' ) + ': ' + money( d.refunds ) + ' — ' + vxT( 'already taken off the revenue.' ) + '</p>' : '' ), { cls:'vsa-card-flushb' } );
+		var bar = function ( list, max ) { return '<ul class="vsa-rv-bars">' + list.map( function ( r ) { return '<li><span class="vsa-grow">' + esc( r.name ) + '</span><b>' + money( r.total ) + '</b><i style="width:' + ( max ? Math.max( 2, r.total / max * 100 ) : 0 ) + '%"></i></li>'; } ).join( '' ) + '</ul>'; };
+		var mx = function ( list ) { return Math.max.apply( null, list.map( function ( r ) { return +r.total; } ).concat( [ 0 ] ) ); };
+		h += '<div class="vsa-grid-2">';
+		h += card( vxT( 'Best sellers' ), d.top.length ? '<ul class="vsa-list">' + d.top.map( function ( p, i ) { return '<li><a href="' + ( p.id ? '#/products/' + p.id : '#/revenue' ) + '"><i class="vsa-rank">' + ( i + 1 ) + '</i><span class="vsa-grow">' + esc( p.name ) + '</span><span class="vsa-muted">' + p.qty + '×</span><b>' + money( p.total ) + '</b></a></li>'; } ).join( '' ) + '</ul>' : '<p class="vsa-muted">' + vxT( 'No sales in this period.' ) + '</p>' );
+		h += '<div class="vsa-stack">' + card( vxT( 'By payment method' ), d.methods.length ? bar( d.methods, mx( d.methods ) ) : '<p class="vsa-muted">—</p>' ) + card( vxT( 'By country' ), d.countries.length ? bar( d.countries, mx( d.countries ) ) : '<p class="vsa-muted">—</p>' ) + '</div>';
+		h += '</div>';
+		box.innerHTML = h;
+		drawCharts();
+	}
+	function revenueCsv() {
+		var d = RD; if ( ! d ) { return; }
+		var q = function ( v ) { v = String( v ); return /[";\n]/.test( v ) ? '"' + v.replace( /"/g, '""' ) + '"' : v; };
+		var n = function ( v ) { return dec( v ); };
+		var lines = [ [ vxT( 'Period' ), vxT( 'Orders' ), vxT( 'Items' ), vxT( 'Average order' ), vxT( 'Revenue' ) ].concat( d.cmpTotal ? [ vxT( 'Compared' ) ] : [] ).map( q ).join( ';' ) ];
+		d.labels.forEach( function ( l, i ) { lines.push( [ q( l ), d.cur.orders[ i ], d.cur.items[ i ], n( d.cur.avg[ i ] ), n( d.cur.revenue[ i ] ) ].concat( d.cmpTotal ? [ i < d.cmp.revenue.length ? n( d.cmp.revenue[ i ] ) : '' ] : [] ).join( ';' ) ); } );
+		lines.push( [ q( vxT( 'Total' ) ), d.total.orders, d.total.items, n( d.total.avg ), n( d.total.revenue ) ].concat( d.cmpTotal ? [ n( d.cmpTotal.revenue ) ] : [] ).join( ';' ) );
+		var blob = new Blob( [ '\ufeff' + lines.join( '\r\n' ) ], { type:'text/csv;charset=utf-8' } );
+		var a = document.createElement( 'a' ); a.href = URL.createObjectURL( blob ); a.download = ( vxT( 'revenue' ) + '-' + d.from + '-' + d.to + '.csv' ).toLowerCase(); document.body.appendChild( a ); a.click(); setTimeout( function () { URL.revokeObjectURL( a.href ); a.remove(); }, 500 );
 	}
 
 	/* ------------------------------------------------------- setup wizard */
@@ -994,6 +1181,11 @@
 			if ( 'products' === route.name && P ) { P[ sk ] = sv; if ( 'type' === sk && 'physical' !== sv ) { P.track = P.track; } drawProduct(); markDirty(); return; }
 			if ( 'settings' === route.name ) { SD[ sk ] = sv; redrawSettings(); return; }
 		}
+		/* revenue */
+		var rvr = t.closest( '[data-rvr]' ); if ( rvr ) { RV.range = rvr.getAttribute( 'data-rvr' ); [].forEach.call( document.querySelectorAll( '[data-rvr]' ), function ( b ) { b.classList.toggle( 'is-on', b === rvr ); b.setAttribute( 'aria-selected', b === rvr ); } ); var cu = document.querySelector( '.vsa-rv-custom' ); if ( cu ) { cu.hidden = 'custom' !== RV.range; } if ( 'custom' !== RV.range || ( RV.from && RV.to ) ) { loadRevenue(); } return; }
+		var rvm = t.closest( '[data-rvm]' ); if ( rvm ) { RV.metric = rvm.getAttribute( 'data-rvm' ); drawRevenue(); return; }
+		if ( 'rv-apply' === act ) { RV.from = document.getElementById( 'vsa-rv-from' ).value; RV.to = document.getElementById( 'vsa-rv-to' ).value; loadRevenue(); return; }
+		if ( 'rv-csv' === act ) { revenueCsv(); return; }
 		/* customers */
 		var cvb = t.closest( '[data-cview]' ); if ( cvb ) { CV.kind = cvb.getAttribute( 'data-cview' ); [].forEach.call( document.querySelectorAll( '[data-cview]' ), function ( b ) { b.classList.toggle( 'is-on', b === cvb ); b.setAttribute( 'aria-selected', b === cvb ); } ); loadCustomers(); return; }
 		if ( act && 0 === act.indexOf( 'c-' ) && 'customers' === route.name && CU && custClick( act ) ) { return; }
@@ -1185,6 +1377,7 @@
 	root.addEventListener( 'click', onClick );
 	document.addEventListener( 'click', function ( e ) { if ( ! root.contains( e.target ) ) { [].forEach.call( document.querySelectorAll( '.vsa-menu-p' ), function ( p ) { p.hidden = true; } ); } } );
 	root.addEventListener( 'input', onInput );
+	root.addEventListener( 'change', function ( e ) { var k = e.target.getAttribute && e.target.getAttribute( 'data-rvf' ); if ( k ) { RV[ k ] = e.target.value; loadRevenue(); } } );
 	document.addEventListener( 'keydown', onKey );
 
 	shell();
