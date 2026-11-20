@@ -125,7 +125,20 @@
 	function empty( icon, title, text, action ) { return '<div class="vsa-empty">' + ic( icon, 28 ) + '<b>' + title + '</b>' + ( text ? '<p>' + text + '</p>' : '' ) + ( action || '' ) + '</div>'; }
 
 	/* small form builders — every input carries data-k (its key) */
-	function field( label, input, hint, cls ) { return '<label class="vsa-f' + ( cls ? ' ' + cls : '' ) + '"><span class="vsa-f-l">' + label + '</span>' + input + ( hint ? '<span class="vsa-f-h">' + hint + '</span>' : '' ) + '</label>'; }
+	// A <label> only around a real text field or select: clicking empty space
+	// next to a button, a picker or a group of choices must not "press" it.
+	function field( label, input, hint, cls ) {
+		var tag = /<(select|textarea)|<input(?![^>]*type="(hidden|color|checkbox|radio)")/.test( input ) && ! /<button/.test( input ) && 1 === ( input.match( /<(input|select|textarea)(?![^>]*type="(hidden|color)")/g ) || [] ).length ? 'label' : 'div';
+		return '<' + tag + ' class="vsa-f' + ( cls ? ' ' + cls : '' ) + '"><span class="vsa-f-l">' + label + '</span>' + input + ( hint ? '<span class="vsa-f-h">' + hint + '</span>' : '' ) + '</' + tag + '>';
+	}
+	/* One colour field: the swatch inside, the hex next to it, × back to the template. */
+	function colorF( k, v, ph, resettable ) {
+		v = v || '';
+		var shown = /^#[0-9a-f]{6}$/i.test( v || ph || '' ) ? ( v || ph ) : '#ffffff';
+		return '<div class="vsa-colorf' + ( v ? '' : ' is-tpl' ) + '"><input type="color" data-k="' + k + '" value="' + esc( shown ) + '">' +
+			'<input type="text" class="vsa-colorf-in" data-k="' + k + '" value="' + esc( v ) + '" placeholder="' + esc( ph || '' ) + '" spellcheck="false" autocomplete="off" aria-label="' + esc( vxT( 'Hex value' ) ) + '">' +
+			( resettable && v ? '<button type="button" class="vsa-colorf-x" data-act="d-reset" data-v="' + k + '" title="' + esc( vxT( 'Back to the template' ) ) + '" aria-label="' + esc( vxT( 'Back to the template' ) ) + '">' + ic( 'x', 13 ) + '</button>' : '' ) + '</div>';
+	}
 	function inp( k, v, o ) { o = o || {}; return '<input class="vsa-in' + ( o.cls ? ' ' + o.cls : '' ) + '" data-k="' + k + '" value="' + esc( v ) + '"' + ( o.ph ? ' placeholder="' + esc( o.ph ) + '"' : '' ) + ( o.type ? ' type="' + o.type + '"' : ' type="text"' ) + ( o.mode ? ' inputmode="' + o.mode + '"' : '' ) + ( o.attr || '' ) + '>' + ( o.suffix ? '<i class="vsa-sfx">' + esc( o.suffix ) + '</i>' : '' ); }
 	function area( k, v, rows, ph ) { return '<textarea class="vsa-in" data-k="' + k + '" rows="' + ( rows || 3 ) + '"' + ( ph ? ' placeholder="' + esc( ph ) + '"' : '' ) + '>' + esc( v ) + '</textarea>'; }
 	function sel( k, v, opts ) { return '<select class="vsa-in" data-k="' + k + '">' + opts.map( function ( o ) { return '<option value="' + esc( o[ 0 ] ) + '"' + ( String( v ) === String( o[ 0 ] ) ? ' selected' : '' ) + '>' + esc( o[ 1 ] ) + '</option>'; } ).join( '' ) + '</select>'; }
@@ -978,7 +991,7 @@
 	}
 	function dsColor( k, label, tpl ) {
 		var v = dsVal( k ), ph = tpl[ k ] || vxT( 'site colour' );
-		return field( label, '<div class="vsa-row"><input type="color" class="vsa-color" data-k="d_' + k + '" value="' + esc( /^#[0-9a-f]{6}$/i.test( v || tpl[ k ] || '' ) ? ( v || tpl[ k ] ) : '#ffffff' ) + '">' + inp( 'd_' + k, v, { cls:'vsa-mono vsa-in-sm', ph:ph } ) + '</div>' );
+		return field( label, colorF( 'd_' + k, v, tpl[ k ] || '', true ) );
 	}
 	function dsBody( s ) {
 		var D = C.designs || {}, cur = D[ s.design ] ? s.design : 'velox', tpl = ( D[ cur ] || { v:{} } ).v;
@@ -1006,7 +1019,7 @@
 				'<div class="vsa-fr">' + field( vxT( 'Button shape' ), dsSeg( 'btn_shape', [ [ 'pill', vxT( 'Pill' ) ], [ 'rounded', vxT( 'Rounded' ) ], [ 'square', vxT( 'Square' ) ] ], tpl ) ) +
 				field( vxT( 'Buttons in the grid' ), dsSeg( 'btn_style', [ [ 'solid', vxT( 'Filled' ) ], [ 'outline', vxT( 'Outline' ) ] ], tpl ) ) +
 				field( vxT( 'Corner radius' ), inp( 'd_radius', dsVal( 'radius' ), { ph:tpl.radius, suffix:'px', mode:'numeric' } ) ) + '</div>' +
-				'<div class="vsa-fr">' + field( vxT( 'Accent colour' ), '<div class="vsa-row"><input type="color" class="vsa-color" data-k="accent" value="' + esc( s.accent ) + '">' + inp( 'accent', s.accent, { cls:'vsa-mono vsa-in-sm' } ) + '</div>' ) +
+				'<div class="vsa-fr">' + field( vxT( 'Accent colour' ), colorF( 'accent', s.accent, '#0a6f9f' ) ) +
 				dsColor( 'ink', vxT( 'Text' ), tpl ) + dsColor( 'bg', vxT( 'Background' ), tpl ) + '</div>' +
 				'<div class="vsa-fr">' + dsColor( 'surface', vxT( 'Cards' ), tpl ) + dsColor( 'soft', vxT( 'Soft areas' ), tpl ) + dsColor( 'line', vxT( 'Lines' ), tpl ) + '</div>' ) +
 			card( vxT( 'Product page' ),
@@ -1083,7 +1096,7 @@
 					'<div class="vsa-fr">' + field( vxT( 'VAT ID' ), inp( 'store_vat_id', s.store_vat_id, { ph:'DE123456789' } ) ) + field( vxT( 'Tax number' ), inp( 'store_tax_no', s.store_tax_no, { ph:vxT( 'optional' ) } ) ) + '</div>' +
 					field( vxT( 'Country of your business' ), sel( 'store_country', s.store_country, cs ) ) ) +
 					card( vxT( 'Look' ), '<div class="vsa-fr">' + field( vxT( 'Logo for emails and invoices' ), '<div class="vsa-logo">' + ( s.logo_url ? '<img src="' + esc( s.logo_url ) + '" alt="">' : '' ) + '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="s-logo">' + ( s.logo_url ? vxT( 'Change' ) : vxT( 'Choose' ) ) + '</button>' + ( s.logo_url ? '<button type="button" class="vsa-link" data-act="s-logo-x">' + vxT( 'Remove' ) + '</button>' : '' ) + '</div>' ) +
-					field( vxT( 'Accent colour' ), '<div class="vsa-row"><input type="color" class="vsa-color" data-k="accent" value="' + esc( s.accent ) + '">' + inp( 'accent', s.accent, { cls:'vsa-mono vsa-in-sm' } ) + '</div>', vxT( 'Buttons in the shop and in emails.' ) ) + '</div>' +
+					field( vxT( 'Accent colour' ), colorF( 'accent', s.accent, '#0a6f9f' ), vxT( 'Buttons in the shop and in emails.' ) ) + '</div>' +
 					'<p class="vsa-hint">' + vxT( 'Layout, photo shapes and colours of the storefront are under Design.' ) + ' <a href="#/settings/design">' + vxT( 'Open Design' ) + '</a></p>' ) +
 					card( vxT( 'Money' ), '<div class="vsa-fr">' + field( vxT( 'Currency' ), sel( 'currency', s.currency, [ [ 'EUR', 'Euro (EUR)' ], [ 'CHF', 'Franken (CHF)' ], [ 'GBP', 'Pound (GBP)' ], [ 'USD', 'Dollar (USD)' ] ] ) ) + field( vxT( 'Symbol' ), inp( 'symbol', s.symbol, { cls:'vsa-in-sm' } ) ) + field( vxT( 'Position' ), sel( 'symbol_pos', s.symbol_pos, [ [ 'right', '49,90 ' + s.symbol ], [ 'left', s.symbol + ' 49,90' ] ] ) ) + '</div>' );
 			case 'design':
@@ -1249,6 +1262,7 @@
 		}
 		if ( 's-reset' === act ) { SD = JSON.parse( SDclean ); redrawSettings(); return; }
 		if ( 's-pages' === act ) { a.disabled = true; api( 'create_pages', {} ).then( function ( r ) { S = r.settings; C.pages = r.pages; Object.keys( r.settings ).forEach( function ( k ) { if ( /^page_/.test( k ) ) { SD[ k ] = r.settings[ k ]; } } ); SDclean = JSON.stringify( Object.assign( JSON.parse( SDclean ), Object.keys( r.settings ).filter( function ( k ) { return /^page_/.test( k ); } ).reduce( function ( o, k ) { o[ k ] = r.settings[ k ]; return o; }, {} ) ) ); redrawSettings(); toast( r.made.length ? vxT( 'Created:' ) + ' ' + r.made.join( ', ' ) : vxT( 'All pages exist already.' ) ); } ).catch( fail ); return; }
+		if ( 'd-reset' === act ) { SD[ a.getAttribute( 'data-v' ) ] = ''; redrawSettings(); return; }
 		if ( 's-logo' === act ) { pickMedia( { title:vxT( 'Choose a logo' ) }, function ( sel ) { SD.logo = sel[ 0 ].id; SD.logo_url = sel[ 0 ].url; redrawSettings(); } ); return; }
 		if ( 's-logo-x' === act ) { SD.logo = 0; SD.logo_url = ''; redrawSettings(); return; }
 		if ( 'z-add' === act ) { SD.zones = ( SD.zones || [] ).concat( [ { id:'z' + Date.now().toString( 36 ), name:'', countries:[], rates:[ { id:'r' + Date.now().toString( 36 ), name:vxT( 'Standard shipping' ), cost:'4.90', free_above:'', days:'' } ] } ] ); redrawSettings(); return; }
