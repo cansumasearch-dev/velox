@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.57.0 — Sold items and reopening orders
+- **Reopen a cancelled order:** a cancelled order now has a “Reopen order” button (in the order and in its … menu). The order is active again, its items are taken out of stock again, and an unpaid order gets its full payment time again. The customer can get an email (“Your order is active again”, with the payment details if it is still unpaid). If an item has been sold to someone else in the meantime, Velox says so instead of selling it twice.
+- **Sold items in the shop:** new setting under Shop → Settings → Stock & products — show sold items as sold, show them as sold at the end of the shop, or hide them. A cancelled order puts its items back and they show up as available again.
+- **“Only 1 left” on the shop cards:** products with counted stock now show the low-stock badge on the card, not just on the product page. One-of-a-kind pieces show “Sold” once bought.
+
 ## 4.56.1 — Account page polish
 - **Plural words are translated:** counts like “1 Bestellung”, “Nur noch 2 übrig” and the SEO bulk-action notice now show in German. Velox only translated single strings before, so every singular/plural pair stayed English.
 - **Order lists fit narrow columns:** in the customer account (and anywhere the list is narrow) an order folds into two tidy lines — number and total, then date and status — instead of squeezing the date and amount onto several lines.
