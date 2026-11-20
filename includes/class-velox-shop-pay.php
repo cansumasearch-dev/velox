@@ -735,7 +735,7 @@ class Velox_Shop_Pay {
 			if ( is_wp_error( $r ) ) {
 				return $r;
 			}
-			$done[] = number_format_i18n( $a['amount'], 2 ) . ' ' . $a['currency'];
+			$done[] = Velox_Shop::money( $a['amount'] ) . ( strtoupper( (string) Velox_Shop::get( 'currency', 'EUR' ) ) !== $a['currency'] ? ' ' . $a['currency'] : '' );
 		}
 		delete_transient( 'velox_shop_stripe_money' );
 		/* translators: %s: amounts */
