@@ -457,3 +457,12 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 .vsa-ref-i{display:flex;align-items:baseline;gap:8px;padding:7px 9px;border:1px solid var(--vbb-line);border-radius:8px;background:none;color:var(--vbb-text-2);cursor:pointer;font:inherit;font-size:12px;text-align:left}
 .vsa-ref-i:hover{border-color:var(--vbb-accent);color:var(--vbb-text)}
 .vsa-ref-i code,.vsa-ref code{font-size:12px;color:var(--vbb-text)}
+/* customers */
+.vsa-tabn{margin-left:6px;color:var(--vbb-text-3);font-style:normal;font-size:11.5px;font-variant-numeric:tabular-nums}
+.vsa-tabn:empty{display:none}
+.vsa-corders li>a.vsa-grow{display:block;min-width:0;color:var(--vbb-text);text-decoration:none}
+.vsa-corders li>a.vsa-grow b{font-weight:600}
+.vsa-corders li>a.vsa-grow:hover b{color:var(--vbb-accent)}
+.vsa-corders li>b{min-width:84px;text-align:right;font-variant-numeric:tabular-nums}
+.vsa-row-end{display:flex;justify-content:flex-end;margin-top:16px}
+@media (max-width:700px){.vsa-corders li{flex-wrap:wrap}.vsa-corders li>a.vsa-grow{flex-basis:100%}}
