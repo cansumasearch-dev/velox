@@ -390,7 +390,7 @@ class Velox_Shop {
 			'journal'    => $p( __( 'Journal', 'velox' ), __( 'Editorial rows like a magazine: the photo on one side, the story on the other.', 'velox' ), 'Newsreader · Archivo', __( 'earthy · editorial', 'velox' ), array(
 				'bg' => '#efeee8', 'surface' => '#efeee8', 'soft' => '#e4e2da', 'ink' => '#11151c', 'muted' => '#5b5f66', 'line' => '#d3d0c6', 'accent' => '#855832', 'accent_ink' => '#ffffff', 'sale' => '#9a2c1d',
 				'font_h' => 'newsreader', 'font_b' => 'archivo', 'h_weight' => '400', 'h_track' => '-0.015', 'label' => 'upper',
-				'layout' => 'list', 'cols' => '1', 'cols_t' => '1', 'cols_m' => '1', 'gap' => '56', 'gap_row' => '72', 'card' => 'split', 'img_bg' => 'soft', 'hover' => 'zoom',
+				'layout' => 'list', 'cols' => '1', 'cols_t' => '1', 'cols_m' => '1', 'gap' => '56', 'gap_row' => '72', 'ratio' => '4/3', 'card' => 'split', 'img_bg' => 'soft', 'hover' => 'zoom',
 				'show_cat' => '1', 'show_text' => '1', 'button' => 'link', 'badge' => 'text', 'radius' => '0', 'btn_shape' => 'square', 'page_bg' => '1', 'product' => 'wide', 'gallery' => 'stack', 'details' => 'sections',
 			) ),
 			'bold'       => $p( 'Bold', // a name, the same in every language

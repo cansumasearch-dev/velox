@@ -812,3 +812,4 @@ body.vxs-paint .vxs-product-more,body.vxs-paint .entry-content,body.vxs-paint .w
 .vxs-crumbs [aria-current]{overflow:hidden;max-width:40ch;color:var(--vxs-ink-3);text-overflow:ellipsis;white-space:nowrap}
 .vxs-bdg-text .vxs-badge.is-new,.vxs-bdg-text .vxs-badge.is-low,.vxs-bdg-text .vxs-badge:not([class*=" is-"]){color:var(--vxs-ink)}
 .vxs-grid.vxs-al-center>.vxs-card>.vxs-card-media,.vxs-grid.vxs-al-center>.vxs-card>.vxs-card-body{align-self:stretch;width:auto}
+.vxs-more-link{width:fit-content;max-width:100%}

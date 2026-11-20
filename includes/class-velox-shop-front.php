@@ -400,6 +400,9 @@ class Velox_Shop_Front {
 		}
 		$style = '--vxs-cols:' . max( 1, min( 6, (int) $d['cols'] ) ) . ';--vxs-cols-t:' . max( 1, min( 4, (int) $d['cols_t'] ) ) . ';--vxs-cols-m:' . max( 1, min( 2, (int) $d['cols_m'] ) ) . ';--vxs-gap:' . max( 0, min( 120, (int) $d['gap'] ) ) . 'px' . ( 'natural' === $ratio ? '' : ';--vxs-ratio:' . $ratio );
 		$out  .= '<div class="vxs-grid alignwide ' . esc_attr( Velox_Shop::design_classes( $d ) ) . ( 'natural' === $ratio ? ' is-natural' : '' ) . '" style="' . esc_attr( $style ) . '">';
+		if ( 1 === $nth && ! wp_doing_ajax() && ! is_singular( Velox_Shop::PRODUCT ) ) {
+			self::$eager = max( 1, min( 6, (int) $d['cols'] ) );
+		}
 		while ( $q->have_posts() ) {
 			$q->the_post();
 			$out .= self::card( Velox_Shop::product( get_the_ID() ), $d );
@@ -416,14 +419,36 @@ class Velox_Shop_Front {
 		return $out;
 	}
 
+	/** How many cards still load their photo at once (set by the first grid on a page). */
+	private static $eager = 0;
+
+	/** The width a card photo is shown at, so phones never fetch desktop-size files. */
+	private static function card_sizes( $d ) {
+		if ( ! $d ) {
+			return '(max-width: 600px) 50vw, 400px';
+		}
+		$c  = max( 1, (int) $d['cols'] );
+		$ct = max( 1, (int) $d['cols_t'] );
+		$cm = max( 1, (int) $d['cols_m'] );
+		$k  = 'split' === $d['card'] ? 0.45 : 1;
+		return '(max-width: 600px) ' . round( 100 / $cm * $k ) . 'vw, (max-width: 1024px) ' . round( 100 / $ct * $k ) . 'vw, ' . round( min( 1400, 1400 / $c * $k ) ) . 'px';
+	}
+
 	public static function card( $p, $d = null ) {
 		if ( ! $p ) {
 			return '';
 		}
 		$d = $d ? $d : Velox_Shop::design();
 		$url   = get_permalink( $p['id'] );
-		$img   = get_the_post_thumbnail( $p['id'], 'large', array( 'loading' => 'lazy', 'class' => 'vxs-card-im' ) );
-		$alt   = $p['gallery'] ? wp_get_attachment_image( (int) $p['gallery'][0], 'large', false, array( 'loading' => 'lazy', 'class' => 'vxs-card-im2', 'alt' => '' ) ) : '';
+		// The first row of the first grid is what visitors see first: load it
+		// right away; everything below waits until it scrolls near.
+		$first = self::$eager > 0;
+		if ( $first ) {
+			--self::$eager;
+		}
+		$sizes = self::card_sizes( $d );
+		$img   = get_the_post_thumbnail( $p['id'], 'large', array( 'loading' => $first ? 'eager' : 'lazy', 'fetchpriority' => $first ? 'high' : 'auto', 'class' => 'vxs-card-im', 'sizes' => $sizes ) );
+		$alt   = $p['gallery'] ? wp_get_attachment_image( (int) $p['gallery'][0], 'large', false, array( 'loading' => 'lazy', 'class' => 'vxs-card-im2', 'alt' => '', 'sizes' => $sizes ) ) : '';
 		$a     = Velox_Shop::availability( $p );
 		$out   = '<article class="vxs-card is-' . esc_attr( $a[0] ) . '">';
 		$out  .= '<a class="vxs-card-media" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . ( $img ? $img : '<span class="vxs-noimg"></span>' ) . $alt . self::badge_html( $p ) . '</a>';
