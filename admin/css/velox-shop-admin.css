@@ -543,3 +543,6 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 .vsa-rv-bars li i{position:absolute;left:0;bottom:0;height:3px;border-radius:3px;background:var(--vbb-accent);opacity:.7}
 @media (max-width:700px){.vsa-rv-sel{flex:1 1 45%}.vsa-rv-sel select{width:100%;max-width:none}.vsa-rv-tbl{margin:0 -14px}}
 .vsa-lc-guide,.vsa-lc-hc{visibility:hidden}.is-hover .vsa-lc-guide,.is-hover .vsa-lc-hc{visibility:visible}
+.vsa-fr3{grid-template-columns:repeat(3,minmax(0,1fr))}
+@media (max-width:1100px){.vsa-fr3{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (max-width:782px){.vsa-fr3{grid-template-columns:minmax(0,1fr)}}

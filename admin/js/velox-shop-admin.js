@@ -1056,9 +1056,9 @@
 				( own ? '<div class="vsa-tpl-own">' + ic( 'brush', 14 ) + '<span>' + vxT( '%d choices changed on top of the template.' ).replace( '%d', own ) + '</span><button type="button" class="vsa-link" data-act="d-clear">' + vxT( 'Back to the pure template' ) + '</button></div>' : '<p class="vsa-hint">' + vxT( 'A template sets every choice below. Change any of them on top — “Template” keeps its value. Picking another template starts fresh.' ) + '</p>' ) ) +
 			card( vxT( 'Preview' ), '<div class="vsa-dprev"><iframe id="vsa-dprev" title="' + esc( vxT( 'Preview' ) ) + '"></iframe></div><p class="vsa-hint">' + vxT( 'Your real products, drawn with the choices on this page. Save to put them live.' ) + '</p>', { cls:'vsa-dprev-card', right:'<div class="vsa-seg vsa-dprev-dev">' + [ [ 1280, vxT( 'Desktop' ) ], [ 820, vxT( 'Tablet' ) ], [ 390, vxT( 'Phone' ) ] ].map( function ( o ) { return '<button type="button" data-act="dprev-dev" data-v="' + o[ 0 ] + '" class="' + ( dsDev === o[ 0 ] ? 'is-on' : '' ) + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div>' } ) +
 			card( vxT( 'Colours' ),
-				'<div class="vsa-fr">' + dsColor( 'bg', vxT( 'Page' ), tpl ) + dsColor( 'surface', vxT( 'Cards' ), tpl ) + dsColor( 'soft', vxT( 'Photo backdrop' ), tpl ) + '</div>' +
-				'<div class="vsa-fr">' + dsColor( 'ink', vxT( 'Text' ), tpl ) + dsColor( 'muted', vxT( 'Quiet text' ), tpl ) + dsColor( 'line', vxT( 'Lines' ), tpl ) + '</div>' +
-				'<div class="vsa-fr">' + dsColor( 'accent', vxT( 'Buttons' ), tpl ) + dsColor( 'accent_ink', vxT( 'Text on buttons' ), tpl ) + dsColor( 'sale', vxT( 'Sale price' ), tpl ) + '</div>' +
+				'<div class="vsa-fr vsa-fr3">' + dsColor( 'bg', vxT( 'Page' ), tpl ) + dsColor( 'surface', vxT( 'Cards' ), tpl ) + dsColor( 'soft', vxT( 'Photo backdrop' ), tpl ) +
+				dsColor( 'ink', vxT( 'Text' ), tpl ) + dsColor( 'muted', vxT( 'Quiet text' ), tpl ) + dsColor( 'line', vxT( 'Lines' ), tpl ) +
+				dsColor( 'accent', vxT( 'Buttons' ), tpl ) + dsColor( 'accent_ink', vxT( 'Text on buttons' ), tpl ) + dsColor( 'sale', vxT( 'Sale price' ), tpl ) + '</div>' +
 				field( vxT( 'Page background' ), dsSeg( 'page_bg', [ [ '1', vxT( 'Shop pages in the template colour' ) ], [ '0', vxT( 'Keep the site’s background' ) ] ], tpl ), vxT( 'For dark or tinted templates: the whole page behind the shop takes the colour, not just the shop parts.' ) ) ) +
 			card( vxT( 'Typography' ),
 				'<div class="vsa-fr">' + field( vxT( 'Headings' ), dsFonts( 'font_h', tpl ) ) + field( vxT( 'Text' ), dsFonts( 'font_b', tpl ) ) + '</div>' +
@@ -1069,7 +1069,7 @@
 				'<p class="vsa-hint">' + vxT( 'Fonts are downloaded once and served from your own site — no visitor ever connects to Google.' ) + '</p>' ) +
 			card( vxT( 'Product grid' ),
 				field( vxT( 'Layout' ), dsSeg( 'layout', [ [ 'grid', vxT( 'Grid' ) ], [ 'masonry', vxT( 'Masonry' ) ], [ 'list', vxT( 'List' ) ], [ 'row', vxT( 'Scroll row' ) ] ], tpl ) ) +
-				'<div class="vsa-fr">' + field( vxT( 'Columns on desktop' ), dsSel( 'cols', [ 1, 2, 3, 4, 5, 6 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ), tpl ) ) +
+				'<div class="vsa-fr vsa-fr3">' + field( vxT( 'Columns on desktop' ), dsSel( 'cols', [ 1, 2, 3, 4, 5, 6 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ), tpl ) ) +
 				field( vxT( 'on tablets' ), dsSel( 'cols_t', [ 1, 2, 3, 4 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ), tpl ) ) +
 				field( vxT( 'on phones' ), dsSel( 'cols_m', [ [ '1', '1' ], [ '2', '2' ] ], tpl ) ) + '</div>' +
 				'<div class="vsa-fr">' + field( vxT( 'Space between columns' ), inp( 'd_gap', dsVal( 'gap' ), { ph:tpl.gap, suffix:'px', mode:'numeric' } ) ) +
@@ -1080,7 +1080,7 @@
 				'<div class="vsa-fr">' + field( vxT( 'Behind the photo' ), dsSeg( 'img_bg', [ [ 'soft', vxT( 'Backdrop colour' ) ], [ 'surface', vxT( 'Card colour' ) ], [ 'pastel', vxT( 'Pastels' ) ], [ 'none', vxT( 'Nothing' ) ] ], tpl ) ) +
 				( 'contain' === fit || 'tile' === kind ? field( vxT( 'Space around the photo' ), inp( 'd_img_pad', dsVal( 'img_pad' ), { ph:tpl.img_pad, suffix:'%', mode:'numeric' } ) ) : '' ) + '</div>' +
 				field( vxT( 'On hover' ), dsSeg( 'hover', [ [ 'swap', vxT( 'Second photo' ) ], [ 'fade', vxT( 'Fade to second' ) ], [ 'zoom', vxT( 'Zoom' ) ], [ 'lift', vxT( 'Lift' ) ], [ 'shadow', vxT( 'Shadow' ) ], [ 'glow', vxT( 'Glow' ) ], [ 'none', vxT( 'Nothing' ) ] ], tpl ) ) +
-				'<div class="vsa-fr">' + field( vxT( 'Text' ), dsSeg( 'align', [ [ 'left', vxT( 'Left' ) ], [ 'center', vxT( 'Centred' ) ] ], tpl ) ) +
+				'<div class="vsa-fr vsa-fr3">' + field( vxT( 'Text' ), dsSeg( 'align', [ [ 'left', vxT( 'Left' ) ], [ 'center', vxT( 'Centred' ) ] ], tpl ) ) +
 				field( vxT( 'Category above the name' ), dsSeg( 'show_cat', yn, tpl ) ) + field( vxT( 'Short description' ), dsSeg( 'show_text', yn, tpl ) ) + '</div>' +
 				'<div class="vsa-fr">' + field( vxT( 'Price' ), dsSeg( 'price', [ [ 'regular', vxT( 'Regular' ) ], [ 'bold', vxT( 'Bold' ) ], [ 'mono', vxT( 'Typewriter' ) ] ], tpl ) ) +
 				field( vxT( 'Buy button' ), dsSeg( 'button', [ [ 'button', vxT( 'Button' ) ], [ 'icon', vxT( 'Icon' ) ], [ 'link', vxT( 'Text link' ) ], [ 'none', vxT( 'None — the card links' ) ] ], tpl ) ) + '</div>' +
