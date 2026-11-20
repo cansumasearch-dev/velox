@@ -170,6 +170,7 @@ class Velox_Shop {
 			// Stock
 			'low_stock'       => '3',
 			'show_stock'      => 'low', // always | low | never
+			'sold_items'      => 'show', // show | last | hide — sold pieces in the shop grid
 			// Pages
 			'page_shop'       => 0,
 			'page_cart'       => 0,
@@ -1470,6 +1471,63 @@ class Velox_Shop {
 		return self::order( $id );
 	}
 
+	/**
+	 * Undo a cancellation: the order is active again and reserves its items
+	 * again. Refused when an item has been sold to someone else meanwhile.
+	 */
+	public static function reopen( $id, $send = true ) {
+		$o = self::order( $id );
+		if ( ! $o ) {
+			return new WP_Error( 'x', __( 'This order does not exist.', 'velox' ) );
+		}
+		if ( 'cancelled' !== $o['fulfil']['status'] && 'cancelled' !== $o['payment']['status'] ) {
+			return $o;
+		}
+		if ( empty( $o['stock_out'] ) ) {
+			$gone = array();
+			foreach ( $o['items'] as $i ) {
+				if ( empty( $i['pid'] ) ) {
+					continue;
+				}
+				$p = self::product( (int) $i['pid'] );
+				if ( ! $p ) {
+					$gone[] = $i['name'];
+					continue;
+				}
+				$v  = ! empty( $i['vid'] ) ? self::variant( $p, $i['vid'] ) : null;
+				$st = self::stock_of( $p, $v );
+				if ( null !== $st && $st < (int) $i['qty'] && ( ! empty( $p['unique'] ) || empty( $p['backorder'] ) ) ) {
+					$gone[] = $i['name'];
+				}
+			}
+			if ( $gone ) {
+				/* translators: %s: product names */
+				return new WP_Error( 'x', sprintf( __( 'This order cannot be reopened: %s is no longer in stock. It has probably been sold again in the meantime.', 'velox' ), implode( ', ', $gone ) ) );
+			}
+			foreach ( $o['items'] as $i ) {
+				if ( ! empty( $i['pid'] ) ) {
+					self::adjust_stock( $i['pid'], $i['vid'] ?? '', -(int) $i['qty'] );
+				}
+			}
+			$o['stock_out'] = 1;
+		}
+		$paid = in_array( $o['payment']['status'], array( 'paid', 'partial' ), true );
+		if ( 'cancelled' === $o['payment']['status'] ) {
+			$o['payment']['status'] = 'pending';
+		}
+		if ( 'cancelled' === $o['fulfil']['status'] ) {
+			$o['fulfil']['status'] = ! empty( $o['shipping'] ) ? 'unfulfilled' : ( $paid ? 'done' : 'none' );
+		}
+		// An unpaid order gets its full payment time again (see tick()).
+		$o['reopened'] = time();
+		self::note( $o, __( 'Reopened — the order is active again and its items are reserved.', 'velox' ) );
+		self::save_order( $id, $o );
+		if ( $send ) {
+			self::mail( 'reopened', $o );
+		}
+		return self::order( $id );
+	}
+
 	/** Record a refund (the provider refund itself is done by Velox_Shop_Pay). */
 	public static function record_refund( $id, $amount, $restock = false, $ref = '' ) {
 		$o = self::order( $id );
@@ -1504,7 +1562,7 @@ class Velox_Shop {
 			if ( ! $o || ! empty( $o['legacy'] ) ) {
 				continue;
 			}
-			$age = time() - (int) $o['created'];
+			$age = time() - max( (int) $o['created'], (int) ( $o['reopened'] ?? 0 ) );
 			$m   = $o['payment']['method'];
 			if ( in_array( $m, array( 'stripe', 'paypal' ), true ) && $age > $hold ) {
 				self::cancel( $id, __( 'The payment was not completed in time.', 'velox' ) );
@@ -1522,6 +1580,7 @@ class Velox_Shop {
 			'paid'      => array( __( 'Payment received', 'velox' ), __( 'To the customer when the payment has arrived.', 'velox' ) ),
 			'shipped'   => array( __( 'Shipped', 'velox' ), __( 'To the customer when you mark the order as shipped (with tracking).', 'velox' ) ),
 			'cancelled' => array( __( 'Cancelled', 'velox' ), __( 'To the customer when an order is cancelled.', 'velox' ) ),
+			'reopened'  => array( __( 'Order active again', 'velox' ), __( 'To the customer when you reopen a cancelled order.', 'velox' ) ),
 			'refunded'  => array( __( 'Refund', 'velox' ), __( 'To the customer when money goes back.', 'velox' ) ),
 			'withdrawn' => array( __( 'Withdrawal received', 'velox' ), __( 'To the customer as confirmation when they withdraw from the contract (required by law).', 'velox' ) ),
 			'reminder'  => array( __( 'Payment reminder', 'velox' ), __( 'To the customer, sent by you from an unpaid order.', 'velox' ) ),
@@ -1602,6 +1661,12 @@ class Velox_Shop {
 				/* translators: %s: order number */
 				$subject = sprintf( __( 'Your order %s has been cancelled', 'velox' ), $num );
 				$intro   = __( 'your order has been cancelled. If you have already paid, the money will be returned to you.', 'velox' );
+				break;
+			case 'reopened':
+				/* translators: %s: order number */
+				$subject = sprintf( __( 'Your order %s is active again', 'velox' ), $num );
+				$intro   = __( 'good news: your order is active again and the items are reserved for you.', 'velox' );
+				$after   = 'pending' === $o['payment']['status'] ? Velox_Shop_Pay::instructions_html( $o, true ) : '';
 				break;
 			case 'refunded':
 				/* translators: %s: order number */

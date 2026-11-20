@@ -339,6 +339,7 @@
 			( /shipped|ready|delivered/.test( f.status ) ? '<button type="button" data-act="o-unship">' + ic( 'undo', 14 ) + vxT( 'Undo shipping' ) + '</button>' : '' ) +
 			( /paid|partial/.test( p.status ) ? '<button type="button" data-act="o-refund">' + ic( 'undo', 14 ) + vxT( 'Refund' ) + '</button>' : '' ) +
 			( 'cancelled' !== f.status ? '<button type="button" class="is-danger" data-act="o-cancel">' + ic( 'x', 14 ) + vxT( 'Cancel order' ) + '</button>' : '' ) +
+			( 'cancelled' === f.status || 'cancelled' === p.status ? '<button type="button" data-act="o-reopen">' + ic( 'undo', 14 ) + vxT( 'Reopen order' ) + '</button>' : '' ) +
 			( /pending|cancelled/.test( p.status ) ? '<button type="button" class="is-danger" data-act="o-delete">' + ic( 'trash', 14 ) + vxT( 'Delete' ) + '</button>' : '' ) +
 			'</div></div>';
 		var h = head( vxT( 'Order' ) + ' <span class="vsa-mono">' + esc( o.number ) + '</span>', esc( date( o.created, true ) ) + ' &nbsp; ' + chip( PAY, p.status ) + ' ' + chip( FUL, f.status ) + ( o.withdrawal ? ' <span class="vsa-chip is-bad">' + vxT( 'Withdrawn' ) + '</span>' : '' ), acts, '#/orders' );
@@ -346,6 +347,8 @@
 		var next = '';
 		if ( o.withdrawal && 'open' === o.withdrawal.status ) {
 			next = '<div class="vsa-next is-bad">' + ic( 'undo', 18 ) + '<div><b>' + vxT( 'The customer withdrew from this purchase' ) + ' — ' + esc( date( o.withdrawal.at, true ) ) + '</b><p>' + ( o.withdrawal.message ? esc( o.withdrawal.message ) : vxT( 'Once the goods are back, refund the money (within 14 days) and mark the withdrawal as handled.' ) ) + '</p></div><button type="button" class="vsa-btn vsa-btn-ghost" data-act="o-wdone">' + vxT( 'Mark as handled' ) + '</button></div>';
+		} else if ( 'cancelled' === f.status || 'cancelled' === p.status ) {
+			next = '<div class="vsa-next">' + ic( 'x', 18 ) + '<div><b>' + vxT( 'This order is cancelled' ) + '</b><p>' + vxT( 'Its items are back in the shop. Cancelled by mistake? Reopen it and the items are reserved again.' ) + '</p></div><button type="button" class="vsa-btn vsa-btn-ghost" data-act="o-reopen">' + ic( 'undo', 15 ) + vxT( 'Reopen order' ) + '</button></div>';
 		} else if ( 'pending' === p.status && /bank|invoice/.test( p.method ) ) {
 			next = '<div class="vsa-next">' + ic( 'clock', 18 ) + '<div><b>' + vxT( 'Waiting for the money' ) + '</b><p>' + vxT( 'When the payment arrives in your account, click “Mark as paid”. The customer gets an email and you can ship.' ) + '</p></div></div>';
 		} else if ( 'pending' === p.status ) {
@@ -844,7 +847,8 @@
 					card( vxT( 'Withdrawal' ), tog( 'withdraw_on', on( 'withdraw_on' ), vxT( 'Customers can withdraw online' ), vxT( 'Order pages and emails get a “Withdraw from the contract” link. You get an email and the order is flagged.' ) ) + field( vxT( 'Withdrawal period' ), inp( 'withdraw_days', s.withdraw_days, { suffix:vxT( 'days' ), mode:'numeric', cls:'vsa-in-sm' } ), vxT( 'At least 14 days by law.' ) ) ) +
 					card( vxT( 'Product pages' ), tog( 'auto_layout', on( 'auto_layout' ), vxT( 'Build product pages automatically' ), vxT( 'Photos, price, options and the cart button next to each other. Switch off to design them yourself with the shop elements in Velox Builder.' ) ) + field( vxT( 'Product web address' ), '<div class="vsa-row"><span class="vsa-muted vsa-mono">' + esc( C.home ) + '</span>' + inp( 'product_base', s.product_base, { cls:'vsa-in-sm vsa-mono' } ) + '<span class="vsa-muted vsa-mono">/…</span></div>' ) );
 			case 'stock':
-				return card( vxT( 'Stock' ), '<div class="vsa-fr">' + field( vxT( 'Warn me at' ), inp( 'low_stock', s.low_stock, { suffix:vxT( 'left' ), mode:'numeric' } ), vxT( 'You get an email, and the overview lists it.' ) ) + field( vxT( 'Show stock to customers' ), sel( 'show_stock', s.show_stock, [ [ 'low', vxT( 'Only when it runs low' ) ], [ 'always', vxT( 'Always' ) ], [ 'never', vxT( 'Never' ) ] ] ) ) + '</div>' ) +
+				return card( vxT( 'Stock' ), '<div class="vsa-fr">' + field( vxT( 'Warn me at' ), inp( 'low_stock', s.low_stock, { suffix:vxT( 'left' ), mode:'numeric' } ), vxT( 'You get an email, and the overview lists it.' ) ) + field( vxT( 'Show stock to customers' ), sel( 'show_stock', s.show_stock, [ [ 'low', vxT( 'Only when it runs low' ) ], [ 'always', vxT( 'Always' ) ], [ 'never', vxT( 'Never' ) ] ] ) ) + '</div>' +
+					field( vxT( 'Sold items in the shop' ), sel( 'sold_items', s.sold_items || 'show', [ [ 'show', vxT( 'Show them as sold' ) ], [ 'last', vxT( 'Show them as sold, at the end' ) ], [ 'hide', vxT( 'Hide them' ) ] ] ), vxT( 'A cancelled order puts its items back, and they show up as available again.' ) ) ) +
 					card( vxT( 'Everything else' ), '<p class="vsa-hint">' + vxT( 'Bulk edits, imports and exports work in the classic WordPress list.' ) + ' <a href="' + esc( C.classic ) + '&classic=1">' + vxT( 'Open the classic list' ) + '</a></p>' );
 		}
 		return '';
@@ -910,6 +914,7 @@
 		if ( 'o-refund' === act ) { refundDialog(); return; }
 		if ( 'o-addr' === act ) { addrDialog(); return; }
 		if ( 'o-cancel' === act ) { confirmBox( vxT( 'Cancel this order?' ), vxT( 'The stock goes back and the customer gets an email.' ) + ( /paid|partial/.test( O.payment.status ) ? ' <b>' + vxT( 'It is paid: refund the money afterwards.' ) + '</b>' : '' ), vxT( 'Cancel order' ), true ).then( function ( y ) { if ( y ) { orderAct( 'cancel' ); } } ); return; }
+		if ( 'o-reopen' === act ) { modal( vxT( 'Reopen this order?' ), '<p class="vsa-p">' + vxT( 'The order is active again and its items are taken out of stock again.' ) + ( 'cancelled' === O.payment.status ? ' ' + vxT( 'It waits for payment like a new order.' ) : '' ) + '</p><label class="vsa-check"><input type="checkbox" id="vsa-reo-m" checked><span>' + vxT( 'Tell the customer by email' ) + '</span></label>', [ { k:'no', label:vxT( 'Cancel' ) }, { k:'yes', label:ic( 'undo', 15 ) + vxT( 'Reopen order' ) } ], function ( k, m ) { var t = m.querySelector( '#vsa-reo-m' ).checked; closeModal(); if ( 'yes' === k ) { orderAct( 'reopen', { tell:t ? 1 : 0 } ); } } ); return; }
 		if ( 'o-delete' === act ) { confirmBox( vxT( 'Delete this order?' ), vxT( 'It moves to the trash. Only unpaid or cancelled orders can be deleted.' ), vxT( 'Delete' ), true ).then( function ( y ) { if ( y ) { orderAct( 'delete' ); } } ); return; }
 		if ( 'o-note' === act ) { var nt = document.getElementById( 'vsa-note' ), nc = document.getElementById( 'vsa-note-c' ); orderAct( 'note', { text:nt.value, customer:nc.checked ? 1 : 0 } ); return; }
 		/* products list */

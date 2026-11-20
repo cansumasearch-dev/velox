@@ -405,6 +405,13 @@ class Velox_Shop_Admin {
 				Velox_Shop::cancel( $id, sanitize_text_field( (string) ( $in['reason'] ?? '' ) ) );
 				$msg = __( 'Cancelled. The stock is back and the customer has been told.', 'velox' );
 				break;
+			case 'reopen':
+				$r = Velox_Shop::reopen( $id, ! empty( $in['tell'] ) );
+				if ( is_wp_error( $r ) ) {
+					return $r;
+				}
+				$msg = ! empty( $in['tell'] ) ? __( 'Reopened. The items are reserved again and the customer has been told.', 'velox' ) : __( 'Reopened. The items are reserved again.', 'velox' );
+				break;
 			case 'refund':
 				$amount = (float) Velox_Shop::num( $in['amount'] ?? 0 );
 				if ( $amount <= 0 ) {

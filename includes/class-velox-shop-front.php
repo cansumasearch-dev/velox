@@ -157,6 +157,9 @@ class Velox_Shop_Front {
 		if ( in_array( $a[0], array( 'sold', 'out' ), true ) ) {
 			return '<span class="vxs-badge is-out">' . esc_html( $a[1] ) . '</span>';
 		}
+		if ( 'low' === $a[0] ) {
+			return '<span class="vxs-badge is-low">' . esc_html( $a[1] ) . '</span>';
+		}
 		if ( '' !== $p['badge'] ) {
 			return '<span class="vxs-badge">' . esc_html( $p['badge'] ) . '</span>';
 		}
@@ -205,7 +208,24 @@ class Velox_Shop_Front {
 					$args['orderby'] = array( 'menu_order' => 'ASC', 'date' => 'DESC' );
 				}
 		}
+		$sold = (string) Velox_Shop::get( 'sold_items', 'show' );
+		if ( 'hide' === $sold ) {
+			$args['meta_query'] = array( 'relation' => 'OR', array( 'key' => '_vx_status', 'value' => 'sold', 'compare' => '!=' ), array( 'key' => '_vx_status', 'compare' => 'NOT EXISTS' ) );
+		}
 		$q   = new WP_Query( $args );
+		if ( 'last' === $sold && $q->posts ) {
+			// Keep the order, but sold pieces go behind everything still for sale.
+			$for_sale = array();
+			$gone     = array();
+			foreach ( $q->posts as $post ) {
+				if ( 'sold' === get_post_meta( $post->ID, '_vx_status', true ) ) {
+					$gone[] = $post;
+				} else {
+					$for_sale[] = $post;
+				}
+			}
+			$q->posts = array_merge( $for_sale, $gone );
+		}
 		$out = '';
 		if ( $a['filter'] ) {
 			$terms = get_terms( array( 'taxonomy' => Velox_Shop::CAT, 'hide_empty' => true ) );
