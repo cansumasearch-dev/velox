@@ -554,7 +554,7 @@
 .vxa-status.is-on svg{color:var(--vxs-ok)}
 .vxa-setup{display:flex;flex-direction:column;gap:22px;margin:0;padding:0;list-style:none;counter-reset:vxa}
 .vxa-setup>li{position:relative;padding-left:40px;counter-increment:vxa}
-.vxa-setup>li::before{content:counter(vxa);position:absolute;left:0;top:-2px;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--vxs-ink);color:var(--vxs-bg);font-size:13px;font-weight:700}
+.vxa-setup>li::before{content:counter(vxa);position:absolute;left:0;top:-2px;display:grid;place-items:center;width:26px;height:26px;border-radius:50%;background:var(--vxs-ink);color:var(--vxs-on-ink,#fff);font-size:13px;font-weight:700}
 .vxa-setup p{margin:2px 0 12px;color:var(--vxs-ink-2);font-size:14px;line-height:1.5}
 .vxa-qr{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
 .vxa-qr svg{flex:none;border:1px solid var(--vxs-line);border-radius:10px;background:#fff}
@@ -584,7 +584,7 @@
 /* signed out */
 .vxa-out{max-width:1000px}
 .vxa-auth{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,460px);gap:24px;align-items:stretch}
-.vxa-why{display:flex;flex-direction:column;gap:14px;padding:38px;border-radius:calc(var(--vxa-r) + 6px);background:var(--vxs-ink);color:var(--vxs-bg)}
+.vxa-why{display:flex;flex-direction:column;gap:14px;padding:38px;border-radius:calc(var(--vxa-r) + 6px);background:var(--vxs-ink);color:var(--vxs-on-ink,#fff)}
 .vxa-why h2{color:inherit;font-size:clamp(26px,1.4vw + 18px,38px);letter-spacing:-.025em;line-height:1.1}
 .vxa-why p{opacity:.72;font-size:15.5px;line-height:1.55}
 .vxa-why ul{display:flex;flex-direction:column;gap:14px;margin:auto 0 0;padding:20px 0 0;list-style:none}
@@ -735,12 +735,12 @@
 .vxs-bp-tr .vxs-badge{left:auto;right:12px}
 .vxs-badge.is-new{background:var(--vxs-accent);color:var(--vxs-accent-ink)}
 .vxs-d-bold .vxs-badge:not(.is-sale):not(.is-out),.vxs-d-noir .vxs-badge:not(.is-sale):not(.is-out){background:var(--vxs-accent);color:var(--vxs-accent-ink)}
-.vxs-badge.is-out{background:color-mix(in srgb,var(--vxs-ink) 72%,transparent);color:var(--vxs-bg,#fff)}
+.vxs-badge.is-out{background:color-mix(in srgb,var(--vxs-ink) 72%,transparent);color:var(--vxs-on-ink,#fff)}
 
 /* small fixes so dark templates stay readable */
-.vxs-cats a[aria-current=true]{color:var(--vxs-bg,#fff)}
-.vxs-step-n,.vxs-toast{color:var(--vxs-bg,#fff)}
-.vxs-mini-im i{color:var(--vxs-bg,#fff)}
+.vxs-cats a[aria-current=true]{color:var(--vxs-on-ink,#fff)}
+.vxs-step-n,.vxs-toast{color:var(--vxs-on-ink,#fff)}
+.vxs-mini-im i{color:var(--vxs-on-ink,#fff)}
 .vxs-f input,.vxs-f select,.vxs-f textarea,.vxs-notebox textarea{border-color:color-mix(in srgb,var(--vxs-ink) 22%,transparent)}
 .vxs-note.is-ok,.vxs-tick,.vxs-chip-s.is-ok{background:color-mix(in srgb,var(--vxs-ok,#15803d) 13%,var(--vxs-bg,#fff));color:color-mix(in srgb,var(--vxs-ok,#15803d) 70%,var(--vxs-ink))}
 .vxs-note.is-err{background:color-mix(in srgb,var(--vxs-bad,#b91c1c) 12%,var(--vxs-bg,#fff));color:color-mix(in srgb,var(--vxs-bad,#b91c1c) 70%,var(--vxs-ink))}

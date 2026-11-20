@@ -506,9 +506,12 @@ class Velox_Shop {
 		if ( $col( $d['sale'] ) ) {
 			$css .= '--vxs-sale:' . $d['sale'] . ';--vxs-bad:' . $d['sale'] . ';';
 		}
-		// A dark design needs light text on dark chips and badges.
+		// Text on ink-coloured surfaces (badges, the active category, toasts):
+		// the page colour, or dark/light by the ink when the page has none.
+		$bgc = $col( $d['bg'] );
+		$css .= '--vxs-on-ink:' . ( $bgc && $bgc !== $ink ? $bgc : ( $ink && self::is_light( $ink ) ? '#111' : '#fff' ) ) . ';';
 		if ( $ink && self::is_light( $ink ) ) {
-			$css .= '--vxs-on-ink:#111;color-scheme:dark;';
+			$css .= 'color-scheme:dark;';
 		}
 		$fh = self::font_stack( (string) $d['font_h'] );
 		$fb = self::font_stack( (string) $d['font_b'] );
