@@ -103,12 +103,18 @@
 	var PAY = { pending:[ vxT( 'Awaiting payment' ), 'wait' ], paid:[ vxT( 'Paid' ), 'ok' ], partial:[ vxT( 'Partly refunded' ), 'warn' ], refunded:[ vxT( 'Refunded' ), 'off' ], cancelled:[ vxT( 'Cancelled' ), 'off' ], failed:[ vxT( 'Payment failed' ), 'bad' ] };
 	var FUL = { unfulfilled:[ vxT( 'To ship' ), 'wait' ], shipped:[ vxT( 'Shipped' ), 'ok' ], ready:[ vxT( 'Ready for pickup' ), 'ok' ], delivered:[ vxT( 'Delivered' ), 'ok' ], cancelled:[ vxT( 'Cancelled' ), 'off' ], done:[ vxT( 'Complete' ), 'ok' ], none:[ vxT( 'Nothing to ship' ), 'off' ] };
 	function chip( map, k ) { var m = map[ k ] || [ k, 'off' ]; return '<span class="vsa-chip is-' + m[ 1 ] + '">' + esc( m[ 0 ] ) + '</span>'; }
+	/* Payment and delivery state together — once, when both say "cancelled" (or there is nothing to ship). */
+	function stateChips( pay, ful ) {
+		if ( 'cancelled' === pay && 'cancelled' === ful ) { return chip( PAY, 'cancelled' ); }
+		if ( 'none' === ful ) { return chip( PAY, pay ); }
+		return chip( PAY, pay ) + ' ' + chip( FUL, ful );
+	}
 	function methodLabel( k ) { var m = ( C.methods || [] ).filter( function ( x ) { return x.key === k; } )[ 0 ]; return m ? m.title : k; }
 
 	/* --------------------------------------------------------------- shell */
 
 	var NAV = [
-		[ '', 'home', vxT( 'Overview' ) ], [ 'revenue', 'chart', vxT( 'Revenue' ) ], [ 'orders', 'receipt', vxT( 'Orders' ) ], [ 'products', 'box', vxT( 'Products' ) ],
+		[ '', 'home', vxT( 'Overview' ) ], [ 'revenue', 'chart', vxT( 'Revenue' ) ], [ 'payouts', 'card', vxT( 'Payouts' ) ], [ 'orders', 'receipt', vxT( 'Orders' ) ], [ 'products', 'box', vxT( 'Products' ) ],
 		[ 'coupons', 'percent', vxT( 'Coupons' ) ], [ 'customers', 'users', vxT( 'Customers' ) ], [ 'settings', 'gear', vxT( 'Settings' ) ]
 	];
 	var dirty = false, badge = { orders:0 };
@@ -120,7 +126,15 @@
 	}
 	function pageUrl( k ) { var id = +S[ 'page_' + k ]; var p = ( C.pages || [] ).filter( function ( x ) { return x.id === id; } )[ 0 ]; return p ? p.url : ''; }
 	function main() { return document.getElementById( 'vsa-main' ); }
-	function setNav( k ) { [].forEach.call( root.querySelectorAll( '[data-nav]' ), function ( a ) { a.classList.toggle( 'is-on', a.getAttribute( 'data-nav' ) === k ); a.setAttribute( 'aria-current', a.getAttribute( 'data-nav' ) === k ? 'page' : 'false' ); } ); }
+	function setNav( k ) {
+		[].forEach.call( root.querySelectorAll( '[data-nav]' ), function ( a ) { a.classList.toggle( 'is-on', a.getAttribute( 'data-nav' ) === k ); a.setAttribute( 'aria-current', a.getAttribute( 'data-nav' ) === k ? 'page' : 'false' ); } );
+		// The WordPress menu on the left follows the screen too.
+		[].forEach.call( document.querySelectorAll( '#toplevel_page_velox-shop .wp-submenu a' ), function ( a ) {
+			var m = ( a.getAttribute( 'href' ) || '' ).match( /#\/([a-z]*)/ ), sec = m ? m[ 1 ] : '';
+			var li = a.parentNode, on = sec === ( 'setup' === k ? '' : k );
+			li.classList.toggle( 'current', on ); a.classList.toggle( 'current', on ); if ( on ) { a.setAttribute( 'aria-current', 'page' ); } else { a.removeAttribute( 'aria-current' ); }
+		} );
+	}
 	function setBadge( n ) { var b = document.getElementById( 'vsa-ordbadge' ); if ( b ) { b.hidden = ! n; b.textContent = n > 99 ? '99+' : n; } }
 	function loading() { main().innerHTML = '<div class="vsa-loading"><span></span><span></span><span></span></div>'; }
 	function head( title, sub, actions, back ) {
@@ -200,7 +214,7 @@
 		route = parse();
 		setNav( route.name );
 		closeModal();
-		var fn = { '':overview, orders:route.id ? orderDetail : orders, products:route.id ? productEdit : products, coupons:coupons, customers:customers, revenue:revenue, settings:settings, setup:setup }[ route.name ] || overview;
+		var fn = { '':overview, orders:route.id ? orderDetail : orders, products:route.id ? productEdit : products, coupons:coupons, customers:customers, revenue:revenue, payouts:payouts, settings:settings, setup:setup }[ route.name ] || overview;
 		fn();
 		var m = main(); if ( m ) { m.scrollTop = 0; window.scrollTo( 0, 0 ); }
 	}
@@ -536,6 +550,7 @@
 		if ( 'pending' === p.status ) { acts += '<button type="button" class="vsa-btn vsa-btn-pri" data-act="o-paid">' + ic( 'check', 15 ) + vxT( 'Mark as paid' ) + '</button>'; }
 		if ( 'unfulfilled' === f.status && 'cancelled' !== p.status ) { acts += '<button type="button" class="vsa-btn ' + ( 'paid' === p.status || 'cod' === p.method || 'invoice' === p.method ? 'vsa-btn-pri' : 'vsa-btn-ghost' ) + '" data-act="o-ship">' + ic( 'truck', 15 ) + ( o.shipping && 'pickup' === o.shipping.type ? vxT( 'Ready for pickup' ) : vxT( 'Mark as shipped' ) ) + '</button>'; }
 		if ( 'shipped' === f.status ) { acts += '<button type="button" class="vsa-btn vsa-btn-ghost" data-act="o-delivered">' + ic( 'check', 15 ) + vxT( 'Delivered' ) + '</button>'; }
+		if ( o.editable ) { acts += '<button type="button" class="vsa-btn vsa-btn-ghost" data-act="o-edit">' + ic( 'brush', 15 ) + vxT( 'Edit order' ) + '</button>'; }
 		acts += '<div class="vsa-menu"><button type="button" class="vsa-btn vsa-btn-ghost vsa-btn-icon" data-act="menu" aria-label="' + esc( vxT( 'More actions' ) ) + '" aria-haspopup="true">' + ic( 'more', 16 ) + '</button><div class="vsa-menu-p" hidden>' +
 			( 'pending' === p.status && /bank|invoice/.test( p.method ) ? '<button type="button" data-act="o-reminder">' + ic( 'mail', 14 ) + vxT( 'Send payment reminder' ) + '</button>' : '' ) +
 			'<button type="button" data-act="o-resend">' + ic( 'mail', 14 ) + vxT( 'Send confirmation again' ) + '</button>' +
@@ -547,7 +562,7 @@
 			( 'cancelled' === f.status || 'cancelled' === p.status ? '<button type="button" data-act="o-reopen">' + ic( 'undo', 14 ) + vxT( 'Reopen order' ) + '</button>' : '' ) +
 			( /pending|cancelled/.test( p.status ) ? '<button type="button" class="is-danger" data-act="o-delete">' + ic( 'trash', 14 ) + vxT( 'Delete' ) + '</button>' : '' ) +
 			'</div></div>';
-		var h = head( vxT( 'Order' ) + ' <span class="vsa-mono">' + esc( o.number ) + '</span>', esc( date( o.created, true ) ) + ' &nbsp; ' + chip( PAY, p.status ) + ' ' + chip( FUL, f.status ) + ( o.withdrawal ? ' <span class="vsa-chip is-bad">' + vxT( 'Withdrawn' ) + '</span>' : '' ), acts, '#/orders' );
+		var h = head( vxT( 'Order' ) + ' <span class="vsa-mono">' + esc( o.number ) + '</span>', esc( date( o.created, true ) ) + ' &nbsp; ' + stateChips( p.status, f.status ) + ( o.withdrawal ? ' <span class="vsa-chip is-bad">' + vxT( 'Withdrawn' ) + '</span>' : '' ), acts, '#/orders' );
 		// next step, said plainly
 		var next = '';
 		if ( o.withdrawal && 'open' === o.withdrawal.status ) {
@@ -564,7 +579,7 @@
 		h += next + '<div class="vsa-cols"><div class="vsa-col-main">';
 		h += card( vxT( 'Items' ), '<ul class="vsa-items">' + o.items.map( function ( i ) {
 			return '<li>' + thumb( i.thumb ) + '<span class="vsa-grow"><a href="#/products/' + ( i.pid || '' ) + '">' + esc( i.name ) + '</a>' + ( i.variant ? '<small>' + esc( i.variant ) + '</small>' : '' ) + ( i.sku ? '<small class="vsa-mono">' + esc( i.sku ) + '</small>' : '' ) + '</span><span class="vsa-muted">' + money( i.unit ) + ' × ' + i.qty + '</span><b>' + money( i.total ) + '</b></li>';
-		} ).join( '' ) + '</ul>' + orderTotals( o ) );
+		} ).join( '' ) + '</ul>' + orderTotals( o ), { right:o.editable ? '<button type="button" class="vsa-link" data-act="o-edit">' + vxT( 'Edit' ) + '</button>' : '<span class="vsa-muted vsa-small" title="' + esc( o.editWhy || '' ) + '">' + ic( 'shield', 13 ) + ' ' + vxT( 'Locked' ) + '</span>' } );
 		h += card( vxT( 'Timeline' ), '<div class="vsa-compose"><textarea class="vsa-in" rows="2" id="vsa-note" placeholder="' + esc( vxT( 'Add a note…' ) ) + '"></textarea><div class="vsa-compose-a"><label class="vsa-check"><input type="checkbox" id="vsa-note-c"><span>' + vxT( 'Also email it to the customer' ) + '</span></label><button type="button" class="vsa-btn vsa-btn-sm" data-act="o-note">' + vxT( 'Add' ) + '</button></div></div>' +
 			'<ol class="vsa-tl">' + ( o.notes || [] ).slice().reverse().map( function ( n ) { return '<li class="' + ( n.c ? 'is-c' : '' ) + '"><span>' + esc( n.text ) + '</span><small>' + esc( date( n.t, true ) ) + ( n.by ? ' · ' + esc( n.by ) : '' ) + ( n.c ? ' · ' + vxT( 'sent to the customer' ) : '' ) + '</small></li>'; } ).join( '' ) + '</ol>' );
 		h += '</div><aside class="vsa-col-side">';
@@ -580,6 +595,158 @@
 			h += card( vxT( 'Shipping' ), '<p>' + chip( FUL, f.status ) + ' ' + esc( date( f.at ) ) + '</p>' + ( f.tracking ? '<p class="vsa-mono">' + esc( f.carrier + ' ' + f.tracking ) + '</p>' : '' ) );
 		}
 		if ( o.source ) { h += card( vxT( 'Came from' ), '<p class="vsa-muted vsa-small">' + esc( o.source ) + '</p>' ); }
+		h += '</aside></div>';
+		main().innerHTML = h;
+	}
+
+	/* ---- edit an order: quantities, prices, products, shipping, discount, payment method */
+	var EO = null;
+	function editOrder() {
+		if ( ! O.editable ) { toast( O.editWhy || vxT( 'This order can no longer be changed.' ), true ); return; }
+		api( 'order_pick' ).then( function ( r ) {
+			EO = { items:O.items.map( function ( i ) { return { pid:+i.pid || 0, vid:i.vid || '', name:i.name, variant:i.variant || '', qty:+i.qty || 1, unit:+i.unit || 0 }; } ),
+				hasShip:!! ( O.shipping && 'none' !== O.shipping.id ), ship:O.shipping ? +O.shipping.cost || 0 : 0, discount:+O.discount || 0, method:O.payment.method,
+				products:r.products || [], methods:r.methods || [], codFee:+r.codFee || 0, tell:true };
+			var m = modal( vxT( 'Edit order' ) + ' <span class="vsa-mono">' + esc( O.number ) + '</span>', '<div id="vsa-eo"></div>', [ { k:'no', label:vxT( 'Cancel' ) }, { k:'yes', label:ic( 'check', 15 ) + vxT( 'Save changes' ) } ], function ( k, mm, b ) {
+				if ( 'yes' !== k ) { closeModal(); return; }
+				if ( ! EO.items.length ) { toast( vxT( 'An order needs at least one item. Cancel it instead.' ), true ); return; }
+				b.disabled = true;
+				api( 'order_action', { id:O.id, act:'edit', items:EO.items.map( function ( i ) { return { pid:i.pid, vid:i.vid, name:i.name, qty:i.qty, unit:i.unit }; } ), ship:EO.ship, discount:EO.discount, method:EO.method, tell:EO.tell ? 1 : 0 } ).then( function ( r ) {
+					closeModal(); O = r.order; drawOrder(); if ( r.msg ) { toast( r.msg ); }
+				} ).catch( function ( e ) { b.disabled = false; fail( e ); } );
+			}, true );
+			drawEdit();
+			m.addEventListener( 'input', eoInput ); m.addEventListener( 'change', eoInput ); m.addEventListener( 'click', eoClick );
+		} ).catch( fail );
+	}
+	function eoTotals() {
+		var sub = 0; EO.items.forEach( function ( i ) { sub += Math.round( i.qty * i.unit * 100 ) / 100; } );
+		var disc = Math.min( Math.max( 0, EO.discount ), sub ), fee = 'cod' === EO.method ? EO.codFee : 0, ship = EO.hasShip ? EO.ship : 0;
+		return { sub:sub, disc:disc, ship:ship, fee:fee, total:Math.round( ( sub - disc + ship + fee ) * 100 ) / 100 };
+	}
+	function eoTotalsHtml() {
+		var t = eoTotals(), r = function ( l, v, c ) { return '<div class="vsa-tr' + ( c ? ' ' + c : '' ) + '"><span>' + l + '</span><span>' + v + '</span></div>'; };
+		return r( vxT( 'Subtotal' ), money( t.sub ) ) + ( t.disc ? r( vxT( 'Discount' ), '− ' + money( t.disc ) ) : '' ) + ( EO.hasShip ? r( vxT( 'Shipping' ), t.ship ? money( t.ship ) : vxT( 'Free' ) ) : '' ) + ( t.fee ? r( vxT( 'Cash on delivery fee' ), money( t.fee ) ) : '' ) +
+			r( vxT( 'New total' ), money( t.total ), 'is-total' ) + ( Math.abs( t.total - O.total ) >= 0.005 ? r( vxT( 'Before' ), money( O.total ), 'is-sub' ) : '' );
+	}
+	function drawEdit() {
+		var box = document.getElementById( 'vsa-eo' ); if ( ! box ) { return; }
+		var rows = EO.items.map( function ( i, n ) {
+			return '<li><span class="vsa-grow"><b>' + esc( i.name ) + '</b>' + ( i.variant ? '<small>' + esc( i.variant ) + '</small>' : '' ) + '</span>' +
+				'<input class="vsa-in vsa-eo-q" type="number" min="1" max="999" data-eoq="' + n + '" value="' + i.qty + '" aria-label="' + esc( vxT( 'Quantity' ) ) + '">' +
+				'<span class="vsa-eo-p"><input class="vsa-in" inputmode="decimal" data-eop="' + n + '" value="' + esc( dec( i.unit.toFixed( 2 ) ) ) + '" aria-label="' + esc( vxT( 'Price each' ) ) + '"><i class="vsa-sfx">' + esc( C.currency ) + '</i></span>' +
+				'<b class="vsa-eo-t" data-eot="' + n + '">' + money( i.qty * i.unit ) + '</b><button type="button" class="vsa-iconbtn" data-eodel="' + n + '" aria-label="' + esc( vxT( 'Remove' ) ) + '">' + ic( 'trash', 14 ) + '</button></li>';
+		} ).join( '' );
+		var opts = '<option value="">' + esc( vxT( '+ Add a product…' ) ) + '</option>' + EO.products.map( function ( p ) {
+			if ( p.variants && p.variants.length ) { return '<optgroup label="' + esc( p.title ) + '">' + p.variants.map( function ( v ) { return '<option value="' + p.id + '|' + esc( v.id ) + '"' + ( v.can ? '' : ' disabled' ) + '>' + esc( v.label ) + ' — ' + esc( money( v.price ) ) + ( v.can ? '' : ' · ' + esc( vxT( 'not available' ) ) ) + '</option>'; } ).join( '' ) + '</optgroup>'; }
+			return '<option value="' + p.id + '|"' + ( p.can ? '' : ' disabled' ) + '>' + esc( p.title ) + ' — ' + esc( money( p.price ) ) + ( p.can ? '' : ' · ' + esc( vxT( 'not available' ) ) ) + '</option>';
+		} ).join( '' );
+		var meth = EO.methods.filter( function ( m ) { return m.key === EO.method; } ).length || /bank|invoice|cod/.test( EO.method ) ? EO.methods : [];
+		box.innerHTML = '<p class="vsa-p">' + vxT( 'Change quantities or prices, remove or add products. Stock, VAT and the total are worked out again; the customer can get the updated order by email.' ) + '</p>' +
+			'<ul class="vsa-items vsa-eo">' + ( rows || '<li class="vsa-muted">' + vxT( 'No items — add one below.' ) + '</li>' ) + '</ul>' +
+			'<select class="vsa-in vsa-eo-add" data-eoadd>' + opts + '</select>' +
+			'<div class="vsa-fr vsa-fr3">' + ( EO.hasShip ? field( vxT( 'Shipping' ), '<input class="vsa-in" inputmode="decimal" data-eos value="' + esc( dec( EO.ship.toFixed( 2 ) ) ) + '">' ) : '' ) +
+			field( vxT( 'Discount' ), '<input class="vsa-in" inputmode="decimal" data-eod value="' + esc( dec( EO.discount.toFixed( 2 ) ) ) + '">' ) +
+			( meth.length > 1 ? field( vxT( 'Payment method' ), '<select class="vsa-in" data-eom>' + meth.map( function ( m ) { return '<option value="' + esc( m.key ) + '"' + ( m.key === EO.method ? ' selected' : '' ) + '>' + esc( m.label ) + '</option>'; } ).join( '' ) + '</select>' ) : '' ) + '</div>' +
+			'<div class="vsa-totals" id="vsa-eo-tot">' + eoTotalsHtml() + '</div>' +
+			'<label class="vsa-check"><input type="checkbox" data-eotell' + ( EO.tell ? ' checked' : '' ) + '><span>' + vxT( 'Email the customer the updated order' ) + '</span></label>';
+	}
+	function eoRefresh() { var t = document.getElementById( 'vsa-eo-tot' ); if ( t ) { t.innerHTML = eoTotalsHtml(); } }
+	function eoInput( e ) {
+		var t = e.target, n;
+		if ( t.hasAttribute( 'data-eoq' ) ) { n = +t.getAttribute( 'data-eoq' ); EO.items[ n ].qty = Math.max( 1, Math.min( 999, parseInt( t.value, 10 ) || 1 ) ); }
+		else if ( t.hasAttribute( 'data-eop' ) ) { n = +t.getAttribute( 'data-eop' ); var v = num( t.value ); EO.items[ n ].unit = null === v ? 0 : Math.max( 0, v ); }
+		else if ( t.hasAttribute( 'data-eos' ) ) { var sv = num( t.value ); EO.ship = null === sv ? 0 : Math.max( 0, sv ); }
+		else if ( t.hasAttribute( 'data-eod' ) ) { var dv = num( t.value ); EO.discount = null === dv ? 0 : Math.max( 0, dv ); }
+		else if ( t.hasAttribute( 'data-eom' ) ) { EO.method = t.value; }
+		else if ( t.hasAttribute( 'data-eotell' ) ) { EO.tell = t.checked; return; }
+		else if ( t.hasAttribute( 'data-eoadd' ) && 'change' === e.type && t.value ) {
+			var parts = t.value.split( '|' ), pid = +parts[ 0 ], vid = parts[ 1 ] || '';
+			var p = EO.products.filter( function ( x ) { return x.id === pid; } )[ 0 ]; if ( ! p ) { return; }
+			var v = vid ? ( p.variants || [] ).filter( function ( x ) { return String( x.id ) === vid; } )[ 0 ] : null;
+			var have = EO.items.filter( function ( x ) { return x.pid === pid && String( x.vid ) === vid; } )[ 0 ];
+			if ( have ) { have.qty++; } else { EO.items.push( { pid:pid, vid:vid, name:p.title, variant:v ? v.label : '', qty:1, unit:v ? +v.price : +p.price } ); }
+			drawEdit(); return;
+		} else { return; }
+		if ( null != n ) { var cell = document.querySelector( '[data-eot="' + n + '"]' ); if ( cell ) { cell.textContent = money( EO.items[ n ].qty * EO.items[ n ].unit ); } }
+		eoRefresh();
+	}
+	function eoClick( e ) {
+		var d = e.target.closest( '[data-eodel]' ); if ( ! d ) { return; }
+		EO.items.splice( +d.getAttribute( 'data-eodel' ), 1 ); drawEdit();
+	}
+
+	/* ============================================================== PAYOUTS
+	 * Where the money is: at Stripe, at PayPal, or already on the shop's own
+	 * account — and how it gets from there to the bank. */
+	var PO = null;
+	function payouts( fresh ) {
+		if ( ! PO || fresh ) { loading(); }
+		api( 'payouts', { fresh:fresh ? 1 : 0 } ).then( function ( d ) { PO = d; drawPayouts(); } ).catch( fail );
+	}
+	function amounts( list ) { return ( list || [] ).length ? list.map( function ( a ) { return money( a.amount ) + ( a.currency && a.currency !== String( C.currencyCode || 'EUR' ) ? ' ' + esc( a.currency ) : '' ); } ).join( ' + ' ) : money( 0 ); }
+	function schedText( s ) {
+		if ( ! s ) { return vxT( 'Set in your Stripe account' ); }
+		var days = [ 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ], dn = [ vxT( 'Monday' ), vxT( 'Tuesday' ), vxT( 'Wednesday' ), vxT( 'Thursday' ), vxT( 'Friday' ), vxT( 'Saturday' ), vxT( 'Sunday' ) ];
+		if ( 'manual' === s.interval ) { return vxT( 'Only when you start a payout' ); }
+		if ( 'daily' === s.interval ) { return vxT( 'Automatically, every working day' ) + ( s.delay ? ' — ' + vxT( 'money from %d days ago' ).replace( '%d', s.delay ) : '' ); }
+		if ( 'weekly' === s.interval ) { return vxT( 'Automatically, every %s' ).replace( '%s', dn[ days.indexOf( s.weekly ) ] || s.weekly ); }
+		if ( 'monthly' === s.interval ) { return vxT( 'Automatically, on day %d of each month' ).replace( '%d', s.monthly ); }
+		return s.interval;
+	}
+	var POST = { paid:[ vxT( 'On your bank' ), 'ok' ], in_transit:[ vxT( 'On its way' ), 'wait' ], pending:[ vxT( 'Prepared' ), 'wait' ], failed:[ vxT( 'Failed' ), 'bad' ], canceled:[ vxT( 'Cancelled' ), 'off' ] };
+	function drawPayouts() {
+		var d = PO, by = {}, got = 0, open = 0;
+		d.methods.forEach( function ( m ) { by[ m.key ] = m; got += m.paid; open += m.open; } );
+		var st = d.stripe, pp = d.paypal, kp = function ( l, v, sub ) { return '<div class="vsa-kpi"><span>' + l + '</span><b>' + v + '</b>' + ( sub ? '<small>' + sub + '</small>' : '' ) + '</div>'; };
+		var h = head( vxT( 'Payouts' ), esc( vxT( 'Where your money is, and how it reaches your bank' ) ), '<button type="button" class="vsa-btn vsa-btn-ghost" data-act="po-refresh">' + ic( 'undo', 15 ) + vxT( 'Refresh' ) + '</button>' );
+		h += '<div class="vsa-kpis">' + kp( vxT( 'Received' ), money( got ), vxT( 'last %d days, all methods' ).replace( '%d', d.days ) ) +
+			kp( vxT( 'Still to come in' ), money( open ), vxT( 'bank transfer, invoice, cash on delivery' ) ) +
+			( st && ! st.error ? kp( vxT( 'At Stripe' ), amounts( st.available ), vxT( 'plus %s on the way' ).replace( '%s', amounts( st.pending ) ) ) : '' ) +
+			( pp && pp.balances ? kp( vxT( 'At PayPal' ), pp.balances.length ? pp.balances.map( function ( b ) { return money( b.available ); } ).join( ' + ' ) : money( 0 ), vxT( 'available to transfer' ) ) : '' ) + '</div>';
+		h += '<div class="vsa-cols"><div class="vsa-col-main">';
+		// Stripe
+		var sb = '';
+		if ( ! st ) {
+			sb = '<p class="vsa-p">' + vxT( 'Card, Apple Pay, Google Pay, SEPA and Klarna payments are collected by Stripe. Stripe keeps its fee and pays the rest out to your bank account — automatically, on a schedule you choose.' ) + '</p><a class="vsa-btn vsa-btn-sm vsa-btn-ghost" href="#/settings/payments">' + vxT( 'Set up Stripe' ) + '</a>';
+		} else if ( st.error ) {
+			sb = '<div class="vsa-note">' + ic( 'alert', 15 ) + '<span>' + vxT( 'Stripe did not answer:' ) + ' ' + esc( st.error ) + '</span></div>';
+		} else {
+			var dash = 'https://dashboard.stripe.com/' + ( st.test ? 'test/' : '' );
+			sb = '<div class="vsa-po-flow"><div><span>' + vxT( 'Available' ) + '</span><b>' + amounts( st.available ) + '</b><small>' + vxT( 'ready to go to your bank' ) + '</small></div>' + ic( 'chev', 18 ) +
+				'<div><span>' + vxT( 'On the way' ) + '</span><b>' + amounts( st.pending ) + '</b><small>' + vxT( 'recent payments, still held by Stripe' ) + '</small></div>' + ic( 'chev', 18 ) +
+				'<div><span>' + vxT( 'Your bank' ) + '</span><b>' + esc( st.bank || vxT( 'as set in Stripe' ) ) + '</b><small>' + esc( schedText( st.schedule ) ) + '</small></div></div>' +
+				( st.test ? '<p class="vsa-hint">' + vxT( 'Test mode: these are test amounts, no real money moves.' ) + '</p>' : '' ) +
+				'<div class="vsa-row">' + ( st.schedule && 'manual' === st.schedule.interval && st.available.some( function ( a ) { return a.amount > 0; } ) ? '<button type="button" class="vsa-btn vsa-btn-pri" data-act="po-payout">' + ic( 'download', 15 ) + vxT( 'Pay out %s now' ).replace( '%s', amounts( st.available ) ) + '</button>' : '' ) +
+				'<a class="vsa-btn vsa-btn-ghost" href="' + dash + 'settings/payouts" target="_blank" rel="noopener">' + ic( 'ext', 14 ) + vxT( 'Bank account & schedule in Stripe' ) + '</a></div>' +
+				( st.payouts.length ? '<table class="vsa-table vsa-po-t"><thead><tr><th>' + vxT( 'Payout' ) + '</th><th>' + vxT( 'Arrives' ) + '</th><th>' + vxT( 'Status' ) + '</th></tr></thead><tbody>' + st.payouts.map( function ( x ) {
+					return '<tr><td><b>' + money( x.amount ) + '</b>' + ( x.auto ? '' : ' <span class="vsa-muted vsa-small">' + vxT( 'by hand' ) + '</span>' ) + '</td><td>' + esc( date( x.arrival ) ) + '</td><td>' + chip( POST, x.status ) + '</td></tr>';
+				} ).join( '' ) + '</tbody></table>' : '<p class="vsa-muted">' + vxT( 'No payouts yet. The first one usually comes 7 days after the first payment.' ) + '</p>' );
+		}
+		h += card( ic( 'card', 16 ) + ' Stripe <span class="vsa-muted vsa-small">' + vxT( 'cards, wallets, SEPA, Klarna' ) + '</span>', sb );
+		// PayPal
+		var pb = '';
+		if ( ! pp ) {
+			pb = '<p class="vsa-p">' + vxT( 'PayPal payments land in your PayPal account. From there you transfer them to your bank in PayPal (usually free, 1–2 working days).' ) + '</p><a class="vsa-btn vsa-btn-sm vsa-btn-ghost" href="#/settings/payments">' + vxT( 'Set up PayPal' ) + '</a>';
+		} else {
+			var ppurl = pp.sandbox ? 'https://www.sandbox.paypal.com/myaccount/money' : 'https://www.paypal.com/myaccount/money';
+			pb = ( pp.balances ? '<div class="vsa-po-flow"><div><span>' + vxT( 'PayPal balance' ) + '</span><b>' + ( pp.balances.length ? pp.balances.map( function ( b ) { return money( b.total ); } ).join( ' + ' ) : money( 0 ) ) + '</b><small>' + vxT( 'of which available' ) + ' ' + ( pp.balances.length ? pp.balances.map( function ( b ) { return money( b.available ); } ).join( ' + ' ) : money( 0 ) ) + '</small></div>' + ic( 'chev', 18 ) + '<div><span>' + vxT( 'Your bank' ) + '</span><b>' + vxT( 'when you transfer it' ) + '</b><small>' + vxT( 'in PayPal under Wallet' ) + '</small></div></div>'
+				: '<p class="vsa-p">' + vxT( 'Payments land in your PayPal account. Velox cannot read the balance yet: in the PayPal developer dashboard, open your app and switch on “Balances” (or “Transaction search”) under features.' ) + '</p>' ) +
+				'<p class="vsa-p">' + vxT( 'PayPal keeps its fee per payment. To get the money to your bank, transfer it in PayPal — usually free and there in 1–2 working days.' ) + '</p>' +
+				'<a class="vsa-btn vsa-btn-ghost" href="' + ppurl + '" target="_blank" rel="noopener">' + ic( 'ext', 14 ) + vxT( 'Open my PayPal money' ) + '</a>';
+		}
+		h += card( ic( 'card', 16 ) + ' PayPal', pb );
+		// Straight to the shop
+		var direct = [ 'bank', 'invoice', 'cod' ].map( function ( k ) {
+			var m = by[ k ] || { label:k, on:false, paid:0, open:0, nOpen:0 };
+			var how = { bank:vxT( 'Customers transfer the money straight to your account.' ) + ( d.iban ? ' <span class="vsa-mono">' + esc( d.iban ) + '</span>' : '' ), invoice:vxT( 'Customers pay to your account after the goods arrive.' ), cod:vxT( 'The parcel service collects the money at the door and pays it out to you.' ) }[ k ];
+			return '<li><span class="vsa-grow"><b>' + esc( m.label ) + '</b> ' + ( m.on ? '' : '<span class="vsa-chip is-off">' + vxT( 'Off' ) + '</span>' ) + '<small>' + how + '</small></span><span class="vsa-po-n"><b>' + money( m.paid ) + '</b><small>' + vxT( 'received' ) + '</small></span>' +
+				( m.nOpen ? '<button type="button" class="vsa-po-open" data-act="go-unpaid"><b>' + money( m.open ) + '</b><small>' + m.nOpen + ' ' + vxT( 'open' ) + '</small></button>' : '<span class="vsa-po-n"><b class="vsa-muted">—</b><small>' + vxT( 'nothing open' ) + '</small></span>' ) + '</li>';
+		} ).join( '' );
+		h += card( ic( 'receipt', 16 ) + ' ' + vxT( 'Straight to your account' ), '<ul class="vsa-items vsa-po-direct">' + direct + '</ul><p class="vsa-hint">' + vxT( 'No one in between: mark these orders as paid when the money is there.' ) + '</p>' );
+		h += '</div><aside class="vsa-col-side">';
+		h += card( vxT( 'What customers can choose' ), '<ul class="vsa-po-meth">' + d.methods.map( function ( m ) { return '<li><span>' + esc( m.label ) + '</span>' + ( m.on ? '<span class="vsa-chip is-ok">' + vxT( 'On' ) + '</span>' : '<span class="vsa-chip is-off">' + vxT( 'Off' ) + '</span>' ) + '</li>'; } ).join( '' ) + '</ul><a class="vsa-btn vsa-btn-sm vsa-btn-ghost" href="#/settings/payments">' + ic( 'gear', 14 ) + vxT( 'Choose payment methods' ) + '</a>' );
+		h += card( vxT( 'Good to know' ), '<ul class="vsa-po-tips"><li>' + vxT( 'Stripe and PayPal keep their fee before paying out; the amounts here are what is left for you.' ) + '</li><li>' + vxT( 'A refund takes the money from the same place: from Stripe or PayPal, or by bank transfer from you.' ) + '</li><li>' + vxT( 'For your tax office: the invoices are in each order, and Revenue exports a CSV for your accountant.' ) + '</li></ul>' );
 		h += '</aside></div>';
 		main().innerHTML = h;
 	}
@@ -907,7 +1074,7 @@
 		}
 		h += '<div class="vsa-cols"><div class="vsa-col-main">';
 		h += card( vxT( 'Orders' ), c.orders.length ? '<ul class="vsa-items vsa-corders">' + c.orders.map( function ( o ) {
-			return '<li><a class="vsa-grow" href="#/orders/' + o.id + '"><b class="vsa-mono">' + esc( o.number ) + '</b><small>' + esc( date( o.created, true ) ) + ' · ' + o.items + ' ' + ( 1 === o.items ? vxT( 'item' ) : vxT( 'items' ) ) + '</small></a>' + chip( PAY, o.pay ) + ' ' + chip( FUL, o.ful ) + '<b>' + money( o.total ) + '</b></li>';
+			return '<li><a class="vsa-corow" href="#/orders/' + o.id + '" title="' + esc( vxT( 'Open the order' ) ) + '"><span class="vsa-grow"><b class="vsa-mono">' + esc( o.number ) + '</b><small>' + esc( date( o.created, true ) ) + ' · ' + o.items + ' ' + ( 1 === o.items ? vxT( 'item' ) : vxT( 'items' ) ) + '</small></span><span class="vsa-corow-s">' + stateChips( o.pay, o.ful ) + '</span><b>' + money( o.total ) + '</b>' + ic( 'chev', 15 ) + '</a></li>';
 		} ).join( '' ) + '</ul>' : '<p class="vsa-muted">' + vxT( 'No orders yet.' ) + '</p>' );
 		var cf = function ( k, label, v, o ) { o = o || {}; return field( label, '<input class="vsa-in" data-cf="' + k + '" value="' + esc( v || '' ) + '"' + ( o.type ? ' type="' + o.type + '"' : '' ) + ( acc && c.canEdit ? '' : ' disabled' ) + '>', o.hint ); };
 		var cs = Object.keys( C.countries || {} ).map( function ( k ) { return '<option value="' + k + '"' + ( ( A.vx_country || 'DE' ) === k ? ' selected' : '' ) + '>' + esc( C.countries[ k ] ) + '</option>'; } ).join( '' );
@@ -1251,14 +1418,16 @@
 		if ( 'bank' === k ) {
 			body = '<div class="vsa-fr">' + field( vxT( 'Account holder' ), inp( 'bank_owner', s.bank_owner, { ph:s.store_name } ) ) + field( 'IBAN', inp( 'bank_iban', s.bank_iban, { cls:'vsa-mono' } ) ) + '</div><div class="vsa-fr">' + field( 'BIC', inp( 'bank_bic', s.bank_bic, { cls:'vsa-mono', ph:vxT( 'optional' ) } ) ) + field( vxT( 'Bank' ), inp( 'bank_name', s.bank_name, { ph:vxT( 'optional' ) } ) ) + '</div>';
 		} else if ( 'invoice' === k ) {
-			body = tog( 'invoice_known', on( 'invoice_known' ), vxT( 'Only for customers who have paid before' ), vxT( 'Protects you from not getting paid.' ) ) + field( vxT( 'Payment term' ), inp( 'invoice_days', s.invoice_days, { suffix:vxT( 'days' ), mode:'numeric', cls:'vsa-in-sm' } ) );
+			body = tog( 'invoice_known', on( 'invoice_known' ), vxT( 'Only for customers who have paid before' ), vxT( 'Protects you from not getting paid.' ) ) + '<div class="vsa-fr">' + field( vxT( 'Payment term' ), inp( 'invoice_days', s.invoice_days, { suffix:vxT( 'days' ), mode:'numeric', cls:'vsa-in-sm' } ) ) + field( vxT( 'Only up to an order value of' ), inp( 'invoice_max', dec( s.invoice_max ), { suffix:C.currency, mode:'decimal', ph:vxT( 'no limit' ) } ), vxT( 'Larger orders do not see this method.' ) ) + '</div>';
 		} else if ( 'cod' === k ) {
-			body = field( vxT( 'Extra fee' ), inp( 'cod_fee', dec( s.cod_fee ), { suffix:C.currency, mode:'decimal', ph:'0,00', cls:'vsa-in-sm' } ), vxT( 'Shown separately at checkout.' ) );
+			body = '<div class="vsa-fr">' + field( vxT( 'Extra fee' ), inp( 'cod_fee', dec( s.cod_fee ), { suffix:C.currency, mode:'decimal', ph:'0,00', cls:'vsa-in-sm' } ), vxT( 'Shown separately at checkout.' ) ) + field( vxT( 'Only up to an order value of' ), inp( 'cod_max', dec( s.cod_max ), { suffix:C.currency, mode:'decimal', ph:vxT( 'no limit' ) } ), vxT( 'Larger orders do not see this method.' ) ) + '</div>';
 		} else if ( 'stripe' === k ) {
 			body = '<ol class="vsa-steps"><li>' + vxT( 'In Stripe: Developers → API keys → copy the Secret key.' ) + '</li><li>' + vxT( 'Developers → Webhooks → add this address and the events checkout.session.completed and checkout.session.async_payment_succeeded, then copy the signing secret.' ) + '<div class="vsa-copy"><code>' + esc( C.webhook ) + '</code><button type="button" class="vsa-iconbtn" data-copy="' + esc( C.webhook ) + '" aria-label="' + esc( vxT( 'Copy' ) ) + '">' + ic( 'copy', 14 ) + '</button></div></li><li>' + vxT( 'Switch on in Stripe whatever you want to offer: cards, Apple Pay, Google Pay, SEPA, Klarna …' ) + '</li></ol>' +
 				'<div class="vsa-fr">' + field( vxT( 'Secret key' ), inp( 'stripe_secret', s.stripe_secret, { cls:'vsa-mono', ph:'sk_live_… / sk_test_…', attr:' autocomplete="off" spellcheck="false"' } ) ) + field( vxT( 'Webhook signing secret' ), inp( 'stripe_whsec', s.stripe_whsec, { cls:'vsa-mono', ph:'whsec_…', attr:' autocomplete="off" spellcheck="false"' } ) ) + '</div>' +
 				( s.stripe_mode ? '<p><span class="vsa-chip is-' + ( 'test' === s.stripe_mode ? 'warn' : 'ok' ) + '">' + ( 'test' === s.stripe_mode ? vxT( 'Test mode' ) : vxT( 'Live' ) ) + '</span></p>' : '' ) +
-				'<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-paytest="stripe">' + ic( 'bolt', 14 ) + vxT( 'Test the connection' ) + '</button>';
+					field( vxT( 'What customers see at Stripe' ), '<div class="vsa-smeth">' + Object.keys( C.stripeTypes || {} ).map( function ( k ) { return '<label class="vsa-check"><input type="checkbox" data-smeth="' + k + '"' + ( ( s.stripe_methods || [] ).indexOf( k ) > -1 ? ' checked' : '' ) + '><span>' + esc( C.stripeTypes[ k ] ) + '</span></label>'; } ).join( '' ) + '</div>',
+						vxT( 'Nothing ticked = whatever is switched on in your Stripe dashboard. A method Stripe cannot offer for an order (not active, other currency) is left out automatically — the checkout always works.' ) ) +
+					'<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-paytest="stripe">' + ic( 'bolt', 14 ) + vxT( 'Test the connection' ) + '</button>';
 		} else if ( 'paypal' === k ) {
 			body = '<p class="vsa-hint">' + vxT( 'developer.paypal.com → Apps & Credentials → create an app and copy its Client ID and Secret.' ) + '</p><div class="vsa-fr">' + field( 'Client ID', inp( 'paypal_id', s.paypal_id, { cls:'vsa-mono', attr:' autocomplete="off" spellcheck="false"' } ) ) + field( vxT( 'Secret' ), inp( 'paypal_secret', s.paypal_secret, { cls:'vsa-mono', attr:' autocomplete="off" spellcheck="false"' } ) ) + '</div>' +
 				tog( 'paypal_sandbox', on( 'paypal_sandbox' ), vxT( 'Sandbox (test money)' ), vxT( 'Switch off when you go live.' ) ) + '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-paytest="paypal">' + ic( 'bolt', 14 ) + vxT( 'Test the connection' ) + '</button>';
@@ -1358,6 +1527,10 @@
 		}
 		if ( 's-reset' === act ) { SD = JSON.parse( SDclean ); redrawSettings(); return; }
 		if ( 's-pages' === act ) { a.disabled = true; api( 'create_pages', {} ).then( function ( r ) { S = r.settings; C.pages = r.pages; Object.keys( r.settings ).forEach( function ( k ) { if ( /^page_/.test( k ) ) { SD[ k ] = r.settings[ k ]; } } ); SDclean = JSON.stringify( Object.assign( JSON.parse( SDclean ), Object.keys( r.settings ).filter( function ( k ) { return /^page_/.test( k ); } ).reduce( function ( o, k ) { o[ k ] = r.settings[ k ]; return o; }, {} ) ) ); redrawSettings(); toast( r.made.length ? vxT( 'Created:' ) + ' ' + r.made.join( ', ' ) : vxT( 'All pages exist already.' ) ); } ).catch( fail ); return; }
+		if ( 'o-edit' === act ) { editOrder(); return; }
+		if ( 'po-refresh' === act ) { payouts( true ); return; }
+		if ( 'po-payout' === act ) { confirmBox( vxT( 'Pay out to your bank now?' ), vxT( 'Stripe sends the whole available balance to the bank account set in Stripe. It usually arrives in 1–3 working days.' ), vxT( 'Pay out' ) ).then( function ( y ) { if ( y ) { api( 'payout_now' ).then( function ( r ) { toast( r.msg ); payouts( true ); } ).catch( fail ); } } ); return; }
+		if ( 'go-unpaid' === act ) { OV.view = 'unpaid'; OV.page = 1; location.hash = '#/orders'; return; }
 		if ( 'd-reset' === act ) { SD[ a.getAttribute( 'data-v' ) ] = ''; redrawSettings(); return; }
 		if ( 'd-tpl' === act ) { dsPick( a.getAttribute( 'data-v' ) ); return; }
 		if ( 'd-clear' === act ) {
@@ -1462,6 +1635,7 @@
 			}
 			var zca = t.getAttribute( 'data-zc-add' ); if ( null !== zca && t.value ) { var zz = SD.zones[ +zca ]; zz.countries = ( zz.countries || [] ).filter( function ( c ) { return c !== t.value; } ).concat( [ t.value ] ); redrawSettings(); return; }
 			if ( t.hasAttribute( 'data-sc-add' ) && t.value ) { SD.ship_countries = ( SD.ship_countries || [] ).filter( function ( c ) { return c !== t.value; } ).concat( [ t.value ] ); redrawSettings(); return; }
+			var smk = t.getAttribute( 'data-smeth' ); if ( smk ) { var sm = ( SD.stripe_methods || [] ).filter( function ( x ) { return x !== smk; } ); if ( t.checked ) { sm.push( smk ); } SD.stripe_methods = sm; sdirty(); return; }
 			var ml = t.getAttribute( 'data-mail' ); if ( ml ) { var off = ( SD.mail_off || [] ).filter( function ( x ) { return x !== ml; } ); if ( ! t.checked ) { off.push( ml ); } SD.mail_off = off; sdirty(); return; }
 		}
 		var wp = t.getAttribute( 'data-wpay' ); if ( wp ) { W.pay[ wp ] = t.checked ? 1 : 0; setup(); return; }
