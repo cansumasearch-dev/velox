@@ -432,6 +432,8 @@ class Velox_Shop_Front {
 			$terms = get_the_terms( $p['id'], Velox_Shop::CAT );
 			if ( $terms && ! is_wp_error( $terms ) ) {
 				$out .= '<span class="vxs-card-cat">' . esc_html( $terms[0]->name ) . '</span>';
+			} else {
+				$out .= '<span class="vxs-card-cat" aria-hidden="true">&nbsp;</span>'; // keeps names in one line across the row
 			}
 		}
 		$out  .= '<h3 class="vxs-card-t"><a href="' . esc_url( $url ) . '">' . esc_html( $p['title'] ) . '</a></h3>';

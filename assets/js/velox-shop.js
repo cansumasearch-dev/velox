@@ -269,7 +269,7 @@
 					}
 					wrap.classList.remove( 'is-busy' ); wrap.removeAttribute( 'aria-busy' );
 					history[ 'more' === mode ? 'replaceState' : 'pushState' ]( { vxs:n }, '', url );
-					if ( 'more' === mode ) { var c = $$( '.vxs-card', wrap )[ before ]; var a = c && $( 'a', c ); if ( a ) { a.focus( { preventScroll:true } ); } }
+					if ( 'more' === mode ) { var c = $$( '.vxs-card', wrap )[ before ]; var a = c && ( $( '.vxs-card-t a', c ) || $( 'a:not([tabindex="-1"])', c ) ); if ( a ) { a.focus( { preventScroll:true } ); } }
 				} ).catch( function () { location.href = url; } );
 			}
 			function urlFor( changes ) {
