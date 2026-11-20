@@ -52,6 +52,9 @@ class Velox_Shop {
 		// Cart, checkout and account output is per-visitor: those pages, and any
 		// page while something is in the cart, skip the page cache.
 		add_filter( 'velox_cache_skip', array( __CLASS__, 'skip_cache' ) );
+		// Product pages bring their whole layout through the_content, so a
+		// Velox Builder template can frame them like any page (header, footer…).
+		add_filter( 'velox_builder_wrap_post_types', array( __CLASS__, 'wrap_types' ) );
 
 		if ( class_exists( 'Velox_Shop_Pay' ) ) {
 			Velox_Shop_Pay::init();
@@ -235,6 +238,13 @@ class Velox_Shop {
 	}
 
 	/** How product photos sit in the grid. */
+	/** velox_builder_wrap_post_types: products can sit in a Builder template. */
+	public static function wrap_types( $types ) {
+		$types   = (array) $types;
+		$types[] = self::PRODUCT;
+		return $types;
+	}
+
 	public static function card_ratio() {
 		$r = (string) self::get( 'card_ratio' );
 		if ( '' === $r ) {

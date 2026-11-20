@@ -63,27 +63,39 @@ final class Velox {
 	 * @return array<string,string>|null
 	 */
 	private function get_dict() {
-		// Only translate inside wp-admin; the front end keeps the site language.
-		// Background jobs that write admin-facing text (the nightly security scan
-		// and its alert email) opt in via $admin_text.
-		if ( ! self::$admin_text && ( ! function_exists( 'is_admin' ) || ! is_admin() ) ) {
-			return null;
-		}
+		$available = array( 'de' => 'de_DE' ); // language prefix => dictionary; add new languages here
 
-		// Resolve the chosen locale (cache only a real, non-empty answer).
+		// Resolve the locale (cache only a real, non-empty answer).
 		if ( null === $this->vx_locale ) {
-			if ( ! class_exists( 'Velox_Settings' ) ) {
-				return null; // too early — try again on the next call
+			$admin = self::$admin_text || ( function_exists( 'is_admin' ) && is_admin() );
+			if ( ! $admin ) {
+				// Front end (shop, forms, cookie banner …): what visitors read
+				// follows the site language, not the admin's Velox language.
+				// Velox ships no .mo files, so without this a German shop would
+				// show "Add to cart" to German customers.
+				if ( ! function_exists( 'get_locale' ) || ! did_action( 'plugins_loaded' ) ) {
+					return null; // too early — try again on the next call
+				}
+				$lang = strtolower( substr( (string) get_locale(), 0, 2 ) );
+				if ( ! isset( $available[ $lang ] ) ) {
+					return null;
+				}
+				$this->vx_locale = $available[ $lang ];
+			} else {
+				// Background jobs that write admin-facing text (the nightly
+				// security scan and its alert email) opt in via $admin_text.
+				if ( ! class_exists( 'Velox_Settings' ) ) {
+					return null; // too early — try again on the next call
+				}
+				$choice = Velox_Settings::get( 'admin_language', '' );
+				if ( ! is_string( $choice ) || '' === $choice || 'en_US' === $choice ) {
+					return null; // English / Follow WordPress — no dictionary, don't cache
+				}
+				if ( ! in_array( $choice, $available, true ) ) {
+					return null;
+				}
+				$this->vx_locale = $choice;
 			}
-			$choice = Velox_Settings::get( 'admin_language', '' );
-			if ( ! is_string( $choice ) || '' === $choice || 'en_US' === $choice ) {
-				return null; // English / Follow WordPress — no dictionary, don't cache
-			}
-			$available = array( 'de_DE' => 'de_DE' ); // add new languages here
-			if ( ! isset( $available[ $choice ] ) ) {
-				return null;
-			}
-			$this->vx_locale = $available[ $choice ];
 		}
 
 		// Load the dictionary file once.

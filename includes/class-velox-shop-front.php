@@ -702,7 +702,11 @@ class Velox_Shop_Front {
 			/* translators: %s: privacy policy link */
 			$out .= '<p class="vxs-fine">' . sprintf( esc_html__( 'How we handle your data: %s.', 'velox' ), $link( $priv, __( 'privacy policy', 'velox' ) ) ) . '</p>';
 		}
-		$out .= '<p class="vxs-fine vxs-secure"><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 1a3 3 0 0 0-3 3v2H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-1V4a3 3 0 0 0-3-3m-2 3a2 2 0 1 1 4 0v2H6z"/></svg> ' . esc_html__( 'Card and PayPal payments happen on the provider’s secure page. We never see your card details.', 'velox' ) . '</p>';
+		// Only when card or PayPal can actually be chosen: a shop with bank
+		// transfer and invoice only would otherwise promise something it doesn't offer.
+		if ( array_intersect( $methods, array( 'stripe', 'paypal' ) ) ) {
+			$out .= '<p class="vxs-fine vxs-secure"><svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M8 1a3 3 0 0 0-3 3v2H4a1 1 0 0 0-1 1v6a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V7a1 1 0 0 0-1-1h-1V4a3 3 0 0 0-3-3m-2 3a2 2 0 1 1 4 0v2H6z"/></svg> ' . esc_html__( 'Card and PayPal payments happen on the provider’s secure page. We never see your card details.', 'velox' ) . '</p>';
+		}
 		return $out . '</div></aside></form>';
 	}
 

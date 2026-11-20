@@ -439,6 +439,19 @@ class Velox_Builder_Render {
 		if ( ! $tpl_id || ! Velox_Builder::template_has_inner( $tpl_id ) ) {
 			return null;
 		}
+		// A theme runs the_content inside the main loop, and plugins check for it
+		// (in_the_loop() && is_main_query()): Velox Shop draws its product page
+		// that way. Without the loop flag those pages came out empty.
+		global $wp_query;
+		$was_in_loop = $wp_query instanceof WP_Query ? $wp_query->in_the_loop : false;
+		if ( $wp_query instanceof WP_Query ) {
+			$wp_query->in_the_loop = true;
+		}
+		setup_postdata( $post );
+		$html = apply_filters( 'the_content', $post->post_content );
+		if ( $wp_query instanceof WP_Query ) {
+			$wp_query->in_the_loop = $was_in_loop;
+		}
 		return array(
 			'tree'      => array(),
 			'classes'   => array(),
@@ -446,7 +459,7 @@ class Velox_Builder_Render {
 			'__id'      => 0,
 			'__file'    => '0-p' . (int) $post_id,
 			'__title'   => $post->post_title,
-			'__html'    => apply_filters( 'the_content', $post->post_content ),
+			'__html'    => $html,
 		);
 	}
 

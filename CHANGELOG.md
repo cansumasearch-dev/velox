@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.53.2 — German storefront, product pages in Builder templates
+- **Visitors read the site language:** shop, forms and other visitor-facing Velox text follow the site language. A German site showed "Add to cart" and "incl. VAT" to its customers, because the Velox language setting only covered wp-admin.
+- **Product pages in your template:** with "wrap pages without a Velox layout" on, Velox Shop product pages sit in your Velox Builder template (header, footer, page title) like any other page.
+- **Wrapped pages render fully:** page content inside a template now runs the way a theme runs it, so plugins that only draw inside the main loop (Velox Shop product pages among them) no longer come out empty.
+- **Honest checkout note:** "Card and PayPal payments happen on the provider’s secure page" only shows when card or PayPal can actually be chosen.
+
 ## 4.53.1 — Safe upgrade for shops from before 4.53
 - **Checkout keeps taking orders:** a shop from before 4.53 that has not been set up in Velox Shop yet offers "Payment details by email" (the old behaviour) until a payment method is switched on, instead of refusing orders.
 - **Photos keep their shape:** such shops show product photos uncropped. Every shop can now choose under Settings → Store → Look: automatic, portrait 4:5, square or their own shape.
