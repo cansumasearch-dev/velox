@@ -61,6 +61,7 @@ class Velox_Shop {
 		}
 		if ( class_exists( 'Velox_Shop_Front' ) ) {
 			Velox_Shop_Front::init();
+			Velox_Shop_Account::init();
 		}
 		if ( is_admin() && class_exists( 'Velox_Shop_Admin' ) ) {
 			Velox_Shop_Admin::init();
@@ -202,6 +203,9 @@ class Velox_Shop {
 			'd_show_cat' => '', 'd_show_text' => '', 'd_product' => '', 'd_gallery' => '', 'd_sticky' => '', 'd_details' => '', 'd_checkout' => '',
 			'd_cart_icon' => '', 'd_cart_count' => '', 'd_cart_total' => '',
 			'custom_css'      => '', // the shop's own CSS, printed after the shop stylesheet
+			// Customer accounts: sign-up on the account page, and while ordering.
+			'acc_register'    => '1',
+			'acc_checkout'    => '1',
 		);
 	}
 
@@ -440,6 +444,7 @@ class Velox_Shop {
 			'capability_type' => 'post',
 			'map_meta_cap'    => true,
 			'supports'        => array( 'title' ),
+			'delete_with_user' => false, // a deleted customer account never takes its orders along (tax law)
 		) );
 		// Product addresses work right after the shop is switched on, and after
 		// the product base changes: the rules are rebuilt once when they differ.

@@ -696,6 +696,10 @@ class Velox_Shop_Front {
 		if ( 'hidden' !== $phone ) {
 			$out .= '<div class="vxs-fg">' . $field( 'vx_phone', __( 'Phone', 'velox' ), 'tel', 'required' === $phone, 'tel' ) . '</div>';
 		}
+		$out .= Velox_Shop_Account::checkout_box( $P, $E );
+		if ( ! is_user_logged_in() ) {
+			$out .= '<p class="vxs-co-signin">' . esc_html__( 'Already a customer?', 'velox' ) . ' <a href="' . esc_url( Velox_Shop_Account::url( 'login', array( 'redirect_to' => rawurlencode( get_permalink() ) ) ) ) . '">' . esc_html__( 'Sign in', 'velox' ) . '</a></p>';
+		}
 		$out .= '</section>';
 		// 2 — address
 		$out .= '<section class="vxs-step"><h2><span class="vxs-step-n">2</span>' . ( $t['needs_ship'] ? esc_html__( 'Delivery', 'velox' ) : esc_html__( 'Billing address', 'velox' ) ) . '</h2>'
@@ -864,6 +868,11 @@ class Velox_Shop_Front {
 		if ( $links ) {
 			$out .= '<p class="vxs-order-links">' . implode( ' · ', $links ) . '</p>';
 		}
+		// A guest who just ordered: one click to an account with the same email.
+		$email = (string) ( $o['customer']['email'] ?? '' );
+		if ( $fresh && ! is_user_logged_in() && Velox_Shop_Account::enabled() && is_email( $email ) && ! email_exists( $email ) ) {
+			$out .= '<div class="vxs-acc-cta"><div><b>' . esc_html__( 'Keep track of your orders', 'velox' ) . '</b><span>' . esc_html__( 'Create an account with this email — this order shows up in it right away.', 'velox' ) . '</span></div><a class="vxs-btn vxs-btn-sm" href="' . esc_url( Velox_Shop_Account::url( 'register', array( 'email' => rawurlencode( $email ) ) ) ) . '">' . esc_html__( 'Create an account', 'velox' ) . '</a></div>';
+		}
 		if ( $fresh ) {
 			$out .= '<a class="vxs-btn vxs-btn-ghost" href="' . esc_url( self::page_url( 'shop' ) ) . '">' . esc_html__( 'Continue shopping', 'velox' ) . '</a>';
 		}
@@ -883,35 +892,16 @@ class Velox_Shop_Front {
 	public static function sc_account() {
 		if ( ! empty( $_GET['vxo'] ) ) {
 			$o = Velox_Shop::order_by_key( sanitize_text_field( wp_unslash( $_GET['vxo'] ) ) );
-			if ( $o ) {
+			$u = wp_get_current_user();
+			$own = $o && $u->exists() && ( (int) ( $o['user'] ?? 0 ) === (int) $u->ID || strtolower( (string) ( $o['customer']['email'] ?? '' ) ) === strtolower( $u->user_email ) );
+			if ( $own ) {
+				// The customer's own order: show it inside the account, with its navigation.
+				$_GET['vxa'] = 'orders';
+			} elseif ( $o ) {
 				return '<p><a href="' . esc_url( remove_query_arg( 'vxo' ) ) . '">← ' . esc_html__( 'All orders', 'velox' ) . '</a></p>' . self::order_view( $o );
 			}
 		}
-		if ( ! is_user_logged_in() ) {
-			$redir = isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : get_permalink();
-			return '<div class="vxs-account vxs-account-in"><h2>' . esc_html__( 'Sign in', 'velox' ) . '</h2>'
-				. wp_login_form( array( 'echo' => false, 'redirect' => $redir ) )
-				. '<p class="vxs-alt"><a href="' . esc_url( wp_lostpassword_url( get_permalink() ) ) . '">' . esc_html__( 'Forgotten your password?', 'velox' ) . '</a>'
-				. ( get_option( 'users_can_register' ) ? ' · <a href="' . esc_url( wp_registration_url() ) . '">' . esc_html__( 'Create an account', 'velox' ) . '</a>' : '' ) . '</p>'
-				. '<p class="vxs-hint">' . esc_html__( 'Ordered without an account? The link in your confirmation email always shows your order.', 'velox' ) . '</p></div>';
-		}
-		$u   = wp_get_current_user();
-		$ids = get_posts( array( 'post_type' => Velox_Shop::ORDER, 'post_status' => 'publish', 'numberposts' => 50, 'fields' => 'ids',
-			'meta_query' => array( 'relation' => 'OR', array( 'key' => '_vx_user', 'value' => (string) $u->ID ), array( 'key' => '_vx_email', 'value' => $u->user_email ) ) ) );
-		$out = '<div class="vxs-account"><div class="vxs-account-top"><h2>' . sprintf( /* translators: %s: name */ esc_html__( 'Hello, %s', 'velox' ), esc_html( $u->display_name ) ) . '</h2><a href="' . esc_url( wp_logout_url( get_permalink() ) ) . '">' . esc_html__( 'Sign out', 'velox' ) . '</a></div>';
-		if ( ! $ids ) {
-			return $out . '<p class="vxs-empty">' . esc_html__( 'No orders yet.', 'velox' ) . '</p></div>';
-		}
-		$out .= '<ul class="vxs-orders">';
-		foreach ( $ids as $id ) {
-			$o = Velox_Shop::order( $id );
-			if ( ! $o ) {
-				continue;
-			}
-			$href = $o['key'] ? add_query_arg( 'vxo', $o['key'] ) : '';
-			$out .= '<li>' . ( $href ? '<a href="' . esc_url( $href ) . '">' : '<span>' ) . '<b>' . esc_html( $o['number'] ) . '</b><span>' . esc_html( wp_date( get_option( 'date_format' ), (int) $o['created'] ) ) . '</span><span>' . self::money( $o['total'] ) . '</span>' . self::status_chip( 'pay', $o['payment']['status'] ) . ( 'none' !== $o['fulfil']['status'] ? self::status_chip( 'ful', $o['fulfil']['status'] ) : '' ) . ( $href ? '</a>' : '</span>' ) . '</li>';
-		}
-		return $out . '</ul></div>';
+		return Velox_Shop_Account::render();
 	}
 
 	/* ----------------------------------------------------------- withdrawal */
@@ -1148,6 +1138,8 @@ class Velox_Shop_Front {
 				return self::sc_account();
 			case 'Shopwithdraw':
 				return self::sc_withdraw();
+			case 'Shopaccountbtn':
+				return Velox_Shop_Account::sc_button( array( 'label' => (string) $g( 'label' ) ) );
 			case 'Shopcartbtn':
 				return self::sc_cart_button( array( 'label' => (string) $g( 'label' ), 'icon' => (string) $g( 'icon' ), 'count' => (string) $g( 'count' ), 'total' => (string) $g( 'total' ) ) );
 		}

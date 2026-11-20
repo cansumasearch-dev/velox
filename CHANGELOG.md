@@ -4,6 +4,15 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.56.0 — Customer accounts
+- **Sign in and create an account on the shop’s own account page:** customers register, sign in, stay signed in and sign out without ever seeing the WordPress login page or the dashboard. A customer who opens wp-admin lands on their account instead. Sign-in attempts are rate-limited, registration has a spam trap and a privacy checkbox, and new customers get a welcome email.
+- **Forgotten password:** customers ask for a link by email (in the shop’s own mail design) and choose a new password on the account page. The answer is the same whether an account exists or not, and a used link stops working.
+- **The account dashboard:** an overview with the latest orders, all orders with their details, downloads, the saved address (filled in automatically at checkout), and account details where name, email and password are changed — email and password only with the current password.
+- **Privacy:** customers download everything the shop stores about them as a JSON file, and can delete their account themselves. Orders are kept as tax law requires, but no longer linked to the account. Staff accounts can’t be deleted from the shop front.
+- **An account while ordering:** an optional box at checkout — tick it, choose a password, done; the order shows up in the new account straight away. Signed-in customers see their saved address, and guests get a "create an account" button on the thank-you page. Ordering without an account always stays possible.
+- **Account button** for the header: a new Builder element (and the `[velox_account_button]` shortcode) that links to the account page.
+- **Settings:** Shop → Checkout → Customer accounts switches sign-up and the checkout box on or off.
+
 ## 4.55.3 — Reveal footer and sticky header fixes
 - **No sideways scrolling with a reveal footer:** the reveal footer made every top-level element "relative" so the content could cover the footer — including floating layers like the cookie banner, the mini cart, toasts and the admin quick bar. They fell into the page and made it wider than the screen. Only boxes in the page flow cover the footer now.
 - **Smoother sticky header:** the header’s height is measured on load and resize instead of on every scroll step, so scrolling no longer forces the browser to recalculate the layout each frame.
