@@ -2689,6 +2689,7 @@ class Velox_Builder_Render {
 				'.vx-oc.is-open{pointer-events:auto;visibility:visible;transition:none}' .
 				'.vx-oc-bg{position:absolute;inset:0;background:var(--vx-oc-bd,rgba(12,12,14,.5));opacity:0;transition:opacity .4s ease;-webkit-backdrop-filter:blur(3px);backdrop-filter:blur(3px)}' .
 				'.vx-oc-panel{position:absolute;top:0;bottom:0;right:0;width:min(var(--vx-oc-w,380px),88vw);display:flex;flex-direction:column;gap:28px;padding:18px 28px 32px;overflow-y:auto;overscroll-behavior:contain;background:var(--vx-oc-bg,#fff);color:var(--vx-oc-c,#111);box-shadow:-24px 0 60px rgba(0,0,0,.18);transform:translateX(100%);transition:transform .5s cubic-bezier(.2,.7,.2,1);outline:none}' .
+				'.admin-bar .vx-oc-panel{top:var(--wp-admin--admin-bar--height,0px)}' .
 				'.vx-oc[data-side="left"] .vx-oc-panel{right:auto;left:0;transform:translateX(-100%);box-shadow:24px 0 60px rgba(0,0,0,.18)}' .
 				'.vx-oc.is-open .vx-oc-bg{opacity:1}.vx-oc.is-open .vx-oc-panel{transform:none}' .
 				'.vx-oc-top{display:flex;justify-content:flex-end}' .
@@ -3306,7 +3307,7 @@ class Velox_Builder_Render {
 			. '.vx-glow::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;transition:opacity .3s ease;background:radial-gradient(340px circle at var(--vx-gx,50%) var(--vx-gy,50%),var(--vx-glow,rgba(255,255,255,.16)),transparent 62%)}'
 			. '.vx-glow:hover::after{opacity:1}'
 			. '.vx-stack>.vx-stack-card{position:sticky;transform-origin:50% 0;will-change:transform}'
-			. '[data-vx-hscroll]>.vx-hs-pin{overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}'
+			. '[data-vx-hscroll]>.vx-hs-pin{gap:inherit;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}'
 			. '[data-vx-hscroll]>.vx-hs-pin::-webkit-scrollbar{display:none}'
 			. '[data-vx-hscroll]>.vx-hs-pin>.vx-hs-track{display:flex;gap:inherit;width:max-content}'
 			. '[data-vx-hscroll]>.vx-hs-pin>.vx-hs-track>*{flex:none;scroll-snap-align:start}'

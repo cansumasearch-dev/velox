@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.55.2 — Pinned row spacing, side panel below the admin bar
+- **Pinned sideways row:** the space between its children (the box’s gap) now carries over; the cards sat edge to edge.
+- **Side panel menu:** for logged-in visitors it opens below the WordPress admin bar, so its close button is never hidden.
+
 ## 4.55.1 — Sticky headers inside a reusable stick
 - **Sticky header in a template:** a header built as a reusable (the usual way: header reusable → template) never stuck, because the reusable’s wrapper was exactly as tall as the header and a sticky element can only stick inside its parent. A reusable that holds the site header or footer no longer makes a box of its own.
 
