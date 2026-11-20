@@ -35,6 +35,7 @@ class Velox_Shop_Front {
 		add_action( 'wp_footer', array( __CLASS__, 'footer' ) );
 		add_action( 'wp_body_open', array( __CLASS__, 'notice_bar' ), 5 );
 		add_action( 'init', array( __CLASS__, 'block_template' ), 20 );
+		add_filter( 'render_block_data', array( __CLASS__, 'mark_template' ) );
 		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
 	}
 
@@ -53,14 +54,24 @@ class Velox_Shop_Front {
 			'description' => __( 'Product pages: photos, buy box and details from Velox Shop, between your header and footer.', 'velox' ),
 			'post_types'  => array( Velox_Shop::PRODUCT ),
 			'content'     => '<!-- wp:template-part {"slug":"header","area":"header","tagName":"header"} /-->'
-				. '<!-- wp:group {"tagName":"main","className":"vxs-tpl-main","layout":{"type":"constrained"}} --><main class="wp-block-group vxs-tpl-main"><!-- wp:post-content {"layout":{"type":"constrained"}} /--></main><!-- /wp:group -->'
+				. '<!-- wp:group {"tagName":"main","className":"vxs-tpl-main","layout":{"type":"constrained"}} --><main class="wp-block-group vxs-tpl-main"><!-- wp:post-content {"align":"full","className":"vxs-own-tpl","layout":{"type":"constrained"}} /--></main><!-- /wp:group -->'
 				. '<!-- wp:template-part {"slug":"footer","area":"footer","tagName":"footer"} /-->',
 		) );
 	}
 
+	private static $own = false;
+
+	/** Velox's product template marks its content block; seen just before it renders. */
+	public static function mark_template( $block ) {
+		if ( 'core/post-content' === ( $block['blockName'] ?? '' ) && false !== strpos( (string) ( $block['attrs']['className'] ?? '' ), 'vxs-own-tpl' ) ) {
+			self::$own = true;
+		}
+		return $block;
+	}
+
 	/** True while Velox's own product template draws the page (it has no title block). */
 	private static function own_template() {
-		return ! empty( $GLOBALS['_wp_current_template_id'] ) && 0 === strpos( (string) $GLOBALS['_wp_current_template_id'], 'velox//' );
+		return self::$own;
 	}
 
 	/** Shop pages, single products and product categories. */
