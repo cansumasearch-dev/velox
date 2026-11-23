@@ -121,7 +121,7 @@
 	var dirty = false, badge = { orders:0 };
 	function shell() {
 		root.innerHTML = '<div class="vsa-shell"><header class="vsa-bar"><a class="vsa-brand" href="#/">' + ic( 'store', 18 ) + '<b>' + esc( S.store_name || vxT( 'Shop' ) ) + '</b></a>' +
-			'<nav class="vsa-nav" aria-label="' + esc( vxT( 'Shop' ) ) + '">' + NAV.map( function ( n ) { return '<a href="#/' + n[ 0 ] + '" data-nav="' + n[ 0 ] + '">' + ic( n[ 1 ], 15 ) + '<span>' + esc( n[ 2 ] ) + '</span>' + ( 'orders' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-ordbadge" hidden></i>' : ( 'reviews' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-rvbadge"' + ( C.reviewsOpen ? '' : ' hidden' ) + '>' + ( +C.reviewsOpen || '' ) + '</i>' : '' ) ) + '</a>'; } ).join( '' ) + '</nav>' +
+			'<nav class="vsa-nav" aria-label="' + esc( vxT( 'Shop' ) ) + '">' + NAV.map( function ( n ) { return '<a href="#/' + n[ 0 ] + '" data-nav="' + n[ 0 ] + '">' + ic( n[ 1 ], 15 ) + '<span>' + esc( n[ 2 ] ) + '</span>' + ( 'orders' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-ordbadge" hidden></i>' : ( 'reviews' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-rvbadge"' + ( +C.reviewsOpen ? '' : ' hidden' ) + '>' + ( +C.reviewsOpen || '' ) + '</i>' : '' ) ) + '</a>'; } ).join( '' ) + '</nav>' +
 			'<div class="vsa-bar-r"><a class="vsa-btn vsa-btn-ghost vsa-btn-sm" href="' + esc( pageUrl( 'shop' ) || C.home ) + '" target="_blank" rel="noopener">' + ic( 'ext', 14 ) + vxT( 'View shop' ) + '</a></div></header>' +
 			'<main class="vsa-main" id="vsa-main" tabindex="-1"></main></div>';
 	}
@@ -962,7 +962,7 @@
 		var h = '<div class="vsa-opts">' + p.options.map( function ( o, i ) {
 			var isCol = /farb|colou?r|couleur|kolor/i.test( o.name || '' );
 			return '<div class="vsa-opt"><input class="vsa-in vsa-opt-n" data-optname="' + i + '" value="' + esc( o.name ) + '" placeholder="' + esc( vxT( 'Size' ) ) + '"><div class="vsa-tags">' + o.values.map( function ( v, j ) {
-				var hex = ( o.colors || {} )[ v ] || '';
+				var hex = ( o.colors || {} )[ v ] || ( o.guess || {} )[ v ] || '';
 				return '<span class="vsa-tag' + ( isCol ? ' has-col' : '' ) + '">' + ( isCol ? '<input type="color" class="vsa-optcol" data-optcol="' + i + ':' + j + '" value="' + esc( /^#[0-9a-f]{6}$/i.test( hex ) ? hex : '#cccccc' ) + '" aria-label="' + esc( vxT( 'Colour for' ) + ' ' + v ) + '">' : '' ) + esc( v ) + '<button type="button" data-optval-del="' + i + ':' + j + '" aria-label="' + esc( vxT( 'Remove' ) ) + '">×</button></span>';
 			} ).join( '' ) +
 				'<input class="vsa-tag-in" data-optval="' + i + '" placeholder="' + esc( o.values.length ? vxT( 'Add a value' ) : vxT( 'S, M, L … press Enter' ) ) + '"></div><button type="button" class="vsa-iconbtn" data-optdel="' + i + '" aria-label="' + esc( vxT( 'Remove option' ) ) + '">' + ic( 'trash', 14 ) + '</button></div>';

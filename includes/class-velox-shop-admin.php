@@ -869,6 +869,16 @@ class Velox_Shop_Admin {
 		$p['catIds']    = array_map( 'intval', wp_get_post_terms( $id, Velox_Shop::CAT, array( 'fields' => 'ids' ) ) );
 		$p['url']       = get_permalink( $id );
 		$p['alertsWaiting'] = Velox_Shop_Extras::alerts_waiting( $id );
+		// The colour each value shows in the shop now (from the word), as the picker's start.
+		foreach ( $p['options'] as &$opt ) {
+			if ( Velox_Shop_Extras::is_color_option( $opt['name'] ) ) {
+				$opt['guess'] = array();
+				foreach ( $opt['values'] as $val ) {
+					$opt['guess'][ $val ] = Velox_Shop_Extras::color_of( array(), $val );
+				}
+			}
+		}
+		unset( $opt );
 		$p['upsellInfo']= array_values( array_filter( array_map( function ( $u ) { return get_post( $u ) ? array( 'id' => (int) $u, 'title' => get_the_title( $u ) ) : null; }, $p['upsell'] ) ) );
 		$p['sold']      = self::sold_count( $id );
 		return $p;
