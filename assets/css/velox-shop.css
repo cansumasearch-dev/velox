@@ -968,3 +968,7 @@ html.vxs-sbar-on .vxs-toast{bottom:92px}
 :where([class*="vxs-"],[class*="vxa-"]) :focus:not(:focus-visible),:where([class*="vxs-"],[class*="vxa-"]):focus:not(:focus-visible){outline:none}
 @media (max-width:640px){.vxs-fdd[open]::before{content:"";position:fixed;inset:0;z-index:59;background:rgba(0,0,0,.28)}}
 @media (max-width:640px){.vxs-search{flex:1 1 0;min-width:170px}.vxs-search input{padding-right:10px;text-overflow:ellipsis}.vxs-sort{flex:0 1 auto;min-width:140px;max-width:none}}
+/* Phones: qty left + heart right, then a full-width buy button (works for long labels like "In den Warenkorb") */
+@media (max-width:480px){.vxs-buy-row:has(.vxs-wish-pdp){display:grid;grid-template-columns:auto 1fr;gap:10px}.vxs-buy-row:has(.vxs-wish-pdp) .vxs-wish-pdp{justify-self:end}.vxs-buy-row:has(.vxs-wish-pdp) .vxs-buy-btn{grid-column:1/-1;grid-row:2}}
+/* Product page: space between option groups and the buy row (was 0) */
+.vxs-buy .vxs-add{display:flex;flex-direction:column;gap:18px}
