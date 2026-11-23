@@ -571,7 +571,8 @@ class Velox_Shop_Front {
 					}
 				}
 			}
-			if ( count( $counts ) > 1 || ! empty( $f['o'][ $g ] ) ) {
+			// A group only helps while it can still narrow the list down.
+			if ( ( count( $counts ) > 1 && array_sum( $counts ) > 0 ) || ! empty( $f['o'][ $g ] ) ) {
 				$res['groups'][ $g ] = array( 'name' => $grp['name'], 'opt' => $grp['opt'], 'counts' => array_slice( $counts, 0, 30, true ) );
 			}
 		}
