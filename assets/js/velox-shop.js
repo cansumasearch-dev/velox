@@ -321,7 +321,8 @@
 			form.addEventListener( 'toggle', function ( e ) {
 				if ( e.target.classList && e.target.classList.contains( 'vxs-fdd' ) && e.target.open ) { $$( '.vxs-fdd[open]', form ).forEach( function ( d ) { if ( d !== e.target ) { d.open = false; } } ); }
 			}, true );
-			document.addEventListener( 'click', function ( e ) { if ( ! e.target.closest( '.vxs-fdd' ) ) { $$( '.vxs-fdd[open]', form ).forEach( function ( d ) { d.open = false; } ); } } );
+			// A tap on the phone backdrop (the details' own ::before) lands on the details itself.
+			document.addEventListener( 'click', function ( e ) { if ( ! e.target.closest( '.vxs-fdd' ) || e.target.classList.contains( 'vxs-fdd' ) ) { $$( '.vxs-fdd[open]', form ).forEach( function ( d ) { d.open = false; } ); } } );
 			form.addEventListener( 'keydown', function ( e ) {
 				if ( 'Escape' === e.key ) { var d = e.target.closest( '.vxs-fdd[open]' ); if ( d ) { d.open = false; $( 'summary', d ).focus(); } }
 			} );

@@ -964,3 +964,7 @@ body.vxs-paint .vxs-product-more,body.vxs-paint .entry-content,body.vxs-paint .w
 html.vxs-sbar-on .vxs-toast{bottom:92px}
 @media (min-width:900px){html.vxs-sbar-on .vxs-toast{bottom:104px}}
 .vxs-rv-text p{font-size:15px}
+/* 4.63: no focus ring after a mouse click or tap on shop controls (themes add one to :focus); keyboard focus stays visible */
+:where([class*="vxs-"],[class*="vxa-"]) :focus:not(:focus-visible),:where([class*="vxs-"],[class*="vxa-"]):focus:not(:focus-visible){outline:none}
+@media (max-width:640px){.vxs-fdd[open]::before{content:"";position:fixed;inset:0;z-index:59;background:rgba(0,0,0,.28)}}
+@media (max-width:640px){.vxs-search{flex:1 1 0;min-width:170px}.vxs-search input{padding-right:10px;text-overflow:ellipsis}.vxs-sort{flex:0 1 auto;min-width:140px;max-width:none}}
