@@ -7214,7 +7214,9 @@
 					}
 					pendingClasses = res.data.pending_classes || pendingClasses;
 					snapshotClasses();
+					// Already saved by the server: nothing for the editor to save or back up.
 					lastSavedSig = contentSig( store.state ); dirty = false; hasDraft = !! res.data.has_draft;
+					clearBackup(); setSaveState( 'saved' );
 					renderActions();
 				} )
 				.catch( function () { if ( final ) { aiLock( false ); } } );
