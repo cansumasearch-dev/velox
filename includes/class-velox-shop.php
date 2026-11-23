@@ -535,6 +535,13 @@ class Velox_Shop {
 		if ( $acc ) {
 			$on   = $col( $d['accent_ink'] );
 			$css .= '--vxs-accent:' . $acc . ';--vxs-accent-ink:' . ( $on ? $on : ( self::is_light( $acc ) ? '#111111' : '#ffffff' ) ) . ';';
+			// The accent as text or an outline (ghost buttons, icons): a light
+			// accent such as Bold's yellow on a white page would be unreadable,
+			// so below 3:1 against the page it falls back to the text colour.
+			$page = $col( $d['bg'] ) ? $col( $d['bg'] ) : ( $ink && self::is_light( $ink ) ? '#111111' : '#ffffff' );
+			if ( self::contrast( $acc, $page ) < 3 ) {
+				$css .= '--vxs-accent-text:' . ( $ink ? $ink : ( self::is_light( $page ) ? '#111111' : '#ffffff' ) ) . ';';
+			}
 		}
 		if ( $col( $d['sale'] ) ) {
 			$css .= '--vxs-sale:' . $d['sale'] . ';--vxs-bad:' . $d['sale'] . ';';
@@ -575,6 +582,28 @@ class Velox_Shop {
 		}
 		$l = ( 0.2126 * hexdec( substr( $h, 0, 2 ) ) + 0.7152 * hexdec( substr( $h, 2, 2 ) ) + 0.0722 * hexdec( substr( $h, 4, 2 ) ) ) / 255;
 		return $l > 0.6;
+	}
+
+	/** WCAG contrast ratio of two hex colours (1 to 21). */
+	public static function contrast( $a, $b ) {
+		$lum = function ( $hex ) {
+			$h = ltrim( (string) $hex, '#' );
+			if ( 3 === strlen( $h ) ) {
+				$h = $h[0] . $h[0] . $h[1] . $h[1] . $h[2] . $h[2];
+			}
+			if ( strlen( $h ) < 6 ) {
+				return 1.0;
+			}
+			$c = array();
+			foreach ( array( 0, 2, 4 ) as $i ) {
+				$v   = hexdec( substr( $h, $i, 2 ) ) / 255;
+				$c[] = $v <= 0.03928 ? $v / 12.92 : pow( ( $v + 0.055 ) / 1.055, 2.4 );
+			}
+			return 0.2126 * $c[0] + 0.7152 * $c[1] + 0.0722 * $c[2];
+		};
+		$x = $lum( $a );
+		$y = $lum( $b );
+		return ( max( $x, $y ) + 0.05 ) / ( min( $x, $y ) + 0.05 );
 	}
 
 	/** Classes that switch the storefront's structure for this design. */
