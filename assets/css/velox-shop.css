@@ -901,7 +901,7 @@ body.vxs-paint .vxs-product-more,body.vxs-paint .entry-content,body.vxs-paint .w
 .vxs-wish-empty svg{fill:none;stroke:var(--vxs-ink-3);stroke-width:1.6}
 .vxs-wish-empty b{color:var(--vxs-ink);font-size:17px}
 .vxs-wish-empty p{margin:0 0 8px}
-.vxa-wish-guest{max-width:1200px;margin:0 auto}
+.vxa-wish-guest{width:100%;max-width:1200px;margin:0 auto}
 @media (prefers-reduced-motion:reduce){.vxs-wish.is-pop svg{animation:none}}
 /* notify me */
 .vxs-alert{display:flex;flex-direction:column;gap:10px;margin:16px 0 0;padding:16px;border:1px solid var(--vxs-line);border-radius:var(--vxs-r-sm);background:var(--vxs-soft)}

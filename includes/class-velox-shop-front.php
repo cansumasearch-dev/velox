@@ -722,9 +722,10 @@ class Velox_Shop_Front {
 		$lbl  = '' !== $p['button'] ? $p['button'] : __( 'Add to cart', 'velox' );
 		if ( 'none' === $mode ) {
 			// No button: the whole card links to the product.
-			$out .= Velox_Shop::can_buy( $p, null, 1 ) ? '' : '<span class="vxs-state">' . esc_html( $a[1] ) . '</span>';
+			// Products with options can't be bought from the card, but "In stock" there says nothing new.
+			$out .= Velox_Shop::can_buy( $p, null, 1 ) || in_array( $a[0], array( 'in', 'low' ), true ) ? '' : '<span class="vxs-state">' . esc_html( $a[1] ) . '</span>';
 		} elseif ( 'link' === $mode ) {
-			$out .= Velox_Shop::can_buy( $p, null, 1 ) || 'inquiry' === $p['mode']
+			$out .= Velox_Shop::can_buy( $p, null, 1 ) || 'inquiry' === $p['mode'] || in_array( $a[0], array( 'in', 'low' ), true )
 				? '<a class="vxs-more-link" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . esc_html( 'inquiry' === $p['mode'] ? __( 'Ask about it', 'velox' ) : __( 'View', 'velox' ) ) . ' <span aria-hidden="true">→</span></a>'
 				: '<span class="vxs-state">' . esc_html( $a[1] ) . '</span>';
 		} elseif ( Velox_Shop::can_buy( $p, null, 1 ) && ! Velox_Shop::has_variants( $p ) ) {
