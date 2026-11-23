@@ -78,7 +78,7 @@ class Velox_Shop_Admin {
 			100.9
 		);
 		// The same sections, in the same order, as the shop's own bar.
-		foreach ( array( '' => __( 'Overview', 'velox' ), 'revenue' => __( 'Revenue', 'velox' ), 'payouts' => __( 'Payouts', 'velox' ), 'orders' => __( 'Orders', 'velox' ), 'products' => __( 'Products', 'velox' ), 'coupons' => __( 'Coupons', 'velox' ), 'customers' => __( 'Customers', 'velox' ), 'settings' => __( 'Settings', 'velox' ) ) as $k => $l ) {
+		foreach ( array( '' => __( 'Overview', 'velox' ), 'revenue' => __( 'Revenue', 'velox' ), 'payouts' => __( 'Payouts', 'velox' ), 'orders' => __( 'Orders', 'velox' ), 'products' => __( 'Products', 'velox' ), 'coupons' => __( 'Coupons', 'velox' ), 'customers' => __( 'Customers', 'velox' ), 'reviews' => __( 'Reviews', 'velox' ), 'settings' => __( 'Settings', 'velox' ) ) as $k => $l ) {
 			add_submenu_page( self::SLUG, 'Velox Shop — ' . $l, $l, self::CAP, '' === $k ? self::SLUG : self::SLUG . '#/' . $k, '' === $k ? array( __CLASS__, 'render' ) : '__return_null' );
 		}
 	}
@@ -145,6 +145,9 @@ class Velox_Shop_Admin {
 			'designs'   => Velox_Shop::presets(),
 			'stripeTypes' => Velox_Shop_Pay::stripe_types(),
 			'currencyCode' => strtoupper( (string) Velox_Shop::get( 'currency', 'EUR' ) ),
+			'cartStats'    => Velox_Shop_Extras::cart_stats(),
+			'couponCodes'  => array_values( array_filter( array_map( function ( $c ) { return empty( $c['off'] ) ? (string) $c['code'] : ''; }, Velox_Shop::coupons() ) ) ),
+			'reviewsOpen'  => Velox_Shop_Extras::pending_reviews(),
 			'fonts'     => array_map( function ( $f ) { return array( $f[0], $f[1] ); }, Velox_Shop::fonts() ),
 			'mails'     => $mails,
 			'pages'     => $pages,
@@ -460,6 +463,73 @@ class Velox_Shop_Admin {
 	private static function do_payout_now() {
 		$r = Velox_Shop_Pay::stripe_payout();
 		return is_wp_error( $r ) ? $r : array( 'msg' => $r, 'stripe' => Velox_Shop_Pay::stripe_money( true ) );
+	}
+
+	/** Reviews: waiting for approval, published, or all — newest first. */
+	private static function do_reviews( $in ) {
+		$view   = in_array( $in['view'] ?? '', array( 'hold', 'approve', 'all' ), true ) ? $in['view'] : 'hold';
+		$page   = max( 1, (int) ( $in['page'] ?? 1 ) );
+		$args   = array( 'type' => Velox_Shop_Extras::REVIEW, 'status' => $view, 'number' => 30, 'offset' => ( $page - 1 ) * 30, 'orderby' => 'comment_date_gmt', 'order' => 'DESC' );
+		$total  = (int) get_comments( array_merge( $args, array( 'count' => true, 'number' => 0, 'offset' => 0 ) ) );
+		$rows   = array();
+		foreach ( get_comments( $args ) as $c ) {
+			$rows[] = self::review_row( $c );
+		}
+		return array( 'rows' => $rows, 'total' => $total, 'pages' => max( 1, (int) ceil( $total / 30 ) ), 'counts' => array(
+			'hold'    => (int) get_comments( array( 'type' => Velox_Shop_Extras::REVIEW, 'status' => 'hold', 'count' => true ) ),
+			'approve' => (int) get_comments( array( 'type' => Velox_Shop_Extras::REVIEW, 'status' => 'approve', 'count' => true ) ),
+		) );
+	}
+
+	private static function review_row( $c ) {
+		return array(
+			'id'       => (int) $c->comment_ID,
+			'product'  => (int) $c->comment_post_ID,
+			'title'    => get_the_title( $c->comment_post_ID ),
+			'thumb'    => (string) get_the_post_thumbnail_url( $c->comment_post_ID, 'thumbnail' ),
+			'url'      => get_permalink( $c->comment_post_ID ),
+			'rating'   => max( 1, min( 5, (int) get_comment_meta( $c->comment_ID, 'vx_rating', true ) ) ),
+			'head'     => (string) get_comment_meta( $c->comment_ID, 'vx_title', true ),
+			'text'     => (string) $c->comment_content,
+			'name'     => (string) $c->comment_author,
+			'email'    => (string) $c->comment_author_email,
+			'verified' => (bool) get_comment_meta( $c->comment_ID, 'vx_verified', true ),
+			'reply'    => (string) get_comment_meta( $c->comment_ID, 'vx_reply', true ),
+			'status'   => '1' === (string) $c->comment_approved ? 'approve' : ( 'trash' === $c->comment_approved ? 'trash' : 'hold' ),
+			'date'     => strtotime( $c->comment_date_gmt . ' UTC' ),
+		);
+	}
+
+	/** Publish, hold back, reply to, or move a review to the trash (it can be restored there). */
+	private static function do_review_action( $in ) {
+		$c = get_comment( (int) ( $in['id'] ?? 0 ) );
+		if ( ! $c || Velox_Shop_Extras::REVIEW !== $c->comment_type ) {
+			return new WP_Error( 'x', __( 'This review does not exist.', 'velox' ) );
+		}
+		$msg = '';
+		switch ( sanitize_key( (string) ( $in['act'] ?? '' ) ) ) {
+			case 'approve':
+				wp_set_comment_status( $c->comment_ID, 'approve' );
+				$msg = __( 'Published.', 'velox' );
+				break;
+			case 'hold':
+				wp_set_comment_status( $c->comment_ID, 'hold' );
+				$msg = __( 'Hidden again.', 'velox' );
+				break;
+			case 'trash':
+				wp_trash_comment( $c->comment_ID );
+				$msg = __( 'Moved to the trash. It can be restored under Comments → Trash.', 'velox' );
+				break;
+			case 'reply':
+				update_comment_meta( $c->comment_ID, 'vx_reply', mb_substr( sanitize_textarea_field( (string) ( $in['text'] ?? '' ) ), 0, 2000 ) );
+				$msg = '' !== trim( (string) ( $in['text'] ?? '' ) ) ? __( 'Reply saved — it shows under the review.', 'velox' ) : __( 'Reply removed.', 'velox' );
+				break;
+			default:
+				return new WP_Error( 'x', '' );
+		}
+		delete_transient( 'velox_shop_badge_rv' );
+		Velox_Shop_Extras::refresh_rating( (int) $c->comment_post_ID );
+		return array( 'row' => self::review_row( get_comment( $c->comment_ID ) ), 'msg' => $msg, 'open' => Velox_Shop_Extras::pending_reviews() );
 	}
 
 	/** Products for "add a product" when editing an order. */
@@ -798,6 +868,17 @@ class Velox_Shop_Admin {
 		}
 		$p['catIds']    = array_map( 'intval', wp_get_post_terms( $id, Velox_Shop::CAT, array( 'fields' => 'ids' ) ) );
 		$p['url']       = get_permalink( $id );
+		$p['alertsWaiting'] = Velox_Shop_Extras::alerts_waiting( $id );
+		// The colour each value shows in the shop now (from the word), as the picker's start.
+		foreach ( $p['options'] as &$opt ) {
+			if ( Velox_Shop_Extras::is_color_option( $opt['name'] ) ) {
+				$opt['guess'] = array();
+				foreach ( $opt['values'] as $val ) {
+					$opt['guess'][ $val ] = Velox_Shop_Extras::color_of( array(), $val );
+				}
+			}
+		}
+		unset( $opt );
 		$p['upsellInfo']= array_values( array_filter( array_map( function ( $u ) { return get_post( $u ) ? array( 'id' => (int) $u, 'title' => get_the_title( $u ) ) : null; }, $p['upsell'] ) ) );
 		$p['sold']      = self::sold_count( $id );
 		return $p;

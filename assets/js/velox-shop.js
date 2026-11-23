@@ -13,6 +13,7 @@
 
 	function rest( path, data ) {
 		var o = { method:data ? 'POST' : 'GET', credentials:'same-origin', headers:{ 'Accept':'application/json' } };
+		if ( C.nonce ) { o.headers[ 'X-WP-Nonce' ] = C.nonce; }
 		if ( data ) { o.headers[ 'Content-Type' ] = 'application/json'; o.body = JSON.stringify( data ); }
 		return fetch( C.rest + path, o ).then( function ( r ) { if ( ! r.ok ) { throw new Error( r.status ); } return r.json(); } );
 	}
@@ -113,6 +114,8 @@
 					btn.disabled = full; btn.textContent = btn.getAttribute( 'data-vxs-label' );
 				}
 				w._ready = !! v;
+				var al = $( '[data-vxs-alert]', box );
+				if ( al ) { al.hidden = ! ( v && ! v.can ); al.variant.value = v ? v.id : ''; }
 				var sb = $( '[data-vxs-sbar]' );
 				if ( sb && box.closest( '.vxs-product' ) ) {
 					var sp = $( '[data-vxs-sbar-price]', sb ), sg = $( '[data-vxs-sbar-go]', sb );
@@ -244,7 +247,7 @@
 		navigator.clipboard.writeText( b.getAttribute( 'data-vxa-copy' ) ).then( function () { b.classList.add( 'is-done' ); b.lastChild.textContent = b.getAttribute( 'data-done' ) || '✓'; } );
 	} );
 
-	/* ------------------------------------------------------ grid: sort, search, more */
+	/* ------------------------------------------------------ grid: sort, search, filters, more */
 	function gridTools() {
 		$$( '[data-vxs-gridwrap]' ).forEach( function ( wrap ) {
 			var form = $( '[data-vxs-tools]', wrap );
@@ -252,6 +255,9 @@
 			function load( url, mode ) {
 				var my = ++busy; wrap.classList.add( 'is-busy' ); wrap.setAttribute( 'aria-busy', 'true' );
 				var before = $$( '.vxs-card', wrap ).length;
+				// Remember which filter was open and where the cursor was.
+				var open = form && $( '.vxs-fdd[open]', form ), openKey = open ? open.getAttribute( 'data-fk' ) : '';
+				var act = document.activeElement, actSel = act && form && form.contains( act ) && act.name ? '[name="' + act.name + '"]' + ( 'checkbox' === act.type ? '[value="' + String( act.value ).replace( /"/g, '\\"' ) + '"]' : '' ) : '';
 				return fetch( url, { credentials:'same-origin', headers:{ 'X-Requested-With':'velox-shop' } } ).then( function ( r ) { return r.text(); } ).then( function ( html ) {
 					if ( my !== busy ) { return; }
 					var doc = new DOMParser().parseFromString( html, 'text/html' );
@@ -262,19 +268,33 @@
 					$$( ':scope > :not([data-vxs-tools])', fresh ).forEach( function ( x ) { wrap.appendChild( document.importNode( x, true ) ); } );
 					var nf = $( '[data-vxs-tools]', fresh );
 					if ( form && nf ) {
-						var oc = $( '.vxs-cats', form ), ncats = $( '.vxs-cats', nf ); if ( oc && ncats ) { oc.replaceWith( document.importNode( ncats, true ) ); }
+						[ '.vxs-cats', '[data-vxs-fbar]', '[data-vxs-factive]' ].forEach( function ( sel ) {
+							var o = $( sel, form ), nw = $( sel, nf );
+							if ( o && nw ) { o.replaceWith( document.importNode( nw, true ) ); }
+							else if ( o ) { o.remove(); }
+							else if ( nw ) { var anchor = $( 'button[type="submit"].screen-reader-text', form ); form.insertBefore( document.importNode( nw, true ), anchor ); }
+						} );
 						var ot = $( '.vxs-count-txt', form ), nt = $( '.vxs-count-txt', nf ); if ( ot && nt ) { ot.textContent = nt.textContent; }
 						var oh = $( 'input[name="vxcat"]', form ), nh = $( 'input[name="vxcat"]', nf );
 						if ( oh ) { oh.remove(); } if ( nh ) { form.insertBefore( document.importNode( nh, true ), form.firstChild ); }
+						if ( openKey ) { var again = $( '.vxs-fdd[data-fk="' + openKey + '"]', form ); if ( again ) { again.open = true; } }
+						if ( actSel ) { var back = $( actSel, form ); if ( back && back !== document.activeElement ) { back.focus( { preventScroll:true } ); } }
 					}
 					wrap.classList.remove( 'is-busy' ); wrap.removeAttribute( 'aria-busy' );
 					history[ 'more' === mode ? 'replaceState' : 'pushState' ]( { vxs:n }, '', url );
 					if ( 'more' === mode ) { var c = $$( '.vxs-card', wrap )[ before ]; var a = c && ( $( '.vxs-card-t a', c ) || $( 'a:not([tabindex="-1"])', c ) ); if ( a ) { a.focus( { preventScroll:true } ); } }
+					marks();
 				} ).catch( function () { location.href = url; } );
 			}
-			function urlFor( changes ) {
+			// Everything the toolbar holds, as the address (other parameters stay).
+			function formUrl() {
 				var u = new URL( location.href );
-				Object.keys( changes ).forEach( function ( k ) { var v = changes[ k ]; if ( null === v || '' === v || ( 'vxs_sort' === k && 'menu' === v ) ) { u.searchParams.delete( k ); } else { u.searchParams.set( k, v ); } } );
+				Array.from( u.searchParams.keys() ).filter( function ( k ) { return 'vxcat' === k || 0 === k.indexOf( 'vxs_' ); } ).forEach( function ( k ) { u.searchParams.delete( k ); } );
+				new FormData( form ).forEach( function ( v, k ) {
+					v = String( v ).trim();
+					if ( '' === v || ( 'vxs_sort' === k && 'menu' === v ) ) { return; }
+					u.searchParams.append( k, v );
+				} );
 				return u.toString();
 			}
 			wrap.addEventListener( 'click', function ( e ) {
@@ -285,14 +305,117 @@
 				load( a.href, a.hasAttribute( 'data-vxs-more' ) ? 'more' : 'nav' );
 			} );
 			if ( ! form ) { return; }
-			var q = $( 'input[name="vxs_q"]', form ), qt = null;
-			form.addEventListener( 'submit', function ( e ) { e.preventDefault(); load( urlFor( { vxs_q:q ? q.value.trim() : null, vxs_n:null } ), 'nav' ); } );
-			form.addEventListener( 'change', function ( e ) { if ( 'vxs_sort' === e.target.name ) { load( urlFor( { vxs_sort:e.target.value, vxs_n:null } ), 'nav' ); } } );
-			if ( q ) {
-				q.addEventListener( 'input', function () { clearTimeout( qt ); qt = setTimeout( function () { load( urlFor( { vxs_q:q.value.trim(), vxs_n:null } ), 'nav' ); }, 380 ); } );
-			}
+			var qt = null;
+			form.addEventListener( 'submit', function ( e ) { e.preventDefault(); load( formUrl(), 'nav' ); } );
+			form.addEventListener( 'change', function ( e ) {
+				var t = e.target;
+				if ( 'vxs_q' === t.name ) { return; }
+				if ( 'vxs_min' === t.name || 'vxs_max' === t.name ) { return; } // applied with the button or Enter
+				load( formUrl(), 'nav' );
+			} );
+			form.addEventListener( 'input', function ( e ) {
+				if ( 'vxs_q' !== e.target.name ) { return; }
+				clearTimeout( qt ); qt = setTimeout( function () { load( formUrl(), 'nav' ); }, 380 );
+			} );
+			// One filter open at a time; Esc or a click elsewhere closes it.
+			form.addEventListener( 'toggle', function ( e ) {
+				if ( e.target.classList && e.target.classList.contains( 'vxs-fdd' ) && e.target.open ) { $$( '.vxs-fdd[open]', form ).forEach( function ( d ) { if ( d !== e.target ) { d.open = false; } } ); }
+			}, true );
+			// A tap on the phone backdrop (the details' own ::before) lands on the details itself.
+			document.addEventListener( 'click', function ( e ) { if ( ! e.target.closest( '.vxs-fdd' ) || e.target.classList.contains( 'vxs-fdd' ) ) { $$( '.vxs-fdd[open]', form ).forEach( function ( d ) { d.open = false; } ); } } );
+			form.addEventListener( 'keydown', function ( e ) {
+				if ( 'Escape' === e.key ) { var d = e.target.closest( '.vxs-fdd[open]' ); if ( d ) { d.open = false; $( 'summary', d ).focus(); } }
+			} );
 		} );
 		window.addEventListener( 'popstate', function ( e ) { if ( e.state && e.state.vxs ) { location.reload(); } } );
+	}
+
+	/* ------------------------------------------------------------- wishlist */
+	var WISH = null;
+	function wishLocal() { try { return JSON.parse( localStorage.getItem( 'vxs_wish' ) || '[]' ).map( Number ).filter( Boolean ); } catch ( e ) { return []; } }
+	function wishStore( ids ) { try { localStorage.setItem( 'vxs_wish', JSON.stringify( ids.slice( -200 ) ) ); } catch ( e ) {} }
+	function marks() {
+		if ( ! WISH ) { return; }
+		$$( '[data-vxs-wish]' ).forEach( function ( b ) {
+			var on = WISH.indexOf( +b.getAttribute( 'data-vxs-wish' ) ) > -1;
+			b.setAttribute( 'aria-pressed', on ? 'true' : 'false' );
+			b.title = on ? ( L.wishSaved || '' ) : ( L.wishSave || '' );
+		} );
+		$$( '[data-vxs-wishn]' ).forEach( function ( x ) { x.textContent = WISH.length; } );
+	}
+	function wishlist() {
+		var signed = Array.isArray( C.wish );
+		WISH = signed ? C.wish.map( Number ) : wishLocal();
+		// Saved as a guest, then signed in: move the list into the account.
+		if ( signed && wishLocal().length ) {
+			rest( 'wish', { merge:wishLocal() } ).then( function ( r ) { if ( r.ids ) { WISH = r.ids.map( Number ); wishStore( [] ); marks(); } } ).catch( function () {} );
+		}
+		marks();
+		document.addEventListener( 'click', function ( e ) {
+			var b = e.target.closest( '[data-vxs-wish]' ); if ( ! b ) { return; }
+			e.preventDefault();
+			var id = +b.getAttribute( 'data-vxs-wish' ), on = WISH.indexOf( id ) < 0;
+			WISH = on ? WISH.concat( [ id ] ) : WISH.filter( function ( x ) { return x !== id; } );
+			marks();
+			b.classList.remove( 'is-pop' ); void b.offsetWidth; if ( on ) { b.classList.add( 'is-pop' ); }
+			if ( signed ) { rest( 'wish', { id:id, on:on ? 1 : 0 } ).then( function ( r ) { if ( r.ids ) { WISH = r.ids.map( Number ); marks(); } } ).catch( function () { toast( L.failed ); } ); }
+			else { wishStore( WISH ); }
+			toastLink( on ? L.wishAdd : L.wishDel, on ? L.wishView : '', C.account );
+			// On the wishlist page itself, a removed product leaves the list.
+			var page = b.closest( '[data-vxs-wishlist]' ); if ( page && ! on ) { var card = b.closest( '.vxs-card' ); if ( card ) { card.remove(); } }
+		} );
+		var page = $( '[data-vxs-wishlist][data-guest]' );
+		if ( page ) {
+			fetch( C.rest + 'cards?ids=' + encodeURIComponent( WISH.join( ',' ) ), { credentials:'same-origin' } ).then( function ( r ) { return r.json(); } ).then( function ( r ) { page.innerHTML = r.html; marks(); } ).catch( function () { page.innerHTML = ''; } );
+		}
+	}
+	function toastLink( msg, label, href ) {
+		toast( msg );
+		var t = $( '[data-vxs-toast]' ); if ( ! t || ! label || ! href ) { return; }
+		var a = document.createElement( 'a' ); a.href = href; a.textContent = label; a.className = 'vxs-toast-a'; t.appendChild( document.createTextNode( ' ' ) ); t.appendChild( a );
+		clearTimeout( toastT ); toastT = setTimeout( function () { t.classList.remove( 'is-on' ); }, 5000 );
+	}
+
+	/* --------------------------------------------- colour dots: show that colour */
+	function swatches() {
+		document.addEventListener( 'mouseover', function ( e ) {
+			var sw = e.target.closest && e.target.closest( '[data-vxs-swimg]' ); if ( ! sw ) { return; }
+			var card = sw.closest( '.vxs-card' ), im = card && $( '.vxs-card-im', card ); if ( ! im ) { return; }
+			if ( ! im._orig ) { im._orig = [ im.src, im.getAttribute( 'srcset' ) ]; }
+			im.removeAttribute( 'srcset' ); im.src = sw.getAttribute( 'data-vxs-swimg' );
+			card.classList.add( 'is-sw' );
+		} );
+		document.addEventListener( 'mouseout', function ( e ) {
+			var sws = e.target.closest && e.target.closest( '.vxs-sws' ); if ( ! sws || sws.contains( e.relatedTarget ) ) { return; }
+			var card = sws.closest( '.vxs-card' ), im = card && $( '.vxs-card-im', card ); if ( ! im || ! im._orig ) { return; }
+			im.src = im._orig[ 0 ]; if ( im._orig[ 1 ] ) { im.setAttribute( 'srcset', im._orig[ 1 ] ); }
+			card.classList.remove( 'is-sw' );
+		} );
+	}
+
+	/* ---------------------------------- notify-me and review forms (REST, no reload) */
+	function restForm( sel, path, done ) {
+		document.addEventListener( 'submit', function ( e ) {
+			var f = e.target.closest( sel ); if ( ! f || ! window.fetch ) { return; }
+			e.preventDefault();
+			var data = {}; new FormData( f ).forEach( function ( v, k ) { data[ k ] = v; } );
+			var btn = $( '[type="submit"]', f ), msg = $( '[role="status"]', f );
+			if ( btn ) { btn.disabled = true; btn.classList.add( 'is-busy' ); }
+			rest( path, data ).then( function ( r ) {
+				if ( btn ) { btn.disabled = false; btn.classList.remove( 'is-busy' ); }
+				if ( msg ) { msg.textContent = r.msg || ''; msg.className = msg.className.replace( / is-(ok|bad)/g, '' ) + ( r.bad ? ' is-bad' : ' is-ok' ); }
+				if ( ! r.bad && done ) { done( f ); }
+			} ).catch( function () { if ( btn ) { btn.disabled = false; btn.classList.remove( 'is-busy' ); } if ( msg ) { msg.textContent = L.failed; } } );
+		} );
+	}
+
+	/* ------------------------------------------ checkout: remind me (with consent) */
+	function remind() {
+		var box = $( '[data-vxs-remind]' ); if ( ! box ) { return; }
+		var f = box.form, mail = f && f.querySelector( '[name="vx_email"]' ); if ( ! mail ) { return; }
+		function send() { if ( /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test( mail.value.trim() ) ) { rest( 'remember', { email:mail.value.trim(), consent:box.checked ? 1 : 0 } ).catch( function () {} ); } }
+		box.addEventListener( 'change', send );
+		mail.addEventListener( 'change', function () { if ( box.checked ) { send(); } } );
 	}
 
 	/* -------------------------------------------------------- photos full screen */
@@ -394,6 +517,18 @@
 		}, 5000 );
 	}
 
+	// Account tabs on a phone: show the active tab and fade the edge that has more tabs behind it.
+	function accTabs() {
+		var ul = $( '.vxa-nav ul' ); if ( ! ul ) { return; }
+		function show() { var cur = $( '[aria-current="page"]', ul ); if ( cur && cur.offsetLeft + cur.offsetWidth > ul.clientWidth ) { ul.scrollLeft = cur.offsetLeft - 24; } edges(); }
+		function edges() {
+			ul.classList.toggle( 'can-l', ul.scrollLeft > 2 );
+			ul.classList.toggle( 'can-r', ul.scrollLeft + ul.clientWidth < ul.scrollWidth - 2 );
+		}
+		show(); ul.addEventListener( 'scroll', edges, { passive:true } ); window.addEventListener( 'resize', edges );
+		// Web fonts change the tab widths after the first paint.
+		if ( document.fonts && document.fonts.ready ) { document.fonts.ready.then( show ); }
+	}
 	/* -------------------------------------------- account menu: centred under its icon, never off-screen */
 	function accMenus() {
 		$$( '.vxa-menu' ).forEach( function ( m ) {
@@ -412,6 +547,17 @@
 	source();
 	buyBoxes();
 	accMenus();
+	accTabs();
+	wishlist();
+	swatches();
+	remind();
+	restForm( '[data-vxs-alert]', 'alert', function ( f ) { var b = $( '[type="submit"]', f ); if ( b ) { b.disabled = true; } } );
+	// "Be the first to review" opens the (closed) form and moves the cursor into it.
+	document.addEventListener( 'click', function ( e ) {
+		var a = e.target.closest && e.target.closest( '[data-vxs-rvopen]' ), d = a && $( '.vxs-rv-write' );
+		if ( d ) { d.open = true; var r = $( 'input[name="rating"]', d ); if ( r ) { setTimeout( function () { r.focus( { preventScroll:true } ); }, 0 ); } }
+	} );
+	restForm( '[data-vxs-review]', 'review', function ( f ) { f.reset(); [].forEach.call( f.querySelectorAll( 'input,textarea,button' ), function ( x ) { if ( 'checkbox' !== x.type ) { x.disabled = true; } } ); } );
 	checkout();
 	gridTools();
 	lightbox();

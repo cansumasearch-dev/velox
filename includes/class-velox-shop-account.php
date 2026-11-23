@@ -962,6 +962,7 @@ class Velox_Shop_Account {
 			'screen' => '<rect x="3" y="4.5" width="18" height="12" rx="2"/><path d="M8.5 20.5h7M12 16.5v4"/>',
 			'key'    => '<circle cx="8" cy="15" r="4"/><path d="m11 12 8.5-8.5M16 7l2.5 2.5M14 9l2 2"/>',
 			'copy'   => '<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h3"/>',
+			'heart'  => '<path d="M12 20.5s-7.5-4.6-7.5-10.4A4.4 4.4 0 0 1 12 7.3a4.4 4.4 0 0 1 7.5 2.8c0 5.8-7.5 10.4-7.5 10.4z"/>',
 		);
 		return '<svg viewBox="0 0 24 24" width="' . (int) $size . '" height="' . (int) $size . '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' . ( $p[ $name ] ?? '' ) . '</svg>';
 	}
@@ -999,12 +1000,16 @@ class Velox_Shop_Account {
 		$tabs = array(
 			''          => array( 'home', __( 'Overview', 'velox' ) ),
 			'orders'    => array( 'bag', __( 'Orders', 'velox' ) ),
+			'wishlist'  => array( 'heart', __( 'Wishlist', 'velox' ) ),
 			'downloads' => array( 'down', __( 'Downloads', 'velox' ) ),
 			'address'   => array( 'pin', __( 'Address', 'velox' ) ),
 			'details'   => array( 'user', __( 'Profile', 'velox' ) ),
 			'security'  => array( 'lock', __( 'Security', 'velox' ) ),
 			'privacy'   => array( 'shield', __( 'Privacy', 'velox' ) ),
 		);
+		if ( ! Velox_Shop_Extras::on( 'wishlist' ) ) {
+			unset( $tabs['wishlist'] );
+		}
 		if ( ! isset( $tabs[ $tab ] ) ) {
 			$tab = '';
 		}
@@ -1014,7 +1019,7 @@ class Velox_Shop_Account {
 			. '<a class="vxa-signout" href="' . esc_url( wp_nonce_url( self::url( 'logout' ), 'velox_shop_logout' ) ) . '">' . self::icon( 'out', 17 ) . '<span>' . esc_html__( 'Sign out', 'velox' ) . '</span></a></header>';
 		$nav = '<nav class="vxa-nav" aria-label="' . esc_attr__( 'Account', 'velox' ) . '"><ul>';
 		foreach ( $tabs as $k => $t ) {
-			$n    = 'orders' === $k && $ids ? '<i>' . count( $ids ) . '</i>' : '';
+			$n    = 'orders' === $k && $ids ? '<i>' . count( $ids ) . '</i>' : ( 'wishlist' === $k && Velox_Shop_Extras::wish_ids( $u->ID ) ? '<i data-vxs-wishn>' . count( Velox_Shop_Extras::wish_ids( $u->ID ) ) . '</i>' : '' );
 			$nav .= '<li><a href="' . esc_url( self::url( $k ) ) . '"' . ( $k === $tab ? ' aria-current="page"' : '' ) . '>' . self::icon( $t[0], 17 ) . '<span>' . esc_html( $t[1] ) . '</span>' . $n . '</a></li>';
 		}
 		$nav .= '</ul></nav>';
@@ -1024,6 +1029,9 @@ class Velox_Shop_Account {
 				break;
 			case 'downloads':
 				$body = self::tab_downloads( $u );
+				break;
+			case 'wishlist':
+				$body = '<div class="vxa-title"><h3>' . esc_html__( 'Wishlist', 'velox' ) . '</h3></div><div class="vxs-wishlist" data-vxs-wishlist>' . Velox_Shop_Extras::wish_grid( Velox_Shop_Extras::wish_ids( $u->ID ) ) . '</div>';
 				break;
 			case 'address':
 				$body = self::tab_address( $u );
@@ -1045,6 +1053,10 @@ class Velox_Shop_Account {
 
 	private static function guest( $tab ) {
 		$note = self::note_html();
+		if ( 'wishlist' === $tab && Velox_Shop_Extras::on( 'wishlist' ) ) {
+			return '<div class="vxa-wish-guest"><div class="vxa-title"><h3>' . esc_html__( 'Wishlist', 'velox' ) . '</h3><p class="vxa-small">' . esc_html__( 'Saved in this browser.', 'velox' ) . ' <a href="' . esc_url( self::url( 'login', array( 'redirect_to' => rawurlencode( self::url( 'wishlist' ) ) ) ) ) . '">' . esc_html__( 'Sign in to keep it on all your devices', 'velox' ) . '</a></p></div>'
+				. '<div class="vxs-wishlist" data-vxs-wishlist data-guest="1"><p class="vxa-small">' . esc_html__( 'Loading…', 'velox' ) . '</p></div></div>';
+		}
 		if ( '2fa' === $tab ) {
 			$t = isset( $_GET['t'] ) ? preg_replace( '/[^A-Za-z0-9]/', '', (string) wp_unslash( $_GET['t'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
 			if ( '' === $t || ! get_transient( 'velox_2fa_' . hash( 'sha256', $t ) ) ) {
@@ -1414,12 +1426,14 @@ class Velox_Shop_Account {
 			$pop = '<div class="vxa-pop-h"><span class="vxa-av" aria-hidden="true">' . esc_html( self::initials( $u ) ) . '</span><span><b>' . esc_html( $u->display_name ) . '</b><small>' . esc_html( $u->user_email ) . '</small></span></div>'
 				. '<a href="' . esc_url( self::url() ) . '">' . self::icon( 'home', 17 ) . esc_html__( 'Overview', 'velox' ) . '</a>'
 				. '<a href="' . esc_url( self::url( 'orders' ) ) . '">' . self::icon( 'bag', 17 ) . esc_html__( 'Orders', 'velox' ) . ( $n ? '<i>' . $n . '</i>' : '' ) . '</a>'
+				. ( Velox_Shop_Extras::on( 'wishlist' ) ? '<a href="' . esc_url( self::url( 'wishlist' ) ) . '">' . self::icon( 'heart', 17 ) . esc_html__( 'Wishlist', 'velox' ) . '</a>' : '' )
 				. '<a href="' . esc_url( self::url( 'address' ) ) . '">' . self::icon( 'pin', 17 ) . esc_html__( 'Address', 'velox' ) . '</a>'
 				. '<a href="' . esc_url( self::url( 'security' ) ) . '">' . self::icon( 'lock', 17 ) . esc_html__( 'Security', 'velox' ) . '</a>'
 				. '<hr><a href="' . esc_url( wp_nonce_url( self::url( 'logout' ), 'velox_shop_logout' ) ) . '">' . self::icon( 'out', 17 ) . esc_html__( 'Sign out', 'velox' ) . '</a>';
 		} else {
 			$pop = '<div class="vxa-pop-g"><b>' . esc_html__( 'Your customer account', 'velox' ) . '</b><span>' . esc_html__( 'Orders, invoices and downloads in one place — and faster checkout.', 'velox' ) . '</span></div>'
 				. '<a class="vxs-btn vxs-btn-block" href="' . esc_url( self::url( 'login' ) ) . '">' . esc_html__( 'Sign in', 'velox' ) . '</a>'
+				. ( Velox_Shop_Extras::on( 'wishlist' ) ? '<a class="vxa-pop-alt" href="' . esc_url( self::url( 'wishlist' ) ) . '">' . esc_html__( 'Your wishlist', 'velox' ) . '</a>' : '' )
 				. ( self::enabled() ? '<a class="vxa-pop-alt" href="' . esc_url( self::url( 'register' ) ) . '">' . esc_html__( 'New here? Create an account', 'velox' ) . '</a>' : '' );
 		}
 		return '<div class="vxa-menu">' . $btn . '<div class="vxa-pop' . ( $in ? '' : ' is-guest' ) . '">' . $pop . '</div></div>';
