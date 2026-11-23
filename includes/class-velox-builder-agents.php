@@ -175,7 +175,72 @@ class Velox_Builder_Agents {
 				'perm'        => 'write',
 				'ann'         => array( 'readonly' => false, 'destructive' => false, 'idempotent' => true ),
 			),
+			'velox/find-images' => array(
+				'label'       => __( 'Find images in the media library', 'velox' ),
+				'description' => 'Search the media library of this site for images by title, file name, alt text or caption. Returns ids, addresses, sizes and alt texts. Use the id as image_id for image elements; never make up image addresses.',
+				'input'       => array( 'type' => 'object', 'properties' => array(
+					'search' => array( 'type' => 'string', 'description' => 'Words to look for. Leave out for the newest images.' ),
+					'limit'  => array( 'type' => 'integer', 'minimum' => 1, 'maximum' => 40, 'default' => 20 ),
+				) ),
+				'run'         => array( __CLASS__, 'run_images' ),
+				'perm'        => 'read',
+				'ann'         => array( 'readonly' => true, 'destructive' => false, 'idempotent' => true ),
+			),
 		);
+	}
+
+	/**
+	 * The abilities as tools for the built-in assistant (Claude's tool format).
+	 * Tool names may not contain "/", so velox/add-elements becomes velox_add_elements.
+	 */
+	public static function tool_defs() {
+		$out = array();
+		foreach ( self::abilities() as $name => $a ) {
+			$schema = $a['input'];
+			unset( $schema['default'] );
+			if ( empty( $schema['properties'] ) ) {
+				$schema['properties'] = new stdClass();
+			}
+			$out[] = array( 'name' => self::tool_name( $name ), 'description' => $a['description'], 'input_schema' => $schema );
+		}
+		return $out;
+	}
+
+	public static function tool_name( $ability ) {
+		return str_replace( array( '/', '-' ), '_', $ability );
+	}
+
+	/** Ability for a tool name, or ''. */
+	public static function ability_for( $tool ) {
+		foreach ( array_keys( self::abilities() ) as $name ) {
+			if ( self::tool_name( $name ) === $tool ) {
+				return $name;
+			}
+		}
+		return '';
+	}
+
+	/**
+	 * Run an ability for the built-in assistant: the same permission rules as
+	 * for outside tools, without the outside-tools switch.
+	 *
+	 * @return array|WP_Error
+	 */
+	public static function run_tool( $ability, $input ) {
+		$all = self::abilities();
+		if ( ! isset( $all[ $ability ] ) ) {
+			return new WP_Error( 'velox_tool', 'Unknown tool.' );
+		}
+		$input = is_array( $input ) ? $input : array();
+		if ( ! self::allowed( $all[ $ability ]['perm'], $input, 'assistant' ) ) {
+			return new WP_Error( 'velox_denied', __( 'You may not do that with your role, or on this document.', 'velox' ) );
+		}
+		foreach ( (array) ( $all[ $ability ]['input']['required'] ?? array() ) as $req ) {
+			if ( ! isset( $input[ $req ] ) ) {
+				return new WP_Error( 'velox_input', sprintf( 'Missing "%s".', $req ) );
+			}
+		}
+		return call_user_func( $all[ $ability ]['run'], $input );
 	}
 
 	public static function register() {
@@ -207,8 +272,10 @@ class Velox_Builder_Agents {
 
 	/* ========================================================== permissions */
 
-	public static function allowed( $perm, $input ) {
-		if ( ! self::enabled() || ! current_user_can( 'velox_builder' ) ) {
+	public static function allowed( $perm, $input, $via = 'mcp' ) {
+		// Outside tools need the switch on this screen; the built-in assistant
+		// has its own setting (an API key) and is checked before it runs.
+		if ( ( 'mcp' === $via && ! self::enabled() ) || ! current_user_can( 'velox_builder' ) ) {
 			return false;
 		}
 		$doc = (int) ( $input['document_id'] ?? 0 );
@@ -267,6 +334,36 @@ class Velox_Builder_Agents {
 			'forms'         => $forms,
 			'components'    => array_map( function ( $d ) { return array( 'id' => (int) $d['id'], 'title' => $d['title'] ); }, array_values( array_filter( self::docs(), function ( $d ) { return 'reusable' === $d['kind']; } ) ) ),
 		);
+	}
+
+	public static function run_images( $in ) {
+		$args = array(
+			'post_type'      => 'attachment',
+			'post_status'    => 'inherit',
+			'post_mime_type' => 'image',
+			'posts_per_page' => max( 1, min( 40, (int) ( $in['limit'] ?? 20 ) ) ),
+			'orderby'        => 'date',
+			'order'          => 'DESC',
+		);
+		$q = trim( sanitize_text_field( (string) ( $in['search'] ?? '' ) ) );
+		if ( '' !== $q ) {
+			$args['s'] = $q;
+		}
+		$out = array();
+		foreach ( get_posts( $args ) as $a ) {
+			$src  = wp_get_attachment_image_src( $a->ID, 'large' );
+			$meta = wp_get_attachment_metadata( $a->ID );
+			$out[] = array(
+				'image_id' => (int) $a->ID,
+				'title'    => get_the_title( $a ),
+				'alt'      => (string) get_post_meta( $a->ID, '_wp_attachment_image_alt', true ),
+				'caption'  => wp_strip_all_tags( (string) $a->post_excerpt ),
+				'url'      => $src ? $src[0] : wp_get_attachment_url( $a->ID ),
+				'width'    => (int) ( $meta['width'] ?? 0 ),
+				'height'   => (int) ( $meta['height'] ?? 0 ),
+			);
+		}
+		return array( 'images' => $out, 'note' => $out ? '' : 'No images found. Use a placeholder section without an image and tell the person to add one.' );
 	}
 
 	private static function docs( $kind = 'all', $search = '' ) {

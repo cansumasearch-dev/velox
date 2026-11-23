@@ -656,6 +656,7 @@ class Velox_Builder {
 			'globalJs'  => self::global_js_files(),
 			'breakpoints' => self::breakpoints(),
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
+			'ai'      => Velox_Builder_Assistant::editor_data(),
 		);
 
 		// The editor lives in its own document, so the WordPress media library

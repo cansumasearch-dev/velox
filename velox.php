@@ -99,6 +99,8 @@ spl_autoload_register( function ( $class ) {
 		'Velox_Shop'               => 'includes/class-velox-shop.php',
 		'Velox_Shop_Account'       => 'includes/class-velox-shop-account.php',
 		'Velox_Shop_Extras'        => 'includes/class-velox-shop-extras.php',
+		'Velox_AI_Claude'          => 'includes/class-velox-ai-claude.php',
+		'Velox_Builder_Assistant'  => 'includes/class-velox-builder-assistant.php',
 		'Velox_Shop_Admin'         => 'includes/class-velox-shop-admin.php',
 		'Velox_Shop_Front'         => 'includes/class-velox-shop-front.php',
 		'Velox_Shop_Pay'           => 'includes/class-velox-shop-pay.php',

@@ -809,6 +809,35 @@ body select.vba-input:focus,body select.vba-tpl-purpose:focus,body .vba-shell se
 .vba-ag-list b{font-weight:500;color:var(--vbb-text)}
 .vba-ag-list code{font:12px var(--vbb-mono);color:var(--vbb-text-3);background:none}
 @media (max-width:700px){.vba-ag-list li{flex-direction:column;align-items:flex-start;justify-content:center;padding:8px 0}}
+/* Claude in the editor (4.64) */
+.vba-ai-state{flex:none;display:inline-flex;align-items:center;gap:7px;padding:5px 11px;border-radius:999px;background:var(--vbb-raised);color:var(--vbb-text-3);font-size:12px;font-weight:600}
+.vba-ai-state::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor;opacity:.6}
+.vba-ai-state.is-on{background:rgba(67,209,127,.12);color:var(--vbb-green)}
+.vba-ai-state.is-on::before{opacity:1}
+.vba-ai-steps{padding-top:4px}
+.vba-ai-keyrow{display:flex;gap:8px;align-self:stretch;max-width:560px}
+.vba-ai-keyrow .vba-input-wide{flex:1 1 auto;min-width:0}
+.vba-ai-msg{margin:0;font-size:12.5px;line-height:1.5;color:var(--vbb-green)}
+.vba-ai-msg.is-bad{color:var(--vbb-red)}
+.vba-ai-on>.vba-ai-msg{padding:0 20px 16px}
+.vba-ai-warn{margin:0 20px 16px;padding:10px 12px;border:1px solid rgba(255,170,60,.3);border-radius:10px;background:rgba(255,170,60,.08);color:var(--vbb-orange);font-size:12.5px;line-height:1.5}
+.vba-ai-acts{display:flex;gap:8px;flex-wrap:wrap}
+.vba-ai-limit{display:inline-flex;align-items:center;gap:6px;padding:0 10px;background:var(--vbb-void);border:1px solid var(--vbb-line);border-radius:8px;color:var(--vbb-text-3);font-size:13px}
+.vba-ai-limit:focus-within{border-color:var(--vbb-accent)}
+.vba-ai-limit input{width:80px;height:36px;padding:0;border:0;background:none;box-shadow:none;color:var(--vbb-text);font-size:13px;outline:none}
+.vba-ai-usage{flex-wrap:wrap}
+.vba-ai-meter{flex:0 0 160px;height:6px;border-radius:999px;background:var(--vbb-raised);overflow:hidden}
+.vba-ai-meter i{display:block;height:100%;border-radius:inherit;background:var(--vbb-accent)}
+.vba-ai-where{margin:0;padding:14px 20px 18px;border-top:1px solid var(--vbb-line)}
+.vba-ag-adv>summary{list-style:none;cursor:pointer;user-select:none}
+.vba-ag-adv>summary::-webkit-details-marker{display:none}
+.vba-ag-adv>summary:focus-visible{outline:2px solid var(--vbb-accent);outline-offset:-2px;border-radius:var(--vbb-r-xl)}
+.vba-ag-chev{flex:none;width:9px;height:9px;margin-right:6px;border-right:1.6px solid var(--vbb-text-3);border-bottom:1.6px solid var(--vbb-text-3);transform:rotate(45deg) translateY(-3px);transition:transform .15s var(--vbb-ease)}
+.vba-ag-adv[open] .vba-ag-chev{transform:rotate(-135deg) translate(-2px,-1px)}
+.vba-ag-adv[open]>summary{border-bottom:1px solid var(--vbb-line)}
+.vba-ag-adv .vba-ag-steps{padding-top:18px;border-bottom:1px solid var(--vbb-line)}
+.vba-ag-what>p{margin:0;padding:16px 20px 4px;font-size:12.5px;line-height:1.5;color:var(--vbb-text-3)}
+@media (max-width:700px){.vba-ai-keyrow{flex-direction:column}.vba-ai-meter{flex-basis:100%}}
 
 /* ---- Design history (Global styles) ---- */
 .vba-dh-list{padding:0 20px 12px}
