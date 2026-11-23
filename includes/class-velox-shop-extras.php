@@ -26,6 +26,7 @@ class Velox_Shop_Extras {
 		add_action( 'template_redirect', array( __CLASS__, 'links' ), 3 );
 		add_action( Velox_Shop::CRON, array( __CLASS__, 'cart_tick' ) );
 		add_action( 'wp_head', array( __CLASS__, 'schema' ), 30 );
+		add_action( 'wp_body_open', array( __CLASS__, 'msg_top' ), 6 );
 		// Reviews are comments of their own type: the theme's comment form and
 		// lists stay away from products, and blog widgets never show them.
 		add_filter( 'comments_open', array( __CLASS__, 'no_theme_comments' ), 20, 2 );
@@ -622,6 +623,16 @@ class Velox_Shop_Extras {
 			exit;
 		}
 		// phpcs:enable
+	}
+
+	/** Product pages show the note inside their layout; every other page at the top. */
+	public static function msg_top() {
+		if ( ! is_singular( Velox_Shop::PRODUCT ) ) {
+			$m = self::msg_html();
+			if ( '' !== $m ) {
+				echo '<div class="vxs-msg-top">' . $m . '</div>'; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- escaped in msg_html()
+			}
+		}
 	}
 
 	/** A one-line note at the top of the page after one of those links. */

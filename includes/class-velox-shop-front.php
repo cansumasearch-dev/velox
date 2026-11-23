@@ -294,9 +294,10 @@ class Velox_Shop_Front {
 		$step  = max( 4, min( 96, (int) Velox_Shop::get( 'per_page', 24 ) ) );
 		$n     = $tools ? max( $step, min( 240, isset( $_GET['vxs_n'] ) ? (int) $_GET['vxs_n'] : $step ) ) : max( 1, min( 60, (int) $a['count'] ) );
 		$cat   = isset( $_GET['vxcat'] ) && ( $a['filter'] || $tools ) ? sanitize_title( wp_unslash( $_GET['vxcat'] ) ) : sanitize_title( (string) $a['category'] );
+		$f     = $tools ? self::read_filters( $cat ) : null;
 		// phpcs:enable
-		$args = array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => $n, 'no_found_rows' => ! $tools );
-		if ( $cat ) {
+		$args = array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => $n, 'no_found_rows' => true );
+		if ( $cat && ! $tools ) {
 			$args['tax_query'] = array( array( 'taxonomy' => Velox_Shop::CAT, 'field' => 'slug', 'terms' => $cat ) );
 		}
 		if ( '' !== $find ) {
@@ -331,21 +332,42 @@ class Velox_Shop_Front {
 		if ( 'hide' === $sold ) {
 			$args['meta_query'] = array( 'relation' => 'OR', array( 'key' => '_vx_status', 'value' => 'sold', 'compare' => '!=' ), array( 'key' => '_vx_status', 'compare' => 'NOT EXISTS' ) );
 		}
-		$q = new WP_Query( $args );
-		if ( 'last' === $sold && $q->posts ) {
+		$facets = null;
+		if ( $tools ) {
+			// The shop page: every match once, then filters, counts and paging here,
+			// so each filter can say how many products it would leave.
+			$args['posts_per_page'] = 1500;
+			$args['fields']         = 'ids';
+			$ids    = get_posts( $args );
+			$res    = self::filter_ids( $ids, $f );
+			$items  = $res['items'];
+			$facets = $res;
+		} else {
+			$items = array();
+			foreach ( get_posts( array_merge( $args, array( 'fields' => 'ids' ) ) ) as $id ) {
+				$p = Velox_Shop::product( $id );
+				if ( $p ) {
+					$items[] = $p;
+				}
+			}
+		}
+		if ( 'last' === $sold && $items ) {
 			// Keep the order, but sold pieces go behind everything still for sale.
 			$for_sale = array();
 			$gone     = array();
-			foreach ( $q->posts as $post ) {
-				if ( 'sold' === get_post_meta( $post->ID, '_vx_status', true ) ) {
-					$gone[] = $post;
+			foreach ( $items as $p ) {
+				$st = Velox_Shop::availability( $p );
+				if ( in_array( $st[0], array( 'sold', 'out' ), true ) ) {
+					$gone[] = $p;
 				} else {
-					$for_sale[] = $post;
+					$for_sale[] = $p;
 				}
 			}
-			$q->posts = array_merge( $for_sale, $gone );
+			$items = array_merge( $for_sale, $gone );
 		}
-		$over = array();
+		$total = count( $items );
+		$items = array_slice( $items, 0, $n );
+		$over  = array();
 		foreach ( array( 'layout', 'card', 'button', 'hover', 'align', 'cols_t', 'cols_m', 'gap', 'show_cat', 'show_text', 'fit' ) as $k ) {
 			if ( isset( $a[ $k ] ) && '' !== (string) $a[ $k ] ) {
 				$over[ $k ] = $a[ $k ];
@@ -357,21 +379,26 @@ class Velox_Shop_Front {
 		$d   = Velox_Shop::design( $over );
 		$out = '';
 
-		// Above the grid: categories, count, search, sorting.
+		// Above the grid: categories, count, search, sorting, filters.
 		$cats = '';
 		if ( $a['filter'] || $tools ) {
 			$terms = get_terms( array( 'taxonomy' => Velox_Shop::CAT, 'hide_empty' => true ) );
 			if ( $terms && ! is_wp_error( $terms ) && count( $terms ) > 1 ) {
 				$base  = remove_query_arg( array( 'vxcat', 'vxs_n' ) );
-				$cats .= '<nav class="vxs-cats" aria-label="' . esc_attr__( 'Categories', 'velox' ) . '"><a href="' . esc_url( $base ) . '"' . ( $cat ? '' : ' aria-current="true"' ) . ' data-vxs-nav>' . esc_html__( 'All', 'velox' ) . '</a>';
+				$cnt   = function ( $slug ) use ( $facets ) {
+					return $facets && isset( $facets['cats'][ $slug ] ) ? ' <small>' . (int) $facets['cats'][ $slug ] . '</small>' : '';
+				};
+				$cats .= '<nav class="vxs-cats" aria-label="' . esc_attr__( 'Categories', 'velox' ) . '"><a href="' . esc_url( $base ) . '"' . ( $cat ? '' : ' aria-current="true"' ) . ' data-vxs-nav>' . esc_html__( 'All', 'velox' ) . $cnt( '' ) . '</a>';
 				foreach ( $terms as $t ) {
-					$cats .= '<a href="' . esc_url( add_query_arg( 'vxcat', $t->slug, $base ) ) . '"' . ( $cat === $t->slug ? ' aria-current="true"' : '' ) . ' data-vxs-nav>' . esc_html( $t->name ) . '</a>';
+					if ( $facets && empty( $facets['cats'][ $t->slug ] ) && $cat !== $t->slug ) {
+						continue; // nothing left in it with these filters
+					}
+					$cats .= '<a href="' . esc_url( add_query_arg( 'vxcat', $t->slug, $base ) ) . '"' . ( $cat === $t->slug ? ' aria-current="true"' : '' ) . ' data-vxs-nav>' . esc_html( $t->name ) . $cnt( $t->slug ) . '</a>';
 				}
 				$cats .= '</nav>';
 			}
 		}
 		if ( $tools ) {
-			$total = (int) $q->found_posts;
 			$right = '<span class="vxs-count-txt" aria-live="polite">' . esc_html( sprintf( /* translators: %d: number of products */ _n( '%d product', '%d products', $total, 'velox' ), $total ) ) . '</span>';
 			if ( '1' === (string) Velox_Shop::get( 'grid_search', '0' ) ) {
 				$right .= '<label class="vxs-search"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg><input type="search" name="vxs_q" value="' . esc_attr( $find ) . '" placeholder="' . esc_attr__( 'Search the shop', 'velox' ) . '" aria-label="' . esc_attr__( 'Search the shop', 'velox' ) . '"></label>';
@@ -384,14 +411,16 @@ class Velox_Shop_Front {
 				}
 				$right .= '</select>';
 			}
-			$out .= '<form class="vxs-tools alignwide" method="get" role="search" data-vxs-tools>' . $cats . ( $cat ? '<input type="hidden" name="vxcat" value="' . esc_attr( $cat ) . '">' : '' ) . '<div class="vxs-tools-r">' . $right . '</div><button type="submit" class="screen-reader-text">' . esc_html__( 'Show', 'velox' ) . '</button></form>';
+			$out .= '<form class="vxs-tools alignwide" method="get" role="search" data-vxs-tools>' . $cats . ( $cat ? '<input type="hidden" name="vxcat" value="' . esc_attr( $cat ) . '">' : '' ) . '<div class="vxs-tools-r">' . $right . '</div>'
+				. self::filter_bar( $facets, $f ) . '<button type="submit" class="screen-reader-text">' . esc_html__( 'Show', 'velox' ) . '</button></form>';
 		} else {
 			$out .= $cats;
 		}
 
-		if ( ! $q->have_posts() ) {
-			$empty = '' !== $find ? sprintf( /* translators: %s: search words */ __( 'Nothing found for “%s”.', 'velox' ), $find ) : __( 'No products here yet.', 'velox' );
-			return $tools ? '<div class="vxs-grid-wrap alignwide" data-vxs-gridwrap="' . $nth . '">' . $out . '<p class="vxs-empty">' . esc_html( $empty ) . '</p></div>' : $out . '<p class="vxs-empty">' . esc_html( $empty ) . '</p>';
+		if ( ! $items ) {
+			$empty = '' !== $find ? sprintf( /* translators: %s: search words */ __( 'Nothing found for “%s”.', 'velox' ), $find ) : ( $f && $f['active'] ? __( 'No products match these filters.', 'velox' ) : __( 'No products here yet.', 'velox' ) );
+			$reset = $f && $f['active'] ? ' <a href="' . esc_url( self::filter_url( array() ) ) . '" data-vxs-nav>' . esc_html__( 'Clear all filters', 'velox' ) . '</a>' : '';
+			return $tools ? '<div class="vxs-grid-wrap alignwide" data-vxs-gridwrap="' . $nth . '">' . $out . '<p class="vxs-empty">' . esc_html( $empty ) . $reset . '</p></div>' : $out . '<p class="vxs-empty">' . esc_html( $empty ) . '</p>';
 		}
 		$ratio = Velox_Shop::card_ratio( $d );
 		// A masonry wall shows every photo in its own shape.
@@ -403,20 +432,233 @@ class Velox_Shop_Front {
 		if ( 1 === $nth && ! wp_doing_ajax() && ! is_singular( Velox_Shop::PRODUCT ) ) {
 			self::$eager = max( 1, min( 6, (int) $d['cols'] ) );
 		}
-		while ( $q->have_posts() ) {
-			$q->the_post();
-			$out .= self::card( Velox_Shop::product( get_the_ID() ), $d );
+		foreach ( $items as $p ) {
+			$out .= self::card( $p, $d );
 		}
-		wp_reset_postdata();
 		$out .= '</div>';
 		if ( $tools ) {
-			$shown = count( $q->posts );
+			$shown = count( $items );
 			if ( $total > $shown ) {
 				$out .= '<div class="vxs-more-wrap"><small>' . esc_html( sprintf( /* translators: 1: shown, 2: total */ __( '%1$d of %2$d', 'velox' ), $shown, $total ) ) . '</small><a class="vxs-btn vxs-btn-ghost vxs-more-btn" href="' . esc_url( add_query_arg( 'vxs_n', $shown + $step ) ) . '" data-vxs-more>' . esc_html__( 'Show more', 'velox' ) . '</a></div>';
 			}
 			$out = '<div class="vxs-grid-wrap alignwide" data-vxs-gridwrap="' . $nth . '">' . $out . '</div>';
 		}
 		return $out;
+	}
+
+	/* ------------------------------------------------------------- filters */
+
+	/** The filters in the address: category, price, in stock, sale, option values. */
+	private static function read_filters( $cat ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Recommended
+		$f = array( 'cat' => $cat, 'min' => null, 'max' => null, 'av' => ! empty( $_GET['vxs_av'] ), 'sale' => ! empty( $_GET['vxs_sale'] ), 'o' => array() );
+		foreach ( array( 'min', 'max' ) as $k ) {
+			if ( isset( $_GET[ 'vxs_' . $k ] ) && '' !== $_GET[ 'vxs_' . $k ] ) {
+				$f[ $k ] = Velox_Shop::num( sanitize_text_field( wp_unslash( $_GET[ 'vxs_' . $k ] ) ) );
+			}
+		}
+		if ( isset( $_GET['vxs_o'] ) && is_array( $_GET['vxs_o'] ) ) {
+			foreach ( array_slice( wp_unslash( $_GET['vxs_o'] ), 0, 6, true ) as $g => $vals ) { // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- sanitised below
+				$vals = array_values( array_filter( array_map( 'sanitize_text_field', array_slice( (array) $vals, 0, 30 ) ), 'strlen' ) );
+				if ( $vals ) {
+					$f['o'][ sanitize_title( $g ) ] = $vals;
+				}
+			}
+		}
+		// phpcs:enable
+		$f['active'] = $f['av'] || $f['sale'] || null !== $f['min'] || null !== $f['max'] || $f['o'];
+		return $f;
+	}
+
+	/** This address with the filters replaced (array of query args, '' removes one). */
+	private static function filter_url( $set ) {
+		$u = remove_query_arg( array( 'vxs_min', 'vxs_max', 'vxs_av', 'vxs_sale', 'vxs_o', 'vxs_n' ) );
+		return $set ? add_query_arg( $set, $u ) : $u;
+	}
+
+	/** Filter the products and count, for every filter, what it would leave. */
+	private static function filter_ids( $ids, $f ) {
+		$rows = array();
+		if ( $ids ) {
+			update_object_term_cache( $ids, Velox_Shop::PRODUCT );
+		}
+		$groups = array(); // slug => [ name, opt (for colours), values in order ]
+		foreach ( $ids as $id ) {
+			$p = Velox_Shop::product( $id );
+			if ( ! $p ) {
+				continue;
+			}
+			list( $lo, $hi ) = Velox_Shop::price_range( $p );
+			$terms = get_the_terms( $id, Velox_Shop::CAT );
+			$r     = array( 'p' => $p, 'lo' => $lo, 'hi' => $hi, 'cats' => $terms && ! is_wp_error( $terms ) ? wp_list_pluck( $terms, 'slug' ) : array(), 'av' => false, 'sale' => false, 'o' => array() );
+			if ( Velox_Shop::has_variants( $p ) ) {
+				foreach ( $p['variants'] as $v ) {
+					if ( ! empty( $v['off'] ) ) {
+						continue;
+					}
+					$r['av']   = $r['av'] || Velox_Shop::can_buy( $p, $v, 1 );
+					$r['sale'] = $r['sale'] || null !== Velox_Shop::compare_of( $p, $v );
+					foreach ( $p['options'] as $i => $opt ) {
+						if ( isset( $v['opts'][ $i ] ) ) {
+							$g = sanitize_title( $opt['name'] );
+							$r['o'][ $g ][ (string) $v['opts'][ $i ] ] = true;
+							if ( ! isset( $groups[ $g ] ) ) {
+								$groups[ $g ] = array( 'name' => $opt['name'], 'opt' => $opt, 'vals' => array() );
+							}
+							$groups[ $g ]['vals'][ (string) $v['opts'][ $i ] ] = true;
+							$groups[ $g ]['opt']['colors'] = array_merge( (array) ( $groups[ $g ]['opt']['colors'] ?? array() ), (array) ( $opt['colors'] ?? array() ) );
+						}
+					}
+				}
+			} else {
+				$r['av']   = Velox_Shop::can_buy( $p, null, 1 );
+				$r['sale'] = null !== Velox_Shop::compare_of( $p );
+			}
+			$rows[] = $r;
+		}
+		$match = function ( $r, $skip ) use ( $f ) {
+			if ( 'cat' !== $skip && '' !== (string) $f['cat'] && ! in_array( $f['cat'], $r['cats'], true ) ) {
+				return false;
+			}
+			if ( 'price' !== $skip && ( ( null !== $f['min'] && $r['hi'] < $f['min'] ) || ( null !== $f['max'] && $r['lo'] > $f['max'] ) ) ) {
+				return false;
+			}
+			if ( 'av' !== $skip && $f['av'] && ! $r['av'] ) {
+				return false;
+			}
+			if ( 'sale' !== $skip && $f['sale'] && ! $r['sale'] ) {
+				return false;
+			}
+			foreach ( $f['o'] as $g => $vals ) {
+				if ( 'o:' . $g === $skip ) {
+					continue;
+				}
+				if ( ! array_intersect( $vals, array_keys( $r['o'][ $g ] ?? array() ) ) ) {
+					return false;
+				}
+			}
+			return true;
+		};
+		$items = array();
+		$res   = array( 'cats' => array( '' => 0 ), 'av' => 0, 'sale' => 0, 'lo' => null, 'hi' => null, 'groups' => array() );
+		foreach ( $rows as $r ) {
+			if ( $match( $r, '' ) ) {
+				$items[] = $r['p'];
+			}
+			if ( $match( $r, 'cat' ) ) {
+				$res['cats']['']++;
+				foreach ( $r['cats'] as $c ) {
+					$res['cats'][ $c ] = ( $res['cats'][ $c ] ?? 0 ) + 1;
+				}
+			}
+			if ( $r['av'] && $match( $r, 'av' ) ) {
+				$res['av']++;
+			}
+			if ( $r['sale'] && $match( $r, 'sale' ) ) {
+				$res['sale']++;
+			}
+			if ( $match( $r, 'price' ) ) {
+				$res['lo'] = null === $res['lo'] ? $r['lo'] : min( $res['lo'], $r['lo'] );
+				$res['hi'] = null === $res['hi'] ? $r['hi'] : max( $res['hi'], $r['hi'] );
+			}
+		}
+		foreach ( array_slice( $groups, 0, 4, true ) as $g => $grp ) {
+			$counts = array_fill_keys( array_keys( $grp['vals'] ), 0 );
+			foreach ( $rows as $r ) {
+				if ( isset( $r['o'][ $g ] ) && $match( $r, 'o:' . $g ) ) {
+					foreach ( array_keys( $r['o'][ $g ] ) as $val ) {
+						$counts[ $val ]++;
+					}
+				}
+			}
+			if ( count( $counts ) > 1 || ! empty( $f['o'][ $g ] ) ) {
+				$res['groups'][ $g ] = array( 'name' => $grp['name'], 'opt' => $grp['opt'], 'counts' => array_slice( $counts, 0, 30, true ) );
+			}
+		}
+		$res['items'] = $items;
+		return $res;
+	}
+
+	/** Dropdowns for each filter, then the active ones as chips you can remove. */
+	private static function filter_bar( $res, $f ) {
+		if ( ! $res || '1' !== (string) Velox_Shop::get( 'grid_filters', '1' ) ) {
+			return '';
+		}
+		$chev = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>';
+		$bar  = '';
+		$chips = '';
+		foreach ( $res['groups'] as $g => $grp ) {
+			$sel   = $f['o'][ $g ] ?? array();
+			$color = Velox_Shop_Extras::is_color_option( $grp['name'] );
+			$list  = '';
+			foreach ( $grp['counts'] as $val => $c ) {
+				$on  = in_array( (string) $val, $sel, true );
+				$hex = $color ? Velox_Shop_Extras::color_of( $grp['opt'], $val ) : '';
+				$list .= '<label class="vxs-fopt' . ( $c || $on ? '' : ' is-off' ) . '"><input type="checkbox" name="vxs_o[' . esc_attr( $g ) . '][]" value="' . esc_attr( $val ) . '"' . ( $on ? ' checked' : '' ) . ( $c || $on ? '' : ' disabled' ) . '>'
+					. ( $color ? '<i class="vxs-fsw"' . ( $hex ? ' style="--c:' . esc_attr( $hex ) . '"' : '' ) . '></i>' : '' ) . '<span>' . esc_html( $val ) . '</span><small>' . (int) $c . '</small></label>';
+				if ( $on ) {
+					$rest  = array_values( array_diff( $sel, array( (string) $val ) ) );
+					$o     = $f['o'];
+					$o[ $g ] = $rest;
+					$chips .= self::chip( $grp['name'] . ': ' . $val, self::filter_url( self::filter_args( $f, array( 'o' => array_filter( $o ) ) ) ) );
+				}
+			}
+			$bar .= '<details class="vxs-fdd" data-fk="o-' . esc_attr( $g ) . '"><summary>' . esc_html( $grp['name'] ) . ( $sel ? ' <i>' . count( $sel ) . '</i>' : '' ) . $chev . '</summary><div class="vxs-fpop' . ( $color ? ' is-sw' : '' ) . '" role="group" aria-label="' . esc_attr( $grp['name'] ) . '">' . $list . '</div></details>';
+		}
+		if ( null !== $res['lo'] && $res['hi'] > $res['lo'] ) {
+			$cur = Velox_Shop::currency();
+			$lbl = __( 'Price', 'velox' );
+			if ( null !== $f['min'] || null !== $f['max'] ) {
+				$lbl .= ' ' . ( null !== $f['min'] ? Velox_Shop::money( $f['min'] ) : '' ) . '–' . ( null !== $f['max'] ? Velox_Shop::money( $f['max'] ) : '' );
+				$chips .= self::chip( $lbl, self::filter_url( self::filter_args( $f, array( 'min' => null, 'max' => null ) ) ) );
+			}
+			$bar .= '<details class="vxs-fdd" data-fk="price"><summary>' . esc_html( $lbl ) . $chev . '</summary><div class="vxs-fpop vxs-fprice" role="group" aria-label="' . esc_attr__( 'Price', 'velox' ) . '">'
+				. '<label><span>' . esc_html__( 'from', 'velox' ) . '</span><input type="number" name="vxs_min" min="0" step="1" inputmode="decimal" value="' . esc_attr( null !== $f['min'] ? (string) $f['min'] : '' ) . '" placeholder="' . esc_attr( (string) floor( $res['lo'] ) ) . '"><i>' . esc_html( $cur ) . '</i></label>'
+				. '<label><span>' . esc_html__( 'to', 'velox' ) . '</span><input type="number" name="vxs_max" min="0" step="1" inputmode="decimal" value="' . esc_attr( null !== $f['max'] ? (string) $f['max'] : '' ) . '" placeholder="' . esc_attr( (string) ceil( $res['hi'] ) ) . '"><i>' . esc_html( $cur ) . '</i></label>'
+				. '<button type="submit" class="vxs-btn vxs-btn-sm">' . esc_html__( 'Apply', 'velox' ) . '</button></div></details>';
+		}
+		foreach ( array( 'av' => __( 'Available now', 'velox' ), 'sale' => __( 'Reduced price', 'velox' ) ) as $k => $l ) {
+			if ( $res[ $k ] || $f[ $k ] ) {
+				$bar .= '<label class="vxs-ftog"><input type="checkbox" name="vxs_' . $k . '" value="1"' . ( $f[ $k ] ? ' checked' : '' ) . '><span>' . esc_html( $l ) . '</span><small>' . (int) $res[ $k ] . '</small></label>';
+				if ( $f[ $k ] ) {
+					$chips .= self::chip( $l, self::filter_url( self::filter_args( $f, array( $k => false ) ) ) );
+				}
+			}
+		}
+		if ( '' === $bar ) {
+			return '';
+		}
+		return '<div class="vxs-fbar" data-vxs-fbar>' . $bar . '</div>'
+			. ( '' !== $chips ? '<div class="vxs-factive" data-vxs-factive>' . $chips . '<a class="vxs-fclear" href="' . esc_url( self::filter_url( array() ) ) . '" data-vxs-nav>' . esc_html__( 'Reset filters', 'velox' ) . '</a></div>' : '' );
+	}
+
+	private static function chip( $label, $url ) {
+		/* translators: %s: filter */
+		return '<a class="vxs-fchip" href="' . esc_url( $url ) . '" data-vxs-nav aria-label="' . esc_attr( sprintf( __( 'Remove filter: %s', 'velox' ), $label ) ) . '">' . esc_html( $label ) . '<span aria-hidden="true">×</span></a>';
+	}
+
+	/** Query args for the filters, with some replaced. */
+	private static function filter_args( $f, $change ) {
+		$f    = array_merge( $f, $change );
+		$args = array();
+		if ( null !== $f['min'] ) {
+			$args['vxs_min'] = $f['min'];
+		}
+		if ( null !== $f['max'] ) {
+			$args['vxs_max'] = $f['max'];
+		}
+		if ( $f['av'] ) {
+			$args['vxs_av'] = 1;
+		}
+		if ( $f['sale'] ) {
+			$args['vxs_sale'] = 1;
+		}
+		foreach ( $f['o'] as $g => $vals ) {
+			foreach ( array_values( $vals ) as $i => $v ) {
+				$args[ 'vxs_o[' . $g . '][' . $i . ']' ] = rawurlencode( $v );
+			}
+		}
+		return $args;
 	}
 
 	/** How many cards still load their photo at once (set by the first grid on a page). */
@@ -451,7 +693,7 @@ class Velox_Shop_Front {
 		$alt   = $p['gallery'] ? wp_get_attachment_image( (int) $p['gallery'][0], 'large', false, array( 'loading' => 'lazy', 'class' => 'vxs-card-im2', 'alt' => '', 'sizes' => $sizes ) ) : '';
 		$a     = Velox_Shop::availability( $p );
 		$out   = '<article class="vxs-card is-' . esc_attr( $a[0] ) . '">';
-		$out  .= '<a class="vxs-card-media" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . ( $img ? $img : '<span class="vxs-noimg"></span>' ) . $alt . self::badge_html( $p ) . '</a>';
+		$out  .= '<a class="vxs-card-media" href="' . esc_url( $url ) . '" tabindex="-1" aria-hidden="true">' . ( $img ? $img : '<span class="vxs-noimg"></span>' ) . $alt . self::badge_html( $p ) . '</a>' . Velox_Shop_Extras::heart( $p );
 		$out  .= '<div class="vxs-card-body">';
 		if ( '1' === (string) $d['show_cat'] ) {
 			$terms = get_the_terms( $p['id'], Velox_Shop::CAT );
@@ -461,11 +703,11 @@ class Velox_Shop_Front {
 				$out .= '<span class="vxs-card-cat" aria-hidden="true">&nbsp;</span>'; // keeps names in one line across the row
 			}
 		}
-		$out  .= '<h3 class="vxs-card-t"><a href="' . esc_url( $url ) . '">' . esc_html( $p['title'] ) . '</a></h3>';
+		$out  .= '<h3 class="vxs-card-t"><a href="' . esc_url( $url ) . '">' . esc_html( $p['title'] ) . '</a></h3>' . Velox_Shop_Extras::card_rating( $p );
 		if ( '1' === (string) $d['show_text'] && has_excerpt( $p['id'] ) ) {
 			$out .= '<p class="vxs-card-text">' . esc_html( wp_trim_words( get_the_excerpt( $p['id'] ), 22, '…' ) ) . '</p>';
 		}
-		$out  .= '<div class="vxs-card-price">' . self::price_html( $p ) . '</div>';
+		$out  .= '<div class="vxs-card-price">' . self::price_html( $p ) . '</div>' . Velox_Shop_Extras::card_swatches( $p );
 		if ( 'inquiry' !== $p['mode'] ) {
 			$out .= self::tax_note( $p );
 		}
@@ -537,13 +779,14 @@ class Velox_Shop_Front {
 		// alignwide: block themes give it their wide width instead of the text column.
 		$d   = Velox_Shop::design();
 		$out = '<div class="vxs-product alignwide ' . esc_attr( Velox_Shop::design_classes( $d ) ) . '">' . self::gallery_html( $ids, $p, $d ) . '<div class="vxs-product-side">'
-			. ( $title ? '<h1 class="vxs-product-t">' . esc_html( $p['title'] ) . '</h1>' : '' )
+			. ( $title ? '<h1 class="vxs-product-t">' . esc_html( $p['title'] ) . '</h1>' : '' ) . Velox_Shop_Extras::title_rating( $p )
 			. ( has_excerpt( $p['id'] ) ? '<div class="vxs-lead">' . wp_kses_post( wpautop( get_the_excerpt( $p['id'] ) ) ) . '</div>' : '' )
 			. self::buy_box( $p ) . self::usp_html() . '</div></div>';
 		$out .= self::buy_bar( $p );
 		if ( $title && self::own_template() ) {
 			$out = self::crumbs( $p ) . $out;
 		}
+		$out = Velox_Shop_Extras::msg_html() . $out;
 		$tabs = '';
 		if ( '' !== trim( wp_strip_all_tags( $content ) ) ) {
 			$tabs .= '<section class="vxs-desc"><h2>' . esc_html__( 'Description', 'velox' ) . '</h2>' . $content . '</section>';
@@ -561,6 +804,8 @@ class Velox_Shop_Front {
 				return $o;
 			}, $tabs );
 		}
+		// Reviews stay open (never folded away), after the details.
+		$tabs .= Velox_Shop_Extras::reviews_html( $p );
 		$more = $p['upsell'] ? $p['upsell'] : self::related_ids( $p );
 		if ( $more ) {
 			$tabs .= '<section class="vxs-more"><h2>' . esc_html( $p['upsell'] ? __( 'You might also like', 'velox' ) : __( 'More from this category', 'velox' ) ) . '</h2>' . self::grid( array( 'ids' => implode( ',', $more ), 'count' => 4, 'columns' => 4, 'category' => '', 'sort' => 'menu', 'filter' => '' ) ) . '</section>';
@@ -770,8 +1015,10 @@ class Velox_Shop_Front {
 			$vjson = ' data-vxs-variants="' . esc_attr( wp_json_encode( $vars ) ) . '"';
 			foreach ( $p['options'] as $i => $opt ) {
 				$sel .= '<div class="vxs-opt"><span class="vxs-opt-l" id="vxs-o' . (int) $p['id'] . '-' . $i . '">' . esc_html( $opt['name'] ) . '</span><div class="vxs-opt-vals" role="radiogroup" aria-labelledby="vxs-o' . (int) $p['id'] . '-' . $i . '">';
+				$is_c = Velox_Shop_Extras::is_color_option( $opt['name'] );
 				foreach ( $opt['values'] as $val ) {
-					$sel .= '<label class="vxs-chip"><input type="radio" name="vxs_opt_' . $i . '" value="' . esc_attr( $val ) . '" data-vxs-opt="' . $i . '"><span>' . esc_html( $val ) . '</span></label>';
+					$hex  = $is_c ? Velox_Shop_Extras::color_of( $opt, $val ) : '';
+					$sel .= '<label class="vxs-chip' . ( $hex ? ' has-sw' : '' ) . '"><input type="radio" name="vxs_opt_' . $i . '" value="' . esc_attr( $val ) . '" data-vxs-opt="' . $i . '"><span>' . ( $hex ? '<i class="vxs-chip-sw" style="--c:' . esc_attr( $hex ) . '" aria-hidden="true"></i>' : '' ) . esc_html( $val ) . '</span></label>';
 				}
 				$sel .= '</div></div>';
 			}
@@ -782,7 +1029,7 @@ class Velox_Shop_Front {
 		$inner = $sel
 			. '<div class="vxs-buy-row">'
 			. ( $o['qty'] && empty( $p['unique'] ) ? '<div class="vxs-qty"><button type="button" data-vxs-step="-1" aria-label="' . esc_attr__( 'Fewer', 'velox' ) . '">−</button><input type="number" name="qty" value="1" min="1" max="' . (int) $max . '" inputmode="numeric" aria-label="' . esc_attr__( 'Quantity', 'velox' ) . '"><button type="button" data-vxs-step="1" aria-label="' . esc_attr__( 'More', 'velox' ) . '">+</button></div>' : '<input type="hidden" name="qty" value="1">' )
-			. '<button type="submit" class="vxs-btn vxs-btn-lg vxs-buy-btn"' . ( $can ? '' : ' disabled' ) . ' data-vxs-label="' . esc_attr( $label ) . '">' . esc_html( $can ? $label : $a[1] ) . '</button></div>';
+			. '<button type="submit" class="vxs-btn vxs-btn-lg vxs-buy-btn"' . ( $can ? '' : ' disabled' ) . ' data-vxs-label="' . esc_attr( $label ) . '">' . esc_html( $can ? $label : $a[1] ) . '</button>' . Velox_Shop_Extras::heart( $p, true ) . '</div>';
 		$out .= '<div' . $vjson . ' class="vxs-buy-form">' . self::add_form( $p, '', $inner, true ) . '</div>';
 		$out .= '<div class="vxs-buy-meta"><span class="vxs-avail is-' . esc_attr( $a[0] ) . '" data-vxs-avail>' . esc_html( Velox_Shop::has_variants( $p ) ? __( 'Choose your options', 'velox' ) : $a[1] ) . '</span>';
 		if ( '' !== $p['delivery'] && 'physical' === $p['type'] ) {
@@ -791,7 +1038,7 @@ class Velox_Shop_Front {
 		} elseif ( 'digital' === $p['type'] ) {
 			$out .= '<span class="vxs-delivery">' . esc_html__( 'Instant download after payment', 'velox' ) . '</span>';
 		}
-		return $out . '</div></div>';
+		return $out . '</div>' . Velox_Shop_Extras::alert_form( $p, ! Velox_Shop::has_variants( $p ) && ! Velox_Shop::can_buy( $p, null, 1 ) ) . '</div>';
 	}
 
 	/* ------------------------------------------------------------ mini cart */
@@ -1004,6 +1251,10 @@ class Velox_Shop_Front {
 			$out .= '<p class="vxs-hint">' . esc_html__( 'Ordered before?', 'velox' ) . ' <a href="' . esc_url( add_query_arg( 'redirect_to', rawurlencode( self::page_url( 'checkout' ) ), self::page_url( 'account' ) ) ) . '">' . esc_html__( 'Sign in', 'velox' ) . '</a></p>';
 		}
 		$out .= '<div class="vxs-fg">' . $field( 'vx_email', __( 'Email', 'velox' ), 'email', true, 'email' ) . '</div>';
+		if ( Velox_Shop_Extras::on( 'cart_remind', '0' ) ) {
+			// Unticked: a reminder is advertising, so only with consent.
+			$out .= '<label class="vxs-check vxs-remind"><input type="checkbox" name="vx_remind" value="1" data-vxs-remind> <span>' . esc_html__( 'Remind me by email once if I do not finish my order. I can say no to it in that email.', 'velox' ) . '</span></label>';
+		}
 		if ( 'hidden' !== $phone ) {
 			$out .= '<div class="vxs-fg">' . $field( 'vx_phone', __( 'Phone', 'velox' ), 'tel', 'required' === $phone, 'tel' ) . '</div>';
 		}
@@ -1527,6 +1778,10 @@ class Velox_Shop_Front {
 		wp_localize_script( 'velox-shop', 'VELOX_SHOP', array(
 			'rest'  => esc_url_raw( rest_url( 'velox/v1/shop/' ) ),
 			'after' => (string) Velox_Shop::get( 'after_add', 'drawer' ),
+			// Signed in: the wishlist lives in the account (these pages are never cached).
+			'wish'    => is_user_logged_in() ? Velox_Shop_Extras::wish_ids() : null,
+			'nonce'   => is_user_logged_in() ? wp_create_nonce( 'wp_rest' ) : '',
+			'account' => Velox_Shop_Account::url( 'wishlist' ),
 			'i18n'  => array(
 				'cart'      => __( 'Your cart', 'velox' ),
 				'empty'     => __( 'Your cart is empty.', 'velox' ),
@@ -1551,6 +1806,13 @@ class Velox_Shop_Front {
 				'next'      => __( 'Next photo', 'velox' ),
 				'zoom'      => __( 'Show full screen', 'velox' ),
 				'loading'   => __( 'Loading…', 'velox' ),
+				'wishAdd'   => __( 'Saved to your wishlist', 'velox' ),
+				'wishDel'   => __( 'Removed from your wishlist', 'velox' ),
+				'wishView'  => __( 'View wishlist', 'velox' ),
+				'wishSave'  => __( 'Save to your wishlist', 'velox' ),
+				'wishSaved' => __( 'On your wishlist', 'velox' ),
+				'sending'   => __( 'Sending…', 'velox' ),
+				'failed'    => __( 'That did not work. Please try again.', 'velox' ),
 			),
 		) );
 	}

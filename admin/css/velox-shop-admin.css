@@ -593,3 +593,29 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 .vsa-smeth{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px 16px}
 @media (max-width:900px){.vsa-po-flow{flex-direction:column}.vsa-po-flow>.vsa-ic{transform:rotate(90deg)}.vsa-smeth{grid-template-columns:1fr}}
 .vsa-card-h h2>.vsa-ic{display:inline-block;margin:0 6px 0 0;vertical-align:-2px;color:var(--vbb-text-3)}
+/* 4.63 — reviews, colour per option value */
+.vsa-rvtabs{margin:0 0 16px}
+.vsa-rvtabs i{margin-left:4px;font-style:normal;opacity:.7}
+.vsa-rvlist{list-style:none;margin:0;padding:0}
+.vsa-rv{display:grid;grid-template-columns:200px minmax(0,1fr) auto;gap:16px;align-items:start;padding:16px 0;border-bottom:1px solid var(--vbb-line)}
+.vsa-rv:last-child{border-bottom:0}
+.vsa-rv.is-hold{box-shadow:inset 3px 0 0 var(--vbb-warn,#f5b84b);padding-left:12px}
+.vsa-rv-p{display:flex;align-items:center;gap:10px;min-width:0;color:var(--vbb-text);font-weight:550;text-decoration:none}
+.vsa-rv-p span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vsa-rv-p:hover span{color:var(--vbb-accent)}
+.vsa-rv-b{display:flex;flex-direction:column;gap:5px;min-width:0}
+.vsa-rv-b b{font-weight:600}
+.vsa-rv-b p{margin:0;color:var(--vbb-text-2);line-height:1.55;white-space:pre-line}
+.vsa-rv-b small{color:var(--vbb-text-3);font-size:12px}
+.vsa-rv-b small a{color:inherit}
+.vsa-rv-reply{margin-top:4px;padding:8px 12px;border-left:2px solid var(--vbb-accent);background:var(--vbb-raised);border-radius:0 8px 8px 0}
+.vsa-rv-reply b{font-size:12px}
+.vsa-rv-a{display:flex;align-items:center;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.vsa-rvstars{display:inline-flex;gap:1px}
+.vsa-rvstars i{display:inline-flex;color:var(--vbb-line-2,#444)}
+.vsa-rvstars i.is-on{color:#f5a623}
+.vsa-rvstars i.is-on svg{fill:currentColor}
+.vsa-pager{justify-content:center;padding-top:12px}
+@media (max-width:900px){.vsa-rv{grid-template-columns:1fr}.vsa-rv-a{justify-content:flex-start}}
+.vsa-tag.has-col{padding-left:4px}
+.vsa-tag .vxcp-chip{width:18px;height:18px;margin-right:4px;border-radius:5px}

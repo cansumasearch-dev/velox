@@ -59,6 +59,7 @@
 	function fail( e ) { toast( e && e.message ? e.message : String( e ), true ); }
 
 	var IC = {
+		star:'<path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.2 6-5.5-3-5.5 3 1.2-6L3.2 9.6l6.1-.8z"/>',
 		brush: '<path d="M14.5 3.5l6 6-8 8-6-6z"/><path d="M6.5 11.5 3 15c-1 1 0 3.5 2 5.5s4.5 3 5.5 2l3.5-3.5"/>',
 		home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/>',
 		bag:'<path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/>',
@@ -115,12 +116,12 @@
 
 	var NAV = [
 		[ '', 'home', vxT( 'Overview' ) ], [ 'revenue', 'chart', vxT( 'Revenue' ) ], [ 'payouts', 'card', vxT( 'Payouts' ) ], [ 'orders', 'receipt', vxT( 'Orders' ) ], [ 'products', 'box', vxT( 'Products' ) ],
-		[ 'coupons', 'percent', vxT( 'Coupons' ) ], [ 'customers', 'users', vxT( 'Customers' ) ], [ 'settings', 'gear', vxT( 'Settings' ) ]
+		[ 'coupons', 'percent', vxT( 'Coupons' ) ], [ 'customers', 'users', vxT( 'Customers' ) ], [ 'reviews', 'star', vxT( 'Reviews' ) ], [ 'settings', 'gear', vxT( 'Settings' ) ]
 	];
 	var dirty = false, badge = { orders:0 };
 	function shell() {
 		root.innerHTML = '<div class="vsa-shell"><header class="vsa-bar"><a class="vsa-brand" href="#/">' + ic( 'store', 18 ) + '<b>' + esc( S.store_name || vxT( 'Shop' ) ) + '</b></a>' +
-			'<nav class="vsa-nav" aria-label="' + esc( vxT( 'Shop' ) ) + '">' + NAV.map( function ( n ) { return '<a href="#/' + n[ 0 ] + '" data-nav="' + n[ 0 ] + '">' + ic( n[ 1 ], 15 ) + '<span>' + esc( n[ 2 ] ) + '</span>' + ( 'orders' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-ordbadge" hidden></i>' : '' ) + '</a>'; } ).join( '' ) + '</nav>' +
+			'<nav class="vsa-nav" aria-label="' + esc( vxT( 'Shop' ) ) + '">' + NAV.map( function ( n ) { return '<a href="#/' + n[ 0 ] + '" data-nav="' + n[ 0 ] + '">' + ic( n[ 1 ], 15 ) + '<span>' + esc( n[ 2 ] ) + '</span>' + ( 'orders' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-ordbadge" hidden></i>' : ( 'reviews' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-rvbadge"' + ( C.reviewsOpen ? '' : ' hidden' ) + '>' + ( +C.reviewsOpen || '' ) + '</i>' : '' ) ) + '</a>'; } ).join( '' ) + '</nav>' +
 			'<div class="vsa-bar-r"><a class="vsa-btn vsa-btn-ghost vsa-btn-sm" href="' + esc( pageUrl( 'shop' ) || C.home ) + '" target="_blank" rel="noopener">' + ic( 'ext', 14 ) + vxT( 'View shop' ) + '</a></div></header>' +
 			'<main class="vsa-main" id="vsa-main" tabindex="-1"></main></div>';
 	}
@@ -214,7 +215,7 @@
 		route = parse();
 		setNav( route.name );
 		closeModal();
-		var fn = { '':overview, orders:route.id ? orderDetail : orders, products:route.id ? productEdit : products, coupons:coupons, customers:customers, revenue:revenue, payouts:payouts, settings:settings, setup:setup }[ route.name ] || overview;
+		var fn = { '':overview, orders:route.id ? orderDetail : orders, products:route.id ? productEdit : products, coupons:coupons, customers:customers, reviews:reviewsScreen, revenue:revenue, payouts:payouts, settings:settings, setup:setup }[ route.name ] || overview;
 		fn();
 		var m = main(); if ( m ) { m.scrollTop = 0; window.scrollTo( 0, 0 ); }
 	}
@@ -907,7 +908,8 @@
 			( +p.track && ! +p.unique && ! hasVar ? '<div class="vsa-fr">' + field( vxT( 'In stock' ), inp( 'stock', p.stock, { mode:'numeric', ph:'0' } ) ) + field( vxT( 'Max. per order' ), inp( 'max_qty', p.max_qty, { mode:'numeric', ph:vxT( 'no limit' ) } ) ) + '</div>' + tog( 'backorder', !! +p.backorder, vxT( 'Keep selling when sold out' ), vxT( 'Shown as “Available to order”.' ) ) : '' ) +
 			( +p.track && ! +p.unique && hasVar ? '<p class="vsa-hint">' + vxT( 'Each variant has its own stock (below).' ) + '</p>' + tog( 'backorder', !! +p.backorder, vxT( 'Keep selling when sold out' ), '' ) : '' ) +
 			( +p.unique ? '<div class="vsa-fr">' + field( vxT( 'Status' ), seg( 'stock', String( '' === String( p.stock ) ? 1 : p.stock ), [ [ '1', vxT( 'Available' ) ], [ '0', vxT( 'Sold' ) ] ] ) ) + '<span></span></div>' : '' ) +
-			'<div class="vsa-fr">' + field( vxT( 'Item number (SKU)' ), inp( 'sku', p.sku, { ph:vxT( 'optional' ) } ) ) + field( 'EAN / GTIN', inp( 'gtin', p.gtin, { mode:'numeric', ph:vxT( 'optional' ) } ) ) + '</div>' );
+			'<div class="vsa-fr">' + field( vxT( 'Item number (SKU)' ), inp( 'sku', p.sku, { ph:vxT( 'optional' ) } ) ) + field( 'EAN / GTIN', inp( 'gtin', p.gtin, { mode:'numeric', ph:vxT( 'optional' ) } ) ) + '</div>' +
+			( +p.alertsWaiting ? '<div class="vsa-note">' + ic( 'mail', 15 ) + '<span>' + ( 1 === +p.alertsWaiting ? vxT( '1 customer is waiting for this to be back.' ) : vxT( '%d customers are waiting for this to be back.' ).replace( '%d', p.alertsWaiting ) ) + ' ' + vxT( 'They get one email as soon as it can be bought again.' ) + '</span></div>' : '' ) );
 		// variants
 		h += card( vxT( 'Options' ), variantsHTML(), { id:'vsa-variants', right:p.options.length < 3 && ! +p.unique ? '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="v-addopt">' + ic( 'plus', 14 ) + vxT( 'Add option' ) + '</button>' : '' } );
 		// shipping
@@ -958,7 +960,11 @@
 		if ( +p.unique ) { return '<p class="vsa-muted">' + vxT( 'A one-of-a-kind piece has no options.' ) + '</p>'; }
 		if ( ! p.options.length ) { return '<p class="vsa-muted">' + vxT( 'Sizes, colours, materials … Add an option and Velox makes a variant for every combination, each with its own price, stock and photo.' ) + '</p>'; }
 		var h = '<div class="vsa-opts">' + p.options.map( function ( o, i ) {
-			return '<div class="vsa-opt"><input class="vsa-in vsa-opt-n" data-optname="' + i + '" value="' + esc( o.name ) + '" placeholder="' + esc( vxT( 'Size' ) ) + '"><div class="vsa-tags">' + o.values.map( function ( v, j ) { return '<span class="vsa-tag">' + esc( v ) + '<button type="button" data-optval-del="' + i + ':' + j + '" aria-label="' + esc( vxT( 'Remove' ) ) + '">×</button></span>'; } ).join( '' ) +
+			var isCol = /farb|colou?r|couleur|kolor/i.test( o.name || '' );
+			return '<div class="vsa-opt"><input class="vsa-in vsa-opt-n" data-optname="' + i + '" value="' + esc( o.name ) + '" placeholder="' + esc( vxT( 'Size' ) ) + '"><div class="vsa-tags">' + o.values.map( function ( v, j ) {
+				var hex = ( o.colors || {} )[ v ] || '';
+				return '<span class="vsa-tag' + ( isCol ? ' has-col' : '' ) + '">' + ( isCol ? '<input type="color" class="vsa-optcol" data-optcol="' + i + ':' + j + '" value="' + esc( /^#[0-9a-f]{6}$/i.test( hex ) ? hex : '#cccccc' ) + '" aria-label="' + esc( vxT( 'Colour for' ) + ' ' + v ) + '">' : '' ) + esc( v ) + '<button type="button" data-optval-del="' + i + ':' + j + '" aria-label="' + esc( vxT( 'Remove' ) ) + '">×</button></span>';
+			} ).join( '' ) +
 				'<input class="vsa-tag-in" data-optval="' + i + '" placeholder="' + esc( o.values.length ? vxT( 'Add a value' ) : vxT( 'S, M, L … press Enter' ) ) + '"></div><button type="button" class="vsa-iconbtn" data-optdel="' + i + '" aria-label="' + esc( vxT( 'Remove option' ) ) + '">' + ic( 'trash', 14 ) + '</button></div>';
 		} ).join( '' ) + '</div>';
 		if ( p.variants.length ) {
@@ -1288,11 +1294,27 @@
 				field( vxT( '“New” badge' ), sel( 'new_days', String( s.new_days || 0 ), [ [ '0', vxT( 'Off' ) ], [ '7', vxT( 'First 7 days' ) ], [ '14', vxT( 'First 14 days' ) ], [ '30', vxT( 'First 30 days' ) ], [ '60', vxT( 'First 60 days' ) ] ] ), vxT( 'Sale, sold and few-left badges come first.' ) ) + '</div>' +
 				tog( 'grid_sort', on1( 'grid_sort' ), vxT( 'Sort menu' ), vxT( 'Recommended, newest, price up or down, name.' ) ) +
 				tog( 'grid_search', on1( 'grid_search' ), vxT( 'Search field' ), vxT( 'Worth it from about 30 products.' ) ) +
+				tog( 'grid_filters', on1( 'grid_filters' ), vxT( 'Filters with counts' ), vxT( 'Price, your product options (colour, size …), available now and on sale — each shows how many products it leaves.' ) ) +
+				tog( 'card_swatches', on1( 'card_swatches' ), vxT( 'Colour dots on product cards' ), vxT( 'For products with a colour option. Pointing at a dot shows that colour’s photo.' ) ) +
 				'<p class="vsa-hint">' + vxT( 'On the shop page the product count, categories, sorting and search sit above the grid. Every choice stays in the address, so Back and shared links land in the same place.' ) + '</p>' ) +
 			card( vxT( 'Product pages' ),
 				tog( 'zoom', on1( 'zoom' ), vxT( 'Photos open full screen' ), vxT( 'Click or tap a photo; arrows, swipe and Esc work.' ) ) +
 				tog( 'related', on1( 'related' ), vxT( 'More from the same category' ), vxT( 'Under products without hand-picked suggestions.' ) ) +
 				field( vxT( 'Reasons to buy' ), area( 'usp', s.usp || '', 4, [ vxT( 'Free shipping from €50' ), vxT( '30 days to return' ), vxT( 'Secure payment with PayPal and card' ) ].join( '\n' ) ), vxT( 'One per line, up to six, under the buy button. The icon follows the words: shipping, returns, payment, gift, handmade.' ) ) ) +
+			card( vxT( 'Wishlist & back in stock' ),
+				tog( 'wishlist', on1( 'wishlist' ), vxT( 'Wishlist' ), vxT( 'A heart on every product. Guests keep the list in their browser; with an account it is saved there, on all devices.' ) ) +
+				tog( 'stock_alerts', on1( 'stock_alerts' ), vxT( '“Tell me when it is back”' ), vxT( 'Sold-out products (and sold-out variants) offer an email field. After a confirmation click, the customer gets exactly one email when it can be bought again; the address is then deleted.' ) ) ) +
+			card( vxT( 'Reviews' ),
+				tog( 'reviews', on1( 'reviews' ), vxT( 'Star reviews on product pages' ), vxT( 'With the average under the product name and in Google’s search results.' ) ) +
+				( on1( 'reviews' ) ? tog( 'reviews_approve', on1( 'reviews_approve' ), vxT( 'Check reviews before they appear' ), vxT( 'New reviews wait under Reviews until you publish them.' ) ) +
+					tog( 'reviews_verified', on1( 'reviews_verified' ), vxT( 'Only buyers may review' ), vxT( 'The email address must belong to a paid order with this product. Without it, those reviews are marked “Verified purchase”.' ) ) +
+					tog( 'card_rating', on1( 'card_rating' ), vxT( 'Stars on product cards' ), '' ) +
+					'<p class="vsa-hint">' + vxT( 'The product page says how reviews are checked, as German law (§ 5b UWG) requires. Manage them under Reviews.' ) + ' <a href="#/reviews">' + vxT( 'Open Reviews' ) + '</a></p>' : '' ) ) +
+			card( vxT( 'Cart reminders' ),
+				tog( 'cart_remind', on1( 'cart_remind' ), vxT( 'Remind customers of a cart they left' ), vxT( 'One email, only to customers who tick “Remind me” at checkout — an advertising email needs consent in Germany. The button in it restores the cart.' ) ) +
+				( on1( 'cart_remind' ) ? '<div class="vsa-fr">' + field( vxT( 'Send after' ), sel( 'cart_remind_hours', String( s.cart_remind_hours || 3 ), [ [ '1', vxT( '1 hour' ) ], [ '3', vxT( '3 hours' ) ], [ '6', vxT( '6 hours' ) ], [ '12', vxT( '12 hours' ) ], [ '24', vxT( '1 day' ) ], [ '48', vxT( '2 days' ) ] ] ) ) +
+					field( vxT( 'Coupon in the email' ), sel( 'cart_remind_coupon', s.cart_remind_coupon || '', [ [ '', vxT( 'None' ) ] ].concat( ( C.couponCodes || [] ).map( function ( c ) { return [ c, c ]; } ) ) ), vxT( 'Optional. Create codes under Coupons.' ) ) + '</div>' +
+					( C.cartStats ? '<p class="vsa-hint">' + vxT( 'Sent: %1$d · Orders afterwards: %2$d (%3$s) · Waiting: %4$d' ).replace( '%1$d', C.cartStats.sent ).replace( '%2$d', C.cartStats.recovered ).replace( '%3$s', money( C.cartStats.revenue ) ).replace( '%4$d', C.cartStats.waiting ) + '</p>' : '' ) : '' ) ) +
 			card( vxT( 'Notice bar' ),
 				tog( 'notice_on', on1( 'notice_on' ), vxT( 'A slim bar across the top of every page' ), vxT( 'Free shipping, a sale, holidays. Visitors can close it.' ) ) +
 				( on1( 'notice_on' ) ? field( vxT( 'Message' ), area( 'notice_text', s.notice_text || '', 3, vxT( 'Free shipping in Germany from €50' ) ), vxT( 'Several lines take turns every five seconds.' ) ) + field( vxT( 'Link' ), inp( 'notice_link', s.notice_link || '', { ph:'https://…', type:'url' } ), vxT( 'Optional — the whole message becomes a link.' ) ) : '' ) );
@@ -1322,6 +1344,46 @@
 				fr.srcdoc = r.html; fr.parentNode.classList.remove( 'is-busy' ); dsFit();
 			} ).catch( function () { var fr = document.getElementById( 'vsa-dprev' ); if ( fr ) { fr.parentNode.classList.remove( 'is-busy' ); } } );
 		}, 350 );
+	}
+
+
+	/* ============================================================== REVIEWS */
+	var RVW = { view:'hold', page:1, rows:[] };
+	function reviewsScreen() {
+		loading();
+		api( 'reviews', { view:RVW.view, page:RVW.page } ).then( function ( d ) { RVW.rows = d.rows; RVW.d = d; drawReviews(); } ).catch( fail );
+	}
+	function rvStars( n ) { var h = ''; for ( var i = 1; i <= 5; i++ ) { h += '<i class="' + ( i <= n ? 'is-on' : '' ) + '">' + ic( 'star', 14 ) + '</i>'; } return '<span class="vsa-rvstars" aria-label="' + n + '/5">' + h + '</span>'; }
+	function rvRow( r ) {
+		return '<li class="vsa-rv' + ( 'hold' === r.status ? ' is-hold' : '' ) + '" data-rv="' + r.id + '">' +
+			'<a class="vsa-rv-p" href="' + esc( r.url ) + '" target="_blank" rel="noopener">' + thumb( r.thumb ) + '<span>' + esc( r.title ) + '</span></a>' +
+			'<div class="vsa-rv-b">' + rvStars( r.rating ) + ( r.head ? '<b>' + esc( r.head ) + '</b>' : '' ) + '<p>' + esc( r.text ) + '</p>' +
+			'<small>' + esc( r.name ) + ' · <a href="mailto:' + esc( r.email ) + '">' + esc( r.email ) + '</a> · ' + esc( date( r.date, true ) ) + ( r.verified ? ' · <span class="vsa-chip is-ok">' + vxT( 'Verified purchase' ) + '</span>' : '' ) + '</small>' +
+			( r.reply ? '<div class="vsa-rv-reply"><b>' + vxT( 'Your reply' ) + '</b><p>' + esc( r.reply ) + '</p></div>' : '' ) + '</div>' +
+			'<div class="vsa-rv-a">' + ( 'hold' === r.status ? '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-pri" data-act="rv-approve">' + ic( 'check', 14 ) + vxT( 'Publish' ) + '</button>' : '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="rv-hold">' + vxT( 'Hide' ) + '</button>' ) +
+			'<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="rv-reply">' + ic( 'mail', 14 ) + ( r.reply ? vxT( 'Edit reply' ) : vxT( 'Reply' ) ) + '</button>' +
+			'<button type="button" class="vsa-iconbtn" data-act="rv-trash" aria-label="' + esc( vxT( 'Move to trash' ) ) + '">' + ic( 'trash', 14 ) + '</button></div></li>';
+	}
+	function drawReviews() {
+		var d = RVW.d, tabs = [ [ 'hold', vxT( 'Waiting' ), d.counts.hold ], [ 'approve', vxT( 'Published' ), d.counts.approve ], [ 'all', vxT( 'All' ), '' ] ];
+		var h = head( vxT( 'Reviews' ), esc( vxT( 'What customers say about your products' ) ), '' );
+		h += '<div class="vsa-seg vsa-rvtabs" role="tablist">' + tabs.map( function ( t ) { return '<button type="button" role="tab" data-rvview="' + t[ 0 ] + '" aria-selected="' + ( RVW.view === t[ 0 ] ) + '" class="' + ( RVW.view === t[ 0 ] ? 'is-on' : '' ) + '">' + esc( t[ 1 ] ) + ( '' !== t[ 2 ] ? ' <i>' + t[ 2 ] + '</i>' : '' ) + '</button>'; } ).join( '' ) + '</div>';
+		if ( ! RVW.rows.length ) {
+			h += card( '', empty( 'star', 'hold' === RVW.view ? vxT( 'Nothing waiting' ) : vxT( 'No reviews yet' ), 'hold' === RVW.view ? vxT( 'New reviews show up here first, when “Check reviews before they appear” is on.' ) : vxT( 'Customers write them on the product page. Ask happy customers for one — it helps the next buyer most.' ) ) );
+		} else {
+			h += card( '', '<ul class="vsa-rvlist">' + RVW.rows.map( rvRow ).join( '' ) + '</ul>' +
+				( d.pages > 1 ? '<div class="vsa-row vsa-pager">' + ( RVW.page > 1 ? '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-rvpage="' + ( RVW.page - 1 ) + '">' + vxT( 'Previous' ) + '</button>' : '' ) + '<span class="vsa-muted">' + RVW.page + ' / ' + d.pages + '</span>' + ( RVW.page < d.pages ? '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-rvpage="' + ( RVW.page + 1 ) + '">' + vxT( 'Next' ) + '</button>' : '' ) + '</div>' : '' ), { cls:'vsa-card-flushx' } );
+		}
+		main().innerHTML = h;
+	}
+	function rvAct( li, act, extra ) {
+		return api( 'review_action', Object.assign( { id:+li.getAttribute( 'data-rv' ), act:act }, extra || {} ) ).then( function ( r ) {
+			var b = document.getElementById( 'vsa-rvbadge' ); if ( b ) { b.hidden = ! r.open; b.textContent = r.open || ''; }
+			if ( r.msg ) { toast( r.msg ); }
+			var keep = 'all' === RVW.view || ( 'reply' === act ) || r.row.status === RVW.view;
+			if ( keep && 'trash' !== act ) { RVW.rows = RVW.rows.map( function ( x ) { return x.id === r.row.id ? r.row : x; } ); var tmp = document.createElement( 'div' ); tmp.innerHTML = rvRow( r.row ); li.replaceWith( tmp.firstChild ); }
+			else { RVW.rows = RVW.rows.filter( function ( x ) { return x.id !== r.row.id; } ); li.remove(); if ( ! RVW.rows.length ) { reviewsScreen(); } }
+		} ).catch( fail );
 	}
 
 	/* ============================================================ SETTINGS */
@@ -1528,6 +1590,18 @@
 		if ( 's-reset' === act ) { SD = JSON.parse( SDclean ); redrawSettings(); return; }
 		if ( 's-pages' === act ) { a.disabled = true; api( 'create_pages', {} ).then( function ( r ) { S = r.settings; C.pages = r.pages; Object.keys( r.settings ).forEach( function ( k ) { if ( /^page_/.test( k ) ) { SD[ k ] = r.settings[ k ]; } } ); SDclean = JSON.stringify( Object.assign( JSON.parse( SDclean ), Object.keys( r.settings ).filter( function ( k ) { return /^page_/.test( k ); } ).reduce( function ( o, k ) { o[ k ] = r.settings[ k ]; return o; }, {} ) ) ); redrawSettings(); toast( r.made.length ? vxT( 'Created:' ) + ' ' + r.made.join( ', ' ) : vxT( 'All pages exist already.' ) ); } ).catch( fail ); return; }
 		if ( 'o-edit' === act ) { editOrder(); return; }
+		if ( act && 0 === act.indexOf( 'rv-' ) ) {
+			var rli = a.closest( '[data-rv]' );
+			if ( 'rv-reply' === act ) {
+				var cur = RVW.rows.filter( function ( x ) { return x.id === +rli.getAttribute( 'data-rv' ); } )[ 0 ] || {};
+				modal( vxT( 'Reply to the review' ), '<p class="vsa-p">' + vxT( 'Your reply shows under the review on the product page, with your shop’s name. Leave it empty to remove it.' ) + '</p><textarea class="vsa-in" rows="5" id="vsa-rvr">' + esc( cur.reply || '' ) + '</textarea>', [ { k:'no', label:vxT( 'Cancel' ) }, { k:'yes', label:ic( 'check', 15 ) + vxT( 'Save reply' ) } ], function ( k, m ) { var tx = m.querySelector( '#vsa-rvr' ).value; closeModal(); if ( 'yes' === k ) { rvAct( rli, 'reply', { text:tx } ); } } );
+				return;
+			}
+			if ( 'rv-trash' === act ) { confirmBox( vxT( 'Move this review to the trash?' ), vxT( 'It disappears from the product page. You can restore it under Comments → Trash in WordPress.' ), vxT( 'Move to trash' ), true ).then( function ( y ) { if ( y ) { rvAct( rli, 'trash' ); } } ); return; }
+			rvAct( rli, act.slice( 3 ) ); return;
+		}
+		var rvv = t.closest( '[data-rvview]' ); if ( rvv ) { RVW.view = rvv.getAttribute( 'data-rvview' ); RVW.page = 1; reviewsScreen(); return; }
+		var rvp = t.closest( '[data-rvpage]' ); if ( rvp ) { RVW.page = +rvp.getAttribute( 'data-rvpage' ); reviewsScreen(); return; }
 		if ( 'po-refresh' === act ) { payouts( true ); return; }
 		if ( 'po-payout' === act ) { confirmBox( vxT( 'Pay out to your bank now?' ), vxT( 'Stripe sends the whole available balance to the bank account set in Stripe. It usually arrives in 1–3 working days.' ), vxT( 'Pay out' ) ).then( function ( y ) { if ( y ) { api( 'payout_now' ).then( function ( r ) { toast( r.msg ); payouts( true ); } ).catch( fail ); } } ); return; }
 		if ( 'go-unpaid' === act ) { OV.view = 'unpaid'; OV.page = 1; location.hash = '#/orders'; return; }
@@ -1604,6 +1678,7 @@
 				markDirty(); return;
 			}
 			var on_ = t.getAttribute( 'data-optname' ); if ( null !== on_ ) { P.options[ +on_ ].name = t.value; markDirty(); return; }
+			var oc_ = t.getAttribute( 'data-optcol' ); if ( null !== oc_ ) { var oq = oc_.split( ':' ), oo = P.options[ +oq[ 0 ] ]; oo.colors = oo.colors || {}; oo.colors[ oo.values[ +oq[ 1 ] ] ] = t.value; markDirty(); return; }
 			var sp = t.getAttribute( 'data-spec' ); if ( null !== sp ) { P.specs[ +sp ][ t.getAttribute( 'data-sk' ) ] = t.value; markDirty(); return; }
 			var vr = t.getAttribute( 'data-var' );
 			if ( null !== vr ) { var vk = t.getAttribute( 'data-vk' ); if ( 'on' === vk ) { P.variants[ +vr ].off = t.checked ? 0 : 1; t.closest( 'tr' ).classList.toggle( 'is-off', ! t.checked ); } else { P.variants[ +vr ][ vk ] = t.value; } markDirty(); return; }
@@ -1621,7 +1696,7 @@
 		if ( 'settings' === route.name && SD ) {
 			var sk = t.getAttribute( 'data-k' );
 			if ( sk ) {
-				if ( 'checkbox' === t.type ) { SD[ sk ] = t.checked ? '1' : ''; if ( /^pay_|^pickup$|^auto_layout$|^notice_on$/.test( sk ) ) { redrawSettings(); return; } }
+				if ( 'checkbox' === t.type ) { SD[ sk ] = t.checked ? '1' : ''; if ( /^pay_|^pickup$|^auto_layout$|^notice_on$|^reviews$|^cart_remind$/.test( sk ) ) { redrawSettings(); return; } }
 				else { SD[ sk ] = /^page_/.test( sk ) ? +t.value : t.value; if ( 'accent' === sk || /^d_(ink|surface|line|soft|bg|muted|accent|accent_ink|sale)$/.test( sk ) ) { [].forEach.call( main().querySelectorAll( '[data-k="' + sk + '"]' ), function ( x ) { if ( x !== t && ( 'color' !== x.type || /^#[0-9a-f]{6}$/i.test( t.value ) ) ) { x.value = t.value; } } ); } }
 				if ( /^page_/.test( sk ) ) { redrawSettings(); return; }
 				if ( /^d_font_/.test( sk ) ) { redrawSettings(); return; }
@@ -1669,7 +1744,11 @@
 	root.addEventListener( 'click', onClick );
 	document.addEventListener( 'click', function ( e ) { if ( ! root.contains( e.target ) ) { [].forEach.call( document.querySelectorAll( '.vsa-menu-p' ), function ( p ) { p.hidden = true; } ); } } );
 	root.addEventListener( 'input', onInput );
-	root.addEventListener( 'change', function ( e ) { var k = e.target.getAttribute && e.target.getAttribute( 'data-rvf' ); if ( k ) { RV[ k ] = e.target.value; loadRevenue(); } } );
+	root.addEventListener( 'change', function ( e ) {
+		var k = e.target.getAttribute && e.target.getAttribute( 'data-rvf' ); if ( k ) { RV[ k ] = e.target.value; loadRevenue(); }
+		// A renamed option ("Farbe", "Colour") gets or loses its colour pickers.
+		if ( e.target.hasAttribute && e.target.hasAttribute( 'data-optname' ) && P ) { redrawVariants(); }
+	} );
 	document.addEventListener( 'keydown', onKey );
 
 	shell();
