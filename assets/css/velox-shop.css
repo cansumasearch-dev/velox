@@ -961,3 +961,6 @@ body.vxs-paint .vxs-product-more,body.vxs-paint .entry-content,body.vxs-paint .w
 .vxs-rv-reply b{display:block;margin-bottom:4px;color:var(--vxs-ink);font-size:13px}
 .vxs-rv-reply p{margin:0}
 .vxs-remind{margin-top:4px;font-size:13.5px}
+html.vxs-sbar-on .vxs-toast{bottom:92px}
+@media (min-width:900px){html.vxs-sbar-on .vxs-toast{bottom:104px}}
+.vxs-rv-text p{font-size:15px}
