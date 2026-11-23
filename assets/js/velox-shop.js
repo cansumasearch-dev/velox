@@ -517,18 +517,19 @@
 		}, 5000 );
 	}
 
-	/* -------------------------------------------- account menu: centred under its icon, never off-screen */
 	// Account tabs on a phone: show the active tab and fade the edge that has more tabs behind it.
 	function accTabs() {
 		var ul = $( '.vxa-nav ul' ); if ( ! ul ) { return; }
-		var cur = $( '[aria-current="page"]', ul );
-		if ( cur && cur.offsetLeft + cur.offsetWidth > ul.clientWidth ) { ul.scrollLeft = cur.offsetLeft - 24; }
+		function show() { var cur = $( '[aria-current="page"]', ul ); if ( cur && cur.offsetLeft + cur.offsetWidth > ul.clientWidth ) { ul.scrollLeft = cur.offsetLeft - 24; } edges(); }
 		function edges() {
 			ul.classList.toggle( 'can-l', ul.scrollLeft > 2 );
 			ul.classList.toggle( 'can-r', ul.scrollLeft + ul.clientWidth < ul.scrollWidth - 2 );
 		}
-		edges(); ul.addEventListener( 'scroll', edges, { passive:true } ); window.addEventListener( 'resize', edges );
+		show(); ul.addEventListener( 'scroll', edges, { passive:true } ); window.addEventListener( 'resize', edges );
+		// Web fonts change the tab widths after the first paint.
+		if ( document.fonts && document.fonts.ready ) { document.fonts.ready.then( show ); }
 	}
+	/* -------------------------------------------- account menu: centred under its icon, never off-screen */
 	function accMenus() {
 		$$( '.vxa-menu' ).forEach( function ( m ) {
 			var pop = $( '.vxa-pop', m ); if ( ! pop ) { return; }
