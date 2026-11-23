@@ -4057,7 +4057,7 @@
 				'<span class="vb-viewas-wrap" id="vb-viewas-wrap">' + svg( 'eye', 14 ) +
 					'<select class="vb-viewas" id="vb-viewas" title="' + T( 'Preview this template with a page\'s content' ) + '"><option value="">' + T( 'View as…' ) + '</option></select>' +
 				'</span>' +
-				'<button class="vb-aibtn" id="vb-ai" title="' + T( 'Claude: build and change with words' ) + '">' + svg( 'stars', 16 ) + '<span class="vb-lbl">Claude</span></button>' +
+				'<button class="vb-ic vb-aibtn" id="vb-ai" title="' + T( 'Claude: build and change with words' ) + '" aria-label="Claude">' + svg( 'stars', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-structure" title="' + T( 'Structure' ) + '">' + svg( 'structure', 16 ) + '</button>' +
 				'<a class="vb-ic" id="vb-reusables" target="_blank" rel="noopener" href="' + ( CFG.reusablesUrl || '#' ) + '" title="' + T( 'Reusables' ) + '">' + svg( 'copy', 16 ) + '</a>' +
 				'<button class="vb-ic" id="vb-search" title="' + T( 'Switch page' ) + '">' + svg( 'search', 16 ) + '</button>' +
@@ -11225,10 +11225,8 @@
 			'.vb-csspanel{width:var(--vb-pw-css,380px)}.vb-histpanel{width:var(--vb-pw-hist,320px)}.vb-structpanel{width:var(--vb-pw-struct,300px)}.vb-setpanel{width:var(--vb-pw-settings,340px)}',
 			'body.velox-builder-body #vxth{right:calc(var(--vb-cur-rw,0px) + 16px)}',
 			'.vb-aipanel{position:absolute;top:48px;right:0;bottom:0;width:var(--vb-pw-ai,380px);background:var(--vb-bg1);border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
-			'.vb-aibtn{display:inline-flex;align-items:center;gap:6px;height:32px;margin:0 4px 0 0;padding:0 12px 0 10px;border:0;border-radius:8px;background:linear-gradient(180deg,rgba(217,119,87,.22),rgba(217,119,87,.12));box-shadow:inset 0 0 0 1px rgba(217,119,87,.35);color:#f3c4ae;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .15s var(--vx-ease),box-shadow .15s var(--vx-ease)}',
-			'.vb-aibtn:hover,.vb-aibtn.on{background:linear-gradient(180deg,rgba(217,119,87,.32),rgba(217,119,87,.2));color:#fff}',
-			'.vb-aibtn:focus-visible{outline:2px solid var(--vb-acc);outline-offset:2px}',
-			'@media (max-width:1240px){.vb-top .vb-aibtn .vb-lbl{display:none}.vb-top .vb-aibtn{width:32px;padding:0;justify-content:center}}',
+			'.vb-top .vb-aibtn{color:#e9a587;background:rgba(217,119,87,.12);box-shadow:inset 0 0 0 1px rgba(217,119,87,.28)}',
+			'.vb-top .vb-aibtn:hover,.vb-top .vb-aibtn.on{color:#fff;background:rgba(217,119,87,.3);box-shadow:inset 0 0 0 1px rgba(217,119,87,.5)}',
 			'#vb-aip .vb-ai-model{margin-left:-4px;padding:2px 7px;border-radius:6px;background:var(--vb-bg3);color:var(--vb-tx3);font-size:11px;font-weight:500}',
 			'.vb-ai-list{flex:1 1 auto;min-height:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin}',
 			'.vb-ai-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;margin:auto 0;padding:16px 8px;text-align:center;color:var(--vb-tx3)}',
