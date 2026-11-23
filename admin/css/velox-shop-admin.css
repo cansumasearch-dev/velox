@@ -618,4 +618,4 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 .vsa-pager{justify-content:center;padding-top:12px}
 @media (max-width:900px){.vsa-rv{grid-template-columns:1fr}.vsa-rv-a{justify-content:flex-start}}
 .vsa-tag.has-col{padding-left:4px}
-.vsa-tag .vxcp-chip{width:18px;height:18px;margin-right:4px;border-radius:5px}
+.vsa-tag button.vxcp-chip,.vsa-tag button.vxcp-chip:hover{width:18px;height:18px;margin-right:4px;border-radius:5px;background:var(--c,#ccc);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
