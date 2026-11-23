@@ -3822,6 +3822,8 @@
 		var right = openRightPanel();
 		Object.keys( PANEL_W0 ).forEach( function ( k ) { app.style.setProperty( '--vb-pw-' + k, PANEL_W[ k ] + 'px' ); } );
 		app.style.setProperty( '--vb-cur-rw', ( right ? PANEL_W[ right ] : 0 ) + 'px' );
+		// The light/dark switch (velox-theme.js) floats bottom right: keep it left of an open right panel.
+		document.documentElement.style.setProperty( '--vb-cur-rw', ( right ? PANEL_W[ right ] : 0 ) + 'px' );
 		app.classList.toggle( 'vb-has-right', !! right );
 		// The top-bar button of the open panel shows that it is open.
 		var TB = { struct:'vb-structure', css:'vb-code', hist:'vb-history', settings:'vb-settings', ai:'vb-ai' };
@@ -11215,6 +11217,7 @@
 			'#vb-inspector .vb-sel-st{flex-basis:100px}',
 			'/* ===== 4.45 one look for every panel ===== */',
 			'.vb-csspanel{width:var(--vb-pw-css,380px)}.vb-histpanel{width:var(--vb-pw-hist,320px)}.vb-structpanel{width:var(--vb-pw-struct,300px)}.vb-setpanel{width:var(--vb-pw-settings,340px)}',
+			'body.velox-builder-body #vxth{right:calc(var(--vb-cur-rw,0px) + 16px)}',
 			'.vb-aipanel{position:absolute;top:48px;right:0;bottom:0;width:var(--vb-pw-ai,380px);background:var(--vb-bg1);border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
 			'.vb-aibtn{display:inline-flex;align-items:center;gap:6px;height:32px;margin:0 4px 0 0;padding:0 12px 0 10px;border:0;border-radius:8px;background:linear-gradient(180deg,rgba(217,119,87,.22),rgba(217,119,87,.12));box-shadow:inset 0 0 0 1px rgba(217,119,87,.35);color:#f3c4ae;font-size:12.5px;font-weight:600;cursor:pointer;transition:background .15s var(--vx-ease),box-shadow .15s var(--vx-ease)}',
 			'.vb-aibtn:hover,.vb-aibtn.on{background:linear-gradient(180deg,rgba(217,119,87,.32),rgba(217,119,87,.2));color:#fff}',
