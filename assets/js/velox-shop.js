@@ -539,6 +539,11 @@
 	swatches();
 	remind();
 	restForm( '[data-vxs-alert]', 'alert', function ( f ) { var b = $( '[type="submit"]', f ); if ( b ) { b.disabled = true; } } );
+	// "Be the first to review" opens the (closed) form and moves the cursor into it.
+	document.addEventListener( 'click', function ( e ) {
+		var a = e.target.closest && e.target.closest( '[data-vxs-rvopen]' ), d = a && $( '.vxs-rv-write' );
+		if ( d ) { d.open = true; var r = $( 'input[name="rating"]', d ); if ( r ) { setTimeout( function () { r.focus( { preventScroll:true } ); }, 0 ); } }
+	} );
 	restForm( '[data-vxs-review]', 'review', function ( f ) { f.reset(); [].forEach.call( f.querySelectorAll( 'input,textarea,button' ), function ( x ) { if ( 'checkbox' !== x.type ) { x.disabled = true; } } ); } );
 	checkout();
 	gridTools();

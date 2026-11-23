@@ -339,7 +339,7 @@ class Velox_Shop_Extras {
 		}
 		list( $avg, $n ) = self::rating( $p['id'] );
 		if ( ! $n ) {
-			return '<a class="vxs-pdp-rate is-none" href="#vxs-reviews">' . esc_html__( 'Be the first to review', 'velox' ) . '</a>';
+			return '<a class="vxs-pdp-rate is-none" href="#vxs-reviews" data-vxs-rvopen>' . esc_html__( 'Be the first to review', 'velox' ) . '</a>';
 		}
 		/* translators: %d: number of reviews */
 		return '<a class="vxs-pdp-rate" href="#vxs-reviews">' . self::stars( $avg, 16 ) . '<b>' . esc_html( number_format_i18n( $avg, 1 ) ) . '</b><span>' . esc_html( sprintf( _n( '%d review', '%d reviews', $n, 'velox' ), $n ) ) . '</span></a>';
@@ -405,7 +405,7 @@ class Velox_Shop_Extras {
 			/* translators: %d: number of stars */
 			$star .= '<input type="radio" id="vxs-rs' . $i . '" name="rating" value="' . $i . '" required><label for="vxs-rs' . $i . '" title="' . esc_attr( sprintf( _n( '%d star', '%d stars', $i, 'velox' ), $i ) ) . '"><span class="screen-reader-text">' . esc_html( sprintf( _n( '%d star', '%d stars', $i, 'velox' ), $i ) ) . '</span></label>';
 		}
-		$form = '<details class="vxs-rv-write"' . ( $n ? '' : ' open' ) . '><summary class="vxs-btn vxs-btn-ghost">' . esc_html__( 'Write a review', 'velox' ) . '</summary>'
+		$form = '<details class="vxs-rv-write"><summary class="vxs-btn vxs-btn-ghost">' . esc_html__( 'Write a review', 'velox' ) . '</summary>'
 			. '<form class="vxs-rv-form" method="post" data-vxs-review><input type="hidden" name="vxs_review" value="1"><input type="hidden" name="product" value="' . (int) $p['id'] . '">'
 			. '<fieldset class="vxs-rv-stars"><legend>' . esc_html__( 'Your rating', 'velox' ) . '</legend><div>' . $star . '</div></fieldset>'
 			. '<label class="vxs-f"><span>' . esc_html__( 'Title (optional)', 'velox' ) . '</span><input type="text" name="title" maxlength="80"></label>'

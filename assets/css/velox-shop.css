@@ -972,3 +972,4 @@ html.vxs-sbar-on .vxs-toast{bottom:92px}
 @media (max-width:480px){.vxs-buy-row:has(.vxs-wish-pdp){display:grid;grid-template-columns:auto 1fr;gap:10px}.vxs-buy-row:has(.vxs-wish-pdp) .vxs-wish-pdp{justify-self:end}.vxs-buy-row:has(.vxs-wish-pdp) .vxs-buy-btn{grid-column:1/-1;grid-row:2}}
 /* Product page: space between option groups and the buy row (was 0) */
 .vxs-buy .vxs-add{display:flex;flex-direction:column;gap:18px}
+.vxs-rv-none{font-size:15px;line-height:1.55}
