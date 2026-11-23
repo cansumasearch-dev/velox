@@ -239,7 +239,7 @@ class Velox_Builder_Assistant {
 		}
 		self::shown( $c, 'user', $text );
 		self::raw_set( self::conv_name( $uid, $doc ), $c );
-		$j = array( 'status' => 'running', 'run' => wp_generate_password( 10, false ), 'steps' => 0, 'rev' => 0, 'at' => time(), 'stop' => false, 'doing' => '' );
+		$j = array( 'status' => 'running', 'run' => strtolower( wp_generate_password( 12, false ) ), 'steps' => 0, 'rev' => 0, 'at' => time(), 'stop' => false, 'doing' => '' );
 		self::raw_set( self::job_name( $uid, $doc ), $j );
 		self::answer_then( array( 'job' => self::public_job( $j ), 'total' => count( $c['shown'] ) ), function () use ( $uid, $doc ) {
 			self::step( $uid, $doc );
@@ -252,7 +252,7 @@ class Velox_Builder_Assistant {
 		$doc = self::doc_from_request();
 		$uid = get_current_user_id();
 		$j   = self::job( $uid, $doc );
-		$run = sanitize_key( wp_unslash( $_POST['run'] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		$run = preg_replace( '/[^a-z0-9]/', '', strtolower( (string) wp_unslash( $_POST['run'] ?? '' ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 		if ( 'continue' !== ( $j['status'] ?? '' ) || $run !== $j['run'] ) {
 			wp_send_json_success( array( 'job' => self::public_job( $j ) ) );
 		}

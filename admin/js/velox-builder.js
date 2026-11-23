@@ -3844,7 +3844,8 @@
 		// see what you just inserted.
 		// Structure is a navigator: you work on the canvas with it open, so it
 		// never dims or blocks the page.
-		if ( scrim ) { scrim.classList.toggle( 'on', !! right && ! pinned.right && 'struct' !== right ); }
+		// Nor does Claude's chat: you watch the page change while it works.
+		if ( scrim ) { scrim.classList.toggle( 'on', !! right && ! pinned.right && 'struct' !== right && 'ai' !== right ); }
 		// An unpinned left panel sits ON TOP of the inspector but is narrower than
 		// it, so the last ~70px of the inspector stuck out and stayed readable
 		// through the dimming. Dimming is not hiding: take the column out entirely
@@ -7121,7 +7122,7 @@
 	 * become ONE step that Undo takes back. Saving and publishing wait until
 	 * Claude is finished, so nothing it did can be overwritten by accident. */
 	var aiShown = false;
-	var AI = { shown:[], total:0, job:{ status:'idle', run:'', steps:0, rev:0, doing:'' }, loaded:false, doc:0, run:'', applied:0, changed:false, locked:false, sending:false, stopping:false, cont:'', timer:0, pull:Promise.resolve(), err:'', useSel:true };
+	var AI = { shown:[], total:0, job:{ status:'idle', run:'', steps:0, rev:0, doing:'' }, loaded:false, doc:0, run:'', applied:0, changed:false, locked:false, sending:false, stopping:false, cont:'', contAt:0, timer:0, pull:Promise.resolve(), err:'', useSel:true };
 	var AIC = CFG.ai || { ready:false, can:false, admin:false, model:'', settingsUrl:'' };
 	function aiPost( fields ) {
 		var body = new URLSearchParams();
@@ -7167,8 +7168,9 @@
 		// The last step asked for more: start the next one (once per step).
 		if ( 'continue' === j.status && ! AI.stopping ) {
 			var key = j.run + ':' + j.steps;
-			if ( AI.cont !== key ) {
-				AI.cont = key;
+			// Once per step; again if the step has not started after 8 seconds.
+			if ( AI.cont !== key || Date.now() - AI.contAt > 8000 ) {
+				AI.cont = key; AI.contAt = Date.now();
 				aiPost( { do:'ai_continue', doc:AI.doc, run:j.run } ).then( function ( res ) { if ( res && res.success && res.data.job ) { AI.job = res.data.job; renderAiFoot(); } } );
 			}
 		}
@@ -7222,23 +7224,23 @@
 		var ta = document.getElementById( 'vb-ai-in' ); if ( ! ta ) { return; }
 		var text = ta.value.trim();
 		if ( ! text || aiBusy() || ! AIC.can ) { return; }
+		ta.value = '';
 		AI.sending = true; AI.err = ''; renderAiFoot();
 		// The page is saved first: Claude works on what you see.
 		persist( function ( ok ) {
-			if ( ! ok ) { AI.sending = false; renderAiFoot(); return; }
+			if ( ! ok ) { AI.sending = false; renderAiFoot(); aiRestore( text ); return; }
 			AI.doc = docId;
 			var sel = store.state.selection, node = sel ? findNode( store.state.tree, sel ) : null;
 			var f = { do:'ai_send', doc:docId, text:text, bp:store.state.breakpoint || 'base' };
 			if ( AI.useSel && node ) { f.sel = sel; f.sel_label = ( node.name || elLabel( node ) ) + ( node.classes && node.classes.length ? ' ' + node.classes.join( ' ' ) : '' ); }
 			// Shown right away; the server's copy replaces it on the next poll.
 			AI.shown.push( { k:'user', t:text, local:1 } ); renderAiList();
-			ta.value = ''; aiGrow( ta );
 			aiPost( f ).then( function ( res ) {
 				AI.sending = false;
 				if ( ! res || ! res.success ) {
 					AI.shown = AI.shown.filter( function ( m ) { return ! m.local; } );
 					AI.err = ( res && res.data && res.data.message ) || T( 'Claude could not start. Try again.' );
-					ta.value = ta.value || text; aiGrow( ta ); renderAiList(); renderAiFoot(); return;
+					renderAiList(); renderAiFoot(); aiRestore( text ); return;
 				}
 				AI.job = res.data.job; AI.run = AI.job.run; AI.applied = 0; AI.changed = false; AI.cont = '';
 				aiLock( true ); aiPoll();
@@ -7249,6 +7251,8 @@
 			} );
 		} );
 	}
+	/* A message that could not be sent goes back into the field. */
+	function aiRestore( text ) { var t = document.getElementById( 'vb-ai-in' ); if ( t && ! t.value ) { t.value = text; aiGrow( t ); var b = document.getElementById( 'vb-ai-send' ); if ( b ) { b.disabled = false; } } }
 	function aiStop() {
 		if ( ! aiBusy() ) { return; }
 		AI.stopping = true; renderAiFoot();
@@ -7311,7 +7315,7 @@
 			return;
 		}
 		if ( ! AIC.can ) { list.innerHTML = '<div class="vb-ai-empty"><b>' + T( 'Your role may not use the AI assistant.' ) + '</b></div>'; return; }
-		if ( ! AI.loaded && docId ) { list.innerHTML = '<div class="vb-ai-empty"><span class="vb-ls-spin"></span></div>'; return; }
+		if ( ! AI.loaded && docId && ! AI.shown.length ) { list.innerHTML = '<div class="vb-ai-empty"><span class="vb-ls-spin"></span></div>'; return; }
 		if ( ! AI.shown.length ) {
 			var sug = [ T( 'Build a landing page with a hero, three benefits, customer quotes and a contact form' ), T( 'Make the selected section look more modern and give it more air' ), T( 'Check this page on phones and fix what looks off' ) ];
 			list.innerHTML = '<div class="vb-ai-empty vb-ai-hello"><span class="vb-ai-mark">' + svg( 'stars', 20 ) + '</span><b>' + T( 'What should Claude do on this page?' ) + '</b><p>' +
