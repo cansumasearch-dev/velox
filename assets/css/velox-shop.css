@@ -17,7 +17,7 @@
 	--vxs-r-sm:8px;
 }
 .vxs-grid,.vxs-product,.vxs-buy,.vxs-cartpage,.vxs-checkout,.vxs-order,.vxs-account,.vxs-withdraw,.vxs-drawer,.vxs-empty-state{box-sizing:border-box;color:var(--vxs-ink)}
-.vxs-grid *,.vxs-product *,.vxs-buy *,.vxs-cartpage *,.vxs-checkout *,.vxs-order *,.vxs-account *,.vxs-withdraw *,.vxs-drawer *{box-sizing:border-box}
+.vxs-grid *,.vxs-product *,.vxs-product-more *,.vxs-reviews *,.vxs-msg-top *,.vxs-buy *,.vxs-cartpage *,.vxs-checkout *,.vxs-order *,.vxs-account *,.vxs-withdraw *,.vxs-drawer *{box-sizing:border-box}
 
 /* ---- buttons */
 .vxs-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:0 20px;border:1px solid var(--vxs-accent);border-radius:999px;background:var(--vxs-accent);color:var(--vxs-accent-ink);font:inherit;font-weight:600;font-size:15px;line-height:1.2;text-decoration:none;cursor:pointer;transition:filter .15s,transform .15s,background .15s;white-space:nowrap}
@@ -973,3 +973,6 @@ html.vxs-sbar-on .vxs-toast{bottom:92px}
 /* Product page: space between option groups and the buy row (was 0) */
 .vxs-buy .vxs-add{display:flex;flex-direction:column;gap:18px}
 .vxs-rv-none{font-size:15px;line-height:1.55}
+.vxa-nav ul.can-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
+.vxa-nav ul.can-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 40px);mask-image:linear-gradient(90deg,transparent,#000 40px)}
+.vxa-nav ul.can-l.can-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent)}
