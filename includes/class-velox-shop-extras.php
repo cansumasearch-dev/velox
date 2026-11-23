@@ -32,6 +32,7 @@ class Velox_Shop_Extras {
 		add_filter( 'comments_open', array( __CLASS__, 'no_theme_comments' ), 20, 2 );
 		add_filter( 'comments_template_query_args', array( __CLASS__, 'hide_reviews' ) );
 		add_filter( 'widget_comments_args', array( __CLASS__, 'hide_reviews' ) );
+		add_filter( 'wp_count_comments', array( __CLASS__, 'count_comments' ), 10, 2 );
 		add_action( 'wp_set_comment_status', array( __CLASS__, 'review_changed' ) );
 		add_action( 'deleted_comment', array( __CLASS__, 'review_changed' ) );
 		add_action( 'trashed_comment', array( __CLASS__, 'review_changed' ) );
@@ -266,6 +267,28 @@ class Velox_Shop_Extras {
 	public static function hide_reviews( $args ) {
 		$args['type__not_in'] = array_merge( (array) ( $args['type__not_in'] ?? array() ), array( self::REVIEW ) );
 		return $args;
+	}
+
+	/**
+	 * WordPress's "Comments (1)" badge counts every comment type. Reviews have
+	 * their own place (Velox Shop → Reviews), so the site-wide count leaves them out.
+	 */
+	public static function count_comments( $stats, $post_id ) {
+		if ( $post_id || ! empty( $stats ) ) {
+			return $stats;
+		}
+		global $wpdb;
+		$rows = $wpdb->get_results( $wpdb->prepare( "SELECT comment_approved, COUNT(*) AS n FROM {$wpdb->comments} WHERE comment_type NOT IN ( %s, 'note' ) GROUP BY comment_approved", self::REVIEW ), ARRAY_A ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+		$map  = array( '0' => 'moderated', '1' => 'approved', 'spam' => 'spam', 'trash' => 'trash', 'post-trashed' => 'post-trashed' );
+		$out  = array_fill_keys( array( 'approved', 'moderated', 'spam', 'trash', 'post-trashed' ), 0 );
+		foreach ( (array) $rows as $r ) {
+			if ( isset( $map[ $r['comment_approved'] ] ) ) {
+				$out[ $map[ $r['comment_approved'] ] ] = (int) $r['n'];
+			}
+		}
+		$out['total_comments'] = $out['approved'] + $out['moderated'] + $out['spam'];
+		$out['all']            = $out['approved'] + $out['moderated'];
+		return (object) $out;
 	}
 
 	/** [ average, count ] of the approved reviews (kept in post meta). */
