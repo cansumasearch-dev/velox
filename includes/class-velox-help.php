@@ -195,7 +195,7 @@ class Velox_Help {
 		if ( 'shop' === $which ) {
 			return array(
 				array( __( 'Getting started', 'velox' ), array(
-					array( __( 'What do I need before the first sale?', 'velox' ), __( 'The shop pages (Overview → Pages), at least one payment method (Settings → Payments), shipping costs (Settings → Shipping), your business details (Settings → Store) and your legal pages: terms, withdrawal policy, privacy (Settings → Pages & legal).', 'velox' ) ),
+					array( __( 'What do I need before the first sale?', 'velox' ), __( 'The shop pages (Overview → Shop pages), at least one payment method (Settings → Payments), shipping costs (Settings → Shipping), your business details (Settings → Store) and your legal pages: terms, withdrawal policy, privacy (Settings → Pages & legal).', 'velox' ) ),
 					array( __( 'How do I see the shop like a customer?', 'velox' ), __( '“View shop” at the top right opens it. Signed in as an administrator you see everything customers see; test orders work with Stripe’s test mode.', 'velox' ) ),
 				) ),
 				array( __( 'Products', 'velox' ), array(

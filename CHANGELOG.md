@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.71.0 — The complete guide, and an inspector that works like Oxygen
+- **A complete guide for the shop and for Velox Builder:** Shop → Settings → Help & tour and Velox Builder → Help now open a full guide, chapter by chapter, for every screen and every setting, next to the short questions. Contents on the left (a menu on narrow screens), Previous / Next chapter at the end, and one search across the guide and the questions that jumps straight to the matching section. The guide loads only when Help is opened.
+- **The inspector works like Oxygen, in Velox’s look** (after a complete second analysis of Oxygen, see notes):
+  - Two tabs instead of three: **Essentials | Advanced**. Advanced holds every style group, then animations, motion, interactions, conditions, attributes and custom CSS as one list of rows that open in place — the same list for every element.
+  - **Layout in design words:** a container’s Essentials show **Children: below each other / side by side / grid** as tiles, then **horizontal and vertical alignment** as tiles, columns for a grid, “wrap onto the next line”, and the gap — no more display, flex-direction or justify-content.
+  - Option buttons show words (Left, Centre, Right, Justified · Cover, Contain · Row, Column …) or a small sign (Aa, AA, line styles) instead of CSS values; the CSS value is in the tooltip.
+  - Essentials follow the element: a heading starts with its type, a section with its layout. The tag (heading level) sits at the end of Essentials, where Oxygen has it.
+  - **Select the parent** button in the inspector header.
+  - Calmer header: the sentence about which class is styled shows only when it adds something (a smaller screen size or a state like :hover); otherwise it is the class button’s tooltip.
+- Grid items can be centred horizontally: `justify-items` was missing from the CSS Velox writes (the Logo wall’s centring was silently dropped).
+
 ## 4.70.0 — Essentials that fit each element, the shop design page by page
 - **Essentials per element:** the inspector's first tab now shows what the selected element is: its own settings first, then only the styles that belong to it. An image gets size, fit and corners; a heading gets its type; a section gets layout, spacing and background; a code block shows only its HTML, CSS and JavaScript fields; a carousel, tabs, an accordion or a shop part show their own settings and nothing like “display: flex”. Every other property is one click away under All styles.
 - **Advanced:** animations, motion, interactions, conditions, attributes and custom CSS moved to their own tab, Advanced. Picking another element opens it on Essentials again.
