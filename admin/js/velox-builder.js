@@ -4522,6 +4522,18 @@
 			loaderLeave( loader.leaveTitle );
 		} );
 		window.addEventListener( 'resize', function () { resizeCanvas(); fitTopbarSoon(); } );
+		// Panels opening, closing or sliding change the stage without a window
+		// resize; the canvas kept its old width (e.g. 1568px in a 1270px stage).
+		if ( window.ResizeObserver && document.getElementById( 'vb-stage' ) ) {
+			var stageW = 0, stageRaf = 0;
+			new ResizeObserver( function ( en ) {
+				var nw = Math.round( en[ 0 ].contentRect.width );
+				if ( nw === stageW ) { return; }
+				stageW = nw;
+				clearTimeout( stageRaf );
+				stageRaf = setTimeout( function () { resizeCanvas(); }, 40 );
+			} ).observe( document.getElementById( 'vb-stage' ) );
+		}
 		if ( document.fonts && document.fonts.ready ) { document.fonts.ready.then( fitTopbarSoon ); }
 		fitTopbarSoon();
 		store.subscribeLog( function () { if ( historyShown ) { renderHistoryPanel(); } } );

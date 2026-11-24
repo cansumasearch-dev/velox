@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.73.1 — The canvas always fits its space
+- **The canvas refits whenever the space around it changes:** opening or closing the Add panel, Structure or the inspector used to leave the canvas at its old width (for example 1568px in a 1270px space, cut off at the right). It now follows the space every time.
+
 ## 4.73.0 — Scroll section, page previews in the shop, rename in Structure
 - **New element: Scroll section** (Add → Containers). A box whose content reacts to scrolling: **Sideways** (the box stays pinned and its row slides from right to left, on big screens or everywhere) or **Stacks up** (each card slides over the one before, with “Sticks at” and “Offset per card”). It starts with four example cards; what goes inside is yours. The effect is set in Essentials.
 - **The inspector tells the truth about scroll rows:** for a sideways row (Scroll section, or Motion → “Pinned: children move sideways”) Essentials → Layout now says “In one row” instead of the box’s own “Below each other”, which never applied there.
