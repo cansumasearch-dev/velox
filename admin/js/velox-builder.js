@@ -11243,6 +11243,8 @@
 			'#vb-inspector .vb-bm-t{grid-area:t}#vb-inspector .vb-bm-l{grid-area:l}#vb-inspector .vb-bm-r{grid-area:r}#vb-inspector .vb-bm-b{grid-area:b}#vb-inspector .vb-bm-c{grid-area:c;width:100%;padding:2px 0}',
 			'#vb-inspector .vb-bm-cap{position:absolute;top:8px;left:10px;right:7px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;font:600 9.5px/1 var(--vbb-font,"Velox Geist"),sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--vb-tx3)}',
 			'#vb-inspector .vb-bm-p>.vb-bm-cap{top:6px;left:8px;right:5px}',
+			// The label gets a row of its own: long names (German: Außenabstand) ran into the top value.
+			'#vb-inspector .vb-bm-m{padding-top:24px}#vb-inspector .vb-bm-p{padding-top:20px}#vb-inspector .vb-bm-cap{top:7px}#vb-inspector .vb-bm-p>.vb-bm-cap{top:5px}',
 			'#vb-inspector .vb-bm-link{pointer-events:auto;display:grid;place-items:center;width:20px;height:20px;margin:-4px 0 0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);cursor:pointer;transition:background .12s,color .12s}',
 			'#vb-inspector .vb-bm-link:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
 			'#vb-inspector .vb-bm-link.on{background:rgba(var(--tgt-rgb),.16);color:var(--tgt-tx)}',
