@@ -7590,7 +7590,7 @@
 			var collapsed = ! vis && !! structCollapsed[ node.id ];
 			var name = ( node.name || node.el || 'El' ) + ( node.classes && node.classes[ 0 ] ? ' · ' + node.classes[ 0 ] : '' );
 			var caret = hasKids ? '<span class="vb-st-caret' + ( collapsed ? ' closed' : '' ) + '" data-stcaret="' + node.id + '">' + svg( 'chevron', 11 ) + '</span>' : '<span class="vb-st-spacer"></span>';
-			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( multi.indexOf( node.id ) > -1 && node.id !== sel ? ' msel' : '' ) + ( node.hidden ? ' hid' : '' ) + ( vis && ! vis.hits[ node.id ] ? ' ctx' : '' ) + '" data-stnode="' + node.id + '" draggable="true" role="treeitem" aria-level="' + ( depth + 1 ) + '" aria-selected="' + ( node.id === sel ? 'true' : 'false' ) + '"' + ( hasKids ? ' aria-expanded="' + ( collapsed ? 'false' : 'true' ) + '"' : '' ) + ' tabindex="' + ( node.id === sel ? '0' : '-1' ) + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px;--d:' + depth + '">' + caret + '<span class="vb-st-ic">' + nodeIconHTML( node, 15 ) + '</span><span class="vb-st-l" title="' + escapeHtml( name ) + '"><span class="vb-st-n">' + escapeHtml( node.name || node.el || 'El' ) + '</span>' + ( node.classes && node.classes[ 0 ] ? '<span class="vb-st-c">' + escapeHtml( node.classes[ 0 ] ) + '</span>' : '' ) + '</span>' + ( node.locked ? '<span class="vb-st-cond vb-st-lock" title="' + escapeHtml( T( 'Locked' ) ) + '">' + svg( 'lock', 12 ) + '</span>' : '' ) +
+			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( multi.indexOf( node.id ) > -1 && node.id !== sel ? ' msel' : '' ) + ( node.hidden ? ' hid' : '' ) + ( vis && ! vis.hits[ node.id ] ? ' ctx' : '' ) + '" data-stnode="' + node.id + '" draggable="true" role="treeitem" aria-level="' + ( depth + 1 ) + '" aria-selected="' + ( node.id === sel ? 'true' : 'false' ) + '"' + ( hasKids ? ' aria-expanded="' + ( collapsed ? 'false' : 'true' ) + '"' : '' ) + ' tabindex="' + ( node.id === sel ? '0' : '-1' ) + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px;--d:' + depth + '">' + caret + '<span class="vb-st-ic">' + nodeIconHTML( node, 15 ) + '</span><span class="vb-st-l" title="' + escapeHtml( name ) + '"><span class="vb-st-n">' + escapeHtml( node.name || ( 'Scroller' === node.el ? T( 'Scroll section' ) : node.el ) || 'El' ) + '</span>' + ( node.classes && node.classes[ 0 ] ? '<span class="vb-st-c">' + escapeHtml( node.classes[ 0 ] ) + '</span>' : '' ) + '</span>' + ( node.locked ? '<span class="vb-st-cond vb-st-lock" title="' + escapeHtml( T( 'Locked' ) ) + '">' + svg( 'lock', 12 ) + '</span>' : '' ) +
 				( node.ix && node.ix.length ? '<span class="vb-st-cond vb-st-ix" title="' + escapeHtml( T( 'Interactions' ) + ': ' + node.ix.map( ixSummary ).join( '; ' ) ) + '">' + svg( 'bolt', 12 ) + '</span>' : '' ) +
 				( node.cprop ? '<span class="vb-st-cond vb-st-cprop" title="' + escapeHtml( T( 'Editable in each copy' ) + ': ' + ( node.cprop.label || '' ) ) + '">' + svg( 'pencilsq', 12 ) + '</span>' : '' ) +
 				( node.hdr && node.hdr.mode ? '<span class="vb-st-cond vb-st-part" title="' + escapeHtml( 'footer' === node.hdr.mode ? T( 'Site footer' ) : T( 'Site header' ) ) + '">' + svg( 'pinangle', 12 ) + '</span>' : '' ) +
@@ -8363,7 +8363,13 @@
 			}
 			var stc = e.target.closest( '[data-stcaret]' ); if ( stc ) { toggleStructBranch( stc.getAttribute( 'data-stcaret' ) ); e.stopPropagation(); return; }
 			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) {
+				if ( e.target.closest( 'input.vb-st-rename' ) ) { return; }
 				if ( e.ctrlKey || e.metaKey || e.shiftKey ) { toggleMulti( stn.getAttribute( 'data-stnode' ) ); return; }
+				// Two clicks on the same row rename it. The first click redraws the
+				// list, so the browser never sees a double-click on one element.
+				var sNow = Date.now(), sId = stn.getAttribute( 'data-stnode' );
+				if ( stClick.id === sId && sNow - stClick.t < 450 ) { stClick = {}; renameInline( sId ); return; }
+				stClick = { id:sId, t:sNow };
 				multi = [];
 				store.commit( function ( s ) { s.selection = stn.getAttribute( 'data-stnode' ); resetActiveClass( s ); }, false );
 				lastRevealSel = null; revealOnSelect( stn.getAttribute( 'data-stnode' ) ); return;
@@ -9574,9 +9580,11 @@
 	}
 	/* Rename in place: the name in the Structure row becomes a field. Enter or
 	 * clicking elsewhere keeps it, Esc goes back, an empty field uses the type. */
+	var stClick = {};
 	function renameInline( id ) {
 		var n = findNode( store.state.tree, id ); if ( ! n ) { return; }
 		var row = document.querySelector( '#vb-struct [data-stnode="' + id + '"]' );
+		if ( row && row.querySelector( 'input.vb-st-rename' ) ) { return; }
 		var lab = row && row.querySelector( '.vb-st-n' );
 		if ( ! lab ) { renameNode( id ); return; }
 		var inp = document.createElement( 'input' );
