@@ -2613,7 +2613,10 @@ class Velox_Builder_Render {
 
 	/** Base CSS for the Video and Icon elements (also used by the canvas). */
 	public static function media_element_css() {
-		return '.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}'
+		// Some themes and builders give every svg a margin (Oxygen: svg{margin-right:10px}),
+		// which pushed Velox's icons off centre. Its own icons start from zero.
+		return ':is([class*="vx-"]) svg{margin:0}'
+			. '.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}'
 			. '.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}'
 			. '.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}'
 			. '.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}';
@@ -3004,7 +3007,8 @@ class Velox_Builder_Render {
 	// Element defaults (.vx-fab, .vx-bar, .vx-video …) go BEFORE the class
 	// stylesheet: printed after it, they beat the user's own class styling
 	// (same specificity, later wins) — the editor showed it, the page did not.
-	$base_css = self::element_base_css( 'base' ) . ( self::$media_used ? self::media_element_css() : '' );
+	// Velox's icons start without the margin some themes give every svg (Oxygen: svg{margin-right:10px}).
+	$base_css = ':is([class*="vx-"]) svg{margin:0}' . self::element_base_css( 'base' ) . ( self::$media_used ? self::media_element_css() : '' );
 	if ( '' !== $base_css ) {
 		echo '<style id="velox-element-base">' . $base_css . '</style>' . "\n"; // phpcs:ignore
 	}

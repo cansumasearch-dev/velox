@@ -1,6 +1,10 @@
 /* Velox Shop — storefront. Everything is coloured through a handful of
    custom properties, so a site's design takes over by setting them (or by
    styling the vxs-* classes in Velox Builder). Fonts are inherited. */
+/* Some themes and builders style every svg (Oxygen's universal.css: svg{margin-right:10px}).
+   That pushed every shop icon off centre. Velox's own icons start from zero; the rules below
+   that space an icon on purpose come later and win. */
+:is([class*="vxs-"],[class*="vxa-"]) svg{margin:0}
 :root{
 	--vxs-accent:#0a6f9f;
 	--vxs-accent-ink:#fff;
@@ -475,7 +479,7 @@
 /* ---------------------------------------------------------- customer account
    One column: who you are, a tab bar, then settings sections (what it is on
    the left, the controls on the right). Everything uses the shop's colours. */
-.vxa{--vxa-r:var(--vxs-r,12px);display:flex;flex-direction:column;gap:28px;max-width:1100px;margin-inline:auto;color:var(--vxs-ink)}
+.vxa{--vxa-r:var(--vxs-r,12px);display:flex;flex-direction:column;gap:28px;width:100%;min-width:0;max-width:var(--vxa-max,none);margin-inline:auto;box-sizing:border-box;color:var(--vxs-ink)}
 .vxa *{box-sizing:border-box}
 .vxa h2,.vxa h3,.vxa p{margin:0}
 .vxa-head{display:flex;align-items:center;gap:18px}

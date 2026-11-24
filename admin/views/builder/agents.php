@@ -101,7 +101,7 @@ $money  = function ( $v ) {
 			<div class="vba-setting">
 				<div class="vba-setting-tx"><b><?php esc_html_e( 'Monthly limit', 'velox' ); ?></b>
 				<span><?php esc_html_e( 'The assistant stops for the rest of the month when Velox counts this much. 0 means no limit. Your Anthropic account can have its own limit too.', 'velox' ); ?></span></div>
-				<label class="vba-ai-limit"><span aria-hidden="true">$</span><input type="number" id="vba-ai-limit" min="0" step="1" value="<?php echo esc_attr( (string) $ai['limit'] ); ?>" aria-label="<?php esc_attr_e( 'Monthly limit in US dollars', 'velox' ); ?>"></label>
+				<label class="vba-ai-limit"><span aria-hidden="true">$</span><input type="number" id="vba-ai-limit" min="0" step="1" value="<?php echo esc_attr( (string) $ai['limit'] ); ?>" aria-label="<?php esc_attr_e( 'Monthly limit in US dollars', 'velox' ); ?>"><span class="vba-ai-per"><?php esc_html_e( 'per month', 'velox' ); ?></span></label>
 			</div>
 			<div class="vba-setting vba-ai-usage">
 				<div class="vba-setting-tx"><b><?php esc_html_e( 'This month', 'velox' ); ?></b>

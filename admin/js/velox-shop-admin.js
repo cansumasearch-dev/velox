@@ -62,7 +62,7 @@
 		star:'<path d="M12 3.2l2.7 5.6 6.1.8-4.5 4.2 1.2 6-5.5-3-5.5 3 1.2-6L3.2 9.6l6.1-.8z"/>',
 		brush: '<path d="M14.5 3.5l6 6-8 8-6-6z"/><path d="M6.5 11.5 3 15c-1 1 0 3.5 2 5.5s4.5 3 5.5 2l3.5-3.5"/>',
 		home:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v10h14V10"/>',
-		bag:'<path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/>',
+		bag:'<path d="M6.5 3.5h11l2 4v11.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4.5 19V7.5z"/><path d="M4.5 7.5h15"/><path d="M15.5 11a3.5 3.5 0 0 1-7 0"/>',
 		box:'<path d="m3 7 9-4 9 4-9 4z"/><path d="M3 7v10l9 4 9-4V7M12 11v10"/>',
 		tag:'<path d="M3 12V4h8l9 9-8 8z"/><circle cx="7.5" cy="8.5" r="1.3"/>',
 		users:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6"/>',
@@ -249,6 +249,7 @@
 			todo += todoRow( '#/orders?view=unpaid', 'clock', d.unpaid, vxT( 'awaiting payment' ), vxT( 'Bank transfer, invoice or not yet paid' ) );
 			todo += todoRow( '#/orders?view=withdrawn', 'undo', d.withdrawals, vxT( 'withdrawals to handle' ), vxT( 'Customers who withdrew from a purchase' ) );
 			h += card( vxT( 'Needs you' ), todo );
+			h += pagesCard( d.pages || [] );
 			h += card( vxT( 'Low stock' ), d.low.length ? '<ul class="vsa-list">' + d.low.map( function ( p ) { return '<li><a href="#/products/' + p.id + '">' + thumb( p.thumb ) + '<span class="vsa-grow">' + esc( p.name ) + '</span><b class="' + ( p.stock ? 'vsa-warn' : 'vsa-bad' ) + '">' + p.stock + ' ' + vxT( 'left' ) + '</b></a></li>'; } ).join( '' ) + '</ul>' : '<p class="vsa-muted">' + vxT( 'Everything is well stocked.' ) + '</p>' );
 			h += card( vxT( 'Best sellers' ), d.top.length ? '<ul class="vsa-list">' + d.top.map( function ( p, i ) { return '<li><a href="#/products/' + p.id + '"><i class="vsa-rank">' + ( i + 1 ) + '</i><span class="vsa-grow">' + esc( p.name ) + '</span><span class="vsa-muted">' + p.qty + '×</span><b>' + money( p.total ) + '</b></a></li>'; } ).join( '' ) + '</ul>' : '<p class="vsa-muted">' + vxT( 'No sales in the last 30 days yet.' ) + '</p>' );
 			h += card( vxT( 'Latest orders' ), d.recent.length ? ordersTable( d.recent, true ) : '<p class="vsa-muted">' + vxT( 'No orders yet. They appear here the moment someone buys.' ) + '</p>', { cls:'vsa-span-2', right:'<a class="vsa-link" href="#/orders">' + vxT( 'All orders' ) + ' ' + ic( 'chev', 13 ) + '</a>' } );
@@ -772,11 +773,33 @@
 	function shipDialog() {
 		var pickup = O.shipping && 'pickup' === O.shipping.type;
 		if ( pickup ) { orderAct( 'ship' ); return; }
+		// A real choice of carriers (the old suggestion field only ever offered what
+		// was already typed, so just "DHL"). The last one used is preselected.
+		var list = C.carriers || [ 'DHL', 'DPD', 'Hermes', 'GLS', 'UPS' ], last = '';
+		try { last = localStorage.getItem( 'vsa_carrier' ) || ''; } catch ( e ) {}
+		if ( last && -1 === list.indexOf( last ) && 'other' !== last ) { last = ''; }
+		var opts = list.map( function ( c ) { return '<option value="' + esc( c ) + '"' + ( c === ( last || list[ 0 ] ) ? ' selected' : '' ) + '>' + esc( c ) + '</option>'; } ).join( '' ) +
+			'<option value="other"' + ( 'other' === last ? ' selected' : '' ) + '>' + esc( vxT( 'Other carrier…' ) ) + '</option>';
 		modal( vxT( 'Mark as shipped' ), '<p class="vsa-p">' + vxT( 'The customer gets an email with the tracking link.' ) + '</p><div class="vsa-fr">' +
-			field( vxT( 'Carrier' ), '<input class="vsa-in" id="vsa-carrier" list="vsa-carriers" value="DHL"><datalist id="vsa-carriers"><option value="DHL"><option value="DPD"><option value="Hermes"><option value="GLS"><option value="UPS"><option value="Deutsche Post"></datalist>' ) +
-			field( vxT( 'Tracking number' ), '<input class="vsa-in vsa-mono" id="vsa-track" placeholder="' + esc( vxT( 'optional' ) ) + '">' ) + '</div>',
+			field( vxT( 'Carrier' ), '<select class="vsa-in" id="vsa-carrier">' + opts + '</select>' ) +
+			field( vxT( 'Tracking number' ), '<input class="vsa-in vsa-mono" id="vsa-track" autocomplete="off" placeholder="' + esc( vxT( 'optional' ) ) + '">' ) + '</div>' +
+			'<div class="vsa-fr vsa-ship-other"' + ( 'other' === last ? '' : ' hidden' ) + '>' +
+			field( vxT( 'Carrier name' ), '<input class="vsa-in" id="vsa-carrier-name" placeholder="' + esc( vxT( 'e.g. GO! Express' ) ) + '">' ) +
+			field( vxT( 'Tracking link' ), '<input class="vsa-in vsa-mono" id="vsa-carrier-url" placeholder="https://…{code}">', vxT( '{code} is replaced by the tracking number.' ) ) + '</div>',
 			[ { k:'no', label:vxT( 'Cancel' ) }, { k:'yes', label:ic( 'truck', 15 ) + vxT( 'Mark as shipped' ) } ],
-			function ( k, m ) { if ( 'yes' !== k ) { closeModal(); return; } var c = m.querySelector( '#vsa-carrier' ).value, t = m.querySelector( '#vsa-track' ).value; closeModal(); orderAct( 'ship', { carrier:c, tracking:t } ); } );
+			function ( k, m ) {
+				if ( 'yes' !== k ) { closeModal(); return; }
+				var sel = m.querySelector( '#vsa-carrier' ).value, t = m.querySelector( '#vsa-track' ).value.trim(), c = sel, u = '';
+				if ( 'other' === sel ) {
+					c = m.querySelector( '#vsa-carrier-name' ).value.trim(); u = m.querySelector( '#vsa-carrier-url' ).value.trim();
+					if ( ! c ) { toast( vxT( 'Enter the carrier’s name.' ), true ); m.querySelector( '#vsa-carrier-name' ).focus(); return; }
+					if ( u && ! /^https?:\/\//i.test( u ) ) { toast( vxT( 'The tracking link must start with https://' ), true ); return; }
+				}
+				try { localStorage.setItem( 'vsa_carrier', sel ); } catch ( e ) {}
+				closeModal(); orderAct( 'ship', { carrier:c, tracking:t, url:u } );
+			} );
+		var cs = document.getElementById( 'vsa-carrier' );
+		if ( cs ) { cs.addEventListener( 'change', function () { var o = document.querySelector( '.vsa-ship-other' ); if ( o ) { o.hidden = 'other' !== cs.value; } } ); }
 	}
 	function refundDialog() {
 		var left = +O.total - +O.payment.refunded;
@@ -1588,6 +1611,7 @@
 			return;
 		}
 		if ( 's-reset' === act ) { SD = JSON.parse( SDclean ); redrawSettings(); return; }
+		if ( 'ov-pages' === act ) { a.disabled = true; api( 'create_pages', {} ).then( function ( r ) { S = r.settings; C.pages = r.pages; toast( r.made.length ? vxT( 'Created:' ) + ' ' + r.made.join( ', ' ) : vxT( 'All pages exist already.' ) ); overview(); } ).catch( fail ); return; }
 		if ( 's-pages' === act ) { a.disabled = true; api( 'create_pages', {} ).then( function ( r ) { S = r.settings; C.pages = r.pages; Object.keys( r.settings ).forEach( function ( k ) { if ( /^page_/.test( k ) ) { SD[ k ] = r.settings[ k ]; } } ); SDclean = JSON.stringify( Object.assign( JSON.parse( SDclean ), Object.keys( r.settings ).filter( function ( k ) { return /^page_/.test( k ); } ).reduce( function ( o, k ) { o[ k ] = r.settings[ k ]; return o; }, {} ) ) ); redrawSettings(); toast( r.made.length ? vxT( 'Created:' ) + ' ' + r.made.join( ', ' ) : vxT( 'All pages exist already.' ) ); } ).catch( fail ); return; }
 		if ( 'o-edit' === act ) { editOrder(); return; }
 		if ( act && 0 === act.indexOf( 'rv-' ) ) {

@@ -718,7 +718,7 @@ class Velox_Shop_Front {
 		}
 		$out .= '</div>';
 		$mode = (string) $d['button'];
-		$bag  = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/><path d="M12 11v5M9.5 13.5h5"/></svg>';
+		$bag  = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.5 3.5h11l2 4v11.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4.5 19V7.5z"/><path d="M4.5 7.5h15"/><path d="M12 11v6M9 14h6"/></svg>';
 		$lbl  = '' !== $p['button'] ? $p['button'] : __( 'Add to cart', 'velox' );
 		if ( 'none' === $mode ) {
 			// No button: the whole card links to the product.
@@ -1083,7 +1083,7 @@ class Velox_Shop_Front {
 		$d     = Velox_Shop::design( array( 'cart_icon' => $a['icon'], 'cart_count' => $a['count'], 'cart_total' => $a['total'] ) );
 		$n     = Velox_Shop::cart_count();
 		$icons = array(
-			'bag'    => '<path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/>',
+			'bag'    => '<path d="M6.5 3.5h11l2 4v11.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4.5 19V7.5z"/><path d="M4.5 7.5h15"/><path d="M15.5 11a3.5 3.5 0 0 1-7 0"/>',
 			'cart'   => '<circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/><path d="M3 4h2.2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.2a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.3"/>',
 			'basket' => '<path d="M3.5 10h17l-1.7 8.4a1.5 1.5 0 0 1-1.5 1.1H6.7a1.5 1.5 0 0 1-1.5-1.1z"/><path d="M8 10l3-5.5M16 10l-3-5.5M9 14v2.5M12 14v2.5M15 14v2.5"/>',
 		);
@@ -1398,7 +1398,7 @@ class Velox_Shop_Front {
 		$out .= '<div class="vxs-chips">' . self::status_chip( 'pay', $pay ) . ( $show_ful ? self::status_chip( 'ful', $ful ) : '' ) . '</div>';
 		$out .= Velox_Shop_Pay::instructions_html( $o );
 		if ( 'shipped' === $ful && $o['fulfil']['tracking'] ) {
-			$tu = Velox_Shop::tracking_url( $o['fulfil']['carrier'], $o['fulfil']['tracking'] );
+			$tu = Velox_Shop::tracking_url( $o['fulfil']['carrier'], $o['fulfil']['tracking'], $o['fulfil']['url'] ?? '' );
 			$out .= '<div class="vxs-pay-box"><b>' . esc_html__( 'Tracking', 'velox' ) . ':</b> ' . esc_html( trim( $o['fulfil']['carrier'] . ' ' . $o['fulfil']['tracking'] ) ) . ( $tu ? ' <a href="' . esc_url( $tu ) . '" target="_blank" rel="noopener">' . esc_html__( 'Track the parcel', 'velox' ) . '</a>' : '' ) . '</div>';
 		}
 		$dl = 'paid' === $pay ? self::download_links( $o ) : array();

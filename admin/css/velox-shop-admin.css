@@ -619,3 +619,19 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 @media (max-width:900px){.vsa-rv{grid-template-columns:1fr}.vsa-rv-a{justify-content:flex-start}}
 .vsa-tag.has-col{padding-left:4px}
 .vsa-tag button.vxcp-chip,.vsa-tag button.vxcp-chip:hover{width:18px;height:18px;margin-right:4px;border-radius:5px;background:var(--c,#ccc);box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+/* 4.65 */
+.vsa-fr[hidden]{display:none}
+select.vsa-in option{background:var(--vbb-panel);color:var(--vbb-text)}
+.vsa-ship-other{margin-top:12px}
+.vsa-pages{display:flex;flex-direction:column;margin:0;padding:0;list-style:none}
+.vsa-pg{display:flex;align-items:center;gap:12px;min-height:44px;border-bottom:1px solid var(--vbb-line)}
+.vsa-pg:last-child{border-bottom:0}
+.vsa-pg-st{flex:none;display:grid;place-items:center;width:22px;height:22px;border-radius:50%}
+.vsa-pg-st svg{margin:0}
+.vsa-pg-st.is-ok{background:rgba(67,209,127,.14);color:var(--vbb-green)}
+.vsa-pg-st.is-no{background:rgba(255,170,60,.14);color:var(--vbb-orange)}
+.vsa-pg-l{flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:2px;font-size:12.5px}
+.vsa-pg-l b{font-size:13px;font-weight:600;color:var(--vbb-text)}
+.vsa-pg-l a{color:var(--vbb-text-3);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vsa-pg-l a:hover{color:var(--vbb-text)}
+.vsa-pg.is-miss .vsa-pg-l b{color:var(--vbb-text)}
