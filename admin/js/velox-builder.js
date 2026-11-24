@@ -5336,7 +5336,7 @@
 			/* The level as a little type scale: each tile shows "Aa" at its
 			 * relative size, so the hierarchy reads at a glance. */
 			var isH = /^h[1-6]$/.test( node.tag ), SZ = { h1:23, h2:19.5, h3:16.5, h4:14, h5:12.5, h6:11 };
-			return '<div class="vb-tagbar vb-hlv"><div class="vb-hlv-top"><span class="vb-tagbar-l">' + T( 'Heading level' ) + '</span><button type="button" class="vb-hlv-other vb-tagsel' + ( isH ? '' : ' on' ) + '" data-tagpick="1" title="' + T( 'Other tags' ) + '">' + escapeHtml( isH ? T( 'Other tags' ) : '<' + node.tag + '>' ) + svg( 'chevron', 10 ) + '</button></div>' +
+			return '<div class="vb-tagbar vb-hlv"><div class="vb-hlv-top"><span class="vb-tagbar-l">' + T( 'Heading level' ) + '</span><button type="button" class="vb-hlv-other' + ( isH ? '' : ' on' ) + '" data-tagpick="1" title="' + T( 'Other tags' ) + '">' + escapeHtml( isH ? T( 'Other tags' ) : '<' + node.tag + '>' ) + svg( 'chevron', 10 ) + '</button></div>' +
 				'<div class="vb-hlv-row" role="radiogroup" aria-label="' + T( 'Heading level' ) + '">' +
 				[ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].map( function ( t ) {
 					var on = node.tag === t;
@@ -7693,7 +7693,7 @@
 		}
 		if ( 'link' === x.fix || 'settings' === x.fix ) { inspTab = 'ess'; renderInspector( store.state ); return; }
 		if ( 'color' === x.fix || 'size' === x.fix ) { inspTab = 'all'; styleFilter = 'color' === x.fix ? 'color' : ( 'Button' === ( findNode( store.state.tree, x.id ) || {} ).el ? 'padding' : 'font-size' ); renderInspector( store.state ); return; }
-		if ( 'tag' === x.fix ) { inspTab = 'ess'; renderInspector( store.state ); setTimeout( function () { var tb = document.querySelector( '.vb-tagbar' ); if ( tb ) { tb.classList.remove( 'is-flash' ); void tb.offsetWidth; tb.classList.add( 'is-flash' ); } var tp = document.querySelector( '.vb-tagbar .vb-tagsel' ); if ( tp ) { tp.click(); } }, 80 ); }
+		if ( 'tag' === x.fix ) { inspTab = 'ess'; renderInspector( store.state ); setTimeout( function () { var tb = document.querySelector( '.vb-tagbar' ); if ( tb ) { tb.classList.remove( 'is-flash' ); void tb.offsetWidth; tb.classList.add( 'is-flash' ); } var tp = document.querySelector( '.vb-tagbar [data-tagpick]' ); if ( tp ) { tp.click(); } }, 80 ); }
 	}
 
 	/* ---------- Claude: the AI assistant panel ----------
