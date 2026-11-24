@@ -1084,7 +1084,7 @@
 				if ( isContainer( node ) ) { return; } // only leaf/text nodes edit inline
 				// Elements drawn from their settings have nothing to type into:
 				// double-click opens their settings instead of corrupting them.
-				if ( ! canInlineEdit( node ) ) { inspTab = 'set'; renderInspector( store.state ); return; }
+				if ( ! canInlineEdit( node ) ) { inspTab = 'ess'; renderInspector( store.state ); return; }
 				startInlineEdit( n, id );
 			} );
 		}
@@ -4467,6 +4467,28 @@
 		document.getElementById( 'vb-redo' ).style.opacity = store.future.length ? 1 : 0.4;
 	}
 	function elementHasSettings( node ) { return !! node; }
+	/* [ group, [ properties ] ] — no list = the whole group; '*box' = the size box. */
+	var ESS_TEXT = [ [ 'Typography', [ 'fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'textAlign', 'color' ] ], [ 'Spacing' ] ];
+	var ESS_BOX = [ [ 'Layout', [ 'display', 'flexDirection', 'flexWrap', 'justifyContent', 'alignItems', 'gap', 'gridTemplateColumns' ] ], [ 'Spacing' ], [ 'Size', [ '*box' ] ], [ 'Background & effects', [ 'background', 'backgroundImage', 'backgroundSize', 'backgroundPosition' ] ], [ 'Border', [ 'borderRadius', 'borderWidth', 'borderColor' ] ] ];
+	var ESS_BY_EL = {
+		Heading: ESS_TEXT, Text: ESS_TEXT, Gradienttext: ESS_TEXT, Outlinetext: ESS_TEXT, Highlighttext: ESS_TEXT, Dropcap: ESS_TEXT, Eyebrow: ESS_TEXT, Pullquote: ESS_TEXT, Verticaltext: ESS_TEXT, Rotator: ESS_TEXT, WP: ESS_TEXT,
+		Button: [ [ 'Typography', [ 'fontSize', 'fontWeight', 'color', 'textTransform' ] ], [ 'Background & effects', [ 'background' ] ], [ 'Spacing' ], [ 'Border', [ 'borderRadius', 'borderWidth', 'borderColor' ] ] ],
+		Image: [ [ 'Size', [ '*box', 'aspectRatio', 'objectFit', 'objectPosition' ] ], [ 'Border', [ 'borderRadius' ] ], [ 'Spacing' ] ],
+		Video: [ [ 'Size', [ '*box', 'aspectRatio' ] ], [ 'Border', [ 'borderRadius' ] ] ],
+		Icon: [ [ 'Typography', [ 'color' ] ], [ 'Spacing' ] ],
+		Section: [ [ 'Spacing' ], [ 'Background & effects', [ 'background', 'backgroundImage', 'backgroundSize', 'backgroundPosition' ] ], [ 'Layout', [ 'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap' ] ], [ 'Size', [ '*box' ] ] ],
+		InnerContent: [], Reusable: [], Codeblock: [], Embed: [], Form: [ [ 'Spacing' ] ], Reviews: [ [ 'Spacing' ] ]
+	};
+	function essentialsFor( node ) {
+		if ( ESS_BY_EL[ node.el ] ) { return ESS_BY_EL[ node.el ]; }
+		var def = elDef( node ) || {};
+		// Elements drawn from their own settings (carousel, tabs, accordion,
+		// counter, map, social icons, shop parts …): their settings are the essentials.
+		if ( WIDGET_EL[ node.el ] || SHOP_EL[ node.el ] || def.repeat || ( def.settings && def.settings.length && ! isContainer( node ) ) ) { return []; }
+		if ( isContainer( node ) ) { return ESS_BOX; }
+		if ( isTextEl( node ) ) { return ESS_TEXT; }
+		return [ [ 'Spacing' ] ];
+	}
 	function elementNeedsSetup( node ) {
 		if ( ! node ) { return false; }
 		if ( node.el === 'Reviews' ) { return ! node.conn; }
@@ -4775,7 +4797,7 @@
 			if ( lastInspNode ) { closeIconPicker(); }
 			lastInspNode = node.id;
 			pendingUnit = {};
-			if ( elementNeedsSetup( node ) ) { inspTab = 'set'; }
+			if ( elementNeedsSetup( node ) ) { inspTab = 'ess'; }
 		}
 		var ac = state.activeClass, bp = state.breakpoint, st = state.state || 'normal';
 		if ( ac ) { lastActiveClass[ node.id ] = ac; }
@@ -4815,6 +4837,13 @@
 		};
 		var DEFAULT_PROFILE = { order:[ 'Layout', 'Size', 'Spacing', 'Typography', 'Background & effects', 'Border' ], ess:[ 'Layout', 'Spacing', 'Typography', 'Background & effects' ] };
 		var profile = PROFILES[ node.el ] || DEFAULT_PROFILE;
+		/* Essentials = what matters for THIS kind of element (Oxygen's
+		 * "Primary"): its own settings first, then only the styles that
+		 * belong to it. A code block or a carousel has nothing to do with
+		 * flex or fonts, so they show their settings only; an image gets
+		 * its size, fit and corners, never typography. Everything else is
+		 * one click away under All styles. */
+		var essList = essentialsFor( node );
 		var essSet = {}; profile.ess.forEach( function ( g ) { essSet[ g ] = 1; } );
 		// build the ordered, filtered group list for this element
 		var byName = {}; CONTROLS.forEach( function ( g ) { byName[ g.group ] = g; } );
@@ -4899,10 +4928,17 @@
 		var body = '';
 		var sq = String( styleFilter || '' ).trim().toLowerCase(), sWords = sq ? sq.split( /\s+/ ) : [];
 		if ( tab === 'set' ) {
-			body = settingsTabHTML( node );
+			body = 'client' === ACCESS.level ? settingsTabHTML( node ) : '<div class="vb-setwrap">' + advancedSettingsHTML( node ) + '</div>';
 		} else {
+			// Essentials: the element's own settings come first.
+			var essProps = {};
+			if ( 'ess' === tab && ! sq ) {
+				var own = elementSettingsHTML( node );
+				if ( own ) { body += '<div class="vb-setwrap vb-ess-own">' + own + '</div>'; }
+				essList.forEach( function ( e ) { essProps[ e[ 0 ] ] = e[ 1 ] || null; } );
+			}
 			// A search looks through every group, whichever tab is open.
-			var groups = sq ? ordered : ordered.filter( function ( g ) { return tab === 'all' ? true : essSet[ g.group ]; } );
+			var groups = sq ? ordered : ordered.filter( function ( g ) { return tab === 'all' ? true : Object.prototype.hasOwnProperty.call( essProps, g.group ); } );
 			var lastCat = '';
 			groups.forEach( function ( g, gi ) {
 				if ( sq ) {
@@ -4920,7 +4956,7 @@
 				// The panel rebuilds on every keystroke, so a group's open/closed state
 				// has to be remembered — otherwise typing in a field snaps its own
 				// section shut underneath you.
-				var open = Object.prototype.hasOwnProperty.call( blockOpen, g.group ) ? blockOpen[ g.group ] : !! openFirst[ g.group ];
+				var open = Object.prototype.hasOwnProperty.call( blockOpen, g.group ) ? blockOpen[ g.group ] : ( 'ess' === tab || !! openFirst[ g.group ] );
 				var nSet = groupLocalProps( node, g.group ).length;
 				// "Set only": sections with nothing set at this size/state step aside.
 				if ( onlySet && ! nSet ) { return; }
@@ -4936,11 +4972,18 @@
 				// Spacing and Size read as paired boxes rather than a stack of
 				// single fields — padding beside margin, width/min/max on a row.
 				if ( 'Spacing' === g.group ) { body += spacingBlockHTML( node, bp, st, ac ) + '</div></div>'; return; }
-				if ( 'Size' === g.group && ! ( onlySet && ! groupLocalProps( node, 'Size' ).some( function ( pp ) { return SIZE_BOX_PROPS.indexOf( pp ) > -1; } ) ) ) { body += sizeBlockHTML( node, bp, st, ac ); }
-				body += g.items.map( itemHTML ).join( '' );
+				var pick = 'ess' === tab ? essProps[ g.group ] : null;
+				if ( 'Size' === g.group && ( ! pick || pick.indexOf( '*box' ) > -1 ) && ! ( onlySet && ! groupLocalProps( node, 'Size' ).some( function ( pp ) { return SIZE_BOX_PROPS.indexOf( pp ) > -1; } ) ) ) { body += sizeBlockHTML( node, bp, st, ac ); }
+				body += g.items.filter( function ( it ) { return ! pick || pick.indexOf( it.prop ) > -1; } ).map( function ( it ) {
+					// On Essentials a chosen property always shows (no "only for flex" hiding).
+					return itemHTML( pick ? Object.assign( {}, it, { when:null } ) : it );
+				} ).join( '' );
 				body += '</div></div>';
 			} );
 			if ( sq && ! body ) { body = '<div class="vb-sfilter-none">' + T( 'No property matches' ) + ' “' + escapeHtml( styleFilter ) + '”.</div>'; }
+			if ( 'ess' === tab && ! sq && ! onlySet ) {
+				body += '<button type="button" class="vb-more" data-tab="all">' + svg( 'brush', 14 ) + '<span><b>' + T( 'All styles' ) + '</b><small>' + T( 'Every style property, for this element or its class' ) + '</small></span>' + svg( 'chevron', 12 ) + '</button>';
+			}
 			if ( ! sq && ! onlySet ) {
 				body += '<button type="button" class="vb-more" data-tab="set">' + svg( 'bolt', 14 ) + '<span><b>' + T( 'Animations, interactions & more' ) + '</b><small>' + T( 'Scroll animations, conditions, attributes, custom CSS' ) + '</small></span>' + svg( 'chevron', 12 ) + '</button>';
 			}
@@ -4974,14 +5017,14 @@
 			'<div class="vb-tabs">' +
 				'<button class="vb-tab' + ( tab === 'ess' ? ' on' : '' ) + '" data-tab="ess">' + T( 'Essentials' ) + '</button>' +
 				'<button class="vb-tab' + ( tab === 'all' ? ' on' : '' ) + '" data-tab="all">' + T( 'All styles' ) + '</button>' +
-				'<button class="vb-tab' + ( tab === 'set' ? ' on' : '' ) + '" data-tab="set">' + T( 'Settings' ) + '</button>' +
+				'<button class="vb-tab' + ( tab === 'set' ? ' on' : '' ) + '" data-tab="set">' + T( 'Advanced' ) + '</button>' +
 				'<span class="vb-tab-ind" aria-hidden="true"' + ( tabInd ? ' style="transform:translateX(' + tabInd.x + 'px);width:' + tabInd.w + 'px"' : '' ) + '></span>' +
 			'</div>' + filterBar +
-			imgBtn +
+			( 'ess' === tab ? imgBtn : '' ) +
 			'<div class="vb-controls">' + body + '</div>';
 		insp.classList.toggle( 'is-tgt-id', ! ( ac && '#' !== ac ) );
 		insp.classList.toggle( 'is-stated', 'normal' !== st );
-		if ( 'set' === tab ) { setsecAccordions( insp ); }
+		if ( 'set' === tab || 'ess' === tab ) { setsecAccordions( insp ); }
 		restoreFocus( keepFocus );
 		// Slide the tab underline from where it was to the active tab.
 		var tOn = insp.querySelector( '.vb-tab.on' ), tInd = insp.querySelector( '.vb-tab-ind' );
@@ -5637,9 +5680,15 @@
 		setsecOpen[ h.getAttribute( 'data-setsec' ) ] = open;
 		try { window.localStorage.setItem( 'velox_builder_setsec', JSON.stringify( setsecOpen ) ); } catch ( e ) {}
 	}
+	/* The inspector's tabs: Essentials = what this element is (its own settings)
+	 * plus the few styles that matter for its kind; All styles = every style;
+	 * Advanced = animations, interactions, conditions, attributes, custom CSS. */
 	function settingsTabHTML( node ) {
 		if ( 'client' === ACCESS.level ) { return clientSettingsHTML( node ); }
-		var s = '<div class="vb-setwrap">';
+		return '<div class="vb-setwrap">' + elementSettingsHTML( node ) + advancedSettingsHTML( node ) + '</div>';
+	}
+	function elementSettingsHTML( node ) {
+		var s = '';
 		var hasEl = false;
 
 		// ---- element-specific settings, shown prominently at the top ----
@@ -5669,7 +5718,7 @@
 			}
 			s += '<div class="vb-setnote">' + T( 'Pulls live from the current page/post on the front end. Inside a query loop it shows each item.' ) + '</div></div>';
 		}
-		if ( node.el === 'Heading' ) {
+		if ( node.el === 'Heading' && 'client' === ACCESS.level ) { // everyone else has the level row at the top of the inspector
 			hasEl = true;
 			s += '<div class="vb-setsec"><div class="vb-setsec-h">' + svg( 'type', 14 ) + ' ' + T( 'Heading' ) + '</div>';
 			s += '<div class="vb-f"><div class="vb-f-lbl">' + T( 'Heading level' ) + '</div><div class="vb-seg">' +
@@ -5688,6 +5737,10 @@
 		// ---- element's own settings, generated from its definition ----
 		var defHtml = defSettingsHTML( node );
 		if ( defHtml ) { s += defHtml; hasEl = true; }
+		return s;
+	}
+	function advancedSettingsHTML( node ) {
+		var s = '';
 
 		// ---- animate on scroll, available on every element ----
 		s += aosSettingsHTML( node );
@@ -7407,7 +7460,7 @@
 			} );
 			return;
 		}
-		if ( 'link' === x.fix || 'settings' === x.fix ) { inspTab = 'set'; renderInspector( store.state ); return; }
+		if ( 'link' === x.fix || 'settings' === x.fix ) { inspTab = 'ess'; renderInspector( store.state ); return; }
 		if ( 'color' === x.fix || 'size' === x.fix ) { inspTab = 'all'; styleFilter = 'color' === x.fix ? 'color' : ( 'Button' === ( findNode( store.state.tree, x.id ) || {} ).el ? 'padding' : 'font-size' ); renderInspector( store.state ); return; }
 		if ( 'tag' === x.fix ) { setTimeout( function () { var tb = document.querySelector( '.vb-tagbar' ); if ( tb ) { tb.classList.remove( 'is-flash' ); void tb.offsetWidth; tb.classList.add( 'is-flash' ); } var tp = document.querySelector( '.vb-tagbar .vb-tagsel' ); if ( tp ) { tp.click(); } }, 80 ); }
 	}
@@ -8089,7 +8142,7 @@
 			var stit = e.target.closest( '[data-stitem]' );
 			if ( stit ) {
 				var ip = stit.getAttribute( 'data-stitem' ).split( ':' );
-				inspTab = 'set';
+				inspTab = 'ess';
 				store.commit( function ( s ) { s.selection = ip[ 0 ]; resetActiveClass( s ); }, false );
 				return;
 			}
@@ -8126,7 +8179,7 @@
 				closeContextMenu();
 				if ( act === 'copy' ) { copyNode( tid ); toast( T( 'Copied.' ) ); }
 				else if ( act === 'paste' ) { pasteNode( tid ); }
-				else if ( act === 'settings' ) { inspTab = 'set'; store.commit( function ( s ) { s.selection = tid; resetActiveClass( s ); }, false ); }
+				else if ( act === 'settings' ) { inspTab = 'ess'; store.commit( function ( s ) { s.selection = tid; resetActiveClass( s ); }, false ); }
 				else if ( act === 'dup' ) { duplicateNode( tid ); }
 				else if ( act === 'copystyle' ) { copyStyle( tid ); }
 				else if ( act === 'mvup' ) { moveRelative( tid, 'up' ); }
@@ -10252,7 +10305,7 @@
 			add( S, T( 'Wrap with div' ), function () { wrapNodeInDiv( sel ); } );
 			add( S, selNode.hidden ? T( 'Show' ) : T( 'Hide' ), function () { toggleNodeHidden( sel ); } );
 			add( S, T( 'Save as reusable' ), function () { makeReusableFromNode( sel ); } );
-			add( S, T( 'Settings' ), function () { inspTab = 'set'; renderInspector( store.state ); } );
+			add( S, T( 'Settings' ), function () { inspTab = 'ess'; renderInspector( store.state ); } );
 		}
 		add( P, T( 'Add element' ), function () { toggleAddMenu(); } );
 		add( P, T( 'Structure' ), click( 'vb-structure' ), '', 'navigator layers tree' );
@@ -11668,8 +11721,9 @@
 			'.vb-app.vb-insp-float.vb-nosel .vb-inspector,.vb-app.vb-insp-float .vb-iresize{display:none}',
 			'.vb-app.vb-insp-float:not(.vb-nosel):not(.vb-pin-left) .vb-addmenu{left:var(--vb-iw)}',
 			'#vb-inspector .vb-ia.vb-pinbtn.on{background:rgba(42,183,241,.14);color:#8fdcfb}',
-			'.vb-app #vb-inspector .vb-insp-head{padding:0 10px 0 16px}',
-			'#vb-inspector .vb-tagbar{margin:14px 16px 12px}',
+			'.vb-app #vb-inspector .vb-insp-head{height:auto;min-height:64px;padding:14px 10px 14px 16px;gap:12px;align-items:center}',
+			'.vb-app #vb-inspector .vb-insp-tx{gap:3px}',
+			'#vb-inspector .vb-tagbar{margin:18px 16px 14px}',
 			'.vb-aipanel{position:absolute;top:48px;right:0;bottom:0;width:var(--vb-pw-ai,380px);background:var(--vb-bg1);border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
 			'.vb-top .vb-aibtn{color:#e9a587;background:rgba(217,119,87,.12);box-shadow:inset 0 0 0 1px rgba(217,119,87,.28)}',
 			'.vb-top .vb-aibtn:hover,.vb-top .vb-aibtn.on{color:#fff;background:rgba(217,119,87,.3);box-shadow:inset 0 0 0 1px rgba(217,119,87,.5)}',
