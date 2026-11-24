@@ -988,6 +988,7 @@
 			syncItemViews( doc );
 		}
 		syncParticles( doc );
+		syncPointerFx( doc );
 		// Listeners belong to the DOCUMENT, not the markup — re-attaching them on
 		// every render stacked a new copy each time, so one click ran the handler
 		// once per render since the page opened. Wire each canvas document once.
@@ -1208,6 +1209,49 @@
 	 * page: the same density, colour and drift. Each section keeps its canvas
 	 * across redraws, so the field does not jump while you edit. */
 	var PARTS = {};
+	/* The mouse effects (Motion → tilt, soft light) play on the canvas too, as
+	 * on the page, for every element that has them. Magnet stays off here:
+	 * it would pull elements away while you click and drag them. */
+	function syncPointerFx( doc ) {
+		if ( ! doc.getElementById( 'vb-fx-css' ) ) {
+			var st = doc.createElement( 'style' ); st.id = 'vb-fx-css';
+			st.textContent = '.vx-tilt{transition:transform .3s ease-out;will-change:transform}' +
+				'.vx-glow{position:relative;isolation:isolate}' +
+				'.vx-glow::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;transition:opacity .3s ease;background:radial-gradient(340px circle at var(--vx-gx,50%) var(--vx-gy,50%),var(--vx-glow,rgba(255,255,255,.16)),transparent 62%)}' +
+				'.vx-glow:hover::after{opacity:1}';
+			( doc.head || doc.documentElement ).appendChild( st );
+		}
+		// Switched off: the element goes back to normal.
+		[].forEach.call( doc.querySelectorAll( '.vx-glow,.vx-tilt' ), function ( x ) {
+			var nn = findNode( store.state.tree, x.id ), mm = ( nn && nn.mo ) || {};
+			if ( ! mm.glow && x._vbGlow ) { x.classList.remove( 'vx-glow' ); }
+			if ( ! mm.tilt && x._vbTilt ) { x.classList.remove( 'vx-tilt' ); x.style.transform = ''; }
+		} );
+		( function walk( list ) {
+			( list || [] ).forEach( function ( n ) {
+				if ( ! n ) { return; }
+				var m = n.mo || {}, el = ( m.glow || m.tilt ) && ! n.hidden ? doc.getElementById( n.id ) : null;
+				if ( el && m.glow && ! el.classList.contains( 'vx-glow' ) ) { el.classList.add( 'vx-glow' ); }
+				if ( el && m.glow && ! el._vbGlow ) {
+					el._vbGlow = 1; el.classList.add( 'vx-glow' );
+					if ( m.glowColor ) { el.style.setProperty( '--vx-glow', String( m.glowColor ) ); }
+					el.addEventListener( 'pointermove', function ( e ) { var r = el.getBoundingClientRect(); el.style.setProperty( '--vx-gx', ( e.clientX - r.left ) + 'px' ); el.style.setProperty( '--vx-gy', ( e.clientY - r.top ) + 'px' ); } );
+				}
+				if ( el && m.tilt ) { el.classList.add( 'vx-tilt' ); }
+				if ( el && m.tilt && ! el._vbTilt ) {
+					var max = Math.max( 2, Math.min( 25, parseInt( m.tiltMax, 10 ) || 8 ) );
+					el._vbTilt = 1; el.classList.add( 'vx-tilt' );
+					el.addEventListener( 'pointermove', function ( e ) {
+						if ( e.buttons || ! el.classList.contains( 'vx-tilt' ) ) { el.style.transform = ''; return; } // never while dragging
+						var r = el.getBoundingClientRect(), px = ( e.clientX - r.left ) / r.width - 0.5, py = ( e.clientY - r.top ) / r.height - 0.5;
+						el.style.transform = 'perspective(900px) rotateX(' + ( -py * max ).toFixed( 2 ) + 'deg) rotateY(' + ( px * max ).toFixed( 2 ) + 'deg)';
+					} );
+					el.addEventListener( 'pointerleave', function () { el.style.transform = ''; } );
+				}
+				if ( n.children ) { walk( n.children ); }
+			} );
+		}( store.state.tree ) );
+	}
 	function syncParticles( doc ) {
 		var want = {};
 		( function walk( list ) { ( list || [] ).forEach( function ( n ) { if ( n && n.mo && n.mo.particles && ! n.hidden ) { want[ n.id ] = n.mo; } if ( n && n.children ) { walk( n.children ); } } ); }( store.state.tree ) );
