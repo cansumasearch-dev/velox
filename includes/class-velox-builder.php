@@ -658,6 +658,7 @@ class Velox_Builder {
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
 			'ai'      => Velox_Builder_Assistant::editor_data(),
 			'mayCode' => current_user_can( 'unfiltered_html' ),
+			'siteName' => get_bloginfo( 'name' ),
 		);
 
 		// The editor lives in its own document, so the WordPress media library
