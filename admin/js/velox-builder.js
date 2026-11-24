@@ -1218,19 +1218,26 @@
 			st.textContent = '.vx-tilt{transition:transform .3s ease-out;will-change:transform}' +
 				'.vx-glow{position:relative;isolation:isolate}' +
 				'.vx-glow::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;transition:opacity .3s ease;background:radial-gradient(340px circle at var(--vx-gx,50%) var(--vx-gy,50%),var(--vx-glow,rgba(255,255,255,.16)),transparent 62%)}' +
-				'.vx-glow:hover::after{opacity:1}';
+				'.vx-glow:hover::after{opacity:1}' +
+				/* Motion → "Pinned: children move sideways": on the page the children
+				 * ride in one row; here the row scrolls sideways by hand. */
+				'.vb-hs{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden;scroll-snap-type:x proximity;position:relative;padding-top:30px!important;scrollbar-width:thin}' +
+				'.vb-hs>*{flex:0 0 auto!important;scroll-snap-align:start}' +
+				'.vb-hs::before{content:attr(data-vb-hs);position:absolute;top:6px;left:6px;z-index:3;padding:3px 9px;border-radius:6px;background:rgba(42,183,241,.14);color:#0e7fb3;font:600 11px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;pointer-events:none;white-space:nowrap}';
 			( doc.head || doc.documentElement ).appendChild( st );
 		}
 		// Switched off: the element goes back to normal.
-		[].forEach.call( doc.querySelectorAll( '.vx-glow,.vx-tilt' ), function ( x ) {
+		[].forEach.call( doc.querySelectorAll( '.vx-glow,.vx-tilt,.vb-hs' ), function ( x ) {
 			var nn = findNode( store.state.tree, x.id ), mm = ( nn && nn.mo ) || {};
+			if ( ! mm.hscroll ) { x.classList.remove( 'vb-hs' ); x.removeAttribute( 'data-vb-hs' ); }
 			if ( ! mm.glow && x._vbGlow ) { x.classList.remove( 'vx-glow' ); }
 			if ( ! mm.tilt && x._vbTilt ) { x.classList.remove( 'vx-tilt' ); x.style.transform = ''; }
 		} );
 		( function walk( list ) {
 			( list || [] ).forEach( function ( n ) {
 				if ( ! n ) { return; }
-				var m = n.mo || {}, el = ( m.glow || m.tilt ) && ! n.hidden ? doc.getElementById( n.id ) : null;
+				var m = n.mo || {}, el = ( m.glow || m.tilt || m.hscroll ) && ! n.hidden ? doc.getElementById( n.id ) : null;
+				if ( el && m.hscroll ) { el.classList.add( 'vb-hs' ); el.setAttribute( 'data-vb-hs', '↔ ' + T( 'Moves sideways while scrolling on the page' ) ); }
 				if ( el && m.glow && ! el.classList.contains( 'vx-glow' ) ) { el.classList.add( 'vx-glow' ); }
 				if ( el && m.glow && ! el._vbGlow ) {
 					el._vbGlow = 1; el.classList.add( 'vx-glow' );
@@ -1339,7 +1346,7 @@
 		var before = 'body' === field ? el.innerText : el.textContent, done = false;
 		el.setAttribute( 'contenteditable', 'plaintext-only' );
 		if ( ! el.isContentEditable ) { el.setAttribute( 'contenteditable', 'true' ); }
-		el.style.outline = '2px solid #a06bff'; el.style.outlineOffset = '2px';
+		markEditing( el, true );
 		itemEditing = true;
 		el.focus();
 		var doc = el.ownerDocument, range = doc.createRange(), sel = doc.defaultView.getSelection();
@@ -1348,7 +1355,7 @@
 			if ( done ) { return; }
 			done = true; itemEditing = false;
 			el.removeEventListener( 'keydown', key ); el.removeEventListener( 'blur', blur );
-			el.removeAttribute( 'contenteditable' ); el.style.outline = ''; el.style.outlineOffset = '';
+			el.removeAttribute( 'contenteditable' ); markEditing( el, false );
 			var val = ( 'body' === field ? el.innerText : el.textContent ).replace( /\u00a0/g, ' ' );
 			if ( 'title' === field ) { val = val.replace( /\s+/g, ' ' ).trim(); } else { val = val.replace( /\n{3,}/g, '\n\n' ).trim(); }
 			if ( ! keep || val === before.trim() ) { var d = ensureCanvasDoc(); if ( d && d.body ) { d.body.setAttribute( 'data-html', '' ); } injectCanvas(); return; }
@@ -1369,12 +1376,42 @@
 		el.addEventListener( 'keydown', key );
 		el.addEventListener( 'blur', blur );
 	}
+	/* While text is being edited it looks like it: a dashed frame in the
+	 * accent colour, a light tint, the caret in the accent, and a badge above
+	 * it that says how to finish. */
+	function markEditing( el, on, isList ) {
+		var doc = el && el.ownerDocument; if ( ! doc ) { return; }
+		if ( ! doc.getElementById( 'vb-edit-css' ) ) {
+			var st = doc.createElement( 'style' ); st.id = 'vb-edit-css';
+			st.textContent = '.vb-texting{outline:2px dashed #2ab7f1!important;outline-offset:5px!important;background-color:rgba(42,183,241,.07)!important;caret-color:#2ab7f1;cursor:text!important;border-radius:3px}' +
+				'.vb-edit-badge{position:absolute;z-index:2147483646;display:flex;align-items:center;gap:7px;padding:5px 10px;border-radius:8px;background:#2ab7f1;color:#04222f;font:600 11.5px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif;pointer-events:none;box-shadow:0 6px 18px rgba(0,0,0,.25);white-space:nowrap}' +
+				'.vb-edit-badge i{width:7px;height:7px;border-radius:50%;background:#04222f;animation:vbEdBlink 1s steps(2) infinite}' +
+				'.vb-edit-badge small{font-weight:500;opacity:.75;font-size:11px}' +
+				'@keyframes vbEdBlink{50%{opacity:.15}}';
+			( doc.head || doc.documentElement ).appendChild( st );
+		}
+		var old = doc.getElementById( 'vb-edit-badge' ); if ( old ) { old.remove(); }
+		el.classList.toggle( 'vb-texting', !! on );
+		el.style.outline = ''; el.style.outlineOffset = '';
+		if ( ! on ) { return; }
+		var b = doc.createElement( 'div' ); b.id = 'vb-edit-badge'; b.className = 'vb-edit-badge';
+		b.innerHTML = '<i></i>' + T( 'Editing text' ) + '<small>' + ( isList ? T( 'Ctrl+Enter or click outside: done · Esc: cancel' ) : T( 'Enter or click outside: done · Esc: cancel' ) ) + '</small>';
+		doc.body.appendChild( b );
+		// The canvas may be zoomed out ("Fit · 45%"): the badge keeps its real size.
+		var fr = doc.defaultView.frameElement, z = fr && fr.offsetWidth ? fr.getBoundingClientRect().width / fr.offsetWidth : 1;
+		if ( z > 0 && z < 0.98 ) { b.style.transformOrigin = '0 100%'; b.style.transform = 'scale(' + ( 1 / z ).toFixed( 3 ) + ')'; }
+		var bh = b.offsetHeight / ( z > 0 && z < 0.98 ? z : 1 );
+		var rc = el.getBoundingClientRect(), win = doc.defaultView, top = rc.top + win.scrollY - b.offsetHeight - 10 / ( z || 1 );
+		if ( rc.top - bh - 10 < 0 ) { top = rc.bottom + win.scrollY + 10; b.style.transformOrigin = '0 0'; }
+		b.style.top = Math.max( 0, top ) + 'px';
+		b.style.left = Math.max( 4, Math.min( rc.left + win.scrollX - 5, doc.documentElement.clientWidth - b.offsetWidth - 4 ) ) + 'px';
+	}
 	function startInlineEdit( elNode, id ) {
 		if ( store.locked ) { if ( store.onLocked ) { store.onLocked(); } return; }
 		if ( editing ) { commitInlineEdit(); }
 		editing = { id: id, el: elNode };
 		elNode.setAttribute( 'contenteditable', 'true' );
-		elNode.style.outline = '2px solid #a06bff';
+		markEditing( elNode, true, /^(UL|OL)$/.test( elNode.tagName ) );
 		elNode.focus();
 		// place caret at end
 		var doc = elNode.ownerDocument, range = doc.createRange(), selr = doc.defaultView.getSelection();
@@ -1400,7 +1437,7 @@
 		if ( holdEdit && e && 'blur' === e.type ) { return; }
 		var elNode = editing.el, id = editing.id;
 		var html = sanitizeInlineHTML( elNode.innerHTML );
-		elNode.removeAttribute( 'contenteditable' ); elNode.style.outline = '';
+		elNode.removeAttribute( 'contenteditable' ); markEditing( elNode, false );
 		elNode.removeEventListener( 'keydown', inlineKey ); elNode.removeEventListener( 'blur', commitInlineEdit );
 		editing = null;
 		var spanRules = pendingSpanRules; pendingSpanRules = null;
@@ -1459,7 +1496,7 @@
 		if ( ! editing ) { return; }
 		var elNode = editing.el;
 		elNode.innerHTML = store.state.content[ editing.id ] || '';
-		elNode.removeAttribute( 'contenteditable' ); elNode.style.outline = '';
+		elNode.removeAttribute( 'contenteditable' ); markEditing( elNode, false );
 		elNode.removeEventListener( 'keydown', inlineKey ); elNode.removeEventListener( 'blur', commitInlineEdit );
 		editing = null;
 		refreshTextTool();

@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.72.1 — You can see when you are editing text; the sideways row in the editor
+- **Editing text is clearly visible:** a double-click puts a dashed frame in the accent colour around the text, tints it lightly, colours the caret and shows a badge above it: “Editing text — Enter or click outside: done · Esc: cancel” (in lists: Ctrl+Enter). The badge keeps its size on a zoomed-out canvas.
+- **Sideways-scrolling rows look like rows in the editor:** an element with Motion → “Pinned: children move sideways while scrolling” used to show its children stacked below each other in the editor. It is now one row you can scroll sideways by hand, labelled “Moves sideways while scrolling on the page”.
+
 ## 4.72.0 — Looks for every shop page, Ctrl+S everywhere
 - **Looks per page in the shop design:** Shop page, Product page, Cart & checkout and Customer account each start with finished looks, drawn small in your template’s colours (shop page: Classic grid, Tiles, Boutique, Gallery, Catalogue, Showcase row; product page: Classic, Gallery, Editorial, Photo grid, Photos on top; cart: Classic, Compact, Department store, Market; account: Tabs on top, Side menu, Buttons). One click sets that page’s choices; every option is still below under “Fine-tune”.
 - **Every part of Settings → Design opens and closes:** Template, Preview, Colours, Typography, Buttons, each page and your own CSS. Buttons moved up to “Everywhere”.
