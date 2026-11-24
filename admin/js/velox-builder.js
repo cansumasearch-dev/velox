@@ -1913,8 +1913,8 @@
 			 * box stays pinned, or the cards stack up. What goes inside is free. */
 			{ key:'scroller', el:'Scroller', tag:'div', label:'Scroll section', cls:'.scroll-section', rules:{ gap:'24' },
 			  settings:[
-				{ k:'effect', t:'segment', l:'While scrolling', d:'side', s:'Scroll effect', o:[ [ 'side', 'Moves sideways' ], [ 'stack', 'Stacks up' ] ] },
-				{ k:'pinOn', t:'segment', l:'Effect on', d:'', s:'Scroll effect', o:[ [ '', 'Desktop & laptop' ], [ 'all', 'All screens' ] ], when:{ effect:[ 'side' ] } },
+				{ k:'effect', t:'segment', l:'While scrolling', d:'side', s:'Scroll effect', o:[ [ 'side', 'Sideways' ], [ 'stack', 'Stacks up' ] ] },
+				{ k:'pinOn', t:'segment', l:'Effect on', d:'', s:'Scroll effect', o:[ [ '', 'Big screens' ], [ 'all', 'All screens' ] ], when:{ effect:[ 'side' ] } },
 				{ k:'stackTop', t:'num', l:'Sticks at', d:'100', unit:'px', s:'Scroll effect', when:{ effect:[ 'stack' ] } },
 				{ k:'stackStep', t:'num', l:'Offset per card', d:'18', unit:'px', s:'Scroll effect', when:{ effect:[ 'stack' ] } }
 			  ] },
@@ -2875,7 +2875,7 @@
 			{ key:'textlink', text:'Learn more →', href:'#' } ] );
 		kit( 'scroller', [ 'First', 'Second', 'Third', 'Fourth' ].map( function ( t ) {
 			return { key:'div', cls:'.scroll-card', rules:{ display:'flex', flexDirection:'column', flexShrink:'0', width:'380', gap:'12', paddingTop:'20', paddingRight:'20', paddingBottom:'24', paddingLeft:'20', background:'#ffffff', borderRadius:'16', boxShadow:'0 10px 30px rgba(15,23,42,.08)' }, bp:{ md:{ width:'300' } },
-				kids:[ IMG( '.scroll-card-media', { aspectRatio:'4/3', borderRadius:'10', overflow:'hidden' } ),
+				kids:[ IMG( '.scroll-card-media', { width:'100%', aspectRatio:'4/3', borderRadius:'10', overflow:'hidden' } ),
 					H( 'h3', '.scroll-card-title', { fontSize:'20', marginBottom:'0' }, t + ' card' ),
 					P( '.scroll-card-text', MUTED, 'Put anything in here: text, images, buttons, other cards.' ) ] };
 		} ) );

@@ -8371,10 +8371,9 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Moves sideways while scrolling on the page' => 'Läuft auf der Seite beim Scrollen seitwärts',
 	// 4.73.0 — scroll section, page previews
 	'Scroll section' => 'Scroll-Bereich',
-	'Moves sideways' => 'Läuft seitwärts',
 	'Stacks up' => 'Stapelt sich',
 	'Effect on' => 'Effekt auf',
-	'Desktop & laptop' => 'Desktop & Laptop',
+	'Big screens' => 'Große Bildschirme',
 	'Sticks at' => 'Bleibt stehen bei',
 	'Scroll effect' => 'Scroll-Effekt',
 	'First card' => 'Erste Karte',
