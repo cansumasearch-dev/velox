@@ -4,6 +4,16 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.72.0 — Looks for every shop page, Ctrl+S everywhere
+- **Looks per page in the shop design:** Shop page, Product page, Cart & checkout and Customer account each start with finished looks, drawn small in your template’s colours (shop page: Classic grid, Tiles, Boutique, Gallery, Catalogue, Showcase row; product page: Classic, Gallery, Editorial, Photo grid, Photos on top; cart: Classic, Compact, Department store, Market; account: Tabs on top, Side menu, Buttons). One click sets that page’s choices; every option is still below under “Fine-tune”.
+- **Every part of Settings → Design opens and closes:** Template, Preview, Colours, Typography, Buttons, each page and your own CSS. Buttons moved up to “Everywhere”.
+- **Ctrl+S (⌘+S) saves everywhere:** every shop screen (product, settings, coupons, texts, and windows like “Edit order”) and every Velox Builder screen (global styles, fonts, settings, shortcuts, the class and template-rule windows). The browser’s “Save page” never opens there.
+- **The note after picking a template no longer covers the save bar:** notes sit above it and go away sooner.
+- **Help in the Velox Shop menu**, like Velox Builder.
+- **Heading level as a type scale:** six tiles, each “Aa” at its level’s size, with what the level is for underneath; other tags in a small menu.
+- **Mouse effects in the editor:** the soft light and the 3D tilt play on the editor canvas too, on every page (as the particles do since 4.70).
+- The “Advanced” card at the end of Essentials has its icon again.
+
 ## 4.71.0 — The complete guide, and an inspector that works like Oxygen
 - **A complete guide for the shop and for Velox Builder:** Shop → Settings → Help & tour and Velox Builder → Help now open a full guide, chapter by chapter, for every screen and every setting, next to the short questions. Contents on the left (a menu on narrow screens), Previous / Next chapter at the end, and one search across the guide and the questions that jumps straight to the matching section. The guide loads only when Help is opened.
 - **The inspector works like Oxygen, in Velox’s look** (after a complete second analysis of Oxygen, see notes):
