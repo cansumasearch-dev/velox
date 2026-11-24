@@ -3586,7 +3586,7 @@
 		TB_LEVELS.forEach( function ( c ) { top.classList.remove( c ); } );
 		for ( var i = 0; i < TB_LEVELS.length && tbClash( top ); i++ ) { top.classList.add( TB_LEVELS[ i ] ); }
 	}
-	function fitTopbarSoon() { cancelAnimationFrame( fitTopbarSoon._f ); fitTopbarSoon._f = requestAnimationFrame( fitTopbar ); }
+	function fitTopbarSoon() { clearTimeout( fitTopbarSoon._t ); fitTopbarSoon._t = setTimeout( fitTopbar, 40 ); }
 	function renderActions() {
 		var host = document.getElementById( 'vb-actions' ); if ( ! host ) { return; }
 		fitTopbarSoon();
