@@ -846,7 +846,7 @@ body select.vba-input:focus,body select.vba-tpl-purpose:focus,body .vba-shell se
 .vba-shell .vba-ai-keyrow input.vba-input-wide::placeholder{color:var(--vbb-text-3);opacity:1}
 .vba-shell .vba-ai-keyrow input.vba-input-wide:focus{border-color:var(--vbb-accent)!important;box-shadow:0 0 0 3px rgba(42,183,241,.16)!important;outline:none}
 .vba-shell .vba-ai-keyrow .vba-btn{height:40px}
-.vba-shell .vba-ai-limit{position:relative;display:inline-flex;align-items:center;gap:0;height:40px;padding:0;border:1px solid var(--vbb-line);border-radius:10px;background:var(--vbb-void);overflow:hidden;transition:border-color .15s,box-shadow .15s}
+.vba-shell .vba-ai-limit{position:relative;display:inline-flex;align-items:center;gap:0;height:40px;padding:0;border:1px solid var(--vbb-line-2);border-radius:10px;background:var(--vbb-void);overflow:hidden;transition:border-color .15s,box-shadow .15s}
 .vba-shell .vba-ai-limit:focus-within{border-color:var(--vbb-accent);box-shadow:0 0 0 3px rgba(42,183,241,.16)}
 .vba-shell .vba-ai-limit>span:first-child{display:grid;place-items:center;align-self:stretch;width:34px;border-right:1px solid var(--vbb-line);background:var(--vbb-raised);color:var(--vbb-text-2);font-weight:600}
 .vba-shell .vba-ai-limit input[type=number]{width:86px;height:38px!important;min-height:0!important;margin:0;padding:0 12px!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;color:var(--vbb-text);font:600 14px/1 var(--vbb-font);text-align:right;-moz-appearance:textfield;appearance:textfield}

@@ -4,6 +4,20 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.65.0 — Code block, centred icons, editor polish, shop fixes
+- **New element: Code block.** Write HTML, CSS and JavaScript for one spot on a page, with code fields that indent with Tab. The editor shows the markup and styles; scripts run on the page (`el` is the block). Only people WordPress allows to post unfiltered code can change it: their code is signed when they save, and code that was changed by anyone else is shown filtered, without scripts or styles.
+- **Gradient text stays visible with text animations:** a word painted with a gradient (background-clip: text) vanished on the page when the heading used the word-by-word reveal. It now rises as one piece and keeps its gradient.
+- **Editor looks like the page:** small shapes with their own size (a status dot, a line) no longer turn into a tall “drop elements here” well in the editor. Only containers that collapse to nothing get it.
+- **Icons centred on Oxygen sites:** Oxygen gives every svg a right margin, which pushed every Velox icon about 5px to the left (builder icons, the cart button, wishlist hearts, account menu and order check marks). Velox’s icons start without it now.
+- **Inspector:** the element settings have their own pin (their own column, or floating over the canvas while something is selected). Unpinning the Add panel no longer hides the selected element’s settings; the panel floats next to them. More room around the header and the Level row. The margin/padding box no longer borrows the menu styling (hover boxes overlapped and were cut off), and its labels have their own row so long names (Außenabstand) don’t run into the values.
+- **Shopping bag icon** that no longer looks like a bin (header cart, product cards, account).
+- **Order progress:** bold, centred check marks.
+- **Account page uses the full width** of the page container and never grows wider than it.
+- **Mark as shipped:** a proper carrier list (DHL, Deutsche Post, DPD, Hermes, GLS, UPS, FedEx, TNT, Österreichische Post, Swiss Post) or any other carrier with your own tracking link ({code} = tracking number). The last carrier used is preselected.
+- **Shop overview: shop pages.** Shows which pages the shop needs and which are missing; the shop’s own pages are created with one click, legal pages link to where you choose them. Pages built with Velox Builder open in the builder.
+- **AI agents:** the key and monthly limit fields are styled like the rest of the screen.
+- **Editor top bar** fits its content step by step in every language and width (from 4.64, refined).
+
 ## 4.64.0 — Claude in the editor
 - **Build with words:** a new Claude panel in Velox Builder (the orange button in the top bar). Describe what to build or change on the open page — “a landing page with a hero, three benefits and a contact form” — and Claude builds it on the canvas while you watch. It reads your design system first and uses your classes and design tokens, finds pictures in your media library, and works only in drafts. The selected element is passed along, so “make this bigger” works.
 - **Safe by design:** while Claude works, the page is locked and Save and Publish wait, so nothing it did can be overwritten. When it is done, one Undo takes back everything it changed, and every change is a saved version marked “By AI”. Stop ends it after the current step. Each page keeps its own chat, also after a reload; if Claude is still working when the editor opens, the panel opens and the editor follows it.
