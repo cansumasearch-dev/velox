@@ -4,6 +4,12 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.69.0 — Tours and built-in help for the shop and the builder
+- **A tour on the first switch-on:** whoever switches the shop or Velox Builder on is taken to its dashboard on the next page and gets a short guided tour (shop: 10 steps through orders, products, pages, payments, shipping, design, texts; builder: 8 steps through pages, templates, reusables, design system, Claude and the editor). The page dims, the part being explained stays lit, Back / Next / Skip, arrow keys and Escape work.
+- **Skip shows where to start it again:** skipping lands on Shop → Settings → Help & tour or Velox Builder → Settings, with the “Start the tour” button highlighted.
+- **Built-in help:** searchable questions and answers for the shop (getting started, products, orders and shipping, payments, design and texts, law in Germany) and for the builder (editor, styling, pages and publishing, Claude, shortcuts). Shop: a Help link in the shop’s top bar and Settings → Help & tour. Builder: a new Help page in its menu.
+- Tours can be taken again at any time from those places.
+
 ## 4.68.1 — Template tiles show the pure template
 - The template tiles in Settings → Design ignored nothing: colours and other choices saved on top of the current template showed in every tile, so a dark template (Noir) looked light. Each tile now shows its template exactly as it comes.
 - No scrollbar inside the tiles any more.
