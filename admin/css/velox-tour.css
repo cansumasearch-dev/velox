@@ -37,3 +37,6 @@
 .vxh-q summary:focus-visible{outline:2px solid var(--vbb-accent,#2ab7f1);outline-offset:2px;border-radius:4px}
 .vxh-q p{margin:0 0 14px;font-size:13.5px;line-height:1.6;color:var(--vbb-text-2,#9d9da8);max-width:720px}
 .vxh-none{margin:8px 0 0;font-size:13px;color:var(--vbb-text-3,#85858f)}
+.vba-help-card{overflow:visible}
+.vba-help-body{padding:20px 22px 12px}
+.vba-help-body .vxh-q:last-child{border-bottom:0}
