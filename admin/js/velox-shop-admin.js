@@ -60,6 +60,15 @@
 			.then( function ( j ) { if ( ! j || ! j.success ) { throw new Error( ( j && j.data && j.data.message ) || vxT( 'Something went wrong.' ) ); } return j.data; } );
 	}
 	var toastT = null;
+	var toastLift = 0;
+	function liftToast() {
+		var t = document.getElementById( 'vsa-toast' ), sb = document.getElementById( 'vsa-savebar' ), y = 30;
+		if ( ! t ) { return; }
+		// The bar shows on screens with unsaved work; in Settings only while
+		// something is unsaved. It sits 18px from the bottom.
+		if ( sb && sb.offsetHeight && ( sb.classList.contains( 'is-dirty' ) || ! sb.matches( '.vsa-set~.vsa-savebar,#vsa-setb~.vsa-savebar' ) ) ) { y = 18 + sb.offsetHeight + 16; }
+		t.style.bottom = y + 'px';
+	}
 	function toast( msg, bad, act ) {
 		var t = document.getElementById( 'vsa-toast' );
 		if ( ! t ) { t = document.createElement( 'div' ); t.id = 'vsa-toast'; t.setAttribute( 'role', 'status' ); document.body.appendChild( t ); }
@@ -69,7 +78,9 @@
 			b.addEventListener( 'click', function () { clearTimeout( toastT ); t.className = 'vsa-toast'; act.fn(); } );
 			t.appendChild( b );
 		}
-		clearTimeout( toastT ); toastT = setTimeout( function () { t.className = 'vsa-toast'; }, bad ? 6000 : ( act ? 9000 : 3200 ) );
+		clearTimeout( toastT ); toastT = setTimeout( function () { t.className = 'vsa-toast'; clearInterval( toastLift ); }, bad ? 6000 : ( act ? 7000 : 3200 ) );
+		// Never over the save bar: sit just above it while it shows.
+		clearInterval( toastLift ); liftToast(); toastLift = setInterval( liftToast, 150 );
 	}
 	function fail( e ) { toast( e && e.message ? e.message : String( e ), true ); }
 
@@ -146,8 +157,9 @@
 		[].forEach.call( root.querySelectorAll( '[data-nav]' ), function ( a ) { a.classList.toggle( 'is-on', a.getAttribute( 'data-nav' ) === k ); a.setAttribute( 'aria-current', a.getAttribute( 'data-nav' ) === k ? 'page' : 'false' ); } );
 		// The WordPress menu on the left follows the screen too.
 		[].forEach.call( document.querySelectorAll( '#toplevel_page_velox-shop .wp-submenu a' ), function ( a ) {
-			var m = ( a.getAttribute( 'href' ) || '' ).match( /#\/([a-z]*)/ ), sec = m ? m[ 1 ] : '';
-			var li = a.parentNode, on = sec === ( 'setup' === k ? '' : k );
+			var m = ( a.getAttribute( 'href' ) || '' ).match( /#\/([a-z\/]*)/ ), sec = m ? m[ 1 ] : '';
+			var cur = 'settings' === k && /^#\/settings\/help/.test( location.hash ) ? 'settings/help' : ( 'setup' === k ? '' : k );
+			var li = a.parentNode, on = sec === cur;
 			li.classList.toggle( 'current', on ); a.classList.toggle( 'current', on ); if ( on ) { a.setAttribute( 'aria-current', 'page' ); } else { a.removeAttribute( 'aria-current' ); }
 		} );
 	}
@@ -932,7 +944,7 @@
 		loading();
 		api( 'product', { id:+route.id } ).then( function ( p ) { P = Object.assign( blankProduct(), p ); Pclean = JSON.stringify( P ); drawProduct(); } ).catch( fail );
 	}
-	function markDirty() { dirty = JSON.stringify( P ) !== Pclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); } }
+	function markDirty() { dirty = JSON.stringify( P ) !== Pclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); }  liftToast(); }
 	function drawProduct() {
 		var p = P, phys = 'physical' === p.type, hasVar = p.options.length > 0;
 		var h = head( p.id ? esc( p.title || vxT( 'Product' ) ) : vxT( 'New product' ), p.id ? ( 'publish' === p.status ? '<span class="vsa-chip is-ok">' + vxT( 'Live' ) + '</span>' : '<span class="vsa-chip is-off">' + vxT( 'Draft' ) + '</span>' ) + ( p.sold ? ' &nbsp;' + p.sold + ' ' + vxT( 'orders' ) : '' ) : '', p.id ? '<a class="vsa-btn vsa-btn-ghost" href="' + esc( p.url ) + '" target="_blank" rel="noopener">' + ic( 'eye', 15 ) + vxT( 'View' ) + '</a>' : '', '#/products' );
@@ -1298,7 +1310,12 @@
 		} ).catch( function () { dsMiniBusy = false; DSMINI[ next ] = ''; } );
 	}
 	window.addEventListener( 'resize', function () { if ( 'design' === route.id ) { dsMiniFit(); } } );
-	document.addEventListener( 'toggle', function ( e ) { var d = e.target; if ( d && d.matches && d.matches( '.vsa-pacc' ) ) { DS_OPEN[ d.getAttribute( 'data-pacc' ) ] = d.open; } }, true );
+	document.addEventListener( 'toggle', function ( e ) {
+		var d = e.target; if ( ! ( d && d.matches && d.matches( '.vsa-pacc' ) ) ) { return; }
+		var key = d.getAttribute( 'data-pacc' ); DS_OPEN[ key ] = d.open;
+		if ( d.open && 'tpl' === key ) { dsMiniFit(); }
+		if ( d.open && 'prev' === key ) { dsPreviewSoon(); }
+	}, true );
 	/* Open the real shop with the choices not saved yet (administrators only). */
 	function dsTry( where ) {
 		var pick = { design:SD.design, card_ratio:SD.card_ratio, custom_css:SD.custom_css };
@@ -1309,7 +1326,112 @@
 		} ).catch( function ( e ) { if ( w ) { w.close(); } fail( e ); } );
 	}
 	/* One section per page: opens and closes; stays open across redraws. */
-	var DS_OPEN = {};
+	var DS_OPEN = { tpl:true, prev:true };
+	/* A Design section without "build it yourself" (template, preview, colours …). */
+	function acc( key, title, sub, body, top, cls ) {
+		var open = !! DS_OPEN[ key ];
+		return '<details class="vsa-pacc' + ( cls ? ' ' + cls : '' ) + '" data-pacc="' + key + '"' + ( open ? ' open' : '' ) + '><summary><span class="vsa-pacc-t"><b>' + title + '</b><small>' + sub + '</small></span>' +
+			'<span class="vsa-pacc-chev" aria-hidden="true"></span></summary><div class="vsa-pacc-b">' + ( top ? '<div class="vsa-pacc-top">' + top + '</div>' : '' ) + body + '</div></details>';
+	}
+	/* Looks per page: a finished layout for one page, drawn small in the
+	 * template's colours. One click sets that page's choices below. */
+	var PAGE_LOOKS = {
+		shop:[
+			{ k:'classic', n:'Classic grid', d:'Four in a row, text under the photo', v:{ layout:'grid', cols:'4', card:'bare', align:'left', hover:'swap', button:'button' } },
+			{ k:'tiles', n:'Tiles', d:'Photos on soft tiles, centred', v:{ layout:'grid', cols:'4', card:'tile', align:'center', hover:'zoom', button:'icon' } },
+			{ k:'boutique', n:'Boutique', d:'Three framed pieces, quiet and centred', v:{ layout:'grid', cols:'3', card:'framed', align:'center', hover:'lift', button:'link' } },
+			{ k:'gallery', n:'Gallery', d:'Masonry, the name on the photo', v:{ layout:'masonry', cols:'3', card:'overlay', align:'left', hover:'zoom', button:'none' } },
+			{ k:'catalogue', n:'Catalogue', d:'A list with photo and details side by side', v:{ layout:'list', cols:'1', card:'boxed', align:'left', hover:'shadow', button:'button' } },
+			{ k:'showcase', n:'Showcase row', d:'One row to scroll through, big photos', v:{ layout:'row', cols:'4', card:'tile', align:'left', hover:'fade', button:'icon' } }
+		],
+		product:[
+			{ k:'classic', n:'Classic', d:'Photos left, thumbnails below', v:{ product:'split', gallery:'below', sticky:'1', details:'sections' } },
+			{ k:'gallery', n:'Gallery', d:'Thumbnails at the side, details fold out', v:{ product:'split', gallery:'side', sticky:'1', details:'accordion' } },
+			{ k:'editorial', n:'Editorial', d:'Big photos stacked, buy box stays in view', v:{ product:'wide', gallery:'stack', sticky:'1', details:'accordion' } },
+			{ k:'grid', n:'Photo grid', d:'A grid of photos on the right', v:{ product:'split-reverse', gallery:'grid', sticky:'1', details:'sections' } },
+			{ k:'stacked', n:'Photos on top', d:'Photos first, everything else below', v:{ product:'stacked', gallery:'below', sticky:'0', details:'accordion' } }
+		],
+		cart:[
+			{ k:'classic', n:'Classic', d:'Two columns, bag with a number', v:{ checkout:'two', cart_icon:'bag', cart_count:'badge', cart_total:'0' } },
+			{ k:'compact', n:'Compact', d:'One column, a dot on the bag', v:{ checkout:'one', cart_icon:'bag', cart_count:'dot', cart_total:'0' } },
+			{ k:'store', n:'Department store', d:'Cart with the total next to it', v:{ checkout:'two', cart_icon:'cart', cart_count:'inline', cart_total:'1' } },
+			{ k:'market', n:'Market', d:'Basket, one column, total shown', v:{ checkout:'one', cart_icon:'basket', cart_count:'badge', cart_total:'1' } }
+		],
+		account:[
+			{ k:'tabs', n:'Tabs on top', d:'The menu as tabs above the content', v:{ acc_nav:'tabs' } },
+			{ k:'side', n:'Side menu', d:'A list at the side, like an app', v:{ acc_nav:'side' } },
+			{ k:'pills', n:'Buttons', d:'Rounded buttons above the content', v:{ acc_nav:'pills' } }
+		]
+	};
+	function dsLooks( page, tpl ) {
+		var looks = PAGE_LOOKS[ page ] || [];
+		return '<div class="vsa-looks" role="group" aria-label="' + esc( vxT( 'Looks for this page' ) ) + '">' + looks.map( function ( L ) {
+			var on = Object.keys( L.v ).every( function ( k ) { return String( dsEff( k, tpl ) ) === String( L.v[ k ] ); } );
+			return '<button type="button" class="vsa-look' + ( on ? ' is-on' : '' ) + '" data-act="d-look" data-page="' + page + '" data-v="' + L.k + '" aria-pressed="' + on + '">' +
+				'<span class="vsa-look-pv">' + pgMock( page, L.v, tpl ) + '</span><b>' + esc( vxT( L.n ) ) + ( on ? ' <i class="vsa-look-on">' + ic( 'check', 12 ) + '</i>' : '' ) + '</b><small>' + esc( vxT( L.d ) ) + '</small></button>';
+		} ).join( '' ) + '</div>';
+	}
+	function dsLook( page, key ) {
+		var L = ( PAGE_LOOKS[ page ] || [] ).filter( function ( x ) { return x.k === key; } )[ 0 ]; if ( ! L ) { return; }
+		var tpl = ( ( C.designs || {} )[ dsCur( SD ) ] || { v:{} } ).v;
+		// A value the template already has stays "Template", so nothing piles up on top.
+		var before = JSON.stringify( SD );
+		Object.keys( L.v ).forEach( function ( k ) { SD[ 'd_' + k ] = String( tpl[ k ] ) === String( L.v[ k ] ) ? '' : L.v[ k ]; } );
+		redrawSettings();
+		toast( before === JSON.stringify( SD ) ? vxT( 'This page already looks like %s.' ).replace( '%s', vxT( L.n ) ) : vxT( '%s set for this page. Save to put it live.' ).replace( '%s', vxT( L.n ) ) );
+	}
+	/* A small drawing of a page in the template's colours. */
+	function pgMock( page, v, tpl ) {
+		var c = function ( k, d ) { var x = dsEff( k, tpl ); return /^#[0-9a-f]{3,8}$/i.test( x ) ? x : d; };
+		var bg = c( 'bg', '#ffffff' ), ink = c( 'ink', '#18181b' ), soft = c( 'soft', '#f1f1f3' ), sur = c( 'surface', bg ), line = c( 'line', '#e4e4e7' ), acc = c( 'accent', '#18181b' ), mut = c( 'muted', '#8a8a93' );
+		var bar = function ( w, col, h ) { return '<i class="vsa-pm-bar" style="width:' + w + '%;background:' + ( col || ink ) + ';' + ( h ? 'height:' + h + 'px;' : '' ) + '"></i>'; };
+		var ph = function ( extra ) { return '<i class="vsa-pm-ph" style="background:' + soft + ';' + ( extra || '' ) + '"></i>'; };
+		var top = '<span class="vsa-pm-top" style="border-color:' + line + '">' + bar( 16, ink, 3 ) + '<span class="vsa-pm-nav">' + bar( 9, mut, 2 ) + bar( 9, mut, 2 ) + bar( 9, mut, 2 ) + '</span></span>';
+		var body = '';
+		if ( 'shop' === page ) {
+			var k = v.card, n = 'list' === v.layout ? 1 : Math.max( 2, Math.min( 4, +v.cols || 3 ) ), cen = 'center' === v.align;
+			var cardHTML = function ( i ) {
+				var h = 'masonry' === v.layout ? ( i % 2 ? 'aspect-ratio:4/3;' : 'aspect-ratio:3/4;' ) : '';
+				var wrap = 'boxed' === k ? 'background:' + sur + ';padding:3px;border-radius:3px;' : ( 'framed' === k ? 'box-shadow:0 0 0 1px ' + line + ';padding:3px;' : ( 'tile' === k ? 'background:' + soft + ';padding:4px 4px 3px;border-radius:3px;' : '' ) );
+				if ( 'list' === v.layout ) {
+					return '<span class="vsa-pm-li" style="' + wrap + '">' + ph( 'width:26%;aspect-ratio:1;flex:none;' ) + '<span class="vsa-pm-tx">' + bar( 60 ) + bar( 85, mut, 2 ) + bar( 30, acc, 4 ) + '</span></span>';
+				}
+				var text = bar( 70 ) + bar( 40, mut, 2 ) + ( 'button' === v.button ? bar( 55, acc, 4 ) : '' );
+				if ( 'overlay' === k ) { return '<span class="vsa-pm-c is-ov">' + ph( h ) + '<span class="vsa-pm-ovt">' + bar( 60, '#fff' ) + bar( 35, '#fff', 2 ) + '</span></span>'; }
+				return '<span class="vsa-pm-c' + ( cen ? ' is-c' : '' ) + '" style="' + wrap + '">' + ph( h || ( 'tile' === k ? 'background:' + bg + ';' : '' ) ) + text + '</span>';
+			};
+			var cnt = 'list' === v.layout ? 3 : ( 'row' === v.layout ? 5 : n * ( 'masonry' === v.layout ? 2 : 1 ) );
+			var cells = []; for ( var i = 0; i < cnt; i++ ) { cells.push( cardHTML( i ) ); }
+			var gs = 'row' === v.layout ? 'display:flex;overflow:hidden;' : ( 'list' === v.layout ? 'display:flex;flex-direction:column;' : 'display:grid;grid-template-columns:repeat(' + n + ',minmax(0,1fr));align-items:start;' );
+			body = '<span class="vsa-pm-g' + ( 'row' === v.layout ? ' is-row' : '' ) + '" style="' + gs + '">' + cells.join( '' ) + '</span>';
+		} else if ( 'product' === page ) {
+			var g = v.gallery, gal;
+			if ( 'side' === g ) { gal = '<span class="vsa-pm-gal is-side"><span class="vsa-pm-th">' + ph() + ph() + ph() + '</span>' + ph( 'flex:1;' ) + '</span>'; }
+			else if ( 'stack' === g ) { gal = '<span class="vsa-pm-gal is-stack">' + ph( 'flex:1;' ) + ph( 'flex:1;' ) + '</span>'; }
+			else if ( 'grid' === g ) { gal = '<span class="vsa-pm-gal is-grid">' + ph() + ph() + ph() + ph() + '</span>'; }
+			else { gal = '<span class="vsa-pm-gal">' + ph( 'flex:1;' ) + '<span class="vsa-pm-th is-row">' + ph() + ph() + ph() + '</span></span>'; }
+			var box = '<span class="vsa-pm-buy">' + bar( 40, mut, 2 ) + bar( 80, ink, 5 ) + bar( 30, ink, 3 ) + bar( 90, line, 2 ) + bar( 100, acc, 7 ) + bar( 70, mut, 2 ) + bar( 60, mut, 2 ) + '</span>';
+			var lay = v.product;
+			body = '<span class="vsa-pm-pd is-' + lay + '">' + ( 'split-reverse' === lay ? box + gal : gal + box ) + '</span>';
+		} else if ( 'cart' === page ) {
+			var item = '<span class="vsa-pm-ci">' + ph( 'width:18%;aspect-ratio:1;flex:none;' ) + '<span class="vsa-pm-tx">' + bar( 55 ) + bar( 30, mut, 2 ) + '</span>' + bar( 14, ink, 3 ) + '</span>';
+			var sum = '<span class="vsa-pm-sum" style="background:' + sur + ';box-shadow:0 0 0 1px ' + line + '">' + bar( 50, mut, 2 ) + bar( 70, mut, 2 ) + bar( 45, ink, 4 ) + bar( 100, acc, 7 ) + '</span>';
+			var icons = { bag:'<path d="M6 8h12l-1 12H7z"/><path d="M9 8a3 3 0 0 1 6 0"/>', cart:'<path d="M3 4h2l2 11h11l2-8H6"/><circle cx="9" cy="19" r="1.4"/><circle cx="17" cy="19" r="1.4"/>', basket:'<path d="M4 10h16l-2 9H6z"/><path d="M8 10l4-6 4 6"/>' };
+			var cnt2 = 'dot' === v.cart_count ? '<i class="vsa-pm-dot" style="background:' + acc + '"></i>' : ( 'inline' === v.cart_count ? '<em style="color:' + ink + '">2</em>' : '<i class="vsa-pm-badge" style="background:' + acc + ';color:' + c( 'accent_ink', '#fff' ) + '">2</i>' );
+			var ico = '<span class="vsa-pm-ico" style="color:' + ink + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + ( icons[ v.cart_icon ] || icons.bag ) + '</svg>' + cnt2 + ( '1' === String( v.cart_total ) ? '<em style="color:' + ink + '">€84</em>' : '' ) + '</span>';
+			top = '<span class="vsa-pm-top" style="border-color:' + line + '">' + bar( 16, ink, 3 ) + ico + '</span>';
+			body = '<span class="vsa-pm-cart is-' + ( 'one' === v.checkout ? 'one' : 'two' ) + '"><span class="vsa-pm-items">' + item + item + item + '</span>' + sum + '</span>';
+		} else {
+			var items = [ 64, 50, 56, 44 ], nav = v.acc_nav;
+			var tabs = items.map( function ( w, i ) {
+				if ( 'pills' === nav ) { return '<i class="vsa-pm-pill" style="background:' + ( i ? soft : acc ) + '"></i>'; }
+				return '<span class="vsa-pm-tab' + ( i ? '' : ' is-on' ) + '" style="' + ( i ? '' : ( 'side' === nav ? 'background:' + soft + ';' : 'border-color:' + acc + ';' ) ) + '">' + bar( w, i ? mut : ink, 2 ) + '</span>';
+			} ).join( '' );
+			var content = '<span class="vsa-pm-acc-c">' + bar( 40, ink, 4 ) + '<span class="vsa-pm-rows">' + [ 0, 1, 2 ].map( function () { return '<span class="vsa-pm-row" style="border-color:' + line + '">' + bar( 30, ink, 2 ) + bar( 18, mut, 2 ) + bar( 14, acc, 3 ) + '</span>'; } ).join( '' ) + '</span></span>';
+			body = '<span class="vsa-pm-acc is-' + nav + '"><span class="vsa-pm-menu" style="border-color:' + line + '">' + tabs + '</span>' + content + '</span>';
+		}
+		return '<span class="vsa-pm" style="background:' + bg + '" aria-hidden="true">' + top + body + '</span>';
+	}
 	function pacc( key, title, sub, builds, body ) {
 		var open = !! DS_OPEN[ key ];
 		return '<details class="vsa-pacc" data-pacc="' + key + '"' + ( open ? ' open' : '' ) + '><summary><span class="vsa-pacc-t"><b>' + title + '</b><small>' + sub + '</small></span>' +
@@ -1361,28 +1483,34 @@
 			vxT( '%d choices in total. The tiles below show each template as it comes.' ).replace( '%d', ownKeys.length ) + '</span>' +
 			( colKeys.length ? '<span class="vsa-ownsw">' + colKeys.map( function ( x ) { return /^#[0-9a-f]{3,8}$/i.test( s[ x ] ) ? '<i style="background:' + s[ x ] + '"></i>' : ''; } ).join( '' ) + '</span>' : '' ) +
 			'</div><button type="button" class="vsa-btn vsa-btn-sm vsa-btn-pri" data-act="d-clear">' + vxT( 'Use %s as it comes' ).replace( '%s', tName ) + '</button></div>' : '';
-		return banner + card( vxT( 'Template' ), '<div class="vsa-tpls">' + tiles + '</div>' +
+		return banner + acc( 'tpl', vxT( 'Template' ), vxT( 'A finished look for the whole shop' ), '<div class="vsa-tpls">' + tiles + '</div>' +
 				( own ? '<div class="vsa-tpl-own">' + ic( 'brush', 14 ) + '<span>' + vxT( '%d choices changed on top of the template.' ).replace( '%d', own ) + '</span><button type="button" class="vsa-link" data-act="d-clear">' + vxT( 'Back to the pure template' ) + '</button></div>' : '<p class="vsa-hint">' + vxT( 'A template sets every choice below. Change any of them on top — “Template” keeps its value. Picking another template starts fresh.' ) + '</p>' ) ) +
-			card( vxT( 'Preview' ), '<div class="vsa-dprev"><iframe id="vsa-dprev" title="' + esc( vxT( 'Preview' ) ) + '"></iframe></div><p class="vsa-hint">' + vxT( 'Your real products, drawn with the choices on this page. Save to put them live.' ) + '</p>' +
+			acc( 'prev', vxT( 'Preview' ), vxT( 'Your products with these choices, on a desktop, tablet or phone' ), '<div class="vsa-dprev"><iframe id="vsa-dprev" title="' + esc( vxT( 'Preview' ) ) + '"></iframe></div><p class="vsa-hint">' + vxT( 'Your real products, drawn with the choices on this page. Save to put them live.' ) + '</p>' +
 					'<div class="vsa-try"><span>' + ic( 'eye', 14 ) + vxT( 'Try it on the real shop, before saving:' ) + '</span>' +
 					[ [ 'shop', vxT( 'Shop page' ) ], [ 'product', vxT( 'A product' ) ], [ 'cart', vxT( 'Cart' ) ], [ 'checkout', vxT( 'Checkout' ) ], [ 'account', vxT( 'Account' ) ] ].map( function ( o ) {
 						return '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="d-try" data-v="' + o[ 0 ] + '">' + o[ 1 ] + ' ' + ic( 'ext', 12 ) + '</button>';
-					} ).join( '' ) + '</div>', { cls:'vsa-dprev-card', right:'<div class="vsa-seg vsa-dprev-dev">' + [ [ 1280, vxT( 'Desktop' ) ], [ 820, vxT( 'Tablet' ) ], [ 390, vxT( 'Phone' ) ] ].map( function ( o ) { return '<button type="button" data-act="dprev-dev" data-v="' + o[ 0 ] + '" class="' + ( dsDev === o[ 0 ] ? 'is-on' : '' ) + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div>' } ) +
+					} ).join( '' ) + '</div>', '<div class="vsa-seg vsa-dprev-dev">' + [ [ 1280, vxT( 'Desktop' ) ], [ 820, vxT( 'Tablet' ) ], [ 390, vxT( 'Phone' ) ] ].map( function ( o ) { return '<button type="button" data-act="dprev-dev" data-v="' + o[ 0 ] + '" class="' + ( dsDev === o[ 0 ] ? 'is-on' : '' ) + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div>', 'vsa-dprev-card' ) +
 			'<h3 class="vsa-psub">' + vxT( 'Everywhere' ) + '</h3>' +
-			card( vxT( 'Colours' ),
+			acc( 'colors', vxT( 'Colours' ), vxT( 'Page, cards, text, lines and buttons' ),
 				'<div class="vsa-fr vsa-fr3">' + dsColor( 'bg', vxT( 'Page' ), tpl ) + dsColor( 'surface', vxT( 'Cards' ), tpl ) + dsColor( 'soft', vxT( 'Photo backdrop' ), tpl ) +
 				dsColor( 'ink', vxT( 'Text' ), tpl ) + dsColor( 'muted', vxT( 'Quiet text' ), tpl ) + dsColor( 'line', vxT( 'Lines' ), tpl ) +
 				dsColor( 'accent', vxT( 'Buttons' ), tpl ) + dsColor( 'accent_ink', vxT( 'Text on buttons' ), tpl ) + dsColor( 'sale', vxT( 'Sale price' ), tpl ) + '</div>' +
 				field( vxT( 'Page background' ), dsSeg( 'page_bg', [ [ '1', vxT( 'Shop pages in the template colour' ) ], [ '0', vxT( 'Keep the site’s background' ) ] ], tpl ), vxT( 'For dark or tinted templates: the whole page behind the shop takes the colour, not just the shop parts.' ) ) ) +
-			card( vxT( 'Typography' ),
+			acc( 'type', vxT( 'Typography' ), vxT( 'Fonts for headings and text, weight and spacing' ),
 				'<div class="vsa-fr">' + field( vxT( 'Headings' ), dsFonts( 'font_h', tpl ) ) + field( vxT( 'Text' ), dsFonts( 'font_b', tpl ) ) + '</div>' +
 				'<div class="vsa-fr">' + field( vxT( 'Heading weight' ), dsSeg( 'h_weight', [ [ '400', vxT( 'Regular' ) ], [ '500', vxT( 'Medium' ) ], [ '600', vxT( 'Semi-bold' ) ], [ '700', vxT( 'Bold' ) ] ], tpl ) ) +
 				field( vxT( 'Headings in' ), dsSeg( 'h_case', [ [ 'none', vxT( 'Normal case' ) ], [ 'upper', vxT( 'Capitals' ) ] ], tpl ) ) + '</div>' +
 				'<div class="vsa-fr">' + field( vxT( 'Letter spacing in headings' ), dsSel( 'h_track', [ [ '-0.03', vxT( 'Tight' ) ], [ '-0.015', vxT( 'A little tight' ) ], [ '0', vxT( 'Normal' ) ], [ '0.02', vxT( 'A little wide' ) ], [ '0.06', vxT( 'Wide' ) ] ], tpl ) ) +
 				field( vxT( 'Small labels' ), dsSeg( 'label', [ [ 'none', vxT( 'Normal' ) ], [ 'upper', vxT( 'Spaced capitals' ) ] ], tpl ), vxT( 'Category, badges and option names.' ) ) + '</div>' +
 				'<p class="vsa-hint">' + vxT( 'Fonts are downloaded once and served from your own site — no visitor ever connects to Google.' ) + '</p>' ) +
+			acc( 'buttons', vxT( 'Buttons' ), vxT( 'Shape, style, text and corners' ),
+				'<div class="vsa-fr">' + field( vxT( 'Button shape' ), dsSeg( 'btn_shape', [ [ 'pill', vxT( 'Pill' ) ], [ 'rounded', vxT( 'Rounded' ) ], [ 'square', vxT( 'Square' ) ] ], tpl ) ) +
+				field( vxT( 'Buttons in the grid' ), dsSeg( 'btn_style', [ [ 'solid', vxT( 'Filled' ) ], [ 'outline', vxT( 'Outline' ) ] ], tpl ) ) + '</div>' +
+				'<div class="vsa-fr">' + field( vxT( 'Button text' ), dsSeg( 'btn_case', [ [ 'none', vxT( 'Normal' ) ], [ 'upper', vxT( 'Capitals' ) ] ], tpl ) ) +
+				field( vxT( 'Corner radius' ), inp( 'd_radius', dsVal( 'radius' ), { ph:tpl.radius, suffix:'px', mode:'numeric' } ), vxT( 'Cards, photos and fields.' ) ) + '</div>' ) +
 			'<h3 class="vsa-psub">' + vxT( 'Each page' ) + '</h3>' +
 			pacc( 'shop', vxT( 'Shop page' ), vxT( 'Categories, the product grid and every card' ), [ 'shop' ],
+				dsLooks( 'shop', tpl ) + '<h4 class="vsa-pacc-sub is-ft">' + vxT( 'Fine-tune' ) + '</h4>' +
 				field( vxT( 'Categories above the products' ), dsSeg( 'cats_style', [ [ 'pills', vxT( 'Rounded buttons' ) ], [ 'underline', vxT( 'Underlined words' ) ], [ 'blocks', vxT( 'Solid blocks' ) ] ], tpl ) ) +
 				'<p class="vsa-hint">' + vxT( 'Sorting, search and filters are switched on under Storefront.' ) + ' <a href="#/settings/storefront">' + vxT( 'Open Storefront' ) + '</a></p>' +
 				'<h4 class="vsa-pacc-sub">' + vxT( 'Product grid' ) + '</h4>' +
@@ -1404,25 +1532,23 @@
 				field( vxT( 'Buy button' ), dsSeg( 'button', [ [ 'button', vxT( 'Button' ) ], [ 'icon', vxT( 'Icon' ) ], [ 'link', vxT( 'Text link' ) ], [ 'none', vxT( 'None — the card links' ) ] ], tpl ) ) + '</div>' +
 				'<div class="vsa-fr">' + field( vxT( 'Badges (Sale, New, Sold)' ), dsSeg( 'badge', [ [ 'pill', vxT( 'Pill' ) ], [ 'square', vxT( 'Solid block' ) ], [ 'text', vxT( 'Just text' ) ] ], tpl ) ) +
 				field( vxT( 'Badge position' ), dsSeg( 'badge_pos', [ [ 'tl', vxT( 'Top left' ) ], [ 'tr', vxT( 'Top right' ) ] ], tpl ) ) + '</div>' ) +
-			card( vxT( 'Buttons' ),
-				'<div class="vsa-fr">' + field( vxT( 'Button shape' ), dsSeg( 'btn_shape', [ [ 'pill', vxT( 'Pill' ) ], [ 'rounded', vxT( 'Rounded' ) ], [ 'square', vxT( 'Square' ) ] ], tpl ) ) +
-				field( vxT( 'Buttons in the grid' ), dsSeg( 'btn_style', [ [ 'solid', vxT( 'Filled' ) ], [ 'outline', vxT( 'Outline' ) ] ], tpl ) ) + '</div>' +
-				'<div class="vsa-fr">' + field( vxT( 'Button text' ), dsSeg( 'btn_case', [ [ 'none', vxT( 'Normal' ) ], [ 'upper', vxT( 'Capitals' ) ] ], tpl ) ) +
-				field( vxT( 'Corner radius' ), inp( 'd_radius', dsVal( 'radius' ), { ph:tpl.radius, suffix:'px', mode:'numeric' } ), vxT( 'Cards, photos and fields.' ) ) + '</div>' ) +
 			pacc( 'product', vxT( 'Product page' ), vxT( 'Photos, buy box and details' ), [ 'product' ],
+				dsLooks( 'product', tpl ) + '<h4 class="vsa-pacc-sub is-ft">' + vxT( 'Fine-tune' ) + '</h4>' +
 				field( vxT( 'Layout' ), dsSeg( 'product', [ [ 'split', vxT( 'Photos left' ) ], [ 'split-reverse', vxT( 'Photos right' ) ], [ 'wide', vxT( 'Big photos' ) ], [ 'stacked', vxT( 'Photos on top' ) ] ], tpl ) ) +
 				field( vxT( 'Photos' ), dsSeg( 'gallery', [ [ 'below', vxT( 'Thumbnails below' ) ], [ 'side', vxT( 'Thumbnails at the side' ) ], [ 'stack', vxT( 'All stacked' ) ], [ 'grid', vxT( 'Photo grid' ) ] ], tpl ) ) +
 				'<div class="vsa-fr">' + field( vxT( 'While scrolling' ), dsSeg( 'sticky', [ [ '1', vxT( 'Stays in view' ) ], [ '0', vxT( 'Scrolls along' ) ] ], tpl ) ) +
 				field( vxT( 'Details' ), dsSeg( 'details', [ [ 'sections', vxT( 'All open' ) ], [ 'accordion', vxT( 'Fold out' ) ] ], tpl ) ) + '</div>' +
 				'<p class="vsa-hint">' + vxT( 'Buy bar, full-screen photos, related products and reasons to buy are under Storefront.' ) + ' <a href="#/settings/storefront">' + vxT( 'Open Storefront' ) + '</a></p>' ) +
 			pacc( 'cart', vxT( 'Cart & checkout' ), vxT( 'Checkout layout and the cart icon' ), [ 'cart', 'checkout' ],
+				dsLooks( 'cart', tpl ) + '<h4 class="vsa-pacc-sub is-ft">' + vxT( 'Fine-tune' ) + '</h4>' +
 				'<div class="vsa-fr">' + field( vxT( 'Checkout' ), dsSeg( 'checkout', [ [ 'two', vxT( 'Two columns' ) ], [ 'one', vxT( 'One column' ) ] ], tpl ) ) +
 				field( vxT( 'Cart icon' ), dsSeg( 'cart_icon', [ [ 'bag', vxT( 'Bag' ) ], [ 'cart', vxT( 'Cart' ) ], [ 'basket', vxT( 'Basket' ) ] ], tpl ) ) + '</div>' +
 				'<div class="vsa-fr">' + field( vxT( 'Items in the cart' ), dsSeg( 'cart_count', [ [ 'badge', vxT( 'Number on the icon' ) ], [ 'dot', vxT( 'A dot' ) ], [ 'inline', vxT( 'Number next to it' ) ] ], tpl ) ) +
 				field( vxT( 'Cart total next to the icon' ), dsSeg( 'cart_total', yn, tpl ) ) + '</div>' ) +
 			pacc( 'account', vxT( 'Customer account' ), vxT( 'Menu and the withdrawal page' ), [ 'account', 'withdraw' ],
+				dsLooks( 'account', tpl ) + '<h4 class="vsa-pacc-sub is-ft">' + vxT( 'Fine-tune' ) + '</h4>' +
 				field( vxT( 'Menu' ), dsSeg( 'acc_nav', [ [ 'tabs', vxT( 'Tabs on top' ) ], [ 'side', vxT( 'List at the side' ) ], [ 'pills', vxT( 'Rounded buttons' ) ] ], tpl ), vxT( 'On phones the menu is always on top.' ) ) ) +
-			card( vxT( 'Your own CSS' ),
+			acc( 'css', vxT( 'Your own CSS' ), vxT( 'For anything the choices above do not cover' ),
 				field( '', area( 'custom_css', s.custom_css || '', 10, '.vxs-card-t {\n\tfont-family: Georgia, serif;\n}' ).replace( 'class="vsa-in"', 'class="vsa-in vsa-mono vsa-css"' ), vxT( 'Loaded after the shop’s own styles, on every page with shop parts. The same classes can be styled in Velox Builder too.' ) ) +
 				'<details class="vsa-ref"><summary>' + vxT( 'Every part you can style' ) + '</summary><div class="vsa-ref-g">' +
 				DS_CLASSES.map( function ( c ) { return '<button type="button" class="vsa-ref-i" data-act="css-ins" data-v="' + esc( c[ 0 ] ) + '"><code>' + esc( c[ 0 ] ) + '</code><span>' + esc( vxT( c[ 1 ] ) ) + '</span></button>'; } ).join( '' ) +
@@ -1601,7 +1727,7 @@
 			'<div class="vsa-savebar" id="vsa-savebar"><span class="vsa-savebar-t">' + ic( 'clock', 14 ) + vxT( 'Unsaved changes' ) + '</span><button type="button" class="vsa-btn vsa-btn-ghost" data-act="s-reset">' + vxT( 'Discard' ) + '</button><button type="button" class="vsa-btn vsa-btn-pri" data-act="s-save">' + ic( 'check', 15 ) + vxT( 'Save' ) + '</button></div>';
 		main().innerHTML = h;
 	}
-	function sdirty() { dirty = JSON.stringify( SD ) !== SDclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); } if ( 'design' === route.id ) { dsPreviewSoon(); } }
+	function sdirty() { dirty = JSON.stringify( SD ) !== SDclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); } liftToast(); if ( 'design' === route.id ) { dsPreviewSoon(); } }
 	function redrawSettings() { var b = document.getElementById( 'vsa-setb' ); if ( b ) { b.innerHTML = settingsBody( route.id || 'store' ); } sdirty(); }
 	function pageSel( k, label, hint ) {
 		var opts = [ [ '0', '— ' + vxT( 'none' ) + ' —' ] ].concat( ( C.pages || [] ).map( function ( p ) { return [ String( p.id ), p.title ]; } ) );
@@ -1814,6 +1940,7 @@
 		if ( 'd-reset' === act ) { SD[ a.getAttribute( 'data-v' ) ] = ''; redrawSettings(); return; }
 		if ( 'd-tpl' === act ) { dsPick( a.getAttribute( 'data-v' ) ); return; }
 		if ( 'd-try' === act ) { dsTry( a.getAttribute( 'data-v' ) ); return; }
+		if ( 'd-look' === act ) { dsLook( a.getAttribute( 'data-page' ), a.getAttribute( 'data-v' ) ); return; }
 		if ( 'd-build' === act ) {
 			var bw = window.open( '', '_blank' );
 			api( 'page_builder', { key:a.getAttribute( 'data-v' ) } ).then( function ( r ) {
@@ -1937,6 +2064,18 @@
 		var ps = t.getAttribute( 'data-psel' ); if ( ps ) { PV.sel[ ps ] = t.checked; drawBulk(); return; }
 	}
 
+	/* Ctrl/⌘+S: a window that edits something saves with its own button
+	 * (order, category, review reply); otherwise the screen's Save. */
+	function saveShortcut() {
+		var m = document.getElementById( 'vsa-modal' );
+		if ( m ) {
+			var yes = m.querySelector( '[data-mbtn="yes"]' ), words = [ vxT( 'Save' ), vxT( 'Save changes' ), vxT( 'Save reply' ) ];
+			if ( yes && ! yes.disabled && words.indexOf( yes.textContent.trim() ) > -1 ) { yes.click(); }
+			return;
+		}
+		var b = main() && [].filter.call( main().querySelectorAll( '[data-act="p-save"],[data-act="s-save"],[data-act="c-save"],[data-act="tx-save"]' ), function ( x ) { return ! x.disabled && x.offsetParent !== null; } )[ 0 ];
+		if ( b ) { b.click(); } else { toast( vxT( 'Nothing to save here.' ) ); }
+	}
 	function onKey( e ) {
 		var t = e.target;
 		// option values: Enter or comma adds a value chip
@@ -1953,9 +2092,9 @@
 		if ( null !== ov && undefined !== ov && 'Backspace' === e.key && '' === t.value && P.options[ +ov ].values.length ) { P.options[ +ov ].values.pop(); syncVariants(); redrawVariants(); var n2 = main().querySelector( '[data-optval="' + ov + '"]' ); if ( n2 ) { n2.focus(); } return; }
 		if ( 'Enter' === e.key && t.closest && t.closest( 'tr[data-href]' ) && 'TR' === t.tagName ) { location.hash = t.getAttribute( 'data-href' ); return; }
 		// Ctrl/⌘+S saves what is open
-		if ( ( e.ctrlKey || e.metaKey ) && 's' === e.key.toLowerCase() ) {
-			var b = main() && main().querySelector( '[data-act="p-save"],[data-act="s-save"],[data-act="c-save"]' );
-			if ( b ) { e.preventDefault(); b.click(); }
+		if ( ( e.ctrlKey || e.metaKey ) && ! e.altKey && 's' === String( e.key ).toLowerCase() ) {
+			e.preventDefault(); // never the browser's "save page"
+			saveShortcut();
 		}
 	}
 

@@ -260,6 +260,20 @@
 	window.addEventListener( 'scroll', closeMenu, true );
 	window.addEventListener( 'resize', closeMenu );
 
+	/* Ctrl/⌘+S on every builder screen: a window that is open saves first
+	 * (class editor, template rules, Claude scope), else the screen's Save.
+	 * The editor has its own; the browser's "save page" never opens here. */
+	var SAVE_BTNS = [ '#vba-cm-save', '#vba-rules-save', '.vba-scope-acts [data-act="save"]', '#vba-gs-save', '#vba-fonts-save', '#vba-settings-save', '#vk-save', '[data-vx-save]' ];
+	document.addEventListener( 'keydown', function ( e ) {
+		if ( e.defaultPrevented || ! ( e.ctrlKey || e.metaKey ) || e.altKey || 's' !== String( e.key ).toLowerCase() ) { return; }
+		if ( document.getElementById( 'vb-canvas' ) ) { return; }
+		e.preventDefault();
+		for ( var i = 0; i < SAVE_BTNS.length; i++ ) {
+			var b = [].filter.call( document.querySelectorAll( SAVE_BTNS[ i ] ), function ( x ) { return ! x.disabled && x.offsetParent !== null; } )[ 0 ];
+			if ( b ) { b.click(); return; }
+		}
+	} );
+
 	if ( document.readyState === 'loading' ) {
 		document.addEventListener( 'DOMContentLoaded', boot );
 	} else {

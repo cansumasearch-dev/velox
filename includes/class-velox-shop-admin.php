@@ -78,7 +78,7 @@ class Velox_Shop_Admin {
 			100.9
 		);
 		// The same sections, in the same order, as the shop's own bar.
-		foreach ( array( '' => __( 'Overview', 'velox' ), 'revenue' => __( 'Revenue', 'velox' ), 'payouts' => __( 'Payouts', 'velox' ), 'orders' => __( 'Orders', 'velox' ), 'products' => __( 'Products', 'velox' ), 'coupons' => __( 'Coupons', 'velox' ), 'customers' => __( 'Customers', 'velox' ), 'reviews' => __( 'Reviews', 'velox' ), 'settings' => __( 'Settings', 'velox' ) ) as $k => $l ) {
+		foreach ( array( '' => __( 'Overview', 'velox' ), 'revenue' => __( 'Revenue', 'velox' ), 'payouts' => __( 'Payouts', 'velox' ), 'orders' => __( 'Orders', 'velox' ), 'products' => __( 'Products', 'velox' ), 'coupons' => __( 'Coupons', 'velox' ), 'customers' => __( 'Customers', 'velox' ), 'reviews' => __( 'Reviews', 'velox' ), 'settings' => __( 'Settings', 'velox' ), 'settings/help' => __( 'Help', 'velox' ) ) as $k => $l ) {
 			add_submenu_page( self::SLUG, 'Velox Shop — ' . $l, $l, self::CAP, '' === $k ? self::SLUG : self::SLUG . '#/' . $k, '' === $k ? array( __CLASS__, 'render' ) : '__return_null' );
 		}
 	}
