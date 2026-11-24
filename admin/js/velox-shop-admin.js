@@ -64,10 +64,9 @@
 	function liftToast() {
 		var t = document.getElementById( 'vsa-toast' ), sb = document.getElementById( 'vsa-savebar' ), y = 30;
 		if ( ! t ) { return; }
-		if ( sb ) {
-			var cs = getComputedStyle( sb ), r = sb.getBoundingClientRect();
-			if ( 'none' !== cs.display && parseFloat( cs.opacity ) > 0.05 && r.height ) { y = Math.max( 30, window.innerHeight - r.top + 12 ); }
-		}
+		// The bar shows on screens with unsaved work; in Settings only while
+		// something is unsaved. It sits 18px from the bottom.
+		if ( sb && sb.offsetHeight && ( sb.classList.contains( 'is-dirty' ) || ! sb.matches( '.vsa-set~.vsa-savebar,#vsa-setb~.vsa-savebar' ) ) ) { y = 18 + sb.offsetHeight + 12; }
 		t.style.bottom = y + 'px';
 	}
 	function toast( msg, bad, act ) {
@@ -945,7 +944,7 @@
 		loading();
 		api( 'product', { id:+route.id } ).then( function ( p ) { P = Object.assign( blankProduct(), p ); Pclean = JSON.stringify( P ); drawProduct(); } ).catch( fail );
 	}
-	function markDirty() { dirty = JSON.stringify( P ) !== Pclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); } }
+	function markDirty() { dirty = JSON.stringify( P ) !== Pclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); }  liftToast(); }
 	function drawProduct() {
 		var p = P, phys = 'physical' === p.type, hasVar = p.options.length > 0;
 		var h = head( p.id ? esc( p.title || vxT( 'Product' ) ) : vxT( 'New product' ), p.id ? ( 'publish' === p.status ? '<span class="vsa-chip is-ok">' + vxT( 'Live' ) + '</span>' : '<span class="vsa-chip is-off">' + vxT( 'Draft' ) + '</span>' ) + ( p.sold ? ' &nbsp;' + p.sold + ' ' + vxT( 'orders' ) : '' ) : '', p.id ? '<a class="vsa-btn vsa-btn-ghost" href="' + esc( p.url ) + '" target="_blank" rel="noopener">' + ic( 'eye', 15 ) + vxT( 'View' ) + '</a>' : '', '#/products' );
@@ -1614,7 +1613,7 @@
 			'<div class="vsa-savebar" id="vsa-savebar"><span class="vsa-savebar-t">' + ic( 'clock', 14 ) + vxT( 'Unsaved changes' ) + '</span><button type="button" class="vsa-btn vsa-btn-ghost" data-act="s-reset">' + vxT( 'Discard' ) + '</button><button type="button" class="vsa-btn vsa-btn-pri" data-act="s-save">' + ic( 'check', 15 ) + vxT( 'Save' ) + '</button></div>';
 		main().innerHTML = h;
 	}
-	function sdirty() { dirty = JSON.stringify( SD ) !== SDclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); } if ( 'design' === route.id ) { dsPreviewSoon(); } }
+	function sdirty() { dirty = JSON.stringify( SD ) !== SDclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); } liftToast(); if ( 'design' === route.id ) { dsPreviewSoon(); } }
 	function redrawSettings() { var b = document.getElementById( 'vsa-setb' ); if ( b ) { b.innerHTML = settingsBody( route.id || 'store' ); } sdirty(); }
 	function pageSel( k, label, hint ) {
 		var opts = [ [ '0', '— ' + vxT( 'none' ) + ' —' ] ].concat( ( C.pages || [] ).map( function ( p ) { return [ String( p.id ), p.title ]; } ) );
