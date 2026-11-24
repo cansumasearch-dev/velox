@@ -3559,8 +3559,35 @@
 	/* Save is always there (a new page used to show only Publish, so a draft
 	 * could not be kept without putting it live), and shows a dot while there
 	 * are unsaved changes. */
+	/* ---------- top bar: fit what is there ----------
+	 * The two sides of the bar get half the width each, around the centred
+	 * screen-size switch. Longer labels (German: Speichern, Veröffentlichen,
+	 * Ansehen) did not fit and slid under the switch. When a side needs more
+	 * than it has, the bar gets more compact step by step: labels become
+	 * icons, the page type and long title go, then the less used buttons
+	 * (they stay in the command palette, Ctrl+K). */
+	var TB_LEVELS = [ 'vb-c1', 'vb-c2', 'vb-c3', 'vb-c4' ];
+	function tbNeed( g ) {
+		var gap = parseFloat( getComputedStyle( g ).columnGap ) || 0, w = 0, n = 0;
+		Array.prototype.forEach.call( g.children, function ( c ) {
+			var r = c.getBoundingClientRect(); if ( ! r.width ) { return; }
+			var m = getComputedStyle( c ); w += r.width + ( parseFloat( m.marginLeft ) || 0 ) + ( parseFloat( m.marginRight ) || 0 ); n++;
+		} );
+		return w + gap * Math.max( 0, n - 1 );
+	}
+	function fitTopbar() {
+		var top = document.querySelector( '.vb-top' ); if ( ! top ) { return; }
+		var L = top.querySelector( '.vb-tb-l' ), R = top.querySelector( '.vb-tb-r' ); if ( ! L || ! R ) { return; }
+		TB_LEVELS.forEach( function ( c ) { top.classList.remove( c ); } );
+		for ( var i = 0; i < TB_LEVELS.length; i++ ) {
+			if ( tbNeed( L ) <= L.clientWidth + 1 && tbNeed( R ) <= R.clientWidth + 1 ) { return; }
+			top.classList.add( TB_LEVELS[ i ] );
+		}
+	}
+	function fitTopbarSoon() { cancelAnimationFrame( fitTopbarSoon._f ); fitTopbarSoon._f = requestAnimationFrame( fitTopbar ); }
 	function renderActions() {
 		var host = document.getElementById( 'vb-actions' ); if ( ! host ) { return; }
+		fitTopbarSoon();
 		// Saving never changes the live site; "Published" only shows when what is
 		// on the site is exactly what is in the editor.
 		var live = pubStatus === 'published' && ! dirty && ! hasDraft;
@@ -3984,7 +4011,9 @@
 			if ( dirty || saving ) { e.preventDefault(); e.returnValue = ''; return ''; }
 			loaderLeave( loader.leaveTitle );
 		} );
-		window.addEventListener( 'resize', function () { resizeCanvas(); } );
+		window.addEventListener( 'resize', function () { resizeCanvas(); fitTopbarSoon(); } );
+		if ( document.fonts && document.fonts.ready ) { document.fonts.ready.then( fitTopbarSoon ); }
+		fitTopbarSoon();
 		store.subscribeLog( function () { if ( historyShown ) { renderHistoryPanel(); } } );
 		renderActions();
 		// Clicking anywhere in the editor chrome means the canvas lost focus:
@@ -9840,6 +9869,7 @@
 		add( P, T( 'Page check' ), click( 'vb-check' ), '', 'accessibility seo alt contrast a11y' );
 		add( P, T( 'Settings' ), click( 'vb-settings' ), '', 'page global styles' );
 		add( P, T( 'Switch page' ), function () { toggleSwitcher(); }, '', 'open page post template' );
+		if ( CFG.reusablesUrl ) { add( P, T( 'Reusables' ), function () { window.open( CFG.reusablesUrl, '_blank', 'noopener' ); }, '', 'components blocks' ); }
 		BP_TOOLBAR.forEach( function ( bp ) {
 			add( V, BP_META[ bp ].label + ' · ' + BP_META[ bp ].range, function () { var b = document.querySelector( '#vb-bp button[data-bp="' + bp + '"]' ); if ( b ) { b.click(); } }, '', 'breakpoint screen responsive' );
 		} );
@@ -10864,6 +10894,11 @@
 			'@media (max-width:1240px){.vb-top .vb-add-top .vb-lbl,.vb-top #vb-view .vb-lbl{display:none}.vb-top .vb-add-top{width:32px;padding:0}.vb-top #vb-view{padding:0 8px}.vb-docstat{width:20px;padding:0;justify-content:center;font-size:0;gap:0}}',
 			'@media (max-width:1100px){.vb-top .vb-kind{display:none}.vb-top .vb-title{max-width:130px}.vb-top{gap:6px}}',
 			'@media (max-width:960px){.vb-top .vb-tb-r .vb-tsep,#vb-tgl-left,#vb-tgl-right{display:none}.vb-top .vb-bp button{width:30px}}',
+			// The same steps when the bar is simply too full (fitTopbar), at any width.
+			'.vb-top.vb-c1 .vb-add-top .vb-lbl,.vb-top.vb-c1 #vb-view .vb-lbl{display:none}.vb-top.vb-c1 .vb-add-top{width:32px;padding:0}.vb-top.vb-c1 #vb-view{padding:0 8px}.vb-top.vb-c1 .vb-docstat{width:20px;padding:0;justify-content:center;font-size:0;gap:0}',
+			'.vb-top.vb-c2 .vb-kind{display:none}.vb-top.vb-c2 .vb-title{max-width:130px}',
+			'.vb-top.vb-c3 .vb-tb-r .vb-tsep,.vb-top.vb-c3 #vb-tgl-left,.vb-top.vb-c3 #vb-tgl-right{display:none}.vb-top.vb-c3 .vb-title{max-width:100px}',
+			'.vb-top.vb-c4 #vb-reusables,.vb-top.vb-c4 #vb-search,.vb-top.vb-c4 #vb-viewas-wrap{display:none}',
 			'@media (prefers-reduced-motion:reduce){.vb-bp-thumb,.vb-docstat.is-live::before{transition:none;animation:none}}',
 			/* ===== 4.27 inspector ===== */
 			'.vb-inspector{background:var(--vb-bg1)}',
