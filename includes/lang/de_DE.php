@@ -7032,4 +7032,12 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Checkout layout and the cart icon' => 'Layout der Kasse und das Warenkorb-Symbol',
 	'Menu and the withdrawal page' => 'Menü und die Widerrufsseite',
 	'Every style property, for this element or its class' => 'Jede Stileigenschaft, für dieses Element oder seine Klasse',
+	// 4.71 — the guide
+	'The complete guide to the builder, answers to common questions, and a short tour.' => 'Die vollständige Anleitung zum Builder, Antworten auf häufige Fragen und eine kurze Tour.',
+	'Guide' => 'Anleitung',
+	'Next chapter' => 'Nächstes Kapitel',
+	'Note' => 'Hinweis',
+	'Loading the guide…' => 'Die Anleitung wird geladen …',
+	'Search the guide and the questions' => 'Anleitung und Fragen durchsuchen',
+	'In the questions' => 'In den Fragen',
 );
