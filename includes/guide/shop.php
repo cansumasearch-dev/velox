@@ -335,7 +335,7 @@ return array(
 				'title'  => __( 'Type and stock', 'velox' ),
 				'blocks' => array(
 					array( 'list', array(
-						__( '**What is it?** **Physical**, **Download** or **Service**. Only physical products are shipped.', 'velox' ),
+						__( '**What is it?** **Physical**, **Digital download** or **Service**. Only physical products are shipped.', 'velox' ),
 						__( '**One of a kind:** sells exactly once, then shows “Sold”. For art, vintage and originals.', 'velox' ),
 						__( '**Count stock:** stops selling when it runs out and warns you when it runs low. Enter the number **In stock** and, if you like, a **Max. per order**.', 'velox' ),
 						__( '**Keep selling when sold out:** the product stays orderable and shows “Available to order”.', 'velox' ),
@@ -363,7 +363,7 @@ return array(
 				'blocks' => array(
 					array( 'list', array(
 						__( '**Delivery time:** for example “2–4 working days”. Required in Germany before ordering; customers see it at checkout too.', 'velox' ),
-						__( '**Weight:** in kg, optional.', 'velox' ),
+						__( '**Product weight:** in kg, optional.', 'velox' ),
 					) ),
 					array( 'p', __( 'For a **Download**, add the files under **Files to download**. Buyers get private download links after paying, in the order and in their account. The files are never linked publicly.', 'velox' ) ),
 					array( 'note', __( 'At checkout, buyers of downloads must agree that the download starts before the withdrawal period ends. Velox adds this checkbox by itself.', 'velox' ) ),

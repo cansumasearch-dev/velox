@@ -7605,4 +7605,11 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'**A “… in Velox Builder” button is greyed out:** the page does not exist yet. Create it under **Settings → Pages & legal**.' => '**Ein Button „… im Velox Builder“ ist ausgegraut:** Die Seite existiert noch nicht. Legen Sie sie unter **Einstellungen → Seiten & Recht** an.',
 	'**Unsaved changes:** a bar at the bottom of the screen shows them, and Velox asks before you leave. In the settings, **Discard** throws them away and **Save** keeps them.' => '**Nicht gespeicherte Änderungen:** Eine Leiste unten am Bildschirm zeigt sie, und Velox fragt nach, bevor Sie die Seite verlassen. In den Einstellungen verwirft **Verwerfen** sie, und **Speichern** behält sie.',
 	'Still stuck? Take the tour again under **Settings → Help & tour**, or search this guide and the questions.' => 'Kommen Sie nicht weiter? Machen Sie die Tour noch einmal unter **Einstellungen → Hilfe & Tour** oder durchsuchen Sie diese Anleitung und die Fragen.',
+	// 4.71 — Oxygen-style inspector
+	'Product weight' => 'Gewicht',
+	'Main photo' => 'Hauptfoto',
+	'Digital download' => 'Download',
+	// 4.71 — guide: shop
+	'**Product weight:** in kg, optional.' => '**Gewicht:** in kg, optional.',
+	'**What is it?** **Physical**, **Digital download** or **Service**. Only physical products are shipped.' => '**Was ist es?** **Physisch**, **Download** oder **Dienstleistung**. Nur physische Produkte werden versendet.',
 );
