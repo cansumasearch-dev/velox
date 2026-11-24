@@ -1209,13 +1209,14 @@
 	function syncParticles( doc ) {
 		var want = {};
 		( function walk( list ) { ( list || [] ).forEach( function ( n ) { if ( n && n.mo && n.mo.particles && ! n.hidden ) { want[ n.id ] = n.mo; } if ( n && n.children ) { walk( n.children ); } } ); }( store.state.tree ) );
-		Object.keys( PARTS ).forEach( function ( id ) { if ( ! want[ id ] ) { PARTS[ id ].live = false; delete PARTS[ id ]; } } );
+		function kill( P ) { P.live = false; if ( P.cv.parentNode ) { P.cv.parentNode.removeChild( P.cv ); } }
+		Object.keys( PARTS ).forEach( function ( id ) { if ( ! want[ id ] ) { kill( PARTS[ id ] ); delete PARTS[ id ]; } } );
 		Object.keys( want ).forEach( function ( id ) {
 			var host = doc.getElementById( id ); if ( ! host ) { return; }
 			var m = want[ id ], color = String( m.particlesColor || '#ffffff' ), dens = Math.max( 5, Math.min( 300, parseInt( m.particlesDensity, 10 ) || 60 ) );
 			var P = PARTS[ id ];
 			if ( ! P || P.doc !== doc || P.color !== color || P.dens !== dens ) {
-				if ( P ) { P.live = false; }
+				if ( P ) { kill( P ); }
 				var cv = doc.createElement( 'canvas' );
 				cv.className = 'vx-particles vb-particles'; cv.setAttribute( 'aria-hidden', 'true' );
 				cv.style.cssText = 'position:absolute;inset:0;z-index:-1;pointer-events:none';
