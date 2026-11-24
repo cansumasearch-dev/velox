@@ -431,6 +431,7 @@ class Velox_Builder {
 			'agents'    => __( 'AI agents', 'velox' ),
 			'shortcuts' => __( 'Keyboard shortcuts', 'velox' ),
 			'settings'  => __( 'Settings', 'velox' ),
+			'help'      => __( 'Help', 'velox' ),
 		);
 		foreach ( $subs as $key => $label ) {
 			add_submenu_page(
@@ -769,6 +770,11 @@ class Velox_Builder {
 				'i18n'     => array( 'more' => __( 'More actions', 'velox' ) ),
 			)
 		);
+		// The tour and the help, on the builder's own screens (not in the editor).
+		$pg = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( class_exists( 'Velox_Help' ) && self::EDIT_SLUG !== $pg ) {
+			Velox_Help::enqueue( 'builder' );
+		}
 	}
 
 	/** URL to open the editor for a given document. */

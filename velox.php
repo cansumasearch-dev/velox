@@ -124,6 +124,7 @@ require_once VELOX_PATH . 'includes/class-velox-css.php';
 require_once VELOX_PATH . 'includes/class-velox-builder-revisions.php';
 require_once VELOX_PATH . 'includes/class-velox-builder-agents.php';
 require_once VELOX_PATH . 'includes/class-velox-mcp.php';
+require_once VELOX_PATH . 'includes/class-velox-help.php';
 require_once VELOX_PATH . 'includes/class-velox-builder-roles.php';
 require_once VELOX_PATH . 'includes/class-velox-commentguard.php';
 require_once VELOX_PATH . 'includes/class-velox-cookies.php';
