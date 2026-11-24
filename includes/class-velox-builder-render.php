@@ -3350,8 +3350,30 @@ class Velox_Builder_Render {
 	 * velox-motion.js: text reveal, children one after another, parallax,
 	 * pointer effects, stacking cards, a pinned sideways row, particles.
 	 */
+	/**
+	 * Motion settings with a Scroll section's own effect folded in: its
+	 * "While scrolling" setting becomes the pinned sideways row or the
+	 * stacking cards, so both run through the same runtime as node.mo.
+	 */
+	private static function eff_mo( $node ) {
+		$m = isset( $node['mo'] ) && is_array( $node['mo'] ) ? $node['mo'] : array();
+		if ( 'Scroller' !== ( $node['el'] ?? '' ) ) {
+			return $m;
+		}
+		unset( $m['hscroll'], $m['hscrollOn'], $m['stack'], $m['stackTop'], $m['stackStep'] );
+		if ( 'stack' === (string) self::el_set( $node, 'effect', 'side' ) ) {
+			$m['stack']     = 1;
+			$m['stackTop']  = (string) self::el_raw( $node, 'stackTop', '100' );
+			$m['stackStep'] = (string) self::el_raw( $node, 'stackStep', '18' );
+		} else {
+			$m['hscroll']   = 1;
+			$m['hscrollOn'] = (string) self::el_set( $node, 'pinOn', '' );
+		}
+		return $m;
+	}
+
 	private static function motion_attrs( $node ) {
-		$m = $node['mo'] ?? null;
+		$m = self::eff_mo( $node );
 		if ( ! is_array( $m ) || ! $m || self::$css_only ) {
 			return '';
 		}
@@ -3393,6 +3415,9 @@ class Velox_Builder_Render {
 		}
 		if ( ! empty( $m['stack'] ) ) {
 			$a .= ' data-vx-stack="' . $int( 'stackTop', 0, 600, 100 ) . '" data-vx-stack-step="' . $int( 'stackStep', 0, 80, 18 ) . '"';
+		}
+		if ( 'Scroller' === ( $node['el'] ?? '' ) ) {
+			$a .= ' data-vx-scroller="' . ( empty( $m['stack'] ) ? 'side' : 'stack' ) . '"';
 		}
 		if ( ! empty( $m['hscroll'] ) ) {
 			$b  = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'tablet' => 991, 'mobile' => 767 );
@@ -3451,7 +3476,8 @@ class Velox_Builder_Render {
 			. '.vx-glow::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;z-index:1;opacity:0;transition:opacity .3s ease;background:radial-gradient(340px circle at var(--vx-gx,50%) var(--vx-gy,50%),var(--vx-glow,rgba(255,255,255,.16)),transparent 62%)}'
 			. '.vx-glow:hover::after{opacity:1}'
 			. '.vx-stack>.vx-stack-card{position:sticky;transform-origin:50% 0;will-change:transform}'
-			. '[data-vx-hscroll]>.vx-hs-pin{gap:inherit;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none}'
+			. '[data-vx-hscroll]>.vx-hs-pin{gap:inherit;overflow-x:auto;scroll-snap-type:x mandatory;scrollbar-width:none;flex:1 1 100%;width:100%;min-width:0}'
+			. '[data-vx-scroller="stack"]{display:flex;flex-direction:column}'
 			. '[data-vx-hscroll]>.vx-hs-pin::-webkit-scrollbar{display:none}'
 			. '[data-vx-hscroll]>.vx-hs-pin>.vx-hs-track{display:flex;gap:inherit;width:max-content}'
 			. '[data-vx-hscroll]>.vx-hs-pin>.vx-hs-track>*{flex:none;scroll-snap-align:start}'
@@ -4007,7 +4033,7 @@ class Velox_Builder_Render {
 			$kids = self::render_tree( $node['children'] ?? array(), $doc );
 		}
 		// A row that moves sideways while pinned needs a pin and a track around its children.
-		if ( ! empty( $node['mo']['hscroll'] ) && '' !== $kids ) {
+		if ( ! empty( self::eff_mo( $node )['hscroll'] ) && '' !== $kids ) {
 			$kids = '<div class="vx-hs-pin"><div class="vx-hs-track">' . $kids . '</div></div>';
 		}
 		if ( isset( $node['el'] ) && 'Readmore' === $node['el'] ) {

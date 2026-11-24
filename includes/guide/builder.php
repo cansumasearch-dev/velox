@@ -336,7 +336,7 @@ return array(
 					array( 'list', array(
 						__( '↑ ↓ Home End move through the rows.', 'velox' ),
 						__( '← → fold and unfold, or go to the parent and child.', 'velox' ),
-						__( 'F2 renames the row, Enter opens its styles.', 'velox' ),
+						__( 'F2 or a double-click renames the row right there; Enter keeps the name, Esc goes back. Enter on a row opens its styles.', 'velox' ),
 					) ),
 				),
 			),
@@ -706,7 +706,8 @@ return array(
 						__( '**Pinned: children move sideways while scrolling:** the box stays put and its row slides sideways; on phones it can be a swipe row.', 'velox' ),
 						__( '**Floating particles in the background:** for a section or container, with colour and amount. The canvas shows them too.', 'velox' ),
 					) ),
-					array( 'note', __( 'Scroll animations and most motion play on the published page, not in the editor; check them with **View → Saved changes**. Visitors who ask their system for less motion see everything without it.', 'velox' ) ),
+					array( 'tip', __( 'For a whole section that scrolls sideways or stacks up, use the **Scroll section** element from Add → Containers: the effect is set in its Essentials.', 'velox' ) ),
+					array( 'note', __( 'The mouse effects and particles play in the editor too. Scroll animations play on the published page; check them with **View → Saved changes**. Visitors who ask their system for less motion see everything without it.', 'velox' ) ),
 				),
 			),
 			array(
@@ -875,6 +876,7 @@ return array(
 						__( '**Div block:** a plain box to group and lay out other elements.', 'velox' ),
 						__( '**Columns:** two columns side by side that stack on phones.', 'velox' ),
 						__( '**Grid:** three columns that become two on tablets and one on phones.', 'velox' ),
+						__( '**Scroll section:** a box whose content reacts to scrolling. Pick **Moves sideways** (it stays pinned and its row slides from right to left) or **Stacks up** (each card slides over the one before). What goes inside is up to you: cards, images, text. The editor shows the row as a row you can scroll by hand.', 'velox' ),
 						__( '**Spacer:** empty space of a set height.', 'velox' ),
 						__( '**Divider:** a thin horizontal line.', 'velox' ),
 					) ),

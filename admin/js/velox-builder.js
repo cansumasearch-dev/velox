@@ -204,6 +204,7 @@
 	};
 	Object.keys( EL_ICON ).forEach( function ( k ) { ICON[ k ] = EL_ICON[ k ]; } );
 	// 4.50 elements borrow fitting icons.
+	ICON.el_scroller = '<path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h11A1.5 1.5 0 0 1 15 3.5v9a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5zm1.5-.5a.5.5 0 0 0-.5.5v9a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5v-9a.5.5 0 0 0-.5-.5z"/><path d="M4.15 8.35a.5.5 0 0 1 0-.7l1.5-1.5a.5.5 0 1 1 .7.7L5.71 7.5h4.58l-.64-.65a.5.5 0 0 1 .7-.7l1.5 1.5a.5.5 0 0 1 0 .7l-1.5 1.5a.5.5 0 0 1-.7-.7l.64-.65H5.71l.64.65a.5.5 0 0 1-.7.7z"/>';
 	ICON.el_linkblock = ICON.link || ICON.el_button; ICON.el_shapedivider = ICON.el_divider; ICON.el_progresscircle = ICON.el_counter || ICON.el_bars;
 	ICON.tag = '<path d="M2.5 8V2.5H8l5.5 5.5-5.5 5.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="5.3" cy="5.3" r="1"/>';
 	ICON.hash = '<path d="M6.2 2.5 4.9 13.5M11.1 2.5 9.8 13.5M2.8 5.8h11M2.2 10.2h11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>';
@@ -1212,6 +1213,15 @@
 	/* The mouse effects (Motion → tilt, soft light) play on the canvas too, as
 	 * on the page, for every element that has them. Magnet stays off here:
 	 * it would pull elements away while you click and drag them. */
+	/* The scroll effect on an element: 'side' (pinned, children move sideways),
+	 * 'stack' (cards stack up) or ''. A Scroll section sets it in its own
+	 * settings; any other box through Advanced → Motion. */
+	function scrollFx( n ) {
+		if ( ! n ) { return ''; }
+		if ( 'Scroller' === n.el ) { return 'stack' === setVal( n, 'effect', 'side' ) ? 'stack' : 'side'; }
+		var m = n.mo || {};
+		return m.hscroll ? 'side' : ( m.stack ? 'stack' : '' );
+	}
 	function syncPointerFx( doc ) {
 		if ( ! doc.getElementById( 'vb-fx-css' ) ) {
 			var st = doc.createElement( 'style' ); st.id = 'vb-fx-css';
@@ -1223,21 +1233,25 @@
 				 * ride in one row; here the row scrolls sideways by hand. */
 				'.vb-hs{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden;scroll-snap-type:x proximity;position:relative;padding-top:30px!important;scrollbar-width:thin}' +
 				'.vb-hs>*{flex:0 0 auto!important;scroll-snap-align:start}' +
-				'.vb-hs::before{content:attr(data-vb-hs);position:absolute;top:6px;left:6px;z-index:3;padding:3px 9px;border-radius:6px;background:rgba(42,183,241,.14);color:#0e7fb3;font:600 11px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;pointer-events:none;white-space:nowrap}';
+				'.vb-vs{display:flex!important;flex-direction:column!important;position:relative;padding-top:30px!important}' +
+				'.vb-hs::before,.vb-vs::before{content:attr(data-vb-hs);position:absolute;top:6px;left:6px;z-index:3;padding:3px 9px;border-radius:6px;background:rgba(42,183,241,.14);color:#0e7fb3;font:600 11px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;pointer-events:none;white-space:nowrap}';
 			( doc.head || doc.documentElement ).appendChild( st );
 		}
 		// Switched off: the element goes back to normal.
-		[].forEach.call( doc.querySelectorAll( '.vx-glow,.vx-tilt,.vb-hs' ), function ( x ) {
-			var nn = findNode( store.state.tree, x.id ), mm = ( nn && nn.mo ) || {};
-			if ( ! mm.hscroll ) { x.classList.remove( 'vb-hs' ); x.removeAttribute( 'data-vb-hs' ); }
+		[].forEach.call( doc.querySelectorAll( '.vx-glow,.vx-tilt,.vb-hs,.vb-vs' ), function ( x ) {
+			var nn = findNode( store.state.tree, x.id ), mm = ( nn && nn.mo ) || {}, fx = scrollFx( nn );
+			if ( 'side' !== fx ) { x.classList.remove( 'vb-hs' ); }
+			if ( 'stack' !== fx || 'Scroller' !== ( nn && nn.el ) ) { x.classList.remove( 'vb-vs' ); }
+			if ( ! fx ) { x.removeAttribute( 'data-vb-hs' ); }
 			if ( ! mm.glow && x._vbGlow ) { x.classList.remove( 'vx-glow' ); }
 			if ( ! mm.tilt && x._vbTilt ) { x.classList.remove( 'vx-tilt' ); x.style.transform = ''; }
 		} );
 		( function walk( list ) {
 			( list || [] ).forEach( function ( n ) {
 				if ( ! n ) { return; }
-				var m = n.mo || {}, el = ( m.glow || m.tilt || m.hscroll ) && ! n.hidden ? doc.getElementById( n.id ) : null;
-				if ( el && m.hscroll ) { el.classList.add( 'vb-hs' ); el.setAttribute( 'data-vb-hs', '↔ ' + T( 'Moves sideways while scrolling on the page' ) ); }
+				var m = n.mo || {}, fx = scrollFx( n ), el = ( m.glow || m.tilt || fx ) && ! n.hidden ? doc.getElementById( n.id ) : null;
+				if ( el && 'side' === fx ) { el.classList.add( 'vb-hs' ); el.setAttribute( 'data-vb-hs', '↔ ' + T( 'Moves sideways while scrolling on the page' ) ); }
+				else if ( el && 'stack' === fx && 'Scroller' === n.el ) { el.classList.add( 'vb-vs' ); el.setAttribute( 'data-vb-hs', '↕ ' + T( 'The cards stack up while scrolling on the page' ) ); }
 				if ( el && m.glow && ! el.classList.contains( 'vx-glow' ) ) { el.classList.add( 'vx-glow' ); }
 				if ( el && m.glow && ! el._vbGlow ) {
 					el._vbGlow = 1; el.classList.add( 'vx-glow' );
@@ -1895,6 +1909,15 @@
 			{ key:'div', el:'Div', tag:'div', label:'Div block', cls:'.block', rules:{} },
 			{ key:'columns', el:'Columns', tag:'div', label:'Columns', cls:'.columns', rules:{ display:'grid', gridTemplateColumns:'repeat(2, minmax(0, 1fr))' }, bp:{ md:{ gridTemplateColumns:'minmax(0, 1fr)' } } },
 			{ key:'grid', el:'Div', tag:'div', label:'Grid', cls:'.grid', rules:{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:'20' }, bp:{ lg:{ gridTemplateColumns:'repeat(2, minmax(0, 1fr))' }, md:{ gridTemplateColumns:'minmax(0, 1fr)' } } },
+			/* A box whose content reacts to scrolling: it moves sideways while the
+			 * box stays pinned, or the cards stack up. What goes inside is free. */
+			{ key:'scroller', el:'Scroller', tag:'div', label:'Scroll section', cls:'.scroll-section', rules:{ gap:'24' },
+			  settings:[
+				{ k:'effect', t:'segment', l:'While scrolling', d:'side', s:'Scroll effect', o:[ [ 'side', 'Sideways' ], [ 'stack', 'Stacks up' ] ] },
+				{ k:'pinOn', t:'segment', l:'Effect on', d:'', s:'Scroll effect', o:[ [ '', 'Big screens' ], [ 'all', 'All screens' ] ], when:{ effect:[ 'side' ] } },
+				{ k:'stackTop', t:'num', l:'Sticks at', d:'100', unit:'px', s:'Scroll effect', when:{ effect:[ 'stack' ] } },
+				{ k:'stackStep', t:'num', l:'Offset per card', d:'18', unit:'px', s:'Scroll effect', when:{ effect:[ 'stack' ] } }
+			  ] },
 			{ key:'spacer', el:'Div', tag:'div', label:'Spacer', cls:'.spacer', rules:{ height:'40' } },
 			{ key:'divider', el:'Div', tag:'div', label:'Divider', cls:'.divider', rules:{ height:'1', background:'#e2e8f0' } }
 		] },
@@ -2850,6 +2873,12 @@
 			H( 'h3', '.card-title', { fontSize:'20', lineHeight:'1.3', marginBottom:'0' }, 'Card title' ),
 			P( '.card-text', MUTED, 'A short description of what this is about and why it matters.' ),
 			{ key:'textlink', text:'Learn more →', href:'#' } ] );
+		kit( 'scroller', [ 'First', 'Second', 'Third', 'Fourth' ].map( function ( t ) {
+			return { key:'div', cls:'.scroll-card', rules:{ display:'flex', flexDirection:'column', flexShrink:'0', width:'380', gap:'12', paddingTop:'20', paddingRight:'20', paddingBottom:'24', paddingLeft:'20', background:'#ffffff', borderRadius:'16', boxShadow:'0 10px 30px rgba(15,23,42,.08)' }, bp:{ md:{ width:'300' } },
+				kids:[ IMG( '.scroll-card-media', { width:'100%', aspectRatio:'4/3', borderRadius:'10', overflow:'hidden' } ),
+					H( 'h3', '.scroll-card-title', { fontSize:'20', marginBottom:'0' }, t + ' card' ),
+					P( '.scroll-card-text', MUTED, 'Put anything in here: text, images, buttons, other cards.' ) ] };
+		} ) );
 		kit( 'iconbox', [
 			{ key:'icon', settings:{ icon:'lightning-charge', size:'32' } },
 			H( 'h3', '.icon-box-title', { fontSize:'20', marginBottom:'0' }, 'Fast results' ),
@@ -3489,7 +3518,7 @@
 	/* Everything the page renders children for can take children here. Only
 	 * Section / Div / Columns could, so a card, a popup or a split screen could
 	 * never be filled (Add and drag always put things next to them). */
-	var CONTAINER_EL = { Section:1, Div:1, Columns:1, Modal:1, Offcanvas:1, Dropdown:1, Card:1, Stack:1, Cluster:1,
+	var CONTAINER_EL = { Section:1, Div:1, Columns:1, Scroller:1, Modal:1, Offcanvas:1, Dropdown:1, Card:1, Stack:1, Cluster:1,
 		Bento:1, Splitscreen:1, Sidebarlayout:1, Fullheight:1, Overlap:1, Ratiobox:1, Readmore:1, Logostrip:1, Avatargroup:1,
 		Trustrow:1, Paymenticons:1, Featuregrid:1, Statsrow:1, Ctaband:1, Callout:1, Emptystate:1, Noticebox:1, Iconbox:1,
 		Teammember:1, Casestudy:1 };
@@ -3527,18 +3556,20 @@
 		var whatTip = isCls ? T( 'Styling the class' ) + ' ' + ac + ': ' + T( 'every element with it changes.' ) : T( 'Styling the ID' ) + ' #' + node.id + ': ' + T( 'only this element changes.' );
 		var bar = '<div class="vb-selbar">' +
 			'<button type="button" class="vb-sel vb-sel-cls' + ( isCls ? '' : ' is-el' ) + ( locked ? ' is-locked' : '' ) + '" id="vb-clspick" aria-haspopup="listbox" title="' + escapeHtml( whatTip ) + '">' +
-				'<span class="vb-sel-kind">' + ( isCls ? T( 'Class' ) : 'ID' ) + '</span><span class="vb-sel-v">' + escapeHtml( isCls ? ac : '#' + node.id ) + '</span>' +
+				'<span class="vb-sel-kind">' + ( isCls ? T( 'Class' ) : 'ID' ) + ( 'base' === bp ? '' : ' <i class="vb-sel-bp">· ' + escapeHtml( ( BP_META[ bp ] || BP_META.base ).label ) + '</i>' ) + '</span><span class="vb-sel-v">' + escapeHtml( isCls ? ac : '#' + node.id ) + '</span>' +
 				( locked ? '<span class="vb-sel-lock">' + svg( 'lock', 11 ) + '</span>' : '' ) + '<span class="vb-sel-cv">' + svg( 'chevron', 12 ) + '</span></button>' +
 			'<button type="button" class="vb-sel vb-sel-st' + ( 'normal' !== st ? ' is-on' : '' ) + '" id="vb-statepick" aria-haspopup="listbox" title="' + T( 'State' ) + '">' +
 				'<span class="vb-sel-kind">' + T( 'State' ) + '</span><span class="vb-sel-v">' + ( 'normal' === st ? T( 'Normal' ) : ':' + escapeHtml( st ) ) + '</span><span class="vb-sel-cv">' + svg( 'chevron', 12 ) + '</span></button>' +
 			'<button type="button" class="vb-sel-add" data-addclass title="' + T( 'Add a class' ) + '" aria-label="' + T( 'Add a class' ) + '">' + svg( 'plus', 14 ) + '</button>' +
 		'</div>';
-		var where = 'base' === bp ? '' : '<span class="vb-selnote-bp">' + escapeHtml( ( BP_META[ bp ] || BP_META.base ).label ) + '</span>';
+		// The screen size sits in the class button's label ("Class · Laptop"), so
+		// switching Desktop ↔ Laptop no longer pushes the whole inspector down.
+		var where = 'base' === bp || 'normal' === st ? '' : '<span class="vb-selnote-bp">' + escapeHtml( ( BP_META[ bp ] || BP_META.base ).label ) + '</span>';
 		var what = isCls ? T( 'Styling the class' ) + ' <b>' + escapeHtml( ac ) + '</b>: ' + T( 'every element with it changes.' ) : T( 'Styling the ID' ) + ' <b>#' + escapeHtml( node.id ) + '</b>: ' + T( 'only this element changes.' );
 		if ( 'normal' !== st ) { what += ' <span class="vb-selnote-st">' + T( 'Only while' ) + ' :' + escapeHtml( st ) + '</span>'; }
 		// The sentence only shows when it adds something (a screen size or a
 		// state); otherwise it lives in the class button's tooltip (Oxygen shows none).
-		var note = ( where || 'normal' !== st ) ? '<div class="vb-selnote">' + where + '<span>' + what + '</span></div>' : '';
+		var note = 'normal' !== st ? '<div class="vb-selnote">' + where + '<span>' + what + '</span></div>' : '';
 		var warn = ovCount ? '<div class="vb-ovwarn">' + svg( 'bolt', 12 ) + '<span>' + ovCount + ' ' + ( 1 === ovCount ? T( 'style set on this element overrides the class here.' ) : T( 'styles set on this element override the class here.' ) ) + '</span>' +
 			'<button type="button" data-ovmove>' + T( 'Move to class' ) + '</button><button type="button" data-ovclear>' + T( 'Remove' ) + '</button></div>' : '';
 		return '<div class="vb-selwrap">' + bar + note + warn + '</div>';
@@ -5101,6 +5132,18 @@
 		 * below each other, side by side or in a grid — and where, with tiles
 		 * instead of display / flex-direction / justify-content. */
 		function designLayoutHTML() {
+			var gapItem = null; CONTROLS.forEach( function ( g ) { g.items.forEach( function ( it ) { if ( 'gap' === it.prop && 'Layout' === g.group ) { gapItem = it; } } ); } );
+			/* With a scroll effect the effect decides how the children sit (in one
+			 * row that moves sideways, or stacked). The tiles used to read the
+			 * box's own display and said "Below each other" for a row. */
+			var sfx = 'side' === scrollFx( node ) || ( 'Scroller' === node.el ) ? scrollFx( node ) : '';
+			if ( sfx ) {
+				var side = 'side' === sfx;
+				return '<div class="vb-dz" data-mode="fx"><div class="vb-dz-f"><div class="vb-f-lbl"><span class="vb-f-name">' + T( 'Children' ) + '</span></div>' +
+					'<div class="vb-dz-fx">' + svg( side ? 'el_scroller' : 'el_section', 18 ) + '<span><b>' + ( side ? T( 'In one row' ) : T( 'Below each other' ) ) + '</b>' +
+					( side ? T( 'The scroll effect moves them sideways, so they always sit in one row. Each child’s width decides how many show at once.' ) : T( 'The scroll effect stacks them, so they always sit below each other.' ) ) +
+					'</span></div></div>' + ( gapItem ? itemHTML( Object.assign( {}, gapItem, { when:null } ) ) : '' ) + '</div>';
+			}
 			var d = cssNow( 'display', cEl ), dir = cssNow( 'flexDirection', cEl ) || 'row';
 			var mode = /grid/.test( d ) ? 'grid' : ( /flex/.test( d ) ? ( /column/.test( dir ) ? 'stack' : 'row' ) : 'flow' );
 			function key( v, isAlign ) {
@@ -5681,7 +5724,11 @@
 		h += chk( 'glow', 'A soft light follows the mouse' );
 		if ( m.glow ) { h += inp( 'glowColor', 'Light colour', 'rgba(255,255,255,.16)' ); }
 		h += chk( 'magnet', 'Pulled towards the mouse (magnetic)' );
-		if ( isBox ) {
+		if ( isBox && 'Scroller' === node.el ) {
+			h += '<div class="vb-setnote">' + T( 'The scroll effect of this Scroll section is set in Essentials.' ) + '</div>';
+			h += chk( 'particles', 'Floating particles in the background' );
+			if ( m.particles ) { h += '<div class="vb-loop-pair">' + inp( 'particlesColor', 'Colour', '#ffffff' ) + inp( 'particlesDensity', 'Amount', '60' ) + '</div>'; }
+		} else if ( isBox ) {
 			h += chk( 'stack', 'Children stack like cards while scrolling' );
 			if ( m.stack ) { h += '<div class="vb-loop-pair">' + inp( 'stackTop', 'Stick at', '100', 'px' ) + inp( 'stackStep', 'Offset per card', '18', 'px' ) + '</div>'; }
 			h += chk( 'hscroll', 'Pinned: children move sideways while scrolling' );
@@ -5689,7 +5736,7 @@
 			h += chk( 'particles', 'Floating particles in the background' );
 			if ( m.particles ) { h += '<div class="vb-loop-pair">' + inp( 'particlesColor', 'Colour', '#ffffff' ) + inp( 'particlesDensity', 'Amount', '60' ) + '</div>'; }
 		}
-		h += '<div class="vb-setnote">' + T( 'Motion plays on the published page, not in the editor. Visitors who ask their system for less motion see everything without it.' ) + '</div>';
+		h += '<div class="vb-setnote">' + T( 'The mouse effects and particles play here in the editor too; the scroll effects play on the published page. Visitors who ask their system for less motion see everything without it.' ) + '</div>';
 		return h + '</div>';
 	}
 	function setMo( key, val ) {
@@ -7480,7 +7527,8 @@
 		document.addEventListener( 'focusin', function ( e ) { structKeyFocus = !! ( e.target.closest && e.target.closest( '.vb-st-tree' ) ); } );
 		document.addEventListener( 'keydown', function ( e ) {
 			var row = e.target.closest ? e.target.closest( '.vb-st-tree [data-stnode]' ) : null;
-			if ( ! row || e.ctrlKey || e.metaKey || e.altKey ) { return; }
+			// Typing a new name: the keys belong to the field (Delete must not delete the element).
+			if ( ! row || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA)$/.test( e.target.tagName ) ) { return; }
 			var rows = Array.prototype.slice.call( document.querySelectorAll( '.vb-st-tree [data-stnode]' ) ), i = rows.indexOf( row ), id = row.getAttribute( 'data-stnode' );
 			var go = function ( r ) { if ( r ) { structKeyFocus = true; selectNode( r.getAttribute( 'data-stnode' ) ); } };
 			var k = e.key, hit = true;
@@ -7496,7 +7544,7 @@
 				if ( 'true' === row.getAttribute( 'aria-expanded' ) ) { structCollapsed[ id ] = true; renderStructPanel(); }
 				else { selectRelative( 'parent' ); }
 			}
-			else if ( 'F2' === k ) { renameNode( id ); }
+			else if ( 'F2' === k ) { renameInline( id ); }
 			else if ( 'Delete' === k ) { deleteNode( id ); }
 			else if ( 'Enter' === k ) { inspTab = 'ess'; renderInspector( store.state ); }
 			else { hit = false; }
@@ -7543,7 +7591,7 @@
 			var collapsed = ! vis && !! structCollapsed[ node.id ];
 			var name = ( node.name || node.el || 'El' ) + ( node.classes && node.classes[ 0 ] ? ' · ' + node.classes[ 0 ] : '' );
 			var caret = hasKids ? '<span class="vb-st-caret' + ( collapsed ? ' closed' : '' ) + '" data-stcaret="' + node.id + '">' + svg( 'chevron', 11 ) + '</span>' : '<span class="vb-st-spacer"></span>';
-			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( multi.indexOf( node.id ) > -1 && node.id !== sel ? ' msel' : '' ) + ( node.hidden ? ' hid' : '' ) + ( vis && ! vis.hits[ node.id ] ? ' ctx' : '' ) + '" data-stnode="' + node.id + '" draggable="true" role="treeitem" aria-level="' + ( depth + 1 ) + '" aria-selected="' + ( node.id === sel ? 'true' : 'false' ) + '"' + ( hasKids ? ' aria-expanded="' + ( collapsed ? 'false' : 'true' ) + '"' : '' ) + ' tabindex="' + ( node.id === sel ? '0' : '-1' ) + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px;--d:' + depth + '">' + caret + '<span class="vb-st-ic">' + nodeIconHTML( node, 15 ) + '</span><span class="vb-st-l" title="' + escapeHtml( name ) + '"><span class="vb-st-n">' + escapeHtml( node.name || node.el || 'El' ) + '</span>' + ( node.classes && node.classes[ 0 ] ? '<span class="vb-st-c">' + escapeHtml( node.classes[ 0 ] ) + '</span>' : '' ) + '</span>' + ( node.locked ? '<span class="vb-st-cond vb-st-lock" title="' + escapeHtml( T( 'Locked' ) ) + '">' + svg( 'lock', 12 ) + '</span>' : '' ) +
+			var html = '<div class="vb-st-row' + ( node.id === sel ? ' sel' : '' ) + ( multi.indexOf( node.id ) > -1 && node.id !== sel ? ' msel' : '' ) + ( node.hidden ? ' hid' : '' ) + ( vis && ! vis.hits[ node.id ] ? ' ctx' : '' ) + '" data-stnode="' + node.id + '" draggable="true" role="treeitem" aria-level="' + ( depth + 1 ) + '" aria-selected="' + ( node.id === sel ? 'true' : 'false' ) + '"' + ( hasKids ? ' aria-expanded="' + ( collapsed ? 'false' : 'true' ) + '"' : '' ) + ' tabindex="' + ( node.id === sel ? '0' : '-1' ) + '" style="padding-left:' + ( 8 + depth * 15 ) + 'px;--d:' + depth + '">' + caret + '<span class="vb-st-ic">' + nodeIconHTML( node, 15 ) + '</span><span class="vb-st-l" title="' + escapeHtml( name ) + '"><span class="vb-st-n">' + escapeHtml( node.name || ( 'Scroller' === node.el ? T( 'Scroll section' ) : node.el ) || 'El' ) + '</span>' + ( node.classes && node.classes[ 0 ] ? '<span class="vb-st-c">' + escapeHtml( node.classes[ 0 ] ) + '</span>' : '' ) + '</span>' + ( node.locked ? '<span class="vb-st-cond vb-st-lock" title="' + escapeHtml( T( 'Locked' ) ) + '">' + svg( 'lock', 12 ) + '</span>' : '' ) +
 				( node.ix && node.ix.length ? '<span class="vb-st-cond vb-st-ix" title="' + escapeHtml( T( 'Interactions' ) + ': ' + node.ix.map( ixSummary ).join( '; ' ) ) + '">' + svg( 'bolt', 12 ) + '</span>' : '' ) +
 				( node.cprop ? '<span class="vb-st-cond vb-st-cprop" title="' + escapeHtml( T( 'Editable in each copy' ) + ': ' + ( node.cprop.label || '' ) ) + '">' + svg( 'pencilsq', 12 ) + '</span>' : '' ) +
 				( node.hdr && node.hdr.mode ? '<span class="vb-st-cond vb-st-part" title="' + escapeHtml( 'footer' === node.hdr.mode ? T( 'Site footer' ) : T( 'Site header' ) ) + '">' + svg( 'pinangle', 12 ) + '</span>' : '' ) +
@@ -8306,14 +8354,23 @@
 				else if ( 'dup' === sact ) { duplicateNode( snid ); }
 				else if ( 'del' === sact ) { deleteNode( snid ); }
 				else if ( 'more' === sact ) {
+					// Measure before selecting: the commit redraws Structure, and the old
+					// button then measures 0,0, so the menu opened in the top-left corner.
+					var sr = sta.getBoundingClientRect();
 					store.commit( function ( s ) { s.selection = snid; resetActiveClass( s ); }, false );
-					var sr = sta.getBoundingClientRect(); showContextMenu( sr.right - 4, sr.bottom + 4, snid );
+					showContextMenu( sr.right - 4, sr.bottom + 4, snid );
 				}
 				return;
 			}
 			var stc = e.target.closest( '[data-stcaret]' ); if ( stc ) { toggleStructBranch( stc.getAttribute( 'data-stcaret' ) ); e.stopPropagation(); return; }
 			var stn = e.target.closest( '[data-stnode]' ); if ( stn ) {
+				if ( e.target.closest( 'input.vb-st-rename' ) ) { return; }
 				if ( e.ctrlKey || e.metaKey || e.shiftKey ) { toggleMulti( stn.getAttribute( 'data-stnode' ) ); return; }
+				// Two clicks on the same row rename it. The first click redraws the
+				// list, so the browser never sees a double-click on one element.
+				var sNow = Date.now(), sId = stn.getAttribute( 'data-stnode' );
+				if ( stClick.id === sId && sNow - stClick.t < 450 ) { stClick = {}; renameInline( sId ); return; }
+				stClick = { id:sId, t:sNow };
 				multi = [];
 				store.commit( function ( s ) { s.selection = stn.getAttribute( 'data-stnode' ); resetActiveClass( s ); }, false );
 				lastRevealSel = null; revealOnSelect( stn.getAttribute( 'data-stnode' ) ); return;
@@ -9024,6 +9081,13 @@
 		// on one Velox site can be pasted on another (see onNativeCopy / onNativePaste).
 		document.addEventListener( 'copy', onNativeCopy );
 		document.addEventListener( 'paste', onNativePaste );
+		// Double-click a name in Structure to rename it right there.
+		document.addEventListener( 'dblclick', function ( e ) {
+			var row = e.target.closest( '#vb-struct [data-stnode]' );
+			if ( ! row || e.target.closest( '[data-stact],[data-stcaret],[data-sthide],input' ) ) { return; }
+			e.preventDefault();
+			renameInline( row.getAttribute( 'data-stnode' ) );
+		} );
 		// Right-click context menu on layer tree + structure panel rows.
 		document.addEventListener( 'contextmenu', function ( e ) {
 			var row = e.target.closest( '.vb-tn, [data-stnode]' );
@@ -9515,6 +9579,39 @@
 			}, T( 'Rename element' ) );
 		} );
 	}
+	/* Rename in place: the name in the Structure row becomes a field. Enter or
+	 * clicking elsewhere keeps it, Esc goes back, an empty field uses the type. */
+	var stClick = {};
+	function renameInline( id ) {
+		var n = findNode( store.state.tree, id ); if ( ! n ) { return; }
+		var row = document.querySelector( '#vb-struct [data-stnode="' + id + '"]' );
+		if ( row && row.querySelector( 'input.vb-st-rename' ) ) { return; }
+		var lab = row && row.querySelector( '.vb-st-n' );
+		if ( ! lab ) { renameNode( id ); return; }
+		var inp = document.createElement( 'input' );
+		inp.type = 'text'; inp.className = 'vb-st-rename'; inp.value = n.name || '';
+		inp.placeholder = elLabel( n ); inp.setAttribute( 'aria-label', T( 'Rename element' ) );
+		row.setAttribute( 'draggable', 'false' );
+		if ( lab.parentNode ) { lab.parentNode.classList.add( 'is-renaming' ); }
+		lab.replaceWith( inp ); inp.focus(); inp.select();
+		var done = false;
+		function finish( keep ) {
+			if ( done ) { return; } done = true;
+			var name = inp.value.trim();
+			if ( ! keep || name === ( n.name || '' ) ) { renderStructPanel(); return; }
+			store.commit( function ( s ) {
+				var t = findNode( s.tree, id ); if ( ! t ) { return; }
+				if ( name ) { t.name = name; } else { delete t.name; }
+			}, T( 'Rename element' ) );
+		}
+		inp.addEventListener( 'keydown', function ( ev ) {
+			ev.stopPropagation();
+			if ( 'Enter' === ev.key ) { ev.preventDefault(); finish( true ); }
+			else if ( 'Escape' === ev.key ) { ev.preventDefault(); finish( false ); }
+		} );
+		inp.addEventListener( 'blur', function () { finish( true ); } );
+		[ 'click', 'mousedown', 'dragstart' ].forEach( function ( t ) { inp.addEventListener( t, function ( ev ) { ev.stopPropagation(); } ); } );
+	}
 	/* Copy the element (and its subtree) to the clipboard as JSON so it can be
 	 * pasted into another page or kept outside the editor. */
 	function exportNode( id ) {
@@ -9941,8 +10038,15 @@
 		var availH = stage.clientHeight - parseFloat( cs.paddingTop ) - parseFloat( cs.paddingBottom ) - ( bar ? bar.offsetHeight : 0 ) - ( info && 'off' !== editorPrefs.info ? 32 + 8 : 0 ) - ( rbar ? rbar.offsetHeight + 8 : 0 );
 		var w = meta.view;
 		// Desktop on a big screen: use the room there is (never below 1400).
-		if ( 'base' === canvasBp ) { w = Math.max( Math.floor( BPX.xxl ) + 1, Math.floor( availW ) ); }
-		var fit = availW > 0 ? Math.min( 1, availW / w ) : 1;
+		var deskW = Math.max( Math.floor( BPX.xxl ) + 1, Math.floor( availW ) );
+		if ( 'base' === canvasBp ) { w = deskW; }
+		// Desktop and Laptop share one zoom. Before, each was fitted to the stage
+		// on its own, so Laptop (1280px) filled the same space as Desktop (1400px)
+		// and only looked bigger, as if zoomed in. Now Laptop is visibly narrower
+		// and text keeps its size. Tablet and Mobile fit on their own (they are
+		// narrow enough to show at 100%).
+		var ref = ( 'base' === canvasBp || 'xxl' === canvasBp || 'xl' === canvasBp ) ? deskW : w;
+		var fit = availW > 0 ? Math.min( 1, availW / ref ) : 1;
 		var scale = canvasZoom || fit;
 		canvasScale = scale;
 		var h = Math.max( 300, availH / scale );
@@ -12018,6 +12122,7 @@
 			'#vb-inspector .vb-sel .vb-sel-kind{position:absolute;left:3px;top:-17px;display:block;height:auto;padding:0;border-radius:0;background:none!important;font:600 9.5px/12px var(--vbb-font,"Velox Geist"),sans-serif;letter-spacing:.09em;color:var(--vb-tx3)}',
 			'#vb-inspector .vb-sel-cls .vb-sel-kind{color:var(--tgt-tx)!important}',
 			'#vb-inspector .vb-sel-st.is-on .vb-sel-kind{color:#d2bcff!important}',
+			'#vb-inspector .vb-sel-kind .vb-sel-bp{font-style:normal;white-space:nowrap;color:#7fd3f7}',
 			'#vb-inspector .vb-sel{padding:0 8px 0 11px}',
 			'#vb-inspector .vb-sel-st{flex:0 0 112px;max-width:none}',
 			'/* 4.44 polish */',
@@ -12076,6 +12181,8 @@
 			'.vb-dz-t.on svg{color:#2ab7f1}',
 			'.vb-dz-t:focus-visible{outline:2px solid #2ab7f1;outline-offset:1px}',
 			'.vb-dz-tiles.n4 .vb-dz-t{padding:8px 2px 7px;font-size:10.5px}',
+			'.vb-dz-fx{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--vb-line);border-radius:8px;background:rgba(42,183,241,.07);color:var(--vb-tx2);font-size:12px;line-height:1.45}',
+			'.vb-dz-fx>svg{flex:none;margin-top:1px;color:var(--vb-acc)}.vb-dz-fx b{display:block;color:var(--vb-tx1);font-weight:600;margin-bottom:2px}',
 			'.vb-dz-chk{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.4;color:var(--vb-tx2);cursor:pointer}',
 			'.vb-dz-chk input{margin:1px 0 0;accent-color:#2ab7f1}',
 			'#vb-inspector .vb-controls>.vb-tagbar{margin:18px 13px 6px}',
@@ -12171,6 +12278,7 @@
 			'#vb-struct .vb-st-caret,#vb-struct .vb-st-spacer{flex:none;width:14px;display:grid;place-items:center;color:var(--vb-tx3)}',
 			'#vb-struct .vb-st-l{flex:1 1 auto;min-width:0;display:flex;align-items:baseline;gap:6px;overflow:hidden;white-space:nowrap}',
 			'#vb-struct .vb-st-n{font-size:12.5px;font-weight:500;color:inherit;overflow:hidden;text-overflow:ellipsis}',
+			'#vb-struct .vb-st-row:has(.vb-st-rename) .vb-st-tools{display:none!important}#vb-struct .vb-st-l.is-renaming{flex:1 1 auto}#vb-struct .vb-st-l.is-renaming .vb-st-c{display:none}#vb-struct input.vb-st-rename{flex:1 1 140px;width:100%;min-width:90px;height:22px;margin:0;padding:0 6px;font:500 12.5px/20px inherit;font-family:inherit;color:var(--vb-tx1);background:var(--vb-bg0);border:1px solid var(--vb-acc);border-radius:5px;box-shadow:0 0 0 2px rgba(42,183,241,.25);outline:0}',
 			'#vb-struct .vb-st-c{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font:11px/1 "Velox Geist Mono",ui-monospace,Menlo,monospace;color:var(--vb-tx3)}',
 			'#vb-struct .vb-st-row.sel .vb-st-c{color:#8fdcfb}',
 			'#vb-struct .vb-st-eye{flex:none;display:grid;place-items:center;width:22px;height:22px;margin:0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);opacity:0;cursor:pointer;transition:opacity .12s,background .12s}',

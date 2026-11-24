@@ -1165,7 +1165,18 @@ class Velox_Shop {
 	 * The cart cookie: { "123" or "123:v1": qty, "_c": coupon code }. Returns
 	 * the raw map; lines() turns it into priced lines.
 	 */
+	/** A cart that stands in for the visitor's (the Design preview), or null. */
+	private static $cart_stand_in = null;
+
+	/** Draw cart and checkout with this cart instead of the visitor's (null: back to normal). */
+	public static function preview_cart( $cart ) {
+		self::$cart_stand_in = is_array( $cart ) ? $cart : null;
+	}
+
 	public static function get_cart() {
+		if ( null !== self::$cart_stand_in ) {
+			return self::$cart_stand_in;
+		}
 		if ( empty( $_COOKIE[ self::COOKIE ] ) ) {
 			return array();
 		}
