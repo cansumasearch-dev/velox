@@ -41,7 +41,7 @@ class Velox_Builder_Render {
 		// these was silently discarded when the page was built.
 		'padding' => 'padding', 'margin' => 'margin', 'position' => 'position',
 		'zIndex' => 'z-index', 'overflow' => 'overflow', 'aspectRatio' => 'aspect-ratio',
-		'objectFit' => 'object-fit', 'alignSelf' => 'align-self', 'justifySelf' => 'justify-self',
+		'objectFit' => 'object-fit', 'alignSelf' => 'align-self', 'justifySelf' => 'justify-self', 'justifyItems' => 'justify-items',
 		'fontFamily' => 'font-family', 'fontStyle' => 'font-style', 'whiteSpace' => 'white-space',
 		'textWrap' => 'text-wrap', 'gridColumn' => 'grid-column', 'gridRow' => 'grid-row',
 		// 4.21 style panel additions (kept in step with CSS_PROP in velox-builder.js).

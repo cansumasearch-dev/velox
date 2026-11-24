@@ -945,7 +945,7 @@
 		var imgs = [];
 		if ( p.thumb ) { imgs.push( p.thumb ); }
 		imgs = imgs.concat( p.galleryImgs || [] );
-		h += card( vxT( 'Photos' ), '<div class="vsa-media">' + imgs.map( function ( im, i ) { return '<figure class="vsa-mimg' + ( 0 === i ? ' is-main' : '' ) + '"><img src="' + esc( im.url ) + '" alt=""><span class="vsa-mimg-a">' + ( i ? '<button type="button" data-img-main="' + i + '" title="' + esc( vxT( 'Make it the main photo' ) ) + '">★</button>' : '<i>' + vxT( 'Main' ) + '</i>' ) + '<button type="button" data-img-del="' + i + '" aria-label="' + esc( vxT( 'Remove' ) ) + '">' + ic( 'x', 13 ) + '</button></span></figure>'; } ).join( '' ) +
+		h += card( vxT( 'Photos' ), '<div class="vsa-media">' + imgs.map( function ( im, i ) { return '<figure class="vsa-mimg' + ( 0 === i ? ' is-main' : '' ) + '"><img src="' + esc( im.url ) + '" alt=""><span class="vsa-mimg-a">' + ( i ? '<button type="button" data-img-main="' + i + '" title="' + esc( vxT( 'Make it the main photo' ) ) + '">★</button>' : '<i>' + vxT( 'Main photo' ) + '</i>' ) + '<button type="button" data-img-del="' + i + '" aria-label="' + esc( vxT( 'Remove' ) ) + '">' + ic( 'x', 13 ) + '</button></span></figure>'; } ).join( '' ) +
 			'<button type="button" class="vsa-madd" data-act="p-media">' + ic( 'plus', 20 ) + '<span>' + vxT( 'Add photos' ) + '</span></button></div><p class="vsa-hint">' + vxT( 'The first photo is the main one. Drag order: use ★ to choose the main photo.' ) + '</p>' );
 		// pricing
 		var pricing = '<div class="vsa-fr">' + field( vxT( 'Price' ), inp( 'price', dec( p.price ), { mode:'decimal', suffix:C.currency, ph:'0,00' } ), 'standard' === S.tax_mode ? vxT( 'Including VAT' ) : vxT( 'No VAT (§ 19 UStG)' ) ) +
@@ -956,7 +956,7 @@
 			'<div class="vsa-preview">' + pricePreview() + '</div>';
 		h += card( vxT( 'Price' ), pricing );
 		// type + inventory
-		h += card( vxT( 'Type and stock' ), field( vxT( 'What is it?' ), seg( 'type', p.type, [ [ 'physical', vxT( 'Physical' ), 'box' ], [ 'digital', vxT( 'Download' ), 'download' ], [ 'service', vxT( 'Service' ), 'users' ] ] ) ) +
+		h += card( vxT( 'Type and stock' ), field( vxT( 'What is it?' ), seg( 'type', p.type, [ [ 'physical', vxT( 'Physical' ), 'box' ], [ 'digital', vxT( 'Digital download' ), 'download' ], [ 'service', vxT( 'Service' ), 'users' ] ] ) ) +
 			tog( 'unique', !! +p.unique, vxT( 'One of a kind' ), vxT( 'Sells exactly once, then shows “Sold” (art, vintage, originals).' ) ) +
 			( +p.unique ? '' : tog( 'track', !! +p.track, vxT( 'Count stock' ), vxT( 'Stops selling when it runs out, warns you when it runs low.' ) ) ) +
 			( +p.track && ! +p.unique && ! hasVar ? '<div class="vsa-fr">' + field( vxT( 'In stock' ), inp( 'stock', p.stock, { mode:'numeric', ph:'0' } ) ) + field( vxT( 'Max. per order' ), inp( 'max_qty', p.max_qty, { mode:'numeric', ph:vxT( 'no limit' ) } ) ) + '</div>' + tog( 'backorder', !! +p.backorder, vxT( 'Keep selling when sold out' ), vxT( 'Shown as “Available to order”.' ) ) : '' ) +
@@ -968,7 +968,7 @@
 		h += card( vxT( 'Options' ), variantsHTML(), { id:'vsa-variants', right:p.options.length < 3 && ! +p.unique ? '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="v-addopt">' + ic( 'plus', 14 ) + vxT( 'Add option' ) + '</button>' : '' } );
 		// shipping
 		if ( phys ) {
-			h += card( vxT( 'Shipping' ), '<div class="vsa-fr">' + field( vxT( 'Delivery time' ), inp( 'delivery', p.delivery, { ph:vxT( 'e.g. 2–4 working days' ) } ), vxT( 'Required in Germany before ordering.' ) ) + field( vxT( 'Weight' ), inp( 'weight', p.weight, { mode:'decimal', suffix:'kg', ph:vxT( 'optional' ) } ) ) + '</div>' );
+			h += card( vxT( 'Shipping' ), '<div class="vsa-fr">' + field( vxT( 'Delivery time' ), inp( 'delivery', p.delivery, { ph:vxT( 'e.g. 2–4 working days' ) } ), vxT( 'Required in Germany before ordering.' ) ) + field( vxT( 'Product weight' ), inp( 'weight', p.weight, { mode:'decimal', suffix:'kg', ph:vxT( 'optional' ) } ) ) + '</div>' );
 		}
 		if ( 'digital' === p.type ) {
 			h += card( vxT( 'Files to download' ), '<ul class="vsa-files">' + ( p.fileInfo || [] ).map( function ( f, i ) { return '<li>' + ic( 'file', 15 ) + '<span class="vsa-grow">' + esc( f.name ) + '</span><button type="button" class="vsa-iconbtn" data-file-del="' + i + '" aria-label="' + esc( vxT( 'Remove' ) ) + '">' + ic( 'x', 14 ) + '</button></li>'; } ).join( '' ) + '</ul><button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="p-files">' + ic( 'plus', 14 ) + vxT( 'Add files' ) + '</button><p class="vsa-hint">' + vxT( 'Buyers get private download links after paying. The files are never linked publicly.' ) + '</p>' );
@@ -1624,9 +1624,8 @@
 			case 'design':
 				return dsBody( s );
 			case 'help':
-				setTimeout( function () { if ( window.vxHelp ) { window.vxHelp( document.getElementById( 'vsa-help' ), 'shop' ); } }, 0 );
 				return card( vxT( 'Tour' ), '<p class="vsa-p">' + vxT( 'A short walk through the shop: where orders, products, payments, shipping and the design are.' ) + '</p><button type="button" class="vsa-btn vsa-btn-pri" data-vx-tour="shop">' + vxT( 'Start the tour' ) + '</button>' ) +
-					card( vxT( 'Help' ), '<div id="vsa-help"></div>' );
+					card( vxT( 'Help' ), '<div id="vsa-help" data-vx-help="shop"></div>' );
 			case 'texts':
 				setTimeout( txLoad, 0 );
 				return '<div id="vsa-tx">' + card( vxT( 'Texts' ), '<p class="vsa-p">' + vxT( 'Loading the shop’s texts…' ) + '</p>' ) + '</div>';

@@ -24,6 +24,7 @@
 	 * Bootstrap Icons 1.11.3 (MIT licence, icons.getbootstrap.com), 16×16, filled
 	 * with currentColor. Keys are Velox's own names; each maps to one icon. */
 	var ICON = {
+		parent:'<path fill-rule="evenodd" d="M4.854 1.146a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L4 2.707V12.5A2.5 2.5 0 0 0 6.5 15h8a.5.5 0 0 0 0-1h-8A1.5 1.5 0 0 1 5 12.5V2.707l3.146 3.147a.5.5 0 1 0 .708-.708z"/>',
 		section:'<path d="M3 6.5a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m0 3a.5.5 0 0 1 .5-.5h5a.5.5 0 0 1 0 1h-5a.5.5 0 0 1-.5-.5m.5 2.5a.5.5 0 0 0 0 1h5a.5.5 0 0 0 0-1z"/><path d="M2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2zm12 1a1 1 0 0 1 1 1v1H1V2a1 1 0 0 1 1-1zm1 3v10a1 1 0 0 1-1 1h-2V4zm-4 0v11H2a1 1 0 0 1-1-1V4z"/>',
 		div:'<path d="M14 1a1 1 0 0 1 1 1v12a1 1 0 0 1-1 1H2a1 1 0 0 1-1-1V2a1 1 0 0 1 1-1zM2 0a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V2a2 2 0 0 0-2-2z"/>',
 		columns:'<path d="M0 3a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2zm8.5-1v12H14a1 1 0 0 0 1-1V3a1 1 0 0 0-1-1zm-1 0H2a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h5.5z"/>',
@@ -342,7 +343,7 @@
 		// and feature grids without a grid, the ratio box without a ratio.
 		padding:'padding', margin:'margin', position:'position', zIndex:'z-index',
 		overflow:'overflow', aspectRatio:'aspect-ratio', objectFit:'object-fit',
-		alignSelf:'align-self', justifySelf:'justify-self', textWrap:'text-wrap',
+		alignSelf:'align-self', justifySelf:'justify-self', justifyItems:'justify-items', textWrap:'text-wrap',
 		fontFamily:'font-family', fontStyle:'font-style', whiteSpace:'white-space',
 		gridColumn:'grid-column', gridRow:'grid-row',
 		// 4.21: the properties every other builder has in its style panel.
@@ -1590,6 +1591,69 @@
 		var key = ruleKey( s.breakpoint, s.state );
 		return !! ( node && node.overrides && node.overrides[ key ] && node.overrides[ key ][ prop ] != null );
 	}
+	/* Several properties in one step (one undo): the design controls in
+	 * Essentials write display + direction + alignment together. An empty
+	 * value removes that property. */
+	function setProps( map, label ) {
+		var props = Object.keys( map ).filter( function ( p ) { return ! blockedByLock( p ); } );
+		if ( ! props.length ) { return; }
+		var also = multiIds();
+		store.commit( function ( s ) {
+			var node = findNode( s.tree, s.selection ), key = ruleKey( s.breakpoint, s.state );
+			if ( ! node ) { return; }
+			props.forEach( function ( prop ) {
+				var value = map[ prop ], del = null == value || '' === value;
+				function put( holder ) {
+					holder[ key ] = holder[ key ] || {};
+					if ( del ) { delete holder[ key ][ prop ]; } else { holder[ key ][ prop ] = value; }
+					clearShadowed( holder, key, prop );
+				}
+				if ( writesToElement( s, node, prop ) ) {
+					also.forEach( function ( id ) { var n2 = findNode( s.tree, id ); if ( n2 && n2 !== node ) { put( n2.overrides ); } } );
+					put( node.overrides );
+				} else {
+					var c = s.activeClass; s.classes[ c ] = s.classes[ c ] || {}; put( s.classes[ c ] );
+				}
+			} );
+		}, label || T( 'Layout' ) );
+	}
+	/* The Essentials layout tiles → the CSS they stand for. */
+	function designLayoutClick( b ) {
+		var box = b.closest( '.vb-dz' ), mode = box ? box.getAttribute( 'data-mode' ) : 'flow', on = b.classList.contains( 'on' );
+		var lay = b.getAttribute( 'data-dz-lay' );
+		if ( lay ) {
+			if ( on ) { return; }
+			if ( 'stack' === lay ) { setProps( { display:'flex', flexDirection:'column', flexWrap:'' }, T( 'Below each other' ) ); }
+			else if ( 'row' === lay ) { setProps( { display:'flex', flexDirection:'row' }, T( 'Side by side' ) ); }
+			else { setProps( { display:'grid', flexDirection:'', flexWrap:'', gridTemplateColumns:'repeat(2, minmax(0, 1fr))' }, T( 'Grid' ) ); }
+			return;
+		}
+		var axis = b.hasAttribute( 'data-dz-h' ) ? 'h' : 'v', v = b.getAttribute( 'data-dz-' + axis ), grid = 'grid' === mode;
+		var css = { start:grid ? 'start' : 'flex-start', center:'center', end:grid ? 'end' : 'flex-end', stretch:'stretch', between:'space-between' }[ v ];
+		var prop;
+		if ( 'grid' === mode ) { prop = 'h' === axis ? 'justifyItems' : 'alignItems'; }
+		else if ( 'row' === mode ) { prop = 'h' === axis ? 'justifyContent' : 'alignItems'; }
+		else { prop = 'h' === axis ? 'alignItems' : 'justifyContent'; }
+		var m = {}; m[ prop ] = on ? '' : css;
+		if ( 'flow' === mode ) { m.display = 'flex'; m.flexDirection = 'column'; }
+		setProps( m, T( 'Alignment' ) );
+	}
+	/* Words (or a small sign) on the option buttons instead of CSS values;
+	 * the CSS value stays in the tooltip. '=' marks a sign, not a word. */
+	var SEG_WORDS = {
+		textAlign:{ left:'Left', center:'Center', right:'Right', justify:'Justified' },
+		textTransform:{ none:'=—', uppercase:'=AA', lowercase:'=aa', capitalize:'=Aa' },
+		textDecoration:{ none:'=—', underline:'=<u>U</u>', 'line-through':'=<s>S</s>' },
+		fontStyle:{ normal:'Normal', italic:'Italic' },
+		objectFit:{ fill:'Fill', cover:'Cover', contain:'Contain', none:'None' },
+		backgroundSize:{ auto:'Auto', cover:'Cover', contain:'Contain' },
+		borderStyle:{ none:'=—', solid:'=<i class="vb-ln vb-ln-s"></i>', dashed:'=<i class="vb-ln vb-ln-d"></i>', dotted:'=<i class="vb-ln vb-ln-p"></i>' },
+		flexDirection:{ row:'Row', column:'Column' },
+		flexWrap:{ nowrap:'No wrap', wrap:'Wrap' },
+		justifyContent:{ 'flex-start':'Start', center:'Center', 'space-between':'Spread out', 'flex-end':'End' },
+		alignItems:{ 'flex-start':'Start', center:'Center', stretch:'Stretch', 'flex-end':'End' },
+		alignSelf:{ auto:'Auto', 'flex-start':'Start', center:'Center', 'flex-end':'End', stretch:'Stretch' }
+	};
 	function removeProp( prop ) {
 		if ( blockedByLock( prop ) ) { return; }
 		var also = multiIds();
@@ -3378,8 +3442,9 @@
 	 * click (the shared Velox dropdown). */
 	function selectorBarHTML( node, ac, st, bp, ovCount ) {
 		var isCls = ac && '#' !== ac, locked = isCls && isLocked( ac );
+		var whatTip = isCls ? T( 'Styling the class' ) + ' ' + ac + ': ' + T( 'every element with it changes.' ) : T( 'Styling the ID' ) + ' #' + node.id + ': ' + T( 'only this element changes.' );
 		var bar = '<div class="vb-selbar">' +
-			'<button type="button" class="vb-sel vb-sel-cls' + ( isCls ? '' : ' is-el' ) + ( locked ? ' is-locked' : '' ) + '" id="vb-clspick" aria-haspopup="listbox" title="' + T( 'What the styles below change' ) + '">' +
+			'<button type="button" class="vb-sel vb-sel-cls' + ( isCls ? '' : ' is-el' ) + ( locked ? ' is-locked' : '' ) + '" id="vb-clspick" aria-haspopup="listbox" title="' + escapeHtml( whatTip ) + '">' +
 				'<span class="vb-sel-kind">' + ( isCls ? T( 'Class' ) : 'ID' ) + '</span><span class="vb-sel-v">' + escapeHtml( isCls ? ac : '#' + node.id ) + '</span>' +
 				( locked ? '<span class="vb-sel-lock">' + svg( 'lock', 11 ) + '</span>' : '' ) + '<span class="vb-sel-cv">' + svg( 'chevron', 12 ) + '</span></button>' +
 			'<button type="button" class="vb-sel vb-sel-st' + ( 'normal' !== st ? ' is-on' : '' ) + '" id="vb-statepick" aria-haspopup="listbox" title="' + T( 'State' ) + '">' +
@@ -3389,7 +3454,9 @@
 		var where = 'base' === bp ? '' : '<span class="vb-selnote-bp">' + escapeHtml( ( BP_META[ bp ] || BP_META.base ).label ) + '</span>';
 		var what = isCls ? T( 'Styling the class' ) + ' <b>' + escapeHtml( ac ) + '</b>: ' + T( 'every element with it changes.' ) : T( 'Styling the ID' ) + ' <b>#' + escapeHtml( node.id ) + '</b>: ' + T( 'only this element changes.' );
 		if ( 'normal' !== st ) { what += ' <span class="vb-selnote-st">' + T( 'Only while' ) + ' :' + escapeHtml( st ) + '</span>'; }
-		var note = '<div class="vb-selnote">' + where + '<span>' + what + '</span></div>';
+		// The sentence only shows when it adds something (a screen size or a
+		// state); otherwise it lives in the class button's tooltip (Oxygen shows none).
+		var note = ( where || 'normal' !== st ) ? '<div class="vb-selnote">' + where + '<span>' + what + '</span></div>' : '';
 		var warn = ovCount ? '<div class="vb-ovwarn">' + svg( 'bolt', 12 ) + '<span>' + ovCount + ' ' + ( 1 === ovCount ? T( 'style set on this element overrides the class here.' ) : T( 'styles set on this element override the class here.' ) ) + '</span>' +
 			'<button type="button" data-ovmove>' + T( 'Move to class' ) + '</button><button type="button" data-ovclear>' + T( 'Remove' ) + '</button></div>' : '';
 		return '<div class="vb-selwrap">' + bar + note + warn + '</div>';
@@ -4541,7 +4608,7 @@
 		Image: [ [ 'Size', [ '*box', 'aspectRatio', 'objectFit', 'objectPosition' ] ], [ 'Border', [ 'borderRadius' ] ], [ 'Spacing' ] ],
 		Video: [ [ 'Size', [ '*box', 'aspectRatio' ] ], [ 'Border', [ 'borderRadius' ] ] ],
 		Icon: [ [ 'Typography', [ 'color' ] ], [ 'Spacing' ] ],
-		Section: [ [ 'Spacing' ], [ 'Background & effects', [ 'background', 'backgroundImage', 'backgroundSize', 'backgroundPosition' ] ], [ 'Layout', [ 'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap' ] ], [ 'Size', [ '*box' ] ] ],
+		Section: [ [ 'Layout', [ 'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap' ] ], [ 'Spacing' ], [ 'Background & effects', [ 'background', 'backgroundImage', 'backgroundSize', 'backgroundPosition' ] ], [ 'Size', [ '*box' ] ] ],
 		InnerContent: [], Reusable: [], Codeblock: [], Embed: [], Form: [ [ 'Spacing' ] ], Reviews: [ [ 'Spacing' ] ]
 	};
 	function essentialsFor( node ) {
@@ -4756,7 +4823,7 @@
 	function kmHint( id ) { var k = kmKey( id ); return k ? ' (' + k + ')' : ''; }
 	function findProperty() {
 		if ( ! ( store.state && store.state.selection ) ) { return; }
-		if ( 'set' === inspTab ) { inspTab = 'all'; renderInspector( store.state ); }
+		if ( 'all' !== inspTab && 'client' !== ACCESS.level ) { inspTab = 'all'; renderInspector( store.state ); }
 		var sfi = document.getElementById( 'vb-sfilter' ); if ( sfi ) { sfi.focus(); sfi.select(); }
 	}
 	/* Nothing selected: the inspector used to fold away, which shifted the canvas
@@ -4868,7 +4935,10 @@
 		}
 		var ac = state.activeClass, bp = state.breakpoint, st = state.state || 'normal';
 		if ( ac ) { lastActiveClass[ node.id ] = ac; }
-		var tab = inspTab; // 'ess' | 'all' | 'set'
+		// Two tabs (Oxygen): Essentials | Advanced. The old third tab ('set') is
+		// part of Advanced now; only clients keep their single settings tab.
+		if ( 'set' === inspTab && 'client' !== ( CFG.access || {} ).level ) { inspTab = 'all'; }
+		var tab = inspTab; // 'ess' | 'all' (Advanced) | 'set' (clients)
 		var chips = node.classes.map( function ( c, i ) {
 			return '<span class="vb-chip ' + ( i === 0 ? 'base' : 'combo' ) + ' ' + ( c === ac ? 'active' : '' ) + '" data-cls="' + c + '">' + c +
 				'<span class="vb-chip-tag">' + ( i === 0 ? T( 'BASE' ) : T( 'COMBO' ) ) + '</span>' +
@@ -4945,6 +5015,80 @@
 			media: 'Image' === node.el || 'Video' === node.el || /^(img|video|iframe)$/.test( node.tag ),
 			bgimage: !! cssNow( 'backgroundImage' ) && 'none' !== cssNow( 'backgroundImage' )
 		};
+		/* Layout in design words (Oxygen's Primary): how the children sit —
+		 * below each other, side by side or in a grid — and where, with tiles
+		 * instead of display / flex-direction / justify-content. */
+		function designLayoutHTML() {
+			var d = cssNow( 'display', cEl ), dir = cssNow( 'flexDirection', cEl ) || 'row';
+			var mode = /grid/.test( d ) ? 'grid' : ( /flex/.test( d ) ? ( /column/.test( dir ) ? 'stack' : 'row' ) : 'flow' );
+			function key( v, isAlign ) {
+				v = String( v || '' );
+				if ( 'normal' === v || '' === v ) { return isAlign ? 'stretch' : 'start'; }
+				if ( /space-between/.test( v ) ) { return 'between'; }
+				if ( /stretch/.test( v ) ) { return 'stretch'; }
+				if ( /center/.test( v ) ) { return 'center'; }
+				if ( /end$|right/.test( v ) ) { return 'end'; }
+				return 'start';
+			}
+			var ai = cssNow( 'alignItems', cEl ), jc = cssNow( 'justifyContent', cEl ), ji = cssNow( 'justifyItems', cEl );
+			var h = '', v = '';
+			if ( 'stack' === mode ) { h = key( ai, true ); v = key( jc ); }
+			else if ( 'row' === mode ) { h = key( jc ); v = key( ai, true ); }
+			else if ( 'grid' === mode ) { h = key( ji, true ); v = key( ai, true ); }
+			var I = {
+				stack:'<svg viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="1.5" width="18" height="4" rx="1.2"/><rect x="3" y="7" width="18" height="4" rx="1.2"/><rect x="3" y="12.5" width="18" height="4" rx="1.2"/></svg>',
+				row:'<svg viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="1.5" y="3" width="5.5" height="12" rx="1.2"/><rect x="9.25" y="3" width="5.5" height="12" rx="1.2"/><rect x="17" y="3" width="5.5" height="12" rx="1.2"/></svg>',
+				grid:'<svg viewBox="0 0 24 18" fill="none" stroke="currentColor" stroke-width="1.6"><rect x="3" y="1.5" width="8" height="6.5" rx="1.2"/><rect x="13" y="1.5" width="8" height="6.5" rx="1.2"/><rect x="3" y="10" width="8" height="6.5" rx="1.2"/><rect x="13" y="10" width="8" height="6.5" rx="1.2"/></svg>'
+			};
+			function tile( attr, val, label, on, icon ) {
+				return '<button type="button" class="vb-dz-t' + ( on ? ' on' : '' ) + '" ' + attr + '="' + val + '" aria-pressed="' + ( on ? 'true' : 'false' ) + '">' + ( icon || '' ) + '<span>' + label + '</span></button>';
+			}
+			function alignIcon( axis, k ) {
+				// a box with the items drawn where they will sit
+				var pos = { start:0, center:1, end:2, stretch:3, between:4 }[ k ], b = '';
+				if ( 'h' === axis ) {
+					b = 3 === pos ? '<rect x="4" y="5" width="16" height="3" rx="1"/><rect x="4" y="10" width="16" height="3" rx="1"/>'
+						: 4 === pos ? '<rect x="3" y="5" width="4" height="8" rx="1"/><rect x="17" y="5" width="4" height="8" rx="1"/>'
+						: '<rect x="' + [ 3, 8, 13 ][ pos ] + '" y="5" width="8" height="3" rx="1"/><rect x="' + [ 3, 9.5, 16 ][ pos ] + '" y="10" width="5" height="3" rx="1"/>';
+				} else {
+					b = 3 === pos ? '<rect x="6" y="2" width="4" height="14" rx="1"/><rect x="14" y="2" width="4" height="14" rx="1"/>'
+						: 4 === pos ? '<rect x="7" y="1.5" width="10" height="3.5" rx="1"/><rect x="7" y="13" width="10" height="3.5" rx="1"/>'
+						: '<rect x="6" y="' + [ 2, 5, 8 ][ pos ] + '" width="4" height="8" rx="1"/><rect x="14" y="' + [ 2, 6.5, 11 ][ pos ] + '" width="4" height="5" rx="1"/>';
+				}
+				return '<svg viewBox="0 0 24 18" fill="currentColor" opacity=".85">' + b + '</svg>';
+			}
+			var out = '<div class="vb-dz" data-mode="' + mode + '">';
+			out += '<div class="vb-dz-f"><div class="vb-f-lbl"><span class="vb-f-name">' + T( 'Children' ) + '</span></div><div class="vb-dz-tiles">' +
+				tile( 'data-dz-lay', 'stack', T( 'Below each other' ), 'stack' === mode, I.stack ) +
+				tile( 'data-dz-lay', 'row', T( 'Side by side' ).replace( 'Nebeneinander', 'Neben­einander' ), 'row' === mode, I.row ) +
+				tile( 'data-dz-lay', 'grid', T( 'Grid' ), 'grid' === mode, I.grid ) + '</div></div>';
+			if ( 'flow' !== mode ) {
+				var hOpts = 'row' === mode ? [ [ 'start', T( 'Left' ) ], [ 'center', T( 'Center' ) ], [ 'end', T( 'Right' ) ], [ 'between', T( 'Spread out' ) ] ] : [ [ 'start', T( 'Left' ) ], [ 'center', T( 'Center' ) ], [ 'end', T( 'Right' ) ], [ 'stretch', T( 'Full width' ) ] ];
+				var vOpts = 'stack' === mode ? [ [ 'start', T( 'Top' ) ], [ 'center', T( 'Middle' ) ], [ 'end', T( 'Bottom' ) ], [ 'between', T( 'Spread out' ) ] ] : [ [ 'start', T( 'Top' ) ], [ 'center', T( 'Middle' ) ], [ 'end', T( 'Bottom' ) ], [ 'stretch', T( 'Full height' ) ] ];
+				out += '<div class="vb-dz-f"><div class="vb-f-lbl"><span class="vb-f-name">' + T( 'Horizontal alignment' ) + '</span></div><div class="vb-dz-tiles n4">' +
+					hOpts.map( function ( o ) { return tile( 'data-dz-h', o[ 0 ], o[ 1 ], h === o[ 0 ], alignIcon( 'h', o[ 0 ] ) ); } ).join( '' ) + '</div></div>';
+				out += '<div class="vb-dz-f"><div class="vb-f-lbl"><span class="vb-f-name">' + T( 'Vertical alignment' ) + '</span></div><div class="vb-dz-tiles n4">' +
+					vOpts.map( function ( o ) { return tile( 'data-dz-v', o[ 0 ], o[ 1 ], v === o[ 0 ], alignIcon( 'v', o[ 0 ] ) ); } ).join( '' ) + '</div></div>';
+			}
+			if ( 'grid' === mode ) {
+				var gtc = String( resolveProperty( node, bp, 'gridTemplateColumns', st ).value || '' ), gm = gtc.match( /^repeat\(\s*(\d+)/ ), gn = gm ? gm[ 1 ] : ( gtc && ! /repeat|minmax/.test( gtc ) ? String( gtc.trim().split( /\s+/ ).length ) : '' );
+				out += '<div class="vb-f"><div class="vb-f-lbl"><span class="vb-f-name">' + T( 'Columns' ) + '</span></div><div class="vb-row"><input class="vb-inp num" type="number" min="1" max="12" data-dz-cols="1" value="' + escapeHtml( gn ) + '" placeholder="2"></div></div>';
+			}
+			if ( 'row' === mode ) {
+				var wr = /wrap/.test( cssNow( 'flexWrap', cEl ) ) && ! /nowrap/.test( cssNow( 'flexWrap', cEl ) );
+				out += '<label class="vb-dz-chk"><input type="checkbox" data-dz-wrap="1"' + ( wr ? ' checked' : '' ) + '><span>' + T( 'Wrap onto the next line when there is no room' ) + '</span></label>';
+			}
+			if ( 'flow' !== mode ) {
+				var gapIt = null; CONTROLS.forEach( function ( g ) { g.items.forEach( function ( it ) { if ( 'gap' === it.prop && 'Layout' === g.group ) { gapIt = it; } } ); } );
+				if ( gapIt ) { out += itemHTML( Object.assign( {}, gapIt, { when:null } ) ); }
+			}
+			return out + '</div>';
+		}
+		function segLabel( prop, o ) {
+			var w = ( SEG_WORDS[ prop ] || {} )[ o ];
+			if ( ! w ) { return escapeHtml( o.replace( 'flex-', '' ).replace( 'space-', '' ) ); }
+			return '=' === w.charAt( 0 ) ? w.slice( 1 ) : escapeHtml( T( w ) );
+		}
 		function itemHTML( it ) {
 			var res = resolveProperty( node, bp, it.prop, st ), val = res.value, ctrl = '';
 			var inh = inheritedHere( res, bp, st ), dot = inhDot( dotFor( res, ac, bp ), res, st );
@@ -4957,7 +5101,7 @@
 			if ( it.type === 'seg' ) {
 				ctrl = '<div class="vb-seg">' + it.opts.map( function ( o ) {
 					var isCur = ! val && cur === o;
-					return '<button class="' + ( val === o ? ( inh ? 'inh' : 'on' ) : ( isCur ? 'cur' : '' ) ) + '" data-set="' + it.prop + '" data-val="' + o + '" title="' + o + ( val === o && inh ? ' · ' + T( 'inherited' ) : ( isCur ? ' · ' + T( 'in effect now' ) : '' ) ) + '">' + o.replace( 'flex-', '' ).replace( 'space-', '' ) + '</button>';
+					return '<button class="' + ( val === o ? ( inh ? 'inh' : 'on' ) : ( isCur ? 'cur' : '' ) ) + '" data-set="' + it.prop + '" data-val="' + o + '" title="' + o + ( val === o && inh ? ' · ' + T( 'inherited' ) : ( isCur ? ' · ' + T( 'in effect now' ) : '' ) ) + '">' + segLabel( it.prop, o ) + '</button>';
 				} ).join( '' ) + '</div>';
 			} else if ( it.type === 'num' ) {
 				var sv = splitVal( val, it.unit );
@@ -4993,7 +5137,7 @@
 		}
 
 		var body = '';
-		var sq = String( styleFilter || '' ).trim().toLowerCase(), sWords = sq ? sq.split( /\s+/ ) : [];
+		var sq = 'all' === tab ? String( styleFilter || '' ).trim().toLowerCase() : '', sWords = sq ? sq.split( /\s+/ ) : [];
 		if ( tab === 'set' ) {
 			body = 'client' === ACCESS.level ? settingsTabHTML( node ) : '<div class="vb-setwrap">' + advancedSettingsHTML( node ) + '</div>';
 		} else {
@@ -5005,7 +5149,8 @@
 				essList.forEach( function ( e ) { essProps[ e[ 0 ] ] = e[ 1 ] || null; } );
 			}
 			// A search looks through every group, whichever tab is open.
-			var groups = sq ? ordered : ordered.filter( function ( g ) { return tab === 'all' ? true : Object.prototype.hasOwnProperty.call( essProps, g.group ); } );
+			// Essentials keep the order that fits the kind (a heading starts with its type).
+			var groups = sq ? ordered : ( 'all' === tab ? ordered : essList.map( function ( e ) { return byName[ e[ 0 ] ]; } ).filter( Boolean ) );
 			var lastCat = '';
 			groups.forEach( function ( g, gi ) {
 				if ( sq ) {
@@ -5030,7 +5175,7 @@
 				if ( onlySet ) { open = true; }
 				var closed = open ? '' : ' closed';
 				var cat = STYLE_CATS[ g.group ];
-				if ( 'all' === tab && ! onlySet && cat && cat !== lastCat ) { body += '<div class="vb-cat">' + T( cat ) + '</div>'; }
+				// One flat list (Oxygen's Advanced): the group names say enough.
 				lastCat = cat;
 				body += '<div class="vb-block' + closed + '"><div class="vb-block-h" data-block="' + g.group + '"><span class="vb-block-ic">' + svg( g.icon, 16 ) + '</span><b>' + T( g.group ) + '</b>' +
 					( nSet ? '<span class="vb-block-n" title="' + nSet + ' ' + T( 'set here' ) + '">' + nSet + '</span>' +
@@ -5039,6 +5184,7 @@
 				// Spacing and Size read as paired boxes rather than a stack of
 				// single fields — padding beside margin, width/min/max on a row.
 				if ( 'Spacing' === g.group ) { body += spacingBlockHTML( node, bp, st, ac ) + '</div></div>'; return; }
+				if ( 'ess' === tab && 'Layout' === g.group && isContainer( node ) ) { body += designLayoutHTML() + '</div></div>'; return; }
 				var pick = 'ess' === tab ? essProps[ g.group ] : null;
 				if ( 'Size' === g.group && ( ! pick || pick.indexOf( '*box' ) > -1 ) && ! ( onlySet && ! groupLocalProps( node, 'Size' ).some( function ( pp ) { return SIZE_BOX_PROPS.indexOf( pp ) > -1; } ) ) ) { body += sizeBlockHTML( node, bp, st, ac ); }
 				body += g.items.filter( function ( it ) { return ! pick || pick.indexOf( it.prop ) > -1; } ).map( function ( it ) {
@@ -5048,15 +5194,17 @@
 				body += '</div></div>';
 			} );
 			if ( sq && ! body ) { body = '<div class="vb-sfilter-none">' + T( 'No property matches' ) + ' “' + escapeHtml( styleFilter ) + '”.</div>'; }
-			if ( 'ess' === tab && ! sq && ! onlySet ) {
-				body += '<button type="button" class="vb-more" data-tab="all">' + svg( 'brush', 14 ) + '<span><b>' + T( 'All styles' ) + '</b><small>' + T( 'Every style property, for this element or its class' ) + '</small></span>' + svg( 'chevron', 12 ) + '</button>';
+			if ( 'ess' === tab ) {
+				body += tagBarHTML( node );
+				body += '<button type="button" class="vb-more" data-tab="all">' + svg( 'brush', 14 ) + '<span><b>' + T( 'Advanced' ) + '</b><small>' + T( 'Every style, animations, interactions, conditions, attributes and custom CSS' ) + '</small></span>' + svg( 'chevron', 12 ) + '</button>';
 			}
-			if ( ! sq && ! onlySet ) {
-				body += '<button type="button" class="vb-more" data-tab="set">' + svg( 'bolt', 14 ) + '<span><b>' + T( 'Animations, interactions & more' ) + '</b><small>' + T( 'Scroll animations, conditions, attributes, custom CSS' ) + '</small></span>' + svg( 'chevron', 12 ) + '</button>';
+			// Advanced: after every style, the same list of behaviour for every element.
+			if ( 'all' === tab && ! sq && ! onlySet ) {
+				body += '<div class="vb-cat">' + T( 'Animation & behaviour' ) + '</div><div class="vb-setwrap vb-adv-set">' + advancedSettingsHTML( node ) + '</div>';
 			}
 			if ( onlySet && ! sq && ! body ) { body = '<div class="vb-sfilter-none">' + T( 'Nothing is set here yet at this screen size and state.' ) + '</div>'; }
 		}
-		var filterBar = 'set' === tab ? '' : '<div class="vb-sfilter"><label class="vb-sfilter-box">' + svg( 'search', 13 ) +
+		var filterBar = 'all' !== tab ? '' : '<div class="vb-sfilter"><label class="vb-sfilter-box">' + svg( 'search', 13 ) +
 			'<input id="vb-sfilter" data-sfilter="1" value="' + escapeHtml( styleFilter ) + '" placeholder="' + T( 'Find a property' ) + '" title="' + kmKey( 'findProp' ) + '" spellcheck="false" autocomplete="off">' +
 			( styleFilter ? '<button type="button" data-sfilter-x title="' + T( 'Clear' ) + '">' + svg( 'x', 12 ) + '</button>' : '' ) + '</label>' +
 			'<button type="button" class="vb-onlyset' + ( onlySet ? ' on' : '' ) + '" data-onlyset aria-pressed="' + ( onlySet ? 'true' : 'false' ) + '" title="' + T( 'Show only what is set here' ) + '">' + T( 'Set only' ) + '</button></div>';
@@ -5072,26 +5220,25 @@
 		insp.innerHTML =
 			'<div class="vb-insp-head"><span class="vb-insp-ic">' + nodeIconHTML( node, 16 ) + '</span><div class="vb-insp-tx"><b>' + escapeHtml( node.name || elLabel( node ) ) + '</b><small>' + escapeHtml( node.name ? elLabel( node ) + ' · ' : '' ) +
 				( tagChoices( node ) ? '<button type="button" class="vb-tagpick" data-tagpick="1" title="' + T( 'Change the HTML tag' ) + '">' + escapeHtml( '<' + node.tag + '>' ) + svg( 'chevron', 10 ) + '</button>' : escapeHtml( '<' + node.tag + '>' ) ) + '</small></div>' +
-				'<span class="vb-insp-acts"><button class="vb-ia" data-dup title="' + T( 'Duplicate' ) + '">' + svg( 'copy', 14 ) + '</button><button class="vb-ia vb-ia-del" data-del title="' + T( 'Delete' ) + '">' + svg( 'trash', 14 ) + '</button>' +
+				'<span class="vb-insp-acts">' + ( findParent( state.tree, node.id ) ? '<button class="vb-ia" data-selparent title="' + T( 'Select the parent element' ) + kmHint( 'parent' ) + '" aria-label="' + T( 'Select the parent element' ) + '">' + svg( 'parent', 14 ) + '</button>' : '' ) + '<button class="vb-ia" data-dup title="' + T( 'Duplicate' ) + '">' + svg( 'copy', 14 ) + '</button><button class="vb-ia vb-ia-del" data-del title="' + T( 'Delete' ) + '">' + svg( 'trash', 14 ) + '</button>' +
 				'<span class="vb-ia-sep"></span><button class="vb-ia vb-pinbtn' + ( pinned.insp ? ' on' : '' ) + '" data-pin="insp" aria-pressed="' + ( pinned.insp ? 'true' : 'false' ) + '" title="' + ( pinned.insp ? T( 'Unpin the element settings — they float over the canvas while something is selected' ) : T( 'Pin the element settings — they get their own column' ) ) + '">' + svg( 'pin', 14 ) + '</button><button class="vb-ia" data-insp-close title="' + T( 'Close — deselect this element (Esc)' ) + '" aria-label="' + T( 'Close' ) + '">' + svg( 'x', 15 ) + '</button></span></div>' +
 			// Classes and state are two separate concerns, so they get two cards.
 			// The old layout printed the active class twice (a big card AND a chip)
 			// and never said that editing a class hits every element using it.
-			tagBarHTML( node ) +
 			'<div id="vb-tt-slot">' + textToolbarHTML( node ) + '</div>' +
 			multiBarHTML() +
 			selectorBarHTML( node, ac, st, bp, ovCount ) +
 			'<div class="vb-tabs">' +
 				'<button class="vb-tab' + ( tab === 'ess' ? ' on' : '' ) + '" data-tab="ess">' + T( 'Essentials' ) + '</button>' +
-				'<button class="vb-tab' + ( tab === 'all' ? ' on' : '' ) + '" data-tab="all">' + T( 'All styles' ) + '</button>' +
-				'<button class="vb-tab' + ( tab === 'set' ? ' on' : '' ) + '" data-tab="set">' + T( 'Advanced' ) + '</button>' +
+				'<button class="vb-tab' + ( tab === 'all' ? ' on' : '' ) + '" data-tab="all">' + T( 'Advanced' ) + '</button>' +
+				( 'client' === ACCESS.level ? '<button class="vb-tab' + ( tab === 'set' ? ' on' : '' ) + '" data-tab="set">' + T( 'Settings' ) + '</button>' : '' ) +
 				'<span class="vb-tab-ind" aria-hidden="true"' + ( tabInd ? ' style="transform:translateX(' + tabInd.x + 'px);width:' + tabInd.w + 'px"' : '' ) + '></span>' +
 			'</div>' + filterBar +
 			( 'ess' === tab ? imgBtn : '' ) +
 			'<div class="vb-controls">' + body + '</div>';
 		insp.classList.toggle( 'is-tgt-id', ! ( ac && '#' !== ac ) );
 		insp.classList.toggle( 'is-stated', 'normal' !== st );
-		if ( 'set' === tab || 'ess' === tab ) { setsecAccordions( insp ); }
+		setsecAccordions( insp );
 		restoreFocus( keepFocus );
 		// Slide the tab underline from where it was to the active tab.
 		var tOn = insp.querySelector( '.vb-tab.on' ), tInd = insp.querySelector( '.vb-tab-ind' );
@@ -5741,7 +5888,8 @@
 			var key = h.getAttribute( 'data-setsec' ) || h.textContent.trim();
 			h.setAttribute( 'data-setsec', key );
 			h.setAttribute( 'role', 'button' ); h.setAttribute( 'tabindex', '0' );
-			var open = Object.prototype.hasOwnProperty.call( setsecOpen, key ) ? !! setsecOpen[ key ] : i < 2;
+			// Advanced lists its behaviour rows closed (Oxygen); an element's own settings open the first two.
+			var open = Object.prototype.hasOwnProperty.call( setsecOpen, key ) ? !! setsecOpen[ key ] : ( sec.closest( '.vb-adv-set' ) ? false : i < 2 );
 			sec.classList.add( 'vb-acc' ); sec.classList.toggle( 'closed', ! open );
 			h.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
 			if ( ! h.querySelector( '.vb-setsec-cv' ) ) { h.insertAdjacentHTML( 'beforeend', '<span class="vb-setsec-cv">' + svg( 'chevron', 12 ) + '</span>' ); }
@@ -5755,9 +5903,10 @@
 		setsecOpen[ h.getAttribute( 'data-setsec' ) ] = open;
 		try { window.localStorage.setItem( 'velox_builder_setsec', JSON.stringify( setsecOpen ) ); } catch ( e ) {}
 	}
-	/* The inspector's tabs: Essentials = what this element is (its own settings)
-	 * plus the few styles that matter for its kind; All styles = every style;
-	 * Advanced = animations, interactions, conditions, attributes, custom CSS. */
+	/* The inspector's tabs (Oxygen's Primary | Advanced): Essentials = what this
+	 * element is (its own settings) plus the few styles that matter for its
+	 * kind, in design words; Advanced = every style, then animations,
+	 * interactions, conditions, attributes and custom CSS. */
 	function settingsTabHTML( node ) {
 		if ( 'client' === ACCESS.level ) { return clientSettingsHTML( node ); }
 		return '<div class="vb-setwrap">' + elementSettingsHTML( node ) + advancedSettingsHTML( node ) + '</div>';
@@ -7537,7 +7686,7 @@
 		}
 		if ( 'link' === x.fix || 'settings' === x.fix ) { inspTab = 'ess'; renderInspector( store.state ); return; }
 		if ( 'color' === x.fix || 'size' === x.fix ) { inspTab = 'all'; styleFilter = 'color' === x.fix ? 'color' : ( 'Button' === ( findNode( store.state.tree, x.id ) || {} ).el ? 'padding' : 'font-size' ); renderInspector( store.state ); return; }
-		if ( 'tag' === x.fix ) { setTimeout( function () { var tb = document.querySelector( '.vb-tagbar' ); if ( tb ) { tb.classList.remove( 'is-flash' ); void tb.offsetWidth; tb.classList.add( 'is-flash' ); } var tp = document.querySelector( '.vb-tagbar .vb-tagsel' ); if ( tp ) { tp.click(); } }, 80 ); }
+		if ( 'tag' === x.fix ) { inspTab = 'ess'; renderInspector( store.state ); setTimeout( function () { var tb = document.querySelector( '.vb-tagbar' ); if ( tb ) { tb.classList.remove( 'is-flash' ); void tb.offsetWidth; tb.classList.add( 'is-flash' ); } var tp = document.querySelector( '.vb-tagbar .vb-tagsel' ); if ( tp ) { tp.click(); } }, 80 ); }
 	}
 
 	/* ---------- Claude: the AI assistant panel ----------
@@ -8296,6 +8445,9 @@
 			var stbtn = e.target.closest( '[data-state]' ); if ( stbtn ) { store.commit( function ( s ) { s.state = stbtn.getAttribute( 'data-state' ); }, false ); return; }
 			// Clicking the option that is already on clears it — before, a display
 			// or alignment could never be unset again.
+			var dz = e.target.closest( '[data-dz-lay],[data-dz-h],[data-dz-v]' );
+			if ( dz ) { designLayoutClick( dz ); return; }
+			if ( e.target.closest( '[data-selparent]' ) ) { selectRelative( 'parent' ); return; }
 			var seg = e.target.closest( '[data-set][data-val]' );
 			if ( seg ) {
 				if ( seg.classList.contains( 'on' ) && seg.closest( '.vb-seg' ) ) { removeProp( seg.getAttribute( 'data-set' ) ); }
@@ -8569,6 +8721,12 @@
 			if ( e.target.id === 'vb-js-where' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].where = e.target.value; saveGlobalJs(); } return; }
 			if ( e.target.id === 'vb-js-load' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].load = e.target.value; saveGlobalJs(); } return; }
 			if ( e.target.id === 'vb-js-on' ) { if ( jsFiles[ jsActive ] ) { jsFiles[ jsActive ].on = e.target.checked ? 1 : 0; renderCSSPanel(); saveGlobalJs(); } return; }
+			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-dz-cols' ) ) {
+				var dn = parseInt( e.target.value, 10 );
+				setProps( { gridTemplateColumns:dn > 0 ? 'repeat(' + Math.min( 12, dn ) + ', minmax(0, 1fr))' : '' }, T( 'Columns' ) );
+				return;
+			}
+			if ( e.target.hasAttribute && e.target.hasAttribute( 'data-dz-wrap' ) ) { setProps( { flexWrap:e.target.checked ? 'wrap' : '' }, T( 'Wrap' ) ); return; }
 			var ssel = e.target.closest( 'select[data-setsel]' );
 			if ( ssel ) { var sp = ssel.getAttribute( 'data-setsel' ); if ( '' === e.target.value ) { removeProp( sp ); } else { setProp( sp, e.target.value ); } return; }
 			var esel = e.target.closest( 'select[data-setel]' );
@@ -11799,6 +11957,23 @@
 			'.vb-app #vb-inspector .vb-insp-head{height:auto;min-height:64px;padding:14px 10px 14px 16px;gap:12px;align-items:center}',
 			'.vb-app #vb-inspector .vb-insp-tx{gap:3px}',
 			'#vb-inspector .vb-tagbar{margin:18px 16px 14px}',
+			'.vb-dz{display:flex;flex-direction:column;gap:14px;padding:2px 0 4px}',
+			'.vb-seg .vb-ln{display:inline-block;width:18px;vertical-align:middle;border-top:2px solid currentColor}',
+			'.vb-seg .vb-ln-d{border-top-style:dashed}.vb-seg .vb-ln-p{border-top-style:dotted}',
+			'.vb-dz-f .vb-f-lbl{margin-bottom:7px}',
+			'.vb-dz-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}',
+			'.vb-dz-tiles.n4{grid-template-columns:repeat(4,minmax(0,1fr))}',
+			'.vb-dz-t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:0;padding:10px 4px 8px;border:1px solid var(--vb-line);border-radius:8px;background:var(--vb-bg0);color:var(--vb-tx2);font:500 11px/1.2 var(--vb-font);cursor:pointer;transition:border-color .15s,color .15s,background .15s}',
+			'.vb-dz-t svg{width:24px;height:18px;flex:none}',
+			'.vb-dz-t span{max-width:100%;text-align:center;line-height:1.15;hyphens:manual}',
+			'.vb-dz-t:hover{color:var(--vb-tx1);border-color:var(--vb-line2)}',
+			'.vb-dz-t.on{color:var(--vb-tx1);border-color:rgba(42,183,241,.6);background:rgba(42,183,241,.08)}',
+			'.vb-dz-t.on svg{color:#2ab7f1}',
+			'.vb-dz-t:focus-visible{outline:2px solid #2ab7f1;outline-offset:1px}',
+			'.vb-dz-tiles.n4 .vb-dz-t{padding:8px 2px 7px;font-size:10.5px}',
+			'.vb-dz-chk{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.4;color:var(--vb-tx2);cursor:pointer}',
+			'.vb-dz-chk input{margin:1px 0 0;accent-color:#2ab7f1}',
+			'#vb-inspector .vb-controls>.vb-tagbar{margin:16px 2px 4px}',
 			'.vb-aipanel{position:absolute;top:48px;right:0;bottom:0;width:var(--vb-pw-ai,380px);background:var(--vb-bg1);border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
 			'.vb-top .vb-aibtn{color:#e9a587;background:rgba(217,119,87,.12);box-shadow:inset 0 0 0 1px rgba(217,119,87,.28)}',
 			'.vb-top .vb-aibtn:hover,.vb-top .vb-aibtn.on{color:#fff;background:rgba(217,119,87,.3);box-shadow:inset 0 0 0 1px rgba(217,119,87,.5)}',

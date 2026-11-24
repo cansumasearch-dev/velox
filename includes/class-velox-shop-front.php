@@ -980,7 +980,7 @@ class Velox_Shop_Front {
 			$rows[] = array( 'k' => __( 'Article number', 'velox' ), 'v' => $p['sku'] );
 		}
 		if ( '' !== $p['weight'] && 'physical' === $p['type'] ) {
-			$rows[] = array( 'k' => __( 'Weight', 'velox' ), 'v' => $p['weight'] . ( is_numeric( str_replace( ',', '.', $p['weight'] ) ) ? ' kg' : '' ) );
+			$rows[] = array( 'k' => __( 'Product weight', 'velox' ), 'v' => $p['weight'] . ( is_numeric( str_replace( ',', '.', $p['weight'] ) ) ? ' kg' : '' ) );
 		}
 		if ( '' !== $p['gtin'] ) {
 			$rows[] = array( 'k' => 'EAN / GTIN', 'v' => $p['gtin'] );

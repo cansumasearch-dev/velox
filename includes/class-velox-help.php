@@ -24,6 +24,30 @@ class Velox_Help {
 		add_action( 'update_option_velox_settings', array( __CLASS__, 'switched' ), 10, 2 );
 		add_action( 'admin_init', array( __CLASS__, 'go_to_tour' ), 1 );
 		add_action( 'wp_ajax_velox_tour', array( __CLASS__, 'ajax' ) );
+		add_action( 'wp_ajax_velox_guide', array( __CLASS__, 'ajax_guide' ) );
+	}
+
+	/**
+	 * The complete guide (chapters → sections → blocks), from
+	 * includes/guide/{shop,builder}.php. Loaded only when Help is opened.
+	 */
+	public static function guide( $which ) {
+		$which = 'shop' === $which ? 'shop' : 'builder';
+		$file  = VELOX_PATH . 'includes/guide/' . $which . '.php';
+		if ( ! is_readable( $file ) ) {
+			return array();
+		}
+		$g = include $file;
+		return is_array( $g ) ? $g : array();
+	}
+
+	public static function ajax_guide() {
+		check_ajax_referer( 'velox_tour', 'nonce' );
+		if ( ! current_user_can( 'edit_posts' ) ) {
+			wp_send_json_error( array(), 403 );
+		}
+		$which = isset( $_POST['which'] ) ? sanitize_key( wp_unslash( $_POST['which'] ) ) : '';
+		wp_send_json_success( self::guide( $which ) );
 	}
 
 	/** Shop or builder switched on just now: a tour waits for this person. */
@@ -116,6 +140,18 @@ class Velox_Help {
 				'find'  => __( 'Search the help', 'velox' ),
 				'none'  => __( 'Nothing found. Try another word.', 'velox' ),
 				'close' => __( 'Close', 'velox' ),
+				'guide' => __( 'Guide', 'velox' ),
+				'faq'   => __( 'Questions', 'velox' ),
+				'toc'   => __( 'Contents', 'velox' ),
+				'prev'  => __( 'Previous', 'velox' ),
+				'nextc' => __( 'Next chapter', 'velox' ),
+				'where' => __( 'Where', 'velox' ),
+				'tip'   => __( 'Tip', 'velox' ),
+				'note'  => __( 'Note', 'velox' ),
+				'load'  => __( 'Loading the guide…', 'velox' ),
+				'findg' => __( 'Search the guide and the questions', 'velox' ),
+				'hits'  => __( 'Results', 'velox' ),
+				'inq'   => __( 'In the questions', 'velox' ),
 			),
 		) );
 	}
@@ -159,7 +195,7 @@ class Velox_Help {
 		if ( 'shop' === $which ) {
 			return array(
 				array( __( 'Getting started', 'velox' ), array(
-					array( __( 'What do I need before the first sale?', 'velox' ), __( 'The shop pages (Overview → Pages), at least one payment method (Settings → Payments), shipping costs (Settings → Shipping), your business details (Settings → Store) and your legal pages: terms, withdrawal policy, privacy (Settings → Pages & legal).', 'velox' ) ),
+					array( __( 'What do I need before the first sale?', 'velox' ), __( 'The shop pages (Overview → Shop pages), at least one payment method (Settings → Payments), shipping costs (Settings → Shipping), your business details (Settings → Store) and your legal pages: terms, withdrawal policy, privacy (Settings → Pages & legal).', 'velox' ) ),
 					array( __( 'How do I see the shop like a customer?', 'velox' ), __( '“View shop” at the top right opens it. Signed in as an administrator you see everything customers see; test orders work with Stripe’s test mode.', 'velox' ) ),
 				) ),
 				array( __( 'Products', 'velox' ), array(
