@@ -1725,13 +1725,14 @@ class Velox_Shop {
 		$o['invoice'] = array( 'number' => $prefix . self::next_number( self::OPT_INV, 1 ), 'date' => time() );
 	}
 
-	public static function mark_shipped( $id, $carrier = '', $tracking = '' ) {
+	public static function mark_shipped( $id, $carrier = '', $tracking = '', $url = '' ) {
 		$o = self::order( $id );
 		if ( ! $o ) {
 			return null;
 		}
 		$pickup = $o['shipping'] && 'pickup' === ( $o['shipping']['type'] ?? '' );
-		$o['fulfil'] = array( 'status' => $pickup ? 'ready' : 'shipped', 'carrier' => sanitize_text_field( $carrier ), 'tracking' => sanitize_text_field( $tracking ), 'at' => time() );
+		$url = trim( (string) $url );
+		$o['fulfil'] = array( 'status' => $pickup ? 'ready' : 'shipped', 'carrier' => sanitize_text_field( $carrier ), 'tracking' => sanitize_text_field( $tracking ), 'url' => preg_match( '#^https?://#i', $url ) ? str_replace( 'VXTRACKCODE', '{code}', esc_url_raw( str_replace( '{code}', 'VXTRACKCODE', $url ) ) ) : '', 'at' => time() );
 		self::note( $o, $pickup ? __( 'Ready for pickup.', 'velox' ) : __( 'Shipped.', 'velox' ) . ( $tracking ? ' ' . $carrier . ' ' . $tracking : '' ) );
 		self::save_order( $id, $o );
 		self::mail( 'shipped', $o );
@@ -1943,7 +1944,7 @@ class Velox_Shop {
 				$intro   = $pickup ? __( 'your order is ready and waiting for you.', 'velox' ) : __( 'good news: your order has been shipped.', 'velox' );
 				if ( $o['fulfil']['tracking'] ) {
 					$after = '<p style="margin:0 0 16px"><b>' . esc_html__( 'Tracking', 'velox' ) . ':</b> ' . esc_html( trim( $o['fulfil']['carrier'] . ' ' . $o['fulfil']['tracking'] ) ) . '</p>';
-					$link  = self::tracking_url( $o['fulfil']['carrier'], $o['fulfil']['tracking'] );
+					$link  = self::tracking_url( $o['fulfil']['carrier'], $o['fulfil']['tracking'], $o['fulfil']['url'] ?? '' );
 					if ( $link ) {
 						$after .= self::mail_button( $link, __( 'Track the parcel', 'velox' ) );
 					}
@@ -2000,26 +2001,37 @@ class Velox_Shop {
 		return array( wp_specialchars_decode( $subject, ENT_QUOTES ), $html );
 	}
 
-	public static function tracking_url( $carrier, $no ) {
+	/** Carriers offered when an order ships: name => tracking link ({code} = the tracking number). */
+	public static function carriers() {
+		return array(
+			'DHL'                => 'https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode={code}',
+			'Deutsche Post'      => 'https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode={code}',
+			'DPD'                => 'https://tracking.dpd.de/status/de_DE/parcel/{code}',
+			'Hermes'             => 'https://www.myhermes.de/empfangen/sendungsverfolgung/sendungsinformation#{code}',
+			'GLS'                => 'https://gls-group.com/DE/de/paketverfolgung?match={code}',
+			'UPS'                => 'https://www.ups.com/track?tracknum={code}',
+			'FedEx'              => 'https://www.fedex.com/fedextrack/?trknbr={code}',
+			'TNT'                => 'https://www.tnt.com/express/de_de/site/shipping-tools/tracking.html?searchType=con&cons={code}',
+			'Österreichische Post' => 'https://www.post.at/s/sendungsdetails?snr={code}',
+			'Swiss Post'         => 'https://service.post.ch/ekp-web/ui/entry/shipping/1?formattedParcelCodes={code}',
+		);
+	}
+
+	/** The tracking link for a shipment: the shop's own link if one was given, else the carrier's. */
+	public static function tracking_url( $carrier, $no, $url = '' ) {
 		$no = rawurlencode( trim( (string) $no ) );
-		$c  = strtolower( (string) $carrier );
+		if ( '' !== (string) $url ) {
+			return false !== strpos( $url, '{code}' ) ? str_replace( '{code}', $no, $url ) : $url;
+		}
 		if ( '' === $no ) {
 			return '';
 		}
-		if ( false !== strpos( $c, 'dhl' ) ) {
-			return 'https://www.dhl.de/de/privatkunden/pakete-empfangen/verfolgen.html?piececode=' . $no;
-		}
-		if ( false !== strpos( $c, 'dpd' ) ) {
-			return 'https://tracking.dpd.de/status/de_DE/parcel/' . $no;
-		}
-		if ( false !== strpos( $c, 'hermes' ) ) {
-			return 'https://www.myhermes.de/empfangen/sendungsverfolgung/sendungsinformation#' . $no;
-		}
-		if ( false !== strpos( $c, 'gls' ) ) {
-			return 'https://gls-group.com/DE/de/paketverfolgung?match=' . $no;
-		}
-		if ( false !== strpos( $c, 'ups' ) ) {
-			return 'https://www.ups.com/track?tracknum=' . $no;
+		$low = function ( $t ) { return function_exists( 'mb_strtolower' ) ? mb_strtolower( $t ) : strtolower( $t ); };
+		$c   = $low( (string) $carrier );
+		foreach ( self::carriers() as $name => $link ) {
+			if ( false !== strpos( $c, $low( $name ) ) ) {
+				return str_replace( '{code}', $no, $link );
+			}
 		}
 		return '';
 	}

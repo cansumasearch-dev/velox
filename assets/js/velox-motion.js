@@ -97,6 +97,20 @@
 					} );
 					n.parentNode.replaceChild( frag, n );
 				} else if ( 1 === n.nodeType && ! /^(BR|SVG|IMG)$/i.test( n.tagName ) ) {
+					// Gradient text (background-clip: text) paints on its own box; split
+					// into word boxes the gradient no longer reaches the words and they
+					// turn invisible. Such an element rises as one piece instead.
+					var cs = w.getComputedStyle ? w.getComputedStyle( n ) : null;
+					if ( cs && ( 'text' === cs.backgroundClip || 'text' === cs.webkitBackgroundClip ) ) {
+						var unit = d.createElement( 'span' ), box = d.createElement( 'span' );
+						unit.className = 'vx-w';
+						box.className = chars ? 'vx-c' : 'vx-wi';
+						n.parentNode.replaceChild( unit, n );
+						box.appendChild( n );
+						unit.appendChild( box );
+						out.push( box );
+						return;
+					}
 					walk( n );
 				}
 			} );

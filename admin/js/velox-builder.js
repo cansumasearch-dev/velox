@@ -1101,7 +1101,11 @@
 		for ( var i = 0; i < list.length; i++ ) {
 			var el = list[ i ];
 			el.classList.remove( 'vb-empty-box', 'vb-empty-soft' );
-			el.classList.add( el.getBoundingClientRect().height < 24 ? 'vb-empty-box' : 'vb-empty-soft' );
+			// Only a container that collapsed to nothing gets the big well. One with a
+			// size of its own (a status dot, a line, a coloured shape) is styled on
+			// purpose: it keeps that size, so the editor looks like the page.
+			var r = el.getBoundingClientRect();
+			el.classList.add( r.height < 1 || r.width < 1 ? 'vb-empty-box' : 'vb-empty-soft' );
 		}
 	}
 	/* Text effects, grid layouts, presets and similar elements get their CSS
@@ -1960,6 +1964,12 @@
 			  settings:[
 				{ k:'code', t:'textarea', l:'HTML (iframes and video work; scripts are removed)', d:'', s:'Code' }
 			  ] },
+			{ key:'codeblock', el:'Codeblock', tag:'div', label:'Code block', cls:'.code-block', rules:{},
+			  settings:[
+				{ k:'html', t:'code', lang:'HTML', l:'HTML', d:'', s:'Code' },
+				{ k:'css', t:'code', lang:'CSS', l:'CSS', d:'', s:'Code' },
+				{ k:'js', t:'code', lang:'JS', l:'JavaScript (runs on the page; `el` is this block)', d:'', s:'Code' }
+			  ] },
 			{ key:'anchortarget', el:'Anchortarget', tag:'span', label:'Anchor target', cls:'.anchor-target', rules:{ display:'block' },
 			  settings:[
 				{ k:'anOffset', t:'num', l:'Stop this far below a sticky header', d:'80', unit:'px', r:true, s:'Anchor' }
@@ -2748,7 +2758,7 @@
 		// Links and forms inside are for visitors; in the editor a click selects.
 		return '<div id="' + node.id + '" class="' + cls + ' vx-shop vb-shop-prev" data-node="' + node.id + '">' + ( html || '<div class="vb-ph-el"><span class="vb-ph-ic">' + svg( 'tag', 22 ) + '</span><span class="vb-ph-l">' + escapeHtml( T( 'Nothing to show yet — add products in Velox Shop.' ) ) + '</span></div>' ) + '</div>';
 	}
-	var WIDGET_EL = { Marquee:1, Counter:1, Countdown:1, Compare:1, Gallery:1, Rotator:1, Flipcard:1, Bars:1, Rating:1, Social:1, Map:1, Embed:1, Table:1, Timeline:1, Checklist:1, Shapedivider:1, Progresscircle:1 };
+	var WIDGET_EL = { Marquee:1, Counter:1, Countdown:1, Compare:1, Gallery:1, Rotator:1, Flipcard:1, Bars:1, Rating:1, Social:1, Map:1, Embed:1, Codeblock:1, Table:1, Timeline:1, Checklist:1, Shapedivider:1, Progresscircle:1 };
 	var SHAPES = { wave:'<path d="M0,60 C150,110 350,10 600,60 C850,110 1050,10 1200,60 L1200,120 L0,120 Z"/>', waves:'<path opacity=".35" d="M0,40 C200,100 400,0 600,50 C800,100 1000,20 1200,50 L1200,120 L0,120 Z"/><path d="M0,75 C150,110 350,35 600,75 C850,115 1050,45 1200,75 L1200,120 L0,120 Z"/>', curve:'<path d="M0,120 Q600,-40 1200,120 Z"/>', tilt:'<path d="M0,120 L1200,20 L1200,120 Z"/>', peak:'<path d="M0,120 L600,20 L1200,120 Z"/>', zigzag:'<path d="M0,120 L0,100 L40,60 L80,100 L120,60 L160,100 L200,60 L240,100 L280,60 L320,100 L360,60 L400,100 L440,60 L480,100 L520,60 L560,100 L600,60 L640,100 L680,60 L720,100 L760,60 L800,100 L840,60 L880,100 L920,60 L960,100 L1000,60 L1040,100 L1080,60 L1120,100 L1160,60 L1200,100 L1200,120 Z"/>' };
 	function wset( node, k, d ) { var st = node.settings || {}; if ( ! Object.prototype.hasOwnProperty.call( st, k ) ) { return undefined === d ? '' : d; } return '0' === String( st[ k ] ) ? '' : st[ k ]; }
 	function wsvg( name ) { var pth = ( CFG.wIcons || {} )[ name ]; return pth ? '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false">' + pth + '</svg>' : ''; }
@@ -2756,6 +2766,18 @@
 		var ds = ',' === sep ? '.' : ',', neg = n < 0, f = Math.abs( n ).toFixed( Math.max( 0, Math.min( 3, dec ) ) ).split( '.' );
 		return ( neg ? '-' : '' ) + f[ 0 ].replace( /\B(?=(\d{3})+(?!\d))/g, sep ) + ( f[ 1 ] ? ds + f[ 1 ] : '' );
 	}
+	/* Code fields: Tab indents (two spaces) instead of leaving the field; Esc leaves it. */
+	document.addEventListener( 'keydown', function ( e ) {
+		var t = e.target;
+		if ( ! t || ! t.classList || ! t.classList.contains( 'vb-code-ed' ) || t.readOnly ) { return; }
+		if ( 'Escape' === e.key ) { t.blur(); return; }
+		if ( 'Tab' !== e.key || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey ) { return; }
+		e.preventDefault();
+		var a = t.selectionStart, b = t.selectionEnd;
+		t.value = t.value.slice( 0, a ) + '  ' + t.value.slice( b );
+		t.selectionStart = t.selectionEnd = a + 2;
+		t.dispatchEvent( new Event( 'input', { bubbles:true } ) );
+	}, true );
 	function wclean( html ) {
 		// The canvas never runs a pasted script or inline handler.
 		return String( html || '' ).replace( /<script[\s\S]*?<\/script>/gi, '' ).replace( /\son\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, '' ).replace( /javascript:/gi, '' );
@@ -2879,6 +2901,12 @@
 				var code = String( wset( node, 'code', '' ) );
 				if ( ! code.trim() ) { return ph( T( 'HTML embed — paste the code in Settings.' ), 'code' ); }
 				return open( 'vx-embed', ' style="position:relative"' ) + wclean( code ) + '<span class="vb-cover"></span></div>';
+			case 'Codeblock':
+				var ch = String( wset( node, 'html', '' ) ), cc = String( wset( node, 'css', '' ) ), cj = String( wset( node, 'js', '' ) );
+				if ( ! ( ch + cc + cj ).trim() ) { return ph( T( 'Code block — write HTML, CSS and JavaScript in Settings.' ), 'code' ); }
+				// The editor shows the markup and its styles; scripts only run on the page.
+				return open( 'vx-code', ' style="position:relative"' ) + wclean( ch ) + ( cc.trim() ? '<style>' + cc.replace( /<\/style/gi, '' ) + '</style>' : '' ) +
+					( cj.trim() ? '<span class="vb-code-js" title="' + E( T( 'JavaScript runs on the page, not in the editor' ) ) + '" style="position:absolute;top:6px;right:6px;z-index:3;padding:2px 6px;border-radius:5px;background:#f5a742;color:#3a2a05;font:700 10px/1.4 -apple-system,sans-serif">JS</span>' : '' ) + '<span class="vb-cover"></span></div>';
 			case 'Table':
 				var rows = String( wset( node, 'data', '' ) ).split( /\r\n|\r|\n/ ).filter( function ( l ) { return l.trim(); } ).map( function ( l ) { return l.split( '|' ).map( function ( x ) { return x.trim(); } ); } );
 				if ( ! rows.length ) { return ph( T( 'Table — type the rows in Settings.' ), 'grid' ); }
@@ -3047,7 +3075,7 @@
 	var NO_INLINE = { Shopgrid:1, Shopbuy:1, Shopproduct:1, Shopcart:1, Shopcheckout:1, Shopaccount:1, Shopwithdraw:1, Shopcartbtn:1, Shopaccountbtn:1, Reusable:1, Reviews:1, WP:1, Form:1, Navbar:1, Anchornav:1, Breadcrumbs:1, Fab:1, Backtotop:1,
 		Announcebar:1, Stickybar:1, Progressbar:1, Slider:1, Tabs:1, Accordion:1, Faq:1, InnerContent:1,
 		Video:1, Icon:1, Image:1, Readingtime:1, Lastupdated:1, Skeleton:1, Anchortarget:1,
-		Marquee:1, Counter:1, Countdown:1, Compare:1, Gallery:1, Rotator:1, Flipcard:1, Bars:1, Rating:1, Social:1, Map:1, Embed:1, Table:1, Timeline:1, Checklist:1, Shapedivider:1, Progresscircle:1 };
+		Marquee:1, Counter:1, Countdown:1, Compare:1, Gallery:1, Rotator:1, Flipcard:1, Bars:1, Rating:1, Social:1, Map:1, Embed:1, Codeblock:1, Table:1, Timeline:1, Checklist:1, Shapedivider:1, Progresscircle:1 };
 	function canInlineEdit( n ) { return !! n && ! NO_INLINE[ n.el ] && ! isContainer( n ); }
 	/* YouTube / Vimeo link → embed URL (same rules as the renderer). */
 	function videoEmbed( url ) {
@@ -3823,15 +3851,15 @@
 	// Pinning is per side: the left stack and the right stack are different
 	// working areas and one pin for both meant you could never have one docked
 	// and the other floating.
-	var pinned = { left:false, right:false }, leftCollapsed = false, lastRightPanel = 'struct';
+	var pinned = { left:false, right:false, insp:true }, leftCollapsed = false, lastRightPanel = 'struct';
 	function loadUiPrefs() {
 		try {
 			var raw = window.localStorage.getItem( 'velox_builder_ui' );
 			if ( ! raw ) { return; }
 			var p = JSON.parse( raw );
 			// Older builds stored one boolean for both sides.
-			if ( p.pinned && 'object' === typeof p.pinned ) { pinned = { left: !! p.pinned.left, right: !! p.pinned.right }; }
-			else { pinned = { left: !! p.pinned, right: !! p.pinned }; }
+			if ( p.pinned && 'object' === typeof p.pinned ) { pinned = { left: !! p.pinned.left, right: !! p.pinned.right, insp: false !== p.pinned.insp }; }
+			else { pinned = { left: !! p.pinned, right: !! p.pinned, insp:true }; }
 			leftCollapsed = !! p.lcol;
 			if ( p.lastRight ) { lastRightPanel = p.lastRight; }
 		} catch ( e ) {}
@@ -3885,14 +3913,21 @@
 		// through the dimming. Dimming is not hiding: take the column out entirely
 		// while a panel floats over it, and give it back when the panel is pinned
 		// (pinned means it has its own space and nothing is covered).
-		app.classList.toggle( 'vb-hide-insp', floatLeft );
+		// An unpinned Add panel floats next to the inspector, over the canvas: it
+		// never hides the settings of the selected element (that read as if the
+		// pin had unpinned the element).
+		app.classList.toggle( 'vb-hide-insp', false );
+		// The inspector has its own pin: pinned it keeps its column, unpinned it
+		// floats over the canvas and only shows while something is selected.
+		app.classList.toggle( 'vb-insp-float', ! pinned.insp );
 		clearTimeout( applyDock._t ); applyDock._t = setTimeout( function () { resizeCanvas(); }, 190 );
 		var pins = document.querySelectorAll( '.vb-pinbtn' );
 		for ( var i = 0; i < pins.length; i++ ) {
 			var side = pins[ i ].getAttribute( 'data-pin' ) || 'right';
 			var on = !! pinned[ side ];
 			pins[ i ].classList.toggle( 'on', on );
-			pins[ i ].setAttribute( 'title', on ? T( 'Unpin — let this panel overlay the canvas' ) : T( 'Pin — this panel pushes the canvas instead of covering it' ) );
+			pins[ i ].setAttribute( 'title', 'insp' === side ? ( on ? T( 'Unpin the element settings — they float over the canvas while something is selected' ) : T( 'Pin the element settings — they get their own column' ) ) : ( on ? T( 'Unpin — let this panel overlay the canvas' ) : T( 'Pin — this panel pushes the canvas instead of covering it' ) ) );
+			pins[ i ].setAttribute( 'aria-pressed', on ? 'true' : 'false' );
 		}
 	}
 	function togglePin( side ) { pinned[ side ] = ! pinned[ side ]; saveUiPrefs(); applyDock(); }
@@ -4289,7 +4324,7 @@
 		var raw = inh || null == res.value ? '' : String( res.value );
 		var shown = /^-?\d+(\.\d+)?px$/.test( raw ) ? raw.slice( 0, -2 ) : raw;
 		var ph = inh && null != res.value && '' !== res.value ? String( res.value ).replace( /^(-?\d+(\.\d+)?)px$/, '$1' ) : boxNow( node, prop, res, '0' );
-		return '<span class="vb-bm-i' + srcCls( dot ) + '"><input data-setnum="' + prop + '"' + ( linkKey ? ' data-link="' + linkKey + '"' : '' ) +
+		return '<span class="vb-bmv' + srcCls( dot ) + '"><input data-setnum="' + prop + '"' + ( linkKey ? ' data-link="' + linkKey + '"' : '' ) +
 			' value="' + escapeHtml( shown ) + '" placeholder="' + escapeHtml( ph ) + '" title="' + escapeHtml( label + ( 'none' !== dot.cls ? ' · ' + dot.tip : '' ) ) + '" spellcheck="false" autocomplete="off" aria-label="' + escapeHtml( label ) + '"></span>';
 	}
 	function spacingBlockHTML( node, bp, st, ac ) {
@@ -4706,7 +4741,7 @@
 			'<div class="vb-insp-head"><span class="vb-insp-ic">' + nodeIconHTML( node, 16 ) + '</span><div class="vb-insp-tx"><b>' + escapeHtml( node.name || elLabel( node ) ) + '</b><small>' + escapeHtml( node.name ? elLabel( node ) + ' · ' : '' ) +
 				( tagChoices( node ) ? '<button type="button" class="vb-tagpick" data-tagpick="1" title="' + T( 'Change the HTML tag' ) + '">' + escapeHtml( '<' + node.tag + '>' ) + svg( 'chevron', 10 ) + '</button>' : escapeHtml( '<' + node.tag + '>' ) ) + '</small></div>' +
 				'<span class="vb-insp-acts"><button class="vb-ia" data-dup title="' + T( 'Duplicate' ) + '">' + svg( 'copy', 14 ) + '</button><button class="vb-ia vb-ia-del" data-del title="' + T( 'Delete' ) + '">' + svg( 'trash', 14 ) + '</button>' +
-				'<span class="vb-ia-sep"></span><button class="vb-ia" data-insp-close title="' + T( 'Close — deselect this element (Esc)' ) + '" aria-label="' + T( 'Close' ) + '">' + svg( 'x', 15 ) + '</button></span></div>' +
+				'<span class="vb-ia-sep"></span><button class="vb-ia vb-pinbtn' + ( pinned.insp ? ' on' : '' ) + '" data-pin="insp" aria-pressed="' + ( pinned.insp ? 'true' : 'false' ) + '" title="' + ( pinned.insp ? T( 'Unpin the element settings — they float over the canvas while something is selected' ) : T( 'Pin the element settings — they get their own column' ) ) + '">' + svg( 'pin', 14 ) + '</button><button class="vb-ia" data-insp-close title="' + T( 'Close — deselect this element (Esc)' ) + '" aria-label="' + T( 'Close' ) + '">' + svg( 'x', 15 ) + '</button></span></div>' +
 			// Classes and state are two separate concerns, so they get two cards.
 			// The old layout printed the active class twice (a big card AND a chip)
 			// and never said that editing a class hits every element using it.
@@ -5239,6 +5274,10 @@
 				( /^#[0-9a-f]{6}$/i.test( v ) ? v : '#000000' ) + '"><input class="vb-inp" ' + id + ' value="' + escapeHtml( v ) + '" placeholder="' + T( 'inherit' ) + '"></div>';
 		} else if ( 'textarea' === c.t ) {
 			body = '<textarea class="vb-css-code vb-page-code" ' + id + ' spellcheck="false">' + escapeHtml( v ) + '</textarea>';
+		} else if ( 'code' === c.t ) {
+			// Code that runs as written: only for people WordPress lets post unfiltered HTML.
+			body = '<div class="vb-code-wrap"><span class="vb-code-lang">' + escapeHtml( c.lang || '' ) + '</span><textarea class="vb-css-code vb-page-code vb-code-ed" ' + id + ' spellcheck="false" autocomplete="off"' + ( CFG.mayCode ? '' : ' readonly' ) + '>' + escapeHtml( v ) + '</textarea></div>' +
+				( CFG.mayCode ? '' : '<p class="vb-code-note">' + T( 'Only administrators can change code that runs on the page.' ) + '</p>' );
 		} else if ( 'media' === c.t ) {
 			// An image from the media library (or a typed link) — not a URL you
 			// have to go and copy from somewhere else.
@@ -11204,17 +11243,19 @@
 			'#vb-inspector .vb-bm-t{grid-area:t}#vb-inspector .vb-bm-l{grid-area:l}#vb-inspector .vb-bm-r{grid-area:r}#vb-inspector .vb-bm-b{grid-area:b}#vb-inspector .vb-bm-c{grid-area:c;width:100%;padding:2px 0}',
 			'#vb-inspector .vb-bm-cap{position:absolute;top:8px;left:10px;right:7px;display:flex;align-items:center;justify-content:space-between;pointer-events:none;font:600 9.5px/1 var(--vbb-font,"Velox Geist"),sans-serif;letter-spacing:.08em;text-transform:uppercase;color:var(--vb-tx3)}',
 			'#vb-inspector .vb-bm-p>.vb-bm-cap{top:6px;left:8px;right:5px}',
+			// The label gets a row of its own: long names (German: Außenabstand) ran into the top value.
+			'#vb-inspector .vb-bm-m{padding-top:24px}#vb-inspector .vb-bm-p{padding-top:20px}#vb-inspector .vb-bm-cap{top:7px}#vb-inspector .vb-bm-p>.vb-bm-cap{top:5px}',
 			'#vb-inspector .vb-bm-link{pointer-events:auto;display:grid;place-items:center;width:20px;height:20px;margin:-4px 0 0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);cursor:pointer;transition:background .12s,color .12s}',
 			'#vb-inspector .vb-bm-link:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
 			'#vb-inspector .vb-bm-link.on{background:rgba(var(--tgt-rgb),.16);color:var(--tgt-tx)}',
 			'#vb-inspector .vb-bm-core{display:block;height:24px;margin:0 4px;border-radius:5px;background:repeating-linear-gradient(135deg,rgba(255,255,255,.035) 0 4px,transparent 4px 8px);box-shadow:inset 0 0 0 1px var(--vb-line)}',
-			'#vb-inspector .vb-bm-i{display:block}',
-			'#vb-inspector .vb-bm-i input{box-sizing:border-box;display:block;width:46px;height:26px;margin:0;padding:0 2px;border:0;border-radius:6px;background:transparent;box-shadow:none;color:var(--vb-tx1);font:500 12px/26px "Velox Geist Mono",ui-monospace,Menlo,monospace;text-align:center;outline:none;transition:background .12s,box-shadow .12s}',
-			'#vb-inspector .vb-bm-i input::placeholder{color:var(--vb-tx3);font-weight:400;opacity:1}',
-			'#vb-inspector .vb-bm-i input:hover{background:rgba(255,255,255,.05)}',
-			'#vb-inspector .vb-bm-i input:focus{background:var(--vb-bg1);box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
-			'#vb-inspector .vb-bm-i.is-set input{color:#fff;box-shadow:inset 0 -2px 0 var(--src)}',
-			'#vb-inspector .vb-bm-i.is-set input:focus{box-shadow:inset 0 -2px 0 var(--src),inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
+			'#vb-inspector .vb-bmv{display:block}',
+			'#vb-inspector .vb-bmv input{box-sizing:border-box;display:block;width:46px;height:26px;margin:0;padding:0 2px;border:0;border-radius:6px;background:transparent;box-shadow:none;color:var(--vb-tx1);font:500 12px/26px "Velox Geist Mono",ui-monospace,Menlo,monospace;text-align:center;outline:none;transition:background .12s,box-shadow .12s}',
+			'#vb-inspector .vb-bmv input::placeholder{color:var(--vb-tx3);font-weight:400;opacity:1}',
+			'#vb-inspector .vb-bmv input:hover{background:rgba(255,255,255,.05)}',
+			'#vb-inspector .vb-bmv input:focus{background:var(--vb-bg1);box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
+			'#vb-inspector .vb-bmv.is-set input{color:#fff;box-shadow:inset 0 -2px 0 var(--src)}',
+			'#vb-inspector .vb-bmv.is-set input:focus{box-shadow:inset 0 -2px 0 var(--src),inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
 			'#vb-inspector .vb-bm-m.is-linked{box-shadow:inset 0 0 0 1px rgba(var(--tgt-rgb),.35)}#vb-inspector .vb-bm-p.is-linked{box-shadow:inset 0 0 0 1px rgba(var(--tgt-rgb),.45)}',
 			'#vb-inspector .vb-bx-lab{display:block;margin:12px 0 6px;font-size:12px;font-weight:450;color:var(--vb-tx2)}',
 			'#vb-inspector .vb-block-b>.vb-bx-lab:first-child{margin-top:2px}',
@@ -11277,6 +11318,20 @@
 			'/* ===== 4.45 one look for every panel ===== */',
 			'.vb-csspanel{width:var(--vb-pw-css,380px)}.vb-histpanel{width:var(--vb-pw-hist,320px)}.vb-structpanel{width:var(--vb-pw-struct,300px)}.vb-setpanel{width:var(--vb-pw-settings,340px)}',
 			'body.velox-builder-body #vxth{right:calc(var(--vb-cur-rw,0px) + 16px)}',
+			'.vb-code-wrap{position:relative}',
+			'.vb-code-lang{position:absolute;top:6px;right:8px;z-index:1;padding:1px 6px;border-radius:5px;background:var(--vb-bg3);color:var(--vb-tx3);font:600 10px/1.5 var(--vbb-mono,ui-monospace,monospace);pointer-events:none}',
+			'.vb-code-ed{min-height:140px;tab-size:2;white-space:pre;overflow:auto}',
+			'.vb-code-ed[readonly]{opacity:.6;cursor:not-allowed}',
+			'.vb-code-note{margin:6px 0 0;font-size:11.5px;color:var(--vb-tx3)}',
+			'.vb-app:not(.vb-pin-left):not(.vb-lcol):not(.vb-noinsp) .vb-addmenu{left:var(--vb-iw)}',
+			'.vb-app.vb-insp-float.vb-nosel:not(.vb-pin-left) .vb-addmenu{left:0}',
+			'.vb-app.vb-insp-float .vb-body{grid-template-columns:0 minmax(0,1fr)}',
+			'.vb-app.vb-insp-float .vb-inspector{position:absolute;top:48px;bottom:0;left:var(--vb-lw,0);width:var(--vb-iw);z-index:118;box-shadow:8px 0 40px rgba(0,0,0,.45);border-right:1px solid rgba(255,255,255,.12)}',
+			'.vb-app.vb-insp-float.vb-nosel .vb-inspector,.vb-app.vb-insp-float .vb-iresize{display:none}',
+			'.vb-app.vb-insp-float:not(.vb-nosel):not(.vb-pin-left) .vb-addmenu{left:var(--vb-iw)}',
+			'#vb-inspector .vb-ia.vb-pinbtn.on{background:rgba(42,183,241,.14);color:#8fdcfb}',
+			'.vb-app #vb-inspector .vb-insp-head{padding:0 10px 0 16px}',
+			'#vb-inspector .vb-tagbar{margin:14px 16px 12px}',
 			'.vb-aipanel{position:absolute;top:48px;right:0;bottom:0;width:var(--vb-pw-ai,380px);background:var(--vb-bg1);border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
 			'.vb-top .vb-aibtn{color:#e9a587;background:rgba(217,119,87,.12);box-shadow:inset 0 0 0 1px rgba(217,119,87,.28)}',
 			'.vb-top .vb-aibtn:hover,.vb-top .vb-aibtn.on{color:#fff;background:rgba(217,119,87,.3);box-shadow:inset 0 0 0 1px rgba(217,119,87,.5)}',

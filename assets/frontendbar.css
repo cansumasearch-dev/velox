@@ -81,7 +81,7 @@
 	transition: background .12s ease;
 }
 .velox-fb-row:hover { background: #f3f4f6; }
-.velox-fb-row .velox-fb-ico { width: 18px; height: 18px; flex: 0 0 18px; color: #6b7280; }
+.velox-fb-row .velox-fb-ico { width: 18px; height: 18px; flex: 0 0 18px; margin: 0; color: #6b7280; }
 .velox-fb-row .velox-fb-label { flex: 1 1 auto; }
 
 /* Toggle rows show an on/off pill */

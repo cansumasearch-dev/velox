@@ -74,7 +74,7 @@ class Velox_Shop_Admin {
 			self::CAP,
 			self::SLUG,
 			array( __CLASS__, 'render' ),
-			'data:image/svg+xml;base64,' . base64_encode( '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#a7aaad" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/></svg>' ),
+			'data:image/svg+xml;base64,' . base64_encode( '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="#a7aaad" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6.5 3.5h11l2 4v11.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4.5 19V7.5z"/><path d="M4.5 7.5h15"/><path d="M15.5 11a3.5 3.5 0 0 1-7 0"/></svg>' ),
 			100.9
 		);
 		// The same sections, in the same order, as the shop's own bar.
@@ -148,6 +148,7 @@ class Velox_Shop_Admin {
 			'cartStats'    => Velox_Shop_Extras::cart_stats(),
 			'couponCodes'  => array_values( array_filter( array_map( function ( $c ) { return empty( $c['off'] ) ? (string) $c['code'] : ''; }, Velox_Shop::coupons() ) ) ),
 			'reviewsOpen'  => Velox_Shop_Extras::pending_reviews(),
+			'carriers'     => array_keys( Velox_Shop::carriers() ),
 			'fonts'     => array_map( function ( $f ) { return array( $f[0], $f[1] ); }, Velox_Shop::fonts() ),
 			'mails'     => $mails,
 			'pages'     => $pages,
@@ -212,6 +213,55 @@ class Velox_Shop_Admin {
 	}
 
 	/* ---- overview */
+
+	/**
+	 * The pages the shop uses and whether each exists. The shop's own pages can be
+	 * created with one click; legal pages hold the owner's own texts, so they are
+	 * chosen in Settings instead of being created empty.
+	 */
+	/** Edit a page where it is built: Velox Builder if it has a design there, else WordPress. */
+	private static function page_edit_url( $id ) {
+		if ( class_exists( 'Velox_Builder' ) && Velox_Builder::is_enabled() ) {
+			$doc = (int) Velox_Builder::doc_id_for_post( $id );
+			if ( $doc ) {
+				return Velox_Builder::edit_url( $doc );
+			}
+		}
+		return (string) get_edit_post_link( $id, 'raw' );
+	}
+
+	private static function pages_status() {
+		$list = array(
+			'shop'       => array( __( 'Shop', 'velox' ), 1 ),
+			'cart'       => array( __( 'Cart', 'velox' ), 1 ),
+			'checkout'   => array( __( 'Checkout', 'velox' ), 1 ),
+			'account'    => array( __( 'My account', 'velox' ), 1 ),
+			'withdraw'   => array( __( 'Withdraw from a purchase', 'velox' ), 1 ),
+			'terms'      => array( __( 'Terms and conditions', 'velox' ), 0 ),
+			'withdrawal' => array( __( 'Withdrawal policy', 'velox' ), 0 ),
+			'privacy'    => array( __( 'Privacy policy', 'velox' ), 0 ),
+			'shipping'   => array( __( 'Shipping and payment', 'velox' ), 0 ),
+		);
+		$out = array();
+		foreach ( $list as $k => $l ) {
+			$id = (int) Velox_Shop::get( 'page_' . $k );
+			if ( ! $id && 'privacy' === $k ) {
+				$id = (int) get_option( 'wp_page_for_privacy_policy' );
+			}
+			$st    = $id ? get_post_status( $id ) : '';
+			$out[] = array(
+				'key'    => $k,
+				'label'  => $l[0],
+				'create' => (bool) $l[1],
+				'ok'     => 'publish' === $st,
+				'state'  => $st ? $st : 'missing',
+				'title'  => $id && $st ? get_the_title( $id ) : '',
+				'url'    => $id && 'publish' === $st ? get_permalink( $id ) : '',
+				'edit'   => $id && $st ? self::page_edit_url( $id ) : '',
+			);
+		}
+		return $out;
+	}
 
 	private static function do_stats( $in ) {
 		$days = 30;
@@ -278,6 +328,7 @@ class Velox_Shop_Admin {
 			'recent'  => array_values( array_filter( $recent ) ),
 			'products'=> (int) ( wp_count_posts( Velox_Shop::PRODUCT )->publish ?? 0 ),
 			'checks'  => self::health(),
+			'pages'   => self::pages_status(),
 		);
 	}
 
@@ -695,7 +746,7 @@ class Velox_Shop_Admin {
 				$msg = __( 'Marked as paid. The customer has been told.', 'velox' );
 				break;
 			case 'ship':
-				Velox_Shop::mark_shipped( $id, (string) ( $in['carrier'] ?? '' ), (string) ( $in['tracking'] ?? '' ) );
+				Velox_Shop::mark_shipped( $id, (string) ( $in['carrier'] ?? '' ), (string) ( $in['tracking'] ?? '' ), (string) ( $in['url'] ?? '' ) );
 				$msg = __( 'Marked as shipped. The customer has been told.', 'velox' );
 				break;
 			case 'delivered':

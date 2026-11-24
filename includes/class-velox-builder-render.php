@@ -998,7 +998,7 @@ class Velox_Builder_Render {
 	 * widgets_css(), and per-instance values become CSS variables on #id, so a
 	 * class can still restyle every one of them. */
 	private static $WIDGETS = array( 'Marquee' => 1, 'Counter' => 1, 'Countdown' => 1, 'Compare' => 1, 'Gallery' => 1, 'Rotator' => 1,
-		'Flipcard' => 1, 'Bars' => 1, 'Rating' => 1, 'Social' => 1, 'Map' => 1, 'Embed' => 1, 'Table' => 1, 'Timeline' => 1, 'Checklist' => 1,
+		'Flipcard' => 1, 'Bars' => 1, 'Rating' => 1, 'Social' => 1, 'Map' => 1, 'Embed' => 1, 'Codeblock' => 1, 'Table' => 1, 'Timeline' => 1, 'Checklist' => 1,
 		'Shapedivider' => 1, 'Progresscircle' => 1 );
 	/** The shape divider's outlines (viewBox 0 0 1200 120, filled at the bottom). */
 	private static $SHAPES = array( 'wave' => '<path d="M0,60 C150,110 350,10 600,60 C850,110 1050,10 1200,60 L1200,120 L0,120 Z"/>', 'waves' => '<path opacity=".35" d="M0,40 C200,100 400,0 600,50 C800,100 1000,20 1200,50 L1200,120 L0,120 Z"/><path d="M0,75 C150,110 350,35 600,75 C850,115 1050,45 1200,75 L1200,120 L0,120 Z"/>', 'curve' => '<path d="M0,120 Q600,-40 1200,120 Z"/>', 'tilt' => '<path d="M0,120 L1200,20 L1200,120 Z"/>', 'peak' => '<path d="M0,120 L600,20 L1200,120 Z"/>', 'zigzag' => '<path d="M0,120 L0,100 L40,60 L80,100 L120,60 L160,100 L200,60 L240,100 L280,60 L320,100 L360,60 L400,100 L440,60 L480,100 L520,60 L560,100 L600,60 L640,100 L680,60 L720,100 L760,60 L800,100 L840,60 L880,100 L920,60 L960,100 L1000,60 L1040,100 L1080,60 L1120,100 L1160,60 L1200,100 L1200,120 Z"/>' );
@@ -1017,6 +1017,15 @@ class Velox_Builder_Render {
 		$i = self::widget_icons();
 		return isset( $i[ $name ] ) ? '<svg viewBox="0 0 16 16" aria-hidden="true" focusable="false"' . $extra . '>' . $i[ $name ] . '</svg>' : '';
 	}
+	/** The signature of a code block's code (made when a trusted person saves it). */
+	public static function code_sig( $html, $css, $js ) {
+		return hash_hmac( 'sha256', $html . "\0" . $css . "\0" . $js, wp_salt( 'auth' ) . '|velox-code' );
+	}
+
+	public static function code_signed( $html, $css, $js, $sig ) {
+		return '' !== $sig && hash_equals( self::code_sig( $html, $css, $js ), $sig );
+	}
+
 	/** Add a class to an attribute string that may already carry one. */
 	private static function wcls( $attr, $add ) {
 		$out = preg_replace( '/ class="/', ' class="' . $add . ' ', $attr, 1, $hit );
@@ -1318,6 +1327,30 @@ class Velox_Builder_Render {
 					$allowed[ $t ] = array( 'src' => true, 'controls' => true, 'autoplay' => true, 'muted' => true, 'loop' => true, 'playsinline' => true, 'poster' => true, 'type' => true, 'width' => true, 'height' => true, 'class' => true, 'style' => true );
 				}
 				return '<div' . self::wcls( $attr, 'vx-embed' ) . '>' . wp_kses( $code, $allowed ) . '</div>';
+
+			case 'Codeblock':
+				// HTML, CSS and JavaScript exactly as written, but only when someone
+				// allowed to post unfiltered code saved this very code (the signature
+				// is made on save with the site's secret). Anything else is shown as
+				// filtered HTML without styles or scripts.
+				$html = (string) $s( 'html', '' );
+				$css  = (string) $s( 'css', '' );
+				$js   = (string) $s( 'js', '' );
+				if ( '' === trim( $html . $css . $js ) ) {
+					return '';
+				}
+				if ( ! self::code_signed( $html, $css, $js, (string) $s( 'sig', '' ) ) ) {
+					return '<div' . self::wcls( $attr, 'vx-code' ) . '>' . wp_kses_post( $html ) . '</div>';
+				}
+				$out = '<div' . self::wcls( $attr, 'vx-code' ) . '>' . $html;
+				if ( '' !== trim( $css ) ) {
+					$out .= '<style>' . str_ireplace( '</style', '<\/style', $css ) . '</style>';
+				}
+				if ( '' !== trim( $js ) ) {
+					// `el` is this block, so scripts can find their own markup.
+					$out .= '<script>(function(el){' . "\n" . str_ireplace( '</script', '<\/script', $js ) . "\n" . '}(document.currentScript.parentNode));</script>';
+				}
+				return $out . '</div>';
 
 			case 'Table':
 				$rows = array();
@@ -2580,7 +2613,10 @@ class Velox_Builder_Render {
 
 	/** Base CSS for the Video and Icon elements (also used by the canvas). */
 	public static function media_element_css() {
-		return '.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}'
+		// Some themes and builders give every svg a margin (Oxygen: svg{margin-right:10px}),
+		// which pushed Velox's icons off centre. Its own icons start from zero.
+		return ':is([class*="vx-"]) svg{margin:0}'
+			. '.vx-video{position:relative;width:100%;aspect-ratio:16/9;background:#0b0f14;overflow:hidden}'
 			. '.vx-video iframe,.vx-video video{position:absolute;inset:0;width:100%;height:100%;border:0;display:block;object-fit:cover}'
 			. '.vx-icon{display:inline-flex;align-items:center;justify-content:center;line-height:0}'
 			. '.vx-icon svg{width:var(--vx-icon-size,32px);height:var(--vx-icon-size,32px)}';
@@ -2971,7 +3007,8 @@ class Velox_Builder_Render {
 	// Element defaults (.vx-fab, .vx-bar, .vx-video …) go BEFORE the class
 	// stylesheet: printed after it, they beat the user's own class styling
 	// (same specificity, later wins) — the editor showed it, the page did not.
-	$base_css = self::element_base_css( 'base' ) . ( self::$media_used ? self::media_element_css() : '' );
+	// Velox's icons start without the margin some themes give every svg (Oxygen: svg{margin-right:10px}).
+	$base_css = ':is([class*="vx-"]) svg{margin:0}' . self::element_base_css( 'base' ) . ( self::$media_used ? self::media_element_css() : '' );
 	if ( '' !== $base_css ) {
 		echo '<style id="velox-element-base">' . $base_css . '</style>' . "\n"; // phpcs:ignore
 	}

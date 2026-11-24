@@ -949,7 +949,7 @@ class Velox_Shop_Account {
 	private static function icon( $name, $size = 18 ) {
 		$p = array(
 			'home'   => '<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
-			'bag'    => '<path d="M6 7h12l-1 12.2a1 1 0 0 1-1 .8H8a1 1 0 0 1-1-.8z"/><path d="M9 7V6a3 3 0 0 1 6 0v1"/>',
+			'bag'    => '<path d="M6.5 3.5h11l2 4v11.5a1.5 1.5 0 0 1-1.5 1.5h-12A1.5 1.5 0 0 1 4.5 19V7.5z"/><path d="M4.5 7.5h15"/><path d="M15.5 11a3.5 3.5 0 0 1-7 0"/>',
 			'down'   => '<path d="M12 3v12m0 0-4.5-4.5M12 15l4.5-4.5M4 19h16"/>',
 			'pin'    => '<path d="M12 21s-7-6.3-7-11.5a7 7 0 0 1 14 0C19 14.7 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
 			'user'   => '<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
@@ -1164,7 +1164,9 @@ class Velox_Shop_Account {
 		}
 		$out = '<ol class="vxa-steps">';
 		foreach ( $steps as $st ) {
-			$out .= '<li class="' . ( $st[1] ? 'is-done' : '' ) . '"><i>' . ( $st[1] ? self::icon( 'check', 13 ) : '' ) . '</i><span>' . esc_html( $st[0] ) . '</span></li>';
+			// A bold check, drawn for the small circle (the line icons are too thin there).
+			$tick = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><path d="m5.5 12.5 4 4L18.5 7.5"/></svg>';
+			$out .= '<li class="' . ( $st[1] ? 'is-done' : '' ) . '"><i>' . ( $st[1] ? $tick : '' ) . '</i><span>' . esc_html( $st[0] ) . '</span></li>';
 		}
 		return $out . '</ol>';
 	}
