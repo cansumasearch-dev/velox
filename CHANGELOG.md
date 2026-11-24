@@ -4,6 +4,10 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.68.1 — Template tiles show the pure template
+- The template tiles in Settings → Design ignored nothing: colours and other choices saved on top of the current template showed in every tile, so a dark template (Noir) looked light. Each tile now shows its template exactly as it comes.
+- No scrollbar inside the tiles any more.
+
 ## 4.68.0 — Shop design you can see and test, every shop text editable
 - **Template tiles show the real thing:** each template is drawn with your own products (fonts, colours, cards, buttons) instead of the same grey boxes in different colours.
 - **Test it on the real shop before saving:** “Try it on the real shop” opens the shop page, a product, the cart, the checkout or the account with the choices you have not saved yet. Only you see it (for 30 minutes), visitors keep the saved design.

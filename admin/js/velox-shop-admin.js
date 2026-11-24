@@ -1261,7 +1261,7 @@
 	function dsMiniPut( k ) {
 		var box = main().querySelector( '[data-tplpv="' + k + '"]' ), html = DSMINI[ k ];
 		if ( ! box || ! html || box.querySelector( 'iframe' ) ) { return; }
-		var f = document.createElement( 'iframe' ); f.setAttribute( 'tabindex', '-1' ); f.setAttribute( 'aria-hidden', 'true' ); f.setAttribute( 'loading', 'lazy' ); f.srcdoc = html;
+		var f = document.createElement( 'iframe' ); f.setAttribute( 'tabindex', '-1' ); f.setAttribute( 'aria-hidden', 'true' ); f.setAttribute( 'loading', 'lazy' ); f.setAttribute( 'scrolling', 'no' ); f.srcdoc = html.replace( '</head>', '<style>html,body{overflow:hidden!important}</style></head>' );
 		box.classList.add( 'has-pv' ); box.appendChild( f ); dsMiniFit();
 	}
 	function dsMiniAll() {
@@ -1271,7 +1271,10 @@
 		var next = keys.filter( function ( k ) { return undefined === DSMINI[ k ]; } )[ 0 ];
 		if ( ! next ) { return; }
 		dsMiniBusy = true;
-		api( 'design_preview', { settings:{ design:next }, mini:1 } ).then( function ( r ) {
+		// The pure template: choices saved on top of the current one stay out of the tiles.
+			var pure = { design:next, card_ratio:'' };
+			Object.keys( SD || {} ).forEach( function ( x ) { if ( /^d_/.test( x ) ) { pure[ x ] = ''; } } );
+			api( 'design_preview', { settings:pure, mini:1 } ).then( function ( r ) {
 			dsMiniBusy = false;
 			// A shop without products keeps the drawing.
 			DSMINI[ next ] = r && r.html && r.html.indexOf( 'vxs-card' ) > -1 ? r.html : '';
