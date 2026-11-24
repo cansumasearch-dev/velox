@@ -1852,7 +1852,23 @@ class Velox_Shop_Admin {
 		}
 		if ( ( '' === $which || 'product' === $which ) && $first ) {
 			// The first product as its product page, so photos, buy box and type show too.
-			$page = Velox_Shop_Front::product_layout( Velox_Shop::product( (int) $first[0] ), '' );
+			// With fewer than three photos the gallery choices (thumbnails, stacked,
+			// grid) look alike, so the preview borrows other products' photos.
+			$pp = Velox_Shop::product( (int) $first[0] );
+			if ( $pp && count( array_filter( (array) $pp['gallery'] ) ) < 2 ) {
+				$more = array();
+				foreach ( get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 12, 'fields' => 'ids', 'exclude' => array( (int) $pp['id'] ) ) ) as $oid ) {
+					$tid = (int) get_post_thumbnail_id( $oid );
+					if ( $tid ) {
+						$more[] = $tid;
+					}
+					if ( count( $more ) >= 3 ) {
+						break;
+					}
+				}
+				$pp['gallery'] = array_values( array_merge( array_filter( (array) $pp['gallery'] ), $more ) );
+			}
+			$page = Velox_Shop_Front::product_layout( $pp, '' );
 		}
 		if ( 'cart' === $which ) {
 			// A sample cart with the first products: the cart, then the checkout.

@@ -736,6 +736,11 @@ select.vsa-in option{background:var(--vbb-panel);color:var(--vbb-text)}
 .vsa-pm-ci{display:flex;align-items:center;gap:6px}
 .vsa-pm-sum{display:flex;flex-direction:column;gap:4px;flex:0 0 36%;padding:6px;border-radius:4px;align-self:flex-start}
 .vsa-pm-cart.is-one .vsa-pm-sum{flex:none;align-self:stretch}
+.vsa-pm-cart.is-stack{flex-direction:column;padding:0 14%}
+.vsa-pm-cart.is-stack .vsa-pm-sum{flex:none;align-self:stretch}
+.vsa-pm-ci.is-card{padding:3px;border-radius:3px}
+.vsa-pm-cart.is-grid .vsa-pm-items{display:grid;grid-template-columns:1fr 1fr;gap:5px;align-content:start}
+.vsa-pm-ci.is-tile{flex-direction:column;align-items:stretch;gap:3px}
 .vsa-pm-ico{position:relative;display:flex;align-items:center;gap:4px}
 .vsa-pm-ico svg{width:13px;height:13px}
 .vsa-pm-ico em{font:600 8px/1 var(--vbb-font)}
