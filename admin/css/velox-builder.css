@@ -928,3 +928,4 @@ body select.vba-input:focus,body select.vba-tpl-purpose:focus,body .vba-shell se
 .vba-scope-acts{display:flex;gap:8px}
 .vba-ai>summary .vba-ai-state{margin-left:auto}
 @media (max-width:700px){.vba-cn-urlrow{flex-direction:column}.vba-apps>li{flex-wrap:wrap}.vba-app-acts{width:100%;padding-left:46px}.vba-apps>li.vba-app-scope{padding-left:20px}.vba-cfg-cases li{grid-template-columns:1fr}.vba-cfg-cases .vba-btn{grid-column:1;grid-row:auto;justify-self:start;margin-top:6px}}
+@media (max-width:700px){.vba-seg{display:flex;flex-wrap:wrap;overflow:visible}.vba-seg button{flex:1 1 auto;padding:0 10px}.vba-ai .vba-setting{flex-wrap:wrap}.vba-shell .vba-ai-limit{max-width:100%}}
