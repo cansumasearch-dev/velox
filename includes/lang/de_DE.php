@@ -8394,4 +8394,12 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'F2 or a double-click renames the row right there; Enter keeps the name, Esc goes back. Enter on a row opens its styles.' => 'F2 oder ein Doppelklick benennt die Zeile direkt um; Enter übernimmt den Namen, Esc bricht ab. Enter auf einer Zeile öffnet ihre Stile.',
 	'For a whole section that scrolls sideways or stacks up, use the **Scroll section** element from Add → Containers: the effect is set in its Essentials.' => 'Für einen ganzen Bereich, der seitwärts läuft oder sich stapelt, nehmen Sie das Element **Scroll-Bereich** unter Hinzufügen → Container: Der Effekt wird in seinem „Wesentliches“ eingestellt.',
 	'The mouse effects and particles play in the editor too. Scroll animations play on the published page; check them with **View → Saved changes**. Visitors who ask their system for less motion see everything without it.' => 'Maus-Effekte und Partikel laufen auch im Editor. Scroll-Animationen laufen auf der veröffentlichten Seite; prüfen Sie sie mit **Ansehen → Gespeicherte Änderungen**. Wer im System weniger Bewegung wünscht, sieht alles ohne.',
+	// 4.74.0 — structure, sideways note
+	'Side by side, in one long row' => 'Nebeneinander, in einer langen Reihe',
+	'This box scrolls sideways: on the page it stays in place while visitors scroll down, and the row inside it slides from right to left. That is why its items always sit next to each other here, and the usual layout choices do not apply.' => 'Diese Box scrollt seitwärts: Auf der Seite bleibt sie stehen, während Besucher nach unten scrollen, und die Reihe darin gleitet von rechts nach links. Deshalb stehen ihre Elemente hier immer nebeneinander, und die üblichen Layout-Einstellungen gelten nicht.',
+	'How many items show at once depends on how wide each item is: select one item and set Size → Width.' => 'Wie viele Elemente auf einmal zu sehen sind, hängt von ihrer Breite ab: ein Element auswählen und unter Größe → Breite einstellen.',
+	'This box stacks its items while visitors scroll: each one slides up over the one before. That is why they always sit below each other here.' => 'Diese Box stapelt ihre Elemente beim Scrollen: Jedes schiebt sich über das vorige. Deshalb stehen sie hier immer untereinander.',
+	'Change the effect under “Scroll effect” above.' => 'Den Effekt ändern Sie oben unter „Scroll-Effekt“.',
+	'The effect is switched on under Advanced → Motion.' => 'Der Effekt ist unter Erweitert → Bewegung eingeschaltet.',
+	'Open Advanced' => 'Erweitert öffnen',
 );

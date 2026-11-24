@@ -5151,10 +5151,14 @@
 			var sfx = 'side' === scrollFx( node ) || ( 'Scroller' === node.el ) ? scrollFx( node ) : '';
 			if ( sfx ) {
 				var side = 'side' === sfx;
+				var where = 'Scroller' === node.el ? '<span class="vb-dz-fx-w">' + T( 'Change the effect under “Scroll effect” above.' ) + '</span>'
+					: '<span class="vb-dz-fx-w">' + T( 'The effect is switched on under Advanced → Motion.' ) + ' <button type="button" class="vb-linkbtn" data-tab="all">' + T( 'Open Advanced' ) + '</button></span>';
 				return '<div class="vb-dz" data-mode="fx"><div class="vb-dz-f"><div class="vb-f-lbl"><span class="vb-f-name">' + T( 'Children' ) + '</span></div>' +
-					'<div class="vb-dz-fx">' + svg( side ? 'el_scroller' : 'el_section', 18 ) + '<span><b>' + ( side ? T( 'In one row' ) : T( 'Below each other' ) ) + '</b>' +
-					( side ? T( 'The scroll effect moves them sideways, so they always sit in one row. Each child’s width decides how many show at once.' ) : T( 'The scroll effect stacks them, so they always sit below each other.' ) ) +
-					'</span></div></div>' + ( gapItem ? itemHTML( Object.assign( {}, gapItem, { when:null } ) ) : '' ) + '</div>';
+					'<div class="vb-dz-fx">' + svg( side ? 'el_scroller' : 'el_section', 18 ) + '<span><b>' + ( side ? T( 'Side by side, in one long row' ) : T( 'Below each other' ) ) + '</b>' +
+					( side ? T( 'This box scrolls sideways: on the page it stays in place while visitors scroll down, and the row inside it slides from right to left. That is why its items always sit next to each other here, and the usual layout choices do not apply.' ) +
+						'<span class="vb-dz-fx-w">' + T( 'How many items show at once depends on how wide each item is: select one item and set Size → Width.' ) + '</span>'
+						: T( 'This box stacks its items while visitors scroll: each one slides up over the one before. That is why they always sit below each other here.' ) ) +
+					where + '</span></div></div>' + ( gapItem ? itemHTML( Object.assign( {}, gapItem, { when:null } ) ) : '' ) + '</div>';
 			}
 			var d = cssNow( 'display', cEl ), dir = cssNow( 'flexDirection', cEl ) || 'row';
 			var mode = /grid/.test( d ) ? 'grid' : ( /flex/.test( d ) ? ( /column/.test( dir ) ? 'stack' : 'row' ) : 'flow' );
@@ -7518,7 +7522,21 @@
 	}
 
 	/* ---------- Structure panel (collapsible full-page outline) ---------- */
-	var structShown = false, structCollapsed = {}, structFollowed = null;
+	var structShown = false, structCollapsed = {}, structFollowed = null, structFor = null;
+	/* Which branches are closed is kept per document (in this browser), so a
+	 * reload shows Structure the way it was left. A new page adopts its id on
+	 * the first save without losing what was folded. */
+	function structLoad() {
+		if ( structFor === docId ) { return; }
+		var was = structFor; structFor = docId;
+		if ( ! docId || ( null !== was && ! was ) ) { return; }
+		try { structCollapsed = JSON.parse( window.localStorage.getItem( 'velox_builder_struct_' + docId ) || '{}' ) || {}; } catch ( e ) { structCollapsed = {}; }
+	}
+	function structSave() {
+		if ( ! docId ) { return; }
+		var keep = {}; Object.keys( structCollapsed ).forEach( function ( k ) { if ( structCollapsed[ k ] ) { keep[ k ] = true; } } );
+		try { window.localStorage.setItem( 'velox_builder_struct_' + docId, JSON.stringify( keep ) ); } catch ( e ) {}
+	}
 	/* Collapse / expand every branch at once. */
 	function structSetAll( collapsed ) {
 		structCollapsed = {};
@@ -7587,6 +7605,7 @@
 	}
 	function renderStructPanel() {
 		var box = document.getElementById( 'vb-struct' ); if ( ! box ) { return; }
+		structLoad();
 		if ( ! structShown ) { box.style.display = 'none'; applyDock(); return; }
 		box.style.display = 'flex';
 		var sel = store.state ? store.state.selection : null;
@@ -7667,6 +7686,7 @@
 			'<div class="vb-st-tree" role="tree" aria-label="' + T( 'Structure' ) + '">' + body + '</div>';
 		if ( stFocus ) { var si = box.querySelector( '#vb-st-search' ); if ( si ) { si.focus(); try { si.setSelectionRange( stCaret, stCaret ); } catch ( e ) {} } }
 		var stTree = box.querySelector( '.vb-st-tree' ); if ( stTree ) { stTree.scrollTop = keepScroll; }
+		structSave();
 		// Keyboard focus survives the redraw that every selection change causes.
 		if ( structKeyFocus ) { var fr0 = box.querySelector( '.vb-st-row.sel' ); if ( fr0 ) { fr0.focus( { preventScroll:true } ); } }
 		var selRow = box.querySelector( '.vb-st-row.sel' );
@@ -8372,6 +8392,11 @@
 					store.commit( function ( s ) { s.selection = snid; resetActiveClass( s ); }, false );
 					showContextMenu( sr.right - 4, sr.bottom + 4, snid );
 				}
+				return;
+			}
+			if ( e.target.closest( '#vb-struct .vb-st-tree' ) && ! e.target.closest( '[data-stnode],button,input,a' ) ) {
+				multi = []; stClick = {};
+				if ( store.state && store.state.selection ) { selectNode( null ); } else { renderStructPanel(); }
 				return;
 			}
 			var stc = e.target.closest( '[data-stcaret]' ); if ( stc ) { toggleStructBranch( stc.getAttribute( 'data-stcaret' ) ); e.stopPropagation(); return; }
@@ -12194,6 +12219,7 @@
 			'.vb-dz-t:focus-visible{outline:2px solid #2ab7f1;outline-offset:1px}',
 			'.vb-dz-tiles.n4 .vb-dz-t{padding:8px 2px 7px;font-size:10.5px}',
 			'.vb-dz-fx{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--vb-line);border-radius:8px;background:rgba(42,183,241,.07);color:var(--vb-tx2);font-size:12px;line-height:1.45}',
+			'.vb-dz-fx-w{display:block;margin-top:6px}.vb-dz-fx .vb-linkbtn{padding:0;border:0;background:none;color:var(--vb-acc);font:inherit;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:2px}',
 			'.vb-dz-fx>svg{flex:none;margin-top:1px;color:var(--vb-acc)}.vb-dz-fx b{display:block;color:var(--vb-tx1);font-weight:600;margin-bottom:2px}',
 			'.vb-dz-chk{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.4;color:var(--vb-tx2);cursor:pointer}',
 			'.vb-dz-chk input{margin:1px 0 0;accent-color:#2ab7f1}',
