@@ -175,6 +175,29 @@ class Velox_Ajax {
 				Velox_Builder_Agents::ajax_toggle();
 				break;
 
+			/* -------- Velox Builder: AI assistant -------- */
+			case 'ai_send':
+				Velox_Builder_Assistant::ajax_send();
+				break;
+			case 'ai_continue':
+				Velox_Builder_Assistant::ajax_continue();
+				break;
+			case 'ai_poll':
+				Velox_Builder_Assistant::ajax_poll();
+				break;
+			case 'ai_stop':
+				Velox_Builder_Assistant::ajax_stop();
+				break;
+			case 'ai_reset':
+				Velox_Builder_Assistant::ajax_reset();
+				break;
+			case 'ai_settings':
+				Velox_Builder_Assistant::ajax_settings();
+				break;
+			case 'ai_test':
+				Velox_Builder_Assistant::ajax_test();
+				break;
+
 			case 'builder_design_versions':
 				Velox_Builder_Revisions::ajax_design_list();
 				break;

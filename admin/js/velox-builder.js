@@ -199,6 +199,8 @@
 	ICON.el_linkblock = ICON.link || ICON.el_button; ICON.el_shapedivider = ICON.el_divider; ICON.el_progresscircle = ICON.el_counter || ICON.el_bars;
 	ICON.tag = '<path d="M2.5 8V2.5H8l5.5 5.5-5.5 5.5z" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><circle cx="5.3" cy="5.3" r="1"/>';
 	ICON.hash = '<path d="M6.2 2.5 4.9 13.5M11.1 2.5 9.8 13.5M2.8 5.8h11M2.2 10.2h11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>';
+	ICON.stars = '<path d="M7.657 6.247c.11-.33.576-.33.686 0l.645 1.937a2.89 2.89 0 0 0 1.829 1.828l1.936.645c.33.11.33.576 0 .686l-1.937.645a2.89 2.89 0 0 0-1.828 1.829l-.645 1.936a.361.361 0 0 1-.686 0l-.645-1.937a2.89 2.89 0 0 0-1.828-1.828l-1.937-.645a.361.361 0 0 1 0-.686l1.937-.645a2.89 2.89 0 0 0 1.828-1.828zM3.794 1.148a.217.217 0 0 1 .412 0l.387 1.162c.173.518.579.924 1.097 1.097l1.162.387a.217.217 0 0 1 0 .412l-1.162.387A1.73 1.73 0 0 0 4.593 5.69l-.387 1.162a.217.217 0 0 1-.412 0L3.407 5.69A1.73 1.73 0 0 0 2.31 4.593l-1.162-.387a.217.217 0 0 1 0-.412l1.162-.387A1.73 1.73 0 0 0 3.407 2.31zM10.863.099a.145.145 0 0 1 .274 0l.258.774c.115.346.386.617.732.732l.774.258a.145.145 0 0 1 0 .274l-.774.258a1.16 1.16 0 0 0-.732.732l-.258.774a.145.145 0 0 1-.274 0l-.258-.774a1.16 1.16 0 0 0-.732-.732L9.1 2.137a.145.145 0 0 1 0-.274l.774-.258c.346-.115.617-.386.732-.732z"/>';
+	ICON.arrowup = '<path fill-rule="evenodd" d="M8 15a.5.5 0 0 0 .5-.5V2.707l3.146 3.147a.5.5 0 0 0 .708-.708l-4-4a.5.5 0 0 0-.708 0l-4 4a.5.5 0 1 0 .708.708L7.5 2.707V14.5a.5.5 0 0 0 .5.5"/>';
 	ICON.target = '<circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.3"/><circle cx="8" cy="8" r="2.1"/>';
 	function svg( name, size ) {
 		// Bootstrap Icons are drawn on a 16-unit grid: at 16px every line lands on a
@@ -3384,6 +3386,8 @@
 		// blur a contenteditable inside it — so the text you just typed was still
 		// only in the DOM and never reached the model. Flush it first, always.
 		if ( revPrev ) { toast( T( 'You are looking at a saved version. Restore it or go back to editing first.' ) ); if ( cb ) { cb( false ); } return; }
+		// Claude saves its own changes; the editor's older copy must not overwrite them.
+		if ( AI.locked ) { toast( T( 'Claude is working on this page. Wait a moment or press Stop.' ) ); if ( cb ) { cb( false ); } return; }
 		if ( editing ) { commitInlineEdit(); }
 		flushPending();
 		if ( cb ) { saveWaiters.push( cb ); }
@@ -3484,6 +3488,8 @@
 				rebuildCustomStates();
 				snapshotClasses();
 				lastSavedSig = contentSig( store.state );
+				// Every page load asks once whether Claude is (or just was) working on this page.
+				if ( AIC.can ) { aiLoad(); }
 				offerBackup();
 				document.title = docTitle + ' — Velox Builder';
 				setTimeout( function () { renderActions(); }, 30 );
@@ -3508,6 +3514,7 @@
 	   Publish (pushes live for everyone). Save state shows on the Save button. */
 	var everPublished = false, dirty = false, pubStatus = 'draft', pubUrl = '', inspTab = 'ess', customStates = [];
 	function publishDoc() {
+		if ( AI.locked ) { toast( T( 'Claude is working on this page. Wait a moment or press Stop.' ) ); return; }
 		if ( revPrev ) { toast( T( 'You are looking at a saved version. Restore it or go back to editing first.' ) ); return; }
 		revListStale = true;
 		if ( editing ) { commitInlineEdit(); }
@@ -3553,8 +3560,41 @@
 	/* Save is always there (a new page used to show only Publish, so a draft
 	 * could not be kept without putting it live), and shows a dot while there
 	 * are unsaved changes. */
+	/* ---------- top bar: fit what is there ----------
+	 * The two sides of the bar get half the width each, around the centred
+	 * screen-size switch. Longer labels (German: Speichern, Veröffentlichen,
+	 * Ansehen) did not fit and slid under the switch. When a side needs more
+	 * than it has, the bar gets more compact step by step: labels become
+	 * icons, the page type and long title go, then the less used buttons
+	 * (they stay in the command palette, Ctrl+K). */
+	var TB_LEVELS = [ 'vb-c1', 'vb-c2', 'vb-c3', 'vb-c4', 'vb-c5' ];
+	/* Do any two controls in the bar overlap? (Buttons, fields, the screen-size switch.) */
+	function tbClash( top ) {
+		var tr = top.getBoundingClientRect();
+		// Only what sits in the bar itself: menus that open below it do not count.
+		var els = Array.prototype.filter.call( top.querySelectorAll( 'button, a, select, input, .vb-docstat, .vb-bp' ), function ( e ) {
+			var r = e.getBoundingClientRect();
+			return r.width > 0 && r.top >= tr.top - 1 && r.bottom <= tr.bottom + 1 && 'hidden' !== getComputedStyle( e ).visibility;
+		} );
+		var R = els.map( function ( e ) { return e.getBoundingClientRect(); } );
+		for ( var i = 0; i < els.length; i++ ) {
+			if ( R[ i ].left < tr.left - 1 || R[ i ].right > tr.right + 1 ) { return true; }
+			for ( var j = i + 1; j < els.length; j++ ) {
+				if ( els[ i ].contains( els[ j ] ) || els[ j ].contains( els[ i ] ) ) { continue; }
+				if ( R[ i ].left < R[ j ].right - 1 && R[ j ].left < R[ i ].right - 1 && R[ i ].top < R[ j ].bottom - 1 && R[ j ].top < R[ i ].bottom - 1 ) { return true; }
+			}
+		}
+		return false;
+	}
+	function fitTopbar() {
+		var top = document.querySelector( '.vb-top' ); if ( ! top ) { return; }
+		TB_LEVELS.forEach( function ( c ) { top.classList.remove( c ); } );
+		for ( var i = 0; i < TB_LEVELS.length && tbClash( top ); i++ ) { top.classList.add( TB_LEVELS[ i ] ); }
+	}
+	function fitTopbarSoon() { clearTimeout( fitTopbarSoon._t ); fitTopbarSoon._t = setTimeout( fitTopbar, 40 ); }
 	function renderActions() {
 		var host = document.getElementById( 'vb-actions' ); if ( ! host ) { return; }
+		fitTopbarSoon();
 		// Saving never changes the live site; "Published" only shows when what is
 		// on the site is exactly what is in the editor.
 		var live = pubStatus === 'published' && ! dirty && ! hasDraft;
@@ -3770,8 +3810,8 @@
 	 *    the right stack closes but remembers which panel was open so the toggle
 	 *    brings the same one back.
 	 * Widths below MUST match the panel widths in injectStyles(). */
-	var PANEL_W = { add:320, css:380, hist:320, struct:300, settings:340 };
-	var PANEL_W0 = { css:380, hist:320, struct:300, settings:340 }, PW_KEY = 'velox_builder_pw';
+	var PANEL_W = { add:320, css:380, hist:320, struct:300, settings:340, ai:380 };
+	var PANEL_W0 = { css:380, hist:320, struct:300, settings:340, ai:380 }, PW_KEY = 'velox_builder_pw';
 	try {
 		var _pw = JSON.parse( window.localStorage.getItem( PW_KEY ) || 'null' );
 		if ( _pw ) { Object.keys( PANEL_W0 ).forEach( function ( k ) { if ( +_pw[ k ] >= 240 ) { PANEL_W[ k ] = +_pw[ k ]; } } ); }
@@ -3800,7 +3840,7 @@
 		try { window.localStorage.setItem( 'velox_builder_ui', JSON.stringify( { pinned:pinned, lcol:leftCollapsed, lastRight:lastRightPanel } ) ); } catch ( e ) {}
 	}
 	function addMenuOpen() { var m = document.getElementById( 'vb-addmenu' ); return !! ( m && m.classList.contains( 'open' ) ); }
-	function openRightPanel() { return cssShown ? 'css' : ( historyShown ? 'hist' : ( structShown ? 'struct' : ( setShown ? 'settings' : null ) ) ); }
+	function openRightPanel() { return cssShown ? 'css' : aiShown ? 'ai' : ( historyShown ? 'hist' : ( structShown ? 'struct' : ( setShown ? 'settings' : null ) ) ); }
 	/* Reflect the current panel/collapse state onto the shell. Never triggers a
 	 * panel re-render, so it's safe to call from inside one. */
 	function applyDock() {
@@ -3816,9 +3856,11 @@
 		var right = openRightPanel();
 		Object.keys( PANEL_W0 ).forEach( function ( k ) { app.style.setProperty( '--vb-pw-' + k, PANEL_W[ k ] + 'px' ); } );
 		app.style.setProperty( '--vb-cur-rw', ( right ? PANEL_W[ right ] : 0 ) + 'px' );
+		// The light/dark switch (velox-theme.js) floats bottom right: keep it left of an open right panel.
+		document.documentElement.style.setProperty( '--vb-cur-rw', ( right ? PANEL_W[ right ] : 0 ) + 'px' );
 		app.classList.toggle( 'vb-has-right', !! right );
 		// The top-bar button of the open panel shows that it is open.
-		var TB = { struct:'vb-structure', css:'vb-code', hist:'vb-history', settings:'vb-settings' };
+		var TB = { struct:'vb-structure', css:'vb-code', hist:'vb-history', settings:'vb-settings', ai:'vb-ai' };
 		Object.keys( TB ).forEach( function ( k ) { var b = document.getElementById( TB[ k ] ); if ( b ) { var on = right === k && ! ( 'hist' === k && 'check' === histMode ); b.classList.toggle( 'on', on ); b.setAttribute( 'aria-pressed', on ? 'true' : 'false' ); } } );
 		var cb = document.getElementById( 'vb-check' ); if ( cb ) { var con = 'hist' === right && 'check' === histMode; cb.classList.toggle( 'on', con ); cb.setAttribute( 'aria-pressed', con ? 'true' : 'false' ); }
 		app.style.setProperty( '--vb-rw', ( pinned.right && right ? PANEL_W[ right ] : 0 ) + 'px' );
@@ -3836,7 +3878,8 @@
 		// see what you just inserted.
 		// Structure is a navigator: you work on the canvas with it open, so it
 		// never dims or blocks the page.
-		if ( scrim ) { scrim.classList.toggle( 'on', !! right && ! pinned.right && 'struct' !== right ); }
+		// Nor does Claude's chat: you watch the page change while it works.
+		if ( scrim ) { scrim.classList.toggle( 'on', !! right && ! pinned.right && 'struct' !== right && 'ai' !== right ); }
 		// An unpinned left panel sits ON TOP of the inspector but is narrower than
 		// it, so the last ~70px of the inspector stuck out and stayed readable
 		// through the dimming. Dimming is not hiding: take the column out entirely
@@ -3857,13 +3900,14 @@
 	/* Right toggle = slide the whole right stack off / bring the last one back. */
 	function toggleRightStack() {
 		var right = openRightPanel();
-		if ( right ) { lastRightPanel = right; cssShown = false; historyShown = false; structShown = false; setShown = false; }
+		if ( right ) { lastRightPanel = right; cssShown = false; historyShown = false; structShown = false; setShown = false; aiShown = false; }
 		else if ( lastRightPanel === 'css' ) { cssShown = true; }
 		else if ( lastRightPanel === 'hist' ) { historyShown = true; }
 		else if ( lastRightPanel === 'settings' ) { setShown = true; }
+		else if ( lastRightPanel === 'ai' ) { aiShown = true; }
 		else { structShown = true; }
 		saveUiPrefs();
-		renderCSSPanel(); renderHistoryPanel(); renderStructPanel(); renderSettingsPanel();
+		renderCSSPanel(); renderHistoryPanel(); renderStructPanel(); renderSettingsPanel(); renderAiPanel(); if ( aiShown ) { aiLoad(); }
 	}
 	/* Shared pin control for every panel header. */
 	function pinBtnHTML( side ) { return '<button class="vb-css-x vb-pinbtn" data-pin="' + ( side || 'right' ) + '">' + svg( 'pin', 14 ) + '</button>'; }
@@ -3951,6 +3995,7 @@
 			'<div class="vb-histpanel" id="vb-hist"></div>' +
 			'<div class="vb-structpanel" id="vb-struct"></div>' +
 			'<div class="vb-setpanel" id="vb-setpanel"></div>' +
+			'<div class="vb-aipanel" id="vb-aip"></div>' +
 			'<div class="vb-rresize" id="vb-rresize" title="' + T( 'Drag to resize · double-click to reset' ) + '"></div>' +
 			'<div id="vb-dyndata-host"></div>' +
 			'<div class="vb-addmenu" id="vb-addmenu"></div>' +
@@ -3973,7 +4018,9 @@
 			if ( dirty || saving ) { e.preventDefault(); e.returnValue = ''; return ''; }
 			loaderLeave( loader.leaveTitle );
 		} );
-		window.addEventListener( 'resize', function () { resizeCanvas(); } );
+		window.addEventListener( 'resize', function () { resizeCanvas(); fitTopbarSoon(); } );
+		if ( document.fonts && document.fonts.ready ) { document.fonts.ready.then( fitTopbarSoon ); }
+		fitTopbarSoon();
 		store.subscribeLog( function () { if ( historyShown ) { renderHistoryPanel(); } } );
 		renderActions();
 		// Clicking anywhere in the editor chrome means the canvas lost focus:
@@ -4046,6 +4093,7 @@
 				'<span class="vb-viewas-wrap" id="vb-viewas-wrap">' + svg( 'eye', 14 ) +
 					'<select class="vb-viewas" id="vb-viewas" title="' + T( 'Preview this template with a page\'s content' ) + '"><option value="">' + T( 'View as…' ) + '</option></select>' +
 				'</span>' +
+				'<button class="vb-ic vb-aibtn" id="vb-ai" title="' + T( 'Claude: build and change with words' ) + '" aria-label="Claude">' + svg( 'stars', 16 ) + '</button>' +
 				'<button class="vb-ic" id="vb-structure" title="' + T( 'Structure' ) + '">' + svg( 'structure', 16 ) + '</button>' +
 				'<a class="vb-ic" id="vb-reusables" target="_blank" rel="noopener" href="' + ( CFG.reusablesUrl || '#' ) + '" title="' + T( 'Reusables' ) + '">' + svg( 'copy', 16 ) + '</a>' +
 				'<button class="vb-ic" id="vb-search" title="' + T( 'Switch page' ) + '">' + svg( 'search', 16 ) + '</button>' +
@@ -6143,7 +6191,7 @@
 	 * minutes) and on every publish (Velox_Builder_Revisions). Looking at one
 	 * swaps it into the canvas read-only, outlining what differs from now;
 	 * Restore brings it back as a normal, undoable step and saves. */
-	store.onLocked = function () { toast( T( 'You are looking at a saved version. Restore it or go back to editing first.' ) ); };
+	store.onLocked = function () { toast( AI.locked && ! revPrev ? T( 'Claude is working on this page. Wait a moment or press Stop.' ) : T( 'You are looking at a saved version. Restore it or go back to editing first.' ) ); };
 	var histTab = 'session', revList = null, revListStale = true, revLoading = false, revPrev = null, restoreKind = '';
 	function stableStr( v ) {
 		if ( Array.isArray( v ) ) { return '[' + v.map( stableStr ).join( ',' ) + ']'; }
@@ -6248,7 +6296,7 @@
 		if ( ! bar || ! fr ) { return; }
 		var r = fr.getBoundingClientRect(), right = r.right;
 		// Side panels can float over the canvas: stop at the first one.
-		[ 'vb-hist', 'vb-setpanel', 'vb-struct', 'vb-csspanel' ].forEach( function ( id ) {
+		[ 'vb-hist', 'vb-setpanel', 'vb-struct', 'vb-csspanel', 'vb-aip' ].forEach( function ( id ) {
 			var el = document.getElementById( id );
 			if ( el && el.offsetWidth && 'none' !== getComputedStyle( el ).display ) {
 				var er = el.getBoundingClientRect();
@@ -7103,6 +7151,270 @@
 		if ( 'tag' === x.fix ) { setTimeout( function () { var tb = document.querySelector( '.vb-tagbar' ); if ( tb ) { tb.classList.remove( 'is-flash' ); void tb.offsetWidth; tb.classList.add( 'is-flash' ); } var tp = document.querySelector( '.vb-tagbar .vb-tagsel' ); if ( tp ) { tp.click(); } }, 80 ); }
 	}
 
+	/* ---------- Claude: the AI assistant panel ----------
+	 * You write, Claude builds on this page (server: Velox_Builder_Assistant).
+	 * The editor saves first, then locks while Claude works: each of its changes
+	 * is pulled in and shown live, and when it is done all of them together
+	 * become ONE step that Undo takes back. Saving and publishing wait until
+	 * Claude is finished, so nothing it did can be overwritten by accident. */
+	var aiShown = false;
+	var AI = { shown:[], total:0, job:{ status:'idle', run:'', steps:0, rev:0, doing:'' }, loaded:false, doc:0, run:'', applied:0, changed:false, locked:false, sending:false, stopping:false, cont:'', contAt:0, timer:0, pull:Promise.resolve(), err:'', useSel:true };
+	var AIC = CFG.ai || { ready:false, can:false, admin:false, model:'', settingsUrl:'' };
+	function aiPost( fields ) {
+		var body = new URLSearchParams();
+		body.set( 'action', 'velox' ); body.set( 'nonce', CFG.nonce || '' );
+		Object.keys( fields ).forEach( function ( k ) { body.set( k, fields[ k ] ); } );
+		return fetch( CFG.ajaxurl, { method:'POST', credentials:'same-origin', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+			.then( function ( r ) { return r.text(); } )
+			.then( function ( t ) { try { return JSON.parse( t ); } catch ( e ) { return null; } } );
+	}
+	function aiBusy() { return AI.sending || 'running' === AI.job.status || 'continue' === AI.job.status; }
+	function aiToggle() {
+		aiShown = ! aiShown;
+		if ( aiShown ) { closeAllPanels( 'ai' ); }
+		renderAiPanel();
+		if ( aiShown ) { aiLoad(); setTimeout( function () { var ta = document.getElementById( 'vb-ai-in' ); if ( ta && AIC.can ) { ta.focus(); } }, 60 ); }
+	}
+	/* The chat belongs to the page: switching pages shows that page's chat. */
+	function aiLoad() {
+		if ( ! AIC.ready || ! docId ) { renderAiPanel(); return; }
+		if ( AI.doc !== docId ) { clearTimeout( AI.timer ); AI.doc = docId; AI.shown = []; AI.total = 0; AI.loaded = false; AI.run = ''; AI.applied = 0; AI.cont = ''; AI.err = ''; }
+		if ( ! AI.loaded ) { aiPoll( true ); }
+	}
+	function aiPoll( first ) {
+		clearTimeout( AI.timer );
+		var doc = AI.doc;
+		aiPost( { do:'ai_poll', doc:doc, since:AI.total } ).then( function ( res ) {
+			if ( doc !== AI.doc ) { return; }
+			if ( ! res || ! res.success ) { if ( aiBusy() ) { AI.timer = setTimeout( aiPoll, 3000 ); } return; }
+			var d = res.data;
+			// The server's copy of a message just sent replaces the one shown at once.
+			AI.shown = AI.shown.filter( function ( m ) { return ! m.local || ! ( d.shown || [] ).length; } ).concat( d.shown || [] ); AI.total = d.total || AI.shown.length;
+			var j = d.job || AI.job;
+			if ( first && 'running' !== j.status && 'continue' !== j.status ) {
+				AI.applied = j.rev || 0;
+				// A run that finished while this page was loading: the editor may hold
+				// the version from before its last changes. Bring it in once.
+				if ( ( j.rev || 0 ) > 0 && ( j.ago || 0 ) < performance.now() / 1000 + 15 && ! dirty ) { aiPullDoc( false ); }
+			}
+			if ( j.run !== AI.run ) { AI.run = j.run; if ( ! first ) { AI.applied = 0; } AI.changed = false; }
+			AI.job = j; AI.loaded = true;
+			aiAfterJob();
+			renderAiList(); renderAiFoot();
+		} ).catch( function () { if ( aiBusy() ) { AI.timer = setTimeout( aiPoll, 3000 ); } } );
+	}
+	function aiAfterJob() {
+		var j = AI.job;
+		if ( ( j.rev || 0 ) > AI.applied ) { AI.applied = j.rev; AI.changed = true; aiPullDoc( false ); }
+		// The last step asked for more: start the next one (once per step).
+		if ( 'continue' === j.status && ! AI.stopping ) {
+			var key = j.run + ':' + j.steps;
+			// Once per step; again if the step has not started after 8 seconds.
+			if ( AI.cont !== key || Date.now() - AI.contAt > 8000 ) {
+				AI.cont = key; AI.contAt = Date.now();
+				aiPost( { do:'ai_continue', doc:AI.doc, run:j.run } ).then( function ( res ) { if ( res && res.success && res.data.job ) { AI.job = res.data.job; renderAiFoot(); } } );
+			}
+		}
+		if ( aiBusy() ) {
+			// Claude is working on this page (for example after a reload): show it, so the lock makes sense.
+			if ( ! aiShown ) { aiShown = true; closeAllPanels( 'ai' ); renderAiPanel(); }
+			aiLock( true ); AI.timer = setTimeout( aiPoll, 1500 );
+		}
+		else { AI.stopping = false; if ( AI.locked ) { aiFinish(); } }
+	}
+	function aiFinish() {
+		var changed = AI.changed; AI.changed = false;
+		if ( changed ) { aiPullDoc( true ); } else { aiLock( false ); }
+	}
+	function aiLock( on ) {
+		if ( AI.locked === on ) { return; }
+		AI.locked = on;
+		if ( ! revPrev ) { store.locked = on; }
+		var app = document.querySelector( '.vb-app' ); if ( app ) { app.classList.toggle( 'vb-ai-busy', on ); }
+		renderActions();
+	}
+	/* Bring what Claude saved into the editor. While it works: shown at once,
+	 * no Undo step. At the end: one step (“Claude”), so Undo takes it all back. */
+	function aiPullDoc( final ) {
+		var doc = AI.doc;
+		AI.pull = AI.pull.then( function () {
+			var body = new URLSearchParams();
+			body.set( 'action', 'velox' ); body.set( 'do', 'builder_load' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'id', doc );
+			return fetch( CFG.ajaxurl, { method:'POST', credentials:'same-origin', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
+				.then( function ( r ) { return r.json(); } )
+				.then( function ( res ) {
+					if ( doc !== docId || ! res || ! res.success || ! res.data.model ) { if ( final ) { aiLock( false ); } return; }
+					var model = normalizeDoc( JSON.parse( JSON.stringify( res.data.model ) ) );
+					var apply = function ( s ) {
+						[ 'tree', 'content', 'classes', 'page' ].forEach( function ( k ) { if ( undefined !== model[ k ] ) { s[ k ] = model[ k ]; } else { delete s[ k ]; } } );
+						if ( s.selection && ! findNode( s.tree, s.selection ) ) { s.selection = null; s.activeClass = null; }
+						delete s.changedClasses;
+					};
+					if ( final ) {
+						aiLock( false );
+						store.commit( apply, T( 'Claude' ) );
+						toast( T( 'Claude’s changes are saved as a draft. Undo takes them all back.' ) );
+					} else {
+						apply( store.state ); store.emit();
+					}
+					pendingClasses = res.data.pending_classes || pendingClasses;
+					snapshotClasses();
+					// Already saved by the server: nothing for the editor to save or back up.
+					lastSavedSig = contentSig( store.state ); dirty = false; hasDraft = !! res.data.has_draft;
+					clearBackup(); setSaveState( 'saved' );
+					renderActions();
+				} )
+				.catch( function () { if ( final ) { aiLock( false ); } } );
+		} );
+	}
+	function aiSend() {
+		var ta = document.getElementById( 'vb-ai-in' ); if ( ! ta ) { return; }
+		var text = ta.value.trim();
+		if ( ! text || aiBusy() || ! AIC.can ) { return; }
+		ta.value = '';
+		AI.sending = true; AI.err = ''; renderAiFoot();
+		// The page is saved first: Claude works on what you see.
+		persist( function ( ok ) {
+			if ( ! ok ) { AI.sending = false; renderAiFoot(); aiRestore( text ); return; }
+			AI.doc = docId;
+			var sel = store.state.selection, node = sel ? findNode( store.state.tree, sel ) : null;
+			var f = { do:'ai_send', doc:docId, text:text, bp:store.state.breakpoint || 'base' };
+			if ( AI.useSel && node ) { f.sel = sel; f.sel_label = ( node.name || elLabel( node ) ) + ( node.classes && node.classes.length ? ' ' + node.classes.join( ' ' ) : '' ); }
+			// Shown right away; the server's copy replaces it on the next poll.
+			AI.shown.push( { k:'user', t:text, local:1 } ); renderAiList();
+			aiPost( f ).then( function ( res ) {
+				AI.sending = false;
+				if ( ! res || ! res.success ) {
+					AI.shown = AI.shown.filter( function ( m ) { return ! m.local; } );
+					AI.err = ( res && res.data && res.data.message ) || T( 'Claude could not start. Try again.' );
+					renderAiList(); renderAiFoot(); aiRestore( text ); return;
+				}
+				AI.job = res.data.job; AI.run = AI.job.run; AI.applied = 0; AI.changed = false; AI.cont = '';
+				aiLock( true ); aiPoll();
+			} ).catch( function () {
+				// A long first step can outlast the request (a host or Cloudflare
+				// timeout) while the server keeps working: look how it is going.
+				AI.sending = false; aiLock( true ); aiPoll();
+			} );
+		} );
+	}
+	/* A message that could not be sent goes back into the field. */
+	function aiRestore( text ) { var t = document.getElementById( 'vb-ai-in' ); if ( t && ! t.value ) { t.value = text; aiGrow( t ); var b = document.getElementById( 'vb-ai-send' ); if ( b ) { b.disabled = false; } } }
+	function aiStop() {
+		if ( ! aiBusy() ) { return; }
+		AI.stopping = true; renderAiFoot();
+		aiPost( { do:'ai_stop', doc:AI.doc } ).then( function ( res ) { if ( res && res.success ) { AI.job = res.data.job; } aiPoll(); } );
+	}
+	function aiReset() {
+		if ( aiBusy() ) { return; }
+		aiPost( { do:'ai_reset', doc:AI.doc } ).then( function ( res ) {
+			if ( ! res || ! res.success ) { toast( ( res && res.data && res.data.message ) || T( 'Save failed' ) ); return; }
+			AI.shown = []; AI.total = 0; AI.err = ''; AI.job = res.data.job; renderAiList(); renderAiFoot();
+			var ta = document.getElementById( 'vb-ai-in' ); if ( ta ) { ta.focus(); }
+		} );
+	}
+	function aiGrow( ta ) { ta.style.height = 'auto'; ta.style.height = Math.min( 180, Math.max( 44, ta.scrollHeight ) ) + 'px'; }
+	/* Claude's replies: plain text with **bold**, `code` and line breaks. */
+	function aiFormat( s ) {
+		return escapeHtml( s ).replace( /\*\*([^*\n]+)\*\*/g, '<b>$1</b>' ).replace( /`([^`\n]+)`/g, '<code>$1</code>' ).replace( /\n/g, '<br>' );
+	}
+	var AI_DOING = {
+		'velox/get-design-system':'Reading the design system', 'velox/list-documents':'Looking at the pages', 'velox/get-document':'Reading the page',
+		'velox/create-document':'Creating a draft', 'velox/add-elements':'Adding elements', 'velox/update-element':'Changing an element',
+		'velox/remove-element':'Removing an element', 'velox/set-class-styles':'Styling a class', 'velox/find-images':'Searching the media library'
+	};
+	function renderAiPanel() {
+		var box = document.getElementById( 'vb-aip' ); if ( ! box ) { return; }
+		if ( ! aiShown ) { box.style.display = 'none'; applyDock(); return; }
+		box.style.display = 'flex';
+		if ( ! box.firstChild ) {
+			box.innerHTML =
+				'<div class="vb-hist-top"><b>Claude</b>' + ( AIC.model ? '<span class="vb-ai-model">' + escapeHtml( AIC.model.replace( /^Claude /, '' ) ) + '</span>' : '' ) +
+				'<span class="vb-p-acts"><button class="vb-css-x" id="vb-ai-new" title="' + T( 'New chat' ) + '" aria-label="' + T( 'New chat' ) + '">' + svg( 'plus', 14 ) + '</button>' + pinBtnHTML() + '<button class="vb-css-x" id="vb-ai-close" aria-label="' + T( 'Close' ) + '">' + svg( 'x', 14 ) + '</button></span></div>' +
+				'<div class="vb-ai-list" id="vb-ai-list" aria-live="polite"></div>' +
+				'<div class="vb-ai-foot" id="vb-ai-foot"></div>';
+			box.addEventListener( 'click', aiClick );
+			box.addEventListener( 'keydown', function ( e ) {
+				if ( 'vb-ai-in' === e.target.id && 'Enter' === e.key && ! e.shiftKey && ! e.isComposing ) { e.preventDefault(); aiSend(); }
+				e.stopPropagation(); // typing here must never trigger editor shortcuts
+			} );
+			box.addEventListener( 'input', function ( e ) { if ( 'vb-ai-in' === e.target.id ) { aiGrow( e.target ); var b = document.getElementById( 'vb-ai-send' ); if ( b ) { b.disabled = ! e.target.value.trim(); } } } );
+		}
+		renderAiList(); renderAiFoot(); applyDock();
+	}
+	function aiClick( e ) {
+		var t = e.target;
+		if ( t.closest( '#vb-ai-close' ) ) { aiShown = false; renderAiPanel(); return; }
+		if ( t.closest( '#vb-ai-new' ) ) { aiReset(); return; }
+		if ( t.closest( '#vb-ai-send' ) ) { aiSend(); return; }
+		if ( t.closest( '#vb-ai-stop' ) ) { aiStop(); return; }
+		if ( t.closest( '#vb-ai-sel' ) ) { AI.useSel = ! AI.useSel; renderAiFoot(); return; }
+		var sug = t.closest( '[data-ai-sug]' );
+		if ( sug ) { var ta = document.getElementById( 'vb-ai-in' ); if ( ta ) { ta.value = sug.getAttribute( 'data-ai-sug' ); aiGrow( ta ); ta.focus(); var b = document.getElementById( 'vb-ai-send' ); if ( b ) { b.disabled = false; } } return; }
+	}
+	function renderAiList() {
+		var list = document.getElementById( 'vb-ai-list' ); if ( ! list ) { return; }
+		var stick = list.scrollTop + list.clientHeight >= list.scrollHeight - 40;
+		if ( ! AIC.ready ) {
+			list.innerHTML = '<div class="vb-ai-empty"><span class="vb-ai-mark">' + svg( 'stars', 20 ) + '</span><b>' + T( 'Build pages by describing them' ) + '</b><p>' +
+				T( 'Connect Claude once with your Anthropic API key, then tell it what to build or change on this page.' ) + '</p>' +
+				( AIC.admin ? '<a class="vb-btn vb-btn-primary" href="' + escapeHtml( AIC.settingsUrl ) + '" target="_blank" rel="noopener">' + T( 'Connect Claude' ) + '</a>' : '<p class="vb-ai-small">' + T( 'Ask an administrator to connect it under Velox Builder → AI agents.' ) + '</p>' ) + '</div>';
+			return;
+		}
+		if ( ! AIC.can ) { list.innerHTML = '<div class="vb-ai-empty"><b>' + T( 'Your role may not use the AI assistant.' ) + '</b></div>'; return; }
+		if ( ! AI.loaded && docId && ! AI.shown.length ) { list.innerHTML = '<div class="vb-ai-empty"><span class="vb-ls-spin"></span></div>'; return; }
+		if ( ! AI.shown.length ) {
+			var sug = [ T( 'Build a landing page with a hero, three benefits, customer quotes and a contact form' ), T( 'Make the selected section look more modern and give it more air' ), T( 'Check this page on phones and fix what looks off' ) ];
+			list.innerHTML = '<div class="vb-ai-empty vb-ai-hello"><span class="vb-ai-mark">' + svg( 'stars', 20 ) + '</span><b>' + T( 'What should Claude do on this page?' ) + '</b><p>' +
+				T( 'It uses your classes and design tokens, works in drafts and saves every change as a version. You check and publish.' ) + '</p>' +
+				'<div class="vb-ai-sugs">' + sug.map( function ( s ) { return '<button type="button" data-ai-sug="' + escapeHtml( s ) + '">' + escapeHtml( s ) + '</button>'; } ).join( '' ) + '</div></div>';
+			return;
+		}
+		var out = '', acts = [];
+		function flush() { if ( acts.length ) { out += '<ul class="vb-ai-acts">' + acts.join( '' ) + '</ul>'; acts = []; } }
+		AI.shown.forEach( function ( m ) {
+			if ( 'act' === m.k ) {
+				acts.push( '<li class="' + ( m.bad ? 'is-bad' : '' ) + '">' + svg( m.bad ? 'x' : 'check', 12 ) + '<span>' + escapeHtml( m.t ) + '</span>' + ( m.link ? ' <a href="' + escapeHtml( m.link ) + '" target="_blank" rel="noopener">' + T( 'Open' ) + '</a>' : '' ) + '</li>' );
+				return;
+			}
+			flush();
+			if ( 'user' === m.k ) { out += '<div class="vb-ai-msg vb-ai-me">' + escapeHtml( m.t ).replace( /\n/g, '<br>' ) + '</div>'; }
+			else if ( 'ai' === m.k ) { out += '<div class="vb-ai-msg vb-ai-it">' + aiFormat( m.t ) + '</div>'; }
+			else { out += '<div class="vb-ai-note' + ( 'err' === m.k ? ' is-err' : '' ) + '" role="' + ( 'err' === m.k ? 'alert' : 'status' ) + '">' + escapeHtml( m.t ) + '</div>'; }
+		} );
+		flush();
+		list.innerHTML = out;
+		if ( stick || aiBusy() ) { list.scrollTop = list.scrollHeight; }
+	}
+	function renderAiFoot() {
+		var foot = document.getElementById( 'vb-ai-foot' ); if ( ! foot ) { return; }
+		if ( ! AIC.ready || ! AIC.can ) { foot.innerHTML = ''; return; }
+		var ta = document.getElementById( 'vb-ai-in' ), keep = ta ? ta.value : '', focused = ta && document.activeElement === ta;
+		var busy = aiBusy();
+		var status = '';
+		if ( busy ) {
+			var doing = AI.sending ? T( 'Saving the page' ) : ( AI.stopping ? T( 'Stopping after this step' ) : T( AI_DOING[ AI.job.doing ] || 'Thinking' ) );
+			status = '<div class="vb-ai-status"><span class="vb-ls-spin"></span><span>' + escapeHtml( doing ) + '…</span>' +
+				( AI.sending ? '' : '<button type="button" class="vb-btn vb-btn-ghost vb-ai-stop" id="vb-ai-stop"' + ( AI.stopping ? ' disabled' : '' ) + '>' + T( 'Stop' ) + '</button>' ) + '</div>';
+		}
+		var sel = store.state && store.state.selection, node = sel ? findNode( store.state.tree, sel ) : null;
+		var chip = node ? '<button type="button" class="vb-ai-chip' + ( AI.useSel ? ' on' : '' ) + '" id="vb-ai-sel" aria-pressed="' + ( AI.useSel ? 'true' : 'false' ) + '" title="' + T( 'Tell Claude which element you mean' ) + '">' + svg( AI.useSel ? 'check' : 'target', 12 ) + '<span>' + escapeHtml( node.name || elLabel( node ) ) + '</span></button>' : '';
+		foot.innerHTML = status + ( AI.err ? '<div class="vb-ai-note is-err" role="alert">' + escapeHtml( AI.err ) + '</div>' : '' ) +
+			'<div class="vb-ai-box' + ( busy ? ' is-busy' : '' ) + '">' +
+				'<textarea id="vb-ai-in" rows="1" placeholder="' + escapeHtml( busy ? T( 'Claude is working…' ) : T( 'Describe what to build or change' ) ) + '" aria-label="' + T( 'Message to Claude' ) + '"' + ( busy ? ' disabled' : '' ) + '></textarea>' +
+				'<div class="vb-ai-boxbar">' + chip + '<button type="button" class="vb-ai-send" id="vb-ai-send" aria-label="' + T( 'Send' ) + '"' + ( busy || ! keep.trim() ? ' disabled' : '' ) + '>' + svg( 'arrowup', 16 ) + '</button></div>' +
+			'</div>' +
+			'<p class="vb-ai-hint">' + T( 'Enter sends · Shift+Enter for a new line' ) + '</p>';
+		var nt = document.getElementById( 'vb-ai-in' );
+		if ( nt ) { nt.value = keep; aiGrow( nt ); if ( focused && ! busy ) { nt.focus(); } }
+	}
+	// The selection chip follows what you click on the canvas.
+	store.subscribe( function ( s ) {
+		if ( ! aiShown ) { return; }
+		var sel = s && s.selection;
+		if ( sel !== renderAiFoot._sel ) { renderAiFoot._sel = sel; if ( ! aiBusy() ) { renderAiFoot(); } }
+	} );
+
 	/* ---------- Session history (in-memory, cleared on close) ---------- */
 	var historyShown = false;
 	function timeAgo( ts ) {
@@ -7403,6 +7715,7 @@
 				return;
 			}
 			var sv = e.target.closest( '[data-setview]' ); if ( sv ) { setView = sv.getAttribute( 'data-setview' ); renderSettingsPanel(); return; }
+			if ( e.target.closest( '#vb-ai' ) ) { aiToggle(); return; }
 			if ( e.target.closest( '#vb-history' ) ) { historyShown = ! ( historyShown && 'history' === histMode ); histMode = 'history'; if ( historyShown ) { closeAllPanels( 'hist' ); } renderHistoryPanel(); return; }
 			if ( e.target.closest( '#vb-check' ) ) { historyShown = ! ( historyShown && 'check' === histMode ); histMode = 'check'; if ( historyShown ) { closeAllPanels( 'hist' ); runPageCheck(); checkBadge(); } renderHistoryPanel(); return; }
 			if ( e.target.closest( '#vb-chk-run' ) ) { runPageCheck(); checkBadge(); renderHistoryPanel(); return; }
@@ -8557,7 +8870,7 @@
 		if ( row && row.scrollIntoView ) { row.scrollIntoView( { block:'nearest' } ); }
 	}
 	function closeAllPanels( except ) {
-		var sides = { add:'left', css:'right', hist:'right', struct:'right', settings:'right' };
+		var sides = { add:'left', css:'right', hist:'right', struct:'right', settings:'right', ai:'right' };
 		// Panels on OPPOSITE sides never close each other, pinned or not. Pinning
 		// decides whether a panel pushes or overlays the canvas — it was never
 		// meant to decide whether an unrelated panel is allowed to stay open.
@@ -8567,6 +8880,7 @@
 		if ( except !== 'css' && ! spare( 'css' ) ) { cssShown = false; var c = document.getElementById( 'vb-css' ); if ( c ) { c.style.display = 'none'; } }
 		if ( except !== 'hist' && ! spare( 'hist' ) ) { historyShown = false; var h = document.getElementById( 'vb-hist' ); if ( h ) { h.style.display = 'none'; } }
 		if ( except !== 'struct' && ! spare( 'struct' ) ) { structShown = false; var st = document.getElementById( 'vb-struct' ); if ( st ) { st.style.display = 'none'; } }
+		if ( except !== 'ai' && ! spare( 'ai' ) ) { aiShown = false; var ap = document.getElementById( 'vb-aip' ); if ( ap ) { ap.style.display = 'none'; } }
 		if ( except !== 'settings' && ! spare( 'settings' ) ) { setShown = false; var sp = document.getElementById( 'vb-setpanel' ); if ( sp ) { sp.style.display = 'none'; } }
 		if ( except !== 'brand' ) { var bm = document.getElementById( 'vb-brandmenu' ); if ( bm ) { bm.classList.remove( 'open' ); } }
 		if ( except !== 'switch' ) { var ps = document.getElementById( 'vb-pageswitch' ); if ( ps ) { ps.classList.remove( 'open' ); } }
@@ -9566,10 +9880,12 @@
 		add( P, T( 'Add element' ), function () { toggleAddMenu(); } );
 		add( P, T( 'Structure' ), click( 'vb-structure' ), '', 'navigator layers tree' );
 		add( P, T( 'Global CSS / JS (every page)' ), click( 'vb-code' ), '', 'code css javascript' );
+		add( P, 'Claude', click( 'vb-ai' ), '', 'ai assistant chat ki' );
 		add( P, T( 'History' ), click( 'vb-history' ) );
 		add( P, T( 'Page check' ), click( 'vb-check' ), '', 'accessibility seo alt contrast a11y' );
 		add( P, T( 'Settings' ), click( 'vb-settings' ), '', 'page global styles' );
 		add( P, T( 'Switch page' ), function () { toggleSwitcher(); }, '', 'open page post template' );
+		if ( CFG.reusablesUrl ) { add( P, T( 'Reusables' ), function () { window.open( CFG.reusablesUrl, '_blank', 'noopener' ); }, '', 'components blocks' ); }
 		BP_TOOLBAR.forEach( function ( bp ) {
 			add( V, BP_META[ bp ].label + ' · ' + BP_META[ bp ].range, function () { var b = document.querySelector( '#vb-bp button[data-bp="' + bp + '"]' ); if ( b ) { b.click(); } }, '', 'breakpoint screen responsive' );
 		} );
@@ -9995,7 +10311,7 @@
 			'.vb-app.vb-lcol .vb-dyndata{left:0}',
 			// Pinned panels sit flush against the canvas — the overlay shadow would
 			// read as "floating on top", which is exactly what pinning undoes.
-			'.vb-app.vb-pin-right .vb-csspanel,.vb-app.vb-pin-right .vb-histpanel,.vb-app.vb-pin-right .vb-structpanel,.vb-app.vb-pin-right .vb-setpanel{box-shadow:none;border-left-color:rgba(255,255,255,.07)}',
+			'.vb-app.vb-pin-right .vb-csspanel,.vb-app.vb-pin-right .vb-histpanel,.vb-app.vb-pin-right .vb-structpanel,.vb-app.vb-pin-right .vb-setpanel,.vb-app.vb-pin-right .vb-aipanel{box-shadow:none;border-left-color:rgba(255,255,255,.07)}',
 			'.vb-app.vb-pin-left .vb-addmenu{box-shadow:none;border-right-color:rgba(255,255,255,.07)}',
 			// Scrim only appears for UNPINNED panels — a pinned panel owns its own
 			// space, so dimming the canvas there would be wrong.
@@ -10594,6 +10910,13 @@
 			'@media (max-width:1240px){.vb-top .vb-add-top .vb-lbl,.vb-top #vb-view .vb-lbl{display:none}.vb-top .vb-add-top{width:32px;padding:0}.vb-top #vb-view{padding:0 8px}.vb-docstat{width:20px;padding:0;justify-content:center;font-size:0;gap:0}}',
 			'@media (max-width:1100px){.vb-top .vb-kind{display:none}.vb-top .vb-title{max-width:130px}.vb-top{gap:6px}}',
 			'@media (max-width:960px){.vb-top .vb-tb-r .vb-tsep,#vb-tgl-left,#vb-tgl-right{display:none}.vb-top .vb-bp button{width:30px}}',
+			// The same steps when the bar is simply too full (fitTopbar), at any width.
+			'.vb-top.vb-c1 > .vb-tbc.vb-tb-l{flex:0 1 auto}.vb-top.vb-c1 > .vb-tbc.vb-tbc-center{flex:1 1 auto;justify-content:center}.vb-top.vb-c1 > .vb-tbc.vb-tb-r{flex:0 0 auto}',
+			'.vb-top.vb-c1 .vb-add-top .vb-lbl,.vb-top.vb-c1 #vb-view .vb-lbl{display:none}.vb-top.vb-c1 .vb-add-top{width:32px;padding:0}.vb-top.vb-c1 #vb-view{padding:0 8px}.vb-top.vb-c1 .vb-docstat{width:20px;padding:0;justify-content:center;font-size:0;gap:0}',
+			'.vb-top.vb-c2 .vb-kind{display:none}.vb-top.vb-c2 .vb-title{max-width:130px}',
+			'.vb-top.vb-c3 .vb-tb-r .vb-tsep,.vb-top.vb-c3 #vb-tgl-left,.vb-top.vb-c3 #vb-tgl-right{display:none}.vb-top.vb-c3 .vb-title{max-width:100px}',
+			'.vb-top.vb-c4 #vb-reusables,.vb-top.vb-c4 #vb-search,.vb-top.vb-c4 #vb-viewas-wrap{display:none}',
+			'.vb-top.vb-c5 #vb-code,.vb-top.vb-c5 #vb-check,.vb-top.vb-c5 .vb-docstat{display:none}.vb-top.vb-c5 .vb-title{max-width:72px}',
 			'@media (prefers-reduced-motion:reduce){.vb-bp-thumb,.vb-docstat.is-live::before{transition:none;animation:none}}',
 			/* ===== 4.27 inspector ===== */
 			'.vb-inspector{background:var(--vb-bg1)}',
@@ -10953,6 +11276,54 @@
 			'#vb-inspector .vb-sel-st{flex-basis:100px}',
 			'/* ===== 4.45 one look for every panel ===== */',
 			'.vb-csspanel{width:var(--vb-pw-css,380px)}.vb-histpanel{width:var(--vb-pw-hist,320px)}.vb-structpanel{width:var(--vb-pw-struct,300px)}.vb-setpanel{width:var(--vb-pw-settings,340px)}',
+			'body.velox-builder-body #vxth{right:calc(var(--vb-cur-rw,0px) + 16px)}',
+			'.vb-aipanel{position:absolute;top:48px;right:0;bottom:0;width:var(--vb-pw-ai,380px);background:var(--vb-bg1);border-left:1px solid rgba(255,255,255,.12);box-shadow:-8px 0 40px rgba(0,0,0,.5);z-index:130;display:none;flex-direction:column}',
+			'.vb-top .vb-aibtn{color:#e9a587;background:rgba(217,119,87,.12);box-shadow:inset 0 0 0 1px rgba(217,119,87,.28)}',
+			'.vb-top .vb-aibtn:hover,.vb-top .vb-aibtn.on{color:#fff;background:rgba(217,119,87,.3);box-shadow:inset 0 0 0 1px rgba(217,119,87,.5)}',
+			'#vb-aip .vb-ai-model{margin-left:-4px;padding:2px 7px;border-radius:6px;background:var(--vb-bg3);color:var(--vb-tx3);font-size:11px;font-weight:500}',
+			'.vb-ai-list{flex:1 1 auto;min-height:0;overflow:auto;padding:16px;display:flex;flex-direction:column;gap:12px;scrollbar-width:thin}',
+			'.vb-ai-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;margin:auto 0;padding:16px 8px;text-align:center;color:var(--vb-tx3)}',
+			'.vb-ai-empty b{color:var(--vb-tx1);font-size:14px;font-weight:600}',
+			'.vb-ai-empty p{margin:0;font-size:12.5px;line-height:1.55;max-width:290px}',
+			'.vb-ai-mark{display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:rgba(217,119,87,.14);color:#e9a587}',
+			'.vb-ai-small{font-size:12px!important}',
+			'.vb-ai-sugs{display:flex;flex-direction:column;gap:8px;width:100%;margin-top:8px}',
+			'.vb-ai-sugs button{margin:0;padding:10px 12px;border:0;border-radius:10px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line);color:var(--vb-tx2);font-size:12.5px;line-height:1.45;text-align:left;cursor:pointer;transition:background .12s var(--vx-ease),color .12s var(--vx-ease)}',
+			'.vb-ai-sugs button:hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			'.vb-ai-msg{max-width:92%;font-size:13px;line-height:1.55;color:var(--vb-tx1);overflow-wrap:anywhere}',
+			'.vb-ai-me{align-self:flex-end;padding:9px 12px;border-radius:12px 12px 4px 12px;background:var(--vb-bg3)}',
+			'.vb-ai-it{align-self:flex-start;max-width:100%}',
+			'.vb-ai-it code{padding:1px 5px;border-radius:4px;background:var(--vb-bg3);font-size:12px}',
+			'.vb-ai-acts{display:flex;flex-direction:column;gap:4px;margin:0;padding:0;list-style:none}',
+			'.vb-ai-acts li{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--vb-tx3)}',
+			'.vb-ai-acts li svg{flex:none;color:#6fcf97}',
+			'.vb-ai-acts li.is-bad svg,.vb-ai-acts li.is-bad{color:#f08c8c}',
+			'.vb-ai-acts a{color:#8fdcfb;text-decoration:none}',
+			'.vb-ai-note{padding:9px 12px;border-radius:10px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line);color:var(--vb-tx2);font-size:12.5px;line-height:1.5}',
+			'.vb-ai-note.is-err{background:rgba(240,90,90,.1);box-shadow:inset 0 0 0 1px rgba(240,90,90,.3);color:#f5b1b1}',
+			'.vb-ai-foot{flex:none;display:flex;flex-direction:column;gap:8px;padding:12px 16px 14px;border-top:1px solid var(--vb-line)}',
+			'.vb-ai-status{display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--vb-tx2)}',
+			'.vb-ai-status .vb-ls-spin{flex:none;width:14px;height:14px;border-width:2px}',
+			'.vb-ai-status>span:nth-child(2){flex:1 1 auto;min-width:0}',
+			'.vb-ai-stop{height:28px;padding:0 12px;font-size:12px}',
+			'.vb-ai-box{display:flex;flex-direction:column;border-radius:12px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line2);transition:box-shadow .12s var(--vx-ease)}',
+			'.vb-ai-box:focus-within{box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.16)}',
+			'.vb-ai-box.is-busy{opacity:.6}',
+			'#vb-ai-in{display:block;width:100%;min-height:44px;max-height:180px;box-sizing:border-box;margin:0;padding:12px 12px 4px;border:0;border-radius:12px 12px 0 0;background:none;box-shadow:none;outline:none;resize:none;color:var(--vb-tx1);font:inherit;font-size:13px;line-height:1.5}',
+			'#vb-ai-in::placeholder{color:var(--vb-tx3)}',
+			'.vb-ai-boxbar{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 6px 6px 8px}',
+			'.vb-ai-chip{display:inline-flex;align-items:center;gap:6px;max-width:220px;height:26px;margin:0;padding:0 9px;border:0;border-radius:7px;background:none;box-shadow:inset 0 0 0 1px var(--vb-line2);color:var(--vb-tx3);font-size:11.5px;cursor:pointer}',
+			'.vb-ai-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+			'.vb-ai-chip.on{background:rgba(42,183,241,.12);box-shadow:inset 0 0 0 1px rgba(42,183,241,.35);color:#8fdcfb}',
+			'.vb-ai-send{display:grid;place-items:center;flex:none;width:30px;height:30px;margin:0 0 0 auto;padding:0;border:0;border-radius:8px;background:#d97757;color:#fff;cursor:pointer;transition:background .12s var(--vx-ease),opacity .12s var(--vx-ease)}',
+			'.vb-ai-send:hover{background:#e3866a}',
+			'.vb-ai-send:disabled{opacity:.35;cursor:default;background:var(--vb-bg4)}',
+			'.vb-ai-send:focus-visible,.vb-ai-chip:focus-visible,.vb-ai-sugs button:focus-visible{outline:2px solid var(--vb-acc);outline-offset:2px}',
+			'.vb-ai-hint{margin:0;font-size:11px;color:var(--vb-tx3);text-align:center}',
+			'.vb-app.vb-ai-busy #vb-canvas-wrap{position:relative}',
+			'.vb-app.vb-ai-busy #vb-canvas-wrap::after{content:"";position:absolute;inset:0;z-index:5;box-shadow:inset 0 0 0 2px rgba(217,119,87,.55);pointer-events:none;animation:vbAiPulse 1.6s ease-in-out infinite}',
+			'@keyframes vbAiPulse{50%{box-shadow:inset 0 0 0 2px rgba(217,119,87,.2)}}',
+			'@media (prefers-reduced-motion:reduce){.vb-app.vb-ai-busy #vb-canvas-wrap::after{animation:none}}',
 			'.vb-rresize{position:absolute;top:48px;bottom:0;right:calc(var(--vb-cur-rw,0px) - 3px);width:6px;z-index:136;cursor:col-resize;display:none}',
 			'.vb-app.vb-has-right .vb-rresize{display:block}',
 			'.vb-rresize::after{content:\'\';position:absolute;top:50%;left:50%;width:4px;height:40px;border-radius:2px;background:var(--vb-line2);transform:translate(-50%,-50%);opacity:0;transition:opacity .15s,background .15s;pointer-events:none}',
@@ -10962,19 +11333,19 @@
 			'.vb-app ::-webkit-scrollbar-thumb{background:rgba(255,255,255,.12);border-radius:8px;border:2px solid transparent;background-clip:padding-box}',
 			'.vb-app ::-webkit-scrollbar-thumb:hover{background-color:rgba(255,255,255,.22)}',
 			'.vb-app ::-webkit-scrollbar-button{display:none;height:0;width:0}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) :is(.vb-hist-top,.vb-ap-h){display:flex;align-items:center;gap:10px;height:48px;box-sizing:border-box;margin:0;padding:0 8px 0 16px;border-bottom:1px solid var(--vb-line)}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) :is(.vb-hist-top,.vb-ap-h)>b{flex:1 1 auto;font-size:13px;font-weight:600;color:var(--vb-tx1);letter-spacing:.005em}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) .vb-ap-plus{display:grid;place-items:center;color:var(--vb-tx3)}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) .vb-p-acts{display:flex;align-items:center;gap:2px}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) :is(.vb-css-x,.vb-ap-x,.vb-pinbtn){display:grid;place-items:center;width:28px;height:28px;margin:0;padding:0;border:0;border-radius:7px;background:none;color:var(--vb-tx3);cursor:pointer;transition:background .12s var(--vx-ease),color .12s var(--vx-ease)}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) :is(.vb-css-x,.vb-ap-x,.vb-pinbtn):hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) .vb-pinbtn.on{background:rgba(42,183,241,.14);color:#8fdcfb}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) :is(.vb-st-search,.vb-ap-search){position:relative;display:flex;align-items:center;gap:8px;height:32px;box-sizing:border-box;margin:12px 16px;padding:0 8px 0 10px;border:0;border-radius:8px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line2);color:var(--vb-tx3)}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) :is(.vb-st-search,.vb-ap-search):focus-within{box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.18)}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) :is(.vb-st-search,.vb-ap-search) .vb-ss-ic{position:static;display:grid;place-items:center;transform:none}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) :is(.vb-st-search,.vb-ap-search) .vb-ss-ic svg{width:14px;height:14px}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) :is(.vb-st-search,.vb-ap-search) input{flex:1 1 auto;min-width:0;height:30px;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;outline:none;color:var(--vb-tx1);font-size:12.5px}',
-			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-addmenu) :is(.vb-st-search,.vb-ap-search) input::placeholder{color:var(--vb-tx3)}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) :is(.vb-hist-top,.vb-ap-h){display:flex;align-items:center;gap:10px;height:48px;box-sizing:border-box;margin:0;padding:0 8px 0 16px;border-bottom:1px solid var(--vb-line)}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) :is(.vb-hist-top,.vb-ap-h)>b{flex:1 1 auto;font-size:13px;font-weight:600;color:var(--vb-tx1);letter-spacing:.005em}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) .vb-ap-plus{display:grid;place-items:center;color:var(--vb-tx3)}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) .vb-p-acts{display:flex;align-items:center;gap:2px}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) :is(.vb-css-x,.vb-ap-x,.vb-pinbtn){display:grid;place-items:center;width:28px;height:28px;margin:0;padding:0;border:0;border-radius:7px;background:none;color:var(--vb-tx3);cursor:pointer;transition:background .12s var(--vx-ease),color .12s var(--vx-ease)}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) :is(.vb-css-x,.vb-ap-x,.vb-pinbtn):hover{background:var(--vb-bg3);color:var(--vb-tx1)}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) .vb-pinbtn.on{background:rgba(42,183,241,.14);color:#8fdcfb}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) :is(.vb-st-search,.vb-ap-search){position:relative;display:flex;align-items:center;gap:8px;height:32px;box-sizing:border-box;margin:12px 16px;padding:0 8px 0 10px;border:0;border-radius:8px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line2);color:var(--vb-tx3)}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) :is(.vb-st-search,.vb-ap-search):focus-within{box-shadow:inset 0 0 0 1px var(--vb-acc),0 0 0 3px rgba(42,183,241,.18)}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) :is(.vb-st-search,.vb-ap-search) .vb-ss-ic{position:static;display:grid;place-items:center;transform:none}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) :is(.vb-st-search,.vb-ap-search) .vb-ss-ic svg{width:14px;height:14px}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) :is(.vb-st-search,.vb-ap-search) input{flex:1 1 auto;min-width:0;height:30px;margin:0;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;outline:none;color:var(--vb-tx1);font-size:12.5px}',
+			':is(#vb-struct,#vb-css,#vb-hist,#vb-setpanel,#vb-aip,#vb-addmenu) :is(.vb-st-search,.vb-ap-search) input::placeholder{color:var(--vb-tx3)}',
 			'#vb-struct .vb-st-tree{padding:0 8px 16px}',
 			'#vb-struct .vb-st-row{position:relative;height:30px;gap:6px;margin:0 0 1px;padding-right:6px;border-radius:7px;color:var(--vb-tx2);background-image:repeating-linear-gradient(90deg,transparent 0 13px,rgba(255,255,255,.05) 13px 14px,transparent 14px 15px);background-size:calc(var(--d,0) * 15px) 100%;background-repeat:no-repeat;background-position:9px 0}',
 			'#vb-struct .vb-st-row:hover{background-color:rgba(255,255,255,.04)}',

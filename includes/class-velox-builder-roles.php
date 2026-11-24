@@ -26,7 +26,8 @@ class Velox_Builder_Roles {
 
 	/** What a non-admin may ask the server for (each handler still checks the document). */
 	const CLIENT_ACTIONS   = array( 'builder_save', 'builder_load', 'builder_publish', 'builder_discard_draft', 'builder_preview_css', 'builder_loop_preview', 'builder_shop_preview', 'builder_revisions', 'builder_revision' );
-	const DESIGNER_ACTIONS = array( 'builder_class_css' );
+	// Designers may also chat with the AI assistant (it checks the document and their rights again).
+	const DESIGNER_ACTIONS = array( 'builder_class_css', 'ai_send', 'ai_continue', 'ai_poll', 'ai_stop', 'ai_reset' );
 
 	public static function init() {
 		// Administrators always have every builder capability.
