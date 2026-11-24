@@ -4,6 +4,18 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.70.0 — Essentials that fit each element, the shop design page by page
+- **Essentials per element:** the inspector's first tab now shows what the selected element is: its own settings first, then only the styles that belong to it. An image gets size, fit and corners; a heading gets its type; a section gets layout, spacing and background; a code block shows only its HTML, CSS and JavaScript fields; a carousel, tabs, an accordion or a shop part show their own settings and nothing like “display: flex”. Every other property is one click away under All styles.
+- **Advanced:** animations, motion, interactions, conditions, attributes and custom CSS moved to their own tab, Advanced. Picking another element opens it on Essentials again.
+- **Tabs showed the wrong settings:** a Tabs element showed the content switcher's options. Fixed.
+- **The left column can no longer be closed for good:** the button left of “Add” (and its shortcut) hid the Velox settings column with no way back. It is gone.
+- **Particles in the editor:** a section with floating particles shows them on the canvas too, as on the live site.
+- **Shop: switching pages fast:** clicking quickly between Reviews, Settings and other pages could leave the menu on one page and the content of another. The last page clicked always wins now.
+- **Shop design, page by page:** Settings → Design is split into “Everywhere” (colours, fonts, buttons, cards) and one section per page you open and close: Shop page, Product page, Cart & checkout, Customer account. Each section ends with “… in Velox Builder”, which turns that page into a builder page holding the same shop part, so you can frame and style it by hand. The page keeps showing the old way until you publish it in the builder.
+- **Shop parts in Velox Builder have their own settings:** cart, checkout, customer account and withdrawal form take a button colour and corner radius of their own; the checkout a one- or two-column layout; the account its menu style and a maximum width.
+- **Your own colours over a template are shown:** if colours of your own sit on top of the chosen template (why a dark template can look light), a note above the templates lists them, with “Use … as it comes” to clear them.
+- Journal template: the wishlist heart no longer covers the text in the list layout.
+
 ## 4.69.0 — Tours and built-in help for the shop and the builder
 - **A tour on the first switch-on:** whoever switches the shop or Velox Builder on is taken to its dashboard on the next page and gets a short guided tour (shop: 10 steps through orders, products, pages, payments, shipping, design, texts; builder: 8 steps through pages, templates, reusables, design system, Claude and the editor). The page dims, the part being explained stays lit, Back / Next / Skip, arrow keys and Escape work.
 - **Skip shows where to start it again:** skipping lands on Shop → Settings → Help & tour or Velox Builder → Settings, with the “Start the tour” button highlighted.
