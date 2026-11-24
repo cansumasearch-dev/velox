@@ -10906,7 +10906,7 @@
 			'.vb-top.vb-c2 .vb-kind{display:none}.vb-top.vb-c2 .vb-title{max-width:130px}',
 			'.vb-top.vb-c3 .vb-tb-r .vb-tsep,.vb-top.vb-c3 #vb-tgl-left,.vb-top.vb-c3 #vb-tgl-right{display:none}.vb-top.vb-c3 .vb-title{max-width:100px}',
 			'.vb-top.vb-c4 #vb-reusables,.vb-top.vb-c4 #vb-search,.vb-top.vb-c4 #vb-viewas-wrap{display:none}',
-			'.vb-top.vb-c5 #vb-code,.vb-top.vb-c5 #vb-check{display:none}',
+			'.vb-top.vb-c5 #vb-code,.vb-top.vb-c5 #vb-check{display:none}.vb-top.vb-c5 .vb-title{max-width:72px}',
 			'@media (prefers-reduced-motion:reduce){.vb-bp-thumb,.vb-docstat.is-live::before{transition:none;animation:none}}',
 			/* ===== 4.27 inspector ===== */
 			'.vb-inspector{background:var(--vb-bg1)}',
