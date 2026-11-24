@@ -5150,7 +5150,7 @@
 				if ( onlySet ) { open = true; }
 				var closed = open ? '' : ' closed';
 				var cat = STYLE_CATS[ g.group ];
-				if ( 'all' === tab && ! onlySet && cat && cat !== lastCat ) { body += '<div class="vb-cat">' + T( cat ) + '</div>'; }
+				// One flat list (Oxygen's Advanced): the group names say enough.
 				lastCat = cat;
 				body += '<div class="vb-block' + closed + '"><div class="vb-block-h" data-block="' + g.group + '"><span class="vb-block-ic">' + svg( g.icon, 16 ) + '</span><b>' + T( g.group ) + '</b>' +
 					( nSet ? '<span class="vb-block-n" title="' + nSet + ' ' + T( 'set here' ) + '">' + nSet + '</span>' +
@@ -5863,7 +5863,8 @@
 			var key = h.getAttribute( 'data-setsec' ) || h.textContent.trim();
 			h.setAttribute( 'data-setsec', key );
 			h.setAttribute( 'role', 'button' ); h.setAttribute( 'tabindex', '0' );
-			var open = Object.prototype.hasOwnProperty.call( setsecOpen, key ) ? !! setsecOpen[ key ] : i < 2;
+			// Advanced lists its behaviour rows closed (Oxygen); an element's own settings open the first two.
+			var open = Object.prototype.hasOwnProperty.call( setsecOpen, key ) ? !! setsecOpen[ key ] : ( sec.closest( '.vb-adv-set' ) ? false : i < 2 );
 			sec.classList.add( 'vb-acc' ); sec.classList.toggle( 'closed', ! open );
 			h.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
 			if ( ! h.querySelector( '.vb-setsec-cv' ) ) { h.insertAdjacentHTML( 'beforeend', '<span class="vb-setsec-cv">' + svg( 'chevron', 12 ) + '</span>' ); }
@@ -5877,9 +5878,10 @@
 		setsecOpen[ h.getAttribute( 'data-setsec' ) ] = open;
 		try { window.localStorage.setItem( 'velox_builder_setsec', JSON.stringify( setsecOpen ) ); } catch ( e ) {}
 	}
-	/* The inspector's tabs: Essentials = what this element is (its own settings)
-	 * plus the few styles that matter for its kind; All styles = every style;
-	 * Advanced = animations, interactions, conditions, attributes, custom CSS. */
+	/* The inspector's tabs (Oxygen's Primary | Advanced): Essentials = what this
+	 * element is (its own settings) plus the few styles that matter for its
+	 * kind, in design words; Advanced = every style, then animations,
+	 * interactions, conditions, attributes and custom CSS. */
 	function settingsTabHTML( node ) {
 		if ( 'client' === ACCESS.level ) { return clientSettingsHTML( node ); }
 		return '<div class="vb-setwrap">' + elementSettingsHTML( node ) + advancedSettingsHTML( node ) + '</div>';
