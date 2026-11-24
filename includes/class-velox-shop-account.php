@@ -1048,7 +1048,9 @@ class Velox_Shop_Account {
 			default:
 				$body = self::tab_overview( $u );
 		}
-		return '<div class="vxa vxs-account">' . $head . $nav . '<div class="vxa-body">' . self::note_html() . $body . '</div></div>';
+		$an = (string) ( Velox_Shop::design()['acc_nav'] ?? 'tabs' );
+		$an = in_array( $an, array( 'tabs', 'side', 'pills' ), true ) ? $an : 'tabs';
+		return '<div class="vxa vxs-account vxa-nav-' . $an . '">' . $head . $nav . '<div class="vxa-body">' . self::note_html() . $body . '</div></div>';
 	}
 
 	private static function guest( $tab ) {

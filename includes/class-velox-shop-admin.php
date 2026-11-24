@@ -143,6 +143,7 @@ class Velox_Shop_Admin {
 			'countries' => Velox_Shop::countries(),
 			'methods'   => $methods,
 			'designs'   => Velox_Shop::presets(),
+			'shopPages' => self::pages_status(),
 			'stripeTypes' => Velox_Shop_Pay::stripe_types(),
 			'currencyCode' => strtoupper( (string) Velox_Shop::get( 'currency', 'EUR' ) ),
 			'cartStats'    => Velox_Shop_Extras::cart_stats(),
@@ -1700,6 +1701,46 @@ class Velox_Shop_Admin {
 	 * Settings → Design: the real product grid and cart button, drawn with
 	 * the choices on screen (not saved yet), as a small standalone page.
 	 */
+	/** Settings → Design → "Open a test page": the unsaved choices, on the real shop, for 30 minutes. */
+	private static function do_design_try( $in ) {
+		$keys = array( 'design', 'card_ratio', 'custom_css' );
+		foreach ( Velox_Shop::DESIGN_KEYS as $k ) {
+			$keys[] = 'd_' . $k;
+		}
+		$vals = array();
+		foreach ( (array) ( $in['settings'] ?? array() ) as $k => $v ) {
+			if ( in_array( $k, $keys, true ) && is_scalar( $v ) ) {
+				$vals[ $k ] = 'custom_css' === $k ? self::clean_css( (string) $v ) : sanitize_text_field( (string) $v );
+			}
+		}
+		$token = strtolower( wp_generate_password( 16, false, false ) );
+		set_transient( 'velox_shop_try_' . $token, $vals, 30 * MINUTE_IN_SECONDS );
+		// The test page shows the template's real fonts: fetch them now if needed.
+		Velox_Shop::override( $vals );
+		Velox_Shop::fonts_url( Velox_Shop::design(), true );
+		$where = (string) ( $in['where'] ?? 'shop' );
+		$page  = (int) Velox_Shop::get( 'page_' . ( in_array( $where, array( 'shop', 'cart', 'checkout', 'account' ), true ) ? $where : 'shop' ), 0 );
+		$url   = $page ? get_permalink( $page ) : home_url( '/' );
+		if ( 'product' === $where ) {
+			$first = get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids' ) );
+			$url   = $first ? get_permalink( (int) $first[0] ) : $url;
+		}
+		return array( 'url' => add_query_arg( 'vxs_try', $token, $url ) );
+	}
+
+	/** Settings → Texts: every text customers see. */
+	private static function do_texts( $in ) {
+		return array( 'texts' => Velox_Shop_Texts::catalog(), 'areas' => Velox_Shop_Texts::areas() );
+	}
+
+	private static function do_texts_save( $in ) {
+		$ok = Velox_Shop_Texts::save( (array) ( $in['changes'] ?? array() ) );
+		if ( is_wp_error( $ok ) ) {
+			return $ok;
+		}
+		return array( 'texts' => Velox_Shop_Texts::catalog() );
+	}
+
 	private static function do_design_preview( $in ) {
 		$keys = array( 'design', 'card_ratio', 'accent', 'custom_css' );
 		foreach ( Velox_Shop::DESIGN_KEYS as $k ) {
@@ -1714,9 +1755,10 @@ class Velox_Shop_Admin {
 		$vals['buy_bar'] = '0';
 		Velox_Shop::override( $vals );
 		$d    = Velox_Shop::design();
-		$grid = Velox_Shop_Front::grid( array( 'count' => 8, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '1', 'ids' => '' ) );
+		$mini = ! empty( $in['mini'] );
+		$grid = Velox_Shop_Front::grid( array( 'count' => $mini ? 4 : 8, 'columns' => '', 'category' => '', 'sort' => $mini ? '' : 'menu', 'filter' => $mini ? '' : '1', 'ids' => '' ) );
 		// The first product as its product page, so photos, buy box and type show too.
-		$first = get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'orderby' => array( 'menu_order' => 'ASC', 'date' => 'DESC' ) ) );
+		$first = $mini ? array() : get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'orderby' => array( 'menu_order' => 'ASC', 'date' => 'DESC' ) ) );
 		$page  = $first ? Velox_Shop_Front::product_layout( Velox_Shop::product( (int) $first[0] ), '' ) : '';
 		// Fonts are fetched once and kept on this site; the preview shows the real ones.
 		$fonts = Velox_Shop::fonts_url( $d, true );

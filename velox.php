@@ -104,6 +104,7 @@ spl_autoload_register( function ( $class ) {
 		'Velox_Shop_Admin'         => 'includes/class-velox-shop-admin.php',
 		'Velox_Shop_Front'         => 'includes/class-velox-shop-front.php',
 		'Velox_Shop_Pay'           => 'includes/class-velox-shop-pay.php',
+		'Velox_Shop_Texts'         => 'includes/class-velox-shop-texts.php',
 		'Velox_Site_Scan'          => 'includes/class-velox-sitescan.php',
 		'Velox_Site_Scan_Fix'      => 'includes/class-velox-sitescan-fix.php',
 		'Velox_Snippets'           => 'includes/class-velox-snippets.php',

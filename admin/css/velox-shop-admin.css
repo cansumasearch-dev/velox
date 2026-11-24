@@ -635,3 +635,28 @@ select.vsa-in option{background:var(--vbb-panel);color:var(--vbb-text)}
 .vsa-pg-l a{color:var(--vbb-text-3);text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vsa-pg-l a:hover{color:var(--vbb-text)}
 .vsa-pg.is-miss .vsa-pg-l b{color:var(--vbb-text)}
+/* 4.68: template tiles show the template on real products */
+.vsa-tpl-pv{position:relative;display:block;overflow:hidden;border-radius:8px}
+.vsa-tpl-pv.has-pv{aspect-ratio:16/10;background:#fff}
+.vsa-tpl-pv.has-pv>.vsa-mk2{visibility:hidden}
+.vsa-tpl-pv iframe{position:absolute;top:0;left:0;width:1280px;height:800px;border:0;transform-origin:0 0;pointer-events:none}
+.vsa-try{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--vbb-line)}
+.vsa-try>span{display:inline-flex;align-items:center;gap:6px;margin-right:4px;font-size:13px;color:var(--vbb-text-2)}
+.vsa-bld{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.vsa-bld .is-off{opacity:.5;cursor:default}
+/* 4.68: Texts */
+.vsa-txbar{display:flex;flex-direction:column;gap:10px;margin:14px 0}
+.vsa-txchips{display:flex;flex-wrap:wrap;gap:6px}
+.vsa-chipbtn{height:30px;padding:0 12px;border:1px solid var(--vbb-line);border-radius:999px;background:none;color:var(--vbb-text-2);font:500 12.5px/1 var(--vbb-font);cursor:pointer}
+.vsa-chipbtn:hover{color:var(--vbb-text)}
+.vsa-chipbtn.is-on{background:var(--vbb-accent-soft);border-color:rgba(42,183,241,.45);color:var(--vbb-text)}
+.vsa-txl{margin:0;padding:0;list-style:none;border-top:1px solid var(--vbb-line)}
+.vsa-txr{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;align-items:center;padding:10px 0;border-bottom:1px solid var(--vbb-line)}
+.vsa-txo{display:flex;flex-direction:column;gap:2px;min-width:0}
+.vsa-txo small{font-size:11px;color:var(--vbb-text-3);text-transform:uppercase;letter-spacing:.04em}
+.vsa-txo span{font-size:13px;color:var(--vbb-text-2);line-height:1.45;overflow-wrap:anywhere}
+.vsa-txr.is-own .vsa-txo span{text-decoration:line-through;opacity:.6}
+.vsa-txi{display:flex;gap:6px;align-items:flex-start}
+.vsa-txi textarea{flex:1 1 auto;min-height:38px;resize:vertical;font-size:13px;line-height:1.45}
+.vsa-txsave{position:sticky;bottom:0;display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:14px;padding:12px 0 0;background:var(--vbb-panel);font-size:13px;color:var(--vbb-text-2)}
+@media (max-width:760px){.vsa-txr{grid-template-columns:1fr;gap:6px}}

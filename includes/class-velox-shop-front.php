@@ -37,6 +37,32 @@ class Velox_Shop_Front {
 		add_action( 'init', array( __CLASS__, 'block_template' ), 20 );
 		add_filter( 'render_block_data', array( __CLASS__, 'mark_template' ) );
 		add_filter( 'body_class', array( __CLASS__, 'body_class' ) );
+		add_action( 'init', array( __CLASS__, 'design_try' ), 40 );
+	}
+
+	/**
+	 * "Open a test page" in Settings → Design: an administrator sees the shop
+	 * with the choices not saved yet (kept 30 minutes). Visitors never do.
+	 */
+	public static function design_try() {
+		if ( empty( $_GET['vxs_try'] ) || ! current_user_can( 'manage_options' ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+			return;
+		}
+		$vals = get_transient( 'velox_shop_try_' . sanitize_key( wp_unslash( $_GET['vxs_try'] ) ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		if ( ! is_array( $vals ) ) {
+			return;
+		}
+		if ( ! defined( 'DONOTCACHEPAGE' ) ) {
+			define( 'DONOTCACHEPAGE', true );
+		}
+		Velox_Shop::override( $vals );
+		$token = sanitize_key( wp_unslash( $_GET['vxs_try'] ) ); // phpcs:ignore WordPress.Security.NonceVerification.Recommended
+		// Links inside the shop keep the test design.
+		add_filter( 'post_type_link', function ( $url ) use ( $token ) { return add_query_arg( 'vxs_try', $token, $url ); } );
+		add_filter( 'page_link', function ( $url ) use ( $token ) { return add_query_arg( 'vxs_try', $token, $url ); } );
+		add_action( 'wp_footer', function () {
+			echo '<div class="vxs-trybar" role="status">' . esc_html__( 'Test page: the design choices you have not saved yet. Visitors still see the saved design.', 'velox' ) . '</div>';
+		} );
 	}
 
 	/**
@@ -388,7 +414,8 @@ class Velox_Shop_Front {
 				$cnt   = function ( $slug ) use ( $facets ) {
 					return $facets && isset( $facets['cats'][ $slug ] ) ? ' <small>' . (int) $facets['cats'][ $slug ] . '</small>' : '';
 				};
-				$cats .= '<nav class="vxs-cats" aria-label="' . esc_attr__( 'Categories', 'velox' ) . '"><a href="' . esc_url( $base ) . '"' . ( $cat ? '' : ' aria-current="true"' ) . ' data-vxs-nav>' . esc_html__( 'All', 'velox' ) . $cnt( '' ) . '</a>';
+				$cst   = (string) ( Velox_Shop::design()['cats_style'] ?? 'pills' );
+				$cats .= '<nav class="vxs-cats is-' . esc_attr( in_array( $cst, array( 'pills', 'underline', 'blocks' ), true ) ? $cst : 'pills' ) . '" aria-label="' . esc_attr__( 'Categories', 'velox' ) . '"><a href="' . esc_url( $base ) . '"' . ( $cat ? '' : ' aria-current="true"' ) . ' data-vxs-nav>' . esc_html__( 'All', 'velox' ) . $cnt( '' ) . '</a>';
 				foreach ( $terms as $t ) {
 					if ( $facets && empty( $facets['cats'][ $t->slug ] ) && $cat !== $t->slug ) {
 						continue; // nothing left in it with these filters
