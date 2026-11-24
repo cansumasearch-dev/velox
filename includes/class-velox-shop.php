@@ -1732,7 +1732,7 @@ class Velox_Shop {
 		}
 		$pickup = $o['shipping'] && 'pickup' === ( $o['shipping']['type'] ?? '' );
 		$url = trim( (string) $url );
-		$o['fulfil'] = array( 'status' => $pickup ? 'ready' : 'shipped', 'carrier' => sanitize_text_field( $carrier ), 'tracking' => sanitize_text_field( $tracking ), 'url' => preg_match( '#^https?://#i', $url ) ? esc_url_raw( $url ) : '', 'at' => time() );
+		$o['fulfil'] = array( 'status' => $pickup ? 'ready' : 'shipped', 'carrier' => sanitize_text_field( $carrier ), 'tracking' => sanitize_text_field( $tracking ), 'url' => preg_match( '#^https?://#i', $url ) ? str_replace( 'VXTRACKCODE', '{code}', esc_url_raw( str_replace( '{code}', 'VXTRACKCODE', $url ) ) ) : '', 'at' => time() );
 		self::note( $o, $pickup ? __( 'Ready for pickup.', 'velox' ) : __( 'Shipped.', 'velox' ) . ( $tracking ? ' ' . $carrier . ' ' . $tracking : '' ) );
 		self::save_order( $id, $o );
 		self::mail( 'shipped', $o );
