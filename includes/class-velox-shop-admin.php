@@ -1814,10 +1814,37 @@ class Velox_Shop_Admin {
 		Velox_Shop::override( $vals );
 		$d    = Velox_Shop::design();
 		$mini = ! empty( $in['mini'] );
-		$grid = Velox_Shop_Front::grid( array( 'count' => $mini ? 4 : 8, 'columns' => '', 'category' => '', 'sort' => $mini ? '' : 'menu', 'filter' => $mini ? '' : '1', 'ids' => '' ) );
-		// The first product as its product page, so photos, buy box and type show too.
-		$first = $mini ? array() : get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 1, 'fields' => 'ids', 'orderby' => array( 'menu_order' => 'ASC', 'date' => 'DESC' ) ) );
-		$page  = $first ? Velox_Shop_Front::product_layout( Velox_Shop::product( (int) $first[0] ), '' ) : '';
+		// Which page to draw: the shop page, a product page, cart and checkout, or
+		// the customer account. Without one: the grid and a product (the tiles).
+		$which = sanitize_key( (string) ( $in['page'] ?? '' ) );
+		$which = in_array( $which, array( 'shop', 'product', 'cart', 'account' ), true ) && ! $mini ? $which : '';
+		$first = $mini || 'shop' === $which ? array() : get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 2, 'fields' => 'ids', 'orderby' => array( 'menu_order' => 'ASC', 'date' => 'DESC' ) ) );
+		$grid = '';
+		$page = '';
+		if ( '' === $which || 'shop' === $which ) {
+			$grid = Velox_Shop_Front::grid( array( 'count' => $mini ? 4 : 8, 'columns' => '', 'category' => '', 'sort' => $mini ? '' : 'menu', 'filter' => $mini ? '' : '1', 'ids' => '' ) );
+		}
+		if ( ( '' === $which || 'product' === $which ) && $first ) {
+			// The first product as its product page, so photos, buy box and type show too.
+			$page = Velox_Shop_Front::product_layout( Velox_Shop::product( (int) $first[0] ), '' );
+		}
+		if ( 'cart' === $which ) {
+			// A sample cart with the first products: the cart, then the checkout.
+			$cart = array();
+			foreach ( $first as $pid ) {
+				$p = Velox_Shop::product( (int) $pid );
+				$v = $p && ! empty( $p['variants'] ) ? (string) ( $p['variants'][0]['id'] ?? '' ) : '';
+				$cart[ (int) $pid . ( '' !== $v ? ':' . $v : '' ) ] = 1;
+			}
+			Velox_Shop::preview_cart( $cart );
+			$page = $cart ? '<h2 class="vsa-pv-h">' . esc_html__( 'Cart', 'velox' ) . '</h2>' . Velox_Shop_Front::sc_cart() . '<div class="vsa-pv-sep"></div><h2 class="vsa-pv-h">' . esc_html__( 'Checkout', 'velox' ) . '</h2>' . Velox_Shop_Front::sc_checkout()
+				: '<p>' . esc_html__( 'Add a product to see the cart here.', 'velox' ) . '</p>';
+			Velox_Shop::preview_cart( null );
+		}
+		if ( 'account' === $which && class_exists( 'Velox_Shop_Account' ) ) {
+			// Your own account, as a customer sees theirs.
+			$page = Velox_Shop_Account::render();
+		}
 		// Fonts are fetched once and kept on this site; the preview shows the real ones.
 		$fonts = Velox_Shop::fonts_url( $d, true );
 		$geist = in_array( 'geist', array( $d['font_h'], $d['font_b'] ), true ) ? '@font-face{font-family:"Geist";font-weight:100 900;font-display:swap;src:url(' . esc_url( VELOX_URL . 'assets/fonts/geist-latin-wght-normal.woff2' ) . ') format("woff2")}' : '';
@@ -1830,9 +1857,10 @@ class Velox_Shop_Admin {
 			. '<style>' . $geist . ':root{' . Velox_Shop::design_vars( $d ) . '}body{margin:0;padding:28px;font-family:var(--vxs-font,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif);background:' . $bg . ';color:var(--vxs-ink,#111)}'
 			. 'form,button,a{pointer-events:none}.vsa-pv-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 28px;padding:0 0 18px;border-bottom:1px solid var(--vxs-line,#e5e5e5);font-family:var(--vxs-font-h,inherit);font-weight:var(--vxs-h-weight,700);text-transform:var(--vxs-h-case,none);letter-spacing:var(--vxs-h-track,0);font-size:20px}'
 			. '.vsa-pv-sep{height:1px;margin:56px 0;background:var(--vxs-line,#e5e5e5)}.vsa-pv-page .vxs-product-more .vxs-more{display:none}'
+			. '.vsa-pv-h{margin:0 0 20px;font-family:var(--vxs-font-h,inherit);font-weight:var(--vxs-h-weight,700);text-transform:var(--vxs-h-case,none);letter-spacing:var(--vxs-h-track,0);font-size:28px}'
 			. str_ireplace( '</style', '', $own ) . '</style></head><body>'
 			. '<div class="vsa-pv-top"><span>' . esc_html( (string) Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) ) ) . '</span>' . $btn . '</div>' . $grid
-			. ( '' !== $page ? '<div class="vsa-pv-sep"></div><div class="vsa-pv-page">' . $page . '</div>' : '' ) . '</body></html>';
+			. ( '' !== $page ? ( '' !== $grid ? '<div class="vsa-pv-sep"></div>' : '' ) . '<div class="vsa-pv-page">' . $page . '</div>' : '' ) . '</body></html>';
 		return array( 'html' => $html );
 	}
 

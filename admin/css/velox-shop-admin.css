@@ -478,6 +478,9 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 .vsa-dprev{position:relative;height:560px;border-radius:var(--vbb-r);overflow:hidden;border:1px solid var(--vbb-line);background:#fff}
 .vsa-dprev iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:0;display:block;transform-origin:0 0}
 .vsa-dprev-dev button{padding:0 12px}
+.vsa-dprev.is-small{height:420px;margin:0 0 4px}
+.vsa-dprev-pg{margin:0 0 2px;align-self:flex-start;flex-wrap:wrap}
+.vsa-dprev-pg button{padding:0 12px}
 .vsa-dprev::after{content:"";position:absolute;inset:0;background:rgba(255,255,255,.4);opacity:0;pointer-events:none;transition:opacity .2s}
 .vsa-dprev.is-busy::after{opacity:1}
 .vsa-css{min-height:200px;font-size:13px;line-height:1.6;tab-size:2}

@@ -1314,7 +1314,7 @@
 		var d = e.target; if ( ! ( d && d.matches && d.matches( '.vsa-pacc' ) ) ) { return; }
 		var key = d.getAttribute( 'data-pacc' ); DS_OPEN[ key ] = d.open;
 		if ( d.open && 'tpl' === key ) { dsMiniFit(); }
-		if ( d.open && 'prev' === key ) { dsPreviewSoon(); }
+		if ( d.open && ( 'prev' === key || /^(shop|product|cart|account)$/.test( key ) ) ) { dsFit(); dsPreviewSoon(); }
 	}, true );
 	/* Open the real shop with the choices not saved yet (administrators only). */
 	function dsTry( where ) {
@@ -1435,7 +1435,13 @@
 	function pacc( key, title, sub, builds, body ) {
 		var open = !! DS_OPEN[ key ];
 		return '<details class="vsa-pacc" data-pacc="' + key + '"' + ( open ? ' open' : '' ) + '><summary><span class="vsa-pacc-t"><b>' + title + '</b><small>' + sub + '</small></span>' +
-			'<span class="vsa-pacc-chev" aria-hidden="true"></span></summary><div class="vsa-pacc-b">' + body + dsBuild( builds ) + '</div></details>';
+			'<span class="vsa-pacc-chev" aria-hidden="true"></span></summary><div class="vsa-pacc-b">' + dsFrame( key, true ) + body + dsBuild( builds ) + '</div></details>';
+	}
+	/* A live preview of one shop page (shop, product, cart, account), drawn by
+	 * the server with the choices on this screen, not saved yet. */
+	var DS_PAGES = [ [ 'shop', 'Shop page' ], [ 'product', 'Product page' ], [ 'cart', 'Cart & checkout' ], [ 'account', 'Customer account' ] ];
+	function dsFrame( page, small ) {
+		return '<div class="vsa-dprev' + ( small ? ' is-small' : '' ) + '"><iframe class="vsa-dprev-f" data-page="' + page + '"' + ( small ? '' : ' id="vsa-dprev"' ) + ' title="' + esc( vxT( 'Preview' ) ) + '"></iframe></div>';
 	}
 	function dsBuild( keys ) {
 		var P = {}; ( C.shopPages || [] ).forEach( function ( p ) { P[ p.key ] = p; } );
@@ -1485,7 +1491,7 @@
 			'</div><button type="button" class="vsa-btn vsa-btn-sm vsa-btn-pri" data-act="d-clear">' + vxT( 'Use %s as it comes' ).replace( '%s', tName ) + '</button></div>' : '';
 		return banner + acc( 'tpl', vxT( 'Template' ), vxT( 'A finished look for the whole shop' ), '<div class="vsa-tpls">' + tiles + '</div>' +
 				( own ? '<div class="vsa-tpl-own">' + ic( 'brush', 14 ) + '<span>' + vxT( '%d choices changed on top of the template.' ).replace( '%d', own ) + '</span><button type="button" class="vsa-link" data-act="d-clear">' + vxT( 'Back to the pure template' ) + '</button></div>' : '<p class="vsa-hint">' + vxT( 'A template sets every choice below. Change any of them on top — “Template” keeps its value. Picking another template starts fresh.' ) + '</p>' ) ) +
-			acc( 'prev', vxT( 'Preview' ), vxT( 'Your products with these choices, on a desktop, tablet or phone' ), '<div class="vsa-dprev"><iframe id="vsa-dprev" title="' + esc( vxT( 'Preview' ) ) + '"></iframe></div><p class="vsa-hint">' + vxT( 'Your real products, drawn with the choices on this page. Save to put them live.' ) + '</p>' +
+			acc( 'prev', vxT( 'Preview' ), vxT( 'Every shop page with these choices, on a desktop, tablet or phone' ), '<div class="vsa-seg vsa-dprev-pg">' + DS_PAGES.map( function ( o ) { return '<button type="button" data-act="dprev-page" data-v="' + o[ 0 ] + '" class="' + ( dsPage === o[ 0 ] ? 'is-on' : '' ) + '">' + esc( vxT( o[ 1 ] ) ) + '</button>'; } ).join( '' ) + '</div>' + dsFrame( dsPage, false ) + '<p class="vsa-hint">' + vxT( 'Your real products, drawn with the choices on this page. Save to put them live.' ) + '</p>' +
 					'<div class="vsa-try"><span>' + ic( 'eye', 14 ) + vxT( 'Try it on the real shop, before saving:' ) + '</span>' +
 					[ [ 'shop', vxT( 'Shop page' ) ], [ 'product', vxT( 'A product' ) ], [ 'cart', vxT( 'Cart' ) ], [ 'checkout', vxT( 'Checkout' ) ], [ 'account', vxT( 'Account' ) ] ].map( function ( o ) {
 						return '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="d-try" data-v="' + o[ 0 ] + '">' + o[ 1 ] + ' ' + ic( 'ext', 12 ) + '</button>';
@@ -1590,30 +1596,45 @@
 				tog( 'notice_on', on1( 'notice_on' ), vxT( 'A slim bar across the top of every page' ), vxT( 'Free shipping, a sale, holidays. Visitors can close it.' ) ) +
 				( on1( 'notice_on' ) ? field( vxT( 'Message' ), area( 'notice_text', s.notice_text || '', 3, vxT( 'Free shipping in Germany from €50' ) ), vxT( 'Several lines take turns every five seconds.' ) ) + field( vxT( 'Link' ), inp( 'notice_link', s.notice_link || '', { ph:'https://…', type:'url' } ), vxT( 'Optional — the whole message becomes a link.' ) ) : '' ) );
 	}
-	var dsTimer = 0, dsSeq = 0, dsDev = 1280;
-	// The preview renders at a real device width and is scaled down to fit.
+	var dsTimer = 0, dsSeq = 0, dsDev = 1280, dsPage = 'shop', DS_HTML = {};
+	// The previews render at a real device width and are scaled down to fit.
 	function dsFit() {
-		var f = document.getElementById( 'vsa-dprev' ); if ( ! f ) { return; }
-		var box = f.parentNode, w = box.clientWidth, h = box.clientHeight, sc = Math.min( 1, w / dsDev );
-		f.style.width = dsDev + 'px';
-		f.style.height = Math.round( h / sc ) + 'px';
-		f.style.transform = 'scale(' + sc + ')';
-		f.style.left = Math.max( 0, Math.round( ( w - dsDev * sc ) / 2 ) ) + 'px';
+		[].forEach.call( document.querySelectorAll( '.vsa-dprev-f' ), function ( f ) {
+			var box = f.parentNode, w = box.clientWidth, h = box.clientHeight; if ( ! w ) { return; }
+			var sc = Math.min( 1, w / dsDev );
+			f.style.width = dsDev + 'px';
+			f.style.height = Math.round( h / sc ) + 'px';
+			f.style.transform = 'scale(' + sc + ')';
+			f.style.left = Math.max( 0, Math.round( ( w - dsDev * sc ) / 2 ) ) + 'px';
+		} );
 	}
 	window.addEventListener( 'resize', dsFit );
+	/* Only previews in an open section are drawn; one request per page, shared
+	 * by the big preview and the page's own section. */
 	function dsPreviewSoon() {
 		clearTimeout( dsTimer );
 		dsTimer = setTimeout( function () {
-			var f = document.getElementById( 'vsa-dprev' ); if ( ! f || ! SD ) { return; }
+			if ( ! SD ) { return; }
+			var frames = [].filter.call( document.querySelectorAll( '.vsa-dprev-f' ), function ( f ) { var d = f.closest( 'details' ); return ! d || d.open; } );
+			if ( ! frames.length ) { return; }
 			var pick = { design:SD.design, card_ratio:SD.card_ratio, accent:SD.accent, custom_css:SD.custom_css };
 			Object.keys( SD ).forEach( function ( k ) { if ( /^d_/.test( k ) ) { pick[ k ] = SD[ k ]; } } );
-			var n = ++dsSeq;
-			f.parentNode.classList.add( 'is-busy' );
-			api( 'design_preview', { settings:pick } ).then( function ( r ) {
-				if ( n !== dsSeq ) { return; }
-				var fr = document.getElementById( 'vsa-dprev' ); if ( ! fr ) { return; }
-				fr.srcdoc = r.html; fr.parentNode.classList.remove( 'is-busy' ); dsFit();
-			} ).catch( function () { var fr = document.getElementById( 'vsa-dprev' ); if ( fr ) { fr.parentNode.classList.remove( 'is-busy' ); } } );
+			var sig = JSON.stringify( pick ), n = ++dsSeq, pages = {};
+			frames.forEach( function ( f ) { pages[ f.getAttribute( 'data-page' ) ] = 1; } );
+			Object.keys( pages ).forEach( function ( pg ) {
+				var mine = function () { return [].filter.call( document.querySelectorAll( '.vsa-dprev-f[data-page="' + pg + '"]' ), function ( f ) { return f.getAttribute( 'data-sig' ) !== sig; } ); };
+				var todo = mine(); if ( ! todo.length ) { return; }
+				var put = function ( html ) {
+					mine().forEach( function ( fr ) { fr.srcdoc = html; fr.setAttribute( 'data-sig', sig ); fr.parentNode.classList.remove( 'is-busy' ); } );
+					dsFit();
+				};
+				if ( DS_HTML[ pg + sig ] ) { put( DS_HTML[ pg + sig ] ); return; }
+				todo.forEach( function ( f ) { f.parentNode.classList.add( 'is-busy' ); } );
+				api( 'design_preview', { settings:pick, page:pg } ).then( function ( r ) {
+					DS_HTML[ pg + sig ] = r.html;
+					if ( n === dsSeq ) { put( r.html ); }
+				} ).catch( function () { mine().forEach( function ( fr ) { fr.parentNode.classList.remove( 'is-busy' ); } ); } );
+			} );
 		}, 350 );
 	}
 
@@ -1841,6 +1862,12 @@
 		var a = t.closest( '[data-act]' );
 		var act = a && a.getAttribute( 'data-act' );
 		if ( 'menu' === act ) { var mp = a.parentNode.querySelector( '.vsa-menu-p' ); mp.hidden = ! mp.hidden; return; }
+		if ( 'dprev-page' === act ) {
+			dsPage = a.getAttribute( 'data-v' );
+			[].forEach.call( main().querySelectorAll( '[data-act="dprev-page"]' ), function ( b ) { b.classList.toggle( 'is-on', b === a ); } );
+			var big = document.getElementById( 'vsa-dprev' ); if ( big ) { big.setAttribute( 'data-page', dsPage ); big.removeAttribute( 'data-sig' ); }
+			dsPreviewSoon(); return;
+		}
 		if ( 'dprev-dev' === act ) { dsDev = +a.getAttribute( 'data-v' ); [].forEach.call( main().querySelectorAll( '[data-act="dprev-dev"]' ), function ( b ) { b.classList.toggle( 'is-on', b === a ); } ); dsFit(); return; }
 		if ( 'css-ins' === act ) { var ta = main().querySelector( '[data-k="custom_css"]' ); if ( ta ) { var add = ( ta.value && ! /\n$/.test( ta.value ) ? '\n' : '' ) + a.getAttribute( 'data-v' ) + ' {\n\t\n}\n'; ta.value += add; SD.custom_css = ta.value; ta.focus(); ta.setSelectionRange( ta.value.length - 3, ta.value.length - 3 ); sdirty(); } return; }
 		/* wizard */
