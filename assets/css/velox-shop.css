@@ -374,6 +374,9 @@
 .vxs-grid.vxs-l-list>.vxs-card:nth-child(even){grid-template-columns:minmax(0,6fr) minmax(0,5fr)}
 .vxs-grid.vxs-l-list>.vxs-card:nth-child(even)>.vxs-card-media{grid-column:2}
 .vxs-grid.vxs-l-list>.vxs-card:nth-child(even)>:not(.vxs-card-media){grid-column:1;grid-row:auto}
+/* The wishlist heart belongs on the photo, not over the text column. */
+.vxs-grid.vxs-l-list>.vxs-card>.vxs-wish{grid-column:1;grid-row:1;left:auto;right:10px}
+.vxs-grid.vxs-l-list>.vxs-card:nth-child(even)>.vxs-wish{grid-column:2;grid-row:1}
 .vxs-grid.vxs-l-list .vxs-card-body{align-self:center;gap:8px;padding-top:4%}
 .vxs-grid.vxs-l-list .vxs-card-t{font-size:clamp(22px,2.4vw,34px);line-height:1.15;letter-spacing:-.02em}
 .vxs-grid.vxs-l-row{grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:calc((100% - (var(--vxs-cols,3) - 1) * var(--vxs-gap,28px)) / var(--vxs-cols,3));overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x mandatory;padding-bottom:10px;scrollbar-width:thin}
@@ -449,6 +452,7 @@
 	.vxs-grid.vxs-l-row{grid-auto-columns:78%}
 	.vxs-grid.vxs-l-list>.vxs-card,.vxs-grid.vxs-l-list>.vxs-card:nth-child(even){grid-template-columns:minmax(0,1fr)}
 	.vxs-grid.vxs-l-list>.vxs-card>*{grid-column:1!important;grid-row:auto!important}
+	.vxs-grid.vxs-l-list>.vxs-card>.vxs-wish{grid-row:1!important}
 	.vxs-product.vxs-gl-side .vxs-gallery{grid-template-columns:minmax(0,1fr)}
 	.vxs-product.vxs-gl-side .vxs-gal-thumbs{order:0;flex-direction:row;max-height:none}
 }

@@ -1731,6 +1731,61 @@ class Velox_Shop_Admin {
 		return array( 'url' => add_query_arg( 'vxs_try', $token, $url ) );
 	}
 
+	/**
+	 * Settings → Design → "… in Velox Builder": a shop page made of a
+	 * shortcode becomes a builder page holding the same shop part as an
+	 * element, so it can be placed, framed and styled by hand. The page keeps
+	 * showing the old way until it is published in the builder.
+	 */
+	private static function do_page_builder( $in ) {
+		$key = (string) ( $in['key'] ?? '' );
+		$els = array(
+			'shop'     => array( 'Shopgrid', '.shop-grid', array( 'count' => '24', 'filter' => '1' ) ),
+			'cart'     => array( 'Shopcart', '.shop-cart', array() ),
+			'checkout' => array( 'Shopcheckout', '.shop-checkout', array() ),
+			'account'  => array( 'Shopaccount', '.shop-account', array() ),
+			'withdraw' => array( 'Shopwithdraw', '.shop-withdraw', array() ),
+		);
+		if ( ! isset( $els[ $key ] ) ) {
+			return new WP_Error( 'x', __( 'Unknown page.', 'velox' ) );
+		}
+		if ( ! class_exists( 'Velox_Builder' ) || ! Velox_Builder::is_enabled() ) {
+			return new WP_Error( 'x', __( 'Switch on Velox Builder first (Velox → Modules).', 'velox' ) );
+		}
+		$page = (int) Velox_Shop::get( 'page_' . $key, 0 );
+		if ( ! $page || ! get_post( $page ) ) {
+			return new WP_Error( 'x', __( 'This page does not exist yet. Create it under Pages & legal.', 'velox' ) );
+		}
+		$doc = (int) Velox_Builder::doc_id_for_post( $page );
+		if ( ! $doc ) {
+			global $wpdb;
+			$rid  = function ( $base ) {
+				return $base . '-' . strtolower( wp_generate_password( 6, false, false ) );
+			};
+			$e    = $els[ $key ];
+			$part = array( 'id' => $rid( strtolower( $e[0] ) ), 'el' => $e[0], 'tag' => 'div', 'classes' => array( $e[1] ), 'overrides' => new stdClass(), 'children' => array() );
+			if ( $e[2] ) {
+				$part['settings'] = $e[2];
+			}
+			$model = array(
+				'tree'    => array( array( 'id' => $rid( 'section' ), 'el' => 'Section', 'tag' => 'section', 'classes' => array( '.section' ), 'overrides' => new stdClass(), 'children' => array( $part ) ) ),
+				'content' => new stdClass(),
+				'classes' => array(
+					'.section' => array( 'base' => array( 'paddingTop' => '48', 'paddingBottom' => '48', 'paddingLeft' => '32', 'paddingRight' => '32' ) ),
+					$e[1]      => array( 'base' => new stdClass() ),
+				),
+			);
+			$now = current_time( 'mysql' );
+			$wpdb->insert( Velox_Builder::table(), array( 'kind' => 'page', 'title' => get_the_title( $page ), 'data' => wp_json_encode( $model ), 'css_size' => 0, 'status' => 'draft', 'post_id' => $page, 'updated' => $now, 'created' => $now ), array( '%s', '%s', '%s', '%d', '%s', '%d', '%s', '%s' ) );
+			$doc = (int) $wpdb->insert_id;
+			if ( ! $doc ) {
+				return new WP_Error( 'x', __( 'Could not save.', 'velox' ) );
+			}
+			update_post_meta( $page, '_velox_builder_doc', $doc );
+		}
+		return array( 'url' => Velox_Builder::edit_url( $doc ) );
+	}
+
 	/** Settings → Texts: every text customers see. */
 	private static function do_texts( $in ) {
 		return array( 'texts' => Velox_Shop_Texts::catalog(), 'areas' => Velox_Shop_Texts::areas() );

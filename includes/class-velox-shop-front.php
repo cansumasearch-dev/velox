@@ -1722,19 +1722,54 @@ class Velox_Shop_Front {
 				}
 				return $p ? self::product_layout( $p, apply_filters( 'velox_shop_inner', (string) get_post_field( 'post_content', $p['id'] ) ) ) : '';
 			case 'Shopcart':
-				return self::sc_cart();
 			case 'Shopcheckout':
-				return self::sc_checkout();
 			case 'Shopaccount':
-				return self::sc_account();
 			case 'Shopwithdraw':
-				return self::sc_withdraw();
+				// The shop design, with this element's own choices on top.
+				$over = array();
+				if ( in_array( $g( 'nav' ), array( 'tabs', 'side', 'pills' ), true ) ) {
+					$over['acc_nav'] = $g( 'nav' );
+				}
+				if ( in_array( $g( 'layout' ), array( 'one', 'two' ), true ) ) {
+					$over['checkout'] = $g( 'layout' );
+				}
+				if ( sanitize_hex_color( (string) $g( 'accent' ) ) ) {
+					$over['accent'] = sanitize_hex_color( (string) $g( 'accent' ) );
+				}
+				if ( '' !== (string) $g( 'radius' ) && is_numeric( $g( 'radius' ) ) ) {
+					$over['radius'] = (string) max( 0, min( 60, (int) $g( 'radius' ) ) );
+				}
+				$fns = array( 'Shopcart' => 'sc_cart', 'Shopcheckout' => 'sc_checkout', 'Shopaccount' => 'sc_account', 'Shopwithdraw' => 'sc_withdraw' );
+				return self::with_design( $over, array( __CLASS__, $fns[ $el ] ), (int) $g( 'maxw', 0 ) );
 			case 'Shopaccountbtn':
 				return Velox_Shop_Account::sc_button( array( 'label' => (string) $g( 'label' ), 'menu' => '0' === (string) $g( 'menu' ) ? '0' : '1' ) );
 			case 'Shopcartbtn':
 				return self::sc_cart_button( array( 'label' => (string) $g( 'label' ), 'icon' => (string) $g( 'icon' ), 'count' => (string) $g( 'count' ), 'total' => (string) $g( 'total' ) ) );
 		}
 		return '';
+	}
+
+	/**
+	 * Draw a shop part with some design choices changed for it alone (a
+	 * Velox Builder element's settings): the classes follow the changed
+	 * design, and its colours and sizes ride on a wrapper as variables.
+	 */
+	private static function with_design( $over, $fn, $maxw = 0 ) {
+		if ( ! $over && ! $maxw ) {
+			return call_user_func( $fn );
+		}
+		$prev = array();
+		$set  = array();
+		foreach ( $over as $k => $v ) {
+			$prev[ 'd_' . $k ] = (string) Velox_Shop::get( 'd_' . $k, '' );
+			$set[ 'd_' . $k ]  = $v;
+		}
+		Velox_Shop::override( $set );
+		$html = call_user_func( $fn );
+		$vars = $over ? Velox_Shop::design_vars( Velox_Shop::design() ) : '';
+		Velox_Shop::override( $prev );
+		$style = $vars . ( $maxw > 0 ? '--vxa-max:' . (int) $maxw . 'px;' : '' );
+		return '<div class="vxs-scope" style="' . esc_attr( $style ) . '">' . $html . '</div>';
 	}
 
 	/** What the editor needs for the shop elements. */

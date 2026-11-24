@@ -660,3 +660,30 @@ select.vsa-in option{background:var(--vbb-panel);color:var(--vbb-text)}
 .vsa-txi textarea{flex:1 1 auto;min-height:38px;resize:vertical;font-size:13px;line-height:1.45}
 .vsa-txsave{position:sticky;bottom:0;display:flex;align-items:center;justify-content:flex-end;gap:12px;margin-top:14px;padding:12px 0 0;background:var(--vbb-panel);font-size:13px;color:var(--vbb-text-2)}
 @media (max-width:760px){.vsa-txr{grid-template-columns:1fr;gap:6px}}
+/* 4.70: own choices on top of the template, said out loud */
+.vsa-ownbanner{display:flex;align-items:center;gap:14px;margin:0 0 16px;padding:14px 16px;border:1px solid rgba(245,167,66,.45);border-radius:12px;background:rgba(245,167,66,.08);color:var(--vbb-text)}
+.vsa-ownbanner>svg{flex:none;color:#f5a742}
+.vsa-ownbanner>div{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.vsa-ownbanner b{font-size:14px;font-weight:600}
+.vsa-ownbanner span{font-size:13px;color:var(--vbb-text-2);line-height:1.5}
+.vsa-ownsw{display:flex;gap:4px;margin-top:2px}
+.vsa-ownsw i{width:16px;height:16px;border-radius:4px;box-shadow:inset 0 0 0 1px rgba(255,255,255,.18)}
+.vsa-ownbanner .vsa-btn{flex:none}
+@media (max-width:700px){.vsa-ownbanner{flex-wrap:wrap}}
+/* 4.70: Design, one section per page */
+.vsa-psub{margin:28px 0 10px;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--vbb-text-3)}
+.vsa-pacc{margin:0 0 10px;border:1px solid var(--vbb-line);border-radius:14px;background:var(--vbb-panel)}
+.vsa-pacc>summary{display:flex;align-items:center;gap:12px;padding:16px 18px;cursor:pointer;list-style:none}
+.vsa-pacc>summary::-webkit-details-marker{display:none}
+.vsa-pacc>summary:focus-visible{outline:2px solid var(--vbb-accent);outline-offset:-2px;border-radius:14px}
+.vsa-pacc-t{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.vsa-pacc-t b{font-size:15px;font-weight:600;color:var(--vbb-text)}
+.vsa-pacc-t small{font-size:12.5px;color:var(--vbb-text-3)}
+.vsa-pacc-chev{flex:none;width:9px;height:9px;margin-right:4px;border-right:1.6px solid var(--vbb-text-3);border-bottom:1.6px solid var(--vbb-text-3);transform:rotate(45deg) translateY(-3px);transition:transform .15s}
+.vsa-pacc[open] .vsa-pacc-chev{transform:rotate(-135deg) translate(-2px,-1px)}
+.vsa-pacc[open]>summary{border-bottom:1px solid var(--vbb-line)}
+.vsa-pacc-b{display:flex;flex-direction:column;gap:14px;padding:16px 18px 18px}
+.vsa-pacc-sub{margin:10px 0 0;padding-top:14px;border-top:1px solid var(--vbb-line);font-size:13px;font-weight:600;color:var(--vbb-text)}
+.vsa-pacc .vsa-bld{align-items:center;margin-top:4px;padding-top:14px;border-top:1px solid var(--vbb-line)}
+.vsa-pacc .vsa-bld>span{font-size:13px;color:var(--vbb-text-2);margin-right:4px}
+
