@@ -12278,7 +12278,7 @@
 			'#vb-struct .vb-st-caret,#vb-struct .vb-st-spacer{flex:none;width:14px;display:grid;place-items:center;color:var(--vb-tx3)}',
 			'#vb-struct .vb-st-l{flex:1 1 auto;min-width:0;display:flex;align-items:baseline;gap:6px;overflow:hidden;white-space:nowrap}',
 			'#vb-struct .vb-st-n{font-size:12.5px;font-weight:500;color:inherit;overflow:hidden;text-overflow:ellipsis}',
-			'#vb-struct .vb-st-l.is-renaming{flex:1 1 auto}#vb-struct .vb-st-l.is-renaming .vb-st-c{display:none}#vb-struct input.vb-st-rename{flex:1 1 140px;width:100%;min-width:90px;height:22px;margin:0;padding:0 6px;font:500 12.5px/20px inherit;font-family:inherit;color:var(--vb-tx1);background:var(--vb-bg0);border:1px solid var(--vb-acc);border-radius:5px;box-shadow:0 0 0 2px rgba(42,183,241,.25);outline:0}',
+			'#vb-struct .vb-st-row:has(.vb-st-rename) .vb-st-tools{display:none!important}#vb-struct .vb-st-l.is-renaming{flex:1 1 auto}#vb-struct .vb-st-l.is-renaming .vb-st-c{display:none}#vb-struct input.vb-st-rename{flex:1 1 140px;width:100%;min-width:90px;height:22px;margin:0;padding:0 6px;font:500 12.5px/20px inherit;font-family:inherit;color:var(--vb-tx1);background:var(--vb-bg0);border:1px solid var(--vb-acc);border-radius:5px;box-shadow:0 0 0 2px rgba(42,183,241,.25);outline:0}',
 			'#vb-struct .vb-st-c{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font:11px/1 "Velox Geist Mono",ui-monospace,Menlo,monospace;color:var(--vb-tx3)}',
 			'#vb-struct .vb-st-row.sel .vb-st-c{color:#8fdcfb}',
 			'#vb-struct .vb-st-eye{flex:none;display:grid;place-items:center;width:22px;height:22px;margin:0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);opacity:0;cursor:pointer;transition:opacity .12s,background .12s}',
