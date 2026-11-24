@@ -60,6 +60,16 @@
 			.then( function ( j ) { if ( ! j || ! j.success ) { throw new Error( ( j && j.data && j.data.message ) || vxT( 'Something went wrong.' ) ); } return j.data; } );
 	}
 	var toastT = null;
+	var toastLift = 0;
+	function liftToast() {
+		var t = document.getElementById( 'vsa-toast' ), sb = document.getElementById( 'vsa-savebar' ), y = 30;
+		if ( ! t ) { return; }
+		if ( sb ) {
+			var cs = getComputedStyle( sb ), r = sb.getBoundingClientRect();
+			if ( 'none' !== cs.display && parseFloat( cs.opacity ) > 0.05 && r.height ) { y = Math.max( 30, window.innerHeight - r.top + 12 ); }
+		}
+		t.style.bottom = y + 'px';
+	}
 	function toast( msg, bad, act ) {
 		var t = document.getElementById( 'vsa-toast' );
 		if ( ! t ) { t = document.createElement( 'div' ); t.id = 'vsa-toast'; t.setAttribute( 'role', 'status' ); document.body.appendChild( t ); }
@@ -69,7 +79,9 @@
 			b.addEventListener( 'click', function () { clearTimeout( toastT ); t.className = 'vsa-toast'; act.fn(); } );
 			t.appendChild( b );
 		}
-		clearTimeout( toastT ); toastT = setTimeout( function () { t.className = 'vsa-toast'; }, bad ? 6000 : ( act ? 9000 : 3200 ) );
+		clearTimeout( toastT ); toastT = setTimeout( function () { t.className = 'vsa-toast'; clearInterval( toastLift ); }, bad ? 6000 : ( act ? 7000 : 3200 ) );
+		// Never over the save bar: sit just above it while it shows.
+		clearInterval( toastLift ); liftToast(); toastLift = setInterval( liftToast, 150 );
 	}
 	function fail( e ) { toast( e && e.message ? e.message : String( e ), true ); }
 
@@ -146,8 +158,9 @@
 		[].forEach.call( root.querySelectorAll( '[data-nav]' ), function ( a ) { a.classList.toggle( 'is-on', a.getAttribute( 'data-nav' ) === k ); a.setAttribute( 'aria-current', a.getAttribute( 'data-nav' ) === k ? 'page' : 'false' ); } );
 		// The WordPress menu on the left follows the screen too.
 		[].forEach.call( document.querySelectorAll( '#toplevel_page_velox-shop .wp-submenu a' ), function ( a ) {
-			var m = ( a.getAttribute( 'href' ) || '' ).match( /#\/([a-z]*)/ ), sec = m ? m[ 1 ] : '';
-			var li = a.parentNode, on = sec === ( 'setup' === k ? '' : k );
+			var m = ( a.getAttribute( 'href' ) || '' ).match( /#\/([a-z\/]*)/ ), sec = m ? m[ 1 ] : '';
+			var cur = 'settings' === k && /^#\/settings\/help/.test( location.hash ) ? 'settings/help' : ( 'setup' === k ? '' : k );
+			var li = a.parentNode, on = sec === cur;
 			li.classList.toggle( 'current', on ); a.classList.toggle( 'current', on ); if ( on ) { a.setAttribute( 'aria-current', 'page' ); } else { a.removeAttribute( 'aria-current' ); }
 		} );
 	}
@@ -1937,6 +1950,18 @@
 		var ps = t.getAttribute( 'data-psel' ); if ( ps ) { PV.sel[ ps ] = t.checked; drawBulk(); return; }
 	}
 
+	/* Ctrl/⌘+S: a window that edits something saves with its own button
+	 * (order, category, review reply); otherwise the screen's Save. */
+	function saveShortcut() {
+		var m = document.getElementById( 'vsa-modal' );
+		if ( m ) {
+			var yes = m.querySelector( '[data-mbtn="yes"]' ), words = [ vxT( 'Save' ), vxT( 'Save changes' ), vxT( 'Save reply' ) ];
+			if ( yes && ! yes.disabled && words.indexOf( yes.textContent.trim() ) > -1 ) { yes.click(); }
+			return;
+		}
+		var b = main() && [].filter.call( main().querySelectorAll( '[data-act="p-save"],[data-act="s-save"],[data-act="c-save"],[data-act="tx-save"]' ), function ( x ) { return ! x.disabled && x.offsetParent !== null; } )[ 0 ];
+		if ( b ) { b.click(); } else { toast( vxT( 'Nothing to save here.' ) ); }
+	}
 	function onKey( e ) {
 		var t = e.target;
 		// option values: Enter or comma adds a value chip
@@ -1953,9 +1978,9 @@
 		if ( null !== ov && undefined !== ov && 'Backspace' === e.key && '' === t.value && P.options[ +ov ].values.length ) { P.options[ +ov ].values.pop(); syncVariants(); redrawVariants(); var n2 = main().querySelector( '[data-optval="' + ov + '"]' ); if ( n2 ) { n2.focus(); } return; }
 		if ( 'Enter' === e.key && t.closest && t.closest( 'tr[data-href]' ) && 'TR' === t.tagName ) { location.hash = t.getAttribute( 'data-href' ); return; }
 		// Ctrl/⌘+S saves what is open
-		if ( ( e.ctrlKey || e.metaKey ) && 's' === e.key.toLowerCase() ) {
-			var b = main() && main().querySelector( '[data-act="p-save"],[data-act="s-save"],[data-act="c-save"]' );
-			if ( b ) { e.preventDefault(); b.click(); }
+		if ( ( e.ctrlKey || e.metaKey ) && ! e.altKey && 's' === String( e.key ).toLowerCase() ) {
+			e.preventDefault(); // never the browser's "save page"
+			saveShortcut();
 		}
 	}
 

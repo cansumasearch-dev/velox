@@ -5333,10 +5333,17 @@
 	function tagBarHTML( node ) {
 		var ch = tagChoices( node ); if ( ! ch ) { return ''; }
 		if ( 'Heading' === node.el ) {
-			var isH = /^h[1-6]$/.test( node.tag );
-			return '<div class="vb-tagbar"><span class="vb-tagbar-l">' + T( 'Level' ) + '</span><div class="vb-tagseg" role="group" aria-label="' + T( 'Heading level' ) + '">' +
-				[ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].map( function ( t ) { return '<button type="button" class="' + ( node.tag === t ? 'on' : '' ) + '" data-settag="' + t + '" aria-pressed="' + ( node.tag === t ? 'true' : 'false' ) + '" title="' + escapeHtml( t.toUpperCase() + ' — ' + tagHint( t ) ) + '">' + t.toUpperCase() + '</button>'; } ).join( '' ) +
-				'<button type="button" class="vb-tagmore' + ( isH ? '' : ' on' ) + '" data-tagpick="1" title="' + T( 'Other tags' ) + '">' + ( isH ? svg( 'dots', 14 ) : escapeHtml( node.tag.toUpperCase() ) ) + '</button></div></div>';
+			/* The level as a little type scale: each tile shows "Aa" at its
+			 * relative size, so the hierarchy reads at a glance. */
+			var isH = /^h[1-6]$/.test( node.tag ), SZ = { h1:23, h2:19.5, h3:16.5, h4:14, h5:12.5, h6:11 };
+			return '<div class="vb-tagbar vb-hlv"><div class="vb-hlv-top"><span class="vb-tagbar-l">' + T( 'Heading level' ) + '</span><button type="button" class="vb-hlv-other vb-tagsel' + ( isH ? '' : ' on' ) + '" data-tagpick="1" title="' + T( 'Other tags' ) + '">' + escapeHtml( isH ? T( 'Other tags' ) : '<' + node.tag + '>' ) + svg( 'chevron', 10 ) + '</button></div>' +
+				'<div class="vb-hlv-row" role="radiogroup" aria-label="' + T( 'Heading level' ) + '">' +
+				[ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].map( function ( t ) {
+					var on = node.tag === t;
+					return '<button type="button" role="radio" class="vb-hlv-b' + ( on ? ' on' : '' ) + '" data-settag="' + t + '" aria-checked="' + ( on ? 'true' : 'false' ) + '" title="' + escapeHtml( t.toUpperCase() + ' — ' + tagHint( t ) ) + '">' +
+						'<span class="vb-hlv-a" style="font-size:' + SZ[ t ] + 'px">Aa</span><span class="vb-hlv-t">' + t.toUpperCase() + '</span></button>';
+				} ).join( '' ) + '</div>' +
+				( isH ? '<div class="vb-hlv-hint">' + escapeHtml( tagHint( node.tag ) ) + '</div>' : '' ) + '</div>';
 		}
 		return '<div class="vb-tagbar"><span class="vb-tagbar-l">' + T( 'Tag' ) + '</span><button type="button" class="vb-tagsel" data-tagpick="1" title="' + T( 'Change the HTML tag' ) + '"><code>&lt;' + escapeHtml( node.tag ) + '&gt;</code><span>' + escapeHtml( tagHint( node.tag ) ) + '</span>' + svg( 'chevron', 12 ) + '</button></div>';
 	}
@@ -11958,6 +11965,22 @@
 			'.vb-app #vb-inspector .vb-insp-tx{gap:3px}',
 			'#vb-inspector .vb-tagbar{margin:18px 16px 14px}',
 			'.vb-dz{display:flex;flex-direction:column;gap:14px;padding:2px 0 4px}',
+			'.vb-hlv{display:flex;flex-direction:column;align-items:stretch;gap:8px}',
+			'.vb-hlv-top{display:flex;align-items:center;justify-content:space-between;gap:10px}',
+			'.vb-hlv-other{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px;border:0;border-radius:6px;background:none;color:var(--vb-tx3);font:500 11.5px/1 var(--vb-font);cursor:pointer}',
+			'.vb-hlv-other:hover,.vb-hlv-other.on{color:var(--vb-tx1);background:var(--vb-bg2)}',
+			'.vb-hlv-hint{font-size:11.5px;color:var(--vb-tx3);text-align:center}',
+			'.vb-hlv-row{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:4px;padding:4px;border:1px solid var(--vb-line);border-radius:10px;background:var(--vb-bg0)}',
+			'.vb-hlv-b{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;gap:5px;min-width:0;height:58px;padding:0 0 7px;border:0;border-radius:7px;background:none;color:var(--vb-tx3);cursor:pointer;transition:background .15s,color .15s}',
+			'.vb-hlv-a{font-weight:650;line-height:1;letter-spacing:-.02em;color:var(--vb-tx2);transition:color .15s,transform .15s}',
+			'.vb-hlv-t{font:600 9.5px/1 var(--vb-font);letter-spacing:.06em}',
+			'.vb-hlv-b:hover{background:var(--vb-bg2);color:var(--vb-tx2)}',
+			'.vb-hlv-b:hover .vb-hlv-a{color:var(--vb-tx1)}',
+			'.vb-hlv-b.on{background:var(--vb-bg4);color:#2ab7f1;box-shadow:inset 0 0 0 1px rgba(42,183,241,.5)}',
+			'.vb-hlv-b.on .vb-hlv-a{color:var(--vb-tx1);transform:translateY(-1px)}',
+			'.vb-hlv-b.on::after{content:"";position:absolute;left:50%;bottom:-3px;width:14px;height:2px;margin-left:-7px;border-radius:2px;background:#2ab7f1}',
+			'.vb-hlv-b:focus-visible{outline:2px solid #2ab7f1;outline-offset:1px}',
+			'.vb-tagbar.vb-hlv.is-flash .vb-hlv-row{animation:vbTagFlash .9s ease 2}',
 			'.vb-seg .vb-ln{display:inline-block;width:18px;vertical-align:middle;border-top:2px solid currentColor}',
 			'.vb-seg .vb-ln-d{border-top-style:dashed}.vb-seg .vb-ln-p{border-top-style:dotted}',
 			'.vb-dz-f .vb-f-lbl{margin-bottom:7px}',
