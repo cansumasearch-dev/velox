@@ -1624,9 +1624,8 @@
 			case 'design':
 				return dsBody( s );
 			case 'help':
-				setTimeout( function () { if ( window.vxHelp ) { window.vxHelp( document.getElementById( 'vsa-help' ), 'shop' ); } }, 0 );
 				return card( vxT( 'Tour' ), '<p class="vsa-p">' + vxT( 'A short walk through the shop: where orders, products, payments, shipping and the design are.' ) + '</p><button type="button" class="vsa-btn vsa-btn-pri" data-vx-tour="shop">' + vxT( 'Start the tour' ) + '</button>' ) +
-					card( vxT( 'Help' ), '<div id="vsa-help"></div>' );
+					card( vxT( 'Help' ), '<div id="vsa-help" data-vx-help="shop"></div>' );
 			case 'texts':
 				setTimeout( txLoad, 0 );
 				return '<div id="vsa-tx">' + card( vxT( 'Texts' ), '<p class="vsa-p">' + vxT( 'Loading the shop’s texts…' ) + '</p>' ) + '</div>';

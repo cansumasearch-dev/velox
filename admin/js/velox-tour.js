@@ -149,7 +149,7 @@
 
 	function help( el, name ) {
 		var docs = ( V.docs || {} )[ name ] || [];
-		if ( ! el ) { return; }
+		if ( ! el || el.classList.contains( 'vxg' ) ) { return; }
 		var G = null, view = 'guide', ch = 0, q = '', key = 'vxg-' + name;
 		var saved = parseInt( remember( key ), 10 ); if ( saved >= 0 ) { ch = saved; }
 
@@ -241,13 +241,31 @@
 		el.addEventListener( 'change', function ( e ) { if ( e.target.classList.contains( 'vxg-toc-sel' ) ) { openChapter( +e.target.value ); } } );
 		find.addEventListener( 'input', function () { q = find.value.trim(); draw(); } );
 
-		var b = new URLSearchParams(); b.set( 'action', 'velox_guide' ); b.set( 'nonce', V.nonce || '' ); b.set( 'which', name );
-		fetch( V.ajax, { method:'POST', credentials:'same-origin', body:b } ).then( function ( r ) { return r.json(); } ).then( function ( r ) {
-			G = r && r.success && Array.isArray( r.data ) ? r.data : [];
+		loadGuide( name ).then( function ( g ) {
+			G = g;
 			if ( ch >= G.length ) { ch = 0; }
 			if ( ! G.length ) { view = 'faq'; }
 			draw();
-		} ).catch( function () { G = []; view = 'faq'; draw(); } );
+		} );
+	}
+	/* The guide is fetched once per page; screens that redraw reuse it. */
+	var GUIDES = {};
+	function loadGuide( name ) {
+		if ( ! GUIDES[ name ] ) {
+			var b = new URLSearchParams(); b.set( 'action', 'velox_guide' ); b.set( 'nonce', V.nonce || '' ); b.set( 'which', name );
+			GUIDES[ name ] = fetch( V.ajax, { method:'POST', credentials:'same-origin', body:b } ).then( function ( r ) { return r.json(); } )
+				.then( function ( r ) { return r && r.success && Array.isArray( r.data ) ? r.data : []; } )
+				.catch( function () { delete GUIDES[ name ]; return []; } );
+		}
+		return GUIDES[ name ];
+	}
+	/* Any element with data-vx-help="shop|builder" gets the help, also when a
+	 * screen draws it later (the shop redraws its screens). */
+	function mountAll() {
+		[].forEach.call( d.querySelectorAll( '[data-vx-help]:not(.vxg)' ), function ( n ) { help( n, n.getAttribute( 'data-vx-help' ) ); } );
+	}
+	if ( window.MutationObserver ) {
+		new MutationObserver( function () { if ( d.querySelector( '[data-vx-help]:not(.vxg)' ) ) { mountAll(); } } ).observe( d.documentElement, { childList:true, subtree:true } );
 	}
 
 	/* A "start the tour" button anywhere: data-vx-tour="shop". */
@@ -281,5 +299,5 @@
 		}
 		if ( wantHint ) { setTimeout( function () { waitFor( '[data-vx-tour]', 4000 ).then( function ( b ) { if ( b ) { hint(); } } ); }, 400 ); }
 	}
-	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', boot ); } else { boot(); }
+	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', function () { boot(); mountAll(); } ); } else { boot(); mountAll(); }
 }() );

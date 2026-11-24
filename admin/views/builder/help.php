@@ -13,9 +13,6 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</div>
 	</header>
 	<section class="vba-card vba-help-card">
-		<div class="vba-help-body" id="vba-help"></div>
+		<div class="vba-help-body" id="vba-help" data-vx-help="builder"></div>
 	</section>
 </div>
-<script>
-document.addEventListener( 'DOMContentLoaded', function () { if ( window.vxHelp ) { window.vxHelp( document.getElementById( 'vba-help' ), 'builder' ); } } );
-</script>
