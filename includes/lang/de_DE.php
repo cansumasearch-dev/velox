@@ -8365,4 +8365,8 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Rounded buttons above the content' => 'Abgerundete Buttons über dem Inhalt',
 	// 4.72 — looks per page, Ctrl+S
 	'This page already looks like %s.' => 'Diese Seite sieht schon aus wie %s.',
+	// 4.72.1 — editing state, sideways row
+	'Enter or click outside: done · Esc: cancel' => 'Enter oder daneben klicken: fertig · Esc: abbrechen',
+	'Ctrl+Enter or click outside: done · Esc: cancel' => 'Strg+Enter oder daneben klicken: fertig · Esc: abbrechen',
+	'Moves sideways while scrolling on the page' => 'Läuft auf der Seite beim Scrollen seitwärts',
 );
