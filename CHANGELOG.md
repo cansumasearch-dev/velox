@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.73.0 — Scroll section, page previews in the shop, rename in Structure
+- **New element: Scroll section** (Add → Containers). A box whose content reacts to scrolling: **Sideways** (the box stays pinned and its row slides from right to left, on big screens or everywhere) or **Stacks up** (each card slides over the one before, with “Sticks at” and “Offset per card”). It starts with four example cards; what goes inside is yours. The effect is set in Essentials.
+- **The inspector tells the truth about scroll rows:** for a sideways row (Scroll section, or Motion → “Pinned: children move sideways”) Essentials → Layout now says “In one row” instead of the box’s own “Below each other”, which never applied there.
+- **Previews of every shop page:** Settings → Design → Preview switches between Shop page, Product page, Cart & checkout (a sample cart with two of your products, then the checkout) and Customer account. Each page section also opens with its own preview above its looks, so a look is seen the moment it is clicked.
+- **Rename in Structure by double-click:** the name becomes a field; Enter keeps it, Esc goes back. F2 does the same. Keys typed there no longer move the selection or delete the element.
+- **The ⋯ menu in Structure opens at its button**, not in the top-left corner.
+- **Desktop ↔ Laptop feels right:** both screen sizes now use the same zoom, so Laptop is visibly narrower and text keeps its size (before, Laptop filled the same space and only looked zoomed in). The screen size shows in the class label (“Class · Laptop”) instead of a line that pushed the inspector down.
+
 ## 4.72.1 — You can see when you are editing text; the sideways row in the editor
 - **Editing text is clearly visible:** a double-click puts a dashed frame in the accent colour around the text, tints it lightly, colours the caret and shows a badge above it: “Editing text — Enter or click outside: done · Esc: cancel” (in lists: Ctrl+Enter). The badge keeps its size on a zoomed-out canvas.
 - **Sideways-scrolling rows look like rows in the editor:** an element with Motion → “Pinned: children move sideways while scrolling” used to show its children stacked below each other in the editor. It is now one row you can scroll sideways by hand, labelled “Moves sideways while scrolling on the page”.
