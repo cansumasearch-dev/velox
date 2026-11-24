@@ -1830,11 +1830,24 @@ class Velox_Shop_Admin {
 		}
 		if ( 'cart' === $which ) {
 			// A sample cart with the first products: the cart, then the checkout.
+			// Two products that can be bought (sold-out ones would drop out of the cart).
 			$cart = array();
-			foreach ( $first as $pid ) {
+			$pool = get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 24, 'fields' => 'ids', 'orderby' => array( 'menu_order' => 'ASC', 'date' => 'DESC' ) ) );
+			foreach ( $pool as $pid ) {
 				$p = Velox_Shop::product( (int) $pid );
-				$v = $p && ! empty( $p['variants'] ) ? (string) ( $p['variants'][0]['id'] ?? '' ) : '';
-				$cart[ (int) $pid . ( '' !== $v ? ':' . $v : '' ) ] = 1;
+				if ( ! $p ) {
+					continue;
+				}
+				foreach ( ! empty( $p['variants'] ) ? $p['variants'] : array( array( 'id' => '' ) ) as $vv ) {
+					$vid = (string) ( $vv['id'] ?? '' );
+					if ( Velox_Shop::can_buy( $p, Velox_Shop::variant( $p, $vid ), 1 ) ) {
+						$cart[ (int) $pid . ( '' !== $vid ? ':' . $vid : '' ) ] = 1;
+						break;
+					}
+				}
+				if ( count( $cart ) >= 2 ) {
+					break;
+				}
 			}
 			Velox_Shop::preview_cart( $cart );
 			$page = $cart ? '<h2 class="vsa-pv-h">' . esc_html__( 'Cart', 'velox' ) . '</h2>' . Velox_Shop_Front::sc_cart() . '<div class="vsa-pv-sep"></div><h2 class="vsa-pv-h">' . esc_html__( 'Checkout', 'velox' ) . '</h2>' . Velox_Shop_Front::sc_checkout()
