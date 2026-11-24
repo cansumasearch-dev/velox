@@ -4,6 +4,11 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.74.0 — Structure remembers what is open; clicking empty space selects nothing
+- **Click empty space in Structure to select nothing:** a click below or between the rows clears the selection (and any multi-selection), like clicking the empty canvas.
+- **Structure remembers which branches are open:** what you fold or unfold (one by one, or with Expand all / Collapse all) is kept per page in this browser, so a reload shows Structure the way you left it.
+- **The sideways-row note says what it means:** “Side by side, in one long row”: on the page the box stays in place while visitors scroll and the row slides from right to left, so its items always sit next to each other and the usual layout choices do not apply. How many show at once depends on each item’s width (Size → Width). It also says where the effect is set: under “Scroll effect” for a Scroll section, or Advanced → Motion for any other box, with a link that opens Advanced.
+
 ## 4.73.1 — The canvas always fits its space
 - **The canvas refits whenever the space around it changes:** opening or closing the Add panel, Structure or the inspector used to leave the canvas at its old width (for example 1568px in a 1270px space, cut off at the right). It now follows the space every time.
 
