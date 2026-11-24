@@ -13,6 +13,15 @@ $s = Velox_Builder::settings();
 			<button type="button" class="vba-btn vba-btn-primary" id="vba-settings-save"><?php esc_html_e( 'Save changes', 'velox' ); ?></button>
 		</div>
 	</header>
+	<div class="vba-card" id="vx-help">
+		<div class="vba-setting">
+			<div class="vba-setting-tx"><b><?php esc_html_e( 'Tour and help', 'velox' ); ?></b><span><?php esc_html_e( 'The short tour of the builder, and answers to common questions.', 'velox' ); ?></span></div>
+			<div class="vba-ai-acts">
+				<button type="button" class="vba-btn vba-btn-ghost vba-btn-sm" data-vx-tour="builder"><?php esc_html_e( 'Start the tour', 'velox' ); ?></button>
+				<a class="vba-btn vba-btn-ghost vba-btn-sm" href="<?php echo esc_url( admin_url( 'admin.php?page=velox-builder-help' ) ); ?>"><?php esc_html_e( 'Open the help', 'velox' ); ?></a>
+			</div>
+		</div>
+	</div>
 	<div class="vba-card">
 		<div class="vba-setting">
 			<div class="vba-setting-tx"><b><?php esc_html_e( 'CSS output', 'velox' ); ?></b><span><?php esc_html_e( 'Write a static .css file (best for caching) or inline it in the page head.', 'velox' ); ?></span></div>

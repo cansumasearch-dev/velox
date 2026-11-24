@@ -117,6 +117,9 @@ class Velox_Shop_Admin {
 		wp_enqueue_script( 'velox-select', VELOX_ASSETS . 'js/velox-select.js', array(), VELOX_VERSION, true );
 		wp_enqueue_script( 'velox-shop-admin', VELOX_ASSETS . 'js/velox-shop-admin.js', array( 'velox-select' ), VELOX_VERSION, true );
 		wp_localize_script( 'velox-shop-admin', 'VSA', self::boot() );
+		if ( class_exists( 'Velox_Help' ) ) {
+			Velox_Help::enqueue( 'shop' );
+		}
 	}
 
 	/* ---------------------------------------------------------------- boot */

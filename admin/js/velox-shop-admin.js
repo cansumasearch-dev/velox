@@ -122,7 +122,7 @@
 	function shell() {
 		root.innerHTML = '<div class="vsa-shell"><header class="vsa-bar"><a class="vsa-brand" href="#/">' + ic( 'store', 18 ) + '<b>' + esc( S.store_name || vxT( 'Shop' ) ) + '</b></a>' +
 			'<nav class="vsa-nav" aria-label="' + esc( vxT( 'Shop' ) ) + '">' + NAV.map( function ( n ) { return '<a href="#/' + n[ 0 ] + '" data-nav="' + n[ 0 ] + '">' + ic( n[ 1 ], 15 ) + '<span>' + esc( n[ 2 ] ) + '</span>' + ( 'orders' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-ordbadge" hidden></i>' : ( 'reviews' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-rvbadge"' + ( +C.reviewsOpen ? '' : ' hidden' ) + '>' + ( +C.reviewsOpen || '' ) + '</i>' : '' ) ) + '</a>'; } ).join( '' ) + '</nav>' +
-			'<div class="vsa-bar-r"><a class="vsa-btn vsa-btn-ghost vsa-btn-sm" href="' + esc( pageUrl( 'shop' ) || C.home ) + '" target="_blank" rel="noopener">' + ic( 'ext', 14 ) + vxT( 'View shop' ) + '</a></div></header>' +
+			'<div class="vsa-bar-r"><a class="vsa-btn vsa-btn-ghost vsa-btn-sm" href="#/settings/help">' + vxT( 'Help' ) + '</a><a class="vsa-btn vsa-btn-ghost vsa-btn-sm" href="' + esc( pageUrl( 'shop' ) || C.home ) + '" target="_blank" rel="noopener">' + ic( 'ext', 14 ) + vxT( 'View shop' ) + '</a></div></header>' +
 			'<main class="vsa-main" id="vsa-main" tabindex="-1"></main></div>';
 	}
 	function pageUrl( k ) { var id = +S[ 'page_' + k ]; var p = ( C.pages || [] ).filter( function ( x ) { return x.id === id; } )[ 0 ]; return p ? p.url : ''; }
@@ -1540,7 +1540,7 @@
 
 	var SECTIONS = [
 		[ 'store', 'store', vxT( 'Store' ) ], [ 'design', 'brush', vxT( 'Design' ) ], [ 'storefront', 'layers', vxT( 'Storefront' ) ], [ 'taxes', 'receipt', vxT( 'Taxes' ) ], [ 'shipping', 'truck', vxT( 'Shipping' ) ], [ 'payments', 'card', vxT( 'Payments' ) ],
-		[ 'checkout', 'bag', vxT( 'Checkout' ) ], [ 'emails', 'mail', vxT( 'Emails' ) ], [ 'pages', 'scale', vxT( 'Pages & legal' ) ], [ 'stock', 'box', vxT( 'Stock & products' ) ], [ 'texts', 'file', vxT( 'Texts' ) ]
+		[ 'checkout', 'bag', vxT( 'Checkout' ) ], [ 'emails', 'mail', vxT( 'Emails' ) ], [ 'pages', 'scale', vxT( 'Pages & legal' ) ], [ 'stock', 'box', vxT( 'Stock & products' ) ], [ 'texts', 'file', vxT( 'Texts' ) ], [ 'help', 'search', vxT( 'Help & tour' ) ]
 	];
 	var SD = null, SDclean = '';
 	function settings() {
@@ -1574,6 +1574,10 @@
 					card( vxT( 'Money' ), '<div class="vsa-fr">' + field( vxT( 'Currency' ), sel( 'currency', s.currency, [ [ 'EUR', 'Euro (EUR)' ], [ 'CHF', 'Franken (CHF)' ], [ 'GBP', 'Pound (GBP)' ], [ 'USD', 'Dollar (USD)' ] ] ) ) + field( vxT( 'Symbol' ), inp( 'symbol', s.symbol, { cls:'vsa-in-sm' } ) ) + field( vxT( 'Position' ), sel( 'symbol_pos', s.symbol_pos, [ [ 'right', '49,90 ' + s.symbol ], [ 'left', s.symbol + ' 49,90' ] ] ) ) + '</div>' );
 			case 'design':
 				return dsBody( s );
+			case 'help':
+				setTimeout( function () { if ( window.vxHelp ) { window.vxHelp( document.getElementById( 'vsa-help' ), 'shop' ); } }, 0 );
+				return card( vxT( 'Tour' ), '<p class="vsa-p">' + vxT( 'A short walk through the shop: where orders, products, payments, shipping and the design are.' ) + '</p><button type="button" class="vsa-btn vsa-btn-pri" data-vx-tour="shop">' + vxT( 'Start the tour' ) + '</button>' ) +
+					card( vxT( 'Help' ), '<div id="vsa-help"></div>' );
 			case 'texts':
 				setTimeout( txLoad, 0 );
 				return '<div id="vsa-tx">' + card( vxT( 'Texts' ), '<p class="vsa-p">' + vxT( 'Loading the shop’s texts…' ) + '</p>' ) + '</div>';
