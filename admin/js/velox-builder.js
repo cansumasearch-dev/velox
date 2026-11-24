@@ -1205,7 +1205,7 @@
 	function syncItemViews( doc ) {
 		[].forEach.call( doc.querySelectorAll( '.vx-slider[data-vb-at]' ), function ( sl ) {
 			var tr = sl.querySelector( '.vx-track' ), cell = tr && tr.children[ +sl.getAttribute( 'data-vb-at' ) || 0 ];
-			if ( cell ) { tr.scrollLeft += cell.getBoundingClientRect().left - tr.getBoundingClientRect().left; }
+			if ( cell ) { var to = tr.scrollLeft + cell.getBoundingClientRect().left - tr.getBoundingClientRect().left; try { tr.scrollTo( { left:to, behavior:'instant' } ); } catch ( err ) { tr.scrollLeft = to; } }
 		} );
 	}
 	function addItemOnCanvas( id ) {
@@ -1220,7 +1220,7 @@
 			n.settings = n.settings || {};
 			n.settings.items = ( n.settings.items || [] ).slice();
 			var blank = {};
-			def.repeat.fields.forEach( function ( f ) { blank[ f.k ] = f.d || ''; } );
+			def.repeat.fields.forEach( function ( f ) { blank[ f.k ] = f.d && 'text' === f.t ? T( f.d ) : ( f.d || '' ); } );
 			n.settings.items.push( blank );
 			// Each item keeps its own drop container, in step with the items.
 			if ( def.nestable ) {
@@ -7977,7 +7977,7 @@
 				var rdef = elDef( findNode( store.state.tree, store.state.selection ) );
 				setRepeat( function ( items, n ) {
 					var blank = {};
-					( ( rdef && rdef.repeat && rdef.repeat.fields ) || [] ).forEach( function ( f ) { blank[ f.k ] = f.d || ''; } );
+					( ( rdef && rdef.repeat && rdef.repeat.fields ) || [] ).forEach( function ( f ) { blank[ f.k ] = f.d && 'text' === f.t ? T( f.d ) : ( f.d || '' ); } );
 					items.push( blank );
 					// Keep the content containers in step with the items.
 					if ( rdef && rdef.nestable ) {
