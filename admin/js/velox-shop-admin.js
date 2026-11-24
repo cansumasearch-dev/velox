@@ -258,6 +258,21 @@
 			drawCharts();
 		} ).catch( fail );
 	}
+	/* Which pages the shop needs, which are missing; the shop's own pages with one click. */
+	function pagesCard( pages ) {
+		if ( ! pages.length ) { return ''; }
+		var miss = pages.filter( function ( p ) { return p.create && ! p.ok; } ).length;
+		var legal = pages.filter( function ( p ) { return ! p.create && ! p.ok; } ).length;
+		var rows = pages.map( function ( p ) {
+			var st = p.ok ? '<span class="vsa-pg-st is-ok" title="' + esc( vxT( 'In place' ) ) + '">' + ic( 'check', 13 ) + '</span>' : '<span class="vsa-pg-st is-no" title="' + esc( vxT( 'Missing' ) ) + '">' + ic( 'alert', 13 ) + '</span>';
+			var what = p.ok ? '<a href="' + esc( p.url ) + '" target="_blank" rel="noopener">' + esc( p.title || p.label ) + '</a>' : '<span class="vsa-muted">' + ( 'missing' === p.state ? esc( vxT( 'Missing' ) ) : esc( vxT( 'Not published' ) ) ) + '</span>';
+			var act = p.edit ? '<a class="vsa-link" href="' + esc( p.edit ) + '">' + vxT( 'Edit' ) + '</a>' : ( p.create ? '' : '<a class="vsa-link" href="#/settings/pages">' + vxT( 'Choose' ) + '</a>' );
+			return '<li class="vsa-pg' + ( p.ok ? '' : ' is-miss' ) + '">' + st + '<span class="vsa-pg-l"><b>' + esc( p.label ) + '</b>' + what + '</span>' + act + '</li>';
+		} ).join( '' );
+		var right = miss ? '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-pri" data-act="ov-pages">' + ic( 'plus', 14 ) + ( 1 === miss ? vxT( 'Create the missing page' ) : vxT( 'Create the missing pages' ) ) + '</button>' : '<a class="vsa-link" href="#/settings/pages">' + vxT( 'Pages & legal' ) + ' ' + ic( 'chev', 13 ) + '</a>';
+		var sub = miss ? vxT( 'Without these the shop cannot work.' ) : ( legal ? vxT( 'Add your legal pages: they are linked at checkout.' ) : vxT( 'Everything is in place.' ) );
+		return card( vxT( 'Shop pages' ) + ' <small class="vsa-card-sub">' + esc( sub ) + '</small>', '<ul class="vsa-pages">' + rows + '</ul>', { right:right } );
+	}
 	function kpi( l, v, s ) { return '<div class="vsa-kpi"><span>' + esc( l ) + '</span><b>' + esc( v ) + '</b>' + ( s ? '<small>' + esc( s ) + '</small>' : '' ) + '</div>'; }
 	function todoRow( href, icon, n, label, sub ) { return '<a class="vsa-todo' + ( n ? '' : ' is-zero' ) + '" href="' + href + '">' + ic( icon, 18 ) + '<span><b>' + n + ' ' + esc( label ) + '</b><small>' + esc( sub ) + '</small></span>' + ic( 'chev', 14 ) + '</a>'; }
 	function thumb( u ) { return '<span class="vsa-th">' + ( u ? '<img src="' + esc( u ) + '" alt="" loading="lazy">' : ic( 'image', 16 ) ) + '</span>'; }
