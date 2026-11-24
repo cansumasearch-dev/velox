@@ -435,6 +435,28 @@
 
 /* ---- checkout in one column */
 .vxs-checkout.vxs-co-one{grid-template-columns:minmax(0,760px);justify-content:center}
+/* One photo and no thumbnails: the photo gets the whole gallery (it sat in the 76px thumbnail column). */
+.vxs-product.vxs-gl-side .vxs-gallery.is-single{display:block}
+/* The cart page's own layout (Design → Cart & checkout): summary at the side,
+   one column, every item as a card, or items as photo tiles. */
+.vxs-cartpage.vxs-ct-stack{grid-template-columns:minmax(0,1fr);max-width:760px;margin-left:auto;margin-right:auto;gap:28px}
+.vxs-cartpage.vxs-ct-stack .vxs-cart-sum{position:static}
+.vxs-cartpage.vxs-ct-cards .vxs-lines{display:flex;flex-direction:column;gap:14px}
+.vxs-cartpage.vxs-ct-cards .vxs-line,.vxs-cartpage.vxs-ct-cards .vxs-line:first-child{grid-template-columns:120px minmax(0,1fr) auto auto 32px;padding:16px;border:1px solid var(--vxs-line);border-radius:var(--vxs-r);background:var(--vxs-surface,transparent)}
+.vxs-cartpage.vxs-ct-cards .vxs-line-im{width:120px;height:120px}
+.vxs-cartpage.vxs-ct-grid .vxs-lines{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:24px 18px}
+.vxs-cartpage.vxs-ct-grid .vxs-line,.vxs-cartpage.vxs-ct-grid .vxs-line:first-child{position:relative;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"im im" "b b" "q p";gap:12px;padding:0 0 16px;border:0;border-bottom:1px solid var(--vxs-line)}
+.vxs-cartpage.vxs-ct-grid .vxs-line-im{grid-area:im;width:100%;height:auto;aspect-ratio:4/3}
+.vxs-cartpage.vxs-ct-grid .vxs-line-b{grid-area:b}
+.vxs-cartpage.vxs-ct-grid .vxs-line-q{grid-area:q}
+.vxs-cartpage.vxs-ct-grid .vxs-line-p{grid-area:p;align-self:center}
+.vxs-cartpage.vxs-ct-grid .vxs-line-x{position:absolute;top:8px;right:8px}
+.vxs-cartpage.vxs-ct-grid .vxs-line-x button{background:var(--vxs-bg)}
+@media (max-width:600px){
+	.vxs-cartpage.vxs-ct-cards .vxs-line,.vxs-cartpage.vxs-ct-cards .vxs-line:first-child{grid-template-columns:64px minmax(0,1fr) auto;padding:12px}
+	.vxs-cartpage.vxs-ct-cards .vxs-line-im{width:64px;height:64px}
+	.vxs-cartpage.vxs-ct-grid .vxs-lines{grid-template-columns:minmax(0,1fr)}
+}
 
 /* ---- dark designs: light text on the ink colour */
 .vxs-badge,.vxs-cats a[aria-current=true],.vxs-toast{color:var(--vxs-on-ink,#fff)}

@@ -8389,6 +8389,7 @@
 				if ( 'copy' === sact ) { copyNode( snid ); }
 				else if ( 'dup' === sact ) { duplicateNode( snid ); }
 				else if ( 'del' === sact ) { deleteNode( snid ); }
+				else if ( 'more' === sact && document.getElementById( 'vb-ctx' ) && ctxHoverId === snid ) { closeContextMenu(); }
 				else if ( 'more' === sact ) {
 					// Measure before selecting: the commit redraws Structure, and the old
 					// button then measures 0,0, so the menu opened in the top-left corner.

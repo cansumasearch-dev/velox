@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.75.0 — Every page look looks different; the cart has its own layouts
+- **The cart page has layouts of its own** (Design → Cart & checkout → Cart page): the total at the side, one narrow column with the total below, every item as a card with a big photo, or items as photo tiles two in a row. Before, the cart looked the same whatever was chosen; the looks only changed the checkout and the cart icon.
+- **Cart looks:** Classic (a list, total at the side), Compact (one column), Department store (items as cards), Market (photo tiles) now each show a different cart.
+- **Shop look “Tiles”:** square photos on tiles, three in a row; it looked almost like “Classic grid”.
+- **Thumbnails at the side with only one photo:** the photo sat in the narrow thumbnail column and almost disappeared. It now fills the gallery.
+- **The product preview shows the gallery choices:** with a one-photo product, thumbnails, stacked photos and the photo grid looked alike; the preview borrows other products’ photos so each look can be seen.
+- **Structure ⋯ closes on a second click.**
+
 ## 4.74.1 — Folded stays folded after a reload
 - The editor selects an element by itself while a page opens, and that unfolded its parents again in Structure. That first selection no longer opens anything; elements you select yourself still unfold their path.
 

@@ -210,7 +210,7 @@ class Velox_Shop {
 			'd_img_pad' => '', 'd_fit' => '', 'd_hover' => '', 'd_align' => '', 'd_show_cat' => '', 'd_show_text' => '', 'd_button' => '', 'd_badge' => '',
 			'd_badge_pos' => '', 'd_price' => '', 'd_radius' => '', 'd_btn_shape' => '', 'd_btn_style' => '', 'd_btn_case' => '', 'd_page_bg' => '', 'd_product' => '',
 			'd_gallery' => '', 'd_sticky' => '', 'd_details' => '', 'd_checkout' => '', 'd_cart_icon' => '', 'd_cart_count' => '', 'd_cart_total' => '',
-			'd_cats_style' => '', 'd_acc_nav' => '',
+			'd_cats_style' => '', 'd_acc_nav' => '', 'd_cart_layout' => '',
 			'custom_css'      => '', // the shop's own CSS, printed after the shop stylesheet
 			// Storefront
 			'after_add'       => 'drawer', // drawer | cart | stay
@@ -316,6 +316,8 @@ class Velox_Shop {
 		'page_bg', 'product', 'gallery', 'sticky', 'details', 'checkout', 'cart_icon', 'cart_count', 'cart_total',
 		// shop page and account (4.68)
 		'cats_style', 'acc_nav',
+		// the cart page itself (4.75)
+		'cart_layout',
 	);
 
 	/** Templates saved before 4.61 and what they became. */
@@ -382,7 +384,7 @@ class Velox_Shop {
 			'radius' => '12', 'btn_shape' => 'pill', 'btn_style' => 'solid', 'btn_case' => 'none',
 			'page_bg' => '0', 'product' => 'split', 'gallery' => 'below', 'sticky' => '1', 'details' => 'accordion', 'checkout' => 'two',
 			'cart_icon' => 'bag', 'cart_count' => 'badge', 'cart_total' => '0',
-			'cats_style' => 'pills', 'acc_nav' => 'tabs',
+			'cats_style' => 'pills', 'acc_nav' => 'tabs', 'cart_layout' => 'side',
 		);
 		$p = function ( $name, $desc, $fonts, $mood, $v ) use ( $base ) {
 			return array( 'name' => $name, 'desc' => $desc, 'fonts' => $fonts, 'mood' => $mood, 'v' => array_merge( $base, $v ) );
@@ -626,6 +628,7 @@ class Velox_Shop {
 		$c = 'vxs-d vxs-d-' . $d['preset'] . ' vxs-l-' . $d['layout'] . ' vxs-k-' . $d['card'] . ' vxs-hv-' . $d['hover'] . ' vxs-al-' . $d['align'] . ' vxs-fit-' . $d['fit']
 			. ' vxs-bst-' . $d['btn_style'] . ' vxs-pl-' . $d['product'] . ' vxs-gl-' . $d['gallery'] . ' vxs-co-' . $d['checkout'] . ' vxs-ib-' . $d['img_bg']
 			. ' vxs-bdg-' . $d['badge'] . ' vxs-bp-' . $d['badge_pos'] . ' vxs-pr-' . $d['price'] . ' vxs-lb-' . $d['label']
+			. ' vxs-ct-' . ( in_array( (string) ( $d['cart_layout'] ?? '' ), array( 'side', 'stack', 'cards', 'grid' ), true ) ? $d['cart_layout'] : 'side' )
 			. ( '1' === (string) $d['sticky'] ? ' vxs-sticky' : '' );
 		return implode( ' ', array_map( 'sanitize_html_class', explode( ' ', $c ) ) );
 	}

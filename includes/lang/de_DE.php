@@ -8402,4 +8402,14 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Change the effect under “Scroll effect” above.' => 'Den Effekt ändern Sie oben unter „Scroll-Effekt“.',
 	'The effect is switched on under Advanced → Motion.' => 'Der Effekt ist unter Erweitert → Bewegung eingeschaltet.',
 	'Open Advanced' => 'Erweitert öffnen',
+	// 4.75.0 — cart layouts, looks
+	'Square photos on soft tiles, three in a row' => 'Quadratische Fotos auf sanften Kacheln, drei nebeneinander',
+	'A list, the total at the side' => 'Eine Liste, die Summe daneben',
+	'One narrow column, the total below' => 'Eine schmale Spalte, die Summe darunter',
+	'Every item as a card, big photos' => 'Jeder Artikel als Karte, große Fotos',
+	'Items as photo tiles, two in a row' => 'Artikel als Fotokacheln, zwei nebeneinander',
+	'Cart page' => 'Warenkorbseite',
+	'Total at the side' => 'Summe daneben',
+	'Items as cards' => 'Artikel als Karten',
+	'Photo tiles' => 'Fotokacheln',
 );

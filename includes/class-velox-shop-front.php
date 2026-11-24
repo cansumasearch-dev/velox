@@ -956,7 +956,7 @@ class Velox_Shop_Front {
 				$th .= '<button type="button" class="vxs-gal-th' . ( 0 === $i ? ' is-on' : '' ) . '" data-vxs-img="' . esc_url( (string) wp_get_attachment_image_url( $id, 'large' ) ) . '" data-vxs-id="' . (int) $id . '" aria-label="' . esc_attr( sprintf( /* translators: %d: image number */ __( 'Image %d', 'velox' ), $i + 1 ) ) . '">' . wp_get_attachment_image( $id, 'thumbnail', false, array( 'loading' => 'lazy', 'alt' => '' ) ) . '</button>';
 			}
 		}
-		return '<div class="vxs-gallery"' . self::zoom_attr( $ids ) . '><div class="vxs-gal-stage">' . $main . self::badge_html( $p ) . '</div>' . ( $th ? '<div class="vxs-gal-thumbs">' . $th . '</div>' : '' ) . '</div>';
+		return '<div class="vxs-gallery' . ( $th ? '' : ' is-single' ) . '"' . self::zoom_attr( $ids ) . '><div class="vxs-gal-stage">' . $main . self::badge_html( $p ) . '</div>' . ( $th ? '<div class="vxs-gal-thumbs">' . $th . '</div>' : '' ) . '</div>';
 	}
 
 	/** Full-size photo addresses for the full-screen view (velox-shop.js). */

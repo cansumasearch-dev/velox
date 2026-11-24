@@ -1338,7 +1338,7 @@
 	var PAGE_LOOKS = {
 		shop:[
 			{ k:'classic', n:'Classic grid', d:'Four in a row, text under the photo', v:{ layout:'grid', cols:'4', card:'bare', align:'left', hover:'swap', button:'button' } },
-			{ k:'tiles', n:'Tiles', d:'Photos on soft tiles, centred', v:{ layout:'grid', cols:'4', card:'tile', align:'center', hover:'zoom', button:'icon' } },
+			{ k:'tiles', n:'Tiles', d:'Square photos on soft tiles, three in a row', v:{ layout:'grid', cols:'3', card:'tile', ratio:'1/1', img_pad:'8', align:'center', hover:'zoom', button:'icon' } },
 			{ k:'boutique', n:'Boutique', d:'Three framed pieces, quiet and centred', v:{ layout:'grid', cols:'3', card:'framed', align:'center', hover:'lift', button:'link' } },
 			{ k:'gallery', n:'Gallery', d:'Masonry, the name on the photo', v:{ layout:'masonry', cols:'3', card:'overlay', align:'left', hover:'zoom', button:'none' } },
 			{ k:'catalogue', n:'Catalogue', d:'A list with photo and details side by side', v:{ layout:'list', cols:'1', card:'boxed', align:'left', hover:'shadow', button:'button' } },
@@ -1352,10 +1352,10 @@
 			{ k:'stacked', n:'Photos on top', d:'Photos first, everything else below', v:{ product:'stacked', gallery:'below', sticky:'0', details:'accordion' } }
 		],
 		cart:[
-			{ k:'classic', n:'Classic', d:'Two columns, bag with a number', v:{ checkout:'two', cart_icon:'bag', cart_count:'badge', cart_total:'0' } },
-			{ k:'compact', n:'Compact', d:'One column, a dot on the bag', v:{ checkout:'one', cart_icon:'bag', cart_count:'dot', cart_total:'0' } },
-			{ k:'store', n:'Department store', d:'Cart with the total next to it', v:{ checkout:'two', cart_icon:'cart', cart_count:'inline', cart_total:'1' } },
-			{ k:'market', n:'Market', d:'Basket, one column, total shown', v:{ checkout:'one', cart_icon:'basket', cart_count:'badge', cart_total:'1' } }
+			{ k:'classic', n:'Classic', d:'A list, the total at the side', v:{ cart_layout:'side', checkout:'two', cart_icon:'bag', cart_count:'badge', cart_total:'0' } },
+			{ k:'compact', n:'Compact', d:'One narrow column, the total below', v:{ cart_layout:'stack', checkout:'one', cart_icon:'bag', cart_count:'dot', cart_total:'0' } },
+			{ k:'store', n:'Department store', d:'Every item as a card, big photos', v:{ cart_layout:'cards', checkout:'two', cart_icon:'cart', cart_count:'inline', cart_total:'1' } },
+			{ k:'market', n:'Market', d:'Items as photo tiles, two in a row', v:{ cart_layout:'grid', checkout:'one', cart_icon:'basket', cart_count:'badge', cart_total:'1' } }
 		],
 		account:[
 			{ k:'tabs', n:'Tabs on top', d:'The menu as tabs above the content', v:{ acc_nav:'tabs' } },
@@ -1420,7 +1420,10 @@
 			var cnt2 = 'dot' === v.cart_count ? '<i class="vsa-pm-dot" style="background:' + acc + '"></i>' : ( 'inline' === v.cart_count ? '<em style="color:' + ink + '">2</em>' : '<i class="vsa-pm-badge" style="background:' + acc + ';color:' + c( 'accent_ink', '#fff' ) + '">2</i>' );
 			var ico = '<span class="vsa-pm-ico" style="color:' + ink + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">' + ( icons[ v.cart_icon ] || icons.bag ) + '</svg>' + cnt2 + ( '1' === String( v.cart_total ) ? '<em style="color:' + ink + '">€84</em>' : '' ) + '</span>';
 			top = '<span class="vsa-pm-top" style="border-color:' + line + '">' + bar( 16, ink, 3 ) + ico + '</span>';
-			body = '<span class="vsa-pm-cart is-' + ( 'one' === v.checkout ? 'one' : 'two' ) + '"><span class="vsa-pm-items">' + item + item + item + '</span>' + sum + '</span>';
+			var cl = v.cart_layout || 'side';
+			if ( 'cards' === cl ) { item = '<span class="vsa-pm-ci is-card" style="box-shadow:0 0 0 1px ' + line + ';background:' + sur + '">' + ph( 'width:26%;aspect-ratio:1;flex:none;' ) + '<span class="vsa-pm-tx">' + bar( 55 ) + bar( 30, mut, 2 ) + '</span>' + bar( 14, ink, 3 ) + '</span>'; }
+			if ( 'grid' === cl ) { item = '<span class="vsa-pm-ci is-tile">' + ph( 'width:100%;aspect-ratio:4/3;' ) + bar( 60 ) + bar( 30, ink, 3 ) + '</span>'; }
+			body = '<span class="vsa-pm-cart is-' + cl + '"><span class="vsa-pm-items">' + item + item + ( 'grid' === cl ? item + item : item ) + '</span>' + sum + '</span>';
 		} else {
 			var items = [ 64, 50, 56, 44 ], nav = v.acc_nav;
 			var tabs = items.map( function ( w, i ) {
@@ -1547,6 +1550,7 @@
 				'<p class="vsa-hint">' + vxT( 'Buy bar, full-screen photos, related products and reasons to buy are under Storefront.' ) + ' <a href="#/settings/storefront">' + vxT( 'Open Storefront' ) + '</a></p>' ) +
 			pacc( 'cart', vxT( 'Cart & checkout' ), vxT( 'Checkout layout and the cart icon' ), [ 'cart', 'checkout' ],
 				dsLooks( 'cart', tpl ) + '<h4 class="vsa-pacc-sub is-ft">' + vxT( 'Fine-tune' ) + '</h4>' +
+				field( vxT( 'Cart page' ), dsSeg( 'cart_layout', [ [ 'side', vxT( 'Total at the side' ) ], [ 'stack', vxT( 'One column' ) ], [ 'cards', vxT( 'Items as cards' ) ], [ 'grid', vxT( 'Photo tiles' ) ] ], tpl ) ) +
 				'<div class="vsa-fr">' + field( vxT( 'Checkout' ), dsSeg( 'checkout', [ [ 'two', vxT( 'Two columns' ) ], [ 'one', vxT( 'One column' ) ] ], tpl ) ) +
 				field( vxT( 'Cart icon' ), dsSeg( 'cart_icon', [ [ 'bag', vxT( 'Bag' ) ], [ 'cart', vxT( 'Cart' ) ], [ 'basket', vxT( 'Basket' ) ] ], tpl ) ) + '</div>' +
 				'<div class="vsa-fr">' + field( vxT( 'Items in the cart' ), dsSeg( 'cart_count', [ [ 'badge', vxT( 'Number on the icon' ) ], [ 'dot', vxT( 'A dot' ) ], [ 'inline', vxT( 'Number next to it' ) ] ], tpl ) ) +
