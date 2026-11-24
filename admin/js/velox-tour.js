@@ -112,7 +112,16 @@
 		st.ov.remove(); st.card.remove(); st = null;
 		post( { tour:name, state:state } );
 		// Skipped: show where it can be started again.
-		if ( 'skipped' === state && V.skip && V.skip[ name ] ) { location.href = V.skip[ name ]; }
+		if ( 'skipped' === state && V.skip && V.skip[ name ] ) {
+			var u = new URL( V.skip[ name ], location.href );
+			// Same page (the shop's screens are #/… addresses): no reload, so point at the button here.
+			if ( u.pathname + u.search === location.pathname + location.search ) {
+				location.hash = u.hash;
+				setTimeout( function () { waitFor( '[data-vx-tour]', 4000 ).then( function ( b ) { if ( b ) { hint(); } } ); }, 300 );
+			} else {
+				location.href = u.href;
+			}
+		}
 	}
 	function start( name ) {
 		var steps = ( V.tours || {} )[ name ];
