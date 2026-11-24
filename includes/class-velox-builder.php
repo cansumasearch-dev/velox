@@ -657,6 +657,7 @@ class Velox_Builder {
 			'breakpoints' => self::breakpoints(),
 			'i18n'    => class_exists( 'Velox' ) ? Velox::js_dictionary() : array(),
 			'ai'      => Velox_Builder_Assistant::editor_data(),
+			'mayCode' => current_user_can( 'unfiltered_html' ),
 		);
 
 		// The editor lives in its own document, so the WordPress media library
@@ -812,6 +813,10 @@ class Velox_Builder {
 		// HTML may add it (on multisite that is the super admin, not every admin).
 		if ( ! current_user_can( 'unfiltered_html' ) && isset( $model->page ) && is_object( $model->page ) ) {
 			unset( $model->page->js );
+		}
+		// Code blocks: signed when someone allowed to post unfiltered code saves them.
+		if ( current_user_can( 'unfiltered_html' ) && isset( $model->tree ) ) {
+			self::sign_code( $model->tree );
 		}
 		// Builder roles: only pages they may edit, and only what their level allows.
 		if ( ! current_user_can( 'manage_options' ) && class_exists( 'Velox_Builder_Roles' ) ) {
@@ -1284,6 +1289,25 @@ class Velox_Builder {
 				$code = "setTimeout(function(){\n" . $code . "\n},0);";
 			}
 			echo "\n<script id=\"velox-global-js-" . esc_attr( sanitize_title( $f['name'] ?? 'js' ) ) . "\">\n" . $code . "\n</script>\n"; // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped
+		}
+	}
+
+	/** Sign every code block in a tree (the caller checked unfiltered_html). */
+	public static function sign_code( $nodes ) {
+		foreach ( (array) $nodes as $n ) {
+			if ( ! is_object( $n ) ) {
+				continue;
+			}
+			if ( 'Codeblock' === ( $n->el ?? '' ) ) {
+				if ( ! isset( $n->settings ) || ! is_object( $n->settings ) ) {
+					$n->settings = new stdClass();
+				}
+				$st = $n->settings;
+				$st->sig = Velox_Builder_Render::code_sig( (string) ( $st->html ?? '' ), (string) ( $st->css ?? '' ), (string) ( $st->js ?? '' ) );
+			}
+			if ( ! empty( $n->children ) ) {
+				self::sign_code( $n->children );
+			}
 		}
 	}
 
