@@ -1161,6 +1161,10 @@ class Velox_Builder {
 			wp_send_json_error( array( 'message' => __( 'You are not allowed to edit this.', 'velox' ) ), 403 );
 		}
 		$has_draft = null !== $row['draft'] && '' !== $row['draft'];
+		// "The page I have open" for Claude, when it works here through the connector.
+		if ( class_exists( 'Velox_MCP' ) ) {
+			Velox_MCP::note_open( $id );
+		}
 		// Objects, so empty maps stay {} (see ajax_save).
 		$model = json_decode( $has_draft ? $row['draft'] : $row['data'] );
 		if ( ! is_object( $model ) ) {

@@ -3518,6 +3518,7 @@
 				lastSavedSig = contentSig( store.state );
 				// Every page load asks once whether Claude is (or just was) working on this page.
 				if ( AIC.can ) { aiLoad(); }
+				EXT.loadedAt = Date.now(); cnWatch();
 				offerBackup();
 				document.title = docTitle + ' — Velox Builder';
 				setTimeout( function () { renderActions(); }, 30 );
@@ -7199,6 +7200,11 @@
 	var aiShown = false;
 	var AI = { shown:[], total:0, job:{ status:'idle', run:'', steps:0, rev:0, doing:'' }, loaded:false, doc:0, run:'', applied:0, changed:false, locked:false, sending:false, stopping:false, cont:'', contAt:0, timer:0, pull:Promise.resolve(), err:'', useSel:true };
 	var AIC = CFG.ai || { ready:false, can:false, admin:false, model:'', settingsUrl:'' };
+	/* The connector: Claude with the person's own Claude account works on the
+	 * site from claude.ai, the app or Claude Code. The editor starts the chat
+	 * ("Work on this page in Claude") and pulls in what Claude changes. */
+	var CN = AIC.connector || { on:false, apps:0, name:'', last:0, url:'', site:'' };
+	var EXT = { doc:0, seen:-1, timer:0, toastAt:0, loadedAt:0, recent:false };
 	function aiPost( fields ) {
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'nonce', CFG.nonce || '' );
@@ -7274,8 +7280,8 @@
 	}
 	/* Bring what Claude saved into the editor. While it works: shown at once,
 	 * no Undo step. At the end: one step (“Claude”), so Undo takes it all back. */
-	function aiPullDoc( final ) {
-		var doc = AI.doc;
+	function aiPullDoc( final, ext ) {
+		var doc = ext ? docId : AI.doc;
 		AI.pull = AI.pull.then( function () {
 			var body = new URLSearchParams();
 			body.set( 'action', 'velox' ); body.set( 'do', 'builder_load' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'id', doc );
@@ -7289,7 +7295,11 @@
 						if ( s.selection && ! findNode( s.tree, s.selection ) ) { s.selection = null; s.activeClass = null; }
 						delete s.changedClasses;
 					};
-					if ( final ) {
+					if ( ext ) {
+						// A change from Claude through the connector: one Undo step each.
+						store.commit( apply, T( 'Claude' ) );
+						if ( Date.now() - EXT.toastAt > 20000 ) { EXT.toastAt = Date.now(); toast( T( 'Claude changed this page. Undo takes it back.' ) ); }
+					} else if ( final ) {
 						aiLock( false );
 						store.commit( apply, T( 'Claude' ) );
 						toast( T( 'Claude’s changes are saved as a draft. Undo takes them all back.' ) );
@@ -7368,22 +7378,26 @@
 		box.style.display = 'flex';
 		if ( ! box.firstChild ) {
 			box.innerHTML =
-				'<div class="vb-hist-top"><b>Claude</b>' + ( AIC.model ? '<span class="vb-ai-model">' + escapeHtml( AIC.model.replace( /^Claude /, '' ) ) + '</span>' : '' ) +
-				'<span class="vb-p-acts"><button class="vb-css-x" id="vb-ai-new" title="' + T( 'New chat' ) + '" aria-label="' + T( 'New chat' ) + '">' + svg( 'plus', 14 ) + '</button>' + pinBtnHTML() + '<button class="vb-css-x" id="vb-ai-close" aria-label="' + T( 'Close' ) + '">' + svg( 'x', 14 ) + '</button></span></div>' +
+				'<div class="vb-hist-top"><b>Claude</b>' + ( AIC.model && AIC.ready ? '<span class="vb-ai-model">' + escapeHtml( AIC.model.replace( /^Claude /, '' ) ) + '</span>' : '' ) +
+				'<span class="vb-p-acts">' + ( AIC.ready ? '<button class="vb-css-x" id="vb-ai-new" title="' + T( 'New chat' ) + '" aria-label="' + T( 'New chat' ) + '">' + svg( 'plus', 14 ) + '</button>' : '' ) + pinBtnHTML() + '<button class="vb-css-x" id="vb-ai-close" aria-label="' + T( 'Close' ) + '">' + svg( 'x', 14 ) + '</button></span></div>' +
 				'<div class="vb-ai-list" id="vb-ai-list" aria-live="polite"></div>' +
 				'<div class="vb-ai-foot" id="vb-ai-foot"></div>';
 			box.addEventListener( 'click', aiClick );
 			box.addEventListener( 'keydown', function ( e ) {
 				if ( 'vb-ai-in' === e.target.id && 'Enter' === e.key && ! e.shiftKey && ! e.isComposing ) { e.preventDefault(); aiSend(); }
+				if ( 'vb-cn-in' === e.target.id && 'Enter' === e.key && ! e.shiftKey && ! e.isComposing ) { e.preventDefault(); cnOpen(); }
 				e.stopPropagation(); // typing here must never trigger editor shortcuts
 			} );
-			box.addEventListener( 'input', function ( e ) { if ( 'vb-ai-in' === e.target.id ) { aiGrow( e.target ); var b = document.getElementById( 'vb-ai-send' ); if ( b ) { b.disabled = ! e.target.value.trim(); } } } );
+			box.addEventListener( 'input', function ( e ) { if ( 'vb-cn-in' === e.target.id ) { aiGrow( e.target ); } if ( 'vb-ai-in' === e.target.id ) { aiGrow( e.target ); var b = document.getElementById( 'vb-ai-send' ); if ( b ) { b.disabled = ! e.target.value.trim(); } } } );
 		}
 		renderAiList(); renderAiFoot(); applyDock();
 	}
 	function aiClick( e ) {
 		var t = e.target;
 		if ( t.closest( '#vb-ai-close' ) ) { aiShown = false; renderAiPanel(); return; }
+		if ( t.closest( '#vb-cn-open' ) ) { cnOpen(); return; }
+		if ( t.closest( '#vb-cn-copy' ) ) { cnCopy( cnPrompt( cnText() ), t.closest( '#vb-cn-copy' ) ); return; }
+		if ( t.closest( '#vb-cn-urlcopy' ) ) { cnCopy( CN.url, t.closest( '#vb-cn-urlcopy' ) ); return; }
 		if ( t.closest( '#vb-ai-new' ) ) { aiReset(); return; }
 		if ( t.closest( '#vb-ai-send' ) ) { aiSend(); return; }
 		if ( t.closest( '#vb-ai-stop' ) ) { aiStop(); return; }
@@ -7394,12 +7408,7 @@
 	function renderAiList() {
 		var list = document.getElementById( 'vb-ai-list' ); if ( ! list ) { return; }
 		var stick = list.scrollTop + list.clientHeight >= list.scrollHeight - 40;
-		if ( ! AIC.ready ) {
-			list.innerHTML = '<div class="vb-ai-empty"><span class="vb-ai-mark">' + svg( 'stars', 20 ) + '</span><b>' + T( 'Build pages by describing them' ) + '</b><p>' +
-				T( 'Connect Claude once with your Anthropic API key, then tell it what to build or change on this page.' ) + '</p>' +
-				( AIC.admin ? '<a class="vb-btn vb-btn-primary" href="' + escapeHtml( AIC.settingsUrl ) + '" target="_blank" rel="noopener">' + T( 'Connect Claude' ) + '</a>' : '<p class="vb-ai-small">' + T( 'Ask an administrator to connect it under Velox Builder → AI agents.' ) + '</p>' ) + '</div>';
-			return;
-		}
+		if ( ! AIC.ready ) { list.innerHTML = cnListHTML(); return; }
 		if ( ! AIC.can ) { list.innerHTML = '<div class="vb-ai-empty"><b>' + T( 'Your role may not use the AI assistant.' ) + '</b></div>'; return; }
 		if ( ! AI.loaded && docId && ! AI.shown.length ) { list.innerHTML = '<div class="vb-ai-empty"><span class="vb-ls-spin"></span></div>'; return; }
 		if ( ! AI.shown.length ) {
@@ -7427,6 +7436,7 @@
 	}
 	function renderAiFoot() {
 		var foot = document.getElementById( 'vb-ai-foot' ); if ( ! foot ) { return; }
+		if ( ! AIC.ready && CN.on && CN.apps ) { cnFoot( foot ); return; }
 		if ( ! AIC.ready || ! AIC.can ) { foot.innerHTML = ''; return; }
 		var ta = document.getElementById( 'vb-ai-in' ), keep = ta ? ta.value : '', focused = ta && document.activeElement === ta;
 		var busy = aiBusy();
@@ -7446,6 +7456,115 @@
 			'<p class="vb-ai-hint">' + T( 'Enter sends · Shift+Enter for a new line' ) + '</p>';
 		var nt = document.getElementById( 'vb-ai-in' );
 		if ( nt ) { nt.value = keep; aiGrow( nt ); if ( focused && ! busy ) { nt.focus(); } }
+	}
+	/* ---- The connector: Claude with your own Claude account ---- */
+	function cnAgo( t ) {
+		var m = Math.max( 1, Math.round( ( Date.now() / 1000 - t ) / 60 ) );
+		return m < 60 ? T( '%d min' ).replace( '%d', m ) : ( m < 2880 ? T( '%d h' ).replace( '%d', Math.round( m / 60 ) ) : T( '%d d' ).replace( '%d', Math.round( m / 1440 ) ) );
+	}
+	function cnListHTML() {
+		var mark = '<span class="vb-ai-mark">' + svg( 'stars', 20 ) + '</span>';
+		if ( CN.on && CN.apps ) {
+			return '<div class="vb-ai-empty vb-cn-hello">' + mark + '<b>' + T( 'Work on this page in Claude' ) + '</b><p>' +
+				T( 'Claude is connected to this site with your Claude account. Say what to do: Claude opens in a new tab and knows which page you mean.' ) + '</p>' +
+				'<p class="vb-ai-small">' + T( 'What it changes shows up here live, as a draft. Undo takes it back.' ) + '</p>' +
+				( CN.last && Date.now() / 1000 - CN.last < 86400 ? '<p class="vb-ai-small vb-cn-last"><i></i>' + escapeHtml( T( '%1$s was active %2$s ago' ).replace( '%1$s', CN.name || 'Claude' ).replace( '%2$s', cnAgo( CN.last ) ) ) + '</p>' : '' ) + '</div>';
+		}
+		if ( CN.on ) {
+			return '<div class="vb-ai-empty">' + mark + '<b>' + T( 'Connect Claude once' ) + '</b><p>' +
+				T( 'Add this site to Claude as a connector, with your own Claude account. No API key, no extra costs.' ) + '</p>' +
+				'<p class="vb-ai-small">' + T( 'In Claude: Customize → Connectors → Add custom connector, then paste this address:' ) + '</p>' +
+				'<div class="vb-cn-url"><code>' + escapeHtml( CN.url ) + '</code><button type="button" class="vb-btn vb-btn-ghost" id="vb-cn-urlcopy">' + T( 'Copy' ) + '</button></div>' +
+				( AIC.admin ? '<a class="vb-btn vb-btn-ghost" href="' + escapeHtml( AIC.settingsUrl ) + '" target="_blank" rel="noopener">' + T( 'Step by step' ) + '</a>' : '' ) + '</div>';
+		}
+		return '<div class="vb-ai-empty">' + mark + '<b>' + T( 'Build pages by describing them' ) + '</b><p>' +
+			T( 'Work on this page with Claude, using your own Claude account. It is switched on once under Velox Builder → AI agents.' ) + '</p>' +
+			( AIC.admin ? '<a class="vb-btn vb-btn-primary" href="' + escapeHtml( AIC.settingsUrl ) + '" target="_blank" rel="noopener">' + T( 'Set up Claude' ) + '</a>' : '<p class="vb-ai-small">' + T( 'Ask an administrator to switch it on under Velox Builder → AI agents.' ) + '</p>' ) + '</div>';
+	}
+	function cnFoot( foot ) {
+		var ta = document.getElementById( 'vb-cn-in' ), keep = ta ? ta.value : '';
+		foot.innerHTML = '<div class="vb-ai-box">' +
+				'<textarea id="vb-cn-in" rows="2" placeholder="' + escapeHtml( T( 'What should Claude do on this page?' ) ) + '" aria-label="' + escapeHtml( T( 'Message to Claude' ) ) + '"></textarea>' +
+				'<div class="vb-ai-boxbar"><button type="button" class="vb-ai-chip" id="vb-cn-copy" title="' + escapeHtml( T( 'Copy the request, for Claude Desktop or Claude Code' ) ) + '">' + svg( 'copy', 12 ) + '<span>' + T( 'Copy' ) + '</span></button>' +
+				'<button type="button" class="vb-btn vb-btn-primary vb-cn-open" id="vb-cn-open">' + T( 'Open in Claude' ) + ' ' + svg( 'external', 12 ) + '</button></div>' +
+			'</div>' +
+			'<p class="vb-ai-hint">' + T( 'Enter opens Claude · Shift+Enter for a new line' ) + '</p>';
+		var nt = document.getElementById( 'vb-cn-in' ); if ( nt ) { nt.value = keep; aiGrow( nt ); }
+	}
+	function cnText() { var ta = document.getElementById( 'vb-cn-in' ); return ta ? ta.value.trim() : ''; }
+	/* The request Claude gets: which site, which page, then what you typed. */
+	function cnPrompt( text ) {
+		var kind = 'template' === docKind ? T( 'the template' ) : ( 'reusable' === docKind ? T( 'the component' ) : T( 'the page' ) );
+		return T( 'Use the Velox connector for my website “%s”.' ).replace( '%s', CN.site || '' ) + ' ' +
+			T( 'Work on %1$s “%2$s” (Velox document %3$s), which I have open in the editor.' ).replace( '%1$s', kind ).replace( '%2$s', docTitle ).replace( '%3$s', docId ) +
+			( text ? '\n\n' + text : '' );
+	}
+	function cnCopy( txt, btn ) {
+		var span = btn && btn.querySelector( 'span' ), el = span || btn, was = el ? el.textContent : '';
+		( navigator.clipboard ? navigator.clipboard.writeText( txt ) : Promise.reject() ).then( function () {
+			if ( el ) { el.textContent = T( 'Copied' ); setTimeout( function () { el.textContent = was; }, 1500 ); }
+		} ).catch( function () { toast( T( 'Copy failed' ) ); } );
+	}
+	function cnOpen() {
+		if ( ! docId ) { return; }
+		var url = 'https://claude.ai/new?q=' + encodeURIComponent( cnPrompt( cnText() ) );
+		if ( ! dirty ) { window.open( url, '_blank', 'noopener' ); return; }
+		// Claude reads the saved page: save first. The tab opens now (a popup
+		// blocker would stop one opened later) and goes to Claude once saved.
+		var w = window.open( '', '_blank' );
+		if ( w ) { w.opener = null; }
+		persist( function ( ok ) {
+			if ( ! ok ) { if ( w ) { w.close(); } toast( T( 'Save the page first: Claude works on the saved version.' ) ); return; }
+			if ( w ) { w.location.href = url; } else { window.open( url, '_blank', 'noopener' ); }
+		} );
+	}
+	/* Does Claude change this page from outside? Ask now and then; often while it is busy. */
+	function cnWatch() {
+		clearTimeout( EXT.timer );
+		if ( ! CN.on || ! CN.apps || ! docId ) { return; }
+		if ( EXT.doc !== docId ) { EXT.doc = docId; EXT.seen = -1; cnBar( false ); }
+		var doc = docId;
+		aiPost( { do:'mcp_watch', doc:doc } ).then( function ( res ) {
+			if ( doc !== docId ) { return; }
+			if ( res && res.success ) {
+				var t = res.data.t || 0, now = res.data.now || 0;
+				if ( EXT.seen < 0 ) {
+					// The first answer: a change after the page was loaded still counts.
+					EXT.seen = now - ( Date.now() - EXT.loadedAt ) / 1000 - 2;
+				}
+				if ( t > EXT.seen ) { EXT.seen = t; cnChanged(); }
+				EXT.recent = t > 0 && now - t < 600;
+			}
+			cnSchedule();
+		} ).catch( cnSchedule );
+	}
+	function cnSchedule() {
+		clearTimeout( EXT.timer );
+		var fast = EXT.recent || aiShown || ( CN.last && Date.now() / 1000 - CN.last < 1800 );
+		EXT.timer = setTimeout( cnWatch, document.hidden ? 30000 : ( fast ? 4000 : 15000 ) );
+	}
+	document.addEventListener( 'visibilitychange', function () { if ( ! document.hidden && CN.on && CN.apps && docId ) { cnWatch(); } } );
+	function cnChanged() {
+		if ( AI.locked ) { return; } // the editor's own assistant is pulling already
+		if ( dirty || editing ) { cnBar( true ); return; }
+		aiPullDoc( false, true );
+	}
+	/* Claude changed the page while you have unsaved changes: you choose. */
+	function cnBar( on ) {
+		var b = document.getElementById( 'vb-cnbar' );
+		if ( ! on ) { if ( b ) { b.remove(); } return; }
+		if ( b ) { return; }
+		b = document.createElement( 'div' ); b.id = 'vb-cnbar'; b.className = 'vb-cnbar'; b.setAttribute( 'role', 'alert' );
+		b.innerHTML = '<span class="vb-cnbar-tx"><b>' + svg( 'stars', 14 ) + T( 'Claude changed this page while you have unsaved changes.' ) + '</b>' +
+			'<small>' + T( 'If you keep yours, saving replaces Claude’s changes. They stay under History → Saved versions.' ) + '</small></span>' +
+			'<button type="button" class="vb-btn vb-btn-ghost" data-cn="keep">' + T( 'Keep mine' ) + '</button>' +
+			'<button type="button" class="vb-btn vb-btn-primary" data-cn="load">' + T( 'Load Claude’s version' ) + '</button>';
+		b.addEventListener( 'click', function ( e ) {
+			var a = e.target.closest( '[data-cn]' ); if ( ! a ) { return; }
+			cnBar( false );
+			if ( 'load' === a.getAttribute( 'data-cn' ) ) { if ( editing ) { commitInlineEdit(); } aiPullDoc( false, true ); }
+		} );
+		document.body.appendChild( b );
 	}
 	// The selection chip follows what you click on the canvas.
 	store.subscribe( function ( s ) {
@@ -11375,6 +11494,20 @@
 			'.vb-ai-send:disabled{opacity:.35;cursor:default;background:var(--vb-bg4)}',
 			'.vb-ai-send:focus-visible,.vb-ai-chip:focus-visible,.vb-ai-sugs button:focus-visible{outline:2px solid var(--vb-acc);outline-offset:2px}',
 			'.vb-ai-hint{margin:0;font-size:11px;color:var(--vb-tx3);text-align:center}',
+			'.vb-cn-open{height:30px;margin-left:auto;padding:0 12px;gap:6px;font-size:12.5px;background:#d97757;border-color:#d97757;color:#fff}',
+			'.vb-cn-open:hover{background:#e3866a;border-color:#e3866a}',
+			'.vb-cn-open svg{margin:0}',
+			'.vb-cn-url{display:flex;align-items:center;gap:6px;width:100%;margin:2px 0 4px}',
+			'.vb-cn-url code{flex:1 1 auto;min-width:0;padding:7px 9px;border-radius:8px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px var(--vb-line);color:var(--vb-tx2);font-size:11px;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+			'.vb-cn-url .vb-btn{flex:none;height:28px;padding:0 10px;font-size:12px}',
+			'.vb-cn-last{display:inline-flex;align-items:center;gap:6px}',
+			'.vb-cn-last i{width:6px;height:6px;border-radius:50%;background:#6fcf97}',
+			'.vb-cnbar{position:fixed;top:60px;left:50%;transform:translateX(-50%);z-index:9000;display:flex;align-items:center;gap:10px;max-width:calc(100vw - 32px);padding:10px 10px 10px 16px;border-radius:12px;background:var(--vb-bg2);box-shadow:inset 0 0 0 1px rgba(217,119,87,.45),0 14px 40px rgba(0,0,0,.5);color:var(--vb-tx1)}',
+			'.vb-cnbar-tx{display:flex;flex-direction:column;gap:2px;min-width:0}',
+			'.vb-cnbar-tx b{display:flex;align-items:center;gap:8px;font-size:12.5px;font-weight:600}',
+			'.vb-cnbar-tx b svg{flex:none;margin:0;color:#e9a587}',
+			'.vb-cnbar-tx small{font-size:11.5px;color:var(--vb-tx3)}',
+			'.vb-cnbar .vb-btn{flex:none;height:30px;font-size:12px}',
 			'.vb-app.vb-ai-busy #vb-canvas-wrap{position:relative}',
 			'.vb-app.vb-ai-busy #vb-canvas-wrap::after{content:"";position:absolute;inset:0;z-index:5;box-shadow:inset 0 0 0 2px rgba(217,119,87,.55);pointer-events:none;animation:vbAiPulse 1.6s ease-in-out infinite}',
 			'@keyframes vbAiPulse{50%{box-shadow:inset 0 0 0 2px rgba(217,119,87,.2)}}',

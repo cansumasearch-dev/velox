@@ -88,6 +88,7 @@ class Velox_Builder_Assistant {
 			'admin'       => current_user_can( 'manage_options' ),
 			'model'       => Velox_AI_Claude::models()[ $s['model'] ]['label'],
 			'settingsUrl' => admin_url( 'admin.php?page=velox-builder-agents' ),
+			'connector'   => class_exists( 'Velox_MCP' ) ? Velox_MCP::editor_data() : null,
 		);
 	}
 

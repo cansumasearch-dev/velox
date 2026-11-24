@@ -27,6 +27,12 @@ class Velox_Builder_Agents {
 	const CATEGORY = 'velox-builder';
 	const MAX_NODES = 600;
 
+	/**
+	 * What a connector (Claude with the person's own account) may work on:
+	 * null outside a connector call, 'all', or a list of document ids.
+	 */
+	public static $scope = null;
+
 	/** Element types an agent can create: the editor's basic elements, same defaults. */
 	const TYPES = array(
 		'section'   => array( 'el' => 'Section', 'tag' => 'section', 'cls' => '.section', 'rules' => array( 'paddingTop' => '48', 'paddingBottom' => '48', 'paddingLeft' => '32', 'paddingRight' => '32' ), 'box' => 1, 'tags' => array( 'section', 'header', 'footer', 'main', 'article', 'aside', 'nav', 'div' ) ),
@@ -186,6 +192,71 @@ class Velox_Builder_Agents {
 				'perm'        => 'read',
 				'ann'         => array( 'readonly' => true, 'destructive' => false, 'idempotent' => true ),
 			),
+			'velox/get-site-info' => array(
+				'label'       => __( 'About this site', 'velox' ),
+				'description' => 'The site\'s name, address and language, who you act as, and which documents you may change in this connection. Call this first.',
+				'input'       => array( 'type' => 'object', 'properties' => array(), 'default' => array() ),
+				'run'         => array( __CLASS__, 'run_site' ),
+				'perm'        => 'read',
+				'ann'         => array( 'readonly' => true, 'destructive' => false, 'idempotent' => true ),
+				'only'        => 'connector',
+			),
+			'velox/get-open-document' => array(
+				'label'       => __( 'The page open in the editor', 'velox' ),
+				'description' => 'Which page, template or component the person has open in the Velox Builder editor right now. Use it when they say "this page" or "the page I have open".',
+				'input'       => array( 'type' => 'object', 'properties' => array(), 'default' => array() ),
+				'run'         => array( __CLASS__, 'run_open' ),
+				'perm'        => 'read',
+				'ann'         => array( 'readonly' => true, 'destructive' => false, 'idempotent' => true ),
+				'only'        => 'connector',
+			),
+		);
+	}
+
+	/** Is this document within the connection's pages? (Always yes outside a connector.) */
+	public static function in_scope( $doc ) {
+		return null === self::$scope || 'all' === self::$scope || in_array( (int) $doc, array_map( 'intval', (array) self::$scope ), true );
+	}
+
+	public static function run_site( $in ) {
+		$u    = wp_get_current_user();
+		$docs = array();
+		if ( is_array( self::$scope ) ) {
+			foreach ( self::docs() as $d ) {
+				if ( self::in_scope( (int) $d['id'] ) ) {
+					$docs[] = array( 'id' => (int) $d['id'], 'kind' => $d['kind'], 'title' => $d['title'] );
+				}
+			}
+		}
+		return array(
+			'name'        => get_bloginfo( 'name' ),
+			'tagline'     => get_bloginfo( 'description' ),
+			'url'         => home_url( '/' ),
+			'language'    => get_locale(),
+			'you_act_as'  => array( 'name' => $u->display_name, 'role' => class_exists( 'Velox_Builder_Roles' ) ? Velox_Builder_Roles::level() : '' ),
+			'may_change'  => is_array( self::$scope ) ? $docs : 'every document this person may edit; new draft pages too',
+			'rules'       => 'Everything you change is a draft and a saved version marked "By AI". Publishing is done by the person in the editor. Write texts in the site\'s language.',
+			'velox'       => defined( 'VELOX_VERSION' ) ? VELOX_VERSION : '',
+		);
+	}
+
+	public static function run_open( $in ) {
+		$o = get_user_meta( get_current_user_id(), 'velox_open_doc', true );
+		if ( ! is_array( $o ) || empty( $o['id'] ) || time() - (int) $o['t'] > 2 * HOUR_IN_SECONDS ) {
+			return array( 'document' => null, 'note' => 'No page is open in the editor right now. Ask which page is meant, or use velox_list_documents.' );
+		}
+		$id = (int) $o['id'];
+		if ( ! self::in_scope( $id ) ) {
+			return array( 'document' => null, 'note' => 'The page open in the editor (#' . $id . ') is not among the documents of this connection. The person can change that under Velox Builder → AI agents.' );
+		}
+		$doc = self::load( $id );
+		if ( is_wp_error( $doc ) ) {
+			return array( 'document' => null, 'note' => $doc->get_error_message() );
+		}
+		return array(
+			'document' => array( 'id' => $id, 'kind' => $doc['kind'], 'title' => $doc['title'], 'status' => $doc['status'], 'edit' => Velox_Builder::edit_url( $id, 'page' === $doc['kind'] ? '' : $doc['kind'] ), 'preview' => self::preview( $doc ) ),
+			'open_since' => human_time_diff( (int) $o['t'] ) . ' ago',
+			'note'       => 'Read it with velox_get_document.',
 		);
 	}
 
@@ -196,6 +267,9 @@ class Velox_Builder_Agents {
 	public static function tool_defs() {
 		$out = array();
 		foreach ( self::abilities() as $name => $a ) {
+			if ( 'connector' === ( $a['only'] ?? '' ) ) {
+				continue;
+			}
 			$schema = $a['input'];
 			unset( $schema['default'] );
 			if ( empty( $schema['properties'] ) ) {
@@ -226,13 +300,22 @@ class Velox_Builder_Agents {
 	 *
 	 * @return array|WP_Error
 	 */
-	public static function run_tool( $ability, $input ) {
+	public static function run_tool( $ability, $input, $via = 'assistant' ) {
 		$all = self::abilities();
 		if ( ! isset( $all[ $ability ] ) ) {
 			return new WP_Error( 'velox_tool', 'Unknown tool.' );
 		}
 		$input = is_array( $input ) ? $input : array();
-		if ( ! self::allowed( $all[ $ability ]['perm'], $input, 'assistant' ) ) {
+		if ( 'connector' === $via && is_array( self::$scope ) ) {
+			$perm = $all[ $ability ]['perm'];
+			if ( 'create' === $perm ) {
+				return new WP_Error( 'velox_scope', 'This connection may only change the pages the person chose, so it cannot create new ones. They can allow the whole site under Velox Builder → AI agents → Connected apps.' );
+			}
+			if ( in_array( $perm, array( 'read_doc', 'write' ), true ) && ! self::in_scope( (int) ( $input['document_id'] ?? 0 ) ) ) {
+				return new WP_Error( 'velox_scope', 'That document is not among the pages of this connection (see velox_get_site_info). The person can add it under Velox Builder → AI agents → Connected apps.' );
+			}
+		}
+		if ( ! self::allowed( $all[ $ability ]['perm'], $input, $via ) ) {
 			return new WP_Error( 'velox_denied', __( 'You may not do that with your role, or on this document.', 'velox' ) );
 		}
 		foreach ( (array) ( $all[ $ability ]['input']['required'] ?? array() ) as $req ) {
@@ -248,6 +331,9 @@ class Velox_Builder_Agents {
 			return;
 		}
 		foreach ( self::abilities() as $name => $a ) {
+			if ( ! empty( $a['only'] ) ) {
+				continue;
+			}
 			$perm = $a['perm'];
 			wp_register_ability( $name, array(
 				'label'               => $a['label'],
@@ -275,7 +361,7 @@ class Velox_Builder_Agents {
 	public static function allowed( $perm, $input, $via = 'mcp' ) {
 		// Outside tools need the switch on this screen; the built-in assistant
 		// has its own setting (an API key) and is checked before it runs.
-		if ( ( 'mcp' === $via && ! self::enabled() ) || ! current_user_can( 'velox_builder' ) ) {
+		if ( ( in_array( $via, array( 'mcp', 'connector' ), true ) && ! self::enabled() ) || ! current_user_can( 'velox_builder' ) ) {
 			return false;
 		}
 		$doc = (int) ( $input['document_id'] ?? 0 );
@@ -366,7 +452,7 @@ class Velox_Builder_Agents {
 		return array( 'images' => $out, 'note' => $out ? '' : 'No images found. Use a placeholder section without an image and tell the person to add one.' );
 	}
 
-	private static function docs( $kind = 'all', $search = '' ) {
+	public static function docs( $kind = 'all', $search = '' ) {
 		global $wpdb;
 		$t   = Velox_Builder::table();
 		$sql = "SELECT id, kind, title, status, post_id, updated, draft IS NOT NULL AND draft <> '' AS has_draft FROM {$t} WHERE kind IN ('page','template','reusable')";
@@ -384,7 +470,7 @@ class Velox_Builder_Agents {
 		$kind = in_array( $in['kind'] ?? 'all', array( 'page', 'template', 'reusable', 'all' ), true ) ? ( $in['kind'] ?? 'all' ) : 'all';
 		$out  = array();
 		foreach ( self::docs( $kind, sanitize_text_field( (string) ( $in['search'] ?? '' ) ) ) as $d ) {
-			if ( class_exists( 'Velox_Builder_Roles' ) && ! Velox_Builder_Roles::can_edit_doc( (int) $d['id'] ) ) {
+			if ( ( class_exists( 'Velox_Builder_Roles' ) && ! Velox_Builder_Roles::can_edit_doc( (int) $d['id'] ) ) || ! self::in_scope( (int) $d['id'] ) ) {
 				continue;
 			}
 			$out[] = array(
