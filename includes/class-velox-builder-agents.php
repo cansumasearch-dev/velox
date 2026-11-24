@@ -87,7 +87,7 @@ class Velox_Builder_Agents {
 
 	/** All abilities, for registration and for the AI agents screen. */
 	public static function abilities() {
-		$doc_id = array( 'type' => 'integer', 'description' => 'The id of a page, template or component (from velox/list-documents).', 'minimum' => 1 );
+		$doc_id = array( 'type' => 'integer', 'description' => 'The id of a page, template or component (from velox_list_documents).', 'minimum' => 1 );
 		$el_doc = 'Element spec: {"type": one of ' . implode( ', ', array_keys( self::TYPES ) ) . ', "tag"?, "text"? (HTML for heading/text/list/button/link; list = <li> items), "href"? (button/link), "src"? / "image_id"? / "alt"? (image), "settings"? (video: url,title,autoplay; icon: icon,size,label; form: form id; image: imgSize,loading,caption), "component_id"? (component), "classes"? ([".class-name"]), "styles"? ({"fontSize":"48px"} or per screen size {"base":{...},"md":{...},"base:hover":{...}}; camelCase or CSS names; use design tokens as var(--name)), "name"? (label in the editor), "children"? (section/div/columns/grid only)}.';
 		return array(
 			'velox/get-design-system' => array(

@@ -1263,9 +1263,18 @@ legend{font-weight:600;margin-bottom:8px;padding:0}
 			wp_send_json_success( array( 'rows' => $rows ) );
 		}
 		$opts = array( 'timeout' => 10, 'redirection' => 0, 'sslverify' => false );
+		// First Velox's own REST address: if even that fails, the server cannot call itself
+		// (a firewall, a sandbox, a local site) and nothing below would mean anything.
+		$own  = wp_remote_get( rest_url( 'velox/v1/oauth/resource' ), $opts );
+		$ownj = is_wp_error( $own ) ? null : json_decode( (string) wp_remote_retrieve_body( $own ), true );
 		$res  = wp_remote_get( self::resource_metadata_url(), $opts );
 		$prm  = is_wp_error( $res ) ? null : json_decode( (string) wp_remote_retrieve_body( $res ), true );
-		if ( is_wp_error( $res ) ) {
+		$ownc = is_wp_error( $own ) ? 0 : (int) wp_remote_retrieve_response_code( $own );
+		if ( in_array( $ownc, array( 401, 403 ), true ) ) {
+			$add( false, __( 'Sign-in settings', 'velox' ), __( 'Not reachable. A security plugin may block the REST API for visitors.', 'velox' ) );
+			wp_send_json_success( array( 'rows' => $rows ) );
+		}
+		if ( ! is_array( $ownj ) || empty( $ownj['resource'] ) || is_wp_error( $res ) ) {
 			$add( null, __( 'The site can reach itself', 'velox' ), __( 'The server could not call its own address, so Velox cannot check the rest from here. That does not mean Claude cannot connect: just try it.', 'velox' ) );
 			wp_send_json_success( array( 'rows' => $rows ) );
 		}
