@@ -7522,7 +7522,7 @@
 	}
 
 	/* ---------- Structure panel (collapsible full-page outline) ---------- */
-	var structShown = false, structCollapsed = {}, structFollowed = null, structFor = null;
+	var structShown = false, structCollapsed = {}, structFollowed = null, structFor = null, structKeepUntil = 0;
 	/* Which branches are closed is kept per document (in this browser), so a
 	 * reload shows Structure the way it was left. A new page adopts its id on
 	 * the first save without losing what was folded. */
@@ -7531,6 +7531,9 @@
 		var was = structFor; structFor = docId;
 		if ( ! docId || ( null !== was && ! was ) ) { return; }
 		try { structCollapsed = JSON.parse( window.localStorage.getItem( 'velox_builder_struct_' + docId ) || '{}' ) || {}; } catch ( e ) { structCollapsed = {}; }
+		// The editor selects an element by itself while the page opens; that must
+		// not unfold what was folded. Only selections after that open the path.
+		if ( Object.keys( structCollapsed ).length ) { structKeepUntil = Date.now() + 3000; }
 	}
 	function structSave() {
 		if ( ! docId ) { return; }
@@ -7662,6 +7665,7 @@
 		var html2;
 		var tree = store.state ? store.state.tree : [];
 		// The selected element is always visible: open every collapsed parent.
+		if ( sel && sel !== structFollowed && Date.now() < structKeepUntil ) { structFollowed = sel; }
 		if ( sel && sel !== structFollowed ) {
 			structFollowed = sel;
 			( function open( nodes, path ) {
