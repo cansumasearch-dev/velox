@@ -1857,9 +1857,10 @@ class Velox_Shop_Admin {
 			$pp = Velox_Shop::product( (int) $first[0] );
 			if ( $pp && count( array_filter( (array) $pp['gallery'] ) ) < 2 ) {
 				$more = array();
+				$have = array_map( 'intval', array_merge( array( (int) get_post_thumbnail_id( $pp['id'] ) ), (array) $pp['gallery'] ) );
 				foreach ( get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 12, 'fields' => 'ids', 'exclude' => array( (int) $pp['id'] ) ) ) as $oid ) {
 					$tid = (int) get_post_thumbnail_id( $oid );
-					if ( $tid ) {
+					if ( $tid && ! in_array( $tid, $have, true ) && ! in_array( $tid, $more, true ) ) {
 						$more[] = $tid;
 					}
 					if ( count( $more ) >= 3 ) {

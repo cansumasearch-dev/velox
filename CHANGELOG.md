@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.75.1 — No photo twice in the product preview
+- The product page preview borrowed a photo the product already had, so it showed twice among the thumbnails.
+
 ## 4.75.0 — Every page look looks different; the cart has its own layouts
 - **The cart page has layouts of its own** (Design → Cart & checkout → Cart page): the total at the side, one narrow column with the total below, every item as a card with a big photo, or items as photo tiles two in a row. Before, the cart looked the same whatever was chosen; the looks only changed the checkout and the cart icon.
 - **Cart looks:** Classic (a list, total at the side), Compact (one column), Department store (items as cards), Market (photo tiles) now each show a different cart.
