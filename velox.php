@@ -3,7 +3,7 @@
  * Plugin Name:       Velox
  * Plugin URI:        https://github.com/cansumasearch-dev/velox
  * Description:       The speed toolkit that works *with* your stack, not against it. WebP images, smart CSS &amp; JS optimization, local fonts, media cleanup and database tools — built to sit on top of Oxygen, WP Fastest Cache and Cloudflare without stepping on them.
- * Version:           4.67.0
+ * Version:           4.68.0
  * Requires at least: 6.0
  * Tested up to:      7.0
  * Requires PHP:      7.4
@@ -28,7 +28,7 @@ if ( defined( 'VELOX_VERSION' ) ) {
 /* -------------------------------------------------------------------------
  * Constants
  * ---------------------------------------------------------------------- */
-define( 'VELOX_VERSION', '4.67.0' );
+define( 'VELOX_VERSION', '4.68.0' );
 define( 'VELOX_FILE', __FILE__ );
 define( 'VELOX_BASENAME', plugin_basename( __FILE__ ) );
 define( 'VELOX_PATH', plugin_dir_path( __FILE__ ) );
@@ -104,6 +104,7 @@ spl_autoload_register( function ( $class ) {
 		'Velox_Shop_Admin'         => 'includes/class-velox-shop-admin.php',
 		'Velox_Shop_Front'         => 'includes/class-velox-shop-front.php',
 		'Velox_Shop_Pay'           => 'includes/class-velox-shop-pay.php',
+		'Velox_Shop_Texts'         => 'includes/class-velox-shop-texts.php',
 		'Velox_Site_Scan'          => 'includes/class-velox-sitescan.php',
 		'Velox_Site_Scan_Fix'      => 'includes/class-velox-sitescan-fix.php',
 		'Velox_Snippets'           => 'includes/class-velox-snippets.php',

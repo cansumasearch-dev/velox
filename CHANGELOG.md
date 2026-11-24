@@ -4,6 +4,14 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.68.0 — Shop design you can see and test, every shop text editable
+- **Template tiles show the real thing:** each template is drawn with your own products (fonts, colours, cards, buttons) instead of the same grey boxes in different colours.
+- **Test it on the real shop before saving:** “Try it on the real shop” opens the shop page, a product, the cart, the checkout or the account with the choices you have not saved yet. Only you see it (for 30 minutes), visitors keep the saved design.
+- **More than products:** two new design areas. *Shop page*: categories as rounded buttons, underlined words or solid blocks. *Customer account*: the menu as tabs on top, a list at the side or rounded buttons (on phones always on top). Every template now has its own choice for both, so templates differ on every page, not only in the grid.
+- **Build it yourself:** a row of buttons opens the shop, cart, checkout, account and withdrawal pages in Velox Builder for full control by hand.
+- **Every shop text is editable** (Settings → Texts): all 678 texts customers see on shop and product pages, in the cart and checkout, the account, wishlist and reviews, and in the emails. Search, filter by area, see which you changed; empty goes back to the original. Placeholders like %s or %d are checked so nothing breaks.
+- Note for shops that changed colours on top of a template: those choices win over every template (that is why switching templates looked like a colour change). “Back to the pure template” in Design clears them.
+
 ## 4.67.0 — Accordions, tabs and sliders you edit on the canvas, six new elements
 - **Accordion, FAQ, Tabs and Slider work on the canvas like on the page:** click a header to open it, a tab to switch, the arrows or dots to move the slider. What you open stays open while you edit (it is not saved).
 - **Double-click a title or text** of an accordion section, FAQ question, tab or slide to edit it right there. Enter keeps it, Escape throws it away, each edit is one Undo step.

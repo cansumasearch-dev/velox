@@ -980,3 +980,27 @@ html.vxs-sbar-on .vxs-toast{bottom:92px}
 .vxa-nav ul.can-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
 .vxa-nav ul.can-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 40px);mask-image:linear-gradient(90deg,transparent,#000 40px)}
 .vxa-nav ul.can-l.can-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent)}
+/* 4.68: categories as underlined words or solid blocks */
+.vxs-cats.is-underline{gap:4px 22px}
+.vxs-cats.is-underline a{height:auto;padding:6px 0;border:0;border-bottom:2px solid transparent;border-radius:0;background:none}
+.vxs-cats.is-underline a[aria-current]{border-bottom-color:var(--vxs-ink);color:var(--vxs-ink)}
+.vxs-cats.is-blocks{gap:6px}
+.vxs-cats.is-blocks a{border-radius:var(--vxs-btn-r,0);border-color:var(--vxs-ink);font-weight:600}
+.vxs-cats.is-blocks a[aria-current]{background:var(--vxs-ink);color:var(--vxs-bg)}
+/* 4.68: account menu at the side, or as pills */
+@media (min-width:860px){
+.vxa.vxa-nav-side{display:grid;grid-template-columns:220px minmax(0,1fr);grid-template-areas:"head head" "nav body";gap:28px 48px;align-items:start}
+.vxa-nav-side>.vxa-head{grid-area:head}.vxa-nav-side>.vxa-nav{grid-area:nav;position:sticky;top:24px;border:0}.vxa-nav-side>.vxa-body{grid-area:body}
+.vxa-nav-side .vxa-nav ul{flex-direction:column;gap:2px;overflow:visible}
+.vxa-nav-side .vxa-nav a{padding:10px 14px;border-radius:calc(var(--vxa-r) * .75)}
+.vxa-nav-side .vxa-nav a::after{display:none}
+.vxa-nav-side .vxa-nav a[aria-current=page]{background:var(--vxs-soft)}
+}
+.vxa-nav-pills .vxa-nav{border:0}
+.vxa-nav-pills .vxa-nav ul{gap:6px}
+.vxa-nav-pills .vxa-nav a{padding:9px 16px;border:1px solid var(--vxs-line);border-radius:999px}
+.vxa-nav-pills .vxa-nav a::after{display:none}
+.vxa-nav-pills .vxa-nav a[aria-current=page]{background:var(--vxs-ink);border-color:var(--vxs-ink);color:var(--vxs-bg)}
+.vxa-nav-pills .vxa-nav a[aria-current=page] svg{color:inherit}
+/* 4.68: test page banner */
+.vxs-trybar{position:fixed;left:50%;bottom:16px;z-index:99999;transform:translateX(-50%);max-width:calc(100vw - 32px);padding:10px 16px;border-radius:999px;background:#111;color:#fff;font:600 13px/1.4 system-ui,-apple-system,"Segoe UI",sans-serif;box-shadow:0 10px 30px rgba(0,0,0,.25);text-align:center}

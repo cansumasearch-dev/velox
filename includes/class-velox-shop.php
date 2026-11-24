@@ -62,6 +62,7 @@ class Velox_Shop {
 		Velox_Shop_Extras::init();
 		if ( class_exists( 'Velox_Shop_Front' ) ) {
 			Velox_Shop_Front::init();
+			Velox_Shop_Texts::init();
 			Velox_Shop_Account::init();
 		}
 		if ( is_admin() && class_exists( 'Velox_Shop_Admin' ) ) {
@@ -209,6 +210,7 @@ class Velox_Shop {
 			'd_img_pad' => '', 'd_fit' => '', 'd_hover' => '', 'd_align' => '', 'd_show_cat' => '', 'd_show_text' => '', 'd_button' => '', 'd_badge' => '',
 			'd_badge_pos' => '', 'd_price' => '', 'd_radius' => '', 'd_btn_shape' => '', 'd_btn_style' => '', 'd_btn_case' => '', 'd_page_bg' => '', 'd_product' => '',
 			'd_gallery' => '', 'd_sticky' => '', 'd_details' => '', 'd_checkout' => '', 'd_cart_icon' => '', 'd_cart_count' => '', 'd_cart_total' => '',
+			'd_cats_style' => '', 'd_acc_nav' => '',
 			'custom_css'      => '', // the shop's own CSS, printed after the shop stylesheet
 			// Storefront
 			'after_add'       => 'drawer', // drawer | cart | stay
@@ -312,6 +314,8 @@ class Velox_Shop {
 		'radius', 'btn_shape', 'btn_style', 'btn_case',
 		// pages
 		'page_bg', 'product', 'gallery', 'sticky', 'details', 'checkout', 'cart_icon', 'cart_count', 'cart_total',
+		// shop page and account (4.68)
+		'cats_style', 'acc_nav',
 	);
 
 	/** Templates saved before 4.61 and what they became. */
@@ -378,6 +382,7 @@ class Velox_Shop {
 			'radius' => '12', 'btn_shape' => 'pill', 'btn_style' => 'solid', 'btn_case' => 'none',
 			'page_bg' => '0', 'product' => 'split', 'gallery' => 'below', 'sticky' => '1', 'details' => 'accordion', 'checkout' => 'two',
 			'cart_icon' => 'bag', 'cart_count' => 'badge', 'cart_total' => '0',
+			'cats_style' => 'pills', 'acc_nav' => 'tabs',
 		);
 		$p = function ( $name, $desc, $fonts, $mood, $v ) use ( $base ) {
 			return array( 'name' => $name, 'desc' => $desc, 'fonts' => $fonts, 'mood' => $mood, 'v' => array_merge( $base, $v ) );
@@ -385,24 +390,28 @@ class Velox_Shop {
 		return array(
 			'velox'      => $p( __( 'Velox', 'velox' ), __( 'Clean and quiet: big photos on soft grey, nothing in the way. Fits almost anything.', 'velox' ), 'Geist', __( 'clean · calm', 'velox' ), array() ),
 			'atelier'    => $p( __( 'Atelier', 'velox' ), __( 'For art, prints and handmade work: every piece uncropped on warm paper, like a gallery wall.', 'velox' ), 'Cormorant · Inter', __( 'literary · warm', 'velox' ), array(
+				'cats_style' => 'underline', 'acc_nav' => 'side',
 				'bg' => '#f6f1ea', 'surface' => '#f6f1ea', 'soft' => '#ede6db', 'ink' => '#1f1b16', 'muted' => '#6b6259', 'line' => '#d9cfc1', 'accent' => '#1f1b16', 'accent_ink' => '#f6f1ea', 'sale' => '#a23b2a',
 				'font_h' => 'cormorant', 'font_b' => 'inter', 'h_weight' => '500', 'h_track' => '-0.01', 'label' => 'upper',
 				'cols' => '3', 'cols_t' => '2', 'cols_m' => '1', 'gap' => '48', 'gap_row' => '64', 'card' => 'tile', 'img_bg' => 'soft', 'img_pad' => '9', 'fit' => 'contain', 'hover' => 'zoom',
 				'show_cat' => '1', 'badge' => 'text', 'radius' => '0', 'btn_shape' => 'square', 'btn_case' => 'upper', 'page_bg' => '1', 'product' => 'wide', 'gallery' => 'stack',
 			) ),
 			'nordic'     => $p( __( 'Nordic', 'velox' ), __( 'Scandinavian calm for home and furniture: products cut out on light grey, round buttons.', 'velox' ), 'Outfit · Hanken Grotesk', __( 'calm · tactile', 'velox' ), array(
+				'cats_style' => 'pills', 'acc_nav' => 'pills',
 				'soft' => '#efeeeb', 'ink' => '#282828', 'muted' => '#6f6c66', 'line' => '#e4e2dd', 'accent' => '#282828', 'sale' => '#b4441f',
 				'font_h' => 'outfit', 'font_b' => 'hanken', 'h_weight' => '500', 'h_track' => '-0.03', 'label' => 'upper',
 				'gap' => '16', 'gap_row' => '44', 'card' => 'tile', 'img_bg' => 'soft', 'img_pad' => '8', 'fit' => 'contain', 'show_cat' => '1',
 				'radius' => '0', 'btn_shape' => 'pill', 'gallery' => 'grid',
 			) ),
 			'maison'     => $p( __( 'Maison', 'velox' ), __( 'Hushed luxury for fragrance, beauty and jewellery: sand tones, a fine serif, lots of air.', 'velox' ), 'Bodoni Moda · Manrope', __( 'refined · airy', 'velox' ), array(
+				'cats_style' => 'underline', 'acc_nav' => 'side',
 				'bg' => '#f6f1eb', 'surface' => '#f6f1eb', 'soft' => '#efe7dc', 'ink' => '#111111', 'muted' => '#6e665e', 'line' => '#e3dcd3', 'accent' => '#111111', 'accent_ink' => '#f6f1eb', 'sale' => '#8a1c1c',
 				'font_h' => 'bodoni', 'font_b' => 'manrope', 'h_weight' => '400', 'h_track' => '0.01', 'label' => 'upper',
 				'gap' => '2', 'gap_row' => '56', 'ratio' => '3/4', 'img_bg' => 'soft', 'img_pad' => '6', 'fit' => 'contain', 'align' => 'center', 'badge' => 'text',
 				'radius' => '0', 'btn_shape' => 'square', 'btn_style' => 'outline', 'btn_case' => 'upper', 'page_bg' => '1', 'gallery' => 'stack',
 			) ),
 			'journal'    => $p( __( 'Journal', 'velox' ), __( 'Editorial rows like a magazine: the photo on one side, the story on the other.', 'velox' ), 'Newsreader · Archivo', __( 'earthy · editorial', 'velox' ), array(
+				'cats_style' => 'underline', 'acc_nav' => 'tabs',
 				'bg' => '#efeee8', 'surface' => '#efeee8', 'soft' => '#e4e2da', 'ink' => '#11151c', 'muted' => '#5b5f66', 'line' => '#d3d0c6', 'accent' => '#855832', 'accent_ink' => '#ffffff', 'sale' => '#9a2c1d',
 				'font_h' => 'newsreader', 'font_b' => 'archivo', 'h_weight' => '400', 'h_track' => '-0.015', 'label' => 'upper',
 				'layout' => 'list', 'cols' => '1', 'cols_t' => '1', 'cols_m' => '1', 'gap' => '56', 'gap_row' => '72', 'ratio' => '4/3', 'card' => 'split', 'img_bg' => 'soft', 'hover' => 'zoom',
@@ -410,30 +419,35 @@ class Velox_Shop {
 			) ),
 			'bold'       => $p( 'Bold', // a name, the same in every language
 				 __( 'Loud and graphic for streetwear, sport and drinks: black frames, yellow, huge capitals.', 'velox' ), 'Archivo Black · Archivo', __( 'loud · confident', 'velox' ), array(
+				'cats_style' => 'blocks', 'acc_nav' => 'pills',
 				'soft' => '#f2f2f2', 'ink' => '#000000', 'muted' => '#555555', 'line' => '#000000', 'accent' => '#ffe500', 'accent_ink' => '#000000', 'sale' => '#e2101b',
 				'font_h' => 'archivo-black', 'font_b' => 'archivo', 'h_weight' => '400', 'h_track' => '-0.01', 'h_case' => 'upper', 'label' => 'upper',
 				'gap' => '0', 'gap_row' => '0', 'card' => 'framed', 'img_bg' => 'soft', 'hover' => 'shadow', 'button' => 'button', 'badge' => 'square', 'price' => 'bold',
 				'radius' => '0', 'btn_shape' => 'square', 'btn_case' => 'upper', 'gallery' => 'grid',
 			) ),
 			'candy'      => $p( __( 'Candy', 'velox' ), __( 'Soft and cheerful for beauty, kids and gifts: pastel tiles, round corners, buttons on every card.', 'velox' ), 'Bricolage Grotesque · Nunito', __( 'friendly · fresh', 'velox' ), array(
+				'cats_style' => 'pills', 'acc_nav' => 'pills',
 				'bg' => '#fff8f5', 'surface' => '#ffffff', 'soft' => '#fbe3e8', 'ink' => '#1a1a1a', 'muted' => '#6b5e62', 'line' => '#f0dce0', 'accent' => '#d6336c', 'accent_ink' => '#ffffff', 'sale' => '#c2255c',
 				'font_h' => 'bricolage', 'font_b' => 'nunito', 'h_weight' => '700', 'h_track' => '-0.02',
 				'gap' => '20', 'gap_row' => '28', 'ratio' => '1/1', 'card' => 'boxed', 'img_bg' => 'pastel', 'img_pad' => '10', 'fit' => 'contain', 'hover' => 'lift', 'button' => 'button',
 				'radius' => '20', 'btn_shape' => 'pill', 'page_bg' => '1',
 			) ),
 			'circuit'    => $p( __( 'Circuit', 'velox' ), __( 'Precise and polished for tech and gadgets: rounded tiles, centred products, a blue that means buy.', 'velox' ), 'Space Grotesk · Inter', __( 'precise · modern', 'velox' ), array(
+				'cats_style' => 'pills', 'acc_nav' => 'side',
 				'surface' => '#f5f5f7', 'soft' => '#f5f5f7', 'ink' => '#1d1d1f', 'muted' => '#6e6e73', 'line' => '#d2d2d7', 'accent' => '#0071e3', 'sale' => '#b64400',
 				'font_h' => 'space-grotesk', 'font_b' => 'inter', 'h_weight' => '600', 'h_track' => '-0.022',
 				'cols' => '3', 'cols_t' => '2', 'cols_m' => '1', 'gap' => '24', 'gap_row' => '24', 'ratio' => '1/1', 'card' => 'boxed', 'img_bg' => 'none', 'img_pad' => '8', 'fit' => 'contain', 'hover' => 'zoom', 'align' => 'center',
 				'button' => 'button', 'badge' => 'text', 'price' => 'mono', 'radius' => '24', 'btn_shape' => 'pill', 'details' => 'sections',
 			) ),
 			'noir'       => $p( __( 'Noir', 'velox' ), __( 'A true dark shop for gaming, audio, nightlife and dark art: deep black, an electric accent, a glow on hover.', 'velox' ), 'Saira Condensed · Barlow', __( 'cinematic · electric', 'velox' ), array(
+				'cats_style' => 'blocks', 'acc_nav' => 'side',
 				'bg' => '#0b0b0c', 'surface' => '#161618', 'soft' => '#1e1e21', 'ink' => '#f2f2f2', 'muted' => '#a1a1aa', 'line' => '#2a2a2e', 'accent' => '#c8ff3d', 'accent_ink' => '#0b0b0c', 'sale' => '#ff5c5c',
 				'font_h' => 'saira-condensed', 'font_b' => 'barlow', 'h_weight' => '700', 'h_track' => '0.02', 'h_case' => 'upper', 'label' => 'upper',
 				'gap' => '16', 'gap_row' => '16', 'ratio' => '1/1', 'card' => 'boxed', 'img_bg' => 'soft', 'img_pad' => '8', 'fit' => 'contain', 'hover' => 'glow', 'button' => 'button', 'badge' => 'square', 'price' => 'bold',
 				'radius' => '6', 'btn_shape' => 'rounded', 'btn_case' => 'upper', 'page_bg' => '1',
 			) ),
 			'manufaktur' => $p( __( 'Manufaktur', 'velox' ), __( 'Solid and trustworthy for tools, kitchen and everyday goods: framed cards, green, all the details shown.', 'velox' ), 'Libre Baskerville · Source Sans 3', __( 'solid · informative', 'velox' ), array(
+				'cats_style' => 'blocks', 'acc_nav' => 'tabs',
 				'soft' => '#f5f5f2', 'ink' => '#222222', 'muted' => '#6d6f71', 'line' => '#dcdcd7', 'accent' => '#005f35', 'sale' => '#b3261e',
 				'font_h' => 'libre-baskerville', 'font_b' => 'source-sans', 'h_weight' => '700', 'h_track' => '0', 'label' => 'upper',
 				'gap' => '24', 'gap_row' => '24', 'ratio' => '1/1', 'card' => 'framed', 'img_bg' => 'none', 'img_pad' => '6', 'fit' => 'contain', 'hover' => 'lift', 'show_cat' => '1', 'button' => 'icon',
