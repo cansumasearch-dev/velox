@@ -985,6 +985,7 @@
 			doc.body.innerHTML = html; doc.body.setAttribute( 'data-html', html );
 			syncItemViews( doc );
 		}
+		syncParticles( doc );
 		// Listeners belong to the DOCUMENT, not the markup — re-attaching them on
 		// every render stacked a new copy each time, so one click ran the handler
 		// once per render since the page opened. Wire each canvas document once.
@@ -1200,6 +1201,54 @@
 		if ( store.state.selection !== id ) { store.commit( function ( s ) { s.selection = id; resetActiveClass( s ); }, false ); }
 		else { injectCanvas(); }
 		return true;
+	}
+	/* Particles (Motion → Floating particles) play on the canvas too, as on the
+	 * page: the same density, colour and drift. Each section keeps its canvas
+	 * across redraws, so the field does not jump while you edit. */
+	var PARTS = {};
+	function syncParticles( doc ) {
+		var want = {};
+		( function walk( list ) { ( list || [] ).forEach( function ( n ) { if ( n && n.mo && n.mo.particles && ! n.hidden ) { want[ n.id ] = n.mo; } if ( n && n.children ) { walk( n.children ); } } ); }( store.state.tree ) );
+		Object.keys( PARTS ).forEach( function ( id ) { if ( ! want[ id ] ) { PARTS[ id ].live = false; delete PARTS[ id ]; } } );
+		Object.keys( want ).forEach( function ( id ) {
+			var host = doc.getElementById( id ); if ( ! host ) { return; }
+			var m = want[ id ], color = String( m.particlesColor || '#ffffff' ), dens = Math.max( 5, Math.min( 300, parseInt( m.particlesDensity, 10 ) || 60 ) );
+			var P = PARTS[ id ];
+			if ( ! P || P.doc !== doc || P.color !== color || P.dens !== dens ) {
+				if ( P ) { P.live = false; }
+				var cv = doc.createElement( 'canvas' );
+				cv.className = 'vx-particles vb-particles'; cv.setAttribute( 'aria-hidden', 'true' );
+				cv.style.cssText = 'position:absolute;inset:0;z-index:-1;pointer-events:none';
+				P = PARTS[ id ] = { doc:doc, cv:cv, ctx:cv.getContext( '2d' ), color:color, dens:dens, pts:[], W:0, H:0, live:true };
+				( function ( P ) {
+					function draw( t ) {
+						if ( ! P.live || ! P.ctx ) { return; }
+						var h = P.cv.parentNode; if ( ! h ) { doc.defaultView.requestAnimationFrame( draw ); return; }
+						var W = h.clientWidth, H = h.clientHeight, dpr = Math.min( 2, doc.defaultView.devicePixelRatio || 1 );
+						if ( W !== P.W || H !== P.H ) {
+							P.W = W; P.H = H; P.cv.width = W * dpr; P.cv.height = H * dpr; P.cv.style.width = W + 'px'; P.cv.style.height = H + 'px';
+							P.ctx.setTransform( dpr, 0, 0, dpr, 0, 0 ); P.pts = [];
+							for ( var i = 0, n = Math.round( P.dens * W * H / ( 1440 * 800 ) ); i < n; i++ ) { var z = Math.random(); P.pts.push( { x:Math.random() * W, y:Math.random() * H, z:z, r:0.6 + z * 1.8, vy:0.08 + z * 0.35, ph:Math.random() * 6.28, sw:0.3 + Math.random() * 0.8 } ); }
+						}
+						P.ctx.clearRect( 0, 0, W, H ); P.ctx.fillStyle = P.color;
+						P.pts.forEach( function ( p ) {
+							p.y -= p.vy; p.x += Math.sin( t / 1800 * p.sw + p.ph ) * 0.15; if ( p.y < -4 ) { p.y = H + 4; p.x = Math.random() * W; }
+							var a = ( 0.25 + p.z * 0.6 ) * ( 0.65 + 0.35 * Math.sin( t / 900 * p.sw + p.ph ) );
+							P.ctx.globalAlpha = Math.max( 0, Math.min( 1, a * Math.min( 1, p.y / ( H * 0.25 ) ) ) );
+							P.ctx.beginPath(); P.ctx.arc( p.x, p.y, p.r, 0, 6.283 ); P.ctx.fill();
+						} );
+						P.ctx.globalAlpha = 1;
+						doc.defaultView.requestAnimationFrame( draw );
+					}
+					doc.defaultView.requestAnimationFrame( draw );
+				}( P ) );
+			}
+			if ( P.cv.parentNode !== host ) {
+				if ( 'static' === doc.defaultView.getComputedStyle( host ).position ) { host.style.position = 'relative'; }
+				host.style.isolation = 'isolate';
+				host.insertBefore( P.cv, host.firstChild );
+			}
+		} );
 	}
 	/* After a redraw, sliders scroll to the slide picked on the canvas. */
 	function syncItemViews( doc ) {
@@ -2516,10 +2565,25 @@
 			{ key:'shopaccountbtn', el:'Shopaccountbtn', tag:'div', label:'Account button', cls:'.shop-accountbtn', rules:{},
 			  settings:[ { k:'label', t:'text', l:'Text next to the icon', d:'', s:'Button' },
 				{ k:'menu', t:'select', l:'On hover', d:'', s:'Button', o:[ [ '', 'Show a menu' ], [ '0', 'Just a link' ] ] } ] },
-			{ key:'shopcart', el:'Shopcart', tag:'div', label:'Cart', cls:'.shop-cart', rules:{} },
-			{ key:'shopcheckout', el:'Shopcheckout', tag:'div', label:'Checkout', cls:'.shop-checkout', rules:{} },
-			{ key:'shopaccount', el:'Shopaccount', tag:'div', label:'Customer account', cls:'.shop-account', rules:{} },
-			{ key:'shopwithdraw', el:'Shopwithdraw', tag:'div', label:'Withdrawal form', cls:'.shop-withdraw', rules:{} }
+			{ key:'shopcart', el:'Shopcart', tag:'div', label:'Cart', cls:'.shop-cart', rules:{},
+			  settings:[
+				{ k:'accent', t:'color', l:'Button colour', d:'', s:'Look' },
+				{ k:'radius', t:'num', l:'Corner radius', d:'', unit:'px', s:'Look', ph:'From the shop design' } ] },
+			{ key:'shopcheckout', el:'Shopcheckout', tag:'div', label:'Checkout', cls:'.shop-checkout', rules:{},
+			  settings:[
+				{ k:'layout', t:'select', l:'Layout', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'two', 'Two columns' ], [ 'one', 'One column' ] ] },
+				{ k:'accent', t:'color', l:'Button colour', d:'', s:'Look' },
+				{ k:'radius', t:'num', l:'Corner radius', d:'', unit:'px', s:'Look', ph:'From the shop design' } ] },
+			{ key:'shopaccount', el:'Shopaccount', tag:'div', label:'Customer account', cls:'.shop-account', rules:{},
+			  settings:[
+				{ k:'nav', t:'select', l:'Menu', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'tabs', 'Tabs on top' ], [ 'side', 'List at the side' ], [ 'pills', 'Rounded buttons' ] ] },
+				{ k:'maxw', t:'num', l:'Never wider than', d:'', unit:'px', s:'Look', ph:'the page' },
+				{ k:'accent', t:'color', l:'Accent colour', d:'', s:'Look' },
+				{ k:'radius', t:'num', l:'Corner radius', d:'', unit:'px', s:'Look', ph:'From the shop design' } ] },
+			{ key:'shopwithdraw', el:'Shopwithdraw', tag:'div', label:'Withdrawal form', cls:'.shop-withdraw', rules:{},
+			  settings:[
+				{ k:'accent', t:'color', l:'Button colour', d:'', s:'Look' },
+				{ k:'radius', t:'num', l:'Corner radius', d:'', unit:'px', s:'Look', ph:'From the shop design' } ] }
 		] } );
 	}
 	/* ---------- starting styles ----------
@@ -5467,12 +5531,20 @@
 	 * Renders ANY element's Settings tab from its definition. One code path for
 	 * all 240 elements: no per-element inspector code, so a new element is a data
 	 * entry and nothing more. */
+	/* Several catalogue entries can share an element (Tabs and Content switcher,
+	 * Marquee and Logo carousel): the one whose class the node has wins, then
+	 * the entry named like the element, then the first. */
 	function elDef( node ) {
 		if ( ! node ) { return null; }
+		var cls = node.classes && node.classes[ 0 ], byKey = null, first = null;
 		for ( var i = 0; i < CATALOG.length; i++ ) {
-			if ( CATALOG[ i ].el === node.el ) { return CATALOG[ i ]; }
+			var c = CATALOG[ i ];
+			if ( c.el !== node.el ) { continue; }
+			if ( cls && c.cls === cls ) { return c; }
+			if ( ! byKey && c.key === String( node.el ).toLowerCase() ) { byKey = c; }
+			if ( ! first ) { first = c; }
 		}
-		return null;
+		return byKey || first;
 	}
 	/* Element settings carry a breakpoint dimension the same way class rules do.
 	 * A value for the base breakpoint keeps living under its plain key, so every

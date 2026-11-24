@@ -1298,6 +1298,7 @@
 		} ).catch( function () { dsMiniBusy = false; DSMINI[ next ] = ''; } );
 	}
 	window.addEventListener( 'resize', function () { if ( 'design' === route.id ) { dsMiniFit(); } } );
+	document.addEventListener( 'toggle', function ( e ) { var d = e.target; if ( d && d.matches && d.matches( '.vsa-pacc' ) ) { DS_OPEN[ d.getAttribute( 'data-pacc' ) ] = d.open; } }, true );
 	/* Open the real shop with the choices not saved yet (administrators only). */
 	function dsTry( where ) {
 		var pick = { design:SD.design, card_ratio:SD.card_ratio, custom_css:SD.custom_css };
@@ -1306,6 +1307,27 @@
 		api( 'design_try', { settings:pick, where:where } ).then( function ( r ) {
 			if ( w ) { w.location.href = r.url; } else { window.open( r.url, '_blank' ); }
 		} ).catch( function ( e ) { if ( w ) { w.close(); } fail( e ); } );
+	}
+	/* One section per page: opens and closes; stays open across redraws. */
+	var DS_OPEN = {};
+	function pacc( key, title, sub, builds, body ) {
+		var open = !! DS_OPEN[ key ];
+		return '<details class="vsa-pacc" data-pacc="' + key + '"' + ( open ? ' open' : '' ) + '><summary><span class="vsa-pacc-t"><b>' + title + '</b><small>' + sub + '</small></span>' +
+			'<span class="vsa-pacc-chev" aria-hidden="true"></span></summary><div class="vsa-pacc-b">' + body + dsBuild( builds ) + '</div></details>';
+	}
+	function dsBuild( keys ) {
+		var P = {}; ( C.shopPages || [] ).forEach( function ( p ) { P[ p.key ] = p; } );
+		var btns = keys.map( function ( k ) {
+			if ( 'product' === k ) {
+				return '<a class="vsa-btn vsa-btn-sm vsa-btn-ghost" href="#/settings/pages">' + ic( 'brush', 13 ) + vxT( 'Design product pages yourself' ) + '</a>';
+			}
+			var pg = P[ k ];
+			if ( ! pg || 'missing' === pg.state ) {
+				return '<span class="vsa-btn vsa-btn-sm vsa-btn-ghost is-off" title="' + esc( vxT( 'This page does not exist yet. Create it under Pages & legal.' ) ) + '">' + esc( pg ? pg.label : k ) + '</span>';
+			}
+			return '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="d-build" data-v="' + k + '">' + ic( 'brush', 13 ) + esc( vxT( '%s in Velox Builder' ).replace( '%s', pg.label ) ) + '</button>';
+		} ).join( '' );
+		return '<div class="vsa-bld"><span>' + vxT( 'Or build it yourself:' ) + '</span>' + btns + '</div>';
 	}
 	/* The shop's pages in Velox Builder, for full control by hand. */
 	function dsBuilder() {
@@ -1329,13 +1351,24 @@
 		var fit = dsEff( 'fit', tpl ), kind = dsEff( 'card', tpl );
 		setTimeout( dsPreviewSoon, 0 );
 		setTimeout( dsMiniAll, 30 );
-		return card( vxT( 'Template' ), '<div class="vsa-tpls">' + tiles + '</div>' +
+		// Choices saved on top of the template win over it everywhere: say so
+		// loudly, with what they are, so a light "Noir" is never a mystery.
+		var ownKeys = Object.keys( s ).filter( function ( x ) { return /^d_/.test( x ) && '' !== String( s[ x ] == null ? '' : s[ x ] ); } );
+		var colKeys = ownKeys.filter( function ( x ) { return /^d_(bg|surface|soft|ink|muted|line|accent|accent_ink|sale)$/.test( x ); } );
+		var tName = esc( ( D[ cur ] || {} ).name || cur );
+		var banner = ownKeys.length ? '<div class="vsa-ownbanner" role="status">' + ic( 'alert', 16 ) + '<div><b>' + vxT( 'Your own choices are on top of %s.' ).replace( '%s', tName ) + '</b><span>' +
+			( colKeys.length ? vxT( '%d colours are yours, so the shop does not look like the template’s picture.' ).replace( '%d', colKeys.length ) + ' ' : '' ) +
+			vxT( '%d choices in total. The tiles below show each template as it comes.' ).replace( '%d', ownKeys.length ) + '</span>' +
+			( colKeys.length ? '<span class="vsa-ownsw">' + colKeys.map( function ( x ) { return /^#[0-9a-f]{3,8}$/i.test( s[ x ] ) ? '<i style="background:' + s[ x ] + '"></i>' : ''; } ).join( '' ) + '</span>' : '' ) +
+			'</div><button type="button" class="vsa-btn vsa-btn-sm vsa-btn-pri" data-act="d-clear">' + vxT( 'Use %s as it comes' ).replace( '%s', tName ) + '</button></div>' : '';
+		return banner + card( vxT( 'Template' ), '<div class="vsa-tpls">' + tiles + '</div>' +
 				( own ? '<div class="vsa-tpl-own">' + ic( 'brush', 14 ) + '<span>' + vxT( '%d choices changed on top of the template.' ).replace( '%d', own ) + '</span><button type="button" class="vsa-link" data-act="d-clear">' + vxT( 'Back to the pure template' ) + '</button></div>' : '<p class="vsa-hint">' + vxT( 'A template sets every choice below. Change any of them on top — “Template” keeps its value. Picking another template starts fresh.' ) + '</p>' ) ) +
 			card( vxT( 'Preview' ), '<div class="vsa-dprev"><iframe id="vsa-dprev" title="' + esc( vxT( 'Preview' ) ) + '"></iframe></div><p class="vsa-hint">' + vxT( 'Your real products, drawn with the choices on this page. Save to put them live.' ) + '</p>' +
 					'<div class="vsa-try"><span>' + ic( 'eye', 14 ) + vxT( 'Try it on the real shop, before saving:' ) + '</span>' +
 					[ [ 'shop', vxT( 'Shop page' ) ], [ 'product', vxT( 'A product' ) ], [ 'cart', vxT( 'Cart' ) ], [ 'checkout', vxT( 'Checkout' ) ], [ 'account', vxT( 'Account' ) ] ].map( function ( o ) {
 						return '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="d-try" data-v="' + o[ 0 ] + '">' + o[ 1 ] + ' ' + ic( 'ext', 12 ) + '</button>';
 					} ).join( '' ) + '</div>', { cls:'vsa-dprev-card', right:'<div class="vsa-seg vsa-dprev-dev">' + [ [ 1280, vxT( 'Desktop' ) ], [ 820, vxT( 'Tablet' ) ], [ 390, vxT( 'Phone' ) ] ].map( function ( o ) { return '<button type="button" data-act="dprev-dev" data-v="' + o[ 0 ] + '" class="' + ( dsDev === o[ 0 ] ? 'is-on' : '' ) + '">' + o[ 1 ] + '</button>'; } ).join( '' ) + '</div>' } ) +
+			'<h3 class="vsa-psub">' + vxT( 'Everywhere' ) + '</h3>' +
 			card( vxT( 'Colours' ),
 				'<div class="vsa-fr vsa-fr3">' + dsColor( 'bg', vxT( 'Page' ), tpl ) + dsColor( 'surface', vxT( 'Cards' ), tpl ) + dsColor( 'soft', vxT( 'Photo backdrop' ), tpl ) +
 				dsColor( 'ink', vxT( 'Text' ), tpl ) + dsColor( 'muted', vxT( 'Quiet text' ), tpl ) + dsColor( 'line', vxT( 'Lines' ), tpl ) +
@@ -1348,7 +1381,11 @@
 				'<div class="vsa-fr">' + field( vxT( 'Letter spacing in headings' ), dsSel( 'h_track', [ [ '-0.03', vxT( 'Tight' ) ], [ '-0.015', vxT( 'A little tight' ) ], [ '0', vxT( 'Normal' ) ], [ '0.02', vxT( 'A little wide' ) ], [ '0.06', vxT( 'Wide' ) ] ], tpl ) ) +
 				field( vxT( 'Small labels' ), dsSeg( 'label', [ [ 'none', vxT( 'Normal' ) ], [ 'upper', vxT( 'Spaced capitals' ) ] ], tpl ), vxT( 'Category, badges and option names.' ) ) + '</div>' +
 				'<p class="vsa-hint">' + vxT( 'Fonts are downloaded once and served from your own site — no visitor ever connects to Google.' ) + '</p>' ) +
-			card( vxT( 'Product grid' ),
+			'<h3 class="vsa-psub">' + vxT( 'Each page' ) + '</h3>' +
+			pacc( 'shop', vxT( 'Shop page' ), vxT( 'Categories, the product grid and every card' ), [ 'shop' ],
+				field( vxT( 'Categories above the products' ), dsSeg( 'cats_style', [ [ 'pills', vxT( 'Rounded buttons' ) ], [ 'underline', vxT( 'Underlined words' ) ], [ 'blocks', vxT( 'Solid blocks' ) ] ], tpl ) ) +
+				'<p class="vsa-hint">' + vxT( 'Sorting, search and filters are switched on under Storefront.' ) + ' <a href="#/settings/storefront">' + vxT( 'Open Storefront' ) + '</a></p>' +
+				'<h4 class="vsa-pacc-sub">' + vxT( 'Product grid' ) + '</h4>' +
 				field( vxT( 'Layout' ), dsSeg( 'layout', [ [ 'grid', vxT( 'Grid' ) ], [ 'masonry', vxT( 'Masonry' ) ], [ 'list', vxT( 'List' ) ], [ 'row', vxT( 'Scroll row' ) ] ], tpl ) ) +
 				'<div class="vsa-fr vsa-fr3">' + field( vxT( 'Columns on desktop' ), dsSel( 'cols', [ 1, 2, 3, 4, 5, 6 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ), tpl ) ) +
 				field( vxT( 'on tablets' ), dsSel( 'cols_t', [ 1, 2, 3, 4 ].map( function ( n ) { return [ String( n ), String( n ) ]; } ), tpl ) ) +
@@ -1372,23 +1409,19 @@
 				field( vxT( 'Buttons in the grid' ), dsSeg( 'btn_style', [ [ 'solid', vxT( 'Filled' ) ], [ 'outline', vxT( 'Outline' ) ] ], tpl ) ) + '</div>' +
 				'<div class="vsa-fr">' + field( vxT( 'Button text' ), dsSeg( 'btn_case', [ [ 'none', vxT( 'Normal' ) ], [ 'upper', vxT( 'Capitals' ) ] ], tpl ) ) +
 				field( vxT( 'Corner radius' ), inp( 'd_radius', dsVal( 'radius' ), { ph:tpl.radius, suffix:'px', mode:'numeric' } ), vxT( 'Cards, photos and fields.' ) ) + '</div>' ) +
-			card( vxT( 'Product page' ),
+			pacc( 'product', vxT( 'Product page' ), vxT( 'Photos, buy box and details' ), [ 'product' ],
 				field( vxT( 'Layout' ), dsSeg( 'product', [ [ 'split', vxT( 'Photos left' ) ], [ 'split-reverse', vxT( 'Photos right' ) ], [ 'wide', vxT( 'Big photos' ) ], [ 'stacked', vxT( 'Photos on top' ) ] ], tpl ) ) +
 				field( vxT( 'Photos' ), dsSeg( 'gallery', [ [ 'below', vxT( 'Thumbnails below' ) ], [ 'side', vxT( 'Thumbnails at the side' ) ], [ 'stack', vxT( 'All stacked' ) ], [ 'grid', vxT( 'Photo grid' ) ] ], tpl ) ) +
 				'<div class="vsa-fr">' + field( vxT( 'While scrolling' ), dsSeg( 'sticky', [ [ '1', vxT( 'Stays in view' ) ], [ '0', vxT( 'Scrolls along' ) ] ], tpl ) ) +
 				field( vxT( 'Details' ), dsSeg( 'details', [ [ 'sections', vxT( 'All open' ) ], [ 'accordion', vxT( 'Fold out' ) ] ], tpl ) ) + '</div>' +
 				'<p class="vsa-hint">' + vxT( 'Buy bar, full-screen photos, related products and reasons to buy are under Storefront.' ) + ' <a href="#/settings/storefront">' + vxT( 'Open Storefront' ) + '</a></p>' ) +
-			card( vxT( 'Cart & checkout' ),
+			pacc( 'cart', vxT( 'Cart & checkout' ), vxT( 'Checkout layout and the cart icon' ), [ 'cart', 'checkout' ],
 				'<div class="vsa-fr">' + field( vxT( 'Checkout' ), dsSeg( 'checkout', [ [ 'two', vxT( 'Two columns' ) ], [ 'one', vxT( 'One column' ) ] ], tpl ) ) +
 				field( vxT( 'Cart icon' ), dsSeg( 'cart_icon', [ [ 'bag', vxT( 'Bag' ) ], [ 'cart', vxT( 'Cart' ) ], [ 'basket', vxT( 'Basket' ) ] ], tpl ) ) + '</div>' +
 				'<div class="vsa-fr">' + field( vxT( 'Items in the cart' ), dsSeg( 'cart_count', [ [ 'badge', vxT( 'Number on the icon' ) ], [ 'dot', vxT( 'A dot' ) ], [ 'inline', vxT( 'Number next to it' ) ] ], tpl ) ) +
 				field( vxT( 'Cart total next to the icon' ), dsSeg( 'cart_total', yn, tpl ) ) + '</div>' ) +
-			card( vxT( 'Shop page' ),
-				field( vxT( 'Categories above the products' ), dsSeg( 'cats_style', [ [ 'pills', vxT( 'Rounded buttons' ) ], [ 'underline', vxT( 'Underlined words' ) ], [ 'blocks', vxT( 'Solid blocks' ) ] ], tpl ) ) +
-				'<p class="vsa-hint">' + vxT( 'Sorting, search and filters are switched on under Storefront.' ) + ' <a href="#/settings/storefront">' + vxT( 'Open Storefront' ) + '</a></p>' ) +
-			card( vxT( 'Customer account' ),
+			pacc( 'account', vxT( 'Customer account' ), vxT( 'Menu and the withdrawal page' ), [ 'account', 'withdraw' ],
 				field( vxT( 'Menu' ), dsSeg( 'acc_nav', [ [ 'tabs', vxT( 'Tabs on top' ) ], [ 'side', vxT( 'List at the side' ) ], [ 'pills', vxT( 'Rounded buttons' ) ] ], tpl ), vxT( 'On phones the menu is always on top.' ) ) ) +
-			card( vxT( 'Build it yourself' ), dsBuilder() ) +
 			card( vxT( 'Your own CSS' ),
 				field( '', area( 'custom_css', s.custom_css || '', 10, '.vxs-card-t {\n\tfont-family: Georgia, serif;\n}' ).replace( 'class="vsa-in"', 'class="vsa-in vsa-mono vsa-css"' ), vxT( 'Loaded after the shop’s own styles, on every page with shop parts. The same classes can be styled in Velox Builder too.' ) ) +
 				'<details class="vsa-ref"><summary>' + vxT( 'Every part you can style' ) + '</summary><div class="vsa-ref-g">' +
@@ -1782,6 +1815,13 @@
 		if ( 'd-reset' === act ) { SD[ a.getAttribute( 'data-v' ) ] = ''; redrawSettings(); return; }
 		if ( 'd-tpl' === act ) { dsPick( a.getAttribute( 'data-v' ) ); return; }
 		if ( 'd-try' === act ) { dsTry( a.getAttribute( 'data-v' ) ); return; }
+		if ( 'd-build' === act ) {
+			var bw = window.open( '', '_blank' );
+			api( 'page_builder', { key:a.getAttribute( 'data-v' ) } ).then( function ( r ) {
+				if ( bw ) { bw.location.href = r.url; } else { location.href = r.url; }
+			} ).catch( function ( e ) { if ( bw ) { bw.close(); } fail( e ); } );
+			return;
+		}
 		if ( 'tx-save' === act ) { txSave(); return; }
 		if ( 'tx-reset' === act ) { var ti = main().querySelector( 'textarea[data-tx="' + a.getAttribute( 'data-v' ) + '"]' ); if ( ti ) { ti.value = ''; txChanged( ti ); } return; }
 		if ( 'tx-area' === act ) { TX.area = a.getAttribute( 'data-v' ); txDraw(); return; }
