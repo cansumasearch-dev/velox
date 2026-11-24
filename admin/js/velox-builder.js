@@ -9598,7 +9598,7 @@
 		function finish( keep ) {
 			if ( done ) { return; } done = true;
 			var name = inp.value.trim();
-			X
+			if ( ! keep || name === ( n.name || '' ) ) { renderStructPanel(); return; }
 			store.commit( function ( s ) {
 				var t = findNode( s.tree, id ); if ( ! t ) { return; }
 				if ( name ) { t.name = name; } else { delete t.name; }
