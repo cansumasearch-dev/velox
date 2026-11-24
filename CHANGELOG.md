@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.74.1 — Folded stays folded after a reload
+- The editor selects an element by itself while a page opens, and that unfolded its parents again in Structure. That first selection no longer opens anything; elements you select yourself still unfold their path.
+
 ## 4.74.0 — Structure remembers what is open; clicking empty space selects nothing
 - **Click empty space in Structure to select nothing:** a click below or between the rows clears the selection (and any multi-selection), like clicking the empty canvas.
 - **Structure remembers which branches are open:** what you fold or unfold (one by one, or with Expand all / Collapse all) is kept per page in this browser, so a reload shows Structure the way you left it.
