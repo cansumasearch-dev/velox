@@ -7527,7 +7527,8 @@
 		document.addEventListener( 'focusin', function ( e ) { structKeyFocus = !! ( e.target.closest && e.target.closest( '.vb-st-tree' ) ); } );
 		document.addEventListener( 'keydown', function ( e ) {
 			var row = e.target.closest ? e.target.closest( '.vb-st-tree [data-stnode]' ) : null;
-			if ( ! row || e.ctrlKey || e.metaKey || e.altKey ) { return; }
+			// Typing a new name: the keys belong to the field (Delete must not delete the element).
+			if ( ! row || e.ctrlKey || e.metaKey || e.altKey || /^(INPUT|TEXTAREA)$/.test( e.target.tagName ) ) { return; }
 			var rows = Array.prototype.slice.call( document.querySelectorAll( '.vb-st-tree [data-stnode]' ) ), i = rows.indexOf( row ), id = row.getAttribute( 'data-stnode' );
 			var go = function ( r ) { if ( r ) { structKeyFocus = true; selectNode( r.getAttribute( 'data-stnode' ) ); } };
 			var k = e.key, hit = true;
@@ -9591,6 +9592,7 @@
 		inp.type = 'text'; inp.className = 'vb-st-rename'; inp.value = n.name || '';
 		inp.placeholder = elLabel( n ); inp.setAttribute( 'aria-label', T( 'Rename element' ) );
 		row.setAttribute( 'draggable', 'false' );
+		if ( lab.parentNode ) { lab.parentNode.classList.add( 'is-renaming' ); }
 		lab.replaceWith( inp ); inp.focus(); inp.select();
 		var done = false;
 		function finish( keep ) {
@@ -12276,7 +12278,7 @@
 			'#vb-struct .vb-st-caret,#vb-struct .vb-st-spacer{flex:none;width:14px;display:grid;place-items:center;color:var(--vb-tx3)}',
 			'#vb-struct .vb-st-l{flex:1 1 auto;min-width:0;display:flex;align-items:baseline;gap:6px;overflow:hidden;white-space:nowrap}',
 			'#vb-struct .vb-st-n{font-size:12.5px;font-weight:500;color:inherit;overflow:hidden;text-overflow:ellipsis}',
-			'#vb-struct input.vb-st-rename{flex:1;min-width:0;height:22px;margin:0;padding:0 6px;font:500 12.5px/20px inherit;font-family:inherit;color:var(--vb-tx1);background:var(--vb-bg0);border:1px solid var(--vb-acc);border-radius:5px;box-shadow:0 0 0 2px rgba(42,183,241,.25);outline:0}',
+			'#vb-struct .vb-st-l.is-renaming{flex:1 1 auto}#vb-struct .vb-st-l.is-renaming .vb-st-c{display:none}#vb-struct input.vb-st-rename{flex:1 1 140px;width:100%;min-width:90px;height:22px;margin:0;padding:0 6px;font:500 12.5px/20px inherit;font-family:inherit;color:var(--vb-tx1);background:var(--vb-bg0);border:1px solid var(--vb-acc);border-radius:5px;box-shadow:0 0 0 2px rgba(42,183,241,.25);outline:0}',
 			'#vb-struct .vb-st-c{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;font:11px/1 "Velox Geist Mono",ui-monospace,Menlo,monospace;color:var(--vb-tx3)}',
 			'#vb-struct .vb-st-row.sel .vb-st-c{color:#8fdcfb}',
 			'#vb-struct .vb-st-eye{flex:none;display:grid;place-items:center;width:22px;height:22px;margin:0;padding:0;border:0;border-radius:5px;background:none;color:var(--vb-tx3);opacity:0;cursor:pointer;transition:opacity .12s,background .12s}',
