@@ -4082,7 +4082,8 @@
 			// Older builds stored one boolean for both sides.
 			if ( p.pinned && 'object' === typeof p.pinned ) { pinned = { left: !! p.pinned.left, right: !! p.pinned.right, insp: false !== p.pinned.insp }; }
 			else { pinned = { left: !! p.pinned, right: !! p.pinned, insp:true }; }
-			leftCollapsed = !! p.lcol;
+			// The settings column is never hidden any more (it used to stay hidden for good).
+			leftCollapsed = false;
 			if ( p.lastRight ) { lastRightPanel = p.lastRight; }
 		} catch ( e ) {}
 	}
@@ -4153,7 +4154,7 @@
 		}
 	}
 	function togglePin( side ) { pinned[ side ] = ! pinned[ side ]; saveUiPrefs(); applyDock(); }
-	function toggleLeftStack() { leftCollapsed = ! leftCollapsed; saveUiPrefs(); applyDock(); }
+	function toggleLeftStack() { leftCollapsed = false; saveUiPrefs(); applyDock(); }
 	/* Right toggle = slide the whole right stack off / bring the last one back. */
 	function toggleRightStack() {
 		var right = openRightPanel();
@@ -4318,7 +4319,6 @@
 			'<div class="vb-tbc vb-tb-l">' +
 				'<button class="vb-brand" id="vb-brand" title="Velox" aria-label="' + T( 'Velox menu' ) + '">' + veloxLogo() + '</button>' +
 				'<div class="vb-tsep"></div>' +
-				'<button class="vb-ic" id="vb-tgl-left" title="' + T( 'Hide left panels' ) + '">' + svg( 'panelleft', 16 ) + '</button>' +
 				'<button class="vb-add-top" data-add title="' + T( 'Add element' ) + '">' + svg( 'plus', 16 ) + '<span class="vb-lbl">' + T( 'Add' ) + '</span></button>' +
 				'<div class="vb-tsep"></div>' +
 				'<div class="vb-pagepick" id="vb-pagepick">' +
@@ -8620,8 +8620,6 @@
 					if ( typing ) { break; }
 					if ( 'Mod+V' !== combo ) { e.preventDefault(); }
 					schedulePaste(); return;
-				case 'leftPanel':
-					e.preventDefault(); toggleLeftStack(); return;
 				case 'rightPanel':
 					e.preventDefault(); toggleRightStack(); return;
 				case 'selParent':

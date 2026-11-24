@@ -37,7 +37,22 @@
 		if ( s < 86400 ) { return Math.round( s / 3600 ) + ' ' + vxT( 'h ago' ); }
 		return date( ts );
 	}
+	/* Screens load their data asynchronously. When the person has moved on to
+	 * another screen before the answer comes, the answer is dropped: otherwise
+	 * a slow Settings load landed over the Reviews screen while the nav said
+	 * Settings. Only screen loads are dropped, never saves or actions. */
+	var NAV_SEQ = 0, LOADS = { stats:1, revenue:1, orders:1, order:1, payouts:1, coupons:1, customers:1, customer:1, reviews:1, products:1, product:1, texts:1 };
 	function api( action, data ) {
+		var seq = NAV_SEQ;
+		return apiRaw( action, data ).then( function ( r ) {
+			if ( LOADS[ action ] && seq !== NAV_SEQ ) { return new Promise( function () {} ); } // stale: never resolves
+			return r;
+		}, function ( e ) {
+			if ( LOADS[ action ] && seq !== NAV_SEQ ) { return new Promise( function () {} ); }
+			throw e;
+		} );
+	}
+	function apiRaw( action, data ) {
 		var b = new URLSearchParams();
 		b.set( 'action', 'velox_shop_admin' ); b.set( 'nonce', C.nonce ); b.set( 'do', action ); b.set( 'data', JSON.stringify( data || {} ) );
 		return fetch( C.ajax, { method:'POST', body:b, credentials:'same-origin' } )
@@ -212,6 +227,7 @@
 			dirty = false;
 		}
 		lastHash = location.hash;
+		NAV_SEQ++;
 		route = parse();
 		setNav( route.name );
 		closeModal();
@@ -1917,5 +1933,5 @@
 	shell();
 	// The WordPress submenu links ("Velox Shop → Orders") arrive as page=velox-shop#/orders.
 	go();
-	api( 'stats' ).then( function ( d ) { setBadge( d.toShip + d.withdrawals ); } ).catch( function () {} );
+	apiRaw( 'stats' ).then( function ( d ) { setBadge( d.toShip + d.withdrawals ); } ).catch( function () {} );
 }() );

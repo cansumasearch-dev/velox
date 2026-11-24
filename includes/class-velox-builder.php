@@ -1768,7 +1768,6 @@ class Velox_Builder {
 			$d( 'moveIn', 'move', __( 'Move into the element above', 'velox' ), array( 'Alt+ArrowRight' ) ),
 			$d( 'cmdk', 'find', __( 'Command search', 'velox' ), array( 'Mod+K' ) ),
 			$d( 'findProp', 'find', __( 'Find a style property', 'velox' ), array( 'Mod+Shift+F' ) ),
-			$d( 'leftPanel', 'view', __( 'Show / hide the left panels', 'velox' ), array( 'Mod+\\' ) ),
 			$d( 'rightPanel', 'view', __( 'Show / hide the right panels', 'velox' ), array( 'Mod+Shift+\\' ) ),
 			$d( 'zoomFit', 'view', __( 'Zoom to fit', 'velox' ), array( 'Shift+1' ) ),
 			$d( 'zoom100', 'view', __( 'Zoom to 100%', 'velox' ), array( 'Shift+0' ) ),
