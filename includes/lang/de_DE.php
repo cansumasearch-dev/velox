@@ -7040,4 +7040,15 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Loading the guide…' => 'Die Anleitung wird geladen …',
 	'Search the guide and the questions' => 'Anleitung und Fragen durchsuchen',
 	'In the questions' => 'In den Fragen',
+	// 4.71 — Oxygen-style inspector
+	'Children' => 'Kinder',
+	'Below each other' => 'Untereinander',
+	'Horizontal alignment' => 'Horizontale Ausrichtung',
+	'Vertical alignment' => 'Vertikale Ausrichtung',
+	'Full width' => 'Volle Breite',
+	'Full height' => 'Volle Höhe',
+	'Wrap onto the next line when there is no room' => 'In die nächste Zeile umbrechen, wenn kein Platz ist',
+	'Every style, animations, interactions, conditions, attributes and custom CSS' => 'Alle Stile, Animationen, Interaktionen, Bedingungen, Attribute und eigenes CSS',
+	'Animation & behaviour' => 'Animation & Verhalten',
+	'Select the parent element' => 'Übergeordnetes Element auswählen',
 );
