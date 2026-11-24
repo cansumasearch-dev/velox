@@ -11965,7 +11965,7 @@
 			'.vb-app #vb-inspector .vb-insp-tx{gap:3px}',
 			'#vb-inspector .vb-tagbar{margin:18px 16px 14px}',
 			'.vb-dz{display:flex;flex-direction:column;gap:14px;padding:2px 0 4px}',
-			'.vb-hlv{display:flex;flex-direction:column;align-items:stretch;gap:8px}',
+			'.vb-tagbar.vb-hlv{display:flex;flex-direction:column;align-items:stretch;gap:8px}',
 			'.vb-hlv-top{display:flex;align-items:center;justify-content:space-between;gap:10px}',
 			'.vb-hlv-other{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 7px;border:0;border-radius:6px;background:none;color:var(--vb-tx3);font:500 11.5px/1 var(--vb-font);cursor:pointer}',
 			'.vb-hlv-other:hover,.vb-hlv-other.on{color:var(--vb-tx1);background:var(--vb-bg2)}',
