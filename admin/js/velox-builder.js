@@ -7190,7 +7190,12 @@
 			// The server's copy of a message just sent replaces the one shown at once.
 			AI.shown = AI.shown.filter( function ( m ) { return ! m.local || ! ( d.shown || [] ).length; } ).concat( d.shown || [] ); AI.total = d.total || AI.shown.length;
 			var j = d.job || AI.job;
-			if ( first && 'running' !== j.status && 'continue' !== j.status ) { AI.applied = j.rev || 0; }
+			if ( first && 'running' !== j.status && 'continue' !== j.status ) {
+				AI.applied = j.rev || 0;
+				// A run that finished while this page was loading: the editor may hold
+				// the version from before its last changes. Bring it in once.
+				if ( ( j.rev || 0 ) > 0 && ( j.ago || 0 ) < performance.now() / 1000 + 15 && ! dirty ) { aiPullDoc( false ); }
+			}
 			if ( j.run !== AI.run ) { AI.run = j.run; if ( ! first ) { AI.applied = 0; } AI.changed = false; }
 			AI.job = j; AI.loaded = true;
 			aiAfterJob();

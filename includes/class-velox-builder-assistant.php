@@ -178,6 +178,8 @@ class Velox_Builder_Assistant {
 			'steps'  => (int) ( $j['steps'] ?? 0 ),
 			'rev'    => (int) ( $j['rev'] ?? 0 ),
 			'doing'  => (string) ( $j['doing'] ?? '' ),
+			// Seconds since the job last changed (server clock, so no time-zone or clock trouble).
+			'ago'    => isset( $j['at'] ) ? max( 0, time() - (int) $j['at'] ) : 99999,
 		);
 	}
 
