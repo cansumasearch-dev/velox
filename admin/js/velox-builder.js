@@ -4862,7 +4862,9 @@
 			if ( lastInspNode ) { closeIconPicker(); }
 			lastInspNode = node.id;
 			pendingUnit = {};
-			if ( elementNeedsSetup( node ) ) { inspTab = 'ess'; }
+			// A different element opens on what it is (Essentials), not on the
+			// last one's animations; All styles stays open for style work.
+			if ( 'client' !== ( CFG.access || {} ).level && ( elementNeedsSetup( node ) || 'set' === inspTab ) ) { inspTab = 'ess'; }
 		}
 		var ac = state.activeClass, bp = state.breakpoint, st = state.state || 'normal';
 		if ( ac ) { lastActiveClass[ node.id ] = ac; }
