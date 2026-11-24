@@ -51,6 +51,7 @@ $velox_options = array(
 	'velox_script_rules', 'velox_forms', 'velox_forms_db', 'velox_mail_db',
 	'velox_snippets_db', 'velox_snippets_safe', 'velox_snippets_panic',
 	'velox_traffic', 'velox_form_log', 'velox_pagespeed',
+	'velox_mcp_grants', 'velox_mcp_clients', 'velox_mcp_seen',
 );
 foreach ( $velox_options as $velox_opt ) {
 	delete_option( $velox_opt );

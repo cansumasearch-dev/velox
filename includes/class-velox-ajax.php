@@ -175,6 +175,20 @@ class Velox_Ajax {
 				Velox_Builder_Agents::ajax_toggle();
 				break;
 
+			/* -------- Velox connector (Claude with your own account) -------- */
+			case 'mcp_watch':
+				Velox_MCP::ajax_watch();
+				break;
+			case 'mcp_revoke':
+				Velox_MCP::ajax_revoke();
+				break;
+			case 'mcp_scope':
+				Velox_MCP::ajax_scope();
+				break;
+			case 'mcp_check':
+				Velox_MCP::ajax_check();
+				break;
+
 			/* -------- Velox Builder: AI assistant -------- */
 			case 'ai_send':
 				Velox_Builder_Assistant::ajax_send();

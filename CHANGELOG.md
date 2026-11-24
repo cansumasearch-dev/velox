@@ -4,6 +4,17 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.66.0 — Claude with your own Claude account
+- **Velox is now a Claude connector.** Add the site in Claude (Customize → Connectors → Add custom connector → paste the address from Velox Builder → AI agents) and chat with Claude on claude.ai, in the desktop or mobile app, or in Claude Code. Your Claude plan covers it: no API key, no costs per use, no plugin, no Node.js, no config file.
+- **Your own sign-in page.** When Claude connects, the site’s sign-in opens: sign in to WordPress, choose the whole site or only some pages, allow. Claude works as you, with your builder rights, and only on what you chose. It still only writes drafts, and every change is a version marked “By AI”.
+- **Built to the standards Claude uses:** MCP over Streamable HTTP, OAuth 2.1 with PKCE, discovery (RFC 9728 / RFC 8414), dynamic client registration and client ID metadata documents, refresh tokens that rotate, revocation. Tokens are stored hashed and expire after an hour (the connection itself lasts 90 days from its last use).
+- **AI agents screen, rebuilt:** one switch, the connector address to copy, step-by-step guides for Claude (web and app), Claude Code and other apps, and a connection check that tests from the server what Claude will see. For apps that use a config file, the screen shows exactly where the lines go in a file that already has other entries.
+- **Connected apps:** see who is connected, to which pages and when it was last used; change the pages or disconnect with one click.
+- **In the editor: “Work on this page in Claude”.** Type what to do and Claude opens in a new tab, already knowing the site and the page (or copy the request for Claude Desktop or Claude Code). The page saves first if needed.
+- **Claude’s changes appear live in the open editor,** each as one Undo step. If you have unsaved changes at that moment, you choose: load Claude’s version or keep yours.
+- **Two new tools for connected apps:** About this site (name, language, which pages it may change) and The page open in the editor (for “this page”).
+- The in-editor chat with an API key stays available as an option.
+
 ## 4.65.0 — Code block, centred icons, editor polish, shop fixes
 - **New element: Code block.** Write HTML, CSS and JavaScript for one spot on a page, with code fields that indent with Tab. The editor shows the markup and styles; scripts run on the page (`el` is the block). Only people WordPress allows to post unfiltered code can change it: their code is signed when they save, and code that was changed by anyone else is shown filtered, without scripts or styles.
 - **Gradient text stays visible with text animations:** a word painted with a gradient (background-clip: text) vanished on the page when the heading used the word-by-word reveal. It now rises as one piece and keeps its gradient.
