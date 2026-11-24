@@ -1818,7 +1818,33 @@ class Velox_Shop_Admin {
 		// the customer account. Without one: the grid and a product (the tiles).
 		$which = sanitize_key( (string) ( $in['page'] ?? '' ) );
 		$which = in_array( $which, array( 'shop', 'product', 'cart', 'account' ), true ) && ! $mini ? $which : '';
-		$first = $mini || 'shop' === $which ? array() : get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 2, 'fields' => 'ids', 'orderby' => array( 'menu_order' => 'ASC', 'date' => 'DESC' ) ) );
+		// Products that can be bought: a sold-out one makes a poor example and
+		// would drop out of the sample cart.
+		$first = array();
+		$cart  = array();
+		if ( ! $mini && 'shop' !== $which && 'account' !== $which ) {
+			$pool = get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 24, 'fields' => 'ids', 'orderby' => array( 'menu_order' => 'ASC', 'date' => 'DESC' ) ) );
+			foreach ( $pool as $pid ) {
+				$p = Velox_Shop::product( (int) $pid );
+				if ( ! $p ) {
+					continue;
+				}
+				foreach ( ! empty( $p['variants'] ) ? $p['variants'] : array( array( 'id' => '' ) ) as $vv ) {
+					$vid = (string) ( $vv['id'] ?? '' );
+					if ( Velox_Shop::can_buy( $p, Velox_Shop::variant( $p, $vid ), 1 ) ) {
+						$first[] = (int) $pid;
+						$cart[ (int) $pid . ( '' !== $vid ? ':' . $vid : '' ) ] = 1;
+						break;
+					}
+				}
+				if ( count( $first ) >= 2 ) {
+					break;
+				}
+			}
+			if ( ! $first && $pool ) {
+				$first = array( (int) $pool[0] );
+			}
+		}
 		$grid = '';
 		$page = '';
 		if ( '' === $which || 'shop' === $which ) {
@@ -1830,25 +1856,6 @@ class Velox_Shop_Admin {
 		}
 		if ( 'cart' === $which ) {
 			// A sample cart with the first products: the cart, then the checkout.
-			// Two products that can be bought (sold-out ones would drop out of the cart).
-			$cart = array();
-			$pool = get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'posts_per_page' => 24, 'fields' => 'ids', 'orderby' => array( 'menu_order' => 'ASC', 'date' => 'DESC' ) ) );
-			foreach ( $pool as $pid ) {
-				$p = Velox_Shop::product( (int) $pid );
-				if ( ! $p ) {
-					continue;
-				}
-				foreach ( ! empty( $p['variants'] ) ? $p['variants'] : array( array( 'id' => '' ) ) as $vv ) {
-					$vid = (string) ( $vv['id'] ?? '' );
-					if ( Velox_Shop::can_buy( $p, Velox_Shop::variant( $p, $vid ), 1 ) ) {
-						$cart[ (int) $pid . ( '' !== $vid ? ':' . $vid : '' ) ] = 1;
-						break;
-					}
-				}
-				if ( count( $cart ) >= 2 ) {
-					break;
-				}
-			}
 			Velox_Shop::preview_cart( $cart );
 			$page = $cart ? '<h2 class="vsa-pv-h">' . esc_html__( 'Cart', 'velox' ) . '</h2>' . Velox_Shop_Front::sc_cart() . '<div class="vsa-pv-sep"></div><h2 class="vsa-pv-h">' . esc_html__( 'Checkout', 'velox' ) . '</h2>' . Velox_Shop_Front::sc_checkout()
 				: '<p>' . esc_html__( 'Add a product to see the cart here.', 'velox' ) . '</p>';
