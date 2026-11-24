@@ -1375,9 +1375,10 @@
 		var L = ( PAGE_LOOKS[ page ] || [] ).filter( function ( x ) { return x.k === key; } )[ 0 ]; if ( ! L ) { return; }
 		var tpl = ( ( C.designs || {} )[ dsCur( SD ) ] || { v:{} } ).v;
 		// A value the template already has stays "Template", so nothing piles up on top.
+		var before = JSON.stringify( SD );
 		Object.keys( L.v ).forEach( function ( k ) { SD[ 'd_' + k ] = String( tpl[ k ] ) === String( L.v[ k ] ) ? '' : L.v[ k ]; } );
 		redrawSettings();
-		toast( vxT( '%s set for this page. Save to put it live.' ).replace( '%s', vxT( L.n ) ) );
+		toast( before === JSON.stringify( SD ) ? vxT( 'This page already looks like %s.' ).replace( '%s', vxT( L.n ) ) : vxT( '%s set for this page. Save to put it live.' ).replace( '%s', vxT( L.n ) ) );
 	}
 	/* A small drawing of a page in the template's colours. */
 	function pgMock( page, v, tpl ) {

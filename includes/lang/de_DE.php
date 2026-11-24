@@ -8363,4 +8363,6 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Side menu' => 'Seitenmenü',
 	'A list at the side, like an app' => 'Eine Liste an der Seite, wie in einer App',
 	'Rounded buttons above the content' => 'Abgerundete Buttons über dem Inhalt',
+	// 4.72 — looks per page, Ctrl+S
+	'This page already looks like %s.' => 'Diese Seite sieht schon aus wie %s.',
 );
