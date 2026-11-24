@@ -3426,8 +3426,9 @@
 	 * click (the shared Velox dropdown). */
 	function selectorBarHTML( node, ac, st, bp, ovCount ) {
 		var isCls = ac && '#' !== ac, locked = isCls && isLocked( ac );
+		var whatTip = isCls ? T( 'Styling the class' ) + ' ' + ac + ': ' + T( 'every element with it changes.' ) : T( 'Styling the ID' ) + ' #' + node.id + ': ' + T( 'only this element changes.' );
 		var bar = '<div class="vb-selbar">' +
-			'<button type="button" class="vb-sel vb-sel-cls' + ( isCls ? '' : ' is-el' ) + ( locked ? ' is-locked' : '' ) + '" id="vb-clspick" aria-haspopup="listbox" title="' + T( 'What the styles below change' ) + '">' +
+			'<button type="button" class="vb-sel vb-sel-cls' + ( isCls ? '' : ' is-el' ) + ( locked ? ' is-locked' : '' ) + '" id="vb-clspick" aria-haspopup="listbox" title="' + escapeHtml( whatTip ) + '">' +
 				'<span class="vb-sel-kind">' + ( isCls ? T( 'Class' ) : 'ID' ) + '</span><span class="vb-sel-v">' + escapeHtml( isCls ? ac : '#' + node.id ) + '</span>' +
 				( locked ? '<span class="vb-sel-lock">' + svg( 'lock', 11 ) + '</span>' : '' ) + '<span class="vb-sel-cv">' + svg( 'chevron', 12 ) + '</span></button>' +
 			'<button type="button" class="vb-sel vb-sel-st' + ( 'normal' !== st ? ' is-on' : '' ) + '" id="vb-statepick" aria-haspopup="listbox" title="' + T( 'State' ) + '">' +
@@ -3437,7 +3438,9 @@
 		var where = 'base' === bp ? '' : '<span class="vb-selnote-bp">' + escapeHtml( ( BP_META[ bp ] || BP_META.base ).label ) + '</span>';
 		var what = isCls ? T( 'Styling the class' ) + ' <b>' + escapeHtml( ac ) + '</b>: ' + T( 'every element with it changes.' ) : T( 'Styling the ID' ) + ' <b>#' + escapeHtml( node.id ) + '</b>: ' + T( 'only this element changes.' );
 		if ( 'normal' !== st ) { what += ' <span class="vb-selnote-st">' + T( 'Only while' ) + ' :' + escapeHtml( st ) + '</span>'; }
-		var note = '<div class="vb-selnote">' + where + '<span>' + what + '</span></div>';
+		// The sentence only shows when it adds something (a screen size or a
+		// state); otherwise it lives in the class button's tooltip (Oxygen shows none).
+		var note = ( where || 'normal' !== st ) ? '<div class="vb-selnote">' + where + '<span>' + what + '</span></div>' : '';
 		var warn = ovCount ? '<div class="vb-ovwarn">' + svg( 'bolt', 12 ) + '<span>' + ovCount + ' ' + ( 1 === ovCount ? T( 'style set on this element overrides the class here.' ) : T( 'styles set on this element override the class here.' ) ) + '</span>' +
 			'<button type="button" data-ovmove>' + T( 'Move to class' ) + '</button><button type="button" data-ovclear>' + T( 'Remove' ) + '</button></div>' : '';
 		return '<div class="vb-selwrap">' + bar + note + warn + '</div>';
@@ -4589,7 +4592,7 @@
 		Image: [ [ 'Size', [ '*box', 'aspectRatio', 'objectFit', 'objectPosition' ] ], [ 'Border', [ 'borderRadius' ] ], [ 'Spacing' ] ],
 		Video: [ [ 'Size', [ '*box', 'aspectRatio' ] ], [ 'Border', [ 'borderRadius' ] ] ],
 		Icon: [ [ 'Typography', [ 'color' ] ], [ 'Spacing' ] ],
-		Section: [ [ 'Spacing' ], [ 'Background & effects', [ 'background', 'backgroundImage', 'backgroundSize', 'backgroundPosition' ] ], [ 'Layout', [ 'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap' ] ], [ 'Size', [ '*box' ] ] ],
+		Section: [ [ 'Layout', [ 'display', 'flexDirection', 'justifyContent', 'alignItems', 'gap' ] ], [ 'Spacing' ], [ 'Background & effects', [ 'background', 'backgroundImage', 'backgroundSize', 'backgroundPosition' ] ], [ 'Size', [ '*box' ] ] ],
 		InnerContent: [], Reusable: [], Codeblock: [], Embed: [], Form: [ [ 'Spacing' ] ], Reviews: [ [ 'Spacing' ] ]
 	};
 	function essentialsFor( node ) {
@@ -5125,7 +5128,8 @@
 				essList.forEach( function ( e ) { essProps[ e[ 0 ] ] = e[ 1 ] || null; } );
 			}
 			// A search looks through every group, whichever tab is open.
-			var groups = sq ? ordered : ordered.filter( function ( g ) { return tab === 'all' ? true : Object.prototype.hasOwnProperty.call( essProps, g.group ); } );
+			// Essentials keep the order that fits the kind (a heading starts with its type).
+			var groups = sq ? ordered : ( 'all' === tab ? ordered : essList.map( function ( e ) { return byName[ e[ 0 ] ]; } ).filter( Boolean ) );
 			var lastCat = '';
 			groups.forEach( function ( g, gi ) {
 				if ( sq ) {
