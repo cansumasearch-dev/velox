@@ -7042,7 +7042,7 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'In the questions' => 'In den Fragen',
 	// 4.71 — Oxygen-style inspector
 	'Children' => 'Kinder',
-	'Below each other' => 'Untereinander',
+	'Below each other' => 'Unter­einander',
 	'Horizontal alignment' => 'Horizontale Ausrichtung',
 	'Vertical alignment' => 'Vertikale Ausrichtung',
 	'Full width' => 'Volle Breite',
@@ -7051,4 +7051,11 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Every style, animations, interactions, conditions, attributes and custom CSS' => 'Alle Stile, Animationen, Interaktionen, Bedingungen, Attribute und eigenes CSS',
 	'Animation & behaviour' => 'Animation & Verhalten',
 	'Select the parent element' => 'Übergeordnetes Element auswählen',
+	// 4.71 — Oxygen-style inspector
+	'Justified' => 'Blocksatz',
+	'End' => 'Ende',
+	'Stretch' => 'Strecken',
+	'Row' => 'Zeile',
+	'Column' => 'Spalte',
+	'No wrap' => 'Kein Umbruch',
 );

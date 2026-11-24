@@ -1638,6 +1638,22 @@
 		if ( 'flow' === mode ) { m.display = 'flex'; m.flexDirection = 'column'; }
 		setProps( m, T( 'Alignment' ) );
 	}
+	/* Words (or a small sign) on the option buttons instead of CSS values;
+	 * the CSS value stays in the tooltip. '=' marks a sign, not a word. */
+	var SEG_WORDS = {
+		textAlign:{ left:'Left', center:'Center', right:'Right', justify:'Justified' },
+		textTransform:{ none:'=—', uppercase:'=AA', lowercase:'=aa', capitalize:'=Aa' },
+		textDecoration:{ none:'=—', underline:'=<u>U</u>', 'line-through':'=<s>S</s>' },
+		fontStyle:{ normal:'Normal', italic:'Italic' },
+		objectFit:{ fill:'Fill', cover:'Cover', contain:'Contain', none:'None' },
+		backgroundSize:{ auto:'Auto', cover:'Cover', contain:'Contain' },
+		borderStyle:{ none:'=—', solid:'=<i class="vb-ln vb-ln-s"></i>', dashed:'=<i class="vb-ln vb-ln-d"></i>', dotted:'=<i class="vb-ln vb-ln-p"></i>' },
+		flexDirection:{ row:'Row', column:'Column' },
+		flexWrap:{ nowrap:'No wrap', wrap:'Wrap' },
+		justifyContent:{ 'flex-start':'Start', center:'Center', 'space-between':'Spread out', 'flex-end':'End' },
+		alignItems:{ 'flex-start':'Start', center:'Center', stretch:'Stretch', 'flex-end':'End' },
+		alignSelf:{ auto:'Auto', 'flex-start':'Start', center:'Center', 'flex-end':'End', stretch:'Stretch' }
+	};
 	function removeProp( prop ) {
 		if ( blockedByLock( prop ) ) { return; }
 		var also = multiIds();
@@ -5044,7 +5060,7 @@
 			var out = '<div class="vb-dz" data-mode="' + mode + '">';
 			out += '<div class="vb-dz-f"><div class="vb-f-lbl"><span class="vb-f-name">' + T( 'Children' ) + '</span></div><div class="vb-dz-tiles">' +
 				tile( 'data-dz-lay', 'stack', T( 'Below each other' ), 'stack' === mode, I.stack ) +
-				tile( 'data-dz-lay', 'row', T( 'Side by side' ), 'row' === mode, I.row ) +
+				tile( 'data-dz-lay', 'row', T( 'Side by side' ).replace( 'Nebeneinander', 'Neben­einander' ), 'row' === mode, I.row ) +
 				tile( 'data-dz-lay', 'grid', T( 'Grid' ), 'grid' === mode, I.grid ) + '</div></div>';
 			if ( 'flow' !== mode ) {
 				var hOpts = 'row' === mode ? [ [ 'start', T( 'Left' ) ], [ 'center', T( 'Center' ) ], [ 'end', T( 'Right' ) ], [ 'between', T( 'Spread out' ) ] ] : [ [ 'start', T( 'Left' ) ], [ 'center', T( 'Center' ) ], [ 'end', T( 'Right' ) ], [ 'stretch', T( 'Full width' ) ] ];
@@ -5068,6 +5084,11 @@
 			}
 			return out + '</div>';
 		}
+		function segLabel( prop, o ) {
+			var w = ( SEG_WORDS[ prop ] || {} )[ o ];
+			if ( ! w ) { return escapeHtml( o.replace( 'flex-', '' ).replace( 'space-', '' ) ); }
+			return '=' === w.charAt( 0 ) ? w.slice( 1 ) : escapeHtml( T( w ) );
+		}
 		function itemHTML( it ) {
 			var res = resolveProperty( node, bp, it.prop, st ), val = res.value, ctrl = '';
 			var inh = inheritedHere( res, bp, st ), dot = inhDot( dotFor( res, ac, bp ), res, st );
@@ -5080,7 +5101,7 @@
 			if ( it.type === 'seg' ) {
 				ctrl = '<div class="vb-seg">' + it.opts.map( function ( o ) {
 					var isCur = ! val && cur === o;
-					return '<button class="' + ( val === o ? ( inh ? 'inh' : 'on' ) : ( isCur ? 'cur' : '' ) ) + '" data-set="' + it.prop + '" data-val="' + o + '" title="' + o + ( val === o && inh ? ' · ' + T( 'inherited' ) : ( isCur ? ' · ' + T( 'in effect now' ) : '' ) ) + '">' + o.replace( 'flex-', '' ).replace( 'space-', '' ) + '</button>';
+					return '<button class="' + ( val === o ? ( inh ? 'inh' : 'on' ) : ( isCur ? 'cur' : '' ) ) + '" data-set="' + it.prop + '" data-val="' + o + '" title="' + o + ( val === o && inh ? ' · ' + T( 'inherited' ) : ( isCur ? ' · ' + T( 'in effect now' ) : '' ) ) + '">' + segLabel( it.prop, o ) + '</button>';
 				} ).join( '' ) + '</div>';
 			} else if ( it.type === 'num' ) {
 				var sv = splitVal( val, it.unit );
@@ -11937,12 +11958,14 @@
 			'.vb-app #vb-inspector .vb-insp-tx{gap:3px}',
 			'#vb-inspector .vb-tagbar{margin:18px 16px 14px}',
 			'.vb-dz{display:flex;flex-direction:column;gap:14px;padding:2px 0 4px}',
+			'.vb-seg .vb-ln{display:inline-block;width:18px;vertical-align:middle;border-top:2px solid currentColor}',
+			'.vb-seg .vb-ln-d{border-top-style:dashed}.vb-seg .vb-ln-p{border-top-style:dotted}',
 			'.vb-dz-f .vb-f-lbl{margin-bottom:7px}',
 			'.vb-dz-tiles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}',
 			'.vb-dz-tiles.n4{grid-template-columns:repeat(4,minmax(0,1fr))}',
 			'.vb-dz-t{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-width:0;padding:10px 4px 8px;border:1px solid var(--vb-line);border-radius:8px;background:var(--vb-bg0);color:var(--vb-tx2);font:500 11px/1.2 var(--vb-font);cursor:pointer;transition:border-color .15s,color .15s,background .15s}',
 			'.vb-dz-t svg{width:24px;height:18px;flex:none}',
-			'.vb-dz-t span{max-width:100%;text-align:center;line-height:1.15;overflow-wrap:anywhere;hyphens:auto}',
+			'.vb-dz-t span{max-width:100%;text-align:center;line-height:1.15;hyphens:manual}',
 			'.vb-dz-t:hover{color:var(--vb-tx1);border-color:var(--vb-line2)}',
 			'.vb-dz-t.on{color:var(--vb-tx1);border-color:rgba(42,183,241,.6);background:rgba(42,183,241,.08)}',
 			'.vb-dz-t.on svg{color:#2ab7f1}',
