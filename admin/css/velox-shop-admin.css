@@ -639,7 +639,7 @@ select.vsa-in option{background:var(--vbb-panel);color:var(--vbb-text)}
 .vsa-tpl-pv{position:relative;display:block;overflow:hidden;border-radius:8px}
 .vsa-tpl-pv.has-pv{aspect-ratio:16/10;background:#fff}
 .vsa-tpl-pv.has-pv>.vsa-mk2{visibility:hidden}
-.vsa-tpl-pv iframe{position:absolute;top:0;left:0;width:1280px;height:800px;border:0;transform-origin:0 0;pointer-events:none}
+.vsa-tpl-pv iframe{position:absolute;top:0;left:0;width:960px;height:600px;border:0;transform-origin:0 0;pointer-events:none}
 .vsa-try{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:14px;padding-top:14px;border-top:1px solid var(--vbb-line)}
 .vsa-try>span{display:inline-flex;align-items:center;gap:6px;margin-right:4px;font-size:13px;color:var(--vbb-text-2)}
 .vsa-bld{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}

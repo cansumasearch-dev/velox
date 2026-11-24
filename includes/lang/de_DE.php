@@ -6884,7 +6884,7 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Share buttons — switch some on in Settings.' => 'Teilen-Buttons – schalten Sie unter Einstellungen welche ein.',
 	'Copyright year' => 'Copyright-Jahr',
 	'Since (year)' => 'Seit (Jahr)',
-	// 4.66
+	// 4.68
 	'Test page: the design choices you have not saved yet. Visitors still see the saved design.' => 'Testseite: die noch nicht gespeicherten Design-Einstellungen. Besucher sehen weiterhin das gespeicherte Design.',
 	'Shop and product pages' => 'Shop- und Produktseiten',
 	'Cart and checkout' => 'Warenkorb und Kasse',

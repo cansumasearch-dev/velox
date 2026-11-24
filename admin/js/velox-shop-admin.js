@@ -1256,7 +1256,7 @@
 	/* The template tiles show the template on this shop's own products. */
 	var DSMINI = {}, dsMiniBusy = false;
 	function dsMiniFit() {
-		[].forEach.call( main().querySelectorAll( '.vsa-tpl-pv iframe' ), function ( f ) { var w = f.parentNode.clientWidth; if ( w ) { f.style.transform = 'scale(' + ( w / 1280 ) + ')'; } } );
+		[].forEach.call( main().querySelectorAll( '.vsa-tpl-pv iframe' ), function ( f ) { var w = f.parentNode.clientWidth; if ( w ) { f.style.transform = 'scale(' + ( w / 960 ) + ')'; } } );
 	}
 	function dsMiniPut( k ) {
 		var box = main().querySelector( '[data-tplpv="' + k + '"]' ), html = DSMINI[ k ];
