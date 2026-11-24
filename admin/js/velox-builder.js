@@ -3488,7 +3488,8 @@
 				rebuildCustomStates();
 				snapshotClasses();
 				lastSavedSig = contentSig( store.state );
-				if ( aiShown ) { aiLoad(); }
+				// Every page load asks once whether Claude is (or just was) working on this page.
+				if ( AIC.can ) { aiLoad(); }
 				offerBackup();
 				document.title = docTitle + ' — Velox Builder';
 				setTimeout( function () { renderActions(); }, 30 );
@@ -7214,7 +7215,11 @@
 				aiPost( { do:'ai_continue', doc:AI.doc, run:j.run } ).then( function ( res ) { if ( res && res.success && res.data.job ) { AI.job = res.data.job; renderAiFoot(); } } );
 			}
 		}
-		if ( aiBusy() ) { aiLock( true ); AI.timer = setTimeout( aiPoll, 1500 ); }
+		if ( aiBusy() ) {
+			// Claude is working on this page (for example after a reload): show it, so the lock makes sense.
+			if ( ! aiShown ) { aiShown = true; closeAllPanels( 'ai' ); renderAiPanel(); }
+			aiLock( true ); AI.timer = setTimeout( aiPoll, 1500 );
+		}
 		else { AI.stopping = false; if ( AI.locked ) { aiFinish(); } }
 	}
 	function aiFinish() {
