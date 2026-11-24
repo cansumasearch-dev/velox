@@ -3566,23 +3566,25 @@
 	 * than it has, the bar gets more compact step by step: labels become
 	 * icons, the page type and long title go, then the less used buttons
 	 * (they stay in the command palette, Ctrl+K). */
-	var TB_LEVELS = [ 'vb-c1', 'vb-c2', 'vb-c3', 'vb-c4' ];
-	function tbNeed( g ) {
-		var gap = parseFloat( getComputedStyle( g ).columnGap ) || 0, w = 0, n = 0;
-		Array.prototype.forEach.call( g.children, function ( c ) {
-			var r = c.getBoundingClientRect(); if ( ! r.width ) { return; }
-			var m = getComputedStyle( c ); w += r.width + ( parseFloat( m.marginLeft ) || 0 ) + ( parseFloat( m.marginRight ) || 0 ); n++;
+	var TB_LEVELS = [ 'vb-c1', 'vb-c2', 'vb-c3', 'vb-c4', 'vb-c5' ];
+	/* Does anything on the left or right touch the screen-size switch, or each other? */
+	function tbClash( top ) {
+		var C = top.querySelector( '#vb-bp' ) || top.querySelector( '.vb-tbc-center' ), cr = C && C.getBoundingClientRect();
+		var L = [], R = [];
+		[ [ '.vb-tb-l', L ], [ '.vb-tb-r', R ] ].forEach( function ( g ) {
+			var el = top.querySelector( g[ 0 ] ); if ( ! el ) { return; }
+			Array.prototype.forEach.call( el.children, function ( c ) { var r = c.getBoundingClientRect(); if ( r.width ) { g[ 1 ].push( r ); } } );
 		} );
-		return w + gap * Math.max( 0, n - 1 );
+		var hit = function ( r ) { return cr && cr.width && r.left < cr.right - 1 && r.right > cr.left + 1; };
+		if ( L.some( hit ) || R.some( hit ) ) { return true; }
+		var lmax = L.reduce( function ( m, r ) { return Math.max( m, r.right ); }, 0 );
+		var rmin = R.reduce( function ( m, r ) { return Math.min( m, r.left ); }, Infinity );
+		return lmax > rmin - 1 || rmin < top.getBoundingClientRect().left;
 	}
 	function fitTopbar() {
 		var top = document.querySelector( '.vb-top' ); if ( ! top ) { return; }
-		var L = top.querySelector( '.vb-tb-l' ), R = top.querySelector( '.vb-tb-r' ); if ( ! L || ! R ) { return; }
 		TB_LEVELS.forEach( function ( c ) { top.classList.remove( c ); } );
-		for ( var i = 0; i < TB_LEVELS.length; i++ ) {
-			if ( tbNeed( L ) <= L.clientWidth + 1 && tbNeed( R ) <= R.clientWidth + 1 ) { return; }
-			top.classList.add( TB_LEVELS[ i ] );
-		}
+		for ( var i = 0; i < TB_LEVELS.length && tbClash( top ); i++ ) { top.classList.add( TB_LEVELS[ i ] ); }
 	}
 	function fitTopbarSoon() { cancelAnimationFrame( fitTopbarSoon._f ); fitTopbarSoon._f = requestAnimationFrame( fitTopbar ); }
 	function renderActions() {
@@ -10895,10 +10897,12 @@
 			'@media (max-width:1100px){.vb-top .vb-kind{display:none}.vb-top .vb-title{max-width:130px}.vb-top{gap:6px}}',
 			'@media (max-width:960px){.vb-top .vb-tb-r .vb-tsep,#vb-tgl-left,#vb-tgl-right{display:none}.vb-top .vb-bp button{width:30px}}',
 			// The same steps when the bar is simply too full (fitTopbar), at any width.
+			'.vb-top.vb-c1 > .vb-tbc.vb-tb-l{flex:0 1 auto}.vb-top.vb-c1 > .vb-tbc.vb-tbc-center{flex:1 1 auto;justify-content:center}.vb-top.vb-c1 > .vb-tbc.vb-tb-r{flex:0 0 auto}',
 			'.vb-top.vb-c1 .vb-add-top .vb-lbl,.vb-top.vb-c1 #vb-view .vb-lbl{display:none}.vb-top.vb-c1 .vb-add-top{width:32px;padding:0}.vb-top.vb-c1 #vb-view{padding:0 8px}.vb-top.vb-c1 .vb-docstat{width:20px;padding:0;justify-content:center;font-size:0;gap:0}',
 			'.vb-top.vb-c2 .vb-kind{display:none}.vb-top.vb-c2 .vb-title{max-width:130px}',
 			'.vb-top.vb-c3 .vb-tb-r .vb-tsep,.vb-top.vb-c3 #vb-tgl-left,.vb-top.vb-c3 #vb-tgl-right{display:none}.vb-top.vb-c3 .vb-title{max-width:100px}',
 			'.vb-top.vb-c4 #vb-reusables,.vb-top.vb-c4 #vb-search,.vb-top.vb-c4 #vb-viewas-wrap{display:none}',
+			'.vb-top.vb-c5 #vb-code,.vb-top.vb-c5 #vb-check{display:none}',
 			'@media (prefers-reduced-motion:reduce){.vb-bp-thumb,.vb-docstat.is-live::before{transition:none;animation:none}}',
 			/* ===== 4.27 inspector ===== */
 			'.vb-inspector{background:var(--vb-bg1)}',
