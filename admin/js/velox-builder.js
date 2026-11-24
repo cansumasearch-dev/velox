@@ -1397,8 +1397,12 @@
 		var b = doc.createElement( 'div' ); b.id = 'vb-edit-badge'; b.className = 'vb-edit-badge';
 		b.innerHTML = '<i></i>' + T( 'Editing text' ) + '<small>' + ( isList ? T( 'Ctrl+Enter or click outside: done · Esc: cancel' ) : T( 'Enter or click outside: done · Esc: cancel' ) ) + '</small>';
 		doc.body.appendChild( b );
-		var rc = el.getBoundingClientRect(), win = doc.defaultView, top = rc.top + win.scrollY - b.offsetHeight - 10;
-		if ( rc.top - b.offsetHeight - 10 < 0 ) { top = rc.bottom + win.scrollY + 10; }
+		// The canvas may be zoomed out ("Fit · 45%"): the badge keeps its real size.
+		var fr = doc.defaultView.frameElement, z = fr && fr.offsetWidth ? fr.getBoundingClientRect().width / fr.offsetWidth : 1;
+		if ( z > 0 && z < 0.98 ) { b.style.transformOrigin = '0 100%'; b.style.transform = 'scale(' + ( 1 / z ).toFixed( 3 ) + ')'; }
+		var bh = b.offsetHeight / ( z > 0 && z < 0.98 ? z : 1 );
+		var rc = el.getBoundingClientRect(), win = doc.defaultView, top = rc.top + win.scrollY - b.offsetHeight - 10 / ( z || 1 );
+		if ( rc.top - bh - 10 < 0 ) { top = rc.bottom + win.scrollY + 10; b.style.transformOrigin = '0 0'; }
 		b.style.top = Math.max( 0, top ) + 'px';
 		b.style.left = Math.max( 4, Math.min( rc.left + win.scrollX - 5, doc.documentElement.clientWidth - b.offsetWidth - 4 ) ) + 'px';
 	}
