@@ -3567,19 +3567,23 @@
 	 * icons, the page type and long title go, then the less used buttons
 	 * (they stay in the command palette, Ctrl+K). */
 	var TB_LEVELS = [ 'vb-c1', 'vb-c2', 'vb-c3', 'vb-c4', 'vb-c5' ];
-	/* Does anything on the left or right touch the screen-size switch, or each other? */
+	/* Do any two controls in the bar overlap? (Buttons, fields, the screen-size switch.) */
 	function tbClash( top ) {
-		var C = top.querySelector( '#vb-bp' ) || top.querySelector( '.vb-tbc-center' ), cr = C && C.getBoundingClientRect();
-		var L = [], R = [];
-		[ [ '.vb-tb-l', L ], [ '.vb-tb-r', R ] ].forEach( function ( g ) {
-			var el = top.querySelector( g[ 0 ] ); if ( ! el ) { return; }
-			Array.prototype.forEach.call( el.children, function ( c ) { var r = c.getBoundingClientRect(); if ( r.width ) { g[ 1 ].push( r ); } } );
+		var tr = top.getBoundingClientRect();
+		// Only what sits in the bar itself: menus that open below it do not count.
+		var els = Array.prototype.filter.call( top.querySelectorAll( 'button, a, select, input, .vb-docstat, .vb-bp' ), function ( e ) {
+			var r = e.getBoundingClientRect();
+			return r.width > 0 && r.top >= tr.top - 1 && r.bottom <= tr.bottom + 1 && 'hidden' !== getComputedStyle( e ).visibility;
 		} );
-		var hit = function ( r ) { return cr && cr.width && r.left < cr.right - 1 && r.right > cr.left + 1; };
-		if ( L.some( hit ) || R.some( hit ) ) { return true; }
-		var lmax = L.reduce( function ( m, r ) { return Math.max( m, r.right ); }, 0 );
-		var rmin = R.reduce( function ( m, r ) { return Math.min( m, r.left ); }, Infinity );
-		return lmax > rmin - 1 || rmin < top.getBoundingClientRect().left;
+		var R = els.map( function ( e ) { return e.getBoundingClientRect(); } );
+		for ( var i = 0; i < els.length; i++ ) {
+			if ( R[ i ].left < tr.left - 1 || R[ i ].right > tr.right + 1 ) { return true; }
+			for ( var j = i + 1; j < els.length; j++ ) {
+				if ( els[ i ].contains( els[ j ] ) || els[ j ].contains( els[ i ] ) ) { continue; }
+				if ( R[ i ].left < R[ j ].right - 1 && R[ j ].left < R[ i ].right - 1 && R[ i ].top < R[ j ].bottom - 1 && R[ j ].top < R[ i ].bottom - 1 ) { return true; }
+			}
+		}
+		return false;
 	}
 	function fitTopbar() {
 		var top = document.querySelector( '.vb-top' ); if ( ! top ) { return; }
