@@ -175,7 +175,16 @@
 			tabs[ i ].classList.toggle( 'is-active', on );
 			if ( panels[ i ] ) { panels[ i ].hidden = ! on; }
 		}
+		var knob = ownOne( root, '.vx-tablist > .vx-sw-knob' );
+		if ( knob ) { knob.classList.toggle( 'is-on', 1 === index ); knob.setAttribute( 'aria-checked', 1 === index ? 'true' : 'false' ); }
 	}
+	/* Content switcher: the knob flips between the two options. */
+	on( 'click', '.vx-sw-knob', function ( e, knob ) {
+		var root = knob.closest( '.vx-tabs' );
+		if ( ! root ) { return; }
+		e.preventDefault();
+		selectTab( root, knob.classList.contains( 'is-on' ) ? 0 : 1 );
+	} );
 	function tabIndex( root, tab ) {
 		return tabsOf( root ).indexOf( tab );
 	}
@@ -1352,7 +1361,47 @@
 			[].forEach.call( d.querySelectorAll( '.vx-map[data-vx-map]' ), load );
 		} );
 	}
-	function initWidgets() { initCounters(); initCountdowns(); initRotators(); initBars(); initMaps(); }
+	/* Copy button and the share buttons' "copy link". */
+	on( 'click', '[data-vx-copy]', function ( e, b ) {
+		e.preventDefault();
+		var txt = b.getAttribute( 'data-vx-copy' ) || window.location.href, lab = b.querySelector( 'span' ), done = b.getAttribute( 'data-vx-done' ) || '';
+		function ok() {
+			b.classList.add( 'is-copied' );
+			if ( lab && done ) { if ( undefined === b.vxLabel ) { b.vxLabel = lab.textContent; } lab.textContent = done; }
+			clearTimeout( b.vxT );
+			b.vxT = setTimeout( function () { b.classList.remove( 'is-copied' ); if ( lab && undefined !== b.vxLabel ) { lab.textContent = b.vxLabel; } }, 2000 );
+		}
+		function fallback() {
+			var t = d.createElement( 'textarea' );
+			t.value = txt; t.setAttribute( 'readonly', '' ); t.style.position = 'fixed'; t.style.opacity = '0';
+			d.body.appendChild( t ); t.select();
+			try { if ( d.execCommand( 'copy' ) ) { ok(); } } catch ( err ) {}
+			t.parentNode.removeChild( t );
+		}
+		if ( navigator.clipboard && window.isSecureContext ) { navigator.clipboard.writeText( txt ).then( ok, fallback ); } else { fallback(); }
+	} );
+	/* Read more: closes only when the content is taller than the closed height. */
+	function initReadmore() {
+		[].forEach.call( d.querySelectorAll( '[data-vx-rm]' ), function ( el ) {
+			var btn = el.nextElementSibling;
+			if ( ! btn || ! btn.classList.contains( 'vx-rm-btn' ) || el.classList.contains( 'is-open' ) ) { return; }
+			var h = parseFloat( window.getComputedStyle( el ).getPropertyValue( '--vx-rm-h' ) ) || 160;
+			var tall = el.scrollHeight > h + 24;
+			el.classList.toggle( 'vx-rm-on', tall );
+			btn.hidden = ! tall;
+		} );
+	}
+	on( 'click', '.vx-rm-btn', function ( e, btn ) {
+		var el = d.getElementById( btn.getAttribute( 'aria-controls' ) || '' );
+		if ( ! el ) { return; }
+		var open = ! el.classList.contains( 'is-open' );
+		el.classList.toggle( 'is-open', open );
+		btn.setAttribute( 'aria-expanded', open ? 'true' : 'false' );
+		btn.textContent = btn.getAttribute( open ? 'data-less' : 'data-more' ) || btn.textContent;
+		if ( ! open && el.getBoundingClientRect().top < 0 ) { el.scrollIntoView( { block: 'start' } ); }
+	} );
+	window.addEventListener( 'load', initReadmore );
+	function initWidgets() { initCounters(); initCountdowns(); initRotators(); initBars(); initMaps(); initReadmore(); }
 	initCompare(); initLightbox(); initFlip();
 	if ( 'loading' === d.readyState ) { d.addEventListener( 'DOMContentLoaded', initWidgets ); } else { initWidgets(); }
 

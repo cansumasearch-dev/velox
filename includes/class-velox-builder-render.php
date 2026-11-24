@@ -999,7 +999,9 @@ class Velox_Builder_Render {
 	 * class can still restyle every one of them. */
 	private static $WIDGETS = array( 'Marquee' => 1, 'Counter' => 1, 'Countdown' => 1, 'Compare' => 1, 'Gallery' => 1, 'Rotator' => 1,
 		'Flipcard' => 1, 'Bars' => 1, 'Rating' => 1, 'Social' => 1, 'Map' => 1, 'Embed' => 1, 'Codeblock' => 1, 'Table' => 1, 'Timeline' => 1, 'Checklist' => 1,
-		'Shapedivider' => 1, 'Progresscircle' => 1 );
+		'Shapedivider' => 1, 'Progresscircle' => 1, 'Toc' => 1, 'Share' => 1, 'Copyright' => 1, 'Copybtn' => 1 );
+	/** The document being rendered, for widgets that read the page (table of contents). */
+	private static $wdoc = null;
 	/** The shape divider's outlines (viewBox 0 0 1200 120, filled at the bottom). */
 	private static $SHAPES = array( 'wave' => '<path d="M0,60 C150,110 350,10 600,60 C850,110 1050,10 1200,60 L1200,120 L0,120 Z"/>', 'waves' => '<path opacity=".35" d="M0,40 C200,100 400,0 600,50 C800,100 1000,20 1200,50 L1200,120 L0,120 Z"/><path d="M0,75 C150,110 350,35 600,75 C850,115 1050,45 1200,75 L1200,120 L0,120 Z"/>', 'curve' => '<path d="M0,120 Q600,-40 1200,120 Z"/>', 'tilt' => '<path d="M0,120 L1200,20 L1200,120 Z"/>', 'peak' => '<path d="M0,120 L600,20 L1200,120 Z"/>', 'zigzag' => '<path d="M0,120 L0,100 L40,60 L80,100 L120,60 L160,100 L200,60 L240,100 L280,60 L320,100 L360,60 L400,100 L440,60 L480,100 L520,60 L560,100 L600,60 L640,100 L680,60 L720,100 L760,60 L800,100 L840,60 L880,100 L920,60 L960,100 L1000,60 L1040,100 L1080,60 L1120,100 L1160,60 L1200,100 L1200,120 Z"/>' );
 	private static $wicons = null;
@@ -1275,6 +1277,82 @@ class Velox_Builder_Render {
 					. ( $s( 'showText', '1' ) ? '<span class="vx-rate-t">' . esc_html( $raw . ' / ' . $max ) . '</span>' : '' )
 					. ( '' !== $lab ? '<span class="vx-rate-l">' . esc_html( $lab ) . '</span>' : '' ) . '</div>';
 
+			case 'Toc':
+				$lv    = array( 'h2' => array( 'h2' ), 'h2h3' => array( 'h2', 'h3' ), 'h2h4' => array( 'h2', 'h3', 'h4' ) );
+				$lv    = $lv[ (string) $s( 'tocLevels', 'h2h3' ) ] ?? array( 'h2', 'h3' );
+				$heads = array();
+				$walk  = function ( $list ) use ( &$walk, &$heads, $lv ) {
+					foreach ( (array) $list as $x ) {
+						if ( ! is_array( $x ) || ! empty( $x['hidden'] ) ) {
+							continue;
+						}
+						if ( 'Heading' === ( $x['el'] ?? '' ) && in_array( $x['tag'] ?? '', $lv, true ) ) {
+							$tx = trim( wp_strip_all_tags( (string) ( self::$wdoc['content'][ $x['id'] ] ?? '' ) ) );
+							if ( '' !== $tx ) {
+								$heads[] = array( 'id' => (string) $x['id'], 't' => $tx, 'l' => $x['tag'] );
+							}
+						}
+						$walk( $x['children'] ?? array() );
+					}
+				};
+				$walk( self::$wdoc['tree'] ?? array() );
+				if ( ! $heads ) {
+					return '';
+				}
+				$lt  = $s( 'tocNum', '' ) ? 'ol' : 'ul';
+				$tt  = trim( (string) $s( 'tocTitle', __( 'Contents', 'velox' ) ) );
+				$li  = '';
+				foreach ( $heads as $h ) {
+					$li .= '<li class="vx-toc-' . esc_attr( $h['l'] ) . '"><a href="#' . esc_attr( $h['id'] ) . '">' . esc_html( $h['t'] ) . '</a></li>';
+				}
+				return '<nav' . self::wcls( $attr, 'vx-toc' . ( $s( 'tocBoxed', '1' ) ? ' is-boxed' : '' ) ) . ' aria-label="' . esc_attr( '' !== $tt ? $tt : __( 'Contents', 'velox' ) ) . '">'
+					. ( '' !== $tt ? '<p class="vx-toc-t">' . esc_html( $tt ) . '</p>' : '' ) . '<' . $lt . ' class="vx-toc-l">' . $li . '</' . $lt . '></nav>';
+
+			case 'Share':
+				self::wvars( $node, array( 'size' => array( '--vx-sz', 'px', '18' ), 'box' => array( '--vx-sbox', 'px', '40' ), 'gap' => array( '--vx-sgap', 'px', '10' ), 'color' => array( '--vx-sbg', 'color', '' ), 'iconC' => array( '--vx-sfg', 'color', '' ) ) );
+				$url   = is_singular() ? (string) get_permalink() : home_url( '/' );
+				$title = is_singular() ? (string) get_the_title() : (string) get_bloginfo( 'name' );
+				$u     = rawurlencode( $url );
+				$t     = rawurlencode( wp_strip_all_tags( html_entity_decode( $title, ENT_QUOTES, 'UTF-8' ) ) );
+				$nets  = array(
+					'facebook' => array( 'shFb', 'Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' . $u, '#1877F2' ),
+					'x'        => array( 'shX', 'X', 'https://x.com/intent/post?url=' . $u . '&text=' . $t, '#000000' ),
+					'linkedin' => array( 'shLi', 'LinkedIn', 'https://www.linkedin.com/sharing/share-offsite/?url=' . $u, '#0A66C2' ),
+					'whatsapp' => array( 'shWa', 'WhatsApp', 'https://wa.me/?text=' . $t . '%20' . $u, '#25D366' ),
+					'email'    => array( 'shMail', __( 'Email', 'velox' ), 'mailto:?subject=' . $t . '&body=' . $u, '#64748b' ),
+				);
+				$out = '';
+				foreach ( $nets as $n => $cfg ) {
+					if ( ! $s( $cfg[0], '1' ) ) {
+						continue;
+					}
+					/* translators: %s: network name, e.g. Facebook */
+					$out .= '<a class="vx-soc vx-soc-' . $n . '" href="' . esc_url( $cfg[2], array( 'https', 'mailto' ) ) . '"' . ( 'email' !== $n ? ' target="_blank" rel="noopener"' : '' ) . ' aria-label="' . esc_attr( sprintf( __( 'Share on %s', 'velox' ), $cfg[1] ) ) . '" style="--b:' . $cfg[3] . '">' . self::wsvg( $n ) . '</a>';
+				}
+				if ( $s( 'shCopy', '1' ) ) {
+					$out .= '<button type="button" class="vx-soc vx-soc-website" data-vx-copy="' . esc_attr( $url ) . '" data-vx-done="' . esc_attr__( 'Link copied', 'velox' ) . '" aria-label="' . esc_attr__( 'Copy link', 'velox' ) . '" style="--b:#64748b">' . self::wsvg( 'website' ) . '</button>';
+				}
+				if ( '' === $out ) {
+					return '';
+				}
+				$shape = in_array( $s( 'shape', 'circle' ), array( 'circle', 'rounded', 'square', 'plain' ), true ) ? $s( 'shape', 'circle' ) : 'circle';
+				$sty   = in_array( $s( 'style', 'mono' ), array( 'mono', 'brand', 'outline' ), true ) ? $s( 'style', 'mono' ) : 'mono';
+				$lab   = trim( (string) $s( 'shLabel', '' ) );
+				return '<div' . self::wcls( $attr, 'vx-social vx-share is-' . $shape . ' is-' . $sty ) . '>' . ( '' !== $lab ? '<span class="vx-share-l">' . esc_html( $lab ) . '</span>' : '' ) . $out . '</div>';
+
+			case 'Copyright':
+				$cy   = (int) wp_date( 'Y' );
+				$from = (int) $s( 'cpFrom', '' );
+				$yr   = ( $from > 1900 && $from < $cy ) ? $from . '–' . $cy : (string) $cy;
+				$text = str_replace( array( '{year}', '{site}' ), array( $yr, (string) get_bloginfo( 'name' ) ), (string) $s( 'cpText', __( '© {year} {site}. All rights reserved.', 'velox' ) ) );
+				$ctag = in_array( $node['tag'] ?? 'p', array( 'p', 'span', 'div', 'small' ), true ) ? $node['tag'] : 'p';
+				return '<' . $ctag . self::wcls( $attr, 'vx-copyright' ) . '>' . esc_html( $text ) . '</' . $ctag . '>';
+
+			case 'Copybtn':
+				return '<button type="button"' . self::wcls( $attr, 'vx-copybtn' ) . ' data-vx-copy="' . esc_attr( (string) $s( 'cbText', '' ) ) . '" data-vx-done="' . esc_attr( (string) $s( 'cbDone', __( 'Copied!', 'velox' ) ) ) . '">'
+					. ( $s( 'cbIcon', '1' ) ? '<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor" aria-hidden="true" focusable="false"><path d="M4 2a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h7a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM1 5a1 1 0 0 1 1-1v9a2 2 0 0 0 2 2h8a1 1 0 0 1-1 1H4a3 3 0 0 1-3-3z"/></svg>' : '' )
+					. '<span>' . esc_html( (string) $s( 'cbLabel', __( 'Copy', 'velox' ) ) ) . '</span></button>';
+
 			case 'Social':
 				self::wvars( $node, array( 'size' => array( '--vx-sz', 'px', '18' ), 'box' => array( '--vx-sbox', 'px', '40' ), 'gap' => array( '--vx-sgap', 'px', '10' ), 'color' => array( '--vx-sbg', 'color', '' ), 'iconC' => array( '--vx-sfg', 'color', '' ) ) );
 				$names = array( 'facebook' => 'Facebook', 'instagram' => 'Instagram', 'x' => 'X', 'linkedin' => 'LinkedIn', 'youtube' => 'YouTube', 'tiktok' => 'TikTok', 'pinterest' => 'Pinterest', 'whatsapp' => 'WhatsApp', 'github' => 'GitHub', 'threads' => 'Threads', 'telegram' => 'Telegram', 'discord' => 'Discord', 'spotify' => 'Spotify', 'email' => __( 'Email', 'velox' ), 'phone' => __( 'Phone', 'velox' ), 'website' => __( 'Website', 'velox' ) );
@@ -1422,6 +1500,16 @@ class Velox_Builder_Render {
 	/** The look every widget starts with (classes and #id variables override it). */
 	public static function widgets_css() {
 		return
+			// table of contents, share buttons, copy button, read more (4.67)
+			'.vx-toc{line-height:1.5}.vx-toc.is-boxed{padding:18px 20px;border:1px solid rgba(0,0,0,.1);border-radius:12px;background:rgba(0,0,0,.02)}'
+			. '.vx-toc-t{margin:0 0 8px;font-weight:700}.vx-toc-l{margin:0;padding-left:1.25em;display:flex;flex-direction:column;gap:6px}ul.vx-toc-l{list-style:none;padding-left:0}'
+			. '.vx-toc-l a{color:inherit;text-decoration:none}.vx-toc-l a:hover{text-decoration:underline}.vx-toc-h3{margin-left:1em}.vx-toc-h4{margin-left:2em}.vx-toc-empty{opacity:.6;font-style:italic}'
+			. '.vx-share{align-items:center}.vx-share-l{font-weight:600;margin-right:4px}button.vx-soc{border:0;padding:0;font:inherit;cursor:pointer}.vx-soc.is-copied{outline:2px solid currentColor;outline-offset:2px}'
+			. '.vx-copybtn{border:0;cursor:pointer;font:inherit;line-height:1.2}.vx-copybtn svg{width:1em;height:1em;flex:none;margin:0}'
+			. '[data-vx-rm].vx-rm-on:not(.is-open){max-height:var(--vx-rm-h,160px);overflow:hidden}'
+			. '[data-vx-rm="fade"].vx-rm-on:not(.is-open){-webkit-mask-image:linear-gradient(#000 45%,transparent);mask-image:linear-gradient(#000 45%,transparent)}'
+			. '.vx-rm-btn{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:0;border:0;background:none;font:inherit;font-weight:600;color:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}.vx-rm-btn[hidden]{display:none}'
+			.
 			// marquee
 			'.vx-marquee{overflow:hidden;width:100%}.vx-mq-track{display:flex;width:max-content;animation:vx-mq var(--vx-mq-speed,30s) linear infinite}'
 			. '.vx-mq-set{flex:0 0 auto;min-width:100%;display:flex;align-items:center;justify-content:space-around;gap:var(--vx-mq-gap,48px);padding-right:var(--vx-mq-gap,48px);box-sizing:border-box}'
@@ -1622,10 +1710,19 @@ class Velox_Builder_Render {
 		$to_acc   = self::el_set( $node, 'toAccordion', '1' );
 		$deeplink = self::el_set( $node, 'deepLink', '' );
 		$base     = sanitize_html_class( $node['id'] ?? 'tabs' );
+		// Look: underlined tabs, pills, or a switch between exactly two options.
+		$look = in_array( self::el_set( $node, 'look', 'tabs' ), array( 'tabs', 'pills', 'switch' ), true ) ? self::el_set( $node, 'look', 'tabs' ) : 'tabs';
+		if ( 'switch' === $look && 2 !== count( $items ) ) {
+			$look = 'pills';
+		}
+		if ( 'tabs' !== $look ) {
+			$to_acc = '';
+			$orient = 'top';
+		}
 		$ord      = count( $items );
 		$bp       = class_exists( 'Velox_Builder' ) ? Velox_Builder::breakpoints() : array( 'mobile' => 767 );
 
-		$cls = trim( $classes . ' vx-tabs' . ( 'left' === $orient ? ' vx-tabs-left' : '' ) );
+		$cls = trim( $classes . ' vx-tabs' . ( 'left' === $orient ? ' vx-tabs-left' : '' ) . ( 'tabs' !== $look ? ' vx-tabs-' . $look : '' ) );
 		$out = '<div id="' . esc_attr( $node['id'] ?? '' ) . '" class="' . esc_attr( $cls ) . '"' .
 			' data-vx-activate="' . esc_attr( $activate ) . '"' .
 			( $to_acc ? ' data-vx-toacc data-vx-accbp="' . (int) $bp['mobile'] . '"' : '' ) .
@@ -1640,6 +1737,9 @@ class Velox_Builder_Render {
 				' aria-selected="' . ( $on ? 'true' : 'false' ) . '"' .
 				' aria-controls="' . esc_attr( $base . '-tp' . $i ) . '"' .
 				' tabindex="' . ( $on ? '0' : '-1' ) . '">' . esc_html( '' !== trim( (string) ( $item['title'] ?? '' ) ) ? (string) $item['title'] : sprintf( __( 'Tab %d', 'velox' ), $i + 1 ) ) . '</button>';
+			if ( 'switch' === $look && 0 === $i ) {
+				$out .= '<button type="button" class="vx-sw-knob' . ( 1 === $start ? ' is-on' : '' ) . '" role="switch" aria-checked="' . ( 1 === $start ? 'true' : 'false' ) . '" aria-label="' . esc_attr( (string) ( $items[1]['title'] ?? '' ) ) . '"></button>';
+			}
 		}
 		$out .= '</div><div class="vx-tabpanels">';
 		foreach ( $items as $i => $item ) {
@@ -2850,6 +2950,13 @@ class Velox_Builder_Render {
 				'.vx-tabs-left .vx-tab{border-bottom:none;border-right:2px solid transparent;margin:0 -1px 0 0;text-align:left}' .
 				'.vx-tabs-left .vx-tab[aria-selected="true"]{border-right-color:currentColor}' .
 				'.vx-tabp{padding:18px 4px}.vx-tabp[hidden]{display:none}' .
+				'.vx-tabs-pills .vx-tablist{display:inline-flex;gap:4px;padding:4px;border:none;border-radius:999px;background:rgba(0,0,0,.06)}' .
+				'.vx-tabs-pills .vx-tab{margin:0;border:none;border-radius:999px;padding:8px 16px}.vx-tabs-pills .vx-tab[aria-selected="true"]{background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.14)}' .
+				'.vx-tabs-switch .vx-tablist{justify-content:center;align-items:center;gap:14px;border:none}.vx-tabs-switch .vx-tab{margin:0;border:none;padding:6px 2px}' .
+				'.vx-sw-knob{position:relative;flex:none;width:52px;height:30px;padding:0;border:none;border-radius:999px;background:var(--vx-sw,#2ab7f1);cursor:pointer}' .
+				'.vx-sw-knob::after{content:"";position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .2s}' .
+				'.vx-sw-knob.is-on::after{transform:translateX(22px)}.vx-sw-knob:focus-visible{outline:2px solid currentColor;outline-offset:2px}' .
+				'@media (prefers-reduced-motion:reduce){.vx-sw-knob::after{transition:none}}' .
 				// Accordion fallback: the tab button moves above its own panel.
 				'@media (max-width:' . (int) $bp['mobile'] . 'px){' .
 					'.vx-tabs.vx-tabs-acc{display:flex;flex-direction:column}' .
@@ -3604,6 +3711,7 @@ class Velox_Builder_Render {
 		$attr .= self::motion_attrs( $node );
 
 		if ( isset( $node['el'] ) && isset( self::$WIDGETS[ $node['el'] ] ) ) {
+			self::$wdoc = $doc;
 			return self::render_widget( $node, $attr );
 		}
 
@@ -3901,6 +4009,18 @@ class Velox_Builder_Render {
 		// A row that moves sideways while pinned needs a pin and a track around its children.
 		if ( ! empty( $node['mo']['hscroll'] ) && '' !== $kids ) {
 			$kids = '<div class="vx-hs-pin"><div class="vx-hs-track">' . $kids . '</div></div>';
+		}
+		if ( isset( $node['el'] ) && 'Readmore' === $node['el'] ) {
+			self::$runtime_used['widgets'] = true;
+			$rid = sanitize_html_class( $node['id'] ?? '' );
+			if ( '' !== $rid ) {
+				self::$float_css .= '#' . $rid . '{--vx-rm-h:' . max( 40, self::el_int( $node, 'rmHeight', 160 ) ) . 'px}';
+			}
+			$more   = (string) self::el_set( $node, 'rmMore', __( 'Read more', 'velox' ) );
+			$less   = (string) self::el_set( $node, 'rmLess', __( 'Show less', 'velox' ) );
+			$attr  .= ' data-vx-rm' . ( self::el_set( $node, 'rmFade', '1' ) ? '="fade"' : '' );
+			// Shown by the runtime only when the content is taller than the closed height.
+			$after .= '<button type="button" class="vx-rm-btn" aria-expanded="false" aria-controls="' . esc_attr( $node['id'] ?? '' ) . '" data-more="' . esc_attr( $more ) . '" data-less="' . esc_attr( $less ) . '" hidden>' . esc_html( $more ) . '</button>';
 		}
 		if ( 'a' === $tag ) {
 			$href  = isset( $node['href'] ) ? esc_url( self::link_href( $node['href'] ) ) : '#';

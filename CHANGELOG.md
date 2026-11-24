@@ -4,6 +4,18 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.67.0 — Accordions, tabs and sliders you edit on the canvas, six new elements
+- **Accordion, FAQ, Tabs and Slider work on the canvas like on the page:** click a header to open it, a tab to switch, the arrows or dots to move the slider. What you open stays open while you edit (it is not saved).
+- **Double-click a title or text** of an accordion section, FAQ question, tab or slide to edit it right there. Enter keeps it, Escape throws it away, each edit is one Undo step.
+- **“+ Add section / question / tab / slide”** on the selected element: adds the item with its own drop area, opens it and puts the cursor in its title. New items get their default title in the site’s language.
+- **Content switcher** (new): two options with a switch between them (Monthly / Yearly prices, Before / After …), each with its own content area. Tabs got a “Look” setting too: Tabs, Pills or Switch.
+- **Read more** (new): a container that shows the first part of its content with a fade and a “Read more” button; the button only appears when the content is actually longer. Without JavaScript everything stays visible.
+- **Table of contents** (new): lists the page’s H2 (and H3 / H4) headings as links, built on the server, numbered or not, boxed or plain.
+- **Share buttons** (new): Facebook, X, LinkedIn, WhatsApp, email and “copy link” for the current page, with the same looks as Social icons. No tracking scripts, just links.
+- **Copyright year** (new): “© {year} {site}” that always shows the current year, optionally “since” a year (© 2019–2026).
+- **Copy button** (new): copies a text (a discount code, an IBAN, the page address) and says “Copied!”.
+- Based on a full walk through Oxygen and OxyExtras (notes/oxygen-analysis.md): Velox already had more elements and a richer text toolbar; these were the gaps.
+
 ## 4.66.0 — Claude with your own Claude account
 - **Velox is now a Claude connector.** Add the site in Claude (Customize → Connectors → Add custom connector → paste the address from Velox Builder → AI agents) and chat with Claude on claude.ai, in the desktop or mobile app, or in Claude Code. Your Claude plan covers it: no API key, no costs per use, no plugin, no Node.js, no config file.
 - **Your own sign-in page.** When Claude connects, the site’s sign-in opens: sign in to WordPress, choose the whole site or only some pages, allow. Claude works as you, with your builder rights, and only on what you chose. It still only writes drafts, and every change is a version marked “By AI”.
