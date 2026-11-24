@@ -1391,14 +1391,14 @@
 		if ( 'shop' === page ) {
 			var k = v.card, n = 'list' === v.layout ? 1 : Math.max( 2, Math.min( 4, +v.cols || 3 ) ), cen = 'center' === v.align;
 			var cardHTML = function ( i ) {
-				var h = 'masonry' === v.layout ? ( i % 2 ? 'aspect-ratio:4/3;' : 'aspect-ratio:3/4;' ) : '';
+				var h = 'masonry' === v.layout ? ( i % 2 ? 'aspect-ratio:4/3;' : 'aspect-ratio:3/4;' ) : ( v.ratio ? 'aspect-ratio:' + String( v.ratio ).replace( '/', ' / ' ) + ';' : '' );
 				var wrap = 'boxed' === k ? 'background:' + sur + ';padding:3px;border-radius:3px;' : ( 'framed' === k ? 'box-shadow:0 0 0 1px ' + line + ';padding:3px;' : ( 'tile' === k ? 'background:' + soft + ';padding:4px 4px 3px;border-radius:3px;' : '' ) );
 				if ( 'list' === v.layout ) {
 					return '<span class="vsa-pm-li" style="' + wrap + '">' + ph( 'width:26%;aspect-ratio:1;flex:none;' ) + '<span class="vsa-pm-tx">' + bar( 60 ) + bar( 85, mut, 2 ) + bar( 30, acc, 4 ) + '</span></span>';
 				}
 				var text = bar( 70 ) + bar( 40, mut, 2 ) + ( 'button' === v.button ? bar( 55, acc, 4 ) : '' );
 				if ( 'overlay' === k ) { return '<span class="vsa-pm-c is-ov">' + ph( h ) + '<span class="vsa-pm-ovt">' + bar( 60, '#fff' ) + bar( 35, '#fff', 2 ) + '</span></span>'; }
-				return '<span class="vsa-pm-c' + ( cen ? ' is-c' : '' ) + '" style="' + wrap + '">' + ph( h || ( 'tile' === k ? 'background:' + bg + ';' : '' ) ) + text + '</span>';
+				return '<span class="vsa-pm-c' + ( cen ? ' is-c' : '' ) + '" style="' + wrap + '">' + ph( h + ( 'tile' === k ? 'background:' + bg + ';' : '' ) ) + text + '</span>';
 			};
 			var cnt = 'list' === v.layout ? 3 : ( 'row' === v.layout ? 5 : n * ( 'masonry' === v.layout ? 2 : 1 ) );
 			var cells = []; for ( var i = 0; i < cnt; i++ ) { cells.push( cardHTML( i ) ); }

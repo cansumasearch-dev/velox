@@ -4,6 +4,9 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.75.2 — The look drawings show the photo shape
+- The small drawings of the shop-page looks now use the photo shape the look sets (square for “Tiles”).
+
 ## 4.75.1 — No photo twice in the product preview
 - The product page preview borrowed a photo the product already had, so it showed twice among the thumbnails.
 
