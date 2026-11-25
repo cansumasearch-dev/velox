@@ -22,7 +22,7 @@
 	var PROPS = [ 'display', 'flexDirection', 'gridTemplateColumns', 'gap', 'width', 'height', 'color', 'backgroundColor', 'backgroundImage', 'fontSize', 'fontWeight', 'textAlign', 'borderTopWidth', 'borderTopColor', 'borderTopLeftRadius', 'paddingTop', 'opacity', 'transform', 'boxShadow', 'justifyContent', 'alignItems', 'aspectRatio', 'objectFit', 'position', 'overflow', 'textTransform', 'letterSpacing', 'lineHeight' ];
 	function model() {
 		var best = null;
-		for ( var i = 0; i < localStorage.length; i++ ) { var k = localStorage.key( i ); if ( 0 === k.indexOf( 'velox_builder_backup_' ) ) { try { var b = JSON.parse( localStorage.getItem( k ) ); if ( b && ( ! best || b.at > best.at ) ) { best = b; } } catch ( e ) {} } }
+		for ( var i = 0; i < localStorage.length; i++ ) { var k = localStorage.key( i ); if ( 0 === k.indexOf( 'velox_builder_backup_' ) && ( ! P.get( 'doc' ) || k === 'velox_builder_backup_' + P.get( 'doc' ) ) ) { try { var b = JSON.parse( localStorage.getItem( k ) ); if ( b && ( ! best || b.at > best.at ) ) { best = b; } } catch ( e ) {} } }
 		return best && best.model;
 	}
 	function canvasSig( id ) {
