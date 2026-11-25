@@ -2187,13 +2187,13 @@
 			  ] }
 		] },
 		{ name:'Typography', icon:'type', items:[
-			{ key:'gradienttext', el:'Gradienttext', tag:'span', label:'Gradient text', cls:'.gradient-text', rules:{ fontSize:'48', fontWeight:'800' }, text:'Gradient headline',
+			{ key:'gradienttext', el:'Gradienttext', tag:'span', label:'Gradient text', cls:'.gradient-text', rules:{ fontSize:'48', fontWeight:'800', display:'block', width:'fit-content' }, text:'Gradient headline',
 			  settings:[
 				{ k:'from', t:'color', l:'Starts as', d:'#2ab7f1', s:'Gradient' },
 				{ k:'to', t:'color', l:'Fades to', d:'#7b5cff', s:'Gradient' },
 				{ k:'angle', t:'num', l:'Angle', d:'90', unit:'deg', s:'Gradient' }
 			  ] },
-			{ key:'outlinetext', el:'Outlinetext', tag:'span', label:'Outlined text', cls:'.outline-text', rules:{ fontSize:'56', fontWeight:'800' }, text:'Outlined',
+			{ key:'outlinetext', el:'Outlinetext', tag:'span', label:'Outlined text', cls:'.outline-text', rules:{ fontSize:'56', fontWeight:'800', display:'block', width:'fit-content' }, text:'Outlined',
 			  settings:[
 				{ k:'strokeW', t:'num', l:'Outline thickness', d:'2', unit:'px', r:true, s:'Outline' },
 				{ k:'strokeC', t:'color', l:'Outline colour', d:'#0b0f14', s:'Outline' },
@@ -3076,8 +3076,8 @@
 		var BLOCKS = [
 			{ key:'siteheader', el:'Div', tag:'header', label:'Site header', cls:'.site-header', rules:{ display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', gap:'24', paddingTop:'16', paddingBottom:'16' }, kit:{ kids:[
 				{ key:'image', cls:'.site-logo', rules:{ width:'140', height:'auto' }, src:'@img/vx-ph-logo.svg' },
-				{ key:'navbar', settings:{ source:'manual', collapseAt:'tablet' }, items:[ { title:'Home', href:'/' }, { title:'Services', href:'#' }, { title:'About us', href:'#' }, { title:'Contact', href:'#' } ] },
-				{ key:'button', cls:'.header-btn', bp:{ md:{ display:'none' } }, text:'Get in touch', href:'#' } ] } },
+				{ key:'navbar', cls:'.header-nav', bp:{ lg:{ order:'3' } }, settings:{ source:'manual', collapseAt:'tablet' }, items:[ { title:'Home', href:'/' }, { title:'Services', href:'#' }, { title:'About us', href:'#' }, { title:'Contact', href:'#' } ] },
+				{ key:'button', cls:'.header-btn', bp:{ lg:{ marginLeft:'auto' }, md:{ display:'none' } }, text:'Get in touch', href:'#' } ] } },
 			{ key:'sitefooter', el:'Div', tag:'footer', label:'Site footer', cls:'.site-footer', rules:{ display:'flex', flexDirection:'column', gap:'40', paddingTop:'64', paddingBottom:'32' }, kit:{ kids:[
 				{ key:'div', cls:'.footer-cols', rules:{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr', gap:'40' }, bp:{ lg:{ gridTemplateColumns:'repeat(2, minmax(0, 1fr))' }, md:{ gridTemplateColumns:'minmax(0, 1fr)' } }, kids:[
 					{ key:'div', cls:'.footer-about', rules:{ gap:'14' }, kids:[
@@ -3104,15 +3104,15 @@
 				price( 'Professional', '€49 / month', 'For businesses that want to grow online.', [ 'Unlimited pages', 'Personal support', 'Monthly report', 'Cancel any time' ], true ),
 				price( 'Agency', '€99 / month', 'For teams with several sites.', [ 'Up to 10 sites', 'Priority support', 'White label' ], false ) ] } },
 			{ key:'testimonialcard', el:'Card', tag:'div', label:'Testimonial', cls:'.testimonial', rules:CARD, kit:{ kids:quote( '“Working with them was easy from the first call. Our new site loads in a second and brings in enquiries every week.”', 'Lena Hoffmann', 'Owner, Café Hoffmann' ).kids } },
-			{ key:'testimonials', el:'Div', tag:'div', label:'Testimonials', cls:'.testimonials', rules:THREE, bp:{ lg:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
+			{ key:'testimonials', el:'Div', tag:'div', label:'Testimonials', cls:'.testimonials', rules:THREE, bp:{ lg:{ gridTemplateColumns:'repeat(2, minmax(0, 1fr))' }, md:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
 				quote( '“Working with them was easy from the first call. Our new site loads in a second.”', 'Lena Hoffmann', 'Owner, Café Hoffmann' ),
 				quote( '“Clear prices, no surprises, and they answer the phone. Rare these days.”', 'Jonas Weber', 'Weber Elektrotechnik' ),
 				quote( '“Bookings went up by a third after the relaunch. We should have done it sooner.”', 'Sara König', 'Studio König' ) ] } },
-			{ key:'steps', el:'Div', tag:'div', label:'Steps', cls:'.steps', rules:{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:'32' }, bp:{ lg:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
+			{ key:'steps', el:'Div', tag:'div', label:'Steps', cls:'.steps', rules:{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:'32' }, bp:{ md:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
 				step( '1', 'We talk', 'In a free call we find out what you need and what it costs.' ),
 				step( '2', 'We build', 'You see progress every week and can change things as we go.' ),
 				step( '3', 'You grow', 'Your new site goes live and we keep it fast and secure.' ) ] } },
-			{ key:'contactblock', el:'Div', tag:'div', label:'Contact details', cls:'.contact-block', rules:THREE, bp:{ lg:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
+			{ key:'contactblock', el:'Div', tag:'div', label:'Contact details', cls:'.contact-block', rules:THREE, bp:{ md:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
 				contact( 'telephone', 'Call us', '+49 30 1234567' ), contact( 'envelope', 'Write to us', 'hello@example.com' ), contact( 'geo-alt', 'Visit us', 'Musterstraße 1, 10115 Berlin' ) ] } },
 			{ key:'postcard', el:'Card', tag:'div', label:'Post card', cls:'.post-card', rules:{ display:'flex', flexDirection:'column', gap:'12' }, kit:{ kids:[
 				IMG( '.post-media', { aspectRatio:'3/2', borderRadius:'12', overflow:'hidden' } ),

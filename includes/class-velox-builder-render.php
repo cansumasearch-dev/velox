@@ -501,8 +501,10 @@ class Velox_Builder_Render {
 			self::$float_css .= $sel . '{background-image:linear-gradient(' . $angle . 'deg,'
 				. esc_attr( $from ) . ',' . esc_attr( $to ) . ');'
 				. '-webkit-background-clip:text;background-clip:text;'
-				. 'color:transparent;-webkit-text-fill-color:transparent;'
-				. 'display:inline-block}';
+				. 'color:transparent;-webkit-text-fill-color:transparent}'
+				// Fallback only (:where = no weight): the element's class decides —
+				// new ones arrive as their own line, so two effects don't run together.
+				. ':where(' . $sel . '){display:inline-block}';
 			return;
 		}
 
