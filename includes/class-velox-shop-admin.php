@@ -17,6 +17,24 @@ class Velox_Shop_Admin {
 	const CAP  = 'manage_options';
 	const MASK = '••••••••';
 
+	/**
+	 * Settings that are a choice: only these values are stored. Anything else
+	 * (an old value, a typo, a tampered request) falls back to the default —
+	 * "regular" in tax_mode left the shop charging VAT while saying it didn't.
+	 */
+	const CHOICES = array(
+		'tax_mode'          => array( 'standard', 'small' ),
+		'after_add'         => array( 'drawer', 'cart', 'stay' ),
+		'f_phone'           => array( 'hidden', 'optional', 'required' ),
+		'f_company'         => array( 'hidden', 'optional', 'required' ),
+		'show_stock'        => array( 'always', 'low', 'never' ),
+		'sold_items'        => array( 'show', 'last', 'hide' ),
+		'symbol_pos'        => array( 'left', 'right' ),
+		'per_page'          => array( '8', '12', '16', '20', '24', '32', '48', '60' ),
+		'new_days'          => array( '0', '7', '14', '30', '60' ),
+		'cart_remind_hours' => array( '1', '3', '6', '12', '24', '48' ),
+	);
+
 	public static function init() {
 		add_action( 'admin_menu', array( __CLASS__, 'menu' ) );
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'assets' ) );
@@ -174,6 +192,13 @@ class Velox_Shop_Admin {
 	/** Settings for the screen; secrets are never sent back, only whether they are set. */
 	private static function settings_out() {
 		$s = Velox_Shop::settings();
+		// A stored value the screen has no button for shows (and saves) as the default.
+		$d = Velox_Shop::defaults();
+		foreach ( self::CHOICES as $k => $ok ) {
+			if ( isset( $s[ $k ] ) && ! in_array( (string) $s[ $k ], $ok, true ) ) {
+				$s[ $k ] = (string) $d[ $k ];
+			}
+		}
 		foreach ( array( 'stripe_secret', 'stripe_whsec', 'paypal_secret' ) as $k ) {
 			$s[ $k ] = '' !== (string) $s[ $k ] ? self::MASK : '';
 		}
@@ -671,12 +696,18 @@ class Velox_Shop_Admin {
 		if ( ! $items ) {
 			return new WP_Error( 'x', __( 'An order needs at least one item. Cancel it instead.', 'velox' ) );
 		}
-		// Stock: everything back, then the new lines out again.
+		// Stock: everything back, then the new lines out again — unless a line
+		// needs more than there is; then the old lines go back out unchanged.
+		$had = ! empty( $o['stock_out'] );
 		Velox_Shop::restock( $o );
-		foreach ( $items as $i ) {
-			if ( ! empty( $i['pid'] ) ) {
-				Velox_Shop::adjust_stock( $i['pid'], $i['vid'] ?? '', -$i['qty'] );
+		$short = Velox_Shop::take_stock( $items );
+		if ( $short ) {
+			if ( $had ) {
+				Velox_Shop::take_stock( $o['items'], true );
+				Velox_Shop::save_order( $id, $o );
 			}
+			/* translators: %s: products and how many are left */
+			return new WP_Error( 'x', sprintf( __( 'Not enough in stock: %s. Lower the quantity, or add stock to the product first.', 'velox' ), Velox_Shop::short_text( $short ) ) );
 		}
 		$o['stock_out'] = 1;
 		$o['items']     = $items;
@@ -705,15 +736,16 @@ class Velox_Shop_Admin {
 		$share = $sub > 0 ? $goods / $sub : 0;
 		$tl    = array();
 		if ( empty( $o['small'] ) ) {
+			$by_rate = array();
 			foreach ( $items as $i ) {
+				$k             = (string) $i['rate'];
+				$by_rate[ $k ] = ( $by_rate[ $k ] ?? 0 ) + $i['total'] * $share;
 				if ( (float) $i['rate'] > 0 ) {
-					$k        = (string) $i['rate'];
 					$tl[ $k ] = ( $tl[ $k ] ?? 0 ) + Velox_Shop::tax_in( $i['total'] * $share, (float) $i['rate'] );
 				}
 			}
-			$std = Velox_Shop::rate( 'standard' );
-			if ( $std > 0 && ( $ship + $o['fee'] ) > 0 ) {
-				$tl[ (string) $std ] = ( $tl[ (string) $std ] ?? 0 ) + Velox_Shop::tax_in( $ship + $o['fee'], $std );
+			foreach ( Velox_Shop::side_tax( $ship + $o['fee'], $by_rate ) as $k => $v ) {
+				$tl[ $k ] = ( $tl[ $k ] ?? 0 ) + $v;
 			}
 		}
 		$o['tax_lines'] = array_map( array( 'Velox_Shop', 'r' ), $tl );
@@ -747,11 +779,11 @@ class Velox_Shop_Admin {
 		switch ( sanitize_key( (string) ( $in['act'] ?? '' ) ) ) {
 			case 'paid':
 				Velox_Shop::mark_paid( $id, sanitize_text_field( (string) ( $in['ref'] ?? '' ) ), true );
-				$msg = __( 'Marked as paid. The customer has been told.', 'velox' );
+				$msg = Velox_Shop::mail_on( 'paid' ) ? __( 'Marked as paid. The customer has been told.', 'velox' ) : __( 'Marked as paid.', 'velox' );
 				break;
 			case 'ship':
 				Velox_Shop::mark_shipped( $id, (string) ( $in['carrier'] ?? '' ), (string) ( $in['tracking'] ?? '' ), (string) ( $in['url'] ?? '' ) );
-				$msg = __( 'Marked as shipped. The customer has been told.', 'velox' );
+				$msg = Velox_Shop::mail_on( 'shipped' ) ? __( 'Marked as shipped. The customer has been told.', 'velox' ) : __( 'Marked as shipped.', 'velox' );
 				break;
 			case 'delivered':
 				Velox_Shop::mark_delivered( $id );
@@ -763,14 +795,14 @@ class Velox_Shop_Admin {
 				break;
 			case 'cancel':
 				Velox_Shop::cancel( $id, sanitize_text_field( (string) ( $in['reason'] ?? '' ) ) );
-				$msg = __( 'Cancelled. The stock is back and the customer has been told.', 'velox' );
+				$msg = Velox_Shop::mail_on( 'cancelled' ) ? __( 'Cancelled. The stock is back and the customer has been told.', 'velox' ) : __( 'Cancelled. The stock is back.', 'velox' );
 				break;
 			case 'reopen':
 				$r = Velox_Shop::reopen( $id, ! empty( $in['tell'] ) );
 				if ( is_wp_error( $r ) ) {
 					return $r;
 				}
-				$msg = ! empty( $in['tell'] ) ? __( 'Reopened. The items are reserved again and the customer has been told.', 'velox' ) : __( 'Reopened. The items are reserved again.', 'velox' );
+				$msg = ! empty( $in['tell'] ) && Velox_Shop::mail_on( 'reopened' ) ? __( 'Reopened. The items are reserved again and the customer has been told.', 'velox' ) : __( 'Reopened. The items are reserved again.', 'velox' );
 				break;
 			case 'refund':
 				$amount = (float) Velox_Shop::num( $in['amount'] ?? 0 );
@@ -785,8 +817,15 @@ class Velox_Shop_Admin {
 					}
 					$ref = $r;
 				}
+				$left = max( 0, (float) $o['total'] - (float) $o['payment']['refunded'] );
 				Velox_Shop::record_refund( $id, $amount, ! empty( $in['restock'] ), $ref );
-				$msg = ! empty( $in['api'] ) ? __( 'Refunded through the payment provider.', 'velox' ) : __( 'Refund recorded. Remember to transfer the money.', 'velox' );
+				$done = Velox_Shop::r( min( $amount, $left ) );
+				/* translators: %s: amount */
+				$msg = ! empty( $in['api'] ) ? sprintf( __( '%s refunded through the payment provider.', 'velox' ), Velox_Shop::money( $done ) ) : sprintf( __( 'Refund of %s recorded. Remember to transfer the money.', 'velox' ), Velox_Shop::money( $done ) );
+				if ( $done < $amount ) {
+					/* translators: %s: amount */
+					$msg .= ' ' . sprintf( __( 'That was all that was left of this order (you entered %s).', 'velox' ), Velox_Shop::money( $amount ) );
+				}
 				break;
 			case 'edit':
 				return self::edit_order( $id, $o, $in );
@@ -854,6 +893,13 @@ class Velox_Shop_Admin {
 			case 'delete':
 				if ( ! in_array( $o['payment']['status'], array( 'cancelled', 'pending' ), true ) ) {
 					return new WP_Error( 'x', __( 'Only unpaid or cancelled orders can be deleted. Paid orders have to be kept for your books.', 'velox' ) );
+				}
+				// An invoice number must never leave a gap, and goods that left must not come back into stock.
+				if ( ! empty( $o['invoice']['number'] ) ) {
+					return new WP_Error( 'x', __( 'This order has an invoice, so it has to stay in your books. Cancel it instead.', 'velox' ) );
+				}
+				if ( in_array( $o['fulfil']['status'], array( 'shipped', 'ready', 'delivered', 'done' ), true ) ) {
+					return new WP_Error( 'x', __( 'This order has already been shipped. Cancel it instead, so its stock stays right.', 'velox' ) );
 				}
 				Velox_Shop::restock( $o );
 				wp_trash_post( $id );
@@ -955,6 +1001,9 @@ class Velox_Shop_Admin {
 		if ( '' === $title ) {
 			return new WP_Error( 'x', __( 'Give the product a name.', 'velox' ) );
 		}
+		if ( 'buy' === ( $in['mode'] ?? 'buy' ) && empty( $in['variants'] ) && null === Velox_Shop::num( $in['price'] ?? '' ) && 'publish' === ( $in['status'] ?? '' ) ) {
+			return new WP_Error( 'x', __( 'Enter a price (or switch on “Price on request”).', 'velox' ) );
+		}
 		$post = array(
 			'post_type'    => Velox_Shop::PRODUCT,
 			'post_title'   => $title,
@@ -994,6 +1043,10 @@ class Velox_Shop_Admin {
 	private static function do_product_bulk( $in ) {
 		$ids = array_map( 'intval', (array) ( $in['ids'] ?? array() ) );
 		$act = sanitize_key( (string) ( $in['act'] ?? '' ) );
+		// An empty or broken price would put the product on sale for 0,00 €.
+		if ( 'price' === $act && ( null === Velox_Shop::num( $in['value'] ?? '' ) || Velox_Shop::num( $in['value'] ?? '' ) < 0 ) ) {
+			return new WP_Error( 'x', __( 'Enter a price, for example 24,90.', 'velox' ) );
+		}
 		foreach ( $ids as $id ) {
 			if ( Velox_Shop::PRODUCT !== get_post_type( $id ) ) {
 				continue;
@@ -1006,7 +1059,12 @@ class Velox_Shop_Admin {
 				$src = get_post( $id );
 				$new = wp_insert_post( wp_slash( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'draft', 'post_title' => $src->post_title . ' ' . __( '(copy)', 'velox' ), 'post_content' => $src->post_content, 'post_excerpt' => $src->post_excerpt ) ) );
 				if ( $new && ! is_wp_error( $new ) ) {
-					update_post_meta( $new, Velox_Shop::META, wp_slash( (string) get_post_meta( $id, Velox_Shop::META, true ) ) );
+					$meta = json_decode( (string) get_post_meta( $id, Velox_Shop::META, true ), true );
+					// A copy of a one-off is a new piece: it starts available, not sold.
+					if ( is_array( $meta ) && ! empty( $meta['unique'] ) ) {
+						$meta['stock'] = '1';
+					}
+					update_post_meta( $new, Velox_Shop::META, wp_slash( is_array( $meta ) ? wp_json_encode( $meta ) : (string) get_post_meta( $id, Velox_Shop::META, true ) ) );
 					if ( get_post_thumbnail_id( $id ) ) {
 						set_post_thumbnail( $new, get_post_thumbnail_id( $id ) );
 					}
@@ -1038,7 +1096,14 @@ class Velox_Shop_Admin {
 				return $r;
 			}
 		} elseif ( 'rename' === $act ) {
-			wp_update_term( (int) $in['id'], Velox_Shop::CAT, array( 'name' => sanitize_text_field( (string) ( $in['name'] ?? '' ) ) ) );
+			$name = trim( sanitize_text_field( (string) ( $in['name'] ?? '' ) ) );
+			if ( '' === $name ) {
+				return new WP_Error( 'x', __( 'A category needs a name.', 'velox' ) );
+			}
+			$r = wp_update_term( (int) $in['id'], Velox_Shop::CAT, array( 'name' => $name ) );
+			if ( is_wp_error( $r ) ) {
+				return $r;
+			}
 		} elseif ( 'delete' === $act ) {
 			wp_delete_term( (int) $in['id'], Velox_Shop::CAT );
 		}
@@ -1054,6 +1119,12 @@ class Velox_Shop_Admin {
 	private static function do_coupons_save( $in ) {
 		$out  = array();
 		$seen = array();
+		// "Used" is counted by the shop, not typed: keep the stored count, so a
+		// screen left open while an order came in doesn't reset it.
+		$was = array();
+		foreach ( Velox_Shop::coupons() as $c0 ) {
+			$was[ strtoupper( (string) $c0['code'] ) ] = (int) ( $c0['used'] ?? 0 );
+		}
 		foreach ( (array) ( $in['rows'] ?? array() ) as $c ) {
 			$code = strtoupper( preg_replace( '/[^A-Za-z0-9_-]/', '', (string) ( $c['code'] ?? '' ) ) );
 			if ( '' === $code || isset( $seen[ $code ] ) ) {
@@ -1063,11 +1134,12 @@ class Velox_Shop_Admin {
 			$out[] = array(
 				'code'  => $code,
 				'type'  => in_array( $c['type'] ?? '', array( 'percent', 'fixed', 'ship' ), true ) ? $c['type'] : 'percent',
-				'value' => (string) ( Velox_Shop::num( $c['value'] ?? '' ) ?? '' ),
-				'min'   => (string) ( Velox_Shop::num( $c['min'] ?? '' ) ?? '' ),
+				// Never below 0 (a negative discount raised the total); a percentage never above 100.
+				'value' => null === Velox_Shop::num( $c['value'] ?? '' ) ? '' : (string) min( 'percent' === ( $c['type'] ?? '' ) ? 100 : PHP_INT_MAX, max( 0, Velox_Shop::num( $c['value'] ) ) ),
+				'min'   => null === Velox_Shop::num( $c['min'] ?? '' ) ? '' : (string) max( 0, Velox_Shop::num( $c['min'] ) ),
 				'until' => preg_match( '/^\d{4}-\d{2}-\d{2}$/', (string) ( $c['until'] ?? '' ) ) ? $c['until'] : '',
 				'limit' => '' === (string) ( $c['limit'] ?? '' ) ? '' : (string) max( 1, (int) $c['limit'] ),
-				'used'  => (int) ( $c['used'] ?? 0 ),
+				'used'  => $was[ $code ] ?? 0,
 				'off'   => empty( $c['off'] ) ? 0 : 1,
 				'note'  => mb_substr( sanitize_text_field( (string) ( $c['note'] ?? '' ) ), 0, 120 ),
 			);
@@ -1678,12 +1750,18 @@ class Velox_Shop_Admin {
 				$out[ $k ] = esc_url_raw( (string) $v );
 			} elseif ( 0 === strpos( $k, 'd_font' ) ) {
 				$out[ $k ] = sanitize_key( (string) $v );
+			} elseif ( isset( self::CHOICES[ $k ] ) ) {
+				$out[ $k ] = in_array( (string) $v, self::CHOICES[ $k ], true ) ? (string) $v : (string) $d[ $k ];
+			} elseif ( 'currency' === $k ) {
+				$out[ $k ] = preg_match( '/^[A-Z]{3}$/', strtoupper( (string) $v ) ) ? strtoupper( (string) $v ) : 'EUR';
+			} elseif ( 'hold_minutes' === $k ) {
+				$out[ $k ] = (string) min( 1440, max( 30, (int) $v ) ); // Stripe: 30 minutes to 24 hours
 			} else {
 				$out[ $k ] = sanitize_text_field( (string) $v );
 			}
 		}
 		if ( isset( $out['stripe_secret'] ) && '' !== $out['stripe_secret'] && ! preg_match( '/^(sk|rk)_(test|live)_[A-Za-z0-9]+$/', $out['stripe_secret'] ) ) {
-			return new WP_Error( 'x', __( 'That is not a Stripe secret key (it starts with sk_test_ or sk_live_).', 'velox' ) );
+			return new WP_Error( 'x', __( 'That is not a Stripe secret key (it starts with sk_test_, sk_live_, rk_test_ or rk_live_).', 'velox' ) );
 		}
 		// Only a changed IBAN is checked, so an old entry never blocks saving another tab.
 		if ( isset( $out['bank_iban'] ) && '' !== $out['bank_iban'] && $out['bank_iban'] !== (string) Velox_Shop::get( 'bank_iban', '' ) && ! self::iban_ok( $out['bank_iban'] ) ) {
@@ -1989,13 +2067,19 @@ class Velox_Shop_Admin {
 
 	private static function do_mail_preview( $in ) {
 		$type = sanitize_key( (string) ( $in['type'] ?? 'placed' ) );
-		list( $subject, $html ) = Velox_Shop::mail_body( $type, self::sample_order() );
+		$sample = self::sample_order();
+		// A refund mail needs an amount: the sample refunds its first line.
+		$extra = 'refunded' === $type ? array( 'amount' => (float) ( $sample['items'][0]['total'] ?? 10 ) ) : array();
+		list( $subject, $html ) = Velox_Shop::mail_body( $type, $sample, $extra );
 		return array( 'subject' => $subject, 'html' => $html );
 	}
 
 	private static function do_mail_test( $in ) {
 		$type = sanitize_key( (string) ( $in['type'] ?? 'placed' ) );
-		list( $subject, $html ) = Velox_Shop::mail_body( $type, self::sample_order() );
+		$sample = self::sample_order();
+		// A refund mail needs an amount: the sample refunds its first line.
+		$extra = 'refunded' === $type ? array( 'amount' => (float) ( $sample['items'][0]['total'] ?? 10 ) ) : array();
+		list( $subject, $html ) = Velox_Shop::mail_body( $type, $sample, $extra );
 		$to = wp_get_current_user()->user_email;
 		$ok = wp_mail( $to, '[Test] ' . $subject, $html, array( 'Content-Type: text/html; charset=UTF-8' ) );
 		/* translators: %s: email */
@@ -2049,20 +2133,30 @@ class Velox_Shop_Admin {
 		header( 'Content-Disposition: attachment; filename="orders-' . gmdate( 'Y-m-d' ) . '.csv"' );
 		$f = fopen( 'php://output', 'w' );
 		fwrite( $f, "\xEF\xBB\xBF" );
-		fputcsv( $f, array( 'Order', 'Date', 'Invoice', 'Name', 'Email', 'Country', 'Items', 'Subtotal', 'Discount', 'Shipping', 'VAT', 'Total', 'Refunded', 'Payment', 'Payment status', 'Shipping status' ), ';' );
+		// A cell that starts with = + - @ would run as a formula in Excel: prefix it.
+		$safe = function ( $row ) {
+			return array_map( function ( $c ) {
+				$c = (string) $c;
+				return '' !== $c && in_array( $c[0], array( '=', '+', '-', '@', "	", "
+" ), true ) && ! is_numeric( str_replace( ',', '.', $c ) ) ? "'" . $c : $c;
+			}, $row );
+		};
+		$pay = array( 'pending' => __( 'Awaiting payment', 'velox' ), 'paid' => __( 'Paid', 'velox' ), 'partial' => __( 'Partly refunded', 'velox' ), 'refunded' => __( 'Refunded', 'velox' ), 'cancelled' => __( 'Cancelled', 'velox' ), 'failed' => __( 'Payment failed', 'velox' ) );
+		$ful = array( 'unfulfilled' => __( 'To ship', 'velox' ), 'shipped' => __( 'Shipped', 'velox' ), 'ready' => __( 'Ready for pickup', 'velox' ), 'delivered' => __( 'Delivered', 'velox' ), 'cancelled' => __( 'Cancelled', 'velox' ), 'done' => __( 'Complete', 'velox' ), 'none' => __( 'Nothing to ship', 'velox' ) );
+		fputcsv( $f, array( __( 'Order', 'velox' ), __( 'Date', 'velox' ), __( 'Invoice', 'velox' ), __( 'Name', 'velox' ), __( 'Email', 'velox' ), __( 'Country', 'velox' ), __( 'Items', 'velox' ), __( 'Subtotal', 'velox' ), __( 'Discount', 'velox' ), __( 'Shipping', 'velox' ), __( 'VAT', 'velox' ), __( 'Total', 'velox' ), __( 'Refunded', 'velox' ), __( 'Payment', 'velox' ), __( 'Payment status', 'velox' ), __( 'Shipping status', 'velox' ) ), ';' );
 		foreach ( $ids as $id ) {
 			$o = Velox_Shop::order( $id );
 			if ( ! $o ) {
 				continue;
 			}
-			fputcsv( $f, array(
+			fputcsv( $f, $safe( array(
 				$o['number'], wp_date( 'Y-m-d H:i', (int) $o['created'] ), $o['invoice']['number'] ?? '',
 				trim( $o['customer']['first'] . ' ' . $o['customer']['last'] ), $o['customer']['email'], $o['customer']['address']['country'],
 				implode( ' | ', array_map( function ( $i ) { return $i['qty'] . 'x ' . $i['name'] . ( $i['variant'] ? ' (' . $i['variant'] . ')' : '' ); }, $o['items'] ) ),
 				number_format( $o['subtotal'], 2, ',', '' ), number_format( $o['discount'], 2, ',', '' ), number_format( $o['shipping']['cost'] ?? 0, 2, ',', '' ),
 				number_format( $o['tax'], 2, ',', '' ), number_format( $o['total'], 2, ',', '' ), number_format( (float) $o['payment']['refunded'], 2, ',', '' ),
-				Velox_Shop_Pay::label( $o['payment']['method'] ), $o['payment']['status'], $o['fulfil']['status'],
-			), ';' );
+				Velox_Shop_Pay::label( $o['payment']['method'] ), $pay[ $o['payment']['status'] ] ?? $o['payment']['status'], $ful[ $o['fulfil']['status'] ] ?? $o['fulfil']['status'],
+			) ), ';' );
 		}
 		fclose( $f );
 		exit;

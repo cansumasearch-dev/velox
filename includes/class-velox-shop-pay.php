@@ -54,7 +54,8 @@ class Velox_Shop_Pay {
 		$s = Velox_Shop::settings();
 		switch ( $m ) {
 			case 'stripe':
-				return ! empty( $s['pay_stripe'] ) && 0 === strpos( (string) $s['stripe_secret'], 'sk_' );
+				// Secret or restricted key (rk_) — Settings accepts both.
+				return ! empty( $s['pay_stripe'] ) && preg_match( '/^(sk|rk)_/', (string) $s['stripe_secret'] );
 			case 'paypal':
 				return ! empty( $s['pay_paypal'] ) && '' !== $s['paypal_id'] && '' !== $s['paypal_secret'];
 			case 'bank':
@@ -259,11 +260,26 @@ class Velox_Shop_Pay {
 		if ( ! $lines ) {
 			self::back( 'error', __( 'Your cart is empty.', 'velox' ) );
 		}
+		// Fewer left than the cart asks for: fix the cart and show it first.
+		$fewer = array_filter( $lines, function ( $l ) { return ! empty( $l['fewer'] ); } );
+		if ( $fewer ) {
+			$cart = Velox_Shop::get_cart();
+			foreach ( $lines as $l ) {
+				$cart[ $l['key'] ] = $l['qty'];
+			}
+			Velox_Shop::save_cart( $cart );
+			/* translators: %s: products and how many are left */
+			self::back( 'error', sprintf( __( 'Fewer are left than you wanted: %s. Your cart has been adjusted — please check it and order again.', 'velox' ), Velox_Shop::short_text( array_map( function ( $l ) { return array( $l['name'] . ( $l['variant'] ? ' (' . $l['variant'] . ')' : '' ), $l['qty'] ); }, $fewer ) ) ) );
+		}
 		list( $d, $err ) = self::read_checkout( $_POST );
 		$country = $d['ship_to'] ? $d['ship_to']['address']['country'] : $d['customer']['address']['country'];
 		$t = Velox_Shop::totals( $lines, $country, $d['ship'], $d['coupon'], $d['pay'] );
 		if ( $t['needs_ship'] && empty( $_POST['vx_needs_addr'] ) ) {
 			$err['vx_line1'] = __( 'Please enter the delivery address.', 'velox' );
+		}
+		// No shipping method for this country (no zone lists it, none catches the rest).
+		if ( $t['needs_ship'] && empty( $t['shipping'] ) ) {
+			$err['vx_country'] = __( 'We do not deliver to this country yet.', 'velox' );
 		}
 		if ( ! in_array( $d['pay'], self::available( $t ), true ) ) {
 			$err['vx_pay'] = __( 'Please choose how you would like to pay.', 'velox' );
@@ -296,6 +312,10 @@ class Velox_Shop_Pay {
 		$d['consent'] = array_filter( array( 'terms' => $d['terms'] ? time() : 0, 'digital' => $d['digital'] ? time() : 0 ) );
 		$o = Velox_Shop::create_order( $d, $lines, $t, $d['pay'] );
 		if ( is_wp_error( $o ) ) {
+			if ( 'short' === $o->get_error_code() ) {
+				// The cart shows what is left (lines() caps it); the buyer checks and orders again.
+				self::back( 'error', $o->get_error_message() );
+			}
 			self::back( 'error', __( 'The order could not be saved. Please try again.', 'velox' ) );
 		}
 		Velox_Shop::save_cart( array() );
@@ -430,7 +450,7 @@ class Velox_Shop_Pay {
 			'customer_email'       => $o['customer']['email'],
 			'success_url'          => add_query_arg( 'vxsid', '{CHECKOUT_SESSION_ID}', Velox_Shop_Front::order_url( $o ) ),
 			'cancel_url'           => add_query_arg( 'vx', 'paycancel', Velox_Shop_Front::order_url( $o ) ),
-			'expires_at'           => time() + max( 30, (int) Velox_Shop::get( 'hold_minutes', 60 ) ) * 60,
+			'expires_at'           => time() + Velox_Shop::hold_minutes() * 60,
 			'metadata[order]'      => (string) $o['id'],
 			'metadata[number]'     => $o['number'],
 			'payment_intent_data[metadata][order]' => (string) $o['id'],
@@ -788,6 +808,12 @@ class Velox_Shop_Pay {
 
 	/** Test the provider credentials from the settings screen. */
 	public static function test( $m ) {
+		if ( 'stripe' === $m && '' === (string) Velox_Shop::get( 'stripe_secret' ) ) {
+			return new WP_Error( 'x', __( 'Enter your Stripe secret key first (it starts with sk_ or rk_), save, then test.', 'velox' ) );
+		}
+		if ( 'paypal' === $m && ( '' === (string) Velox_Shop::get( 'paypal_id' ) || '' === (string) Velox_Shop::get( 'paypal_secret' ) ) ) {
+			return new WP_Error( 'x', __( 'Enter your PayPal client ID and secret first, save, then test.', 'velox' ) );
+		}
 		if ( 'stripe' === $m ) {
 			$r = self::stripe( 'GET', 'balance' );
 			return is_wp_error( $r ) ? $r : ( false !== strpos( (string) Velox_Shop::get( 'stripe_secret' ), '_test_' ) ? __( 'Connected to Stripe (test mode).', 'velox' ) : __( 'Connected to Stripe (live).', 'velox' ) );

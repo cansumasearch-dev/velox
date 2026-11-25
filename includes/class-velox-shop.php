@@ -1127,11 +1127,90 @@ class Velox_Shop {
 		Velox_Shop_Extras::alerts_check( $id );
 	}
 
+	/** Units the last adjust_stock() really moved (negative = taken). */
+	private static $applied = 0;
+
+	/**
+	 * Take the stock for these order lines in one go — or nothing at all when a
+	 * line is short. Runs under a lock, so two buyers can't both get the last
+	 * piece. Each line remembers what it really took ('took'), so putting it
+	 * back never returns more than left the shelf.
+	 *
+	 * @param array $items Order lines (pid, vid, qty, name), changed in place.
+	 * @param bool  $force Take what is there even when short (money already arrived).
+	 * @return array The short lines: [ [ name, units left ], … ] — empty when all fit.
+	 */
+	public static function take_stock( &$items, $force = false ) {
+		$lock = self::stock_lock();
+		$need = array();
+		$short = array();
+		foreach ( $items as $i ) {
+			if ( empty( $i['pid'] ) ) {
+				continue;
+			}
+			$k          = (int) $i['pid'] . ':' . ( $i['vid'] ?? '' );
+			$need[ $k ] = ( $need[ $k ] ?? 0 ) + (int) $i['qty'];
+			$p          = self::product( (int) $i['pid'] );
+			if ( ! $p ) {
+				continue;
+			}
+			$v  = ! empty( $i['vid'] ) ? self::variant( $p, $i['vid'] ) : null;
+			$st = self::stock_of( $p, $v );
+			if ( null !== $st && ( ! empty( $p['unique'] ) || empty( $p['backorder'] ) ) && $st < $need[ $k ] ) {
+				$short[] = array( trim( $i['name'] . ( ! empty( $i['variant'] ) ? ' (' . $i['variant'] . ')' : '' ) ), max( 0, $st ) );
+			}
+		}
+		if ( ! $short || $force ) {
+			foreach ( $items as &$i ) {
+				if ( ! empty( $i['pid'] ) ) {
+					self::adjust_stock( $i['pid'], $i['vid'] ?? '', -(int) $i['qty'] );
+					$i['took'] = -self::$applied;
+				}
+			}
+			unset( $i );
+		}
+		self::stock_unlock( $lock );
+		return $short;
+	}
+
+	/** A short-lived lock around stock changes (works on MySQL and SQLite alike). */
+	private static function stock_lock() {
+		$end = microtime( true ) + 5;
+		do {
+			if ( add_option( 'velox_shop_stock_lock', time(), '', 'no' ) ) {
+				return true;
+			}
+			$at = (int) get_option( 'velox_shop_stock_lock' );
+			if ( $at && $at < time() - 30 ) {
+				delete_option( 'velox_shop_stock_lock' ); // left behind by a crash
+				continue;
+			}
+			usleep( 100000 );
+		} while ( microtime( true ) < $end );
+		return false;
+	}
+
+	private static function stock_unlock( $lock ) {
+		if ( $lock ) {
+			delete_option( 'velox_shop_stock_lock' );
+		}
+	}
+
+	/** "Vase (Blau): 1 left, Teller: 0 left" for a message. */
+	public static function short_text( $short ) {
+		return implode( ', ', array_map( function ( $x ) {
+			/* translators: 1: product name, 2: units left */
+			return sprintf( __( '%1$s: %2$d left', 'velox' ), $x[0], $x[1] );
+		}, $short ) );
+	}
+
 	/**
 	 * Take stock out (negative) or put it back (positive). Variants keep their
 	 * own count. Returns the new count or null when nothing is counted.
 	 */
 	public static function adjust_stock( $pid, $vid, $delta ) {
+		self::$applied = 0;
+		$was = 0;
 		$p = self::product( $pid );
 		if ( ! $p || ( empty( $p['track'] ) && empty( $p['unique'] ) ) ) {
 			return null;
@@ -1146,15 +1225,19 @@ class Velox_Shop {
 		if ( $vid && ! empty( $raw['variants'] ) ) {
 			foreach ( $raw['variants'] as &$v ) {
 				if ( (string) ( $v['id'] ?? '' ) === (string) $vid && '' !== (string) ( $v['stock'] ?? '' ) ) {
-					$v['stock'] = (string) max( 0, (int) $v['stock'] + $delta );
+					$was        = (int) $v['stock'];
+					$v['stock'] = (string) max( 0, $was + $delta );
 					$new        = (int) $v['stock'];
 				}
 			}
 			unset( $v );
 		} elseif ( '' !== (string) ( $raw['stock'] ?? '' ) ) {
-			$raw['stock'] = (string) max( 0, (int) $raw['stock'] + $delta );
+			$was          = (int) $raw['stock'];
+			$raw['stock'] = (string) max( 0, $was + $delta );
 			$new          = (int) $raw['stock'];
 		}
+		// What really moved: the count never goes below 0, so taking 5 of 2 takes 2.
+		self::$applied = null !== $new ? $new - $was : 0;
 		if ( null !== $new ) {
 			update_post_meta( $pid, self::META, wp_slash( wp_json_encode( $raw ) ) );
 			self::sync_index( $pid );
@@ -1288,6 +1371,17 @@ class Velox_Shop {
 			if ( ! self::can_buy( $p, $v, 1 ) ) {
 				continue;
 			}
+			// Someone else may have bought some since this went into the cart:
+			// never more than is left (or than the product allows per order).
+			$asked = (int) $qty;
+			$st    = self::stock_of( $p, $v );
+			if ( null !== $st && ( ! empty( $p['unique'] ) || empty( $p['backorder'] ) ) ) {
+				$qty = min( (int) $qty, $st );
+			}
+			if ( '' !== (string) $p['max_qty'] && (int) $p['max_qty'] > 0 ) {
+				$qty = min( (int) $qty, (int) $p['max_qty'] );
+			}
+			$qty     = max( 1, (int) $qty );
 			$unit    = self::price_of( $p, $v );
 			$rate    = self::rate( $p['tax'] );
 			$total   = self::r( $unit * $qty );
@@ -1319,6 +1413,7 @@ class Velox_Shop {
 				'url'      => get_permalink( $p['id'] ),
 				'delivery' => $p['delivery'],
 				'unique'   => ! empty( $p['unique'] ),
+				'fewer'    => $qty < $asked,
 				'max'      => '' !== (string) $p['max_qty'] ? (int) $p['max_qty'] : ( null !== self::stock_of( $p, $v ) && empty( $p['backorder'] ) ? self::stock_of( $p, $v ) : 999 ),
 			);
 		}
@@ -1335,12 +1430,11 @@ class Velox_Shop {
 		return self::money( $t['subtotal'] - $t['discount'] );
 	}
 
+	/** Pieces in the cart that can still be bought (what the drawer shows). */
 	public static function cart_count() {
 		$n = 0;
-		foreach ( self::get_cart() as $k => $q ) {
-			if ( '_c' !== $k ) {
-				$n += (int) $q;
-			}
+		foreach ( self::lines() as $l ) {
+			$n += (int) $l['qty'];
 		}
 		return $n;
 	}
@@ -1436,6 +1530,22 @@ class Velox_Shop {
 		return is_array( $c ) ? $c : array();
 	}
 
+	/** Count a code as used (+1) or give the use back (-1). */
+	public static function coupon_use( $code, $delta ) {
+		$code = strtoupper( (string) $code );
+		if ( '' === $code ) {
+			return;
+		}
+		$list = self::coupons();
+		foreach ( $list as &$cp ) {
+			if ( strtoupper( (string) $cp['code'] ) === $code ) {
+				$cp['used'] = max( 0, (int) ( $cp['used'] ?? 0 ) + (int) $delta );
+			}
+		}
+		unset( $cp );
+		self::save_coupons( $list );
+	}
+
 	public static function save_coupons( $list ) {
 		update_option( self::OPT_CPN, array_values( $list ), false );
 	}
@@ -1508,19 +1618,19 @@ class Velox_Shop {
 			$fee = null === $f ? 0.0 : self::r( $f );
 		}
 		// VAT: each line carries its rate. A discount lowers every line by the
-		// same share; shipping and fees are taxed at the standard rate.
+		// same share; shipping and fees follow the goods (see side_tax()).
 		$tax_lines = array();
 		$share     = $subtotal > 0 ? $goods / $subtotal : 0;
+		$by_rate   = array();
 		foreach ( $lines as $l ) {
 			$k = (string) $l['rate'];
+			$by_rate[ $k ] = ( $by_rate[ $k ] ?? 0 ) + $l['total'] * $share;
 			if ( $l['rate'] > 0 ) {
 				$tax_lines[ $k ] = ( $tax_lines[ $k ] ?? 0 ) + self::tax_in( $l['total'] * $share, $l['rate'] );
 			}
 		}
-		$std = self::rate( 'standard' );
-		if ( $std > 0 && ( $ship_cost + $fee ) > 0 ) {
-			$k = (string) $std;
-			$tax_lines[ $k ] = ( $tax_lines[ $k ] ?? 0 ) + self::tax_in( $ship_cost + $fee, $std );
+		foreach ( self::side_tax( $ship_cost + $fee, $by_rate ) as $k => $v ) {
+			$tax_lines[ $k ] = ( $tax_lines[ $k ] ?? 0 ) + $v;
 		}
 		$tax_lines = array_map( array( __CLASS__, 'r' ), $tax_lines );
 		$total     = self::r( $goods + $ship_cost + $fee );
@@ -1540,6 +1650,36 @@ class Velox_Shop {
 			'needs_ship'=> ! isset( $opts['none'] ),
 			'digital'   => (bool) array_filter( $lines, function ( $l ) { return 'digital' === $l['type']; } ),
 		);
+	}
+
+	/**
+	 * VAT inside shipping and fees. In Germany they share the fate of the goods:
+	 * all 7 % goods → 7 %, a mixed cart → split by the goods' value per rate.
+	 * Nothing taxable in the cart (or no goods value) → the standard rate.
+	 *
+	 * @param float $amount  Shipping + fees, gross.
+	 * @param array $by_rate [ rate => goods value ] after discounts, 0 % included.
+	 * @return array [ rate => VAT ]
+	 */
+	public static function side_tax( $amount, $by_rate ) {
+		$out = array();
+		if ( $amount <= 0 || self::small_business() ) {
+			return $out;
+		}
+		$sum = array_sum( $by_rate );
+		if ( $sum <= 0 ) {
+			$std = self::rate( 'standard' );
+			if ( $std > 0 ) {
+				$out[ (string) $std ] = self::tax_in( $amount, $std );
+			}
+			return $out;
+		}
+		foreach ( $by_rate as $k => $v ) {
+			if ( (float) $k > 0 && $v > 0 ) {
+				$out[ (string) $k ] = self::tax_in( $amount * $v / $sum, (float) $k );
+			}
+		}
+		return $out;
 	}
 
 	/* ------------------------------------------------------------------ orders */
@@ -1615,6 +1755,7 @@ class Velox_Shop {
 		update_post_meta( $id, '_vx_name', trim( $o['customer']['first'] . ' ' . $o['customer']['last'] ) );
 		update_post_meta( $id, '_vx_total', $o['total'] );
 		update_post_meta( $id, '_vxs_pay', $o['payment']['status'] );
+		update_post_meta( $id, '_vxs_method', $o['payment']['method'] );
 		update_post_meta( $id, '_vxs_ful', $o['fulfil']['status'] );
 		update_post_meta( $id, '_vxs_key', $o['key'] );
 		if ( ! empty( $o['user'] ) ) {
@@ -1652,14 +1793,23 @@ class Velox_Shop {
 	 * order that is never paid gives it back (see tick()).
 	 */
 	public static function create_order( $c, $lines, $t, $pay ) {
-		$num = (string) self::get( 'order_prefix', '' ) . self::next_number();
-		$oid = wp_insert_post( array( 'post_type' => self::ORDER, 'post_status' => 'publish', 'post_title' => $num ), true );
-		if ( is_wp_error( $oid ) ) {
-			return $oid;
-		}
 		$items = array();
 		foreach ( $lines as $l ) {
 			$items[] = array_intersect_key( $l, array_flip( array( 'pid', 'vid', 'name', 'variant', 'sku', 'qty', 'unit', 'total', 'rate', 'tax', 'type', 'delivery' ) ) );
+		}
+		// Take the stock first, under a lock: when someone else bought the last
+		// piece a moment ago, no order is made at all.
+		$short = self::take_stock( $items );
+		if ( $short ) {
+			/* translators: %s: products and how many are left */
+			return new WP_Error( 'short', sprintf( __( 'Someone was faster: %s. Your cart has been adjusted — please check it and order again.', 'velox' ), self::short_text( $short ) ) );
+		}
+		$num = (string) self::get( 'order_prefix', '' ) . self::next_number();
+		$oid = wp_insert_post( array( 'post_type' => self::ORDER, 'post_status' => 'publish', 'post_title' => $num ), true );
+		if ( is_wp_error( $oid ) ) {
+			$tmp = array( 'items' => $items, 'stock_out' => 1 );
+			self::restock( $tmp );
+			return $oid;
 		}
 		$o = array(
 			'number'    => $num,
@@ -1686,20 +1836,8 @@ class Velox_Shop {
 			'source'    => $c['source'] ?? '',
 			'consent'   => $c['consent'] ?? array(),
 		);
-		foreach ( $items as $i ) {
-			self::adjust_stock( $i['pid'], $i['vid'], -$i['qty'] );
-		}
 		$o['stock_out'] = 1;
-		if ( $t['coupon'] ) {
-			$list = self::coupons();
-			foreach ( $list as &$cp ) {
-				if ( strtoupper( $cp['code'] ) === $t['coupon'] ) {
-					$cp['used'] = (int) ( $cp['used'] ?? 0 ) + 1;
-				}
-			}
-			unset( $cp );
-			self::save_coupons( $list );
-		}
+		self::coupon_use( $t['coupon'], 1 );
 		self::note( $o, __( 'Order placed.', 'velox' ) );
 		self::save_order( $oid, $o );
 		Velox_Shop_Extras::cart_done( $o );
@@ -1711,11 +1849,14 @@ class Velox_Shop {
 		if ( empty( $o['stock_out'] ) ) {
 			return;
 		}
-		foreach ( $o['items'] as $i ) {
+		foreach ( $o['items'] as &$i ) {
 			if ( ! empty( $i['pid'] ) ) {
-				self::adjust_stock( $i['pid'], $i['vid'] ?? '', (int) $i['qty'] );
+				// Only what this line really took (older orders: the quantity).
+				self::adjust_stock( $i['pid'], $i['vid'] ?? '', isset( $i['took'] ) ? (int) $i['took'] : (int) $i['qty'] );
+				$i['took'] = 0;
 			}
 		}
+		unset( $i );
 		$o['stock_out'] = 0;
 	}
 
@@ -1726,11 +1867,22 @@ class Velox_Shop {
 			return $o;
 		}
 		if ( 'cancelled' === $o['payment']['status'] && empty( $o['stock_out'] ) ) {
-			// Paid after it was cancelled for being late: take the stock again.
-			foreach ( $o['items'] as $i ) {
-				self::adjust_stock( $i['pid'], $i['vid'] ?? '', -$i['qty'] );
-			}
+			// Paid after it was cancelled for being late: take the stock again. The
+			// money is here, so take what is left — and say loudly when a piece
+			// was sold to someone else meanwhile.
+			$short = self::take_stock( $o['items'], true );
 			$o['stock_out'] = 1;
+			self::coupon_use( $o['coupon'] ?? '', 1 );
+			if ( $short ) {
+				/* translators: %s: products and how many are left */
+				$warn = sprintf( __( 'Paid after it was cancelled, but not everything is in stock any more: %s. Check before shipping — refund what you cannot send.', 'velox' ), self::short_text( $short ) );
+				self::note( $o, $warn );
+				$to = (string) self::get( 'mail_admin', get_option( 'admin_email' ) );
+				if ( is_email( $to ) ) {
+					/* translators: %s: order number */
+					wp_mail( $to, sprintf( __( 'Check order %s: paid late, stock missing', 'velox' ), $o['number'] ), $warn );
+				}
+			}
 			if ( 'cancelled' === $o['fulfil']['status'] ) {
 				$o['fulfil']['status'] = 'unfulfilled';
 			}
@@ -1794,6 +1946,8 @@ class Velox_Shop {
 		$was_paid = in_array( $o['payment']['status'], array( 'paid', 'partial' ), true );
 		if ( ! $was_paid ) {
 			$o['payment']['status'] = 'cancelled';
+			// Never paid: the code was not really used (abandoned card checkouts used up limited codes).
+			self::coupon_use( $o['coupon'] ?? '', -1 );
 		}
 		$o['fulfil']['status']  = 'cancelled';
 		self::note( $o, __( 'Cancelled.', 'velox' ) . ( $reason ? ' ' . $reason : '' ) . ( $was_paid ? ' ' . __( 'The payment still has to be refunded.', 'velox' ) : '' ) );
@@ -1835,16 +1989,17 @@ class Velox_Shop {
 				/* translators: %s: product names */
 				return new WP_Error( 'x', sprintf( __( 'This order cannot be reopened: %s is no longer in stock. It has probably been sold again in the meantime.', 'velox' ), implode( ', ', $gone ) ) );
 			}
-			foreach ( $o['items'] as $i ) {
-				if ( ! empty( $i['pid'] ) ) {
-					self::adjust_stock( $i['pid'], $i['vid'] ?? '', -(int) $i['qty'] );
-				}
+			$short = self::take_stock( $o['items'] );
+			if ( $short ) {
+				/* translators: %s: product names */
+				return new WP_Error( 'x', sprintf( __( 'This order cannot be reopened: %s is no longer in stock. It has probably been sold again in the meantime.', 'velox' ), implode( ', ', wp_list_pluck( $short, 0 ) ) ) );
 			}
 			$o['stock_out'] = 1;
 		}
 		$paid = in_array( $o['payment']['status'], array( 'paid', 'partial' ), true );
 		if ( 'cancelled' === $o['payment']['status'] ) {
 			$o['payment']['status'] = 'pending';
+			self::coupon_use( $o['coupon'] ?? '', 1 ); // active again: the code counts again
 		}
 		if ( 'cancelled' === $o['fulfil']['status'] ) {
 			$o['fulfil']['status'] = ! empty( $o['shipping'] ) ? 'unfulfilled' : ( $paid ? 'done' : 'none' );
@@ -1880,14 +2035,31 @@ class Velox_Shop {
 		return self::order( $id );
 	}
 
+	/** Minutes a card / PayPal order holds its stock: 30 to 1440 (Stripe sessions last 24 h at most). */
+	public static function hold_minutes() {
+		return min( 1440, max( 30, (int) self::get( 'hold_minutes', 60 ) ) );
+	}
+
 	/**
 	 * Hourly: cancel card / PayPal orders that were never paid (their stock
 	 * goes back), and unpaid bank transfers after the set number of days.
 	 */
 	public static function tick() {
-		$hold = max( 15, (int) self::get( 'hold_minutes', 60 ) ) * 60;
+		// A few minutes after the card session itself expires (see Velox_Shop_Pay):
+		// cancelling earlier let a late card payment arrive for a cancelled order.
+		$hold = ( self::hold_minutes() + 5 ) * 60;
 		$bank = (int) self::get( 'bank_days', 10 ) * DAY_IN_SECONDS;
-		$ids  = get_posts( array( 'post_type' => self::ORDER, 'post_status' => 'publish', 'numberposts' => 200, 'fields' => 'ids', 'meta_key' => '_vxs_pay', 'meta_value' => 'pending' ) );
+		// Only methods that time out; invoice and cash-on-delivery orders stay
+		// open on purpose and must not fill the batch. Older orders saved
+		// before the method was indexed have no _vxs_method and are checked too.
+		$ids  = get_posts( array(
+			'post_type' => self::ORDER, 'post_status' => 'publish', 'numberposts' => 500, 'fields' => 'ids', 'orderby' => 'date', 'order' => 'ASC',
+			'meta_query' => array(
+				'relation' => 'AND',
+				array( 'key' => '_vxs_pay', 'value' => 'pending' ),
+				array( 'relation' => 'OR', array( 'key' => '_vxs_method', 'value' => array( 'stripe', 'paypal', 'bank' ), 'compare' => 'IN' ), array( 'key' => '_vxs_method', 'compare' => 'NOT EXISTS' ) ),
+			),
+		) );
 		foreach ( $ids as $id ) {
 			$o = self::order( $id );
 			if ( ! $o || ! empty( $o['legacy'] ) ) {
@@ -1895,6 +2067,9 @@ class Velox_Shop {
 			}
 			$age = time() - max( (int) $o['created'], (int) ( $o['reopened'] ?? 0 ) );
 			$m   = $o['payment']['method'];
+			if ( '' === (string) get_post_meta( $id, '_vxs_method', true ) ) {
+				update_post_meta( $id, '_vxs_method', $m ); // index older orders once
+			}
 			if ( in_array( $m, array( 'stripe', 'paypal' ), true ) && $age > $hold ) {
 				self::cancel( $id, __( 'The payment was not completed in time.', 'velox' ) );
 			} elseif ( 'bank' === $m && $bank > 0 && $age > $bank ) {

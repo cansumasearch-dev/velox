@@ -133,7 +133,8 @@
 	/* Payment and delivery state together — once, when both say "cancelled" (or there is nothing to ship). */
 	function stateChips( pay, ful ) {
 		if ( 'cancelled' === pay && 'cancelled' === ful ) { return chip( PAY, 'cancelled' ); }
-		if ( 'none' === ful ) { return chip( PAY, pay ); }
+		// Fully refunded and never sent: nothing is left to ship.
+		if ( 'none' === ful || ( 'refunded' === pay && 'unfulfilled' === ful ) ) { return chip( PAY, pay ); }
 		return chip( PAY, pay ) + ' ' + chip( FUL, ful );
 	}
 	function methodLabel( k ) { var m = ( C.methods || [] ).filter( function ( x ) { return x.key === k; } )[ 0 ]; return m ? m.title : k; }
@@ -147,7 +148,7 @@
 	var dirty = false, badge = { orders:0 };
 	function shell() {
 		root.innerHTML = '<div class="vsa-shell"><header class="vsa-bar"><a class="vsa-brand" href="#/">' + ic( 'store', 18 ) + '<b>' + esc( S.store_name || vxT( 'Shop' ) ) + '</b></a>' +
-			'<nav class="vsa-nav" aria-label="' + esc( vxT( 'Shop' ) ) + '">' + NAV.map( function ( n ) { return '<a href="#/' + n[ 0 ] + '" data-nav="' + n[ 0 ] + '">' + ic( n[ 1 ], 15 ) + '<span>' + esc( n[ 2 ] ) + '</span>' + ( 'orders' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-ordbadge" hidden></i>' : ( 'reviews' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-rvbadge"' + ( +C.reviewsOpen ? '' : ' hidden' ) + '>' + ( +C.reviewsOpen || '' ) + '</i>' : '' ) ) + '</a>'; } ).join( '' ) + '</nav>' +
+			'<nav class="vsa-nav" aria-label="' + esc( vxT( 'Shop' ) ) + '">' + NAV.map( function ( n ) { return '<a href="#/' + n[ 0 ] + '" data-nav="' + n[ 0 ] + '" title="' + esc( n[ 2 ] ) + '">' + ic( n[ 1 ], 15 ) + '<span>' + esc( n[ 2 ] ) + '</span>' + ( 'orders' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-ordbadge" hidden></i>' : ( 'reviews' === n[ 0 ] ? '<i class="vsa-navbadge" id="vsa-rvbadge"' + ( +C.reviewsOpen ? '' : ' hidden' ) + '>' + ( +C.reviewsOpen || '' ) + '</i>' : '' ) ) + '</a>'; } ).join( '' ) + '</nav>' +
 			'<div class="vsa-bar-r"><a class="vsa-btn vsa-btn-ghost vsa-btn-sm" href="#/settings/help">' + vxT( 'Help' ) + '</a><a class="vsa-btn vsa-btn-ghost vsa-btn-sm" href="' + esc( pageUrl( 'shop' ) || C.home ) + '" target="_blank" rel="noopener">' + ic( 'ext', 14 ) + vxT( 'View shop' ) + '</a></div></header>' +
 			'<main class="vsa-main" id="vsa-main" tabindex="-1"></main></div>';
 	}
@@ -273,9 +274,9 @@
 			h += '<div class="vsa-grid-2">';
 			h += d.line ? card( vxT( 'Revenue' ) + ' <small class="vsa-card-sub">' + esc( vxT( 'Last 30 days' ) ) + '</small>', lineChart( { labels:d.line.labels, short:d.line.short, cur:d.line.cur, cmp:d.line.cmp, cmpLabels:d.line.cmpLabels, curName:d.line.span, cmpName:d.line.cmpSpan, money:true } ), { cls:'vsa-span-2', right:'<a class="vsa-link" href="#/revenue">' + vxT( 'Open the report' ) + ' ' + ic( 'chev', 13 ) + '</a>' } ) : card( vxT( 'Revenue per day' ), chart( d.series ), { cls:'vsa-span-2' } );
 			var todo = '';
-			todo += todoRow( '#/orders?view=ship', 'truck', d.toShip, vxT( 'orders to ship' ), vxT( 'Paid, waiting for you' ) );
+			todo += todoRow( '#/orders?view=ship', 'truck', d.toShip, 1 === +d.toShip ? vxT( 'order to ship' ) : vxT( 'orders to ship' ), vxT( 'Paid, waiting for you' ) );
 			todo += todoRow( '#/orders?view=unpaid', 'clock', d.unpaid, vxT( 'awaiting payment' ), vxT( 'Bank transfer, invoice or not yet paid' ) );
-			todo += todoRow( '#/orders?view=withdrawn', 'undo', d.withdrawals, vxT( 'withdrawals to handle' ), vxT( 'Customers who withdrew from a purchase' ) );
+			todo += todoRow( '#/orders?view=withdrawn', 'undo', d.withdrawals, 1 === +d.withdrawals ? vxT( 'withdrawal to handle' ) : vxT( 'withdrawals to handle' ), vxT( 'Customers who withdrew from a purchase' ) );
 			h += card( vxT( 'Needs you' ), todo );
 			h += pagesCard( d.pages || [] );
 			h += card( vxT( 'Low stock' ), d.low.length ? '<ul class="vsa-list">' + d.low.map( function ( p ) { return '<li><a href="#/products/' + p.id + '">' + thumb( p.thumb ) + '<span class="vsa-grow">' + esc( p.name ) + '</span><b class="' + ( p.stock ? 'vsa-warn' : 'vsa-bad' ) + '">' + p.stock + ' ' + vxT( 'left' ) + '</b></a></li>'; } ).join( '' ) + '</ul>' : '<p class="vsa-muted">' + vxT( 'Everything is well stocked.' ) + '</p>' );
@@ -302,6 +303,8 @@
 		return card( vxT( 'Shop pages' ) + ' <small class="vsa-card-sub">' + esc( sub ) + '</small>', '<ul class="vsa-pages">' + rows + '</ul>', { right:right } );
 	}
 	function kpi( l, v, s ) { return '<div class="vsa-kpi"><span>' + esc( l ) + '</span><b>' + esc( v ) + '</b>' + ( s ? '<small>' + esc( s ) + '</small>' : '' ) + '</div>'; }
+	/** "1 order" / "3 orders": the word that fits the number (both forms are translated). */
+	function pl( n, one, many ) { return ( 1 === +n ? vxT( one ) : vxT( many ) ).replace( '%d', n ); }
 	function todoRow( href, icon, n, label, sub ) { return '<a class="vsa-todo' + ( n ? '' : ' is-zero' ) + '" href="' + href + '">' + ic( icon, 18 ) + '<span><b>' + n + ' ' + esc( label ) + '</b><small>' + esc( sub ) + '</small></span>' + ic( 'chev', 14 ) + '</a>'; }
 	function thumb( u ) { return '<span class="vsa-th">' + ( u ? '<img src="' + esc( u ) + '" alt="" loading="lazy">' : ic( 'image', 16 ) ) + '</span>'; }
 	function chart( series ) {
@@ -574,7 +577,7 @@
 		return '<table class="vsa-table"><thead><tr><th>' + vxT( 'Order' ) + '</th><th>' + vxT( 'Customer' ) + '</th>' + ( compact ? '' : '<th>' + vxT( 'Items' ) + '</th>' ) + '<th>' + vxT( 'Payment' ) + '</th><th>' + vxT( 'Shipping' ) + '</th><th class="n">' + vxT( 'Total' ) + '</th></tr></thead><tbody>' +
 			rows.map( function ( r ) {
 				return '<tr data-href="#/orders/' + r.id + '" tabindex="0"><td><b class="vsa-mono">' + esc( r.number ) + '</b><small>' + esc( ago( r.created ) ) + '</small></td><td><span class="vsa-cust">' + esc( r.name || r.email ) + '</span><small>' + esc( r.email ) + '</small></td>' +
-					( compact ? '' : '<td class="vsa-muted">' + r.items + '</td>' ) + '<td>' + chip( PAY, r.pay ) + '<small>' + esc( r.methodLabel || methodLabel( r.method ) ) + '</small></td><td>' + chip( FUL, r.ful ) + ( r.withdrawn ? ' <span class="vsa-chip is-bad">' + vxT( 'Withdrawn' ) + '</span>' : '' ) + '</td><td class="n"><b>' + money( r.total ) + '</b></td></tr>';
+					( compact ? '' : '<td class="vsa-muted">' + r.items + '</td>' ) + '<td>' + chip( PAY, r.pay ) + '<small>' + esc( r.methodLabel || methodLabel( r.method ) ) + '</small></td><td>' + ( 'refunded' === r.pay && 'unfulfilled' === r.ful ? '<span class="vsa-muted">—</span>' : chip( FUL, r.ful ) ) + ( r.withdrawn ? ' <span class="vsa-chip is-bad">' + vxT( 'Withdrawn' ) + '</span>' : '' ) + '</td><td class="n"><b>' + money( r.total ) + '</b></td></tr>';
 			} ).join( '' ) + '</tbody></table>';
 	}
 	function pager( pages, cur, key ) {
@@ -592,8 +595,10 @@
 	function drawOrder() {
 		var o = O, p = o.payment, f = o.fulfil;
 		var acts = '';
-		if ( 'pending' === p.status ) { acts += '<button type="button" class="vsa-btn vsa-btn-pri" data-act="o-paid">' + ic( 'check', 15 ) + vxT( 'Mark as paid' ) + '</button>'; }
-		if ( 'unfulfilled' === f.status && 'cancelled' !== p.status ) { acts += '<button type="button" class="vsa-btn ' + ( 'paid' === p.status || 'cod' === p.method || 'invoice' === p.method ? 'vsa-btn-pri' : 'vsa-btn-ghost' ) + '" data-act="o-ship">' + ic( 'truck', 15 ) + ( o.shipping && 'pickup' === o.shipping.type ? vxT( 'Ready for pickup' ) : vxT( 'Mark as shipped' ) ) + '</button>'; }
+		// One primary action: the next step. Cash on delivery and invoice ship first, everything else gets paid first.
+		var shipFirst = 'cod' === p.method || 'invoice' === p.method;
+		if ( 'pending' === p.status ) { acts += '<button type="button" class="vsa-btn ' + ( shipFirst && 'unfulfilled' === f.status ? 'vsa-btn-ghost' : 'vsa-btn-pri' ) + '" data-act="o-paid">' + ic( 'check', 15 ) + vxT( 'Mark as paid' ) + '</button>'; }
+		if ( 'unfulfilled' === f.status && 'cancelled' !== p.status ) { acts += '<button type="button" class="vsa-btn ' + ( 'paid' === p.status || shipFirst ? 'vsa-btn-pri' : 'vsa-btn-ghost' ) + '" data-act="o-ship">' + ic( 'truck', 15 ) + ( o.shipping && 'pickup' === o.shipping.type ? vxT( 'Ready for pickup' ) : vxT( 'Mark as shipped' ) ) + '</button>'; }
 		if ( 'shipped' === f.status ) { acts += '<button type="button" class="vsa-btn vsa-btn-ghost" data-act="o-delivered">' + ic( 'check', 15 ) + vxT( 'Delivered' ) + '</button>'; }
 		if ( o.editable ) { acts += '<button type="button" class="vsa-btn vsa-btn-ghost" data-act="o-edit">' + ic( 'brush', 15 ) + vxT( 'Edit order' ) + '</button>'; }
 		acts += '<div class="vsa-menu"><button type="button" class="vsa-btn vsa-btn-ghost vsa-btn-icon" data-act="menu" aria-label="' + esc( vxT( 'More actions' ) ) + '" aria-haspopup="true">' + ic( 'more', 16 ) + '</button><div class="vsa-menu-p" hidden>' +
@@ -631,7 +636,7 @@
 		var c = o.customer;
 		h += card( vxT( 'Customer' ), '<p class="vsa-cust-n">' + esc( ( c.first + ' ' + c.last ).trim() ) + ( c.company ? '<small>' + esc( c.company ) + '</small>' : '' ) + '</p>' +
 			'<p><a href="mailto:' + esc( c.email ) + '">' + esc( c.email ) + '</a>' + ( c.phone ? '<br><a href="tel:' + esc( c.phone ) + '">' + esc( c.phone ) + '</a>' : '' ) + '</p>' +
-			( o.others && o.others.length ? '<p class="vsa-muted">' + o.others.length + ' ' + vxT( 'more orders' ) + ' · <a href="#/orders?q=' + encodeURIComponent( c.email ) + '">' + vxT( 'show' ) + '</a></p>' : '<p class="vsa-muted">' + vxT( 'First order' ) + '</p>' ), { right:'<button type="button" class="vsa-link" data-act="o-addr">' + vxT( 'Edit' ) + '</button>' } );
+			( o.others && o.others.length ? '<p class="vsa-muted">' + pl( o.others.length, '%d more order', '%d more orders' ) + ' · <a href="#/orders?q=' + encodeURIComponent( c.email ) + '">' + vxT( 'show' ) + '</a></p>' : '<p class="vsa-muted">' + vxT( 'First order' ) + '</p>' ), { right:'<button type="button" class="vsa-link" data-act="o-addr">' + vxT( 'Edit' ) + '</button>' } );
 		h += card( vxT( 'Addresses' ), '<div class="vsa-addr"><h3>' + vxT( 'Billing' ) + '</h3><p>' + o.address_html + '</p></div>' + ( o.shipping && 'pickup' === o.shipping.type ? '<div class="vsa-addr"><h3>' + vxT( 'Delivery' ) + '</h3><p>' + esc( o.shipping.name ) + '</p></div>' : ( o.ship_html ? '<div class="vsa-addr"><h3>' + vxT( 'Delivery' ) + '</h3><p>' + o.ship_html + '</p></div>' : ( o.shipping && 'none' !== o.shipping.id ? '<p class="vsa-muted">' + vxT( 'Delivery to the billing address.' ) + '</p>' : '' ) ) ) +
 			( o.note ? '<div class="vsa-addr"><h3>' + vxT( 'Note from the customer' ) + '</h3><p>' + esc( o.note ) + '</p></div>' : '' ) );
 		h += card( vxT( 'Payment' ), '<p><b>' + esc( o.methodLabel ) + '</b> ' + chip( PAY, p.status ) + '</p>' + ( p.ref ? '<p class="vsa-muted vsa-mono vsa-small">' + esc( p.ref ) + '</p>' : '' ) + ( p.paid_at ? '<p class="vsa-muted">' + vxT( 'Paid on' ) + ' ' + esc( date( p.paid_at, true ) ) + '</p>' : '' ) +
@@ -734,7 +739,7 @@
 		if ( ! s ) { return vxT( 'Set in your Stripe account' ); }
 		var days = [ 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday' ], dn = [ vxT( 'Monday' ), vxT( 'Tuesday' ), vxT( 'Wednesday' ), vxT( 'Thursday' ), vxT( 'Friday' ), vxT( 'Saturday' ), vxT( 'Sunday' ) ];
 		if ( 'manual' === s.interval ) { return vxT( 'Only when you start a payout' ); }
-		if ( 'daily' === s.interval ) { return vxT( 'Automatically, every working day' ) + ( s.delay ? ' — ' + vxT( 'money from %d days ago' ).replace( '%d', s.delay ) : '' ); }
+		if ( 'daily' === s.interval ) { return vxT( 'Automatically, every working day' ) + ( s.delay ? ' — ' + pl( s.delay, 'money from %d day ago', 'money from %d days ago' ) : '' ); }
 		if ( 'weekly' === s.interval ) { return vxT( 'Automatically, every %s' ).replace( '%s', dn[ days.indexOf( s.weekly ) ] || s.weekly ); }
 		if ( 'monthly' === s.interval ) { return vxT( 'Automatically, on day %d of each month' ).replace( '%d', s.monthly ); }
 		return s.interval;
@@ -901,9 +906,9 @@
 			}
 			box.innerHTML = '<div class="vsa-card vsa-card-flush"><table class="vsa-table vsa-ptable"><thead><tr><th class="c"><input type="checkbox" data-pall aria-label="' + esc( vxT( 'Select all' ) ) + '"></th><th>' + vxT( 'Product' ) + '</th><th>' + vxT( 'Price' ) + '</th><th>' + vxT( 'Stock' ) + '</th><th>' + vxT( 'Status' ) + '</th></tr></thead><tbody>' +
 				d.rows.map( function ( r ) {
-					var price = 'inquiry' === r.mode ? '<span class="vsa-muted">' + vxT( 'On request' ) + '</span>' : ( r.variants && r.priceHi !== r.price ? money( r.price ) + ' – ' + money( r.priceHi ) : '<span class="vsa-inl" data-inl="price" data-id="' + r.id + '" tabindex="0" title="' + esc( vxT( 'Click to change' ) ) + '">' + money( r.price ) + '</span>' ) + ( r.compare ? ' <del class="vsa-muted">' + money( r.compare ) + '</del>' : '' );
+					var price = 'inquiry' === r.mode ? '<span class="vsa-muted">' + vxT( 'On request' ) + '</span>' : ( r.variants && r.priceHi !== r.price ? money( r.price ) + ' – ' + money( r.priceHi ) : '<span class="vsa-inl" data-inl="price" data-id="' + r.id + '" tabindex="0" title="' + esc( vxT( 'Click to change' ) ) + '">' + money( r.price ) + '</span>' ) + ( r.compare && +r.compare > +( r.priceHi || r.price ) ? ' <del class="vsa-muted">' + money( r.compare ) + '</del>' : '' ); // a was-price inside a price range reads as nonsense
 					var stock = null === r.stock ? '<span class="vsa-muted">' + vxT( 'not counted' ) + '</span>' : ( r.variants || r.unique ? '<b class="' + ( r.stock ? '' : 'vsa-bad' ) + '">' + r.stock + '</b>' : '<span class="vsa-inl" data-inl="stock" data-id="' + r.id + '" tabindex="0" title="' + esc( vxT( 'Click to change' ) ) + '"><b class="' + ( r.stock ? ( 'low' === r.avail ? 'vsa-warn' : '' ) : 'vsa-bad' ) + '">' + r.stock + '</b></span>' );
-					return '<tr data-href="#/products/' + r.id + '"><td class="c"><input type="checkbox" data-psel="' + r.id + '"' + ( PV.sel[ r.id ] ? ' checked' : '' ) + '></td><td><span class="vsa-prow">' + thumb( r.thumb ) + '<span><b>' + esc( r.title ) + '</b><small>' + esc( [ r.sku, r.variants ? r.variants + ' ' + vxT( 'variants' ) : '', r.cats.join( ', ' ), { digital:vxT( 'Download' ), service:vxT( 'Service' ) }[ r.type ] || '' ].filter( Boolean ).join( ' · ' ) ) + '</small></span></span></td>' +
+					return '<tr data-href="#/products/' + r.id + '"><td class="c"><input type="checkbox" data-psel="' + r.id + '"' + ( PV.sel[ r.id ] ? ' checked' : '' ) + '></td><td><span class="vsa-prow">' + thumb( r.thumb ) + '<span><b>' + esc( r.title ) + '</b><small>' + esc( [ r.sku, r.variants ? pl( r.variants, '%d variant', '%d variants' ) : '', r.cats.join( ', ' ), { digital:vxT( 'Download' ), service:vxT( 'Service' ) }[ r.type ] || '' ].filter( Boolean ).join( ' · ' ) ) + '</small></span></span></td>' +
 						'<td>' + price + '</td><td>' + stock + '</td><td>' + ( 'publish' === r.status ? '<span class="vsa-chip is-ok">' + vxT( 'Live' ) + '</span>' : '<span class="vsa-chip is-off">' + vxT( 'Draft' ) + '</span>' ) + ( /out|sold/.test( r.avail ) ? ' <span class="vsa-chip is-bad">' + esc( r.availText ) + '</span>' : '' ) + '</td></tr>';
 				} ).join( '' ) + '</tbody></table></div>' + pager( d.pages, PV.page, 'ppage' );
 			drawBulk();
@@ -947,7 +952,7 @@
 	function markDirty() { dirty = JSON.stringify( P ) !== Pclean; var b = document.getElementById( 'vsa-savebar' ); if ( b ) { b.classList.toggle( 'is-dirty', dirty ); }  liftToast(); }
 	function drawProduct() {
 		var p = P, phys = 'physical' === p.type, hasVar = p.options.length > 0;
-		var h = head( p.id ? esc( p.title || vxT( 'Product' ) ) : vxT( 'New product' ), p.id ? ( 'publish' === p.status ? '<span class="vsa-chip is-ok">' + vxT( 'Live' ) + '</span>' : '<span class="vsa-chip is-off">' + vxT( 'Draft' ) + '</span>' ) + ( p.sold ? ' &nbsp;' + p.sold + ' ' + vxT( 'orders' ) : '' ) : '', p.id ? '<a class="vsa-btn vsa-btn-ghost" href="' + esc( p.url ) + '" target="_blank" rel="noopener">' + ic( 'eye', 15 ) + vxT( 'View' ) + '</a>' : '', '#/products' );
+		var h = head( p.id ? esc( p.title || vxT( 'Product' ) ) : vxT( 'New product' ), p.id ? ( 'publish' === p.status ? '<span class="vsa-chip is-ok">' + vxT( 'Live' ) + '</span>' : '<span class="vsa-chip is-off">' + vxT( 'Draft' ) + '</span>' ) + ( p.sold ? ' &nbsp;' + pl( p.sold, '%d order', '%d orders' ) : '' ) : '', p.id ? '<a class="vsa-btn vsa-btn-ghost" href="' + esc( p.url ) + '" target="_blank" rel="noopener">' + ic( 'eye', 15 ) + vxT( 'View' ) + '</a>' : '', '#/products' );
 		h += '<div class="vsa-cols"><div class="vsa-col-main">';
 		// basics
 		h += card( '', field( vxT( 'Name' ), inp( 'title', p.title, { ph:vxT( 'e.g. Linen shirt' ), cls:'vsa-in-lg' } ) ) +
@@ -1164,7 +1169,7 @@
 			( acc ? st( vxT( 'Customer since' ), esc( date( c.registered ) ) ) + st( vxT( 'Last sign-in' ), c.login ? esc( date( c.login, true ) ) : vxT( 'Not yet' ) ) + st( vxT( 'Two-factor sign-in' ), c.twofa ? '<span class="vsa-chip is-ok">' + vxT( 'On' ) + '</span>' : vxT( 'Off' ) ) + ( c.privacy ? st( vxT( 'Privacy consent' ), esc( date( c.privacy ) ) ) : '' ) : '' ) + '</div>' );
 		if ( acc ) {
 			h += card( vxT( 'Sign-in' ), '<p class="vsa-p">' + ( c.locked ? vxT( 'Locked — the customer cannot sign in.' ) : vxT( 'The customer signs in on the account page with their email.' ) ) + '</p><p><a href="' + esc( c.accountUrl ) + '" target="_blank" rel="noopener">' + ic( 'ext', 14 ) + ' ' + vxT( 'Open the account page' ) + '</a></p>' +
-				( c.twofa ? '<p class="vsa-p">' + vxT( 'Two-factor sign-in is on' ) + ' (' + c.twofa.codes + ' ' + vxT( 'recovery codes left' ) + ').</p><p><button type="button" class="vsa-btn vsa-btn-ghost vsa-btn-sm" data-act="c-reset2fa">' + vxT( 'Turn off two-factor sign-in' ) + '</button></p>' : '' ) +
+				( c.twofa ? '<p class="vsa-p">' + vxT( 'Two-factor sign-in is on' ) + ' (' + pl( c.twofa.codes, '%d recovery code left', '%d recovery codes left' ) + ').</p><p><button type="button" class="vsa-btn vsa-btn-ghost vsa-btn-sm" data-act="c-reset2fa">' + vxT( 'Turn off two-factor sign-in' ) + '</button></p>' : '' ) +
 				'<p class="vsa-hint">' + vxT( 'Passwords are never shown or set by the shop: the customer chooses one with the link you send.' ) + '</p>' );
 		}
 		h += '</aside></div>';
@@ -1493,12 +1498,12 @@
 		var colKeys = ownKeys.filter( function ( x ) { return /^d_(bg|surface|soft|ink|muted|line|accent|accent_ink|sale)$/.test( x ); } );
 		var tName = esc( ( D[ cur ] || {} ).name || cur );
 		var banner = ownKeys.length ? '<div class="vsa-ownbanner" role="status">' + ic( 'alert', 16 ) + '<div><b>' + vxT( 'Your own choices are on top of %s.' ).replace( '%s', tName ) + '</b><span>' +
-			( colKeys.length ? vxT( '%d colours are yours, so the shop does not look like the template’s picture.' ).replace( '%d', colKeys.length ) + ' ' : '' ) +
-			vxT( '%d choices in total. The tiles below show each template as it comes.' ).replace( '%d', ownKeys.length ) + '</span>' +
+			( colKeys.length ? pl( colKeys.length, '%d colour is yours, so the shop does not look like the template’s picture.', '%d colours are yours, so the shop does not look like the template’s picture.' ) + ' ' : '' ) +
+			pl( ownKeys.length, '%d choice in total. The tiles below show each template as it comes.', '%d choices in total. The tiles below show each template as it comes.' ) + '</span>' +
 			( colKeys.length ? '<span class="vsa-ownsw">' + colKeys.map( function ( x ) { return /^#[0-9a-f]{3,8}$/i.test( s[ x ] ) ? '<i style="background:' + s[ x ] + '"></i>' : ''; } ).join( '' ) + '</span>' : '' ) +
 			'</div><button type="button" class="vsa-btn vsa-btn-sm vsa-btn-pri" data-act="d-clear">' + vxT( 'Use %s as it comes' ).replace( '%s', tName ) + '</button></div>' : '';
 		return banner + acc( 'tpl', vxT( 'Template' ), vxT( 'A finished look for the whole shop' ), '<div class="vsa-tpls">' + tiles + '</div>' +
-				( own ? '<div class="vsa-tpl-own">' + ic( 'brush', 14 ) + '<span>' + vxT( '%d choices changed on top of the template.' ).replace( '%d', own ) + '</span><button type="button" class="vsa-link" data-act="d-clear">' + vxT( 'Back to the pure template' ) + '</button></div>' : '<p class="vsa-hint">' + vxT( 'A template sets every choice below. Change any of them on top — “Template” keeps its value. Picking another template starts fresh.' ) + '</p>' ) ) +
+				( own ? '<div class="vsa-tpl-own">' + ic( 'brush', 14 ) + '<span>' + pl( own, '%d choice changed on top of the template.', '%d choices changed on top of the template.' ) + '</span><button type="button" class="vsa-link" data-act="d-clear">' + vxT( 'Back to the pure template' ) + '</button></div>' : '<p class="vsa-hint">' + vxT( 'A template sets every choice below. Change any of them on top — “Template” keeps its value. Picking another template starts fresh.' ) + '</p>' ) ) +
 			acc( 'prev', vxT( 'Preview' ), vxT( 'Every shop page with these choices, on a desktop, tablet or phone' ), '<div class="vsa-seg vsa-dprev-pg">' + DS_PAGES.map( function ( o ) { return '<button type="button" data-act="dprev-page" data-v="' + o[ 0 ] + '" class="' + ( dsPage === o[ 0 ] ? 'is-on' : '' ) + '">' + esc( vxT( o[ 1 ] ) ) + '</button>'; } ).join( '' ) + '</div>' + dsFrame( dsPage, false ) + '<p class="vsa-hint">' + vxT( 'Your real products, drawn with the choices on this page. Save to put them live.' ) + '</p>' +
 					'<div class="vsa-try"><span>' + ic( 'eye', 14 ) + vxT( 'Try it on the real shop, before saving:' ) + '</span>' +
 					[ [ 'shop', vxT( 'Shop page' ) ], [ 'product', vxT( 'A product' ) ], [ 'cart', vxT( 'Cart' ) ], [ 'checkout', vxT( 'Checkout' ) ], [ 'account', vxT( 'Account' ) ] ].map( function ( o ) {
@@ -1678,7 +1683,7 @@
 			chips.map( function ( c ) { return '<button type="button" class="vsa-chipbtn' + ( TX.area === c[ 0 ] ? ' is-on' : '' ) + '" data-act="tx-area" data-v="' + esc( c[ 0 ] ) + '">' + esc( c[ 1 ] ) + '</button>'; } ).join( '' ) + '</div></div>' +
 			( list.length ? '<ul class="vsa-txl">' + rows + '</ul>' : '<p class="vsa-hint">' + vxT( 'No text matches.' ) + '</p>' ) +
 			( list.length > TX.shown ? '<button type="button" class="vsa-btn vsa-btn-sm vsa-btn-ghost" data-act="tx-more">' + vxT( 'Show more' ) + ' (' + ( list.length - TX.shown ) + ')</button>' : '' ) +
-			'<div class="vsa-txsave"><span>' + ( n ? vxT( '%d unsaved changes' ).replace( '%d', n ) : '' ) + '</span><button type="button" class="vsa-btn vsa-btn-pri" data-act="tx-save"' + ( n ? '' : ' disabled' ) + '>' + vxT( 'Save texts' ) + '</button></div>' );
+			'<div class="vsa-txsave"><span>' + ( n ? pl( n, '%d unsaved change', '%d unsaved changes' ) : '' ) + '</span><button type="button" class="vsa-btn vsa-btn-pri" data-act="tx-save"' + ( n ? '' : ' disabled' ) + '>' + vxT( 'Save texts' ) + '</button></div>' );
 		var hadQ = document.activeElement && 'vsa-txq' === document.activeElement.id;
 		box.innerHTML = html;
 		var qi = document.getElementById( 'vsa-txq' );
@@ -1694,7 +1699,7 @@
 		if ( t.value === row.v ) { delete TX.changes[ o ]; } else { TX.changes[ o ] = t.value; }
 		t.closest( '.vsa-txr' ).classList.toggle( 'is-own', !! t.value );
 		var n = Object.keys( TX.changes ).length, bar = document.querySelector( '.vsa-txsave' );
-		if ( bar ) { bar.querySelector( 'span' ).textContent = n ? vxT( '%d unsaved changes' ).replace( '%d', n ) : ''; bar.querySelector( 'button' ).disabled = ! n; }
+		if ( bar ) { bar.querySelector( 'span' ).textContent = n ? pl( n, '%d unsaved change', '%d unsaved changes' ) : ''; bar.querySelector( 'button' ).disabled = ! n; }
 	}
 	function txSave() {
 		api( 'texts_save', { changes:TX.changes } ).then( function ( r ) {
@@ -2019,10 +2024,16 @@
 		function done( save ) {
 			if ( i._done ) { return; } i._done = true;
 			if ( ! save || i.value === String( cur ) ) { loadProducts( { rows:PROWS, cats:C.cats, pages:1 } ); return; }
+			// An empty or broken price would sell the product for 0,00 € — keep editing instead.
+			if ( 'price' === k && ( null === num( i.value ) || num( i.value ) < 0 ) ) {
+				toast( vxT( 'Enter a price, for example 24,90.' ), true );
+				if ( 'blur' === save ) { loadProducts( { rows:PROWS, cats:C.cats, pages:1 } ); return; } // clicked away: keep the old price
+				i._done = false; i.focus(); i.select(); return;
+			}
 			bulk( k, { ids:[ id ], value:'price' === k ? num( i.value ) : parseInt( i.value, 10 ) || 0 } ).then( function () { toast( vxT( 'Saved.' ) ); } );
 		}
 		i.addEventListener( 'keydown', function ( e ) { if ( 'Enter' === e.key ) { done( true ); } if ( 'Escape' === e.key ) { done( false ); } } );
-		i.addEventListener( 'blur', function () { done( true ); } );
+		i.addEventListener( 'blur', function () { done( 'blur' ); } );
 	}
 
 	var searchT = null;
