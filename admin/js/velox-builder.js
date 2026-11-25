@@ -1182,7 +1182,7 @@
 	/* Text effects, grid layouts, presets and similar elements get their CSS
 	 * from their settings, built by the same PHP the page uses. Ask for it
 	 * whenever the tree changes (debounced) and drop it into the canvas. */
-	var previewCssKey = '', previewCssTimer = null;
+	var previewCssKey = '', previewCssTimer = null, previewCssSeq = 0;
 	function schedulePreviewCss() {
 		if ( ! CFG.ajaxurl || ! store.state ) { return; }
 		var key = JSON.stringify( store.state.tree ) + JSON.stringify( store.state.content );
@@ -1190,6 +1190,9 @@
 		clearTimeout( previewCssTimer );
 		previewCssTimer = setTimeout( function () {
 			previewCssKey = key;
+			// Answers can come back out of order (a slow one after a fast one):
+			// only the newest request may write, or quick edits showed old CSS.
+			var seq = ++previewCssSeq;
 			var body = new URLSearchParams();
 			body.set( 'action', 'velox' ); body.set( 'do', 'builder_preview_css' ); body.set( 'nonce', CFG.nonce || '' );
 			body.set( 'model', JSON.stringify( { tree:store.state.tree, content:store.state.content, classes:{} } ) );
@@ -1198,7 +1201,9 @@
 				.then( function ( res ) {
 					var fr = document.getElementById( 'vb-canvas' ), cd = fr && fr.contentDocument;
 					var tag = cd && cd.getElementById( 'vb-preview-css' );
+					if ( seq !== previewCssSeq ) { return; }
 					if ( tag && res && res.success ) { tag.textContent = res.data.css || ''; }
+					if ( fr ) { fr.setAttribute( 'data-vb-css-seq', seq ); } // tests can wait for it
 				} )
 				.catch( function () {} );
 		}, 450 );
