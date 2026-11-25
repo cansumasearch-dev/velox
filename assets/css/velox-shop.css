@@ -1022,9 +1022,14 @@ html.vxs-sbar-on .vxs-toast{bottom:92px}
 /* Product page: space between option groups and the buy row (was 0) */
 .vxs-buy .vxs-add{display:flex;flex-direction:column;gap:18px}
 .vxs-rv-none{font-size:15px;line-height:1.55}
-.vxa-nav ul.can-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 40px),transparent)}
-.vxa-nav ul.can-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 40px);mask-image:linear-gradient(90deg,transparent,#000 40px)}
-.vxa-nav ul.can-l.can-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent);mask-image:linear-gradient(90deg,transparent,#000 40px,#000 calc(100% - 40px),transparent)}
+.vxa-nav ul.can-r{-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 56px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 56px),transparent)}
+.vxa-nav ul.can-l{-webkit-mask-image:linear-gradient(90deg,transparent,#000 56px);mask-image:linear-gradient(90deg,transparent,#000 56px)}
+.vxa-nav ul.can-l.can-r{-webkit-mask-image:linear-gradient(90deg,transparent,#000 56px,#000 calc(100% - 56px),transparent);mask-image:linear-gradient(90deg,transparent,#000 56px,#000 calc(100% - 56px),transparent)}
+/* 4.77.1: more tabs off to the side — when the row ends between two tabs the fade alone shows nothing */
+.vxa-nav{position:relative}
+.vxa-nav:has(ul.can-r)::after,.vxa-nav:has(ul.can-l)::before{position:absolute;top:0;bottom:1px;display:flex;align-items:center;width:22px;color:var(--vxs-ink-2);font-size:22px;line-height:1;pointer-events:none}
+.vxa-nav:has(ul.can-r)::after{content:"\203A";right:0;justify-content:flex-end}
+.vxa-nav:has(ul.can-l)::before{content:"\2039";left:0;z-index:1}
 /* 4.68: categories as underlined words or solid blocks */
 .vxs-cats.is-underline{gap:4px 22px}
 .vxs-cats.is-underline a{height:auto;padding:6px 0;border:0;border-bottom:2px solid transparent;border-radius:0;background:none}
