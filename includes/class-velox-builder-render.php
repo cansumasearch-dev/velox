@@ -2718,7 +2718,7 @@ class Velox_Builder_Render {
 	public static function canvas_runtime_css() {
 		$rt = self::$runtime_used;
 		$fl = self::$float_css;
-		self::$runtime_used = array( 'slider' => true, 'tabs' => true, 'accordion' => true, 'nav' => true );
+		self::$runtime_used = array( 'slider' => true, 'tabs' => true, 'accordion' => true, 'nav' => true, 'wpmenu' => true );
 		self::$float_css    = '';
 		$css = self::element_base_css( 'base' );
 		self::$runtime_used = $rt;
@@ -2862,6 +2862,17 @@ class Velox_Builder_Render {
 				'.vx-rv-stars{letter-spacing:1px;margin-bottom:6px}' .
 				'.vx-rv-text{margin:0 0 8px;line-height:1.55}' .
 				'.vx-rv-date{font-size:12px;opacity:.6}';
+		}
+		if ( isset( self::$runtime_used['wpmenu'] ) ) {
+			$css .= ':where(.vx-wpmenu),:where(.vx-wpmenu) ul{list-style:none;margin:0;padding:0}'
+				. ':where(.vx-wpmenu){display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px}'
+				. ':where(.vx-wpmenu) li{position:relative}'
+				. ':where(.vx-wpmenu) a{color:inherit;text-decoration:none}'
+				. ':where(.vx-wpmenu) a:hover,:where(.vx-wpmenu) .current-menu-item>a{text-decoration:underline;text-underline-offset:4px}'
+				. ':where(.vx-wpmenu) .sub-menu{display:none;position:absolute;left:0;top:100%;z-index:50;min-width:190px;padding:8px;'
+				. 'background:#fff;color:#1a1d21;border-radius:10px;box-shadow:0 8px 28px rgba(15,23,42,.14)}'
+				. ':where(.vx-wpmenu) .sub-menu a{display:block;padding:7px 10px;border-radius:6px}'
+				. ':where(.vx-wpmenu) li:hover>.sub-menu,:where(.vx-wpmenu) li:focus-within>.sub-menu{display:block}';
 		}
 		if ( isset( self::$runtime_used['nav'] ) ) {
 			$css .= '.vx-nav-list{display:flex;align-items:center;gap:22px;list-style:none;margin:0;padding:0;flex-wrap:wrap}' .
@@ -4567,7 +4578,13 @@ class Velox_Builder_Render {
 				}
 				return '<div' . $attr . '>' . $img . '</div>';
 			case 'menu':
-				$nav = wp_nav_menu( array( 'echo' => false, 'container' => false, 'fallback_cb' => false ) );
+				// vx-wpmenu: a plain row of links with hover/focus submenus — WordPress's
+				// own markup printed a bulleted list in browser blue. Kept at zero
+				// specificity (:where) so the element's classes restyle it freely.
+				$nav = wp_nav_menu( array( 'echo' => false, 'container' => false, 'fallback_cb' => false, 'menu_class' => 'menu vx-wpmenu' ) );
+				if ( $nav ) {
+					self::$runtime_used['wpmenu'] = true;
+				}
 				return '<nav' . $attr . '>' . ( $nav ? $nav : '' ) . '</nav>';
 			default:
 				return '<' . $tag . $attr . '></' . $tag . '>';

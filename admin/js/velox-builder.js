@@ -963,7 +963,7 @@
 				return '<div id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '"><img src="' + escapeHtml( wpd.img ) + '" alt="" style="display:block;max-width:100%;height:auto"></div>';
 			}
 			if ( node.el === 'WP' && 'menu' === node.wp && ( wpd.menu || [] ).length ) {
-				return '<nav id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '"><ul class="menu">' + wpd.menu.map( function ( m ) {
+				return '<nav id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '"><ul class="menu vx-wpmenu">' + wpd.menu.map( function ( m ) {
 					return '<li class="menu-item"><a href="#">' + escapeHtml( m ) + '</a></li>';
 				} ).join( '' ) + '</ul></nav>';
 			}
@@ -2227,7 +2227,7 @@
 				{ k:'pqRule', t:'segment', l:'Accent line', d:'none', s:'Pull quote',
 				  o:[ [ 'none', 'None' ], [ 'left', 'Down the left' ], [ 'top', 'Above' ] ] },
 				{ k:'pqRuleColor', t:'color', l:'Line colour', d:'#2ab7f1', s:'Pull quote', when:{ pqRule:[ 'left', 'top' ] } }
-			  ], text:'A line worth pulling out of the text.' },
+			  ], text:'A line worth pulling out of the text.', start:{ pqRule:'left' } },
 			{ key:'verticaltext', el:'Verticaltext', tag:'span', label:'Vertical text', cls:'.vertical-text', rules:{ fontSize:'14', letterSpacing:'2' }, text:'SCROLL',
 			  settings:[
 				{ k:'vDir', t:'segment', l:'Reads', d:'down', s:'Direction',
@@ -3591,7 +3591,7 @@
 			// Store every default the inspector shows. Left out, the page used the
 			// renderer's own fallback until the control was touched, and the two
 			// disagreed for several elements.
-			var cdef = catDefaults( cat );
+			var cdef = Object.assign( catDefaults( cat ), cat.start || {} ); // start: how a new one arrives (the defaults stay for older ones)
 			Object.keys( cdef ).forEach( function ( k ) {
 				node.settings = node.settings || {};
 				if ( undefined === node.settings[ k ] ) { node.settings[ k ] = cdef[ k ]; }
