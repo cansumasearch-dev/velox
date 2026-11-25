@@ -50,7 +50,7 @@
 			} catch ( e ) { if ( tries ) { return { h: 'EXC', errs: [ e.message ] }; } await sleep( 600 ); }
 		}
 	}
-	async function settle() { await sleep( 1400 ); }
+	async function settle() { var f = document.getElementById( 'vb-canvas' ), t0 = Date.now(); await sleep( 1100 ); while ( Date.now() - t0 < 7000 ) { var a = f && f.getAttribute( 'data-vb-css-seq' ); await sleep( 700 ); if ( a === ( f && f.getAttribute( 'data-vb-css-seq' ) ) ) { break; } } } // wait until the editor's element CSS has arrived
 	async function snap( id ) { var c = canvasSig( id ); var p = await pageSig(); return { c: c, p: p }; }
 	function cmp( prev, cur ) {
 		var cc = prev.c.h !== cur.c.h || prev.c.s !== cur.c.s, pc = prev.p.h !== cur.p.h;
