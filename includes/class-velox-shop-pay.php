@@ -369,6 +369,11 @@ class Velox_Shop_Pay {
 			case 'manual':
 				return $box( '<b>' . esc_html__( 'We will email you the payment details.', 'velox' ) . '</b> ' . esc_html__( 'Your order is reserved until then.', 'velox' ) );
 			case 'cod':
+				// Picked up in the shop: paid there, there is no parcel.
+				if ( ! empty( $o['shipping'] ) && 'pickup' === ( $o['shipping']['type'] ?? '' ) ) {
+					/* translators: %s: amount */
+					return $box( '<b>' . esc_html__( 'Pay on pickup', 'velox' ) . '</b> — ' . sprintf( esc_html__( 'please pay %s when you collect your order.', 'velox' ), esc_html( Velox_Shop::money( $o['total'] ) ) ) );
+				}
 				/* translators: %s: amount */
 				return $box( '<b>' . esc_html__( 'Cash on delivery', 'velox' ) . '</b> — ' . sprintf( esc_html__( 'please have %s ready when the parcel arrives.', 'velox' ), esc_html( Velox_Shop::money( $o['total'] ) ) ) );
 			case 'stripe':

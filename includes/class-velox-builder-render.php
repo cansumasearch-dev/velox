@@ -2961,7 +2961,9 @@ class Velox_Builder_Render {
 				'.vx-ov-panel{position:relative;z-index:2;max-height:100%;overflow:auto;background:#fff;min-height:56px;transition:transform .25s ease,opacity .25s ease}' .
 				'.vx-ov-close{position:absolute;z-index:3;top:12px;right:12px;background:none;border:none;padding:6px;cursor:pointer;color:inherit;line-height:0}' .
 				// offcanvas: slides in from its edge
-				'.vx-offcanvas .vx-ov-panel{height:100%}' .
+				// Size and padding defaults weigh nothing (:where), so the panel's own
+				// class can set width, height and padding (its padding-top lost to 44px).
+				':where(.vx-offcanvas .vx-ov-panel){height:100%}' .
 				'.vx-oc-right{justify-content:flex-end}.vx-oc-left{justify-content:flex-start}' .
 				'.vx-oc-top{align-items:flex-start}.vx-oc-bottom{align-items:flex-end}' .
 				'.vx-oc-right .vx-ov-panel{transform:translateX(100%)}.vx-oc-left .vx-ov-panel{transform:translateX(-100%)}' .
@@ -2970,7 +2972,7 @@ class Velox_Builder_Render {
 				// modal: centred box that scales in
 				'.vx-modal{align-items:center;justify-content:center;padding:24px}' .
 				'.vx-modal-top{align-items:flex-start}.vx-modal-bottom{align-items:flex-end}' .
-				'.vx-modal .vx-ov-panel{width:100%;transform:scale(.96);opacity:0}' . '.vx-modal .vx-ov-panel,.vx-offcanvas .vx-ov-panel{padding-top:44px}' .
+				':where(.vx-modal .vx-ov-panel){width:100%}.vx-modal .vx-ov-panel{transform:scale(.96);opacity:0}' . ':where(.vx-modal .vx-ov-panel,.vx-offcanvas .vx-ov-panel){padding-top:44px}' .
 				'.vx-modal.is-open .vx-ov-panel{transform:none;opacity:1}' .
 				// dropdown: anchored to its button, not the viewport
 				'.vx-dd-wrap{position:relative;display:inline-block}' .

@@ -805,6 +805,10 @@ class Velox_Shop_Admin {
 				}
 				break;
 			case 'reminder':
+				// Only while it is unpaid: a reminder for a paid order asks the customer to pay twice.
+				if ( 'pending' !== ( $o['payment']['status'] ?? '' ) ) {
+					return new WP_Error( 'x', __( 'This order is paid already, so no reminder was sent.', 'velox' ) );
+				}
 				Velox_Shop::mail( 'reminder', $o );
 				Velox_Shop::note( $o, __( 'Payment reminder sent.', 'velox' ) );
 				Velox_Shop::save_order( $id, $o );
