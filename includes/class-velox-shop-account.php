@@ -830,13 +830,11 @@ class Velox_Shop_Account {
 		if ( ! $u ) {
 			return false;
 		}
-		$t = wp_generate_password( 32, false, false );
-		update_user_meta( $u->ID, self::EMAIL_OK, 'p:' . hash( 'sha256', $t ) );
 		$store = (string) Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) );
 		$title = __( 'Please confirm your email address', 'velox' );
 		/* translators: %s: shop name */
 		$body  = '<h1 style="margin:0 0 12px;font-size:22px">' . esc_html( $title ) . '</h1><p style="margin:0">' . esc_html( sprintf( __( 'One click and your customer account at %s is complete: orders you placed earlier with this address then show up in it too.', 'velox' ), $store ) ) . '</p>'
-			. Velox_Shop::mail_button( self::url( 'email-verify', array( 'u' => $u->ID, 't' => $t ) ), __( 'Confirm my address', 'velox' ) );
+			. Velox_Shop::mail_button( self::verify_url( $u->ID ), __( 'Confirm my address', 'velox' ) );
 		return wp_mail( $u->user_email, $title . ' — ' . $store, Velox_Shop::mail_layout( $body, $title ), array( 'Content-Type: text/html; charset=UTF-8' ) );
 	}
 
@@ -1115,11 +1113,18 @@ class Velox_Shop_Account {
 		$store = (string) Velox_Shop::get( 'store_name', get_bloginfo( 'name' ) );
 		$body  = '<h1 style="margin:0 0 12px;font-size:22px">' . esc_html( sprintf( /* translators: %s: first name */ __( 'Welcome, %s!', 'velox' ), $u->first_name ? $u->first_name : $u->display_name ) ) . '</h1>'
 			. '<p style="margin:0">' . esc_html( sprintf( /* translators: %s: shop name */ __( 'Your customer account at %s is ready. In it you see your orders, downloads and invoices, and you can change your address and password at any time.', 'velox' ), $store ) ) . '</p>'
-			. Velox_Shop::mail_button( self::url(), __( 'Open my account', 'velox' ) );
+			. ( self::email_ok( $u )
+				? Velox_Shop::mail_button( self::url(), __( 'Open my account', 'velox' ) )
+				// One mail, not two: the welcome button also confirms the address.
+				: Velox_Shop::mail_button( self::verify_url( $u->ID ), __( 'Confirm my address and open my account', 'velox' ) ) );
 		wp_mail( $u->user_email, sprintf( /* translators: %s: shop name */ __( 'Your account at %s', 'velox' ), $store ), Velox_Shop::mail_layout( $body, __( 'Welcome', 'velox' ) ), array( 'Content-Type: text/html; charset=UTF-8' ) );
-		if ( ! self::email_ok( $u ) ) {
-			self::verify_mail( $u->ID );
-		}
+	}
+
+	/** A fresh "this is my address" link (the newest one counts). */
+	private static function verify_url( $uid ) {
+		$t = wp_generate_password( 32, false, false );
+		update_user_meta( (int) $uid, self::EMAIL_OK, 'p:' . hash( 'sha256', $t ) );
+		return self::url( 'email-verify', array( 'u' => (int) $uid, 't' => $t ) );
 	}
 
 	/* ------------------------------------------------------------------ checkout hooks */

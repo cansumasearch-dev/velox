@@ -8481,4 +8481,6 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'The page was saved again since — restoring replaces that newer version.' => 'Die Seite wurde seitdem erneut gespeichert — Wiederherstellen ersetzt diese neuere Fassung.',
 	'This version could not be restored here: it changes elements you may not change (locked, or not allowed for your role).' => 'Diese Fassung lässt sich hier nicht wiederherstellen: Sie ändert Elemente, die Sie nicht ändern dürfen (gesperrt oder für Ihre Rolle nicht erlaubt).',
 	'Claude' => 'Claude',
+	// 4.77 — welcome mail
+	'Confirm my address and open my account' => 'Adresse bestätigen und Konto öffnen',
 );
