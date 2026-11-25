@@ -55,7 +55,8 @@
 				if ( c ) { c.click(); await sleep( 110 ); n++; var c2 = q( '.vb-inspector input[type=checkbox][data-setel="' + k + '"]' ); if ( c2 ) { c2.click(); await sleep( 110 ); } continue; }
 				var t = q( '.vb-inspector input[data-setel="' + k + '"], .vb-inspector textarea[data-setel="' + k + '"]' );
 				if ( t && ! t.readOnly && ! t.closest( '.vb-code-wrap' ) ) {
-					var val = t.classList.contains( 'num' ) ? '7' : ( /url|link|href/i.test( k ) ? 'https://example.com/' : 'Test ' + k );
+					var isCol = !! ( t.parentNode && t.parentNode.querySelector( '[data-setelswatch]' ) );
+					var val = isCol ? '#2ab7f1' : ( t.classList.contains( 'num' ) ? '7' : ( /url|link|href/i.test( k ) ? 'https://example.com/' : 'Test ' + k ) );
 					if ( t.closest( '.vb-media-row' ) ) { val = window.VELOX_BUILDER && window.VELOX_BUILDER.pluginUrl ? '' : ''; if ( ! val ) { continue; } }
 					t.focus(); t.value = val; fire( t, 'input' ); await sleep( 120 ); fire( t, 'change' ); await blur(); n++;
 				}
