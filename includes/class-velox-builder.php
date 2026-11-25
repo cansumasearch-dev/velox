@@ -2595,23 +2595,28 @@ class Velox_Builder {
 	private static function rewrite_class( $from, $to ) {
 		$changed = self::each_model(
 			function ( &$model ) use ( $from, $to ) {
-				if ( empty( $model['classes'] ) || ! is_array( $model['classes'] ) || ! isset( $model['classes'][ $from ] ) ) {
-					return false;
+				// A page may only USE the class (its rules live in the site-wide
+				// list) — those pages were skipped, kept the old name and lost the
+				// styling once the old name was gone. Rewrite every reference.
+				$hit = false;
+				if ( ! empty( $model['classes'] ) && is_array( $model['classes'] ) && isset( $model['classes'][ $from ] ) ) {
+					// Renaming onto a class that already exists keeps that class's rules
+					// rather than overwriting them.
+					if ( null !== $to && ! isset( $model['classes'][ $to ] ) ) {
+						$model['classes'][ $to ] = $model['classes'][ $from ];
+					}
+					unset( $model['classes'][ $from ] );
+					$hit = true;
 				}
-				// Renaming onto a class that already exists keeps that class's rules
-				// rather than overwriting them.
-				if ( null !== $to && ! isset( $model['classes'][ $to ] ) ) {
-					$model['classes'][ $to ] = $model['classes'][ $from ];
-				}
-				unset( $model['classes'][ $from ] );
 				if ( isset( $model['activeClass'] ) && $model['activeClass'] === $from ) {
 					$model['activeClass'] = $to;
+					$hit = true;
 				}
 				if ( ! empty( $model['tree'] ) && is_array( $model['tree'] ) ) {
 					self::walk_ref(
 						$model['tree'],
-						function ( &$node ) use ( $from, $to ) {
-							if ( empty( $node['classes'] ) ) {
+						function ( &$node ) use ( $from, $to, &$hit ) {
+							if ( empty( $node['classes'] ) || ! in_array( $from, (array) $node['classes'], true ) ) {
 								return;
 							}
 							$out = array();
@@ -2622,10 +2627,11 @@ class Velox_Builder {
 								}
 							}
 							$node['classes'] = $out;
+							$hit = true;
 						}
 					);
 				}
-				return true;
+				return $hit;
 			}
 		);
 		$reg = self::class_registry();

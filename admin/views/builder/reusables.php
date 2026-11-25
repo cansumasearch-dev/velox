@@ -28,7 +28,7 @@ $kind_label = array(
 			<div class="vba-empty">
 				<span class="vba-empty-ic"><?php echo Velox_Admin::icon( 'globe', 24 ); // phpcs:ignore ?></span>
 				<b><?php esc_html_e( 'No reusables yet', 'velox' ); ?></b>
-				<p><?php esc_html_e( 'In the builder, right-click any element and choose "Make re-usable" — or start one from scratch.', 'velox' ); ?></p>
+				<p><?php esc_html_e( 'In the builder, right-click any element and choose "Make reusable" — or start one from scratch.', 'velox' ); ?></p>
 				<a class="vba-btn vba-btn-primary" href="<?php echo esc_url( $new_url ); ?>"><?php esc_html_e( 'New reusable', 'velox' ); ?></a>
 			</div>
 		<?php else : ?>

@@ -9353,7 +9353,7 @@
 							( function drop( x ) { delete s.content[ x.id ]; ( x.children || [] ).forEach( drop ); }( cur ) );
 							list.splice( list.indexOf( cur ), 1, ref );
 							s.selection = ref.id; resetActiveClass( s );
-						}, T( 'Make re-usable' ) );
+						}, T( 'Make reusable' ) );
 						toast( T( 'Saved as reusable.' ) );
 					}
 				} )
@@ -9664,7 +9664,7 @@
 			{ sep:true },
 			{ a:'hide', ic:'eye', l:node && node.hidden ? T( 'Show' ) : T( 'Hide' ) },
 			'client' === ACCESS.level ? null : { a:'lock', ic:node && node.locked ? 'unlock' : 'lock', l:node && node.locked ? T( 'Unlock' ) : T( 'Lock' ) },
-			{ a:'reuse', ic:'star', l:T( 'Make re-usable' ) }
+			{ a:'reuse', ic:'star', l:T( 'Make reusable' ) }
 		];
 		menu.innerHTML = items.filter( Boolean ).map( function ( it ) {
 			if ( it.sep ) { return '<div class="vb-ctx-sep"></div>'; }
