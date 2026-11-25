@@ -501,8 +501,10 @@ class Velox_Builder_Render {
 			self::$float_css .= $sel . '{background-image:linear-gradient(' . $angle . 'deg,'
 				. esc_attr( $from ) . ',' . esc_attr( $to ) . ');'
 				. '-webkit-background-clip:text;background-clip:text;'
-				. 'color:transparent;-webkit-text-fill-color:transparent;'
-				. 'display:inline-block}';
+				. 'color:transparent;-webkit-text-fill-color:transparent}'
+				// Fallback only (:where = no weight): the element's class decides —
+				// new ones arrive as their own line, so two effects don't run together.
+				. ':where(' . $sel . '){display:inline-block}';
 			return;
 		}
 
@@ -640,7 +642,7 @@ class Velox_Builder_Render {
 				$rule = $sel . '>*{width:' . $sz . 'px;height:' . $sz . 'px;border-radius:50%;overflow:hidden;'
 					. 'flex:0 0 auto;box-shadow:0 0 0 ' . $ringW . 'px ' . esc_attr( $ring ) . '}'
 					. $sel . '>*+*{margin-left:-' . $ov . 'px}'
-					. $sel . '>* img{width:100%;height:100%;object-fit:cover;display:block}';
+					. $sel . '>* img{width:100%;height:100%!important;max-width:none;object-fit:cover;display:block}';
 				$mq = $mqs[ $bp ] ?? null;
 				self::$float_css .= $mq ? ( '@media ' . $mq . '{' . $rule . '}' ) : $rule;
 			}
@@ -781,7 +783,7 @@ class Velox_Builder_Render {
 					continue;
 				}
 				$emit( $bp, $sel . '{gap:' . (int) $carry( $gaps, $bp, 40 ) . 'px}'
-					. $sel . ' img{height:' . (int) $carry( $h, $bp, 32 ) . 'px;width:auto;display:block}' );
+					. $sel . ' img{height:' . (int) $carry( $h, $bp, 32 ) . 'px!important;width:auto;max-width:100%;display:block}' ); // !important: each logo <img> carries an inline height:auto that beat the setting.
 			}
 			if ( self::el_set( $node, 'lsGrey', '1' ) ) {
 				$op = max( 0, min( 100, (int) self::el_set( $node, 'lsFade', 55 ) ) ) / 100;
@@ -2509,7 +2511,7 @@ class Velox_Builder_Render {
 		$keys = array_keys( (array) get_nav_menu_locations() );
 		$all  = wp_get_nav_menus();
 		if ( $all && ! is_wp_error( $all ) ) {
-			foreach ( array_slice( $all, 0, 12 ) as $m ) {
+			foreach ( array_slice( $all, 0, 50 ) as $m ) {
 				$keys[] = $m->slug;
 				$keys[] = $m->name;
 			}
@@ -2718,7 +2720,7 @@ class Velox_Builder_Render {
 	public static function canvas_runtime_css() {
 		$rt = self::$runtime_used;
 		$fl = self::$float_css;
-		self::$runtime_used = array( 'slider' => true, 'tabs' => true, 'accordion' => true, 'nav' => true );
+		self::$runtime_used = array( 'slider' => true, 'tabs' => true, 'accordion' => true, 'nav' => true, 'wpmenu' => true );
 		self::$float_css    = '';
 		$css = self::element_base_css( 'base' );
 		self::$runtime_used = $rt;
@@ -2863,6 +2865,17 @@ class Velox_Builder_Render {
 				'.vx-rv-text{margin:0 0 8px;line-height:1.55}' .
 				'.vx-rv-date{font-size:12px;opacity:.6}';
 		}
+		if ( isset( self::$runtime_used['wpmenu'] ) ) {
+			$css .= ':where(.vx-wpmenu),:where(.vx-wpmenu) ul{list-style:none;margin:0;padding:0}'
+				. ':where(.vx-wpmenu){display:flex;flex-wrap:wrap;align-items:center;gap:8px 24px}'
+				. ':where(.vx-wpmenu) li{position:relative}'
+				. ':where(.vx-wpmenu) a{color:inherit;text-decoration:none}'
+				. ':where(.vx-wpmenu) a:hover,:where(.vx-wpmenu) .current-menu-item>a{text-decoration:underline;text-underline-offset:4px}'
+				. ':where(.vx-wpmenu) .sub-menu{display:none;position:absolute;left:0;top:100%;z-index:50;min-width:190px;padding:8px;'
+				. 'background:#fff;color:#1a1d21;border-radius:10px;box-shadow:0 8px 28px rgba(15,23,42,.14)}'
+				. ':where(.vx-wpmenu) .sub-menu a{display:block;padding:7px 10px;border-radius:6px}'
+				. ':where(.vx-wpmenu) li:hover>.sub-menu,:where(.vx-wpmenu) li:focus-within>.sub-menu{display:block}';
+		}
 		if ( isset( self::$runtime_used['nav'] ) ) {
 			$css .= '.vx-nav-list{display:flex;align-items:center;gap:22px;list-style:none;margin:0;padding:0;flex-wrap:wrap}' .
 				'.vx-nav-item{position:relative;display:flex;align-items:center;gap:4px}' .
@@ -2906,8 +2919,8 @@ class Velox_Builder_Render {
 				'.vx-nav.is-mobile .vx-nav-list{position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:#fff;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.14);z-index:49}' .
 				'.vx-nav.is-mobile{position:relative}' .
 				'.vx-nav.is-mobile .vx-nav-list[hidden]{display:none}' .
-				'.vx-nav.is-mobile .vx-nav-item{padding:10px 8px}' .
-				'.vx-nav.is-mobile .vx-submenu{position:static;box-shadow:none;padding-left:14px}' .
+				'.vx-nav.is-mobile .vx-nav-item{padding:10px 8px;flex-wrap:wrap}' .
+				'.vx-nav.is-mobile .vx-submenu{position:static;box-shadow:none;padding-left:14px;width:100%;min-width:0}' . // below its parent, not beside it
 				'.vx-nav-full.is-mobile .vx-nav-list{position:fixed;inset:0;z-index:9996;justify-content:center;align-items:center;padding:72px 24px;overflow:auto;font-size:1.25em;box-shadow:none}' .
 				'.vx-nav-full.is-mobile.is-open .vx-burger{position:fixed;top:14px;right:14px;z-index:9997}' .
 				'.vx-crumb-list{display:flex;flex-wrap:wrap;align-items:center;gap:8px;list-style:none;margin:0;padding:0}' .
@@ -2977,6 +2990,8 @@ class Velox_Builder_Render {
 			$css .= '.vx-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}' .
 				'.vx-ov[hidden]{display:none}' .
 				'.vx-ov{position:fixed;inset:0;z-index:9998;display:flex}' .
+				// Signed-in editors: start below the admin bar, or its close button hid under it.
+				'.admin-bar .vx-ov:not(.vx-dropdown){top:var(--wp-admin--admin-bar--height,0px)}' .
 				'.vx-ov-back{position:absolute;inset:0;z-index:0;opacity:0;transition:opacity var(--vx-ms,.25s) ease}' .
 				'.vx-ov.is-open .vx-ov-back{opacity:1}' .
 				'.vx-ov-panel{position:relative;z-index:2;max-height:100%;overflow:auto;background:#fff;min-height:56px;transition:transform var(--vx-ms,.25s) ease,opacity var(--vx-ms,.25s) ease}' .
@@ -4054,8 +4069,15 @@ class Velox_Builder_Render {
 		// A form from Velox → Mail, placed by the builder.
 		if ( isset( $node['el'] ) && 'Form' === $node['el'] ) {
 			$fid = (int) self::el_set( $node, 'form', '' );
-			if ( self::$css_only || ! $fid || ! class_exists( 'Velox_Forms' ) ) {
+			if ( self::$css_only || ! class_exists( 'Velox_Forms' ) ) {
 				return '<div' . $attr . '></div>';
+			}
+			// No form picked (e.g. the newsletter popup on a site without forms):
+			// visitors see nothing, the admin sees why.
+			if ( ! $fid ) {
+				return '<div' . $attr . '>' . ( current_user_can( 'manage_options' )
+					? '<p style="padding:12px 14px;border:1px dashed #d2d2d7;border-radius:10px;color:#6e6e73">' . esc_html__( 'No form chosen yet: make one under Velox → Utilities → Mail, then pick it in this element. (Only admins see this note.)', 'velox' ) . '</p>'
+					: '' ) . '</div>';
 			}
 			// Without the Mail utility the form cannot be sent, so it is not shown.
 			if ( ! ( class_exists( 'Velox_Settings' ) && Velox_Settings::get( 'util_mail' ) ) ) {
@@ -4567,7 +4589,13 @@ class Velox_Builder_Render {
 				}
 				return '<div' . $attr . '>' . $img . '</div>';
 			case 'menu':
-				$nav = wp_nav_menu( array( 'echo' => false, 'container' => false, 'fallback_cb' => false ) );
+				// vx-wpmenu: a plain row of links with hover/focus submenus — WordPress's
+				// own markup printed a bulleted list in browser blue. Kept at zero
+				// specificity (:where) so the element's classes restyle it freely.
+				$nav = wp_nav_menu( array( 'echo' => false, 'container' => false, 'fallback_cb' => false, 'menu_class' => 'menu vx-wpmenu' ) );
+				if ( $nav ) {
+					self::$runtime_used['wpmenu'] = true;
+				}
 				return '<nav' . $attr . '>' . ( $nav ? $nav : '' ) . '</nav>';
 			default:
 				return '<' . $tag . $attr . '></' . $tag . '>';

@@ -1740,7 +1740,11 @@ class Velox_Shop_Front {
 					$any = get_posts( array( 'post_type' => Velox_Shop::PRODUCT, 'post_status' => 'publish', 'numberposts' => 1, 'fields' => 'ids' ) );
 					$p   = $any && ( is_admin() || wp_doing_ajax() ) ? Velox_Shop::product( $any[0] ) : null;
 				}
-				return $p ? self::buy_box( $p, array( 'qty' => '0' !== (string) $g( 'qty', '1' ), 'button' => (string) $g( 'button' ) ) ) : '<p class="vxs-empty">' . esc_html__( 'Choose a product, or place this on a product page.', 'velox' ) . '</p>';
+				if ( $p ) {
+					return self::buy_box( $p, array( 'qty' => '0' !== (string) $g( 'qty', '1' ), 'button' => (string) $g( 'button' ) ) );
+				}
+				// The hint is for whoever builds the page — visitors saw it too.
+				return current_user_can( 'edit_pages' ) ? '<p class="vxs-empty">' . esc_html__( 'Choose a product, or place this on a product page.', 'velox' ) . '</p>' : '';
 			case 'Shopproduct':
 				$pid = (int) $g( 'product', 0 );
 				$p   = Velox_Shop::product( $pid ? $pid : get_the_ID() );

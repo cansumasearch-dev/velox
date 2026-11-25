@@ -646,6 +646,7 @@ class Velox_Builder {
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'reviewConnections' => self::review_connections(),
 			'navMenus'          => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::menu_previews() : array(),
+			'navMenuList'       => self::nav_menu_list(),
 			// Forms (Velox → Mail) for the Form element.
 			'forms'     => self::forms_payload(),
 			// Keyboard shortcuts: the list, the site's changes, the fixed keys.
@@ -3107,6 +3108,31 @@ class Velox_Builder {
 			wp_send_json_error( array( 'message' => __( 'The reusable could not be saved.', 'velox' ) ), 500 );
 		}
 		wp_send_json_success( array( 'id' => $id, 'title' => $title ) );
+	}
+
+	/**
+	 * The menus a Navigation element can use, for its "Menu" picker: the
+	 * theme's menu spots that have a menu, then every menu by name. The
+	 * value is what the page looks up (a spot key or a menu slug).
+	 */
+	private static function nav_menu_list() {
+		$out   = array();
+		$locs  = (array) get_nav_menu_locations();
+		$names = (array) get_registered_nav_menus();
+		foreach ( $locs as $key => $mid ) {
+			$m = $mid ? wp_get_nav_menu_object( (int) $mid ) : false;
+			if ( $m ) {
+				/* translators: 1: theme menu spot, e.g. "Primary", 2: menu name. */
+				$out[] = array( (string) $key, sprintf( __( 'Theme spot "%1$s" (%2$s)', 'velox' ), $names[ $key ] ?? $key, $m->name ) );
+			}
+		}
+		$all = wp_get_nav_menus();
+		if ( $all && ! is_wp_error( $all ) ) {
+			foreach ( array_slice( $all, 0, 50 ) as $m ) {
+				$out[] = array( (string) $m->slug, (string) $m->name );
+			}
+		}
+		return $out;
 	}
 
 	/** Reviews connections + presets for the builder's Reviews element pickers. */

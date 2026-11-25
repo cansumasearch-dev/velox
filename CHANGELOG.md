@@ -4,6 +4,24 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.77.1 — Look check: every element on phone, tablet and desktop
+All 123 builder elements were put on one published page and looked at on a phone (375 px), a tablet (768 px) and a desktop (1440 px), plus every popup, the side panel, the dropdown and the phone menu. What came up:
+
+**Fixed**
+- **Logo strip: "Logo height" works.** Each logo picture carried its own "height: auto" that beat the setting, so logos showed at full size and stacked one per row on phones. The avatar group's photos fill their circles for the same reason.
+- **Navigation: pick the menu from a list.** "A WordPress menu" had an empty name field: a typo or a renamed menu silently showed the first menu instead. Now a list of the site's menus and the theme's menu spots. The editor also carries the submenu, like the page.
+- **Phone menu:** an opened submenu now sits under its item, not beside it.
+- **Buy box without a product** no longer shows the editor's hint to visitors.
+- **CTA band** stacks on phones (it squeezed heading, text and button side by side: one word per line), and its button never wraps.
+- **Menu / Nav (WordPress menu element)** is a clean row of links with submenus on hover instead of WordPress's raw bullet list.
+- **Popup / modal and the side panel** arrive with a heading and text instead of an empty box; **popups and panels start below the admin bar** for signed-in editors (the close button hid under it).
+- **A form element without a form** (like the newsletter popup on a site with no forms yet) tells admins why it is empty and where to make one.
+- New **pull quotes** start with an accent line; new **gradient and outlined text** sit on their own line; **reading time and last updated** no longer run into each other.
+- **Site header on tablets:** the burger sits at the right edge, not in the middle. **Testimonials, steps and contact details** keep two or three columns on tablets instead of one stretched column.
+- **Customer account on phones:** a "›" shows there are more tabs to the side.
+
+New element looks only apply where the site doesn't already have its own version of that class.
+
 ## 4.77.0 — Second full check: shop stock, accounts, editor safety
 Every builder element was run through its settings again and compared with the page, every editor panel and admin screen was used, every shop screen, order action, product action, checkout path and account flow was tried, and the code was read against the screens. What came up:
 

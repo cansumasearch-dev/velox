@@ -804,7 +804,12 @@
 					'<ul class="vx-nav-list">' + navItems.map( function ( it ) {
 						var hasSub = it.children && it.children.trim();
 						return '<li class="vx-nav-item' + ( hasSub ? ' vx-has-sub' : '' ) + '"><a href="#">' + escapeHtml( it.title ) + '</a>' +
-							( hasSub ? '<button type="button" class="vx-sub-btn"><span>' + svg( 'chevron', 12 ) + '</span></button>' : '' ) + '</li>';
+							( hasSub ? '<button type="button" class="vx-sub-btn"><span>' + svg( 'chevron', 12 ) + '</span></button>' +
+								// The submenu too (hidden, as on the page), so it is there to style and inspect.
+								'<ul class="vx-submenu" hidden>' + it.children.split( ',' ).map( function ( p ) {
+									var t = p.split( '|' )[ 0 ].trim();
+									return t ? '<li><a href="#">' + escapeHtml( t ) + '</a></li>' : '';
+								} ).join( '' ) + '</ul>' : '' ) + '</li>';
 					} ).join( '' ) + '</ul></nav>';
 			}
 			if ( 'Fab' === node.el || 'Backtotop' === node.el || 'Announcebar' === node.el ||
@@ -958,7 +963,7 @@
 				return '<div id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '"><img src="' + escapeHtml( wpd.img ) + '" alt="" style="display:block;max-width:100%;height:auto"></div>';
 			}
 			if ( node.el === 'WP' && 'menu' === node.wp && ( wpd.menu || [] ).length ) {
-				return '<nav id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '"><ul class="menu">' + wpd.menu.map( function ( m ) {
+				return '<nav id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '"><ul class="menu vx-wpmenu">' + wpd.menu.map( function ( m ) {
 					return '<li class="menu-item"><a href="#">' + escapeHtml( m ) + '</a></li>';
 				} ).join( '' ) + '</ul></nav>';
 			}
@@ -1977,6 +1982,24 @@
 		}
 	};
 
+	// The Navigation's "Menu" picker: the site's menus (and the theme's menu
+	// spots), instead of a name to type — a typo silently showed another menu.
+	// A value saved before (typed, or the old default) stays choosable.
+	function navMenuOptions( cur ) {
+		var list = ( ( window.VELOX_BUILDER || {} ).navMenuList || [] ).slice();
+		var has = list.some( function ( o ) { return String( o[ 0 ] ) === cur; } );
+		if ( ! list.length ) {
+			return [ [ cur, T( 'No menus yet — make one under Appearance → Menus' ) ] ];
+		}
+		if ( ! has && 'primary' !== cur && '' !== cur ) {
+			list.unshift( [ cur, cur + ' — ' + T( 'not found, the first menu is used' ) ] );
+		}
+		if ( ! list.some( function ( o ) { return 'primary' === String( o[ 0 ] ); } ) ) {
+			list.unshift( [ 'primary', T( 'The first menu on the site' ) ] );
+		}
+		return list;
+	}
+
 	var CAT_GROUPS = [
 		{ name:'Containers', icon:'layout', items:[
 			{ key:'section', el:'Section', tag:'section', label:'Section', cls:'.section', rules:{} },
@@ -2164,13 +2187,13 @@
 			  ] }
 		] },
 		{ name:'Typography', icon:'type', items:[
-			{ key:'gradienttext', el:'Gradienttext', tag:'span', label:'Gradient text', cls:'.gradient-text', rules:{ fontSize:'48', fontWeight:'800' }, text:'Gradient headline',
+			{ key:'gradienttext', el:'Gradienttext', tag:'span', label:'Gradient text', cls:'.gradient-text', rules:{ fontSize:'48', fontWeight:'800', display:'block', width:'fit-content' }, text:'Gradient headline',
 			  settings:[
 				{ k:'from', t:'color', l:'Starts as', d:'#2ab7f1', s:'Gradient' },
 				{ k:'to', t:'color', l:'Fades to', d:'#7b5cff', s:'Gradient' },
 				{ k:'angle', t:'num', l:'Angle', d:'90', unit:'deg', s:'Gradient' }
 			  ] },
-			{ key:'outlinetext', el:'Outlinetext', tag:'span', label:'Outlined text', cls:'.outline-text', rules:{ fontSize:'56', fontWeight:'800' }, text:'Outlined',
+			{ key:'outlinetext', el:'Outlinetext', tag:'span', label:'Outlined text', cls:'.outline-text', rules:{ fontSize:'56', fontWeight:'800', display:'block', width:'fit-content' }, text:'Outlined',
 			  settings:[
 				{ k:'strokeW', t:'num', l:'Outline thickness', d:'2', unit:'px', r:true, s:'Outline' },
 				{ k:'strokeC', t:'color', l:'Outline colour', d:'#0b0f14', s:'Outline' },
@@ -2204,7 +2227,7 @@
 				{ k:'pqRule', t:'segment', l:'Accent line', d:'none', s:'Pull quote',
 				  o:[ [ 'none', 'None' ], [ 'left', 'Down the left' ], [ 'top', 'Above' ] ] },
 				{ k:'pqRuleColor', t:'color', l:'Line colour', d:'#2ab7f1', s:'Pull quote', when:{ pqRule:[ 'left', 'top' ] } }
-			  ], text:'A line worth pulling out of the text.' },
+			  ], text:'A line worth pulling out of the text.', start:{ pqRule:'left' } },
 			{ key:'verticaltext', el:'Verticaltext', tag:'span', label:'Vertical text', cls:'.vertical-text', rules:{ fontSize:'14', letterSpacing:'2' }, text:'SCROLL',
 			  settings:[
 				{ k:'vDir', t:'segment', l:'Reads', d:'down', s:'Direction',
@@ -2339,7 +2362,7 @@
 				{ k:'bgGrey', t:'toggle', l:'Grey until hovered', d:'', s:'Icons' }
 			  ] },
 			{ key:'casestudy', el:'Casestudy', tag:'div', label:'Case study card', cls:'.case-study', rules:{ display:'flex', flexDirection:'column', gap:'14', paddingTop:'24', paddingRight:'24', paddingBottom:'24', paddingLeft:'24', borderRadius:'14' } },
-			{ key:'ctaband', el:'Ctaband', tag:'div', label:'CTA band', cls:'.cta-band', rules:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'24', paddingTop:'32', paddingRight:'32', paddingBottom:'32', paddingLeft:'32', borderRadius:'16' } },
+			{ key:'ctaband', el:'Ctaband', tag:'div', label:'CTA band', cls:'.cta-band', rules:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'24', paddingTop:'32', paddingRight:'32', paddingBottom:'32', paddingLeft:'32', borderRadius:'16' }, bp:{ md:{ flexDirection:'column', alignItems:'flex-start', paddingTop:'24', paddingRight:'24', paddingBottom:'24', paddingLeft:'24' } } },
 			{ key:'noticebox', el:'Noticebox', tag:'div', label:'Notice box', cls:'.notice-box', rules:{ display:'flex', gap:'12', paddingTop:'16', paddingRight:'16', paddingBottom:'16', paddingLeft:'16', borderRadius:'10' } },
 			{ key:'featuregrid', el:'Featuregrid', tag:'div', label:'Feature grid', cls:'.feature-grid', rules:{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'24' },
 			  settings:[
@@ -2390,14 +2413,14 @@
 				{ k:'cpText', t:'text', l:'Text', d:'© {year} {site}. All rights reserved.', tr:1, s:'Content' },
 				{ k:'cpFrom', t:'text', l:'Since (year)', d:'', s:'Content', ph:'2019' }
 			  ] },
-			{ key:'readingtime', el:'Readingtime', tag:'span', label:'Reading time', cls:'.reading-time', rules:{ fontSize:'13' },
+			{ key:'readingtime', el:'Readingtime', tag:'span', label:'Reading time', cls:'.reading-time', rules:{ fontSize:'13', display:'inline-block', marginRight:'16' },
 			  settings:[
 				{ k:'wpm', t:'num', l:'Words read per minute', d:'200', s:'Reading time' },
 				{ k:'rtBefore', t:'text', l:'Text before', d:'', ph:'e.g. Reading time:', s:'Reading time' },
 				{ k:'rtAfter', t:'text', l:'Text after', d:'min read', s:'Reading time', tr:1 },
 				{ k:'rtMin', t:'num', l:'Never show less than', d:'1', unit:'min', s:'Reading time' }
 			  ], text:'5 min read' },
-			{ key:'lastupdated', el:'Lastupdated', tag:'span', label:'Last updated', cls:'.last-updated', rules:{ fontSize:'13' },
+			{ key:'lastupdated', el:'Lastupdated', tag:'span', label:'Last updated', cls:'.last-updated', rules:{ fontSize:'13', display:'inline-block', marginRight:'16' },
 			  settings:[
 				{ k:'luBefore', t:'text', l:'Text before', d:'Last updated', s:'Last updated', tr:1 },
 				{ k:'luFormat', t:'text', l:'Date format', d:'', ph:'Site default', s:'Last updated' },
@@ -2432,7 +2455,7 @@
 			  settings:[
 				{ k:'source', t:'segment', l:'Links come from', d:'wp', s:'Links',
 				  o:[ [ 'wp', 'A WordPress menu' ], [ 'manual', 'A list I type' ] ] },
-				{ k:'menu', t:'text', l:'Menu name', d:'primary', s:'Links', when:{ source:'wp' } },
+				{ k:'menu', t:'select', l:'Menu', d:'primary', s:'Links', when:{ source:'wp' }, o:navMenuOptions },
 				{ k:'collapseAt', t:'select', l:'Collapse to a burger', d:'tablet', s:'Mobile', o:[
 					[ 'never', 'Never' ], [ 'tablet', 'On tablet and below' ],
 					[ 'mobile', 'On phones only' ], [ 'always', 'Always' ]
@@ -2980,7 +3003,15 @@
 		kit( 'ctaband', [
 			H( 'h2', '.cta-title', { color:'#ffffff', marginBottom:'8' }, 'Ready to get started?' ),
 			P( '.cta-text', { color:'#cbd5e1', marginBottom:'20' }, 'Tell us about your project and get an answer within one working day.' ),
-			{ key:'button', text:'Get in touch', href:'#' } ] );
+			{ key:'button', cls:'.cta-btn', rules:{ flexShrink:'0', whiteSpace:'nowrap' }, text:'Get in touch', href:'#' } ] );
+		// A plain popup or side panel opened as an empty box — something to replace instead.
+		kit( 'modal', [
+			{ key:'heading', tag:'h2', text:'Your headline' },
+			{ key:'text', text:'Say what this popup is for in a sentence or two.' },
+			{ key:'button', text:'Continue', href:'#' } ] );
+		kit( 'offcanvas', [
+			{ key:'heading', tag:'h3', text:'Panel' },
+			{ key:'text', text:'Put a menu, a form or anything else in here.' } ] );
 		kit( 'noticebox', [ P( '.notice-text', { marginBottom:'0' }, 'Heads up: our office is closed between Christmas and New Year.' ) ] );
 		kit( 'casestudy', [
 			IMG( '.case-media', { aspectRatio:'16/9', borderRadius:'12', overflow:'hidden' } ),
@@ -3053,8 +3084,8 @@
 		var BLOCKS = [
 			{ key:'siteheader', el:'Div', tag:'header', label:'Site header', cls:'.site-header', rules:{ display:'flex', flexDirection:'row', alignItems:'center', justifyContent:'space-between', gap:'24', paddingTop:'16', paddingBottom:'16' }, kit:{ kids:[
 				{ key:'image', cls:'.site-logo', rules:{ width:'140', height:'auto' }, src:'@img/vx-ph-logo.svg' },
-				{ key:'navbar', settings:{ source:'manual', collapseAt:'tablet' }, items:[ { title:'Home', href:'/' }, { title:'Services', href:'#' }, { title:'About us', href:'#' }, { title:'Contact', href:'#' } ] },
-				{ key:'button', cls:'.header-btn', bp:{ md:{ display:'none' } }, text:'Get in touch', href:'#' } ] } },
+				{ key:'navbar', cls:'.header-nav', bp:{ lg:{ order:'3' } }, settings:{ source:'manual', collapseAt:'tablet' }, items:[ { title:'Home', href:'/' }, { title:'Services', href:'#' }, { title:'About us', href:'#' }, { title:'Contact', href:'#' } ] },
+				{ key:'button', cls:'.header-btn', bp:{ lg:{ marginLeft:'auto' }, md:{ display:'none' } }, text:'Get in touch', href:'#' } ] } },
 			{ key:'sitefooter', el:'Div', tag:'footer', label:'Site footer', cls:'.site-footer', rules:{ display:'flex', flexDirection:'column', gap:'40', paddingTop:'64', paddingBottom:'32' }, kit:{ kids:[
 				{ key:'div', cls:'.footer-cols', rules:{ display:'grid', gridTemplateColumns:'2fr 1fr 1fr 1fr', gap:'40' }, bp:{ lg:{ gridTemplateColumns:'repeat(2, minmax(0, 1fr))' }, md:{ gridTemplateColumns:'minmax(0, 1fr)' } }, kids:[
 					{ key:'div', cls:'.footer-about', rules:{ gap:'14' }, kids:[
@@ -3081,15 +3112,15 @@
 				price( 'Professional', '€49 / month', 'For businesses that want to grow online.', [ 'Unlimited pages', 'Personal support', 'Monthly report', 'Cancel any time' ], true ),
 				price( 'Agency', '€99 / month', 'For teams with several sites.', [ 'Up to 10 sites', 'Priority support', 'White label' ], false ) ] } },
 			{ key:'testimonialcard', el:'Card', tag:'div', label:'Testimonial', cls:'.testimonial', rules:CARD, kit:{ kids:quote( '“Working with them was easy from the first call. Our new site loads in a second and brings in enquiries every week.”', 'Lena Hoffmann', 'Owner, Café Hoffmann' ).kids } },
-			{ key:'testimonials', el:'Div', tag:'div', label:'Testimonials', cls:'.testimonials', rules:THREE, bp:{ lg:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
+			{ key:'testimonials', el:'Div', tag:'div', label:'Testimonials', cls:'.testimonials', rules:THREE, bp:{ lg:{ gridTemplateColumns:'repeat(2, minmax(0, 1fr))' }, md:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
 				quote( '“Working with them was easy from the first call. Our new site loads in a second.”', 'Lena Hoffmann', 'Owner, Café Hoffmann' ),
 				quote( '“Clear prices, no surprises, and they answer the phone. Rare these days.”', 'Jonas Weber', 'Weber Elektrotechnik' ),
 				quote( '“Bookings went up by a third after the relaunch. We should have done it sooner.”', 'Sara König', 'Studio König' ) ] } },
-			{ key:'steps', el:'Div', tag:'div', label:'Steps', cls:'.steps', rules:{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:'32' }, bp:{ lg:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
+			{ key:'steps', el:'Div', tag:'div', label:'Steps', cls:'.steps', rules:{ display:'grid', gridTemplateColumns:'repeat(3, minmax(0, 1fr))', gap:'32' }, bp:{ md:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
 				step( '1', 'We talk', 'In a free call we find out what you need and what it costs.' ),
 				step( '2', 'We build', 'You see progress every week and can change things as we go.' ),
 				step( '3', 'You grow', 'Your new site goes live and we keep it fast and secure.' ) ] } },
-			{ key:'contactblock', el:'Div', tag:'div', label:'Contact details', cls:'.contact-block', rules:THREE, bp:{ lg:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
+			{ key:'contactblock', el:'Div', tag:'div', label:'Contact details', cls:'.contact-block', rules:THREE, bp:{ md:{ gridTemplateColumns:'1fr' } }, kit:{ kids:[
 				contact( 'telephone', 'Call us', '+49 30 1234567' ), contact( 'envelope', 'Write to us', 'hello@example.com' ), contact( 'geo-alt', 'Visit us', 'Musterstraße 1, 10115 Berlin' ) ] } },
 			{ key:'postcard', el:'Card', tag:'div', label:'Post card', cls:'.post-card', rules:{ display:'flex', flexDirection:'column', gap:'12' }, kit:{ kids:[
 				IMG( '.post-media', { aspectRatio:'3/2', borderRadius:'12', overflow:'hidden' } ),
@@ -3568,7 +3599,7 @@
 			// Store every default the inspector shows. Left out, the page used the
 			// renderer's own fallback until the control was touched, and the two
 			// disagreed for several elements.
-			var cdef = catDefaults( cat );
+			var cdef = Object.assign( catDefaults( cat ), cat.start || {} ); // start: how a new one arrives (the defaults stay for older ones)
 			Object.keys( cdef ).forEach( function ( k ) {
 				node.settings = node.settings || {};
 				if ( undefined === node.settings[ k ] ) { node.settings[ k ] = cdef[ k ]; }
@@ -6013,7 +6044,7 @@
 				'><span>' + T( c.l ) + '</span></label>';
 		}
 		if ( 'select' === c.t ) {
-			body = '<select class="vb-inp" ' + id + '>' + ( c.o || [] ).map( function ( o ) {
+			body = '<select class="vb-inp" ' + id + '>' + ( 'function' === typeof c.o ? c.o( String( v ) ) : ( c.o || [] ) ).map( function ( o ) {
 				return '<option value="' + escapeHtml( o[ 0 ] ) + '"' + ( String( v ) === String( o[ 0 ] ) ? ' selected' : '' ) + '>' + T( o[ 1 ] ) + '</option>';
 			} ).join( '' ) + '</select>';
 		} else if ( 'segment' === c.t ) {
