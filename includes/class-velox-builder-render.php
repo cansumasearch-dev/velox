@@ -640,7 +640,7 @@ class Velox_Builder_Render {
 				$rule = $sel . '>*{width:' . $sz . 'px;height:' . $sz . 'px;border-radius:50%;overflow:hidden;'
 					. 'flex:0 0 auto;box-shadow:0 0 0 ' . $ringW . 'px ' . esc_attr( $ring ) . '}'
 					. $sel . '>*+*{margin-left:-' . $ov . 'px}'
-					. $sel . '>* img{width:100%;height:100%;object-fit:cover;display:block}';
+					. $sel . '>* img{width:100%;height:100%!important;max-width:none;object-fit:cover;display:block}';
 				$mq = $mqs[ $bp ] ?? null;
 				self::$float_css .= $mq ? ( '@media ' . $mq . '{' . $rule . '}' ) : $rule;
 			}
@@ -781,7 +781,7 @@ class Velox_Builder_Render {
 					continue;
 				}
 				$emit( $bp, $sel . '{gap:' . (int) $carry( $gaps, $bp, 40 ) . 'px}'
-					. $sel . ' img{height:' . (int) $carry( $h, $bp, 32 ) . 'px;width:auto;display:block}' );
+					. $sel . ' img{height:' . (int) $carry( $h, $bp, 32 ) . 'px!important;width:auto;max-width:100%;display:block}' ); // !important: each logo <img> carries an inline height:auto that beat the setting.
 			}
 			if ( self::el_set( $node, 'lsGrey', '1' ) ) {
 				$op = max( 0, min( 100, (int) self::el_set( $node, 'lsFade', 55 ) ) ) / 100;
