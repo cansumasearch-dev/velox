@@ -65,8 +65,8 @@
 		var out = {};
 		qa( '[data-setel]', insp() ).forEach( function ( c ) {
 			var k = c.getAttribute( 'data-setel' ); if ( out[ k ] ) { return; }
-			if ( c.hasAttribute( 'data-segval' ) ) { out[ k ] = { kind: 'seg', vals: qa( 'button[data-setel="' + k + '"][data-segval]', insp() ).map( function ( b ) { return b.getAttribute( 'data-segval' ); } ) }; }
-			else if ( 'SELECT' === c.tagName ) { out[ k ] = { kind: 'sel', vals: [].map.call( c.options, function ( o ) { return o.value; } ) }; }
+			if ( c.hasAttribute( 'data-segval' ) ) { var bs = qa( 'button[data-setel="' + k + '"][data-segval]', insp() ), on = bs.filter( function ( b ) { return b.classList.contains( 'on' ); } )[ 0 ]; var sv = bs.map( function ( b ) { return b.getAttribute( 'data-segval' ); } ); if ( on ) { sv = [ on.getAttribute( 'data-segval' ) ].concat( sv.filter( function ( x ) { return x !== on.getAttribute( 'data-segval' ); } ) ); } out[ k ] = { kind: 'seg', vals: sv }; }
+			else if ( 'SELECT' === c.tagName ) { var ov = [].map.call( c.options, function ( o ) { return o.value; } ); out[ k ] = { kind: 'sel', vals: [ c.value ].concat( ov.filter( function ( x ) { return x !== c.value; } ) ) }; }
 			else if ( 'checkbox' === c.type ) { out[ k ] = { kind: 'chk', vals: [ ! c.checked, c.checked ] }; }
 			else if ( c.readOnly ) { out[ k ] = { kind: 'skip', why: 'read-only' }; }
 			else if ( c.closest( '.vb-media-row' ) ) { out[ k ] = { kind: 'txt', vals: [ ( window.VELOX_BUILDER.imgBase || '' ) + 'vx-ph-avatar.svg', '' ] }; }
@@ -90,29 +90,41 @@
 		var prev = await snap( id ), seen = {};
 		if ( prev.p.bad ) { r.iss.push( 'page shows ' + prev.p.bad ); }
 		if ( BAD.test( ( insp() || {} ).innerText || '' ) ) { r.iss.push( 'inspector shows ' + insp().innerText.match( BAD )[ 0 ] ); }
-		for ( var pass = 0; pass < 3; pass++ ) {
-			var cs = controls(), keys = Object.keys( cs ).filter( function ( x ) { return ! seen[ x ]; } );
-			if ( ! keys.length ) { break; }
-			for ( var i = 0; i < keys.length; i++ ) {
-				var key = keys[ i ], c = cs[ key ]; seen[ key ] = 1;
-				if ( 'skip' === c.kind ) { r.iss.push( key + ' skipped: ' + c.why ); continue; }
-				var anyChange = false;
-				for ( var j = 0; j < c.vals.length; j++ ) {
-					var v = c.vals[ j ];
-					if ( ! ( await apply( key, c.kind, v ) ) ) { break; }
-					await settle(); r.n++;
-					var cur = await snap( id ), d = cmp( prev, cur );
-					if ( 'GONE' === cur.c.h ) { r.iss.push( 'element gone after ' + key + '=' + v ); return r; }
-					if ( cur.p.errs && cur.p.errs.length ) { r.errs = r.errs.concat( cur.p.errs.map( function ( e ) { return key + '=' + v + ': ' + e; } ) ).slice( 0, 6 ); }
-					if ( cur.p.bad ) { r.iss.push( 'page shows ' + cur.p.bad + ' after ' + key + '=' + v ); }
-					if ( 'both' === d ) { anyChange = true; }
-					else if ( 'editor-only' === d ) { r.eonly.push( key + '=' + String( v ).slice( 0, 24 ) ); anyChange = true; }
-					else if ( 'page-only' === d ) { r.ponly.push( key + '=' + String( v ).slice( 0, 24 ) ); anyChange = true; }
-					prev = cur;
+		// Each setting through all its values. Settings that appear only for one
+		// value (when:) are tested right then, nested, before going on; the
+		// setting then goes back to its first value.
+		async function testKey( key, c, depth ) {
+			seen[ key ] = 1;
+			if ( 'skip' === c.kind ) { r.iss.push( key + ' skipped: ' + c.why ); return; }
+			var anyChange = false;
+			for ( var j = 0; j < c.vals.length; j++ ) {
+				var v = c.vals[ j ];
+				if ( ! ( await apply( key, c.kind, v ) ) ) { r.iss.push( key + '=' + String( v ).slice( 0, 20 ) + ' control vanished' ); break; }
+				await settle(); r.n++;
+				var cur = await snap( id ), d = cmp( prev, cur );
+				if ( 'GONE' === cur.c.h ) { r.iss.push( 'element gone after ' + key + '=' + v ); throw new Error( 'gone' ); }
+				if ( cur.p.errs && cur.p.errs.length ) { r.errs = r.errs.concat( cur.p.errs.map( function ( e ) { return key + '=' + v + ': ' + e; } ) ).slice( 0, 8 ); }
+				if ( cur.p.bad ) { r.iss.push( 'page shows ' + cur.p.bad + ' after ' + key + '=' + v ); }
+				if ( 'both' === d ) { anyChange = true; }
+				else if ( 'editor-only' === d ) { r.eonly.push( key + '=' + String( v ).slice( 0, 24 ) ); anyChange = true; }
+				else if ( 'page-only' === d ) { r.ponly.push( key + '=' + String( v ).slice( 0, 24 ) ); anyChange = true; }
+				prev = cur;
+				if ( depth < 2 ) {
+					var now = controls(), fresh = Object.keys( now ).filter( function ( x ) { return ! seen[ x ]; } );
+					for ( var f = 0; f < fresh.length; f++ ) { await testKey( fresh[ f ], now[ fresh[ f ] ], depth + 1 ); }
 				}
-				if ( ! anyChange ) { r.none.push( key ); }
 			}
+			if ( ! anyChange && c.vals.length > 1 ) { r.none.push( key ); }
+			// Back to the first value, so settings that depend on it stay reachable.
+			if ( c.vals.length > 1 && 'chk' !== c.kind ) { if ( await apply( key, c.kind, c.vals[ 0 ] ) ) { await settle(); prev = await snap( id ); } }
 		}
+		try {
+			for ( var pass = 0; pass < 3; pass++ ) {
+				var cs = controls(), keys = Object.keys( cs ).filter( function ( x ) { return ! seen[ x ]; } );
+				if ( ! keys.length ) { break; }
+				for ( var i = 0; i < keys.length; i++ ) { if ( ! seen[ keys[ i ] ] ) { var c2 = controls()[ keys[ i ] ]; if ( c2 ) { await testKey( keys[ i ], c2, 0 ); } } }
+			}
+		} catch ( ex ) { if ( 'gone' === ex.message ) { return r; } throw ex; }
 		// Items (slides, tabs, rows …): add one, edit its first field, remove it.
 		var add = q( '.vb-inspector [data-repadd]' );
 		if ( add ) {
