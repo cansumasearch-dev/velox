@@ -260,11 +260,12 @@ class Velox_Builder_Render {
 		if ( ! apply_filters( 'velox_builder_context_template', true, $ctx[0] ) ) {
 			return null;
 		}
-		$tpl = Velox_Builder::template_for_context( $ctx );
+		$rctx = class_exists( 'Velox_Builder_Templates' ) ? Velox_Builder_Templates::ctx_request() : null;
+		$tpl  = Velox_Builder::template_for_context( $ctx, $rctx );
 		// Catch-all templates only take over these screens when "wrap pages
 		// without a Velox layout" is on — the same rule as for plain pages.
 		if ( ! $tpl && Velox_Builder::wrap_legacy() ) {
-			$tpl = Velox_Builder::template_for_context( array( 'catch_all' ) );
+			$tpl = Velox_Builder::template_for_context( array( 'catch_all' ), $rctx );
 		}
 		if ( ! $tpl ) {
 			return null;

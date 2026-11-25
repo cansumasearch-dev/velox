@@ -228,6 +228,24 @@ class Velox_Builder_Templates {
 		return (bool) preg_match( $re, $norm( $path ) );
 	}
 
+	/**
+	 * A template's "But not on" rules name this context. They count for every
+	 * way a template can apply (its purpose, site default, catch-all), not only
+	 * for its "Use on" rules: an excluded page used to get it anyway as the default.
+	 */
+	public static function excluded( $id, $c ) {
+		if ( ! $c ) {
+			return false;
+		}
+		$rules = self::get( (int) $id );
+		foreach ( (array) ( $rules['exc'] ?? array() ) as $r ) {
+			if ( self::rule_score( $r, $c ) ) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	/** The best include score of a rule set, after exceptions. 0 = does not apply. */
 	public static function score( $rules, $c ) {
 		$best = 0;
@@ -381,17 +399,17 @@ class Velox_Builder_Templates {
 		}
 		$purposes = Velox_Builder::template_purposes();
 		if ( 'singular' === $c['kind'] ) {
-			$tp = Velox_Builder::template_by_purpose( $c['post_id'], false );
+			$tp = Velox_Builder::template_by_purpose( $c['post_id'], false, $c );
 			if ( $tp ) {
 				$p = Velox_Builder::template_purpose( $tp );
 				/* translators: %s: what the template is for. */
 				return $set( $tp, sprintf( __( 'It is made for: %s', 'velox' ), $purposes[ $p ] ?? $p ) );
 			}
 			$def = (int) Velox_Builder::default_template();
-			if ( $def && in_array( $def, $live, true ) ) {
+			if ( $def && in_array( $def, $live, true ) && ! self::excluded( $def, $c ) ) {
 				return $set( $def, __( 'It is the site default.', 'velox' ) );
 			}
-			$ca = Velox_Builder::template_for_context( array( 'catch_all' ) );
+			$ca = Velox_Builder::template_for_context( array( 'catch_all' ), $c );
 			return $ca ? $set( $ca, __( 'It is a Catch-all template.', 'velox' ) ) : $set( 0, __( 'No template applies.', 'velox' ) );
 		}
 		$want = array();
@@ -404,14 +422,14 @@ class Velox_Builder_Templates {
 		} elseif ( 'home' === $c['kind'] || in_array( $c['arch'] ?? '', array( 'tax', 'author', 'date' ), true ) ) {
 			$want = array( 'archive' );
 		}
-		$tp = $want ? Velox_Builder::template_for_context( $want ) : 0;
+		$tp = $want ? Velox_Builder::template_for_context( $want, $c ) : 0;
 		if ( $tp ) {
 			$p = Velox_Builder::template_purpose( $tp );
 			/* translators: %s: what the template is for. */
 			return $set( $tp, sprintf( __( 'It is made for: %s', 'velox' ), $purposes[ $p ] ?? $p ) );
 		}
 		if ( Velox_Builder::wrap_legacy() ) {
-			$ca = Velox_Builder::template_for_context( array( 'catch_all' ) );
+			$ca = Velox_Builder::template_for_context( array( 'catch_all' ), $c );
 			if ( $ca ) {
 				return $set( $ca, __( 'It is a Catch-all template.', 'velox' ) );
 			}

@@ -2833,8 +2833,9 @@ class Velox_Builder {
 			}
 		}
 		// A template's own rules ("Use on … but not on …") come next.
-		if ( class_exists( 'Velox_Builder_Templates' ) ) {
-			$ruled = Velox_Builder_Templates::match( Velox_Builder_Templates::ctx_post( $post_id ) );
+		$ctx = class_exists( 'Velox_Builder_Templates' ) ? Velox_Builder_Templates::ctx_post( $post_id ) : null;
+		if ( $ctx ) {
+			$ruled = Velox_Builder_Templates::match( $ctx );
 			if ( $ruled ) {
 				return $ruled['id'];
 			}
@@ -2843,15 +2844,15 @@ class Velox_Builder {
 		// wins. Then the site default — it was losing to any catch-all rule, so
 		// the page editor said "Site default (A)" while the page showed B. Then
 		// any other catch-all template.
-		$by_purpose = self::template_by_purpose( $post_id, false );
+		$by_purpose = self::template_by_purpose( $post_id, false, $ctx );
 		if ( $by_purpose ) {
 			return $by_purpose;
 		}
 		$default = self::default_template();
-		if ( $default && in_array( $default, $live, true ) ) {
+		if ( $default && in_array( $default, $live, true ) && ! ( $ctx && Velox_Builder_Templates::excluded( $default, $ctx ) ) ) {
 			return $default;
 		}
-		return self::template_for_context( array( 'catch_all' ) );
+		return self::template_for_context( array( 'catch_all' ), $ctx );
 	}
 
 	/** Ids of templates that are published (only those apply on the site). */
@@ -2865,12 +2866,16 @@ class Velox_Builder {
 	}
 
 	/** First published template whose purpose is in $purposes (in that order). */
-	public static function template_for_context( $purposes ) {
+	public static function template_for_context( $purposes, $ctx = null ) {
 		$rules = self::template_rules();
 		$live  = self::live_templates();
+		// A template whose "But not on" names this page or screen is skipped.
+		$out = function ( $id ) use ( $ctx ) {
+			return $ctx && class_exists( 'Velox_Builder_Templates' ) && Velox_Builder_Templates::excluded( (int) $id, $ctx );
+		};
 		foreach ( (array) $purposes as $purpose ) {
 			foreach ( $rules as $doc_id => $p ) {
-				if ( $p === $purpose && in_array( (int) $doc_id, $live, true ) ) {
+				if ( $p === $purpose && in_array( (int) $doc_id, $live, true ) && ! $out( $doc_id ) ) {
 					return (int) $doc_id;
 				}
 			}
@@ -2878,7 +2883,7 @@ class Velox_Builder {
 			// Templates screen, so it counts as one here too.
 			if ( 'catch_all' === $purpose ) {
 				foreach ( $live as $tid ) {
-					if ( ! isset( $rules[ $tid ] ) ) {
+					if ( ! isset( $rules[ $tid ] ) && ! $out( $tid ) ) {
 						return $tid;
 					}
 				}
@@ -3179,7 +3184,7 @@ class Velox_Builder {
 	 * win: a Front page template beats a Pages template, which beats catch-all.
 	 * Returns 0 when nothing matches.
 	 */
-	public static function template_by_purpose( $post_id, $with_catch_all = true ) {
+	public static function template_by_purpose( $post_id, $with_catch_all = true, $ctx = null ) {
 		$post = get_post( $post_id );
 		if ( ! $post ) {
 			return 0;
@@ -3193,7 +3198,7 @@ class Velox_Builder {
 		if ( $with_catch_all ) {
 			$wanted[] = 'catch_all';
 		}
-		return self::template_for_context( $wanted );
+		return self::template_for_context( $wanted, $ctx );
 	}
 
 	public static function ajax_template_purpose() {
