@@ -29,9 +29,12 @@ add_action( 'wp_ajax_vxt_render', function () {
 		$errs[] = 'EXC ' . $e->getMessage() . ' @' . basename( $e->getFile() ) . ':' . $e->getLine();
 	}
 	$echoed = ob_get_clean();
+	$fp = $r->hasProperty( 'float_css' ) ? $r->getProperty( 'float_css' ) : null;
+	if ( $fp ) { $fp->setAccessible( true ); }
+	$float = $fp ? (string) $fp->getValue() : '';
 	$css = Velox_Builder_Render::element_base_css();
 	$doccss = '';
 	try { $doccss = (string) Velox_Builder_Render::generate_css( $m ); } catch ( Throwable $e ) { $errs[] = 'CSS EXC ' . $e->getMessage(); }
 	restore_error_handler();
-	wp_send_json_success( array( 'html' => $html . $echoed, 'css' => $css, 'doc_css' => $doccss, 'errs' => $errs ) );
+	wp_send_json_success( array( 'html' => $html . $echoed, 'css' => $css, 'doc_css' => $doccss, 'float' => $float, 'errs' => $errs ) );
 } );
