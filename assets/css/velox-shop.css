@@ -740,6 +740,9 @@
 .vxs-grid.vxs-k-split:not(.vxs-l-list)>.vxs-card>.vxs-card-media{grid-column:1;grid-row:1}
 .vxs-grid.vxs-k-split:not(.vxs-l-list)>.vxs-card>.vxs-card-body{grid-column:2;grid-row:1;min-width:0}
 @media (max-width:600px){.vxs-grid.vxs-k-split:not(.vxs-l-list)>.vxs-card{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}}
+/* The heart sits on the photo's top-right corner (top-left is the badge's place). */
+.vxs-grid.vxs-k-split:not(.vxs-l-list):not(.vxs-bp-tr) .vxs-wish{left:auto;right:calc(50% + 18px)}
+@media (max-width:600px){.vxs-grid.vxs-k-split:not(.vxs-l-list):not(.vxs-bp-tr) .vxs-wish{right:calc(60% + 14px)}}
 
 /* hover */
 .vxs-grid .vxs-card-im2{transition:opacity .45s ease .06s}

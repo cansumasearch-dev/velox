@@ -764,6 +764,7 @@ body select.vba-input:focus,body select.vba-tpl-purpose:focus,body .vba-shell se
 .vba-xf-t small{display:block;font-size:12px;color:var(--vbb-text-3);white-space:normal}
 .vba-xf-item:not(.vba-xf-item-2) .vba-xf-t{white-space:nowrap}
 .vba-xf-draft{margin-left:auto;flex:none;font-size:11px;color:var(--vbb-text-3)}
+.vba-xf-where{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--vbb-text-3)}
 .vba-xf-none{font-size:13px;color:var(--vbb-text-3);margin:8px 0 0}
 .vba-xf-foot{display:flex;align-items:center;gap:12px;padding:16px 20px;border-top:1px solid var(--vbb-line)}
 .vba-xf-sum{margin-right:auto;font-size:13px;color:var(--vbb-text-3)}
