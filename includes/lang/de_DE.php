@@ -8483,4 +8483,6 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Claude' => 'Claude',
 	// 4.77 — welcome mail
 	'Confirm my address and open my account' => 'Adresse bestätigen und Konto öffnen',
+	// 4.77 — nav inspector
+	'Your links' => 'Ihre Links',
 );

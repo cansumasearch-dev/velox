@@ -2459,7 +2459,7 @@
 				{ k:'hideDown', t:'toggle', l:'Hides when scrolling down', d:'', s:'Scrolling', when:{ sticky:'1' } },
 				{ k:'shrinkAt', t:'num', l:'After scrolling', d:'60', unit:'px', s:'Scrolling', when:{ sticky:'1' } }
 			  ],
-			  repeat:{ label:'Links', seed:4, fields:[
+			  repeat:{ label:'Your links', seed:4, fields:[
 				{ k:'title', t:'text', l:'Label', d:'Page' },
 				{ k:'href', t:'text', l:'Address', d:'#' },
 				{ k:'children', t:'text', l:'Submenu (Label|/url, …)', d:'' }
@@ -5980,6 +5980,11 @@
 	}
 	function setVal( node, key, def ) {
 		var v = rawSetting( node, key, store.state.breakpoint );
+		// Navigation without a saved choice: typed links if it has some, as the
+		// canvas and the page decide (the inspector said "WordPress menu" meanwhile).
+		if ( ( v === undefined || v === null ) && 'source' === key && node && 'Navbar' === node.el ) {
+			return ( ( node.settings && node.settings.items ) || [] ).some( function ( it ) { return ( it.title || '' ).trim(); } ) ? 'manual' : 'wp';
+		}
 		if ( v === undefined || v === null ) { return def === undefined ? '' : def; }
 		// '0' means "off" only for switches; a gap or offset of 0 is a real 0.
 		return ( '0' === v && isToggleSetting( node, key ) ) ? '' : v;
@@ -6051,6 +6056,8 @@
 	/* Repeater: the add / reorder / remove UI for elements made of N items
 	 * (accordion rows, tabs, slides, pricing tiers). */
 	function renderRepeat( node, def ) {
+		// Links from a WordPress menu: the typed list does nothing, so it is not shown.
+		if ( 'Navbar' === node.el && 'wp' === setVal( node, 'source', 'wp' ) ) { return ''; }
 		var items = ( node.settings && node.settings.items ) || [];
 		var rows = items.map( function ( it, i ) {
 			return '<div class="vb-rep-row" data-repi="' + i + '">' +
