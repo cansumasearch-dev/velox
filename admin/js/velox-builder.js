@@ -606,7 +606,8 @@
 			out += '\n';
 		}
 		// Element custom CSS last, so it wins over the class rules it refines.
-		walkTree( S.tree, function ( node ) { out += elementCss( node ); } );
+		// Reusables on the page too (the page has their element CSS; the canvas missed it).
+		[ S.tree ].concat( extraTrees ).forEach( function ( tr ) { walkTree( tr, function ( node ) { out += elementCss( node ); } ); } );
 		return out.replace( /\n{3,}/g, '\n\n' ).trim();
 	}
 	/* Custom HTML attributes (Settings → Attributes). The same rules as the
@@ -781,7 +782,8 @@
 				if ( ! navItems.length ) {
 					return '<nav id="' + node.id + '" class="' + cls + ' vx-nav" data-node="' + node.id + '"><span class="vb-img-ph">' + T( 'No links yet — add some in Settings.' ) + '</span></nav>';
 				}
-				return '<nav id="' + node.id + '" class="' + cls + ' vx-nav' + ( isAnchor ? ' vx-anchornav' : '' ) + '" data-node="' + node.id + '">' +
+				var nMob = isAnchor ? '' : ( 'fullscreen' === nSet.mobileStyle ? ' vx-nav-full' : ( 'offcanvas' === nSet.mobileStyle ? ' vx-nav-oc' : '' ) ); // same classes as the page
+				return '<nav id="' + node.id + '" class="' + cls + ' vx-nav' + ( isAnchor ? ' vx-anchornav' : '' ) + nMob + '" data-node="' + node.id + '">' +
 					( isAnchor ? '' : '<button type="button" class="vx-burger" hidden><span class="vx-burger-i"></span></button>' ) +
 					'<ul class="vx-nav-list">' + navItems.map( function ( it ) {
 						var hasSub = it.children && it.children.trim();
@@ -810,7 +812,7 @@
 				} else {
 					// The chosen icon (it was always a star); Back to top's label is
 					// screen-reader text on the page, so it shows the arrow here too.
-					var fIco = iconMarkup( fSet.icon || ( 'Backtotop' === node.el ? 'arrow-up' : 'star' ), 14 ) || svg( 'star', 14 );
+					var fIco = iconMarkup( fSet.icon || ( 'Backtotop' === node.el ? 'chevron-up' : 'message' ), 14 ) || svg( 'star', 14 ); // the page's fallbacks
 					inner = '<div class="vx-fabprev-body"><span class="vx-fabprev-btn">' + fIco +
 						( fSet.label && 'Backtotop' !== node.el ? ' ' + escapeHtml( fSet.label ) : '' ) + '</span></div>';
 				}
@@ -959,7 +961,8 @@
 			}
 			if ( node.el === 'Icon' ) {
 				var iset = node.settings || {}, isize = parseInt( iset.size, 10 ) || 32;
-				return '<span id="' + node.id + '" class="' + cls + ' vx-icon" data-node="' + node.id + '" style="--vx-icon-size:' + isize + 'px">' + ( iconMarkup( iset.icon || 'star', isize ) || svg( 'star', isize ) ) + '</span>';
+				var itag = node.href ? 'a' : 'span'; // a linked icon is an <a> on the page, so styles for "a" match
+				return '<' + itag + ' id="' + node.id + '" class="' + cls + ' vx-icon" data-node="' + node.id + '" style="--vx-icon-size:' + isize + 'px">' + ( iconMarkup( iset.icon || 'star', isize ) || svg( 'star', isize ) ) + '</' + itag + '>';
 			}
 			// Image element: render a real <img> when a src is stored, else a placeholder.
 			if ( node.el === 'Image' ) {
@@ -967,7 +970,8 @@
 				var inner2 = src ? '<img src="' + escapeHtml( src ) + '" alt="' + escapeHtml( node.alt || '' ) + '" style="display:block;max-width:100%;height:auto">' : '<span class="vb-img-ph">' + T( 'Double-click to choose an image' ) + '</span>';
 				var cap = node.settings && node.settings.caption ? '<figcaption>' + escapeHtml( node.settings.caption ) + '</figcaption>' : '';
 				var fitOn = src && node.settings && node.settings.fit && '0' !== String( node.settings.fit );
-				return '<div id="' + node.id + '" class="' + cls + ( fitOn ? ' vx-img-cover' : '' ) + '" data-node="' + node.id + '">' + inner2 + cap + '</div>';
+				var ftag = cap && src ? 'figure' : 'div'; // with a caption the page draws figure.vx-fig
+				return '<' + ftag + ' id="' + node.id + '" class="' + cls + ( fitOn ? ' vx-img-cover' : '' ) + ( 'figure' === ftag ? ' vx-fig' : '' ) + '" data-node="' + node.id + '">' + inner2 + cap + '</' + ftag + '>';
 			}
 			var txt = ( renderContent || S.content )[ node.id ] || '';
 			// An empty container collapsed to 0px: invisible, unclickable and no
@@ -3311,7 +3315,9 @@
 			case 'Gallery':
 				var cap = [ 'below', 'overlay', 'hidden' ].indexOf( wset( node, 'captions', 'below' ) ) > -1 ? wset( node, 'captions', 'below' ) : 'below', lbx = !! wset( node, 'lightbox', '1' );
 				items.forEach( function ( it ) {
-					var im = String( it.image || '' ).trim(); if ( ! im ) { return; }
+					var im = String( it.image || '' ).trim();
+					// A new item has no photo yet: a placeholder (editor only — the page skips it), so "Add item" shows something.
+					if ( ! im ) { out += '<figure class="vx-g-i"><span class="vb-img-ph" style="min-height:90px;height:100%">' + T( 'Choose a photo' ) + '</span></figure>'; return; }
 					var cp = String( it.caption || '' ).trim(), img = '<img src="' + E( im ) + '" alt="' + E( cp ) + '" loading="lazy" decoding="async">';
 					out += '<figure class="vx-g-i">' + ( lbx ? '<a class="vx-g-a">' + img + '</a>' : img ) + ( cp && 'hidden' !== cap ? '<figcaption class="vx-g-cap">' + E( cp ) + '</figcaption>' : '' ) + '</figure>';
 				} );
@@ -3375,7 +3381,7 @@
 			case 'Share':
 				var BRS = { facebook:'#1877F2', x:'#000000', linkedin:'#0A66C2', whatsapp:'#25D366', email:'#64748b', website:'#64748b' };
 				[ [ 'facebook', 'shFb' ], [ 'x', 'shX' ], [ 'linkedin', 'shLi' ], [ 'whatsapp', 'shWa' ], [ 'email', 'shMail' ], [ 'website', 'shCopy' ] ].forEach( function ( p ) {
-					if ( wset( node, p[ 1 ], '1' ) ) { out += '<a class="vx-soc vx-soc-' + p[ 0 ] + '" style="--b:' + BRS[ p[ 0 ] ] + '">' + wsvg( p[ 0 ] ) + '</a>'; }
+					if ( wset( node, p[ 1 ], '1' ) ) { var stg = 'website' === p[ 0 ] ? 'button' : 'a'; out += '<' + stg + ' class="vx-soc vx-soc-' + p[ 0 ] + '" style="--b:' + BRS[ p[ 0 ] ] + '">' + wsvg( p[ 0 ] ) + '</' + stg + '>'; } // copy is a button on the page
 				} );
 				if ( ! out ) { return ph( T( 'Share buttons — switch some on in Settings.' ), 'link' ); }
 				var shShape = [ 'circle', 'rounded', 'square', 'plain' ].indexOf( wset( node, 'shape', 'circle' ) ) > -1 ? wset( node, 'shape', 'circle' ) : 'circle';
@@ -3392,8 +3398,9 @@
 			case 'Social':
 				var BR = { facebook:'#1877F2', instagram:'#E4405F', x:'#000000', linkedin:'#0A66C2', youtube:'#FF0000', tiktok:'#000000', pinterest:'#E60023', whatsapp:'#25D366', github:'#181717', threads:'#000000', telegram:'#26A5E4', discord:'#5865F2', spotify:'#1DB954', email:'#475569', phone:'#475569', website:'#475569' };
 				items.forEach( function ( it ) {
-					var n = String( it.net || '' ), u = String( it.url || '' ).trim(); if ( ! BR[ n ] || ! u ) { return; }
-					out += '<a class="vx-soc vx-soc-' + n + '" aria-label="' + E( n ) + '" style="--b:' + BR[ n ] + '">' + wsvg( n ) + '</a>';
+					var n = String( it.net || '' ), u = String( it.url || '' ).trim(); if ( ! BR[ n ] ) { return; }
+					// No link yet: drawn faded (editor only — the page leaves it out until it has a link).
+					out += '<a class="vx-soc vx-soc-' + n + '" aria-label="' + E( n ) + '" style="--b:' + BR[ n ] + ( u ? '' : ';opacity:.35' ) + '"' + ( u ? '' : ' title="' + E( T( 'Add the link in Settings' ) ) + '"' ) + '>' + wsvg( n ) + '</a>';
 				} );
 				if ( ! out ) { return ph( T( 'Social icons — add profiles in Settings.' ), 'link' ); }
 				var shp = [ 'circle', 'rounded', 'square', 'plain' ].indexOf( wset( node, 'shape', 'circle' ) ) > -1 ? wset( node, 'shape', 'circle' ) : 'circle';
@@ -8498,6 +8505,12 @@
 				setRepeat( function ( items, n ) {
 					var blank = {};
 					( ( rdef && rdef.repeat && rdef.repeat.fields ) || [] ).forEach( function ( f ) { blank[ f.k ] = f.d && 'text' === f.t ? T( f.d ) : ( f.d || '' ); } );
+					// Social: the next network not on the list yet (a second Facebook helped nobody).
+					if ( n && 'Social' === n.el && 'net' in blank ) {
+						var used = items.map( function ( it ) { return it.net; } );
+						var nextNet = [ 'facebook', 'instagram', 'linkedin', 'youtube', 'x', 'tiktok', 'pinterest', 'whatsapp', 'threads', 'github', 'email', 'website' ].filter( function ( k ) { return used.indexOf( k ) < 0; } )[ 0 ];
+						if ( nextNet ) { blank.net = nextNet; }
+					}
 					items.push( blank );
 					// Keep the content containers in step with the items.
 					if ( rdef && rdef.nestable ) {

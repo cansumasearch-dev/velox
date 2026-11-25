@@ -606,11 +606,11 @@
 		}
 		if ( 'load' === type ) { go(); return; }
 		if ( 'delay' === type ) {
-			window.setTimeout( go, ( parseFloat( el.getAttribute( 'data-vx-delay' ) ) || 3 ) * 1000 );
+			var dl = parseFloat( el.getAttribute( 'data-vx-delay' ) ); window.setTimeout( go, ( isNaN( dl ) ? 3 : dl ) * 1000 ); // 0 = right away (|| turned 0 into 3 s)
 			return;
 		}
 		if ( 'scroll' === type ) {
-			var pct = parseFloat( el.getAttribute( 'data-vx-scroll' ) ) || 50;
+			var pct = parseFloat( el.getAttribute( 'data-vx-scroll' ) ); pct = isNaN( pct ) ? 50 : pct;
 			var onScroll = function () {
 				var h = d.documentElement.scrollHeight - window.innerHeight;
 				if ( h > 0 && ( window.scrollY / h ) * 100 >= pct ) {

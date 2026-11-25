@@ -2377,7 +2377,7 @@ class Velox_Builder_Render {
 			$attr .= ' data-vx-sticky data-vx-shrink-at="' . (int) self::el_set( $node, 'shrinkAt', 60 ) . '"';
 			if ( self::el_set( $node, 'hideDown', '' ) ) { $attr .= ' data-vx-hide-down'; }
 			self::$float_css .= '#' . $id . '{position:sticky;top:0;z-index:9990}';
-			if ( self::el_set( $node, 'shrink', '' ) ) { self::$runtime_used['navshrink'] = true; }
+			if ( self::el_set( $node, 'shrink', '' ) ) { self::$runtime_used['navshrink'] = true; $attr .= ' data-vx-shrink'; } // only this bar shrinks
 		}
 
 		// Every navbar was called "Main", so a footer menu repeated the main
@@ -2463,7 +2463,7 @@ class Velox_Builder_Render {
 		$out  = '<div class="vx-oc" id="' . esc_attr( $id . '-oc' ) . '" data-side="' . $side . '" style="' . esc_attr( $vars ) . '" hidden>'
 			. '<div class="vx-oc-bg" data-vx-oc-close></div>'
 			. '<div class="vx-oc-panel" role="dialog" aria-modal="true" aria-label="' . esc_attr__( 'Menu', 'velox' ) . '" tabindex="-1">'
-			. '<div class="vx-oc-top"><button type="button" class="vx-oc-x" data-vx-oc-close aria-label="' . esc_attr__( 'Close menu', 'velox' ) . '">'
+			. '<div class="vx-oc-head"><button type="button" class="vx-oc-x" data-vx-oc-close aria-label="' . esc_attr__( 'Close menu', 'velox' ) . '">'
 			. '<svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M2.15 2.15a.5.5 0 0 1 .7 0L8 7.29l5.15-5.14a.5.5 0 0 1 .7.7L8.71 8l5.14 5.15a.5.5 0 0 1-.7.7L8 8.71l-5.15 5.14a.5.5 0 0 1-.7-.7L7.29 8 2.15 2.85a.5.5 0 0 1 0-.7"/></svg></button></div>'
 			. '<div class="vx-oc-slot"></div>';
 		if ( '' !== $cta ) {
@@ -2890,7 +2890,7 @@ class Velox_Builder_Render {
 				'.admin-bar .vx-oc-panel{top:var(--wp-admin--admin-bar--height,0px)}' .
 				'.vx-oc[data-side="left"] .vx-oc-panel{right:auto;left:0;transform:translateX(-100%);box-shadow:24px 0 60px rgba(0,0,0,.18)}' .
 				'.vx-oc.is-open .vx-oc-bg{opacity:1}.vx-oc.is-open .vx-oc-panel{transform:none}' .
-				'.vx-oc-top{display:flex;justify-content:flex-end}' .
+				'.vx-oc-head{display:flex;justify-content:flex-end}' . // own name: vx-oc-top is the Offcanvas "from top" class
 				'.vx-oc-x{display:grid;place-items:center;width:44px;height:44px;border-radius:50%;border:1px solid color-mix(in srgb,currentColor 20%,transparent);background:none;color:inherit;cursor:pointer;transition:transform .3s ease,background-color .2s ease}' .
 				'.vx-oc-x:hover{transform:rotate(90deg);background:color-mix(in srgb,currentColor 8%,transparent)}' .
 				'.vx-oc .vx-nav-list{position:static;display:flex;flex-direction:column;align-items:stretch;gap:0;padding:0;margin:0;background:none;box-shadow:none;font-size:1.3em;font-weight:600}' .
@@ -2917,7 +2917,7 @@ class Velox_Builder_Render {
 				'[data-vx-sticky].is-hidden{transform:translateY(-100%)}' .
 				'@media (prefers-reduced-motion:reduce){[data-vx-sticky]{transition:none}}';
 			if ( isset( self::$runtime_used['navshrink'] ) ) {
-				$css .= '[data-vx-sticky].is-stuck{padding-top:6px;padding-bottom:6px}';
+				$css .= '[data-vx-sticky][data-vx-shrink].is-stuck{padding-top:6px;padding-bottom:6px}';
 			}
 		}
 		if ( isset( self::$runtime_used['floating'] ) ) {
@@ -3757,7 +3757,9 @@ class Velox_Builder_Render {
 		}
 		// Conditions (who, where, when) are checked here, on the server: an element
 		// that does not pass is never sent to the browser, children included.
-		if ( ! empty( $node['cond'] ) && class_exists( 'Velox_Builder_Conditions' ) && ! Velox_Builder_Conditions::passes( $node['cond'] ) ) {
+		// The editor's CSS pass (css_only) draws every element, whatever its conditions:
+		// a Slider shown only to logged-out visitors still needs its CSS in the canvas.
+		if ( ! self::$css_only && ! empty( $node['cond'] ) && class_exists( 'Velox_Builder_Conditions' ) && ! Velox_Builder_Conditions::passes( $node['cond'] ) ) {
 			return '';
 		}
 		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Navbar', 'Breadcrumbs', 'Anchornav' ), true ) ) {
