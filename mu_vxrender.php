@@ -30,6 +30,8 @@ add_action( 'wp_ajax_vxt_render', function () {
 	}
 	$echoed = ob_get_clean();
 	$css = Velox_Builder_Render::element_base_css();
+	$doccss = '';
+	try { $doccss = (string) Velox_Builder_Render::generate_css( $m ); } catch ( Throwable $e ) { $errs[] = 'CSS EXC ' . $e->getMessage(); }
 	restore_error_handler();
-	wp_send_json_success( array( 'html' => $html . $echoed, 'css' => $css, 'errs' => $errs ) );
+	wp_send_json_success( array( 'html' => $html . $echoed, 'css' => $css, 'doc_css' => $doccss, 'errs' => $errs ) );
 } );
