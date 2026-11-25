@@ -4069,8 +4069,15 @@ class Velox_Builder_Render {
 		// A form from Velox → Mail, placed by the builder.
 		if ( isset( $node['el'] ) && 'Form' === $node['el'] ) {
 			$fid = (int) self::el_set( $node, 'form', '' );
-			if ( self::$css_only || ! $fid || ! class_exists( 'Velox_Forms' ) ) {
+			if ( self::$css_only || ! class_exists( 'Velox_Forms' ) ) {
 				return '<div' . $attr . '></div>';
+			}
+			// No form picked (e.g. the newsletter popup on a site without forms):
+			// visitors see nothing, the admin sees why.
+			if ( ! $fid ) {
+				return '<div' . $attr . '>' . ( current_user_can( 'manage_options' )
+					? '<p style="padding:12px 14px;border:1px dashed #d2d2d7;border-radius:10px;color:#6e6e73">' . esc_html__( 'No form chosen yet: make one under Velox → Utilities → Mail, then pick it in this element. (Only admins see this note.)', 'velox' ) . '</p>'
+					: '' ) . '</div>';
 			}
 			// Without the Mail utility the form cannot be sent, so it is not shown.
 			if ( ! ( class_exists( 'Velox_Settings' ) && Velox_Settings::get( 'util_mail' ) ) ) {
