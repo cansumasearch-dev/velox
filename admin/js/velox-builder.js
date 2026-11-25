@@ -2362,7 +2362,7 @@
 				{ k:'bgGrey', t:'toggle', l:'Grey until hovered', d:'', s:'Icons' }
 			  ] },
 			{ key:'casestudy', el:'Casestudy', tag:'div', label:'Case study card', cls:'.case-study', rules:{ display:'flex', flexDirection:'column', gap:'14', paddingTop:'24', paddingRight:'24', paddingBottom:'24', paddingLeft:'24', borderRadius:'14' } },
-			{ key:'ctaband', el:'Ctaband', tag:'div', label:'CTA band', cls:'.cta-band', rules:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'24', paddingTop:'32', paddingRight:'32', paddingBottom:'32', paddingLeft:'32', borderRadius:'16' } },
+			{ key:'ctaband', el:'Ctaband', tag:'div', label:'CTA band', cls:'.cta-band', rules:{ display:'flex', alignItems:'center', justifyContent:'space-between', gap:'24', paddingTop:'32', paddingRight:'32', paddingBottom:'32', paddingLeft:'32', borderRadius:'16' }, bp:{ md:{ flexDirection:'column', alignItems:'flex-start', paddingTop:'24', paddingRight:'24', paddingBottom:'24', paddingLeft:'24' } } },
 			{ key:'noticebox', el:'Noticebox', tag:'div', label:'Notice box', cls:'.notice-box', rules:{ display:'flex', gap:'12', paddingTop:'16', paddingRight:'16', paddingBottom:'16', paddingLeft:'16', borderRadius:'10' } },
 			{ key:'featuregrid', el:'Featuregrid', tag:'div', label:'Feature grid', cls:'.feature-grid', rules:{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:'24' },
 			  settings:[
@@ -2413,14 +2413,14 @@
 				{ k:'cpText', t:'text', l:'Text', d:'© {year} {site}. All rights reserved.', tr:1, s:'Content' },
 				{ k:'cpFrom', t:'text', l:'Since (year)', d:'', s:'Content', ph:'2019' }
 			  ] },
-			{ key:'readingtime', el:'Readingtime', tag:'span', label:'Reading time', cls:'.reading-time', rules:{ fontSize:'13' },
+			{ key:'readingtime', el:'Readingtime', tag:'span', label:'Reading time', cls:'.reading-time', rules:{ fontSize:'13', display:'inline-block', marginRight:'16' },
 			  settings:[
 				{ k:'wpm', t:'num', l:'Words read per minute', d:'200', s:'Reading time' },
 				{ k:'rtBefore', t:'text', l:'Text before', d:'', ph:'e.g. Reading time:', s:'Reading time' },
 				{ k:'rtAfter', t:'text', l:'Text after', d:'min read', s:'Reading time', tr:1 },
 				{ k:'rtMin', t:'num', l:'Never show less than', d:'1', unit:'min', s:'Reading time' }
 			  ], text:'5 min read' },
-			{ key:'lastupdated', el:'Lastupdated', tag:'span', label:'Last updated', cls:'.last-updated', rules:{ fontSize:'13' },
+			{ key:'lastupdated', el:'Lastupdated', tag:'span', label:'Last updated', cls:'.last-updated', rules:{ fontSize:'13', display:'inline-block', marginRight:'16' },
 			  settings:[
 				{ k:'luBefore', t:'text', l:'Text before', d:'Last updated', s:'Last updated', tr:1 },
 				{ k:'luFormat', t:'text', l:'Date format', d:'', ph:'Site default', s:'Last updated' },
