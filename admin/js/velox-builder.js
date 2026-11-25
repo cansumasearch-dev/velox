@@ -1991,8 +1991,11 @@
 		if ( ! list.length ) {
 			return [ [ cur, T( 'No menus yet — make one under Appearance → Menus' ) ] ];
 		}
-		if ( ! has ) {
-			list.unshift( [ cur, 'primary' === cur || '' === cur ? T( 'The first menu on the site' ) : cur + ' — ' + T( 'not found, the first menu is used' ) ] );
+		if ( ! has && 'primary' !== cur && '' !== cur ) {
+			list.unshift( [ cur, cur + ' — ' + T( 'not found, the first menu is used' ) ] );
+		}
+		if ( ! list.some( function ( o ) { return 'primary' === String( o[ 0 ] ); } ) ) {
+			list.unshift( [ 'primary', T( 'The first menu on the site' ) ] );
 		}
 		return list;
 	}
