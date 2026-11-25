@@ -36,7 +36,7 @@ window.__shopA = async function ( sec, skip ) {
 		}
 		c = m2.querySelector( '[data-k="' + k + '"]' ); if ( ! c ) { continue; }
 		if ( 'checkbox' === c.type ) { c.click(); await __sleep( 100 ); exp[ k ] = c.checked ? '1' : ''; n++; continue; }
-		if ( 'SELECT' === c.tagName ) { if ( c.options.length < 2 ) { continue; } c.value = c.options[ ( c.selectedIndex + 1 ) % c.options.length ].value; c.dispatchEvent( new Event( 'change', { bubbles: true } ) ); await __sleep( 100 ); exp[ k ] = c.value; n++; continue; }
+		if ( 'SELECT' === c.tagName ) { if ( c.options.length < 2 ) { continue; } c.value = c.options[ ( c.selectedIndex + 1 ) % c.options.length ].value; c.dispatchEvent( new Event( 'input', { bubbles: true } ) ); c.dispatchEvent( new Event( 'change', { bubbles: true } ) ); await __sleep( 100 ); exp[ k ] = c.value; n++; continue; }
 		var v = 'email' === c.type ? 'test@example.com' : ( 'url' === c.type ? 'https://example.com/x' : ( /numeric|decimal/.test( c.getAttribute( 'inputmode' ) || '' ) || 'number' === c.type ? '5' : 'Test ' + k ) );
 		if ( /iban/.test( k ) ) { v = 'DE89370400440532013000'; }
 		if ( /bic/.test( k ) ) { v = 'COBADEFFXXX'; }
