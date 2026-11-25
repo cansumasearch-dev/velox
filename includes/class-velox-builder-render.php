@@ -2509,7 +2509,7 @@ class Velox_Builder_Render {
 		$keys = array_keys( (array) get_nav_menu_locations() );
 		$all  = wp_get_nav_menus();
 		if ( $all && ! is_wp_error( $all ) ) {
-			foreach ( array_slice( $all, 0, 12 ) as $m ) {
+			foreach ( array_slice( $all, 0, 50 ) as $m ) {
 				$keys[] = $m->slug;
 				$keys[] = $m->name;
 			}

@@ -8485,4 +8485,9 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Confirm my address and open my account' => 'Adresse bestätigen und Konto öffnen',
 	// 4.77 — nav inspector
 	'Your links' => 'Ihre Links',
+	// 4.77.1 — navigation menu picker
+	'No menus yet — make one under Appearance → Menus' => 'Noch keine Menüs — legen Sie eines unter Design → Menüs an',
+	'The first menu on the site' => 'Das erste Menü der Website',
+	'not found, the first menu is used' => 'nicht gefunden, das erste Menü wird verwendet',
+	'Theme spot "%1$s" (%2$s)' => 'Theme-Position „%1$s“ (%2$s)',
 );

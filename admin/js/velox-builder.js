@@ -804,7 +804,12 @@
 					'<ul class="vx-nav-list">' + navItems.map( function ( it ) {
 						var hasSub = it.children && it.children.trim();
 						return '<li class="vx-nav-item' + ( hasSub ? ' vx-has-sub' : '' ) + '"><a href="#">' + escapeHtml( it.title ) + '</a>' +
-							( hasSub ? '<button type="button" class="vx-sub-btn"><span>' + svg( 'chevron', 12 ) + '</span></button>' : '' ) + '</li>';
+							( hasSub ? '<button type="button" class="vx-sub-btn"><span>' + svg( 'chevron', 12 ) + '</span></button>' +
+								// The submenu too (hidden, as on the page), so it is there to style and inspect.
+								'<ul class="vx-submenu" hidden>' + it.children.split( ',' ).map( function ( p ) {
+									var t = p.split( '|' )[ 0 ].trim();
+									return t ? '<li><a href="#">' + escapeHtml( t ) + '</a></li>' : '';
+								} ).join( '' ) + '</ul>' : '' ) + '</li>';
 					} ).join( '' ) + '</ul></nav>';
 			}
 			if ( 'Fab' === node.el || 'Backtotop' === node.el || 'Announcebar' === node.el ||
@@ -1977,6 +1982,21 @@
 		}
 	};
 
+	// The Navigation's "Menu" picker: the site's menus (and the theme's menu
+	// spots), instead of a name to type — a typo silently showed another menu.
+	// A value saved before (typed, or the old default) stays choosable.
+	function navMenuOptions( cur ) {
+		var list = ( ( window.VELOX_BUILDER || {} ).navMenuList || [] ).slice();
+		var has = list.some( function ( o ) { return String( o[ 0 ] ) === cur; } );
+		if ( ! list.length ) {
+			return [ [ cur, T( 'No menus yet — make one under Appearance → Menus' ) ] ];
+		}
+		if ( ! has ) {
+			list.unshift( [ cur, 'primary' === cur || '' === cur ? T( 'The first menu on the site' ) : cur + ' — ' + T( 'not found, the first menu is used' ) ] );
+		}
+		return list;
+	}
+
 	var CAT_GROUPS = [
 		{ name:'Containers', icon:'layout', items:[
 			{ key:'section', el:'Section', tag:'section', label:'Section', cls:'.section', rules:{} },
@@ -2432,7 +2452,7 @@
 			  settings:[
 				{ k:'source', t:'segment', l:'Links come from', d:'wp', s:'Links',
 				  o:[ [ 'wp', 'A WordPress menu' ], [ 'manual', 'A list I type' ] ] },
-				{ k:'menu', t:'text', l:'Menu name', d:'primary', s:'Links', when:{ source:'wp' } },
+				{ k:'menu', t:'select', l:'Menu', d:'primary', s:'Links', when:{ source:'wp' }, o:navMenuOptions },
 				{ k:'collapseAt', t:'select', l:'Collapse to a burger', d:'tablet', s:'Mobile', o:[
 					[ 'never', 'Never' ], [ 'tablet', 'On tablet and below' ],
 					[ 'mobile', 'On phones only' ], [ 'always', 'Always' ]
@@ -6013,7 +6033,7 @@
 				'><span>' + T( c.l ) + '</span></label>';
 		}
 		if ( 'select' === c.t ) {
-			body = '<select class="vb-inp" ' + id + '>' + ( c.o || [] ).map( function ( o ) {
+			body = '<select class="vb-inp" ' + id + '>' + ( 'function' === typeof c.o ? c.o( String( v ) ) : ( c.o || [] ) ).map( function ( o ) {
 				return '<option value="' + escapeHtml( o[ 0 ] ) + '"' + ( String( v ) === String( o[ 0 ] ) ? ' selected' : '' ) + '>' + T( o[ 1 ] ) + '</option>';
 			} ).join( '' ) + '</select>';
 		} else if ( 'segment' === c.t ) {
