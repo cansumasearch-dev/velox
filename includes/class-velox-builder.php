@@ -588,6 +588,7 @@ class Velox_Builder {
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'velox_nonce' ),
 			'docId'   => $doc_id,
+			'docRev'  => $doc_id ? self::save_rev( $doc_id ) : 0,
 			'postId'  => $post_id,
 			'seedTitle' => $seed_title,
 			// The stored type wins over the URL. Opening a template without
@@ -798,6 +799,24 @@ class Velox_Builder {
 	 * views, and upsert the row. Creating a new doc returns its fresh id so the
 	 * editor can switch from "new" to "editing #id".
 	 */
+	/**
+	 * How many times the editor saved this document. A save that starts from an
+	 * older number was made in another tab or by someone else meanwhile: the
+	 * last save used to win without a word and wipe the other person's work.
+	 */
+	public static function save_rev( $id ) {
+		$all = get_option( 'velox_builder_doc_rev', array() );
+		return is_array( $all ) ? (int) ( $all[ (int) $id ] ?? 0 ) : 0;
+	}
+
+	private static function bump_rev( $id ) {
+		$all = get_option( 'velox_builder_doc_rev', array() );
+		$all = is_array( $all ) ? $all : array();
+		$all[ (int) $id ] = (int) ( $all[ (int) $id ] ?? 0 ) + 1;
+		update_option( 'velox_builder_doc_rev', $all, false );
+		return $all[ (int) $id ];
+	}
+
 	public static function ajax_save() {
 		global $wpdb;
 		$id    = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
@@ -875,6 +894,25 @@ class Velox_Builder {
 				$pending[] = $cname;
 			}
 		}
+		// A class edited and then changed back is the same as the site's version:
+		// drop it, or publishing pushed this page's copy site-wide anyway.
+		if ( $pending ) {
+			$reg  = self::class_registry();
+			$norm = function ( $v ) use ( &$norm ) {
+				$v = json_decode( wp_json_encode( $v ), true );
+				if ( is_array( $v ) ) {
+					ksort( $v );
+					foreach ( $v as $k => $x ) {
+						$v[ $k ] = is_array( $x ) ? $norm( $x ) : $x;
+					}
+				}
+				return $v;
+			};
+			$pending = array_values( array_filter( $pending, function ( $c ) use ( $model, $reg, $norm ) {
+				$mine = isset( $model->classes ) && is_object( $model->classes ) && isset( $model->classes->{$c} ) ? $model->classes->{$c} : null;
+				return ! ( null !== $mine && isset( $reg[ $c ] ) && $norm( $mine ) === $norm( $reg[ $c ] ) );
+			} ) );
+		}
 		if ( $pending ) {
 			$model->changedClasses = array_values( $pending );
 		}
@@ -891,6 +929,10 @@ class Velox_Builder {
 			$id = self::doc_id_for_post( $post_id );
 		}
 		$row = $id ? $wpdb->get_row( $wpdb->prepare( "SELECT id, status, kind FROM {$t} WHERE id = %d", $id ), ARRAY_A ) : null;
+		// Saved meanwhile somewhere else (another tab, another person)? Ask first.
+		if ( $row && isset( $_POST['base_rev'] ) && '' !== (string) $_POST['base_rev'] && empty( $_POST['force'] ) && (int) $_POST['base_rev'] !== self::save_rev( $id ) ) {
+			wp_send_json_error( array( 'conflict' => 1, 'message' => __( 'This page was saved somewhere else since you opened it (another tab or another person).', 'velox' ) ), 409 );
+		}
 		// Switching the type in the editor: same rules as on the Overview.
 		if ( $row && $row['kind'] !== $kind ) {
 			self::change_kind( $id, $kind );
@@ -942,9 +984,11 @@ class Velox_Builder {
 			Velox_Builder_Revisions::record( $id, $rk, $data, $title );
 		}
 		$bound = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . $t . ' WHERE id = %d', $id ) );
+		$rev   = self::bump_rev( $id );
 		wp_send_json_success(
 			array(
 				'id'        => $id,
+				'rev'       => $rev,
 				'pending_classes' => $pending,
 				'title'     => $title,
 				'saved'     => $now,
@@ -1195,6 +1239,7 @@ class Velox_Builder {
 		wp_send_json_success(
 			array(
 				'id'        => (int) $row['id'],
+				'rev'       => self::save_rev( (int) $row['id'] ),
 				'title'     => $row['title'],
 				'kind'      => $row['kind'],
 				'status'    => $row['status'],
@@ -2595,23 +2640,28 @@ class Velox_Builder {
 	private static function rewrite_class( $from, $to ) {
 		$changed = self::each_model(
 			function ( &$model ) use ( $from, $to ) {
-				if ( empty( $model['classes'] ) || ! is_array( $model['classes'] ) || ! isset( $model['classes'][ $from ] ) ) {
-					return false;
+				// A page may only USE the class (its rules live in the site-wide
+				// list) — those pages were skipped, kept the old name and lost the
+				// styling once the old name was gone. Rewrite every reference.
+				$hit = false;
+				if ( ! empty( $model['classes'] ) && is_array( $model['classes'] ) && isset( $model['classes'][ $from ] ) ) {
+					// Renaming onto a class that already exists keeps that class's rules
+					// rather than overwriting them.
+					if ( null !== $to && ! isset( $model['classes'][ $to ] ) ) {
+						$model['classes'][ $to ] = $model['classes'][ $from ];
+					}
+					unset( $model['classes'][ $from ] );
+					$hit = true;
 				}
-				// Renaming onto a class that already exists keeps that class's rules
-				// rather than overwriting them.
-				if ( null !== $to && ! isset( $model['classes'][ $to ] ) ) {
-					$model['classes'][ $to ] = $model['classes'][ $from ];
-				}
-				unset( $model['classes'][ $from ] );
 				if ( isset( $model['activeClass'] ) && $model['activeClass'] === $from ) {
 					$model['activeClass'] = $to;
+					$hit = true;
 				}
 				if ( ! empty( $model['tree'] ) && is_array( $model['tree'] ) ) {
 					self::walk_ref(
 						$model['tree'],
-						function ( &$node ) use ( $from, $to ) {
-							if ( empty( $node['classes'] ) ) {
+						function ( &$node ) use ( $from, $to, &$hit ) {
+							if ( empty( $node['classes'] ) || ! in_array( $from, (array) $node['classes'], true ) ) {
 								return;
 							}
 							$out = array();
@@ -2622,10 +2672,11 @@ class Velox_Builder {
 								}
 							}
 							$node['classes'] = $out;
+							$hit = true;
 						}
 					);
 				}
-				return true;
+				return $hit;
 			}
 		);
 		$reg = self::class_registry();
@@ -2833,8 +2884,9 @@ class Velox_Builder {
 			}
 		}
 		// A template's own rules ("Use on … but not on …") come next.
-		if ( class_exists( 'Velox_Builder_Templates' ) ) {
-			$ruled = Velox_Builder_Templates::match( Velox_Builder_Templates::ctx_post( $post_id ) );
+		$ctx = class_exists( 'Velox_Builder_Templates' ) ? Velox_Builder_Templates::ctx_post( $post_id ) : null;
+		if ( $ctx ) {
+			$ruled = Velox_Builder_Templates::match( $ctx );
 			if ( $ruled ) {
 				return $ruled['id'];
 			}
@@ -2843,15 +2895,15 @@ class Velox_Builder {
 		// wins. Then the site default — it was losing to any catch-all rule, so
 		// the page editor said "Site default (A)" while the page showed B. Then
 		// any other catch-all template.
-		$by_purpose = self::template_by_purpose( $post_id, false );
+		$by_purpose = self::template_by_purpose( $post_id, false, $ctx );
 		if ( $by_purpose ) {
 			return $by_purpose;
 		}
 		$default = self::default_template();
-		if ( $default && in_array( $default, $live, true ) ) {
+		if ( $default && in_array( $default, $live, true ) && ! ( $ctx && Velox_Builder_Templates::excluded( $default, $ctx ) ) ) {
 			return $default;
 		}
-		return self::template_for_context( array( 'catch_all' ) );
+		return self::template_for_context( array( 'catch_all' ), $ctx );
 	}
 
 	/** Ids of templates that are published (only those apply on the site). */
@@ -2865,12 +2917,16 @@ class Velox_Builder {
 	}
 
 	/** First published template whose purpose is in $purposes (in that order). */
-	public static function template_for_context( $purposes ) {
+	public static function template_for_context( $purposes, $ctx = null ) {
 		$rules = self::template_rules();
 		$live  = self::live_templates();
+		// A template whose "But not on" names this page or screen is skipped.
+		$out = function ( $id ) use ( $ctx ) {
+			return $ctx && class_exists( 'Velox_Builder_Templates' ) && Velox_Builder_Templates::excluded( (int) $id, $ctx );
+		};
 		foreach ( (array) $purposes as $purpose ) {
 			foreach ( $rules as $doc_id => $p ) {
-				if ( $p === $purpose && in_array( (int) $doc_id, $live, true ) ) {
+				if ( $p === $purpose && in_array( (int) $doc_id, $live, true ) && ! $out( $doc_id ) ) {
 					return (int) $doc_id;
 				}
 			}
@@ -2878,7 +2934,7 @@ class Velox_Builder {
 			// Templates screen, so it counts as one here too.
 			if ( 'catch_all' === $purpose ) {
 				foreach ( $live as $tid ) {
-					if ( ! isset( $rules[ $tid ] ) ) {
+					if ( ! isset( $rules[ $tid ] ) && ! $out( $tid ) ) {
 						return $tid;
 					}
 				}
@@ -3179,7 +3235,7 @@ class Velox_Builder {
 	 * win: a Front page template beats a Pages template, which beats catch-all.
 	 * Returns 0 when nothing matches.
 	 */
-	public static function template_by_purpose( $post_id, $with_catch_all = true ) {
+	public static function template_by_purpose( $post_id, $with_catch_all = true, $ctx = null ) {
 		$post = get_post( $post_id );
 		if ( ! $post ) {
 			return 0;
@@ -3193,7 +3249,7 @@ class Velox_Builder {
 		if ( $with_catch_all ) {
 			$wanted[] = 'catch_all';
 		}
-		return self::template_for_context( $wanted );
+		return self::template_for_context( $wanted, $ctx );
 	}
 
 	public static function ajax_template_purpose() {

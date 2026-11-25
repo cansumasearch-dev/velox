@@ -4,6 +4,46 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.77.0 — Second full check: shop stock, accounts, editor safety
+Every builder element was run through its settings again and compared with the page, every editor panel and admin screen was used, every shop screen, order action, product action, checkout path and account flow was tried, and the code was read against the screens. What came up:
+
+**Shop — orders and stock**
+- **Nothing is sold twice any more.** Stock is taken in one locked step when the order is made; when someone else bought the last piece a moment earlier, the buyer gets "Someone was faster" and an adjusted cart instead of an order. The cart never holds more than is left.
+- **No phantom stock:** editing an order to more than is in stock is refused ("Not enough in stock: … 3 left"), and cancelling or refunding gives back only what the order really took (it used to add the full amount — stock 0 became 99).
+- **A late card payment for a cancelled order** takes the stock again only if it is there, and otherwise notes and mails you to check before shipping. Unpaid card orders are cancelled only after the payment page has expired.
+- **Countries without a shipping zone** can no longer order with free shipping.
+- **An empty price no longer puts a product on sale for 0,00 €** (the quick price edit in the product list and the server refuse it).
+- **Orders with an invoice, or already shipped, cannot be deleted** (cancel them instead).
+- Refunds say the amount recorded (and when it was capped to what was left); "the customer has been told" only shows when that email is switched on; the CSV export has German column names and status words and is safe to open in Excel; a fully refunded order no longer shows "To ship".
+- **Coupons:** an unpaid, cancelled order gives the use back; a negative value is refused; the "used" count can't be reset by an open screen.
+- **VAT on shipping follows the goods** (all 7 % goods → 7 %, mixed carts split).
+- Settings that are a choice only accept their own values (an unknown tax mode left the shop charging VAT while saying it didn't); Stripe restricted keys (rk_) work; "Test the connection" with no key says what to enter; hold time capped at 24 h.
+
+**Shop — customer accounts**
+- **Guest orders show in an account only after the email address is confirmed** with a link we mail (welcome mail, password reset or email change). Before, anyone could register with a stranger's email and see their orders. Existing accounts are unchanged.
+- **Downloads tab shows the files** (it was always empty).
+- Two-factor sign-in can't be replaced from a signed-in session while it is on; reset codes can't be guessed endlessly; only failed sign-ins count towards the limit (behind a proxy, ten good sign-ins locked everyone out).
+- **"Download my data" really is everything** (wishlist, reviews, stock alerts, saved cart, sign-in data), deleting an account removes those too, and the shop joins WordPress's own Export / Erase Personal Data tools.
+- Reviews: "Verified purchase" needs the signed-in account that bought it; the form says what was wrong (no stars, too short, already reviewed…); the back-in-stock form works without JavaScript; the cart reminder can't be used to sign up strangers.
+
+**Shop — screens and looks**
+- The shop menu shows icons only when there is no room for the labels (at 1024 px half the menu was hidden); units like "kg" and "days" sit inside their fields; the "+ country" pickers are dark; one blue main button on the order page; plural words fit the number ("1 order").
+- Design: "Space around the photo", "Fill" and "Behind the photo: Nothing" work on tiles; "Side by side" cards are side by side in the grid; spaced capitals reach the product details; "Buttons in the grid: Outline" no longer changes the product page's buy button.
+- Mini cart: no "incl. VAT" for small businesses, no "X more for free shipping" with a free-shipping code, and the badge counts only what can still be bought.
+
+**Builder — the page and the editor match**
+- **Your own "This element" styles beat an element's built-in look on the published page** (a pull quote's line padding won for visitors while the editor showed yours).
+- Elements shown only to some visitors get their layout CSS in the editor; a countdown to a date ends at midnight; Off-canvas/Modal/Dropdown "Speed" sets the animation; custom states like `:not(:last-child)` reach the page; an image's fit, position and ratio work; embeds, background images, element CSS inside reusables, icons with links, captions, the share copy button, navbar mobile styles and the back-to-top icon look the same in the editor and on the page; "Shrink once scrolled" only shrinks its own bar; a trigger delay of 0 is 0.
+- The editor's element CSS no longer shows an older state after quick edits; new Social and Gallery items show at once.
+- The navigation's settings show where its links come from on the page (a WordPress menu or your own links); the list of your own links only shows when you use them.
+
+**Builder — editing is safer**
+- **Two tabs or two people can't overwrite each other without a question** ("Save mine over it" / "Load the other version").
+- Claude in the editor locks the page as soon as it starts, keeps Undo right, and can't be mixed up with History previews; a refused restore says so; Discard waits for a running save.
+- Undo keeps you on a class the element still has, only counts real changes, and includes a value typed a moment before; several selected elements move in page order and Delete in Structure removes them all; copies keep their copied text and their interactions point at the copy.
+- **Renaming or deleting a class reaches every page that uses it** (pages that only used it kept the old name and lost the styling).
+- Templates: an unpublished site default says it is not used; Import & export shows each page's address; "Reusables" is called the same everywhere.
+
 ## 4.76.0 — Full check of the builder and the shop
 Every element in the builder (123) was inserted and run through every setting, layout and motion option, styled, published and compared with the editor; every shop setting was changed, saved and reloaded; orders, payments, coupons, refunds, withdrawals, emails and the admin actions were run end to end. Fixed:
 

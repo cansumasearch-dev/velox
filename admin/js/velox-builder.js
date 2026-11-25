@@ -240,6 +240,10 @@
 			this.state = d; this.history = [ JSON.stringify( d ) ]; this.log = []; this.future = []; this.emitLog(); this.emit(); },
 		snapshot:function () {
 			var snap = JSON.stringify( this.state ); if ( this.history[ this.history.length - 1 ] === snap ) { return false; }
+			// Only the place you are working in changed (selection, class, screen size):
+			// no Undo step — Undo seemed to do nothing. The newest snapshot keeps it.
+			var bare = function ( j ) { var o = JSON.parse( j ); delete o.selection; delete o.activeClass; delete o.breakpoint; delete o.state; return JSON.stringify( o ); };
+			if ( this.history.length && bare( this.history[ this.history.length - 1 ] ) === bare( snap ) ) { this.history[ this.history.length - 1 ] = snap; return false; }
 			this.history.push( snap );
 			// Dropping the oldest snapshot shifts every index by one; the History
 			// panel kept the old numbers and jumped to the wrong point.
@@ -247,11 +251,12 @@
 			this.future = []; return true; },
 		/* commit: fn mutates state; snapshot the RESULT so history holds real edit
 		   states. quiet=true (selection, hover) doesn't record history/log. */
-		commit:function ( fn, label ) {
+		commit:function ( fn, label, trusted ) {
 			// Previewing a saved version: it is read-only.
 			if ( this.locked ) { if ( label !== false && this.onLocked ) { this.onLocked(); } return; }
 			fn( this.state );
-			if ( label !== false && this.guard && this.history.length && ! this.guard.ok( JSON.parse( this.history[ this.history.length - 1 ] ), this.state ) ) {
+			// trusted: changes the server already made (Claude) - the role/lock guard is for the user's own edits.
+			if ( label !== false && ! trusted && this.guard && this.history.length && ! this.guard.ok( JSON.parse( this.history[ this.history.length - 1 ] ), this.state ) ) {
 				// Not allowed for this role: put the document back as it was.
 				var keep = { selection:this.state.selection, activeClass:this.state.activeClass, breakpoint:this.state.breakpoint, state:this.state.state };
 				this.state = Object.assign( JSON.parse( this.history[ this.history.length - 1 ] ), keep );
@@ -275,9 +280,20 @@
 		},
 		/* Undo/redo restore the document, not the place you are working in:
 		   the screen size and state you are editing stay as they are. */
-		keepContext:function ( next ) { var cur = this.state || {}; next.breakpoint = cur.breakpoint || 'base'; next.state = cur.state || 'normal'; if ( cur.selection && findNode( next.tree || [], cur.selection ) ) { next.selection = cur.selection; next.activeClass = cur.activeClass; } return next; },
-		undo:function () { if ( this.locked || this.history.length <= 1 ) { return; } this.future.push( this.history.pop() ); this.state = this.keepContext( JSON.parse( this.history[ this.history.length - 1 ] ) ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
-		redo:function () { if ( this.locked || ! this.future.length ) { return; } var s = this.future.pop(); this.history.push( s ); this.state = this.keepContext( JSON.parse( s ) ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
+		keepContext:function ( next ) {
+			var cur = this.state || {}; next.breakpoint = cur.breakpoint || 'base'; next.state = cur.state || 'normal';
+			var n = cur.selection ? findNode( next.tree || [], cur.selection ) : null;
+			if ( n ) {
+				next.selection = cur.selection;
+				// The class you were styling may be gone after Undo (an undone "Add
+				// class"): then keep styling went into a class no longer on the element.
+				var cls = n.classes || [];
+				next.activeClass = ( ! cur.activeClass || cls.indexOf( cur.activeClass ) > -1 ) ? cur.activeClass : ( cls[ 0 ] || null );
+			}
+			return next;
+		},
+		undo:function () { flushPending(); /* a field still waiting to commit goes in first, then is undone */ if ( this.locked || this.history.length <= 1 ) { return; } this.future.push( this.history.pop() ); this.state = this.keepContext( JSON.parse( this.history[ this.history.length - 1 ] ) ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
+		redo:function () { flushPending(); if ( this.locked || ! this.future.length ) { return; } var s = this.future.pop(); this.history.push( s ); this.state = this.keepContext( JSON.parse( s ) ); if ( this.onEdit ) { this.onEdit(); } this.emitLog(); this.emit(); },
 		/* Revert to a specific snapshot (session history). idx = history length at
 		   that point, so history[idx-1] is that state. */
 		/* Going back to a point in History is itself a step: everything after it
@@ -531,6 +547,17 @@
 	/* ============================================================
 	   2. CSS GEN + LIVE INJECTION
 	   ============================================================ */
+	/* The same value check the page makes (sanitize_value in PHP): what the page
+	 * drops — a url() that isn't http(s) or /path, "expression(", "javascript:" —
+	 * the canvas drops too, so the editor never shows what visitors won't see. */
+	function safeVal( v ) {
+		v = String( v == null ? '' : v ).trim().replace( /[{}<>;]/g, '' );
+		if ( /(expression\s*\(|javascript:|@import|behaviou?r\s*:)/i.test( v ) ) { return ''; }
+		var re = /url\s*\(\s*(['"]?)(.*?)\1\s*\)/gi, m, any = false;
+		while ( ( m = re.exec( v ) ) ) { any = true; if ( ! /^(https?:\/\/|\/)[^\s'"()\\]*$/i.test( m[ 2 ] ) ) { return ''; } }
+		if ( ! any && /url\s*\(/i.test( v ) ) { return ''; }
+		return v;
+	}
 	function declBlock( obj ) {
 		var out = '';
 		// Shorthands first: "background" after "background-image" would wipe the
@@ -538,7 +565,8 @@
 		var keys = Object.keys( obj ).sort( function ( a, b ) { return ( SHORTHAND[ b ] ? 1 : 0 ) - ( SHORTHAND[ a ] ? 1 : 0 ); } );
 		for ( var ki = 0; ki < keys.length; ki++ ) {
 			var p = keys[ ki ];
-			var kebab = CSS_PROP[ p ] || p, v = obj[ p ];
+			var kebab = CSS_PROP[ p ] || p, v = safeVal( obj[ p ] );
+			if ( '' === v ) { continue; }
 			if ( UNIT_PROPS[ p ] && /^-?\d+(\.\d+)?$/.test( v ) ) { v = v + 'px'; }
 			out += '  ' + kebab + ': ' + v + ';\n';
 		}
@@ -594,7 +622,8 @@
 			out += '\n';
 		}
 		// Element custom CSS last, so it wins over the class rules it refines.
-		walkTree( S.tree, function ( node ) { out += elementCss( node ); } );
+		// Reusables on the page too (the page has their element CSS; the canvas missed it).
+		[ S.tree ].concat( extraTrees ).forEach( function ( tr ) { walkTree( tr, function ( node ) { out += elementCss( node ); } ); } );
 		return out.replace( /\n{3,}/g, '\n\n' ).trim();
 	}
 	/* Custom HTML attributes (Settings → Attributes). The same rules as the
@@ -769,7 +798,8 @@
 				if ( ! navItems.length ) {
 					return '<nav id="' + node.id + '" class="' + cls + ' vx-nav" data-node="' + node.id + '"><span class="vb-img-ph">' + T( 'No links yet — add some in Settings.' ) + '</span></nav>';
 				}
-				return '<nav id="' + node.id + '" class="' + cls + ' vx-nav' + ( isAnchor ? ' vx-anchornav' : '' ) + '" data-node="' + node.id + '">' +
+				var nMob = isAnchor ? '' : ( 'fullscreen' === nSet.mobileStyle ? ' vx-nav-full' : ( 'offcanvas' === nSet.mobileStyle ? ' vx-nav-oc' : '' ) ); // same classes as the page
+				return '<nav id="' + node.id + '" class="' + cls + ' vx-nav' + ( isAnchor ? ' vx-anchornav' : '' ) + nMob + '" data-node="' + node.id + '">' +
 					( isAnchor ? '' : '<button type="button" class="vx-burger" hidden><span class="vx-burger-i"></span></button>' ) +
 					'<ul class="vx-nav-list">' + navItems.map( function ( it ) {
 						var hasSub = it.children && it.children.trim();
@@ -798,7 +828,7 @@
 				} else {
 					// The chosen icon (it was always a star); Back to top's label is
 					// screen-reader text on the page, so it shows the arrow here too.
-					var fIco = iconMarkup( fSet.icon || ( 'Backtotop' === node.el ? 'arrow-up' : 'star' ), 14 ) || svg( 'star', 14 );
+					var fIco = iconMarkup( fSet.icon || ( 'Backtotop' === node.el ? 'chevron-up' : 'message' ), 14 ) || svg( 'star', 14 ); // the page's fallbacks
 					inner = '<div class="vx-fabprev-body"><span class="vx-fabprev-btn">' + fIco +
 						( fSet.label && 'Backtotop' !== node.el ? ' ' + escapeHtml( fSet.label ) : '' ) + '</span></div>';
 				}
@@ -947,7 +977,8 @@
 			}
 			if ( node.el === 'Icon' ) {
 				var iset = node.settings || {}, isize = parseInt( iset.size, 10 ) || 32;
-				return '<span id="' + node.id + '" class="' + cls + ' vx-icon" data-node="' + node.id + '" style="--vx-icon-size:' + isize + 'px">' + ( iconMarkup( iset.icon || 'star', isize ) || svg( 'star', isize ) ) + '</span>';
+				var itag = node.href ? 'a' : 'span'; // a linked icon is an <a> on the page, so styles for "a" match
+				return '<' + itag + ' id="' + node.id + '" class="' + cls + ' vx-icon" data-node="' + node.id + '" style="--vx-icon-size:' + isize + 'px">' + ( iconMarkup( iset.icon || 'star', isize ) || svg( 'star', isize ) ) + '</' + itag + '>';
 			}
 			// Image element: render a real <img> when a src is stored, else a placeholder.
 			if ( node.el === 'Image' ) {
@@ -955,7 +986,8 @@
 				var inner2 = src ? '<img src="' + escapeHtml( src ) + '" alt="' + escapeHtml( node.alt || '' ) + '" style="display:block;max-width:100%;height:auto">' : '<span class="vb-img-ph">' + T( 'Double-click to choose an image' ) + '</span>';
 				var cap = node.settings && node.settings.caption ? '<figcaption>' + escapeHtml( node.settings.caption ) + '</figcaption>' : '';
 				var fitOn = src && node.settings && node.settings.fit && '0' !== String( node.settings.fit );
-				return '<div id="' + node.id + '" class="' + cls + ( fitOn ? ' vx-img-cover' : '' ) + '" data-node="' + node.id + '">' + inner2 + cap + '</div>';
+				var ftag = cap && src ? 'figure' : 'div'; // with a caption the page draws figure.vx-fig
+				return '<' + ftag + ' id="' + node.id + '" class="' + cls + ( fitOn ? ' vx-img-cover' : '' ) + ( 'figure' === ftag ? ' vx-fig' : '' ) + '" data-node="' + node.id + '">' + inner2 + cap + '</' + ftag + '>';
 			}
 			var txt = ( renderContent || S.content )[ node.id ] || '';
 			// An empty container collapsed to 0px: invisible, unclickable and no
@@ -1166,7 +1198,7 @@
 	/* Text effects, grid layouts, presets and similar elements get their CSS
 	 * from their settings, built by the same PHP the page uses. Ask for it
 	 * whenever the tree changes (debounced) and drop it into the canvas. */
-	var previewCssKey = '', previewCssTimer = null;
+	var previewCssKey = '', previewCssTimer = null, previewCssSeq = 0;
 	function schedulePreviewCss() {
 		if ( ! CFG.ajaxurl || ! store.state ) { return; }
 		var key = JSON.stringify( store.state.tree ) + JSON.stringify( store.state.content );
@@ -1174,6 +1206,9 @@
 		clearTimeout( previewCssTimer );
 		previewCssTimer = setTimeout( function () {
 			previewCssKey = key;
+			// Answers can come back out of order (a slow one after a fast one):
+			// only the newest request may write, or quick edits showed old CSS.
+			var seq = ++previewCssSeq;
 			var body = new URLSearchParams();
 			body.set( 'action', 'velox' ); body.set( 'do', 'builder_preview_css' ); body.set( 'nonce', CFG.nonce || '' );
 			body.set( 'model', JSON.stringify( { tree:store.state.tree, content:store.state.content, classes:{} } ) );
@@ -1182,7 +1217,9 @@
 				.then( function ( res ) {
 					var fr = document.getElementById( 'vb-canvas' ), cd = fr && fr.contentDocument;
 					var tag = cd && cd.getElementById( 'vb-preview-css' );
+					if ( seq !== previewCssSeq ) { return; }
 					if ( tag && res && res.success ) { tag.textContent = res.data.css || ''; }
+					if ( fr ) { fr.setAttribute( 'data-vb-css-seq', seq ); } // tests can wait for it
 				} )
 				.catch( function () {} );
 		}, 450 );
@@ -1625,6 +1662,11 @@
 			// belongs to this element. It used to land in a class called "null".
 			if ( elementOverride || writesToElement( s, node, prop ) ) { node.overrides[ key ] = node.overrides[ key ] || {}; node.overrides[ key ][ prop ] = value; clearShadowed( node.overrides, key, prop ); }
 			else { var c = s.activeClass; s.classes[ c ] = s.classes[ c ] || {}; s.classes[ c ][ key ] = s.classes[ c ][ key ] || {}; s.classes[ c ][ key ][ prop ] = value; clearShadowed( s.classes[ c ], key, prop ); }
+			// An image's ratio, fit or position only shows when the photo fills its
+			// box — without it a ratio cut the bottom off and "contain" did nothing.
+			if ( 'Image' === node.el && value && ( 'aspectRatio' === prop || 'objectFit' === prop || 'objectPosition' === prop ) ) {
+				node.settings = node.settings || {}; if ( ! node.settings.fit || '0' === String( node.settings.fit ) ) { node.settings.fit = '1'; }
+			}
 		}, T( 'Style' ) + ': ' + prop );
 	}
 	/* ---------- value + unit ----------
@@ -2417,7 +2459,7 @@
 				{ k:'hideDown', t:'toggle', l:'Hides when scrolling down', d:'', s:'Scrolling', when:{ sticky:'1' } },
 				{ k:'shrinkAt', t:'num', l:'After scrolling', d:'60', unit:'px', s:'Scrolling', when:{ sticky:'1' } }
 			  ],
-			  repeat:{ label:'Links', seed:4, fields:[
+			  repeat:{ label:'Your links', seed:4, fields:[
 				{ k:'title', t:'text', l:'Label', d:'Page' },
 				{ k:'href', t:'text', l:'Address', d:'#' },
 				{ k:'children', t:'text', l:'Submenu (Label|/url, …)', d:'' }
@@ -3294,7 +3336,9 @@
 			case 'Gallery':
 				var cap = [ 'below', 'overlay', 'hidden' ].indexOf( wset( node, 'captions', 'below' ) ) > -1 ? wset( node, 'captions', 'below' ) : 'below', lbx = !! wset( node, 'lightbox', '1' );
 				items.forEach( function ( it ) {
-					var im = String( it.image || '' ).trim(); if ( ! im ) { return; }
+					var im = String( it.image || '' ).trim();
+					// A new item has no photo yet: a placeholder (editor only — the page skips it), so "Add item" shows something.
+					if ( ! im ) { out += '<figure class="vx-g-i"><span class="vb-img-ph" style="min-height:90px;height:100%">' + T( 'Choose a photo' ) + '</span></figure>'; return; }
 					var cp = String( it.caption || '' ).trim(), img = '<img src="' + E( im ) + '" alt="' + E( cp ) + '" loading="lazy" decoding="async">';
 					out += '<figure class="vx-g-i">' + ( lbx ? '<a class="vx-g-a">' + img + '</a>' : img ) + ( cp && 'hidden' !== cap ? '<figcaption class="vx-g-cap">' + E( cp ) + '</figcaption>' : '' ) + '</figure>';
 				} );
@@ -3358,7 +3402,7 @@
 			case 'Share':
 				var BRS = { facebook:'#1877F2', x:'#000000', linkedin:'#0A66C2', whatsapp:'#25D366', email:'#64748b', website:'#64748b' };
 				[ [ 'facebook', 'shFb' ], [ 'x', 'shX' ], [ 'linkedin', 'shLi' ], [ 'whatsapp', 'shWa' ], [ 'email', 'shMail' ], [ 'website', 'shCopy' ] ].forEach( function ( p ) {
-					if ( wset( node, p[ 1 ], '1' ) ) { out += '<a class="vx-soc vx-soc-' + p[ 0 ] + '" style="--b:' + BRS[ p[ 0 ] ] + '">' + wsvg( p[ 0 ] ) + '</a>'; }
+					if ( wset( node, p[ 1 ], '1' ) ) { var stg = 'website' === p[ 0 ] ? 'button' : 'a'; out += '<' + stg + ' class="vx-soc vx-soc-' + p[ 0 ] + '" style="--b:' + BRS[ p[ 0 ] ] + '">' + wsvg( p[ 0 ] ) + '</' + stg + '>'; } // copy is a button on the page
 				} );
 				if ( ! out ) { return ph( T( 'Share buttons — switch some on in Settings.' ), 'link' ); }
 				var shShape = [ 'circle', 'rounded', 'square', 'plain' ].indexOf( wset( node, 'shape', 'circle' ) ) > -1 ? wset( node, 'shape', 'circle' ) : 'circle';
@@ -3375,8 +3419,9 @@
 			case 'Social':
 				var BR = { facebook:'#1877F2', instagram:'#E4405F', x:'#000000', linkedin:'#0A66C2', youtube:'#FF0000', tiktok:'#000000', pinterest:'#E60023', whatsapp:'#25D366', github:'#181717', threads:'#000000', telegram:'#26A5E4', discord:'#5865F2', spotify:'#1DB954', email:'#475569', phone:'#475569', website:'#475569' };
 				items.forEach( function ( it ) {
-					var n = String( it.net || '' ), u = String( it.url || '' ).trim(); if ( ! BR[ n ] || ! u ) { return; }
-					out += '<a class="vx-soc vx-soc-' + n + '" aria-label="' + E( n ) + '" style="--b:' + BR[ n ] + '">' + wsvg( n ) + '</a>';
+					var n = String( it.net || '' ), u = String( it.url || '' ).trim(); if ( ! BR[ n ] ) { return; }
+					// No link yet: drawn faded (editor only — the page leaves it out until it has a link).
+					out += '<a class="vx-soc vx-soc-' + n + '" aria-label="' + E( n ) + '" style="--b:' + BR[ n ] + ( u ? '' : ';opacity:.35' ) + '"' + ( u ? '' : ' title="' + E( T( 'Add the link in Settings' ) ) + '"' ) + '>' + wsvg( n ) + '</a>';
 				} );
 				if ( ! out ) { return ph( T( 'Social icons — add profiles in Settings.' ), 'link' ); }
 				var shp = [ 'circle', 'rounded', 'square', 'plain' ].indexOf( wset( node, 'shape', 'circle' ) ) > -1 ? wset( node, 'shape', 'circle' ) : 'circle';
@@ -3394,7 +3439,12 @@
 			case 'Embed':
 				var code = String( wset( node, 'code', '' ) );
 				if ( ! code.trim() ) { return ph( T( 'HTML embed — paste the code in Settings.' ), 'code' ); }
-				return open( 'vx-embed', ' style="position:relative"' ) + wclean( code ) + '<span class="vb-cover"></span></div>';
+				// The page keeps only safe embed tags (iframe, video, audio, text): <style>
+				// and <svg> are dropped there, so the canvas drops them too — use a
+				// Code block for your own styles.
+				var gone = /<style[\s>]|<svg[\s>]/i.test( code );
+				code = code.replace( /<style[\s\S]*?<\/style>/gi, '' ).replace( /<svg[\s\S]*?<\/svg>/gi, '' );
+				return open( 'vx-embed', ' style="position:relative"' ) + wclean( code ) + ( gone ? '<p class="vb-ph-s" style="margin:6px 0 0">' + T( 'Styles and SVG drawings in an embed are removed on the page. Use a Code block for them.' ) + '</p>' : '' ) + '<span class="vb-cover"></span></div>';
 			case 'Codeblock':
 				var ch = String( wset( node, 'html', '' ) ), cc = String( wset( node, 'css', '' ) ), cj = String( wset( node, 'js', '' ) );
 				if ( ! ( ch + cc + cj ).trim() ) { return ph( T( 'Code block — write HTML, CSS and JavaScript in Settings.' ), 'code' ); }
@@ -3791,15 +3841,25 @@
 	/* A copy carries EVERYTHING — settings (slider slides, tab items), link,
 	 * image, alt text, animation, name. It used to copy only id/tag/classes/
 	 * overrides, so a duplicated slider came out empty and a button lost its link. */
+	/* This WordPress install, not just the host: two sites under one domain
+	 * (subfolders, localhost) mixed up form, reusable and media ids on paste. */
+	function siteKey() { try { return new URL( CFG.ajaxurl || '', location.href ).href.replace( /\/wp-admin\/.*$/, '' ); } catch ( e ) { return location.host; } }
 	function cloneWithNewIds( node, s, extraContent ) {
-		var copy = JSON.parse( JSON.stringify( node ) );
+		var copy = JSON.parse( JSON.stringify( node ) ), map = {};
 		( function reid( n, src ) {
 			var nid = uid( n.el || 'el' );
-			var c = ( s.content[ src.id ] != null ) ? s.content[ src.id ] : ( extraContent ? extraContent[ src.id ] : undefined );
+			// Pasting: the text as it was when copied wins over what the source shows now.
+			var c = ( extraContent && extraContent[ src.id ] != null ) ? extraContent[ src.id ] : s.content[ src.id ];
 			if ( c != null ) { s.content[ nid ] = c; }
+			map[ src.id ] = nid;
 			n.id = nid;
 			( n.children || [] ).forEach( function ( k, i ) { reid( k, src.children[ i ] ); } );
 		}( copy, node ) );
+		// Interactions inside the copy point at the copy (a duplicated button +
+		// dropdown opened the ORIGINAL dropdown).
+		walkTree( [ copy ], function ( n ) {
+			( n.ix || [] ).forEach( function ( a ) { if ( a && a.target && '#' === a.target.charAt( 0 ) && map[ a.target.slice( 1 ) ] ) { a.target = '#' + map[ a.target.slice( 1 ) ]; } } );
+		} );
 		return copy;
 	}
 	function deleteNode( id ) {
@@ -3908,6 +3968,7 @@
 		Object.keys( s.classes[ name ] ).forEach( function ( k ) { s.classes[ name ][ k ] = asObj( s.classes[ name ][ k ] ); } );
 		baseClasses[ name ] = JSON.stringify( s.classes[ name ] );
 	}
+	var docRev = +( CFG.docRev || 0 ), forceSave = false;
 	function persist( cb ) {
 		// The canvas is an iframe, and clicking a top-bar button does not reliably
 		// blur a contenteditable inside it — so the text you just typed was still
@@ -3930,6 +3991,9 @@
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_save' ); body.set( 'nonce', CFG.nonce || '' );
 		body.set( 'id', docId ); body.set( 'title', docTitle ); body.set( 'kind', docKind );
 		body.set( 'data', sent );
+		// The save number this editor knows: the server refuses when someone saved since.
+		if ( docId ) { body.set( 'base_rev', String( docRev ) ); }
+		if ( forceSave ) { body.set( 'force', '1' ); forceSave = false; }
 		if ( restoreKind ) { body.set( 'rev_kind', restoreKind ); restoreKind = ''; }
 		var sentClasses = changedClasses();
 		body.set( 'changed_classes', JSON.stringify( sentClasses ) );
@@ -3938,6 +4002,7 @@
 			saving = false;
 			if ( ok ) {
 				docId = res.data.id;
+				if ( undefined !== res.data.rev ) { docRev = +res.data.rev; }
 				applyDocMeta( res.data );
 				// Only content counts: clicking an element during the save is not an edit.
 				lastSavedSig = sentSig;
@@ -3954,6 +4019,14 @@
 			}
 			if ( saveAgain ) { persist(); return; }
 			setSaveState( ok ? 'saved' : 'error' );
+			if ( ! ok && res && res.data && res.data.conflict ) {
+				// Two tabs or two people: nothing is overwritten without asking.
+				vbAsk( { title:T( 'This page changed somewhere else' ), text:T( 'Someone saved this page in another tab or browser since you opened it. Save yours over it, or load the other version — your own changes stay in this browser and can be brought back from the bar at the top.' ), ok:T( 'Save mine over it' ), cancel:T( 'Load the other version' ) }, function ( yes ) {
+					if ( yes ) { forceSave = true; persist(); } else { dirty = false; location.reload(); }
+				} );
+				renderActions(); flushWaiters( false );
+				return;
+			}
 			if ( ! ok ) {
 				var expired = ( -1 === res || '-1' === res || ( res && res.data && 'nonce' === res.data.code ) );
 				toast( expired ? T( 'Your session expired. Reload the page — your changes are kept in this browser.' ) : ( ( res && res.data && res.data.message ) || T( 'Save failed' ) ) );
@@ -4167,7 +4240,7 @@
 	function writeBackup() {
 		clearTimeout( backupTimer );
 		backupTimer = setTimeout( function () {
-			try { window.localStorage.setItem( backupKey(), JSON.stringify( { at:Date.now(), title:docTitle, model:store.state } ) ); } catch ( e ) {}
+			try { window.localStorage.setItem( backupKey(), JSON.stringify( { at:Date.now(), title:docTitle, rev:docRev, model:store.state } ) ); } catch ( e ) {}
 		}, 800 );
 	}
 	function clearBackup() {
@@ -4184,7 +4257,9 @@
 		var stage = document.getElementById( 'vb-stage' ); if ( ! stage ) { return; }
 		var bar = document.getElementById( 'vb-restore' );
 		if ( ! bar ) { bar = document.createElement( 'div' ); bar.id = 'vb-restore'; bar.className = 'vb-restore'; stage.insertBefore( bar, stage.firstChild ); }
-		bar.innerHTML = '<span>' + T( 'This browser has unsaved changes to this design from' ) + ' <b>' + escapeHtml( new Date( b.at ).toLocaleString() ) + '</b>.</span>' +
+		// Made before a later save (another tab or person): say so before anyone restores over it.
+		var older = undefined !== b.rev && +b.rev < docRev;
+		bar.innerHTML = '<span>' + T( 'This browser has unsaved changes to this design from' ) + ' <b>' + escapeHtml( new Date( b.at ).toLocaleString() ) + '</b>.' + ( older ? ' ' + T( 'The page was saved again since — restoring replaces that newer version.' ) : '' ) + '</span>' +
 			'<button class="vb-btn vb-btn-primary" id="vb-restore-yes">' + T( 'Restore' ) + '</button>' +
 			'<button class="vb-btn vb-btn-ghost" id="vb-restore-no">' + T( 'Discard' ) + '</button>';
 		bar.__backup = b;
@@ -4196,6 +4271,7 @@
 		if ( b && b.model ) {
 			var m = b.model; delete m.changedClasses;
 			store.commit( function ( s ) { s.tree = m.tree || []; s.classes = m.classes || {}; s.content = m.content || {}; if ( m.page ) { s.page = m.page; } }, T( 'Restore unsaved changes' ) );
+			if ( b.title ) { docTitle = b.title; renderTopbar( store.state ); } // the title came back too
 			toast( T( 'Restored. Save to keep it.' ) );
 		}
 		closeRestoreBar();
@@ -4551,6 +4627,7 @@
 		store.onEdit = markDirty;
 		window.addEventListener( 'beforeunload', function ( e ) {
 			flushGlobalSaves();
+			flushPending(); // a field typed into just now is an unsaved change too (it was lost silently)
 			if ( dirty || saving ) { e.preventDefault(); e.returnValue = ''; return ''; }
 			loaderLeave( loader.leaveTitle );
 		} );
@@ -5903,6 +5980,11 @@
 	}
 	function setVal( node, key, def ) {
 		var v = rawSetting( node, key, store.state.breakpoint );
+		// Navigation without a saved choice: typed links if it has some, as the
+		// canvas and the page decide (the inspector said "WordPress menu" meanwhile).
+		if ( ( v === undefined || v === null ) && 'source' === key && node && 'Navbar' === node.el ) {
+			return ( ( node.settings && node.settings.items ) || [] ).some( function ( it ) { return ( it.title || '' ).trim(); } ) ? 'manual' : 'wp';
+		}
 		if ( v === undefined || v === null ) { return def === undefined ? '' : def; }
 		// '0' means "off" only for switches; a gap or offset of 0 is a real 0.
 		return ( '0' === v && isToggleSetting( node, key ) ) ? '' : v;
@@ -5974,6 +6056,8 @@
 	/* Repeater: the add / reorder / remove UI for elements made of N items
 	 * (accordion rows, tabs, slides, pricing tiers). */
 	function renderRepeat( node, def ) {
+		// Links from a WordPress menu: the typed list does nothing, so it is not shown.
+		if ( 'Navbar' === node.el && 'wp' === setVal( node, 'source', 'wp' ) ) { return ''; }
 		var items = ( node.settings && node.settings.items ) || [];
 		var rows = items.map( function ( it, i ) {
 			return '<div class="vb-rep-row" data-repi="' + i + '">' +
@@ -6955,6 +7039,8 @@
 			.then( function () { revLoading = false; revListStale = false; var b = document.getElementById( 'vb-revlist' ); if ( b ) { b.innerHTML = revListHTML(); } } );
 	}
 	function previewRevision( id ) {
+		// While Claude works, the page under it must stay as it is.
+		if ( AI.locked ) { toast( T( 'Claude is working on this page. Wait a moment or press Stop.' ) ); return; }
 		var body = new URLSearchParams();
 		body.set( 'action', 'velox' ); body.set( 'do', 'builder_revision' ); body.set( 'nonce', CFG.nonce || '' ); body.set( 'rev', id );
 		fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:body.toString() } )
@@ -6980,7 +7066,7 @@
 	}
 	function exitRevision() {
 		if ( ! revPrev ) { return; }
-		store.state = revPrev.saved; store.locked = false; revPrev = null;
+		store.state = revPrev.saved; store.locked = !! AI.locked; revPrev = null; // Claude's lock stays
 		document.body.classList.remove( 'vb-rev-mode' );
 		renderRevBar(); store.emit();
 		var list = document.getElementById( 'vb-revlist' ); if ( list ) { list.innerHTML = revListHTML(); }
@@ -6990,10 +7076,13 @@
 		var model = normalizeDoc( JSON.parse( JSON.stringify( revPrev.model ) ) );
 		exitRevision();
 		// A normal step: Undo takes it back. Then saved, marked as a restore.
+		var before = contentSig( store.state );
 		store.commit( function ( s ) {
 			[ 'tree', 'content', 'classes', 'page' ].forEach( function ( k ) { if ( undefined !== model[ k ] ) { s[ k ] = model[ k ]; } else { delete s[ k ]; } } );
 			s.selection = null; s.activeClass = null;
 		}, T( 'Restore saved version' ) );
+		// Refused (a locked element differs, or the role may not change it): say so, save nothing.
+		if ( contentSig( store.state ) === before && contentSig( model ) !== before ) { toast( T( 'This version could not be restored here: it changes elements you may not change (locked, or not allowed for your role).' ) ); return; }
 		restoreKind = 'restore';
 		persist();
 		toast( T( 'Version restored and saved. Undo brings back what you had.' ) );
@@ -7611,7 +7700,7 @@
 				else { selectRelative( 'parent' ); }
 			}
 			else if ( 'F2' === k ) { renameInline( id ); }
-			else if ( 'Delete' === k ) { deleteNode( id ); }
+			else if ( 'Delete' === k ) { var mdel = multiIds(); if ( mdel.length && mdel.indexOf( id ) > -1 ) { deleteMany( mdel ); } else { deleteNode( id ); } } // the whole selection, like on the canvas
 			else if ( 'Enter' === k ) { inspTab = 'ess'; renderInspector( store.state ); }
 			else { hit = false; }
 			if ( hit ) { e.preventDefault(); e.stopPropagation(); }
@@ -8001,16 +8090,21 @@
 					};
 					if ( ext ) {
 						// A change from Claude through the connector: one Undo step each.
-						store.commit( apply, T( 'Claude' ) );
+						store.commit( apply, T( 'Claude' ), true );
 						if ( Date.now() - EXT.toastAt > 20000 ) { EXT.toastAt = Date.now(); toast( T( 'Claude changed this page. Undo takes it back.' ) ); }
 					} else if ( final ) {
 						aiLock( false );
-						store.commit( apply, T( 'Claude' ) );
+						store.commit( apply, T( 'Claude' ), true );
 						toast( T( 'Claude’s changes are saved as a draft. Undo takes them all back.' ) );
 					} else {
-						apply( store.state ); store.emit();
+						apply( store.state );
+						// Not during a run (a run that finished while the page loaded): this
+						// is the new starting point, or the first Undo threw Claude's work away.
+						if ( ! AI.locked ) { store.history[ store.history.length - 1 ] = JSON.stringify( store.state ); store.future = []; }
+						store.emit();
 					}
 					pendingClasses = res.data.pending_classes || pendingClasses;
+					if ( undefined !== res.data.rev ) { docRev = +res.data.rev; }
 					snapshotClasses();
 					// Already saved by the server: nothing for the editor to save or back up.
 					lastSavedSig = contentSig( store.state ); dirty = false; hasDraft = !! res.data.has_draft;
@@ -8035,9 +8129,13 @@
 			if ( AI.useSel && node ) { f.sel = sel; f.sel_label = ( node.name || elLabel( node ) ) + ( node.classes && node.classes.length ? ' ' + node.classes.join( ' ' ) : '' ); }
 			// Shown right away; the server's copy replaces it on the next poll.
 			AI.shown.push( { k:'user', t:text, local:1 } ); renderAiList();
+			// Locked from now on: the first step can run inside this request, and
+			// edits made meanwhile were replaced by Claude's copy without a trace.
+			aiLock( true );
 			aiPost( f ).then( function ( res ) {
 				AI.sending = false;
 				if ( ! res || ! res.success ) {
+					aiLock( false );
 					AI.shown = AI.shown.filter( function ( m ) { return ! m.local; } );
 					AI.err = ( res && res.data && res.data.message ) || T( 'Claude could not start. Try again.' );
 					renderAiList(); renderAiFoot(); aiRestore( text ); return;
@@ -8403,11 +8501,18 @@
 			if ( e.target.closest( '#vb-discard' ) ) {
 				vbAsk( { title:T( 'Discard unpublished changes?' ), text:T( 'Throw away every change that is not published yet, and go back to the version visitors see?' ), ok:T( 'Discard changes' ), danger:true }, function ( yes ) {
 					if ( ! yes ) { return; }
-					var bdd = new URLSearchParams();
-					bdd.set( 'action', 'velox' ); bdd.set( 'do', 'builder_discard_draft' ); bdd.set( 'nonce', CFG.nonce || '' ); bdd.set( 'id', docId );
-					fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:bdd.toString() } )
-						.then( function ( r ) { return r.json(); } )
-						.then( function ( res ) { if ( res && res.success ) { dirty = false; loadDoc( docId ); toast( T( 'Back to the published version.' ) ); } } );
+					// A save still running (or queued) would write the draft back after the discard.
+					var goDiscard = function () {
+						if ( saving ) { saveAgain = false; setTimeout( goDiscard, 200 ); return; }
+						if ( editing ) { commitInlineEdit(); }
+						var bdd = new URLSearchParams();
+						bdd.set( 'action', 'velox' ); bdd.set( 'do', 'builder_discard_draft' ); bdd.set( 'nonce', CFG.nonce || '' ); bdd.set( 'id', docId );
+						fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:bdd.toString() } )
+							.then( function ( r ) { return r.json(); } )
+							.then( function ( res ) { if ( res && res.success ) { dirty = false; clearBackup(); closeRestoreBar(); loadDoc( docId ); toast( T( 'Back to the published version.' ) ); } } );
+					};
+					if ( pendingCommit ) { clearTimeout( pendingCommit.t ); pendingCommit = null; } // a field edit waiting to be committed is discarded too
+					goDiscard();
 				} );
 				return;
 			}
@@ -8476,6 +8581,12 @@
 				setRepeat( function ( items, n ) {
 					var blank = {};
 					( ( rdef && rdef.repeat && rdef.repeat.fields ) || [] ).forEach( function ( f ) { blank[ f.k ] = f.d && 'text' === f.t ? T( f.d ) : ( f.d || '' ); } );
+					// Social: the next network not on the list yet (a second Facebook helped nobody).
+					if ( n && 'Social' === n.el && 'net' in blank ) {
+						var used = items.map( function ( it ) { return it.net; } );
+						var nextNet = [ 'facebook', 'instagram', 'linkedin', 'youtube', 'x', 'tiktok', 'pinterest', 'whatsapp', 'threads', 'github', 'email', 'website' ].filter( function ( k ) { return used.indexOf( k ) < 0; } )[ 0 ];
+						if ( nextNet ) { blank.net = nextNet; }
+					}
 					items.push( blank );
 					// Keep the content containers in step with the items.
 					if ( rdef && rdef.nestable ) {
@@ -9091,6 +9202,9 @@
 					e.preventDefault();
 					var mdir = { moveUp:'up', moveDown:'down', moveOut:'out', moveIn:'in' }[ act ];
 					var mlist = many.length ? many : [ sel ];
+					// Page order, not click order: picking the lower one first swapped the two.
+					var porder = []; walkTree( store.state.tree, function ( n ) { porder.push( n.id ); } );
+					mlist = mlist.slice().sort( function ( a, b ) { return porder.indexOf( a ) - porder.indexOf( b ); } );
 					if ( 'down' === mdir || 'in' === mdir ) { mlist = mlist.slice().reverse(); }
 					mlist.forEach( function ( id ) { moveRelative( id, mdir ); } );
 					return;
@@ -9313,7 +9427,7 @@
 							( function drop( x ) { delete s.content[ x.id ]; ( x.children || [] ).forEach( drop ); }( cur ) );
 							list.splice( list.indexOf( cur ), 1, ref );
 							s.selection = ref.id; resetActiveClass( s );
-						}, T( 'Make re-usable' ) );
+						}, T( 'Make reusable' ) );
 						toast( T( 'Saved as reusable.' ) );
 					}
 				} )
@@ -9375,7 +9489,7 @@
 		}
 		var fn = flat( n );
 		return {
-			velox:'element', version:2, site:location.host,
+			velox:'element', version:2, site:siteKey(),
 			node:JSON.parse( JSON.stringify( n ) ), content:collectContentFor( n ), classes:collectClasses( n, store.state ),
 			flat:{ node:fn, content:content, classes:classes, forms:forms }
 		};
@@ -9412,7 +9526,7 @@
 		try { data = JSON.parse( txt ); } catch ( err ) { data = null; }
 		e.preventDefault();
 		if ( data && 'element' === data.velox && data.node ) {
-			var foreign = data.site && data.site !== location.host;
+			var foreign = data.site && data.site !== siteKey() && data.site !== location.host; // two installs on one host are two sites (a plain host comes from an older copy)
 			pasteNode( store.state.selection, foreign ? adoptForeign( data.flat || { node:data.node, content:data.content, classes:data.classes } ) : data );
 			if ( foreign ) { toast( T( 'Pasted from another site. Check its images and links.' ) ); }
 			return;
@@ -9624,7 +9738,7 @@
 			{ sep:true },
 			{ a:'hide', ic:'eye', l:node && node.hidden ? T( 'Show' ) : T( 'Hide' ) },
 			'client' === ACCESS.level ? null : { a:'lock', ic:node && node.locked ? 'unlock' : 'lock', l:node && node.locked ? T( 'Unlock' ) : T( 'Lock' ) },
-			{ a:'reuse', ic:'star', l:T( 'Make re-usable' ) }
+			{ a:'reuse', ic:'star', l:T( 'Make reusable' ) }
 		];
 		menu.innerHTML = items.filter( Boolean ).map( function ( it ) {
 			if ( it.sep ) { return '<div class="vb-ctx-sep"></div>'; }

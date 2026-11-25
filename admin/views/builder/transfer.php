@@ -7,7 +7,7 @@ $docs   = Velox_Builder_Transfer::doc_list();
 $groups = array(
 	'page'     => __( 'Pages', 'velox' ),
 	'template' => __( 'Templates', 'velox' ),
-	'reusable' => __( 'Components', 'velox' ),
+	'reusable' => __( 'Reusables', 'velox' ), // the same word as the menu and the editor
 );
 $by = array( 'page' => array(), 'template' => array(), 'reusable' => array() );
 foreach ( $docs as $d ) {
@@ -53,6 +53,13 @@ if ( current_user_can( 'unfiltered_html' ) ) {
 								<label class="vba-xf-item">
 									<input type="checkbox" data-xf-doc="<?php echo (int) $d['id']; ?>" data-kind="<?php echo esc_attr( $kind ); ?>">
 									<span class="vba-xf-t"><?php echo esc_html( '' !== $d['title'] ? $d['title'] : __( 'Untitled', 'velox' ) ); ?></span>
+									<?php
+									// Seven pages called "Untitled" could not be told apart: show where each one lives.
+									$where = ! empty( $d['post_id'] ) ? wp_make_link_relative( (string) get_permalink( (int) $d['post_id'] ) ) : '';
+									if ( '' !== $where ) :
+										?><span class="vba-xf-where"><?php echo esc_html( $where ); ?></span><?php
+									endif;
+									?>
 									<?php if ( 'published' !== $d['status'] ) : ?><span class="vba-xf-draft"><?php esc_html_e( 'Draft', 'velox' ); ?></span><?php endif; ?>
 								</label>
 							<?php endforeach; ?>

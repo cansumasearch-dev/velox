@@ -1116,6 +1116,9 @@ class Velox_Shop_Front {
 				break;
 			}
 		}
+		if ( ! empty( $t['coupon_ship'] ) ) {
+			$free = 0.0; // a free-shipping code: nothing more to reach
+		}
 		return array(
 			'count'    => Velox_Shop::cart_count(),
 			'lines'    => $out,
@@ -1509,7 +1512,7 @@ class Velox_Shop_Front {
 		if ( ! empty( $_GET['vxo'] ) ) {
 			$o = Velox_Shop::order_by_key( sanitize_text_field( wp_unslash( $_GET['vxo'] ) ) );
 			$u = wp_get_current_user();
-			$own = $o && $u->exists() && ( (int) ( $o['user'] ?? 0 ) === (int) $u->ID || strtolower( (string) ( $o['customer']['email'] ?? '' ) ) === strtolower( $u->user_email ) );
+			$own = Velox_Shop_Account::owns( $o, $u );
 			if ( $own ) {
 				// The customer's own order: show it inside the account, with its navigation.
 				$_GET['vxa'] = 'orders';
@@ -1886,7 +1889,7 @@ class Velox_Shop_Front {
 				'choose'    => __( 'Choose your options', 'velox' ),
 				'unavail'   => __( 'This combination is not available', 'velox' ),
 				'wait'      => __( 'One moment…', 'velox' ),
-				'taxNote'   => __( 'Prices incl. VAT, shipping calculated at checkout.', 'velox' ),
+				'taxNote'   => Velox_Shop::small_business() ? __( 'No VAT is charged (§ 19 UStG). Shipping is calculated at checkout.', 'velox' ) : __( 'Prices incl. VAT, shipping calculated at checkout.', 'velox' ),
 				'fewer'     => __( 'Fewer', 'velox' ),
 				'more'      => __( 'More', 'velox' ),
 				'addAgain'  => __( 'Add another', 'velox' ),

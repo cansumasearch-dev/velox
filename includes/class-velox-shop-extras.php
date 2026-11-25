@@ -163,7 +163,7 @@ class Velox_Shop_Extras {
 		$u    = wp_get_current_user();
 		$priv = (int) Velox_Shop::get( 'page_privacy' );
 		return '<form class="vxs-alert" data-vxs-alert' . ( $show ? '' : ' hidden' ) . ' method="post">'
-			. '<input type="hidden" name="product" value="' . (int) $p['id'] . '"><input type="hidden" name="variant" value="">'
+			. '<input type="hidden" name="vxs_alert" value="1"><input type="hidden" name="product" value="' . (int) $p['id'] . '"><input type="hidden" name="variant" value="">'
 			. '<p class="vxs-alert-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z"/><path d="M10 20.5a2 2 0 0 0 4 0"/></svg><b>' . esc_html__( 'Tell me when it is back', 'velox' ) . '</b></p>'
 			. '<div class="vxs-alert-row"><label class="screen-reader-text" for="vxs-al-' . (int) $p['id'] . '">' . esc_html__( 'Email', 'velox' ) . '</label><input id="vxs-al-' . (int) $p['id'] . '" type="email" name="email" required autocomplete="email" value="' . esc_attr( $u && $u->ID ? $u->user_email : '' ) . '" placeholder="' . esc_attr__( 'Your email', 'velox' ) . '"><button type="submit" class="vxs-btn">' . esc_html__( 'Notify me', 'velox' ) . '</button></div>'
 			. '<input type="text" name="website" value="" tabindex="-1" autocomplete="off" class="vxs-hp" aria-hidden="true">'
@@ -387,8 +387,8 @@ class Velox_Shop_Extras {
 		$sum .= '</div>';
 		// The law (§ 5b UWG) wants shops to say whether and how reviews are checked.
 		$how = self::on( 'reviews_verified', '0' )
-			? __( 'How we check reviews: only customers who bought this product with us can write one; we match the email address against our orders.', 'velox' )
-			: __( 'How we check reviews: anyone can write one. Reviews marked “Verified purchase” come from an email address we found in a paid order for this product.', 'velox' );
+			? __( 'How we check reviews: only customers who bought this product with us can write one. We match the email address against our orders and check reviews from guests before they appear.', 'velox' )
+			: __( 'How we check reviews: anyone can write one. Reviews marked “Verified purchase” were written from the customer account that bought this product.', 'velox' );
 		$items = '';
 		foreach ( $list as $c ) {
 			$r     = max( 1, min( 5, (int) get_comment_meta( $c->comment_ID, 'vx_rating', true ) ) );
@@ -438,31 +438,36 @@ class Velox_Shop_Extras {
 			return new WP_Error( 'x', __( 'This product does not exist.', 'velox' ) );
 		}
 		if ( $rating < 1 || $rating > 5 ) {
-			return new WP_Error( 'x', __( 'Please choose 1 to 5 stars.', 'velox' ) );
+			return new WP_Error( 'stars', __( 'Please choose 1 to 5 stars.', 'velox' ) );
 		}
 		if ( mb_strlen( $text ) < 10 ) {
-			return new WP_Error( 'x', __( 'Please write a few words (at least 10 characters).', 'velox' ) );
+			return new WP_Error( 'short', __( 'Please write a few words (at least 10 characters).', 'velox' ) );
 		}
 		if ( '' === $name || ! is_email( $email ) ) {
-			return new WP_Error( 'x', __( 'Please enter your name and a valid email address.', 'velox' ) );
+			return new WP_Error( 'who', __( 'Please enter your name and a valid email address.', 'velox' ) );
 		}
 		if ( empty( $in['consent'] ) ) {
-			return new WP_Error( 'x', __( 'Please confirm that your review may be published.', 'velox' ) );
+			return new WP_Error( 'consent', __( 'Please confirm that your review may be published.', 'velox' ) );
 		}
 		$k = 'velox_rv_' . md5( Velox_Shop_Account::visitor_ip() );
 		if ( (int) get_transient( $k ) >= 5 ) {
-			return new WP_Error( 'x', __( 'Please try again later.', 'velox' ) );
+			return new WP_Error( 'wait', __( 'Please try again later.', 'velox' ) );
 		}
 		set_transient( $k, (int) get_transient( $k ) + 1, HOUR_IN_SECONDS );
 		$dupe = get_comments( array( 'post_id' => $pid, 'type' => self::REVIEW, 'author_email' => $email, 'count' => true, 'status' => 'all' ) );
 		if ( $dupe ) {
-			return new WP_Error( 'x', __( 'You have already reviewed this product. Thank you!', 'velox' ) );
+			return new WP_Error( 'dupe', __( 'You have already reviewed this product. Thank you!', 'velox' ) );
 		}
-		$verified = self::bought( $email, $pid );
-		if ( self::on( 'reviews_verified', '0' ) && ! $verified ) {
-			return new WP_Error( 'x', __( 'Only customers who bought this product can review it. Use the email address from your order.', 'velox' ) );
+		// Typing a buyer's email address proves nothing: "Verified purchase" needs
+		// the signed-in account that ordered. A guest whose address matches an
+		// order may still write one, but it waits for the shop to check it.
+		$bought   = self::bought( $email, $pid );
+		$me       = is_user_logged_in() ? strtolower( (string) wp_get_current_user()->user_email ) : '';
+		$verified = $bought && '' !== $me && strtolower( $email ) === $me && Velox_Shop_Account::email_ok( wp_get_current_user() );
+		if ( self::on( 'reviews_verified', '0' ) && ! $bought ) {
+			return new WP_Error( 'only', __( 'Only customers who bought this product can review it. Use the email address from your order.', 'velox' ) );
 		}
-		$approve = self::on( 'reviews_approve' ) ? 0 : 1;
+		$approve = self::on( 'reviews_approve' ) || ( $bought && ! $verified && self::on( 'reviews_verified', '0' ) ) ? 0 : 1;
 		$cid = wp_insert_comment( array(
 			'comment_post_ID'      => $pid,
 			'comment_author'       => mb_substr( $name, 0, 40 ),
@@ -511,6 +516,17 @@ class Velox_Shop_Extras {
 		$email = sanitize_email( $email );
 		if ( ! is_email( $email ) ) {
 			return false;
+		}
+		// The route is public: a few addresses per visitor and hour, so nobody can
+		// sign up strangers in bulk or push real entries out of the list.
+		$rk   = 'velox_cr_' . md5( Velox_Shop_Account::visitor_ip() );
+		$seen = (array) get_transient( $rk );
+		if ( ! in_array( strtolower( $email ), $seen, true ) ) {
+			if ( count( $seen ) >= 3 ) {
+				return false;
+			}
+			$seen[] = strtolower( $email );
+			set_transient( $rk, $seen, HOUR_IN_SECONDS );
 		}
 		$list = self::carts();
 		$key  = hash( 'sha256', strtolower( $email ) );
@@ -638,11 +654,25 @@ class Velox_Shop_Extras {
 			wp_safe_redirect( add_query_arg( 'vxs_msg', 'link-bad', Velox_Shop_Front::page_url( 'shop', home_url( '/' ) ) ) );
 			exit;
 		}
+		// Back-in-stock alerts without JavaScript: the same checks as the REST route.
+		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ! empty( $_POST['vxs_alert'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			$req = new WP_REST_Request( 'POST' );
+			foreach ( array( 'product', 'variant', 'email', 'website', 'consent' ) as $f ) {
+				$req->set_param( $f, wp_unslash( $_POST[ $f ] ?? '' ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput
+			}
+			$d   = self::rest_alert( $req )->get_data();
+			$pid = (int) ( $_POST['product'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
+			set_transient( 'velox_al_msg_' . md5( Velox_Shop_Account::visitor_ip() ), $d, 5 * MINUTE_IN_SECONDS );
+			wp_safe_redirect( add_query_arg( 'vxs_msg', empty( $d['bad'] ) ? 'alert-sent' : 'alert-bad', get_permalink( $pid ) ? get_permalink( $pid ) : home_url( '/' ) ) );
+			exit;
+		}
 		// Reviews without JavaScript: a plain form post to the product page.
 		if ( 'POST' === ( $_SERVER['REQUEST_METHOD'] ?? '' ) && ! empty( $_POST['vxs_review'] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$r   = self::review_add( wp_unslash( $_POST ) ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
 			$pid = (int) ( $_POST['product'] ?? 0 ); // phpcs:ignore WordPress.Security.NonceVerification.Missing
-			wp_safe_redirect( add_query_arg( 'vxs_msg', is_wp_error( $r ) ? 'review-bad' : 'review-ok', get_permalink( $pid ) ? get_permalink( $pid ) : home_url( '/' ) ) . '#vxs-reviews' );
+			// Say what was wrong (no rating, too short, already reviewed …), not just "check the form".
+			$code = is_wp_error( $r ) ? 'review-' . sanitize_key( $r->get_error_code() ) : 'review-ok';
+			wp_safe_redirect( add_query_arg( 'vxs_msg', $code, get_permalink( $pid ) ? get_permalink( $pid ) : home_url( '/' ) ) . '#vxs-reviews' );
 			exit;
 		}
 		// phpcs:enable
@@ -667,8 +697,24 @@ class Velox_Shop_Extras {
 			'cart-off'   => array( 'ok', __( 'Your saved cart has been deleted. You will not hear from us about it.', 'velox' ) ),
 			'link-bad'   => array( 'err', __( 'This link is no longer valid.', 'velox' ) ),
 			'review-ok'  => array( 'ok', __( 'Thank you for your review!', 'velox' ) ),
+			'alert-sent' => array( 'ok', __( 'Almost done — please confirm the link in the email we just sent you.', 'velox' ) ),
+			'alert-bad'  => array( 'err', __( 'That did not work. Please check your email address and tick the box.', 'velox' ) ),
 			'review-bad' => array( 'err', __( 'The review could not be sent. Please check the form and try again.', 'velox' ) ),
+			'review-stars'   => array( 'err', __( 'Please choose 1 to 5 stars.', 'velox' ) ),
+			'review-short'   => array( 'err', __( 'Please write a few words (at least 10 characters).', 'velox' ) ),
+			'review-who'     => array( 'err', __( 'Please enter your name and a valid email address.', 'velox' ) ),
+			'review-consent' => array( 'err', __( 'Please confirm that your review may be published.', 'velox' ) ),
+			'review-wait'    => array( 'err', __( 'Please try again later.', 'velox' ) ),
+			'review-dupe'    => array( 'ok', __( 'You have already reviewed this product. Thank you!', 'velox' ) ),
+			'review-only'    => array( 'err', __( 'Only customers who bought this product can review it. Use the email address from your order.', 'velox' ) ),
 		);
+		// The alert form's own words (signed in: "Done", guest: "confirm the link", or what was wrong).
+		if ( in_array( $c, array( 'alert-sent', 'alert-bad' ), true ) ) {
+			$d = get_transient( 'velox_al_msg_' . md5( Velox_Shop_Account::visitor_ip() ) );
+			if ( is_array( $d ) && ! empty( $d['msg'] ) ) {
+				$m[ $c ][1] = (string) $d['msg'];
+			}
+		}
 		return isset( $m[ $c ] ) ? '<div class="vxs-note ' . ( 'ok' === $m[ $c ][0] ? 'is-ok' : 'is-err' ) . ' alignwide" role="status">' . esc_html( $m[ $c ][1] ) . '</div>' : '';
 	}
 

@@ -79,7 +79,7 @@ $short = array(
 						</select>
 						<span class="vba-inline-msg" data-tpl-msg aria-live="polite"></span>
 
-						<span class="vba-doc-type vba-type-template vba-tpl-default" title="<?php esc_attr_e( 'Used for any page no other template claims.', 'velox' ); ?>"<?php echo $is_def ? '' : ' hidden'; ?>><?php esc_html_e( 'Site default', 'velox' ); ?></span>
+						<span class="vba-doc-type vba-type-template vba-tpl-default" title="<?php esc_attr_e( 'Used for any page no other template claims.', 'velox' ); ?>"<?php echo $is_def ? '' : ' hidden'; ?>><?php $published ? esc_html_e( 'Site default', 'velox' ) : esc_html_e( 'Site default — not used until published', 'velox' ); ?></span>
 
 						<?php if ( $published ) : ?>
 							<span class="vba-doc-status vba-status-published" title="<?php esc_attr_e( 'Used on the site wherever this template applies.', 'velox' ); ?>"><?php esc_html_e( 'Published', 'velox' ); ?></span>

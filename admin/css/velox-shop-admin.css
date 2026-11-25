@@ -114,6 +114,9 @@
 .vsa-f-l{font-size:12px;font-weight:600;color:var(--vbb-text-2)}
 .vsa-f-h{font-size:11.5px;color:var(--vbb-text-3);line-height:1.5}
 .vsa-fr{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 12px}
+/* A field next to one with a hint was stretched to its height, and its unit
+   ("kg", "days") then sat under the input instead of inside it. */
+.vsa-fr>.vsa-f{align-self:start}
 .vsa-fr>.vsa-f:last-child{margin-bottom:14px}
 .vsa-fr-6{grid-template-columns:1.2fr 1fr .8fr .9fr 1fr .7fr}
 .vsa-in{width:100%;height:38px;padding:0 11px;border:1px solid var(--vbb-line-2);border-radius:var(--vbb-r-md);background:var(--vbb-void);color:var(--vbb-text);font:400 13.5px/1.4 var(--vbb-font);box-shadow:none;transition:border-color .15s,box-shadow .15s}
@@ -169,6 +172,8 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 .vsa-tag button:hover{background:rgba(245,106,92,.2);color:#ff9d93}
 .vsa-tag-in{flex:1;min-width:120px;height:26px;border:0;background:none;color:var(--vbb-text);font:inherit;outline:0;box-shadow:none}
 .vsa-tag-in:focus{box-shadow:none}
+.vsa-tags select.vsa-tag-sel{background:var(--vbb-void);color:var(--vbb-text-2);box-shadow:none;min-height:0;line-height:24px}
+.vsa-tags select.vsa-tag-sel option{background:var(--vbb-panel);color:var(--vbb-text)}
 .vsa-tag-sel{height:26px;border:1px dashed var(--vbb-line-2);border-radius:7px;background:none;color:var(--vbb-text-3);font:inherit;font-size:12px;padding:0 6px;max-width:220px}
 
 /* ---- tools row */
@@ -403,6 +408,12 @@ select.vsa-in{padding-right:28px;max-width:none;background:var(--vbb-void) url("
 	.vsa-cols{grid-template-columns:minmax(0,1fr)}
 	.vsa-col-side{position:static}
 	.vsa-fr-6{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+/* Not enough room for every label (the bar scrolled sideways and hid Products …
+   Settings without a sign): icons only, the open screen keeps its name. */
+@media (max-width:1365px){
+	.vsa-nav a:not(.is-on) span{display:none}
+	.vsa-nav a{padding:0 10px}
 }
 @media (max-width:900px){
 	.vsa-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}

@@ -384,7 +384,7 @@
 
 /* ---- card styles */
 .vxs-grid.vxs-k-tile .vxs-card-media{background:var(--vxs-soft)}
-.vxs-grid.vxs-k-tile:not(.is-natural) .vxs-card-media img{object-fit:contain;padding:12%;filter:drop-shadow(0 14px 18px rgba(0,0,0,.22))}
+.vxs-grid.vxs-k-tile.vxs-fit-contain:not(.is-natural) .vxs-card-media img{object-fit:contain;filter:drop-shadow(0 14px 18px rgba(0,0,0,.22))}
 .vxs-grid.vxs-k-overlay>.vxs-card{gap:0;border-radius:var(--vxs-r);overflow:hidden}
 .vxs-grid.vxs-k-overlay .vxs-card-media{border-radius:0}
 .vxs-grid.vxs-k-overlay .vxs-card-body{position:absolute;left:0;right:0;bottom:0;z-index:1;padding:56px 18px 16px;background:linear-gradient(rgba(0,0,0,0),rgba(0,0,0,.74));color:#fff;pointer-events:none}
@@ -689,13 +689,13 @@
 /* micro labels: category, badges, option names */
 /* Small labels "Normal": no capitals (the category line and text badges were always in capitals). */
 .vxs-lb-none .vxs-card-cat{text-transform:none;letter-spacing:.01em;font-size:12.5px}.vxs-lb-none.vxs-bdg-text .vxs-badge{text-transform:none;letter-spacing:.02em;font-size:12px}
-.vxs-lb-upper .vxs-card-cat,.vxs-lb-upper .vxs-opt-l,.vxs-lb-upper .vxs-badge,.vxs-lb-upper .vxs-acc summary h2,.vxs-lb-upper.vxs-product .vxs-avail{text-transform:uppercase;letter-spacing:.11em;font-size:11px}
-.vxs-lb-upper .vxs-acc summary h2{font-family:var(--vxs-font,inherit);font-weight:600}
+.vxs-lb-upper .vxs-card-cat,.vxs-lb-upper .vxs-opt-l,.vxs-lb-upper .vxs-badge,.vxs-lb-upper .vxs-acc summary h2,.vxs-product.vxs-lb-upper~.vxs-product-more .vxs-acc summary h2,.vxs-lb-upper.vxs-product .vxs-avail{text-transform:uppercase;letter-spacing:.11em;font-size:11px}
+.vxs-lb-upper .vxs-acc summary h2,.vxs-product.vxs-lb-upper~.vxs-product-more .vxs-acc summary h2{font-family:var(--vxs-font,inherit);font-weight:600}
 /* buttons */
 .vxs-btn{font-family:var(--vxs-font,inherit);text-transform:var(--vxs-btn-case,none);letter-spacing:var(--vxs-btn-track,0)}
-.vxs-bst-outline .vxs-buy-btn,.vxs-bst-outline .vxs-card .vxs-btn{background:transparent;color:var(--vxs-ink);border-color:var(--vxs-ink)}
-.vxs-bst-outline .vxs-buy-btn:hover,.vxs-bst-outline .vxs-card .vxs-btn:hover{background:var(--vxs-ink);color:var(--vxs-on-ink,#fff);filter:none}
-.vxs-product.vxs-bst-outline .vxs-buy-btn{background:var(--vxs-ink);color:var(--vxs-on-ink,#fff)}
+/* "Buttons in the grid": the cards only — the product page keeps its buy button. */
+.vxs-bst-outline .vxs-card .vxs-btn{background:transparent;color:var(--vxs-ink);border-color:var(--vxs-ink)}
+.vxs-bst-outline .vxs-card .vxs-btn:hover{background:var(--vxs-ink);color:var(--vxs-on-ink,#fff);filter:none}
 .vxs-d-bold .vxs-btn{border-width:2px}
 .vxs-d-bold .vxs-btn:hover{background:var(--vxs-ink);border-color:var(--vxs-ink);color:var(--vxs-accent);filter:none}
 
@@ -708,6 +708,8 @@
 .vxs-grid .vxs-card-media{background:transparent}
 .vxs-grid.vxs-ib-soft .vxs-card-media{background:var(--vxs-soft)}
 .vxs-grid.vxs-ib-surface .vxs-card-media{background:var(--vxs-surface)}
+/* "Behind the photo: Nothing" also on tiles (the tile's soft backdrop won before). */
+.vxs-grid.vxs-k-tile.vxs-ib-none .vxs-card-media{background:transparent}
 .vxs-grid.vxs-ib-pastel>.vxs-card:nth-child(4n+1) .vxs-card-media{background:#fbe3e8}
 .vxs-grid.vxs-ib-pastel>.vxs-card:nth-child(4n+2) .vxs-card-media{background:#e3effb}
 .vxs-grid.vxs-ib-pastel>.vxs-card:nth-child(4n+3) .vxs-card-media{background:#fff1c9}
@@ -733,6 +735,14 @@
 .vxs-grid.vxs-d-bold.vxs-k-framed>.vxs-card{border:0;border-right:2px solid var(--vxs-ink);border-bottom:2px solid var(--vxs-ink);border-radius:0}
 .vxs-grid.vxs-d-bold.vxs-k-framed .vxs-card-media{border-bottom:2px solid var(--vxs-ink)}
 .vxs-grid.vxs-k-split>.vxs-card .vxs-card-media{border-radius:var(--vxs-r)}
+/* "Side by side": photo left, text right in every card (it only did that in the list layout). */
+.vxs-grid.vxs-k-split:not(.vxs-l-list)>.vxs-card{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);column-gap:clamp(14px,1.6vw,24px);align-items:center}
+.vxs-grid.vxs-k-split:not(.vxs-l-list)>.vxs-card>.vxs-card-media{grid-column:1;grid-row:1}
+.vxs-grid.vxs-k-split:not(.vxs-l-list)>.vxs-card>.vxs-card-body{grid-column:2;grid-row:1;min-width:0}
+@media (max-width:600px){.vxs-grid.vxs-k-split:not(.vxs-l-list)>.vxs-card{grid-template-columns:minmax(0,2fr) minmax(0,3fr)}}
+/* The heart sits on the photo's top-right corner (top-left is the badge's place). */
+.vxs-grid.vxs-k-split:not(.vxs-l-list):not(.vxs-bp-tr) .vxs-wish{left:auto;right:calc(50% + 18px)}
+@media (max-width:600px){.vxs-grid.vxs-k-split:not(.vxs-l-list):not(.vxs-bp-tr) .vxs-wish{right:calc(60% + 14px)}}
 
 /* hover */
 .vxs-grid .vxs-card-im2{transition:opacity .45s ease .06s}
@@ -758,6 +768,7 @@
 .vxs-grid.vxs-d-noir .vxs-card-t{font-size:19px;line-height:1.1}
 .vxs-grid.vxs-d-bold .vxs-card-t{font-size:17px;line-height:1.1}
 .vxs-grid.vxs-k-split .vxs-card-t{font-size:clamp(24px,1.4vw + 16px,38px);line-height:1.12}
+.vxs-grid.vxs-k-split:not(.vxs-l-list) .vxs-card-t{font-size:clamp(17px,.7vw + 12px,24px)}
 .vxs-card-price{font-size:15px;font-weight:500}
 .vxs-pr-bold .vxs-card-price,.vxs-pr-bold .vxs-buy-price{font-weight:700}
 .vxs-pr-mono .vxs-price{font-family:"JetBrains Mono","Geist Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-weight:500;letter-spacing:-.01em}
