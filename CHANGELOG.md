@@ -4,6 +4,33 @@ All notable changes to Velox. This file is the single source of truth — it sho
 up both on the GitHub release and in the WordPress "View details" → Changelog tab.
 Add a new section at the top for each release.
 
+## 4.76.0 — Full check of the builder and the shop
+Every element in the builder (123) was inserted and run through every setting, layout and motion option, styled, published and compared with the editor; every shop setting was changed, saved and reloaded; orders, payments, coupons, refunds, withdrawals, emails and the admin actions were run end to end. Fixed:
+
+**Builder**
+- **Animations, motion, interactions and custom attributes now work on navigation, breadcrumbs, anchor navigation, floating button, back to top, announcement bar, sticky bar, reading progress, slider, off-canvas, popups/modals, dropdown, tabs, accordion and FAQ.** These elements dropped them on the live page.
+- **"Show on: tablet and phone only" and "only after N pages" work on the floating button and the announcement bar** when they show on page load; both were ignored.
+- **Popups that open on a click** no longer show "how often", "after N pages" and "show on", which only apply when a popup opens by itself.
+- **The slider in the editor matches the page:** card width, peek and the slides per screen size were overridden by fixed widths in the editor.
+- **Navigation set to "A WordPress menu" shows that menu in the editor** (it said "No links yet").
+- **Reviews with example reviews show the real cards in the editor**, so their layout and colours can be styled there.
+- **Tabs / content switcher:** "Tabs sit" and "accordion on mobile" only show for the tabs look; the switcher's accordion setting showed off while the page treated it as on.
+- **Your own padding, size and width now win on off-canvas panels and popups** (the top padding was always 44px), and **on the table of contents box**.
+- **An image with a caption keeps its margin** (an inline margin:0 overrode it).
+- **A mistyped colour no longer breaks the rule it is in** (outline text lost its stroke): anything that is not a colour falls back to the default.
+- **Scroll section:** the "moves sideways" label in the editor no longer adds space the page does not have.
+- Smaller: announcement-bar position only shows for a sticky bar, the floating button shows its own icon in the editor, a video shows its cover image, a rating of 0 shows as 0, the product-grid element offers the same card and hover choices as the shop design.
+
+**Shop**
+- **Shop pages made by "Create the missing pages" follow Design → Columns** (and every look): they carried a fixed columns="3".
+- **"Fade to second" now fades** (it looked exactly like "Second photo"); **Small labels "Normal" really is normal** (categories were always in capitals); **"Space around the photo" works on tiles**; **masonry uses "Space between rows"**; the phone grid spacing applies.
+- **A look resets the choices other looks of that page set**, so "Classic grid" after "Tiles" no longer keeps square photos, and only the look really in use is ticked.
+- **Prices always show a currency**, also when the "Symbol" field is empty.
+- **On sites installed in a subfolder**, adding to the cart, changing quantities, coupons and the checkout no longer send visitors to a missing page.
+- **Cash on delivery with pickup** says "pay when you collect your order" instead of "when the parcel arrives".
+- **No payment reminder for a paid order**, even from an old open tab.
+- The `[velox_shop]` shortcode accepts all grid design options (hover, align, fit, category, short text, columns on tablets and phones, gap); the "try it on the real shop" link keeps the unsaved button colour; the categories above a grid follow that grid's own design.
+
 ## 4.75.2 — The look drawings show the photo shape
 - The small drawings of the shop-page looks now use the photo shape the look sets (square for “Tiles”).
 
