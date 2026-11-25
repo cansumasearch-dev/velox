@@ -182,7 +182,14 @@ class Velox_Frontend_Bar {
 
 	/** A signed URL that re-renders the current page as a logged-out visitor. */
 	protected static function guest_url() {
-		$base = home_url( add_query_arg( array() ) );
+		// The current address without doubling the folder of a subfolder install.
+		$req  = (string) add_query_arg( array() );
+		$root = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+		$root = '/' === $root ? '' : untrailingslashit( $root );
+		if ( '' !== $root && 0 === strpos( $req, $root . '/' ) ) {
+			$req = substr( $req, strlen( $root ) );
+		}
+		$base = home_url( $req );
 		return add_query_arg(
 			array(
 				'velox_guest' => wp_create_nonce( 'velox_guest_view' ),

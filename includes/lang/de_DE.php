@@ -8412,4 +8412,8 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'Total at the side' => 'Summe daneben',
 	'Items as cards' => 'Artikel als Karten',
 	'Photo tiles' => 'Fotokacheln',
+	// 4.76.0 — full audit
+	'Pay on pickup' => 'Zahlung bei Abholung',
+	'please pay %s when you collect your order.' => 'bitte zahlen Sie %s, wenn Sie Ihre Bestellung abholen.',
+	'This order is paid already, so no reminder was sent.' => 'Diese Bestellung ist schon bezahlt, darum wurde keine Erinnerung gesendet.',
 );

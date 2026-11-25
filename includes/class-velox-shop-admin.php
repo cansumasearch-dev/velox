@@ -805,6 +805,10 @@ class Velox_Shop_Admin {
 				}
 				break;
 			case 'reminder':
+				// Only while it is unpaid: a reminder for a paid order asks the customer to pay twice.
+				if ( 'pending' !== ( $o['payment']['status'] ?? '' ) ) {
+					return new WP_Error( 'x', __( 'This order is paid already, so no reminder was sent.', 'velox' ) );
+				}
 				Velox_Shop::mail( 'reminder', $o );
 				Velox_Shop::note( $o, __( 'Payment reminder sent.', 'velox' ) );
 				Velox_Shop::save_order( $id, $o );
@@ -1706,7 +1710,8 @@ class Velox_Shop_Admin {
 	 */
 	/** Settings → Design → "Open a test page": the unsaved choices, on the real shop, for 30 minutes. */
 	private static function do_design_try( $in ) {
-		$keys = array( 'design', 'card_ratio', 'custom_css' );
+		// Same keys as the preview, accent included (the "own" template's button colour).
+		$keys = array( 'design', 'card_ratio', 'accent', 'custom_css' );
 		foreach ( Velox_Shop::DESIGN_KEYS as $k ) {
 			$keys[] = 'd_' . $k;
 		}
@@ -2002,7 +2007,7 @@ class Velox_Shop_Admin {
 	/** Create the pages the shop needs (only the missing ones). */
 	private static function do_create_pages( $in ) {
 		$want = array(
-			'shop'     => array( __( 'Shop', 'velox' ), '[velox_shop columns="3" count="24" filter="1"]' ),
+			'shop'     => array( __( 'Shop', 'velox' ), '[velox_shop count="24" filter="1"]' ),
 			'cart'     => array( __( 'Cart', 'velox' ), '[velox_cart]' ),
 			'checkout' => array( __( 'Checkout', 'velox' ), '[velox_checkout]' ),
 			'account'  => array( __( 'My account', 'velox' ), '[velox_account]' ),

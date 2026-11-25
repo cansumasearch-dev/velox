@@ -296,8 +296,33 @@ class Velox_Shop_Front {
 
 	/* ------------------------------------------------------------- grid */
 
+	/**
+	 * The address of the page being shown, query included. home_url() plus
+	 * the request path doubled the folder on sites installed in a subfolder
+	 * (example.com/shop/shop/werk/…), so forms sent visitors to a missing page.
+	 */
+	public static function here_url() {
+		$req  = (string) add_query_arg( array() );
+		$base = (string) wp_parse_url( home_url( '/' ), PHP_URL_PATH );
+		$base = '/' === $base ? '' : untrailingslashit( $base );
+		if ( '' !== $base && 0 === strpos( $req, $base . '/' ) ) {
+			$req = substr( $req, strlen( $base ) );
+		} elseif ( '' !== $base && $req === $base ) {
+			$req = '/';
+		}
+		return home_url( $req );
+	}
+
 	public static function sc_grid( $atts = array() ) {
-		$a = shortcode_atts( array( 'count' => 12, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '', 'ids' => '', 'layout' => '', 'card' => '', 'button' => '', 'tools' => '' ), $atts, 'velox_shop' );
+		$a = shortcode_atts( array( 'count' => 12, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '', 'ids' => '', 'layout' => '', 'card' => '', 'button' => '', 'tools' => '',
+			'hover' => '', 'align' => '', 'fit' => '', 'show_cat' => '', 'show_text' => '', 'cols_t' => '', 'cols_m' => '', 'gap' => '' ), $atts, 'velox_shop' );
+		// Shop pages made by "Create the missing pages" before 4.76 carry a fixed
+		// columns="3", which overrode Design → Columns (and every look) for good.
+		// That exact default now follows the design; a number someone typed stays.
+		if ( '3' === (string) $a['columns'] && '24' === (string) $a['count'] && '1' === (string) $a['filter'] && (int) get_the_ID() && (int) get_the_ID() === (int) Velox_Shop::get( 'page_shop', 0 )
+			&& false !== strpos( (string) get_post_field( 'post_content', get_the_ID() ), '[velox_shop columns="3" count="24" filter="1"]' ) ) {
+			$a['columns'] = '';
+		}
 		return self::grid( $a );
 	}
 
@@ -414,7 +439,7 @@ class Velox_Shop_Front {
 				$cnt   = function ( $slug ) use ( $facets ) {
 					return $facets && isset( $facets['cats'][ $slug ] ) ? ' <small>' . (int) $facets['cats'][ $slug ] . '</small>' : '';
 				};
-				$cst   = (string) ( Velox_Shop::design()['cats_style'] ?? 'pills' );
+				$cst   = (string) ( $d['cats_style'] ?? 'pills' );
 				$cats .= '<nav class="vxs-cats is-' . esc_attr( in_array( $cst, array( 'pills', 'underline', 'blocks' ), true ) ? $cst : 'pills' ) . '" aria-label="' . esc_attr__( 'Categories', 'velox' ) . '"><a href="' . esc_url( $base ) . '"' . ( $cat ? '' : ' aria-current="true"' ) . ' data-vxs-nav>' . esc_html__( 'All', 'velox' ) . $cnt( '' ) . '</a>';
 				foreach ( $terms as $t ) {
 					if ( $facets && empty( $facets['cats'][ $t->slug ] ) && $cat !== $t->slug ) {
@@ -772,7 +797,7 @@ class Velox_Shop_Front {
 			. '<input type="hidden" name="velox_shop_action" value="add">'
 			. '<input type="hidden" name="product" value="' . (int) $p['id'] . '">'
 			. '<input type="hidden" name="variant" value="' . esc_attr( $vid ) . '">'
-			. '<input type="hidden" name="vx_return" value="' . esc_url( home_url( add_query_arg( array() ) ) ) . '">'
+			. '<input type="hidden" name="vx_return" value="' . esc_url( self::here_url() ) . '">'
 			. ( $qty ? '' : '<input type="hidden" name="qty" value="1">' )
 			. $inner . '</form>';
 	}
@@ -1144,15 +1169,15 @@ class Velox_Shop_Front {
 				. '<span class="vxs-line-u">' . self::money( $l['unit'] ) . ( $l['delivery'] && $l['ship'] ? ' · ' . esc_html( $l['delivery'] ) : '' ) . '</span></div>'
 				. '<form method="post" class="vxs-line-q">'
 				. '<input type="hidden" name="velox_shop_action" value="set"><input type="hidden" name="product" value="' . (int) $l['pid'] . '"><input type="hidden" name="variant" value="' . esc_attr( $l['vid'] ) . '">'
-				. '<input type="hidden" name="vx_return" value="' . esc_url( home_url( add_query_arg( array() ) ) ) . '">'
+				. '<input type="hidden" name="vx_return" value="' . esc_url( self::here_url() ) . '">'
 				. ( $l['unique'] ? '<input type="hidden" name="qty" value="1"><span class="vxs-one">1</span>' : '<div class="vxs-qty"><button type="button" data-vxs-step="-1" aria-label="' . esc_attr__( 'Fewer', 'velox' ) . '">−</button><input type="number" name="qty" value="' . (int) $l['qty'] . '" min="0" max="' . (int) $l['max'] . '" aria-label="' . esc_attr__( 'Quantity', 'velox' ) . '" data-vxs-autosubmit><button type="button" data-vxs-step="1" aria-label="' . esc_attr__( 'More', 'velox' ) . '">+</button></div>' )
 				. '<noscript><button type="submit">' . esc_html__( 'Update', 'velox' ) . '</button></noscript></form>'
 				. '<span class="vxs-line-p">' . self::money( $l['total'] ) . '</span>'
-				. '<form method="post" class="vxs-line-x"><input type="hidden" name="velox_shop_action" value="remove"><input type="hidden" name="product" value="' . (int) $l['pid'] . '"><input type="hidden" name="variant" value="' . esc_attr( $l['vid'] ) . '"><input type="hidden" name="vx_return" value="' . esc_url( home_url( add_query_arg( array() ) ) ) . '">'
+				. '<form method="post" class="vxs-line-x"><input type="hidden" name="velox_shop_action" value="remove"><input type="hidden" name="product" value="' . (int) $l['pid'] . '"><input type="hidden" name="variant" value="' . esc_attr( $l['vid'] ) . '"><input type="hidden" name="vx_return" value="' . esc_url( self::here_url() ) . '">'
 				. '<button type="submit" aria-label="' . esc_attr( sprintf( /* translators: %s: product */ __( 'Remove %s', 'velox' ), $l['name'] ) ) . '">&times;</button></form></li>';
 		}
 		$out .= '</ul><aside class="vxs-cart-sum">';
-		$out .= '<form method="post" class="vxs-coupon"><input type="hidden" name="velox_shop_action" value="coupon"><input type="hidden" name="vx_return" value="' . esc_url( home_url( add_query_arg( array() ) ) ) . '">'
+		$out .= '<form method="post" class="vxs-coupon"><input type="hidden" name="velox_shop_action" value="coupon"><input type="hidden" name="vx_return" value="' . esc_url( self::here_url() ) . '">'
 			. '<input type="text" name="coupon" value="' . esc_attr( $t['coupon'] ? $t['coupon'] : (string) ( $cart['_c'] ?? '' ) ) . '" placeholder="' . esc_attr__( 'Discount code', 'velox' ) . '" aria-label="' . esc_attr__( 'Discount code', 'velox' ) . '"><button type="submit" class="vxs-btn vxs-btn-ghost">' . esc_html__( 'Apply', 'velox' ) . '</button></form>'
 			. ( $t['coupon_msg'] ? '<p class="vxs-err">' . esc_html( $t['coupon_msg'] ) . '</p>' : '' );
 		$out .= self::totals_html( $lines, $t, true );
@@ -1269,7 +1294,7 @@ class Velox_Shop_Front {
 		$out = self::flash() . '<form method="post" class="vxs-checkout alignwide ' . esc_attr( Velox_Shop::design_classes() ) . '" data-vxs-checkout novalidate>'
 			. wp_nonce_field( 'velox_shop', '_vxs', true, false )
 			. '<input type="hidden" name="velox_shop_action" value="checkout">'
-			. '<input type="hidden" name="vx_return" value="' . esc_url( home_url( add_query_arg( array() ) ) ) . '">'
+			. '<input type="hidden" name="vx_return" value="' . esc_url( self::here_url() ) . '">'
 			. '<input type="hidden" name="vx_needs_addr" value="' . ( $t['needs_ship'] ? '1' : '' ) . '" data-vxs-needs>'
 			. '<input type="hidden" name="vx_src" value="" data-vxs-src>'
 			. '<div class="vxs-hp" aria-hidden="true"><label>Website <input type="text" name="vx_website" tabindex="-1" autocomplete="off"></label></div>'
@@ -1523,7 +1548,7 @@ class Velox_Shop_Front {
 			$o = Velox_Shop::order_by_key( sanitize_text_field( wp_unslash( $_GET['vxw'] ) ) );
 		}
 		$err = isset( $_GET['vxwerr'] ) ? '<p class="vxs-note is-err" role="alert">' . esc_html__( 'We could not find an order with this number and email address, or it can no longer be withdrawn.', 'velox' ) . '</p>' : '';
-		$head = '<form method="post" class="vxs-withdraw">' . wp_nonce_field( 'velox_shop', '_vxs', true, false ) . '<input type="hidden" name="velox_shop_action" value="withdraw"><input type="hidden" name="vx_return" value="' . esc_url( home_url( add_query_arg( array() ) ) ) . '">';
+		$head = '<form method="post" class="vxs-withdraw">' . wp_nonce_field( 'velox_shop', '_vxs', true, false ) . '<input type="hidden" name="velox_shop_action" value="withdraw"><input type="hidden" name="vx_return" value="' . esc_url( self::here_url() ) . '">';
 		if ( $o && Velox_Shop::can_withdraw( $o ) ) {
 			return $head . '<input type="hidden" name="vx_key" value="' . esc_attr( $o['key'] ) . '"><h2>' . esc_html__( 'Withdraw from the contract', 'velox' ) . '</h2>'
 				/* translators: 1: order number 2: date */

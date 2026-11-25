@@ -25,7 +25,7 @@ class Velox_Builder_Roles {
 	const CAPS = array( 'velox_builder', 'velox_builder_design', 'velox_builder_publish' );
 
 	/** What a non-admin may ask the server for (each handler still checks the document). */
-	const CLIENT_ACTIONS   = array( 'builder_save', 'builder_load', 'builder_publish', 'builder_discard_draft', 'builder_preview_css', 'builder_loop_preview', 'builder_shop_preview', 'builder_revisions', 'builder_revision' );
+	const CLIENT_ACTIONS   = array( 'builder_save', 'builder_load', 'builder_publish', 'builder_discard_draft', 'builder_preview_css', 'builder_loop_preview', 'builder_shop_preview', 'builder_reviews_preview', 'builder_revisions', 'builder_revision' );
 	// Designers may also chat with the AI assistant (it checks the document and their rights again).
 	const DESIGNER_ACTIONS = array( 'builder_class_css', 'ai_send', 'ai_continue', 'ai_poll', 'ai_stop', 'ai_reset', 'mcp_watch' );
 

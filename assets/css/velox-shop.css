@@ -366,7 +366,7 @@
 
 /* ---- layouts */
 .vxs-grid.vxs-l-masonry{display:block;columns:var(--vxs-cols,3);column-gap:var(--vxs-gap,28px)}
-.vxs-grid.vxs-l-masonry>.vxs-card{break-inside:avoid;margin-bottom:var(--vxs-gap,28px)}
+.vxs-grid.vxs-l-masonry>.vxs-card{break-inside:avoid;margin-bottom:var(--vxs-gap-row,var(--vxs-gap,28px))}
 .vxs-grid.vxs-l-list{grid-template-columns:minmax(0,1fr)}
 .vxs-grid.vxs-l-list>.vxs-card{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:auto auto 1fr;column-gap:clamp(24px,5vw,72px);row-gap:16px;align-items:start}
 .vxs-grid.vxs-l-list>.vxs-card>.vxs-card-media{grid-row:1 / span 3;grid-column:1}
@@ -687,6 +687,8 @@
 .vxs-product-t{margin:0;font-size:clamp(28px,1.6vw + 18px,44px);line-height:1.08}
 .vxs-d-own .vxs-card-t,.vxs-d-own .vxs-product-t{font-family:inherit}
 /* micro labels: category, badges, option names */
+/* Small labels "Normal": no capitals (the category line and text badges were always in capitals). */
+.vxs-lb-none .vxs-card-cat{text-transform:none;letter-spacing:.01em;font-size:12.5px}.vxs-lb-none.vxs-bdg-text .vxs-badge{text-transform:none;letter-spacing:.02em;font-size:12px}
 .vxs-lb-upper .vxs-card-cat,.vxs-lb-upper .vxs-opt-l,.vxs-lb-upper .vxs-badge,.vxs-lb-upper .vxs-acc summary h2,.vxs-lb-upper.vxs-product .vxs-avail{text-transform:uppercase;letter-spacing:.11em;font-size:11px}
 .vxs-lb-upper .vxs-acc summary h2{font-family:var(--vxs-font,inherit);font-weight:600}
 /* buttons */
@@ -699,6 +701,8 @@
 
 /* grid spacing */
 .vxs-grid{column-gap:var(--vxs-gap,24px);row-gap:var(--vxs-gap-row,var(--vxs-gap,24px))}
+/* Phones: a little tighter (the older phone rule above lost to the line before). */
+@media (max-width:600px){.vxs-grid{column-gap:min(var(--vxs-gap,24px),14px);row-gap:calc(var(--vxs-gap-row,var(--vxs-gap,28px)) * .75)}}
 
 /* photo backdrop and padding (for cut-out products) */
 .vxs-grid .vxs-card-media{background:transparent}
@@ -709,6 +713,8 @@
 .vxs-grid.vxs-ib-pastel>.vxs-card:nth-child(4n+3) .vxs-card-media{background:#fff1c9}
 .vxs-grid.vxs-ib-pastel>.vxs-card:nth-child(4n+4) .vxs-card-media{background:#e4f5e1}
 .vxs-grid.vxs-fit-contain:not(.is-natural) .vxs-card-media img{object-fit:contain;padding:var(--vxs-img-pad,0)}
+/* On a tile the photo gets room around it as well (the setting showed for tiles but did nothing). */
+.vxs-grid.vxs-k-tile .vxs-card-media img{padding:var(--vxs-img-pad,0)}
 .vxs-gal-stage,.vxs-gal-item{background:var(--vxs-soft)}
 .vxs-product.vxs-fit-contain .vxs-gal-main,.vxs-product.vxs-fit-contain .vxs-gal-item img{object-fit:contain}
 
@@ -730,6 +736,8 @@
 
 /* hover */
 .vxs-grid .vxs-card-im2{transition:opacity .45s ease .06s}
+/* "Second photo" swaps at once; "Fade to second" cross-fades slowly. They looked the same. */
+.vxs-grid.vxs-hv-swap .vxs-card-im2{transition:none}.vxs-grid.vxs-hv-fade .vxs-card-im2{transition:opacity .8s ease .05s}
 .vxs-grid:not(.vxs-hv-swap):not(.vxs-hv-fade) .vxs-card:hover .vxs-card-im2{opacity:0}
 .vxs-grid:not(.vxs-hv-zoom) .vxs-card:hover .vxs-card-media img{transform:none}
 .vxs-grid.vxs-hv-zoom .vxs-card:hover .vxs-card-media img{transform:scale(1.045)}

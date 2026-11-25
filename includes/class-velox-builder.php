@@ -644,6 +644,7 @@ class Velox_Builder {
 			'iconAliases' => class_exists( 'Velox_Icons' ) ? (object) Velox_Icons::aliases() : (object) array(),
 			'reusablesUrl' => admin_url( 'admin.php?page=' . self::SLUG . '-reusables' ),
 			'reviewConnections' => self::review_connections(),
+			'navMenus'          => class_exists( 'Velox_Builder_Render' ) ? Velox_Builder_Render::menu_previews() : array(),
 			// Forms (Velox → Mail) for the Form element.
 			'forms'     => self::forms_payload(),
 			// Keyboard shortcuts: the list, the site's changes, the fixed keys.
