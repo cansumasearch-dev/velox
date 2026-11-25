@@ -7,7 +7,7 @@
 	window.confirm = function () { return true; };
 	var errors = [];
 	window.addEventListener( 'error', function ( e ) { errors.push( 'ERR ' + e.message + ' @' + ( e.lineno || '' ) ); } );
-	var sleep = function ( t ) { return new Promise( function ( r ) { setTimeout( r, t ); } ); };
+	var sleep = function ( t ) { return new Promise( function ( r ) { var end = Date.now() + t, ch = new MessageChannel(); ch.port1.onmessage = function () { if ( Date.now() >= end ) { ch.port1.close(); r(); } else { ch.port2.postMessage( 0 ); } }; ch.port2.postMessage( 0 ); } ); }; // not throttled in a hidden pane
 	var q = function ( s, r ) { return ( r || document ).querySelector( s ); }, qa = function ( s, r ) { return [].slice.call( ( r || document ).querySelectorAll( s ) ); };
 	function cd() { var f = document.getElementById( 'vb-canvas' ); return f && f.contentDocument; }
 	function insp() { return q( '.vb-inspector' ); }
