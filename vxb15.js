@@ -41,11 +41,14 @@
 	async function pageSig() {
 		var m = model(); if ( ! m ) { return { h: 'NOMODEL', errs: [] }; }
 		var b = new FormData(); b.append( 'action', 'vxt_render' ); b.append( 'model', JSON.stringify( { tree: m.tree, content: m.content, classes: m.classes } ) );
-		try {
-			var j = await ( await fetch( window.VELOX_BUILDER.ajaxurl, { method: 'POST', body: b, credentials: 'same-origin' } ) ).json();
-			if ( ! j.success ) { return { h: 'FAIL', errs: [ 'render failed' ] }; }
-			return { h: hash( j.data.html ) + ':' + hash( j.data.css ), errs: j.data.errs || [], bad: BAD.test( j.data.html ) ? j.data.html.match( BAD )[ 0 ] : '', len: j.data.html.length };
-		} catch ( e ) { return { h: 'EXC', errs: [ e.message ] }; }
+		for ( var tries = 0; tries < 2; tries++ ) { // one retry: the sandbox's PHP sometimes drops a request
+			try {
+				var j = await ( await fetch( window.VELOX_BUILDER.ajaxurl, { method: 'POST', body: b, credentials: 'same-origin' } ) ).json();
+				if ( ! j.success ) { if ( tries ) { return { h: 'FAIL', errs: [ 'render failed' ] }; } await sleep( 600 ); continue; }
+				// The page's own CSS for the element counts too (float = per-element CSS, doc = classes/overrides).
+				return { h: hash( j.data.html ) + ':' + hash( ( j.data.float || '' ) + ( j.data.doc_css || '' ) ), errs: j.data.errs || [], bad: BAD.test( j.data.html ) ? j.data.html.match( BAD )[ 0 ] : '', len: j.data.html.length };
+			} catch ( e ) { if ( tries ) { return { h: 'EXC', errs: [ e.message ] }; } await sleep( 600 ); }
+		}
 	}
 	async function settle() { await sleep( 1400 ); }
 	async function snap( id ) { var c = canvasSig( id ); var p = await pageSig(); return { c: c, p: p }; }
