@@ -2138,8 +2138,7 @@ class Velox_Shop_Admin {
 		$safe = function ( $row ) {
 			return array_map( function ( $c ) {
 				$c = (string) $c;
-				return '' !== $c && in_array( $c[0], array( '=', '+', '-', '@', "	", "
-" ), true ) && ! is_numeric( str_replace( ',', '.', $c ) ) ? "'" . $c : $c;
+				return '' !== $c && in_array( $c[0], array( '=', '+', '-', '@', "\t", "\r" ), true ) && ! is_numeric( str_replace( ',', '.', $c ) ) ? "'" . $c : $c;
 			}, $row );
 		};
 		$pay = array( 'pending' => __( 'Awaiting payment', 'velox' ), 'paid' => __( 'Paid', 'velox' ), 'partial' => __( 'Partly refunded', 'velox' ), 'refunded' => __( 'Refunded', 'velox' ), 'cancelled' => __( 'Cancelled', 'velox' ), 'failed' => __( 'Payment failed', 'velox' ) );

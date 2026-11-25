@@ -1153,7 +1153,9 @@ class Velox_Builder_Render {
 				$until = trim( (string) $s( 'until', '' ) );
 				$tz    = function_exists( 'wp_timezone' ) ? wp_timezone() : new DateTimeZone( 'UTC' );
 				$dt    = false;
-				foreach ( array( 'Y-m-d\TH:i', 'Y-m-d H:i', 'Y-m-d\TH:i:s', 'Y-m-d H:i:s', 'Y-m-d' ) as $fmt ) {
+				// "!" resets the parts the format leaves out: a date alone ends at midnight
+				// (like the editor), not at whatever time of day the page was drawn.
+				foreach ( array( '!Y-m-d\TH:i', '!Y-m-d H:i', '!Y-m-d\TH:i:s', '!Y-m-d H:i:s', '!Y-m-d' ) as $fmt ) {
 					$dt = DateTime::createFromFormat( $fmt, $until, $tz );
 					if ( $dt ) {
 						break;
@@ -1612,7 +1614,9 @@ class Velox_Builder_Render {
 			. '.vx-check{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:var(--vx-ck-gap,12px)}.vx-ck-i{display:flex;align-items:flex-start;gap:10px;line-height:1.5}'
 			. '.vx-ck-ic{flex:none;display:grid;place-items:center;width:var(--vx-ck-z,20px);height:1.5em;color:var(--vx-ck-c,#16a34a)}.vx-ck-ic svg{width:var(--vx-ck-z,20px);height:var(--vx-ck-z,20px);fill:currentColor}.vx-check.is-dot .vx-ck-ic svg{width:8px;height:8px}'
 			// image crop (Image → "Fill the box")
-			. '.vx-img-cover{overflow:hidden}.vx-img-cover img,.vx-img-cover>a{display:block;width:100%!important;height:100%!important;max-width:none!important;object-fit:cover}';
+			// Fit and position set on the image's box reach the photo (object-fit is not
+			// inherited by itself, so "contain" did nothing); cover stays the default.
+			. '.vx-img-cover{overflow:hidden}:where(.vx-img-cover){object-fit:cover;object-position:50% 50%}.vx-img-cover img,.vx-img-cover>a{display:block;width:100%!important;height:100%!important;max-width:none!important;object-fit:inherit;object-position:inherit}';
 	}
 
 	/**
@@ -1795,6 +1799,8 @@ class Velox_Builder_Render {
 		$labelled = $id . '-label';
 
 		$attr = ' id="' . esc_attr( $id ) . '" data-vx-ms="' . $ms . '"';
+		// "Speed" drives the slide/fade itself (it only delayed hiding before: 800 ms still slid in 250).
+		self::$float_css .= '#' . $id . '{--vx-ms:' . max( 0, min( 3000, (int) $ms ) ) . 'ms}';
 		if ( ! self::el_set( $node, 'closeEsc', '1' ) ) { $attr .= ' data-vx-noesc'; }
 		if ( ! self::el_set( $node, 'closeBack', '1' ) ) { $attr .= ' data-vx-nobackclose'; }
 		// "When it appears" and "Opened by" did nothing: neither was output.
@@ -2826,6 +2832,9 @@ class Velox_Builder_Render {
 	}
 
 	/** Baseline CSS for runtime elements, so they look right before any styling. */
+	/** The per-element CSS was printed already (before the class stylesheet). */
+	private static $float_done = false;
+
 	public static function element_base_css( $part = 'all' ) {
 		// Per-element CSS ($float_css) is written by many elements that need no
 		// runtime at all — returning early here dropped it on every simple page.
@@ -2968,9 +2977,9 @@ class Velox_Builder_Render {
 			$css .= '.vx-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}' .
 				'.vx-ov[hidden]{display:none}' .
 				'.vx-ov{position:fixed;inset:0;z-index:9998;display:flex}' .
-				'.vx-ov-back{position:absolute;inset:0;z-index:0;opacity:0;transition:opacity .25s ease}' .
+				'.vx-ov-back{position:absolute;inset:0;z-index:0;opacity:0;transition:opacity var(--vx-ms,.25s) ease}' .
 				'.vx-ov.is-open .vx-ov-back{opacity:1}' .
-				'.vx-ov-panel{position:relative;z-index:2;max-height:100%;overflow:auto;background:#fff;min-height:56px;transition:transform .25s ease,opacity .25s ease}' .
+				'.vx-ov-panel{position:relative;z-index:2;max-height:100%;overflow:auto;background:#fff;min-height:56px;transition:transform var(--vx-ms,.25s) ease,opacity var(--vx-ms,.25s) ease}' .
 				'.vx-ov-close{position:absolute;z-index:3;top:12px;right:12px;background:none;border:none;padding:6px;cursor:pointer;color:inherit;line-height:0}' .
 				// offcanvas: slides in from its edge
 				// Size and padding defaults weigh nothing (:where), so the panel's own
@@ -3174,11 +3183,28 @@ class Velox_Builder_Render {
 	if ( '' !== $base_css ) {
 		echo '<style id="velox-element-base">' . $base_css . '</style>' . "\n"; // phpcs:ignore
 	}
+	// Per-element rules from element settings (#id …) also go BEFORE the class
+	// and "This element" styles — the order the editor uses. After them, a
+	// Pull quote's line padding beat the padding the user set on the element:
+	// the editor showed 40px, visitors saw 20px.
+	$float_css = self::element_base_css( 'float' );
+	if ( '' !== $float_css ) {
+		echo '<style id="velox-builder-float">' . $float_css . '</style>' . "\n"; // phpcs:ignore
+	}
+	self::$float_done = true;
 	?>
 	<?php if ( $css_url ) : ?>
 		<link rel="stylesheet" id="velox-builder-css" href="<?php echo esc_url( $css_url ); ?>">
 	<?php endif; ?>
-	<?php self::print_global_head(); ?>
+	<?php
+	// Inline mode (or no writable uploads folder): the class CSS goes right here
+	// too, so the page's own custom CSS below still comes last.
+	if ( '' !== self::$inline ) {
+		self::print_inline();
+		self::$inline = '';
+	}
+	self::print_global_head();
+	?>
 	<?php wp_head(); ?>
 </head>
 <body <?php body_class( 'velox-built' ); ?><?php echo self::smooth_attr(); // phpcs:ignore ?>>
@@ -3291,7 +3317,7 @@ class Velox_Builder_Render {
 		if ( ! empty( self::$page_settings['css'] ) ) {
 			$page_css .= str_ireplace( array( '</style', '<script' ), '', (string) self::$page_settings['css'] );
 		}
-		$gs = self::element_base_css( 'float' ) . self::global_styles_css() . ( self::$loop_used ? self::loop_css() : '' ) . $page_css;
+		$gs = ( self::$float_done ? '' : self::element_base_css( 'float' ) ) . self::global_styles_css() . ( self::$loop_used ? self::loop_css() : '' ) . $page_css;
 		if ( '' !== $gs ) {
 			echo '<style id="velox-builder-global-styles">' . $gs . '</style>' . "\n"; // phpcs:ignore
 		}
@@ -4621,7 +4647,10 @@ class Velox_Builder_Render {
 				$pos = strpos( (string) $k, ':' );
 				if ( false !== $pos ) {
 					$st = substr( (string) $k, $pos + 1 );
-					if ( preg_match( '/^[a-z][a-z0-9-]*(\([a-z0-9+\- ]*\))?$/i', $st ) ) {
+					// Anything the editor accepts — not(:last-child), is(.active),
+					// hover::after, nth-child(2n+1) — but nothing that could leave the
+					// selector ({ } ; < @ \ or a comment).
+					if ( preg_match( '/^[a-z:][a-z0-9_\-():.#+*>~=,\[\] ]*$/i', $st ) && false === strpos( $st, '/*' ) && substr_count( $st, '(' ) === substr_count( $st, ')' ) ) {
 						$states[ $st ] = true;
 					}
 				}
@@ -4774,7 +4803,7 @@ class Velox_Builder_Render {
 		$v = trim( $v );
 		// Strip anything that could break out of the declaration/rule.
 		$v = preg_replace( '/[{}<>;]/', '', $v );
-		if ( preg_match( '/(expression|javascript:|@import|behaviou?r\s*:)/i', $v ) ) {
+		if ( preg_match( '/(expression\s*\(|javascript:|@import|behaviou?r\s*:)/i', $v ) ) { // "expression(" only: a font called "Expression Pro" is fine
 			return '';
 		}
 		// Background images: allow url() only around a plain http(s) or relative

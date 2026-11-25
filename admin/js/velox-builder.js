@@ -531,6 +531,17 @@
 	/* ============================================================
 	   2. CSS GEN + LIVE INJECTION
 	   ============================================================ */
+	/* The same value check the page makes (sanitize_value in PHP): what the page
+	 * drops — a url() that isn't http(s) or /path, "expression(", "javascript:" —
+	 * the canvas drops too, so the editor never shows what visitors won't see. */
+	function safeVal( v ) {
+		v = String( v == null ? '' : v ).trim().replace( /[{}<>;]/g, '' );
+		if ( /(expression\s*\(|javascript:|@import|behaviou?r\s*:)/i.test( v ) ) { return ''; }
+		var re = /url\s*\(\s*(['"]?)(.*?)\1\s*\)/gi, m, any = false;
+		while ( ( m = re.exec( v ) ) ) { any = true; if ( ! /^(https?:\/\/|\/)[^\s'"()\\]*$/i.test( m[ 2 ] ) ) { return ''; } }
+		if ( ! any && /url\s*\(/i.test( v ) ) { return ''; }
+		return v;
+	}
 	function declBlock( obj ) {
 		var out = '';
 		// Shorthands first: "background" after "background-image" would wipe the
@@ -538,7 +549,8 @@
 		var keys = Object.keys( obj ).sort( function ( a, b ) { return ( SHORTHAND[ b ] ? 1 : 0 ) - ( SHORTHAND[ a ] ? 1 : 0 ); } );
 		for ( var ki = 0; ki < keys.length; ki++ ) {
 			var p = keys[ ki ];
-			var kebab = CSS_PROP[ p ] || p, v = obj[ p ];
+			var kebab = CSS_PROP[ p ] || p, v = safeVal( obj[ p ] );
+			if ( '' === v ) { continue; }
 			if ( UNIT_PROPS[ p ] && /^-?\d+(\.\d+)?$/.test( v ) ) { v = v + 'px'; }
 			out += '  ' + kebab + ': ' + v + ';\n';
 		}
@@ -1625,6 +1637,11 @@
 			// belongs to this element. It used to land in a class called "null".
 			if ( elementOverride || writesToElement( s, node, prop ) ) { node.overrides[ key ] = node.overrides[ key ] || {}; node.overrides[ key ][ prop ] = value; clearShadowed( node.overrides, key, prop ); }
 			else { var c = s.activeClass; s.classes[ c ] = s.classes[ c ] || {}; s.classes[ c ][ key ] = s.classes[ c ][ key ] || {}; s.classes[ c ][ key ][ prop ] = value; clearShadowed( s.classes[ c ], key, prop ); }
+			// An image's ratio, fit or position only shows when the photo fills its
+			// box — without it a ratio cut the bottom off and "contain" did nothing.
+			if ( 'Image' === node.el && value && ( 'aspectRatio' === prop || 'objectFit' === prop || 'objectPosition' === prop ) ) {
+				node.settings = node.settings || {}; if ( ! node.settings.fit || '0' === String( node.settings.fit ) ) { node.settings.fit = '1'; }
+			}
 		}, T( 'Style' ) + ': ' + prop );
 	}
 	/* ---------- value + unit ----------
@@ -3394,7 +3411,12 @@
 			case 'Embed':
 				var code = String( wset( node, 'code', '' ) );
 				if ( ! code.trim() ) { return ph( T( 'HTML embed — paste the code in Settings.' ), 'code' ); }
-				return open( 'vx-embed', ' style="position:relative"' ) + wclean( code ) + '<span class="vb-cover"></span></div>';
+				// The page keeps only safe embed tags (iframe, video, audio, text): <style>
+				// and <svg> are dropped there, so the canvas drops them too — use a
+				// Code block for your own styles.
+				var gone = /<style[\s>]|<svg[\s>]/i.test( code );
+				code = code.replace( /<style[\s\S]*?<\/style>/gi, '' ).replace( /<svg[\s\S]*?<\/svg>/gi, '' );
+				return open( 'vx-embed', ' style="position:relative"' ) + wclean( code ) + ( gone ? '<p class="vb-ph-s" style="margin:6px 0 0">' + T( 'Styles and SVG drawings in an embed are removed on the page. Use a Code block for them.' ) + '</p>' : '' ) + '<span class="vb-cover"></span></div>';
 			case 'Codeblock':
 				var ch = String( wset( node, 'html', '' ) ), cc = String( wset( node, 'css', '' ) ), cj = String( wset( node, 'js', '' ) );
 				if ( ! ( ch + cc + cj ).trim() ) { return ph( T( 'Code block — write HTML, CSS and JavaScript in Settings.' ), 'code' ); }
