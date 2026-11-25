@@ -14,7 +14,9 @@
 	function fire( el, t ) { el.dispatchEvent( new Event( t, { bubbles: true } ) ); }
 	var TAG = P.get( 'tag' ) || 'props';
 	function report( r ) { var b = new FormData(); b.append( 'action', 'vxt_report' ); b.append( 'r', JSON.stringify( r ) ); return fetch( window.VELOX_BUILDER.ajaxurl + '?k=' + TAG, { method: 'POST', body: b, credentials: 'same-origin' } ); }
-	function model() { var best = null; for ( var i = 0; i < localStorage.length; i++ ) { var k = localStorage.key( i ); if ( 0 === k.indexOf( 'velox_builder_backup_' ) ) { try { var b = JSON.parse( localStorage.getItem( k ) ); if ( b && ( ! best || b.at > best.at ) ) { best = b; } } catch ( e ) {} } } return best && best.model; }
+	function backup() { var best = null, own = P.get( 'doc' ) ? 'velox_builder_backup_' + P.get( 'doc' ) : ''; for ( var i = 0; i < localStorage.length; i++ ) { var k = localStorage.key( i ); if ( 0 === k.indexOf( 'velox_builder_backup_' ) && ( ! own || k === own ) ) { try { var b = JSON.parse( localStorage.getItem( k ) ); if ( b && ( ! best || b.at > best.at ) ) { best = b; } } catch ( e ) {} } } return best; }
+	function model() { var b = backup(); return b && b.model; }
+	async function backupAfter( t ) { var t0 = Date.now(); while ( Date.now() - t0 < 5000 ) { var b = backup(); if ( b && b.at >= t ) { return; } await sleep( 200 ); } } // the page check needs this change saved to the backup first
 	async function serverCss() { var m = model(); var b = new FormData(); b.append( 'action', 'vxt_render' ); b.append( 'model', JSON.stringify( { tree: m.tree, content: m.content, classes: m.classes } ) ); var j = await ( await fetch( window.VELOX_BUILDER.ajaxurl, { method: 'POST', body: b, credentials: 'same-origin' } ) ).json(); return j.success ? j.data.doc_css : 'FAIL'; }
 	function norm( s ) { return String( s || '' ).replace( /\/\*[\s\S]*?\*\//g, '' ).replace( /\s+/g, '' ).replace( /;}/g, '}' ); }
 	function rulesFor( css, sel ) { // every rule (incl. inside @media) that mentions the selector, normalised
@@ -73,7 +75,7 @@
 			else if ( 'num' === kind ) { val = VAL[ prop ] || ( /opacity/i.test( prop ) ? '0.55' : '17' ); await setCtl( c, val ); }
 			else { val = VAL[ prop ] || ( /color/i.test( prop ) ? '#e11d48' : '17px' ); await setCtl( c, val ); }
 			r.v = val;
-			await sleep( 900 );
+			var tChange = Date.now() - 400; await sleep( 900 ); await backupAfter( tChange );
 			var el2 = cd().getElementById( id );
 			var after = el2 ? JSON.stringify( [].slice.call( cd().defaultView.getComputedStyle( el2 ) ).map( function ( p ) { return cd().defaultView.getComputedStyle( el2 ).getPropertyValue( p ); } ) ) : 'GONE';
 			if ( 'GONE' === after ) { r.iss.push( 'element gone' ); }
