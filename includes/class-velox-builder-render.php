@@ -2919,8 +2919,8 @@ class Velox_Builder_Render {
 				'.vx-nav.is-mobile .vx-nav-list{position:absolute;top:100%;left:0;right:0;flex-direction:column;align-items:stretch;gap:0;background:#fff;padding:8px;box-shadow:0 10px 30px rgba(0,0,0,.14);z-index:49}' .
 				'.vx-nav.is-mobile{position:relative}' .
 				'.vx-nav.is-mobile .vx-nav-list[hidden]{display:none}' .
-				'.vx-nav.is-mobile .vx-nav-item{padding:10px 8px}' .
-				'.vx-nav.is-mobile .vx-submenu{position:static;box-shadow:none;padding-left:14px}' .
+				'.vx-nav.is-mobile .vx-nav-item{padding:10px 8px;flex-wrap:wrap}' .
+				'.vx-nav.is-mobile .vx-submenu{position:static;box-shadow:none;padding-left:14px;width:100%;min-width:0}' . // below its parent, not beside it
 				'.vx-nav-full.is-mobile .vx-nav-list{position:fixed;inset:0;z-index:9996;justify-content:center;align-items:center;padding:72px 24px;overflow:auto;font-size:1.25em;box-shadow:none}' .
 				'.vx-nav-full.is-mobile.is-open .vx-burger{position:fixed;top:14px;right:14px;z-index:9997}' .
 				'.vx-crumb-list{display:flex;flex-wrap:wrap;align-items:center;gap:8px;list-style:none;margin:0;padding:0}' .
