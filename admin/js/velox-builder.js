@@ -712,6 +712,22 @@
 					: ( demoOn
 						? T( 'Google Reviews — showing example reviews' )
 						: T( 'Google Reviews — switch on example reviews in Settings, or connect Google' ) );
+				// Example reviews: the real cards from the server, so layout, columns,
+				// colours and stars can be styled here (it was only this label).
+				if ( demoOn && ! node.conn && CFG.ajaxurl ) {
+					var rkey = node.id + '|' + JSON.stringify( node.settings || {} );
+					if ( undefined === rvPrev[ rkey ] && ! rvWait[ rkey ] ) {
+						rvWait[ rkey ] = 1;
+						var rb = new URLSearchParams();
+						rb.set( 'action', 'velox' ); rb.set( 'do', 'builder_reviews_preview' ); rb.set( 'nonce', CFG.nonce || '' );
+						rb.set( 'id', node.id ); rb.set( 'settings', JSON.stringify( node.settings || {} ) );
+						fetch( CFG.ajaxurl, { method:'POST', headers:{ 'Content-Type':'application/x-www-form-urlencoded' }, body:rb.toString() } )
+							.then( function ( r ) { return r.json(); } )
+							.then( function ( res ) { rvPrev[ rkey ] = res && res.success ? res.data.html : ''; delete rvWait[ rkey ]; injectCanvas(); } )
+							.catch( function () { rvPrev[ rkey ] = ''; delete rvWait[ rkey ]; } );
+					}
+					if ( rvPrev[ rkey ] ) { return '<div id="' + node.id + '" class="' + cls + '" data-node="' + node.id + '">' + rvPrev[ rkey ] + '</div>'; }
+				}
 				return '<div id="' + node.id + '" class="' + cls + ' vb-ph-el" data-node="' + node.id + '"><span class="vb-ph-ic">' + svg( 'star', 22 ) + '</span><span class="vb-ph-l">' + label + '</span></div>';
 			}
 			// Elements built from items render their real content on the canvas.
@@ -3172,6 +3188,7 @@
 	 * per element + settings; while it loads, a quiet placeholder shows. */
 	var SHOP_EL = { Shopgrid:1, Shopbuy:1, Shopproduct:1, Shopcart:1, Shopcheckout:1, Shopaccount:1, Shopwithdraw:1, Shopcartbtn:1, Shopaccountbtn:1 };
 	var shopPrev = {}, shopWait = {}, shopCss = null;
+	var rvPrev = {}, rvWait = {};
 	function shopHTML( node, cls ) {
 		var key = node.el + '|' + JSON.stringify( node.settings || {} );
 		var html = shopPrev[ key ];

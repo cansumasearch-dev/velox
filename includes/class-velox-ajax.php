@@ -147,6 +147,10 @@ class Velox_Ajax {
 				Velox_Builder_Loop::ajax_preview();
 				break;
 
+			case 'builder_reviews_preview':
+				Velox_Builder_Render::ajax_reviews_preview();
+				break;
+
 			case 'builder_shop_preview':
 				if ( class_exists( 'Velox_Shop_Front' ) ) {
 					Velox_Shop_Front::ajax_preview();

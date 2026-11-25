@@ -2783,6 +2783,17 @@ class Velox_Builder_Render {
 	 * presets …), so the editor canvas shows those settings too. It used to be
 	 * built only on the page, so changing those settings did nothing on screen.
 	 */
+	/**
+	 * The example reviews for the editor canvas, so a Reviews element with
+	 * "example reviews" on shows its real cards (and every style setting)
+	 * there too; it was a grey placeholder. The CSS arrives with the preview CSS.
+	 */
+	public static function ajax_reviews_preview() {
+		$s    = json_decode( wp_unslash( (string) ( $_POST['settings'] ?? '{}' ) ), true );
+		$node = array( 'id' => sanitize_html_class( wp_unslash( (string) ( $_POST['id'] ?? 'rv' ) ) ), 'el' => 'Reviews', 'settings' => is_array( $s ) ? $s : array() );
+		wp_send_json_success( array( 'html' => self::reviews_demo( $node ) ) );
+	}
+
 	public static function ajax_preview_css() {
 		$raw   = isset( $_POST['model'] ) ? wp_unslash( $_POST['model'] ) : '';
 		$model = json_decode( (string) $raw, true );
