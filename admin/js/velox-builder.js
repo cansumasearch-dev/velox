@@ -3003,7 +3003,7 @@
 		kit( 'ctaband', [
 			H( 'h2', '.cta-title', { color:'#ffffff', marginBottom:'8' }, 'Ready to get started?' ),
 			P( '.cta-text', { color:'#cbd5e1', marginBottom:'20' }, 'Tell us about your project and get an answer within one working day.' ),
-			{ key:'button', text:'Get in touch', href:'#' } ] );
+			{ key:'button', cls:'.cta-btn', rules:{ flexShrink:'0', whiteSpace:'nowrap' }, text:'Get in touch', href:'#' } ] );
 		kit( 'noticebox', [ P( '.notice-text', { marginBottom:'0' }, 'Heads up: our office is closed between Christmas and New Year.' ) ] );
 		kit( 'casestudy', [
 			IMG( '.case-media', { aspectRatio:'16/9', borderRadius:'12', overflow:'hidden' } ),
