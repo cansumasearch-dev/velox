@@ -8490,4 +8490,8 @@ Der Link funktioniert einmal und läuft nach 24 Stunden ab. Sie können die Adre
 	'The first menu on the site' => 'Das erste Menü der Website',
 	'not found, the first menu is used' => 'nicht gefunden, das erste Menü wird verwendet',
 	'Theme spot "%1$s" (%2$s)' => 'Theme-Position „%1$s“ (%2$s)',
+	// 4.77.1 — modal and panel starter text
+	'Your headline' => 'Ihre Überschrift',
+	'Say what this popup is for in a sentence or two.' => 'Sagen Sie in ein, zwei Sätzen, worum es in diesem Popup geht.',
+	'Put a menu, a form or anything else in here.' => 'Legen Sie hier ein Menü, ein Formular oder etwas anderes hinein.',
 );

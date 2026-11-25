@@ -3004,6 +3004,14 @@
 			H( 'h2', '.cta-title', { color:'#ffffff', marginBottom:'8' }, 'Ready to get started?' ),
 			P( '.cta-text', { color:'#cbd5e1', marginBottom:'20' }, 'Tell us about your project and get an answer within one working day.' ),
 			{ key:'button', cls:'.cta-btn', rules:{ flexShrink:'0', whiteSpace:'nowrap' }, text:'Get in touch', href:'#' } ] );
+		// A plain popup or side panel opened as an empty box — something to replace instead.
+		kit( 'modal', [
+			{ key:'heading', tag:'h2', text:'Your headline' },
+			{ key:'text', text:'Say what this popup is for in a sentence or two.' },
+			{ key:'button', text:'Continue', href:'#' } ] );
+		kit( 'offcanvas', [
+			{ key:'heading', tag:'h3', text:'Panel' },
+			{ key:'text', text:'Put a menu, a form or anything else in here.' } ] );
 		kit( 'noticebox', [ P( '.notice-text', { marginBottom:'0' }, 'Heads up: our office is closed between Christmas and New Year.' ) ] );
 		kit( 'casestudy', [
 			IMG( '.case-media', { aspectRatio:'16/9', borderRadius:'12', overflow:'hidden' } ),

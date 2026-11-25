@@ -2990,6 +2990,8 @@ class Velox_Builder_Render {
 			$css .= '.vx-sr{position:absolute!important;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap;border:0}' .
 				'.vx-ov[hidden]{display:none}' .
 				'.vx-ov{position:fixed;inset:0;z-index:9998;display:flex}' .
+				// Signed-in editors: start below the admin bar, or its close button hid under it.
+				'.admin-bar .vx-ov:not(.vx-dropdown){top:var(--wp-admin--admin-bar--height,0px)}' .
 				'.vx-ov-back{position:absolute;inset:0;z-index:0;opacity:0;transition:opacity var(--vx-ms,.25s) ease}' .
 				'.vx-ov.is-open .vx-ov-back{opacity:1}' .
 				'.vx-ov-panel{position:relative;z-index:2;max-height:100%;overflow:auto;background:#fff;min-height:56px;transition:transform var(--vx-ms,.25s) ease,opacity var(--vx-ms,.25s) ease}' .
