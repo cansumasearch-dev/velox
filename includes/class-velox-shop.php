@@ -793,7 +793,14 @@ class Velox_Shop {
 	}
 
 	public static function currency() {
-		return (string) self::get( 'symbol', '€' );
+		$sym = trim( (string) self::get( 'symbol', '€' ) );
+		if ( '' !== $sym ) {
+			return $sym;
+		}
+		// An emptied "Symbol" field left every price without a currency.
+		$by = array( 'EUR' => '€', 'CHF' => 'CHF', 'GBP' => '£', 'USD' => '$' );
+		$cur = strtoupper( (string) self::get( 'currency', 'EUR' ) );
+		return $by[ $cur ] ?? ( '' !== $cur ? $cur : '€' );
 	}
 
 	public static function money( $amount ) {
