@@ -1363,10 +1363,15 @@
 			{ k:'pills', n:'Buttons', d:'Rounded buttons above the content', v:{ acc_nav:'pills' } }
 		]
 	};
+	/* Every key any look of this page sets. A look sets all of them: the ones
+	 * it does not name go back to the template, so "Classic" after "Tiles" no
+	 * longer keeps the square photos (and is only ticked when it really is on). */
+	function lookKeys( page ) { var o = {}; ( PAGE_LOOKS[ page ] || [] ).forEach( function ( L ) { Object.keys( L.v ).forEach( function ( k ) { o[ k ] = 1; } ); } ); return Object.keys( o ); }
+	function lookVal( L, k, tpl ) { return undefined !== L.v[ k ] ? L.v[ k ] : tpl[ k ]; }
 	function dsLooks( page, tpl ) {
-		var looks = PAGE_LOOKS[ page ] || [];
+		var looks = PAGE_LOOKS[ page ] || [], keys = lookKeys( page );
 		return '<div class="vsa-looks" role="group" aria-label="' + esc( vxT( 'Looks for this page' ) ) + '">' + looks.map( function ( L ) {
-			var on = Object.keys( L.v ).every( function ( k ) { return String( dsEff( k, tpl ) ) === String( L.v[ k ] ); } );
+			var on = keys.every( function ( k ) { return String( dsEff( k, tpl ) ) === String( lookVal( L, k, tpl ) ); } );
 			return '<button type="button" class="vsa-look' + ( on ? ' is-on' : '' ) + '" data-act="d-look" data-page="' + page + '" data-v="' + L.k + '" aria-pressed="' + on + '">' +
 				'<span class="vsa-look-pv">' + pgMock( page, L.v, tpl ) + '</span><b>' + esc( vxT( L.n ) ) + ( on ? ' <i class="vsa-look-on">' + ic( 'check', 12 ) + '</i>' : '' ) + '</b><small>' + esc( vxT( L.d ) ) + '</small></button>';
 		} ).join( '' ) + '</div>';
@@ -1376,7 +1381,7 @@
 		var tpl = ( ( C.designs || {} )[ dsCur( SD ) ] || { v:{} } ).v;
 		// A value the template already has stays "Template", so nothing piles up on top.
 		var before = JSON.stringify( SD );
-		Object.keys( L.v ).forEach( function ( k ) { SD[ 'd_' + k ] = String( tpl[ k ] ) === String( L.v[ k ] ) ? '' : L.v[ k ]; } );
+		lookKeys( page ).forEach( function ( k ) { var v = lookVal( L, k, tpl ); SD[ 'd_' + k ] = String( tpl[ k ] ) === String( v ) ? '' : v; } );
 		redrawSettings();
 		toast( before === JSON.stringify( SD ) ? vxT( 'This page already looks like %s.' ).replace( '%s', vxT( L.n ) ) : vxT( '%s set for this page. Save to put it live.' ).replace( '%s', vxT( L.n ) ) );
 	}

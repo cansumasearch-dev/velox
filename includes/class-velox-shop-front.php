@@ -297,7 +297,15 @@ class Velox_Shop_Front {
 	/* ------------------------------------------------------------- grid */
 
 	public static function sc_grid( $atts = array() ) {
-		$a = shortcode_atts( array( 'count' => 12, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '', 'ids' => '', 'layout' => '', 'card' => '', 'button' => '', 'tools' => '' ), $atts, 'velox_shop' );
+		$a = shortcode_atts( array( 'count' => 12, 'columns' => '', 'category' => '', 'sort' => 'menu', 'filter' => '', 'ids' => '', 'layout' => '', 'card' => '', 'button' => '', 'tools' => '',
+			'hover' => '', 'align' => '', 'fit' => '', 'show_cat' => '', 'show_text' => '', 'cols_t' => '', 'cols_m' => '', 'gap' => '' ), $atts, 'velox_shop' );
+		// Shop pages made by "Create the missing pages" before 4.76 carry a fixed
+		// columns="3", which overrode Design → Columns (and every look) for good.
+		// That exact default now follows the design; a number someone typed stays.
+		if ( '3' === (string) $a['columns'] && '24' === (string) $a['count'] && '1' === (string) $a['filter'] && (int) get_the_ID() && (int) get_the_ID() === (int) Velox_Shop::get( 'page_shop', 0 )
+			&& false !== strpos( (string) get_post_field( 'post_content', get_the_ID() ), '[velox_shop columns="3" count="24" filter="1"]' ) ) {
+			$a['columns'] = '';
+		}
 		return self::grid( $a );
 	}
 
@@ -414,7 +422,7 @@ class Velox_Shop_Front {
 				$cnt   = function ( $slug ) use ( $facets ) {
 					return $facets && isset( $facets['cats'][ $slug ] ) ? ' <small>' . (int) $facets['cats'][ $slug ] . '</small>' : '';
 				};
-				$cst   = (string) ( Velox_Shop::design()['cats_style'] ?? 'pills' );
+				$cst   = (string) ( $d['cats_style'] ?? 'pills' );
 				$cats .= '<nav class="vxs-cats is-' . esc_attr( in_array( $cst, array( 'pills', 'underline', 'blocks' ), true ) ? $cst : 'pills' ) . '" aria-label="' . esc_attr__( 'Categories', 'velox' ) . '"><a href="' . esc_url( $base ) . '"' . ( $cat ? '' : ' aria-current="true"' ) . ' data-vxs-nav>' . esc_html__( 'All', 'velox' ) . $cnt( '' ) . '</a>';
 				foreach ( $terms as $t ) {
 					if ( $facets && empty( $facets['cats'][ $t->slug ] ) && $cat !== $t->slug ) {

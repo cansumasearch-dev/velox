@@ -741,6 +741,14 @@
 					} ).join( '' ) + '</ol></nav>';
 				}
 				var isAnchor = 'Anchornav' === node.el;
+				// "A WordPress menu" draws that menu here, as the page does (it was
+				// "No links yet" while the page showed the menu). Same fallbacks as
+				// the page: the typed name, else the first menu, else the list.
+				var nSrc = undefined !== nSet.source ? nSet.source : ( nItems.some( function ( it ) { return ( it.title || '' ).trim(); } ) ? 'manual' : 'wp' );
+				if ( ! isAnchor && 'wp' === nSrc && CFG.navMenus ) {
+					var wpm = CFG.navMenus[ undefined === nSet.menu ? 'primary' : nSet.menu ] || CFG.navMenus.__first || [];
+					if ( wpm.length ) { nItems = wpm; }
+				}
 				var navItems = nItems.filter( function ( it ) { return ( it.title || '' ).trim(); } );
 				if ( ! navItems.length ) {
 					return '<nav id="' + node.id + '" class="' + cls + ' vx-nav" data-node="' + node.id + '"><span class="vb-img-ph">' + T( 'No links yet — add some in Settings.' ) + '</span></nav>';
@@ -762,7 +770,9 @@
 				var fWhere = fSet.anchorY ? ( fSet.anchorY + ' ' + ( fSet.anchorX || '' ) ) : ( fSet.pos || '' );
 				var inner = '';
 				if ( 'Announcebar' === node.el ) {
-					inner = '<div class="vx-fabprev-body">' + escapeHtml( fSet.text || T( 'Message' ) ) + '</div>';
+					// The message with its link, as on the page.
+					inner = '<div class="vx-fabprev-body">' + escapeHtml( fSet.text || T( 'Message' ) ) +
+						( fSet.linkText ? ' <u>' + escapeHtml( fSet.linkText ) + '</u>' : '' ) + '</div>';
 				} else if ( 'Stickybar' === node.el ) {
 					inner = '<div class="vx-fabprev-body">' + ( ( fSet.items || [] ).map( function ( it ) {
 						return '<span class="vx-fabprev-btn">' + escapeHtml( it.title || '' ) + '</span>';
@@ -770,8 +780,11 @@
 				} else if ( 'Progressbar' === node.el ) {
 					inner = '<div class="vx-fabprev-body"><div style="height:' + ( fSet.thickness || 4 ) + 'px;background:' + escapeHtml( fSet.color || '#2ab7f1' ) + ';width:45%"></div></div>';
 				} else {
-					inner = '<div class="vx-fabprev-body"><span class="vx-fabprev-btn">' +
-						( fSet.label ? escapeHtml( fSet.label ) : svg( 'star', 14 ) ) + '</span></div>';
+					// The chosen icon (it was always a star); Back to top's label is
+					// screen-reader text on the page, so it shows the arrow here too.
+					var fIco = iconMarkup( fSet.icon || ( 'Backtotop' === node.el ? 'arrow-up' : 'star' ), 14 ) || svg( 'star', 14 );
+					inner = '<div class="vx-fabprev-body"><span class="vx-fabprev-btn">' + fIco +
+						( fSet.label && 'Backtotop' !== node.el ? ' ' + escapeHtml( fSet.label ) : '' ) + '</span></div>';
 				}
 				return '<div id="' + node.id + '" class="' + cls + ' vx-fabprev" data-node="' + node.id + '">' +
 					'<span class="vx-fabprev-tag">' + svg( 'move', 11 ) + ' ' + fName +
@@ -782,9 +795,6 @@
 				if ( ! sItems.length ) {
 					return '<div id="' + node.id + '" class="' + cls + ' vx-slider" data-node="' + node.id + '"><span class="vb-img-ph">' + T( 'No slides yet — add some in Settings.' ) + '</span></div>';
 				}
-				var per = Math.max( 1, parseInt( sSet.perView, 10 ) || 1 );
-				var gapv = parseFloat( sSet.gap );
-				if ( isNaN( gapv ) ) { gapv = 16; }
 				var slidesHtml = sItems.map( function ( it, i ) {
 					var sk = ( node.children || [] )[ i ];
 					var img = it.image ? '<img src="' + escapeHtml( it.image ) + '" alt="" loading="lazy">' : '';
@@ -792,7 +802,10 @@
 					// an empty drop container used to hide the text completely.
 					var sinner = ( it.title ? '<strong class="vx-slide-t" data-vb-item="' + i + '" data-vb-f="title">' + escapeHtml( it.title ) + '</strong>' : '' ) +
 						( it.body ? '<p class="vb-ibody" data-vb-item="' + i + '" data-vb-f="body">' + escapeHtml( it.body ) + '</p>' : '' ) + itemKid( sk, it.title || it.body );
-					return '<div class="vx-slide" style="flex:0 0 calc((100% - ' + ( ( per - 1 ) * gapv ) + 'px)/' + per + ')">' + img + sinner + '</div>';
+					// No inline width: the page's own rules (#id .vx-slide per screen size,
+					// loaded from the server) decide, so card width, peek and the
+					// per-screen counts show here as on the page.
+					return '<div class="vx-slide">' + img + sinner + '</div>';
 				} ).join( '' );
 				// Same markup and classes as the page (render_slider), so the page's
 				// own slider CSS draws it here too.
@@ -817,7 +830,7 @@
 					ctrls = sCountH;
 				}
 				return '<div id="' + node.id + '" class="' + cls + ' vx-slider' + ( sPos ? ' vx-arrows-' + sPos : '' ) + '" data-node="' + node.id + '" data-vb-at="' + sAt + '">' +
-					'<div class="vx-track" style="gap:' + gapv + 'px">' + slidesHtml + '</div>' + ctrls + itemAddBtn( node ) + '</div>';
+					'<div class="vx-track">' + slidesHtml + '</div>' + ctrls + itemAddBtn( node ) + '</div>';
 			}
 			if ( 'Tabs' === node.el ) {
 				var tSet = node.settings || {}, tItems = tSet.items || [];
@@ -912,7 +925,7 @@
 				var vurl = ( node.settings && node.settings.url ) || '';
 				var vemb = videoEmbed( vurl );
 				var vin = vemb ? '<iframe src="' + escapeHtml( vemb ) + '" loading="lazy" tabindex="-1"></iframe>'
-					: ( vurl ? '<video src="' + escapeHtml( vurl ) + '" muted preload="metadata"></video>'
+					: ( vurl ? '<video src="' + escapeHtml( vurl ) + '"' + ( node.settings && node.settings.poster ? ' poster="' + escapeHtml( node.settings.poster ) + '"' : '' ) + ' muted preload="metadata"></video>'
 						: '<span class="vb-img-ph" style="position:absolute;inset:0;min-height:0">' + T( 'Double-click to add a video link' ) + '</span>' );
 				return '<div id="' + node.id + '" class="' + cls + ' vx-video" data-node="' + node.id + '">' + vin + '<span class="vb-cover"></span></div>';
 			}
@@ -1231,10 +1244,10 @@
 				'.vx-glow:hover::after{opacity:1}' +
 				/* Motion → "Pinned: children move sideways": on the page the children
 				 * ride in one row; here the row scrolls sideways by hand. */
-				'.vb-hs{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden;scroll-snap-type:x proximity;position:relative;padding-top:30px!important;scrollbar-width:thin}' +
+				'.vb-hs{display:flex!important;flex-direction:row!important;flex-wrap:nowrap!important;overflow-x:auto!important;overflow-y:hidden;scroll-snap-type:x proximity;position:relative;scrollbar-width:thin}' +
 				'.vb-hs>*{flex:0 0 auto!important;scroll-snap-align:start}' +
-				'.vb-vs{display:flex!important;flex-direction:column!important;position:relative;padding-top:30px!important}' +
-				'.vb-hs::before,.vb-vs::before{content:attr(data-vb-hs);position:absolute;top:6px;left:6px;z-index:3;padding:3px 9px;border-radius:6px;background:rgba(42,183,241,.14);color:#0e7fb3;font:600 11px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;pointer-events:none;white-space:nowrap}';
+				'.vb-vs{display:flex!important;flex-direction:column!important;position:relative}' +
+				'.vb-hs::before,.vb-vs::before{content:attr(data-vb-hs);position:absolute;top:6px;left:6px;z-index:5;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:3px 9px;border-radius:6px;background:#e6f6fd;color:#0e7fb3;font:600 11px/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;pointer-events:none;white-space:nowrap}';
 			( doc.head || doc.documentElement ).appendChild( st );
 		}
 		// Switched off: the element goes back to normal.
@@ -1861,19 +1874,22 @@
 				[ 'element', 'An element scrolls into view' ],
 				[ 'idle', 'After inactivity' ], [ 'exit', 'The visitor moves to leave' ]
 			];
+			// How often, after how many pages and on which screens only mean something
+			// when it opens by itself; a click opens it every time.
+			var auto = [ 'load', 'delay', 'scroll', 'element', 'idle', 'exit' ];
 			return [
 				{ k:'trigType', t:'select', l:'Show when', d:floating ? 'load' : 'click', s:sec, o:floating ? opts.slice( 1 ) : opts },
 				{ k:'trigDelay', t:'num', l:'Delay', d:'3', s:sec, unit:'s', when:{ trigType:'delay' } },
 				{ k:'trigScroll', t:'num', l:'Scrolled past', d:'50', s:sec, unit:'%', when:{ trigType:'scroll' } },
 				{ k:'trigIdle', t:'num', l:'Idle for', d:'20', s:sec, unit:'s', when:{ trigType:'idle' } },
 				{ k:'trigTarget', t:'text', l:'Element selector', d:'', s:sec, when:{ trigType:'element' } },
-				{ k:'trigOnce', t:'select', l:'Show it', d:floating ? 'always' : 'session', s:sec, o:[
+				{ k:'trigOnce', t:'select', l:'Show it', d:floating ? 'always' : 'session', s:sec, when:{ trigType:auto }, o:[
 					[ 'always', 'Every time' ], [ 'session', 'Once per visit' ],
 					[ 'day', 'Once a day' ], [ 'days', 'Once every few days' ], [ 'ever', 'Once, ever' ]
 				] },
-				{ k:'trigDays', t:'num', l:'Not again for', d:'7', s:sec, unit:'days', when:{ trigOnce:'days' } },
-				{ k:'trigPages', t:'num', l:'Only after this many pages in the visit', d:'', s:sec, ph:'1' },
-				{ k:'trigDevice', t:'select', l:'Show on', d:'', s:sec, o:[ [ '', 'Every screen' ], [ 'desktop', 'Desktop only' ], [ 'mobile', 'Tablet and phone only' ] ] }
+				{ k:'trigDays', t:'num', l:'Not again for', d:'7', s:sec, unit:'days', when:{ trigOnce:'days', trigType:auto } },
+				{ k:'trigPages', t:'num', l:'Only after this many pages in the visit', d:'', s:sec, ph:'1', when:{ trigType:auto } },
+				{ k:'trigDevice', t:'select', l:'Show on', d:'', s:sec, when:{ trigType:auto }, o:[ [ '', 'Every screen' ], [ 'desktop', 'Desktop only' ], [ 'mobile', 'Tablet and phone only' ] ] }
 			];
 		},
 		placement: function () {
@@ -2448,9 +2464,9 @@
 				{ k:'text', t:'text', l:'Message', d:'Free first consultation — get in touch', s:'Message' },
 				{ k:'linkText', t:'text', l:'Link text', d:'', s:'Message' },
 				{ k:'linkUrl', t:'text', l:'Link address', d:'', s:'Message' },
-				{ k:'pos', t:'segment', l:'Sits at the', d:'top', s:'Layout',
-				  o:[ [ 'top', 'Top' ], [ 'bottom', 'Bottom' ] ] },
 				{ k:'sticky', t:'toggle', l:'Stays put while scrolling', d:'1', s:'Layout' },
+				{ k:'pos', t:'segment', l:'Sits at the', d:'top', s:'Layout', when:{ sticky:'1' },
+				  o:[ [ 'top', 'Top' ], [ 'bottom', 'Bottom' ] ] },
 				{ k:'dismiss', t:'toggle', l:'Let visitors close it', d:'1', s:'Behaviour' }
 			  ], FRAG.trigger( 'When it appears', true ), FRAG.visibility() ) },
 
@@ -2572,7 +2588,7 @@
 			  settings:[
 				{ k:'look', t:'segment', l:'Look', d:'switch', s:'Layout',
 				  o:[ [ 'tabs', 'Tabs' ], [ 'pills', 'Pills' ], [ 'switch', 'Switch (2 options)' ] ] },
-				{ k:'toAccordion', t:'toggle', l:'Turn into an accordion on mobile', d:'', s:'Behaviour' }
+				{ k:'toAccordion', t:'toggle', l:'Turn into an accordion on mobile', d:'1', s:'Behaviour', when:{ look:'tabs' } }
 			  ] },
 			{ key:'readmore', el:'Readmore', tag:'div', label:'Read more', cls:'.read-more', rules:{},
 			  settings:[
@@ -2646,12 +2662,12 @@
 			  settings:[
 				{ k:'look', t:'segment', l:'Look', d:'tabs', s:'Layout',
 				  o:[ [ 'tabs', 'Tabs' ], [ 'pills', 'Pills' ], [ 'switch', 'Switch (2 options)' ] ] },
-				{ k:'orient', t:'segment', l:'Tabs sit', d:'top', s:'Layout',
+				{ k:'orient', t:'segment', l:'Tabs sit', d:'top', s:'Layout', when:{ look:'tabs' },
 				  o:[ [ 'top', 'Above' ], [ 'left', 'Beside' ] ] },
 				{ k:'activate', t:'segment', l:'Switch on', d:'click', s:'Behaviour',
 				  o:[ [ 'click', 'Click' ], [ 'hover', 'Hover' ] ] },
 				{ k:'startTab', t:'num', l:'Open tab number', d:'1', s:'Behaviour' },
-				{ k:'toAccordion', t:'toggle', l:'Turn into an accordion on mobile', d:'1', s:'Behaviour' },
+				{ k:'toAccordion', t:'toggle', l:'Turn into an accordion on mobile', d:'1', s:'Behaviour', when:{ look:'tabs' } },
 				{ k:'deepLink', t:'toggle', l:'Open the tab named in the web address', d:'', s:'Behaviour' }
 			  ] },
 			{ key:'accordion', nestable:true, el:'Accordion', tag:'div', label:'Accordion', cls:'.accordion',
@@ -2713,9 +2729,9 @@
 				{ k:'sort', t:'select', l:'Sort order', d:'menu', s:'Products', o:[ [ 'menu', 'As sorted in the shop' ], [ 'new', 'Newest first' ], [ 'price', 'Price, low to high' ], [ 'price-desc', 'Price, high to low' ], [ 'name', 'Name' ] ] },
 				{ k:'filter', t:'toggle', l:'Category buttons above the grid', d:'', s:'Products' },
 				{ k:'layout', t:'select', l:'Layout', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'grid', 'Grid' ], [ 'masonry', 'Masonry' ], [ 'list', 'List' ], [ 'row', 'Scroll row' ] ] },
-				{ k:'card', t:'select', l:'Each product as', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'plain', 'Photo and text' ], [ 'surface', 'A card' ], [ 'tile', 'On a tile, uncropped' ], [ 'overlay', 'Text on the photo' ], [ 'split', 'Side by side' ] ] },
+				{ k:'card', t:'select', l:'Each product as', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'bare', 'Photo and text' ], [ 'tile', 'On a tile' ], [ 'boxed', 'A card' ], [ 'framed', 'Framed' ], [ 'overlay', 'Text on the photo' ], [ 'split', 'Side by side' ] ] },
 				{ k:'button', t:'select', l:'Buy button', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'button', 'Button' ], [ 'icon', 'Icon' ], [ 'link', 'Text link' ], [ 'none', 'None — the card links' ] ] },
-				{ k:'hover', t:'select', l:'On hover', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'swap', 'Second photo' ], [ 'zoom', 'Zoom' ], [ 'lift', 'Lift' ], [ 'none', 'Nothing' ] ] }
+				{ k:'hover', t:'select', l:'On hover', d:'', s:'Look', o:[ [ '', 'From the shop design' ], [ 'swap', 'Second photo' ], [ 'fade', 'Fade to second' ], [ 'zoom', 'Zoom' ], [ 'lift', 'Lift' ], [ 'shadow', 'Shadow' ], [ 'glow', 'Glow' ], [ 'none', 'Nothing' ] ] }
 			  ] },
 			{ key:'shopbuy', el:'Shopbuy', tag:'div', label:'Add to cart', cls:'.shop-buy', rules:{},
 			  settings:[
@@ -3302,7 +3318,7 @@
 					'<circle class="vx-ring-f" cx="50" cy="50" r="' + pr + '" stroke-width="' + pw + '" style="--vx-c:' + pc + ';--vx-o:' + Math.round( pc * ( 1 - pv / 100 ) * 100 ) / 100 + '"/></svg>' +
 					'<span class="vx-ring-in">' + ( wset( node, 'showVal', '1' ) ? '<b>' + Math.round( pv ) + '%</b>' : '' ) + ( plab ? '<span>' + E( plab ) + '</span>' : '' ) + '</span></div>';
 			case 'Rating':
-				var mx = Math.max( 1, Math.min( 10, parseInt( wset( node, 'max', '5' ), 10 ) || 5 ) ), raw = String( wset( node, 'value', '4.8' ) );
+				var rv = ( node.settings || {} ).value, mx = Math.max( 1, Math.min( 10, parseInt( wset( node, 'max', '5' ), 10 ) || 5 ) ), raw = undefined === rv ? '4.8' : ( '' === String( rv ).trim() ? '0' : String( rv ) );
 				var vv = Math.max( 0, Math.min( mx, parseFloat( raw.replace( ',', '.' ) ) || 0 ) ), stars = new Array( mx + 1 ).join( wsvg( 'star' ) ), rl = String( wset( node, 'label', '' ) ).trim();
 				return open( 'vx-rating' ) + '<span class="vx-rate-s" style="--vx-rate:' + Math.round( vv / mx * 10000 ) / 100 + '%"><span class="vx-rate-bg">' + stars + '</span><span class="vx-rate-fg">' + stars + '</span></span>' +
 					( wset( node, 'showText', '1' ) ? '<span class="vx-rate-t">' + E( raw + ' / ' + mx ) + '</span>' : '' ) + ( rl ? '<span class="vx-rate-l">' + E( rl ) + '</span>' : '' ) + '</div>';

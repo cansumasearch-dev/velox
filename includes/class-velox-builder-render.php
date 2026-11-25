@@ -935,8 +935,18 @@ class Velox_Builder_Render {
 	}
 
 	/** A colour (or any single CSS value) from a setting, safe inside a rule. */
+	/** A CSS colour: hex, a colour function, a CSS variable or a named colour. */
+	private static function is_color( $v ) {
+		return (bool) preg_match( '/^(#[0-9a-f]{3,8}|(rgba?|hsla?|hwb|lab|lch|oklab|oklch|color|color-mix)\([^;{}<>]*\)|var\(--[A-Za-z0-9_-]+(,[^;{}<>]*)?\)|[a-z]+)$/i', trim( (string) $v ) );
+	}
+
 	private static function el_color( $node, $key, $default ) {
 		$v = self::sanitize_value( (string) self::el_set( $node, $key, $default ) );
+		// Only something that is a colour: a typo ("blu e", "Test") used to go out
+		// as-is and made the browser drop the whole rule (stroke width included).
+		if ( '' !== $v && ! self::is_color( $v ) ) {
+			return $default;
+		}
 		return '' !== $v ? $v : $default;
 	}
 
@@ -971,8 +981,12 @@ class Velox_Builder_Render {
 		// all — rendering it hidden only to unhide it with JavaScript made it
 		// flash in late (or never appear without scripts).
 		$el = $node['el'] ?? '';
+		// "Show on: phones only" or "after N pages" still need the trigger: without
+		// it both were silently ignored and the element showed everywhere.
 		if ( 'load' === $t && ! in_array( $el, array( 'Modal', 'Offcanvas' ), true )
-			&& 'always' === (string) self::el_set( $node, 'trigOnce', 'always' ) ) {
+			&& 'always' === (string) self::el_set( $node, 'trigOnce', 'always' )
+			&& (int) self::el_raw( $node, 'trigPages', '' ) <= 1
+			&& ! in_array( (string) self::el_set( $node, 'trigDevice', '' ), array( 'desktop', 'mobile' ), true ) ) {
 			return '';
 		}
 		return $t;
@@ -1048,6 +1062,9 @@ class Velox_Builder_Render {
 				return is_numeric( $v ) ? max( 2, (float) $v ) . 's' : '';
 			case 'ratio':
 				return preg_match( '~^\d+(\.\d+)?\s*/\s*\d+(\.\d+)?$~', $v ) ? str_replace( ' ', '', $v ) : ( 'auto' === $v ? 'auto' : '' );
+			case 'color':
+				$c = self::sanitize_value( $v );
+				return self::is_color( $c ) ? $c : '';
 			default:
 				return self::sanitize_value( $v );
 		}
@@ -1266,7 +1283,9 @@ class Velox_Builder_Render {
 			case 'Rating':
 				self::wvars( $node, array( 'size' => array( '--vx-rate-z', 'px', '20' ), 'color' => array( '--vx-rate-c', 'color', '' ), 'empty' => array( '--vx-rate-e', 'color', '' ) ) );
 				$max = max( 1, min( 10, self::el_int( $node, 'max', 5 ) ) );
-				$raw = (string) $s( 'value', '4.8' );
+				// A rating of 0 is a real value (el_set reads a stored '0' as off).
+				$raw = (string) self::el_raw( $node, 'value', '4.8' );
+				$raw = '' === trim( $raw ) ? '0' : $raw;
 				$val = max( 0, min( $max, (float) str_replace( ',', '.', $raw ) ) );
 				$st  = str_repeat( self::wsvg( 'star' ), $max );
 				$lab = trim( (string) $s( 'label', '' ) );
@@ -1501,7 +1520,7 @@ class Velox_Builder_Render {
 	public static function widgets_css() {
 		return
 			// table of contents, share buttons, copy button, read more (4.67)
-			'.vx-toc{line-height:1.5}.vx-toc.is-boxed{padding:18px 20px;border:1px solid rgba(0,0,0,.1);border-radius:12px;background:rgba(0,0,0,.02)}'
+			'.vx-toc{line-height:1.5}:where(.vx-toc.is-boxed){padding:18px 20px;border:1px solid rgba(0,0,0,.1);border-radius:12px;background:rgba(0,0,0,.02)}'
 			. '.vx-toc-t{margin:0 0 8px;font-weight:700}.vx-toc-l{margin:0;padding-left:1.25em;display:flex;flex-direction:column;gap:6px}ul.vx-toc-l{list-style:none;padding-left:0}'
 			. '.vx-toc-l a{color:inherit;text-decoration:none}.vx-toc-l a:hover{text-decoration:underline}.vx-toc-h3{margin-left:1em}.vx-toc-h4{margin-left:2em}.vx-toc-empty{opacity:.6;font-style:italic}'
 			. '.vx-share{align-items:center}.vx-share-l{font-weight:600;margin-right:4px}button.vx-soc{border:0;padding:0;font:inherit;cursor:pointer}.vx-soc.is-copied{outline:2px solid currentColor;outline-offset:2px}'
@@ -2472,6 +2491,28 @@ class Velox_Builder_Render {
 	}
 
 	/** A WordPress menu, flattened to the item shape the nav renderer expects. */
+	/**
+	 * The WordPress menus for the editor canvas, so a Navigation set to
+	 * "A WordPress menu" shows those links there as on the page. Keyed by
+	 * location, slug and name (what the "Menu name" field accepts); '__first'
+	 * is the fallback the page uses when the name matches nothing.
+	 */
+	public static function menu_previews() {
+		$out  = array( '__first' => self::wp_menu_items( '' ) );
+		$keys = array_keys( (array) get_nav_menu_locations() );
+		$all  = wp_get_nav_menus();
+		if ( $all && ! is_wp_error( $all ) ) {
+			foreach ( array_slice( $all, 0, 12 ) as $m ) {
+				$keys[] = $m->slug;
+				$keys[] = $m->name;
+			}
+		}
+		foreach ( array_unique( array_filter( array_map( 'strval', $keys ) ) ) as $k ) {
+			$out[ $k ] = self::wp_menu_items( $k );
+		}
+		return $out;
+	}
+
 	private static function wp_menu_items( $location ) {
 		$out = array();
 		$locations = get_nav_menu_locations();
@@ -3276,7 +3317,7 @@ class Velox_Builder_Render {
 		// lower and wider than in the editor. Zero specificity, so any margin
 		// set in the editor wins, and post content (.vx-prose) keeps its spacing.
 		$out = ':where(.velox-built),:where(.velox-built) *,:where(.velox-built) ::before,:where(.velox-built) ::after{box-sizing:border-box}'
-			. ':where(.velox-built) :where(h1,h2,h3,h4,h5,h6,p,figure,blockquote,ul,ol,dl,dd,pre,hr):not(:where(.vx-prose *)){margin:0}'
+			. ':where(.velox-built) :where(h1,h2,h3,h4,h5,h6,p,figure,blockquote,ul,ol,dl,dd,pre,hr):not(:where(.vx-prose *)){margin:0}:where(figure.vx-fig){margin:0}'
 			. ':where(body.velox-built){margin:0}';
 		$px  = function ( $v ) { return ( '' === $v || null === $v ) ? '' : ( is_numeric( $v ) ? $v . 'px' : $v ); };
 
@@ -3370,6 +3411,71 @@ class Velox_Builder_Render {
 			$m['hscrollOn'] = (string) self::el_set( $node, 'pinOn', '' );
 		}
 		return $m;
+	}
+
+	/**
+	 * What every element carries besides id and class: animate on scroll,
+	 * custom attributes, the site header/footer part, show/hide with the
+	 * header state, interactions and motion. Elements drawn by their own
+	 * renderer (nav, floating bars, slider, popups, tabs, accordion) got none
+	 * of it before 4.76; they now receive it on their root (see with_attrs).
+	 */
+	private static function shared_attrs( $node, $id, $own_only = false ) {
+		// Animate-on-scroll: an element's own setting wins, otherwise the global
+		// default animates everything. "none" opts a single element out.
+		$aos_attr = '';
+		$g_aos    = class_exists( 'Velox_Builder' ) ? ( Velox_Builder::global_styles()['aos'] ?? array() ) : array();
+		$n_aos    = $node['aos'] ?? array();
+		// Precedence: element, then this page, then the site default.
+		$p_type   = self::$page_settings['aosType'] ?? '';
+		$base     = ( '' !== $p_type ) ? ( 'none' === $p_type ? '' : $p_type ) : ( $g_aos['type'] ?? '' );
+		$a_type   = $n_aos['type'] ?? ( $own_only ? '' : $base );
+		if ( 'none' === ( $n_aos['type'] ?? '' ) ) {
+			$a_type = '';
+		}
+		if ( $a_type && isset( Velox_Builder::aos_types()[ $a_type ] ) ) {
+			self::$aos_used = true;
+			$aos_attr = ' data-vx-aos="' . esc_attr( $a_type ) . '"';
+			foreach ( array( 'duration', 'delay' ) as $k ) {
+				$v = $n_aos[ $k ] ?? '';
+				if ( '' !== $v ) {
+					$aos_attr .= ' data-vx-aos-' . $k . '="' . (int) $v . '"';
+				}
+			}
+		}
+		$attr  = $aos_attr;
+		$attr .= self::custom_attrs( $node );
+		$attr .= self::site_part( $node, $id );
+		// Inside a site header: show or hide with its state (scrolled, transparent).
+		$hv = (string) ( $node['hdrVis'] ?? '' );
+		if ( in_array( $hv, array( 'stuck', 'unstuck', 'over', 'unover' ), true ) ) {
+			$attr .= ' data-vx-hv="' . $hv . '"';
+		}
+		$attr .= self::ix_attrs( $node );
+		$attr .= self::motion_attrs( $node );
+		return $attr;
+	}
+
+	/** Put the shared attributes on the root of HTML a special renderer built. */
+	private static function with_attrs( $html, $node ) {
+		$id    = sanitize_html_class( $node['id'] ?? '' );
+		// Only the element's own animation: the site-wide "animate everything" never
+		// reached these (floating bars, popups) and must not start hiding them now.
+		$extra = self::shared_attrs( $node, $id, true );
+		if ( '' === $extra || '' === (string) $html ) {
+			return $html;
+		}
+		$add = function ( $m ) use ( $extra ) {
+			return $m[0] . $extra;
+		};
+		// The element's own tag (the one carrying its id), else the first tag.
+		if ( '' !== $id ) {
+			$out = preg_replace_callback( '/<[a-z][a-z0-9]*(?=\s[^>]*\bid="' . preg_quote( $id, '/' ) . '")/i', $add, (string) $html, 1, $hit );
+			if ( $hit ) {
+				return $out;
+			}
+		}
+		return preg_replace_callback( '/<[a-z][a-z0-9]*/i', $add, (string) $html, 1 );
 	}
 
 	private static function motion_attrs( $node ) {
@@ -3617,12 +3723,12 @@ class Velox_Builder_Render {
 		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Navbar', 'Breadcrumbs', 'Anchornav' ), true ) ) {
 			$nc = array();
 			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $nc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
-			return self::render_nav( $node, $doc, implode( ' ', array_filter( $nc ) ) );
+			return self::with_attrs( self::render_nav( $node, $doc, implode( ' ', array_filter( $nc ) ) ), $node );
 		}
 		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Fab', 'Backtotop', 'Announcebar', 'Stickybar', 'Progressbar' ), true ) ) {
 			$fc = array();
 			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $fc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
-			return self::render_floating( $node, $doc, implode( ' ', array_filter( $fc ) ) );
+			return self::with_attrs( self::render_floating( $node, $doc, implode( ' ', array_filter( $fc ) ) ), $node );
 		}
 		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Gradienttext', 'Outlinetext', 'Highlighttext', 'Dropcap', 'Verticaltext' ), true ) ) {
 			self::text_effect_css( $node );
@@ -3639,24 +3745,24 @@ class Velox_Builder_Render {
 		if ( isset( $node['el'] ) && 'Slider' === $node['el'] ) {
 			$sc = array();
 			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $sc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
-			return self::render_slider( $node, $doc, implode( ' ', array_filter( $sc ) ) );
+			return self::with_attrs( self::render_slider( $node, $doc, implode( ' ', array_filter( $sc ) ) ), $node );
 		}
 		if ( isset( $node['el'] ) && in_array( $node['el'], array( 'Offcanvas', 'Modal', 'Dropdown' ), true ) ) {
 			$oc = array();
 			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $oc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
-			return self::render_overlay( $node, $doc, implode( ' ', array_filter( $oc ) ) );
+			return self::with_attrs( self::render_overlay( $node, $doc, implode( ' ', array_filter( $oc ) ) ), $node );
 		}
 		if ( isset( $node['el'] ) && 'Tabs' === $node['el'] ) {
 			$tc = array();
 			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) { $tc[] = sanitize_html_class( ltrim( $c, '.' ) ); }
-			return self::render_tabs( $node, $doc, implode( ' ', array_filter( $tc ) ) );
+			return self::with_attrs( self::render_tabs( $node, $doc, implode( ' ', array_filter( $tc ) ) ), $node );
 		}
 		if ( isset( $node['el'] ) && ( 'Accordion' === $node['el'] || 'Faq' === $node['el'] ) ) {
 			$acc_cls = array();
 			foreach ( (array) ( $node['classes'] ?? array() ) as $c ) {
 				$acc_cls[] = sanitize_html_class( ltrim( $c, '.' ) );
 			}
-			return self::render_accordion( $node, $doc, implode( ' ', array_filter( $acc_cls ) ) );
+			return self::with_attrs( self::render_accordion( $node, $doc, implode( ' ', array_filter( $acc_cls ) ) ), $node );
 		}
 		// Inner Content: swap the template's placeholder for the actual page.
 		if ( isset( $node['el'] ) && 'InnerContent' === $node['el'] ) {
@@ -3696,28 +3802,6 @@ class Velox_Builder_Render {
 		foreach ( (array) ( $node['classes'] ?? array() ) as $c ) {
 			$classes[] = sanitize_html_class( ltrim( $c, '.' ) );
 		}
-		// Animate-on-scroll: an element's own setting wins, otherwise the global
-		// default animates everything. "none" opts a single element out.
-		$aos_attr = '';
-		$g_aos    = class_exists( 'Velox_Builder' ) ? ( Velox_Builder::global_styles()['aos'] ?? array() ) : array();
-		$n_aos    = $node['aos'] ?? array();
-		// Precedence: element, then this page, then the site default.
-		$p_type   = self::$page_settings['aosType'] ?? '';
-		$base     = ( '' !== $p_type ) ? ( 'none' === $p_type ? '' : $p_type ) : ( $g_aos['type'] ?? '' );
-		$a_type   = $n_aos['type'] ?? $base;
-		if ( 'none' === ( $n_aos['type'] ?? '' ) ) {
-			$a_type = '';
-		}
-		if ( $a_type && isset( Velox_Builder::aos_types()[ $a_type ] ) ) {
-			self::$aos_used = true;
-			$aos_attr = ' data-vx-aos="' . esc_attr( $a_type ) . '"';
-			foreach ( array( 'duration', 'delay' ) as $k ) {
-				$v = $n_aos[ $k ] ?? '';
-				if ( '' !== $v ) {
-					$aos_attr .= ' data-vx-aos-' . $k . '="' . (int) $v . '"';
-				}
-			}
-		}
 		$id   = sanitize_html_class( $node['id'] ?? '' );
 		$attr = ' id="' . esc_attr( $id ) . '"';
 		if ( $classes ) {
@@ -3725,16 +3809,7 @@ class Velox_Builder_Render {
 		}
 		// Part of the attributes from here on, so images, videos, icons,
 		// reusables and WordPress-data elements animate too (they returned early).
-		$attr .= $aos_attr;
-		$attr .= self::custom_attrs( $node );
-		$attr .= self::site_part( $node, $id );
-		// Inside a site header: show or hide with its state (scrolled, transparent).
-		$hv = (string) ( $node['hdrVis'] ?? '' );
-		if ( in_array( $hv, array( 'stuck', 'unstuck', 'over', 'unover' ), true ) ) {
-			$attr .= ' data-vx-hv="' . $hv . '"';
-		}
-		$attr .= self::ix_attrs( $node );
-		$attr .= self::motion_attrs( $node );
+		$attr .= self::shared_attrs( $node, $id );
 
 		if ( isset( $node['el'] ) && isset( self::$WIDGETS[ $node['el'] ] ) ) {
 			self::$wdoc = $doc;
@@ -3891,7 +3966,8 @@ class Velox_Builder_Render {
 			}
 			$caption = trim( (string) self::el_set( $node, 'caption', '' ) );
 			if ( '' !== $img && '' !== $caption ) {
-				return '<figure' . $attr . ' style="margin:0">' . $img . '<figcaption>' . esc_html( $caption ) . '</figcaption></figure>';
+				// No inline margin: it beat every margin set on the image's class.
+				return '<figure' . self::wcls( $attr, 'vx-fig' ) . '>' . $img . '<figcaption>' . esc_html( $caption ) . '</figcaption></figure>';
 			}
 			return '<div' . $attr . '>' . $img . '</div>';
 		}
