@@ -1580,7 +1580,7 @@ class Velox_Shop_Admin {
 		}
 		$act = sanitize_key( (string) ( $in['act'] ?? '' ) );
 		// Account changes need the right to edit that user (never an admin from the shop by a lesser role).
-		if ( $u && 'message' !== $act && 'export' !== $act && ! current_user_can( 'edit_user', $u->ID ) ) {
+		if ( $u && 'message' !== $act && ! current_user_can( 'edit_user', $u->ID ) ) { // an export holds personal data: same right as editing
 			return new WP_Error( 'x', __( 'You are not allowed to change this account.', 'velox' ) );
 		}
 		$staff = $u && user_can( $u, 'edit_posts' );
@@ -1707,6 +1707,9 @@ class Velox_Shop_Admin {
 			case 'delete':
 				if ( ! $u || $staff ) {
 					return new WP_Error( 'x', __( 'Only customer accounts can be deleted here.', 'velox' ) );
+				}
+				if ( ! current_user_can( 'delete_user', $u->ID ) ) {
+					return new WP_Error( 'x', __( 'You are not allowed to change this account.', 'velox' ) );
 				}
 				Velox_Shop_Account::delete_customer( $u );
 				return array( 'deleted' => true, 'msg' => __( 'Account deleted. The orders are kept.', 'velox' ) );

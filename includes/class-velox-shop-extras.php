@@ -463,7 +463,7 @@ class Velox_Shop_Extras {
 		// order may still write one, but it waits for the shop to check it.
 		$bought   = self::bought( $email, $pid );
 		$me       = is_user_logged_in() ? strtolower( (string) wp_get_current_user()->user_email ) : '';
-		$verified = $bought && '' !== $me && strtolower( $email ) === $me;
+		$verified = $bought && '' !== $me && strtolower( $email ) === $me && Velox_Shop_Account::email_ok( wp_get_current_user() );
 		if ( self::on( 'reviews_verified', '0' ) && ! $bought ) {
 			return new WP_Error( 'only', __( 'Only customers who bought this product can review it. Use the email address from your order.', 'velox' ) );
 		}

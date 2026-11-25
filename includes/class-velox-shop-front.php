@@ -1512,7 +1512,7 @@ class Velox_Shop_Front {
 		if ( ! empty( $_GET['vxo'] ) ) {
 			$o = Velox_Shop::order_by_key( sanitize_text_field( wp_unslash( $_GET['vxo'] ) ) );
 			$u = wp_get_current_user();
-			$own = $o && $u->exists() && ( (int) ( $o['user'] ?? 0 ) === (int) $u->ID || strtolower( (string) ( $o['customer']['email'] ?? '' ) ) === strtolower( $u->user_email ) );
+			$own = Velox_Shop_Account::owns( $o, $u );
 			if ( $own ) {
 				// The customer's own order: show it inside the account, with its navigation.
 				$_GET['vxa'] = 'orders';
