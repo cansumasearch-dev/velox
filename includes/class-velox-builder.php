@@ -588,6 +588,7 @@ class Velox_Builder {
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
 			'nonce'   => wp_create_nonce( 'velox_nonce' ),
 			'docId'   => $doc_id,
+			'docRev'  => $doc_id ? self::save_rev( $doc_id ) : 0,
 			'postId'  => $post_id,
 			'seedTitle' => $seed_title,
 			// The stored type wins over the URL. Opening a template without
@@ -798,6 +799,24 @@ class Velox_Builder {
 	 * views, and upsert the row. Creating a new doc returns its fresh id so the
 	 * editor can switch from "new" to "editing #id".
 	 */
+	/**
+	 * How many times the editor saved this document. A save that starts from an
+	 * older number was made in another tab or by someone else meanwhile: the
+	 * last save used to win without a word and wipe the other person's work.
+	 */
+	public static function save_rev( $id ) {
+		$all = get_option( 'velox_builder_doc_rev', array() );
+		return is_array( $all ) ? (int) ( $all[ (int) $id ] ?? 0 ) : 0;
+	}
+
+	private static function bump_rev( $id ) {
+		$all = get_option( 'velox_builder_doc_rev', array() );
+		$all = is_array( $all ) ? $all : array();
+		$all[ (int) $id ] = (int) ( $all[ (int) $id ] ?? 0 ) + 1;
+		update_option( 'velox_builder_doc_rev', $all, false );
+		return $all[ (int) $id ];
+	}
+
 	public static function ajax_save() {
 		global $wpdb;
 		$id    = isset( $_POST['id'] ) ? absint( $_POST['id'] ) : 0;
@@ -875,6 +894,25 @@ class Velox_Builder {
 				$pending[] = $cname;
 			}
 		}
+		// A class edited and then changed back is the same as the site's version:
+		// drop it, or publishing pushed this page's copy site-wide anyway.
+		if ( $pending ) {
+			$reg  = self::class_registry();
+			$norm = function ( $v ) use ( &$norm ) {
+				$v = json_decode( wp_json_encode( $v ), true );
+				if ( is_array( $v ) ) {
+					ksort( $v );
+					foreach ( $v as $k => $x ) {
+						$v[ $k ] = is_array( $x ) ? $norm( $x ) : $x;
+					}
+				}
+				return $v;
+			};
+			$pending = array_values( array_filter( $pending, function ( $c ) use ( $model, $reg, $norm ) {
+				$mine = isset( $model->classes ) && is_object( $model->classes ) && isset( $model->classes->{$c} ) ? $model->classes->{$c} : null;
+				return ! ( null !== $mine && isset( $reg[ $c ] ) && $norm( $mine ) === $norm( $reg[ $c ] ) );
+			} ) );
+		}
 		if ( $pending ) {
 			$model->changedClasses = array_values( $pending );
 		}
@@ -891,6 +929,10 @@ class Velox_Builder {
 			$id = self::doc_id_for_post( $post_id );
 		}
 		$row = $id ? $wpdb->get_row( $wpdb->prepare( "SELECT id, status, kind FROM {$t} WHERE id = %d", $id ), ARRAY_A ) : null;
+		// Saved meanwhile somewhere else (another tab, another person)? Ask first.
+		if ( $row && isset( $_POST['base_rev'] ) && '' !== (string) $_POST['base_rev'] && empty( $_POST['force'] ) && (int) $_POST['base_rev'] !== self::save_rev( $id ) ) {
+			wp_send_json_error( array( 'conflict' => 1, 'message' => __( 'This page was saved somewhere else since you opened it (another tab or another person).', 'velox' ) ), 409 );
+		}
 		// Switching the type in the editor: same rules as on the Overview.
 		if ( $row && $row['kind'] !== $kind ) {
 			self::change_kind( $id, $kind );
@@ -942,9 +984,11 @@ class Velox_Builder {
 			Velox_Builder_Revisions::record( $id, $rk, $data, $title );
 		}
 		$bound = (int) $wpdb->get_var( $wpdb->prepare( 'SELECT post_id FROM ' . $t . ' WHERE id = %d', $id ) );
+		$rev   = self::bump_rev( $id );
 		wp_send_json_success(
 			array(
 				'id'        => $id,
+				'rev'       => $rev,
 				'pending_classes' => $pending,
 				'title'     => $title,
 				'saved'     => $now,
@@ -1195,6 +1239,7 @@ class Velox_Builder {
 		wp_send_json_success(
 			array(
 				'id'        => (int) $row['id'],
+				'rev'       => self::save_rev( (int) $row['id'] ),
 				'title'     => $row['title'],
 				'kind'      => $row['kind'],
 				'status'    => $row['status'],
