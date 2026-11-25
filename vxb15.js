@@ -50,14 +50,14 @@
 			} catch ( e ) { if ( tries ) { return { h: 'EXC', errs: [ e.message ] }; } await sleep( 600 ); }
 		}
 	}
-	async function settle() { var f = document.getElementById( 'vb-canvas' ), t0 = Date.now(); await sleep( 1100 ); while ( Date.now() - t0 < 7000 ) { var a = f && f.getAttribute( 'data-vb-css-seq' ); await sleep( 700 ); if ( a === ( f && f.getAttribute( 'data-vb-css-seq' ) ) ) { break; } } } // wait until the editor's element CSS has arrived
+	async function settle() { var f = document.getElementById( 'vb-canvas' ), t0 = Date.now(); await sleep( 800 ); while ( Date.now() - t0 < 9000 && f && f.getAttribute( 'data-vb-css-seq' ) === window.__vxSeq0 ) { await sleep( 250 ); } await sleep( 400 ); } // until the editor's element CSS for THIS change has arrived
 	async function snap( id ) { var c = canvasSig( id ); var p = await pageSig(); return { c: c, p: p }; }
 	function cmp( prev, cur ) {
 		var cc = prev.c.h !== cur.c.h || prev.c.s !== cur.c.s, pc = prev.p.h !== cur.p.h;
 		return cc && pc ? 'both' : ( cc ? 'editor-only' : ( pc ? 'page-only' : 'none' ) );
 	}
 	async function apply( k, kind, v ) {
-		var c;
+		var c; window.__vxSeq0 = ( document.getElementById( 'vb-canvas' ) || { getAttribute: function () { return ''; } } ).getAttribute( 'data-vb-css-seq' );
 		if ( 'seg' === kind ) { c = q( '.vb-inspector button[data-setel="' + k + '"][data-segval="' + CSS.escape( v ) + '"]' ); if ( c ) { c.click(); } }
 		else if ( 'sel' === kind ) { c = q( '.vb-inspector select[data-setel="' + k + '"]' ); if ( c ) { c.value = v; fire( c, 'change' ); } }
 		else if ( 'chk' === kind ) { c = q( '.vb-inspector input[type=checkbox][data-setel="' + k + '"]' ); if ( c && c.checked !== v ) { c.click(); } }
