@@ -704,6 +704,7 @@ class Velox_Shop_Admin {
 		if ( $short ) {
 			if ( $had ) {
 				Velox_Shop::take_stock( $o['items'], true );
+				$o['stock_out'] = 1; // the old lines hold their stock again
 				Velox_Shop::save_order( $id, $o );
 			}
 			/* translators: %s: products and how many are left */
